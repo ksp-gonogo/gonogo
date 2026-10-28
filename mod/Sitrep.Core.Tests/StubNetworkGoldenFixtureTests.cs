@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using Sitrep.Core;
 using Xunit;
@@ -61,6 +62,12 @@ namespace Sitrep.Core.Tests
                 + "vectors just runs fewer cases and still reports success.");
         }
 
+        /// <summary>A delay in the fixture: a number, or the string "Infinity" the generator writes for unknown, which JSON cannot carry as a number.</summary>
+        private static double Seconds(JsonElement element) =>
+            element.ValueKind == JsonValueKind.String && element.GetString() == "Infinity"
+                ? double.PositiveInfinity
+                : element.GetDouble();
+
         [Theory]
         [MemberData(nameof(Scenarios))]
         public void MatchesTsReference(JsonElement scenario)
@@ -71,7 +78,7 @@ namespace Sitrep.Core.Tests
             {
                 if (defaultsElement.TryGetProperty("delay", out var delayElement))
                 {
-                    delay = delayElement.GetDouble();
+                    delay = Seconds(delayElement);
                 }
                 if (defaultsElement.TryGetProperty("reachable", out var reachableElement))
                 {
@@ -94,7 +101,7 @@ namespace Sitrep.Core.Tests
                         network.SetDelay(
                             op.GetProperty("vantage").GetString()!,
                             op.GetProperty("node").GetString()!,
-                            op.GetProperty("seconds").GetDouble());
+                            Seconds(op.GetProperty("seconds")));
                         break;
                     case "setReachable":
                         network.SetReachable(
@@ -106,18 +113,32 @@ namespace Sitrep.Core.Tests
                         network.SetScale(op.GetProperty("scale").GetDouble());
                         break;
                     case "setDefaultDelay":
-                        network.SetDefaultDelay(op.GetProperty("seconds").GetDouble());
+                        network.SetDefaultDelay(Seconds(op.GetProperty("seconds")));
                         break;
                     case "setNodeDelay":
                         network.SetNodeDelay(
                             op.GetProperty("node").GetString()!,
-                            op.GetProperty("seconds").GetDouble());
+                            Seconds(op.GetProperty("seconds")));
                         break;
+                    case "setVantageDelay":
+                        network.SetVantageDelay(
+                            op.GetProperty("vantage").GetString()!,
+                            Seconds(op.GetProperty("seconds")));
+                        break;
+                    case "setFallbackVantages":
+                    {
+                        var vantages = op.GetProperty("vantages");
+                        network.SetFallbackVantages(
+                            vantages.ValueKind == JsonValueKind.Null
+                                ? null
+                                : vantages.EnumerateArray().Select(v => v.GetString()!).ToList());
+                        break;
+                    }
                     case "queryDelay":
                     {
                         var vantage = op.GetProperty("vantage").GetString()!;
                         var node = op.GetProperty("node").GetString()!;
-                        var expected = op.GetProperty("expected").GetDouble();
+                        var expected = Seconds(op.GetProperty("expected"));
                         var actual = network.DelayTo(vantage, node);
                         Assert.True(
                             expected == actual,

@@ -9,8 +9,8 @@ namespace Sitrep.Host.CommandCentres
     /// command centre x every fleet subject, the explicit (vantage = centre.Id,
     /// node = fleet.&lt;guid&gt;) delay pair. This is the EXPLICIT-PAIR tier of
     /// <c>StubNetwork.DelayTo</c>'s 3-tier lookup, so it overrides the
-    /// <c>SetNodeDelay</c> node-default for the selected vantage while leaving
-    /// the KSC-uniform node-default underneath for any unselected vantage.
+    /// <c>SetNodeDelay</c> node row for that centre. The node row answers only the
+    /// home centre, so a centre with no row here reads the subject unknown.
     ///
     /// <para>Four subject namespaces, same tier. <see cref="Populate"/> writes the
     /// centre-to-VESSEL rows a command to a named craft is timed by,
@@ -76,8 +76,7 @@ namespace Sitrep.Host.CommandCentres
                          * so itself: the routing callback reports null for a self-path
                          * (a node-to-node solve where both ends are the same node is
                          * not a route), so leaving it to routeDelay would write no row
-                         * and drop the pair through to the node-default, which is the
-                         * ground's light-time to that craft.
+                         * and leave the pair unknown.
                          */
                         setDelay(centre.Id, FleetNode(guid), 0.0);
                         continue;
@@ -104,12 +103,14 @@ namespace Sitrep.Host.CommandCentres
         /// is written at its route to the active craft, and a centre with no route gets no
         /// row.</para>
         ///
-        /// <para>The home centre gets no row either, because it already has the right one.
-        /// With no row a vantage reads the whole-network default, which is the active craft's
-        /// own solved path home: the same path <see cref="Populate"/>'s routing reads for the
-        /// home centre's fleet row. That default also carries the hold the engine puts on it
-        /// while the craft is out of contact, which a row written from the path would not,
-        /// since a craft with no link measures an empty path at zero.</para>
+        /// <para>The home centre gets no row either, because it already has the right one:
+        /// the engine's <see cref="ChannelEngine.NodeId"/> node row, which answers only home
+        /// and is the active craft's own solved path home, the same path
+        /// <see cref="Populate"/>'s routing reads for the home centre's fleet row. That row
+        /// also carries the hold the engine puts on it while the craft is out of contact,
+        /// which a row written from the path would not, since a craft with no link measures
+        /// an empty path at zero. Any other centre with no row reads the active craft
+        /// unknown.</para>
         /// </summary>
         /// <param name="activeCentres">The registry's currently-active centres.</param>
         /// <param name="activeGuid">The active craft's guid, or null when nothing is active (no row is written).</param>
@@ -253,7 +254,7 @@ namespace Sitrep.Host.CommandCentres
         /// default, which is the home centre's signal delay, and was sent a craft it
         /// could not hear on home's clock. The home centre with no route to a craft
         /// that another centre does reach is listed against it too, carrying neither
-        /// way, since it would otherwise read the whole-network default. A crewed
+        /// way, since it has no figure of its own for it. A crewed
         /// centre always reaches its own craft. The home command's ledger is listed, carrying neither way, for a
         /// centre <see cref="OffTheGroundNetwork"/> names, and every ground station
         /// stands on that network.</para>
@@ -338,9 +339,9 @@ namespace Sitrep.Host.CommandCentres
 
         /*
          * A home centre with no route to a craft that another centre does reach has no
-         * row of its own and no node default to read, so it would be timed by the
-         * whole-network default, the active craft's delay. When no centre reaches the
-         * craft the reveal gate already holds its readings, so it is left alone.
+         * row of its own and no node row to read, so its pair says "never" outright.
+         * When no centre reaches the craft the reveal gate already holds its readings,
+         * so it is left alone.
          */
         private static bool AnotherCentreRoutes(
             IReadOnlyList<ICommandCentre> activeCentres,
@@ -370,10 +371,8 @@ namespace Sitrep.Host.CommandCentres
         ///
         /// <para>A centre's row against itself is written as an explicit zero,
         /// and it is the one zero in this file that is not a guess: a node is
-        /// exactly no distance from itself. Without it the pair would fall
-        /// through to the whole-network default delay, so a centre hearing its
-        /// own stream would inherit whatever signal delay the active craft happens
-        /// to be at, which is the wrong number and silently so. The routing callback still reports
+        /// exactly no distance from itself, and without a row the pair is unknown.
+        /// The routing callback still reports
         /// <c>null</c> for a self-path, because "route from a node to itself" is
         /// not a route; the zero is this pass's own statement, not a measurement.</para>
         /// </summary>

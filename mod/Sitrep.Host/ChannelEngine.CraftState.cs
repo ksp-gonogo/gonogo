@@ -74,9 +74,13 @@ namespace Sitrep.Host
                 return;
             }
             _craftLinkSaid[vesselId] = connected;
+            _craftLinkSaidUnder[vesselId] = _network.StampFor(FleetNodePrefix + vesselId);
             // The tick being worked through, not the clock, which this tick has not advanced yet.
             Emit(CraftLinkTopic(vesselId), connected, Math.Max(_tickUt, _clock.Now()));
         }
+
+        /// <summary>The delays each craft's link was last said under, so a centre that could not hear it then is told it once it can.</summary>
+        private readonly Dictionary<string, DelayStamp> _craftLinkSaidUnder = new Dictionary<string, DelayStamp>(StringComparer.Ordinal);
 
         internal const string CraftSightingSuffix = ".seen";
 
@@ -386,7 +390,16 @@ namespace Sitrep.Host
             {
                 longest = Math.Max(longest, stamp.BaseSeconds);
             }
-            foreach (var centre in _activeCentreIds)
+            var vantages = new HashSet<string>(_activeCentreIds, StringComparer.Ordinal);
+            foreach (var stamp in stamps)
+            {
+                var rows = stamp.ByVantage();
+                if (rows != null)
+                {
+                    vantages.UnionWith(rows.Keys);
+                }
+            }
+            foreach (var centre in vantages)
             {
                 var slowest = double.NegativeInfinity;
                 foreach (var stamp in stamps)
@@ -448,28 +461,44 @@ namespace Sitrep.Host
             {
                 Emit(CraftStateTopic(vesselId), said, ut);
             }
-            // Its link is said only when it changes, so the centre is told it as it stands, beside the state.
-            if (gained && _craftLinkSaid.TryGetValue(vesselId, out var linked))
+            /*
+             * Its link is said only when it changes, so a centre that could not hear
+             * it when it was last said is told it as it stands, beside the state.
+             */
+            if (_craftLinkSaid.TryGetValue(vesselId, out var linked)
+                && _craftLinkSaidUnder.TryGetValue(vesselId, out var linkUnder)
+                && (gained || GainedARoute(linkUnder, stamp)))
             {
+                _craftLinkSaidUnder[vesselId] = stamp;
                 Emit(CraftLinkTopic(vesselId), linked, ut);
             }
         }
 
-        /// <summary>Whether some centre that could not be reached under <paramref name="before"/> can be under <paramref name="now"/>.</summary>
-        private static bool GainedARoute(DelayStamp before, DelayStamp now)
+        /// <summary>
+        /// Whether some centre that could not be reached under <paramref name="before"/> can be
+        /// under <paramref name="now"/>: one whose row said "never", or one that had no row and
+        /// so was unknown.
+        /// </summary>
+        private bool GainedARoute(DelayStamp before, DelayStamp now)
         {
             if (ReferenceEquals(before, now))
             {
                 return false;
             }
+            var vantages = new HashSet<string>(_activeCentreIds, StringComparer.Ordinal);
             var was = before.ByVantage();
-            if (was == null)
+            if (was != null)
             {
-                return false;
+                vantages.UnionWith(was.Keys);
             }
-            foreach (var row in was)
+            var rows = now.ByVantage();
+            if (rows != null)
             {
-                if (double.IsPositiveInfinity(row.Value) && !double.IsPositiveInfinity(now.For(row.Key)))
+                vantages.UnionWith(rows.Keys);
+            }
+            foreach (var vantage in vantages)
+            {
+                if (double.IsPositiveInfinity(before.For(vantage)) && !double.IsPositiveInfinity(now.For(vantage)))
                 {
                     return true;
                 }
@@ -619,6 +648,7 @@ namespace Sitrep.Host
             _craftMeasured.Clear();
             _craftStateSaid.Clear();
             _craftLinkSaid.Clear();
+            _craftLinkSaidUnder.Clear();
             _craftRadioStamps.Clear();
             _craftSightStamps.Clear();
             _craftReached.Clear();

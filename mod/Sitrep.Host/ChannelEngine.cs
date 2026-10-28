@@ -42,10 +42,8 @@ namespace Sitrep.Host
 
         /// <summary>
         /// The everywhere-at-once observer vantage: <c>DelayTo(MetaVantage, *)</c>
-        /// is pinned to 0 so instant/exempt topics (comms.link,
-        /// craftstate.&lt;guid&gt;.link, TrueNow) are never delayed by the ledger even
-        /// after the whole-network default carries the signal delay.
-        /// Keeps "instant" a vantage, not a separate code path.
+        /// is a vantage row of 0, so instant topics are never delayed by the ledger
+        /// on any node. Keeps "instant" a vantage, not a separate code path.
         /// </summary>
         public const string MetaVantage = "meta";
 
@@ -1653,20 +1651,12 @@ namespace Sitrep.Host
 
         /// <param name="bindUri">A <c>ws://host:port</c> URI: see <see cref="FleckTransportListener"/>.</param>
         /// <param name="networkDelaySeconds">
-        /// Seed value for the whole-network delay default, the third and lowest
-        /// tier of <see cref="INetwork.DelayTo"/>. It is the one-way delay the
-        /// Courier applies between record and delivery for any (vantage, node)
-        /// pair with no <see cref="INetwork.SetNodeDelay"/> node-default and no
-        /// explicit <see cref="INetwork.SetDelay"/> pair, which in practice
-        /// means the active vessel's <see cref="NodeId"/> node.
-        ///
-        /// <para>It is a seed, not the operating value: <see
-        /// cref="CaptureSignalDelay"/> overwrites it every tick from the live
-        /// <c>comms.delay</c> scalar. Production therefore leaves this at 0 and
-        /// gets its signal delay at runtime instead. Do not read "production
-        /// passes nothing" as "the whole-network default is unused": tier 3 is
-        /// how the active vessel's signal delay reaches the Courier and the
-        /// reveal gate, and neutering it fails the reveal-gate suite.</para>
+        /// Seed for the active craft's delay as the home centre sees it: the
+        /// <see cref="NodeId"/> node row, which answers only the home centre and a
+        /// connection standing at no centre (see <see cref="RefreshFallbackVantages"/>).
+        /// It is a seed, not the operating value: <see cref="CaptureSignalDelay"/>
+        /// overwrites it every tick from the live <c>comms.delay</c> scalar, so
+        /// production leaves it at 0.
         /// </param>
         /// <param name="executeCommandsOnMainThread">
         /// F2 Part 1: when <c>true</c>, command handlers are marshaled onto the
@@ -1694,45 +1684,18 @@ namespace Sitrep.Host
             _executeCommandsOnMainThread = executeCommandsOnMainThread;
             _mainThreadCommandTimeout = TimeSpan.FromSeconds(mainThreadCommandTimeoutSeconds);
             _clock = new ManualClock();
-            // `networkDelaySeconds` is a SEED, not the delay. In production it is
-            // never passed (GonogoAddon constructs with the default 0) and the live
-            // one-way light-time arrives every tick through
-            // `SetDefaultDelay(_signalDelaySeconds)` in CaptureSignalDelay, sourced
-            // from the elected comms backend via CommsCoreUplink.ComputeDelayOnMain.
-            //
-            // So the whole-network default is the ACTIVE carrier of signal delay for
-            // the primary node, not a leftover: `NodeId` is "system", nothing writes
-            // a node-level default for it, and SetVesselDelay/SetAuthorityDelays only
-            // ever write `fleet.*` nodes and command-centre pairs. SetActiveVesselDelays
-            // does write rows against it, but only for a centre with a route of its
-            // own, so the home centre and every unrouted vantage still resolve here.
-            // Emptying `SetDefaultDelay` reds eight RevealGateTests.
-            var stubNetwork = new StubNetwork(delay: networkDelaySeconds, reachable: true);
-            // Pin the meta-vantage to 0 so instant/exempt topics on the active
-            // vessel's node stay instant. The whole-network default underneath
-            // is not 0 for long: CaptureSignalDelay drives it from the live
-            // comms.delay every tick, so an exempt topic that fell through to
-            // it would pick up the signal delay it is exempt from.
-            //
-            // Written as an EXPLICIT (vantage, node) pair rather than left to
-            // any default, because DelayTo resolves the explicit pair FIRST and
-            // that is the only tier nothing else writes to. It is NOT made
-            // redundant by networkDelaySeconds being 0 here: that argument only
-            // seeds tier 3, which the live delay then overwrites within a tick.
-            //
-            // The Subscribe path re-asserts the same pin per instant topic (see
-            // the SetDelay(MetaVantage, NodeFor(topic), 0.0) there, which also
-            // covers fleet.<guid> nodes minted later), so this one holds the
-            // active vessel's node for any DelayTo(meta, system) read that
-            // happens before a subscription exists. Nothing currently in the
-            // suite distinguishes the two: removing this line leaves
-            // Sitrep.Host.IntegrationTests fully green, so treat that greenness
-            // as unmeasured rather than as permission to delete it.
-            stubNetwork.SetDelay(MetaVantage, NodeId, 0.0);
-            // A vantage with no home-command row of its own is on the ground
-            // network, where the ledger is. Left to the whole-network default it
-            // would take the ACTIVE vessel's light-time, so a ground centre would
-            // learn its own balance a craft's distance late.
+            /*
+             * No delay is ever borrowed: a pair with no row of its own reads
+             * unknown, so the whole-network default is unknown, and every figure
+             * the engine does mean is written as a row. The active craft's delay
+             * home and the ledger's ground network are node rows, which answer only
+             * the fallback vantages; MetaVantage is a vantage row of zero, so
+             * instant and exempt topics stay instant on every node, whenever it was
+             * minted. A centre's own site is pinned by PinOwnSites.
+             */
+            var stubNetwork = new StubNetwork(delay: double.PositiveInfinity, reachable: true);
+            stubNetwork.SetVantageDelay(MetaVantage, 0.0);
+            stubNetwork.SetNodeDelay(NodeId, networkDelaySeconds);
             stubNetwork.SetNodeDelay(HomeCommandNode, 0.0);
             _network = stubNetwork;
             _ledger = stubNetwork;
@@ -3547,7 +3510,10 @@ namespace Sitrep.Host
             {
                 if (!next.Contains(pair))
                 {
-                    _network.ClearDelay(pair.Vantage, pair.Node);
+                    if (!IsOwnSite(pair.Vantage, pair.Node))
+                    {
+                        _network.ClearDelay(pair.Vantage, pair.Node);
+                    }
                     _authorityRows.Remove(pair);
                 }
             }
@@ -3714,7 +3680,7 @@ namespace Sitrep.Host
                 next.TryGetValue(row.Key, out var still);
                 foreach (var destination in row.Value)
                 {
-                    if (still == null || !still.Contains(destination))
+                    if ((still == null || !still.Contains(destination)) && !IsOwnSite(row.Key, CentreNodePrefix + destination))
                     {
                         _network.ClearDelay(row.Key, CentreNodePrefix + destination);
                     }
@@ -3906,12 +3872,13 @@ namespace Sitrep.Host
         {
             /*
              * The explicit (vantage, node) tier against NodeId, the node every
-             * ordinary channel records under. A centre dropped from the set falls
-             * back to the whole-network default, which is the active craft's own
-             * light-time home and the blackout hold RefreshLedgerDelays puts on it.
+             * ordinary channel records under. A centre dropped from the set reads
+             * NodeId unknown, unless it is home, which reads the node row: the
+             * active craft's own delay home and the blackout hold
+             * RefreshLedgerDelays puts on it.
              *
-             * MetaVantage is never written or cleared here: its zero on NodeId is
-             * the constructor's pin that keeps instant topics instant.
+             * MetaVantage is never written or cleared here: its vantage row of
+             * zero keeps instant topics instant.
              */
             foreach (var centre in _activeVesselRowCentres.ToList())
             {
@@ -6311,21 +6278,8 @@ namespace Sitrep.Host
         /// written by the capture pass, so a subscription can be gated without
         /// the gate losing its own number.</para>
         ///
-        /// <para>Shared by the subscribe path and the vantage read on purpose.
-        /// They used to differ: only the subscription routed, so the same topic
-        /// at the same instant was worth one thing to a subscriber and a
-        /// signal delay-older thing to a command-vantage threshold. One function
-        /// means a topic cannot be instant down one path and delayed down the
-        /// other.</para>
-        ///
-        /// <para>It writes, which is why it is not a predicate. MetaVantage
-        /// promises <c>DelayTo(meta, *) == 0</c>, but the constructor can only
-        /// pin the one node it knows up front ("system"); a fleet.&lt;guid&gt;
-        /// node is minted later by the fleet capture, and an unpinned pair falls
-        /// through to that node's own routed signal delay. Pinning at the single
-        /// point where a topic is routed onto the meta vantage is what makes the
-        /// promise true for every node, whenever it was minted. Both callers run
-        /// on the Courier thread.</para>
+        /// <para>Shared by the subscribe path and the vantage read, so a topic
+        /// cannot be instant down one path and delayed down the other.</para>
         /// </summary>
         private string ObservationVantageFor(string topic, string selectedVantage)
         {
@@ -6335,7 +6289,6 @@ namespace Sitrep.Host
             {
                 return selectedVantage;
             }
-            _network.SetDelay(MetaVantage, NodeFor(topic), 0.0);
             return MetaVantage;
         }
 
@@ -8394,9 +8347,8 @@ namespace Sitrep.Host
                 return double.PositiveInfinity;
             }
 
-            // A subject with no delay known from anywhere would be timed by the
-            // whole-network default, the active craft's delay. It is held the way
-            // a dark subject's reading is, until ReleaseReadingsNowTimed finds one.
+            // A subject with no delay known from anywhere is held the way a dark
+            // subject's reading is, until ReleaseReadingsNowTimed finds one.
             if (!NodeDelayKnown(node))
             {
                 _heldForUnknownDelay.Add(topic);
@@ -8450,14 +8402,10 @@ namespace Sitrep.Host
                     _awaitingFirstMeasuredPath = false;
                 }
 
-                // Ledger migration: drive the whole-network default
-                // delay from the freshly-captured scalar so the Courier/Archive
-                // apply the light-time for ordinary topics. The meta-vantage is
-                // pinned to 0 (ctor), so instant/exempt topics stay instant.
-                // Placed here (the single _signalDelaySeconds mutation point)
-                // rather than at the refresh method's end so it can't be skipped
-                // by the pull-channel fail-soft early-return.
-                _network.SetDefaultDelay(_signalDelaySeconds);
+                // The active craft's delay home, as the NodeId node row. Written at
+                // the single _signalDelaySeconds mutation point so the pull-channel
+                // fail-soft early-return cannot skip it.
+                _network.SetNodeDelay(NodeId, _signalDelaySeconds);
             }
         }
 
@@ -8697,7 +8645,7 @@ namespace Sitrep.Host
         {
             if (!SubjectConnected(NodeId) && _subjectLastConnectedDelay.TryGetValue(NodeId, out var systemHeld))
             {
-                _network.SetDefaultDelay(systemHeld);
+                _network.SetNodeDelay(NodeId, systemHeld);
             }
             foreach (var node in _vesselNodeDelay.Keys)
             {
@@ -8965,6 +8913,7 @@ namespace Sitrep.Host
             {
                 var vesselId = node.Substring(FleetNodePrefix.Length);
                 _craftLinkSaid.Remove(vesselId);
+                _craftLinkSaidUnder.Remove(vesselId);
                 _craftRadioStamps.Remove(vesselId);
                 _craftSightStamps.Remove(vesselId);
                 _craftReached.Remove(vesselId);
@@ -9816,6 +9765,8 @@ namespace Sitrep.Host
             var timing = TickTiming.Start();
             _tickUt = tick.Ut;
             _network.SetCentres(_activeCentreIds);
+            RefreshFallbackVantages();
+            PinOwnSites();
             // Quickload / timeline-rewind detection: paired 1:1 with the
             // identical check GonogoBodiesServer/ReplayBodiesServer both used
             // to carry separately: now there is exactly one copy. Live KSP's
@@ -10754,9 +10705,8 @@ namespace Sitrep.Host
                 return;
             }
 
-            // With no delay known to the subject the only figure left is the
-            // whole-network default, the active craft's delay, which says nothing
-            // about where this order is going. Refused where it was pressed.
+            // With no delay known to the subject there is no figure to time the
+            // order by. Refused where it was pressed.
             if (!DelayKnown(job.Vantage, node))
             {
                 job.OnResult(CommandResult.Fail(CommandErrorCode.NoConnection, SubjectDelayUnknownDetail));

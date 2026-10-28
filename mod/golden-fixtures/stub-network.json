@@ -573,5 +573,211 @@
         "expected": 0
       }
     ]
+  },
+  {
+    "name": "an-infinite-default-is-unknown-whatever-the-scale",
+    "description": "setDefaultDelay(Infinity) keeps the default unknown rather than clamping it to 0, a row still answers its pair, and scale 0 leaves unknown unknown.",
+    "ops": [
+      {
+        "op": "setDefaultDelay",
+        "seconds": "Infinity"
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "expected": "Infinity"
+      },
+      {
+        "op": "setNodeDelay",
+        "node": "v1",
+        "seconds": 4
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "expected": 4
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "v2",
+        "expected": "Infinity"
+      },
+      {
+        "op": "setScale",
+        "scale": 0
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "v2",
+        "expected": "Infinity"
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "expected": 0
+      }
+    ]
+  },
+  {
+    "name": "constructor-infinite-default-is-unknown",
+    "description": "A constructor delay of Infinity is the unknown default, the same as setDefaultDelay(Infinity).",
+    "defaults": {
+      "delay": "Infinity"
+    },
+    "ops": [
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "expected": "Infinity"
+      },
+      {
+        "op": "setDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "seconds": 3
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "v1",
+        "expected": 3
+      }
+    ]
+  },
+  {
+    "name": "a-vantage-row-answers-every-node-beneath-its-pairs",
+    "description": "setVantageDelay gives one vantage one delay to every node, over the node rows and the default; an explicit pair still overrides it, and other vantages are untouched.",
+    "defaults": {
+      "delay": 10
+    },
+    "ops": [
+      {
+        "op": "setNodeDelay",
+        "node": "fleet.a",
+        "seconds": 6
+      },
+      {
+        "op": "setVantageDelay",
+        "vantage": "meta",
+        "seconds": 0
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "meta",
+        "node": "fleet.a",
+        "expected": 0
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "meta",
+        "node": "anything",
+        "expected": 0
+      },
+      {
+        "op": "setDelay",
+        "vantage": "meta",
+        "node": "fleet.a",
+        "seconds": 2
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "meta",
+        "node": "fleet.a",
+        "expected": 2
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "fleet.a",
+        "expected": 6
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "anything",
+        "expected": 10
+      }
+    ]
+  },
+  {
+    "name": "node-rows-and-the-default-answer-only-the-fallback-vantages",
+    "description": "After setFallbackVantages, a node row and the default answer only the named vantages; any other vantage with no pair or vantage row reads Infinity (unknown). setFallbackVantages(null) lets them answer every vantage again.",
+    "defaults": {
+      "delay": 10
+    },
+    "ops": [
+      {
+        "op": "setNodeDelay",
+        "node": "fleet.a",
+        "seconds": 6
+      },
+      {
+        "op": "setFallbackVantages",
+        "vantages": ["KSC", ""]
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "KSC",
+        "node": "fleet.a",
+        "expected": 6
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "",
+        "node": "system",
+        "expected": 10
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "DSN",
+        "node": "fleet.a",
+        "expected": "Infinity"
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "DSN",
+        "node": "system",
+        "expected": "Infinity"
+      },
+      {
+        "op": "setDelay",
+        "vantage": "DSN",
+        "node": "fleet.a",
+        "seconds": 9
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "DSN",
+        "node": "fleet.a",
+        "expected": 9
+      },
+      {
+        "op": "setVantageDelay",
+        "vantage": "meta",
+        "seconds": 0
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "meta",
+        "node": "fleet.a",
+        "expected": 0
+      },
+      {
+        "op": "setFallbackVantages",
+        "vantages": null
+      },
+      {
+        "op": "queryDelay",
+        "vantage": "DSN",
+        "node": "system",
+        "expected": 10
+      }
+    ]
   }
 ]

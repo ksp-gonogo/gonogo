@@ -140,4 +140,28 @@ describe("StubNetwork", () => {
       expect(network.delayTo("KSC", "v1")).toBe(0);
     });
   });
+
+  describe("unknown", () => {
+    it("keeps an infinite default unknown, whatever the scale", () => {
+      const network = new StubNetwork({ delay: Number.POSITIVE_INFINITY }, 0);
+
+      expect(network.delayTo("KSC", "v1")).toBe(Number.POSITIVE_INFINITY);
+      network.setDelay("KSC", "v1", 4);
+      expect(network.delayTo("KSC", "v1")).toBe(0);
+    });
+
+    it("answers a vantage with no row unknown once the fallback names who it answers", () => {
+      const network = new StubNetwork({ delay: Number.POSITIVE_INFINITY });
+      network.setNodeDelay("fleet.G", 5);
+      network.setVantageDelay("meta", 0);
+
+      network.setFallbackVantages(["KSC", ""]);
+
+      expect(network.delayTo("KSC", "fleet.G")).toBe(5);
+      expect(network.delayTo("DSN", "fleet.G")).toBe(Number.POSITIVE_INFINITY);
+      expect(network.delayTo("meta", "fleet.G")).toBe(0);
+      network.setDelay("DSN", "fleet.G", 9);
+      expect(network.delayTo("DSN", "fleet.G")).toBe(9);
+    });
+  });
 });

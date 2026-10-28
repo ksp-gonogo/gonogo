@@ -22,10 +22,9 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Whether any delay from <paramref name="vantage"/> to <paramref name="node"/>
-        /// is known: a row written for the pair or for the node, or the vantage's own
-        /// site. A craft's or a centre's node with none would otherwise be timed by the
-        /// whole-network default, which is the active craft's delay and says nothing
-        /// about this subject. Every other node is timed by a rule of its own.
+        /// is known: a row written for the pair, for the vantage, or for the node where
+        /// the node rows answer this vantage, or the vantage's own site. Every other
+        /// node is timed by a rule of its own.
         /// </summary>
         internal bool DelayKnown(string vantage, string node)
         {
@@ -53,6 +52,81 @@ namespace Sitrep.Host
         private static bool IsSubjectNode(string node) =>
             node.StartsWith(FleetNodePrefix, StringComparison.Ordinal)
             || node.StartsWith(CentreNodePrefix, StringComparison.Ordinal);
+
+        private string? _fallbackHome;
+        private bool _fallbackSet;
+        private bool _fallbackForNoCentres;
+
+        /// <summary>
+        /// Courier thread: names the vantages the node rows answer, the home centre
+        /// and a connection standing at no centre. Every node row is a figure seen
+        /// from home (the active craft's delay home, a craft's downlink, the ledger's
+        /// ground network), so any other centre reads a node unknown until a row of
+        /// its own is written. With no centre active there is no other place to
+        /// stand, so the rows answer every vantage.
+        /// </summary>
+        private void RefreshFallbackVantages()
+        {
+            var noCentres = _activeCentreIds.Count == 0;
+            var home = noCentres ? null : HomeCentre();
+            if (_fallbackSet && noCentres == _fallbackForNoCentres && home == _fallbackHome)
+            {
+                return;
+            }
+            _fallbackSet = true;
+            _fallbackForNoCentres = noCentres;
+            _fallbackHome = home;
+            if (noCentres)
+            {
+                _ledger.SetFallbackVantages(null);
+                return;
+            }
+            _ledger.SetFallbackVantages(home == null
+                ? new[] { CommandCentres.FreshConnectionVantage.None }
+                : new[] { CommandCentres.FreshConnectionVantage.None, home });
+        }
+
+        // The centre set the own-site rows were last pinned for, and the rows. Courier-thread-only.
+        private HashSet<string>? _ownSitesPinnedFor;
+        private readonly HashSet<(string Vantage, string Node)> _ownSiteRows = new HashSet<(string, string)>();
+
+        /// <summary>
+        /// Courier thread: writes a zero row from each active centre to its own
+        /// site, its ground station's node and, for a crewed centre, its own craft's,
+        /// and lets go of the rows of a centre that is no longer active.
+        /// </summary>
+        private void PinOwnSites()
+        {
+            var centres = _activeCentreIds;
+            if (ReferenceEquals(centres, _ownSitesPinnedFor))
+            {
+                return;
+            }
+            _ownSitesPinnedFor = centres;
+
+            var next = new HashSet<(string Vantage, string Node)>();
+            foreach (var centre in centres)
+            {
+                next.Add((centre, CentreNodePrefix + centre));
+                if (centre.StartsWith(VesselCentrePrefix, StringComparison.Ordinal))
+                {
+                    next.Add((centre, FleetNodePrefix + centre.Substring(VesselCentrePrefix.Length)));
+                }
+            }
+            foreach (var row in _ownSiteRows)
+            {
+                if (!next.Contains(row))
+                {
+                    _network.ClearDelay(row.Vantage, row.Node);
+                }
+            }
+            _ownSiteRows.Clear();
+            foreach (var row in next)
+            {
+                _network.SetDelay(row.Vantage, row.Node, 0.0);
+                _ownSiteRows.Add(row);
+            }
+        }
 
         /// <summary>Whether <paramref name="node"/> is where <paramref name="vantage"/> itself stands: its own ground station, or its own craft.</summary>
         private static bool IsOwnSite(string vantage, string node)

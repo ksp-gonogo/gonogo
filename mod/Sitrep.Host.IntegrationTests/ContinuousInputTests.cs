@@ -346,13 +346,12 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// The same dark link, pressed from a vantage that holds no plan and so
-        /// cannot know the link is down. It is accepted at the delay it knows,
-        /// never refused at once, and the loss is learned when the reply fails to
-        /// come, a round trip after the press and no sooner.
+        /// The same dark link, pressed from a vantage that is no command centre. It
+        /// has no delay of its own to the craft, so the press is refused where it was
+        /// made rather than timed by home's delay, and nothing waits to be lost.
         /// </summary>
         [Fact]
-        public async Task APressFromAVantageWithNoPlanIntoADarkLinkIsAcceptedAndLostARoundTripLater()
+        public async Task APressFromAVantageThatIsNoCentreIsRefusedNotTimedByHome()
         {
             const string NoPlan = "ground:NoPlan";
             await using var dark = await RisingAsync();
@@ -362,16 +361,9 @@ namespace Sitrep.Host.IntegrationTests
 
             var press = Throttle(dark, NoPlan);
 
-            Assert.Null(press.Code);
-            Assert.True(press.Told);
-            var oneWay = press.Accepted!.Value;
-            Assert.True(oneWay > 0.0, "the press should be quoted the delay its vantage knows");
-            Assert.Single(Pending(dark));
-
-            dark.Tick(1601.0 + (2.0 * oneWay) - 1.0);
-            Assert.Single(Pending(dark));
-            dark.Tick(1601.0 + (2.0 * oneWay) + 1.0);
+            Assert.False(press.Told);
             Assert.Empty(Pending(dark));
+            dark.Tick(1601.0 + 600.0);
             Assert.Equal(0, dark.Uplink.ThrottledCount);
         }
 

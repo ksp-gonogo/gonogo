@@ -60,6 +60,17 @@ interface SetNodeDelayOp {
   seconds: number;
 }
 
+interface SetVantageDelayOp {
+  op: "setVantageDelay";
+  vantage: string;
+  seconds: number;
+}
+
+interface SetFallbackVantagesOp {
+  op: "setFallbackVantages";
+  vantages: string[] | null;
+}
+
 interface QueryDelayOp {
   op: "queryDelay";
   vantage: string;
@@ -82,6 +93,8 @@ type Op =
   | SetScaleOp
   | SetDefaultDelayOp
   | SetNodeDelayOp
+  | SetVantageDelayOp
+  | SetFallbackVantagesOp
   | QueryDelayOp
   | QueryReachableOp;
 
@@ -118,6 +131,12 @@ function runScenario(scenario: Scenario): Scenario {
         return op;
       case "setNodeDelay":
         network.setNodeDelay(op.node, op.seconds);
+        return op;
+      case "setVantageDelay":
+        network.setVantageDelay(op.vantage, op.seconds);
+        return op;
+      case "setFallbackVantages":
+        network.setFallbackVantages(op.vantages);
         return op;
       case "queryDelay":
         return { ...op, expected: network.delayTo(op.vantage, op.node) };
@@ -351,9 +370,75 @@ const scenarios: Scenario[] = [
       { op: "queryDelay", vantage: "KSC", node: "fleet.x" },
     ],
   },
+  {
+    name: "an-infinite-default-is-unknown-whatever-the-scale",
+    description:
+      "setDefaultDelay(Infinity) keeps the default unknown rather than clamping it to 0, a row still answers its pair, and scale 0 leaves unknown unknown.",
+    ops: [
+      { op: "setDefaultDelay", seconds: Number.POSITIVE_INFINITY },
+      { op: "queryDelay", vantage: "KSC", node: "v1" },
+      { op: "setNodeDelay", node: "v1", seconds: 4 },
+      { op: "queryDelay", vantage: "KSC", node: "v1" },
+      { op: "queryDelay", vantage: "KSC", node: "v2" },
+      { op: "setScale", scale: 0 },
+      { op: "queryDelay", vantage: "KSC", node: "v2" },
+      { op: "queryDelay", vantage: "KSC", node: "v1" },
+    ],
+  },
+  {
+    name: "constructor-infinite-default-is-unknown",
+    description:
+      "A constructor delay of Infinity is the unknown default, the same as setDefaultDelay(Infinity).",
+    defaults: { delay: Number.POSITIVE_INFINITY },
+    ops: [
+      { op: "queryDelay", vantage: "KSC", node: "v1" },
+      { op: "setDelay", vantage: "KSC", node: "v1", seconds: 3 },
+      { op: "queryDelay", vantage: "KSC", node: "v1" },
+    ],
+  },
+  {
+    name: "a-vantage-row-answers-every-node-beneath-its-pairs",
+    description:
+      "setVantageDelay gives one vantage one delay to every node, over the node rows and the default; an explicit pair still overrides it, and other vantages are untouched.",
+    defaults: { delay: 10 },
+    ops: [
+      { op: "setNodeDelay", node: "fleet.a", seconds: 6 },
+      { op: "setVantageDelay", vantage: "meta", seconds: 0 },
+      { op: "queryDelay", vantage: "meta", node: "fleet.a" },
+      { op: "queryDelay", vantage: "meta", node: "anything" },
+      { op: "setDelay", vantage: "meta", node: "fleet.a", seconds: 2 },
+      { op: "queryDelay", vantage: "meta", node: "fleet.a" },
+      { op: "queryDelay", vantage: "KSC", node: "fleet.a" },
+      { op: "queryDelay", vantage: "KSC", node: "anything" },
+    ],
+  },
+  {
+    name: "node-rows-and-the-default-answer-only-the-fallback-vantages",
+    description:
+      "After setFallbackVantages, a node row and the default answer only the named vantages; any other vantage with no pair or vantage row reads Infinity (unknown). setFallbackVantages(null) lets them answer every vantage again.",
+    defaults: { delay: 10 },
+    ops: [
+      { op: "setNodeDelay", node: "fleet.a", seconds: 6 },
+      { op: "setFallbackVantages", vantages: ["KSC", ""] },
+      { op: "queryDelay", vantage: "KSC", node: "fleet.a" },
+      { op: "queryDelay", vantage: "", node: "system" },
+      { op: "queryDelay", vantage: "DSN", node: "fleet.a" },
+      { op: "queryDelay", vantage: "DSN", node: "system" },
+      { op: "setDelay", vantage: "DSN", node: "fleet.a", seconds: 9 },
+      { op: "queryDelay", vantage: "DSN", node: "fleet.a" },
+      { op: "setVantageDelay", vantage: "meta", seconds: 0 },
+      { op: "queryDelay", vantage: "meta", node: "fleet.a" },
+      { op: "setFallbackVantages", vantages: null },
+      { op: "queryDelay", vantage: "DSN", node: "system" },
+    ],
+  },
 ];
 
 const results = scenarios.map(runScenario);
 
-writeFileSync(OUT_FILE, `${JSON.stringify(results, null, 2)}\n`);
+/** JSON has no Infinity, so an unknown delay is written as the string "Infinity" and read back as one by the C# replay. */
+const encodeInfinity = (_key: string, value: unknown): unknown =>
+  value === Number.POSITIVE_INFINITY ? "Infinity" : value;
+
+writeFileSync(OUT_FILE, `${JSON.stringify(results, encodeInfinity, 2)}\n`);
 console.log(`golden-fixtures -> ${OUT_FILE} (${results.length} scenarios)`);

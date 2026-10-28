@@ -29,15 +29,22 @@ export interface Network {
  * (light is instant), which is what collapses the whole M3 courier/archive
  * stack to M2-equivalent immediate delivery. `reachable` is never scaled,
  * it's a separate, binary axis.
+ *
+ * A default of `Infinity` is unknown, and `setFallbackVantages` limits which
+ * vantages the node rows and the default answer, so a vantage with no row of
+ * its own reads unknown.
  */
 export class StubNetwork implements Network {
   private defaultDelay: number;
   private readonly defaultReachable: boolean;
   private readonly delays = new Map<string, Map<string, number>>();
+  private readonly vantageDelays = new Map<string, number>();
   private readonly nodeDelays = new Map<string, number>();
   private readonly reachability = new Map<string, Map<string, boolean>>();
+  private fallbackVantages: Set<string> | null = null;
   private scale: number;
 
+  /** `defaults.delay` is the whole-network default; `Infinity` makes it unknown (see `setDefaultDelay`). */
   constructor(defaults?: { delay?: number; reachable?: boolean }, scale = 1) {
     this.defaultDelay = defaults?.delay ?? 0;
     this.defaultReachable = defaults?.reachable ?? true;
@@ -45,15 +52,20 @@ export class StubNetwork implements Network {
   }
 
   delayTo(vantage: string, node: string): number {
-    // Resolution order: explicit (vantage, node) pair -> node-level default
-    // (setNodeDelay) -> global default (setDefaultDelay). The
-    // node-default carries per-vessel downlink delay (one KSC observer);
-    // per-(vantage, node) overrides layer on top for multiple authorities.
+    // Resolution order: explicit (vantage, node) pair -> the vantage's own row
+    // (setVantageDelay) -> node-level default (setNodeDelay) -> global default
+    // (setDefaultDelay). The last two answer only the vantages
+    // setFallbackVantages names; any other vantage is unknown.
     const baseDelay =
       this.delays.get(vantage)?.get(node) ??
-      this.nodeDelays.get(node) ??
-      this.defaultDelay;
-    return baseDelay * this.scale;
+      this.vantageDelays.get(vantage) ??
+      (this.fallbackVantages === null || this.fallbackVantages.has(vantage)
+        ? (this.nodeDelays.get(node) ?? this.defaultDelay)
+        : Number.POSITIVE_INFINITY);
+    // "Never" stays never whatever the scale: zero times it is not a number.
+    return baseDelay === Number.POSITIVE_INFINITY
+      ? baseDelay
+      : baseDelay * this.scale;
   }
 
   /** Set the global delay-scale multiplier applied to every `delayTo` pair (0 = instant, 1 = unscaled, N = N times base delay). Negative values clamp to 0, a negative scale would schedule deliveries in the past. */
@@ -61,12 +73,26 @@ export class StubNetwork implements Network {
     this.scale = Math.max(0, scale);
   }
 
-  /** Set the fallback one-way delay returned by `delayTo` for any (vantage, node) pair without an explicit `setDelay` override. The host drives the whole-network signal delay from a single scalar through this while keeping per-pair overrides (e.g. the 0-delay meta-vantage). NaN / infinite / negative values clamp to 0 (a negative delay would schedule deliveries in the past, matching `setScale`'s clamp intent). */
+  /** Set the fallback one-way delay returned by `delayTo` for any (vantage, node) pair with no row of its own. `Infinity` makes the fallback unknown: such a pair is delivered nothing. NaN and negative values clamp to 0 (a negative delay would schedule deliveries in the past, matching `setScale`'s clamp intent). */
   setDefaultDelay(seconds: number): void {
+    if (seconds === Number.POSITIVE_INFINITY) {
+      this.defaultDelay = seconds;
+      return;
+    }
     this.defaultDelay =
       Number.isNaN(seconds) || !Number.isFinite(seconds) || seconds < 0
         ? 0
         : seconds;
+  }
+
+  /** Set one delay from `vantage` to every node: the tier beneath the pair rows and above the node rows, for a vantage whose delay does not depend on what it observes. */
+  setVantageDelay(vantage: string, seconds: number): void {
+    this.vantageDelays.set(vantage, seconds);
+  }
+
+  /** Name the vantages the node rows and the whole-network default answer. Any other vantage with no pair or vantage row of its own reads `Infinity`, unknown. `null`, the default, lets them answer every vantage. */
+  setFallbackVantages(vantages: Iterable<string> | null): void {
+    this.fallbackVantages = vantages === null ? null : new Set(vantages);
   }
 
   /** Set the one-way delay for a node, applied for that node from any vantage without a per-(vantage, node) `setDelay` override. The per-vessel downlink primitive: each vessel node carries its own routed signal delay for the single KSC observer. NaN / infinite / negative clamp to 0 (matching `setDefaultDelay`). Plan 3 layers per-(vantage, node) overrides on top. */

@@ -34,7 +34,7 @@ namespace Sitrep.Host.IntegrationTests
                 engine.SetVesselDelay(Probe, 7.0);
                 uplink.Events!.Publisher(Probe + ".science");
 
-                Assert.Equal(0.0, engine.LedgerDelayFor("KSC", node));
+                Assert.True(double.IsPositiveInfinity(engine.LedgerDelayFor("KSC", node)));
                 Assert.Null(engine.DeclarationOf(topic));
 
                 uplink.Release.Set();

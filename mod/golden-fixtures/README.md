@@ -150,7 +150,10 @@ map, not string concatenation), `scale`'s default-1/unscaled behavior,
 `setScale` multiplying both default and pinned delays, `setScale(0)`
 collapsing every delay to zero, scale never touching `reachable`, the
 constructor's `scale` argument, `setScale` being changeable more than once,
-and negative-scale clamping to 0 from both `setScale` and the constructor.
+and negative-scale clamping to 0 from both `setScale` and the constructor,
+an infinite default kept as unknown, the per-vantage row, and the fallback
+vantages that limit who the node rows and the default answer. JSON has no
+Infinity, so an unknown delay is written as the string `"Infinity"`.
 
 Regenerate with `pnpm --filter @ksp-gonogo/sitrep-server gen:golden-fixtures`
 (the same script also regenerates `clock.json`). The C# side

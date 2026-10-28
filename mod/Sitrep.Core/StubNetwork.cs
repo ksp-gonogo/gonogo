@@ -497,7 +497,10 @@ namespace Sitrep.Core
     /// delay engine. Every (vantage, node) pair defaults to a fixed delay and
     /// reachability (0 / true unless overridden via the constructor);
     /// individual pairs can be pinned to specific values with
-    /// <see cref="SetDelay"/> / <see cref="SetReachable"/>.
+    /// <see cref="SetDelay"/> / <see cref="SetReachable"/>. A default of
+    /// <see cref="double.PositiveInfinity"/> is unknown, and
+    /// <see cref="SetFallbackVantages"/> limits which vantages the node rows and
+    /// the default answer, so a vantage with no row of its own reads unknown.
     ///
     /// Pairs are keyed with a nested <see cref="Dictionary{TKey,TValue}"/>
     /// (vantage -&gt; node -&gt; value) rather than naive string
@@ -539,9 +542,14 @@ namespace Sitrep.Core
         private int _revision;
         private int _stampedRevision = -1;
 
+        private readonly Dictionary<string, double> _vantageDelays =
+            new Dictionary<string, double>();
+        private HashSet<string>? _fallbackVantages;
+
+        /// <param name="delay">The whole-network default; <see cref="double.PositiveInfinity"/> makes it unknown. See <see cref="SetDefaultDelay"/>.</param>
         public StubNetwork(double? delay = null, bool? reachable = null, double scale = 1)
         {
-            _defaultDelay = delay ?? 0;
+            _defaultDelay = delay.HasValue && double.IsPositiveInfinity(delay.Value) ? delay.Value : delay ?? 0;
             _defaultReachable = reachable ?? true;
             _scale = Math.Max(0, scale);
         }
@@ -553,31 +561,44 @@ namespace Sitrep.Core
 
         public Journey JourneyTo(string vantage, string node)
         {
-            // Resolution order: an explicit (vantage, node) pair overrides a
-            // node-level journey or default (SetNodeJourney / SetNodeDelay),
-            // which overrides the global default (SetDefaultDelay). The
-            // node-default carries per-vessel downlink delay -- one KSC
-            // observer, so the delay depends on the subject node, not the
-            // observer vantage. Per-(vantage, node) overrides layer on
-            // top for multiple command authorities: both paths are kept
-            // intact. An explicit pair is still scalar-only today, so it is
-            // always a single hop with no geometry or handles.
+            /*
+             * Resolution order: an explicit (vantage, node) pair, then the
+             * vantage's own row (SetVantageDelay), then a node-level journey or
+             * default (SetNodeJourney / SetNodeDelay), then the global default
+             * (SetDefaultDelay). The last two answer only the vantages
+             * SetFallbackVantages names, and any other vantage is unknown. A pair
+             * or vantage row is scalar-only, so it is always a single hop with no
+             * geometry or handles.
+             */
             if (_delays.TryGetValue(vantage, out var byNode) && byNode.TryGetValue(node, out var pair))
             {
-                // "Never" stays never whatever the scale: zero times it is not a number.
-                return SingleHop(double.IsPositiveInfinity(pair) ? pair : pair * _scale);
+                return SingleHop(Scaled(pair));
+            }
+            if (_vantageDelays.TryGetValue(vantage, out var everywhere))
+            {
+                return SingleHop(Scaled(everywhere));
+            }
+            if (!SpeaksFor(vantage))
+            {
+                return SingleHop(double.PositiveInfinity);
             }
             if (_nodeJourneys.TryGetValue(node, out var journey))
             {
                 return ScaleJourney(journey);
             }
-            return SingleHop(NodeOrDefaultDelay(node) * _scale);
+            return SingleHop(Scaled(NodeOrDefaultDelay(node)));
         }
 
         private double NodeOrDefaultDelay(string node)
         {
             return _nodeDelays.TryGetValue(node, out var nodeDefault) ? nodeDefault : _defaultDelay;
         }
+
+        /// <summary>"Never" stays never whatever the scale: zero times it is not a number.</summary>
+        private double Scaled(double seconds) => double.IsPositiveInfinity(seconds) ? seconds : seconds * _scale;
+
+        /// <summary>Whether the node rows and the whole-network default answer <paramref name="vantage"/>.</summary>
+        private bool SpeaksFor(string vantage) => _fallbackVantages == null || _fallbackVantages.Contains(vantage);
 
         private static Journey SingleHop(double seconds) => new Journey(new[] { new Hop(seconds) });
 
@@ -617,9 +638,13 @@ namespace Sitrep.Core
                 return cached;
             }
 
-            // Same two tiers, same order, same scaling as DelayTo: the explicit
-            // (vantage, node) rows over a node default over the global one.
-            var baseDelay = _nodeDelays.TryGetValue(node, out var nodeDefault) ? nodeDefault : _defaultDelay;
+            /*
+             * Same tiers, same order, same scaling as DelayTo. The vantage rows are
+             * folded in beneath the pair rows, and while the fallback answers only
+             * some vantages its figure is written as a row for each of them and the
+             * base is unknown, so the stamp carries no rule of its own.
+             */
+            var baseDelay = Scaled(NodeOrDefaultDelay(node));
             Dictionary<string, double>? byVantage = null;
             foreach (var byNode in _delays)
             {
@@ -628,10 +653,30 @@ namespace Sitrep.Core
                     continue;
                 }
                 byVantage ??= new Dictionary<string, double>();
-                byVantage[byNode.Key] = double.IsPositiveInfinity(pinned) ? pinned : pinned * _scale;
+                byVantage[byNode.Key] = Scaled(pinned);
+            }
+            foreach (var everywhere in _vantageDelays)
+            {
+                byVantage ??= new Dictionary<string, double>();
+                if (!byVantage.ContainsKey(everywhere.Key))
+                {
+                    byVantage[everywhere.Key] = Scaled(everywhere.Value);
+                }
+            }
+            if (_fallbackVantages != null)
+            {
+                foreach (var vantage in _fallbackVantages)
+                {
+                    byVantage ??= new Dictionary<string, double>();
+                    if (!byVantage.ContainsKey(vantage))
+                    {
+                        byVantage[vantage] = baseDelay;
+                    }
+                }
+                baseDelay = double.PositiveInfinity;
             }
 
-            var stamp = new DelayStamp(baseDelay * _scale, byVantage, _centres.Now, _centres);
+            var stamp = new DelayStamp(baseDelay, byVantage, _centres.Now, _centres);
             _stamps[node] = stamp;
             return stamp;
         }
@@ -667,22 +712,21 @@ namespace Sitrep.Core
             _revision++;
         }
 
-        /// <summary>
-        /// Set the fallback one-way delay returned by <see cref="DelayTo"/> for
-        /// any (vantage, node) pair that has no explicit <see cref="SetDelay"/>
-        /// override. The host drives the whole-network signal delay from a
-        /// single scalar through this while keeping per-pair overrides (e.g. the
-        /// 0-delay meta-vantage). NaN / infinite / negative values clamp to 0
-        /// (a negative delay would schedule deliveries in the past, matching
-        /// <see cref="SetScale"/>'s clamp intent).
-        /// </summary>
         /// <summary>NaN / infinite / negative values clamp to 0: a negative delay would schedule deliveries in the past.</summary>
         private static double ClampSeconds(double seconds) =>
             double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds < 0 ? 0 : seconds;
 
+        /// <summary>
+        /// Set the fallback one-way delay returned by <see cref="DelayTo"/> for
+        /// any (vantage, node) pair that has no row of its own.
+        /// <see cref="double.PositiveInfinity"/> makes the fallback unknown: such a
+        /// pair is delivered nothing. NaN and negative values clamp to 0 (a
+        /// negative delay would schedule deliveries in the past, matching
+        /// <see cref="SetScale"/>'s clamp intent).
+        /// </summary>
         public void SetDefaultDelay(double seconds)
         {
-            var clamped = ClampSeconds(seconds);
+            var clamped = double.IsPositiveInfinity(seconds) ? seconds : ClampSeconds(seconds);
             if (clamped == _defaultDelay)
             {
                 return;
@@ -744,14 +788,56 @@ namespace Sitrep.Core
         }
 
         /// <summary>
+        /// Set one delay from <paramref name="vantage"/> to every node: the tier
+        /// beneath the pair rows and above the node rows, for a vantage whose
+        /// delay does not depend on what it observes.
+        /// </summary>
+        public void SetVantageDelay(string vantage, double seconds)
+        {
+            if (_vantageDelays.TryGetValue(vantage, out var held) && held == seconds)
+            {
+                return;
+            }
+            _vantageDelays[vantage] = seconds;
+            _revision++;
+        }
+
+        /// <summary>
+        /// Name the vantages the node rows and the whole-network default answer.
+        /// Any other vantage with no pair or vantage row of its own reads
+        /// <see cref="double.PositiveInfinity"/>, unknown. <c>null</c>, the
+        /// default, lets them answer every vantage.
+        /// </summary>
+        public void SetFallbackVantages(IReadOnlyCollection<string>? vantages)
+        {
+            if (vantages == null)
+            {
+                if (_fallbackVantages == null)
+                {
+                    return;
+                }
+                _fallbackVantages = null;
+                _revision++;
+                return;
+            }
+            var next = new HashSet<string>(vantages, StringComparer.Ordinal);
+            if (_fallbackVantages != null && next.SetEquals(_fallbackVantages))
+            {
+                return;
+            }
+            _fallbackVantages = next;
+            _revision++;
+        }
+
+        /// <summary>
         /// C#-ONLY. Whether <see cref="DelayTo"/> answers this pair from a row
-        /// written for the pair or for the node, rather than from the
-        /// whole-network default.
+        /// written for the pair, for the vantage, or for the node where the node
+        /// rows answer this vantage, rather than from the whole-network default.
         /// </summary>
         public bool HasDelayFor(string vantage, string node) =>
             (_delays.TryGetValue(vantage, out var byNode) && byNode.ContainsKey(node))
-            || _nodeDelays.ContainsKey(node)
-            || _nodeJourneys.ContainsKey(node);
+            || _vantageDelays.ContainsKey(vantage)
+            || (SpeaksFor(vantage) && (_nodeDelays.ContainsKey(node) || _nodeJourneys.ContainsKey(node)));
 
         /// <summary>
         /// C#-ONLY. Whether a finite delay to <paramref name="node"/> is written

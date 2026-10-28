@@ -202,12 +202,10 @@ namespace Sitrep.Host.Tests
 
             engine.TickAndWait(1.0, new KspSnapshot { Ut = 1.0 }, Timeout);
 
-            Assert.Equal(
-                0.0,
-                engine.LedgerDelayFor(LedgerWritingUplink.Centre, ChannelEngine.FleetNodePrefix + LedgerWritingUplink.Vessel));
-            Assert.Equal(
-                0.0,
-                engine.LedgerDelayFor(LedgerWritingUplink.Centre, ChannelEngine.CentreNodePrefix + LedgerWritingUplink.OtherCentre));
+            Assert.True(double.IsPositiveInfinity(
+                engine.LedgerDelayFor(LedgerWritingUplink.Centre, ChannelEngine.FleetNodePrefix + LedgerWritingUplink.Vessel)));
+            Assert.True(double.IsPositiveInfinity(
+                engine.LedgerDelayFor(LedgerWritingUplink.Centre, ChannelEngine.CentreNodePrefix + LedgerWritingUplink.OtherCentre)));
         }
 
         /// <summary>

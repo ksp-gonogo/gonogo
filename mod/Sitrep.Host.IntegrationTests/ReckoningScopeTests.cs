@@ -101,22 +101,22 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal(1, world.Uplink.HandledCount);
         }
 
-        /// <summary>A vantage that is no command centre holds no plan, and its command takes the path a command always took.</summary>
+        /// <summary>A vantage that is no command centre has no delay of its own to the relay, so its command is refused rather than timed by home's.</summary>
         [Fact]
-        public async Task ADispatchFromAVantageThatIsNoCentreIsSentAsItAlwaysWas()
+        public async Task ADispatchFromAVantageThatIsNoCentreIsRefusedNotTimedByHome()
         {
             await using var world = await ReckonedVantageWorld.StartAsync();
             world.Tick(10.0);
 
             double? accepted = null;
+            object? result = null;
             world.Engine.DispatchCommandAndWait(
-                ScriptedContactUplink.RelayCommand, "x", "ground:Nowhere", _ => { }, TestBudgets.Op, onAccepted: seconds => accepted = seconds);
+                ScriptedContactUplink.RelayCommand, "x", "ground:Nowhere", r => result = r, TestBudgets.Op, onAccepted: seconds => accepted = seconds);
 
-            Assert.Equal(world.Game.RelayFromHomeSeconds, accepted);
-            var entry = Assert.IsType<PendingUplinkQueue>(world.Engine.PayloadOf(ChannelEngine.UplinkPendingTopic)).Pending.Single();
-            Assert.Null(entry.LaneSeq);
+            Assert.Null(accepted);
+            Assert.Equal(ChannelEngine.SubjectDelayUnknownDetail, Assert.IsType<CommandResult>(result).Detail);
             world.Tick(10.0 + world.Game.RelayFromHomeSeconds + 1.0);
-            Assert.Equal(1, world.Uplink.HandledCount);
+            Assert.Equal(0, world.Uplink.HandledCount);
         }
     }
 }

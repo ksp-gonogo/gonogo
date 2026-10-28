@@ -879,7 +879,17 @@ namespace Sitrep.Host.IntegrationTests
             {
                 _engine.SetVesselConnectivity(ScriptedContactGame.ActiveGuid, ledger.ActiveConnected);
             }
-            var activeRows = new Dictionary<string, double> { [ScriptedContactGame.Far] = ledger.ActiveSeconds };
+            /*
+             * Every active centre gets its own rows, as the authority pass writes them.
+             * The engine's home is the far station (ordinal order picks it, with no
+             * claimant), so the home station is one more centre and reads nothing it
+             * is not given.
+             */
+            var activeRows = new Dictionary<string, double>
+            {
+                [ScriptedContactGame.Home] = ledger.ActiveSeconds,
+                [ScriptedContactGame.Far] = ledger.ActiveSeconds,
+            };
             foreach (var route in ledger.GameRoutes)
             {
                 activeRows[route.Key] = ScriptedContactGame.SecondsOver(route.Value);
@@ -888,6 +898,7 @@ namespace Sitrep.Host.IntegrationTests
             _engine.SetActiveVesselRoutes(ledger.GameRoutes);
             var rows = new List<(string, string, double)>
             {
+                (ScriptedContactGame.Home, ScriptedContactGame.ActiveGuid, ledger.ActiveSeconds),
                 (ScriptedContactGame.Far, ScriptedContactGame.ActiveGuid, ledger.ActiveSeconds),
             };
             // A craft that is gone is no longer measured, so its rows stop being written.
@@ -895,6 +906,7 @@ namespace Sitrep.Host.IntegrationTests
             {
                 _engine.SetVesselDelay(ScriptedContactGame.RelayGuid, ledger.RelayFromHomeSeconds);
                 _engine.SetVesselConnectivity(ScriptedContactGame.RelayGuid, ledger.RelayConnected);
+                rows.Add((ScriptedContactGame.Home, ScriptedContactGame.RelayGuid, ledger.RelayFromHomeSeconds));
                 if (ledger.FarRoutedToRelay)
                 {
                     rows.Add((ScriptedContactGame.Far, ScriptedContactGame.RelayGuid, ledger.RelayFromFarSeconds));

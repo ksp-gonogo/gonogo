@@ -76,8 +76,61 @@ namespace Sitrep.Core.Tests
             network.SetDefaultDelay(double.NaN);
             Assert.Equal(0.0, network.DelayTo("KSC", "system"));
 
-            network.SetDefaultDelay(double.PositiveInfinity);
+            network.SetDefaultDelay(double.NegativeInfinity);
             Assert.Equal(0.0, network.DelayTo("KSC", "system"));
+        }
+
+        [Fact]
+        public void AnInfiniteDefaultIsUnknownRatherThanZero()
+        {
+            var network = new StubNetwork(delay: 100);
+
+            network.SetDefaultDelay(double.PositiveInfinity);
+
+            Assert.True(double.IsPositiveInfinity(network.DelayTo("KSC", "system")));
+            Assert.True(double.IsPositiveInfinity(network.StampFor("system").For("KSC")));
+            network.SetScale(0);
+            Assert.True(double.IsPositiveInfinity(network.DelayTo("KSC", "system")));
+        }
+
+        [Fact]
+        public void AVantageWithNoRowOfItsOwnIsUnknownOnceTheFallbackNamesWhoItAnswers()
+        {
+            var network = new StubNetwork(delay: double.PositiveInfinity);
+            network.SetNodeDelay("fleet.G", 5.0);
+            network.SetNodeDelay("system", 3.0);
+            network.SetDelay("DSN", "system", 7.0);
+            network.SetVantageDelay("meta", 0.0);
+
+            network.SetFallbackVantages(new[] { "KSC", "" });
+
+            Assert.Equal(5.0, network.DelayTo("KSC", "fleet.G"));
+            Assert.Equal(3.0, network.DelayTo("", "system"));
+            Assert.True(double.IsPositiveInfinity(network.DelayTo("DSN", "fleet.G")));
+            Assert.Equal(7.0, network.DelayTo("DSN", "system"));
+            Assert.Equal(0.0, network.DelayTo("meta", "fleet.G"));
+            Assert.True(network.HasDelayFor("KSC", "fleet.G"));
+            Assert.False(network.HasDelayFor("DSN", "fleet.G"));
+            Assert.True(network.HasDelayFor("meta", "fleet.G"));
+        }
+
+        [Fact]
+        public void AStampAgreesWithDelayToForEveryTierAndSurvivesASnapshotOfItsRows()
+        {
+            var network = new StubNetwork(delay: double.PositiveInfinity);
+            network.SetNodeDelay("fleet.G", 5.0);
+            network.SetDelay("DSN", "fleet.G", 9.0);
+            network.SetVantageDelay("meta", 0.0);
+            network.SetFallbackVantages(new[] { "KSC" });
+
+            var stamp = network.StampFor("fleet.G");
+            var copy = new DelayStamp(stamp.BaseSeconds, stamp.ByVantage());
+
+            foreach (var vantage in new[] { "KSC", "DSN", "meta", "Stale" })
+            {
+                Assert.Equal(network.DelayTo(vantage, "fleet.G"), stamp.For(vantage));
+                Assert.Equal(stamp.For(vantage), copy.For(vantage));
+            }
         }
 
         [Fact]
