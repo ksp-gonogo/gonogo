@@ -533,11 +533,11 @@ export class PeerTransport implements Transport {
         return true;
       }
     }
-    if (
-      seen.size >
-      SEEN_FRAMES_PER_TOPIC * samplesPerSecondOf(this.dataRates, frame.topic)
-    ) {
-      const [oldest] = seen.keys();
+    // Trimmed to the bound and not by one, so a rate that falls lets the frames above its bound go rather than keeping their payloads after the timeline has let them go.
+    const bound =
+      SEEN_FRAMES_PER_TOPIC * samplesPerSecondOf(this.dataRates, frame.topic);
+    for (const oldest of seen.keys()) {
+      if (seen.size <= bound) break;
       seen.delete(oldest);
     }
     return false;

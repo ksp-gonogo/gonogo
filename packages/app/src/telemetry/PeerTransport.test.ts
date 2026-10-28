@@ -282,6 +282,41 @@ describe("PeerTransport", () => {
     expect(received).toHaveLength(2);
   });
 
+  it("forgets the frames past its bound once a topic's rate falls, so it keeps no payload the timeline has let go", () => {
+    const client = makeFakeClient();
+    const transport = new PeerTransport(asService(client));
+    const received: ServerMessage[] = [];
+    transport.onMessage((m) => received.push(m));
+    const rates = (flight: number): ServerMessage => ({
+      type: "stream-data",
+      topic: "system.dataRates",
+      payload: {
+        tiers: [{ tier: "base", samplesPerSecond: 1 }],
+        topics: [{ topic: "vessel.flight", samplesPerSecond: flight }],
+      },
+      meta: makeMeta({ validAt: 0, deliveredAt: 0 }),
+    });
+    const flight = (seq: number): ServerMessage => ({
+      type: "stream-data",
+      topic: "vessel.flight",
+      payload: { altitude: seq },
+      meta: makeMeta({ validAt: seq / 10, deliveredAt: seq / 10, seq }),
+    });
+
+    client.emitFrame(rates(10));
+    for (let seq = 0; seq < 3_000; seq++) client.emitFrame(flight(seq));
+    client.emitFrame(rates(1));
+    client.emitFrame(flight(3_000));
+    received.length = 0;
+
+    // Within the bound of 1,500 at one a second: still known, so not taken twice.
+    client.emitFrame(flight(2_000));
+    expect(received).toHaveLength(0);
+    // Past it: forgotten along with its payload.
+    client.emitFrame(flight(10));
+    expect(received).toHaveLength(1);
+  });
+
   it("fans out a relayed game-state frame, so a station learns the game is loading", () => {
     const client = makeFakeClient();
     const transport = new PeerTransport(asService(client));
