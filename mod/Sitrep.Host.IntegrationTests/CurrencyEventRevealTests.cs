@@ -44,10 +44,9 @@ namespace Sitrep.Host.IntegrationTests
         [InlineData("currency.abc-123.reputation", "fleet.abc-123")]
         // The same vessel's fleet telemetry shares the node: one clock per vessel.
         [InlineData("fleet.abc-123.orbit", "fleet.abc-123")]
-        // No field segment after the guid is not a channel, so it does not invent a node
-        // and is held rather than timed by the active craft.
-        [InlineData("currency.abc-123", ChannelEngine.UnplacedLensNode)]
-        [InlineData("currency.", ChannelEngine.UnplacedLensNode)]
+        // No field segment after the guid is not a channel, so it does not invent a node.
+        [InlineData("currency.abc-123", "system")]
+        [InlineData("currency.", "system")]
         // A topic no per-vessel namespace claims stays on the single node.
         [InlineData("vessel.flight", "system")]
         public void NodeForTopicRoutesCurrencyEventsToTheirSourceVesselsNode(string topic, string expectedNode)
