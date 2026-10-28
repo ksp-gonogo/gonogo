@@ -26,6 +26,15 @@ namespace Gonogo.KSP.Tests
         }
 
         [Fact]
+        public void ThePartsUnavailableWhenReadComeBackWithTheCraft()
+        {
+            var memo = new SavedShipParseMemo();
+            memo.Remember("Ships/VAB/a.craft", 10, new Dictionary<string, object?>(), Parts, new[] { "kxRadiator" });
+
+            Assert.Equal(new[] { "kxRadiator" }, memo.Recall("Ships/VAB/a.craft", 10)!.UnavailableWhenRead);
+        }
+
+        [Fact]
         public void AFileWrittenSinceIsReadAgain()
         {
             var memo = new SavedShipParseMemo();

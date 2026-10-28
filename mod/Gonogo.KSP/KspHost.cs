@@ -212,6 +212,8 @@ namespace Gonogo.KSP
             GameEvents.onFlightReady.Add(OnFlightReady);
             GameEvents.onVesselChange.Add(OnVesselChange);
             GameEvents.onGameStateLoad.Add(OnGameStateLoad);
+            GameEvents.OnTechnologyResearched.Add(OnPartAvailabilityChanged);
+            GameEvents.OnPartPurchased.Add(OnPartAvailabilityChanged);
 
             // The active-vessel seam's own hooks. Subscribed here rather than from a
             // scene-scoped ScenarioModule because an EVA egress can land while a
@@ -227,6 +229,8 @@ namespace Gonogo.KSP
             GameEvents.onFlightReady.Remove(OnFlightReady);
             GameEvents.onVesselChange.Remove(OnVesselChange);
             GameEvents.onGameStateLoad.Remove(OnGameStateLoad);
+            GameEvents.OnTechnologyResearched.Remove(OnPartAvailabilityChanged);
+            GameEvents.OnPartPurchased.Remove(OnPartAvailabilityChanged);
             ActiveVesselScope.Unhook();
         }
 
@@ -288,7 +292,10 @@ namespace Gonogo.KSP
                             {
                                 continue;
                             }
-                            list.Add(BuildBodyEntry(body));
+                            using (SampleTiming.Part("bodies"))
+                            {
+                                list.Add(BuildBodyEntry(body));
+                            }
                         }
                         values["bodies"] = list;
                     }
@@ -306,7 +313,11 @@ namespace Gonogo.KSP
                         // elected), sampled on this main thread at the current UT.
                         // Null when there's no target / no encounter -- stamped onto
                         // vessel.target below.
-                        var closestApproach = SolveClosestApproach(ut);
+                        ClosestApproach? closestApproach;
+                        using (SampleTiming.Part("closestApproach"))
+                        {
+                            closestApproach = SolveClosestApproach(ut);
+                        }
                         var vesselEntry = BuildVesselEntry(activeVessel, ActiveVesselScope.Focused ?? activeVessel, _actionGroupsBackend?.Invoke(), _maneuverPlanSource?.Invoke(), closestApproach, _thrustObserver, _signalQuantity?.Invoke(), ut);
                         TryBuildGroup(vesselEntry, "light", () => SolveLight(activeVessel, ut));
                         values["vessel"] = vesselEntry;
@@ -345,6 +356,7 @@ namespace Gonogo.KSP
                     var allVessels = FlightGlobals.Vessels;
                     if (allVessels != null)
                     {
+                        using var rosterTiming = SampleTiming.Part("roster");
                         var roster = new List<object?>(allVessels.Count);
                         foreach (var candidate in allVessels)
                         {
@@ -377,6 +389,7 @@ namespace Gonogo.KSP
                      */
                     if (FlightGlobals.ready)
                     {
+                        using var evaTiming = SampleTiming.Part("eva");
                         // A suit's state is read off a loaded kerbal, and none is loaded outside a flight.
                         var eva = new List<object?>();
                         var evaUnloaded = new List<object?>();
@@ -426,6 +439,7 @@ namespace Gonogo.KSP
                 // bodies/vessel above.
                 try
                 {
+                    using var timeTiming = SampleTiming.Part("time");
                     values["time"] = BuildTime();
                 }
                 catch (Exception ex)
@@ -443,6 +457,7 @@ namespace Gonogo.KSP
                 // career mode - see its own doc comment.
                 try
                 {
+                    using var careerTiming = SampleTiming.Part("career");
                     var career = BuildCareer();
                     if (career != null)
                     {
@@ -483,6 +498,7 @@ namespace Gonogo.KSP
                 // maps that to a null payload, "no data yet."
                 try
                 {
+                    using var gameModeTiming = SampleTiming.Part("gameMode");
                     var gameMode = BuildGameMode();
                     if (gameMode != null)
                     {
@@ -503,6 +519,7 @@ namespace Gonogo.KSP
                 // DLC" apart from "DLC present, nothing deployed yet."
                 try
                 {
+                    using var dlcTiming = SampleTiming.Part("dlc");
                     values["dlc"] = BuildDlc();
                 }
                 catch (Exception ex)
@@ -517,6 +534,7 @@ namespace Gonogo.KSP
                 // is loaded.
                 try
                 {
+                    using var missionsTiming = SampleTiming.Part("missions");
                     var missions = MissionCapture.Build();
                     if (missions != null)
                     {
@@ -558,6 +576,7 @@ namespace Gonogo.KSP
                 // can't take out the groups above.
                 try
                 {
+                    using var sceneTiming = SampleTiming.Part("scene");
                     values["scene"] = BuildScene();
                     // Active launch site: the site currently selected in the
                     // editor (EditorLogic.launchSiteName). EditorLogic.fetch is
@@ -582,6 +601,7 @@ namespace Gonogo.KSP
                 // groups above.
                 try
                 {
+                    using var spaceCenterTiming = SampleTiming.Part("spaceCenter");
                     var spaceCenter = BuildSpaceCenter();
                     if (spaceCenter != null)
                     {
@@ -669,7 +689,11 @@ namespace Gonogo.KSP
             // ONE Plan() call per capture: it reads live KSP, so asking twice
             // is both wasted work and an invitation for the two answers to
             // disagree within a single tick.
-            var plan = maneuverPlanSource?.Plan();
+            IList<Sitrep.Contract.ManeuverNode>? plan;
+            using (SampleTiming.Part("maneuverPlan"))
+            {
+                plan = maneuverPlanSource?.Plan();
+            }
             TryBuildGroup(entry, "maneuverNodes", () => BuildManeuverNodes(plan));
             if (plan != null)
             {
@@ -681,7 +705,11 @@ namespace Gonogo.KSP
             TryBuildGroup(entry, "target", () => BuildTarget(vessel, closestApproach));
             PartsGroup("dock", () => BuildDock(vessel));
             // One walk of every part's geometry serves both groups that read it.
-            var lowestPoint = LowestPointHeightOrNull(focused);
+            double? lowestPoint;
+            using (SampleTiming.Part("lowestPoint"))
+            {
+                lowestPoint = LowestPointHeightOrNull(focused);
+            }
             TryBuildGroup(entry, "surface", () => BuildSurface(focused, focusedOrbit, lowestPoint));
             PartsGroup("landing", () => BuildLanding(focused, focusedOrbit, lowestPoint), focused);
             // The full part tree the vessel.parts channel
@@ -711,7 +739,10 @@ namespace Gonogo.KSP
         {
             try
             {
-                entry[key] = build();
+                using (SampleTiming.Part(key))
+                {
+                    entry[key] = build();
+                }
             }
             catch (Exception ex)
             {
@@ -4268,7 +4299,11 @@ namespace Gonogo.KSP
         {
             try
             {
-                var built = build();
+                object? built;
+                using (SampleTiming.Part("spaceCenter." + key))
+                {
+                    built = build();
+                }
                 if (built == null)
                 {
                     return;
@@ -4613,6 +4648,32 @@ namespace Gonogo.KSP
         private static readonly SavedShipParseMemo _unbuildableCraft = new SavedShipParseMemo();
 
         /*
+         * A craft that can be built is read again only when its file was written or the parts the
+         * install can offer changed, which is what the read depends on besides the file. Loading
+         * and parsing every craft file on the main thread is most of a rescan.
+         */
+        private static readonly SavedShipParseMemo _builtCraft = new SavedShipParseMemo();
+
+        /*
+         * What the rescan of an unchanged folder depends on besides the files: which parts the
+         * career can offer, which moves on a research or a purchase. A rescan that finds the same
+         * files at the same stamps under the same epoch hands back the last list untouched, and
+         * the full pass still runs once a minute in case a mod moved the availability unseen.
+         */
+        private static int _partAvailabilityEpoch;
+        private static string? _savedShipsSignature;
+        private static int _savedShipsEpoch;
+        private static double _savedShipsFullPassWall;
+        private static bool _savedShipsPricingPending;
+        private const double SavedShipsFullPassSeconds = 60.0;
+
+        private void OnPartAvailabilityChanged(GameEvents.HostTargetAction<RDTech, RDTech.OperationResult> researched) =>
+            System.Threading.Interlocked.Increment(ref _partAvailabilityEpoch);
+
+        private void OnPartAvailabilityChanged(AvailablePart purchased) =>
+            System.Threading.Interlocked.Increment(ref _partAvailabilityEpoch);
+
+        /*
          * The cost in a craft file leaves out what modules add, and the rollout charges it all, so
          * a craft is priced again with its modules once per file version. That loads the craft's
          * parts, so only a few are priced per scan and the rest keep the file's cost until their turn.
@@ -4633,6 +4694,10 @@ namespace Gonogo.KSP
 
             if (budget <= 0 || Funding.Instance == null)
             {
+                if (Funding.Instance != null)
+                {
+                    _savedShipsPricingPending = true;
+                }
                 return;
             }
 
@@ -4675,6 +4740,23 @@ namespace Gonogo.KSP
                 return _cachedSavedShips;
             }
 
+            string signature;
+            using (SampleTiming.Part("savedShips.list"))
+            {
+                signature = SavedShipsSignature(gameName);
+            }
+            if (_cachedSavedShips != null
+                && !_savedShipsPricingPending
+                && string.Equals(signature, _savedShipsSignature, StringComparison.Ordinal)
+                && _savedShipsEpoch == _partAvailabilityEpoch
+                && wallSeconds - _savedShipsFullPassWall < SavedShipsFullPassSeconds)
+            {
+                SavedShipsRescan.Scanned(gameName, ut, wallSeconds);
+                return _cachedSavedShips;
+            }
+
+            var epoch = _partAvailabilityEpoch;
+            _savedShipsPricingPending = false;
             var ships = new List<object?>();
             var seenFiles = new HashSet<string>();
             var modulePricings = ModulePricingsPerScan;
@@ -4700,6 +4782,17 @@ namespace Gonogo.KSP
                 {
                     try
                     {
+                        var fileStamp = File.GetLastWriteTimeUtc(file).Ticks;
+                        var known = _builtCraft.Recall(file, fileStamp);
+                        if (known?.UnavailableWhenRead != null && SameParts(MissingPartsNames(known.PartNames), known.UnavailableWhenRead))
+                        {
+                            seenFiles.Add(file);
+                            var kept = new Dictionary<string, object?>(known.Fields);
+                            ApplyModulePrice(file, fileStamp, kept, ref modulePricings);
+                            ships.Add(kept);
+                            continue;
+                        }
+
                         var root = ConfigNode.Load(file);
                         if (root == null)
                         {
@@ -4707,7 +4800,7 @@ namespace Gonogo.KSP
                         }
 
                         seenFiles.Add(file);
-                        var stamp = File.GetLastWriteTimeUtc(file).Ticks;
+                        var stamp = fileStamp;
                         var buildable = CraftHasEveryPart(root);
                         var remembered = buildable ? null : _unbuildableCraft.Recall(file, stamp);
                         if (remembered != null)
@@ -4758,6 +4851,11 @@ namespace Gonogo.KSP
                         {
                             _unbuildableCraft.Remember(file, stamp, entry, info.partNames ?? new List<string>());
                         }
+                        else
+                        {
+                            var names = info.partNames ?? new List<string>();
+                            _builtCraft.Remember(file, stamp, new Dictionary<string, object?>(entry), names, MissingPartsNames(names));
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -4767,10 +4865,41 @@ namespace Gonogo.KSP
             }
 
             _unbuildableCraft.Retain(seenFiles);
+            _builtCraft.Retain(seenFiles);
             SavedShipCosts.ForgetUnseen();
             _cachedSavedShips = ships;
+            _savedShipsSignature = signature;
+            _savedShipsEpoch = epoch;
+            _savedShipsFullPassWall = wallSeconds;
             SavedShipsRescan.Scanned(gameName, ut, wallSeconds);
             return ships;
+        }
+
+        /// <summary>Every craft file of both hangars with the time it was written, as one string to compare scans by.</summary>
+        private static string SavedShipsSignature(string gameName)
+        {
+            var text = new System.Text.StringBuilder();
+            foreach (var facility in new[] { EditorFacility.VAB, EditorFacility.SPH })
+            {
+                try
+                {
+                    var path = ShipConstruction.GetShipsPathFor(gameName, facility);
+                    if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
+                    {
+                        continue;
+                    }
+
+                    foreach (var file in Directory.GetFiles(path, "*.craft"))
+                    {
+                        text.Append(file).Append('|').Append(File.GetLastWriteTimeUtc(file).Ticks).Append(';');
+                    }
+                }
+                catch (Exception)
+                {
+                    text.Append("unreadable;").Append((int)facility).Append(';');
+                }
+            }
+            return text.ToString();
         }
 
         /// <summary>Whether this install's <c>PartLoader</c> knows every part the craft names.</summary>
@@ -4780,6 +4909,36 @@ namespace Gonogo.KSP
             {
                 var name = CraftCatalogueBackend.PartNameFrom(partNode);
                 if (!string.IsNullOrEmpty(name) && PartLoader.getPartInfoByName(name) == null)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static List<string> MissingPartsNames(IReadOnlyList<string> partNames)
+        {
+            var missing = new List<string>();
+            foreach (var name in partNames)
+            {
+                var part = PartLoader.getPartInfoByName(name);
+                if (part == null || !ResearchAndDevelopment.PartTechAvailable(part))
+                {
+                    missing.Add(name);
+                }
+            }
+            return missing;
+        }
+
+        private static bool SameParts(IReadOnlyList<string> a, IReadOnlyList<string> b)
+        {
+            if (a.Count != b.Count)
+            {
+                return false;
+            }
+            for (var i = 0; i < a.Count; i++)
+            {
+                if (!string.Equals(a[i], b[i], StringComparison.Ordinal))
                 {
                     return false;
                 }
@@ -7458,6 +7617,7 @@ namespace Gonogo.KSP
                 ? part.parent.flightID.ToString()
                 : null;
 
+            var modulesStarted = System.Diagnostics.Stopwatch.GetTimestamp();
             var modules = new List<object?>();
             if (part.Modules != null)
             {
@@ -7476,8 +7636,21 @@ namespace Gonogo.KSP
 
             var up = part.orgRot * Vector3.up;
             var forward = part.orgRot * Vector3.forward;
+            SampleTiming.Add("topo.modules", System.Diagnostics.Stopwatch.GetTimestamp() - modulesStarted);
+            var meshStarted = System.Diagnostics.Stopwatch.GetTimestamp();
             var hasMesh = PartMeshBounds.TryMeasure(part, part.variants?.SelectedVariant?.Name, out var meshCenter, out var meshSize, out var boundsPath, out var meshHull);
+            SampleTiming.Add("topo.mesh", System.Diagnostics.Stopwatch.GetTimestamp() - meshStarted);
             boundsPaths.Add(part.partInfo != null ? part.partInfo.name : part.name, boundsPath);
+
+            var restStarted = System.Diagnostics.Stopwatch.GetTimestamp();
+            var resources = BuildPartResources(part);
+            SampleTiming.Add("topo.resources", System.Diagnostics.Stopwatch.GetTimestamp() - restStarted);
+            restStarted = System.Diagnostics.Stopwatch.GetTimestamp();
+            var moduleStates = BuildPartModuleStates(part);
+            SampleTiming.Add("topo.moduleStates", System.Diagnostics.Stopwatch.GetTimestamp() - restStarted);
+            restStarted = System.Diagnostics.Stopwatch.GetTimestamp();
+            var actionBindings = BuildActionBindings(part);
+            SampleTiming.Add("topo.actions", System.Diagnostics.Stopwatch.GetTimestamp() - restStarted);
 
             return new Dictionary<string, object?>
             {
@@ -7514,9 +7687,9 @@ namespace Gonogo.KSP
                 ["isRobotics"] = part.isRobotic(),
                 ["isPowerRelated"] = IsPowerRelated(part),
                 ["fuelLineTargetId"] = FuelLineTargetId(part),
-                ["resources"] = BuildPartResources(part),
-                ["moduleStates"] = BuildPartModuleStates(part),
-                ["actionBindings"] = BuildActionBindings(part),
+                ["resources"] = resources,
+                ["moduleStates"] = moduleStates,
+                ["actionBindings"] = actionBindings,
             };
         }
 

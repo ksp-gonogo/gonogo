@@ -720,6 +720,7 @@ namespace Sitrep.Host.Comms
             }
             var started = System.Diagnostics.Stopwatch.GetTimestamp();
             var look = _game.Look();
+            Sitrep.Host.SampleTiming.Add("cp.look", System.Diagnostics.Stopwatch.GetTimestamp() - started);
             var lookedTicks = System.Diagnostics.Stopwatch.GetTimestamp() - started;
             _lookedAt = wall;
             if (look == null)
@@ -783,6 +784,7 @@ namespace Sitrep.Host.Comms
             var active = VesselViewProvider.TryGetActiveVesselId(snapshot);
             var readStarted = System.Diagnostics.Stopwatch.GetTimestamp();
             var batch = _craft.Capture(look, snapshot.Ut, _host.Kernel, RosterOf(snapshot));
+            Sitrep.Host.SampleTiming.Add("cp.craft", System.Diagnostics.Stopwatch.GetTimestamp() - readStarted);
             ReportSlowLook(wall, lookedTicks, System.Diagnostics.Stopwatch.GetTimestamp() - readStarted, batch.States.Count, look.Nodes.Count);
             return new Looked(
                 snapshot.Ut,

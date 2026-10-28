@@ -66,7 +66,7 @@ namespace Gonogo.KSP.SilenceTracking
             IPropagationProvider propagator = null)
         {
             _kernel = kernel ?? throw new ArgumentNullException(nameof(kernel));
-            _homes = homes ?? (() => UnityEngine.Object.FindObjectsOfType<CommNetHome>());
+            _homes = homes ?? (() => Gonogo.KSP.CommandCentres.StockHomeNodeSource.FindHomes());
             _propagator = propagator ?? new KeplerProvider(KspSystemTable.Current);
         }
 

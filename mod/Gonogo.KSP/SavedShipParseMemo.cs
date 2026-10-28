@@ -20,12 +20,16 @@ namespace Gonogo.KSP
         /// <summary>The scan entry as KSP's reader built it, and the part names the craft uses.</summary>
         internal sealed class Remembered
         {
-            public Remembered(long stamp, Dictionary<string, object?> fields, IReadOnlyList<string> partNames)
+            public Remembered(long stamp, Dictionary<string, object?> fields, IReadOnlyList<string> partNames, IReadOnlyList<string>? unavailableWhenRead = null)
             {
                 Stamp = stamp;
                 Fields = fields;
                 PartNames = partNames;
+                UnavailableWhenRead = unavailableWhenRead;
             }
+
+            /// <summary>The parts the install could not offer when the file was read, for telling later whether the read still holds. Null when not kept.</summary>
+            public IReadOnlyList<string>? UnavailableWhenRead { get; }
 
             public long Stamp { get; }
 
@@ -38,8 +42,8 @@ namespace Gonogo.KSP
         public Remembered? Recall(string path, long stamp) =>
             _files.TryGetValue(path, out var remembered) && remembered.Stamp == stamp ? remembered : null;
 
-        public void Remember(string path, long stamp, Dictionary<string, object?> fields, IReadOnlyList<string> partNames) =>
-            _files[path] = new Remembered(stamp, fields, partNames);
+        public void Remember(string path, long stamp, Dictionary<string, object?> fields, IReadOnlyList<string> partNames, IReadOnlyList<string>? unavailableWhenRead = null) =>
+            _files[path] = new Remembered(stamp, fields, partNames, unavailableWhenRead);
 
         /// <summary>Drops every file the latest scan did not see, so a deleted craft is not held for good.</summary>
         public void Retain(ICollection<string> seen)

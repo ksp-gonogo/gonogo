@@ -3993,7 +3993,11 @@ namespace Sitrep.Host
         {
             try
             {
-                var active = _commandCentres.EnumerateActive();
+                IReadOnlyList<ICommandCentre> active;
+                using (SampleTiming.Part("cc.enumerate"))
+                {
+                    active = _commandCentres.EnumerateActive();
+                }
                 var ids = new HashSet<string>(StringComparer.Ordinal);
                 var groundIds = new HashSet<string>(StringComparer.Ordinal);
                 var groundSites = new List<CommandCentres.GroundSite>();
@@ -4027,8 +4031,14 @@ namespace Sitrep.Host
                 }
             }
 
-            CaptureHomeCommandOnMain();
-            SettleFreshConnectionVantageOnMain();
+            using (SampleTiming.Part("cc.home"))
+            {
+                CaptureHomeCommandOnMain();
+            }
+            using (SampleTiming.Part("cc.settle"))
+            {
+                SettleFreshConnectionVantageOnMain();
+            }
         }
 
         /// <summary>
@@ -7349,12 +7359,18 @@ namespace Sitrep.Host
                 Interlocked.Increment(ref _ticksDeclined);
                 return false;
             }
+            SampleTiming.Begin();
             var started = System.Diagnostics.Stopwatch.GetTimestamp();
             var snapshot = sample();
             var sampling = System.Diagnostics.Stopwatch.GetTimestamp() - started;
             PerfTelemetry.RecordTicks("main.sample", sampling);
+            SampleTiming.Add("sample", sampling);
             var tick = CaptureTick(snapshot.Ut, snapshot, null);
             tick.SampleStopwatchTicks = sampling;
+            if (SampleTiming.Enabled)
+            {
+                LogHost(SampleTiming.Line(snapshot.Ut, System.Diagnostics.Stopwatch.GetTimestamp() - started)!);
+            }
             EnqueueTick(tick);
             return true;
         }
@@ -7377,6 +7393,19 @@ namespace Sitrep.Host
             var timing = default(CaptureTiming);
             var started = System.Diagnostics.Stopwatch.GetTimestamp();
             var mark = started;
+            _commandCentres.BeginPass();
+            try
+            {
+                return CaptureTickInPass(ut, snapshot, done, timing, started, mark);
+            }
+            finally
+            {
+                _commandCentres.EndPass();
+            }
+        }
+
+        private TickJob CaptureTickInPass(double ut, KspSnapshot? snapshot, ManualResetEventSlim? done, CaptureTiming timing, long started, long mark)
+        {
             CaptureCommandCentresOnMain();
             timing.CommandCentres = Lap(ref mark);
             var captures = RunCaptures(snapshot, ref timing);
@@ -7395,6 +7424,14 @@ namespace Sitrep.Host
             {
                 timing.Record();
                 PerfTelemetry.RecordTicks("main.capture.total", mark - started);
+            }
+            if (SampleTiming.Enabled)
+            {
+                SampleTiming.Add("cap.commandCentres", timing.CommandCentres);
+                SampleTiming.Add("cap.sources", timing.Sources);
+                SampleTiming.Add("cap.signalDelay", timing.SignalDelay);
+                SampleTiming.Add("cap.connectivity", timing.Connectivity);
+                SampleTiming.Add("cap.pathBreak", timing.PathBreak);
             }
             return new TickJob(ut, snapshot, captures, signalDelay, connectivity, pathBreak, done)
             {
@@ -7546,6 +7583,7 @@ namespace Sitrep.Host
                 {
                     PerfTelemetry.RecordTicks("main.capture." + source.OwnerId, took);
                 }
+                SampleTiming.Add("cap." + source.OwnerId, took);
                 if (took > timing.SlowestSource.Ticks)
                 {
                     timing.SlowestSource = (took, source.OwnerId);
@@ -10180,6 +10218,10 @@ namespace Sitrep.Host
             ReleaseGameStateAfterTick();
             timing.End(ref timing.StoreAndForward);
             timing.Record();
+            if (SampleTiming.Enabled)
+            {
+                LogHost("sample-timing courier ut=" + tick.Ut.ToString("F2", CultureInfo.InvariantCulture) + " " + timing.Describe());
+            }
             ReportSlowTick(tick, timing);
             ReportPublishStats();
             tick.Done?.Set();

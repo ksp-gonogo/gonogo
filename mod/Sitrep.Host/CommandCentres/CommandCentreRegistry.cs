@@ -55,6 +55,12 @@ namespace Sitrep.Host.CommandCentres
         /// </summary>
         public IReadOnlyList<ICommandCentre> EnumerateActive()
         {
+            var held = _passResult;
+            if (held != null)
+            {
+                return held;
+            }
+
             var keptBy = new Dictionary<string, string>(StringComparer.Ordinal);
             var result = new List<ICommandCentre>();
             List<CommandCentreIdCollision>? collisions = null;
@@ -85,7 +91,34 @@ namespace Sitrep.Host.CommandCentres
                 Report(collisions);
             }
 
+            if (_passOpen)
+            {
+                _passResult = result;
+            }
+
             return result;
+        }
+
+        private volatile IReadOnlyList<ICommandCentre>? _passResult;
+        private volatile bool _passOpen;
+
+        /// <summary>
+        /// Opens a pass: until <see cref="EndPass"/>, every <see cref="EnumerateActive"/> call
+        /// returns the one enumeration the first of them made. The game's main thread opens it
+        /// around the captures of one tick, which all read the same instant, so the sources are
+        /// walked once for the tick instead of once per reader.
+        /// </summary>
+        public void BeginPass()
+        {
+            _passResult = null;
+            _passOpen = true;
+        }
+
+        /// <summary>Closes the pass opened by <see cref="BeginPass"/>, so the next call enumerates afresh.</summary>
+        public void EndPass()
+        {
+            _passOpen = false;
+            _passResult = null;
         }
 
         private void Report(List<CommandCentreIdCollision> collisions)

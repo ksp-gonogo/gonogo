@@ -147,9 +147,53 @@ namespace Gonogo.KSP.CommandCentres
             return modules != null && modules.Count > 0;
         }
 
+        /*
+         * Finding every CommNetHome walks all the scene's objects, which costs about ten
+         * milliseconds on the main thread and is asked several times a sample. The homes are
+         * created with the scene, so the list found is kept until the scene changes, one of its
+         * homes is destroyed, or this many real seconds have gone by, which is how long a home
+         * made after the scene loaded can go unseen. Each home is still read live every call.
+         */
+        private const float HomeSearchSeconds = 5f;
+        private static CommNetHome[]? _foundHomes;
+        private static GameScenes _foundIn;
+        private static float _foundAt;
+
+        internal static CommNetHome[] FindHomes()
+        {
+            var now = UnityEngine.Time.realtimeSinceStartup;
+            var cached = _foundHomes;
+            if (cached != null
+                && cached.Length > 0
+                && _foundIn == HighLogic.LoadedScene
+                && now - _foundAt < HomeSearchSeconds
+                && now >= _foundAt)
+            {
+                var intact = true;
+                foreach (var home in cached)
+                {
+                    if (home == null)
+                    {
+                        intact = false;
+                        break;
+                    }
+                }
+                if (intact)
+                {
+                    return cached;
+                }
+            }
+
+            var found = UnityEngine.Object.FindObjectsOfType<CommNetHome>();
+            _foundHomes = found;
+            _foundIn = HighLogic.LoadedScene;
+            _foundAt = now;
+            return found;
+        }
+
         private static IEnumerable<HomeReading> ReadSceneHomes()
         {
-            foreach (var home in UnityEngine.Object.FindObjectsOfType<CommNetHome>())
+            foreach (var home in FindHomes())
             {
                 if (home == null)
                 {

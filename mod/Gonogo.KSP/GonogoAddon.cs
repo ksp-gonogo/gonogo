@@ -61,6 +61,7 @@ namespace Gonogo.KSP
 
         /// <summary>The dev-capture recorder's opt-in row in the settings document.</summary>
         private const string RecordingEnabledRow = "RECORDING/enabled";
+        private const string SampleTimingRow = "SAMPLE_TIMING/enabled";
 
         /// <summary>
         /// M3 R3's shared id registry, hoisted to a mod-wide static so the
@@ -189,6 +190,9 @@ namespace Gonogo.KSP
                         SilenceTrace.Diagnostics = _recordingEnabled;
                     });
                 GonogoLog.Info("addon", "Recording enabled=" + _recordingEnabled);
+                settings.Declare(SettingsRow.Bool(SampleTimingRow, false, "Log how long each part of the game sample takes, one line per sample"));
+                SampleTiming.Enabled = settings.Bool(SampleTimingRow);
+                settings.OnChanged(SampleTimingRow, _ => SampleTiming.Enabled = settings.Bool(SampleTimingRow));
                 Sitrep.Host.Settings.ConsoleSettings.Declare(settings);
                 // The trackingStation.vessel.<guid>.* namespace: core vessel-network-presence
                 // facts, unconditional and independent of whether any comms
@@ -632,8 +636,11 @@ namespace Gonogo.KSP
                     var snapshot = _host.Sample();
                     if (_recordingEnabled)
                     {
-                        EnsureRecordingStream();
-                        _recorder.Record(snapshot.Ut, snapshot);
+                        using (SampleTiming.Part("recorder"))
+                        {
+                            EnsureRecordingStream();
+                            _recorder.Record(snapshot.Ut, snapshot);
+                        }
                     }
                     return snapshot;
                 });
