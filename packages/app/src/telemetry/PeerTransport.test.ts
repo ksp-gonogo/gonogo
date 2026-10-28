@@ -70,6 +70,7 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
   >();
   const statusListeners = new Set<(status: ConnStatus) => void>();
   const resetListeners = new Set<() => void>();
+  const linkListeners = new Set<(connected: boolean) => void>();
   const sentCommands: Array<{
     requestId: string;
     command: string;
@@ -101,6 +102,10 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
     onSitrepReset: (cb: () => void) => {
       resetListeners.add(cb);
       return () => resetListeners.delete(cb);
+    },
+    onSitrepLink: (cb: (connected: boolean) => void) => {
+      linkListeners.add(cb);
+      return () => linkListeners.delete(cb);
     },
     onSitrepCommandResponse: (
       cb: (requestId: string, result: unknown, meta: Meta) => void,
@@ -153,6 +158,9 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
     },
     emitReset() {
       for (const cb of resetListeners) cb();
+    },
+    emitLink(connected: boolean) {
+      for (const cb of linkListeners) cb(connected);
     },
     emitCommandResponse(requestId: string, result: unknown, meta: Meta) {
       for (const cb of responseListeners) cb(requestId, result, meta);
@@ -873,5 +881,63 @@ describe("PeerTransport", () => {
 
       expect(received).toEqual([]);
     });
+  });
+});
+
+describe("PeerTransport follows the host's stream to the mod", () => {
+  it("reports itself not connected while the host says its stream is down, and connected again when it returns", () => {
+    const fake = makeFakeClient("connected");
+    const transport = new PeerTransport(asService(fake));
+    const seen: string[] = [];
+    transport.onStatusChange((status) => seen.push(status));
+    expect(transport.status).toBe("connected");
+
+    fake.emitLink(false);
+    expect(transport.status).toBe("reconnecting");
+    fake.emitLink(false);
+    fake.emitLink(true);
+    expect(transport.status).toBe("connected");
+    expect(seen).toEqual(["reconnecting", "connected"]);
+    transport.dispose();
+  });
+
+  it("sends nothing while the host's stream is down, and refuses each command at once", async () => {
+    const fake = makeFakeClient("connected");
+    const transport = new PeerTransport(asService(fake));
+    const errors: Array<{ requestId?: string; code?: string }> = [];
+    transport.onMessage((message) => {
+      if (message.type === "error") errors.push(message);
+    });
+    fake.emitLink(false);
+
+    transport.send({
+      type: "command-request",
+      requestId: "a",
+      command: "vessel.stage",
+      label: "",
+      topic: "",
+      vantage: "",
+      args: undefined,
+      sentAt: 0,
+    });
+    await Promise.resolve();
+    expect(fake.sentCommands).toHaveLength(0);
+    expect(errors).toEqual([
+      expect.objectContaining({ requestId: "a", code: FaultCode.NoClient }),
+    ]);
+
+    fake.emitLink(true);
+    transport.send({
+      type: "command-request",
+      requestId: "b",
+      command: "vessel.stage",
+      label: "",
+      topic: "",
+      vantage: "",
+      args: undefined,
+      sentAt: 0,
+    });
+    expect(fake.sentCommands.map((c) => c.requestId)).toEqual(["b"]);
+    transport.dispose();
   });
 });

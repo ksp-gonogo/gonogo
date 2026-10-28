@@ -135,6 +135,7 @@ export {
   type CommandReplyLike,
   PENDING_BACKSTOP_MS,
   REFUSAL_TIMEOUT_MS,
+  STREAM_DOWN_TIP,
   type UseCommandButtonOptions,
   useCommandButton,
 } from "./CommandButton/CommandButton";

@@ -105,13 +105,6 @@ export interface WebSocketTransportOptions {
   /** How long the answer to a liveness probe may take before the socket is dropped, ms (default 2000). */
   probeTimeoutMs?: number;
   /**
-   * How long a command may wait for a link that is down before it is handed
-   * back through `onUndelivered`, ms (default 5 min). The transport itself
-   * never stops retrying: this bounds only how stale a queued command may be
-   * when the link finally returns.
-   */
-  commandHoldMs?: number;
-  /**
    * Called once per delivered `stream-data` frame: the perf-budget seam.
    * `@ksp-gonogo/sitrep-client` deliberately does not depend on `@ksp-gonogo/core`
    * (that would be a cycle: core imports this package), so the `PerfBudget`
@@ -186,41 +179,16 @@ function decodeFrame(data: unknown): DecodedFrame | null {
 
 const DEFAULT_PORT = 8090;
 const DEFAULT_RETRY_INTERVAL_MS = 1_000;
-const DEFAULT_COMMAND_HOLD_MS = 5 * 60 * 1000;
 const DEFAULT_MAX_RETRY_INTERVAL_MS = 5_000;
 const DEFAULT_CONNECT_TIMEOUT_MS = 5_000;
 const DEFAULT_SILENCE_TIMEOUT_MS = 3_000;
 const DEFAULT_PROBE_TIMEOUT_MS = 2_000;
 
-/**
- * How many undelivered command-requests the transport holds for the next open.
- *
- * The queue exists so a command pressed during a blink of the link still gets
- * there; it is not storage for a whole outage. Sized well above any plausible
- * burst of operator presses or automation dispatches across a few reconnect
- * intervals, and far below the point where the backlog is the reason the tab
- * stops working: an unbounded queue is what a tab left open through a long
- * outage used to grow.
- */
-export const MAX_PENDING_COMMANDS = 64;
+/** What a command refused for want of an open socket says: it never left this machine, so sending it again cannot do it twice. */
+const NOT_SENT_MESSAGE =
+  "not sent: there is no connection to the game. Nothing was sent, so send it again once the connection is back.";
 
-/** The `code` on the synthetic `error` a refused command-request is answered with. */
-export const SEND_QUEUE_FULL = FaultCode.SendQueueFull;
-
-/**
- * What the operator is told about a command that was still queued when the
- * outage outlasted the hold window.
- *
- * Says the thing that is true and useful, and stops there: it never left, so
- * nothing over there ran it, so sending it again cannot do it twice. That last
- * clause is the whole difference between this and a lost command, which carries
- * the opposite advice for the opposite reason.
- */
-export const UNDELIVERED_REASON =
-  "not sent: the link did not come back in time. It never left this " +
-  "machine, so nothing ran it. Send it again once the link is back.";
-
-/** The request ids a queued frame answers for: a group's frame is one queue slot and answers for each member. */
+/** The request ids a command frame answers for: a group's frame answers for each member. */
 function requestIdsOf(
   message: Extract<
     ClientMessage,
@@ -267,7 +235,6 @@ export class WebSocketTransport implements Transport {
   private readonly connectTimeoutMs: number;
   private readonly silenceTimeoutMs: number;
   private readonly probeTimeoutMs: number;
-  private readonly commandHoldMs: number;
   private readonly onStreamFrame?: (info: StreamFrameInfo) => void;
   private readonly onBinaryFrame?: (info: BinaryFrameInfo) => void;
   private readonly WebSocketImpl: WebSocketCtor;
@@ -277,7 +244,6 @@ export class WebSocketTransport implements Transport {
   private disposed = false;
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
   private connectTimer: ReturnType<typeof setTimeout> | null = null;
-  private retryStart: number | null = null;
   private failedAttempts = 0;
   private unwatchEnvironment: (() => void) | null = null;
   private silenceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -301,20 +267,12 @@ export class WebSocketTransport implements Transport {
   /** The cap last asked for on each tier, re-sent on every connect since the mod drops it with the connection. */
   private readonly tierCaps = new Map<"base" | "fast", number>();
   /**
-   * Command-requests issued while the socket wasn't open, flushed on open.
-   * Capped at {@link MAX_PENDING_COMMANDS}; see {@link send} for what happens
-   * to the one that does not fit.
-   */
-  private readonly pendingCommands: Array<
-    Extract<ClientMessage, { type: "command-request" | "command-group" }>
-  > = [];
-  /**
    * The vantage this connection has selected, replayed on every fresh open.
    *
-   * State, not a queued message, which is why it does not share the command
-   * queue's cap: a selection supersedes the one before it, so switching
-   * command centre repeatedly during an outage can only ever leave one. It is
-   * also why it is replayed on every open rather than only when one was missed:
+   * State, which is why it is held through an outage: a selection supersedes
+   * the one before it, so switching command centre repeatedly during an outage
+   * can only ever leave one. It is replayed on every open rather than only when
+   * one was missed:
    * a reconnect gets a new `ClientSession` on the mod, whose `SelectedVantage`
    * defaults back to `ksc`, and a client that did not re-assert its selection
    * would go on naming a command centre its data is not from.
@@ -326,7 +284,6 @@ export class WebSocketTransport implements Transport {
       options.url ??
       `ws://${options.host ?? "localhost"}:${options.port ?? DEFAULT_PORT}`;
     this.retryIntervalMs = options.retryIntervalMs ?? DEFAULT_RETRY_INTERVAL_MS;
-    this.commandHoldMs = options.commandHoldMs ?? DEFAULT_COMMAND_HOLD_MS;
     this.maxRetryIntervalMs =
       options.maxRetryIntervalMs ?? DEFAULT_MAX_RETRY_INTERVAL_MS;
     this.connectTimeoutMs =
@@ -351,32 +308,14 @@ export class WebSocketTransport implements Transport {
   }
 
   /**
-   * Hand a message to the socket, or hold what can be held until the next open.
+   * Hand a message to the socket.
    *
-   * The message types that reach here fall into two kinds, and they do not want
-   * the same treatment while the link is down. Subscriptions and the vantage
-   * selection are state: the live set is replayed on every open, so one sent
-   * into a dead socket costs nothing and needs no queue. A command-request is
-   * an event: it happened once, nothing replays it, and dropping one is a real
-   * loss.
-   *
-   * So only commands queue, and the queue is bounded. Past the cap the newest
-   * is refused rather than the oldest evicted, for two reasons:
-   *
-   * - the backlog drains in order on reconnect, and a sequence whose head was
-   *   evicted runs its tail without its start (an ordered burn sequence,
-   *   `ManeuverPlanner.dispatchPlanBurns`, is exactly that shape). Refusing
-   *   admission keeps whatever was accepted an unbroken prefix
-   * - the refusal is minted at the press, while the command is still
-   *   `in-flight`, so `TelemetryClient` settles it `failed`. A late eviction
-   *   would land after the client's own loss timer had already called the
-   *   command `lost`, and an `error` correlated to a lost requestId is read as
-   *   proof the mod received it (`handleCommandError` flips it to `found`).
-   *   Evicting later would therefore have to lie about where the command got to
-   *
-   * A queue also needs an end, and the cap is not one: what is admitted still
-   * has to be answered if the link never returns. {@link abandonQueue} is that
-   * answer, on a channel of its own for the reason the second bullet gives.
+   * Subscriptions and the vantage selection are state: the live set is replayed
+   * on every open, so one sent into a dead socket costs nothing. A
+   * command-request is an event, and a press with no open socket does nothing:
+   * it is refused at once, never held and never sent when the link returns,
+   * since a command that fires minutes after it was pressed does something the
+   * operator no longer expects.
    */
   send(message: ClientMessage): void {
     if (message.type === "subscribe") {
@@ -420,22 +359,17 @@ export class WebSocketTransport implements Transport {
     if (this.sendRaw(message)) return;
     // A ping is only worth sending to a live socket: one held for the next open would answer nothing.
     if (message.type === "ping") return;
-    if (this.pendingCommands.length >= MAX_PENDING_COMMANDS) {
-      for (const requestId of requestIdsOf(message)) {
-        this.refuseCommand(requestId);
-      }
-      return;
+    for (const requestId of requestIdsOf(message)) {
+      this.refuseCommand(requestId);
     }
-    this.pendingCommands.push(message);
   }
 
   /**
    * Answer a command the transport will not carry, on the same channel a
    * server-side failure would arrive on, so `TelemetryClient` settles the
-   * dispatch promise as `failed` and the operator gets told rather than left
-   * watching an in-flight rail that will never move. Same shape as
-   * `PeerTransport`'s `E_PEER_DISCONNECTED` refusal, including the deferral to
-   * a later tick so it never settles inside the caller's own `dispatch()`.
+   * dispatch promise as `failed`. Same shape as `PeerTransport`'s
+   * `E_PEER_DISCONNECTED` refusal, including the deferral to a later tick so it
+   * never settles inside the caller's own `dispatch()`.
    *
    * `failed` and not `lost` is the honest half: the command never left this
    * machine, so nothing was decided over there and a retry cannot double
@@ -446,10 +380,8 @@ export class WebSocketTransport implements Transport {
       this.deliver({
         type: "error",
         requestId,
-        code: SEND_QUEUE_FULL,
-        message:
-          `not sent: ${MAX_PENDING_COMMANDS} commands are already waiting for ` +
-          "the link to come back. Retry once it does.",
+        code: FaultCode.NoClient,
+        message: NOT_SENT_MESSAGE,
       }),
     );
   }
@@ -464,7 +396,7 @@ export class WebSocketTransport implements Transport {
     return () => this.statusListeners.delete(listener);
   }
 
-  /** See `Transport.onUndelivered`, and {@link abandonQueue} for when it fires. */
+  /** See `Transport.onUndelivered`. This transport holds no command for a later open, so it reports none. */
   onUndelivered(listener: (command: UndeliveredCommand) => void): () => void {
     this.undeliveredListeners.add(listener);
     return () => this.undeliveredListeners.delete(listener);
@@ -525,15 +457,12 @@ export class WebSocketTransport implements Transport {
     ws.addEventListener("open", () => {
       if (this.ws !== ws) return;
       this.stopConnectWatch();
-      // The outage clock measures the CURRENT outage, not the whole session: a successful open starts the next drop's command-hold window afresh.
-      this.retryStart = null;
       this.failedAttempts = 0;
       this.setStatus("connected");
       // Re-assert the vantage FIRST: the mod reads the session's selected vantage at subscribe time, so a re-subscribe sent ahead of it would re-point every topic at the fresh session's default.
       if (this.selectedVantage !== null) {
         this.sendRaw({ type: "set-vantage", centreId: this.selectedVantage });
       }
-      // Re-subscribe to everything still active, then drain queued commands.
       for (const topic of this.subscribedTopics) {
         this.sendRaw({ type: "subscribe", topic });
       }
@@ -544,8 +473,6 @@ export class WebSocketTransport implements Transport {
       for (const [tier, samplesPerSecond] of this.tierCaps) {
         this.sendRaw({ type: "cap-rate", tier, samplesPerSecond });
       }
-      const queued = this.pendingCommands.splice(0);
-      for (const message of queued) this.sendRaw(message);
       this.armSilenceWatch();
     });
     ws.addEventListener("message", (event) => {
@@ -584,9 +511,6 @@ export class WebSocketTransport implements Transport {
 
   private scheduleRetry(): void {
     if (this.disposed) return;
-    if (this.retryStart === null) this.retryStart = this.now();
-    this.expireStaleCommands();
-
     this.setStatus("reconnecting");
     const delay = Math.min(
       this.retryIntervalMs * 2 ** this.failedAttempts,
@@ -634,18 +558,6 @@ export class WebSocketTransport implements Transport {
   }
 
   /**
-   * Hand back the queued commands once the outage has outlasted
-   * {@link WebSocketTransportOptions.commandHoldMs}. A command is an event that
-   * happened once, and one that fires minutes later, when the game finally
-   * returns, does something the operator no longer expects.
-   */
-  private expireStaleCommands(): void {
-    if (this.retryStart === null) return;
-    if (this.now() - this.retryStart < this.commandHoldMs) return;
-    this.abandonQueue();
-  }
-
-  /**
    * (Re)start the dead-socket countdown. Runs only while the socket is open
    * and something is subscribed: with nothing subscribed the server has
    * nothing to say, so silence proves nothing.
@@ -679,40 +591,6 @@ export class WebSocketTransport implements Transport {
     if (this.probeTimer !== null) {
       clearTimeout(this.probeTimer);
       this.probeTimer = null;
-    }
-  }
-
-  /**
-   * Hand back every command still waiting for a link that has stayed down
-   * past the hold window.
-   *
-   * The queue is bounded, so nothing grows without limit; what it was still
-   * missing is an end. A command left here for hours would fire whenever the
-   * game finally returns, long after the operator stopped expecting it, and
-   * would never have been mentioned in between.
-   *
-   * Drained rather than kept, because holding what has already been accounted
-   * for is how a later expiry reports the same command twice.
-   *
-   * Not called from `dispose()`, which is the other permanent end and is
-   * already answered: `TelemetryClient.dispose` rejects every command still in
-   * flight (`E_DISPOSED`), so nothing is silent there. This is the path with no
-   * such backstop.
-   */
-  private abandonQueue(): void {
-    const stranded = this.pendingCommands.splice(0);
-    for (const requestId of stranded.flatMap(requestIdsOf)) {
-      for (const listener of this.undeliveredListeners) {
-        try {
-          listener({ requestId, reason: UNDELIVERED_REASON });
-        } catch (error) {
-          // One throwing listener must not strand the commands behind it, the same isolation contract `deliver` holds for message fan-out.
-          console.error(
-            "WebSocketTransport: undelivered listener threw",
-            error,
-          );
-        }
-      }
     }
   }
 

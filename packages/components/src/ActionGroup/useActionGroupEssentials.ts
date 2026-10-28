@@ -1,7 +1,7 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { useActionGroupFrom, useTelemetry } from "@ksp-gonogo/core";
 import { stillTrue, type TinyEssential } from "@ksp-gonogo/sitrep-sdk";
-import { useStatusContribution } from "@ksp-gonogo/ui-kit";
+import { STREAM_DOWN_TIP, useStatusContribution } from "@ksp-gonogo/ui-kit";
 import type { ActionGroupConfig } from "./config";
 import { groupStateOf, heldPressCaption } from "./groupState";
 import { useGroupToggle } from "./useGroupToggle";
@@ -65,8 +65,11 @@ export function useActionGroupEssentials(
         disabled: !toggle.canToggle,
         title: `Toggle ${label}`,
         held: isStage ? undefined : (heldPressCaption(state) ?? undefined),
-        hint:
-          toggle.confirmationSentence ?? toggle.unavailableReason ?? undefined,
+        hint: toggle.streamDown
+          ? STREAM_DOWN_TIP
+          : (toggle.confirmationSentence ??
+            toggle.unavailableReason ??
+            undefined),
         onPress: toggle.press,
       },
     },

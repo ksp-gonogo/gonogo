@@ -2181,6 +2181,11 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    */
   undelivered: CommandUndelivered[];
   /**
+   * The stream to the mod is down, so a press sends nothing. A control reads it
+   * to draw itself unavailable.
+   */
+  streamDown: boolean;
+  /**
    * Dispatches the mod answered with a fault rather than a reply, newest last:
    * expired or cancelled on the way, dropped where a continuous input would
    * have waited, or undone by a game load. None of them ran.

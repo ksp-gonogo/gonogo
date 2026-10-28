@@ -1,4 +1,9 @@
-import { TelemetryClient, TelemetryProvider } from "@ksp-gonogo/sitrep-client";
+import {
+  TelemetryClient,
+  TelemetryProvider,
+  type TimelineStore,
+  useTelemetryStore,
+} from "@ksp-gonogo/sitrep-client";
 import type { Meta, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
@@ -272,11 +277,15 @@ describe("SitrepPeerRelay", () => {
     act(() => peerHost.connectPeer("station-b"));
 
     await waitFor(() =>
-      expect(peerHost.sentToPeer.some((e) => e.peerId === "station-b")).toBe(
-        true,
-      ),
+      expect(
+        peerHost.sentToPeer.some(
+          (e) => e.peerId === "station-b" && e.msg.type === "sitrep-frame",
+        ),
+      ).toBe(true),
     );
-    const backfill = peerHost.sentToPeer.find((e) => e.peerId === "station-b");
+    const backfill = peerHost.sentToPeer.find(
+      (e) => e.peerId === "station-b" && e.msg.type === "sitrep-frame",
+    );
     expect(backfill?.msg).toMatchObject({
       type: "sitrep-frame",
       message: {
@@ -437,7 +446,7 @@ describe("SitrepPeerRelay", () => {
     );
 
     const backfillToB = peerHost.sentToPeer.filter(
-      (e) => e.peerId === "station-b",
+      (e) => e.peerId === "station-b" && e.msg.type !== "sitrep-link",
     );
     expect(
       backfillToB.every(
@@ -531,5 +540,46 @@ describe("SitrepPeerRelay", () => {
       ).toBe(false);
       first.view.unmount();
     });
+  });
+});
+
+describe("SitrepPeerRelay tells stations whether the stream to the mod is open", () => {
+  it("tells a connecting station, and every station on each change", async () => {
+    const peerHost = makeFakeHost();
+    let store: TimelineStore | undefined;
+    function Grab() {
+      store = useTelemetryStore();
+      return null;
+    }
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    const view = render(
+      <TelemetryProvider client={client}>
+        <Grab />
+        <SitrepPeerRelay peerHost={asHostService(peerHost)} />
+      </TelemetryProvider>,
+    );
+    const links = () =>
+      [...peerHost.broadcasts, ...peerHost.sentToPeer.map((e) => e.msg)].filter(
+        (m) => m.type === "sitrep-link",
+      );
+
+    act(() => peerHost.connectPeer("station-a"));
+    expect(peerHost.sentToPeer).toContainEqual({
+      peerId: "station-a",
+      msg: { type: "sitrep-link", connected: true },
+    });
+
+    const before = links().length;
+    act(() => store?.setTransportConnected(false));
+    act(() => store?.setTransportConnected(true));
+    expect(peerHost.broadcasts.filter((m) => m.type === "sitrep-link")).toEqual(
+      [
+        { type: "sitrep-link", connected: false },
+        { type: "sitrep-link", connected: true },
+      ],
+    );
+    expect(links().length).toBe(before + 2);
+    view.unmount();
   });
 });

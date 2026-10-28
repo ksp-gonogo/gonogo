@@ -8779,6 +8779,10 @@
         "note": "what an order sent now would do, from the sending centre's comms.route and comms.nextLoss; required, so a hand-built handle must now carry it (undefined when nothing is known)"
       },
       {
+        "key": "sitrep-sdk . UseCommandResult#streamDown",
+        "note": "The stream to the mod is down, so a press sends nothing; a control reads it to draw itself unavailable"
+      },
+      {
         "key": "sitrep-sdk . WidgetScopeRegistry#\"ground-track\"",
         "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
       },
@@ -9727,8 +9731,16 @@
         "note": "New: sets what the game is doing from the game-state frame, a load taking effect after the onset"
       },
       {
+        "key": "sitrep-sdk ./spine TimelineStore#streamConnected",
+        "note": "Whether the stream to the mod is open, as the transport last said"
+      },
+      {
         "key": "sitrep-sdk ./spine TimelineStore#subscribeGameStatus",
         "note": "New: listens for a change in what the game is doing"
+      },
+      {
+        "key": "sitrep-sdk ./spine TimelineStore#subscribeStreamConnected",
+        "note": "Called whenever the stream's open state changes, for a control or header that follows it"
       },
       {
         "key": "sitrep-sdk ./spine TimelineStore#tagsOf",
@@ -9773,6 +9785,10 @@
       {
         "key": "sitrep-sdk ./spine UseCommandResult#sendStatus",
         "note": "what an order sent now would do, from the sending centre's comms.route and comms.nextLoss; required, so a hand-built handle must now carry it (undefined when nothing is known)"
+      },
+      {
+        "key": "sitrep-sdk ./spine UseCommandResult#streamDown",
+        "note": "The stream to the mod is down, so a press sends nothing; a control reads it to draw itself unavailable"
       },
       {
         "key": "sitrep-sdk ./spine Vector3",
@@ -10127,8 +10143,16 @@
         "note": "New: sets what the game is doing from the game-state frame, a load taking effect after the onset"
       },
       {
+        "key": "sitrep-sdk ./testing TimelineStore#streamConnected",
+        "note": "Whether the stream to the mod is open, as the transport last said"
+      },
+      {
         "key": "sitrep-sdk ./testing TimelineStore#subscribeGameStatus",
         "note": "New: listens for a change in what the game is doing"
+      },
+      {
+        "key": "sitrep-sdk ./testing TimelineStore#subscribeStreamConnected",
+        "note": "Called whenever the stream's open state changes, for a control or header that follows it"
       },
       {
         "key": "sitrep-sdk ./testing TimelineStore#tagsOf",
@@ -10791,6 +10815,10 @@
         "note": "what an order sent now would do, from the sending centre's comms.route and comms.nextLoss; required, so a hand-built handle must now carry it (undefined when nothing is known)"
       },
       {
+        "key": "sitrep-sdk ./testing ~UseCommandResult#streamDown",
+        "note": "The stream to the mod is down, so a press sends nothing; a control reads it to draw itself unavailable"
+      },
+      {
         "key": "sitrep-sdk ./uplink-externals UPLINK_EXTERNAL_ENTRIES",
         "note": "one entry added for the ui-kit grid subpath, so a loaded client that imports it resolves it through the app's import map"
       },
@@ -10853,6 +10881,10 @@
       {
         "key": "ui-kit . CommandButtonProps#onPressReady?",
         "note": "the listed press takes no argument and binds the control's own confirm step, so an input cannot skip the confirm"
+      },
+      {
+        "key": "ui-kit . CommandButtonState#isOffline",
+        "note": "The stream to the mod is down and nothing is in flight, so the control is drawn unavailable and a press sends nothing"
       },
       {
         "key": "ui-kit . CommandDelay",
@@ -15365,6 +15397,10 @@
         "note": "New: how far a body leads the craft as a reading that carries the weakest currency of the poses and orbit it rests on"
       },
       {
+        "key": "sitrep-sdk ./spine useStreamConnected",
+        "note": "Whether the stream to the mod is open, for a header or control that says nothing can be sent while it is down"
+      },
+      {
         "key": "sitrep-sdk ./spine useSystemInstant",
         "note": "Where every body is at the instant on screen, as a pose that says whether it is exact, modelled, held or withdrawn"
       },
@@ -16929,6 +16965,10 @@
         "note": "optional send status a control writes in its tooltip and outlines its edge for"
       },
       {
+        "key": "ui-kit . CommandButtonHandle#streamDown?",
+        "note": "Lets a command control draw itself unavailable while the stream to the mod is down; optional, so a hand-built handle is unchanged"
+      },
+      {
         "key": "ui-kit . CommandButtonProps#pressed?",
         "note": "renamed from active, the name Button and ToggleButton use"
       },
@@ -17723,6 +17763,10 @@
       {
         "key": "ui-kit . ReservedTextProps#shown",
         "note": "the text drawn"
+      },
+      {
+        "key": "ui-kit . STREAM_DOWN_TIP",
+        "note": "The words a command control shows while the stream to the mod is down, for a control of an author's own that follows the same state"
       },
       {
         "key": "ui-kit . SeriesType",
