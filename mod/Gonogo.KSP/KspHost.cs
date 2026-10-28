@@ -256,6 +256,14 @@ namespace Gonogo.KSP
         public double NowUt() => Planetarium.GetUniversalTime();
 
         /// <summary>
+        /// Main-thread: whether this sample builds a skippable group (see
+        /// <see cref="SnapshotGroups"/>), asked of the engine; every group when unset.
+        /// </summary>
+        public static Func<string, bool>? GroupGate { get; set; }
+
+        private static bool Samples(string group) => GroupGate?.Invoke(group) ?? true;
+
+        /// <summary>
         /// Primitives-only snapshot of every celestial body FlightGlobals
         /// currently knows about. Returns an empty snapshot (no "bodies" key)
         /// when nothing is loaded yet (main menu) rather than throwing -
@@ -458,7 +466,7 @@ namespace Gonogo.KSP
                 try
                 {
                     using var careerTiming = SampleTiming.Part("career");
-                    var career = BuildCareer();
+                    var career = Samples(SnapshotGroups.Career) ? BuildCareer() : null;
                     if (career != null)
                     {
                         values["career"] = career;
@@ -602,7 +610,7 @@ namespace Gonogo.KSP
                 try
                 {
                     using var spaceCenterTiming = SampleTiming.Part("spaceCenter");
-                    var spaceCenter = BuildSpaceCenter();
+                    var spaceCenter = Samples(SnapshotGroups.SpaceCenter) ? BuildSpaceCenter() : null;
                     if (spaceCenter != null)
                     {
                         values["spaceCenter"] = spaceCenter;
@@ -620,11 +628,14 @@ namespace Gonogo.KSP
                 // a null or failure in one never drops the others or launchSites.
                 // The saved-ships disk walk is throttled to the keyframe cadence
                 // inside its builder; the rest are in-memory reads.
-                AttachSpaceCenterGroup(values, "crewRoster", () => BuildCrewRoster(ut));
-                AttachSpaceCenterGroup(values, "astronautComplex", () => BuildAstronautComplex(ut));
-                AttachSpaceCenterGroup(values, "savedShips", () => BuildSavedShips(ut, _savedShipsWanted?.Invoke() ?? true));
-                AttachSpaceCenterGroup(values, "partsAvailable", () => BuildPartsAvailable());
-                AttachSpaceCenterGroup(values, "contractTargets", BuildContractTargets);
+                if (Samples(SnapshotGroups.SpaceCenter))
+                {
+                    AttachSpaceCenterGroup(values, "crewRoster", () => BuildCrewRoster(ut));
+                    AttachSpaceCenterGroup(values, "astronautComplex", () => BuildAstronautComplex(ut));
+                    AttachSpaceCenterGroup(values, "savedShips", () => BuildSavedShips(ut, _savedShipsWanted?.Invoke() ?? true));
+                    AttachSpaceCenterGroup(values, "partsAvailable", () => BuildPartsAvailable());
+                    AttachSpaceCenterGroup(values, "contractTargets", BuildContractTargets);
+                }
             }
             catch (Exception ex)
             {
@@ -715,7 +726,10 @@ namespace Gonogo.KSP
             // The full part tree the vessel.parts channel
             // (VesselPartsViewProvider) maps. Per-part reads are individually
             // guarded in BuildTopology so one bad part can't blank the list.
-            PartsGroup("topology", () => BuildTopology(vessel));
+            if (Samples(SnapshotGroups.Topology))
+            {
+                PartsGroup("topology", () => BuildTopology(vessel));
+            }
             // KSP's STOCK VesselDeltaV stage simulation (dv.stages / dv.summary
             // channels, StageDeltaVViewProvider). Heavier than a field read, so
             // its own try/omit group. Omitted (BuildDeltaV returns null) until

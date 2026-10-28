@@ -230,6 +230,24 @@ namespace Sitrep.Host
             return true;
         }
 
+        /// <summary>
+        /// Courier-thread-only: the earliest UT after its last evaluation at which
+        /// <see cref="IsDue"/> would answer true for <paramref name="topic"/>, without
+        /// recording anything. Negative infinity when it would be due at once: no
+        /// override or demand is in force, or the topic has not been evaluated since one was.
+        /// </summary>
+        public double NextDueUt(string topic)
+        {
+            var overrides = _overrides;
+            var demand = _demand;
+            if ((overrides.Count == 0 && demand.Count == 0) || !_lastEvaluatedUt.TryGetValue(topic, out var last))
+            {
+                return double.NegativeInfinity;
+            }
+
+            return last + IntervalUtFor(topic, overrides, demand) - ToleranceUt;
+        }
+
         /// <summary>Courier-thread-only: forget every last evaluation, as a timeline reset does.</summary>
         public void ResetTimeline() => _lastEvaluatedUt.Clear();
 

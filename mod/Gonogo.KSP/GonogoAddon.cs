@@ -125,6 +125,8 @@ namespace Gonogo.KSP
                 _engine = new ChannelEngine(BindUri, executeCommandsOnMainThread: true);
                 SharedEngine = _engine;
                 _engine.SetAfterCaptures(_host.RefreshTime);
+                _engine.ConfigureSkippableGroups(SnapshotGroups.Readers, typeof(GonogoAddon).Assembly);
+                KspHost.GroupGate = _engine.SamplesGroup;
                 FleetCommsReader.ProviderFault = (provider, error) => _engine?.QuarantineProviderOwner(provider, error);
                 _loadReporter = new GameLoadReporter(_engine);
                 _sampleGate = new SampleGate(_loadReporter.State, _engine.Cadence);
@@ -628,22 +630,26 @@ namespace Gonogo.KSP
                  * ONE Sample() call per tick taken feeds both the recorder and
                  * the engine. The recorder is a dev-capture tool: it records
                  * that snapshot whether or not any client is subscribed to the
-                 * live stream, which gates only the engine's emit path.
+                 * live stream, which gates only the engine's emit path, so a
+                 * recording session samples every group on every tick, as a
+                 * requested sample does for the subscriber that asked for it.
                  */
                 _engine.NoteSave(HighLogic.SaveFolder);
-                var taken = _engine.TryTick(() =>
-                {
-                    var snapshot = _host.Sample();
-                    if (_recordingEnabled)
+                var taken = _engine.TryTick(
+                    () =>
                     {
-                        using (SampleTiming.Part("recorder"))
+                        var snapshot = _host.Sample();
+                        if (_recordingEnabled)
                         {
-                            EnsureRecordingStream();
-                            _recorder.Record(snapshot.Ut, snapshot);
+                            using (SampleTiming.Part("recorder"))
+                            {
+                                EnsureRecordingStream();
+                                _recorder.Record(snapshot.Ut, snapshot);
+                            }
                         }
-                    }
-                    return snapshot;
-                });
+                        return snapshot;
+                    },
+                    full: requested || _recordingEnabled);
                 if (!taken && requested)
                 {
                     _engine.RequestSample();
@@ -671,6 +677,7 @@ namespace Gonogo.KSP
             // over that engine: left in place it would outlive the archive it
             // reads and hand the next scene's alarm arm a dead one.
             ScetAlarmUplink.ConfigureRevealedRead(null);
+            KspHost.GroupGate = null;
             ScetAlarmUplink.ConfigureStandingSubscriptions(null, null);
             ScetAlarmUplink.ConfigureSelectableVantage(null);
             ScetAlarmUplink.ConfigureMainThreadRunner(null);

@@ -7315,7 +7315,14 @@ namespace Sitrep.Host
         /// over what has gathered since the last one keeps it for the next tick
         /// taken, where one taken and then thrown away would have lost it.</para>
         /// </summary>
-        public bool TryTick(Func<KspSnapshot> sample)
+        public bool TryTick(Func<KspSnapshot> sample) => TryTick(sample, full: true);
+
+        /// <summary>
+        /// <see cref="TryTick(Func{KspSnapshot})"/>, where <paramref name="full"/> false
+        /// lets the sample leave out a skippable snapshot group nothing due reads (see
+        /// <see cref="ConfigureSkippableGroups"/> and <see cref="SamplesGroup"/>).
+        /// </summary>
+        public bool TryTick(Func<KspSnapshot> sample, bool full)
         {
             if (Volatile.Read(ref _ticksOutstanding) >= TickBacklogLimit)
             {
@@ -7323,14 +7330,25 @@ namespace Sitrep.Host
                 return false;
             }
             SampleTiming.Begin();
+            var skipped = full ? null : GroupsToSkip(Volatile.Read(ref _gameUt));
             var started = System.Diagnostics.Stopwatch.GetTimestamp();
-            var snapshot = sample();
+            KspSnapshot snapshot;
+            _skippingNow = skipped;
+            try
+            {
+                snapshot = sample();
+            }
+            finally
+            {
+                _skippingNow = null;
+            }
             var sampling = System.Diagnostics.Stopwatch.GetTimestamp() - started;
             SampleTiming.MarkSampleAlloc();
             PerfTelemetry.RecordTicks("main.sample", sampling);
             SampleTiming.Add("sample", sampling);
             var tick = CaptureTick(snapshot.Ut, snapshot, null);
             tick.SampleStopwatchTicks = sampling;
+            tick.SkippedGroups = skipped;
             if (SampleTiming.Enabled)
             {
                 LogHost(SampleTiming.Line(snapshot.Ut, System.Diagnostics.Stopwatch.GetTimestamp() - started)!);
@@ -10044,6 +10062,12 @@ namespace Sitrep.Host
                     continue;
                 }
 
+                // Before either cadence is consulted, so a topic deferred here is still due on the next tick.
+                if (tick.SkippedGroups != null && ReadsAnyOf(topic, tick.SkippedGroups))
+                {
+                    continue;
+                }
+
                 var map = channelSource.Value;
                 var warm = !_subscriptions.IsSubscribed(topic);
                 if (warm ? !WarmSampleDue(topic, tick.Ut) : !Cadence.IsDue(topic, tick.Ut))
@@ -10162,6 +10186,7 @@ namespace Sitrep.Host
             }
 
             timing.EndOne(ref timing.Channels, ref timing.SlowestChannel, timing.Topic);
+            PublishGroupsDue(tick.Ut);
 
             foreach (var publish in handlePublishes)
             {
@@ -12163,6 +12188,9 @@ namespace Sitrep.Host
 
             /// <summary>Real time the game snapshot this tick carries took to sample, in stopwatch ticks, or zero when its caller did not say.</summary>
             public long SampleStopwatchTicks;
+
+            /// <summary>The skippable snapshot groups this tick's sample left out, or null when it built them all.</summary>
+            public string[]? SkippedGroups;
             public TickJob(double ut, KspSnapshot? snapshot, CapturedSample[]? captures, SignalDelayCapture signalDelay, ConnectivityCapture connectivity, PathBreakCapture pathBreak, ManualResetEventSlim? done)
             {
                 Ut = ut;
