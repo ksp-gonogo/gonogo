@@ -602,7 +602,10 @@ export async function snapshotWidgetMode<
 
     // Last, so a held scene differs from its live twin by the drop alone.
     beginPhase("stops-arriving");
-    dropTransport();
+    // The drop notifies every control that reads the stream's connection, so it runs inside act.
+    act(() => {
+      dropTransport();
+    });
     await flushProviderFrame(providerMounted, emitFrame);
 
     beginPhase("done");
@@ -702,7 +705,10 @@ export async function renderWidgetMode<
     beginPhase("flush-resize-observers");
     await flushResizeObservers();
     beginPhase("stops-arriving");
-    dropTransport();
+    // The drop notifies every control that reads the stream's connection, so it runs inside act.
+    act(() => {
+      dropTransport();
+    });
     await flushProviderFrame(providerMounted, emitFrame);
     beginPhase("done");
     return { container, teardown: () => teardownMockDataSource(fixture) };
