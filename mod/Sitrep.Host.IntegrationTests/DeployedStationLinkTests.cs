@@ -28,12 +28,13 @@ namespace Sitrep.Host.IntegrationTests
 
         [Theory]
         [InlineData("deployed.station.abc-123.report", "fleet.abc-123")]
-        [InlineData("deployed.station.abc-123", "system")]
+        [InlineData("deployed.station.abc-123", ChannelEngine.UnplacedLensNode)]
         public void AStationsReportRidesItsControllerVesselsNode(string topic, string expectedNode)
         {
             /*
              * The bare form is the trap: a per-vessel topic with no field after the
-             * key is not routed, and would be timed on the active craft's node.
+             * key is not routed, and must be held rather than timed on the active
+             * craft's node.
              */
             var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             engine.RegisterUplink(new TestBreakingGroundUplink());
