@@ -25,36 +25,33 @@ export function Fab({
 
   return (
     <FabRow
+      type="button"
       $visible={visible}
       $bottom={placed.bottom}
       $offset={placed.offset}
+      tabIndex={visible ? 0 : -1}
       onMouseEnter={cluster?.onMouseEnter}
       onMouseLeave={cluster?.onMouseLeave}
       onFocus={cluster?.onFocus}
       onBlur={cluster?.onBlur}
+      onClick={(e) => {
+        onClick?.(e);
+        cluster?.close();
+      }}
+      {...rest}
     >
       {label ? (
         <FabLabel $visible={visible} aria-hidden="true">
           {label}
         </FabLabel>
       ) : null}
-      <StyledFab
-        $visible={visible}
-        tabIndex={visible ? 0 : -1}
-        onClick={(e) => {
-          onClick?.(e);
-          cluster?.close();
-        }}
-        {...rest}
-      >
-        {children}
-      </StyledFab>
+      <FabGlyph $visible={visible}>{children}</FabGlyph>
     </FabRow>
   );
 }
 
-/** The button is the row's tallest item, so the label beside it never moves the button. */
-const FabRow = styled.div<{
+/** The label and the glyph are one button, so pressing either runs the action; the glyph is the row's tallest item, so the label never moves it. */
+const FabRow = styled.button<{
   $visible: boolean;
   $bottom: number;
   $offset: number;
@@ -70,10 +67,15 @@ const FabRow = styled.div<{
   gap: var(--gap-pill);
   z-index: var(--z-fab);
   pointer-events: ${({ $visible }) => ($visible ? "auto" : "none")};
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  cursor: pointer;
 `;
 
 const FabLabel = styled.span<{ $visible: boolean }>`
-  pointer-events: none;
   white-space: nowrap;
   background: var(--color-surface-raised);
   color: var(--color-text-primary);
@@ -92,21 +94,19 @@ const FabLabel = styled.span<{ $visible: boolean }>`
     opacity 0.18s var(--ease-standard);
 `;
 
-const StyledFab = styled.button<{ $visible: boolean }>`
+const FabGlyph = styled.span<{ $visible: boolean }>`
   width: 40px;
   height: 40px;
   border-radius: var(--radius-circle);
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
   color: var(--color-info-text);
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   flex: none;
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
-  pointer-events: ${({ $visible }) => ($visible ? "auto" : "none")};
   transform: translateY(${({ $visible }) => ($visible ? "0" : "16px")});
 
   /* The glyph is the whole control, so it takes the standalone size; the CSS width and height beat the icon's own attributes. */
@@ -123,15 +123,20 @@ const StyledFab = styled.button<{ $visible: boolean }>`
     border-color var(--duration-base);
 
   @media (hover: hover) {
-    &:hover {
+    ${FabRow}:hover & {
       background: var(--color-border-subtle);
       border-color: var(--color-info-mark);
       transform: scale(1.05);
     }
   }
 
-  &:active {
+  ${FabRow}:active & {
     transform: scale(0.97);
+  }
+
+  ${FabRow}:focus-visible & {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
   }
 
   @media (pointer: coarse) {
