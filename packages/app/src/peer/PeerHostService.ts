@@ -428,6 +428,11 @@ type HostEventMap = {
 
 const paceLogger = logger.tag("peer:pace");
 
+/** The most main-thread time one slice of a subscribe replay takes before the next waits for a macrotask. */
+const REPLAY_SLICE_MS = 8;
+/** A subscribe replay waits while a station's send queue holds this much, well under the 256 KiB the pacer reads as falling behind. */
+const REPLAY_QUEUE_BYTES = 64 * 1024;
+
 /**
  * The bytes waiting to go out to a station, or null when they cannot be read: a
  * direct station's data channel says so itself, and a station through the
@@ -530,6 +535,8 @@ export class PeerHostService {
   private readonly sentOnChange = new WeakMap<StationLink, SentOnChange>();
   /** Per station, the rate it is sent the fast Topics at. */
   private readonly pacers = new WeakMap<StationLink, StationPacer>();
+  /** The replay of each Topic each station is being sent, so a newer one replaces it. */
+  private readonly replays = new WeakMap<StationLink, Map<string, object>>();
   private paceTimer: ReturnType<typeof setInterval> | null = null;
   private paceLooks = 0;
   private peerSubs = new WeakMap<StationLink, Map<string, Set<string>>>();
@@ -1419,13 +1426,66 @@ export class PeerHostService {
     // The host may have been subscribed to this for a while, in which case the
     // next frame is the only thing this station would otherwise see. Replay the
     // current one to it alone.
-    for (const cached of this.sitrepSinks.get(vantage)?.cachedFrames(topic) ??
-      []) {
-      this.transmit(
-        conn,
-        cached.type === "sitrep-frame" ? { ...cached, replay: true } : cached,
-      );
+    this.replay(
+      conn,
+      topic,
+      (this.sitrepSinks.get(vantage)?.cachedFrames(topic) ?? []).map(
+        (cached) =>
+          cached.type === "sitrep-frame" ? { ...cached, replay: true } : cached,
+      ),
+    );
+  }
+
+  /**
+   * Send `frames`, a Topic's cached run oldest first, to the station that has
+   * just subscribed it. The first frame (the subscribe ack when there is one)
+   * and the newest go at once, so the station reads the Topic's current value
+   * straight away; the rest of the run follows in slices of at most
+   * `REPLAY_SLICE_MS` of work, each waiting until the station's send queue is
+   * below `REPLAY_QUEUE_BYTES`. A run can be minutes of a fast Topic, and sent
+   * in one go it stalls the main screen and fills the queue past what the
+   * pacer reads as a station falling behind. The rest stops if the station
+   * lets the Topic go, subscribes it again, or leaves.
+   */
+  private replay(
+    conn: StationLink,
+    topic: string,
+    frames: readonly PeerMessage[],
+  ): void {
+    let replays = this.replays.get(conn);
+    if (!replays) {
+      replays = new Map();
+      this.replays.set(conn, replays);
     }
+    const run = {};
+    replays.set(topic, run);
+    const live = () =>
+      this.replays.get(conn)?.get(topic) === run &&
+      this.connections.has(conn) &&
+      this.sitrepSubs.get(conn)?.has(topic) === true;
+
+    const head = frames.slice(0, 1);
+    const newest = frames.length > 1 ? frames.slice(-1) : [];
+    for (const frame of [...head, ...newest]) this.transmit(conn, frame);
+    const rest = frames.slice(1, -1);
+    let next = 0;
+    const slice = () => {
+      if (!live()) return;
+      const started = performance.now();
+      while (
+        next < rest.length &&
+        performance.now() - started < REPLAY_SLICE_MS &&
+        (queuedBytes(conn) ?? 0) < REPLAY_QUEUE_BYTES
+      ) {
+        this.transmit(conn, rest[next++]);
+      }
+      if (next < rest.length) {
+        setTimeout(slice, 0);
+        return;
+      }
+      if (replays.get(topic) === run) replays.delete(topic);
+    };
+    slice();
   }
 
   /**

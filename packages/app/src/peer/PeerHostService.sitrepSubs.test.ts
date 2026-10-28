@@ -471,3 +471,77 @@ describe("a station that falls behind", () => {
     host.stop();
   });
 });
+
+describe("a subscribe replay of a long run", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    FakeHub.reset();
+    localStorageMock.clear();
+  });
+
+  const run = (count: number): PeerMessage[] =>
+    Array.from({ length: count }, (_, i) => ({
+      type: "sitrep-frame" as const,
+      message: {
+        type: "stream-data" as const,
+        topic: TOPIC,
+        payload: i,
+        meta: makeMeta({ validAt: i }),
+      },
+    }));
+
+  const isFrame = (
+    message: unknown,
+  ): message is Extract<PeerMessage, { type: "sitrep-frame" }> =>
+    typeof message === "object" &&
+    message !== null &&
+    Reflect.get(message, "type") === "sitrep-frame";
+
+  const validAts = (conn: FakeConn): number[] =>
+    conn.sent.flatMap((message) =>
+      isFrame(message) && message.message.type === "stream-data"
+        ? [message.message.meta.validAt]
+        : [],
+    );
+
+  /** Each read of the clock moves it a millisecond on, so a slice ends after a few frames. */
+  function slowClock(): void {
+    let now = 0;
+    vi.spyOn(performance, "now").mockImplementation(() => (now += 1));
+  }
+
+  it("sends the oldest and newest frames at once and the rest in later slices, all of them in the end", async () => {
+    const host = await startedHost();
+    host.attachSitrepSink(makeSink({ [TOPIC]: run(200) }));
+    const conn = await connectStation(host, "station-a");
+    vi.useFakeTimers();
+    slowClock();
+
+    claim(conn, TOPIC);
+    const first = validAts(conn);
+    expect(first.slice(0, 2)).toEqual([0, 199]);
+    expect(first.length).toBeLessThan(20);
+
+    vi.runAllTimers();
+    expect([...validAts(conn)].sort((a, b) => a - b)).toEqual(
+      Array.from({ length: 200 }, (_, i) => i),
+    );
+    host.stop();
+  });
+
+  it("stops sending the rest once the station lets the Topic go", async () => {
+    const host = await startedHost();
+    host.attachSitrepSink(makeSink({ [TOPIC]: run(200) }));
+    const conn = await connectStation(host, "station-a");
+    vi.useFakeTimers();
+    slowClock();
+
+    claim(conn, TOPIC);
+    const sent = validAts(conn).length;
+    conn.emit("data", { type: "sitrep-unsubscribe", topic: TOPIC });
+    vi.runAllTimers();
+    expect(validAts(conn).length).toBe(sent);
+    host.stop();
+  });
+});
