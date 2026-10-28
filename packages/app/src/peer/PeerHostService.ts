@@ -1,6 +1,7 @@
 import type { DataKey } from "@ksp-gonogo/core";
 import { PerfBudget, safeRandomUuid } from "@ksp-gonogo/core";
 import type {
+  ContractFinish,
   DataKeyMeta,
   FlightChapterRecord,
   FlightRecord,
@@ -237,6 +238,7 @@ function getOrCreateShareCode(): string {
  */
 interface MissionHistoryFlightApi {
   listFlights(): Promise<FlightRecord[]>;
+  listContractFinishes(): Promise<ContractFinish[]>;
   getFlight(id: string): Promise<FlightRecord | null>;
   exportFlight(id: string): Promise<unknown>;
   deleteFlight(id: string): Promise<void>;
@@ -2921,6 +2923,8 @@ export class PeerHostService {
     switch (op.op) {
       case "list":
         return source.listFlights();
+      case "listContractFinishes":
+        return source.listContractFinishes();
       case "get":
         return source.getFlight(op.id);
       case "getCurrent":

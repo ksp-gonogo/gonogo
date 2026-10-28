@@ -21,12 +21,16 @@ import { useTelemetryClientOptional } from "./context";
  * arrive after the subscription count. An event the mod sends again after a
  * reconnect or a change of command centre is not delivered twice.
  *
+ * `handler`'s second argument is the frame's `Meta`: `validAt` is when the event
+ * happened in game time and `deliveredAt` is when it reached this command centre.
+ * It is `undefined` where the frame's `Meta` is not known.
+ *
  * `handler` may change identity on every render without re-subscribing. The
  * latest one is always called, so callers need not memoize it.
  */
 export function useStreamEvent<Payload>(
   topic: string,
-  handler: (payload: Payload) => void,
+  handler: (payload: Payload, meta: Meta | undefined) => void,
 ): void {
   // Degrade to a no-op when no `TelemetryProvider` is mounted (disconnected),
   // same `*Optional` contract as `useStream`/`useTelemetry`.
@@ -55,7 +59,7 @@ export function useStreamEvent<Payload>(
       const repeat = seen !== undefined && seen === lastSeen;
       lastSeen = seen;
       if (replayingSticky || repeat) return;
-      handlerRef.current(payload as Payload);
+      handlerRef.current(payload as Payload, meta);
     });
     replayingSticky = false;
     return unsubscribe;
