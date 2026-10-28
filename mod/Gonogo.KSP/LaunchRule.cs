@@ -85,37 +85,15 @@ namespace Gonogo.KSP
         /// </summary>
         /// <param name="hasCrewedCommandModule">Whether any command module on the craft needs a kerbal aboard.</param>
         /// <param name="crewNamed">How many kerbals the launch named in its crew list.</param>
-        /// <param name="unavailableCrew">The named kerbals the launch could not seat, each as <see cref="UnavailableKerbal"/> words, or null when none.</param>
-        public static string? NoControlSourceDetail(
-            bool hasCrewedCommandModule, int crewNamed, IReadOnlyList<string>? unavailableCrew = null)
+        public static string? NoControlSourceDetail(bool hasCrewedCommandModule, int crewNamed)
         {
             if (!hasCrewedCommandModule)
             {
                 return null;
             }
-            if (crewNamed == 0)
-            {
-                return "the craft's command module needs a kerbal and the crew list is empty, which launches it unmanned";
-            }
-            const string unfilled = "the kerbals named in the crew list do not fill the craft's command module";
-            return unavailableCrew == null || unavailableCrew.Count == 0
-                ? unfilled
-                : unfilled + ": " + string.Join(", ", unavailableCrew) + " could not be seated";
-        }
-
-        /// <summary>
-        /// One named kerbal the launch could not seat, in the words a refusal
-        /// quotes: the name and the roster status that kept them out
-        /// ("Jebediah Kerman (Assigned)"), or "not on the roster" when the
-        /// roster has no kerbal of that name.
-        /// </summary>
-        /// <param name="name">The name the crew list gave.</param>
-        /// <param name="rosterStatus">The kerbal's roster status, or null when the roster has no such kerbal.</param>
-        public static string UnavailableKerbal(string name, string? rosterStatus)
-        {
-            return rosterStatus == null
-                ? name + " (not on the roster)"
-                : name + " (" + rosterStatus + ")";
+            return crewNamed == 0
+                ? "the craft's command module needs a kerbal and the crew list is empty, which launches it unmanned"
+                : "the kerbals named in the crew list do not fill the craft's command module";
         }
 
         /// <summary>
