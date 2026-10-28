@@ -1,4 +1,3 @@
-import type { ContractFinish } from "../storage/MissionStore";
 import type { FlightRecord } from "../types";
 
 /** What one line of the flight history stands for: a recording, or every open recording of a craft that is still flying. */
@@ -12,42 +11,6 @@ export interface FlightRow {
   /** The sum of each recording's own span, wall-clock ms. */
   durationMs: number;
   sampleCount: number;
-  /** The earliest game time, in seconds, any recording of the row holds a sample valid at. Absent when none of them kept one. */
-  firstValidUt?: number;
-  /** The latest game time, in seconds, any recording of the row holds a sample valid at. */
-  lastValidUt?: number;
-}
-
-/**
- * The contracts that finished during a row's flight: those whose finish time falls within the span the row's recordings hold samples for. A finish with no flight spanning it belongs to no row, and a row whose recordings kept no valid-time span has none.
- */
-export function contractsOnRow(
-  row: Pick<FlightRow, "firstValidUt" | "lastValidUt">,
-  finishes: readonly ContractFinish[],
-): ContractFinish[] {
-  const { firstValidUt, lastValidUt } = row;
-  if (firstValidUt === undefined || lastValidUt === undefined) return [];
-  return finishes.filter(
-    (f) => f.validAt >= firstValidUt && f.validAt <= lastValidUt,
-  );
-}
-
-function widen(
-  row: Pick<FlightRow, "firstValidUt" | "lastValidUt">,
-  flight: Pick<FlightRecord, "firstValidUt" | "lastValidUt">,
-): void {
-  if (flight.firstValidUt !== undefined) {
-    row.firstValidUt = Math.min(
-      row.firstValidUt ?? flight.firstValidUt,
-      flight.firstValidUt,
-    );
-  }
-  if (flight.lastValidUt !== undefined) {
-    row.lastValidUt = Math.max(
-      row.lastValidUt ?? flight.lastValidUt,
-      flight.lastValidUt,
-    );
-  }
 }
 
 /**
@@ -73,7 +36,6 @@ export function flightRows(
       into.launchedAt = Math.min(into.launchedAt, flight.launchedAt);
       into.durationMs += span;
       into.sampleCount += flight.sampleCount;
-      widen(into, flight);
       continue;
     }
     const row: FlightRow = {
@@ -84,7 +46,6 @@ export function flightRows(
       durationMs: span,
       sampleCount: flight.sampleCount,
     };
-    widen(row, flight);
     rows.push(row);
     if (folds) open.set(flight.vesselName, row);
   }

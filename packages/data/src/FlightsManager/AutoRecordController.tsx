@@ -7,7 +7,6 @@ import {
   useStreamRecorder,
 } from "@ksp-gonogo/sitrep-client";
 import {
-  type CareerContractEvent,
   type FlightCurrent,
   type FlightEnded,
   FlightEndReason,
@@ -617,37 +616,6 @@ export function AutoRecordController({
       },
       [recorder, partSizeLimit, partSeconds, storePart, resumeParkedFlight],
     ),
-  );
-
-  /*
-   * A contract finish is held whatever the recorder is doing, since a contract
-   * often finishes with no flight active. Which flight it belongs to is worked
-   * out when the history is drawn, from the flight's own valid-time span.
-   */
-  useOptionalStreamEvent<CareerContractEvent>(
-    "career.contractEvent",
-    useCallback((payload, meta) => {
-      if (!missionHistoryEnabledRef.current) return;
-      if (meta === undefined) return;
-      const { id, title, outcome } = payload;
-      if (typeof id !== "string") return;
-      if (outcome !== "Completed" && outcome !== "Failed") return;
-      const src = getSource();
-      if (typeof src?.saveContractFinish !== "function") return;
-      src
-        .saveContractFinish({
-          id,
-          title: title ?? null,
-          outcome,
-          validAt: meta.validAt,
-          deliveredAt: meta.deliveredAt,
-        })
-        .catch((error: unknown) => {
-          logger.warn("[auto-record] contract finish not stored", {
-            err: String(error),
-          });
-        });
-    }, []),
   );
 
   // Unmount (or recorder identity change): flush whatever's in flight

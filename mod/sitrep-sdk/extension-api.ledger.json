@@ -8287,10 +8287,6 @@
         "note": "The host member behind useTopicClock"
       },
       {
-        "key": "sitrep-sdk . GonogoHost#useStreamEvent",
-        "note": "the event handler is also given the frame's Meta, whose validAt and deliveredAt stamp when the event happened and when it arrived"
-      },
-      {
         "key": "sitrep-sdk . GonogoHost#useViewClock",
         "note": "the view clock is typed as DelayClockLike instead of unknown"
       },
@@ -8841,10 +8837,6 @@
       {
         "key": "sitrep-sdk . useSetting",
         "note": "The default argument is optional: without one the hook reads the default of the client setting registered under the key, and throws when there is none"
-      },
-      {
-        "key": "sitrep-sdk . useStreamEvent",
-        "note": "the event handler is also given the frame's Meta, whose validAt and deliveredAt stamp when the event happened and when it arrived"
       },
       {
         "key": "sitrep-sdk . useViewClock",
@@ -9891,10 +9883,6 @@
         "note": "its options are typed by the command's arguments, UseCommandOptions<CommandArgs<Command>> or UseCommandOptions<Args>"
       },
       {
-        "key": "sitrep-sdk ./spine useStreamEvent",
-        "note": "the event handler is also given the frame's Meta, whose validAt and deliveredAt stamp when the event happened and when it arrived"
-      },
-      {
         "key": "sitrep-sdk ./spine ~AugmentSettingField#type",
         "note": "an augment setting field names its kind with SettingKind, the same type a registered setting and a mod settings row use"
       },
@@ -10329,10 +10317,6 @@
       {
         "key": "sitrep-sdk ./testing ~GonogoHost#useTopicClock",
         "note": "The host member behind useTopicClock"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~GonogoHost#useStreamEvent",
-        "note": "the event handler is also given the frame's Meta, whose validAt and deliveredAt stamp when the event happened and when it arrived"
       },
       {
         "key": "sitrep-sdk ./testing ~GonogoHost#useViewClock",

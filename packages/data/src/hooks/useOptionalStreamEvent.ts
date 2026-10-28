@@ -1,5 +1,4 @@
 import { useTelemetryClientOptional } from "@ksp-gonogo/sitrep-client";
-import type { Meta } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useRef } from "react";
 
 /**
@@ -18,12 +17,11 @@ import { useEffect, useRef } from "react";
  * was never open. A topic that reads absent (no vessel at the Space Center, a
  * flight just recovered) is not an event, so `handler` is not called for it.
  * `handler` may change identity every render without re-subscribing (held in
- * a ref). The second argument is the frame's `Meta`, whose `validAt` and
- * `deliveredAt` stamp when the event happened and when it arrived.
+ * a ref).
  */
 export function useOptionalStreamEvent<Payload>(
   topic: string,
-  handler: (payload: Payload, meta: Meta | undefined) => void,
+  handler: (payload: Payload) => void,
 ): void {
   const client = useTelemetryClientOptional();
   const handlerRef = useRef(handler);
@@ -32,9 +30,9 @@ export function useOptionalStreamEvent<Payload>(
   useEffect(() => {
     if (!client) return;
     let replayingSticky = true;
-    const unsubscribe = client.subscribeFrames(topic, (payload, meta) => {
+    const unsubscribe = client.subscribe(topic, (payload) => {
       if (replayingSticky || payload == null) return;
-      handlerRef.current(payload as Payload, meta);
+      handlerRef.current(payload as Payload);
     });
     replayingSticky = false;
     return unsubscribe;

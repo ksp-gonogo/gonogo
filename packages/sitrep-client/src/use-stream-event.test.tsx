@@ -40,22 +40,14 @@ describe("useStreamEvent", () => {
     // The ReliableOrdered lane delivers every crash: both fire, in order, and the second is not coalesced away by the store's per-frame batching.
     expect(onCrash).toHaveBeenCalledTimes(2);
     // `ut` arrives wrapped: `crash.lastCrash` declares it in seconds and the transport wraps on the way out, same as the wire decode.
-    expect(onCrash).toHaveBeenNthCalledWith(
-      1,
-      {
-        vesselName: "Kerbal X",
-        ut: value("ut", 100),
-      },
-      expect.anything(),
-    );
-    expect(onCrash).toHaveBeenNthCalledWith(
-      2,
-      {
-        vesselName: "Kerbal Y",
-        ut: value("ut", 200),
-      },
-      expect.anything(),
-    );
+    expect(onCrash).toHaveBeenNthCalledWith(1, {
+      vesselName: "Kerbal X",
+      ut: value("ut", 100),
+    });
+    expect(onCrash).toHaveBeenNthCalledWith(2, {
+      vesselName: "Kerbal Y",
+      ut: value("ut", 200),
+    });
   });
 
   it("does not re-fire the sticky last event when a later subscriber mounts", () => {
@@ -89,13 +81,10 @@ describe("useStreamEvent", () => {
       transport.emit("crash.lastCrash", { vesselName: "Kerbal B", ut: 2 });
     });
     expect(second).toHaveBeenCalledTimes(1);
-    expect(second).toHaveBeenCalledWith(
-      {
-        vesselName: "Kerbal B",
-        ut: value("ut", 2),
-      },
-      expect.anything(),
-    );
+    expect(second).toHaveBeenCalledWith({
+      vesselName: "Kerbal B",
+      ut: value("ut", 2),
+    });
     expect(first).toHaveBeenCalledTimes(2);
   });
 

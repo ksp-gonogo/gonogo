@@ -1,6 +1,5 @@
 import type { DataSourceStatus } from "@ksp-gonogo/core";
 import type {
-  ContractFinish,
   DataKeyMeta,
   FlightChapterRecord,
   FlightRecord,
@@ -19,7 +18,6 @@ import type { HostUplinkFailure } from "../uplinks/loadFailures";
  */
 export type FlightRpcOp =
   | { op: "list" }
-  | { op: "listContractFinishes" }
   | { op: "get"; id: string }
   | { op: "getCurrent" }
   | { op: "export"; id: string }
@@ -40,7 +38,7 @@ export type FlightRpcOp =
     }
   | { op: "removeChapter"; flightId: string; chapterId: string };
 
-export type { ContractFinish, DataSourceStatus, FlightRecord };
+export type { DataSourceStatus, FlightRecord };
 
 export interface PeerSchemaSource {
   id: string;

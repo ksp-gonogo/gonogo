@@ -18,7 +18,6 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import { getTopicFieldCatalog } from "../schema/topicFieldCatalog";
 import type {
-  ContractFinish,
   MissionMeta,
   MissionRecord,
   MissionStore,
@@ -184,15 +183,6 @@ export class MissionHistorySource implements DataSource {
    * `onFlightListChange`. `part` counts from 0. A mission is listed from its
    * first stored part on, and reads back as one recording.
    */
-  async saveContractFinish(finish: ContractFinish): Promise<void> {
-    await this.missionStore.saveContractFinish(finish);
-    this.flightListSubscribers.fire();
-  }
-
-  listContractFinishes(): Promise<ContractFinish[]> {
-    return this.missionStore.listContractFinishes();
-  }
-
   async saveMissionPart(
     meta: MissionMeta,
     part: number,

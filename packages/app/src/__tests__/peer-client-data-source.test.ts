@@ -333,23 +333,6 @@ describe("PeerClientDataSource", () => {
     ]);
   });
 
-  it("listContractFinishes forwards as a flight-rpc op", async () => {
-    const finish = {
-      id: "42",
-      title: "Orbit Kerbin",
-      outcome: "Completed" as const,
-      validAt: 1000,
-      deliveredAt: 1004,
-    };
-    const fake = makeFakeClient(undefined, async (op) =>
-      op.op === "listContractFinishes" ? [finish] : null,
-    );
-    const source = new PeerClientDataSource("data", "Data", fake.service);
-
-    await expect(source.listContractFinishes()).resolves.toEqual([finish]);
-    expect(fake.flightOps).toEqual([{ op: "listContractFinishes" }]);
-  });
-
   it("addChapter / updateChapter / removeChapter round-trip through flight-rpc", async () => {
     const flight: FlightRecord = {
       id: "f1",

@@ -24,50 +24,9 @@ export interface MissionRecord {
 }
 
 const DB_NAME = "gonogo-missions";
-const DB_VERSION = 2;
+const DB_VERSION = 1;
 const META_STORE = "missionMeta";
 const FIXTURE_STORE = "missionFixtures";
-const CONTRACT_STORE = "contractFinishes";
-
-/**
- * One contract heard finishing, stamped with the game time it finished and the
- * game time it reached the command centre. Kept apart from any flight, so a
- * contract that finishes with no flight active is held too.
- */
-export interface ContractFinish {
-  /** The contract's id. */
-  id: string;
-  /** The contract's display title, `null` when the event named none. */
-  title: string | null;
-  /** How it finished. */
-  outcome: "Completed" | "Failed";
-  /** The game time, in seconds, the contract finished at (SCET). */
-  validAt: number;
-  /** The game time, in seconds, the finish reached the command centre (RT). */
-  deliveredAt: number;
-}
-
-function contractKey(finish: Pick<ContractFinish, "id" | "outcome">): string {
-  return `${finish.id}:${finish.outcome}`;
-}
-
-function asContractFinish(row: unknown): ContractFinish | null {
-  if (typeof row !== "object" || row === null) return null;
-  const { id, title, outcome, validAt, deliveredAt } = row as Record<
-    string,
-    unknown
-  >;
-  if (
-    typeof id !== "string" ||
-    (typeof title !== "string" && title !== null) ||
-    (outcome !== "Completed" && outcome !== "Failed") ||
-    typeof validAt !== "number" ||
-    typeof deliveredAt !== "number"
-  ) {
-    return null;
-  }
-  return { id, title, outcome, validAt, deliveredAt };
-}
 
 interface FixtureRow {
   id: string;
@@ -144,36 +103,6 @@ export class MissionStore {
         video: record.video,
       };
       tx.objectStore(FIXTURE_STORE).put(fixtureRow);
-    });
-  }
-
-  /** Stores a finished contract, replacing the one already held for the same contract and outcome. */
-  async saveContractFinish(finish: ContractFinish): Promise<void> {
-    await this.runTx(CONTRACT_STORE, "readwrite", (tx) => {
-      tx.objectStore(CONTRACT_STORE).put({
-        ...finish,
-        key: contractKey(finish),
-      });
-    });
-  }
-
-  async listContractFinishes(): Promise<ContractFinish[]> {
-    const db = await this.open();
-    return new Promise<ContractFinish[]>((resolve, reject) => {
-      const req = db
-        .transaction(CONTRACT_STORE)
-        .objectStore(CONTRACT_STORE)
-        .getAll();
-      req.onsuccess = () => {
-        const rows: unknown[] = req.result;
-        resolve(
-          rows
-            .map(asContractFinish)
-            .filter((row): row is ContractFinish => row !== null)
-            .sort((a, b) => a.validAt - b.validAt),
-        );
-      };
-      req.onerror = () => reject(req.error);
     });
   }
 
@@ -388,9 +317,6 @@ export class MissionStore {
         }
         if (!db.objectStoreNames.contains(FIXTURE_STORE)) {
           db.createObjectStore(FIXTURE_STORE, { keyPath: "id" });
-        }
-        if (!db.objectStoreNames.contains(CONTRACT_STORE)) {
-          db.createObjectStore(CONTRACT_STORE, { keyPath: "key" });
         }
       };
       req.onsuccess = () => resolve(req.result);

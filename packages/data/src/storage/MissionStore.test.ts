@@ -34,26 +34,6 @@ function mission(overrides: Partial<MissionMeta> = {}): MissionRecord {
 }
 
 describe("MissionStore", () => {
-  it("keeps a contract finish per contract and outcome, oldest first", async () => {
-    const store = freshStore();
-    const finish = {
-      id: "7",
-      title: "Land on the Mun",
-      outcome: "Completed" as const,
-      validAt: 500,
-      deliveredAt: 502,
-    };
-    await store.saveContractFinish({ ...finish, id: "8", validAt: 900 });
-    await store.saveContractFinish(finish);
-    await store.saveContractFinish({ ...finish, deliveredAt: 503 });
-
-    const held = await store.listContractFinishes();
-    expect(held.map((f) => [f.id, f.deliveredAt])).toEqual([
-      ["7", 503],
-      ["8", 502],
-    ]);
-  });
-
   it("round-trips a saved mission's metadata through listMissions", async () => {
     const store = freshStore();
     await store.saveMission(mission());
