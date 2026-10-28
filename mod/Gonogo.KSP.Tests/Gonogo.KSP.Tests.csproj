@@ -38,6 +38,7 @@
          unreadable part reaches the operator as "no robotic parts" and a
          powered base as unpowered, which is not a thing to check only where
          KSP is installed. -->
+    <Compile Include="..\Gonogo.KSP\PartActionText.cs" />
     <Compile Include="..\Gonogo.KSP\TerminatedVessels.cs" />
     <Compile Include="..\Gonogo.KSP\BoardedVessels.cs" />
     <Compile Include="..\Gonogo.KSP\BreakingGroundReads.cs" />

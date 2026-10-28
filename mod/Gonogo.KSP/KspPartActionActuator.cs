@@ -159,12 +159,18 @@ namespace Gonogo.KSP
                     continue;
                 }
 
+                // A row whose label carries no words (a lone "-") is a spacer in
+                // the game's window and has nothing to press or read.
+                var label = PartActionText.Clean(ev.guiName);
+                if (label == null)
+                {
+                    continue;
+                }
+
                 into.Add(new PartActionEntry
                 {
                     Name = ev.name ?? "",
-                    // guiName is the localized label; it falls back to the code
-                    // name only so a button is never rendered blank.
-                    Label = !string.IsNullOrEmpty(ev.guiName) ? ev.guiName : (ev.name ?? ""),
+                    Label = label,
                     // displayName is the player-facing group header; group.name is
                     // the code id, used only when a group carries no display name.
                     Group = GroupName(ev.group),
@@ -187,11 +193,7 @@ namespace Gonogo.KSP
             {
                 return null;
             }
-            if (!string.IsNullOrEmpty(group.displayName))
-            {
-                return group.displayName;
-            }
-            return !string.IsNullOrEmpty(group.name) ? group.name : null;
+            return PartActionText.Clean(group.displayName) ?? PartActionText.Clean(group.name);
         }
 
         /// <summary>
