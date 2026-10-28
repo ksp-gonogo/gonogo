@@ -9,9 +9,45 @@ const ICON_RADIUS = 10;
 const TILE_W = 112;
 const TILE_H = 92;
 const TILE_GAP = 6;
-const COLUMNS = 2;
 const BOX_PAD = 8;
 const TITLE_H = 24;
+/** The widest share of the view the box may take, so the craft stays in sight beside it. */
+const BOX_MAX_SHARE = 0.6;
+const MIN_SCALE = 0.4;
+
+interface BoxLayout {
+  columns: number;
+  rows: number;
+  /** Shrinks every box dimension, 1 at full size. */
+  scale: number;
+  boxW: number;
+  boxH: number;
+}
+
+/**
+ * The column count and scale that lay `count` tiles out in the largest size the
+ * view holds: more columns when the view is wide and short, fewer when narrow.
+ */
+export function boxLayoutFor(
+  count: number,
+  width: number,
+  height: number,
+): BoxLayout {
+  let best: BoxLayout | null = null;
+  for (let columns = 1; columns <= Math.max(1, count); columns++) {
+    const rows = Math.ceil(count / columns);
+    const fullW = columns * TILE_W + (columns - 1) * TILE_GAP + BOX_PAD * 2;
+    const fullH = TITLE_H + rows * TILE_H + (rows - 1) * TILE_GAP + BOX_PAD * 2;
+    const scale = Math.max(
+      MIN_SCALE,
+      Math.min(1, (width * BOX_MAX_SHARE - 12) / fullW, (height - 12) / fullH),
+    );
+    if (!best || scale > best.scale + 1e-6) {
+      best = { columns, rows, scale, boxW: fullW * scale, boxH: fullH * scale };
+    }
+  }
+  return best as BoxLayout;
+}
 
 interface Point {
   x: number;
@@ -154,15 +190,23 @@ function ClusterBox({
   const members = [...cluster.members].sort(
     (a, b) => a.lat - b.lat || b.axial - a.axial,
   );
-  const rows = Math.ceil(members.length / COLUMNS);
-  const boxW = COLUMNS * TILE_W + (COLUMNS - 1) * TILE_GAP + BOX_PAD * 2;
-  const boxH = TITLE_H + rows * TILE_H + (rows - 1) * TILE_GAP + BOX_PAD * 2;
+  const {
+    columns,
+    scale: k,
+    boxW,
+    boxH,
+  } = boxLayoutFor(members.length, width, height);
+  const tileW = TILE_W * k;
+  const tileH = TILE_H * k;
+  const gap = TILE_GAP * k;
+  const pad = BOX_PAD * k;
+  const titleH = TITLE_H * k;
   const centre = toScreen(
     (cluster.latMin + cluster.latMax) / 2,
     (cluster.axialMin + cluster.axialMax) / 2,
   );
   const boxX = centre.x < width / 2 ? width - boxW - 6 : 6;
-  const boxY = Math.max(6, Math.min(height - boxH - 6, 6));
+  const boxY = 6;
   return (
     <g data-role="cluster-box">
       <title>{`The ${members.length} clustered parts, laid out`}</title>
@@ -176,10 +220,10 @@ function ClusterBox({
         stroke="var(--color-border-strong)"
       />
       <text
-        x={boxX + BOX_PAD}
-        y={boxY + 17}
+        x={boxX + pad}
+        y={boxY + 17 * k}
         fill="var(--color-text-primary)"
-        fontSize={11}
+        fontSize={Math.max(8, 11 * k)}
       >
         {`${members.length} parts`}
       </text>
@@ -198,34 +242,32 @@ function ClusterBox({
         }}
       >
         <rect
-          x={boxX + boxW - 24}
-          y={boxY + 4}
-          width={18}
-          height={18}
+          x={boxX + boxW - 24 * k}
+          y={boxY + 4 * k}
+          width={18 * k}
+          height={18 * k}
           rx={3}
           fill="var(--color-surface-raised)"
           stroke="var(--color-go-text)"
         />
         <path
-          d={`M ${boxX + boxW - 19},${boxY + 9} l 8,8 M ${boxX + boxW - 11},${boxY + 9} l -8,8`}
+          d={`M ${boxX + boxW - 19 * k},${boxY + 9 * k} l ${8 * k},${8 * k} M ${boxX + boxW - 11 * k},${boxY + 9 * k} l ${-8 * k},${8 * k}`}
           stroke="var(--color-go-text)"
           strokeWidth={1.5}
         />
       </g>
       {members.map((p, i) => {
-        const tileX = boxX + BOX_PAD + (i % COLUMNS) * (TILE_W + TILE_GAP);
+        const tileX = boxX + pad + (i % columns) * (tileW + gap);
         const tileY =
-          boxY +
-          TITLE_H +
-          BOX_PAD +
-          Math.floor(i / COLUMNS) * (TILE_H + TILE_GAP);
-        const anchorX = boxX < width / 2 ? tileX + TILE_W : tileX;
+          boxY + titleH + pad + Math.floor(i / columns) * (tileH + gap);
+        const anchorX = boxX < width / 2 ? tileX + tileW : tileX;
         return (
           <MemberTile
             key={p.flightId}
             part={p}
             tile={{ x: tileX, y: tileY }}
-            leaderFrom={{ x: anchorX, y: tileY + TILE_H / 2 }}
+            scale={k}
+            leaderFrom={{ x: anchorX, y: tileY + tileH / 2 }}
             leaderTo={toScreen(p.lat, p.axial)}
           />
         );
@@ -239,20 +281,24 @@ type ClusterLayerProps = Parameters<typeof ClusterLayer>[0];
 function MemberTile({
   part: p,
   tile,
+  scale: k,
   leaderFrom,
   leaderTo,
 }: {
   part: ProjectedPart;
   tile: Point;
+  scale: number;
   leaderFrom: Point;
   leaderTo: Point;
 }) {
   const pw = Math.max(p.body.latMax - p.body.latMin, 1e-3);
   const ph = Math.max(p.body.axialMax - p.body.axialMin, 1e-3);
-  const scale = Math.min((TILE_W - 24) / pw, (TILE_H - 34) / ph);
-  const w = pw * scale;
-  const h = ph * scale;
-  const box = { x: tile.x + (TILE_W - w) / 2, y: tile.y + 8, w, h };
+  const tileW = TILE_W * k;
+  const tileH = TILE_H * k;
+  const fit = Math.min((tileW - 24 * k) / pw, (tileH - 34 * k) / ph);
+  const w = pw * fit;
+  const h = ph * fit;
+  const box = { x: tile.x + (tileW - w) / 2, y: tile.y + 8 * k, w, h };
   const label = p.title || p.name;
   return (
     <g data-role="cluster-member" data-part-id={p.flightId}>
@@ -276,8 +322,8 @@ function MemberTile({
       <rect
         x={tile.x}
         y={tile.y}
-        width={TILE_W}
-        height={TILE_H}
+        width={tileW}
+        height={tileH}
         rx={4}
         fill="var(--color-surface-raised)"
         stroke="var(--color-border-strong)"
@@ -293,11 +339,11 @@ function MemberTile({
         chuteStateOf(p.partState),
       )}
       <text
-        x={tile.x + TILE_W / 2}
-        y={tile.y + TILE_H - 8}
+        x={tile.x + tileW / 2}
+        y={tile.y + tileH - 8 * k}
         textAnchor="middle"
         fill="var(--color-text-primary)"
-        fontSize={10}
+        fontSize={Math.max(7, 10 * k)}
       >
         {label.length > 18 ? `${label.slice(0, 16)}...` : label}
       </text>
