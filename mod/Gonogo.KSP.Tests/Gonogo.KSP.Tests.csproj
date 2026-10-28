@@ -170,6 +170,7 @@
     <Compile Include="..\Gonogo.KSP\CraftLaunchLog.cs" />
     <Compile Include="..\Gonogo.KSP\CraftFileTree.cs" />
     <Compile Include="..\Gonogo.KSP\CraftPriceBook.cs" />
+    <Compile Include="..\Gonogo.KSP\ReusedGroup.cs" />
     <Compile Include="..\Gonogo.KSP\BalanceRounding.cs" />
     <Compile Include="..\Gonogo.KSP\VesselResourceNames.cs" />
     <Compile Include="..\Gonogo.KSP\VesselResourceTotals.cs" />

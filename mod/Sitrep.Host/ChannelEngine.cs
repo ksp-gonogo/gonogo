@@ -7334,6 +7334,8 @@ namespace Sitrep.Host
             var started = System.Diagnostics.Stopwatch.GetTimestamp();
             KspSnapshot snapshot;
             _skippingNow = skipped;
+            _sampleIsFull = full;
+            _reusedNow = null;
             try
             {
                 snapshot = sample();
@@ -7341,14 +7343,26 @@ namespace Sitrep.Host
             finally
             {
                 _skippingNow = null;
+                _sampleIsFull = true;
             }
+            var reused = TakeReused();
             var sampling = System.Diagnostics.Stopwatch.GetTimestamp() - started;
             SampleTiming.MarkSampleAlloc();
             PerfTelemetry.RecordTicks("main.sample", sampling);
             SampleTiming.Add("sample", sampling);
-            var tick = CaptureTick(snapshot.Ut, snapshot, null);
+            _reusedForCaptures = reused;
+            TickJob tick;
+            try
+            {
+                tick = CaptureTick(snapshot.Ut, snapshot, null);
+            }
+            finally
+            {
+                _reusedForCaptures = null;
+            }
             tick.SampleStopwatchTicks = sampling;
             tick.SkippedGroups = skipped;
+            tick.ReusedGroups = reused;
             if (SampleTiming.Enabled)
             {
                 LogHost(SampleTiming.Line(snapshot.Ut, System.Diagnostics.Stopwatch.GetTimestamp() - started)!);
@@ -7554,7 +7568,7 @@ namespace Sitrep.Host
                 var started = System.Diagnostics.Stopwatch.GetTimestamp();
                 try
                 {
-                    captured.Add(new CapturedSample(i, source.Capture(snapshot), null));
+                    captured.Add(new CapturedSample(i, source.Capture(CaptureViewFor(source.OwnerId, snapshot)), null));
                 }
                 catch (Exception ex)
                 {
@@ -9922,7 +9936,7 @@ namespace Sitrep.Host
 
                     try
                     {
-                        sampler.Sample(tick.Snapshot);
+                        SampleWithoutReused(ownerId, sampler, tick);
                     }
                     catch (Exception ex)
                     {
@@ -10067,6 +10081,10 @@ namespace Sitrep.Host
                 {
                     continue;
                 }
+                if (tick.ReusedGroups != null && !IsExternalChannel(topic) && DeclaredReaderOfAny(topic, tick.ReusedGroups))
+                {
+                    continue;
+                }
 
                 var map = channelSource.Value;
                 var warm = !_subscriptions.IsSubscribed(topic);
@@ -10079,7 +10097,7 @@ namespace Sitrep.Host
                 try
                 {
                     var buildStarted = PublishStats.Enabled ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
-                    value = map(tick.Snapshot);
+                    value = map(ChannelViewFor(topic, tick));
                     if (value != null) value = WithFieldLocks(topic, value);
                     if (PublishStats.Enabled)
                     {
@@ -12189,8 +12207,18 @@ namespace Sitrep.Host
             /// <summary>Real time the game snapshot this tick carries took to sample, in stopwatch ticks, or zero when its caller did not say.</summary>
             public long SampleStopwatchTicks;
 
-            /// <summary>The skippable snapshot groups this tick's sample left out, or null when it built them all.</summary>
+            /// <summary>The skippable snapshot groups this tick's sample left out, or null when it built them all. A reader of one is not built from this tick.</summary>
             public string[]? SkippedGroups;
+
+            /// <summary>
+            /// The skippable snapshot groups this tick's sample handed on from an earlier
+            /// one, or null. Their declared readers are not built from this tick; anything
+            /// owned outside the core is handed <see cref="WithoutReused"/> instead.
+            /// </summary>
+            public string[]? ReusedGroups;
+
+            /// <summary>This tick's snapshot without <see cref="ReusedGroups"/>, made the first time something asks for it.</summary>
+            public KspSnapshot? WithoutReused;
             public TickJob(double ut, KspSnapshot? snapshot, CapturedSample[]? captures, SignalDelayCapture signalDelay, ConnectivityCapture connectivity, PathBreakCapture pathBreak, ManualResetEventSlim? done)
             {
                 Ut = ut;

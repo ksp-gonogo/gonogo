@@ -138,6 +138,158 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
+        public void AReaderOfAGroupHandedOnFromAnEarlierSampleWaitsForTheSampleThatBuildsItAndCarriesItsUt()
+        {
+            var uplink = new GroupReadingUplink();
+            using var engine = Started(uplink, Readers(GroupReadingUplink.SlowTopic));
+            try
+            {
+                var fullSeen = new List<bool>();
+                KspSnapshot Sample(double ut, bool reuse)
+                {
+                    fullSeen.Add(engine.IsFullSample);
+                    if (reuse)
+                    {
+                        engine.NoteGroupReused(Group);
+                    }
+                    // A kept group still carries the UT it was built at.
+                    return new KspSnapshot { Ut = ut, Values = new Dictionary<string, object?> { ["flight"] = ut, [Group] = reuse ? 30.0 : ut } };
+                }
+
+                engine.NoteGameUt(30.0);
+                engine.TryTick(() => Sample(30.0, reuse: false), full: true);
+                engine.WaitForCourier(Timeout);
+                for (var ut = 31.0; ut <= 33.0; ut += 1.0)
+                {
+                    var at = ut;
+                    engine.NoteGameUt(at);
+                    engine.TryTick(() => Sample(at, reuse: true), full: false);
+                    engine.WaitForCourier(Timeout);
+                }
+                engine.NoteGameUt(34.0);
+                engine.TryTick(() => Sample(34.0, reuse: false), full: false);
+                engine.WaitForCourier(Timeout);
+
+                Assert.Equal(new[] { true, false, false, false, false }, fullSeen);
+                Assert.Equal(new[] { 30.0, 34.0 }, uplink.SlowReads.Select(read => read.Ut).ToArray());
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
+        public void AnUplinkOutsideTheCoreKeepsItsCadenceWhileAGroupIsReusedAndFindsItAbsent()
+        {
+            const string Other = "other";
+            var outside = new GroupReadingUplink();
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            try
+            {
+                // The fast Topic is the core's, as vessel.flight is; the slow one an Uplink's from another assembly.
+                engine.RegisterUplink(new CoreFastUplink());
+                engine.RegisterUplink(OutsideTheCore.Wrap(outside));
+                engine.ConfigureSkippableGroups(
+                    new Dictionary<string, SnapshotGroupReaders>
+                    {
+                        [Group] = new SnapshotGroupReaders(Array.Empty<string>(), Array.Empty<string>()),
+                        [Other] = new SnapshotGroupReaders(Array.Empty<string>(), Array.Empty<string>()),
+                    },
+                    typeof(SkippableSnapshotGroupTests).Assembly);
+                engine.Start();
+                engine.OpenStandingSubscription(GroupReadingUplink.SlowTopic, "test");
+                engine.OpenStandingSubscription(CoreFastUplink.Topic, "test");
+                Assert.True(engine.Cadence.TrySetRateHz(CoreFastUplink.Topic, 10, out _));
+
+                var otherBuilt = new List<double>();
+                for (var i = 0; i < 31; i++)
+                {
+                    var ut = Math.Round(40.0 + (i * 0.1), 3);
+                    var rebuild = i % 20 == 0;
+                    engine.NoteGameUt(ut);
+                    Assert.True(engine.TryTick(
+                        () =>
+                        {
+                            var values = new Dictionary<string, object?> { ["flight"] = ut, [Group] = rebuild ? ut : 40.0 };
+                            if (!rebuild)
+                            {
+                                engine.NoteGroupReused(Group);
+                            }
+                            if (engine.SamplesGroup(Other))
+                            {
+                                values[Other] = ut;
+                                otherBuilt.Add(ut);
+                            }
+                            return new KspSnapshot { Ut = ut, Values = values };
+                        },
+                        full: i == 0));
+                    engine.WaitForCourier(Timeout);
+                }
+
+                // The outside channel kept its one-a-second cadence through the reuse ticks.
+                Assert.Equal(new[] { 40.0, 41.0, 42.0, 43.0 }, outside.SlowReads.Select(read => read.Ut).ToArray());
+                // It found the group on the rebuild ticks (40, 42) and absent on the reuse ticks (41, 43).
+                Assert.Equal(new[] { true, false, true, false }, outside.SlowReads.Select(read => read.SawGroup).ToArray());
+                // Its capture too: absent on every reuse tick.
+                Assert.Equal(31, outside.CaptureSaw.Count);
+                Assert.All(outside.CaptureSaw, seen => Assert.Equal(seen.Ut == 40.0 || seen.Ut == 42.0, seen.Present));
+                // The other group is built for the outside reader's base ticks, not for every fast one.
+                Assert.Equal(new[] { 40.0, 41.0, 42.0, 43.0 }, otherBuilt);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>A core Uplink with one Topic, run at the fast tier.</summary>
+        private sealed class CoreFastUplink : ISitrepUplink
+        {
+            public const string Topic = "skipgroup.corefast";
+
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
+            public UplinkManifest Manifest { get; } = new UplinkManifest
+            {
+                Id = "skippable-group-core",
+                Version = "1.0.0",
+                Channels = new List<ChannelDeclaration>
+                {
+                    new ChannelDeclaration
+                    {
+                        Kind = SampleKind.Continuous,
+                        Topic = Topic,
+                        Delivery = Delivery.LossyLatest,
+                        Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                        Delay = DelayRole.TrueNow,
+                    },
+                },
+            };
+
+            public void Register(IUplinkHost host) => host.AddChannelSource(Topic, snapshot => snapshot?.Ut);
+        }
+
+        /// <summary>
+        /// An Uplink whose type lives in an assembly of its own, as a third-party Uplink's
+        /// does: a proxy, which the runtime builds in a generated assembly.
+        /// </summary>
+        public class OutsideTheCore : System.Reflection.DispatchProxy
+        {
+            private ISitrepUplink? _inner;
+
+            public static ISitrepUplink Wrap(ISitrepUplink inner)
+            {
+                var proxy = Create<ISitrepUplink, OutsideTheCore>();
+                ((OutsideTheCore)(object)proxy)._inner = inner;
+                return proxy;
+            }
+
+            protected override object? Invoke(System.Reflection.MethodInfo? targetMethod, object?[]? args) =>
+                targetMethod!.Invoke(_inner, args);
+        }
+
+        [Fact]
         public void AChannelOfAnUplinkOutsideTheCoreReadsEveryGroup()
         {
             var uplink = new GroupReadingUplink();

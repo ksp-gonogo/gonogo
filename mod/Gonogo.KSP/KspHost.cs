@@ -214,6 +214,7 @@ namespace Gonogo.KSP
             GameEvents.onGameStateLoad.Add(OnGameStateLoad);
             GameEvents.OnTechnologyResearched.Add(OnPartAvailabilityChanged);
             GameEvents.OnPartPurchased.Add(OnPartAvailabilityChanged);
+            HookCareerEvents(add: true);
 
             // The active-vessel seam's own hooks. Subscribed here rather than from a
             // scene-scoped ScenarioModule because an EVA egress can land while a
@@ -231,7 +232,61 @@ namespace Gonogo.KSP
             GameEvents.onGameStateLoad.Remove(OnGameStateLoad);
             GameEvents.OnTechnologyResearched.Remove(OnPartAvailabilityChanged);
             GameEvents.OnPartPurchased.Remove(OnPartAvailabilityChanged);
+            HookCareerEvents(add: false);
             ActiveVesselScope.Unhook();
+        }
+
+        /*
+         * The career group is kept between samples while none of these has fired, so
+         * a contract, a balance, a strategy, a tech node or a building that moves is
+         * read again on the next sample, and anything that moves without one of them
+         * is read within ReusedGroup.MaxAgeSeconds.
+         */
+        private static int _careerEpoch;
+        private static readonly ReusedGroup<Dictionary<string, object?>> CareerKept = new ReusedGroup<Dictionary<string, object?>>();
+
+        private static void CareerMoved() => System.Threading.Interlocked.Increment(ref _careerEpoch);
+
+        private void OnCareerFunds(double value, TransactionReasons reason) => CareerMoved();
+        private void OnCareerFloat(float value, TransactionReasons reason) => CareerMoved();
+        private void OnCareerContract(Contract contract) => CareerMoved();
+        private void OnCareerParameter(Contract contract, ContractParameter parameter) => CareerMoved();
+        private void OnCareerVoid() => CareerMoved();
+        private void OnCareerFacility(Upgradeables.UpgradeableFacility facility, int level) => CareerMoved();
+        private void OnCareerScene(GameScenes scene) => CareerMoved();
+
+        private void HookCareerEvents(bool add)
+        {
+            void On<T>(EventData<T> evt, EventData<T>.OnEvent handler)
+            {
+                if (add) evt.Add(handler); else evt.Remove(handler);
+            }
+            void On2<T, U>(EventData<T, U> evt, EventData<T, U>.OnEvent handler)
+            {
+                if (add) evt.Add(handler); else evt.Remove(handler);
+            }
+            void OnVoid(EventVoid evt, EventVoid.OnEvent handler)
+            {
+                if (add) evt.Add(handler); else evt.Remove(handler);
+            }
+
+            On2(GameEvents.OnFundsChanged, OnCareerFunds);
+            On2(GameEvents.OnReputationChanged, OnCareerFloat);
+            On2(GameEvents.OnScienceChanged, OnCareerFloat);
+            On(GameEvents.Contract.onAccepted, OnCareerContract);
+            On(GameEvents.Contract.onDeclined, OnCareerContract);
+            On(GameEvents.Contract.onCompleted, OnCareerContract);
+            On(GameEvents.Contract.onFailed, OnCareerContract);
+            On(GameEvents.Contract.onCancelled, OnCareerContract);
+            On(GameEvents.Contract.onOffered, OnCareerContract);
+            On(GameEvents.Contract.onFinished, OnCareerContract);
+            On2(GameEvents.Contract.onParameterChange, OnCareerParameter);
+            OnVoid(GameEvents.Contract.onContractsLoaded, OnCareerVoid);
+            OnVoid(GameEvents.Contract.onContractsListChanged, OnCareerVoid);
+            On2(GameEvents.OnKSCFacilityUpgraded, OnCareerFacility);
+            OnVoid(GameEvents.onGUIAdministrationFacilitySpawn, OnCareerVoid);
+            OnVoid(GameEvents.onGUIAdministrationFacilityDespawn, OnCareerVoid);
+            On(GameEvents.onGameSceneLoadRequested, OnCareerScene);
         }
 
         /// <summary>
@@ -260,6 +315,12 @@ namespace Gonogo.KSP
         /// <see cref="SnapshotGroups"/>), asked of the engine; every group when unset.
         /// </summary>
         public static Func<string, bool>? GroupGate { get; set; }
+
+        /// <summary>Main-thread: whether this sample builds every group afresh (see <c>ChannelEngine.IsFullSample</c>); always when unset, so nothing is kept.</summary>
+        public static Func<bool>? FullSampleGate { get; set; }
+
+        /// <summary>Main-thread: tells the engine a group was handed on from an earlier sample (see <c>ChannelEngine.NoteGroupReused</c>).</summary>
+        public static Action<string>? GroupReused { get; set; }
 
         private static bool Samples(string group) => GroupGate?.Invoke(group) ?? true;
 
@@ -466,7 +527,7 @@ namespace Gonogo.KSP
                 try
                 {
                     using var careerTiming = SampleTiming.Part("career");
-                    var career = Samples(SnapshotGroups.Career) ? BuildCareer() : null;
+                    var career = Samples(SnapshotGroups.Career) ? CareerBuiltOrKept(ut) : null;
                     if (career != null)
                     {
                         values["career"] = career;
@@ -4776,11 +4837,17 @@ namespace Gonogo.KSP
         private static bool _savedShipsPricingPending;
         private const double SavedShipsFullPassSeconds = 60.0;
 
-        private void OnPartAvailabilityChanged(GameEvents.HostTargetAction<RDTech, RDTech.OperationResult> researched) =>
+        private void OnPartAvailabilityChanged(GameEvents.HostTargetAction<RDTech, RDTech.OperationResult> researched)
+        {
             System.Threading.Interlocked.Increment(ref _partAvailabilityEpoch);
+            CareerMoved();
+        }
 
-        private void OnPartAvailabilityChanged(AvailablePart purchased) =>
+        private void OnPartAvailabilityChanged(AvailablePart purchased)
+        {
             System.Threading.Interlocked.Increment(ref _partAvailabilityEpoch);
+            CareerMoved();
+        }
 
         /*
          * The cost in a craft file leaves out what modules add, and the rollout charges it all, so
@@ -5216,6 +5283,48 @@ namespace Gonogo.KSP
             // null outside CAREER. HighLogic.CurrentGame.Mode is a Game.Modes
             // field (decompile-verified).
             return game.Mode.ToString();
+        }
+
+        /// <summary>
+        /// Main-thread: <see cref="BuildCareer"/>, or the last one built while it still
+        /// answers (see <see cref="CareerKept"/>), which the engine is told of so the
+        /// career's readers wait for a sample that builds it.
+        /// </summary>
+        private static Dictionary<string, object?>? CareerBuiltOrKept(double ut)
+        {
+            var epoch = System.Threading.Volatile.Read(ref _careerEpoch);
+            var wall = System.Diagnostics.Stopwatch.GetTimestamp() / (double)System.Diagnostics.Stopwatch.Frequency;
+            var signature = ObjectivesSettledSignature();
+            var save = HighLogic.CurrentGame;
+            if (CareerKept.TryReuse(ut, wall, epoch, signature, save, FullSampleGate?.Invoke() ?? true, out var kept))
+            {
+                GroupReused?.Invoke(SnapshotGroups.Career);
+                return kept;
+            }
+
+            var built = BuildCareer();
+            CareerKept.Keep(built, ut, wall, epoch, signature, save);
+            return built;
+        }
+
+        /// <summary>The settled objectives as the career group carries them, compared rather than read: their count and the newest.</summary>
+        private static string ObjectivesSettledSignature()
+        {
+            var book = ObjectiveDelay.ObjectiveDelayLine.Book;
+            if (book == null)
+            {
+                return "";
+            }
+            var count = 0;
+            var lastKey = "";
+            var lastUt = 0.0;
+            foreach (var settled in book.Settled)
+            {
+                count++;
+                lastKey = settled.Key;
+                lastUt = settled.SettledUt;
+            }
+            return count + "|" + lastKey + "|" + lastUt.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
         }
 
         private static Dictionary<string, object?>? BuildCareer()

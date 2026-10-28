@@ -127,6 +127,8 @@ namespace Gonogo.KSP
                 _engine.SetAfterCaptures(_host.RefreshTime);
                 _engine.ConfigureSkippableGroups(SnapshotGroups.Readers, typeof(GonogoAddon).Assembly);
                 KspHost.GroupGate = _engine.SamplesGroup;
+                KspHost.FullSampleGate = () => _engine?.IsFullSample ?? true;
+                KspHost.GroupReused = _engine.NoteGroupReused;
                 FleetCommsReader.ProviderFault = (provider, error) => _engine?.QuarantineProviderOwner(provider, error);
                 _loadReporter = new GameLoadReporter(_engine);
                 _sampleGate = new SampleGate(_loadReporter.State, _engine.Cadence);
@@ -678,6 +680,8 @@ namespace Gonogo.KSP
             // reads and hand the next scene's alarm arm a dead one.
             ScetAlarmUplink.ConfigureRevealedRead(null);
             KspHost.GroupGate = null;
+            KspHost.FullSampleGate = null;
+            KspHost.GroupReused = null;
             ScetAlarmUplink.ConfigureStandingSubscriptions(null, null);
             ScetAlarmUplink.ConfigureSelectableVantage(null);
             ScetAlarmUplink.ConfigureMainThreadRunner(null);

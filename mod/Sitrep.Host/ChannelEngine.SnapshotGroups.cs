@@ -15,6 +15,12 @@ namespace Sitrep.Host
         /// <summary>Main-thread-only: the groups the sample being taken leaves out.</summary>
         private string[]? _skippingNow;
 
+        /// <summary>Main-thread-only: whether the sample being taken builds everything; true outside a sample.</summary>
+        private bool _sampleIsFull = true;
+
+        /// <summary>Main-thread-only: the groups the sample being taken handed on from an earlier one.</summary>
+        private List<string>? _reusedNow;
+
         /// <summary>
         /// Written by the Courier after each tick's channels, read by the main thread:
         /// per group, the earliest UT a reader of it is next due, and the UT of the tick
@@ -59,6 +65,141 @@ namespace Sitrep.Host
         {
             var skipping = _skippingNow;
             return skipping == null || Array.IndexOf(skipping, group) < 0;
+        }
+
+        /// <summary>
+        /// Main-thread: whether the sample being taken builds every group afresh, as a
+        /// requested sample and a recording session do. A group kept between samples is
+        /// built again on one. True outside a sample.
+        /// </summary>
+        public bool IsFullSample => _sampleIsFull;
+
+        /// <summary>
+        /// Main-thread, during a sample: <paramref name="group"/> was handed on from an
+        /// earlier sample rather than built. Its declared readers are not built from this
+        /// tick and each waits for the tick that builds it, whose UT it then carries.
+        /// Anything owned by an Uplink outside the core (a channel, a capture, a sampler)
+        /// runs as usual and finds the group absent, as it finds a skipped one.
+        /// </summary>
+        public void NoteGroupReused(string group)
+        {
+            (_reusedNow ??= new List<string>()).Add(group);
+            if (SampleTiming.Enabled)
+            {
+                SampleTiming.Count("reused." + group, 1);
+            }
+        }
+
+        private string[]? TakeReused()
+        {
+            var reused = _reusedNow;
+            _reusedNow = null;
+            return reused?.ToArray();
+        }
+
+        /// <summary>Main-thread-only, while a tick's captures run: the groups its sample handed on.</summary>
+        private string[]? _reusedForCaptures;
+
+        /// <summary>Main-thread: the snapshot a capture is handed, without the reused groups when an Uplink outside the core owns it.</summary>
+        private KspSnapshot? CaptureViewFor(string ownerId, KspSnapshot? snapshot)
+        {
+            var reused = _reusedForCaptures;
+            return reused == null || snapshot == null || !IsExternalOwner(ownerId) ? snapshot : WithoutGroups(snapshot, reused);
+        }
+
+        /// <summary>Courier-thread-only: the snapshot a channel is mapped from, without the reused groups for one owned outside the core.</summary>
+        private KspSnapshot? ChannelViewFor(string topic, TickJob tick)
+        {
+            if (tick.ReusedGroups == null || tick.Snapshot == null || !IsExternalChannel(topic))
+            {
+                return tick.Snapshot;
+            }
+            return tick.WithoutReused ??= WithoutGroups(tick.Snapshot, tick.ReusedGroups);
+        }
+
+        /*
+         * A sampler adds its own data to the snapshot, so one outside the core is handed
+         * a copy without the reused groups and what it added is carried back.
+         */
+        private void SampleWithoutReused(string ownerId, ISnapshotSampler sampler, TickJob tick)
+        {
+            if (tick.ReusedGroups == null || tick.Snapshot == null || !IsExternalOwner(ownerId))
+            {
+                sampler.Sample(tick.Snapshot!);
+                return;
+            }
+
+            var view = WithoutGroups(tick.Snapshot, tick.ReusedGroups);
+            sampler.Sample(view);
+            foreach (var pair in view.Values)
+            {
+                if (Array.IndexOf(tick.ReusedGroups, pair.Key) < 0
+                    && (!tick.Snapshot.Values.TryGetValue(pair.Key, out var had) || !ReferenceEquals(had, pair.Value)))
+                {
+                    tick.Snapshot.Values[pair.Key] = pair.Value;
+                }
+            }
+            tick.WithoutReused = null;
+        }
+
+        /// <summary>
+        /// A copy of <paramref name="snapshot"/> with <paramref name="groups"/> left out,
+        /// at the top level and inside the <c>vessel</c> group, sharing every other value.
+        /// </summary>
+        internal static KspSnapshot WithoutGroups(KspSnapshot snapshot, string[] groups)
+        {
+            var values = new Dictionary<string, object?>(snapshot.Values);
+            foreach (var group in groups)
+            {
+                values.Remove(group);
+            }
+            if (values.TryGetValue("vessel", out var raw) && raw is Dictionary<string, object?> vessel)
+            {
+                Dictionary<string, object?>? trimmed = null;
+                foreach (var group in groups)
+                {
+                    if (vessel.ContainsKey(group))
+                    {
+                        (trimmed ??= new Dictionary<string, object?>(vessel)).Remove(group);
+                    }
+                }
+                if (trimmed != null)
+                {
+                    values["vessel"] = trimmed;
+                }
+            }
+            return new KspSnapshot { Ut = snapshot.Ut, Values = values };
+        }
+
+        /// <summary>Courier-thread-only: whether <paramref name="topic"/>'s channel is one of the declared readers of any of <paramref name="groups"/>.</summary>
+        private bool DeclaredReaderOfAny(string topic, string[] groups)
+        {
+            var readers = _groupReaders;
+            if (readers == null)
+            {
+                return false;
+            }
+            foreach (var group in groups)
+            {
+                if (readers.TryGetValue(group, out var reader)
+                    && (reader.Topics.Contains(topic)
+                        || (_channelOwner.TryGetValue(topic, out var owner) && reader.Owners.Contains(owner))))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>Whether the Uplink <paramref name="ownerId"/> lives outside the core assemblies. Registration ends before Start, so either thread may ask.</summary>
+        private bool IsExternalOwner(string ownerId)
+        {
+            if (_groupReaders == null || !_registeredUplinks.TryGetValue(ownerId, out var uplink))
+            {
+                return false;
+            }
+            var assembly = uplink.GetType().Assembly;
+            return !ReferenceEquals(assembly, _coreAssembly) && !ReferenceEquals(assembly, typeof(ChannelEngine).Assembly);
         }
 
         /// <summary>
@@ -130,12 +271,7 @@ namespace Sitrep.Host
                 return known;
             }
 
-            var external = false;
-            if (_channelOwner.TryGetValue(topic, out var owner) && _registeredUplinks.TryGetValue(owner, out var uplink))
-            {
-                var assembly = uplink.GetType().Assembly;
-                external = !ReferenceEquals(assembly, _coreAssembly) && !ReferenceEquals(assembly, typeof(ChannelEngine).Assembly);
-            }
+            var external = _channelOwner.TryGetValue(topic, out var owner) && IsExternalOwner(owner);
             _channelIsExternal[topic] = external;
             return external;
         }
