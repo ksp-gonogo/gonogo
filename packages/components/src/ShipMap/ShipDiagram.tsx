@@ -141,15 +141,28 @@ export function ShipDiagram({
       label="Ship diagram view"
       onMouseMove={onWrapperMouseMove}
     >
-      <Button
-        size="sm"
-        type="button"
-        onClick={resetView}
-        aria-label="Reset view"
-        style={RESET_BUTTON}
-      >
-        Reset
-      </Button>
+      <div style={LEFT_GROUP}>
+        <Button
+          size="sm"
+          type="button"
+          onClick={resetView}
+          aria-label="Reset view"
+          style={ROTATE_BUTTON}
+        >
+          Reset
+        </Button>
+        {onTurn && width >= ROTATE_MIN_WIDTH && turn !== 0 && (
+          <Button
+            size="sm"
+            type="button"
+            onClick={() => onTurn(0)}
+            aria-label="Default view angle"
+            style={ROTATE_BUTTON}
+          >
+            Default
+          </Button>
+        )}
+      </div>
       {onTurn && width >= ROTATE_MIN_WIDTH && (
         <div style={ROTATE_GROUP}>
           <Button
@@ -170,17 +183,6 @@ export function ShipDiagram({
           >
             {"Turn >"}
           </Button>
-          {turn !== 0 && (
-            <Button
-              size="sm"
-              type="button"
-              onClick={() => onTurn(0)}
-              aria-label="Default view angle"
-              style={ROTATE_BUTTON}
-            >
-              Default
-            </Button>
-          )}
         </div>
       )}
       <ShipDiagramSvg
@@ -246,10 +248,15 @@ export function ShipDiagram({
   );
 }
 
-const RESET_BUTTON: CSSProperties = {
+// Default sits under Reset, in a column of its own, so showing it moves no other control.
+const LEFT_GROUP: CSSProperties = {
   position: "absolute",
   top: "6px",
   left: "6px",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: "var(--gap-related)",
   // Local ordering inside Root, above the diagram svg.
   zIndex: 10,
 };
@@ -260,10 +267,10 @@ const ROTATE_GROUP: CSSProperties = {
   right: "6px",
   display: "flex",
   gap: "var(--gap-related)",
-  zIndex: RESET_BUTTON.zIndex,
+  zIndex: LEFT_GROUP.zIndex,
 };
 
-const ROTATE_BUTTON: CSSProperties = { ...RESET_BUTTON, position: "static" };
+const ROTATE_BUTTON: CSSProperties = { position: "static" };
 
 // Static, not the menu's own absolute, so it stays in the layer's flow and the layer can be measured.
 const MENU_IN_LAYER: CSSProperties = { position: "static" };
