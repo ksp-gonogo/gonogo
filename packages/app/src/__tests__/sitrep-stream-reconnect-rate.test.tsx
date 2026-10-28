@@ -1,4 +1,4 @@
-import { clearRegistry, useTelemetry } from "@ksp-gonogo/core";
+import { clearRegistry, SettingsService, useTelemetry } from "@ksp-gonogo/core";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { ws } from "msw";
 import { setupServer } from "msw/node";
@@ -11,6 +11,7 @@ import {
   it,
   vi,
 } from "vitest";
+import { DATA_RATE_SETTING, syncDataRate } from "../telemetry/dataRate";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
 import {
   getSitrepTransportStatus,
@@ -28,8 +29,12 @@ import type { LinkClient } from "../test/peerFakes";
 const link = ws.link("ws://localhost:8090");
 const server = setupServer();
 
+let stopDataRate: (() => void) | undefined;
+
 beforeAll(() => server.listen());
 afterEach(() => {
+  stopDataRate?.();
+  stopDataRate = undefined;
   server.resetHandlers();
   clearRegistry();
   resetSitrepRuntimeForTests();
@@ -61,6 +66,18 @@ function modStateOf(connection: Connection) {
   return { subscribed, tiers };
 }
 
+function memoryStorage(): Storage {
+  const m = new Map<string, string>();
+  return {
+    length: 0,
+    clear: () => m.clear(),
+    key: () => null,
+    getItem: (k) => m.get(k) ?? null,
+    setItem: (k, v) => m.set(k, String(v)),
+    removeItem: (k) => m.delete(k),
+  } as Storage;
+}
+
 const def = { dataRates: { fast: ["vessel.flight"] } };
 
 function FastWidget() {
@@ -80,6 +97,9 @@ describe("a page open across a game restart keeps its fast rate", () => {
     ["the same run", ["run-a", "run-a"]],
   ])("%s", async (_name, bootIds) => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
+    const settings = new SettingsService(memoryStorage());
+    settings.set(DATA_RATE_SETTING, "faster");
+    stopDataRate = syncDataRate(settings);
     const connections: Connection[] = [];
     server.use(
       link.addEventListener("connection", ({ client }) => {

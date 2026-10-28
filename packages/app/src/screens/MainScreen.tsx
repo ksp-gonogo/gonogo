@@ -103,6 +103,7 @@ import { initSoundSettings } from "../sound";
 import { StationApprovalPrompt } from "../stationApproval/StationApprovalPrompt";
 import { ScopedStationIdentity } from "../stationIdentity";
 import { AugmentAvailabilityFeeder } from "../telemetry/AugmentAvailabilityFeeder";
+import { syncDataRate } from "../telemetry/dataRate";
 import { HostRatePacer } from "../telemetry/HostRatePacer";
 import { PilotVantage } from "../telemetry/PilotVantage";
 import { SitrepPeerRelay } from "../telemetry/SitrepPeerRelay";
@@ -286,6 +287,7 @@ export function MainScreen({
   // it in sync. MAIN-ONLY: StationScreen never calls this, so station
   // tones stay structurally impossible. Default ON.
   useEffect(() => initSoundSettings(settingsService), [settingsService]);
+  useEffect(() => syncDataRate(settingsService), [settingsService]);
   useEffect(
     () =>
       screen === "main" ? syncAutoPortForward(settingsService) : undefined,

@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from "react";
 import { isTransmission } from "../commcast/topics";
 import { HOST_SESSION, type PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
+import { requestRateUnderChoice } from "./dataRate";
 
 /**
  * The Uplink roster. A station reads it to know which bundles to load, which is
@@ -315,7 +316,7 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
         SITREP_PEER_SUB_BUDGET.record();
         return client.subscribe(topic, () => {});
       },
-      requestRate: (topic, tier) => client.requestRate(topic, tier),
+      requestRate: (topic, tier) => requestRateUnderChoice(client, topic, tier),
       dataRates: () => client.getValue("system.dataRates"),
       cachedFrames: (topic) => {
         const ack = acksRef.current.get(topic);

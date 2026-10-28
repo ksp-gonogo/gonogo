@@ -13,6 +13,7 @@ import { useEffect } from "react";
 import { isTransmission } from "../commcast/topics";
 import type { PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
+import { requestRateUnderChoice } from "./dataRate";
 import { getSitrepHostConfig } from "./sitrepRuntime";
 
 /**
@@ -143,7 +144,8 @@ export function SitrepVantageSessions({
 
       const detachSink = peerHost.attachSitrepSinkFor(vantage, {
         subscribe: (topic) => client.subscribe(topic, () => {}),
-        requestRate: (topic, tier) => client.requestRate(topic, tier),
+        requestRate: (topic, tier) =>
+          requestRateUnderChoice(client, topic, tier),
         cachedFrames: (topic) => {
           const frame = cache.get(topic);
           return frame

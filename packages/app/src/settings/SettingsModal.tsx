@@ -22,6 +22,11 @@ import { BackupManager } from "../backup/BackupManager";
 import { say } from "../firstRun/copy";
 import { LogsManager } from "../logs/LogsManager";
 import { ApprovedStations } from "../stationApproval/ApprovedStations";
+import {
+  DATA_RATE_SETTING,
+  DEFAULT_DATA_RATE,
+  dataRateChoiceOf,
+} from "../telemetry/dataRate";
 import { AppVersion } from "./AppVersion";
 import { ControlFrameSettings } from "./ControlFrameSettings";
 import { GonogoSettings } from "./GonogoSettings";
@@ -29,6 +34,7 @@ import { HelpSettings } from "./HelpSettings";
 import type { SettingDefinition } from "./registry";
 import { getSettingsForScreen } from "./registry";
 import { bucketBy, CategoryRows } from "./SettingRows";
+import { useSetting } from "./SettingsContext";
 import { SitrepConnection } from "./SitrepConnection";
 import {
   Empty,
@@ -95,7 +101,13 @@ export function SettingsModal({
   tabs.push({
     id: "general",
     label: "General",
-    content: <GeneralSettings settings={settings} showConsent={showConsent} />,
+    content: (
+      <GeneralSettings
+        settings={settings}
+        showConsent={showConsent}
+        showDataRate={screen !== "station"}
+      />
+    ),
   });
   tabs.push({
     id: "gonogo",
@@ -242,9 +254,11 @@ export function RunSetupAgain({
 function GeneralSettings({
   settings,
   showConsent,
+  showDataRate,
 }: {
   settings: SettingDefinition[];
   showConsent: boolean;
+  showDataRate: boolean;
 }) {
   const byCategory = bucketBy(settings, (s) => s.category);
 
@@ -258,6 +272,14 @@ function GeneralSettings({
           <CategoryRows items={items} />
         </Stack>
       ))}
+      {showDataRate && (
+        <Stack as="section" gap="related-comfortable">
+          <SectionTitle as="h3" $rule>
+            Telemetry
+          </SectionTitle>
+          <DataRateRow />
+        </Stack>
+      )}
       {showConsent && (
         <Stack as="section" gap="related-comfortable">
           <SectionTitle as="h3" $rule>
@@ -317,6 +339,30 @@ function AnalyticsConsentRow() {
         checked={enabled}
         onChange={setEnabled}
         aria-label="Send technical analytics"
+      />
+    </SettingLine>
+  );
+}
+
+/**
+ * Whether widgets here and on stations may raise flight readings above the base
+ * rate. Stations follow this choice and have no control of their own.
+ */
+function DataRateRow() {
+  const [stored, setStored] = useSetting<string>(
+    DATA_RATE_SETTING,
+    DEFAULT_DATA_RATE,
+  );
+  return (
+    <SettingLine>
+      <RowText>
+        <RowLabel>Faster data rate</RowLabel>
+        <RowDesc>Updates flight readings faster. Reduces performance.</RowDesc>
+      </RowText>
+      <Switch
+        checked={dataRateChoiceOf(stored) === "faster"}
+        onChange={(on) => setStored(on ? "faster" : "normal")}
+        aria-label="Faster data rate"
       />
     </SettingLine>
   );

@@ -2,6 +2,7 @@ import type { ComponentDefinition } from "@ksp-gonogo/core";
 import { useTelemetryClientOptional } from "@ksp-gonogo/sitrep-client";
 import { splitRawFieldSubtopic } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useMemo } from "react";
+import { requestRateUnderChoice } from "./dataRate";
 
 /** The Topics a widget asks to have at the fast tier, from its own declaration and its tile's settings, each once and sorted. */
 export function fastTopicsOf(
@@ -37,7 +38,9 @@ export function WidgetDataRateBridge({
 
   useEffect(() => {
     if (!client || topics.length === 0) return;
-    const releases = topics.map((topic) => client.requestRate(topic, "fast"));
+    const releases = topics.map((topic) =>
+      requestRateUnderChoice(client, topic, "fast"),
+    );
     return () => {
       for (const release of releases) release();
     };

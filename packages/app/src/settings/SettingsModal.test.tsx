@@ -1300,3 +1300,36 @@ describe("SettingsModal: the Uplinks tab", () => {
     ).toBeInTheDocument();
   });
 });
+
+describe("SettingsModal: Data rate", () => {
+  it("offers a Faster data rate switch on the main screen, off by default", () => {
+    renderModal("main");
+    expect(
+      screen.getByRole("checkbox", { name: "Faster data rate" }),
+    ).not.toBeChecked();
+  });
+
+  it("stores Faster when switched on and Normal when switched off", async () => {
+    const view = renderModal("main");
+    const toggle = screen.getByRole("checkbox", { name: "Faster data rate" });
+    await userEvent.click(toggle);
+    expect(view.service.get("telemetry.dataRate", "normal")).toBe("faster");
+    expect(toggle).toBeChecked();
+    await userEvent.click(toggle);
+    expect(view.service.get("telemetry.dataRate", "normal")).toBe("normal");
+  });
+
+  it("states the cost in one line", () => {
+    renderModal("main");
+    expect(
+      screen.getByText("Updates flight readings faster. Reduces performance."),
+    ).toBeInTheDocument();
+  });
+
+  it("has no control on a station", () => {
+    renderModal("station");
+    expect(
+      screen.queryByRole("checkbox", { name: "Faster data rate" }),
+    ).not.toBeInTheDocument();
+  });
+});
