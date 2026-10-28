@@ -136,6 +136,31 @@ function readPayloadCraft(payload: unknown): string | null {
 }
 
 /**
+ * What {@link DelayAuthority.delaySeconds} reads while the delay to the active
+ * craft is not known, after a change of craft and before the new craft's delay
+ * arrives. The view clock puts its confirmed edge at negative infinity for it,
+ * so telemetry and video stay where they were instead of running live or on the
+ * previous craft's figure.
+ */
+const UNKNOWN_DELAY = Number.POSITIVE_INFINITY;
+
+/**
+ * Whether a `comms.delay` payload names a craft and reports, as a null, that
+ * there is no path home to it. The mod delivers such a craft's readings at the
+ * instant they are made, with no signal in flight, so there is nothing for the
+ * view to wait for; a malformed payload or one naming no craft is not this.
+ */
+function reportsNoPathHome(payload: unknown): boolean {
+  return (
+    readPayloadCraft(payload) !== null &&
+    typeof payload === "object" &&
+    payload !== null &&
+    "oneWaySeconds" in payload &&
+    payload.oneWaySeconds === null
+  );
+}
+
+/**
  * Holds the one-way delay between this session's command centre and the vessel,
  * which times the frames the operator sees, and exposes it as `delaySeconds()`
  * for the view clock to read (`ViewClockOptions.delaySeconds`). Useful for
@@ -223,7 +248,12 @@ export class DelayAuthority {
   observe(payload: unknown): void {
     this.forgetOtherCraft(payload);
     const reported = readOneWaySeconds(payload);
-    if (reported === null) return;
+    if (reported === null) {
+      if (this.oneWaySeconds === UNKNOWN_DELAY && reportsNoPathHome(payload)) {
+        this.oneWaySeconds = 0;
+      }
+      return;
+    }
     this.oneWaySeconds = reported;
   }
 
@@ -238,7 +268,7 @@ export class DelayAuthority {
     const previous = this.measuredCraft;
     this.measuredCraft = craft;
     if (previous === undefined || previous === craft) return;
-    this.oneWaySeconds = 0;
+    this.oneWaySeconds = UNKNOWN_DELAY;
     this.centreDelays = new Map();
     this.lastCentreDelays.clear();
     this.routeDelays = new Map();

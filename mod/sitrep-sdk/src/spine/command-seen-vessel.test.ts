@@ -71,4 +71,44 @@ describe("a command names the vessel the operator last saw", () => {
 
     expect(transport.commands[0]).not.toHaveProperty("seenVesselId");
   });
+
+  it("names no real vessel once the craft it saw has been withdrawn and the new one has not been read", () => {
+    const { transport, client } = setup();
+    client.subscribe("vessel.identity", () => {});
+    transport.deliver({
+      type: "stream-data",
+      topic: "vessel.identity",
+      payload: { vesselId: "aaaa" },
+      meta: makeMeta(),
+    });
+    transport.deliver({
+      type: "stream-data",
+      topic: "vessel.identity",
+      payload: null,
+      meta: makeMeta(),
+    });
+
+    send(client);
+
+    expect(transport.commands[0]).toMatchObject({
+      seenVesselId: "unknown",
+    });
+  });
+
+  it("carries the new vessel once its identity has been read", () => {
+    const { transport, client } = setup();
+    client.subscribe("vessel.identity", () => {});
+    for (const payload of [{ vesselId: "aaaa" }, null, { vesselId: "bbbb" }]) {
+      transport.deliver({
+        type: "stream-data",
+        topic: "vessel.identity",
+        payload,
+        meta: makeMeta(),
+      });
+    }
+
+    send(client);
+
+    expect(transport.commands[0]).toMatchObject({ seenVesselId: "bbbb" });
+  });
 });

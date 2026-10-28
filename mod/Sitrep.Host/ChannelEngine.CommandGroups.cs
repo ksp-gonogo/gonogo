@@ -144,7 +144,7 @@ namespace Sitrep.Host
                 var memberNode = ResolveSubjectNode(job);
                 if (SeenAnotherCraft(job, memberNode))
                 {
-                    job.OnResult(CommandResult.Fail(CommandErrorCode.WrongState, SwitchedAwayDetail));
+                    job.OnResult(CommandResult.Fail(CommandErrorCode.WrongState, SwitchDetailFor(job)));
                     RefuseGroup(group, job, "the active vessel has changed since the one on screen was current");
                     return;
                 }
