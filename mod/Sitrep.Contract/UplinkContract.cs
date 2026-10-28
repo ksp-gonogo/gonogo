@@ -321,9 +321,10 @@ namespace Sitrep.Contract
         /// measured for, a quieter failure than the wrong delay. Null keeps the
         /// segment-is-the-id reading.</para>
         ///
-        /// <para>Return null for a key that cannot be placed yet, and the topic
-        /// is delayed as the active craft's. Never invent an id: a vessel with no
-        /// measured delay is worse than one with the wrong delay.</para>
+        /// <para>Return null for a key that cannot be placed yet, and its readings
+        /// are held and commands to it refused until it can be. The active craft's
+        /// delay is never used in its place. Never invent an id: a vessel with no
+        /// measured delay is held, not timed.</para>
         ///
         /// <para><b>Must not read live game state.</b> It is called off the main
         /// thread while resolving a topic, and a Unity read from there throws.

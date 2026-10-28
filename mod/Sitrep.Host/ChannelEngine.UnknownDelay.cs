@@ -6,9 +6,10 @@ namespace Sitrep.Host
     public sealed partial class ChannelEngine
     {
         /// <summary>
-        /// The node a lens topic records under while its key cannot be placed. No
-        /// delay to it is ever known, so a reading there is held and a command to it
-        /// refused until the lens is placed.
+        /// The node a lens topic, or a per-vessel topic whose craft cannot be
+        /// resolved, records under while its key cannot be placed. No delay to it is
+        /// ever known, so a reading there is held and a command to it refused until
+        /// the key is placed.
         /// </summary>
         public const string UnplacedLensNode = "unplaced-lens";
 

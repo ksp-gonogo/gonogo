@@ -647,8 +647,7 @@ namespace Gonogo.KSP
             if (vessel == null || _host == null)
             {
                 // An unloaded vessel keeps whatever delay the fleet capture last set
-                // for its node (or the whole-network default), which is the best
-                // available answer rather than a fabricated one.
+                // for its node; with none set, its events are held until one is.
                 return;
             }
             try

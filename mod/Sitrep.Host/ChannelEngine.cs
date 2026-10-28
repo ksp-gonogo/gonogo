@@ -190,13 +190,13 @@ namespace Sitrep.Host
                 var key = KeySegment(topic, prefix.Length);
                 if (key == null)
                 {
-                    return NodeId;
+                    return UnplacedLensNode;
                 }
                 // A namespace keyed by something other than a vessel says so by
                 // declaring a resolver; without one the key IS the vessel id,
                 // which is how every fleet.<guid> namespace reads.
                 var vesselId = ResolveVesselKey(prefix, key);
-                return vesselId == null ? NodeId : FleetNodePrefix + vesselId;
+                return vesselId == null ? UnplacedLensNode : FleetNodePrefix + vesselId;
             }
             return NodeForTopic(topic);
         }
@@ -205,7 +205,7 @@ namespace Sitrep.Host
         /// The key segment of a per-vessel topic: the text between
         /// <paramref name="start"/> and the next '.', or null when the topic carries
         /// no field after the key (a bare "currency.&lt;guid&gt;" is not a channel, so
-        /// it falls back to <see cref="NodeId"/> rather than inventing a node).
+        /// it routes to <see cref="UnplacedLensNode"/> rather than inventing a node).
         ///
         /// <para>The key is usually a vessel guid, and is not always: see
         /// <see cref="ChannelDeclaration.VesselIdForKey"/>. Named for what it is
@@ -223,9 +223,10 @@ namespace Sitrep.Host
         /// namespace keyed by craft, or whatever its declared resolver says for
         /// one keyed by anything else.
         ///
-        /// <para>Null means unroutable, and the caller falls back to the active
-        /// craft rather than minting <c>fleet.&lt;key&gt;</c> for a node the
-        /// ledger has never heard of. A resolver that throws is treated the same
+        /// <para>Null means unroutable, and the caller routes the topic to
+        /// <see cref="UnplacedLensNode"/>, where it is held, rather than minting
+        /// <c>fleet.&lt;key&gt;</c> for a node the ledger has never heard of or
+        /// borrowing the active craft's delay. A resolver that throws is treated the same
         /// way: this runs inside topic resolution on the Courier thread, where
         /// an escaping exception would take down the tick for every channel, and
         /// one Uplink's bad resolver must not do that.</para>
@@ -244,7 +245,7 @@ namespace Sitrep.Host
             }
             catch (Exception ex)
             {
-                FailSoftNamespaceResolver(prefix, ex, "VesselIdForKey threw; its topics route to the active craft until it stops");
+                FailSoftNamespaceResolver(prefix, ex, "VesselIdForKey threw; its topics are held until it stops");
                 return null;
             }
         }
@@ -10459,8 +10460,10 @@ namespace Sitrep.Host
         /// channel's telemetry resolves its node through. Falls back to
         /// <see cref="NodeId"/> for a command with no Subject (TrueNow, or a
         /// declaration this dispatch could not find), which is also what
-        /// <see cref="NodeFor"/> itself resolves an unrecognised topic to, so
-        /// the fallback and the general case share one answer.
+        /// <see cref="NodeFor"/> resolves an unrecognised topic to. A Subject
+        /// under a per-vessel namespace whose key cannot be placed resolves to
+        /// <see cref="UnplacedLensNode"/>, so the command is refused rather than
+        /// timed by the active craft.
         /// </summary>
         private string ResolveSubjectNode(DispatchCommandJob job)
         {
@@ -10480,7 +10483,8 @@ namespace Sitrep.Host
         /// gate requirement reads its args through). A segment whose name the
         /// args do not carry fills in empty, which resolves through
         /// <see cref="NodeFor"/> exactly like any other topic this Uplink never
-        /// declared: to <see cref="NodeId"/>, never a thrown exception on the
+        /// declared: to <see cref="NodeId"/>, or to <see cref="UnplacedLensNode"/>
+        /// under a per-vessel namespace, never a thrown exception on the
         /// Courier thread.
         /// </summary>
         private static string FillSubjectArgs(string subject, object? args)

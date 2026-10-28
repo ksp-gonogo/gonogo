@@ -888,19 +888,28 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// A key this pass cannot place routes to the active craft, where an
-        /// unrouted topic already sits, rather than to a minted node the ledger
-        /// has never heard of. Never inventing an id is the point: a node with
-        /// no delay row is worse than one with the wrong delay, because nothing
-        /// downstream can see that it is missing.
+        /// A key this pass cannot place routes to the unplaced node, where no
+        /// delay is ever known and the reading is held. It never takes the active
+        /// craft's node, whose delay says nothing about the craft the reading is
+        /// about, and never a minted node the ledger has never heard of.
         /// </summary>
         [Fact]
-        public void AnUnplaceableKeyFallsBackToTheActiveCraft()
+        public void AnUnplaceableKeyIsHeldNotBorrowedFromTheActiveCraft()
         {
-            var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 30);
             engine.RegisterUplink(new KeyedNamespaceTestUplink(_ => null));
 
-            Assert.Equal(ChannelEngine.NodeId, engine.NodeFor("keyed.7.screen"));
+            Assert.Equal(ChannelEngine.UnplacedLensNode, engine.NodeFor("keyed.7.screen"));
+            Assert.False(engine.DelayKnown("ground:KSC", engine.NodeFor("keyed.7.screen")));
+        }
+
+        [Fact]
+        public void ATopicWithNoFieldAfterItsKeyIsHeldNotBorrowedFromTheActiveCraft()
+        {
+            var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 30);
+            engine.RegisterUplink(new KeyedNamespaceTestUplink(null));
+
+            Assert.Equal(ChannelEngine.UnplacedLensNode, engine.NodeFor("keyed.7"));
         }
 
         /// <summary>
@@ -915,7 +924,7 @@ namespace Sitrep.Host.IntegrationTests
             engine.RegisterUplink(new KeyedNamespaceTestUplink(
                 _ => throw new InvalidOperationException("resolver blew up")));
 
-            Assert.Equal(ChannelEngine.NodeId, engine.NodeFor("keyed.7.screen"));
+            Assert.Equal(ChannelEngine.UnplacedLensNode, engine.NodeFor("keyed.7.screen"));
         }
 
         /// <summary>
