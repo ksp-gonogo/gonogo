@@ -154,6 +154,12 @@ function fakePeerHost() {
     broadcast(msg: PeerMessage) {
       onBroadcast?.(msg);
     },
+    sendToPeer(_peerId: string, msg: PeerMessage) {
+      onBroadcast?.(msg);
+    },
+    onPeerConnect(_cb: (peerId: string) => void) {
+      return () => {};
+    },
     onTriggerArm(cb: typeof armCb) {
       armCb = cb;
       return () => {

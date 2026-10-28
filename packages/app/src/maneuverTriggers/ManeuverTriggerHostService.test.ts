@@ -262,6 +262,69 @@ describe("ManeuverTriggerHostService", () => {
     return svc;
   }
 
+  describe("what a station is sent", () => {
+    function fakeHost() {
+      const sent: { to: string | "all"; type: string }[] = [];
+      let onConnect: ((peerId: string) => void) | undefined;
+      const host = {
+        broadcast: (m: { type: string }) =>
+          sent.push({ to: "all", type: m.type }),
+        sendToPeer: (peerId: string, m: { type: string }) =>
+          sent.push({ to: peerId, type: m.type }),
+        onTriggerArm: () => () => {},
+        onTriggerCancel: () => () => {},
+        onPeerConnect: (cb: (peerId: string) => void) => {
+          onConnect = cb;
+          return () => {};
+        },
+      };
+      return { host, sent, connect: (id: string) => onConnect?.(id) };
+    }
+
+    function makeHosted() {
+      const fake = fakeHost();
+      const svc = new ManeuverTriggerHostService(fake.host, {
+        nowMs: () => 1_700_000_000_000,
+        storage,
+      });
+      built.push(svc);
+      return { svc, ...fake };
+    }
+
+    it("sends no trigger-snapshot over a quiet second of stream frames", () => {
+      const storeFixture = seedKerbinOrbit();
+      const { sent } = makeHosted();
+      storeFixture.emitOrbit(kerbinOrbitPayload(1_000_000));
+      vi.advanceTimersByTime(10);
+      const before = sent.length;
+      for (let i = 0; i < 100; i++) {
+        storeFixture.emitOrbit(kerbinOrbitPayload(1_000_000 + i));
+        vi.advanceTimersByTime(10);
+      }
+      expect(sent.length - before).toBe(0);
+    });
+
+    it("sends one when a trigger is armed and gives a joining station the current list", () => {
+      seedKerbinOrbit();
+      const { svc, sent, connect } = makeHosted();
+      const before = sent.length;
+      svc.arm({
+        dataKey: "v.altitude",
+        op: ">",
+        value: 1e12,
+        inputs: {} as FrozenPlanInputs,
+      });
+      expect(
+        sent.slice(before).filter((m) => m.type === "trigger-snapshot"),
+      ).toHaveLength(1);
+      connect("station-a");
+      expect(sent.at(-1)).toEqual({
+        to: "station-a",
+        type: "trigger-snapshot",
+      });
+    });
+  });
+
   it("adds an armed trigger and surfaces it in the snapshot", () => {
     const svc = makeService();
     seedKerbinOrbit();

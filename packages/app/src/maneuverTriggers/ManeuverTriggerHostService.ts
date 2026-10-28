@@ -98,6 +98,16 @@ function solverInput(v: Quantityish): number | undefined {
   return magnitudeOf(v) ?? undefined;
 }
 
+/** The part of the peer host this service uses: the trigger requests it hears and the snapshots it sends. */
+export type ManeuverTriggerPeerHost = Pick<
+  PeerHostService,
+  | "broadcast"
+  | "sendToPeer"
+  | "onTriggerArm"
+  | "onTriggerCancel"
+  | "onPeerConnect"
+>;
+
 export interface ManeuverTriggerHostOptions {
   nowMs?: () => number;
   storage?: Storage;
@@ -114,12 +124,15 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
    */
   private holds = new Map<string, () => void>();
   private vesselUnsub: (() => void) | null = null;
-  private host: PeerHostService | null;
+  private peerConnectUnsub: (() => void) | null = null;
+  /** The snapshot last handed to listeners and peers, serialised, so an unchanged one is not sent again. */
+  private lastEmitted: string | null = null;
+  private host: ManeuverTriggerPeerHost | null;
   private store: LocalStorageStore<ArmedTrigger[]>;
   private readonly nowMs: () => number;
 
   constructor(
-    host: PeerHostService | null,
+    host: ManeuverTriggerPeerHost | null,
     opts: ManeuverTriggerHostOptions = {},
   ) {
     this.host = host;
@@ -141,6 +154,8 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
   dispose(): void {
     this.vesselUnsub?.();
     this.vesselUnsub = null;
+    this.peerConnectUnsub?.();
+    this.peerConnectUnsub = null;
     for (const release of this.holds.values()) release();
     this.holds.clear();
     this.listeners.clear();
@@ -210,6 +225,13 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
     this.host.onTriggerCancel((_peerId, id) => {
       this.cancel(id);
     });
+    // A change-only broadcast never reaches a station that joins between changes.
+    this.peerConnectUnsub = this.host.onPeerConnect((peerId) => {
+      this.host?.sendToPeer(peerId, {
+        type: "trigger-snapshot",
+        snapshot: this.snapshot(),
+      });
+    });
   }
 
   private bindVesselWatcher(): void {
@@ -230,7 +252,7 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
       if (this.triggers.length !== before) {
         this.persist();
       }
-      // Always emit so vesselName updates flow to peers + UI.
+      // A renamed vessel changes the snapshot, so it still reaches peers and the UI.
       this.emit();
       this.evaluate();
     });
@@ -404,6 +426,9 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
 
   private emit(): void {
     const snap = this.snapshot();
+    const key = JSON.stringify(snap);
+    if (key === this.lastEmitted) return;
+    this.lastEmitted = key;
     for (const cb of this.listeners) cb(snap);
     this.host?.broadcast({ type: "trigger-snapshot", snapshot: snap });
   }
