@@ -29,8 +29,14 @@ namespace Gonogo.DevTools
     /// failing, so a result echoing the request would report a rate the game is
     /// not running at. <c>achievedIndex</c> and <c>achievedRate</c> are read
     /// back from <c>TimeWarp</c> after a settle delay, and
-    /// <c>maxRateIndexForAltitude</c> says what the ceiling was, so a clamp is
-    /// visible as a clamp rather than as a mystery.</para>
+    /// <c>maxRateIndexForAltitude</c> says what the ceiling was.</para>
+    ///
+    /// <para>KSP also re-checks an on-rails warp every physics frame and lowers
+    /// it at once, so the read-back alone cannot say whether a rung was reached.
+    /// <c>peakIndex</c> is the highest rung the game ran at after the request,
+    /// <c>changes</c> lists every rate change with its time since the request
+    /// and the reason KSP's limit check gave, and <c>message</c> says when and
+    /// why a reached rung was lowered.</para>
     ///
     /// <para>Rails and physics warp are different regimes and the caller has to
     /// say which it wants: rails skips physics entirely and is what high rates
@@ -61,6 +67,8 @@ namespace Gonogo.DevTools
         private string? _pendingId;
         private int _pendingRequestedIndex;
         private int _pendingPollsLeft;
+        private WarpTrace? _trace;
+        private float _requestedAt;
 
         private void Start()
         {
@@ -77,12 +85,69 @@ namespace Gonogo.DevTools
                 _requestPath = Path.Combine(pluginData, "timewarp-request.cfg");
                 _resultPath = Path.Combine(pluginData, "timewarp-result.cfg");
                 _ledger = new DevRequestLedger(Path.Combine(pluginData, "timewarp-applied.cfg"));
+                GameEvents.onTimeWarpRateChanged.Add(OnRateChanged);
             }
             catch (Exception ex)
             {
                 Debug.LogError(LogPrefix + "Start failed: " + ex.Message);
                 enabled = false;
             }
+        }
+
+        private void OnDestroy()
+        {
+            GameEvents.onTimeWarpRateChanged.Remove(OnRateChanged);
+        }
+
+        /*
+         * Fires from the game's own rate assignment, so it sees the changes that
+         * happen between polls: KSP re-checks an on-rails warp every physics
+         * frame and lowers it at once, which a read-back seconds later cannot
+         * tell from a rung that was never reached.
+         */
+        private void OnRateChanged()
+        {
+            var trace = _trace;
+            var fetch = TimeWarp.fetch;
+            if (trace == null || fetch == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var index = TimeWarp.CurrentRateIndex;
+                var rungs = fetch.Mode == TimeWarp.Modes.LOW ? fetch.physicsWarpRates : fetch.warpRates;
+                var rate = rungs != null && index >= 0 && index < rungs.Length ? rungs[index] : TimeWarp.CurrentRate;
+                var reason = index < trace.RequestedIndex && fetch.Mode == TimeWarp.Modes.HIGH
+                    ? LimitReason(fetch, trace.RequestedIndex)
+                    : null;
+                trace.Record(Time.realtimeSinceStartup - _requestedAt, index, rate, reason);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError(LogPrefix + "could not record a rate change: " + ex.Message);
+            }
+        }
+
+        /*
+         * KSP's limit check is private and answers with an enum the game only
+         * turns into a screen message, so it is asked again through reflection
+         * with the rung the request wanted.
+         */
+        private static string? LimitReason(TimeWarp fetch, int requestedIndex)
+        {
+            var method = typeof(TimeWarp).GetMethod(
+                "getMaxOnRailsRateIdx", BindingFlags.Instance | BindingFlags.NonPublic);
+            if (method == null)
+            {
+                return null;
+            }
+
+            var args = new object?[] { requestedIndex, true, null };
+            method.Invoke(fetch, args);
+            var status = args[2]?.ToString();
+            return status == "CLEAR" ? null : status;
         }
 
         private void Update()
@@ -195,6 +260,9 @@ namespace Gonogo.DevTools
                     return;
                 }
 
+                _trace = new WarpTrace(index);
+                _requestedAt = Time.realtimeSinceStartup;
+
                 // Not instant: letting KSP ramp is what makes a refusal show up
                 // as a clamp we can report rather than as a rate it never held.
                 TimeWarp.SetRate(index, false);
@@ -237,12 +305,9 @@ namespace Gonogo.DevTools
                     maxForAltitude = TimeWarp.fetch.GetMaxRateForAltitude(vessel.altitude, vessel.mainBody);
                 }
 
-                var achieved = TimeWarp.CurrentRateIndex;
-                var ok = achieved == requestedIndex;
-                var message = ok
-                    ? "achieved the requested rung"
-                    : "CLAMPED: asked " + requestedIndex + ", running " + achieved;
-                WriteResult(id, ok, message, requestedIndex, maxForAltitude);
+                var trace = _trace ?? new WarpTrace(requestedIndex);
+                var (ok, message) = trace.Verdict(TimeWarp.CurrentRateIndex);
+                WriteResult(id, ok, message, requestedIndex, maxForAltitude, trace.Describe());
             }
             catch (Exception ex)
             {
@@ -250,7 +315,7 @@ namespace Gonogo.DevTools
             }
         }
 
-        private void WriteResult(string id, bool ok, string message, int requestedIndex, int? maxRateIndexForAltitude)
+        private void WriteResult(string id, bool ok, string message, int requestedIndex, int? maxRateIndexForAltitude, string? changes = null)
         {
             if (string.IsNullOrEmpty(_resultPath))
             {
@@ -278,6 +343,8 @@ namespace Gonogo.DevTools
                     + (maxRateIndexForAltitude.HasValue
                         ? maxRateIndexForAltitude.Value.ToString(CultureInfo.InvariantCulture)
                         : "unknown"));
+                sb.AppendLine("\tpeakIndex = " + (_trace?.PeakIndex ?? -1).ToString(CultureInfo.InvariantCulture));
+                sb.AppendLine("\tchanges = " + (changes ?? ""));
                 sb.AppendLine("\tmessage = " + message);
                 sb.AppendLine("\ttime = " + DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture));
                 sb.AppendLine("}");
