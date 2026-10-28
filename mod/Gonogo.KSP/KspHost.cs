@@ -4706,15 +4706,50 @@ namespace Gonogo.KSP
 
         /*
          * The cost in a craft file leaves out what modules add, and the rollout charges it all, so
-         * a craft is priced again with its modules once per file version. That loads the craft's
-         * parts, so only a few are priced per scan and the rest keep the file's cost until their turn.
+         * a craft is priced again with its modules once per file version and parts set. That loads
+         * every part of the craft, a long frame and a collection's worth of garbage, so one craft is
+         * priced per scan, never in flight where nothing can be launched, and the price is kept on
+         * disk so the next launch of the game does not pay it again. Until its turn a craft keeps
+         * the file's cost.
          */
-        private const int ModulePricingsPerScan = 2;
-        private static readonly StampedCache<double?> SavedShipCosts = new StampedCache<double?>();
+        private const int ModulePricingsPerScan = 1;
+        private static readonly CraftPriceBook SavedShipCosts = new CraftPriceBook(
+            Path.Combine(KSPUtil.ApplicationRootPath, "GameData", "Gonogo", "PluginData", "craft-prices.txt"),
+            (message, ex) => GonogoLog.Warn(message, ex));
+
+        private static string? _partsFingerprint;
+
+        /// <summary>The fingerprint of the install's parts, taken once: the parts and assemblies are loaded before any game.</summary>
+        private static string PartsFingerprint()
+        {
+            if (_partsFingerprint != null)
+            {
+                return _partsFingerprint;
+            }
+
+            var parts = new List<KeyValuePair<string, double>>();
+            foreach (var part in PartLoader.LoadedPartsList)
+            {
+                if (part != null)
+                {
+                    parts.Add(new KeyValuePair<string, double>(part.name, part.cost));
+                }
+            }
+            var assemblies = new List<string>();
+            foreach (var assembly in AssemblyLoader.loadedAssemblies)
+            {
+                assemblies.Add(assembly.name + " " + assembly.versionMajor + "." + assembly.versionMinor + "." + assembly.versionRevision);
+            }
+            _partsFingerprint = CraftPriceBook.Fingerprint(parts, assemblies);
+            return _partsFingerprint;
+        }
+
+        private static bool CanPriceNow => Funding.Instance != null && HighLogic.LoadedScene != GameScenes.FLIGHT;
 
         private static void ApplyModulePrice(string file, long stamp, Dictionary<string, object?> entry, ref int budget)
         {
-            if (SavedShipCosts.TryGet(file, stamp, out var known))
+            var fingerprint = PartsFingerprint();
+            if (SavedShipCosts.TryGet(file, stamp, fingerprint, out var known))
             {
                 if (known != null)
                 {
@@ -4723,19 +4758,20 @@ namespace Gonogo.KSP
                 return;
             }
 
-            if (budget <= 0 || Funding.Instance == null)
+            if (Funding.Instance == null)
             {
-                if (Funding.Instance != null)
-                {
-                    _savedShipsPricingPending = true;
-                }
+                return;
+            }
+            if (budget <= 0 || !CanPriceNow)
+            {
+                _savedShipsPricingPending = true;
                 return;
             }
 
             budget--;
             var root = ConfigNode.Load(file);
             var cost = root == null ? (double?)null : CraftCatalogueBackend.CostWithModules(root);
-            SavedShipCosts.Put(file, stamp, cost);
+            SavedShipCosts.Put(file, stamp, fingerprint, cost);
             if (cost != null)
             {
                 entry["requiresFunds"] = cost.Value;
@@ -4777,7 +4813,7 @@ namespace Gonogo.KSP
                 signature = SavedShipsSignature(gameName);
             }
             if (_cachedSavedShips != null
-                && !_savedShipsPricingPending
+                && !(_savedShipsPricingPending && CanPriceNow)
                 && string.Equals(signature, _savedShipsSignature, StringComparison.Ordinal)
                 && _savedShipsEpoch == _partAvailabilityEpoch
                 && wallSeconds - _savedShipsFullPassWall < SavedShipsFullPassSeconds)
@@ -4897,7 +4933,6 @@ namespace Gonogo.KSP
 
             _unbuildableCraft.Retain(seenFiles);
             _builtCraft.Retain(seenFiles);
-            SavedShipCosts.ForgetUnseen();
             _cachedSavedShips = ships;
             _savedShipsSignature = signature;
             _savedShipsEpoch = epoch;
