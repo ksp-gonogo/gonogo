@@ -160,22 +160,77 @@ const BACKLOG_BEHIND_MS = 1_000;
 const BACKLOG_CLEAR_MS = 300;
 /** A station's rate is not lowered again sooner than this after the last change, so the queue has time to answer it. */
 const STEP_DOWN_HOLD_MS = 2_000;
-/** A station's rate rises one step only after this long without falling behind. */
-const STEP_UP_HOLD_MS = 10_000;
+/** Nor, on a screen's own report, before a whole pace window has been read since the change: until then the report still describes the rate before it. */
+const REPORT_DOWN_HOLD_MS = WINDOW_MS + 1_000;
 const MIN_RATE = 1;
+/** A rate rises only after keeping up for this long: the pace window and one look, so the whole window was read at that rate. */
+const RISE_HOLD_MS = WINDOW_MS + 1_000;
+/** Falling behind this soon after a rise is put down to that rise. */
+const RISE_BLAMED_MS = 8_000;
+/** How long a rate keeps up before trying one that fell behind before; it doubles each time that one falls behind again. */
+const RETRY_HOLD_MS = 12_000;
+const MAX_RETRY_HOLD_MS = 30_000;
+
+/**
+ * How a held rate climbs back. It doubles while nothing above it is known to
+ * fall behind, and approaches a rate that has fallen behind one step at a time,
+ * waiting longer before each try. Falling behind straight after a rise goes
+ * back to the rate before it rather than halving, so a screen that keeps up
+ * with a little less than it is offered settles there instead of see-sawing.
+ */
+class RateClimb {
+  /** The lowest rate seen to fall behind, until a rate at or above it keeps up. */
+  private ceiling: number | null = null;
+  private retryHold = RETRY_HOLD_MS;
+  private rose: { from: number; at: number } | null = null;
+
+  /** The rate to drop to from `current`, having fallen behind at `now`. */
+  fall(current: number, now: number): number {
+    const rose = this.rose;
+    this.rose = null;
+    this.ceiling = current;
+    if (rose !== null && now - rose.at < RISE_BLAMED_MS) {
+      this.retryHold = Math.min(MAX_RETRY_HOLD_MS, this.retryHold * 2);
+      return Math.max(MIN_RATE, Math.min(rose.from, current - 1));
+    }
+    this.retryHold = RETRY_HOLD_MS;
+    return Math.max(MIN_RATE, Math.floor(current / 2));
+  }
+
+  /** How long `current` has to keep up before it rises. */
+  holdAt(current: number): number {
+    return this.ceiling !== null &&
+      current < this.ceiling &&
+      current + 1 >= this.ceiling
+      ? this.retryHold
+      : RISE_HOLD_MS;
+  }
+
+  /** The rate to rise to from `current` at `now`, or null once that reaches `top`. */
+  rise(current: number, top: number, now: number): number | null {
+    if (this.ceiling !== null && current >= this.ceiling) this.ceiling = null;
+    const next =
+      this.ceiling === null
+        ? current * 2
+        : Math.max(current + 1, Math.min(current * 2, this.ceiling - 1));
+    this.rose = { from: current, at: now };
+    return next >= top ? null : next;
+  }
+}
 
 /** What a {@link StationPacer} decided on its latest look. */
 export type PaceStep = "down" | "up" | "hold";
 
 /**
  * The rate one station is sent the fast Topics at, kept by the main screen. It
- * falls by half as soon as the station falls behind, by its send queue first and
- * its own report second, and rises by one a second at a time after it has kept up
- * for a while, never below once a second or above the rate the mod sends.
+ * falls as soon as the station falls behind, by its send queue first and its own
+ * report second, and climbs back once it has kept up (see {@link RateClimb}),
+ * never below once a second or above the rate the mod sends.
  */
 export class StationPacer {
   private rate: number | null = null;
   private changedAt = Number.NEGATIVE_INFINITY;
+  private readonly climb = new RateClimb();
   private lastForwarded = new Map<string, number>();
   note: StationPaceNote | null = null;
 
@@ -200,16 +255,17 @@ export class StationPacer {
     const current = this.rate ?? modRate;
 
     if (queueBehind || noteBehind) {
-      if (now - this.changedAt < STEP_DOWN_HOLD_MS || current <= MIN_RATE) {
+      const hold = queueBehind ? STEP_DOWN_HOLD_MS : REPORT_DOWN_HOLD_MS;
+      if (now - this.changedAt < hold || current <= MIN_RATE) {
         return "hold";
       }
-      this.rate = Math.max(MIN_RATE, Math.floor(current / 2));
+      this.rate = this.climb.fall(current, now);
       this.changedAt = now;
       return "down";
     }
     if (this.rate === null || !clear) return "hold";
-    if (now - this.changedAt < STEP_UP_HOLD_MS) return "hold";
-    this.rate = this.rate + 1 >= modRate ? null : this.rate + 1;
+    if (now - this.changedAt < this.climb.holdAt(this.rate)) return "hold";
+    this.rate = this.climb.rise(this.rate, modRate, now);
     this.changedAt = now;
     return "up";
   }
@@ -237,17 +293,18 @@ export class StationPacer {
 
 /** The main screen must be behind on this many looks in a row before it lowers the mod's rate, so one slow moment does not. */
 const HOST_BEHIND_LOOKS = 3;
-const HOST_STEP_DOWN_HOLD_MS = 3_000;
-const HOST_STEP_UP_HOLD_MS = 15_000;
+const HOST_STEP_DOWN_HOLD_MS = REPORT_DOWN_HOLD_MS;
 
 /**
  * The most the main screen asks the mod to send the fast tier at, while the
- * main screen itself is behind. It halves after the screen has been behind a
- * few looks running and rises by one a second at a time once it has kept up
- * for a while, and is withdrawn once it reaches the rate the mod sent before.
+ * main screen itself is behind. It falls after the screen has been behind a
+ * few looks running and climbs back once it has kept up (see
+ * {@link RateClimb}), and is withdrawn once it reaches the rate the mod sent
+ * before.
  */
 export class HostPacer {
   private cap: number | null = null;
+  private readonly climb = new RateClimb();
   private uncapped = 0;
   private behindLooks = 0;
   private changedAt = Number.NEGATIVE_INFINITY;
@@ -273,15 +330,18 @@ export class HostPacer {
         return undefined;
       }
       if (this.cap === null) this.uncapped = modRate;
-      this.cap = Math.max(MIN_RATE, Math.floor(current / 2));
+      this.cap = this.climb.fall(current, now);
       this.changedAt = now;
       return this.cap;
     }
     this.behindLooks = 0;
-    if (this.cap === null || now - this.changedAt < HOST_STEP_UP_HOLD_MS) {
+    if (
+      this.cap === null ||
+      now - this.changedAt < this.climb.holdAt(this.cap)
+    ) {
       return undefined;
     }
-    this.cap = this.cap + 1 >= this.uncapped ? null : this.cap + 1;
+    this.cap = this.climb.rise(this.cap, this.uncapped, now);
     this.changedAt = now;
     return this.cap;
   }

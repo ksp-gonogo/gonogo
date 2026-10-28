@@ -25,22 +25,59 @@ describe("StationPacer", () => {
     expect(pacer.heldRate()).toBe(1);
   });
 
-  it("slows a station that says it is behind even with an empty queue", () => {
+  it("slows a station that says it is behind even with an empty queue, once a whole window has been read since the last change", () => {
     const pacer = new StationPacer();
     pacer.note = { ...KEEPING_UP, backlogMs: 2_500 };
     expect(pacer.look(0, 10, 0)).toBe("down");
     pacer.note = { ...KEEPING_UP, frameMs: 250 };
-    expect(pacer.look(0, 10, 3_000)).toBe("down");
+    expect(pacer.look(0, 10, 3_000)).toBe("hold");
+    expect(pacer.look(0, 10, 6_000)).toBe("down");
   });
 
-  it("rises one a second at a time once the station has kept up, and lets go at the mod's rate", () => {
+  it("climbs straight back below the rate that fell behind, then tries that rate after a longer wait, and lets go at the mod's rate", () => {
     const pacer = new StationPacer();
     pacer.look(400_000, 10, 0);
+    expect(pacer.heldRate()).toBe(5);
     expect(pacer.look(0, 10, 5_000)).toBe("hold");
-    expect(pacer.look(0, 10, 10_000)).toBe("up");
-    expect(pacer.heldRate()).toBe(6);
-    for (let at = 20_000; at <= 50_000; at += 10_000) pacer.look(0, 10, at);
+    expect(pacer.look(0, 10, 6_000)).toBe("up");
+    expect(pacer.heldRate()).toBe(9);
+    expect(pacer.look(0, 10, 12_000)).toBe("hold");
+    expect(pacer.look(0, 10, 18_000)).toBe("up");
     expect(pacer.heldRate()).toBeNull();
+  });
+
+  it("doubles back up while no rate above it has fallen behind", () => {
+    const pacer = new StationPacer();
+    pacer.look(400_000, 10, 0);
+    pacer.look(400_000, 10, 2_000);
+    pacer.look(400_000, 10, 4_000);
+    expect(pacer.heldRate()).toBe(1);
+    // Keeping up at 2, the rate that last fell behind, clears what was known about it.
+    const rates: (number | null)[] = [];
+    for (let at = 16_000; at <= 40_000; at += 6_000) {
+      pacer.look(0, 10, at);
+      rates.push(pacer.heldRate());
+    }
+    expect(rates).toEqual([2, 4, 8, null, null]);
+  });
+
+  it("goes back to the rate before a rise that fell behind, and waits twice as long before trying it again", () => {
+    const pacer = new StationPacer();
+    pacer.look(400_000, 10, 0);
+    pacer.look(0, 10, 6_000);
+    expect(pacer.heldRate()).toBe(9);
+    expect(pacer.look(400_000, 10, 9_000)).toBe("down");
+    expect(pacer.heldRate()).toBe(5);
+    expect(pacer.look(0, 10, 15_000)).toBe("up");
+    expect(pacer.heldRate()).toBe(8);
+    // 9 fell behind once, so trying it again waits 24 s rather than 12.
+    expect(pacer.look(0, 10, 38_000)).toBe("hold");
+    expect(pacer.look(0, 10, 39_000)).toBe("up");
+    expect(pacer.heldRate()).toBe(9);
+    expect(pacer.look(400_000, 10, 41_000)).toBe("down");
+    expect(pacer.heldRate()).toBe(8);
+    expect(pacer.look(0, 10, 41_000 + 29_000)).toBe("hold");
+    expect(pacer.look(0, 10, 41_000 + 30_000)).toBe("up");
   });
 
   it("holds a fast Topic's samples to the rate, and lets a rewind through", () => {
@@ -71,15 +108,13 @@ describe("HostPacer", () => {
     expect(pacer.look(behind, 10, 4_000)).toBe(5);
   });
 
-  it("lifts the cap one step at a time and withdraws it at the rate the mod sent before", () => {
+  it("lifts the cap back towards the rate that fell behind and withdraws it at the rate the mod sent before", () => {
     const pacer = new HostPacer();
     for (let at = 0; at <= 2_000; at += 1_000) pacer.look(behind, 10, at);
-    expect(pacer.look(fine, 5, 10_000)).toBeUndefined();
-    const steps: (number | null | undefined)[] = [];
-    for (let at = 17_000; at <= 92_000; at += 15_000) {
-      steps.push(pacer.look(fine, 5, at));
-    }
-    expect(steps).toEqual([6, 7, 8, 9, null, undefined]);
+    expect(pacer.look(fine, 5, 7_000)).toBeUndefined();
+    expect(pacer.look(fine, 5, 8_000)).toBe(9);
+    expect(pacer.look(fine, 9, 19_000)).toBeUndefined();
+    expect(pacer.look(fine, 9, 20_000)).toBeNull();
   });
 });
 
