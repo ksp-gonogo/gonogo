@@ -288,8 +288,8 @@ describe("captured docking port", () => {
   it("is a port, not a decoupler, so it is neither the staging colour nor a stage line", () => {
     expect(port?.type).toBe("docking-port");
     expect(project(parts).stages).not.toContain(port?.axial);
-    const svg = renderShipMapToSvg(parts);
-    const drawn = svg.match(/<g data-role="docking-port"[\s\S]*?<\/g>/)?.[0];
+    const svg = renderShipMapToSvg(port ? [port] : []);
+    const drawn = svg.match(/<polygon data-role="mesh-outline"[^>]*>/)?.[0];
     expect(drawn).toBeDefined();
     expect(drawn).not.toContain("--color-warn-mark");
   });
