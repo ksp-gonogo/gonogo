@@ -564,12 +564,6 @@ namespace Gonogo.KSP
         /// console could put a craft on the pad the game's own button refuses
         /// and take the money for it.</para>
         ///
-        /// <para>A success means the flight scene load was started, not that it
-        /// has finished: the reply is sent before the scene changes. A
-        /// <see cref="LaunchWatchdog"/> follows the load and logs the scene it
-        /// reached, or the one it is stuck in after
-        /// <see cref="LaunchWatchdog.TimeoutSeconds"/>.</para>
-        ///
         /// <para>A craft whose parts do not resolve, or whose root KSP cannot
         /// locate, is refused before any of that, and a throw out of the save
         /// <c>StartWithNewLaunch</c> makes refuses this call only; see
@@ -630,7 +624,6 @@ namespace Gonogo.KSP
             ShipTemplate template;
             List<string> missingParts;
             ConfigNode? craftNode;
-            var unavailableCrew = new List<string>();
             try
             {
                 craftNode = ConfigNode.Load(craftPath);
@@ -641,7 +634,7 @@ namespace Gonogo.KSP
                 manifest = VesselCrewManifest.FromConfigNode(craftNode);
                 if (crew != null && crew.Count > 0)
                 {
-                    AssignCrew(manifest, crew, unavailableCrew);
+                    AssignCrew(manifest, crew);
                 }
                 // The same ShipTemplate stock's own launch builds from the same
                 // node (KSCFacilityContextMenu.launchChecks): it is what carries
@@ -686,8 +679,7 @@ namespace Gonogo.KSP
                 facility == EditorFacilityKind.Vab ? EditorFacility.VAB : EditorFacility.SPH,
                 craftPath,
                 site,
-                crew?.Count ?? 0,
-                unavailableCrew));
+                crew?.Count ?? 0));
             if (refusal != null)
             {
                 return refusal;
@@ -705,12 +697,7 @@ namespace Gonogo.KSP
 
             var flagUrl = HighLogic.CurrentGame?.flagURL ?? "Squad/Flags/default";
 
-            var placed = LaunchRule.Place(() => FlightDriver.StartWithNewLaunch(craftPath, flagUrl, site, manifest));
-            if (placed.Success)
-            {
-                LaunchWatchdog.Begin();
-            }
-            return placed;
+            return LaunchRule.Place(() => FlightDriver.StartWithNewLaunch(craftPath, flagUrl, site, manifest));
         }
 
         /// <summary>
@@ -795,11 +782,9 @@ namespace Gonogo.KSP
         /// ones. Kerbals that aren't in the roster or aren't
         /// <c>RosterStatus.Available</c> are skipped rather than blocking the
         /// launch: a crew list that names someone unavailable seats the rest
-        /// instead of failing the whole launch. Each one skipped is added to
-        /// <paramref name="unavailable"/> so a refusal can name them.
+        /// instead of failing the whole launch.
         /// </summary>
-        private static void AssignCrew(
-            VesselCrewManifest manifest, IReadOnlyList<string> crewNames, List<string> unavailable)
+        private static void AssignCrew(VesselCrewManifest manifest, IReadOnlyList<string> crewNames)
         {
             if (manifest == null || crewNames == null)
             {
@@ -841,12 +826,10 @@ namespace Gonogo.KSP
                     var kerbal = roster[kerbalName];
                     if (kerbal == null)
                     {
-                        unavailable.Add(LaunchRule.UnavailableKerbal(kerbalName, null));
                         continue;
                     }
                     if (kerbal.rosterStatus != ProtoCrewMember.RosterStatus.Available)
                     {
-                        unavailable.Add(LaunchRule.UnavailableKerbal(kerbalName, kerbal.rosterStatus.ToString()));
                         continue;
                     }
                     partManifest.AddCrewToSeat(kerbal, i);
