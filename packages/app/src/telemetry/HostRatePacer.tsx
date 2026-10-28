@@ -2,15 +2,14 @@ import { logger } from "@ksp-gonogo/logger";
 import { useTelemetryClientOptional } from "@ksp-gonogo/sitrep-client";
 import { tierSamplesPerSecondOf } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect } from "react";
-import { HostPacer, PaceMonitor, pageHidden } from "../peer/stationPace";
+import { HostPacer, PaceMonitor } from "../peer/stationPace";
 
 const paceLogger = logger.tag("peer:pace");
 
 /**
  * Lowers the rate the mod sends the fast tier at while the main screen itself
  * cannot keep up, and lifts it again once it can. Every screen, stations
- * included, then receives the fast Topics at that rate. A hidden main screen
- * leaves the rate as it stands. Renders nothing.
+ * included, then receives the fast Topics at that rate. Renders nothing.
  */
 export function HostRatePacer() {
   const client = useTelemetryClientOptional();
@@ -22,7 +21,6 @@ export function HostRatePacer() {
     let capped = false;
     monitor.start();
     const timer = setInterval(() => {
-      if (pageHidden()) return;
       const reading = monitor.reading();
       const modRate = tierSamplesPerSecondOf(
         client.getValue("system.dataRates"),

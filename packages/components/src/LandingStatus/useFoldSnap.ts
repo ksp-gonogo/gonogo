@@ -1,17 +1,15 @@
-import { type RefObject, useLayoutEffect, useRef } from "react";
+import { type RefObject, useLayoutEffect } from "react";
 
 /** How far up from a scroller's bottom edge its overflow glow dims what is drawn under it. */
 const GLOW_BAND_PX = 24;
 
-/** The boxes a stack lays out, looking through wrappers that draw no box of their own, each of which is added to `wrappers` when given. */
-function boxesOf(parent: Element, wrappers?: Element[]): HTMLElement[] {
-  return Array.from(parent.children).flatMap((child) => {
-    if (getComputedStyle(child).display !== "contents") {
-      return [child as HTMLElement];
-    }
-    wrappers?.push(child);
-    return boxesOf(child, wrappers);
-  });
+/** The boxes a stack lays out, looking through wrappers that draw no box of their own. */
+function boxesOf(parent: Element): HTMLElement[] {
+  return Array.from(parent.children).flatMap((child) =>
+    getComputedStyle(child).display === "contents"
+      ? boxesOf(child)
+      : [child as HTMLElement],
+  );
 }
 
 /**
@@ -26,104 +24,38 @@ export function useFoldSnap(
   window: RefObject<HTMLElement>,
   enabled: boolean,
 ): void {
-  const watch = useRef<Watch | null>(null);
-
-  /*
-   * Runs after every commit but only compares elements: the stack is re-measured when something it
-   * lays out changes size, which the observers report, rather than on every render, since measuring
-   * straight after a render forces the browser to lay the whole window out again.
-   */
+  // Every render: a header, plot or readout changing height moves the fold's position in the stack without resizing the stack.
   useLayoutEffect(() => {
-    const root = wrapper.current?.firstElementChild ?? null;
-    const content = window.current;
-    const box = content?.parentElement ?? null;
-    const current = watch.current;
-    if (
-      current?.root === root &&
-      current.content === content &&
-      current.box === box &&
-      current.enabled === enabled
-    ) {
-      return;
-    }
-    current?.stop();
-    watch.current =
-      root && content && box ? startWatch(root, content, box, enabled) : null;
-  });
-
-  useLayoutEffect(
-    () => () => {
-      watch.current?.stop();
-      watch.current = null;
-    },
-    [],
-  );
-}
-
-interface Watch {
-  root: Element;
-  content: Element;
-  box: Element;
-  enabled: boolean;
-  stop: () => void;
-}
-
-/**
- * Settles the stack in `root` against the fold of the scroller `box` whenever the scroller, the
- * content it scrolls, the stack, or any box in the stack changes size, and whenever a box is added
- * or removed.
- */
-function startWatch(
-  root: Element,
-  content: Element,
-  box: Element,
-  enabled: boolean,
-): Watch {
-  let pushed: HTMLElement | undefined;
-  const settle = () => {
-    if (pushed) pushed.style.marginTop = "";
-    pushed = undefined;
-    if (!enabled) return;
-    const fold = box.clientHeight;
-    if (fold === 0 || box.scrollHeight <= fold) return;
-    const origin = box.getBoundingClientRect().top - box.scrollTop;
-    for (const el of boxesOf(root)) {
-      const { top, height } = el.getBoundingClientRect();
-      if (height === 0) continue;
-      if (top - origin + height <= fold - GLOW_BAND_PX) continue;
-      if (top - origin < fold) {
-        el.style.marginTop = `${fold - (top - origin)}px`;
-        pushed = el;
-      }
-      return;
-    }
-  };
-  settle();
-  if (!enabled) return { root, content, box, enabled, stop: () => {} };
-
-  const resized = new ResizeObserver(settle);
-  /* A box newly observed is reported at once, which is what settles the stack after a box is added. */
-  const changed = new MutationObserver(() => observeAll());
-  const observeAll = () => {
-    resized.disconnect();
-    changed.disconnect();
-    resized.observe(box);
-    resized.observe(content);
-    resized.observe(root);
-    const wrappers: Element[] = [root];
-    for (const el of boxesOf(root, wrappers)) resized.observe(el);
-    for (const el of wrappers) changed.observe(el, { childList: true });
-  };
-  observeAll();
-  return {
-    root,
-    content,
-    box,
-    enabled,
-    stop: () => {
-      resized.disconnect();
-      changed.disconnect();
+    const root = wrapper.current?.firstElementChild;
+    const box = window.current?.parentElement;
+    if (!root || !box) return;
+    let pushed: HTMLElement | undefined;
+    const settle = () => {
       if (pushed) pushed.style.marginTop = "";
-    },
-  };
+      pushed = undefined;
+      if (!enabled) return;
+      const fold = box.clientHeight;
+      if (fold === 0 || box.scrollHeight <= fold) return;
+      const origin = box.getBoundingClientRect().top - box.scrollTop;
+      for (const el of boxesOf(root)) {
+        const { top, height } = el.getBoundingClientRect();
+        if (height === 0) continue;
+        if (top - origin + height <= fold - GLOW_BAND_PX) continue;
+        if (top - origin < fold) {
+          el.style.marginTop = `${fold - (top - origin)}px`;
+          pushed = el;
+        }
+        return;
+      }
+    };
+    settle();
+    const observer = new ResizeObserver(settle);
+    observer.observe(box);
+    observer.observe(root);
+    for (const el of boxesOf(root)) observer.observe(el);
+    return () => {
+      observer.disconnect();
+      if (pushed) pushed.style.marginTop = "";
+    };
+  });
 }

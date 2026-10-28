@@ -9711,10 +9711,6 @@
         "note": "New: subscribes as subscribe does and also hands over the Meta of the frame that carried each value"
       },
       {
-        "key": "sitrep-sdk ./spine TimelineStore#dataRevision",
-        "note": "New: a number that changes whenever stored history or a registered model changes, so a reader can skip rebuilding a window that cannot have moved"
-      },
-      {
         "key": "sitrep-sdk ./spine TimelineStore#declareKeyframeInterval",
         "note": "New: passes the keyframe interval the mod declared for a topic to its heartbeat tracker"
       },
@@ -10125,10 +10121,6 @@
       {
         "key": "sitrep-sdk ./testing StubTransport#sentGroups",
         "note": "New: the groups the stub was asked to send, beside the commands that were its members"
-      },
-      {
-        "key": "sitrep-sdk ./testing TimelineStore#dataRevision",
-        "note": "New: a number that changes whenever stored history or a registered model changes, so a reader can skip rebuilding a window that cannot have moved"
       },
       {
         "key": "sitrep-sdk ./testing TimelineStore#declareKeyframeInterval",

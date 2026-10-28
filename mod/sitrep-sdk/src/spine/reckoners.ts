@@ -9,7 +9,6 @@ import type {
 import { reckonableValuesOf } from "../reckonability";
 import type { TopicId, TopicPayload } from "../topics";
 import type { Dep } from "./processors";
-import { bumpReckonerGeneration } from "./reckoner-generation";
 
 /**
  * Per-topic forward models, registered at module load the same way components
@@ -173,7 +172,6 @@ export function registerReckoner<
     reckoners.get(topic) ?? new Map<string, AnyReckonerDefinition>();
   byOwner.set(owner, reckoner);
   reckoners.set(topic, byOwner);
-  bumpReckonerGeneration();
 }
 
 /**
@@ -328,5 +326,4 @@ export function getReckonedTopics(): { topic: string; owners: string[] }[] {
 /** Test-only: reset the registry to empty. */
 export function clearReckoners(): void {
   reckoners.clear();
-  bumpReckonerGeneration();
 }

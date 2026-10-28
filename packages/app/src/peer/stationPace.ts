@@ -34,10 +34,6 @@ class Window {
     }
   }
 
-  clear(): void {
-    this.samples.length = 0;
-  }
-
   p90(): number {
     if (this.samples.length === 0) return 0;
     const sorted = this.samples.map((s) => s.value).sort((a, b) => a - b);
@@ -45,54 +41,28 @@ class Window {
   }
 }
 
-/** Whether the browser has hidden this page: a background tab, a minimised window, or one covered by another. */
-export function pageHidden(): boolean {
-  return (
-    typeof document !== "undefined" && document.visibilityState === "hidden"
-  );
-}
-
-/**
- * Measures this page's {@link PaceReading} while started.
- *
- * A hidden page is not measured. The browser runs a hidden page's timers about
- * once a second and its animation frames not at all, so its lateness says how
- * the browser throttles it rather than how busy it is. The figures from before
- * it was hidden are dropped when it is shown again, so the first reading after
- * is of the page as it is now.
- */
+/** Measures this page's {@link PaceReading} while started. */
 export class PaceMonitor {
   private readonly lag = new Window();
   private readonly frames = new Window();
   private timer: ReturnType<typeof setInterval> | null = null;
   private frameRequest: number | null = null;
-  private lastFrame: number | null = null;
-  private onVisibility: (() => void) | null = null;
 
   start(): void {
     if (this.timer !== null) return;
     let expected = performance.now() + TICK_MS;
     this.timer = setInterval(() => {
       const now = performance.now();
-      if (!pageHidden()) this.lag.add(now, Math.max(0, now - expected));
+      this.lag.add(now, Math.max(0, now - expected));
       expected = now + TICK_MS;
     }, TICK_MS);
-    if (typeof document !== "undefined") {
-      this.onVisibility = () => {
-        this.lag.clear();
-        this.frames.clear();
-        this.lastFrame = null;
-        expected = performance.now() + TICK_MS;
-      };
-      document.addEventListener("visibilitychange", this.onVisibility);
-    }
     if (typeof requestAnimationFrame !== "function") return;
+    let last: number | null = null;
     const onFrame = (now: number) => {
-      const last = this.lastFrame;
       if (last !== null && now - last < LONGEST_FRAME_MS) {
         this.frames.add(now, now - last);
       }
-      this.lastFrame = now;
+      last = now;
       this.frameRequest = requestAnimationFrame(onFrame);
     };
     this.frameRequest = requestAnimationFrame(onFrame);
@@ -103,11 +73,6 @@ export class PaceMonitor {
     this.timer = null;
     if (this.frameRequest !== null) cancelAnimationFrame(this.frameRequest);
     this.frameRequest = null;
-    this.lastFrame = null;
-    if (this.onVisibility) {
-      document.removeEventListener("visibilitychange", this.onVisibility);
-    }
-    this.onVisibility = null;
   }
 
   reading(): PaceReading {

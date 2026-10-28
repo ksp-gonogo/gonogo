@@ -66,7 +66,6 @@ import {
 } from "./heartbeat-tracker";
 import { processorRuntimeFor } from "./processorEvaluator";
 import { type Dep, isSubjectDep, type SubjectDep } from "./processors";
-import { reckonerGeneration } from "./reckoner-generation";
 import {
   CORE_RECKONER_OWNER,
   getReckoner,
@@ -768,8 +767,6 @@ function interpolatedRead<Payload>(
  */
 export class TimelineStore {
   private readonly timelines = new Map<string, ClientTimeline<unknown>>();
-  /* Every revision counted in `dataRevision` only ever grows and no timeline is ever removed, so the sum moves on every change. */
-  private derivedRegistrations = 0;
   /**
    * Samples a game second each Topic above one arrives at, from the latest
    * `system.dataRates`. A Topic's timeline keeps its point bound times this, so
@@ -1185,27 +1182,10 @@ export class TimelineStore {
   registerDerivedChannel<Payload>(
     def: DerivedChannelDefinition<Payload>,
   ): void {
-    this.derivedRegistrations++;
     this.derivedChannels.set(
       def.topic,
       def as DerivedChannelDefinition<unknown>,
     );
-  }
-
-  /**
-   * A number that changes whenever anything a read of history rests on changes:
-   * a sample stored, evicted or rewound away on any Topic, or a model or derived
-   * channel registered. Useful for a reader that rebuilds a window of history on
-   * every frame to skip the rebuild while the view time and this number both
-   * stand still, since nothing it reads can have moved. Used by the series hook
-   * behind charts and sparklines.
-   */
-  dataRevision(): number {
-    let revision = reckonerGeneration() + this.derivedRegistrations;
-    for (const timeline of this.timelines.values()) {
-      revision += timeline.revision;
-    }
-    return revision;
   }
 
   /**
