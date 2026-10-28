@@ -177,6 +177,9 @@ namespace Sitrep.Propagation.Visibility
         /// <summary>Steps per cycle, matching the silence tracker's own sweep.</summary>
         public const double StepsPerCycle = 720.0;
 
+        /// <summary>The seconds each sunrise and sunset is refined to, the resolution of the instants it reports.</summary>
+        public const double ResolutionSeconds = 0.05;
+
         /// <param name="geometry">The craft's line to the star.</param>
         /// <param name="ut">Now.</param>
         /// <param name="surface">True when the craft sits on the ground, which only changes the basis it is reported under.</param>
@@ -204,7 +207,7 @@ namespace Sitrep.Propagation.Visibility
                 return result;
             }
             var step = cycle.Value / StepsPerCycle;
-            var sweep = VisibilitySweep.Run(geometry, ut, horizon, step);
+            var sweep = VisibilitySweep.Run(geometry, ut, horizon, step, ResolutionSeconds);
             result.HorizonUt = horizon;
             result.Basis = surface ? LightBasis.Surface : LightBasis.Orbit;
             foreach (var change in sweep.Changes)

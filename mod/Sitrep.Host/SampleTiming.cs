@@ -30,7 +30,10 @@ namespace Sitrep.Host
     /// <summary>
     /// Per-part real time of one main-thread game sample, written as one line to the
     /// log per sample: the parts of <c>IKspHost.Sample()</c>, the main-thread captures
-    /// of the tick, and the garbage collections that ran during them. Off unless the
+    /// of the tick, and the garbage collections that ran during them. After the timed
+    /// parts come counts, each written <c>#name=n</c>: how many reads a part made, and
+    /// <c>#sample.alloc.kb</c>, how far the managed heap grew while the game was sampled.
+    /// Off unless the
     /// install asks for it (the <c>SAMPLE_TIMING</c> node of <c>PluginData/gonogo.cfg</c>, <c>enabled = true</c>), and a call site then costs one
     /// volatile read. Every call is on the game's main thread, so the part list needs
     /// no lock.
@@ -40,12 +43,14 @@ namespace Sitrep.Host
         /// <summary>The parts that took less than this many milliseconds are left out of a line.</summary>
         public const double ShownFromMs = 0.1;
 
-        /// <summary>The most parts one line names, slowest first.</summary>
-        public const int MostParts = 14;
+        /// <summary>The count that carries the heap growth over <c>IKspHost.Sample()</c>, in KiB.</summary>
+        public const string SampleAllocCount = "sample.alloc.kb";
 
         private static volatile bool _enabled;
         private static readonly List<KeyValuePair<string, long>> Parts = new List<KeyValuePair<string, long>>();
+        private static readonly List<KeyValuePair<string, long>> Counts = new List<KeyValuePair<string, long>>();
         private static int[] _gcAtStart = new int[3];
+        private static long _heapAtStart;
 
         public static bool Enabled
         {
@@ -54,6 +59,7 @@ namespace Sitrep.Host
             {
                 _enabled = value;
                 Parts.Clear();
+                Counts.Clear();
             }
         }
 
@@ -65,7 +71,37 @@ namespace Sitrep.Host
                 return;
             }
             Parts.Clear();
+            Counts.Clear();
             _gcAtStart = new[] { GC.CollectionCount(0), GC.CollectionCount(1), GC.CollectionCount(2) };
+            _heapAtStart = GC.GetTotalMemory(false);
+        }
+
+        /// <summary>
+        /// Adds <paramref name="n"/> to the count <paramref name="name"/>, such as the
+        /// terrain reads one landing part made. Counts are summed like parts and printed
+        /// whatever their size, zero included.
+        /// </summary>
+        public static void Count(string name, long n)
+        {
+            if (_enabled)
+            {
+                Counts.Add(new KeyValuePair<string, long>(name, n));
+            }
+        }
+
+        /// <summary>
+        /// Records <see cref="SampleAllocCount"/>: the growth of the managed heap since
+        /// <see cref="Begin"/>, on every thread, so it bounds the sample's own garbage
+        /// from above. Left out when a collection ran in between, which would make the
+        /// difference meaningless.
+        /// </summary>
+        public static void MarkSampleAlloc()
+        {
+            if (!_enabled || GC.CollectionCount(0) != _gcAtStart[0])
+            {
+                return;
+            }
+            Count(SampleAllocCount, (GC.GetTotalMemory(false) - _heapAtStart) / 1024);
         }
 
         public static SampleTimingScope Part(string part) =>
@@ -89,13 +125,7 @@ namespace Sitrep.Host
             {
                 return null;
             }
-            var summed = new Dictionary<string, long>(StringComparer.Ordinal);
-            foreach (var part in Parts)
-            {
-                summed.TryGetValue(part.Key, out var have);
-                summed[part.Key] = have + part.Value;
-            }
-            var ordered = new List<KeyValuePair<string, long>>(summed);
+            var ordered = Summed(Parts);
             ordered.Sort((a, b) => b.Value.CompareTo(a.Value));
 
             var text = new StringBuilder();
@@ -105,17 +135,39 @@ namespace Sitrep.Host
                 .Append(GC.CollectionCount(0) - _gcAtStart[0]).Append('/')
                 .Append(GC.CollectionCount(1) - _gcAtStart[1]).Append('/')
                 .Append(GC.CollectionCount(2) - _gcAtStart[2]);
-            var shown = 0;
             foreach (var part in ordered)
             {
-                if (shown == MostParts || part.Value * 1000.0 / Stopwatch.Frequency < ShownFromMs)
+                if (part.Value * 1000.0 / Stopwatch.Frequency < ShownFromMs)
                 {
                     break;
                 }
                 text.Append(' ').Append(part.Key).Append('=').Append(Ms(part.Value));
-                shown++;
+            }
+            foreach (var count in Summed(Counts))
+            {
+                text.Append(" #").Append(count.Key).Append('=').Append(count.Value.ToString(CultureInfo.InvariantCulture));
             }
             return text.ToString();
+        }
+
+        /// <summary>Each name once, with its values summed, in the order each name first appeared.</summary>
+        private static List<KeyValuePair<string, long>> Summed(List<KeyValuePair<string, long>> entries)
+        {
+            var index = new Dictionary<string, int>(StringComparer.Ordinal);
+            var summed = new List<KeyValuePair<string, long>>();
+            foreach (var entry in entries)
+            {
+                if (index.TryGetValue(entry.Key, out var at))
+                {
+                    summed[at] = new KeyValuePair<string, long>(entry.Key, summed[at].Value + entry.Value);
+                }
+                else
+                {
+                    index[entry.Key] = summed.Count;
+                    summed.Add(entry);
+                }
+            }
+            return summed;
         }
 
         private static string Ms(long ticks) =>

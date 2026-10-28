@@ -2945,9 +2945,18 @@ namespace Gonogo.KSP
             // Terrain sampling: option 1 (mod-side predicted touchdown point)
             // with a sub-vessel fallback, behind an injectable sample-source.
             SampleTerrain(result, vessel, orbit, body);
-            SampleGroundTrack(result, vessel, body, lowestPointHeight.Value);
-            SampleSiteGrid(result, vessel, body, lowestPointHeight.Value);
-            SampleHorizon(result, vessel, body, lowestPointHeight.Value);
+            using (SampleTiming.Part("landing.track"))
+            {
+                SampleGroundTrack(result, vessel, body, lowestPointHeight.Value);
+            }
+            using (SampleTiming.Part("landing.grid"))
+            {
+                SampleSiteGrid(result, vessel, body, lowestPointHeight.Value);
+            }
+            using (SampleTiming.Part("landing.horizon"))
+            {
+                SampleHorizon(result, vessel, body, lowestPointHeight.Value);
+            }
 
             // Outcome: atmosphere headlines when it was actually SOLVED, else
             // terrain-assessed once we have a slope reading, else the bare
@@ -2982,7 +2991,13 @@ namespace Gonogo.KSP
             double sampleLat;
             double sampleLon;
             string sampleSource;
-            var predicted = orbit != null ? PredictImpact(orbit, body) : null;
+            (double lat, double lon)? predicted;
+            using (SampleTiming.Part("landing.predict"))
+            {
+                predicted = orbit != null ? PredictImpact(orbit, body) : null;
+            }
+            using var siteTiming = SampleTiming.Part("landing.site");
+            SampleTiming.Count("landing.site.reads", 10);
             if (predicted.HasValue)
             {
                 sampleLat = predicted.Value.lat;
@@ -3068,6 +3083,7 @@ namespace Gonogo.KSP
                 elevations[i] = body.TerrainAltitude(p.lat, p.lon, allowNegative: true);
             }
 
+            SampleTiming.Count("landing.track.reads", distances.Length);
             result["groundTrackDistances"] = distances;
             result["groundTrackElevations"] = elevations;
 
@@ -3139,6 +3155,7 @@ namespace Gonogo.KSP
                     }
                 }
 
+                SampleTiming.Count("landing.grid.reads", heights.Length);
                 siteGridHeights = heights;
                 siteGridHalfExtent = halfExtent;
                 siteGridLat = lat;
@@ -3146,6 +3163,10 @@ namespace Gonogo.KSP
                 siteGridTicks = now;
                 siteGridVessel = vessel.id;
                 siteGridBody = body;
+            }
+            else
+            {
+                SampleTiming.Count("landing.grid.reads", 0);
             }
 
             if (siteGridHeights != null)
@@ -3201,9 +3222,11 @@ namespace Gonogo.KSP
             {
                 double eye = vessel.altitude;
                 bool sea = body.ocean;
+                var reads = 0;
                 horizonAngles = LandingHorizon.Profile(
                     (azimuth, range) =>
                     {
+                        reads++;
                         var p = LandingGroundTrack.Destination(lat, lon, azimuth, range, r);
                         // The sea's surface is what is seen over an ocean, not the floor under it.
                         var terrain = body.TerrainAltitude(p.lat, p.lon, allowNegative: true);
@@ -3212,11 +3235,16 @@ namespace Gonogo.KSP
                     eye,
                     r,
                     LandingHorizon.RangeLimit(heightAboveTerrain, r));
+                SampleTiming.Count("landing.horizon.reads", reads);
                 horizonLat = lat;
                 horizonLon = lon;
                 horizonTicks = now;
                 horizonVessel = vessel.id;
                 horizonBody = body;
+            }
+            else
+            {
+                SampleTiming.Count("landing.horizon.reads", 0);
             }
 
             if (horizonAngles != null)
@@ -3311,14 +3339,21 @@ namespace Gonogo.KSP
             double ceiling = body.pqsController != null
                 ? body.pqsController.mapMaxHeight + 500.0
                 : double.PositiveInfinity;
-            return LandingPredictor.FindImpact(
+            var reads = 0;
+            var impact = LandingPredictor.FindImpact(
                 Sampler,
                 now,
                 horizon,
                 step,
                 -100.0,
-                (lat, lon) => body.TerrainAltitude(lat, lon, allowNegative: true),
+                (lat, lon) =>
+                {
+                    reads++;
+                    return body.TerrainAltitude(lat, lon, allowNegative: true);
+                },
                 ceiling);
+            SampleTiming.Count("landing.predict.reads", reads);
+            return impact;
         }
 
         /// <summary>Air density at an ASL altitude, via the body's pressure/temperature curves.</summary>
@@ -3537,6 +3572,7 @@ namespace Gonogo.KSP
         private sealed class LightMemory
         {
             public string Key = "";
+            public OrbitElements Elements;
             public double ComputedUt;
             public Dictionary<string, object?>? Result;
         }
@@ -3559,7 +3595,8 @@ namespace Gonogo.KSP
         /// <para>Null whenever there is nothing honest to say: no provider, no
         /// orbit, or a craft orbiting the star itself, which has no body to hide
         /// behind. A prediction is kept until one of its instants passes, its
-        /// orbit changes or half a cycle has gone by.</para>
+        /// orbit moves the craft by more than the instants resolve (see
+        /// <see cref="LightReuse"/>) or half a cycle has gone by.</para>
         /// </summary>
         private Dictionary<string, object?>? SolveLight(Vessel vessel, double ut)
         {
@@ -3581,26 +3618,20 @@ namespace Gonogo.KSP
             var onGround = vessel.situation == Vessel.Situations.LANDED
                 || vessel.situation == Vessel.Situations.SPLASHED
                 || vessel.situation == Vessel.Situations.PRELAUNCH;
-            var key = string.Join(
-                "|",
-                vessel.id.ToString(),
-                onGround ? "g" : "o",
-                orbit.semiMajorAxis.ToString("R"),
-                orbit.eccentricity.ToString("R"),
-                orbit.inclination.ToString("R"),
-                orbit.LAN.ToString("R"),
-                orbit.argumentOfPeriapsis.ToString("R"),
-                orbit.meanAnomalyAtEpoch.ToString("R"),
-                orbit.epoch.ToString("R"),
-                parentIndex.ToString());
+            var key = vessel.id.ToString() + (onGround ? "|g|" : "|o|") + parentIndex.ToString();
+            var elements = ElementsOf(orbit);
 
             var memory = _light;
             if (memory != null && memory.Result != null && ut >= memory.ComputedUt)
             {
-                var sameOrbit = memory.Key == key;
+                var horizonUt = memory.Result.TryGetValue("sweptToUt", out var h) && h is double hd ? hd : ut;
+                /* A craft on the ground is carried by its body's rotation, which its elements do not describe. */
+                var sameOrbit = memory.Key == key
+                    && (onGround
+                        ? memory.Elements.Equals(elements)
+                        : LightReuse.SameOrbit(memory.Elements, elements, ut, horizonUt));
                 var instantsAhead = LightInstantAhead(memory.Result, "nextSunriseUt", ut)
                     && LightInstantAhead(memory.Result, "nextSunsetUt", ut);
-                var horizonUt = memory.Result.TryGetValue("sweptToUt", out var h) && h is double hd ? hd : ut;
                 if (sameOrbit && instantsAhead && ut < horizonUt && ut - memory.ComputedUt < (horizonUt - memory.ComputedUt) / 4.0)
                 {
                     return memory.Result;
@@ -3628,7 +3659,7 @@ namespace Gonogo.KSP
                 return null;
             }
 
-            var subject = PropagationTarget.Vessel(vessel.id.ToString(), parentIndex, ElementsOf(orbit));
+            var subject = PropagationTarget.Vessel(vessel.id.ToString(), parentIndex, elements);
             SunLineOfSightGeometry geometry;
             double? limit = null;
             if (onGround)
@@ -3660,7 +3691,7 @@ namespace Gonogo.KSP
                 ["sweptToUt"] = found.HorizonUt,
                 ["basis"] = found.Basis,
             };
-            _light = new LightMemory { Key = key, ComputedUt = ut, Result = result };
+            _light = new LightMemory { Key = key, Elements = elements, ComputedUt = ut, Result = result };
             return result;
         }
 

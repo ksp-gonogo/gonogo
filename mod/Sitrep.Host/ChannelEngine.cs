@@ -7326,6 +7326,7 @@ namespace Sitrep.Host
             var started = System.Diagnostics.Stopwatch.GetTimestamp();
             var snapshot = sample();
             var sampling = System.Diagnostics.Stopwatch.GetTimestamp() - started;
+            SampleTiming.MarkSampleAlloc();
             PerfTelemetry.RecordTicks("main.sample", sampling);
             SampleTiming.Add("sample", sampling);
             var tick = CaptureTick(snapshot.Ut, snapshot, null);

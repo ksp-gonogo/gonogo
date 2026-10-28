@@ -77,5 +77,102 @@ namespace Sitrep.Host.Tests
                 SampleTiming.Enabled = false;
             }
         }
+
+        [Fact]
+        public void ALineNamesEveryPartOverTheFloorHoweverMany()
+        {
+            SampleTiming.Enabled = true;
+            try
+            {
+                SampleTiming.Begin();
+                for (var i = 0; i < 30; i++)
+                {
+                    SampleTiming.Add("part" + i, Ms(1 + i));
+                }
+
+                var line = SampleTiming.Line(1, Ms(500))!;
+                for (var i = 0; i < 30; i++)
+                {
+                    Assert.Contains(" part" + i + "=", line);
+                }
+            }
+            finally
+            {
+                SampleTiming.Enabled = false;
+            }
+        }
+
+        [Fact]
+        public void CountsFollowThePartsSummedAndZeroIncluded()
+        {
+            SampleTiming.Enabled = true;
+            try
+            {
+                SampleTiming.Begin();
+                SampleTiming.Add("landing.horizon", Ms(40));
+                SampleTiming.Count("landing.horizon.reads", 2000);
+                SampleTiming.Count("landing.grid.reads", 0);
+                SampleTiming.Count("landing.horizon.reads", 880);
+
+                var line = SampleTiming.Line(1, Ms(50))!;
+                Assert.EndsWith(" #landing.horizon.reads=2880 #landing.grid.reads=0", line);
+                Assert.True(line.IndexOf("landing.horizon=40.0") < line.IndexOf('#'), line);
+            }
+            finally
+            {
+                SampleTiming.Enabled = false;
+            }
+        }
+
+        [Fact]
+        public void TheSampleAllocationIsCountedWhenNoCollectionRan()
+        {
+            SampleTiming.Enabled = true;
+            try
+            {
+                var kept = new byte[0];
+                string? line = null;
+                for (var attempt = 0; attempt < 5 && line == null; attempt++)
+                {
+                    var collections = System.GC.CollectionCount(0);
+                    SampleTiming.Begin();
+                    kept = new byte[4 * 1024 * 1024];
+                    SampleTiming.MarkSampleAlloc();
+                    if (System.GC.CollectionCount(0) == collections)
+                    {
+                        line = SampleTiming.Line(1, Ms(1));
+                    }
+                }
+
+                Assert.NotNull(line);
+                var at = line!.IndexOf(" #" + SampleTiming.SampleAllocCount + "=", System.StringComparison.Ordinal);
+                Assert.True(at >= 0, line);
+                var kb = long.Parse(line.Substring(at + SampleTiming.SampleAllocCount.Length + 3).Split(' ')[0]);
+                Assert.True(kb >= 4 * 1024 - 64, line);
+                System.GC.KeepAlive(kept);
+            }
+            finally
+            {
+                SampleTiming.Enabled = false;
+            }
+        }
+
+        [Fact]
+        public void NoCountIsRecordedWhileOff()
+        {
+            SampleTiming.Enabled = false;
+            SampleTiming.Begin();
+            SampleTiming.Count("landing.grid.reads", 576);
+            SampleTiming.MarkSampleAlloc();
+            SampleTiming.Enabled = true;
+            try
+            {
+                Assert.DoesNotContain("#", SampleTiming.Line(1, Ms(1)));
+            }
+            finally
+            {
+                SampleTiming.Enabled = false;
+            }
+        }
     }
 }

@@ -68,14 +68,7 @@ namespace Gonogo.KSP
              * pad and flight for the same part.
              */
             var hiddenByVariant = HiddenByVariant(part, variantName);
-            var toPart = part.transform.worldToLocalMatrix;
-            var lo = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
-            var hi = new Vector3(float.MinValue, float.MinValue, float.MinValue);
-            var found = false;
-            var fromVertices = 0;
-            var fromBounds = 0;
-            var pieces = new List<double[]>();
-            var hullComplete = true;
+            var uses = new List<PartBox.Use>();
             foreach (var renderer in model.GetComponentsInChildren<MeshRenderer>(true))
             {
                 var filter = renderer.GetComponent<MeshFilter>();
@@ -85,42 +78,44 @@ namespace Gonogo.KSP
                     continue;
                 }
 
-                var toPartFromMesh = toPart * renderer.transform.localToWorldMatrix;
-                var used = MeshExtent.Grow(VerticesOf(filter.sharedMesh), filter.sharedMesh.bounds, toPartFromMesh, ref lo, ref hi);
-                var shown = IsShown(renderer, model);
-                if (used == MeasurePath.Vertices)
-                {
-                    fromVertices++;
-                    if (shown)
-                    {
-                        var piece = new HullPoints.Tracker();
-                        piece.Add(CandidatesOf(filter.sharedMesh), toPartFromMesh);
-                        var triples = piece.ToTriples();
-                        if (triples != null)
-                        {
-                            pieces.Add(triples);
-                        }
-                    }
-                }
-                else
-                {
-                    fromBounds++;
-                    hullComplete &= !shown;
-                }
-
-                found = true;
+                var mesh = filter.sharedMesh;
+                var toPartFromMesh = ToPart(renderer.transform, part.transform);
+                var piece = Pieces.Piece(
+                    renderer,
+                    mesh,
+                    toPartFromMesh,
+                    () => MeshPiece.Measure(VerticesOf(mesh), mesh.bounds, toPartFromMesh, () => CandidatesOf(mesh)));
+                uses.Add(new PartBox.Use(piece, IsShown(renderer, model)));
             }
 
-            if (!found)
+            return PartBox.TryAssemble(uses, out center, out size, out path, out hull);
+        }
+
+        /*
+         * A mesh and its carry into the part's frame stand still while the part
+         * flies, so each renderer's piece is measured once and reused until either
+         * changes: walking every vertex again on every sample is most of the cost
+         * of a vessel's topology.
+         */
+        private static readonly MeshPieceMemo<MeshRenderer> Pieces = new MeshPieceMemo<MeshRenderer>();
+
+        /// <summary>
+        /// The matrix carrying <paramref name="mesh"/>'s local space into
+        /// <paramref name="part"/>'s, composed from the local transforms between them,
+        /// or from their world matrices if <paramref name="part"/> is not above it.
+        /// </summary>
+        private static Matrix4x4 ToPart(Transform mesh, Transform part)
+        {
+            var chain = new List<(Vector3, Quaternion, Vector3)>();
+            for (var at = mesh; at != null; at = at.parent)
             {
-                return false;
+                if (at == part)
+                {
+                    return PartBox.ToPart(chain);
+                }
+                chain.Add((at.localPosition, at.localRotation, at.localScale));
             }
-
-            path = fromBounds == 0 ? MeasurePath.Vertices : fromVertices == 0 ? MeasurePath.MeshBounds : MeasurePath.Mixed;
-            hull = hullComplete && pieces.Count > 0 ? HullPoints.Limit(pieces).ToArray() : null;
-            center = (lo + hi) * 0.5f;
-            size = hi - lo;
-            return true;
+            return part.worldToLocalMatrix * mesh.localToWorldMatrix;
         }
 
         /// <summary>Whether the mesh is drawn: its renderer is on and every transform from it up to the model is switched on.</summary>

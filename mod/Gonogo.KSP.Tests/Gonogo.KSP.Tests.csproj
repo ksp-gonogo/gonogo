@@ -301,6 +301,7 @@
     <Compile Remove="MeshExtentTests.cs" />
     <Compile Remove="BoundsPathReportTests.cs" />
     <Compile Remove="HullPointsTests.cs" />
+    <Compile Remove="MeshPiecesTests.cs" />
     <Compile Remove="KspEnumMirrorTests.cs" />
     <!-- The same, for the strategy activation's reflected members and stock's
          Activate() body, both read off Assembly-CSharp. -->
@@ -378,6 +379,8 @@
     <Compile Include="BoundsPathReportTests.cs" />
     <Compile Include="..\Gonogo.KSP\HullPoints.cs" />
     <Compile Include="HullPointsTests.cs" />
+    <Compile Include="..\Gonogo.KSP\MeshPieces.cs" />
+    <Compile Include="MeshPiecesTests.cs" />
     <Compile Include="..\Gonogo.KSP\GonogoLog.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyDelay\PendingCreditLedger.cs" />
     <!-- CurrencyDelayLedgerPersistence.cs merges a loaded ledger's rows into an existing
