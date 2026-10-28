@@ -1,5 +1,5 @@
 import type { PlotEmphasis, PlotLayer } from "@ksp-gonogo/sitrep-sdk";
-import { type ReactElement, useId } from "react";
+import { type ReactElement, useId, useMemo } from "react";
 import { TONE_MARK, TONE_TEXT } from "../tone";
 import { VesselMarkSvg } from "../vesselMark";
 import { RELIEF_RESOLUTION, sampleGrid } from "./reliefGrid";
@@ -430,15 +430,46 @@ function fillFor(
   return `rgb(${Math.round(r * edge)}, ${Math.round(g * edge)}, ${Math.round(b * edge)})`;
 }
 
-function ReliefLayer({
-  layer,
-  frame,
-}: {
-  layer: Extract<PlotLayer, { kind: "relief" }>;
-  frame: PlotLayerFrame;
-}) {
-  const { size, values, bounds } = layer;
-  if (size < 2 || values.length < size * size) return null;
+/** Where a relief grid lands on the plot, in pixels. */
+interface ReliefPlacement {
+  left: number;
+  top: number;
+  cellW: number;
+  cellH: number;
+  flipRows: boolean;
+}
+
+function reliefPlacement(
+  layer: Extract<PlotLayer, { kind: "relief" }>,
+  frame: PlotLayerFrame,
+): ReliefPlacement | null {
+  const { bounds } = layer;
+  const scaleY = scaleYOf(frame, layer);
+  // `bounds` need not be min-first, and the plot Y axis may run either way.
+  const sx0 = frame.scaleX(bounds.x0);
+  const sx1 = frame.scaleX(bounds.x1);
+  const sy0 = scaleY(bounds.y0);
+  const sy1 = scaleY(bounds.y1);
+  const cellW = Math.abs(sx1 - sx0) / RELIEF_RESOLUTION;
+  const cellH = Math.abs(sy1 - sy0) / RELIEF_RESOLUTION;
+  if (!(cellW > 0) || !(cellH > 0)) return null;
+  return {
+    left: Math.min(sx0, sx1),
+    top: Math.min(sy0, sy1),
+    cellW,
+    cellH,
+    flipRows: sy0 < sy1,
+  };
+}
+
+/** The relief's runs of same-coloured cells as rects, or null for a grid that cannot be drawn. */
+function reliefCells(
+  layer: Extract<PlotLayer, { kind: "relief" }>,
+  placement: ReliefPlacement | null,
+): ReactElement[] | null {
+  const { size, values } = layer;
+  if (!placement || size < 2 || values.length < size * size) return null;
+  const { left, top, cellW, cellH, flipRows } = placement;
 
   let lo = Number.POSITIVE_INFINITY;
   let hi = Number.NEGATIVE_INFINITY;
@@ -454,20 +485,7 @@ function ReliefLayer({
     layer.bandMetres != null && layer.bandMetres > 0 ? layer.bandMetres : null;
   const veil = layer.veil;
   const bands = Math.max(2, layer.bands ?? DEFAULT_RELIEF_BANDS);
-  const scaleY = scaleYOf(frame, layer);
-
-  // `bounds` need not be min-first, and the plot Y axis may run either way.
-  const sx0 = frame.scaleX(bounds.x0);
-  const sx1 = frame.scaleX(bounds.x1);
-  const sy0 = scaleY(bounds.y0);
-  const sy1 = scaleY(bounds.y1);
-  const left = Math.min(sx0, sx1);
-  const top = Math.min(sy0, sy1);
   const grid = RELIEF_RESOLUTION;
-  const cellW = Math.abs(sx1 - sx0) / grid;
-  const cellH = Math.abs(sy1 - sy0) / grid;
-  if (!(cellW > 0) || !(cellH > 0)) return null;
-  const flipRows = sy0 < sy1;
 
   const bandAt = new Int16Array(grid * grid);
   const veilAt = new Uint8Array(grid * grid);
@@ -525,6 +543,30 @@ function ReliefLayer({
       runFill = fill;
     }
   }
+  return cells;
+}
+
+function ReliefLayer({
+  layer,
+  frame,
+}: {
+  layer: Extract<PlotLayer, { kind: "relief" }>;
+  frame: PlotLayerFrame;
+}) {
+  const placement = reliefPlacement(layer, frame);
+  /*
+   * The host redraws on every frame its readings move, and a relief has thousands of cells to
+   * colour, so the rects are rebuilt only when the grid or where it lands changes. Each part the
+   * cells are read from is its own dependency, since the frame is a fresh object on every draw.
+   */
+  const { values, size, veil, bandMetres, bands } = layer;
+  const { left, top, cellW, cellH, flipRows } = placement ?? {};
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the cells read only these parts of `layer` and `placement`, each listed
+  const cells = useMemo(
+    () => reliefCells(layer, placement),
+    [values, size, veil, bandMetres, bands, left, top, cellW, cellH, flipRows],
+  );
+  if (!cells) return null;
 
   return (
     // biome-ignore lint/a11y/noAriaHiddenOnFocusable: an SVG <g> with no tabindex and no interactive descendant is not focusable; the rule treats every <g> as one
