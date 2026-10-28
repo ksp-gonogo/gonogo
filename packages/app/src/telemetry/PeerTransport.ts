@@ -41,10 +41,6 @@ function toTransportStatus(status: ConnStatus): TransportStatus {
   }
 }
 
-/** What a station's command refused for want of the host's stream to the mod says. */
-const HOST_NOT_CONNECTED =
-  "not sent: the main screen has no connection to the game. Nothing was sent, so send it again once the connection is back.";
-
 /**
  * A `Transport` (`@ksp-gonogo/sitrep-client`) fed by PeerJS instead of a live
  * WebSocket: the seam that lets a station mount an ordinary
@@ -128,13 +124,6 @@ export class PeerTransport implements Transport {
    */
   readonly decidesTopicOwnership = false;
   private _status: TransportStatus;
-  /**
-   * Whether the host's own stream to the mod is open, as the host last said. A
-   * station's commands reach the mod through the host, so while this is false
-   * the transport reports itself not connected, and the station follows its
-   * main screen's view of the connection.
-   */
-  private hostLinkUp = true;
   private readonly messageListeners = new Set<
     (message: ServerMessage, delivery?: { replayed: boolean }) => void
   >();
@@ -265,36 +254,16 @@ export class PeerTransport implements Transport {
       client.onConnectionStatus((status) => {
         this.setStatus(toTransportStatus(status));
       }),
-      client.onSitrepLink((connected) => {
-        const before = this.status;
-        this.hostLinkUp = connected;
-        if (this.status !== before) {
-          for (const listener of this.statusListeners) listener(this.status);
-        }
-      }),
     ];
   }
 
   get status(): TransportStatus {
-    return this._status === "connected" && !this.hostLinkUp
-      ? "reconnecting"
-      : this._status;
+    return this._status;
   }
 
   send(message: ClientMessage): void {
     if (message.type === "command-request") {
       const { requestId } = message;
-      if (this._status === "connected" && !this.hostLinkUp) {
-        queueMicrotask(() =>
-          this.deliver({
-            type: "error",
-            requestId,
-            code: FaultCode.NoClient,
-            message: HOST_NOT_CONNECTED,
-          }),
-        );
-        return;
-      }
       if (this._status !== "connected") {
         // No live peer link to carry this over. Left alone, this would
         // silently vanish (`PeerClientService.sendSitrepCommand` no-ops on a
@@ -324,19 +293,6 @@ export class PeerTransport implements Transport {
       return;
     }
     if (message.type === "command-group") {
-      if (this._status === "connected" && !this.hostLinkUp) {
-        for (const { requestId } of message.members) {
-          queueMicrotask(() =>
-            this.deliver({
-              type: "error",
-              requestId,
-              code: FaultCode.NoClient,
-              message: HOST_NOT_CONNECTED,
-            }),
-          );
-        }
-        return;
-      }
       if (this._status !== "connected") {
         // Refused at the press for the reason a single command is, once per member.
         for (const { requestId } of message.members) {
@@ -461,7 +417,7 @@ export class PeerTransport implements Transport {
     if (this._status === status) return;
     const wasConnected = this._status === "connected";
     this._status = status;
-    for (const listener of this.statusListeners) listener(this.status);
+    for (const listener of this.statusListeners) listener(status);
 
     // A fresh connection is a fresh set of host-side claims: the host keys them
     // to the `DataConnection` that has just been replaced. `TelemetryClient`

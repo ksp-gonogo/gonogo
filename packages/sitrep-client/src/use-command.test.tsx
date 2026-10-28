@@ -161,33 +161,6 @@ describe("useCommand", () => {
     );
   });
 
-  it("reports streamDown while the transport is not connected, and clears it when it is", async () => {
-    const t = new StubTransport();
-    const client = new TelemetryClient(t, undefined, { idPrefix: "t" });
-    const wall = createFakeWallClock();
-    const store = new TimelineStore(
-      new ViewClock({
-        nowWall: wall.now,
-        warpRate: () => 1,
-        delaySeconds: () => 0,
-      }),
-    );
-    function Probe() {
-      const cmd = useCommand("deploy");
-      return <span>down:{String(cmd.streamDown)}</span>;
-    }
-    render(
-      <TelemetryProvider client={client} store={store}>
-        <Probe />
-      </TelemetryProvider>,
-    );
-    expect(screen.getByText("down:false")).toBeTruthy();
-    act(() => store.setTransportConnected(false));
-    expect(screen.getByText("down:true")).toBeTruthy();
-    act(() => store.setTransportConnected(true));
-    expect(screen.getByText("down:false")).toBeTruthy();
-  });
-
   it("surfaces the predicted etaConfirm while in-flight", () => {
     const clock = new FakeClock(0);
     const transport = new EtaTransport(4);

@@ -5,7 +5,7 @@ import {
   screen,
   waitFor,
 } from "@ksp-gonogo/test-utils";
-import { NULL_DISPLAY, STREAM_DOWN_TIP } from "@ksp-gonogo/ui-kit";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -94,7 +94,7 @@ describe("ActionGroup when the group's state is held", () => {
     expect(isDisabled(toggle())).toBe(false);
   });
 
-  it("keeps the last state drawn held once it stops arriving, and greys the press while the stream is down", async () => {
+  it("keeps the last state drawn held once it stops arriving, and still offers the press", async () => {
     const { fixture, container } = mount("SAS");
     act(() => {
       fixture.emit("vessel.control", { ...CONTROL_ALL_OFF, sas: true });
@@ -108,10 +108,12 @@ describe("ActionGroup when the group's state is held", () => {
       expect(toggle().querySelector("[data-held-mark]")).not.toBeNull(),
     );
     expect(toggle().textContent).toContain("ON");
-    expect(isDisabled(toggle())).toBe(true);
-    expect(
-      document.querySelector(`[data-tooltip="${STREAM_DOWN_TIP}"]`),
-    ).not.toBeNull();
+    expect(isDisabled(toggle())).toBe(false);
+    expect(toggle().getAttribute("data-tooltip")).toBe("Toggle SAS");
+    // The held mark's own tip says what the press does.
+    expect(document.body.innerHTML).toContain(
+      "The press sends the opposite of the state shown",
+    );
     // Time is only ever shown through Unit, so the widget writes no currency wording of its own.
     expect(visibleText(container)).not.toMatch(/last contact/i);
     expect(screen.queryByRole("status")).toBeNull();
@@ -125,15 +127,7 @@ describe("ActionGroup when the group's state is held", () => {
     const toggle = () => screen.getByRole("button", { name: "Toggle SAS" });
     await waitFor(() => expect(toggle().textContent).toBe("ON"));
 
-    // Late updates with the stream up: a held state that is still pressable.
-    act(() => {
-      fixture.wall.advanceBy(120);
-      fixture.emit(
-        "comms.link",
-        { connected: true },
-        { validAt: 120, deliveredAt: 120 },
-      );
-    });
+    stopDelivering(fixture);
     await waitFor(() =>
       expect(toggle().querySelector("[data-held-mark]")).not.toBeNull(),
     );
@@ -206,7 +200,7 @@ describe("ActionGroup: what a stale link does NOT take away", () => {
     ).toBeTruthy();
   });
 
-  it("keeps Stage's number, and greys staging while the stream is down", async () => {
+  it("keeps Stage's number and keeps staging available", async () => {
     const { fixture, commandHandler } = mount("Stage", "ag-stale-stage");
     act(() => {
       fixture.emit("vessel.structure", { currentStage: 4 });
@@ -223,12 +217,14 @@ describe("ActionGroup: what a stale link does NOT take away", () => {
       ),
     );
     expect(toggle().textContent).toBe("3");
-    expect(isDisabled(toggle())).toBe(true);
+    expect(toggle().getAttribute("data-tooltip")).toBe("Toggle Stage");
+    expect(isDisabled(toggle())).toBe(false);
 
     act(() => {
       toggle().click();
     });
-    await act(async () => {});
-    expect(commandHandler).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(commandHandler).toHaveBeenCalledWith("vessel.control.stage", null),
+    );
   });
 });

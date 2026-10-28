@@ -36,16 +36,6 @@ function argsKey(args: unknown): string | null {
 }
 
 /**
- * The words a command control shows as its tip while the stream to the mod is
- * down: that nothing can be sent. Useful for telling the operator why a command
- * control is greyed out, and for a control of your own that follows the same
- * state. Used by {@link CommandButton} and by the Action Group widget's toggle.
- *
- * @category CommandButton
- */
-export const STREAM_DOWN_TIP = "Not connected to the mod. Nothing can be sent";
-
-/**
  * How long, in milliseconds, an armed {@link CommandButton} waits for its
  * confirming press before it returns to rest. Used by {@link CommandButton} and
  * {@link useCommandButton}.
@@ -159,12 +149,6 @@ export interface CommandButtonHandle<Result = CommandReplyLike, Args = unknown>
    * own outcomes itself, even beside a rail.
    */
   railed?: boolean;
-  /**
-   * The stream to the mod is down, so a press cannot be sent. The control is
-   * drawn unavailable and a press does nothing until the stream returns; a
-   * command already in flight is not affected. `useCommand` supplies it.
-   */
-  streamDown?: boolean;
 }
 
 /**
@@ -304,11 +288,6 @@ export interface CommandButtonState {
    * outside the `lost` phase: the sentence `CommandButton` speaks for it.
    */
   lossText: string | null;
-  /**
-   * The stream to the mod is down and nothing is in flight, so a press sends
-   * nothing. The control is drawn unavailable, whichever phase it is in.
-   */
-  isOffline: boolean;
   /** This handle has a dispatch with no reply (overdue or lost), for the `data-unconfirmed` tint. */
   hasUnconfirmed: boolean;
   /** This handle has a dispatch that never left, for the `data-failed` tint. */
@@ -375,7 +354,6 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
   // A press on a blocked control shows its reason, cleared on the refusal window.
   const [reasonShown, setReasonShown] = useState(false);
 
-  const streamDown = handle.streamDown === true;
   const gate = standingGate(handle, args);
   // An undetermined gate is NOT a refusal and must not darken anything.
   const gateBlocks = gate?.blocked === true;
@@ -516,7 +494,6 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
   const press = useCallback(
     (armable: boolean) => {
       if (phase === "pending") return;
-      if (streamDown) return;
       // The game already said it will refuse this, so the press shows why instead of spending a round trip.
       if (gateBlocks) {
         setReasonShown(true);
@@ -537,7 +514,7 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
       }
       dispatch();
     },
-    [phase, streamDown, gateBlocks, dispatch, args],
+    [phase, gateBlocks, dispatch, args],
   );
 
   // One handle serves many rows, and a row keyed by position can be handed another item while armed; the confirming press must not send to it.
@@ -567,7 +544,6 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
     isLost: effectivePhase === "lost",
     isFound: effectivePhase === "found",
     isBlocked: effectivePhase === "blocked",
-    isOffline: streamDown && effectivePhase !== "pending",
     isShowingReason: effectivePhase === "blocked" && reasonShown,
     refusalText: refusal
       ? commandRefusalSentence(refusal)
@@ -799,7 +775,6 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
     isLost,
     isFound,
     isBlocked,
-    isOffline,
     isShowingReason,
     refusalText,
     foundText,
@@ -882,14 +857,11 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
     sendStatus === undefined
       ? title
       : [title, describeSendStatus(sendStatus)].filter(Boolean).join("\n");
-  const tipText = isOffline
-    ? [title, STREAM_DOWN_TIP].filter(Boolean).join("\n")
-    : restTip;
 
   return (
     <>
       <Tooltip
-        text={foundText ?? refusalText ?? (isPending ? pendingLabel : tipText)}
+        text={foundText ?? refusalText ?? (isPending ? pendingLabel : restTip)}
       >
         <CommandButton__Body
           type="button"
@@ -903,12 +875,11 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
           aria-pressed={pressed}
           aria-busy={isPending || undefined}
           // aria-disabled, not disabled, so the control keeps focus while the outcome lands on it.
-          aria-disabled={isBlocked || isPending || isOffline || undefined}
+          aria-disabled={isBlocked || isPending || undefined}
           disabled={disabled}
           data-unconfirmed={hasUnconfirmed ? "true" : undefined}
           data-failed={hasFailure ? "true" : undefined}
           data-command-phase={phase}
-          data-stream={isOffline ? "down" : undefined}
           data-predicted={
             isBlocked ? undefined : predictedOutcomeOf(sendStatus)
           }

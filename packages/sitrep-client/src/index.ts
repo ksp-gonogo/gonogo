@@ -144,7 +144,6 @@ export {
   TelemetryProvider,
   type TelemetryProviderProps,
   useActiveTelemetryClient,
-  useStreamConnected,
   useStreamRecorder,
   useTelemetryClient,
   useTelemetryClientOptional,

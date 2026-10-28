@@ -1,9 +1,5 @@
 import { useGameContext, useTelemetry } from "@ksp-gonogo/core";
-import {
-  useGameStatus,
-  useStreamConnected,
-  useViewClockOptional,
-} from "@ksp-gonogo/sitrep-client";
+import { useGameStatus, useViewClockOptional } from "@ksp-gonogo/sitrep-client";
 import { MissionDate, ReadoutCaption } from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
@@ -55,7 +51,6 @@ export function MissionBanner({ actions }: Readonly<{ actions?: ReactNode }>) {
       <VesselField />
       <EvaField />
       <SignalDelayField />
-      <StreamStatusField />
       <GameStatusField />
       {actions ? <Actions>{actions}</Actions> : null}
     </Banner>
@@ -190,43 +185,6 @@ function GameStatusField() {
     </GameStatus>
   );
 }
-
-/** How long the stream stays down before the header says so, so the moment before the first connection opens, and a reconnect that takes no time, say nothing. */
-const STREAM_DOWN_ONSET_MS = 1500;
-
-/**
- * The stream to the mod being down: nothing can be sent and no reading is
- * arriving. It is a status, so quiet text in a live region that speaks once per
- * change, and absent while the stream is open.
- */
-function StreamStatusField() {
-  const connected = useStreamConnected();
-  const [shown, setShown] = useState(false);
-  useEffect(() => {
-    if (connected) {
-      setShown(false);
-      return;
-    }
-    const id = setTimeout(() => setShown(true), STREAM_DOWN_ONSET_MS);
-    return () => clearTimeout(id);
-  }, [connected]);
-  if (connected || !shown) return null;
-  return (
-    <StreamStatus role="status" aria-live="polite">
-      <BannerField label="Mod">
-        <WarnValue>Not connected</WarnValue>
-      </BannerField>
-    </StreamStatus>
-  );
-}
-
-const StreamStatus = styled.span`
-  display: inline-flex;
-`;
-
-const WarnValue = styled.span`
-  color: var(--color-warn-text);
-`;
 
 const Actions = styled.div`
   display: inline-flex;

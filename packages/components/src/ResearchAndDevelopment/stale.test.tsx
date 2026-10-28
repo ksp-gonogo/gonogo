@@ -113,7 +113,7 @@ describe("ResearchAndDevelopment when the career record is held", () => {
     expect(visibleText(document.body)).not.toContain("No tech nodes loaded");
   });
 
-  it("greys Unlock and sends nothing while the stream is down and the balance is held", async () => {
+  it("leaves Unlock to the node's gate while the balance is held", async () => {
     const user = userEvent.setup();
     renderTree();
     emitAffordableCareer();
@@ -130,12 +130,10 @@ describe("ResearchAndDevelopment when the career record is held", () => {
         screen.getByRole("status").querySelector("[data-held]"),
       ).not.toBeNull(),
     );
-    // A held balance marks the figure; with the stream down nothing can be sent, so Unlock is greyed and a press does nothing.
+    // A held balance marks the figure; whether the node can be researched is the command's to say.
     const unlock = screen.getByRole("button", { name: "Unlock" });
-    expect(unlock).toHaveAttribute("aria-disabled", "true");
-    await user.click(unlock);
-    await act(async () => {});
-    expect(stream.transport.sentCommands).toHaveLength(0);
+    expect(unlock).toBeEnabled();
+    expect(unlock).not.toHaveAttribute("aria-disabled");
   });
 
   it("keeps the held balance in the stats strip, marked by Unit rather than captioned", async () => {

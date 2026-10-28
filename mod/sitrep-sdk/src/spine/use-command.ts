@@ -85,7 +85,6 @@ import {
   sendStatusFromRoutes,
 } from "./send-status";
 import { useLatestValue, useStream } from "./use-stream";
-import { useStreamConnected } from "./use-stream-connected";
 import { META_VANTAGE } from "./vantage";
 
 export type { UseCommandOptions };
@@ -246,11 +245,6 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    */
   undelivered: CommandUndelivered[];
   /**
-   * The stream to the mod is down, so a press sends nothing. A control reads it
-   * to draw itself unavailable.
-   */
-  streamDown: boolean;
-  /**
    * Every dispatch from this hook the mod answered with a fault rather than a
    * reply, newest last, until the operator clears it with the same `dismiss`:
    * it expired or was cancelled on its way, a continuous input was dropped
@@ -370,7 +364,6 @@ export function useCommand(
   // no link, and the hook must not throw just because the dashboard rendered
   // before a connection exists.
   const client = useTelemetryClientOptional();
-  const streamDown = !useStreamConnected();
   const [requestId, setRequestId] = useState<string | null>(null);
 
   const subscribe = useCallback(
@@ -1191,7 +1184,6 @@ export function useCommand(
     losses,
     founds,
     undelivered,
-    streamDown,
     failures,
     tags,
     effectiveDelaySeconds,
