@@ -185,6 +185,16 @@ export function registerTouchdownPlot(
   id: string,
   build: (inputs: TouchdownInputs) => PlotEntry | null,
 ): void {
+  /*
+   * The plot is a pure function of its inputs and costs thousands of ray marches, while it is asked
+   * again whenever any of its Topics moves, most often one whose figures it does not draw.
+   */
+  let built: { inputs: TouchdownInputs; plot: PlotEntry | null } | undefined;
+  const buildOnce = (inputs: TouchdownInputs): PlotEntry | null => {
+    if (built && sameInputs(built.inputs, inputs)) return built.plot;
+    built = { inputs, plot: build(inputs) };
+    return built.plot;
+  };
   // The last whole set of readings this plot was drawn from, kept for a flight that ends in a crash: the vessel's own topics go with it, and the plot holds what it last drew.
   let kept: Kept | undefined;
   // The crash report of the vessel the kept scene belongs to: the topic holds only the latest crash, and after one the game moves the player on to the wreck, whose own report replaces it.
@@ -286,7 +296,7 @@ export function registerTouchdownPlot(
         flight.altitudeAsl,
         height,
       );
-      const plot = build({
+      const plot = buildOnce({
         impact: crashImpactOf({
           crash: frozen
             ? (keptCrash ?? null)
@@ -356,4 +366,37 @@ export function registerTouchdownPlot(
         : null;
     },
   });
+}
+
+/** Whether two sets of inputs hold the same figures: arrays by their elements, and objects such as a quantity by their own fields. */
+function sameInputs(a: TouchdownInputs, b: TouchdownInputs): boolean {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const key of keys) {
+    if (!sameFigure(Reflect.get(a, key), Reflect.get(b, key))) return false;
+  }
+  return true;
+}
+
+function sameFigure(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  if (Array.isArray(a) && Array.isArray(b)) {
+    return a.length === b.length && a.every((x, i) => Object.is(x, b[i]));
+  }
+  if (
+    typeof a !== "object" ||
+    typeof b !== "object" ||
+    a === null ||
+    b === null ||
+    Array.isArray(a) ||
+    Array.isArray(b) ||
+    Object.getPrototypeOf(a) !== Object.getPrototypeOf(b)
+  ) {
+    return false;
+  }
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  return (
+    aKeys.length === bKeys.length &&
+    aKeys.every((key) => Object.is(Reflect.get(a, key), Reflect.get(b, key)))
+  );
 }

@@ -1671,6 +1671,34 @@ describe("the body a contribution resolves", () => {
   const layerIds = (id: string, body: Record<string, unknown>) =>
     (compute(id, body)?.[0]?.layers ?? []).map((l) => l.id);
 
+  it("reuses a touchdown plot for figures it has already drawn, and draws again when one moves", () => {
+    for (const id of ["core:vessel-view", "core:touchdown-reticle"]) {
+      const contribution = getContributionsForSlot("plots").find(
+        (c) => c.id === id,
+      );
+      if (!contribution) throw new Error(`the ${id} contribution is missing`);
+      const run = (payloads: Record<string, unknown>) =>
+        contribution.compute(topicsFor(EARTH, [], payloads)) as
+          | { layers: PlotLayer[] }[]
+          | null;
+      const payloads = payloadsFor(EARTH);
+      const first = run(payloads);
+      expect(first?.[0]?.layers.length).toBeGreaterThan(0);
+      // A fresh orbit payload with the same figures, as each new orbit sample brings.
+      const again = run({
+        ...payloads,
+        "vessel.orbit": { mu: value("m³/s²", 3.986004418e14) },
+      });
+      expect(again?.[0]?.layers).toBe(first?.[0]?.layers);
+      const flight = payloads["vessel.flight"] as Record<string, unknown>;
+      const moved = run({
+        ...payloads,
+        "vessel.flight": { ...flight, latitude: value("°", 0.25) },
+      });
+      expect(moved?.[0]?.layers).not.toBe(first?.[0]?.layers);
+    }
+  });
+
   // The projected trace needs a gravity, so it says whether the body resolved.
   it("projects the descent for a body no table knows", () => {
     expect(layerIds("core:descent-profile", EARTH)).toContain("trace-estimate");
