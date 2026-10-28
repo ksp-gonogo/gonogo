@@ -256,7 +256,9 @@ function GroundTrackComponent({
 
   /** What stands in for a position that was never reported, shared so the two branches say the same thing. A held position is marked by its readouts. */
   const positionNotice =
-    (lat !== undefined && lon !== undefined) || telemetry.markerWithheld
+    (lat !== undefined && lon !== undefined) ||
+    telemetry.markerWithheld ||
+    telemetry.followsHome
       ? undefined
       : targetBodyId === undefined
         ? "Waiting for telemetry..."

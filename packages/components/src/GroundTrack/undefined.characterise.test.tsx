@@ -163,6 +163,26 @@ describe("GroundTrack: what undefined telemetry means today", () => {
     expect(screen.getByText(/Mun \(pinned\)/)).toBeInTheDocument();
   });
 
+  it("with no craft at all, the map shows the home body and draws nothing vessel-relative", async () => {
+    const { fixture, container } = renderMap({}, { w: 14, h: 14 });
+    act(() => {
+      fixture.emit("trackingStation.bodies", {
+        bodies: [
+          { index: 0, name: "Sun", radius: 261_600_000 },
+          { index: 1, name: "Kerbin", radius: 600_000, isHome: true },
+        ],
+      });
+    });
+    await flushFrames();
+
+    expect(screen.getByText("Kerbin")).toBeInTheDocument();
+    expect(screen.getByTestId("ground-track-base-canvas")).toBeInTheDocument();
+    expect(screen.queryByText("Waiting for telemetry...")).toBeNull();
+    expect(screen.queryByText("No position data")).toBeNull();
+    expect(screen.queryByText("Follow")).toBeNull();
+    expect(container.querySelector("[data-vessel-marker]")).toBeNull();
+  });
+
   it("names the body from identity and the catalogue alone, with no vessel.flight", async () => {
     const { fixture, container } = renderMap({}, { w: 14, h: 14 });
     emitBodyOnly(fixture);

@@ -1,7 +1,15 @@
-import { DashboardItemContext } from "@ksp-gonogo/core";
+import {
+  clearAugments,
+  DashboardItemContext,
+  registerAugment,
+} from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
-import { describe, expect, it } from "vitest";
+import {
+  createDomainAvailabilityStore,
+  DomainAvailabilityContext,
+} from "@ksp-gonogo/ui-kit";
+import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { GroundTrackComponent } from "./index";
 
@@ -291,5 +299,40 @@ describe("GroundTrack's imaging chip across a dropped link", () => {
       fixture.store.beginFrame();
     });
     await waitFor(() => expect(container.textContent).toMatch(/NO DATA/));
+  });
+});
+
+describe("GroundTrack when a map source hides the stock terrain and has no data", () => {
+  afterEach(() => clearAugments());
+
+  it("still draws the vessel and its prediction over the empty map", async () => {
+    clearAugments();
+    registerAugment({
+      id: "test-empty-terrain",
+      augments: "ground-track.base",
+      requires: "test-empty-terrain-domain",
+      suppressesVanillaBase: true,
+      component: () => null,
+    });
+    const store = createDomainAvailabilityStore();
+    const fixture = setupStreamFixture({ pinnedUt: UT, suspendFrames: true });
+    const { container } = render(
+      <DomainAvailabilityContext.Provider value={store}>
+        <fixture.Provider>
+          <DashboardItemContext.Provider value={{ instanceId: "empty-map" }}>
+            <GroundTrackComponent id="empty-map" w={12} h={18} />
+          </DashboardItemContext.Provider>
+        </fixture.Provider>
+      </DomainAvailabilityContext.Provider>,
+    );
+    act(() => store.setAvailable("test-empty-terrain-domain", true));
+    emitDescent(fixture);
+
+    await waitFor(() =>
+      expect(container.querySelector("[data-vessel-marker]")).not.toBeNull(),
+    );
+    expect(
+      container.querySelector("[data-prediction-segments]"),
+    ).not.toBeNull();
   });
 });

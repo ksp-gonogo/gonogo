@@ -57,6 +57,8 @@ export interface MapTelemetry {
   maneuverNodes: readonly ManeuverNode[] | undefined;
   universalTime: number | undefined;
   targetBodyId: string | undefined;
+  /** The map shows the home body because there is no craft to follow, so a missing position is expected and not a fault. */
+  followsHome: boolean;
   body: ReturnType<typeof bodyNamed>;
   impactLat: number | undefined;
   impactLon: number | undefined;
@@ -156,8 +158,6 @@ export function useMapTelemetry(
       : undefined;
   const universalTime = useViewUt()?.magnitude;
 
-  // The body picker (config.bodyOverride) lets the operator inspect any body; unset follows the vessel.
-  const targetBodyId = bodyOverride ?? bodyName;
   /* Radius and rotation period come off `trackingStation.bodies`, matched by name, so a planet-pack rename still gets a ground track. */
   const bodiesReading = useTelemetry("trackingStation.bodies");
   /* A body's radius does not decay, so a held roster is the right read. */
@@ -165,6 +165,14 @@ export function useMapTelemetry(
     bodiesReading.state === "observed" || bodiesReading.state === "held"
       ? bodiesReading.value
       : undefined;
+  /* With no craft to follow (the Space Center, the tracking station, an empty save) the map shows the body the Space Center sits on. */
+  const homeBodyName = bodies?.bodies?.find((b) => b.isHome === true)?.name;
+  const followsHome =
+    bodyOverride === undefined &&
+    bodyName === undefined &&
+    homeBodyName != null;
+  // The body picker (config.bodyOverride) lets the operator inspect any body; unset follows the vessel, then home.
+  const targetBodyId = bodyOverride ?? bodyName ?? homeBodyName ?? undefined;
   /* Memoised: an unmemoised merge would re-solve Kepler every render and defeat the `utBucket` throttle. */
   const body = useMemo(
     () => bodyNamed(bodies, targetBodyId),
@@ -229,11 +237,13 @@ export function useMapTelemetry(
     maneuverNodes,
     universalTime,
     targetBodyId,
+    followsHome,
     body,
     impactLat: impactMarked ? impact.lat : undefined,
     impactLon: impactMarked ? impact.lon : undefined,
-    // An override that diverges from the vessel's body suppresses every vessel-relative draw and the follow chrome.
-    vesselOnThisBody: !bodyOverride || bodyOverride === bodyName,
+    // An override that diverges from the vessel's body, or a home map shown with no craft, suppresses every vessel-relative draw and the follow chrome.
+    vesselOnThisBody:
+      !followsHome && (!bodyOverride || bodyOverride === bodyName),
     vesselId: identity?.vesselId ?? undefined,
     predictable,
   };
