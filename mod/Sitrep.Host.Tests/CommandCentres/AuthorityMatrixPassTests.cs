@@ -82,8 +82,8 @@ namespace Sitrep.Host.Tests.CommandCentres
 
         /// <summary>
         /// A forward crewed centre with no route to a craft is listed against that craft
-        /// and against the active craft, while home, a ground station and a crewed centre's
-        /// own craft are never listed, whatever the routing callback answers.
+        /// and against the active craft, while a crewed centre's own craft is never listed.
+        /// Home is listed only against a craft another centre reaches and it does not.
         /// </summary>
         [Fact]
         public void Unroutable_ListsOnlyACentreWithItsOwnRouteThatHasNone()
@@ -105,14 +105,48 @@ namespace Sitrep.Host.Tests.CommandCentres
                 (_, __) => CommsDirection.Both,
                 _ => true);
 
-            Assert.Equal(new[] { "ground:gs1", "vessel:F", "vessel:G" }, unroutable.Keys.OrderBy(k => k));
+            Assert.Equal(new[] { "ground:gs1", "ksc", "vessel:F", "vessel:G" }, unroutable.Keys.OrderBy(k => k));
             Assert.Equal(new[] { "fleet.G", ChannelEngine.NodeId }, unroutable["vessel:F"].Keys);
             Assert.Equal(new[] { "fleet.H" }, unroutable["vessel:G"].Keys);
             // A ground station that is not home has no route of its own to either
             // craft, so it is listed against both and is not sent them on home's clock.
             Assert.Equal(new[] { "fleet.G", "fleet.H", ChannelEngine.NodeId }, unroutable["ground:gs1"].Keys);
             Assert.All(unroutable["ground:gs1"].Values, carried => Assert.Equal(CommsDirection.None, carried));
-            Assert.False(unroutable.ContainsKey("ksc"));
+            Assert.Equal(new[] { "fleet.H" }, unroutable["ksc"].Keys);
+            Assert.Equal(CommsDirection.None, unroutable["ksc"]["fleet.H"]);
+        }
+
+        [Fact]
+        public void Carried_ListsHomeAsUnknownToACraftOnlyAnotherCentreReaches()
+        {
+            var centres = new ICommandCentre[] { new FakeCommandCentre("ksc"), new FakeCommandCentre("ground:gs1") };
+
+            var carried = new AuthorityMatrixPass().Carried(
+                centres,
+                "ksc",
+                new[] { "G" },
+                null,
+                (centre, _) => centre.Id == "ground:gs1" ? 5.0 : (double?)null,
+                (_, __) => CommsDirection.Both,
+                _ => true);
+
+            Assert.Equal(CommsDirection.None, carried["ksc"]["fleet.G"]);
+            Assert.False(carried.ContainsKey("ground:gs1"));
+        }
+
+        [Fact]
+        public void Carried_LeavesHomeUnlistedForACraftNoCentreReaches()
+        {
+            var carried = new AuthorityMatrixPass().Carried(
+                new ICommandCentre[] { new FakeCommandCentre("ksc"), new FakeCommandCentre("ground:gs1") },
+                "ksc",
+                new[] { "G" },
+                null,
+                (_, __) => null,
+                (_, __) => CommsDirection.Both,
+                _ => true);
+
+            Assert.False(carried.ContainsKey("ksc"));
         }
 
         [Fact]

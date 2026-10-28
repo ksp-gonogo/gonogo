@@ -251,8 +251,10 @@ namespace Sitrep.Host.CommandCentres
         /// only for a direction that link does not carry. A ground station that is not
         /// home hears a craft only over its own route: left unlisted it read the node
         /// default, which is the home centre's signal delay, and was sent a craft it
-        /// could not hear on home's clock. A crewed centre always reaches its own
-        /// craft. The home command's ledger is listed, carrying neither way, for a
+        /// could not hear on home's clock. The home centre with no route to a craft
+        /// that another centre does reach is listed against it too, carrying neither
+        /// way, since it would otherwise read the whole-network default. A crewed
+        /// centre always reaches its own craft. The home command's ledger is listed, carrying neither way, for a
         /// centre <see cref="OffTheGroundNetwork"/> names, and every ground station
         /// stands on that network.</para>
         /// </summary>
@@ -301,6 +303,10 @@ namespace Sitrep.Host.CommandCentres
                         continue;
                     }
                     var direction = Judge(centre, guid);
+                    if (centre.Id == homeCentreId && routeDelay(centre, guid) == null && AnotherCentreRoutes(activeCentres, centre, guid, routeDelay))
+                    {
+                        direction = CommsDirection.None;
+                    }
                     if (direction != CommsDirection.Both)
                     {
                         Add(centre.Id, FleetNode(guid), direction);
@@ -328,6 +334,28 @@ namespace Sitrep.Host.CommandCentres
                 result[row.Key] = row.Value;
             }
             return result;
+        }
+
+        /*
+         * A home centre with no route to a craft that another centre does reach has no
+         * row of its own and no node default to read, so it would be timed by the
+         * whole-network default, the active craft's delay. When no centre reaches the
+         * craft the reveal gate already holds its readings, so it is left alone.
+         */
+        private static bool AnotherCentreRoutes(
+            IReadOnlyList<ICommandCentre> activeCentres,
+            ICommandCentre except,
+            string guid,
+            Func<ICommandCentre, string, double?> routeDelay)
+        {
+            foreach (var other in activeCentres)
+            {
+                if (other.Id != except.Id && !IsOwnCraft(other, guid) && routeDelay(other, guid) != null)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static bool IsOwnCraft(ICommandCentre centre, string guid) =>
