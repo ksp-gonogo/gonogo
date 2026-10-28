@@ -13,6 +13,7 @@ import {
   type FlightStarted,
   type FlightVesselChanged,
   magnitudeOf,
+  type SpaceCenterScene,
 } from "@ksp-gonogo/sitrep-sdk";
 import { useCallback, useEffect, useRef } from "react";
 import { useOptionalStreamEvent } from "../hooks/useOptionalStreamEvent";
@@ -90,7 +91,7 @@ export interface AutoRecordControllerProps {
 }
 
 /** Whether the scene reading has arrived: until it does the scene prop is absent or `"Unknown"`. */
-function isSceneKnown(scene: GameScene | undefined): boolean {
+function isSceneKnown(scene: string | undefined): boolean {
   return scene !== undefined && scene !== "Unknown";
 }
 
@@ -173,6 +174,24 @@ export function AutoRecordController({
   missionHistoryEnabledRef.current = missionHistoryEnabled;
   const sceneRef = useRef(scene);
   sceneRef.current = scene;
+  /*
+   * The scene as the stream last said it. The `scene` prop only changes when
+   * React renders it, which can come after the flight's own events have been
+   * handled, or never for a scene that was left again before the render. The
+   * stream's own frame is seen the moment it is delivered, so a handler asks
+   * this first.
+   */
+  const streamSceneRef = useRef<string | undefined>(undefined);
+  const sceneNow = useCallback(
+    (): string | undefined => streamSceneRef.current ?? sceneRef.current,
+    [],
+  );
+  useOptionalStreamEvent<SpaceCenterScene>(
+    "spaceCenter.scene",
+    useCallback((payload) => {
+      streamSceneRef.current = payload.scene ?? undefined;
+    }, []),
+  );
   /** The mission being recorded once its first part has been handed to the store: its meta so far, and the number of its next part. */
   const missionRef = useRef<{ meta: MissionMeta; nextPart: number } | null>(
     null,
@@ -436,7 +455,8 @@ export function AutoRecordController({
          * reaches the mission it was stored as, and its first tick in the
          * Flight scene starts the recording.
          */
-        if (sceneRef.current !== undefined && sceneRef.current !== "Flight") {
+        const sceneAtStart = sceneNow();
+        if (sceneAtStart !== undefined && sceneAtStart !== "Flight") {
           return;
         }
         recorder.start();
@@ -446,7 +466,13 @@ export function AutoRecordController({
           frameCount: recorder.frameCount,
         });
       },
-      [recorder, finishAndSave, resumeParkedFlight, reopenDockedMission],
+      [
+        recorder,
+        finishAndSave,
+        resumeParkedFlight,
+        reopenDockedMission,
+        sceneNow,
+      ],
     ),
   );
 
@@ -583,8 +609,9 @@ export function AutoRecordController({
         if (!recorder.recording) {
           if (!missionHistoryEnabledRef.current) return;
           if (payload.flightId !== activeFlightIdRef.current) return;
-          if (sceneRef.current !== "Flight") {
-            if (!isSceneKnown(sceneRef.current)) {
+          const sceneAtTick = sceneNow();
+          if (sceneAtTick !== "Flight") {
+            if (!isSceneKnown(sceneAtTick)) {
               tickBeforeSceneRef.current = payload.flightId;
             }
             return;
@@ -614,7 +641,14 @@ export function AutoRecordController({
             (missionRef.current?.meta.frameCount ?? 0) + recorder.frameCount,
         });
       },
-      [recorder, partSizeLimit, partSeconds, storePart, resumeParkedFlight],
+      [
+        recorder,
+        partSizeLimit,
+        partSeconds,
+        storePart,
+        resumeParkedFlight,
+        sceneNow,
+      ],
     ),
   );
 

@@ -276,6 +276,29 @@ describe("AutoRecordController", () => {
     expect(getAutoRecordStatus().recording).toBe(true);
   });
 
+  it("records a flight whose only tick and end follow the stream's Flight scene before the scene prop has rendered", async () => {
+    const rig = buildRig();
+    render(
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled scene="Unknown" />
+      </TelemetryProvider>,
+    );
+
+    act(() => {
+      rig.transport.emit(
+        "spaceCenter.scene",
+        { scene: "Flight", launchSite: null },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+    start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+    tickFrame(rig, 5, "vA", "Alpha");
+    end(rig, 10, "vA", 1);
+    await vi.waitFor(async () =>
+      expect(await rig.source.listFlights()).toHaveLength(1),
+    );
+  });
+
   it("does not start from a tick held before the scene arrived when the operator has since left the Flight scene", () => {
     const rig = buildRig();
     const tree = (scene: "Unknown" | "Flight" | "SpaceCenter") => (
