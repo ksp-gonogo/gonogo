@@ -180,6 +180,7 @@ type ClientEventMap = {
     replayed: boolean,
   ];
   sitrepReset: [];
+  sitrepLink: [connected: boolean];
   sitrepCommandResponse: [
     requestId: string,
     result: unknown,
@@ -1178,6 +1179,11 @@ export class PeerClientService {
     return this.events.on("sitrepFrame", cb);
   }
 
+  /** Whether the host's own stream to the mod is open, each time the host says. */
+  onSitrepLink(cb: (connected: boolean) => void): () => void {
+    return this.events.on("sitrepLink", cb);
+  }
+
   /** The host's stream restarted from a new game process. */
   onSitrepReset(cb: () => void): () => void {
     return this.events.on("sitrepReset", cb);
@@ -1868,6 +1874,9 @@ export class PeerClientService {
     },
     "sitrep-reset": () => {
       this.events.emit("sitrepReset");
+    },
+    "sitrep-link": (msg) => {
+      this.events.emit("sitrepLink", msg.connected);
     },
     "sitrep-command-response": (msg) => {
       this.events.emit(

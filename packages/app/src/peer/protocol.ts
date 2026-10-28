@@ -409,6 +409,11 @@ export type PeerMessage =
   // from an epoch below the one it holds, so the station rebuilds its client
   // and store and subscribes again.
   | { type: "sitrep-reset" }
+  // Host -> station: whether the host's own stream to the mod is open. A
+  // station's commands go to the mod through the host, so with the host's
+  // stream down they cannot be sent, and the station greys its command
+  // controls the way the host does.
+  | { type: "sitrep-link"; connected: boolean }
   // Station -> host: what this station's mounted widgets are reading. A
   // station's own widgets are the only thing that knows what a station needs,
   // and they know it at mount time, so the subscribe call a widget already

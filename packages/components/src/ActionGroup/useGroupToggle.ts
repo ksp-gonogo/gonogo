@@ -37,6 +37,8 @@ export interface GroupToggle {
   unavailableReason: UnavailableReason | null;
   /** What the craft lacks that this group's command needs, from its last control reading; the press still sends. */
   capabilityWarning: CapabilityWarning | null;
+  /** The stream to the mod is down, so the press sends nothing. */
+  streamDown: boolean;
   press: () => void;
   /**
    * Where the latest toggle sent from here stands while the state shown is not
@@ -104,7 +106,7 @@ export function useGroupToggle({
         : "sent";
 
   const press = () => {
-    if (!group?.toggle || !toggleCommand) return;
+    if (!group?.toggle || !toggleCommand || toggleCmd.streamDown) return;
     const args = buildToggleArgs(group, value);
     if (args === TOGGLE_INVALID) return;
     void toggleCmd.send(args, { label: `Toggle ${label}` });
@@ -144,6 +146,7 @@ export function useGroupToggle({
     // A press that `buildToggleArgs` would refuse is not offered: with no state to invert, an enabled button would do nothing. A held state is one to invert: the command sets the explicit opposite.
     canToggle:
       Boolean(group?.toggle) &&
+      !toggleCmd.streamDown &&
       !unreadable &&
       buildToggleArgs(group as ActionGroup, value) !== TOGGLE_INVALID,
     unavailableReason: group
@@ -155,6 +158,7 @@ export function useGroupToggle({
         })
       : null,
     capabilityWarning,
+    streamDown: toggleCmd.streamDown,
     press,
     confirmation,
   };

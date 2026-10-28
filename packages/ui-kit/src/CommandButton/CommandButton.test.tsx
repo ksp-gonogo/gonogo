@@ -22,6 +22,7 @@ import {
   type CommandButtonHandle,
   type CommandReplyLike,
   REFUSAL_TIMEOUT_MS,
+  STREAM_DOWN_TIP,
   useCommandButton,
 } from "./CommandButton";
 
@@ -1654,5 +1655,79 @@ describe("CommandButton send status", () => {
         );
       }
     }
+  });
+});
+
+describe("CommandButton: the stream to the mod is down", () => {
+  it("greys out, says why, and sends nothing on a press, then sends again once the stream returns", async () => {
+    const user = userEvent.setup();
+    const send = vi.fn(async () => OK);
+    const down = makeHandle(send, { streamDown: true });
+    const { rerender } = render(
+      <CommandButton handle={down} label="Go" title="Fire it" />,
+    );
+    const button = screen.getByRole("button", { name: "Go" });
+    expect(button).toHaveAttribute("aria-disabled", "true");
+    expect(button).toHaveAttribute("data-stream", "down");
+    // Not the dashed look a gate refusal wears.
+    expect(button).not.toHaveAttribute("data-gate");
+
+    await user.click(button);
+    await user.click(button);
+    expect(send).not.toHaveBeenCalled();
+
+    rerender(
+      <CommandButton
+        handle={makeHandle(send, { streamDown: false })}
+        label="Go"
+        title="Fire it"
+      />,
+    );
+    expect(button).not.toHaveAttribute("aria-disabled");
+    expect(button).not.toHaveAttribute("data-stream");
+    await user.click(button);
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not arm an arm-then-confirm control while the stream is down", async () => {
+    const user = userEvent.setup();
+    const send = vi.fn(async () => OK);
+    render(
+      <CommandButton
+        handle={makeHandle(send, { streamDown: true })}
+        label="Go"
+        confirmLabel="Confirm"
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Go" }));
+    expect(screen.queryByText("Confirm")).toBeNull();
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("keeps the size of the same button with the stream up", () => {
+    const send = vi.fn(async () => OK);
+    const { container, rerender } = render(
+      <CommandButton
+        handle={makeHandle(send, { streamDown: true })}
+        label="Go"
+        confirmLabel="Confirm"
+      />,
+    );
+    const down = container.querySelector("button")?.outerHTML ?? "";
+    rerender(
+      <CommandButton
+        handle={makeHandle(send, { streamDown: false })}
+        label="Go"
+        confirmLabel="Confirm"
+      />,
+    );
+    const up = container.querySelector("button")?.outerHTML ?? "";
+    const strip = (html: string) =>
+      html.replace(
+        /\s(aria-disabled|data-stream|data-tooltip|aria-description)="[^"]*"/g,
+        "",
+      );
+    expect(down).toContain(STREAM_DOWN_TIP);
+    expect(strip(down)).toBe(strip(up));
   });
 });

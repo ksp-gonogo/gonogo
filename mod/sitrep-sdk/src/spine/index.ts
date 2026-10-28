@@ -133,6 +133,7 @@ export * from "./use-processor";
 export * from "./use-route-commands";
 export * from "./use-selected-vantage";
 export * from "./use-stream";
+export * from "./use-stream-connected";
 export * from "./use-stream-event";
 export * from "./use-system-instant";
 export * from "./use-telemetry";

@@ -18,6 +18,7 @@ import {
   type ReckoningMarking,
   ReservedText,
   Section,
+  STREAM_DOWN_TIP,
   Stack,
   Text,
   Tooltip,
@@ -64,6 +65,7 @@ export function ActionGroupView({
     canToggle,
     unavailableReason,
     capabilityWarning,
+    streamDown,
     press,
     buttonWord,
     buttonWords,
@@ -105,11 +107,12 @@ export function ActionGroupView({
     ? UNAVAILABLE_TITLES[unavailableReason]
     : undefined;
   // A group nothing can press names why: the known reason, else that it has no action to invert.
-  const cannotToggleBecause =
-    unavailableTitle ??
-    (group?.toggle
-      ? "The group's state cannot be inverted"
-      : "No toggle is configured for this group");
+  const cannotToggleBecause = streamDown
+    ? STREAM_DOWN_TIP
+    : (unavailableTitle ??
+      (group?.toggle
+        ? "The group's state cannot be inverted"
+        : "No toggle is configured for this group"));
 
   const heldCaption = heldPressCaption({ value, valueHeld, valueLate });
   const heldPress: ReckoningMarking | null =
@@ -226,9 +229,11 @@ export function ActionGroupView({
               )}
               <Tooltip
                 text={
-                  confirmationSentence ??
-                  unavailableReason ??
-                  `Toggle ${currentLabel}`
+                  streamDown
+                    ? STREAM_DOWN_TIP
+                    : (confirmationSentence ??
+                      unavailableReason ??
+                      `Toggle ${currentLabel}`)
                 }
               >
                 <ToggleButton
