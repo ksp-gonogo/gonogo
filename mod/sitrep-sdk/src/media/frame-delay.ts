@@ -169,6 +169,8 @@ export interface FrameDelayStats {
   presented: number;
   /** Frames the presentation pacer skipped to catch up. */
   pacerSkipped: number;
+  /** Times the presentation pacer jumped ahead to catch up, whether or not it skipped a frame. */
+  pacerCatchUps: number;
   /** Frames dropped by `flush()`. */
   flushDropped: number;
   /** Frames evicted over the buffer's size limit. */
@@ -228,6 +230,7 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
     read: 0,
     presented: 0,
     pacerSkipped: 0,
+    pacerCatchUps: 0,
     flushDropped: 0,
     evicted: 0,
     awaitingKeyframeDropped: 0,
@@ -252,6 +255,9 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
         maxLeadSeconds: opts.pacing.maxLeadSeconds,
         gopSafeSkip: opts.gopSafeEviction,
         onPresent: (f) => writeAndClose(f.data),
+        onCatchUp: () => {
+          stats.pacerCatchUps += 1;
+        },
         onSkip: (f) => {
           stats.pacerSkipped += 1;
           f.data.close?.();

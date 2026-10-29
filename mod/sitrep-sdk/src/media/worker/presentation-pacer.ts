@@ -108,11 +108,21 @@ export interface PresentationPacerOptions<Frame> {
    * due. Past it the pacer shows that frame at once and drops the ones before
    * it: the source's clock is running faster than its frames can be shown at
    * their own spacing, as under time warp, or it has jumped forward. Set it
-   * above the longest burst the source releases together. Unset, there is no
+   * above the longest burst the source releases together. A source that
+   * releases bursts further apart than this is allowed the longest recent gap
+   * between bursts plus a quarter, since a burst can never span more than the
+   * wait for the next one without the source's clock running fast. Unset, there is no
    * limit, which suits a source whose frames must all be played, such as a
    * radio transmission.
    */
   maxLeadSeconds?: number;
+  /**
+   * Called each time the pacer catches up: once for every jump to the newest
+   * frame, or to the newest keyframe, that drops or flushes the queue it
+   * could not show at its own spacing. Useful for counting how often a feed
+   * falls out of step.
+   */
+  onCatchUp?(): void;
   /**
    * How many UT seconds of arrivals the pacer measures before it trusts the
    * measured rate. Until then it spaces frames at 1:1.
@@ -142,6 +152,12 @@ const DEFAULT_RATE_BASELINE_SECONDS = 0.2;
  *  every real separation rate and comfortably below the 0.5 that the slowest
  *  time warp produces. */
 const DEFAULT_MAX_RATE_DEPARTURE = 0.2;
+
+/** How many recent gaps between bursts the lead limit looks back over. */
+const BURST_GAP_HISTORY = 8;
+
+/** The margin on the longest recent gap between bursts that the lead limit allows. */
+const BURST_GAP_MARGIN = 1.25;
 
 /**
  * Spaces out frames that were released together, so they are shown at the
@@ -181,6 +197,10 @@ export class PresentationPacer<Frame> {
    */
   private rebaseOnNextTick = false;
   private lastTickWall: number | null = null;
+  /** Set by `submit()`, read and cleared by the next `tick()`. */
+  private arrivedSinceTick = false;
+  private lastArrivalTickWall: number | null = null;
+  private burstGaps: number[] = [];
 
   constructor(private readonly opts: PresentationPacerOptions<Frame>) {}
 
@@ -195,6 +215,7 @@ export class PresentationPacer<Frame> {
   submit(frame: PacedFrame<Frame>, arrivedWall?: number): void {
     if (this.queue.length === 0) this.rebaseOnNextTick = true;
     this.queue.push(frame);
+    this.arrivedSinceTick = true;
     if (arrivedWall === undefined) return;
     const arrival = { ut: frame.ut, wall: arrivedWall };
     /*
@@ -246,6 +267,10 @@ export class PresentationPacer<Frame> {
   tick(nowWall: number): void {
     const previousTickWall = this.lastTickWall;
     this.lastTickWall = nowWall;
+    if (this.arrivedSinceTick) {
+      this.arrivedSinceTick = false;
+      this.recordBurstGap(previousTickWall, nowWall);
+    }
     if (this.queue.length === 0) return;
 
     // One reading per tick, so every frame drained in this pass is spaced on the same rate rather than on one that moved underneath the loop.
@@ -274,7 +299,7 @@ export class PresentationPacer<Frame> {
      */
     if (
       nowWall - headDue > this.opts.maxBacklogSeconds ||
-      lead > (this.opts.maxLeadSeconds ?? Number.POSITIVE_INFINITY)
+      lead > this.leadLimit()
     ) {
       if (this.opts.gopSafeSkip) this.catchUpWithoutBreakingReferences(nowWall);
       else this.skipToNewest(newest, nowWall);
@@ -296,11 +321,46 @@ export class PresentationPacer<Frame> {
     }
   }
 
+  /*
+   * Frames released in one pass arrive together, and the next pass is a whole
+   * gap later, so the queue holds one gap's worth of video by the time the
+   * last of it is shown. A limit under the longest recent gap would call that
+   * ordinary cushion a runaway and throw it away, leaving nothing to show until
+   * the next pass.
+   */
+  private recordBurstGap(
+    previousTickWall: number | null,
+    nowWall: number,
+  ): void {
+    const last = this.lastArrivalTickWall;
+    this.lastArrivalTickWall = nowWall;
+    if (last === null) return;
+    // A caller that stopped ticking has a backlog to report, not a gap between bursts.
+    if (
+      previousTickWall !== null &&
+      nowWall - previousTickWall > this.opts.maxBacklogSeconds
+    ) {
+      return;
+    }
+    this.burstGaps.push(nowWall - last);
+    if (this.burstGaps.length > BURST_GAP_HISTORY) this.burstGaps.shift();
+  }
+
+  private leadLimit(): number {
+    const configured = this.opts.maxLeadSeconds;
+    if (configured === undefined) return Number.POSITIVE_INFINITY;
+    return Math.max(
+      configured,
+      BURST_GAP_MARGIN * Math.max(0, ...this.burstGaps),
+    );
+  }
+
   private skipToNewest(newest: PacedFrame<Frame>, nowWall: number): void {
     for (const dropped of this.queue) {
       if (dropped !== newest) this.opts.onSkip?.(dropped);
     }
     this.queue = [];
+    this.opts.onCatchUp?.();
     this.opts.onPresent(newest);
     this.lastPresented = { ut: newest.ut, wall: nowWall };
   }
@@ -312,6 +372,7 @@ export class PresentationPacer<Frame> {
    * queue is shown at once, which costs a burst and no frames.
    */
   private catchUpWithoutBreakingReferences(nowWall: number): void {
+    this.opts.onCatchUp?.();
     let keyAt = -1;
     for (let i = this.queue.length - 1; i >= 0; i--) {
       if (this.queue[i]?.keyframe) {
@@ -349,6 +410,9 @@ export class PresentationPacer<Frame> {
     this.lastPresented = null;
     this.arrivalAnchor = null;
     this.arrivalLatest = null;
+    this.arrivedSinceTick = false;
+    this.lastArrivalTickWall = null;
+    this.burstGaps = [];
   }
 
   /** Drop (via `onSkip`) everything still queued, without presenting it,

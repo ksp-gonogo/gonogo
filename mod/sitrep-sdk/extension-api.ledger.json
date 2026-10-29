@@ -13409,6 +13409,10 @@
         "note": "New: frames dropped by a flush"
       },
       {
+        "key": "sitrep-sdk ./media FrameDelayStats#pacerCatchUps",
+        "note": "New: times the pacer jumped ahead to catch up"
+      },
+      {
         "key": "sitrep-sdk ./media FrameDelayStats#pacerSkipped",
         "note": "New: frames the pacer skipped to catch up"
       },
@@ -13455,6 +13459,10 @@
       {
         "key": "sitrep-sdk ./media PresentationPacerOptions#maxLeadSeconds?",
         "note": "New: how far ahead of now the newest queued frame may be due before the pacer jumps to it, as under time warp"
+      },
+      {
+        "key": "sitrep-sdk ./media PresentationPacerOptions#onCatchUp?",
+        "note": "New: called each time the pacer jumps ahead to catch up"
       },
       {
         "key": "sitrep-sdk ./registry ~ActionGroupSlotContext",

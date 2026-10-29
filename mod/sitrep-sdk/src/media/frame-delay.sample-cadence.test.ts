@@ -147,3 +147,18 @@ describe("delayed video under a telemetry clock that confirms about once a secon
     expect(r.largestGap).toBeLessThan(0.3);
   });
 });
+
+describe("delayed video when the telemetry clock confirms less often than the pacer's lead limit", () => {
+  it("keeps the whole cushion instead of catching up and leaving the decoder dry", async () => {
+    const r = await simulate({
+      delaySeconds: 0.001,
+      telemetryPeriod: 2.2,
+      fps: 30,
+      seconds: 20,
+    });
+
+    expect(r.stats.pacerSkipped).toBe(0);
+    expect(r.stats.pacerCatchUps).toBe(0);
+    expect(r.largestGap).toBeLessThan(0.5);
+  });
+});

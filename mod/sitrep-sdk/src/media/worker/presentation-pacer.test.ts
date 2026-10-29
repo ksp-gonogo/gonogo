@@ -511,3 +511,68 @@ describe("PresentationPacer", () => {
     });
   });
 });
+
+describe("PresentationPacer lead limit against bursts released far apart", () => {
+  /** Releases `utPerBurst` seconds of video at 30 fps every `gap` wall seconds, ticking at 60 Hz. */
+  function run(gap: number, utPerBurst: number) {
+    const presented: number[] = [];
+    let catchUps = 0;
+    let skipped = 0;
+    let wall = 0;
+    const pacer = new PresentationPacer<string>({
+      onPresent: () => {
+        presented.push(wall);
+      },
+      onSkip: () => {
+        skipped += 1;
+      },
+      onCatchUp: () => {
+        catchUps += 1;
+      },
+      maxBacklogSeconds: 0.5,
+      maxLeadSeconds: 2,
+    });
+    let ut = 0;
+    let nextBurst = 0;
+    for (let step = 0; step * (1 / 60) < 20; step += 1) {
+      wall = step / 60;
+      // The first burst arrives before any gap between bursts has been seen
+      if (step === 8 * 60) {
+        catchUps = 0;
+        skipped = 0;
+      }
+      if (wall >= nextBurst) {
+        nextBurst += gap;
+        for (let t = 0; t < utPerBurst; t += 1 / 30) {
+          pacer.submit(frame(ut, "f"));
+          ut += 1 / 30;
+        }
+      }
+      pacer.tick(wall);
+    }
+    let largestGap = 0;
+    const settled = presented.filter((w) => w >= 8);
+    for (let i = 1; i < settled.length; i += 1) {
+      largestGap = Math.max(
+        largestGap,
+        (settled[i] ?? 0) - (settled[i - 1] ?? 0),
+      );
+    }
+    return { catchUps, skipped, largestGap };
+  }
+
+  it("keeps the cushion of a source that releases 2.2 s of video every 2.2 s", () => {
+    const r = run(2.2, 2.2);
+
+    expect(r.catchUps).toBe(0);
+    expect(r.skipped).toBe(0);
+    expect(r.largestGap).toBeLessThan(0.5);
+  });
+
+  it("still catches up when the source's clock runs 4x faster than the bursts arrive", () => {
+    const r = run(1, 4);
+
+    expect(r.catchUps).toBeGreaterThan(0);
+    expect(r.skipped).toBeGreaterThan(0);
+  });
+});
