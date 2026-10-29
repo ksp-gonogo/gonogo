@@ -7513,6 +7513,45 @@ namespace Sitrep.Host
 
         private double _gameUt = double.NaN;
 
+        /*
+         * The Courier's clock otherwise moves only when a tick is processed, so a
+         * delivery due a millisecond after its sample is held to the next tick, a
+         * whole sample interval later. The main thread offers the game's UT every
+         * physics frame; the Courier thread publishes the earliest instant anything
+         * is due, and a job is queued only when the offered UT has reached it. At
+         * most one such job is outstanding, and it reads the newest offered UT when
+         * it runs. The clock never passes the game's own UT, so the next tick's UT
+         * is never behind it and no tick reads as a rewind.
+         */
+        private double _nextDueUt = double.PositiveInfinity;
+        private double _advanceToUt = double.NaN;
+        private int _advanceQueued;
+
+        /// <summary>
+        /// Main-thread: offer the game's UT as of this frame. When a delivery or a
+        /// scheduled command is due by it, the Courier's clock is advanced there
+        /// without a tick, so each fires within one frame of its due time and never
+        /// before it. Does nothing, and queues nothing, while nothing is due.
+        /// </summary>
+        public void AdvanceDue(double ut)
+        {
+            Volatile.Write(ref _advanceToUt, ut);
+            if (ut >= Volatile.Read(ref _nextDueUt) && Interlocked.Exchange(ref _advanceQueued, 1) == 0)
+            {
+                EnqueueJob(new AdvanceJob());
+            }
+        }
+
+        private void ProcessAdvance()
+        {
+            Volatile.Write(ref _advanceQueued, 0);
+            var ut = Volatile.Read(ref _advanceToUt);
+            if (!double.IsNaN(ut))
+            {
+                _clock.AdvanceTo(ut);
+            }
+        }
+
         /// <summary>
         /// The instant a command pressed now is sent: the game's UT when the host
         /// reports it, never earlier than the clock, which a backward jump or a
@@ -7919,6 +7958,9 @@ namespace Sitrep.Host
                                     Interlocked.Decrement(ref _ticksOutstanding);
                                 }
                                 break;
+                            case AdvanceJob:
+                                ProcessAdvance();
+                                break;
                             case PublishJob publish:
                                 ProcessPublish(publish);
                                 break;
@@ -7961,6 +8003,7 @@ namespace Sitrep.Host
                     {
                         ReportCourierJobThrow(job, ex);
                     }
+                    Volatile.Write(ref _nextDueUt, _clock.NextDueUt);
                 }
             }
         }
@@ -12667,6 +12710,10 @@ namespace Sitrep.Host
 
         /// <summary>Queued when the fresh-connection vantage moves; see <c>ProcessFreshConnectionVantageMoved</c>.</summary>
         private sealed class FreshConnectionVantageMovedJob : IEngineJob
+        {
+        }
+
+        private sealed class AdvanceJob : IEngineJob
         {
         }
 

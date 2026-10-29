@@ -80,6 +80,14 @@ namespace Sitrep.Core
 
         public double Now() => _currentUt;
 
+        /// <summary>
+        /// The UT of the earliest pending callback, or positive infinity when none
+        /// is pending. A cancelled callback still counts until it is popped, so
+        /// this is never later than the true answer. Caller-thread only, like the
+        /// rest of the clock.
+        /// </summary>
+        public double NextDueUt => _pending.Count > 0 ? _pending[0].AtUt : double.PositiveInfinity;
+
         public Action Schedule(double atUt, Action fn)
         {
             // A NaN instant has no place in the order, so it is due at once.
