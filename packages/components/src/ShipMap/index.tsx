@@ -29,6 +29,7 @@ import { turnedView, VIEW_STEPS_PER_TURN } from "./shipView";
 import type { ShipMapOverlayContext } from "./slots";
 import { buildStageStack } from "./stageStack";
 import { useBaseView } from "./useBaseView";
+import { usePartShapes } from "./usePartShapes";
 
 const topics = defineTopicManifest({
   channels: [
@@ -127,6 +128,8 @@ function ShipMapComponent({
 
   // The default angle is found when a craft appears, and every part shares the one view.
   const baseView = useBaseView(topology);
+  // Each part is drawn from its kind's 3D shape once that has arrived, and from its outline until then.
+  const { shapes, sources: shapeSources } = usePartShapes(topology?.parts);
   const parts: ShipMapPart[] = useMemo(() => {
     if (!topology) return [];
     const view = turnedView(baseView, turn);
@@ -138,9 +141,10 @@ function ShipMapComponent({
         live?.resources,
         view,
         live?.partState,
+        p.shape ? shapes.get(p.shape) : undefined,
       );
     });
-  }, [topology, liveByFlightId, baseView, turn]);
+  }, [topology, liveByFlightId, baseView, turn, shapes]);
 
   // Stages already fired are left out, as the in-game stack drops them.
   const stages = useMemo(
@@ -221,6 +225,7 @@ function ShipMapComponent({
 
   return (
     <Box surface="app" style={MAP_SURFACE}>
+      {shapeSources}
       <ShipMapBody
         topology={topology}
         parts={parts}

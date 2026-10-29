@@ -18,7 +18,10 @@ export default {
     "vessel.flight",
     "vessel.identity",
   ],
-  optionalChannelFamilies: ["spaceCenter.craft.<facility>.<segment>.parts"],
+  optionalChannelFamilies: [
+    "parts.shape.<key>",
+    "spaceCenter.craft.<facility>.<segment>.parts",
+  ],
   commands: [
     "ksp.launch",
     "ksp.recover",

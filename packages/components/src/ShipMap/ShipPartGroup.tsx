@@ -83,6 +83,9 @@ export function ShipPartGroup({
       width: p.stowedStrut.width * pxPerMetre,
     };
   }
+  if (p.shapeDrawing) {
+    marks.shape = { drawing: p.shapeDrawing, center, pxPerMetre };
+  }
   if (p.silhouette) {
     marks.silhouette = p.silhouette.map((outline) =>
       outline.map((q) => inBox(q.x, q.y)),

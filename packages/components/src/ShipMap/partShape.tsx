@@ -1,3 +1,5 @@
+import { memo } from "react";
+import { type ShapeDrawing, TONE_STEPS } from "./meshShape";
 import type { ScreenBox } from "./partOverlays";
 import type { PartType } from "./shipTopology";
 
@@ -66,6 +68,31 @@ const STATE_SHAPES: ReadonlySet<PartType> = new Set<PartType>([
   "clamp",
 ]);
 
+/**
+ * The part types still drawn by what they do once their 3D shape has
+ * arrived: a parachute splits by canopy state, a strut is a link and a clamp
+ * a translucent overlay. A landing leg is drawn from its shape, which its
+ * poses fold and unfold.
+ */
+const SHAPE_STATE_SHAPES: ReadonlySet<PartType> = new Set<PartType>([
+  "parachute",
+  "strut",
+  "clamp",
+]);
+
+/** How far each tone is mixed toward black (below the middle) or white (above it), in percent. */
+const TONE_MIX = [-34, -17, 0, 14, 28];
+
+/** Sharp edges inside a part are drawn lighter than its outline, so the outline still reads first. */
+const CREASE_OPACITY = 0.5;
+
+/** The fill of a face of `tone` on a part whose own colour is `fill`. */
+export function toneFill(fill: string, tone: number): string {
+  const mix = TONE_MIX[Math.max(0, Math.min(TONE_STEPS - 1, tone))];
+  if (mix === 0) return fill;
+  return `color-mix(in srgb, ${fill}, ${mix < 0 ? "black" : "white"} ${Math.abs(mix)}%)`;
+}
+
 /** Shapes a part carries beyond its box, in the same pixel space as the box. */
 export interface PartMarks {
   /** A folded leg's strut, between the two ends of a capsule `width` across. */
@@ -80,7 +107,87 @@ export interface PartMarks {
   silhouette?: { x: number; y: number }[][];
   /** Where a structural strut attaches. */
   anchor?: { x: number; y: number };
+  /** The part's lit 3D shape, in metres, and where its frame sits: the box centre in pixels and how many pixels a metre is. */
+  shape?: {
+    drawing: ShapeDrawing;
+    center: { x: number; y: number };
+    pxPerMetre: number;
+  };
 }
+
+/**
+ * A part drawn from its lit 3D shape, in the same one-silhouette layering as
+ * an outline drawn from the hull: the outline is stroked at twice the edge
+ * width, then filled over it, so only the outside of the union keeps its
+ * line. The lit faces go over that in paint order, and the sharp edges the
+ * faces do not hide go on top. `x`, `y` place the drawing's frame in pixels
+ * and `metre` is how many pixels a metre is; widths are in pixels. Memoised
+ * on its plain props, so a telemetry tick that leaves the part where it was
+ * does not walk its paths again.
+ */
+const MeshShape = memo(function MeshShape({
+  drawing,
+  x,
+  y,
+  metre,
+  fill,
+  edge,
+  edgeWidth,
+  creaseWidth,
+  opacity,
+}: {
+  drawing: ShapeDrawing;
+  x: number;
+  y: number;
+  metre: number;
+  fill: string;
+  edge: string;
+  edgeWidth: number;
+  creaseWidth: number;
+  opacity: number;
+}) {
+  return (
+    <g opacity={opacity}>
+      <g transform={`translate(${x} ${y}) scale(${metre} ${-metre})`}>
+        <path
+          data-role="mesh-outline-edge"
+          d={drawing.outline}
+          fill={fill}
+          stroke={edge}
+          strokeWidth={(edgeWidth * 2) / metre}
+          strokeLinejoin="round"
+        />
+        <path
+          data-role="mesh-outline"
+          d={drawing.outline}
+          fill={fill}
+          stroke="none"
+        />
+        {drawing.faces.map((face, i) => (
+          <path
+            // biome-ignore lint/suspicious/noArrayIndexKey: a drawing's faces are a fixed sequence, so the index is their identity
+            key={i}
+            data-role="mesh-face"
+            d={face.d}
+            fill={toneFill(fill, face.tone)}
+            stroke="none"
+          />
+        ))}
+        {drawing.creases && (
+          <path
+            data-role="mesh-crease"
+            d={drawing.creases}
+            fill="none"
+            stroke={edge}
+            strokeWidth={creaseWidth / metre}
+            strokeLinecap="round"
+            opacity={CREASE_OPACITY}
+          />
+        )}
+      </g>
+    </g>
+  );
+});
 
 export function renderPartShape(
   type: PartType,
@@ -103,6 +210,30 @@ export function renderPartShape(
   const { x, y, w, h } = box;
   const cx = center.x;
   const cy = center.y;
+
+  if (marks.shape && !SHAPE_STATE_SHAPES.has(type)) {
+    const { drawing, center: origin, pxPerMetre } = marks.shape;
+    const overlay = type === "fairing";
+    const edge = overlay
+      ? isHot
+        ? "var(--color-tag-yellow-fg)"
+        : "var(--color-text-dim)"
+      : stroke;
+    const edgeWidth = overlay ? Math.max(strokeWidth, 1 / zoom) : strokeWidth;
+    return (
+      <MeshShape
+        drawing={drawing}
+        x={origin.x}
+        y={origin.y}
+        metre={Math.max(pxPerMetre, 1e-6)}
+        fill={fill}
+        edge={edge}
+        edgeWidth={edgeWidth}
+        creaseWidth={strokeWidth}
+        opacity={overlay ? 0.45 : opacity}
+      />
+    );
+  }
 
   if (marks.silhouette && !STATE_SHAPES.has(type)) {
     // Identical outlines (mirrored meshes) share their points, so a repeat takes an ordinal suffix to stay unique.

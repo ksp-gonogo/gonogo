@@ -6,6 +6,7 @@ import { ShipDiagramSvg } from "../ShipMap/ShipDiagramSvg";
 import { buildShipMapPart, type ShipMapPart } from "../ShipMap/shipTopology";
 import { pickView } from "../ShipMap/shipView";
 import { buildStageStack } from "../ShipMap/stageStack";
+import { usePartShapes } from "../ShipMap/usePartShapes";
 import { CraftStages } from "./CraftStages";
 import {
   CraftDiagramFrame,
@@ -83,13 +84,21 @@ export function CraftDiagram({
   topology: VesselTopology | undefined;
   resourcesByFlightId?: ReadonlyMap<number, PartResources>;
 }) {
+  const { shapes, sources: shapeSources } = usePartShapes(topology?.parts);
   const parts: ShipMapPart[] = useMemo(() => {
     if (!topology) return [];
     const view = pickView(topology.parts);
     return topology.parts.map((p) =>
-      buildShipMapPart(p, null, resourcesByFlightId?.get(p.flightId), view),
+      buildShipMapPart(
+        p,
+        null,
+        resourcesByFlightId?.get(p.flightId),
+        view,
+        null,
+        p.shape ? shapes.get(p.shape) : undefined,
+      ),
     );
-  }, [topology, resourcesByFlightId]);
+  }, [topology, resourcesByFlightId, shapes]);
 
   const [openClusterId, setOpenClusterId] = useState<string | null>(null);
   const [wrapEl, setWrapEl] = useState<HTMLDivElement | null>(null);
@@ -110,6 +119,7 @@ export function CraftDiagram({
 
   return (
     <CraftDiagramFrame ref={setWrapEl} data-craft-map>
+      {shapeSources}
       {parts.length === 0 ? (
         <CraftNoParts role="img" aria-label="No part data for this craft">
           {NULL_DISPLAY}

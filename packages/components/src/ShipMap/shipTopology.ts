@@ -5,7 +5,9 @@ import type {
   PartThermal,
   TopologyPart,
 } from "@ksp-gonogo/core";
+import type { DecodedPartShape } from "@ksp-gonogo/data";
 import { classifyPart } from "./classifyPart";
+import { drawShape, SCREEN_LIGHT, type ShapeDrawing } from "./meshShape";
 import { convexHull, type OutlinePoint } from "./outline";
 
 /** Diagram-side categories: one per visually distinct shape. Every other KSP category is "other". */
@@ -79,6 +81,8 @@ export interface ShipMapPart {
   stowedStrut?: StowedStrut;
   /** The part's mesh seen from this view, as a convex outline in metres in the drawn box's frame from the box centre. Absent when the part carries no mesh outline, which is drawn as its box. */
   silhouette?: OutlinePoint[][];
+  /** The part's 3D shape seen from this view and lit, in metres in the drawn box's frame from the box centre. Absent until the part's shape has arrived, when it has none, or when none of its meshes shows, and then the part is drawn from `silhouette`. */
+  shapeDrawing?: ShapeDrawing;
   /** For a structural strut: where it attaches, in metres in the drawn box's frame from the box centre. */
   anchor?: { x: number; y: number };
   /** `Part.mass` from topology: dry mass, no resources. Null when unread. */
@@ -385,7 +389,8 @@ function planformOf(
  * Build a `ShipMapPart` from one topology entry and the live slice. The
  * caller picks the view once per vessel (`pickView`, turned by the operator's
  * rotation): the angle in radians about the spine at which the diagram looks
- * at the craft, 0 putting the vessel's X axis across the screen.
+ * at the craft, 0 putting the vessel's X axis across the screen. `shape` is
+ * the part's 3D shape once it has arrived, drawn as the part's own row poses it.
  */
 export function buildShipMapPart(
   part: TopologyPart,
@@ -393,6 +398,7 @@ export function buildShipMapPart(
   resources: PartResources | undefined,
   view: number,
   partState?: PartState | null,
+  shape?: DecodedPartShape,
 ): ShipMapPart {
   const ecFlow = resources?.ElectricCharge?.flow;
   const ecFlowSign: "producer" | "consumer" | null =
@@ -467,6 +473,33 @@ export function buildShipMapPart(
       ),
     )
     .filter((outline) => outline.length > 0);
+  let shapeDrawing: ShapeDrawing | undefined;
+  if (shape) {
+    /* The map from a part-local point to the drawn box's frame, as `inBoxFrame` takes a point from the box centre, with the depth toward the viewer as its third row. */
+    const linear = [axes.right, axes.up, axes.forward].map((dir) => {
+      const lat = latOf(dir);
+      return [
+        lat * cos - dir.y * sin,
+        lat * sin + dir.y * cos,
+        depthOf(dir, view),
+      ];
+    });
+    const frame: number[] = [];
+    for (let row = 0; row < 3; row++) {
+      const r = [linear[0][row], linear[1][row], linear[2][row]];
+      frame.push(
+        r[0],
+        r[1],
+        r[2],
+        -(r[0] * centre.x + r[1] * centre.y + r[2] * centre.z),
+      );
+    }
+    const [lx, ly, lz] = SCREEN_LIGHT;
+    const light = [lx * cos - ly * sin, lx * sin + ly * cos, lz] as const;
+    const drawn = drawShape(shape, frame, light, part.shapePoses);
+    // A shape with nothing shown from here would leave no part at all, so the outline stands in for it.
+    if (drawn.outline) shapeDrawing = drawn;
+  }
   const anchor =
     type === "strut"
       ? inBoxFrame({ x: -centre.x, y: -centre.y, z: -centre.z })
@@ -491,6 +524,7 @@ export function buildShipMapPart(
     trailingCut: planform ? TRAILING_CUT_PARTS[part.name] : undefined,
     stowedStrut,
     silhouette: silhouette.length ? silhouette : undefined,
+    shapeDrawing,
     anchor,
     dryMass: part.dryMass,
     stage: part.inverseStage,
