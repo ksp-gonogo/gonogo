@@ -114,24 +114,38 @@ export function renderPartShape(
       return { points, key: `${points}#${n}` };
     });
     const overlay = type === "fairing";
+    const edge = overlay
+      ? isHot
+        ? "var(--color-tag-yellow-fg)"
+        : "var(--color-text-dim)"
+      : stroke;
+    const edgeWidth = overlay ? Math.max(strokeWidth, 1 / zoom) : strokeWidth;
+    /*
+     * A part reads as one silhouette: every piece is stroked at twice the edge
+     * width first, then every piece is filled over the strokes. An edge inside
+     * another piece is covered by its fill, so only the outside of the union
+     * keeps its line, at the width a single piece's stroke would show.
+     */
     return (
       <g opacity={overlay ? 0.45 : opacity}>
+        {outlines.map(({ points, key }) => (
+          <polygon
+            key={`edge-${key}`}
+            data-role="mesh-outline-edge"
+            points={points}
+            fill={fill}
+            stroke={edge}
+            strokeWidth={edgeWidth * 2}
+            strokeLinejoin="round"
+          />
+        ))}
         {outlines.map(({ points, key }) => (
           <polygon
             key={key}
             data-role="mesh-outline"
             points={points}
             fill={fill}
-            stroke={
-              overlay
-                ? isHot
-                  ? "var(--color-tag-yellow-fg)"
-                  : "var(--color-text-dim)"
-                : stroke
-            }
-            strokeWidth={
-              overlay ? Math.max(strokeWidth, 1 / zoom) : strokeWidth
-            }
+            stroke="none"
           />
         ))}
       </g>
