@@ -140,6 +140,7 @@ namespace Sitrep.Host
                 Bounds = MapBounds(raw),
                 Shape = GetString(raw, "shape"),
                 ShapePoses = MapShapePoses(raw),
+                Fairing = MapFairing(raw),
                 DryMass = GetDouble(raw, "dryMass"),
                 InverseStage = GetInt(raw, "inverseStage"),
                 MaxTemp = GetDouble(raw, "maxTemp"),
@@ -275,6 +276,30 @@ namespace Sitrep.Host
             return poses.Count > 0 ? poses : null;
         }
 
+        private static FairingShell? MapFairing(IDictionary<string, object?> raw)
+        {
+            if (!raw.TryGetValue("fairing", out var rawFairing) || rawFairing is not IDictionary<string, object?> fairing)
+            {
+                return null;
+            }
+
+            var pivot = GetVec3(fairing, "pivot");
+            var axis = GetVec3(fairing, "axis");
+            if (pivot == null || axis == null)
+            {
+                return null;
+            }
+
+            var rings = SnapshotDict.GetDoubleArray(fairing, "rings") ?? new double[0];
+            return new FairingShell
+            {
+                Pivot = pivot,
+                Axis = axis,
+                // An odd count would pair a height with the next ring's height, so a torn list reads as no shell rather than a wrong one.
+                Rings = rings.Length % 2 == 0 ? new List<double>(rings) : new List<double>(),
+            };
+        }
+
         private static List<string> MapModules(IDictionary<string, object?> raw)
         {
             var result = new List<string>();
@@ -325,6 +350,7 @@ namespace Sitrep.Host
             ["bounds"] = ToWire(part.Bounds),
             ["shape"] = part.Shape,
             ["shapePoses"] = part.ShapePoses?.Select(p => (object?)ToWire(p)).ToList(),
+            ["fairing"] = part.Fairing != null ? ToWire(part.Fairing) : null,
             ["dryMass"] = part.DryMass,
             ["inverseStage"] = part.InverseStage,
             ["maxTemp"] = part.MaxTemp,
@@ -377,6 +403,13 @@ namespace Sitrep.Host
             ["mesh"] = pose.Mesh,
             ["shown"] = pose.Shown,
             ["transform"] = pose.Transform,
+        };
+
+        private static Dictionary<string, object?> ToWire(FairingShell fairing) => new Dictionary<string, object?>
+        {
+            ["pivot"] = ToWire(fairing.Pivot),
+            ["axis"] = ToWire(fairing.Axis),
+            ["rings"] = new List<double>(fairing.Rings),
         };
 
         private static Dictionary<string, object?> ToWire(Vec3 v) => new Dictionary<string, object?>

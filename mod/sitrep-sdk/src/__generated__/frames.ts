@@ -33,6 +33,10 @@ export const GENERATED_TYPE_FRAMES = {
     relativePosition: { frame: "subject-relative" },
     relativeVelocity: { frame: "subject-relative" },
   },
+  "FairingShell": {
+    axis: { frame: "part-local" },
+    pivot: { frame: "part-local" },
+  },
   "PartBounds": {
     center: { frame: "part-local" },
     size: { frame: "part-local" },

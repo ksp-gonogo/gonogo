@@ -135,6 +135,14 @@ public class VesselPart
     /// </summary>
     public List<PartShapePose>? ShapePoses { get; set; }
 
+    /// <summary>
+    /// The shell of a procedural fairing, as rings stacked along its axis.
+    /// <c>null</c> on every part that is not a procedural fairing. On a
+    /// fairing, <see cref="FairingShell.Rings"/> is empty when no shell
+    /// stands: never built, or jettisoned.
+    /// </summary>
+    public FairingShell? Fairing { get; set; }
+
     /// <summary><c>Part.mass</c>: dry mass (tonnes). Null when it could not be read.</summary>
     [SitrepUnit(Units.Tonnes)]
     public double? DryMass { get; set; }
@@ -419,4 +427,49 @@ public class PartBounds
     [SitrepUnit(Units.Metres)]
     [SitrepFrame(Frames.PartLocal)]
     public Vec3? Center { get; set; }
+}
+
+/// <summary>
+/// A procedural fairing's shell: rings stacked along <see cref="Axis"/> from
+/// <see cref="Pivot"/>, joined by straight panels. The shell is not part of
+/// the fairing's <see cref="PartShape"/>, which holds its base alone, so a
+/// drawing of the fairing draws its shell from these rings.
+/// <internal>
+/// The fairing module builds the shell's meshes at run time from its saved
+/// sections (ModuleProceduralFairing.xSections), so no model file carries
+/// them and every fairing is its own size. The rings are those sections in
+/// height order, plus the nose tip FairingPanel.SetupPanelArray adds above a
+/// top ring whose radius is the module's capRadius. The module's edgeSlide and
+/// edgeWarp bow a panel by a few centimetres at most and are left out.
+/// </internal>
+/// </summary>
+/// <category>Parts</category>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class FairingShell
+{
+    /// <summary>The point the rings are measured from, in the part's own
+    /// frame (metres).</summary>
+    [SitrepUnit(Units.Metres)]
+    [SitrepFrame(Frames.PartLocal)]
+    public Vec3 Pivot { get; set; } = new();
+
+    /// <summary>The direction the rings stack along, as a unit vector in the
+    /// part's own frame.</summary>
+    [SitrepUnit(Units.Dimensionless)]
+    [SitrepFrame(Frames.PartLocal)]
+    public Vec3 Axis { get; set; } = new();
+
+    /// <summary>
+    /// The rings from the base up, as pairs: each ring's height along
+    /// <see cref="Axis"/> from <see cref="Pivot"/>, then its radius, both in
+    /// metres (<c>h0, r0, h1, r1, ...</c>). Heights rise from one ring to the
+    /// next. A closed shell ends in a ring of radius 0, its nose tip; a shell
+    /// open at the top ends in a ring with a radius. Always an even count,
+    /// and empty when no shell stands.
+    /// </summary>
+    [SitrepUnit(Units.Metres)]
+    public List<double> Rings { get; set; } = new();
 }

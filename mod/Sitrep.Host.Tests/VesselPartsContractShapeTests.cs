@@ -69,6 +69,12 @@ namespace Sitrep.Host.Tests
             var pose = Assert.IsType<Dictionary<string, object?>>(Assert.Single(poses));
             AssertKeysMatchType(typeof(PartShapePose), pose);
             Assert.Equal(12, Assert.IsType<List<double>>(pose["transform"]).Count);
+
+            var fairing = Assert.IsType<Dictionary<string, object?>>(part["fairing"]);
+            AssertKeysMatchType(typeof(FairingShell), fairing);
+            AssertVec3(fairing["pivot"]);
+            AssertVec3(fairing["axis"]);
+            Assert.Equal(new[] { 0.0, 0.625, 1.8690, 0.2, 2.1927, 0.0 }, Assert.IsType<List<double>>(fairing["rings"]));
         }
 
         [Fact]
@@ -135,6 +141,12 @@ namespace Sitrep.Host.Tests
                                     ["transform"] = new double[] { 1, 0, 0, 0.1, 0, 1, 0, 0, 0, 0, 1, 0 },
                                 },
                             },
+                            ["fairing"] = new Dictionary<string, object?>
+                            {
+                                ["pivot"] = new double[] { 0.0, 0.17, 0.0 },
+                                ["axis"] = new double[] { 0.0, 1.0, 0.0 },
+                                ["rings"] = new double[] { 0.0, 0.625, 1.8690, 0.2, 2.1927, 0.0 },
+                            },
                             ["dryMass"] = 0.84,
                             ["inverseStage"] = 0,
                             ["maxTemp"] = 2400.0,
@@ -199,7 +211,7 @@ namespace Sitrep.Host.Tests
             // resources/moduleStates are dict-of-dicts / list-of-dicts (like
             // bounds' nested Vec3s): their per-row shape is asserted
             // separately by the caller via AssertKeysMatchType, not here.
-            var nestedObjectKeys = new HashSet<string> { "position", "up", "forward", "bounds", "resources", "moduleStates", "actionBindings", "shapePoses" };
+            var nestedObjectKeys = new HashSet<string> { "position", "up", "forward", "bounds", "resources", "moduleStates", "actionBindings", "shapePoses", "fairing" };
 
             foreach (var (key, value) in emitted)
             {

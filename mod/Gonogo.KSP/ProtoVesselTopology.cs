@@ -135,6 +135,7 @@ namespace Gonogo.KSP
                     ["center"] = box.HasMesh ? Vec3Array(box.Center) : null,
                 },
                 ["shape"] = info != null ? PartShapeWire.Key(info.name, pps.moduleVariantName) : null,
+                ["fairing"] = FairingShellRead.Saved(SavedFairing(pps), prefab),
                 ["dryMass"] = (double)pps.mass,
                 ["inverseStage"] = pps.inverseStageIndex,
                 ["maxTemp"] = prefab != null ? prefab.maxTemp : (double?)null,
@@ -175,6 +176,23 @@ namespace Gonogo.KSP
                 ["tracking"] = null,
                 ["flameout"] = null,
             };
+        }
+
+        /// <summary>The saved values of the part's fairing module, or null when it has none saved.</summary>
+        private static ConfigNode? SavedFairing(ProtoPartSnapshot pps)
+        {
+            if (pps.modules == null)
+            {
+                return null;
+            }
+            foreach (var module in pps.modules)
+            {
+                if (module?.moduleName == nameof(ModuleProceduralFairing))
+                {
+                    return module.moduleValues;
+                }
+            }
+            return null;
         }
 
         /// <summary>The box of the part named <paramref name="partName"/>, measured once on its prefab.</summary>

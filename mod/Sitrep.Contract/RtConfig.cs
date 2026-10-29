@@ -372,6 +372,7 @@ public static class RtConfig
                 typeof(VesselPart),
                 typeof(PartBounds),
                 typeof(PartShapePose),
+                typeof(FairingShell),
                 // parts.shape.<key>: one kind of part's reduced meshes
                 typeof(PartShape),
                 typeof(PartShapeMesh),

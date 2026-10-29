@@ -7980,6 +7980,7 @@ namespace Gonogo.KSP
                 },
                 ["shape"] = shape,
                 ["shapePoses"] = shapePoses,
+                ["fairing"] = FairingShellRead.Live(part),
                 ["dryMass"] = (double)part.mass,
                 ["inverseStage"] = part.inverseStage,
                 ["maxTemp"] = part.maxTemp,
@@ -8849,8 +8850,10 @@ namespace Gonogo.KSP
         /// pose, which is the closed pose when <c>closedPosition</c> is 0. A module
         /// that is not a <c>ModuleAnimateGeneric</c> gives no direction, and a
         /// position between the two ends with nothing moving is "unknown". Null when
-        /// the bay has no animated doors to read: a procedural fairing carries a
-        /// <c>ModuleCargoBay</c> whose deploy index names no scalar module.
+        /// the deploy index names no <c>IScalarModule</c>. A procedural fairing's
+        /// bay names its fairing module, which reads 0 while the shell stands in
+        /// flight and 1 once it is jettisoned, so its bay is "retracted" until the
+        /// shell goes and "extended" after.
         /// </summary>
         private static string? MapCargoBayState(Part part, ModuleCargoBay bay)
         {

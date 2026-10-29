@@ -134,6 +134,7 @@ namespace Gonogo.KSP
                     ["center"] = box.HasMesh ? Vec3Array(box.Center) : null,
                 },
                 ["shape"] = PartShapeWire.Key(info.name, VariantOf(node)),
+                ["fairing"] = FairingShellRead.Saved(FairingShellRead.SavedModule(node.GetNodes("MODULE")), prefab),
                 ["dryMass"] = (double)prefab.mass + Number(node.GetValue("modMass")),
                 ["inverseStage"] = (int)Number(node.GetValue("istg"), -1),
                 ["maxTemp"] = (double)prefab.maxTemp,

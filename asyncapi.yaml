@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo WebSocket API
-  version: 50.0.0
+  version: 50.1.0
   description: |-
     The WebSocket API of the Gonogo mod: 90 telemetry channels a client
     subscribes to and 72 commands it sends, each with its payload and what it
@@ -15370,6 +15370,58 @@ components:
             here: storage capacity, file-vs-sample, transmit rate, per-unit science
             rate. Absent from the payload when no provider filled it.
           additionalProperties: true
+    FairingShell:
+      type: object
+      description: |-
+        A procedural fairing's shell: rings stacked along `FairingShell.axis` from
+        `FairingShell.pivot`, joined by straight panels. The shell is not part of
+        the fairing's `PartShape`, which holds its base alone, so a drawing of the
+        fairing draws its shell from these rings.
+      required:
+        - pivot
+        - axis
+        - rings
+      properties:
+        pivot:
+          type: object
+          description: The point the rings are measured from, in the part's own frame (metres).
+          required:
+            - x
+            - y
+            - z
+          properties:
+            x: &a3
+              type: number
+              x-sitrep-unit: m
+            y: *a3
+            z: *a3
+        axis:
+          type: object
+          description: |-
+            The direction the rings stack along, as a unit vector in the part's own
+            frame.
+          required:
+            - x
+            - y
+            - z
+          properties:
+            x: &a4
+              type: number
+              x-sitrep-unit: "1"
+            y: *a4
+            z: *a4
+        rings:
+          type: array
+          items:
+            type: number
+            x-sitrep-unit: m
+          description: |-
+            The rings from the base up, as pairs: each ring's height along
+            `FairingShell.axis` from `FairingShell.pivot`, then its radius, both in
+            metres (`h0, r0, h1, r1, ...`). Heights rise from one ring to the next. A
+            closed shell ends in a ring of radius 0, its nose tip; a shell open at the
+            top ends in a ring with a radius. Always an even count, and empty when no
+            shell stands.
     FaultCode:
       type: string
       description: |-
@@ -18159,11 +18211,11 @@ components:
             - y
             - z
           properties:
-            x: &a3
+            x: &a5
               type: number
               x-sitrep-unit: m
-            y: *a3
-            z: *a3
+            y: *a5
+            z: *a5
         center:
           type:
             - object
@@ -18177,11 +18229,11 @@ components:
             - y
             - z
           properties:
-            x: &a4
+            x: &a6
               type: number
               x-sitrep-unit: m
-            y: *a4
-            z: *a4
+            y: *a6
+            z: *a6
     PartModuleState:
       type: object
       description: |-
@@ -23758,11 +23810,11 @@ components:
             - y
             - z
           properties:
-            x: &a5
+            x: &a7
               type: number
               x-sitrep-unit: m
-            y: *a5
-            z: *a5
+            y: *a7
+            z: *a7
         velocity:
           type: object
           description: |-
@@ -23773,11 +23825,11 @@ components:
             - y
             - z
           properties:
-            x: &a6
+            x: &a8
               type: number
               x-sitrep-unit: m/s
-            y: *a6
-            z: *a6
+            y: *a8
+            z: *a8
         frameRotating:
           type: boolean
           x-sitrep-unit: flag
@@ -23851,11 +23903,11 @@ components:
             - y
             - z
           properties:
-            x: &a7
+            x: &a9
               type: number
               x-sitrep-unit: m
-            y: *a7
-            z: *a7
+            y: *a9
+            z: *a9
         up:
           type:
             - object
@@ -23868,11 +23920,11 @@ components:
             - y
             - z
           properties:
-            x: &a8
+            x: &a10
               type: number
               x-sitrep-unit: "1"
-            y: *a8
-            z: *a8
+            y: *a10
+            z: *a10
         forward:
           type:
             - object
@@ -23887,11 +23939,11 @@ components:
             - y
             - z
           properties:
-            x: &a9
+            x: &a11
               type: number
               x-sitrep-unit: "1"
-            y: *a9
-            z: *a9
+            y: *a11
+            z: *a11
         bounds:
           description: The part's bounding box, in the part's own frame. Always present.
           allOf:
@@ -23917,6 +23969,15 @@ components:
             bay door, a turned nozzle, a shroud switched off. A mesh not listed is drawn
             as the shape has it. `null` when every mesh does, and always `null` for a
             part read from a saved craft or an unloaded craft, which stands as built.
+        fairing:
+          description: |-
+            The shell of a procedural fairing, as rings stacked along its axis. `null`
+            on every part that is not a procedural fairing. On a fairing,
+            `FairingShell.rings` is empty when no shell stands: never built, or
+            jettisoned.
+          anyOf:
+            - $ref: "#/components/schemas/FairingShell"
+            - type: "null"
         dryMass:
           type:
             - number
@@ -24402,11 +24463,11 @@ components:
             - y
             - z
           properties:
-            x: &a10
+            x: &a12
               type: number
               x-sitrep-unit: m
-            y: *a10
-            z: *a10
+            y: *a12
+            z: *a12
         relativeVelocity:
           type:
             - object
@@ -24420,11 +24481,11 @@ components:
             - y
             - z
           properties:
-            x: &a11
+            x: &a13
               type: number
               x-sitrep-unit: m/s
-            y: *a11
-            z: *a11
+            y: *a13
+            z: *a13
         orbit:
           description: |-
             The target's orbit. Null when the target has no orbit (it is landed, say, or

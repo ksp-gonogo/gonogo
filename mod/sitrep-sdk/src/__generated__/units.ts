@@ -802,6 +802,15 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     transmitBonus: "ratio",
     valueModel: "id",
   },
+  "FairingShell": {
+    "axis.x": "1",
+    "axis.y": "1",
+    "axis.z": "1",
+    "pivot.x": "m",
+    "pivot.y": "m",
+    "pivot.z": "m",
+    rings: "m",
+  },
   "FireCrewArgs": {
     kerbalName: "id",
   },
@@ -2966,6 +2975,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "VesselPart": {
     actionBindings: "ActionBinding[]",
     bounds: "PartBounds",
+    fairing: "FairingShell",
     moduleStates: "PartModuleState[]",
     resources: "*PartResourceFlow",
     shapePoses: "PartShapePose[]",

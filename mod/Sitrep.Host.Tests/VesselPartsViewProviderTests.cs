@@ -322,6 +322,60 @@ namespace Sitrep.Host.Tests
             Assert.Equal("1", child["parentId"]);
         }
 
+        [Fact]
+        public void AFairingCarriesItsShellAndOtherPartsCarryNone()
+        {
+            var fairing = RawPart("1", null, "fairingSize1");
+            fairing["fairing"] = new Dictionary<string, object?>
+            {
+                ["pivot"] = new double[] { 0.0, 0.17, 0.0 },
+                ["axis"] = new double[] { 0.0, 1.0, 0.0 },
+                ["rings"] = new double[] { 0.0, 0.625, 1.1307, 0.5193, 1.869, 0.2, 2.1927, 0.0 },
+            };
+            var tank = RawPart("2", "1");
+
+            var parts = VesselPartsViewProvider.BuildParts(TopologySnapshot(fairing, tank))!.Parts;
+
+            var shell = parts[0].Fairing!;
+            Assert.Equal(0.17, shell.Pivot.Y);
+            Assert.Equal(1.0, shell.Axis.Y);
+            Assert.Equal(new[] { 0.0, 0.625, 1.1307, 0.5193, 1.869, 0.2, 2.1927, 0.0 }, shell.Rings);
+            Assert.Null(parts[1].Fairing);
+        }
+
+        [Fact]
+        public void AJettisonedFairingCarriesAnEmptyShell()
+        {
+            var raw = RawPart("1", null, "fairingSize1");
+            raw["fairing"] = new Dictionary<string, object?>
+            {
+                ["pivot"] = new double[] { 0.0, 0.17, 0.0 },
+                ["axis"] = new double[] { 0.0, 1.0, 0.0 },
+                ["rings"] = new double[0],
+            };
+
+            var part = Assert.Single(VesselPartsViewProvider.BuildParts(TopologySnapshot(raw))!.Parts);
+
+            Assert.NotNull(part.Fairing);
+            Assert.Empty(part.Fairing!.Rings);
+        }
+
+        [Fact]
+        public void AnOddRingListReadsAsNoShell()
+        {
+            var raw = RawPart("1", null, "fairingSize1");
+            raw["fairing"] = new Dictionary<string, object?>
+            {
+                ["pivot"] = new double[] { 0.0, 0.17, 0.0 },
+                ["axis"] = new double[] { 0.0, 1.0, 0.0 },
+                ["rings"] = new double[] { 0.0, 0.625, 1.0 },
+            };
+
+            var part = Assert.Single(VesselPartsViewProvider.BuildParts(TopologySnapshot(raw))!.Parts);
+
+            Assert.Empty(part.Fairing!.Rings);
+        }
+
         // ----------------------------------------------------------------
 
         private static KspSnapshot TopologySnapshot(params IDictionary<string, object?>[] parts) => new KspSnapshot

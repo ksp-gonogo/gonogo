@@ -12048,6 +12048,13 @@ export interface VesselPart
 	* part read from a saved craft or an unloaded craft, which stands as built.
 	*/
 	shapePoses?: PartShapePose[] | null;
+	/**
+	* The shell of a procedural fairing, as rings stacked along its axis. `null`
+	* on every part that is not a procedural fairing. On a fairing,
+	* `FairingShell.rings` is empty when no shell stands: never built, or
+	* jettisoned.
+	*/
+	fairing?: FairingShell | null;
 	/** `Part.mass`: dry mass (tonnes). Null when it could not be read. */
 	dryMass?: Value<"t"> | null;
 	/**
@@ -12276,6 +12283,33 @@ export interface PartBounds
 	* rotation before adding it to `VesselPart.position`.
 	*/
 	center?: Vec3Of<"m"> | null;
+}
+/**
+* A procedural fairing's shell: rings stacked along `FairingShell.axis` from
+* `FairingShell.pivot`, joined by straight panels. The shell is not part of
+* the fairing's `PartShape`, which holds its base alone, so a drawing of the
+* fairing draws its shell from these rings.
+*
+* @category Parts
+*/
+export interface FairingShell
+{
+	/** The point the rings are measured from, in the part's own frame (metres). */
+	pivot: Vec3Of<"m">;
+	/**
+	* The direction the rings stack along, as a unit vector in the part's own
+	* frame.
+	*/
+	axis: Vec3Of<"1">;
+	/**
+	* The rings from the base up, as pairs: each ring's height along
+	* `FairingShell.axis` from `FairingShell.pivot`, then its radius, both in
+	* metres (`h0, r0, h1, r1, ...`). Heights rise from one ring to the next. A
+	* closed shell ends in a ring of radius 0, its nose tip; a shell open at the
+	* top ends in a ring with a radius. Always an even count, and empty when no
+	* shell stands.
+	*/
+	rings: Value<"m">[];
 }
 /**
 * The active vessel's physics-simulation regime, derived from KSP's own

@@ -46,6 +46,8 @@
     <Compile Include="..\Gonogo.KSP\SavedModuleReads.cs" />
     <!-- MakingHistoryReads.cs carries no KSP or Unity type either; MissionCapture.cs, the walk it serves, needs a live mission and stays out. -->
     <Compile Include="..\Gonogo.KSP\MakingHistoryReads.cs" />
+    <!-- FairingRings.cs turns a fairing's saved sections into its ring list and carries no KSP or Unity type. -->
+    <Compile Include="..\Gonogo.KSP\FairingRings.cs" />
     <Compile Include="..\Gonogo.KSP\ExpansionHealth.cs" />
     <Compile Include="..\Gonogo.KSP\LogTail.cs" />
     <Compile Include="..\Gonogo.KSP\RescanGate.cs" />
