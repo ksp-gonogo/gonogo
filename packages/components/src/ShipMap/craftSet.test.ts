@@ -185,6 +185,30 @@ describe("captured craft with a closed fairing", () => {
     const shells = projected.filter((p) => p.type === "fairing");
     expect(shells.map((p) => p.name)).toEqual(["fairingSize1"]);
   });
+
+  it("draws the shell from its rings, as tall as the shell rather than the truss in its box", () => {
+    const fairing = craftParts(wireOf("comsat-lx-fairing")).find(
+      (p) => p.type === "fairing",
+    );
+    expect(fairing?.shellDrawing?.drawing.silhouette).toBeTruthy();
+    // This capture carries no shapes, so the box is the shell's alone, pivot to nose tip; the row's box held 3.48 m of hidden truss.
+    expect(fairing?.size.y).toBeCloseTo(2.1927, 3);
+    expect(renderShipMapToSvg(craftParts(wireOf("comsat-lx-fairing")))).toMatch(
+      /data-role="fairing-shell"/,
+    );
+  });
+
+  it("draws no shell once it is jettisoned", () => {
+    const wire = structuredClone(wireOf("comsat-lx-fairing")) as {
+      parts: { name: string; fairing?: { rings: number[] } }[];
+    };
+    for (const part of wire.parts) {
+      if (part.fairing) part.fairing.rings = [];
+    }
+    const svg = renderShipMapToSvg(craftParts(wire as CraftWire));
+    expect(svg).not.toMatch(/data-role="fairing-shell"/);
+    expect(svg).not.toMatch(/data-role="cargo-bay-open"/);
+  });
 });
 
 describe("captured craft cargo bays", () => {

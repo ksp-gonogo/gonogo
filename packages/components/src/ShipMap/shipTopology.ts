@@ -7,6 +7,7 @@ import type {
 } from "@ksp-gonogo/core";
 import type { DecodedPartShape } from "@ksp-gonogo/data";
 import { classifyPart } from "./classifyPart";
+import { fairingBounds, fairingJoins, fairingShellShape } from "./fairingShell";
 import {
   drawShape,
   SCREEN_LIGHT,
@@ -85,6 +86,8 @@ export interface ShipMapPart {
   stowedStrut?: StowedStrut;
   /** The part's 3D shape seen from this view and lit, in metres in the drawn box's frame from the box centre. Absent until the part's shape has arrived, when it has none, when it does not fill the part's box, or when none of its meshes shows, and then the part is drawn by its type within its box. */
   shapeDrawing?: ShapeDrawing;
+  /** For a procedural fairing whose profile is known and whose shell stands: the shell seen from this view and lit, and the near half of each ring where its panels meet, both in metres in the drawn box's frame from the box centre. */
+  shellDrawing?: { drawing: ShapeDrawing; joins: string };
   /** For a structural strut: where it attaches, in metres in the drawn box's frame from the box centre. */
   anchor?: { x: number; y: number };
   /** `Part.mass` from topology: dry mass, no resources. Null when unread. */
@@ -394,16 +397,25 @@ function planformOf(
  * at the craft, 0 putting the vessel's X axis across the screen. `shape` is
  * the part's 3D shape once it has arrived, drawn as the part's own row poses it
  * when it fills the part's box (see `shapeFitsBox`); otherwise, and until it
- * arrives, the part is drawn by its type within its box.
+ * arrives, the part is drawn by its type within its box. A procedural
+ * fairing whose row carries its shell (`TopologyPart.fairing`) is drawn from
+ * its shape and its shell, within the box they take rather than the row's,
+ * which also holds meshes the part never draws.
  */
 export function buildShipMapPart(
-  part: TopologyPart,
+  row: TopologyPart,
   thermal: PartThermal | null | undefined,
   resources: PartResources | undefined,
   view: number,
   partState?: PartState | null,
   shape?: DecodedPartShape,
 ): ShipMapPart {
+  const fairing =
+    row.fairing && classifyPart(row, resources) === "fairing"
+      ? row.fairing
+      : undefined;
+  const fitted = fairing ? fairingBounds(fairing, shape, row.shapePoses) : null;
+  const part: TopologyPart = fitted ? { ...row, bounds: fitted } : row;
   const ecFlow = resources?.ElectricCharge?.flow;
   const ecFlowSign: "producer" | "consumer" | null =
     typeof ecFlow === "number" && Math.abs(ecFlow) > 1e-6
@@ -465,15 +477,18 @@ export function buildShipMapPart(
     };
   }
   let shapeDrawing: ShapeDrawing | undefined;
+  let shellDrawing: ShipMapPart["shellDrawing"];
   /*
    * A procedural fairing's shell is built by its module in the game and is in
-   * no model file, so the shape of its kind holds the base alone. Its drawn
-   * meshes are held to its box, which takes in the shell while one stands: a
-   * fairing with a shell is drawn by its type, and one with none is drawn
-   * from its shape.
+   * no model file, so the shape of its kind holds the base alone. With the
+   * fairing's shell on its row, the base is drawn from its shape and the shell
+   * from its rings; without it, its drawn meshes are held to its box, which
+   * takes in the shell while one stands: a fairing with a shell is drawn by
+   * its type, and one with none from its shape.
    */
   const shellBuiltInGame = type === "fairing";
-  if (shape && shapeFitsBox(shape, size, part.shapePoses, shellBuiltInGame)) {
+  const profileKnown = fairing != null;
+  const frameOf = () => {
     /* The map from a part-local point to the drawn box's frame, as `inBoxFrame` takes a point from the box centre, with the depth toward the viewer as its third row. */
     const linear = [axes.right, axes.up, axes.forward].map((dir) => {
       const lat = latOf(dir);
@@ -495,9 +510,27 @@ export function buildShipMapPart(
     }
     const [lx, ly, lz] = SCREEN_LIGHT;
     const light = [lx * cos - ly * sin, lx * sin + ly * cos, lz] as const;
+    return { frame, light };
+  };
+  if (
+    shape &&
+    (profileKnown ||
+      shapeFitsBox(shape, size, part.shapePoses, shellBuiltInGame))
+  ) {
+    const { frame, light } = frameOf();
     const drawn = drawShape(shape, frame, light, part.shapePoses);
     // A shape with nothing shown from here would leave no part at all, so the drawing by type stands in for it.
     if (drawn.silhouette) shapeDrawing = drawn;
+  }
+  if (fairing) {
+    const shell = fairingShellShape(fairing);
+    if (shell) {
+      const { frame, light } = frameOf();
+      const drawing = drawShape(shell, frame, light);
+      if (drawing.silhouette) {
+        shellDrawing = { drawing, joins: fairingJoins(fairing, frame) };
+      }
+    }
   }
   const anchor =
     type === "strut"
@@ -523,6 +556,7 @@ export function buildShipMapPart(
     trailingCut: planform ? TRAILING_CUT_PARTS[part.name] : undefined,
     stowedStrut,
     shapeDrawing,
+    shellDrawing,
     anchor,
     dryMass: part.dryMass,
     stage: part.inverseStage,

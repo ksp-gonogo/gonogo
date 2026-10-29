@@ -86,6 +86,9 @@ export function ShipPartGroup({
   if (p.shapeDrawing) {
     marks.shape = { drawing: p.shapeDrawing, center, pxPerMetre };
   }
+  if (p.shellDrawing) {
+    marks.shell = { ...p.shellDrawing, center, pxPerMetre };
+  }
   if (p.anchor) marks.anchor = inBox(p.anchor.x, p.anchor.y);
   const showFuel = p.type === "tank" || p.type === "booster";
 
@@ -142,7 +145,15 @@ export function ShipPartGroup({
         marks,
         p.trailingCut,
       )}
-      {renderPartStateOverlays(p.partState, box, cam.zoom, throttle)}
+      {/* A fairing's bay reads open once its shell is jettisoned, which its drawing already shows. */}
+      {renderPartStateOverlays(
+        p.type === "fairing"
+          ? p.partState?.filter((m) => m.type !== "cargoBay")
+          : p.partState,
+        box,
+        cam.zoom,
+        throttle,
+      )}
       {tint && (
         <rect
           data-role="heat-tint"

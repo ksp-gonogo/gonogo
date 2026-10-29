@@ -65,6 +65,9 @@ const SHAPE_STATE_SHAPES: ReadonlySet<PartType> = new Set<PartType>([
   "clamp",
 ]);
 
+/** How much of a fairing's shell is laid over the payload it covers, which shows through the rest. */
+const SHELL_OPACITY = 0.32;
+
 /** What each tone is mixed toward, black below the middle and white above it, and by how much. */
 const TONE_MIX: readonly ({ toward: string; share: string } | null)[] = [
   { toward: "black", share: "34%" },
@@ -99,6 +102,13 @@ export interface PartMarks {
   /** The part's lit 3D shape, in metres, and where its frame sits: the box centre in pixels and how many pixels a metre is. */
   shape?: {
     drawing: ShapeDrawing;
+    center: { x: number; y: number };
+    pxPerMetre: number;
+  };
+  /** A procedural fairing's shell, drawn over the payload in the same frame as `shape`. */
+  shell?: {
+    drawing: ShapeDrawing;
+    joins: string;
     center: { x: number; y: number };
     pxPerMetre: number;
   };
@@ -198,6 +208,51 @@ export function renderPartShape(
   const { x, y, w, h } = box;
   const cx = center.x;
   const cy = center.y;
+
+  if (marks.shell) {
+    const { drawing, joins, center: origin, pxPerMetre } = marks.shell;
+    const metre = Math.max(pxPerMetre, 1e-6);
+    const edge = isHot ? "var(--color-tag-yellow-fg)" : "var(--color-text-dim)";
+    return (
+      <g data-role="fairing-shell">
+        {marks.shape && (
+          <MeshShape
+            drawing={marks.shape.drawing}
+            x={marks.shape.center.x}
+            y={marks.shape.center.y}
+            metre={Math.max(marks.shape.pxPerMetre, 1e-6)}
+            fill={fill}
+            edge={stroke}
+            edgeWidth={strokeWidth}
+            creaseWidth={strokeWidth}
+            opacity={opacity}
+          />
+        )}
+        <MeshShape
+          drawing={drawing}
+          x={origin.x}
+          y={origin.y}
+          metre={metre}
+          fill={fill}
+          edge={edge}
+          edgeWidth={Math.max(strokeWidth, 1 / zoom)}
+          creaseWidth={strokeWidth}
+          opacity={SHELL_OPACITY}
+        />
+        {joins && (
+          <path
+            data-role="fairing-join"
+            transform={`translate(${origin.x} ${origin.y}) scale(${metre} ${-metre})`}
+            d={joins}
+            fill="none"
+            stroke={edge}
+            strokeWidth={Math.max(strokeWidth, 1 / zoom) / metre}
+            opacity={0.8}
+          />
+        )}
+      </g>
+    );
+  }
 
   if (marks.shape && !SHAPE_STATE_SHAPES.has(type)) {
     const { drawing, center: origin, pxPerMetre } = marks.shape;
