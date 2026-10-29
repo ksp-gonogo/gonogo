@@ -53,6 +53,10 @@ function mountPlanner(inputs: PlannerInputs) {
       meta,
     );
     fixture.emit("comms.delay", { source: 1, oneWaySeconds: OWLT }, meta);
+    fixture.emit("system.uplink.delays", {
+      activeVessel: ["vessel.maneuver.add", "vessel.maneuver.update"],
+      elsewhere: [],
+    });
     fixture.emit(
       "vessel.orbit",
       {

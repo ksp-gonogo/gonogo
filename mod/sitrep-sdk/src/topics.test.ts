@@ -30,6 +30,8 @@ const HAND_DECLARED_TOPICS = [
   // declaration and every gate evaluator at once, so no one Uplink could
   // own it and there is no [SitrepTopic] to reflect.
   "system.uplink.gates",
+  // The delay from the session's centre to each delayed command's own target. Engine-declared because only ChannelEngine resolves every command's target and holds the delay ledger.
+  "system.uplink.delays",
   // The contract's own unit descriptor, so the stream describes itself. Same
   // engine-declared treatment as the two above: ChannelEngine sources it
   // directly because it describes the CONTRACT rather than anything an

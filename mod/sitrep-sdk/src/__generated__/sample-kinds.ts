@@ -77,6 +77,7 @@ export const GENERATED_CHANNEL_KINDS = {
   "system.dataRates": "discrete",
   "system.frame": "discrete",
   "system.units": "discrete",
+  "system.uplink.delays": "discrete",
   "system.uplink.gates": "discrete",
   "system.uplink.pending": "discrete",
   "system.uplinks": "discrete",

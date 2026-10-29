@@ -372,6 +372,12 @@ namespace Sitrep.Contract.Serialization
                 case Sitrep.Contract.CommandGateReport commandGateReport:
                     AppendCommandGateReport(sb, commandGateReport);
                     break;
+                case Sitrep.Contract.UplinkDelayReport uplinkDelayReport:
+                    AppendUplinkDelayReport(sb, uplinkDelayReport);
+                    break;
+                case Sitrep.Contract.UplinkDelay uplinkDelay:
+                    AppendUplinkDelay(sb, uplinkDelay);
+                    break;
                 case Sitrep.Contract.CommandGate commandGate:
                     AppendCommandGate(sb, commandGate);
                     break;
@@ -1452,6 +1458,60 @@ namespace Sitrep.Contract.Serialization
                 AppendChannelGate(sb, channels[i]);
             }
             sb.Append(']');
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// Flattens a <see cref="Sitrep.Contract.UplinkDelayReport"/> to the wire
+        /// object <c>{ activeVessel: [...], elsewhere: [...] }</c>.
+        /// </summary>
+        private static void AppendUplinkDelayReport(
+            StringBuilder sb, Sitrep.Contract.UplinkDelayReport report)
+        {
+            sb.Append('{');
+            AppendString(sb, "activeVessel");
+            sb.Append(':');
+            sb.Append('[');
+            for (var i = 0; report.ActiveVessel != null && i < report.ActiveVessel.Count; i++)
+            {
+                if (i > 0)
+                {
+                    sb.Append(',');
+                }
+                AppendNullableString(sb, report.ActiveVessel[i]);
+            }
+            sb.Append(']');
+            sb.Append(',');
+            AppendString(sb, "elsewhere");
+            sb.Append(':');
+            sb.Append('[');
+            for (var i = 0; report.Elsewhere != null && i < report.Elsewhere.Count; i++)
+            {
+                if (i > 0)
+                {
+                    sb.Append(',');
+                }
+                AppendUplinkDelay(sb, report.Elsewhere[i]);
+            }
+            sb.Append(']');
+            sb.Append('}');
+        }
+
+        /// <summary>Flattens one <see cref="Sitrep.Contract.UplinkDelay"/> to <c>{ command, centre, oneWaySeconds }</c>.</summary>
+        private static void AppendUplinkDelay(StringBuilder sb, Sitrep.Contract.UplinkDelay delay)
+        {
+            sb.Append('{');
+            AppendString(sb, "command");
+            sb.Append(':');
+            AppendNullableString(sb, delay.Command);
+            sb.Append(',');
+            AppendString(sb, "centre");
+            sb.Append(':');
+            AppendNullableString(sb, delay.Centre);
+            sb.Append(',');
+            AppendString(sb, "oneWaySeconds");
+            sb.Append(':');
+            AppendNullableNumber(sb, delay.OneWaySeconds);
             sb.Append('}');
         }
 

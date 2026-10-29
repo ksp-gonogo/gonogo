@@ -29,6 +29,7 @@ export const GENERATED_TRUENOW_TOPICS = [
   "system.dataRates",
   "system.frame",
   "system.units",
+  "system.uplink.delays",
   "system.uplink.gates",
   "system.uplink.pending",
   "system.uplinks",

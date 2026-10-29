@@ -40,9 +40,11 @@ import type {
 } from "../commands";
 import type { RailTags } from "../rail-tags";
 import { railTagsForCommand } from "../rail-tags";
-import { type Reading, readingOf, type TopicReading } from "../reading";
+import { type Reading, readingOf } from "../reading";
 import type { Value } from "../unit-system";
+import { value } from "../unit-system/value";
 import {
+  arrivalUtAfter,
   arrivalUtOf,
   arrivesTooLate,
   LATE_ARRIVAL_DETAIL,
@@ -64,6 +66,8 @@ import {
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
 } from "./context";
+import { CENTRE_DELAY_TOPIC, IDENTITY_TOPIC } from "./delay-authority";
+import { useDelayAuthorityOptional } from "./delay-authority-context";
 import {
   GATE_CHECK_COMMAND,
   GATE_CHECK_DEBOUNCE_MS,
@@ -84,6 +88,11 @@ import {
   type SendStatus,
   sendStatusFromRoutes,
 } from "./send-status";
+import {
+  type CommandTarget,
+  commandTargetOf,
+  UPLINK_DELAYS_TOPIC,
+} from "./uplink-delays";
 import { useLatestValue, useStream } from "./use-stream";
 import { useStreamConnected } from "./use-stream-connected";
 import { META_VANTAGE } from "./vantage";
@@ -175,16 +184,20 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    */
   tags: RailTags;
   /**
-   * The command's effective one-way delay under its vantage: `0` for a
-   * never-delayed sim-meta command (`time.*`) and `0` at the meta-vantage, both
-   * instant by construction, and the live `comms.delay` one-way otherwise.
+   * The one-way delay from the command centre the command is sent from to the
+   * command's own target: `0` for a never-delayed sim-meta command (`time.*`)
+   * and `0` at the meta-vantage, both instant by construction. For a command to
+   * the active craft it is that centre's delay to the craft; for one to
+   * anything else (the home command, a lens, another craft) it is the delay the
+   * mod reports for that target on `system.uplink.delays`.
    * `<CommandDelay>` renders nothing at 0.
    *
-   * `null` when there is no live one-way delay to have: no measurable path
-   * home, a malformed reading, or no `comms.delay` reading at all. It is never
-   * 0 for those. A 0 says the command arrives now, which for a craft nothing
-   * can reach is the one wrong answer that reads as everything being fine.
-   * {@link delayMode} says which of them it is.
+   * `null` wherever the delay to the target is not known: no measurable path,
+   * a change of craft whose new delay has not arrived, a target named by an
+   * argument, or no reading at all. It is never 0 for those, and never the
+   * delay to some other target. A 0 says the command arrives now, which for a
+   * target nothing can reach is the one wrong answer that reads as everything
+   * being fine.
    */
   effectiveDelaySeconds: number | null;
   /**
@@ -610,6 +623,12 @@ export function useCommand(
   const connectivity = useLatestValue<CommsLinkLike>("comms.link");
   const commsDelay = useLatestValue<CommsDelayLike>("comms.delay");
   const commsDelayReading = useStream<CommsDelayLike>("comms.delay");
+  const uplinkDelays = useLatestValue<unknown>(UPLINK_DELAYS_TOPIC);
+  const uplinkDelaysReading = useStream<unknown>(UPLINK_DELAYS_TOPIC);
+  const delayAuthority = useDelayAuthorityOptional();
+  // Read only so a change of centre row or of craft re-renders the figure the authority holds.
+  useLatestValue<unknown>(CENTRE_DELAY_TOPIC);
+  useLatestValue<unknown>(IDENTITY_TOPIC);
 
   /*
    * The delay display + effective delay this command hands to `<CommandDelay>`.
@@ -618,36 +637,70 @@ export function useCommand(
    *
    * `effectiveDelaySeconds` is 0 for a never-delayed sim-meta command
    * (`time.*`) and for a meta-vantage dispatch, both of which are instant
-   * server-side and so are knowably zero. Otherwise it is the live one-way
-   * delay, and `null` whenever there is no live one-way delay to have: a
-   * `comms.delay` reporting no measurable path home, a malformed or non-finite
-   * one, or no `comms.delay` reading at all because the widget does not carry
-   * the topic.
+   * server-side and so are knowably zero. Otherwise it is the delay to the
+   * command's own target, which only the mod can place: `system.uplink.delays`
+   * says whether that is the active craft, timed by the centre's own delay to
+   * it, or something else, with the figure the centre knows for it.
    *
-   * A zero is NOT the fallback for any of those. `comms.delay.oneWaySeconds`
-   * splits "no path home" from "the delay feature is off and the craft is
-   * connected" by that value alone (`Sitrep.Contract/Comms.cs:CommsDelay`), and
-   * collapsing the first onto the second clocked a craft nothing could reach as
-   * if it were on the LAN. `delay-authority.ts` reads the same payload the same
-   * value-first way and names zero the one direction this must never fail in.
+   * A zero is NOT the fallback for an unknown delay, and nor is the active
+   * craft's delay. `comms.delay.oneWaySeconds` splits "no path home" from "the
+   * delay feature is off and the craft is connected" by that value alone
+   * (`Sitrep.Contract/Comms.cs:CommsDelay`), and collapsing the first onto the
+   * second clocked a craft nothing could reach as if it were on the LAN.
    */
   const tags = railTagsForCommand(command);
   const isInstant = !commandDelayed(command) || vantage === META_VANTAGE;
   const isInstantRef = useRef(isInstant);
   isInstantRef.current = isInstant;
-  const effectiveDelaySeconds = isInstant ? 0 : liveOneWaySeconds(commsDelay);
-  const delayReading =
-    isInstant || effectiveDelaySeconds === null
-      ? null
-      : oneWayReading(commsDelayReading);
+  const sentFrom =
+    vantage === undefined || vantage === "" ? undefined : vantage;
+  const target = isInstant
+    ? null
+    : commandTargetOf(uplinkDelays, command, sentFrom);
+  const toActiveVessel = target?.kind === "active-vessel";
+  const toActiveVesselRef = useRef(toActiveVessel);
+  toActiveVesselRef.current = toActiveVessel;
+  const effectiveDelaySeconds = delayToTarget(isInstant, target, () =>
+    delayAuthority
+      ? delayAuthority.commandDelaySeconds(sentFrom)
+      : liveOneWaySeconds(commsDelay),
+  );
+  const effectiveDelayRef = useRef(effectiveDelaySeconds);
+  effectiveDelayRef.current = effectiveDelaySeconds;
+  let delayReading: Reading<Value<"s">> | null = null;
+  if (!isInstant && effectiveDelaySeconds !== null) {
+    const figure = () => value("s", Math.max(0, effectiveDelaySeconds));
+    if (
+      toActiveVessel &&
+      (commsDelayReading.state === "observed" ||
+        commsDelayReading.state === "held")
+    ) {
+      delayReading = readingOf(commsDelayReading, figure);
+    }
+    if (
+      !toActiveVessel &&
+      (uplinkDelaysReading.state === "observed" ||
+        uplinkDelaysReading.state === "held")
+    ) {
+      delayReading = readingOf(uplinkDelaysReading, figure);
+    }
+  }
   /*
    * The three-valued answer the package already computes, passed through rather
    * than re-derived, so a widget can SAY "no path" instead of inferring it from
    * a number that cannot express it. `null` is the fourth state and the one
    * `DelayMode` deliberately has no token for: nothing has been read, which is
    * not the same claim as "there is no path" and must not be dressed up as one.
+   * A command to anything but the active craft has a mode only once its delay
+   * is known.
    */
-  const delayMode = commsDelay ? currentMode(commsDelay) : null;
+  const delayMode = toActiveVessel
+    ? commsDelay
+      ? currentMode(commsDelay)
+      : null
+    : target?.kind === "elsewhere" && target.seconds !== null
+      ? currentMode({ oneWaySeconds: value("s", target.seconds) })
+      : null;
   // A synchronous, NON-subscribing read of the same undelayed clock
   // `useUtNow` tracks (`ViewClock.utNowEstimate()`): deliberately NOT
   // `useUtNow()` itself, which subscribes to a real-wall-clock ~16ms tick
@@ -1145,9 +1198,11 @@ export function useCommand(
       }
       // A command that acts at a UT and would land at or after it is refused before it leaves.
       const clock = storeRef.current?.clock;
-      const arrivalUt = clock
-        ? arrivalUtOf(clock, !isInstantRef.current)
-        : undefined;
+      const arrivalUt = !clock
+        ? undefined
+        : isInstantRef.current || toActiveVesselRef.current
+          ? arrivalUtOf(clock, !isInstantRef.current)
+          : arrivalUtAfter(clock, effectiveDelayRef.current);
       if (arrivesTooLate(command, args, arrivalUt)) {
         return refuseLocally(
           { errorCode: LATE_ARRIVAL_ERROR_CODE, detail: LATE_ARRIVAL_DETAIL },
@@ -1218,12 +1273,14 @@ export function useCommand(
   return { send, gateFor, check, railed: railed && rail !== null, ...outcome };
 }
 
-/** The one-way delay off a `comms.delay` reading, with its currency; `null` where there is no finite one to draw. */
-function oneWayReading(
-  reading: TopicReading<CommsDelayLike>,
-): Reading<Value<"s">> | null {
-  if (reading.state !== "observed" && reading.state !== "held") return null;
-  const oneWay = reading.value?.oneWaySeconds;
-  if (!oneWay?.isFinite()) return null;
-  return readingOf(reading, () => oneWay.max(0));
+/** 0 for an instant command, the target's own figure elsewhere, `activeVessel()` for the active craft, and `null` for a target nobody has placed. */
+function delayToTarget(
+  isInstant: boolean,
+  target: CommandTarget | null,
+  activeVessel: () => number | null,
+): number | null {
+  if (isInstant) return 0;
+  if (target?.kind === "elsewhere") return target.seconds;
+  if (target?.kind === "active-vessel") return activeVessel();
+  return null;
 }

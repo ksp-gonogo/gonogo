@@ -9890,6 +9890,57 @@ export interface GateVerdict
 	missing?: MissingUnlock[];
 }
 /**
+* The one-way delay a delayed command takes from a command centre to the
+* target it addresses, for a command whose target is not the active craft: a
+* career order to the home command, an aim to a lens, an order to another
+* craft. One entry in `UplinkDelayReport.elsewhere`.
+*
+* @category Comms
+*/
+export interface UplinkDelay
+{
+	/** The command, e.g. `career.tech.unlock`. */
+	command: string;
+	/** The command centre the delay is from, as a `commandCentre.roster` id. */
+	centre: string;
+	/**
+	* The one-way delay from `UplinkDelay.centre` to the command's target, as the
+	* centre knows it: the figure that held one such delay before now, since news
+	* of a delay takes that delay to arrive. Null while the centre knows no delay
+	* to the target, which includes a target that depends on the command's
+	* arguments and a centre with no route to it. Never a zero for either.
+	*/
+	oneWaySeconds?: Value<"s"> | null;
+}
+/**
+* The `system.uplink.delays` payload: which delayed commands address the
+* active craft, and the delay each of the others takes from the receiving
+* session's command centre. Useful for showing the operator how long a command
+* takes to arrive when it is sent somewhere other than the craft being flown.
+*
+* A delayed command in neither list has no known target. Every command is
+* listed as it is with no arguments, so a command whose target is named by an
+* argument is listed in `UplinkDelayReport.elsewhere` with no figure.
+*
+* Each session is sent the entries for its own command centre.
+*
+* @category Comms
+*/
+export interface UplinkDelayReport
+{
+	/**
+	* Every delayed command whose target is the active craft, which takes that
+	* craft's own delay (`comms.delay`, or the centre's row on
+	* `commandCentre.activeVesselDelay`).
+	*/
+	activeVessel: string[];
+	/**
+	* Every other delayed command, with its delay from the session's command
+	* centre.
+	*/
+	elsewhere: UplinkDelay[];
+}
+/**
 * One command sent and believed still in flight, an entry on
 * `system.uplink.pending`.
 *
