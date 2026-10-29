@@ -34,6 +34,9 @@ namespace Sitrep.Host
         /// <summary>The active vessel's part tree, inside the snapshot's <c>vessel</c> group.</summary>
         public const string Topology = "topology";
 
+        /// <summary>The active vessel's descent, its predicted site and the terrain round it, inside the snapshot's <c>vessel</c> group.</summary>
+        public const string Landing = "landing";
+
         /// <summary>
         /// The readers of each group. The alarms read the career and the Space Center
         /// through these same Topics' builders, and treat a payload they cannot build as
@@ -59,6 +62,9 @@ namespace Sitrep.Host
                     new[] { "spaceCenter" }),
                 [Topology] = new SnapshotGroupReaders(
                     new[] { VesselPartsViewProvider.PartsTopic, PartsViewProvider.PowerTopic },
+                    Array.Empty<string>()),
+                [Landing] = new SnapshotGroupReaders(
+                    new[] { VesselViewProvider.LandingTopic },
                     Array.Empty<string>()),
             };
     }

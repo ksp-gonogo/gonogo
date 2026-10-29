@@ -32,13 +32,15 @@ namespace Sitrep.Host.Tests
             ["Sitrep.Host/SpaceCenterViewProvider.cs"] = "builders of the Space Center Uplink's Topics, listed by owner",
             ["Sitrep.Host/PartsViewProvider.cs"] = "parts.power, listed by Topic",
             ["Sitrep.Host/VesselPartsViewProvider.cs"] = "vessel.parts, listed by Topic",
+            ["Sitrep.Host/VesselViewProvider.cs"] = "vessel.landing, listed by Topic",
             ["Sitrep.Host/Alarms/ScetThresholdSources.cs"] = "an alarm reads the career through career.status's builder and treats an unbuilt payload as not observable",
             ["Gonogo.KSP/CareerUplink.cs"] = "the Uplink id and its doc comment",
             ["Gonogo.KSP/SpaceCenterUplink.cs"] = "the Uplink id and its doc comment",
             ["Sitrep.Contract/CareerPayloads.cs"] = "a doc comment",
+            ["Gonogo.KSP/CurrencyDelay/PendingCreditLedger.cs"] = "a parameter named landing in a doc comment, not the snapshot group",
         };
 
-        private static readonly string[] Names = { SnapshotGroups.Career, SnapshotGroups.SpaceCenter, SnapshotGroups.Topology };
+        private static readonly string[] Names = { SnapshotGroups.Career, SnapshotGroups.SpaceCenter, SnapshotGroups.Topology, SnapshotGroups.Landing };
 
         private static readonly string[] Projects = { "Sitrep.Host", "Sitrep.Core", "Sitrep.Contract", "Sitrep.Transport", "Sitrep.Propagation", "Gonogo.KSP" };
 
@@ -162,6 +164,7 @@ namespace Sitrep.Host.Tests
                 {
                     ["identity"] = new Dictionary<string, object?> { ["id"] = "11111111-1111-1111-1111-111111111111", ["name"] = "Probe" },
                     [SnapshotGroups.Topology] = new TripwireGroup(touches, SnapshotGroups.Topology),
+                    [SnapshotGroups.Landing] = new TripwireGroup(touches, SnapshotGroups.Landing),
                 },
             },
         };
@@ -172,6 +175,7 @@ namespace Sitrep.Host.Tests
             [SnapshotGroups.Career] = new[] { typeof(CareerViewProvider) },
             [SnapshotGroups.SpaceCenter] = new[] { typeof(SpaceCenterViewProvider) },
             [SnapshotGroups.Topology] = new[] { typeof(PartsViewProvider), typeof(VesselPartsViewProvider) },
+            [SnapshotGroups.Landing] = new[] { typeof(VesselViewProvider) },
         };
 
         [Fact]
@@ -210,6 +214,7 @@ namespace Sitrep.Host.Tests
             }
             Assert.Contains(SnapshotGroups.Career, touches.ByGroup.Keys);
             Assert.Contains(SnapshotGroups.Topology, touches.ByGroup.Keys);
+            Assert.Contains(SnapshotGroups.Landing, touches.ByGroup.Keys);
         }
 
         [Fact]
@@ -237,6 +242,10 @@ namespace Sitrep.Host.Tests
                 {
                     Assert.True(file == "SpaceCenterUplink.cs", "a Space Center builder is registered outside the Space Center Uplink: " + line);
                 }
+                if (line.Contains("VesselViewProvider.BuildLanding", StringComparison.Ordinal))
+                {
+                    Assert.True(line.Contains("VesselViewProvider.LandingTopic", StringComparison.Ordinal), "the landing builder is registered under a Topic the landing readers do not list: " + line);
+                }
                 if (line.Contains("PartsViewProvider.", StringComparison.Ordinal))
                 {
                     Assert.True(
@@ -244,6 +253,7 @@ namespace Sitrep.Host.Tests
                         "a part-tree builder is registered under a Topic the topology readers do not list: " + line);
                 }
             }
+            Assert.Contains(registrations, r => r.File == "VesselUplink.cs" && r.Line.Contains("VesselViewProvider.LandingTopic, VesselViewProvider.BuildLandingWire", StringComparison.Ordinal));
             Assert.Contains(registrations, r => r.File == "CareerUplink.cs");
         }
 
@@ -257,6 +267,7 @@ namespace Sitrep.Host.Tests
             var topology = SnapshotGroups.Readers[SnapshotGroups.Topology];
             Assert.Contains(VesselPartsViewProvider.PartsTopic, topology.Topics);
             Assert.Contains(PartsViewProvider.PowerTopic, topology.Topics);
+            Assert.Contains(VesselViewProvider.LandingTopic, SnapshotGroups.Readers[SnapshotGroups.Landing].Topics);
         }
     }
 }

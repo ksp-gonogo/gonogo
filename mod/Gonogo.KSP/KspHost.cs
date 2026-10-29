@@ -783,7 +783,10 @@ namespace Gonogo.KSP
                 lowestPoint = LowestPointHeightOrNull(focused);
             }
             TryBuildGroup(entry, "surface", () => BuildSurface(focused, focusedOrbit, lowestPoint));
-            PartsGroup("landing", () => BuildLanding(focused, focusedOrbit, lowestPoint), focused);
+            if (Samples(SnapshotGroups.Landing))
+            {
+                PartsGroup("landing", () => BuildLanding(focused, focusedOrbit, lowestPoint), focused);
+            }
             // The full part tree the vessel.parts channel
             // (VesselPartsViewProvider) maps. Per-part reads are individually
             // guarded in BuildTopology so one bad part can't blank the list.

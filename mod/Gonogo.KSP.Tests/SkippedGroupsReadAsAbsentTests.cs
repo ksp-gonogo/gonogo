@@ -32,6 +32,12 @@ namespace Gonogo.KSP.Tests
         }
 
         [Fact]
+        public void a_skipped_landing_is_no_key_at_all()
+        {
+            Assert.Matches(@"if \(Samples\(SnapshotGroups\.Landing\)\)\s*\{\s*PartsGroup\(""landing"", \(\) => BuildLanding\(", Source);
+        }
+
+        [Fact]
         public void a_skipped_part_tree_is_no_key_at_all()
         {
             Assert.Matches(@"if \(Samples\(SnapshotGroups\.Topology\)\)\s*\{\s*PartsGroup\(""topology"", \(\) => BuildTopology\(vessel\)\);\s*\}", Source);
