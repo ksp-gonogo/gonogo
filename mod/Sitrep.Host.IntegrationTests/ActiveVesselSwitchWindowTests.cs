@@ -162,6 +162,37 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
+        public async Task AReadingTheCraftSwitchedToSharesWithTheCraftLeftBehindIsHeardOnceThePathIsMeasured()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new SwitchWindowUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, Topic, Timeout);
+
+                foreach (var ut in new[] { 1.0, 2.0, 3.0 })
+                {
+                    Tick(engine, Snap(ut, VesselA, 45.0, connected: true, onboard: 7.0));
+                }
+                await Payloads(client);
+
+                Tick(engine, Snap(4.0, VesselB, null, connected: true, onboard: 7.0));
+                Tick(engine, Snap(5.0, VesselB, 0.0, connected: true, onboard: 7.0));
+                Tick(engine, Snap(6.0, VesselB, 0.0, connected: true, onboard: 7.0));
+
+                var heard = await Payloads(client);
+                Assert.NotEmpty(heard);
+                Assert.Equal(7.0, Convert.ToDouble(heard.Last()));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
         public void AnOrderForTheCraftSwitchedToIsRefusedUntilItsPathIsMeasured()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);

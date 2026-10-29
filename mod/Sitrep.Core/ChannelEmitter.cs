@@ -226,6 +226,17 @@ namespace Sitrep.Core
         }
 
         /// <summary>
+        /// Drops what <paramref name="channelId"/> last emitted, so its next
+        /// <see cref="Decide"/> is an unconditional keyframe even when the value
+        /// equals the old one. For a host that has published to the channel
+        /// outside the emitter, which then no longer holds what subscribers last saw.
+        /// </summary>
+        public void Rebaseline(string channelId)
+        {
+            GetOrCreateState(channelId).ForceKeyframe = true;
+        }
+
+        /// <summary>
         /// Call when <see cref="SubscriptionRegistry.Subscribe"/> reports a
         /// genuine 0 -&gt; 1 transition for <paramref name="channelId"/>, the
         /// newly-joined subscriber gets an immediate unconditional keyframe

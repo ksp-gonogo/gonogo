@@ -9216,6 +9216,9 @@ namespace Sitrep.Host
                     continue;
                 }
                 RecordThrough(topic, null, ut, new DelayStamp(0.0));
+                // The withdrawal bypassed the emitter, whose last-emitted value is still the
+                // old craft's: an equal first sample from the new craft would be suppressed.
+                _emitter.Rebaseline(topic);
             }
         }
 
