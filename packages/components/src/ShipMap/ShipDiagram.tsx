@@ -141,47 +141,37 @@ export function ShipDiagram({
       label="Ship diagram view"
       onMouseMove={onWrapperMouseMove}
     >
-      <div style={LEFT_GROUP}>
-        <Button
-          size="sm"
-          type="button"
-          onClick={resetView}
-          aria-label="Reset view"
-          style={ROTATE_BUTTON}
-        >
-          Reset
-        </Button>
-        {onTurn && width >= ROTATE_MIN_WIDTH && turn !== 0 && (
-          <Button
-            size="sm"
-            type="button"
-            onClick={() => onTurn(0)}
-            aria-label="Default view angle"
-            style={ROTATE_BUTTON}
-          >
-            Default
-          </Button>
-        )}
-      </div>
+      <Button
+        size="sm"
+        type="button"
+        onClick={() => {
+          resetView();
+          if (turn !== 0) onTurn?.(0);
+        }}
+        aria-label="Reset view"
+        style={RESET_BUTTON}
+      >
+        Reset
+      </Button>
       {onTurn && width >= ROTATE_MIN_WIDTH && (
         <div style={ROTATE_GROUP}>
           <Button
             size="sm"
             type="button"
             onClick={() => onTurn(turn - 1)}
-            aria-label="Rotate view left"
+            aria-label="Rotate view anticlockwise"
             style={ROTATE_BUTTON}
           >
-            {"Turn <"}
+            <TurnArrow clockwise={false} />
           </Button>
           <Button
             size="sm"
             type="button"
             onClick={() => onTurn(turn + 1)}
-            aria-label="Rotate view right"
+            aria-label="Rotate view clockwise"
             style={ROTATE_BUTTON}
           >
-            {"Turn >"}
+            <TurnArrow clockwise />
           </Button>
         </div>
       )}
@@ -248,15 +238,10 @@ export function ShipDiagram({
   );
 }
 
-// Default sits under Reset, in a column of its own, so showing it moves no other control.
-const LEFT_GROUP: CSSProperties = {
+const RESET_BUTTON: CSSProperties = {
   position: "absolute",
   top: "6px",
   left: "6px",
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "flex-start",
-  gap: "var(--gap-related)",
   // Local ordering inside Root, above the diagram svg.
   zIndex: 10,
 };
@@ -267,10 +252,33 @@ const ROTATE_GROUP: CSSProperties = {
   right: "6px",
   display: "flex",
   gap: "var(--gap-related)",
-  zIndex: LEFT_GROUP.zIndex,
+  zIndex: RESET_BUTTON.zIndex,
 };
 
 const ROTATE_BUTTON: CSSProperties = { position: "static" };
 
 // Static, not the menu's own absolute, so it stays in the layer's flow and the layer can be measured.
 const MENU_IN_LAYER: CSSProperties = { position: "static" };
+
+/** A circular arrow, drawn as the kit's icons are, for turning the view the way the arrow runs. */
+function TurnArrow({ clockwise }: Readonly<{ clockwise: boolean }>) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {clockwise ? (
+        <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8M21 3v5h-5" />
+      ) : (
+        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8M3 3v5h5" />
+      )}
+    </svg>
+  );
+}
