@@ -36,22 +36,7 @@ namespace Gonogo.KSP
         /// </summary>
         public static bool TryMeasure(Part part, string? variantName, out Vector3 center, out Vector3 size, out MeasurePath path)
         {
-            return TryMeasure(part, variantName, out center, out size, out path, out _);
-        }
-
-        /// <summary>
-        /// As above, and <paramref name="hull"/> is the part's silhouette: one
-        /// piece of points (see <see cref="HullPoints"/>) per visible mesh, each
-        /// as x, y, z triples in part-local metres. A mesh whose renderer is
-        /// disabled or whose transform is switched off, such as an engine's
-        /// shroud while nothing is mounted below it, is in the box and not in
-        /// the hull, since it is not in the picture. It is <c>null</c> unless
-        /// every visible mesh was measured from its vertices, since bounds
-        /// corners say nothing a box does not.
-        /// </summary>
-        public static bool TryMeasure(Part part, string? variantName, out Vector3 center, out Vector3 size, out MeasurePath path, out double[][]? hull)
-        {
-            return TryMeasure(part, variantName, out center, out size, out path, out hull, null);
+            return TryMeasure(part, variantName, out center, out size, out path, null);
         }
 
         /// <summary>
@@ -60,9 +45,8 @@ namespace Gonogo.KSP
         /// the part's frame and whether it is drawn, for comparing the part's
         /// meshes with its shape.
         /// </summary>
-        public static bool TryMeasure(Part part, string? variantName, out Vector3 center, out Vector3 size, out MeasurePath path, out double[][]? hull, List<PartMesh>? meshes)
+        public static bool TryMeasure(Part part, string? variantName, out Vector3 center, out Vector3 size, out MeasurePath path, List<PartMesh>? meshes)
         {
-            hull = null;
             path = MeasurePath.None;
             center = Vector3.zero;
             size = Vector3.zero;
@@ -92,7 +76,7 @@ namespace Gonogo.KSP
             var timing = SampleTiming.Enabled;
             var measuredBefore = Pieces.Measured;
             long carryTicks = 0;
-            var uses = new List<PartBox.Use>();
+            var pieces = new List<MeshPiece>();
             using (SampleTiming.Part("topo.mesh.walk"))
             {
                 foreach (var renderer in renderers)
@@ -115,10 +99,9 @@ namespace Gonogo.KSP
                         renderer,
                         mesh,
                         toPartFromMesh,
-                        () => MeshPiece.Measure(VerticesOf(mesh), mesh.bounds, toPartFromMesh, () => CandidatesOf(mesh)));
-                    var shown = IsShown(renderer, model);
-                    uses.Add(new PartBox.Use(piece, shown));
-                    meshes?.Add(new PartMesh(KeyOf(renderer.transform, model), renderer, mesh, toPartFromMesh, shown));
+                        () => MeshPiece.Measure(VerticesOf(mesh), mesh.bounds, toPartFromMesh));
+                    pieces.Add(piece);
+                    meshes?.Add(new PartMesh(KeyOf(renderer.transform, model), renderer, mesh, toPartFromMesh, IsShown(renderer, model)));
                 }
             }
             if (timing)
@@ -130,7 +113,7 @@ namespace Gonogo.KSP
 
             using (SampleTiming.Part("topo.mesh.assemble"))
             {
-                return PartBox.TryAssemble(uses, out center, out size, out path, out hull);
+                return PartBox.TryAssemble(pieces, out center, out size, out path);
             }
         }
 
@@ -265,20 +248,6 @@ namespace Gonogo.KSP
          * not readable is remembered as null and measured by its bounds.
          */
         private static readonly ConditionalWeakTable<Mesh, Vector3[]?> VertexCache = new();
-
-        private static readonly ConditionalWeakTable<Mesh, Vector3[]> CandidateCache = new();
-
-        private static Vector3[] CandidatesOf(Mesh mesh)
-        {
-            if (CandidateCache.TryGetValue(mesh, out var cached))
-            {
-                return cached;
-            }
-
-            var candidates = HullPoints.Candidates(VerticesOf(mesh) ?? Array.Empty<Vector3>());
-            CandidateCache.Add(mesh, candidates);
-            return candidates;
-        }
 
         internal static Vector3[]? VerticesOf(Mesh mesh)
         {

@@ -1062,9 +1062,6 @@
       "size.y": "m",
       "size.z": "m"
     },
-    "PartHullPiece": {
-      "points": "m"
-    },
     "PartModuleState": {
       "flameout": "flag",
       "state": "text",
@@ -2763,9 +2760,6 @@
     "PartActions": {
       "actions": "PartActionEntry[]",
       "meta": "PayloadMeta"
-    },
-    "PartBounds": {
-      "hull": "PartHullPiece[]"
     },
     "PartShape": {
       "meshes": "PartShapeMesh[]"

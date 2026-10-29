@@ -37,9 +37,6 @@ export const GENERATED_TYPE_FRAMES = {
     center: { frame: "part-local" },
     size: { frame: "part-local" },
   },
-  "PartHullPiece": {
-    points: { frame: "part-local" },
-  },
   "PartShapeMesh": {
     max: { frame: "part-local" },
     min: { frame: "part-local" },

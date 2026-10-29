@@ -168,60 +168,6 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void HullPiecesMapAsFlatTriplesAndReachTheWire()
-        {
-            var raw = RawPart("1", null);
-            var strip = new double[] { -2.553, 0.116, -0.201, -2.553, 0.131, 0.199, -0.3, 0.12, 0.2 };
-            var base_ = new double[] { 0.054, 0.241, -0.274, 0.054, -0.241, 0.274, 0.087, 0.281, 0.0 };
-            raw["bounds"] = new Dictionary<string, object?>
-            {
-                ["size"] = new double[] { 2.65, 0.95, 0.55 },
-                ["center"] = new double[] { -1.228, -0.183, 0.0 },
-                ["hull"] = new[] { strip, base_ },
-            };
-
-            var part = Assert.Single(VesselPartsViewProvider.BuildParts(TopologySnapshot(raw))!.Parts);
-
-            var pieces = Assert.IsType<List<PartHullPiece>>(part.Bounds.Hull);
-            Assert.Equal(2, pieces.Count);
-            Assert.Equal(strip, pieces[0].Points);
-            Assert.Equal(base_, pieces[1].Points);
-            var wire = Assert.Single(Assert.IsType<List<object?>>(Assert.IsType<Dictionary<string, object?>>(VesselPartsViewProvider.BuildPartsWire(TopologySnapshot(raw)))["parts"]));
-            var bounds = Assert.IsType<Dictionary<string, object?>>(Assert.IsType<Dictionary<string, object?>>(wire)["bounds"]);
-            var wirePieces = Assert.IsType<List<Dictionary<string, object?>>>(bounds["hull"]);
-            Assert.Equal(strip, wirePieces[0]["points"]);
-            Assert.Equal(2, wirePieces.Count);
-        }
-
-        [Fact]
-        public void APieceThatIsNotWholePointsIsDroppedAndNoPiecesMapsToNull()
-        {
-            var ragged = RawPart("1", null);
-            ragged["bounds"] = new Dictionary<string, object?>
-            {
-                ["size"] = new double[] { 1.0, 1.0, 1.0 },
-                ["hull"] = new[] { new double[] { 0.0, 0.0, 0.0, 1.0, 1.0 }, new double[] { 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 2.0, 2.0, 2.0 } },
-            };
-            var onlyRagged = RawPart("2", null);
-            onlyRagged["bounds"] = new Dictionary<string, object?>
-            {
-                ["size"] = new double[] { 1.0, 1.0, 1.0 },
-                ["hull"] = new[] { new double[] { 0.0, 0.0, 0.0, 1.0, 1.0 } },
-            };
-            var absent = RawPart("3", null);
-            absent["bounds"] = new Dictionary<string, object?>
-            {
-                ["size"] = new double[] { 1.0, 1.0, 1.0 },
-                ["hull"] = null,
-            };
-
-            var kept = Assert.Single(VesselPartsViewProvider.BuildParts(TopologySnapshot(ragged))!.Parts).Bounds.Hull;
-            Assert.Single(kept!);
-            Assert.Null(Assert.Single(VesselPartsViewProvider.BuildParts(TopologySnapshot(onlyRagged))!.Parts).Bounds.Hull);
-            Assert.Null(Assert.Single(VesselPartsViewProvider.BuildParts(TopologySnapshot(absent))!.Parts).Bounds.Hull);
-        }
-
-        [Fact]
         public void SentinelTemperaturesMapToNull()
         {
             // A part recorded with the KSP -1 "not simulated" sentinels comes

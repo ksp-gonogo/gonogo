@@ -132,7 +132,6 @@ namespace Gonogo.KSP
                 {
                     ["size"] = Vec3Array(box.Size),
                     ["center"] = box.HasMesh ? Vec3Array(box.Center) : null,
-                    ["hull"] = box.Hull,
                 },
                 ["shape"] = PartShapeWire.Key(info.name, VariantOf(node)),
                 ["dryMass"] = (double)prefab.mass + Number(node.GetValue("modMass")),

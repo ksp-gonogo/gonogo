@@ -65,28 +65,19 @@ namespace Gonogo.KSP.Tests
         };
 
         private static MeshPiece Fresh(Mesh mesh, Matrix4x4 toPart) =>
-            MeshPiece.Measure(mesh.Vertices, mesh.Bounds, toPart, () => mesh.Vertices);
+            MeshPiece.Measure(mesh.Vertices, mesh.Bounds, toPart);
 
         private static MeshPiece Reused(MeshPieceMemo<Renderer> memo, Renderer renderer, Mesh mesh, Matrix4x4 toPart) =>
             memo.Piece(renderer, mesh, toPart, () => Fresh(mesh, toPart));
 
-        private static void AssertSamePart(IReadOnlyList<PartBox.Use> expected, IReadOnlyList<PartBox.Use> actual)
+        private static void AssertSamePart(IReadOnlyList<MeshPiece> expected, IReadOnlyList<MeshPiece> actual)
         {
             Assert.Equal(
-                PartBox.TryAssemble(expected, out var eCenter, out var eSize, out var ePath, out var eHull),
-                PartBox.TryAssemble(actual, out var aCenter, out var aSize, out var aPath, out var aHull));
+                PartBox.TryAssemble(expected, out var eCenter, out var eSize, out var ePath),
+                PartBox.TryAssemble(actual, out var aCenter, out var aSize, out var aPath));
             Assert.Equal(eCenter, aCenter);
             Assert.Equal(eSize, aSize);
             Assert.Equal(ePath, aPath);
-            Assert.Equal(eHull == null, aHull == null);
-            if (eHull != null)
-            {
-                Assert.Equal(eHull.Length, aHull!.Length);
-                for (var i = 0; i < eHull.Length; i++)
-                {
-                    Assert.Equal(eHull[i], aHull[i]);
-                }
-            }
         }
 
         [Fact]
@@ -102,8 +93,8 @@ namespace Gonogo.KSP.Tests
                 var tankToPart = PartBox.ToPart(TankChain);
                 var legToPart = PartBox.ToPart(LegChain(0f));
                 AssertSamePart(
-                    new[] { new PartBox.Use(Fresh(Tank, tankToPart), true), new PartBox.Use(Fresh(Leg, legToPart), true) },
-                    new[] { new PartBox.Use(Reused(memo, tank, Tank, tankToPart), true), new PartBox.Use(Reused(memo, leg, Leg, legToPart), true) });
+                    new[] { Fresh(Tank, tankToPart), Fresh(Leg, legToPart) },
+                    new[] { Reused(memo, tank, Tank, tankToPart), Reused(memo, leg, Leg, legToPart) });
             }
 
             Assert.Equal(2, memo.Measured);
@@ -121,8 +112,8 @@ namespace Gonogo.KSP.Tests
 
             var deployed = PartBox.ToPart(LegChain(80f));
             AssertSamePart(
-                new[] { new PartBox.Use(Fresh(Tank, tankToPart), true), new PartBox.Use(Fresh(Leg, deployed), true) },
-                new[] { new PartBox.Use(Reused(memo, tank, Tank, tankToPart), true), new PartBox.Use(Reused(memo, leg, Leg, deployed), true) });
+                new[] { Fresh(Tank, tankToPart), Fresh(Leg, deployed) },
+                new[] { Reused(memo, tank, Tank, tankToPart), Reused(memo, leg, Leg, deployed) });
             Assert.Equal(3, memo.Measured);
         }
 
@@ -137,31 +128,6 @@ namespace Gonogo.KSP.Tests
             var swapped = Reused(memo, renderer, Leg, toPart);
 
             Assert.Equal(Fresh(Leg, toPart).Hi, swapped.Hi);
-            Assert.Equal(2, memo.Measured);
-        }
-
-        [Fact]
-        public void HidingAndShowingAMeshChangesTheHullAsAFreshPassWouldWithoutMeasuringAgain()
-        {
-            var memo = new MeshPieceMemo<Renderer>();
-            var tank = new Renderer();
-            var leg = new Renderer();
-            var tankToPart = PartBox.ToPart(TankChain);
-            var legToPart = PartBox.ToPart(LegChain(0f));
-
-            foreach (var legShown in new[] { false, true, false, true })
-            {
-                var fresh = new[] { new PartBox.Use(Fresh(Tank, tankToPart), true), new PartBox.Use(Fresh(Leg, legToPart), legShown) };
-                var reused = new[] { new PartBox.Use(Reused(memo, tank, Tank, tankToPart), true), new PartBox.Use(Reused(memo, leg, Leg, legToPart), legShown) };
-                AssertSamePart(fresh, reused);
-
-                PartBox.TryAssemble(reused, out _, out var size, out _, out var hull);
-                PartBox.TryAssemble(new[] { reused[0] }, out _, out var tankOnly, out _, out var tankHull);
-                Assert.NotEqual(tankOnly, size);
-                Assert.Equal(legShown ? 2 : 1, hull!.Length);
-                Assert.Single(tankHull!);
-            }
-
             Assert.Equal(2, memo.Measured);
         }
 

@@ -1,4 +1,4 @@
-{"t":1793089881083,"f":{"type":"hello","bootId":"cd502212e1ab4ef2b1596ea5332e48d3","modVersion":"1.0.0-dev.466afc714","contractMajor":49,"contractMinor":6}}
+{"t":1793089881083,"f":{"type":"hello","bootId":"cd502212e1ab4ef2b1596ea5332e48d3","modVersion":"1.0.0-dev.466afc714","contractMajor":50,"contractMinor":0}}
 {"t":1793089881083,"f":{"type":"game-state","state":"ready","scene":"TRACKSTATION"}}
 {"t":1793089881083,"f":{"type":"stream-data","topic":"comms.connectivity","payload":{"connected":null,"controlSource":3,"hasLocalControl":false},"meta":{"source":"system","validAt":637584845.9287181,"seq":22463,"deliveredAt":637584861.2287035,"vantage":"ground:Kerbin: KSC","active":true,"staleness":0,"timelineEpoch":1,"sampleId":11878}}}
 {"t":1793089881083,"f":{"type":"event","topic":"comms.connectivity","name":"subscribed","meta":{"source":"system","validAt":637584858.1687064,"seq":1157,"deliveredAt":637584861.2287035,"vantage":"ground:Kerbin: KSC","quality":0,"active":true,"staleness":0,"timelineEpoch":1},"keyframeIntervalUt":30}}

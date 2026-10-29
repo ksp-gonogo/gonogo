@@ -1102,9 +1102,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     "size.y": "m",
     "size.z": "m",
   },
-  "PartHullPiece": {
-    points: "m",
-  },
   "PartModuleState": {
     flameout: "flag",
     state: "text",
@@ -2837,9 +2834,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "PartActions": {
     actions: "PartActionEntry[]",
     meta: "PayloadMeta",
-  },
-  "PartBounds": {
-    hull: "PartHullPiece[]",
   },
   "PartShape": {
     meshes: "PartShapeMesh[]",

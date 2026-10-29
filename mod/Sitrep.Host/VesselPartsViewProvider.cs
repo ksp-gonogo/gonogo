@@ -244,32 +244,10 @@ namespace Sitrep.Host
                 {
                     Size = GetVec3(bounds, "size") ?? new Vec3(),
                     Center = GetVec3(bounds, "center"),
-                    Hull = MapHull(bounds),
                 };
             }
 
             return new PartBounds();
-        }
-
-        private static List<PartHullPiece>? MapHull(IDictionary<string, object?> bounds)
-        {
-            if (!bounds.TryGetValue("hull", out var raw) || raw is not System.Collections.IEnumerable rawPieces || raw is string)
-            {
-                return null;
-            }
-
-            var pieces = new List<PartHullPiece>();
-            foreach (var rawPiece in rawPieces)
-            {
-                var piece = new Dictionary<string, object?> { ["points"] = rawPiece };
-                var points = SnapshotDict.GetDoubleArray(piece, "points");
-                if (points != null && points.Length % 3 == 0)
-                {
-                    pieces.Add(new PartHullPiece { Points = new List<double>(points) });
-                }
-            }
-
-            return pieces.Count > 0 ? pieces : null;
         }
 
         private static List<PartShapePose>? MapShapePoses(IDictionary<string, object?> raw)
@@ -392,7 +370,6 @@ namespace Sitrep.Host
         {
             ["size"] = ToWire(bounds.Size),
             ["center"] = bounds.Center != null ? ToWire(bounds.Center) : null,
-            ["hull"] = bounds.Hull?.Select(ToWire).ToList(),
         };
 
         private static Dictionary<string, object?> ToWire(PartShapePose pose) => new Dictionary<string, object?>
@@ -400,11 +377,6 @@ namespace Sitrep.Host
             ["mesh"] = pose.Mesh,
             ["shown"] = pose.Shown,
             ["transform"] = pose.Transform,
-        };
-
-        private static Dictionary<string, object?> ToWire(PartHullPiece piece) => new Dictionary<string, object?>
-        {
-            ["points"] = piece.Points,
         };
 
         private static Dictionary<string, object?> ToWire(Vec3 v) => new Dictionary<string, object?>

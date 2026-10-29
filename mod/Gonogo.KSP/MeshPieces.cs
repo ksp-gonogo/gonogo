@@ -6,23 +6,17 @@ using UnityEngine;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// One mesh's share of its part's box and hull: the box over its points carried
-    /// into the part's frame, and, taken only when first asked for, the hull points
-    /// of the same carry. Both are functions of the mesh and that one matrix alone.
+    /// One mesh's share of its part's box: the box over its points carried into
+    /// the part's frame, a function of the mesh and that one matrix alone.
     /// </summary>
     internal sealed class MeshPiece
     {
-        private readonly Func<IReadOnlyList<Vector3>> _candidates;
-        private double[]? _hull;
-        private bool _hullTaken;
-
-        private MeshPiece(Vector3 lo, Vector3 hi, MeasurePath path, Matrix4x4 toPart, Func<IReadOnlyList<Vector3>> candidates)
+        private MeshPiece(Vector3 lo, Vector3 hi, MeasurePath path, Matrix4x4 toPart)
         {
             Lo = lo;
             Hi = hi;
             Path = path;
             ToPart = toPart;
-            _candidates = candidates;
         }
 
         public Vector3 Lo { get; }
@@ -37,27 +31,13 @@ namespace Gonogo.KSP
         /// <summary>
         /// Measures a mesh from its <paramref name="vertices"/>, or from its
         /// <paramref name="bounds"/> when it has none, carried by <paramref name="toPart"/>.
-        /// <paramref name="candidates"/> supplies the points a hull is taken from.
         /// </summary>
-        public static MeshPiece Measure(IReadOnlyList<Vector3>? vertices, Bounds bounds, Matrix4x4 toPart, Func<IReadOnlyList<Vector3>> candidates)
+        public static MeshPiece Measure(IReadOnlyList<Vector3>? vertices, Bounds bounds, Matrix4x4 toPart)
         {
             var lo = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
             var hi = new Vector3(float.MinValue, float.MinValue, float.MinValue);
             var path = MeshExtent.Grow(vertices, bounds, toPart, ref lo, ref hi);
-            return new MeshPiece(lo, hi, path, toPart, candidates);
-        }
-
-        /// <summary>The piece's hull points as x, y, z triples (see <see cref="HullPoints.Tracker.ToTriples"/>), or null when it has none.</summary>
-        public double[]? Hull()
-        {
-            if (!_hullTaken)
-            {
-                var tracker = new HullPoints.Tracker();
-                tracker.Add(_candidates(), ToPart);
-                _hull = tracker.ToTriples();
-                _hullTaken = true;
-            }
-            return _hull;
+            return new MeshPiece(lo, hi, path, toPart);
         }
     }
 
@@ -116,36 +96,16 @@ namespace Gonogo.KSP
         }
     }
 
-    /// <summary>The box and hull of a whole part, put together from its mesh pieces.</summary>
+    /// <summary>The box of a whole part, put together from its mesh pieces.</summary>
     internal static class PartBox
     {
-        /// <summary>One piece as the part shows it now.</summary>
-        internal readonly struct Use
-        {
-            public Use(MeshPiece piece, bool shown)
-            {
-                Piece = piece;
-                Shown = shown;
-            }
-
-            public MeshPiece Piece { get; }
-
-            /// <summary>Whether the mesh is drawn, which puts it in the hull; every piece is in the box.</summary>
-            public bool Shown { get; }
-        }
-
-        /// <summary>
-        /// The box over every piece, how it was measured, and the hull of the shown
-        /// pieces, null unless every shown piece was measured from its vertices.
-        /// False when there are no pieces.
-        /// </summary>
-        public static bool TryAssemble(IReadOnlyList<Use> uses, out Vector3 center, out Vector3 size, out MeasurePath path, out double[][]? hull)
+        /// <summary>The box over every piece and how it was measured. False when there are no pieces.</summary>
+        public static bool TryAssemble(IReadOnlyList<MeshPiece> pieces, out Vector3 center, out Vector3 size, out MeasurePath path)
         {
             center = Vector3.zero;
             size = Vector3.zero;
             path = MeasurePath.None;
-            hull = null;
-            if (uses.Count == 0)
+            if (pieces.Count == 0)
             {
                 return false;
             }
@@ -154,29 +114,21 @@ namespace Gonogo.KSP
             var hi = new Vector3(float.MinValue, float.MinValue, float.MinValue);
             var fromVertices = 0;
             var fromBounds = 0;
-            var pieces = new List<double[]>();
-            var hullComplete = true;
-            foreach (var use in uses)
+            foreach (var piece in pieces)
             {
-                lo = Vector3.Min(lo, use.Piece.Lo);
-                hi = Vector3.Max(hi, use.Piece.Hi);
-                if (use.Piece.Path == MeasurePath.Vertices)
+                lo = Vector3.Min(lo, piece.Lo);
+                hi = Vector3.Max(hi, piece.Hi);
+                if (piece.Path == MeasurePath.Vertices)
                 {
                     fromVertices++;
-                    if (use.Shown && use.Piece.Hull() is { } triples)
-                    {
-                        pieces.Add(triples);
-                    }
                 }
                 else
                 {
                     fromBounds++;
-                    hullComplete &= !use.Shown;
                 }
             }
 
             path = fromBounds == 0 ? MeasurePath.Vertices : fromVertices == 0 ? MeasurePath.MeshBounds : MeasurePath.Mixed;
-            hull = hullComplete && pieces.Count > 0 ? HullPoints.Limit(pieces).ToArray() : null;
             center = (lo + hi) * 0.5f;
             size = hi - lo;
             return true;

@@ -1,4 +1,4 @@
-{"t":1793088573907,"f":{"type":"hello","bootId":"cd502212e1ab4ef2b1596ea5332e48d3","modVersion":"1.0.0-dev.466afc714","contractMajor":49,"contractMinor":6}}
+{"t":1793088573907,"f":{"type":"hello","bootId":"cd502212e1ab4ef2b1596ea5332e48d3","modVersion":"1.0.0-dev.466afc714","contractMajor":50,"contractMinor":0}}
 {"t":1793088573907,"f":{"type":"game-state","state":"ready","scene":"FLIGHT"}}
 {"t":1793088573950,"f":{"type":"stream-data","topic":"vessel.identity","payload":{"vesselId":"1cdde1bd-afa9-4687-8054-87a34a37b24f","name":"LFV-2 Wave","vesselType":3,"situation":2,"parentBodyIndex":1,"launchUt":null,"meta":{"source":"vessel:1cdde1bd-afa9-4687-8054-87a34a37b24f"}},"meta":{"source":"system","validAt":637584048.089479,"seq":2311,"deliveredAt":637584059.3094683,"vantage":"ground:Kerbin: KSC","active":true,"staleness":0,"timelineEpoch":1,"sampleId":549}}}
 {"t":1793088573951,"f":{"type":"event","topic":"vessel.identity","name":"subscribed","meta":{"source":"system","validAt":637584059.3094683,"seq":391,"deliveredAt":637584059.3094683,"vantage":"ground:Kerbin: KSC","quality":0,"active":true,"staleness":0,"timelineEpoch":1},"keyframeIntervalUt":30}}

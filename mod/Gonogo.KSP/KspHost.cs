@@ -7948,7 +7948,7 @@ namespace Gonogo.KSP
             var meshStarted = System.Diagnostics.Stopwatch.GetTimestamp();
             var variant = part.variants?.SelectedVariant?.Name;
             var partMeshes = new List<PartMesh>();
-            var hasMesh = PartMeshBounds.TryMeasure(part, variant, out var meshCenter, out var meshSize, out var boundsPath, out var meshHull, partMeshes);
+            var hasMesh = PartMeshBounds.TryMeasure(part, variant, out var meshCenter, out var meshSize, out var boundsPath, partMeshes);
             var shape = PartShapePoses.KeyOf(part, variant);
             var shapePoses = shape != null ? PartShapePoses.Of(part, shape, variant, partMeshes) : null;
             SampleTiming.Add("topo.mesh", System.Diagnostics.Stopwatch.GetTimestamp() - meshStarted);
@@ -7977,7 +7977,6 @@ namespace Gonogo.KSP
                 {
                     ["size"] = Vec3Array(meshSize),
                     ["center"] = hasMesh ? Vec3Array(meshCenter) : null,
-                    ["hull"] = meshHull,
                 },
                 ["shape"] = shape,
                 ["shapePoses"] = shapePoses,

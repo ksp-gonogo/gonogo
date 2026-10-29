@@ -371,7 +371,6 @@ public static class RtConfig
                 typeof(VesselParts),
                 typeof(VesselPart),
                 typeof(PartBounds),
-                typeof(PartHullPiece),
                 typeof(PartShapePose),
                 // parts.shape.<key>: one kind of part's reduced meshes
                 typeof(PartShape),

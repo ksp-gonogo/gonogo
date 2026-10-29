@@ -304,7 +304,6 @@
          Assembly-CSharp, so it is gated like every other KspManaged suite here. -->
     <Compile Remove="MeshExtentTests.cs" />
     <Compile Remove="BoundsPathReportTests.cs" />
-    <Compile Remove="HullPointsTests.cs" />
     <Compile Remove="MeshPiecesTests.cs" />
     <Compile Remove="KspEnumMirrorTests.cs" />
     <!-- The same, for the strategy activation's reflected members and stock's
@@ -381,8 +380,6 @@
     <Compile Include="MeshExtentTests.cs" />
     <Compile Include="..\Gonogo.KSP\BoundsPathReport.cs" />
     <Compile Include="BoundsPathReportTests.cs" />
-    <Compile Include="..\Gonogo.KSP\HullPoints.cs" />
-    <Compile Include="HullPointsTests.cs" />
     <Compile Include="..\Gonogo.KSP\MeshPieces.cs" />
     <Compile Include="MeshPiecesTests.cs" />
     <Compile Include="..\Gonogo.KSP\GonogoLog.cs" />

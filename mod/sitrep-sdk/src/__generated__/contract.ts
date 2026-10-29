@@ -12276,31 +12276,6 @@ export interface PartBounds
 	* rotation before adding it to `VesselPart.position`.
 	*/
 	center?: Vec3Of<"m"> | null;
-	/**
-	* The part's silhouette as pieces, one for each mesh that is drawn, so a part
-	* whose meshes lie apart (a solar panel's plates and its hinge, say) is not
-	* filled in between them. At most 10 pieces and 96 points over all of them,
-	* the smallest dropped first. `null` when a mesh could not be read (the box is
-	* then the only shape known), nothing of the part is drawn, or the part's
-	* model has no mesh. A mesh switched off, such as an engine's shroud while
-	* nothing is mounted below it, is in the box and not in a piece.
-	*/
-	hull?: PartHullPiece[] | null;
-}
-/**
-* The convex hull of one mesh of a part, as points in the part's own frame.
-*
-* @category Parts
-*/
-export interface PartHullPiece
-{
-	/**
-	* The corners of the mesh's convex hull (metres, part-local), flattened to x,
-	* y, z triples in order, so a list of 3n numbers holds n points, at most 38,
-	* rounded to a millimetre. A consumer drawing the part from any side turns the
-	* points by the part's rotation and keeps the 2D convex hull of the result.
-	*/
-	points: Value<"m">[];
 }
 /**
 * The active vessel's physics-simulation regime, derived from KSP's own
