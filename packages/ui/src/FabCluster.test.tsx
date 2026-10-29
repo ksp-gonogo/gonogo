@@ -40,8 +40,39 @@ describe("FabCluster", () => {
     stubPointer(false);
     const button = renderCluster();
     expect(button).toHaveAttribute("tabindex", "-1");
-    fireEvent.mouseEnter(button.parentElement as HTMLElement);
+    fireEvent.mouseEnter(button);
     expect(button).toHaveAttribute("tabindex", "0");
+  });
+
+  it("still opens the cluster when the caller passes its own focus handler", () => {
+    stubPointer(false);
+    const onFocus = vi.fn();
+    render(
+      <FabClusterProvider>
+        <Fab bottom={84} aria-label="Settings" onFocus={onFocus}>
+          s
+        </Fab>
+      </FabClusterProvider>,
+    );
+    const button = screen.getByRole("button", { name: "Settings" });
+    act(() => button.focus());
+    expect(onFocus).toHaveBeenCalledTimes(1);
+    expect(button).toHaveAttribute("tabindex", "0");
+  });
+
+  it("runs the action when the label text is clicked", async () => {
+    stubPointer(false);
+    const onClick = vi.fn();
+    render(
+      <FabClusterProvider>
+        <Fab bottom={84} aria-label="Settings" onClick={onClick}>
+          s
+        </Fab>
+      </FabClusterProvider>,
+    );
+    fireEvent.mouseEnter(screen.getByRole("button", { name: "Settings" }));
+    await userEvent.click(screen.getByText("Settings"));
+    expect(onClick).toHaveBeenCalledTimes(1);
   });
 
   describe("on a coarse pointer", () => {
