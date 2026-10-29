@@ -1055,6 +1055,22 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
+    /// One dynamic namespace an Uplink owns: the topic prefix, including its
+    /// trailing dot (<c>kos.terminal.</c>), and the declaration every concrete
+    /// <c>prefix + key</c> topic under it is cloned from. Listed in
+    /// <see cref="UplinkManifest.Namespaces"/>.
+    /// </summary>
+    /// <category>Uplink API</category>
+    public sealed class NamespaceDeclaration
+    {
+        /// <summary>The topic prefix, including its trailing dot.</summary>
+        public string Prefix { get; set; } = "";
+
+        /// <summary>The declaration each concrete topic under <see cref="Prefix"/> is cloned from; its <see cref="ChannelDeclaration.Topic"/> is ignored.</summary>
+        public required ChannelDeclaration Template { get; set; }
+    }
+
+    /// <summary>
     /// What an <see cref="ISitrepUplink"/> declares: its id, its version, who
     /// wrote it, and every channel and command it owns.
     ///
@@ -1130,6 +1146,18 @@ namespace Sitrep.Contract
         /// never loaded this Uplink's bundle can still say it.</para>
         /// </summary>
         public IReadOnlyList<RefusalCode> ErrorCodes { get; set; } = Array.Empty<RefusalCode>();
+
+        /// <summary>
+        /// Every dynamic namespace the Uplink publishes under, each with the
+        /// declaration its concrete topics are cloned from. The engine registers
+        /// them before <see cref="ISitrepUplink.Register"/> runs, so how a topic
+        /// under the prefix is delayed and routed is known without running the
+        /// Uplink's game-bound code. Register still calls
+        /// <see cref="IUplinkHost.RegisterDynamicNamespace"/> for the same prefix to
+        /// obtain the publisher, passing the same template. Empty for an Uplink
+        /// with no namespace.
+        /// </summary>
+        public IReadOnlyList<NamespaceDeclaration> Namespaces { get; set; } = Array.Empty<NamespaceDeclaration>();
     }
 
     /// <summary> Whether one registered Uplink is usable. An Uplink that throws
