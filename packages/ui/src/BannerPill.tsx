@@ -85,6 +85,9 @@ const FixedPill = styled.div<{
   top: ${(p) => p.$top}px;
   left: 50%;
   transform: translateX(-50%);
+  /* Without these a pill at left: 50% can grow to half the viewport only, so on a phone its text wraps into a tall narrow capsule. */
+  width: max-content;
+  max-width: calc(100vw - 24px);
   z-index: ${(p) => p.$zIndex};
   display: inline-flex;
   align-items: center;
