@@ -146,6 +146,56 @@ describe("deriveTopologyFromVesselParts", () => {
     ]);
   });
 
+  it("carries a fairing's shell as rings of height and radius, and none for other parts", () => {
+    const row = (
+      id: string,
+      fairing?: VesselParts["parts"][number]["fairing"],
+    ): VesselParts["parts"][number] => ({
+      id,
+      name: "fairingSize1",
+      title: "AE-FF1 Airstream Protective Shell (1.25m)",
+      position: { x: value("m", 0), y: value("m", 0), z: value("m", 0) },
+      bounds: {
+        size: { x: value("m", 1), y: value("m", 1), z: value("m", 1) },
+      },
+      category: "Payload",
+      modules: [],
+      isPowerRelated: false,
+      resources: {},
+      moduleStates: [],
+      actionBindings: [],
+      fairing,
+    });
+    const shell = (rings: number[]) => ({
+      pivot: { x: value("m", 0), y: value("m", 0.17), z: value("m", 0) },
+      axis: { x: value("1", 0), y: value("1", 1), z: value("1", 0) },
+      rings: rings.map((n) => value("m", n)),
+    });
+    const wire: VesselParts = {
+      meta: { source: "test" },
+      parts: [
+        row("1", shell([0, 0.625, 1.869, 0.2, 2.1927, 0])),
+        row("2", shell([])),
+        row("3", null),
+      ],
+    };
+
+    const [closed, jettisoned, other] =
+      deriveTopologyFromVesselParts(wire).parts;
+
+    expect(closed.fairing).toEqual({
+      pivot: { x: 0, y: 0.17, z: 0 },
+      axis: { x: 0, y: 1, z: 0 },
+      rings: [
+        { h: 0, r: 0.625 },
+        { h: 1.869, r: 0.2 },
+        { h: 2.1927, r: 0 },
+      ],
+    });
+    expect(jettisoned.fairing?.rings).toEqual([]);
+    expect(other.fairing).toBeUndefined();
+  });
+
   describe("a tree with a part left out", () => {
     const part = (
       id: string,

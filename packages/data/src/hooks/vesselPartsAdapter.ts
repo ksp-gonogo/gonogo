@@ -113,6 +113,7 @@ function deriveTopologyPart(p: VesselPart): TopologyPart {
     },
     shape: p.shape ?? undefined,
     shapePoses: shapePoses(p.shapePoses),
+    fairing: fairingShell(p.fairing),
     modules: p.modules,
   };
 }
@@ -127,6 +128,29 @@ function shapePoses(
       ? { mesh, shown, transform: transform.map((n) => n.magnitude) }
       : { mesh, shown },
   );
+}
+
+/** A fairing's shell with its ring pairs split into `{ h, r }`. */
+function fairingShell(wire: VesselPart["fairing"]): TopologyPart["fairing"] {
+  if (!wire) return undefined;
+  const flat = wire.rings.map((n) => n.magnitude);
+  const rings: { h: number; r: number }[] = [];
+  for (let i = 0; i + 1 < flat.length; i += 2) {
+    rings.push({ h: flat[i], r: flat[i + 1] });
+  }
+  return {
+    pivot: {
+      x: wire.pivot.x.magnitude,
+      y: wire.pivot.y.magnitude,
+      z: wire.pivot.z.magnitude,
+    },
+    axis: {
+      x: wire.axis.x.magnitude,
+      y: wire.axis.y.magnitude,
+      z: wire.axis.z.magnitude,
+    },
+    rings,
+  };
 }
 
 // The Kelvin -> Celsius offset comes from core's `kelvinToCelsius`. It is not

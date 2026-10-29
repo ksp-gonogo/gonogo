@@ -89,6 +89,19 @@ export interface TopologyPart {
    * shape has it.
    */
   shapePoses?: { mesh: string; shown: boolean; transform?: number[] }[];
+  /**
+   * A procedural fairing's shell, in metres in the part's own frame: rings
+   * stacked along `axis` from `pivot`, each `{ h, r }` a height along the
+   * axis and a radius, from the base up, ending in a ring of radius 0 when
+   * the shell is closed at the top. `rings` is empty once no shell stands.
+   * Absent on every other part, and on a fairing whose payload predates the
+   * profile, which is drawn by its type.
+   */
+  fairing?: {
+    pivot: { x: number; y: number; z: number };
+    axis: { x: number; y: number; z: number };
+    rings: { h: number; r: number }[];
+  };
   /** Raw `PartModule.moduleName` strings; no filtering. */
   modules: string[];
 }
