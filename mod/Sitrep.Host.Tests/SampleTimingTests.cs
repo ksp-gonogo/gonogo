@@ -4,6 +4,15 @@ using Xunit;
 
 namespace Sitrep.Host.Tests
 {
+    /// <summary>
+    /// Runs alone: <c>SampleTiming.Enabled</c> is process-wide, so while one of these
+    /// tests has it on, any engine sampling in parallel records into the same lists.
+    /// </summary>
+    [CollectionDefinition("PerfTelemetry", DisableParallelization = true)]
+    public sealed class PerfTelemetryCollection
+    {
+    }
+
     [Collection("PerfTelemetry")]
     public sealed class SampleTimingTests
     {
