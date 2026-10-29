@@ -33,15 +33,6 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { makeTempDir } from "./temp-dir.mjs";
 
-/**
- * Uplinks whose plugin cannot be loaded with the reference set the `mod` job
- * has: their types reference UnityEngine.UI, which that set does not carry. Each
- * is probed when the set has it and printed as not probed when it does not. The
- * list only shrinks: an Uplink not named here that fails to load is a failure,
- * and a named one that loads is reported so it can come off.
- */
-const KNOWN_UNLOADABLE = ["kerbalism", "testflight"];
-
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
 const flagValues = (name) =>
@@ -234,24 +225,13 @@ const refs = [
 
 let failed = 0;
 let checked = 0;
-const skipped = [];
 for (const { dir, dll } of plugins) {
-  const listed = KNOWN_UNLOADABLE.includes(dir);
-  const probe = run("dotnet", [
-    probeDll,
-    ...(listed ? ["--allow-unloadable"] : []),
-    ...refs,
-    dll,
-  ]);
+  const probe = run("dotnet", [probeDll, ...refs, dll]);
   const lines = probe.stdout
     .split("\n")
-    .filter((l) => /^(ok|FAIL|note|skip) /.test(l));
+    .filter((l) => /^(ok|FAIL|note) /.test(l));
   console.log(`== ${dir}`);
   for (const line of lines) console.log(line);
-  const wasSkipped = lines.some((l) => l.startsWith("skip"));
-  if (wasSkipped) skipped.push(dir);
-  if (listed && !wasSkipped)
-    console.log(`note ${dir} loaded here, so it can come off KNOWN_UNLOADABLE`);
   checked += lines.filter((l) => l.startsWith("ok")).length;
   if (probe.status !== 0) {
     failed++;
@@ -270,7 +250,7 @@ if (checked === 0) {
 }
 console.log(
   failed === 0
-    ? `routing probe: ${plugins.length - skipped.length} of ${plugins.length} Uplink(s) probed, every declared topic routes and delivers${skipped.length > 0 ? `; not probed, a reference assembly is missing here: ${skipped.join(", ")}` : ""}`
+    ? `routing probe: ${plugins.length} Uplink(s) probed, every declared topic routes and delivers`
     : `routing probe: ${failed} of ${plugins.length} Uplink(s) failed`,
 );
 process.exit(failed === 0 ? 0 : 1);

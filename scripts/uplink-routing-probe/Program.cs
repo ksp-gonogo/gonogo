@@ -13,7 +13,7 @@ using static Sitrep.Host.IntegrationTests.WsTestHarness;
 namespace UplinkRoutingProbe
 {
     /// <summary>
-    /// <c>UplinkRoutingProbe [--allow-unloadable] [--refs &lt;dir&gt;]... &lt;plugin.dll&gt;...</c>
+    /// <c>UplinkRoutingProbe [--refs &lt;dir&gt;]... &lt;plugin.dll&gt;...</c>
     ///
     /// For each plugin: registers the Uplink with a real <see cref="ChannelEngine"/>
     /// through the mod's own <see cref="UplinkDiscovery"/>, then for every topic it
@@ -36,7 +36,6 @@ namespace UplinkRoutingProbe
         public static async Task<int> Main(string[] args)
         {
             var refs = new List<string>();
-            var allowUnloadable = args.Contains("--allow-unloadable");
             var plugins = new List<string>();
             for (var i = 0; i < args.Length; i++)
             {
@@ -44,7 +43,7 @@ namespace UplinkRoutingProbe
                 {
                     refs.Add(args[++i]);
                 }
-                else if (args[i] != "--allow-unloadable")
+                else
                 {
                     plugins.Add(args[i]);
                 }
@@ -73,13 +72,13 @@ namespace UplinkRoutingProbe
             var failures = 0;
             foreach (var plugin in plugins)
             {
-                failures += await ProbeAsync(plugin, allowUnloadable);
+                failures += await ProbeAsync(plugin);
             }
             Console.WriteLine(failures == 0 ? "routing probe: all declared topics route and deliver" : $"routing probe: {failures} failure(s)");
             return failures == 0 ? 0 : 1;
         }
 
-        private static async Task<int> ProbeAsync(string pluginPath, bool allowUnloadable)
+        private static async Task<int> ProbeAsync(string pluginPath)
         {
             var label = Path.GetFileNameWithoutExtension(pluginPath);
             IReadOnlyList<UplinkDiscovery.DiscoveredUplink> discovered;
@@ -98,15 +97,6 @@ namespace UplinkRoutingProbe
             var unloadable = discovered.FirstOrDefault(d => d.LoadFailure != null);
             if (unloadable.LoadFailure != null)
             {
-                /* A plugin whose types reference an assembly the reference set does not
-                   carry cannot be loaded here at all. For an Uplink the caller has named
-                   as such that is a hole in what is probed rather than a routing fault, so
-                   it is printed and counted; for any other Uplink it is a failure. */
-                if (allowUnloadable && unloadable.LoadFailure.Contains("Could not load file or assembly"))
-                {
-                    Console.WriteLine($"skip {label}: not probed here, {unloadable.LoadFailure}");
-                    return 0;
-                }
                 return Fail(label, "-", "cannot load the Uplink: " + unloadable.LoadFailure);
             }
 
