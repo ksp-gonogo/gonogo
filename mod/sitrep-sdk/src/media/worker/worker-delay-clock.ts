@@ -56,11 +56,10 @@ export interface WorkerDelayClockOptions {
 }
 
 export interface WorkerDelayClock extends DelayClockLike {
-  /** Apply a freshly-received snapshot from the main thread. Discards a
-   *  stale-epoch snapshot (`next.epoch < current.epoch`): mirrors
-   *  `ViewClock.observeSample`'s own stale-epoch straggler guard exactly,
-   *  so a snapshot posted just before a rewind can never land after (and
-   *  undo) the post-rewind snapshot that follows it. */
+  /** Apply a freshly-received snapshot from the main thread. Snapshots
+   *  arrive in order on one channel, so a lower epoch than the one held is a
+   *  new clock on the page (the telemetry store was rebuilt), not a
+   *  straggler: it replaces the held timeline. */
   applySnapshot(next: ClockFormulaSnapshot): void;
   /** The most recently applied snapshot: for diagnostics/tests. */
   currentSnapshot(): ClockFormulaSnapshot;
@@ -113,7 +112,6 @@ export function createWorkerDelayClock(
       };
     },
     applySnapshot(next) {
-      if (next.epoch < current.epoch) return; // stale-epoch straggler
       current = next;
     },
     currentSnapshot() {
