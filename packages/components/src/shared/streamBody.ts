@@ -41,6 +41,10 @@ export interface StreamAtmosphere {
 /** The fields of a `trackingStation.bodies` entry that describe the body physically. */
 export interface StreamBodyFacts {
   index?: number;
+  parentIndex?: number | null;
+  /** The orbit about the parent; only its semi-major axis is read here. */
+  orbit?: { sma?: Quantityish } | null;
+  isHome?: boolean | null;
   name?: string | null;
   radius?: Quantityish;
   gravParameter?: Quantityish;
@@ -128,6 +132,38 @@ export function bodyFromStream(
 /** A `trackingStation.bodies` payload, as much of it as this resolution needs. */
 export interface StreamBodies {
   bodies: readonly StreamBodyFacts[];
+}
+
+/** Where a body sits in the system, as plain numbers: its size and the orbit that places it about its parent. */
+export interface BodyPlace {
+  name?: string;
+  index: number;
+  parentIndex?: number;
+  /** Mean radius in metres. */
+  radius?: number;
+  /** Semi-major axis about the parent in metres. */
+  sma?: number;
+  isHome: boolean;
+}
+
+/** Every body of a `trackingStation.bodies` payload as a {@link BodyPlace}; `undefined` while there is no payload. */
+export function bodyPlaces(
+  bodies: StreamBodies | null | undefined,
+): BodyPlace[] | undefined {
+  return bodies?.bodies.flatMap((b) =>
+    b.index === undefined
+      ? []
+      : [
+          {
+            name: b.name ?? undefined,
+            index: b.index,
+            parentIndex: b.parentIndex ?? undefined,
+            radius: reported(b.radius),
+            sma: reported(b.orbit?.sma),
+            isHome: b.isHome === true,
+          },
+        ],
+  );
 }
 
 /** The entry at a body index, which is stable across a rename. */

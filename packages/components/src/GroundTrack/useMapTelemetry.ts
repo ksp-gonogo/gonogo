@@ -18,8 +18,9 @@ import { useMemo } from "react";
 import { isGroundedSituation } from "../LandingStatus/grounded";
 import { type EncounterKind, encounterKindOf } from "../shared/encounterKind";
 import { magnitudeOf } from "../shared/magnitude";
-import { bodyNamed } from "../shared/streamBody";
+import { bodyNamed, bodyPlaces } from "../shared/streamBody";
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
+import { bodyDetail } from "./bodyDetail";
 import {
   type ModelledPosition,
   useModelledPosition,
@@ -60,6 +61,8 @@ export interface MapTelemetry {
   /** The map shows the home body because there is no craft to follow, so a missing position is expected and not a fault. */
   followsHome: boolean;
   body: ReturnType<typeof bodyNamed>;
+  /** How finely the body's pencil map is drawn: full for the home body, less the smaller it looks from there, and a step more with a craft flying at it. */
+  bodyDetail: number;
   impactLat: number | undefined;
   impactLon: number | undefined;
   vesselOnThisBody: boolean;
@@ -214,6 +217,9 @@ export function useMapTelemetry(
     Number.isFinite(impact.lon) &&
     !(impact.lat === 0 && impact.lon === 0);
 
+  const vesselOnThisBody =
+    !followsHome && (!bodyOverride || bodyOverride === bodyName);
+  const detail = bodyDetail(bodyPlaces(bodies), targetBodyId, vesselOnThisBody);
   return {
     lat,
     lon,
@@ -239,11 +245,11 @@ export function useMapTelemetry(
     targetBodyId,
     followsHome,
     body,
+    bodyDetail: detail,
     impactLat: impactMarked ? impact.lat : undefined,
     impactLon: impactMarked ? impact.lon : undefined,
     // An override that diverges from the vessel's body, or a home map shown with no craft, suppresses every vessel-relative draw and the follow chrome.
-    vesselOnThisBody:
-      !followsHome && (!bodyOverride || bodyOverride === bodyName),
+    vesselOnThisBody,
     vesselId: identity?.vesselId ?? undefined,
     predictable,
   };

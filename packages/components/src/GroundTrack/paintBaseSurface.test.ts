@@ -39,6 +39,20 @@ describe("paintBaseSurface", () => {
     expect(ctx.calls).toEqual(["drawImage stock", "fillRect 0,0,100,50"]);
   });
 
+  it("paints an undimmed texture at its own brightness", () => {
+    const ctx = fakeCtx();
+    paintBaseSurface(ctx as never, {
+      textureImage: STOCK,
+      dimTexture: false,
+      bodyColor: undefined,
+      suppressVanilla: false,
+      layers: [],
+      worldW: 100,
+      worldH: 50,
+    });
+    expect(ctx.calls).toEqual(["drawImage stock"]);
+  });
+
   it("draws every active layer, in the given order, on top of the stock texture when suppression is off", () => {
     const ctx = fakeCtx();
     paintBaseSurface(ctx as never, {
