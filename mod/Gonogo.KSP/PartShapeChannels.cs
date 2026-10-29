@@ -11,14 +11,15 @@ namespace Gonogo.KSP
     /// <summary>
     /// The <c>parts.shape.&lt;key&gt;</c> dynamic namespace: each kind of part's
     /// meshes, read once from its prefab, reduced to <see cref="MeshReduction.DefaultBudget"/>
-    /// triangles and published while something subscribes to its key. A key is
-    /// read the first time it is asked for and kept for the rest of the game, so
-    /// a later subscriber is sent the kept shape and nothing is read again.
+    /// triangles and sent while something subscribes to its key. A key is read
+    /// the first time it is asked for and kept for the rest of the game; the
+    /// engine sends each connection the kept shape once when it subscribes, and
+    /// again after a timeline reset, so nothing is read twice.
     ///
     /// <para>The meshes are read on the main thread a few at a time, at most
     /// <see cref="VerticesPerSample"/> vertices a sample, so a craft of many
     /// new kinds of part does not stall a frame; the reduction runs on a worker
-    /// thread, and the shape is published once it is done.</para>
+    /// thread, and the shape is sent once it is done.</para>
     ///
     /// <para><b>Not an Uplink discovered by attribute scan, deliberately.</b> It
     /// ships inside <c>Gonogo.dll</c> and is registered directly by
@@ -37,7 +38,7 @@ namespace Gonogo.KSP
          * it through the main screen. As topics they ride the path every station
          * already has: one send per kind of part per connection, however many
          * parts of that kind any craft holds, and a station joining late is sent
-         * the kept shape as the topic's keyframe.
+         * the kept shape when it subscribes.
          */
 
         /// <summary>The most mesh vertices read on the main thread in one sample.</summary>
@@ -46,7 +47,7 @@ namespace Gonogo.KSP
         private static readonly PerfBudget ShapeReadBudget = new PerfBudget(
             "PartShapeChannels part shapes read", threshold: 20, windowSec: 1.0, unit: "shapes");
 
-        private IDynamicChannelSource? _source;
+        private IKeptChannelSource? _source;
 
         /* Keys asked for, from the subscribe callback on the Courier thread to the capture on the main thread. */
         private readonly ConcurrentQueue<string> _asked = new ConcurrentQueue<string>();
@@ -69,7 +70,11 @@ namespace Gonogo.KSP
 
         public void Register(IUplinkHost host)
         {
-            _source = host.RegisterDynamicNamespace(PartShapeWire.Prefix, new ChannelDeclaration
+            if (host is not ChannelEngine engine)
+            {
+                throw new InvalidOperationException("part shapes need Gonogo's own channel engine as their host");
+            }
+            _source = engine.RegisterKeptNamespace(PartShapeWire.Prefix, new ChannelDeclaration
             {
                 Kind = SampleKind.Discrete,
                 Requires = Requirement.None,
@@ -82,22 +87,14 @@ namespace Gonogo.KSP
             host.AddSampledSource(CaptureOnMain, HandleOnCourier, PartShapeWire.Prefix);
         }
 
-        /// <summary>MAIN-THREAD: starts reading each newly asked key, reads on, and hands over every shape that is ready to send.</summary>
+        /// <summary>MAIN-THREAD: starts reading each newly asked key, reads on, and hands over every shape that has just been made.</summary>
         internal object? CaptureOnMain(KspSnapshot? snapshot)
         {
             var ut = snapshot != null ? snapshot.Ut : 0.0;
             var ready = new List<ShapeCapture>();
             while (_asked.TryDequeue(out var key))
             {
-                if (_done.TryGetValue(key, out var kept))
-                {
-                    if (kept != null)
-                    {
-                        ready.Add(new ShapeCapture(key, kept));
-                    }
-                    continue;
-                }
-                if (_reducing.ContainsKey(key) || _reading.Contains(key))
+                if (_done.ContainsKey(key) || _reducing.ContainsKey(key) || _reading.Contains(key))
                 {
                     continue;
                 }
@@ -156,10 +153,10 @@ namespace Gonogo.KSP
                 }
             }
 
-            return ready.Count == 0 ? null : new ShapesCapture(ut, ready);
+            return ready.Count == 0 ? null : new ShapesCapture(ready);
         }
 
-        /// <summary>COURIER-THREAD: publish each ready shape on its own topic.</summary>
+        /// <summary>COURIER-THREAD: keep each new shape, which sends it to every connection subscribed to its topic.</summary>
         internal void HandleOnCourier(object? captured)
         {
             if (captured is not ShapesCapture capture || _source == null)
@@ -169,7 +166,7 @@ namespace Gonogo.KSP
 
             foreach (var shape in capture.Shapes)
             {
-                _source.Publisher(shape.Key).Publish(shape.Wire, capture.Ut);
+                _source.Keep(shape.Key, shape.Wire);
             }
         }
 
@@ -340,13 +337,10 @@ namespace Gonogo.KSP
 
         private sealed class ShapesCapture
         {
-            public ShapesCapture(double ut, List<ShapeCapture> shapes)
+            public ShapesCapture(List<ShapeCapture> shapes)
             {
-                Ut = ut;
                 Shapes = shapes;
             }
-
-            public double Ut { get; }
 
             public List<ShapeCapture> Shapes { get; }
         }

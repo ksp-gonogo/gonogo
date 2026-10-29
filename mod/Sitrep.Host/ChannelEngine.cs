@@ -9950,6 +9950,7 @@ namespace Sitrep.Host
                 _failedCommands.Clear();
                 _recoveryWithdrawalPending = false;
                 BroadcastTimelineReset();
+                SendKeptAfterTimelineReset();
                 TimelineResetChangedSave = folderChanged;
                 NotifyTimelineResetListeners();
             }
@@ -11684,6 +11685,7 @@ namespace Sitrep.Host
                 KeyframeIntervalUt = DeclarationOf(topic)?.Emission?.KeyframeIntervalUt,
             };
             session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteEventMsg(ack)));
+            SendKeptOnSubscribe(session, topic);
         }
 
         /*
