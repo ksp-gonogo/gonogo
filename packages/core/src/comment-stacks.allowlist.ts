@@ -69,7 +69,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "mod/sitrep-sdk/src/media/worker/presentation-pacer.test.ts": 4,
   "mod/sitrep-sdk/src/media/worker/presentation-pacer.ts": 1,
   "mod/sitrep-sdk/src/media/worker/time-base.test.ts": 1,
-  "mod/sitrep-sdk/src/media/worker/worker-delay-clock.test.ts": 1,
   "mod/sitrep-sdk/src/perf/PerfBudget.ts": 1,
   "mod/sitrep-sdk/src/registry/index.ts": 1,
   "mod/sitrep-sdk/src/spine/client-timeline.ts": 1,

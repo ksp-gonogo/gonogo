@@ -40,11 +40,11 @@ describe("createWorkerDelayClock", () => {
     expect(clock.confirmedEdgeUt()).toBe(81);
   });
 
-  describe("applySnapshot stale-epoch guard", () => {
-    it("discards a snapshot whose epoch is behind the currently-applied one", () => {
+  describe("applySnapshot epoch handling", () => {
+    it("takes a lower epoch as a new clock, so its edge follows the new snapshots", () => {
       const clock = createWorkerDelayClock({ nowWall: () => 0 });
       clock.applySnapshot({
-        epoch: 2,
+        epoch: 5,
         anchorWall: 0,
         anchorUt: 500,
         maxSampleUt: 500,
@@ -52,22 +52,17 @@ describe("createWorkerDelayClock", () => {
         warpRate: 1,
         slackSeconds: 0,
       });
-      expect(clock.currentSnapshot().maxSampleUt).toBe(500);
-
-      // A late-arriving epoch-1 snapshot (posted before the epoch-2 bump,
-      // delivered after) must not undo the newer state, mirrors
-      // ViewClock.observeSample's own stale-epoch straggler discard.
       clock.applySnapshot({
-        epoch: 1,
+        epoch: 0,
         anchorWall: 0,
-        anchorUt: 999,
-        maxSampleUt: 999,
+        anchorUt: 90,
+        maxSampleUt: 90,
         delaySeconds: 0,
         warpRate: 1,
         slackSeconds: 0,
       });
-      expect(clock.currentSnapshot().maxSampleUt).toBe(500);
-      expect(clock.currentSnapshot().epoch).toBe(2);
+      expect(clock.currentSnapshot().epoch).toBe(0);
+      expect(clock.confirmedEdgeUt()).toBe(90);
     });
 
     it("accepts a same-epoch snapshot as a normal update (not treated as stale)", () => {
