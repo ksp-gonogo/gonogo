@@ -116,6 +116,25 @@ public class VesselPart
     /// <summary>The part's bounding box, in the part's own frame. Always present.</summary>
     public PartBounds Bounds { get; set; } = new();
 
+    /// <summary>
+    /// The key of this part's 3D shape: subscribe to <c>parts.shape.</c>
+    /// followed by this key for its <see cref="PartShape"/>. Parts of the same
+    /// kind and variant share a key. <c>null</c> when the part's kind could not
+    /// be read.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? Shape { get; set; }
+
+    /// <summary>
+    /// The meshes of this part that do not stand as its <see cref="PartShape"/>
+    /// has them, each with where it stands now and whether it is drawn: a
+    /// deployed leg, an open bay door, a turned nozzle, a shroud switched off.
+    /// A mesh not listed is drawn as the shape has it. <c>null</c> when every
+    /// mesh does, and always <c>null</c> for a part read from a saved craft or
+    /// an unloaded craft, which stands as built.
+    /// </summary>
+    public List<PartShapePose>? ShapePoses { get; set; }
+
     /// <summary><c>Part.mass</c>: dry mass (tonnes). Null when it could not be read.</summary>
     [SitrepUnit(Units.Tonnes)]
     public double? DryMass { get; set; }

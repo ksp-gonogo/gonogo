@@ -1118,6 +1118,28 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     nominalFlow: "units/s",
     unratedProcess: "flag",
   },
+  "PartShape": {
+    name: "text",
+    variant: "text",
+  },
+  "PartShapeMesh": {
+    indices: "n/a",
+    key: "id",
+    "max.x": "m",
+    "max.y": "m",
+    "max.z": "m",
+    "min.x": "m",
+    "min.y": "m",
+    "min.z": "m",
+    positions: "n/a",
+    shown: "flag",
+    sourceTriangles: "count",
+  },
+  "PartShapePose": {
+    mesh: "id",
+    shown: "flag",
+    transform: "1",
+  },
   "PartsPower": {
     netChargeRateEc: "units/s",
     totalConsumptionEc: "units/s",
@@ -1793,6 +1815,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     "position.x": "m",
     "position.y": "m",
     "position.z": "m",
+    shape: "id",
     skinMaxTemp: "K",
     skinTemp: "K",
     title: "text",
@@ -2818,6 +2841,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "PartBounds": {
     hull: "PartHullPiece[]",
   },
+  "PartShape": {
+    meshes: "PartShapeMesh[]",
+  },
   "PendingUplinkQueue": {
     pending: "PendingUplink[]",
   },
@@ -2948,6 +2974,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     bounds: "PartBounds",
     moduleStates: "PartModuleState[]",
     resources: "*PartResourceFlow",
+    shapePoses: "PartShapePose[]",
   },
   "VesselParts": {
     meta: "PayloadMeta",

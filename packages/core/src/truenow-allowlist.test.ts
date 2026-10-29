@@ -110,6 +110,11 @@ const SKIP_DIR_PATTERN = /\.(Tests|IntegrationTests)$/;
 // that's what keeps this a ratchet and not just a snapshot.
 // ---------------------------------------------------------------------
 const ALLOWED_TRUENOW: Record<string, number> = {
+  // parts.shape.<key>: a kind of part's 3D model, read from the install's part
+  // prefab. A fact about the install, the same for every craft and every
+  // vantage, like the body catalogue; there is no craft whose link it crosses.
+  "mod/Gonogo.KSP/PartShapeChannels.cs": 1,
+
   // spaceCenter.scene: which screen the game is showing, a session fact held nowhere, same class as time.warp.
   //
   // The other six (launch sites, crew roster, saved craft, parts available,

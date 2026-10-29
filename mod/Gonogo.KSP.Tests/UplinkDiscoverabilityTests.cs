@@ -52,6 +52,8 @@ namespace Gonogo.KSP.Tests
             "FleetChannels",
             // The part trees of saved craft files and the launch record: ships inside Gonogo.dll, constructed by the addon beside FleetChannels.
             "CraftFileChannels",
+            // Each kind of part's reduced meshes: ships inside Gonogo.dll, constructed by the addon beside CraftFileChannels.
+            "PartShapeChannels",
         };
 
         private static readonly Regex UplinkClass = new Regex(

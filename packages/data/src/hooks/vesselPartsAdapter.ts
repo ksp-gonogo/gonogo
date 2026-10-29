@@ -112,8 +112,22 @@ function deriveTopologyPart(p: VesselPart): TopologyPart {
         : undefined,
       hull: hullPieces(p.bounds.hull),
     },
+    shape: p.shape ?? undefined,
+    shapePoses: shapePoses(p.shapePoses),
     modules: p.modules,
   };
+}
+
+/** Each moved or switched mesh of a part, with its matrix as plain numbers. A matrix that is not twelve numbers is left off, so the mesh reads as unmoved. */
+function shapePoses(
+  wire: VesselPart["shapePoses"],
+): TopologyPart["shapePoses"] {
+  if (!wire || wire.length === 0) return undefined;
+  return wire.map(({ mesh, shown, transform }) =>
+    transform && transform.length === 12
+      ? { mesh, shown, transform: transform.map((n) => n.magnitude) }
+      : { mesh, shown },
+  );
 }
 
 // The Kelvin -> Celsius offset comes from core's `kelvinToCelsius`. It is not

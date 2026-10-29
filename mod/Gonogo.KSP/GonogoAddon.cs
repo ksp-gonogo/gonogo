@@ -208,6 +208,8 @@ namespace Gonogo.KSP
                 RegisterCoreUplink(_engine, new FleetChannels());
                 // The spaceCenter.craft.<facility>.<file>.parts namespace and the record of when each craft file was last launched.
                 RegisterCoreUplink(_engine, new CraftFileChannels());
+                // The parts.shape.<key> namespace: each kind of part's reduced meshes.
+                RegisterCoreUplink(_engine, new PartShapeChannels());
                 // Command centres: the stock home-node + crewed-
                 // vessel sources feed BOTH set-vantage validation (the engine's own
                 // registry) AND the per-(authority, subject) delay pass + roster

@@ -81,6 +81,20 @@ export interface TopologyPart {
      */
     hull?: { x: number; y: number; z: number }[][];
   };
+  /**
+   * The key of the part's 3D shape, read from `parts.shape.<shape>`. Parts of
+   * one kind and variant share it. Absent when the mod could not read the
+   * part's kind, or the payload predates shapes.
+   */
+  shape?: string;
+  /**
+   * The meshes of the part that do not stand as its shape has them: each by
+   * its mesh key, whether it is drawn now, and the twelve numbers of the 3 by
+   * 4 part-local matrix that moves it from the shape's place to where it is
+   * now, absent when it has not moved. Absent when every mesh stands as the
+   * shape has it.
+   */
+  shapePoses?: { mesh: string; shown: boolean; transform?: number[] }[];
   /** Raw `PartModule.moduleName` strings; no filtering. */
   modules: string[];
 }

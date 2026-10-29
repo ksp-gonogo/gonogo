@@ -64,6 +64,11 @@ namespace Sitrep.Host.Tests
             var actionBindings = Assert.IsType<List<object?>>(part["actionBindings"]);
             var actionBinding = Assert.IsType<Dictionary<string, object?>>(Assert.Single(actionBindings));
             AssertKeysMatchType(typeof(ActionBinding), actionBinding);
+
+            var poses = Assert.IsType<List<object?>>(part["shapePoses"]);
+            var pose = Assert.IsType<Dictionary<string, object?>>(Assert.Single(poses));
+            AssertKeysMatchType(typeof(PartShapePose), pose);
+            Assert.Equal(12, Assert.IsType<List<double>>(pose["transform"]).Count);
         }
 
         [Fact]
@@ -119,6 +124,16 @@ namespace Sitrep.Host.Tests
                             {
                                 ["size"] = new double[] { 1.0, 1.2, 1.0 },
                                 ["center"] = new double[] { 0.0, 0.1, 0.0 },
+                            },
+                            ["shape"] = "mk1pod",
+                            ["shapePoses"] = new List<object?>
+                            {
+                                new Dictionary<string, object?>
+                                {
+                                    ["mesh"] = "obj_base/hatch",
+                                    ["shown"] = true,
+                                    ["transform"] = new double[] { 1, 0, 0, 0.1, 0, 1, 0, 0, 0, 0, 1, 0 },
+                                },
                             },
                             ["dryMass"] = 0.84,
                             ["inverseStage"] = 0,
@@ -184,7 +199,7 @@ namespace Sitrep.Host.Tests
             // resources/moduleStates are dict-of-dicts / list-of-dicts (like
             // bounds' nested Vec3s): their per-row shape is asserted
             // separately by the caller via AssertKeysMatchType, not here.
-            var nestedObjectKeys = new HashSet<string> { "position", "up", "forward", "bounds", "resources", "moduleStates", "actionBindings" };
+            var nestedObjectKeys = new HashSet<string> { "position", "up", "forward", "bounds", "resources", "moduleStates", "actionBindings", "shapePoses" };
 
             foreach (var (key, value) in emitted)
             {

@@ -146,6 +146,11 @@ export const DYNAMIC_WHOLE_TOPIC_PREFIXES: readonly string[] = [
    */
   "spaceCenter.craft.",
   /*
+   * parts.shape.<key>: one kind of part's 3D shape, keyed by a part row's
+   * `shape`. The mod reads a kind of part only once its topic is subscribed.
+   */
+  "parts.shape.",
+  /*
    * alarm.game.craft.<guid>.list: the game alarms whose time the game works
    * out from that craft, revealed after the signal delay from it.
    */

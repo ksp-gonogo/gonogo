@@ -138,6 +138,8 @@ namespace Sitrep.Host
                 Up = GetVec3(raw, "up"),
                 Forward = GetVec3(raw, "forward"),
                 Bounds = MapBounds(raw),
+                Shape = GetString(raw, "shape"),
+                ShapePoses = MapShapePoses(raw),
                 DryMass = GetDouble(raw, "dryMass"),
                 InverseStage = GetInt(raw, "inverseStage"),
                 MaxTemp = GetDouble(raw, "maxTemp"),
@@ -270,6 +272,31 @@ namespace Sitrep.Host
             return pieces.Count > 0 ? pieces : null;
         }
 
+        private static List<PartShapePose>? MapShapePoses(IDictionary<string, object?> raw)
+        {
+            if (!raw.TryGetValue("shapePoses", out var rawPoses) || rawPoses is not IEnumerable<object?> list)
+            {
+                return null;
+            }
+
+            var poses = new List<PartShapePose>();
+            foreach (var entry in list)
+            {
+                if (entry is IDictionary<string, object?> row && GetString(row, "mesh") is { } mesh)
+                {
+                    var transform = SnapshotDict.GetDoubleArray(row, "transform");
+                    poses.Add(new PartShapePose
+                    {
+                        Mesh = mesh,
+                        Shown = GetBool(row, "shown") ?? true,
+                        Transform = transform != null && transform.Length == 12 ? new List<double>(transform) : null,
+                    });
+                }
+            }
+
+            return poses.Count > 0 ? poses : null;
+        }
+
         private static List<string> MapModules(IDictionary<string, object?> raw)
         {
             var result = new List<string>();
@@ -318,6 +345,8 @@ namespace Sitrep.Host
             ["up"] = part.Up != null ? ToWire(part.Up) : null,
             ["forward"] = part.Forward != null ? ToWire(part.Forward) : null,
             ["bounds"] = ToWire(part.Bounds),
+            ["shape"] = part.Shape,
+            ["shapePoses"] = part.ShapePoses?.Select(p => (object?)ToWire(p)).ToList(),
             ["dryMass"] = part.DryMass,
             ["inverseStage"] = part.InverseStage,
             ["maxTemp"] = part.MaxTemp,
@@ -364,6 +393,13 @@ namespace Sitrep.Host
             ["size"] = ToWire(bounds.Size),
             ["center"] = bounds.Center != null ? ToWire(bounds.Center) : null,
             ["hull"] = bounds.Hull?.Select(ToWire).ToList(),
+        };
+
+        private static Dictionary<string, object?> ToWire(PartShapePose pose) => new Dictionary<string, object?>
+        {
+            ["mesh"] = pose.Mesh,
+            ["shown"] = pose.Shown,
+            ["transform"] = pose.Transform,
         };
 
         private static Dictionary<string, object?> ToWire(PartHullPiece piece) => new Dictionary<string, object?>

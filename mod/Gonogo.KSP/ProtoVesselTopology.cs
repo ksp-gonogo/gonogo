@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Sitrep.Host;
 using UnityEngine;
 
 namespace Gonogo.KSP
@@ -135,6 +136,7 @@ namespace Gonogo.KSP
                     ["center"] = box.HasMesh ? Vec3Array(box.Center) : null,
                     ["hull"] = box.Hull,
                 },
+                ["shape"] = info != null ? PartShapeWire.Key(info.name, pps.moduleVariantName) : null,
                 ["dryMass"] = (double)pps.mass,
                 ["inverseStage"] = pps.inverseStageIndex,
                 ["maxTemp"] = prefab != null ? prefab.maxTemp : (double?)null,

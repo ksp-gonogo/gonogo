@@ -7946,7 +7946,11 @@ namespace Gonogo.KSP
             var forward = part.orgRot * Vector3.forward;
             SampleTiming.Add("topo.modules", System.Diagnostics.Stopwatch.GetTimestamp() - modulesStarted);
             var meshStarted = System.Diagnostics.Stopwatch.GetTimestamp();
-            var hasMesh = PartMeshBounds.TryMeasure(part, part.variants?.SelectedVariant?.Name, out var meshCenter, out var meshSize, out var boundsPath, out var meshHull);
+            var variant = part.variants?.SelectedVariant?.Name;
+            var partMeshes = new List<PartMesh>();
+            var hasMesh = PartMeshBounds.TryMeasure(part, variant, out var meshCenter, out var meshSize, out var boundsPath, out var meshHull, partMeshes);
+            var shape = PartShapePoses.KeyOf(part, variant);
+            var shapePoses = shape != null ? PartShapePoses.Of(part, shape, variant, partMeshes) : null;
             SampleTiming.Add("topo.mesh", System.Diagnostics.Stopwatch.GetTimestamp() - meshStarted);
             boundsPaths.Add(part.partInfo != null ? part.partInfo.name : part.name, boundsPath);
 
@@ -7975,6 +7979,8 @@ namespace Gonogo.KSP
                     ["center"] = hasMesh ? Vec3Array(meshCenter) : null,
                     ["hull"] = meshHull,
                 },
+                ["shape"] = shape,
+                ["shapePoses"] = shapePoses,
                 ["dryMass"] = (double)part.mass,
                 ["inverseStage"] = part.inverseStage,
                 ["maxTemp"] = part.maxTemp,

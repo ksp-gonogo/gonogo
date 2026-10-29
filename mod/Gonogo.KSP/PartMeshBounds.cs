@@ -51,6 +51,17 @@ namespace Gonogo.KSP
         /// </summary>
         public static bool TryMeasure(Part part, string? variantName, out Vector3 center, out Vector3 size, out MeasurePath path, out double[][]? hull)
         {
+            return TryMeasure(part, variantName, out center, out size, out path, out hull, null);
+        }
+
+        /// <summary>
+        /// As above, and every mesh the walk measured is added to
+        /// <paramref name="meshes"/> when it is given, with its key, its carry into
+        /// the part's frame and whether it is drawn, for comparing the part's
+        /// meshes with its shape.
+        /// </summary>
+        public static bool TryMeasure(Part part, string? variantName, out Vector3 center, out Vector3 size, out MeasurePath path, out double[][]? hull, List<PartMesh>? meshes)
+        {
             hull = null;
             path = MeasurePath.None;
             center = Vector3.zero;
@@ -105,7 +116,9 @@ namespace Gonogo.KSP
                         mesh,
                         toPartFromMesh,
                         () => MeshPiece.Measure(VerticesOf(mesh), mesh.bounds, toPartFromMesh, () => CandidatesOf(mesh)));
-                    uses.Add(new PartBox.Use(piece, IsShown(renderer, model)));
+                    var shown = IsShown(renderer, model);
+                    uses.Add(new PartBox.Use(piece, shown));
+                    meshes?.Add(new PartMesh(KeyOf(renderer.transform, model), renderer, mesh, toPartFromMesh, shown));
                 }
             }
             if (timing)
@@ -121,6 +134,85 @@ namespace Gonogo.KSP
             }
         }
 
+        /// <summary>
+        /// The meshes of <paramref name="part"/>'s model that <paramref name="variantName"/>
+        /// keeps, in model order, each with its key, its carry into the part's
+        /// frame and whether it is drawn. Reads transforms only, never a mesh's
+        /// vertices.
+        /// </summary>
+        public static List<PartMesh> Meshes(Part part, string? variantName)
+        {
+            var result = new List<PartMesh>();
+            var model = part.transform.Find("model");
+            if (model == null)
+            {
+                return result;
+            }
+
+            var hiddenByVariant = HiddenByVariant(part, variantName);
+            foreach (var renderer in model.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                var filter = renderer.GetComponent<MeshFilter>();
+                if (filter == null || filter.sharedMesh == null || BelongsToAnotherPart(renderer.transform, model)
+                    || IsUnder(renderer.transform, model, hiddenByVariant))
+                {
+                    continue;
+                }
+                result.Add(new PartMesh(
+                    KeyOf(renderer.transform, model),
+                    renderer,
+                    filter.sharedMesh,
+                    ToPart(renderer.transform, part.transform),
+                    IsShown(renderer, model)));
+            }
+            return result;
+        }
+
+        /* A transform's place in its model never changes, so each renderer's key is worked out once. */
+        private static readonly ConditionalWeakTable<Transform, string> Keys = new();
+
+        /// <summary>
+        /// The mesh's name within its part: the transform names from below the
+        /// model down to the mesh joined by <c>/</c>, each followed by <c>#2</c>,
+        /// <c>#3</c> and so on when an earlier sibling already has that name.
+        /// A part and its prefab give the same key for the same mesh, since a part
+        /// is a copy of its prefab's hierarchy.
+        /// </summary>
+        internal static string KeyOf(Transform mesh, Transform model)
+        {
+            if (Keys.TryGetValue(mesh, out var cached))
+            {
+                return cached;
+            }
+
+            var names = new List<string>();
+            for (var at = mesh; at != null && at != model; at = at.parent)
+            {
+                var seen = 1;
+                var parent = at.parent;
+                if (parent != null)
+                {
+                    for (var i = 0; i < parent.childCount; i++)
+                    {
+                        var sibling = parent.GetChild(i);
+                        if (sibling == at)
+                        {
+                            break;
+                        }
+                        if (sibling.name == at.name)
+                        {
+                            seen++;
+                        }
+                    }
+                }
+                names.Add(seen > 1 ? at.name + "#" + seen : at.name);
+            }
+            names.Reverse();
+            var key = string.Join("/", names);
+            Keys.Add(mesh, key);
+            return key;
+        }
+
         /*
          * A mesh and its carry into the part's frame stand still while the part
          * flies, so each renderer's piece is measured once and reused until either
@@ -134,7 +226,7 @@ namespace Gonogo.KSP
         /// <paramref name="part"/>'s, composed from the local transforms between them,
         /// or from their world matrices if <paramref name="part"/> is not above it.
         /// </summary>
-        private static Matrix4x4 ToPart(Transform mesh, Transform part)
+        internal static Matrix4x4 ToPart(Transform mesh, Transform part)
         {
             var chain = new List<(Vector3, Quaternion, Vector3)>();
             for (var at = mesh; at != null; at = at.parent)
@@ -188,7 +280,7 @@ namespace Gonogo.KSP
             return candidates;
         }
 
-        private static Vector3[]? VerticesOf(Mesh mesh)
+        internal static Vector3[]? VerticesOf(Mesh mesh)
         {
             if (VertexCache.TryGetValue(mesh, out var cached))
             {
@@ -214,7 +306,7 @@ namespace Gonogo.KSP
         /// transform some variant controls and the selected one does not mention
         /// keeps the state it has on the part.
         /// </summary>
-        private static HashSet<string>? HiddenByVariant(Part part, string? variantName)
+        internal static HashSet<string>? HiddenByVariant(Part part, string? variantName)
         {
             if (string.IsNullOrEmpty(variantName))
             {
@@ -310,5 +402,31 @@ namespace Gonogo.KSP
 
             return false;
         }
+    }
+
+    /// <summary>One mesh of a part as the part holds it now.</summary>
+    internal readonly struct PartMesh
+    {
+        public PartMesh(string key, MeshRenderer renderer, Mesh mesh, Matrix4x4 toPart, bool shown)
+        {
+            Key = key;
+            Renderer = renderer;
+            Mesh = mesh;
+            ToPart = toPart;
+            Shown = shown;
+        }
+
+        /// <summary>The mesh's name within its part (see <see cref="PartMeshBounds.KeyOf"/>).</summary>
+        public string Key { get; }
+
+        public MeshRenderer Renderer { get; }
+
+        public Mesh Mesh { get; }
+
+        /// <summary>The matrix carrying the mesh's own frame into its part's.</summary>
+        public Matrix4x4 ToPart { get; }
+
+        /// <summary>Whether the part draws the mesh now.</summary>
+        public bool Shown { get; }
     }
 }

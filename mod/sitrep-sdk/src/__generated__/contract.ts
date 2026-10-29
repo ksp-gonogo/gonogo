@@ -6001,6 +6001,111 @@ export interface PartActions
 	meta: PayloadMeta;
 }
 /**
+* The 3D shape of one kind of part on `parts.shape.<key>`: its model's meshes,
+* each reduced to a few hundred triangles, in the part's own frame. The key is
+* a part row's `VesselPart.shape`, so a diagram of a craft subscribes once per
+* kind of part it holds rather than once per part. The meshes are those of the
+* part as built, at rest, with the meshes its variant leaves out already gone;
+* `VesselPart.shapePoses` says where a moving mesh stands now and which meshes
+* a part is not drawing.
+*
+* Every mesh keeps its loose pieces apart, so a gap in the real model is a gap
+* in the shape, and an outline drawn from any side follows the model's own.
+* Published while something subscribes to the key's topic, and the same for
+* every craft in the game, so it never changes while the game runs and arrives
+* at once with no signal delay.
+*
+* @category Parts
+*/
+export interface PartShape
+{
+	/** `AvailablePart.name`, the part's config id, as on `VesselPart.name`. */
+	name: string;
+	/**
+	* The part variant this shape is drawn for, or `null` for a part with no
+	* variants.
+	*/
+	variant?: string | null;
+	/**
+	* Every mesh of the part's model, in model order. Empty for a part whose model
+	* has no mesh.
+	*/
+	meshes: PartShapeMesh[];
+}
+/**
+* One mesh of a `PartShape` as a small indexed triangle list in the part's own
+* frame.
+*
+* To read the points: decode `PartShapeMesh.positions` from base64 into
+* unsigned 16-bit little-endian integers, three per point (x, y, z); each
+* value `q` stands for `min + q / 65535 × (max − min)` on its axis, with
+* `PartShapeMesh.min` and `PartShapeMesh.max`. Decode `PartShapeMesh.indices`
+* the same way into unsigned 16-bit integers, three per triangle, each an
+* index into those points.
+*
+* @category Parts
+*/
+export interface PartShapeMesh
+{
+	/**
+	* The mesh's name within its part: the path of transform names from the part's
+	* model down to the mesh, joined by `/`, with `#2`, `#3` and so on after a
+	* name that an earlier sibling already has. The same mesh on every part of
+	* this kind has the same key, and `PartShapePose.mesh` names a mesh by it.
+	*/
+	key: string;
+	/**
+	* Whether the part as built draws this mesh. A mesh it hides, such as an
+	* engine's shroud with nothing mounted below, is still here, so a part that
+	* later shows it can draw it.
+	*/
+	shown: boolean;
+	/** The low corner of the box the points are packed into (metres, part-local). */
+	min: Vec3Of<"m">;
+	/**
+	* The high corner of the box the points are packed into (metres, part-local).
+	* Equal to `PartShapeMesh.min` on an axis the mesh is flat along.
+	*/
+	max: Vec3Of<"m">;
+	/**
+	* The points, base64 of unsigned 16-bit little-endian integers, three per
+	* point, packed into the box from `PartShapeMesh.min` to `PartShapeMesh.max`.
+	*/
+	positions: string;
+	/**
+	* The triangles, base64 of unsigned 16-bit little-endian point indices, three
+	* per triangle. Empty for a mesh with no triangles.
+	*/
+	indices: string;
+	/**
+	* How many triangles the mesh has in the game, before it was reduced for the
+	* wire.
+	*/
+	sourceTriangles: Value<"count">;
+}
+/**
+* Where one mesh of a part stands now, when it is not as its `PartShape` has
+* it: a landing leg folded out, a bay door open, a gimballing nozzle turned,
+* or a mesh the part has switched off or on.
+*
+* @category Parts
+*/
+export interface PartShapePose
+{
+	/** The mesh, by its `PartShapeMesh.key`. */
+	mesh: string;
+	/** Whether the part draws the mesh now. */
+	shown: boolean;
+	/**
+	* The 3 by 4 matrix, row by row (twelve numbers), that carries the mesh's
+	* points from where `PartShape` has them to where they stand now, both in the
+	* part's own frame: a point `p` moves to `(m0·x + m1·y + m2·z + m3, m4·x +
+	* m5·y + m6·z + m7, m8·x + m9·y + m10·z + m11)`. `null` when the mesh has not
+	* moved.
+	*/
+	transform?: Value<"1">[] | null;
+}
+/**
 * The active vessel's rolled-up electric-charge production. A single object,
 * or `null` when there is no active vessel or it carries no solar panel,
 * battery, electric-charge converter or alternator. The parts themselves are
@@ -11929,6 +12034,20 @@ export interface VesselPart
 	forward?: Vec3Of<"1"> | null;
 	/** The part's bounding box, in the part's own frame. Always present. */
 	bounds: PartBounds;
+	/**
+	* The key of this part's 3D shape: subscribe to `parts.shape.` followed by
+	* this key for its `PartShape`. Parts of the same kind and variant share a
+	* key. `null` when the part's kind could not be read.
+	*/
+	shape?: string | null;
+	/**
+	* The meshes of this part that do not stand as its `PartShape` has them, each
+	* with where it stands now and whether it is drawn: a deployed leg, an open
+	* bay door, a turned nozzle, a shroud switched off. A mesh not listed is drawn
+	* as the shape has it. `null` when every mesh does, and always `null` for a
+	* part read from a saved craft or an unloaded craft, which stands as built.
+	*/
+	shapePoses?: PartShapePose[] | null;
 	/** `Part.mass`: dry mass (tonnes). Null when it could not be read. */
 	dryMass?: Value<"t"> | null;
 	/**

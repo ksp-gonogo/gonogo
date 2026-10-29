@@ -52,6 +52,8 @@ export const COINCIDENTAL: readonly string[] = [
   "packages/components/src/ManeuverPlanner#timeToAp",
   // `spec.id`, the local facility spec used as a React key
   "packages/components/src/SpaceCenterStatus#id",
+  // `const { shape } = getWidgetShape(w, h);`, the tile's landscape or portrait shape, not `vessel.parts`' part `shape`
+  "packages/components/src/PowerSystems#shape",
   /*
    * React keys on local rows, which collide with the `key` of
    * `career.status.objectivesSettled`: `<Fragment key={figure.key}>`,

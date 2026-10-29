@@ -40,6 +40,13 @@ export const GENERATED_TYPE_FRAMES = {
   "PartHullPiece": {
     points: { frame: "part-local" },
   },
+  "PartShapeMesh": {
+    max: { frame: "part-local" },
+    min: { frame: "part-local" },
+  },
+  "PartShapePose": {
+    transform: { frame: "part-local" },
+  },
   "VesselOrbitTruth": {
     position: { frame: "body-centred-inertial", whenSet: "body-centred-rotating", selectedBy: "frameRotating" },
     velocity: { frame: "body-centred-inertial", whenSet: "body-centred-rotating", selectedBy: "frameRotating" },

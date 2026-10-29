@@ -18318,6 +18318,37 @@ components:
             cell or ISRU unit, a drill's harvest, or a generator. Never true on a row
             with a non-zero `PartResourceFlow.flow` or `PartResourceFlow.nominalFlow`,
             nor for storage alone. Absent otherwise.
+    PartShapePose:
+      type: object
+      description: |-
+        Where one mesh of a part stands now, when it is not as its `PartShape` has
+        it: a landing leg folded out, a bay door open, a gimballing nozzle turned,
+        or a mesh the part has switched off or on.
+      required:
+        - mesh
+        - shown
+      properties:
+        mesh:
+          type: string
+          x-sitrep-unit: id
+          description: The mesh, by its `PartShapeMesh.key`.
+        shown:
+          type: boolean
+          x-sitrep-unit: flag
+          description: Whether the part draws the mesh now.
+        transform:
+          type:
+            - array
+            - "null"
+          items:
+            type: number
+            x-sitrep-unit: "1"
+          description: |-
+            The 3 by 4 matrix, row by row (twelve numbers), that carries the mesh's
+            points from where `PartShape` has them to where they stand now, both in the
+            part's own frame: a point `p` moves to `(m0·x + m1·y + m2·z + m3, m4·x +
+            m5·y + m6·z + m7, m8·x + m9·y + m10·z + m11)`. `null` when the mesh has not
+            moved.
     PartsPower:
       type: object
       description: |-
@@ -23895,6 +23926,27 @@ components:
           description: The part's bounding box, in the part's own frame. Always present.
           allOf:
             - $ref: "#/components/schemas/PartBounds"
+        shape:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: id
+          description: |-
+            The key of this part's 3D shape: subscribe to `parts.shape.` followed by
+            this key for its `PartShape`. Parts of the same kind and variant share a
+            key. `null` when the part's kind could not be read.
+        shapePoses:
+          type:
+            - array
+            - "null"
+          items:
+            $ref: "#/components/schemas/PartShapePose"
+          description: |-
+            The meshes of this part that do not stand as its `PartShape` has them, each
+            with where it stands now and whether it is drawn: a deployed leg, an open
+            bay door, a turned nozzle, a shroud switched off. A mesh not listed is drawn
+            as the shape has it. `null` when every mesh does, and always `null` for a
+            part read from a saved craft or an unloaded craft, which stands as built.
         dryMass:
           type:
             - number

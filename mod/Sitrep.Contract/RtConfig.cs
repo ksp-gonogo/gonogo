@@ -372,6 +372,10 @@ public static class RtConfig
                 typeof(VesselPart),
                 typeof(PartBounds),
                 typeof(PartHullPiece),
+                typeof(PartShapePose),
+                // parts.shape.<key>: one kind of part's reduced meshes
+                typeof(PartShape),
+                typeof(PartShapeMesh),
                 // vessel.parts per-part live data (resources and module state)
                 typeof(PartResourceFlow),
                 typeof(PartModuleState),

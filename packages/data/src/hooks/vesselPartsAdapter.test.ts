@@ -153,6 +153,54 @@ describe("deriveTopologyFromVesselParts", () => {
     expect(hullOf(null)).toBeUndefined();
   });
 
+  it("carries the part's shape key and each moved or switched mesh, as plain numbers", () => {
+    const wire: VesselParts = {
+      meta: { source: "test" },
+      parts: [
+        {
+          id: "4",
+          name: "landingLeg1-2",
+          title: "LT-2 Landing Strut",
+          position: { x: value("m", 0), y: value("m", 0), z: value("m", 0) },
+          bounds: {
+            size: { x: value("m", 1), y: value("m", 2), z: value("m", 1) },
+          },
+          shape: "landingLeg1-2",
+          shapePoses: [
+            {
+              mesh: "leg/foot",
+              shown: true,
+              transform: [1, 0, 0, 0.2, 0, 1, 0, -0.5, 0, 0, 1, 0].map((n) =>
+                value("1", n),
+              ),
+            },
+            { mesh: "leg/cover", shown: false, transform: null },
+            { mesh: "leg/bad", shown: true, transform: [value("1", 1)] },
+          ],
+          category: "Utility",
+          modules: [],
+          isPowerRelated: false,
+          resources: {},
+          moduleStates: [],
+          actionBindings: [],
+        },
+      ],
+    };
+
+    const [part] = deriveTopologyFromVesselParts(wire).parts;
+
+    expect(part.shape).toBe("landingLeg1-2");
+    expect(part.shapePoses).toEqual([
+      {
+        mesh: "leg/foot",
+        shown: true,
+        transform: [1, 0, 0, 0.2, 0, 1, 0, -0.5, 0, 0, 1, 0],
+      },
+      { mesh: "leg/cover", shown: false },
+      { mesh: "leg/bad", shown: true },
+    ]);
+  });
+
   describe("a tree with a part left out", () => {
     const part = (
       id: string,
