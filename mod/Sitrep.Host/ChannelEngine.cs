@@ -2247,6 +2247,10 @@ namespace Sitrep.Host
             _currentRegisteringUplinkId = id;
             try
             {
+                foreach (var declared in uplink.Manifest.Namespaces)
+                {
+                    RegisterDynamicNamespace(declared.Prefix, declared.Template);
+                }
                 uplink.Register(this);
             }
             catch (Exception ex)
