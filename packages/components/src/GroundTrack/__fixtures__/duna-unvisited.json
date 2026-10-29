@@ -1,0 +1,39 @@
+{
+  "_meta": {
+    "shows": "The map of Duna, a body the career has never reached, drawn as a pencil sketch in place of the real picture.",
+    "scenario": "duna-unvisited",
+    "notes": "The roster marks Duna as not visited and the craft is known to be at it with no position yet. Stock draws the sketch for an unvisited body and the body's own picture for a visited one; a coverage layer paints the picture over the sketch where it has scanned."
+  },
+  "_stream": {
+    "emits": [
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 3,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "trackingStation.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Duna",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 320000,
+              "orbit": null,
+              "surfaceGravity": 2.943,
+              "rotationPeriod": 65517.859,
+              "visited": false
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

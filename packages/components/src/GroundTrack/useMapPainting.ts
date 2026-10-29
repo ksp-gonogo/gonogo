@@ -27,7 +27,7 @@ import { groupBaseLayersByUplink } from "./orderBaseLayers";
 import type { BaseSurfaceLayer } from "./paintBaseSurface";
 import type { useBaseLayers } from "./useBaseLayers";
 import type { ModelledPosition } from "./useModelledPosition";
-import { usePencilBase } from "./usePencilBase";
+import { baseIsSketch, usePencilBase } from "./usePencilBase";
 import type { TrajectoryPoint } from "./useTrajectoryBuffer";
 import { shouldSuppressVanillaBase } from "./vanillaSuppression";
 
@@ -38,6 +38,8 @@ interface MapPaintingInputs {
   bodyColor: string | undefined;
   /** How finely the body's pencil map is drawn, 0 to 1. */
   bodyDetail: number;
+  /** Whether the save has reached this body; `false` shows the sketch in place of the texture where no base layer is active. */
+  bodyVisited: boolean | undefined;
   baseLayers: ReturnType<typeof useBaseLayers>;
   /** The flown trail's buffer, newest last, and a count that moves whenever its content does. */
   trajectoryRef: RefObject<TrajectoryPoint[]>;
@@ -111,6 +113,7 @@ export function useMapPainting({
   bodyTexture,
   bodyColor,
   bodyDetail,
+  bodyVisited,
   baseLayers,
   trajectoryRef,
   trajectoryCount,
@@ -167,12 +170,18 @@ export function useMapPainting({
       const layerCanvas = baseLayers.canvasesRef.current.get(augment.id);
       if (layerCanvas) layers.push({ id: augment.id, canvas: layerCanvas });
     }
+    const baseAugmentActive =
+      layers.length > 0 ||
+      activeBaseAugments.some(
+        (a) => baseLayers.suppressionAvailabilityRef.current.get(a.id) === true,
+      );
+    const sketch = baseIsSketch(bodyVisited, baseAugmentActive) ? pencil : null;
     paintMapBase(canvas, ctx, {
       w,
       h,
       camera,
-      textureImage: pencil ?? textureImage,
-      dimTexture: pencil === null,
+      textureImage: sketch ?? textureImage,
+      dimTexture: sketch === null,
       bodyColor,
       suppressVanilla,
       layers,
@@ -184,6 +193,7 @@ export function useMapPainting({
     textureReady,
     textureImage,
     pencil,
+    bodyVisited,
     bodyColor,
     baseLayers.version,
   ]);

@@ -148,6 +148,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     sphereOfInfluence: "m",
     surfaceGravity: "g",
     tidallyLocked: "flag",
+    visited: "flag",
   },
   "BodyState": {
     ut: "ut",

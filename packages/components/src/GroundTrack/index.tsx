@@ -211,6 +211,7 @@ function GroundTrackComponent({
     bodyTexture: body?.texture,
     bodyColor: body?.color,
     bodyDetail: telemetry.bodyDetail,
+    bodyVisited: telemetry.bodyVisited,
     baseLayers,
     trajectoryRef,
     trajectoryCount,

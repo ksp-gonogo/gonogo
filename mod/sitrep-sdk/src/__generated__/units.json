@@ -107,7 +107,8 @@
       "rotationPeriod": "s",
       "sphereOfInfluence": "m",
       "surfaceGravity": "g",
-      "tidallyLocked": "flag"
+      "tidallyLocked": "flag",
+      "visited": "flag"
     },
     "BodyState": {
       "ut": "ut",

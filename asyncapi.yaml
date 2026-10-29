@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo WebSocket API
-  version: 49.9.0
+  version: 49.10.0
   description: |-
     The WebSocket API of the Gonogo mod: 90 telemetry channels a client
     subscribes to and 72 commands it sends, each with its payload and what it
@@ -9967,6 +9967,17 @@ components:
             (`CelestialBody.isHomeWorld`); true on exactly one body, null when absent.
             The authoritative home-body marker: a client locates home by this flag,
             never by index.
+        visited:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: |-
+            Whether the save has reached this body's sphere of influence (the stock
+            progress record's flyby node for the body), so false means the career has
+            never been there. True on the home body always; null in a save with no
+            progress record (sandbox) or when it could not be read, which a client
+            treats as visited rather than as never reached.
     BodyState:
       type: object
       description: |-

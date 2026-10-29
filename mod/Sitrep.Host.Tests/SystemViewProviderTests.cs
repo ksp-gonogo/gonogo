@@ -475,6 +475,33 @@ namespace Sitrep.Host.Tests
             Assert.Single(homeFlags, v => v is true);
         }
 
+        [Fact]
+        public void BuildSystemBodiesCarriesVisitedAsFalseTrueAndNullWithoutCollapsingThem()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["bodies"] = new List<object?>
+                    {
+                        new Dictionary<string, object?> { ["name"] = "Kerbin", ["index"] = 1, ["visited"] = true },
+                        new Dictionary<string, object?> { ["name"] = "Duna", ["index"] = 2, ["visited"] = false },
+                        new Dictionary<string, object?> { ["name"] = "Eve", ["index"] = 3 },
+                    },
+                },
+            };
+
+            var root = Assert.IsType<Dictionary<string, object?>>(SystemViewProvider.BuildSystemBodies(snapshot));
+            var bodies = Assert.IsType<List<object?>>(root["bodies"])
+                .Select(b => Assert.IsType<Dictionary<string, object?>>(b))
+                .ToList();
+
+            Assert.Equal(true, bodies[0]["visited"]);
+            Assert.Equal(false, bodies[1]["visited"]);
+            Assert.Null(bodies[2]["visited"]);
+        }
+
         // trackingStation.catalog -- the raw roster each centre's catalog is built from
 
         [Fact]

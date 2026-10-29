@@ -63,6 +63,8 @@ export interface MapTelemetry {
   body: ReturnType<typeof bodyNamed>;
   /** How finely the body's pencil map is drawn: full for the home body, less the smaller it looks from there, and a step more with a craft flying at it. */
   bodyDetail: number;
+  /** Whether the save has reached the mapped body's sphere of influence; undefined when the roster has not said, which the map treats as visited. */
+  bodyVisited: boolean | undefined;
   impactLat: number | undefined;
   impactLon: number | undefined;
   vesselOnThisBody: boolean;
@@ -246,6 +248,9 @@ export function useMapTelemetry(
     followsHome,
     body,
     bodyDetail: detail,
+    bodyVisited:
+      bodies?.bodies?.find((b) => b.name === targetBodyId)?.visited ??
+      undefined,
     impactLat: impactMarked ? impact.lat : undefined,
     impactLon: impactMarked ? impact.lon : undefined,
     // An override that diverges from the vessel's body, or a home map shown with no craft, suppresses every vessel-relative draw and the follow chrome.

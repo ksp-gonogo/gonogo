@@ -62,3 +62,18 @@ export function usePencilBase(
     }
   }, [textureImage, textureKey, detail, boost, palette]);
 }
+
+/**
+ * Whether the map's base is the pencil sketch and not the body's own texture.
+ * A base-layer augment such as a coverage map paints the real picture over the
+ * sketch where it has scanned, so with one active the sketch is always the
+ * base. Without one the texture is the base, and the sketch stands in only for a
+ * body the save has explicitly never reached: a visit state that is absent or
+ * has not arrived keeps the texture.
+ */
+export function baseIsSketch(
+  bodyVisited: boolean | undefined,
+  baseAugmentActive: boolean,
+): boolean {
+  return baseAugmentActive || bodyVisited === false;
+}

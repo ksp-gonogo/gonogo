@@ -8958,6 +8958,14 @@ export interface BodyEntry
 	* never by index.
 	*/
 	isHome?: boolean | null;
+	/**
+	* Whether the save has reached this body's sphere of influence (the stock
+	* progress record's flyby node for the body), so false means the career has
+	* never been there. True on the home body always; null in a save with no
+	* progress record (sandbox) or when it could not be read, which a client
+	* treats as visited rather than as never reached.
+	*/
+	visited?: boolean | null;
 }
 /**
 * A body's atmosphere, present on a `BodyEntry` only when the body actually

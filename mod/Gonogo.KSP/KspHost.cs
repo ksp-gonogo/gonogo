@@ -6279,6 +6279,36 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
+        /// Whether the save's progress record has the body's sphere of influence reached, or null
+        /// where there is no progress record (sandbox) or it cannot be read.
+        /// </summary>
+        private static bool? BodyVisited(CelestialBody body)
+        {
+            try
+            {
+                var nodes = ProgressTracking.Instance?.celestialBodyNodes;
+                if (nodes == null)
+                {
+                    return null;
+                }
+
+                foreach (var tree in nodes)
+                {
+                    if (tree != null && ReferenceEquals(tree.Body, body))
+                    {
+                        return tree.flyBy != null && tree.flyBy.IsReached;
+                    }
+                }
+
+                return null;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Raw per-body dictionary in the exact shape
         /// <c>Sitrep.Host.SystemViewProvider.BuildSystemBodies</c> expects
         /// (see that class's doc comment) - primitives only, keyed exactly:
@@ -6323,6 +6353,7 @@ namespace Gonogo.KSP
                 ["hasOcean"] = body.ocean,
                 ["description"] = body.bodyDescription,
                 ["isHome"] = body.isHomeWorld,
+                ["visited"] = body.isHomeWorld ? true : BodyVisited(body),
                 /* Atmosphere as FLAT keys (a nested dict here would need special
                    handling across the RecordedSessionCodec JSON round-trip); the
                    provider reassembles them into the nested wire object. The two
