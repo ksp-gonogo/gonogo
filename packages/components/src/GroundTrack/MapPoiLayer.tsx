@@ -42,6 +42,7 @@ import {
   PoiHoverLabel,
   PoiHoverMetaRow,
   PoiLayerRoot,
+  PoiMapLabel,
   PoiMarkerButton,
 } from "./MapPoiLayer.styles";
 
@@ -66,6 +67,9 @@ export interface MapRepeats {
 
 /** Half a marker's width: how far outside the map area a point can sit with its marker still showing. */
 const MARKER_REACH = 5;
+
+/** The share of the map's width past which a waypoint's name reads leftward from its marker. */
+const LABEL_LEFTWARD_FROM = 0.6;
 
 /** How long the card outlives the pointer leaving its marker, so the pointer can cross the gap to the card. */
 const CARD_CLOSE_GRACE_MS = 250;
@@ -316,6 +320,17 @@ function PoiMarker({
         isHovered={isHovered}
         hover={hover}
       />
+      {poi.kind === "contractTarget" && (
+        <PoiMapLabel
+          x={x}
+          y={y}
+          leftward={
+            repeats !== undefined && x > repeats.width * LABEL_LEFTWARD_FROM
+          }
+        >
+          {poi.label}
+        </PoiMapLabel>
+      )}
     </>
   );
 }
