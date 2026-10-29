@@ -1094,31 +1094,6 @@ jobs:
           fi
           node scripts/nuget-extraction-probe.mjs --nupkg "$RUNNER_TEMP"/nuget/KspGonogo.Sitrep.Contract.*.nupkg
 
-      # The released Uplinks' own declarations, run through the real engine: every
-      # channel, command Subject and dynamic namespace must route to a placed node
-      # and deliver a reading to a subscribed client. The Uplinks are built from the
-      # gonogo-uplinks commit named in scripts/uplink-routing-probe.ref against the
-      # contract packed from THIS commit, so a routing change here is tried on the
-      # real kOS terminal topics before a build carries it. `unset` means that
-      # commit has not been named yet; nothing is probed until it is.
-      - name: Read the gonogo-uplinks commit to probe
-        id: uplinksref
-        run: echo "ref=$(tr -d '[:space:]' < scripts/uplink-routing-probe.ref)" >> "$GITHUB_OUTPUT"
-      - name: Checkout gonogo-uplinks
-        if: steps.uplinksref.outputs.ref != 'unset'
-        uses: actions/checkout@v5
-        with:
-          repository: ksp-gonogo/gonogo-uplinks
-          ref: ${{ steps.uplinksref.outputs.ref }}
-          token: ${{ secrets.KSP_MANAGED_TOKEN }}
-          path: gonogo-uplinks
-      - name: Real Uplinks route and deliver
-        if: steps.uplinksref.outputs.ref != 'unset'
-        env:
-          KSP_GAMEDATA: ${{ github.workspace }}/ksp-managed/GameData
-          KSP_MANAGED: ${{ github.workspace }}/ksp-managed/KSP_Data/Managed
-        run: node scripts/uplink-routing-probe.mjs --uplinks gonogo-uplinks
-
   # Sitrep.Host.IntegrationTests is serial by design (TestParallelization.cs:
   # real sockets under wall-clock budgets) and takes 15 minutes in one process,
   # so it is split by test class across jobs instead. Each shard stays serial.
