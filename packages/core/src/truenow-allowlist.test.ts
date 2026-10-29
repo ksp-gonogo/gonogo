@@ -244,6 +244,17 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // mod sends above the base rate: a fact about the stream itself, set by the
   // screens that are open, so no craft ever held it). 8 explicit declarations.
   "mod/Sitrep.Host/ChannelEngine.cs": 8,
+
+  /*
+   * system.uplink.delays: the routed delay from each centre to each delayed
+   * command's own target. Every row is already held back by that target's own
+   * delay, published only once the figure has had time to reach the centre and
+   * null until then, and each session is sent its own centre's rows alone.
+   * Holding the table behind the active craft's delay as well would time other
+   * targets by that craft and count an aged row's delay twice. 1 explicit
+   * declaration.
+   */
+  "mod/Sitrep.Host/ChannelEngine.UplinkDelays.cs": 1,
 };
 
 function findRepoRoot(start: string): string {

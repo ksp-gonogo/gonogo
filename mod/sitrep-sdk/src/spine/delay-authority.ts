@@ -28,6 +28,14 @@ export const CENTRE_DELAY_TOPIC = "commandCentre.activeVesselDelay";
 export const ROSTER_TOPIC = "commandCentre.roster";
 
 /**
+ * The `vessel.identity` channel topic: which craft is active. Read by
+ * `DelayAuthority` to see a change of craft that `comms.delay` has not shown,
+ * because the new craft's delay is still on its way or the craft is out of
+ * contact.
+ */
+export const IDENTITY_TOPIC = "vessel.identity";
+
+/**
  * What `DelayAuthority` needs of a client: Topic subscription, and the vantage
  * the session stands at, which picks which command centre's delay applies.
  * Taken by the `DelayAuthority` constructor, and met by the telemetry client.
@@ -126,6 +134,13 @@ export function readOneWaySeconds(payload: unknown): number | null {
   return readSeconds(delay.oneWaySeconds);
 }
 
+/** The `vesselId` a `vessel.identity` payload names, or `null` for one that names none, such as a withdrawn reading. */
+function readIdentityCraft(payload: unknown): string | null {
+  if (typeof payload !== "object" || payload === null) return null;
+  const id = "vesselId" in payload ? payload.vesselId : undefined;
+  return typeof id === "string" && id !== "" ? id : null;
+}
+
 /** The craft a payload describes, from its `meta.source`, or `null` where it names none (the session, or no stamp). */
 function readPayloadCraft(payload: unknown): string | null {
   if (!payload || typeof payload !== "object") return null;
@@ -200,8 +215,20 @@ export class DelayAuthority {
    * the same standard every other readout on this wire is held to.
    */
   private oneWaySeconds = 0;
+  /**
+   * The figure the latest `comms.delay` reported for the active craft, with no
+   * hold: `null` before any figure, after a report with none, and after a
+   * change of craft until the new craft's figure arrives.
+   */
+  private reportedSeconds: number | null = null;
   /** The craft the held delays were measured for, once a payload has named one. */
   private measuredCraft: string | undefined;
+  /** The craft `vessel.identity` last named. */
+  private identityCraft: string | undefined;
+  /** Whether `vessel.identity` has been withdrawn since it last named a craft. */
+  private identityWithdrawn = false;
+  /** Whether `comms.delay` has already moved to another craft since `vessel.identity` last changed. */
+  private delayMovedCraft = false;
   private ownCraftVantage = false;
   private centreDelays: ReadonlyMap<string, number> = new Map();
   /** Each centre's own delay as last listed, kept after its row goes. */
@@ -248,6 +275,7 @@ export class DelayAuthority {
   observe(payload: unknown): void {
     this.forgetOtherCraft(payload);
     const reported = readOneWaySeconds(payload);
+    this.reportedSeconds = reported;
     if (reported === null) {
       if (this.oneWaySeconds === UNKNOWN_DELAY && reportsNoPathHome(payload)) {
         this.oneWaySeconds = 0;
@@ -268,11 +296,45 @@ export class DelayAuthority {
     const previous = this.measuredCraft;
     this.measuredCraft = craft;
     if (previous === undefined || previous === craft) return;
+    this.delayMovedCraft = true;
+    this.forgetCraft();
+  }
+
+  private forgetCraft(): void {
     this.oneWaySeconds = UNKNOWN_DELAY;
+    this.reportedSeconds = null;
     this.centreDelays = new Map();
     this.lastCentreDelays.clear();
     this.routeDelays = new Map();
     this.lastLiveRouteDelays.clear();
+  }
+
+  /**
+   * Feed one `vessel.identity` payload. A change to another craft forgets every
+   * delay held for the craft before it, as a `comms.delay` naming another craft
+   * does, unless `comms.delay` has already moved on: the two can arrive in
+   * either order, and the new craft's own figure is not forgotten.
+   *
+   * A withdrawn identity, which the mod sends on a change of craft before the
+   * new craft has been heard and also when no craft is active, makes the
+   * command delay unknown until a craft is named again. It leaves the view
+   * clock's delay alone, since it does not say which craft, if any, is active.
+   */
+  observeIdentity(payload: unknown): void {
+    const craft = readIdentityCraft(payload);
+    if (craft === null) {
+      if (this.identityCraft !== undefined) this.identityWithdrawn = true;
+      return;
+    }
+    this.identityWithdrawn = false;
+    const previous = this.identityCraft;
+    this.identityCraft = craft;
+    if (previous === undefined || previous === craft) return;
+    if (!this.delayMovedCraft) {
+      this.forgetCraft();
+      this.measuredCraft = undefined;
+    }
+    this.delayMovedCraft = false;
   }
 
   /**
@@ -371,6 +433,36 @@ export class DelayAuthority {
     );
   };
 
+  /**
+   * The one-way delay a command to the active craft takes from `vantage`, or
+   * from the session's own centre when `vantage` is not given, in seconds.
+   * Useful for showing the operator how long a command to the craft being
+   * flown takes to arrive. Used by `useCommand` for every command whose target
+   * is the active craft.
+   *
+   * The same figure {@link delaySeconds} reads, without its holds: `null`
+   * where the client knows no delay. That is before any `comms.delay` figure,
+   * when the latest one reports no path, after a change of craft until the new
+   * craft's own figure arrives, and while `vessel.identity` is withdrawn. It is
+   * never the figure of a craft before the current one.
+   */
+  commandDelaySeconds(vantage?: string): number | null {
+    if (this.identityWithdrawn) return null;
+    if (vantage === undefined && this.ownCraftVantage) return 0;
+    const centre =
+      vantage ??
+      this.vantageSource?.selectedVantage ??
+      this.vantageSource?.observedVantage;
+    if (centre !== undefined) {
+      const own =
+        this.centreDelays.get(centre) ??
+        this.lastCentreDelays.get(centre) ??
+        this.routedDelay(centre);
+      if (own !== undefined) return own;
+    }
+    return this.reportedSeconds;
+  }
+
   private routedDelay(vantage: string): number | undefined {
     if (this.homeCentre === undefined || vantage === this.homeCentre) {
       return undefined;
@@ -382,7 +474,7 @@ export class DelayAuthority {
 
   /**
    * Subscribe to `comms.delay`, `commandCentre.activeVesselDelay`,
-   * `comms.route` and `commandCentre.roster` on `client`, keeping `delaySeconds()` current, and read the session's vantage
+   * `comms.route`, `commandCentre.roster` and `vessel.identity` on `client`, keeping `delaySeconds()` current, and read the session's vantage
    * off it from then on. `TelemetryClient.subscribe` replays its sticky last
    * value immediately, so a late-attaching authority still learns the current
    * delay on the next delivery: no full-cycle wait. Returns the unsubscribe
@@ -402,7 +494,11 @@ export class DelayAuthority {
     const detachRoster = client.subscribe(ROSTER_TOPIC, (payload) =>
       this.observeRoster(payload),
     );
+    const detachIdentity = client.subscribe(IDENTITY_TOPIC, (payload) =>
+      this.observeIdentity(payload),
+    );
     return () => {
+      detachIdentity();
       detachRoster();
       detachRoutes();
       detachCentres();

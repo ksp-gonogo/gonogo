@@ -52,6 +52,9 @@ const FIXTURE_MODULES = import.meta.glob<{ default: Record<string, unknown> }>(
 const COMMAND_PLUMBING: readonly string[] = [
   "system.uplink.pending",
   "system.uplink.gates",
+  "system.uplink.delays",
+  "commandCentre.activeVesselDelay",
+  "vessel.identity",
   "comms.link",
   "comms.delay",
 ];

@@ -51,6 +51,7 @@ import type {
   CommandGateReport,
   DataRateReport,
   PendingUplinkQueue,
+  UplinkDelayReport,
 } from "./__generated__/contract";
 import type { GeneratedTopicPayloadMap } from "./__generated__/topic-map";
 import {
@@ -209,6 +210,19 @@ export interface SystemUplinkGatesTopicPayloadMap {
 }
 
 /**
+ * `system.uplink.delays`: which delayed commands go to the active craft, and
+ * the delay each of the others takes from this session's command centre to
+ * its own target. `ChannelEngine` declares it directly, so like
+ * `system.uplink.gates` it is hand-mapped here. Useful for showing the
+ * operator how long a command sent somewhere other than the craft being flown
+ * takes to arrive.
+ */
+export interface SystemUplinkDelaysTopicPayloadMap {
+  /** Each delayed command's target, and its delay where the target is not the active craft. */
+  "system.uplink.delays": UplinkDelayReport;
+}
+
+/**
  * `system.units`: the contract's own unit knowledge, so the stream describes
  * itself.
  *
@@ -282,6 +296,7 @@ interface SdkOwnedTopicPayloadMap
     SystemUplinksTopicPayloadMap,
     SystemUplinkPendingTopicPayloadMap,
     SystemUplinkGatesTopicPayloadMap,
+    SystemUplinkDelaysTopicPayloadMap,
     SystemUnitsTopicPayloadMap,
     SystemChannelsTopicPayloadMap,
     SystemDataRatesTopicPayloadMap {}
@@ -351,6 +366,7 @@ export const TOPIC_IDS = [
   "system.uplinks",
   "system.uplink.pending",
   "system.uplink.gates",
+  "system.uplink.delays",
   "system.units",
   "system.channels",
   "system.dataRates",

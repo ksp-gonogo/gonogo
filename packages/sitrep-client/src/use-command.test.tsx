@@ -1933,6 +1933,12 @@ describe("useCommand delay reading", () => {
         <DelayReadout />
       </fixture.Provider>,
     );
+    act(() => {
+      fixture.transport.emit("system.uplink.delays", {
+        activeVessel: ["deploy"],
+        elsewhere: [],
+      });
+    });
     return fixture;
   }
 
@@ -2048,10 +2054,11 @@ describe("useCommand delay reading", () => {
     await settleIngestFrame();
   });
 
-  it("reports no delay reading at all as unknown, not as zero and not as no-path", () => {
+  it("reports no delay reading at all as unknown, not as zero and not as no-path", async () => {
     renderReadout();
     expect(screen.getByText("delay:null")).toBeTruthy();
     expect(screen.getByText("mode:null")).toBeTruthy();
+    await settleIngestFrame();
   });
 });
 

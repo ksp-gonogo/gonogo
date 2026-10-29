@@ -389,8 +389,7 @@ describe("SitrepPeerRelay", () => {
      * sends no wire subscribe and re-emits no frame, so the cache is the only
      * answer.
      */
-    const unsubHost = transport.isSubscribed("vessel.identity");
-    expect(unsubHost).toBe(false);
+    expect(transport.isSubscribed("vessel.identity")).toBe(true);
     act(() => {
       transport.emitRaw({
         type: "stream-data",
