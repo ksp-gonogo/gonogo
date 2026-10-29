@@ -17777,6 +17777,14 @@
         "note": "the text drawn"
       },
       {
+        "key": "ui-kit . RotateAnticlockwiseIcon",
+        "note": "a circular arrow running anticlockwise, for a control that turns a view a step"
+      },
+      {
+        "key": "ui-kit . RotateClockwiseIcon",
+        "note": "a circular arrow running clockwise, for a control that turns a view a step"
+      },
+      {
         "key": "ui-kit . STREAM_DOWN_TIP",
         "note": "The words a command control shows while the stream to the mod is down, for a control of an author's own that follows the same state"
       },
