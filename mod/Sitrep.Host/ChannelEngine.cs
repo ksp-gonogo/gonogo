@@ -1315,6 +1315,18 @@ namespace Sitrep.Host
         /// <summary>The declaration <paramref name="topic"/> was registered with, or null when it was not.</summary>
         internal ChannelDeclaration? DeclarationOf(string topic) =>
             _channelDeclarations.TryGetValue(topic, out var declaration) ? declaration : null;
+
+        /// <summary>Every static channel a registered Uplink declared, with whether it was declared addressed.</summary>
+        internal IReadOnlyList<(ChannelDeclaration Declaration, bool Addressed)> UplinkChannels() =>
+            _channelOwner.Keys
+                .Where(topic => FindDynamicNamespaceForTopic(topic) == null)
+                .Select(topic => (_channelDeclarations[topic], _addressedTopics.Contains(topic)))
+                .ToList();
+
+        /// <summary>Every dynamic namespace a registered Uplink declared, by prefix, with its template.</summary>
+        internal IReadOnlyList<(string Prefix, ChannelDeclaration Template)> UplinkNamespaces() =>
+            _dynamicNamespaces.Select(entry => (entry.Key, entry.Value)).ToList();
+
         private readonly Dictionary<string, Func<KspSnapshot?, object?>> _channelSources = new Dictionary<string, Func<KspSnapshot?, object?>>();
 
         /// <summary>
