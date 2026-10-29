@@ -465,7 +465,15 @@ export function buildShipMapPart(
     };
   }
   let shapeDrawing: ShapeDrawing | undefined;
-  if (shape && shapeFitsBox(shape, size, part.shapePoses)) {
+  /*
+   * A procedural fairing's shell is built by its module in the game and is in
+   * no model file, so the shape of its kind holds the base alone. Its drawn
+   * meshes are held to its box, which takes in the shell while one stands: a
+   * fairing with a shell is drawn by its type, and one with none is drawn
+   * from its shape.
+   */
+  const shellBuiltInGame = type === "fairing";
+  if (shape && shapeFitsBox(shape, size, part.shapePoses, shellBuiltInGame)) {
     /* The map from a part-local point to the drawn box's frame, as `inBoxFrame` takes a point from the box centre, with the depth toward the viewer as its third row. */
     const linear = [axes.right, axes.up, axes.forward].map((dir) => {
       const lat = latOf(dir);

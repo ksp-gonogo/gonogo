@@ -817,21 +817,26 @@ const fits = new WeakMap<DecodedPartShape, Map<string, boolean>>();
 /**
  * Whether `shape`, with `poses` moving its meshes, fills the part's own box
  * of `size` (part-local metres) on every axis. Every mesh counts, drawn or
- * not, as it does in the box. A part built or stretched in the game, such as
- * a procedural tank, a fairing's shell or a fuel line, has a box the shape of
- * its kind does not fill, and is drawn by its type within its box instead.
+ * not, as it does in the box, unless `drawnOnly` is set, when only the meshes
+ * the part draws count. A part built or stretched in the game, such as a
+ * procedural tank or a fuel line, has a box the shape of its kind does not
+ * fill, and is drawn by its type within its box instead.
  */
 export function shapeFitsBox(
   shape: DecodedPartShape,
   size: { x: number; y: number; z: number },
   poses?: ShapePoses,
+  drawnOnly = false,
 ): boolean {
   const poseKey = poses
     ? poses
-        .map((p) => `${p.mesh}:${p.transform ? keyOf(p.transform) : ""}`)
+        .map(
+          (p) =>
+            `${p.mesh}:${p.shown ? 1 : 0}:${p.transform ? keyOf(p.transform) : ""}`,
+        )
         .join(";")
     : "";
-  const key = `${keyOf([size.x, size.y, size.z])}|${poseKey}`;
+  const key = `${keyOf([size.x, size.y, size.z])}|${drawnOnly ? 1 : 0}|${poseKey}`;
   let cache = fits.get(shape);
   if (!cache) {
     cache = new Map();
@@ -844,7 +849,9 @@ export function shapeFitsBox(
   const lo = [Infinity, Infinity, Infinity];
   const hi = [-Infinity, -Infinity, -Infinity];
   for (const mesh of shape.meshes) {
-    const m = byMesh.get(mesh.key)?.transform;
+    const pose = byMesh.get(mesh.key);
+    if (drawnOnly && !(pose ? pose.shown : mesh.shown)) continue;
+    const m = pose?.transform;
     const moved = m && m.length === 12 ? m : undefined;
     const p = mesh.positions;
     for (let i = 0; i + 2 < p.length; i += 3) {

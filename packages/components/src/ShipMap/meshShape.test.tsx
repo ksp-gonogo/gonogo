@@ -515,6 +515,53 @@ describe("a Ship Map part with a shape", () => {
     expect(shapeFitsBox(shape, partRow().bounds.size)).toBe(true);
   });
 
+  it("draws a fairing whose shell the game built by its type, and one with no shell from its shape", () => {
+    // The kind's shape holds the base ring and a tall truss the part never draws, as a stock fairing's model does.
+    const shape = shapeOf(
+      new MeshBuilder().box([-0.6, 0, -0.6], [0.6, 0.2, 0.6]).mesh("base"),
+      new MeshBuilder()
+        .box([-0.6, 0, -0.6], [0.6, 3, 0.6])
+        .mesh("truss", false),
+    );
+    const fairing = (height: number) =>
+      partRow({
+        name: "fairingSize1",
+        shape: "fairingSize1.White",
+        modules: ["ModuleProceduralFairing", "ModuleCargoBay"],
+        bounds: {
+          size: { x: 1.2, y: height, z: 1.2 },
+          center: { x: 0, y: height / 2, z: 0 },
+        },
+      });
+    const shell = buildShipMapPart(fairing(3), null, undefined, 0, null, shape);
+    expect(shell.type).toBe("fairing");
+    expect(shell.shapeDrawing).toBeUndefined();
+    const bare = buildShipMapPart(
+      fairing(0.2),
+      null,
+      undefined,
+      0,
+      null,
+      shape,
+    );
+    expect(bare.shapeDrawing?.outline).not.toBe("");
+  });
+
+  it("counts a mesh the part does not draw toward its box on any part but a fairing", () => {
+    const shape = shapeOf(
+      new MeshBuilder().box([-0.6, 0, -0.6], [0.6, 2, 0.6]).mesh("body"),
+      new MeshBuilder()
+        .box([-0.6, 2, -0.6], [0.6, 3, 0.6])
+        .mesh("shroud", false),
+    );
+    const size = { x: 1.2, y: 3, z: 1.2 };
+    expect(shapeFitsBox(shape, size)).toBe(true);
+    expect(shapeFitsBox(shape, size, undefined, true)).toBe(false);
+    expect(
+      shapeFitsBox(shape, size, [{ mesh: "shroud", shown: true }], true),
+    ).toBe(true);
+  });
+
   it("fills its box as its poses move its meshes", () => {
     const shape = decodePartShape(decoupler);
     const size = partRow().bounds.size;
