@@ -156,6 +156,12 @@ const UNOBSERVED_FAMILIES: readonly {
     reason: "read only once a part's action menu is open",
   },
   {
+    widgetId: "ship-map",
+    pattern: "parts.shape.<key>",
+    reason:
+      "one per kind of part on the vessel, and the Ship Map's fixtures sit in a folder this test does not load",
+  },
+  {
     widgetId: "science-data",
     pattern: "eva.kerbal.<kerbalVesselId>.state",
     reason: "one per kerbal outside, read only while eva.crew lists one",
@@ -168,6 +174,11 @@ const UNOBSERVED_FAMILIES: readonly {
   {
     widgetId: "launch-director",
     pattern: "spaceCenter.craft.<facility>.<segment>.parts",
+    reason: "read only once a craft is picked and its side view shows",
+  },
+  {
+    widgetId: "launch-director",
+    pattern: "parts.shape.<key>",
     reason: "read only once a craft is picked and its side view shows",
   },
   {
