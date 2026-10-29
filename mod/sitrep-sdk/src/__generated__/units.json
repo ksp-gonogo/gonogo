@@ -2725,6 +2725,9 @@
       "meta": "PayloadMeta",
       "settings": "ModSettingRow[]"
     },
+    "NamespaceDeclaration": {
+      "template": "ChannelDeclaration"
+    },
     "PartActions": {
       "actions": "PartActionEntry[]",
       "meta": "PayloadMeta"
@@ -2812,7 +2815,8 @@
     "UplinkManifest": {
       "channels": "ChannelDeclaration[]",
       "clientSource": "UplinkClientSource",
-      "commands": "CommandDeclaration[]"
+      "commands": "CommandDeclaration[]",
+      "namespaces": "NamespaceDeclaration[]"
     },
     "VesselAttitude": {
       "meta": "PayloadMeta"
