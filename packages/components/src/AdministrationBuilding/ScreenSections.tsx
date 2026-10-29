@@ -9,16 +9,16 @@ import {
   CommandButton,
   type CommandButtonHandle,
   Divider,
+  Grid,
   NULL_DISPLAY,
   ScrollArea,
+  Section,
   Slider,
   Stack,
-  type TabDescriptor,
-  Tabs,
   Unit,
   useSlotBound,
 } from "@ksp-gonogo/ui-kit";
-import { type Dispatch, type SetStateAction, useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 import { AvailableRow, StrategyDescription } from "./AvailableRow";
 import { factorSliderOf, parseEffectLines } from "./parsing";
@@ -34,6 +34,7 @@ import {
   FactorRow,
   FactorTag,
   FactorValue,
+  SCREEN_COLUMNS,
   ScreenInset,
   StrategyCard,
 } from "./styles";
@@ -100,9 +101,6 @@ export function ScreenSections({
   const fundsNow = magnitudeOf(funds);
   const reputationNow = magnitudeOf(reputation);
   const scienceNow = magnitudeOf(science);
-  const [selectedTab, setSelectedTab] = useState(
-    active.length > 0 ? "active" : "available",
-  );
   const bodyBound = useSlotBound("administration-building.screen-body");
   // The available card and the unanswered one are the same card; only the note differs.
   const strategyRow = (s: Strategy, note?: string) => (
@@ -251,106 +249,114 @@ export function ScreenSections({
       </ScrollArea>
     );
   }
-  const tabs: TabDescriptor[] = [
-    {
-      id: "active",
-      label: "Active",
-      content: (
-        <Stack gap="related-comfortable">
-          {active.length === 0 ? (
-            <Empty>No active strategies</Empty>
-          ) : (
-            active.map((s) => (
-              <StrategyCard
-                key={s.id}
-                $active
-                title={s.title}
-                titleRight={
-                  showDepartment ? (
-                    <CardDept>{s.departmentName}</CardDept>
-                  ) : undefined
-                }
-                footer={
-                  <>
-                    <FactorTag>
-                      factor{" "}
-                      {s.factor === null ? (
-                        NULL_DISPLAY
-                      ) : (
-                        <Unit
-                          value={datedFrom(
-                            rosterFrom,
-                            value("%", s.factor * 100),
+  return (
+    <ScrollArea>
+      {/* One box owns the whole screen's inset, the augment included. */}
+      <ScreenInset data-strategies-screen-inset="">
+        {/* A screen naming no departments lists nothing: it is chrome for its augment body. */}
+        {listsStrategies && (
+          // Panel's own columnising, rebuilt: the tabbed body is one full section, which never columnises.
+          <Grid cols={SCREEN_COLUMNS} gap="related-comfortable" align="start">
+            <Section
+              as="section"
+              aria-label="Active"
+              title="Active"
+              gap="related-comfortable"
+            >
+              {active.length === 0 ? (
+                <Empty>No active strategies</Empty>
+              ) : (
+                active.map((s) => (
+                  <StrategyCard
+                    key={s.id}
+                    $active
+                    title={s.title}
+                    titleRight={
+                      showDepartment ? (
+                        <CardDept>{s.departmentName}</CardDept>
+                      ) : undefined
+                    }
+                    footer={
+                      <>
+                        <FactorTag>
+                          factor{" "}
+                          {s.factor === null ? (
+                            NULL_DISPLAY
+                          ) : (
+                            <Unit
+                              value={datedFrom(
+                                rosterFrom,
+                                value("%", s.factor * 100),
+                              )}
+                              decimals={0}
+                            />
                           )}
-                          decimals={0}
-                        />
-                      )}
-                    </FactorTag>
-                    {!drawsOwnActions && (
-                      <CommandButton
-                        handle={deactivateCmd}
-                        args={{ strategyId: s.id }}
-                        commandLabel={`Deactivate ${s.title}`}
-                        label="Deactivate"
-                        confirmLabel="Confirm deactivate"
-                        confirmTone="nogo"
-                        pendingLabel="Deactivating..."
-                        title="Deactivate this strategy"
-                      />
-                    )}
-                  </>
-                }
-              >
-                <StrategyDescription of={s} />
-                <EffectList>
-                  {parseEffectLines(s.effect).map((line, i) => (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: static effect text, never reordered
-                    <EffectLine key={`${i}:${line}`}>{line}</EffectLine>
+                        </FactorTag>
+                        {!drawsOwnActions && (
+                          <CommandButton
+                            handle={deactivateCmd}
+                            args={{ strategyId: s.id }}
+                            commandLabel={`Deactivate ${s.title}`}
+                            label="Deactivate"
+                            confirmLabel="Confirm deactivate"
+                            confirmTone="nogo"
+                            pendingLabel="Deactivating..."
+                            title="Deactivate this strategy"
+                          />
+                        )}
+                      </>
+                    }
+                  >
+                    <StrategyDescription of={s} />
+                    <EffectList>
+                      {parseEffectLines(s.effect).map((line, i) => (
+                        // biome-ignore lint/suspicious/noArrayIndexKey: static effect text, never reordered
+                        <EffectLine key={`${i}:${line}`}>{line}</EffectLine>
+                      ))}
+                    </EffectList>
+                  </StrategyCard>
+                ))
+              )}
+            </Section>
+
+            <Section
+              as="section"
+              aria-label="Available"
+              title="Available"
+              gap="related-comfortable"
+            >
+              {available.length === 0 && softBlocked.length === 0 ? (
+                <Empty>No strategies available right now</Empty>
+              ) : (
+                <>
+                  {available.map((s) => strategyRow(s))}
+                  {softBlocked.map((s) => (
+                    <StrategyCard
+                      key={s.id}
+                      title={s.title}
+                      titleRight={
+                        showDepartment ? (
+                          <CardDept>{s.departmentName}</CardDept>
+                        ) : undefined
+                      }
+                    >
+                      <BlockedNote>
+                        Deactivate the running strategy first to enable this
+                        one.
+                      </BlockedNote>
+                    </StrategyCard>
                   ))}
-                </EffectList>
-              </StrategyCard>
-            ))
-          )}
-        </Stack>
-      ),
-    },
-    {
-      id: "available",
-      label: "Available",
-      content: (
-        <Stack gap="related-comfortable">
-          {available.length === 0 && softBlocked.length === 0 ? (
-            <Empty>No strategies available right now</Empty>
-          ) : (
-            <>
-              {available.map((s) => strategyRow(s))}
-              {softBlocked.map((s) => (
-                <StrategyCard
-                  key={s.id}
-                  title={s.title}
-                  titleRight={
-                    showDepartment ? (
-                      <CardDept>{s.departmentName}</CardDept>
-                    ) : undefined
-                  }
-                >
-                  <BlockedNote>
-                    Deactivate the running strategy first to enable this one.
-                  </BlockedNote>
-                </StrategyCard>
-              ))}
-            </>
-          )}
-        </Stack>
-      ),
-    },
-    ...(ineligible.length > 0
-      ? [
-          {
-            id: "locked",
-            label: "Locked",
-            content: (
-              <Stack gap="related-comfortable">
+                </>
+              )}
+            </Section>
+
+            {ineligible.length > 0 && (
+              <Section
+                as="section"
+                aria-label="Locked"
+                title="Locked"
+                gap="related-comfortable"
+              >
                 {ineligible.map((s) => (
                   <StrategyCard
                     key={s.id}
@@ -364,19 +370,17 @@ export function ScreenSections({
                     <BlockedNote>{s.activateBlockedReason}</BlockedNote>
                   </StrategyCard>
                 ))}
-              </Stack>
-            ),
-          },
-        ]
-      : []),
-    // Not part of Locked: a refusal is a fact about the save, an unknown is a reading that could not be taken.
-    ...(unknown.length > 0
-      ? [
-          {
-            id: "unknown",
-            label: "Eligibility unknown",
-            content: (
-              <Stack gap="related-comfortable">
+              </Section>
+            )}
+
+            {/* Not part of Locked: a refusal is a fact about the save, an unknown is a reading that could not be taken. */}
+            {unknown.length > 0 && (
+              <Section
+                as="section"
+                aria-label="Eligibility unknown"
+                title="Eligibility unknown"
+                gap="related-comfortable"
+              >
                 {unknownReason !== null && (
                   <BlockedNote>{unknownReason}</BlockedNote>
                 )}
@@ -394,29 +398,9 @@ export function ScreenSections({
                       : undefined,
                   ),
                 )}
-              </Stack>
-            ),
-          },
-        ]
-      : []),
-  ];
-  const selectedId = tabs.some((t) => t.id === selectedTab)
-    ? selectedTab
-    : tabs[0].id;
-  return (
-    <ScrollArea>
-      {/* One box owns the whole screen's inset, the augment included. */}
-      <ScreenInset data-strategies-screen-inset="">
-        {/* A screen naming no departments lists nothing: it is chrome for its augment body. */}
-        {listsStrategies && (
-          <Tabs
-            aria-label={
-              screenId === undefined ? "Strategies" : `Strategies ${screenId}`
-            }
-            tabs={tabs}
-            activeId={selectedId}
-            onChange={setSelectedTab}
-          />
+              </Section>
+            )}
+          </Grid>
         )}
 
         {/* Outside the grid: an augment columnises its own sections against the full width. */}

@@ -226,7 +226,6 @@ interface PipelineEntry {
   stopPacingTicker: () => void;
   stopStats: () => void;
   stopStamps: () => void;
-  resetStamps: () => void;
 }
 const pipelines = new Map<string, PipelineEntry>();
 
@@ -274,7 +273,6 @@ function frameDater<Frame>(
     entry.pipeline?.flush(),
   );
   entry.stopStamps = bound.dispose;
-  entry.resetStamps = bound.reset;
   return (frame) => bound.captureUt(frame);
 }
 
@@ -368,7 +366,6 @@ function handleCreatePipeline(msg: CreatePipelineMessage): void {
       stopPacingTicker: () => {},
       stopStats: () => {},
       stopStamps: () => {},
-      resetStamps: () => {},
     };
     pipelines.set(msg.pipelineId, entry);
     const stampUt = captureUtStamper();
@@ -471,7 +468,6 @@ function handleRtcTransform(event: RtcTransformEventLike): void {
     stopPacingTicker: () => {},
     stopStats: () => {},
     stopStamps: () => {},
-    resetStamps: () => {},
   };
   pipelines.set(pipelineId, entry);
   const stampUt = captureUtStamper();
@@ -521,9 +517,7 @@ function startStatsReporter(
 }
 
 function handleFlush(msg: FlushMessage): void {
-  const entry = pipelines.get(msg.pipelineId);
-  entry?.resetStamps();
-  entry?.pipeline?.flush();
+  pipelines.get(msg.pipelineId)?.pipeline?.flush();
 }
 
 function handleDispose(msg: DisposePipelineMessage): void {

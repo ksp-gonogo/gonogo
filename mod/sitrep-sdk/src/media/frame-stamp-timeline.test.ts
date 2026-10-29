@@ -109,60 +109,6 @@ describe("FrameStampTimeline", () => {
   });
 });
 
-describe("FrameStampTimeline when the camera restarts inside one epoch", () => {
-  it("drops the old stamps and dates from the new stream when RTP and UT both go back", () => {
-    const timeline = new FrameStampTimeline();
-    timeline.record(stamp(90000, 1000));
-    timeline.record(stamp(93600, 1000.04));
-
-    expect(timeline.record(stamp(3000, 200))).toBe(true);
-
-    expect(timeline.utFor(3000)).toEqual({
-      ut: 200,
-      epoch: 1,
-      source: "exact",
-    });
-    expect(timeline.utFor(90000)?.ut).toBe(200);
-  });
-
-  it("restarts when UT goes back although RTP carries on", () => {
-    const timeline = new FrameStampTimeline();
-    timeline.record(stamp(0, 1000));
-    timeline.record(stamp(3600, 1000.04));
-
-    expect(timeline.record(stamp(7200, 200))).toBe(true);
-    expect(timeline.utFor(7200)?.ut).toBe(200);
-  });
-
-  it("restarts when RTP goes back by more than a reorder window", () => {
-    const timeline = new FrameStampTimeline();
-    timeline.record(stamp(2_000_000, 1000));
-    timeline.record(stamp(2_003_600, 1000.04));
-
-    expect(timeline.record(stamp(10_000, 1000.1))).toBe(true);
-    expect(timeline.utFor(2_000_000)?.ut).toBe(1000.1);
-  });
-
-  it("does not restart on a reordered stamp", () => {
-    const timeline = new FrameStampTimeline();
-    timeline.record(stamp(0, 1000));
-    timeline.record(stamp(7200, 1000.08));
-
-    expect(timeline.record(stamp(3600, 1000.04))).toBe(false);
-    expect(timeline.utFor(0)?.source).toBe("exact");
-  });
-
-  it("clears on reset so the next stamp starts a fresh timeline", () => {
-    const timeline = new FrameStampTimeline();
-    timeline.record(stamp(90000, 1000));
-    timeline.clear();
-    timeline.record(stamp(3000, 1000.5));
-
-    expect(timeline.utFor(3000)?.source).toBe("exact");
-    expect(timeline.utFor(90000)?.ut).toBe(1000.5);
-  });
-});
-
 function manualFeed(): FrameStampFeed & { send(s: FrameStamp): void } {
   const listeners = new Set<(s: FrameStamp) => void>();
   return {
@@ -218,28 +164,6 @@ describe("bindFrameStamps", () => {
     expect(resets).toBe(0);
     feed.send(stamp(6000, 3, 2));
     expect(resets).toBe(1);
-  });
-
-  it("calls back and re-dates from the new stream when the camera restarts inside one epoch", () => {
-    const feed = manualFeed();
-    let resets = 0;
-    const bound = bindFrameStamps(feed, () => {
-      resets += 1;
-    });
-    feed.send(stamp(90000, 1000));
-    feed.send(stamp(3000, 200));
-
-    expect(resets).toBe(1);
-    expect(bound.captureUt(frame(3000))).toBe(200);
-  });
-
-  it("reset forgets every stamp", () => {
-    const feed = manualFeed();
-    const bound = bindFrameStamps(feed, () => {});
-    feed.send(stamp(3000, 42));
-    bound.reset();
-
-    expect(bound.captureUt(frame(3000))).toBe(Number.POSITIVE_INFINITY);
   });
 
   it("stops listening when disposed", () => {

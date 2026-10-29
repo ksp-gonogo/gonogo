@@ -630,58 +630,38 @@ const WIDGETS: WidgetRenderConfig[] = [
         scroll: 800,
         forFixtures: ["multiple-active-contracts"],
       },
-      // The Completed and Failed state chips, pressed.
+      // The Completed and Failed tabs, opened.
       {
-        name: "completed-filter-default-6x8",
+        name: "completed-tab-default-6x8",
         w: 6,
         h: 8,
         forFixtures: ["finished-contracts"],
         clicks: [
-          {
-            selector:
-              '[role="group"][aria-label="Filter contracts by state"] button:nth-child(4)',
-            awaitMs: 100,
-          },
+          { selector: '[role="tab"][id$="completed-tab"]', awaitMs: 100 },
         ],
       },
       {
-        name: "completed-filter-compact-4x5",
+        name: "completed-tab-compact-4x5",
         w: 4,
         h: 5,
         forFixtures: ["finished-contracts"],
         clicks: [
-          {
-            selector:
-              '[role="group"][aria-label="Filter contracts by state"] button:nth-child(4)',
-            awaitMs: 100,
-          },
+          { selector: '[role="tab"][id$="completed-tab"]', awaitMs: 100 },
         ],
       },
       {
-        name: "failed-filter-default-6x8",
+        name: "failed-tab-default-6x8",
         w: 6,
         h: 8,
         forFixtures: ["finished-contracts"],
-        clicks: [
-          {
-            selector:
-              '[role="group"][aria-label="Filter contracts by state"] button:nth-child(5)',
-            awaitMs: 100,
-          },
-        ],
+        clicks: [{ selector: '[role="tab"][id$="failed-tab"]', awaitMs: 100 }],
       },
       {
-        name: "failed-filter-compact-4x5",
+        name: "failed-tab-compact-4x5",
         w: 4,
         h: 5,
         forFixtures: ["finished-contracts"],
-        clicks: [
-          {
-            selector:
-              '[role="group"][aria-label="Filter contracts by state"] button:nth-child(5)',
-            awaitMs: 100,
-          },
-        ],
+        clicks: [{ selector: '[role="tab"][id$="failed-tab"]', awaitMs: 100 }],
       },
     ],
   },
@@ -2180,10 +2160,6 @@ const WIDGETS: WidgetRenderConfig[] = [
     modes: [
       // Registered default.
       { name: "default-8x10", w: 8, h: 10 },
-      // The widget's minSize, where the stage column has to give way to the diagram.
-      { name: "min-5x5", w: 5, h: 5, forFixtures: ["staged-rocket"] },
-      // Wide enough for the stage column beside a diagram that keeps its rotate controls.
-      { name: "wide-12x10", w: 12, h: 10, forFixtures: ["staged-rocket"] },
       // Wider/taller: the colour-spread fixture stacks four parts with several meters each, the default size crops it.
       {
         name: "colour-spread-10x16",

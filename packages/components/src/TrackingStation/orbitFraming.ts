@@ -1,4 +1,4 @@
-import { MAX_FRAMING_ZOOM } from "./usePanZoom";
+import { MAX_ZOOM } from "./usePanZoom";
 
 /** How much further than the craft's apoapsis the framed view reaches, as a ratio of the apoapsis. */
 const ORBIT_MARGIN = 1.25;
@@ -43,5 +43,5 @@ export function orbitFramingZoom({
         (1 + orbit.ecc * Math.cos((centredOnCraft * Math.PI) / 180));
   if (!Number.isFinite(craftRadius)) return null;
   const reach = (apoapsis + craftRadius) * plotScale * ORBIT_MARGIN;
-  return Math.min(MAX_FRAMING_ZOOM, Math.max(1, halfPicturePlotUnits / reach));
+  return Math.min(MAX_ZOOM, Math.max(1, halfPicturePlotUnits / reach));
 }

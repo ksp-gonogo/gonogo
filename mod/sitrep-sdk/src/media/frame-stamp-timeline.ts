@@ -64,17 +64,6 @@ const MAX_EXTRAPOLATION_TICKS = 45000;
 /** Stamps kept: about 8 s of 60 fps video, far past any jitter buffer. */
 const HISTORY = 512;
 
-/** Furthest, in RTP ticks, a stamp may arrive behind the newest and still be a reordered one: 5 s. */
-const MAX_REORDER_TICKS = 450000;
-
-/** Seconds of UT a stamp may fall behind the newest before it can only be a restart. */
-const UT_BACKSTEP_SECONDS = 1;
-
-/** Game seconds per video second a reordered stamp may be behind by: well above any warp a camera sees. */
-const MAX_UT_PER_VIDEO_SECOND = 4;
-
-const RTP_PER_SECOND = 90000;
-
 const RTP_MODULUS = 2 ** 32;
 const RTP_HALF = 2 ** 31;
 
@@ -85,9 +74,7 @@ const RTP_HALF = 2 ** 31;
  * stamp so far is carried forward at the rate of the two newest, for at most
  * half a second, then held. A stamp carrying
  * a new epoch discards every earlier one, since their UTs belong to a timeline
- * that no longer exists. So does one that can only come from a restarted
- * source: its UT well behind the newest with no RTP gap to explain it, or its
- * RTP timestamp further behind than any reordering. Useful for stamping delayed video frames in decode
+ * that no longer exists. Useful for stamping delayed video frames in decode
  * order, with no drift against the game's clock. Used by the delay pipelines
  * through {@link bindFrameStamps}.
  *
@@ -99,16 +86,13 @@ export class FrameStampTimeline {
   private epoch: number | null = null;
 
   /**
-   * Adds a stamp. Returns `true` when it opened a new epoch or came from a
-   * restarted source, which discarded every earlier stamp: the caller should
-   * empty whatever it holds that was dated against them.
+   * Adds a stamp. Returns `true` when it opened a new epoch, which discarded
+   * every earlier stamp: the caller should empty whatever it holds that was dated
+   * against them.
    */
   record(stamp: FrameStamp): boolean {
     let epochChanged = false;
-    if (
-      this.epoch !== null &&
-      (stamp.epoch !== this.epoch || this.isRestart(stamp))
-    ) {
+    if (this.epoch !== null && stamp.epoch !== this.epoch) {
       this.entries = [];
       epochChanged = true;
     }
@@ -147,20 +131,6 @@ export class FrameStampTimeline {
       epoch: this.epoch,
       source: "interpolated",
     };
-  }
-
-  /** Whether `stamp` cannot belong to the stream the stored stamps came from. */
-  private isRestart(stamp: FrameStamp): boolean {
-    const newest = this.entries[this.entries.length - 1];
-    if (!newest) return false;
-    const behindTicks = newest.rtp - this.unwrap(stamp.rtpTimestamp);
-    if (behindTicks > MAX_REORDER_TICKS) return true;
-    const utBack = newest.ut - stamp.ut;
-    if (utBack <= UT_BACKSTEP_SECONDS) return false;
-    const reorderSeconds = Math.max(0, behindTicks) / RTP_PER_SECOND;
-    return (
-      utBack > MAX_UT_PER_VIDEO_SECOND * reorderSeconds + UT_BACKSTEP_SECONDS
-    );
   }
 
   /** A frame newer than the newest stamp, `prev`. */
@@ -244,8 +214,7 @@ export function rtpTimestampOf(frame: unknown): number | null {
  * delay pipeline stamps each frame with. A frame no stamp can date gets
  * `Number.POSITIVE_INFINITY`, which the buffer holds and then drops once a dated
  * frame arrives. `onEpochChange` is called when the camera starts a new epoch;
- * empty the pipeline there. `reset` forgets every stamp, for a pipeline that is
- * flushed from outside. Useful for stamping delayed video from the camera's
+ * empty the pipeline there. Useful for stamping delayed video from the camera's
  * own per-frame stamps. Used by the delay pipelines.
  *
  * @category Delayed video
@@ -253,7 +222,7 @@ export function rtpTimestampOf(frame: unknown): number | null {
 export function bindFrameStamps(
   feed: FrameStampFeed,
   onEpochChange: () => void,
-): { captureUt(frame: unknown): number; reset(): void; dispose(): void } {
+): { captureUt(frame: unknown): number; dispose(): void } {
   const timeline = new FrameStampTimeline();
   const unsubscribe = feed.subscribe((stamp) => {
     if (timeline.record(stamp)) onEpochChange();
@@ -264,7 +233,6 @@ export function bindFrameStamps(
       const found = rtp === null ? null : timeline.utFor(rtp);
       return found ? found.ut : Number.POSITIVE_INFINITY;
     },
-    reset: () => timeline.clear(),
     dispose: unsubscribe,
   };
 }

@@ -143,7 +143,7 @@ describe("ContractManager: null versus undefined", () => {
 });
 
 describe("ContractManager: partial payloads inside an arrived record", () => {
-  it("counts absent `offered`/`completedRecent` sub-arrays as zero and lists no cards for them", async () => {
+  it("counts absent `offered`/`completedRecent` sub-arrays as zero and hides their sections", async () => {
     const fixture = newFixture();
     renderManager(fixture);
 
@@ -160,10 +160,8 @@ describe("ContractManager: partial payloads inside an arrived record", () => {
     expect(screen.getByRole("status").textContent).toBe(
       "1 active · 0 offered · 0 recent",
     );
-    expect(screen.getByRole("button", { name: /^Offered/ })).toHaveTextContent(
-      "Offered0",
-    );
-    expect(screen.getByRole("button", { name: /^Active/ })).toBeInTheDocument();
+    expect(screen.queryByText("Offered")).toBeNull();
+    expect(screen.getByRole("tab", { name: "Active" })).toBeInTheDocument();
   });
 
   it("renders the null token, not `no deadline`, when the contract's own deadline field is absent", async () => {

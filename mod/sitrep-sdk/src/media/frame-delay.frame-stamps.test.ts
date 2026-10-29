@@ -218,26 +218,3 @@ describe("a new capture epoch", () => {
     }
   });
 });
-
-describe("a camera restarting inside one capture epoch", () => {
-  it("releases the new source's frames instead of holding them against the old timeline", async () => {
-    // Relaunch at wall 4 s: stamps keep the epoch but the game UT goes back
-    const reloadAt = 4;
-    const gameUt = (wall: number) =>
-      wall < reloadAt
-        ? 1000 + GAME_RATE * wall
-        : 200 + GAME_RATE * (wall - reloadAt);
-    const written = await play({
-      seconds: 8,
-      delaySeconds: 1,
-      dating: "stamps",
-      gameUt,
-      stampFor: everyStamp,
-    });
-
-    const firstNew = written.findIndex((f) => f.ut < 900);
-    expect(firstNew).toBeGreaterThan(-1);
-    expect(written.slice(firstNew).every((f) => f.ut < 900)).toBe(true);
-    expect(written.slice(firstNew).length).toBeGreaterThan(FPS);
-  });
-});

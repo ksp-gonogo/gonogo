@@ -5,16 +5,13 @@ import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
 import {
   ButtonGroup,
   Card,
-  Cluster,
   CommandButton,
   EmptyState,
-  FilterChip,
   getWidgetShape,
   Panel,
   Section,
-  useRowFilter,
+  Tabs,
 } from "@ksp-gonogo/ui-kit";
-import { type ReactNode, useState } from "react";
 import { heldGrade } from "../shared/heldGrade";
 import { noCareerLabel } from "../shared/noCareerLabel";
 import { ContractBriefing, ContractDifficulty } from "./ContractBriefing";
@@ -37,8 +34,6 @@ import {
   SUMMARY_STYLE,
 } from "./styles";
 
-type StateFilter = "all" | "active" | "offered" | "completed" | "failed";
-
 export function ContractManagerComponent({
   w,
   h,
@@ -50,11 +45,6 @@ export function ContractManagerComponent({
    * rather than inventing progress.
    */
   const careerReading = useTelemetry("career.status");
-  const [stateFilter, setStateFilter] = useState<StateFilter>("all");
-  const filter = useRowFilter({
-    label: "Title",
-    placeholder: "Filter...",
-  });
   // A save mode with no contracts sends none, so the mode is the only word that nothing is coming.
   const noCareer = noCareerLabel(
     stillTrue(useTelemetry("career.mode"), undefined)?.mode,
@@ -112,152 +102,123 @@ export function ContractManagerComponent({
   const recentCount = recent?.length ?? 0;
   const failedCount = failed?.length ?? 0;
 
-  const matching = (list: typeof active | null) =>
-    (list ?? []).filter((c) => filter.matches(c.title));
-  const inState = (state: Exclude<StateFilter, "all">) =>
-    stateFilter === "all" || stateFilter === state;
-  const shownActive = inState("active") ? matching(active) : [];
-  const shownOffered = inState("offered") ? matching(offered) : [];
-  const shownRecent = inState("completed") ? matching(recent) : [];
-  const shownFailed = inState("failed") ? matching(failed) : [];
-  const shownCount =
-    shownActive.length +
-    shownOffered.length +
-    shownRecent.length +
-    shownFailed.length;
-  // A label names each group only while more than one state is listed.
-  const labelled = stateFilter === "all";
-
-  const stateChip = (state: StateFilter, label: string, count?: number) => (
-    <FilterChip
-      label={label}
-      count={count}
-      selected={stateFilter === state}
-      onToggle={() => setStateFilter(state)}
-    />
+  const board = (
+    <>
+      {activeCount === 0 && offeredCount === 0 && (
+        <EmptyState>No active contracts</EmptyState>
+      )}
+      <div style={cardListStyle(multiColumn)}>
+        {active.map((c) => (
+          <Card
+            key={c.id}
+            title={c.title}
+            titleRight={
+              <ContractDeadline
+                contract={c}
+                offered={false}
+                universalTime={universalTime}
+                boardHeld={boardHeld}
+              />
+            }
+          >
+            <div style={AGENCY_ROW_STYLE}>
+              {c.agency && <div style={AGENCY_STYLE}>{c.agency}</div>}
+            </div>
+            <ContractDifficulty contract={c} />
+            <ContractBriefing contract={c} />
+            <ContractRewards contract={c} boardHeld={boardHeld} />
+            <ContractTerms contract={c} />
+            <div style={ACTIVE_ACTIONS_STYLE}>
+              <ContractCancelCost contract={c} boardHeld={boardHeld} />
+              <CommandButton
+                handle={cancelCmd}
+                args={{ contractId: c.id }}
+                commandLabel={`Cancel ${c.title}`}
+                size="sm"
+                label="Cancel"
+                /* Cancel forfeits work in progress and spent funds, so its confirm is stronger than Decline's. */
+                confirmLabel="Forfeit contract"
+                confirmTone="nogo"
+                pendingLabel="Cancelling..."
+                title="Cancel this contract: forfeits all progress"
+              />
+            </div>
+          </Card>
+        ))}
+      </div>
+      {offeredCount > 0 && <div style={SECTION_LABEL_STYLE}>Offered</div>}
+      <div style={cardListStyle(multiColumn)}>
+        {offered?.map((c) => (
+          <Card
+            key={c.id}
+            title={c.title}
+            titleRight={
+              <ContractDeadline
+                contract={c}
+                offered
+                universalTime={universalTime}
+                boardHeld={boardHeld}
+              />
+            }
+          >
+            <div style={AGENCY_ROW_STYLE}>
+              {c.agency && <div style={AGENCY_STYLE}>{c.agency}</div>}
+            </div>
+            <ContractDifficulty contract={c} />
+            <ContractBriefing contract={c} />
+            <ContractRewards contract={c} boardHeld={boardHeld} />
+            <ContractTerms contract={c} />
+            <ButtonGroup style={OFFERED_ACTIONS_STYLE}>
+              <CommandButton
+                handle={acceptCmd}
+                args={{ contractId: c.id }}
+                commandLabel={`Accept ${c.title}`}
+                size="sm"
+                tone="go"
+                label="Accept"
+                pendingLabel="Accepting..."
+              />
+              <CommandButton
+                handle={declineCmd}
+                args={{ contractId: c.id }}
+                commandLabel={`Decline ${c.title}`}
+                size="sm"
+                label="Decline"
+                confirmLabel="Confirm decline"
+                confirmTone="nogo"
+                pendingLabel="Declining..."
+              />
+            </ButtonGroup>
+          </Card>
+        ))}
+      </div>
+    </>
   );
-
-  const activeCards = shownActive.map((c) => (
-    <Card
-      key={c.id}
-      title={c.title}
-      titleRight={
-        <ContractDeadline
-          contract={c}
-          offered={false}
-          universalTime={universalTime}
-          boardHeld={boardHeld}
-        />
-      }
-    >
-      <div style={AGENCY_ROW_STYLE}>
-        {c.agency && <div style={AGENCY_STYLE}>{c.agency}</div>}
-      </div>
-      <ContractDifficulty contract={c} />
-      <ContractBriefing contract={c} />
-      <ContractRewards contract={c} boardHeld={boardHeld} />
-      <ContractTerms contract={c} />
-      <div style={ACTIVE_ACTIONS_STYLE}>
-        <ContractCancelCost contract={c} boardHeld={boardHeld} />
-        <CommandButton
-          handle={cancelCmd}
-          args={{ contractId: c.id }}
-          commandLabel={`Cancel ${c.title}`}
-          size="sm"
-          label="Cancel"
-          /* Cancel forfeits work in progress and spent funds, so its confirm is stronger than Decline's. */
-          confirmLabel="Forfeit contract"
-          confirmTone="nogo"
-          pendingLabel="Cancelling..."
-          title="Cancel this contract: forfeits all progress"
-        />
-      </div>
-    </Card>
-  ));
-  const offeredCards = shownOffered.map((c) => (
-    <Card
-      key={c.id}
-      title={c.title}
-      titleRight={
-        <ContractDeadline
-          contract={c}
-          offered
-          universalTime={universalTime}
-          boardHeld={boardHeld}
-        />
-      }
-    >
-      <div style={AGENCY_ROW_STYLE}>
-        {c.agency && <div style={AGENCY_STYLE}>{c.agency}</div>}
-      </div>
-      <ContractDifficulty contract={c} />
-      <ContractBriefing contract={c} />
-      <ContractRewards contract={c} boardHeld={boardHeld} />
-      <ContractTerms contract={c} />
-      <ButtonGroup style={OFFERED_ACTIONS_STYLE}>
-        <CommandButton
-          handle={acceptCmd}
-          args={{ contractId: c.id }}
-          commandLabel={`Accept ${c.title}`}
-          size="sm"
-          tone="go"
-          label="Accept"
-          pendingLabel="Accepting..."
-        />
-        <CommandButton
-          handle={declineCmd}
-          args={{ contractId: c.id }}
-          commandLabel={`Decline ${c.title}`}
-          size="sm"
-          label="Decline"
-          confirmLabel="Confirm decline"
-          confirmTone="nogo"
-          pendingLabel="Declining..."
-        />
-      </ButtonGroup>
-    </Card>
-  ));
-  const completedCards = shownRecent.map((c) => (
-    <Card key={c.id} title={c.title}>
-      {c.agency && <div style={AGENCY_STYLE}>{c.agency}</div>}
-      <ContractRewards contract={c} boardHeld={boardHeld} />
-    </Card>
-  ));
-  const failedCards = shownFailed.map((c) => (
-    <Card key={c.id} title={c.title}>
-      {c.agency && <div style={AGENCY_STYLE}>{c.agency}</div>}
-      <ContractFailureCost contract={c} />
-    </Card>
-  ));
-
-  const group = (label: string, cards: ReactNode[]) =>
-    cards.length > 0 && (
-      <>
-        {labelled && <div style={SECTION_LABEL_STYLE}>{label}</div>}
-        <div style={cardListStyle(multiColumn)}>{cards}</div>
-      </>
-    );
+  const completed = (
+    <div style={cardListStyle(multiColumn)}>
+      {recent?.map((c) => (
+        <Card key={c.id} title={c.title}>
+          {c.agency && <div style={AGENCY_STYLE}>{c.agency}</div>}
+          <ContractRewards contract={c} boardHeld={boardHeld} />
+        </Card>
+      ))}
+    </div>
+  );
+  const failedList = (
+    <div style={cardListStyle(multiColumn)}>
+      {failed?.map((c) => (
+        <Card key={c.id} title={c.title}>
+          {c.agency && <div style={AGENCY_STYLE}>{c.agency}</div>}
+          <ContractFailureCost contract={c} />
+        </Card>
+      ))}
+    </div>
+  );
 
   return (
     <Panel
       panelTitle="CONTRACT MANAGER"
       compactTitle={["CONTRACTS"]}
-      panelFilter={filter}
-      panelToolbar={
-        <Cluster
-          role="group"
-          aria-label="Filter contracts by state"
-          justify="start"
-          gap="related"
-          wrap
-        >
-          {stateChip("all", "All")}
-          {stateChip("active", "Active", activeCount)}
-          {stateChip("offered", "Offered", offeredCount)}
-          {stateChip("completed", "Completed", recentCount)}
-          {stateChip("failed", "Failed", failedCount)}
-        </Cluster>
-      }
       sections={
         <Section>
           {showSubtitle && (
@@ -267,17 +228,24 @@ export function ContractManagerComponent({
               {failedCount > 0 && ` · ${failedCount} failed`}
             </div>
           )}
-          {shownCount === 0 && (
-            <EmptyState>
-              {filter.active || stateFilter !== "all"
-                ? "No contracts match the filter"
-                : "No active contracts"}
-            </EmptyState>
-          )}
-          {group("Active", activeCards)}
-          {group("Offered", offeredCards)}
-          {group("Completed", completedCards)}
-          {group("Failed", failedCards)}
+          <Tabs
+            aria-label="Contract Manager views"
+            tabs={[
+              { id: "active", label: "Active", content: board },
+              {
+                id: "completed",
+                label: "Completed",
+                content: completed,
+                disabled: recentCount === 0,
+              },
+              {
+                id: "failed",
+                label: "Failed",
+                content: failedList,
+                disabled: failedCount === 0,
+              },
+            ]}
+          />
         </Section>
       }
     />

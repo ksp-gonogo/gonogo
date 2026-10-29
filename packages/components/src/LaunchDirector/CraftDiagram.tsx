@@ -5,14 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ShipDiagramSvg } from "../ShipMap/ShipDiagramSvg";
 import { buildShipMapPart, type ShipMapPart } from "../ShipMap/shipTopology";
 import { pickView } from "../ShipMap/shipView";
-import { buildStageStack } from "../ShipMap/stageStack";
-import { CraftStages } from "./CraftStages";
-import {
-  CraftDiagramFrame,
-  CraftDiagramLayer,
-  CraftMapColumn,
-  CraftNoParts,
-} from "./styles";
+import { CraftDiagramFrame, CraftDiagramLayer, CraftNoParts } from "./styles";
 
 /** The smallest tile that fits a readable map beside the craft names. */
 export const CRAFT_MAP_MIN_COLS = 9;
@@ -32,42 +25,12 @@ export function SavedCraftDiagram({
   file: string;
 }) {
   const tracked = useCraftFileTopology(facility, file);
-  const stages = useCraftStages(tracked?.topology);
   return (
-    <CraftMapColumn>
-      <CraftDiagram
-        topology={tracked?.topology}
-        resourcesByFlightId={tracked?.resourcesByFlightId}
-      />
-      <CraftStages stages={stages} />
-    </CraftMapColumn>
+    <CraftDiagram
+      topology={tracked?.topology}
+      resourcesByFlightId={tracked?.resourcesByFlightId}
+    />
   );
-}
-
-/**
- * The staging order of one saved craft file, for a tile too small to draw the
- * craft's side view beside its list. Opens the same part topic the side view
- * does, for as long as it is mounted.
- */
-export function SavedCraftStages({
-  facility,
-  file,
-}: {
-  facility: string;
-  file: string;
-}) {
-  const tracked = useCraftFileTopology(facility, file);
-  return <CraftStages stages={useCraftStages(tracked?.topology)} />;
-}
-
-function useCraftStages(topology: VesselTopology | undefined) {
-  return useMemo(() => {
-    if (!topology) return [];
-    const view = pickView(topology.parts);
-    return buildStageStack(
-      topology.parts.map((p) => buildShipMapPart(p, null, undefined, view)),
-    );
-  }, [topology]);
 }
 
 /**

@@ -89,8 +89,8 @@ describe("Administration Building: nothing has arrived at all", () => {
 
     expect(screen.getByText("Administration Building")).toBeInTheDocument();
     expect(screen.getByText(/Awaiting career data\.\.\./)).toBeInTheDocument();
-    expect(screen.queryByRole("tab", { name: "Active" })).toBeNull();
-    expect(screen.queryByRole("tab", { name: "Available" })).toBeNull();
+    expect(screen.queryByLabelText("Active")).toBeNull();
+    expect(screen.queryByLabelText("Available")).toBeNull();
     expect(screen.queryByRole("button", { name: "Activate" })).toBeNull();
     expect(screen.queryAllByText(NULL_DISPLAY)).toHaveLength(0);
     expect(visibleText()).toBe(
