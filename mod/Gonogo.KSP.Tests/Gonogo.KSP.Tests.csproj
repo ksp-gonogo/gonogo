@@ -177,6 +177,7 @@
     <Compile Include="..\Gonogo.KSP\VesselResourceNames.cs" />
     <Compile Include="..\Gonogo.KSP\VesselResourceTotals.cs" />
     <Compile Include="..\Gonogo.KSP\VariantMeshRule.cs" />
+    <Compile Include="..\Gonogo.KSP\MeshReduction.cs" />
     <Compile Include="..\Gonogo.KSP\PartTreeRules.cs" />
   </ItemGroup>
 
