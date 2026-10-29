@@ -25,6 +25,9 @@ interface Placement {
 /** Anchors with less than this much viewport below them put their tip above. */
 const ROOM_BELOW_PX = 120;
 
+/** An anchor with less than this much viewport above it puts its tip below, whatever its placement asks. */
+const ROOM_ABOVE_PX = 48;
+
 /** How long the pointer may spend crossing from an anchor to its tip before the tip closes. */
 const CROSSING_MS = 120;
 
@@ -104,6 +107,14 @@ export interface UseTooltipResult {
  * @category Floating
  */
 export function useTooltip(text: string | null | undefined): UseTooltipResult {
+  return useTooltipAt(text, "below");
+}
+
+/** {@link useTooltip} with a preferred side: `"above"` stands the tip over its anchor where there is room, so it covers nothing below the anchor. */
+function useTooltipAt(
+  text: string | null | undefined,
+  placement: "below" | "above",
+): UseTooltipResult {
   const [at, setAt] = useState<Placement | null>(null);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -199,7 +210,10 @@ export function useTooltip(text: string | null | undefined): UseTooltipResult {
     setAt({
       top: box.bottom,
       left: box.left,
-      above: window.innerHeight - box.bottom < ROOM_BELOW_PX,
+      above:
+        placement === "above"
+          ? box.top >= ROOM_ABOVE_PX
+          : window.innerHeight - box.bottom < ROOM_BELOW_PX,
       anchorTop: box.top,
     });
   };
@@ -322,6 +336,13 @@ export interface TooltipProps {
    * technology.
    */
   announce?: boolean;
+  /**
+   * Which side of the child the tip stands on. Defaults to `"below"`. `"above"`
+   * suits a child that sits over the content the tip would otherwise cover, such
+   * as a tile's drag handle over its title; it falls back to below where the
+   * child is too near the top of the screen to leave room.
+   */
+  placement?: "below" | "above";
 }
 
 /** The child's own handler, if it has one, then the tip's. */
@@ -361,8 +382,9 @@ export function Tooltip({
   children,
   focusable = false,
   announce = true,
+  placement = "below",
 }: TooltipProps) {
-  const { anchor, tip } = useTooltip(text);
+  const { anchor, tip } = useTooltipAt(text, placement);
   if (text == null || text === "") return children;
 
   const own = children.props;

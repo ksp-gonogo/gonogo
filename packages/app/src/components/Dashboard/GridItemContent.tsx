@@ -71,7 +71,7 @@ export const GridItemContent = memo(function GridItemContent({
     if (uplinkOutcomes.some((o) => o.status === "loading")) return null;
     return (
       <>
-        <Tooltip text="Drag to reposition" announce={false}>
+        <Tooltip text="Drag to reposition" announce={false} placement="above">
           <CellHeader className="drag-handle">
             <GripIcon size={12} />
           </CellHeader>
@@ -94,7 +94,7 @@ export const GridItemContent = memo(function GridItemContent({
 
   return (
     <WidgetProviders def={def} config={declaredConfig}>
-      <Tooltip text="Drag to reposition" announce={false}>
+      <Tooltip text="Drag to reposition" announce={false} placement="above">
         <CellHeader className="drag-handle">
           <GripIcon size={12} />
           {/* widget-action-buttons: draggableCancel target so touch events don't trigger drag */}

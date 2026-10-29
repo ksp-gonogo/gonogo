@@ -821,6 +821,8 @@ export function LineChart({
     readouts.placement === "beside" ? readouts.columnWidth : 0;
   const plotX1 = w - margin.right - columnWidth;
   const plotW = plotX1 - plotX0;
+  // The title stands in the strip at the outer edge of the right margin, which a readout column beside the plot pushes in from the chart's edge.
+  const secondaryTitleX = w - columnWidth - AXIS_TITLE_PX / 2;
   const captionsFit =
     plotW >= CAPTION_MIN_PLOT_W && plotH >= CAPTION_MIN_PLOT_H;
   const column =
@@ -1731,9 +1733,9 @@ export function LineChart({
       )}
       {titledSecondary && (
         <text
-          x={w - AXIS_TITLE_PX / 2}
+          x={secondaryTitleX}
           y={(plotY0 + plotY1) / 2}
-          transform={`rotate(90 ${w - AXIS_TITLE_PX / 2} ${(plotY0 + plotY1) / 2})`}
+          transform={`rotate(90 ${secondaryTitleX} ${(plotY0 + plotY1) / 2})`}
           textAnchor="middle"
           dominantBaseline="central"
           fill="var(--color-text-muted)"

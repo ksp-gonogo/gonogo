@@ -96,6 +96,42 @@ describe("Tooltip", () => {
     await waitFor(() => expect(tipIn(document.body)).toBeNull());
   });
 
+  it("stands above an anchor that asks for it, and below one too near the top", async () => {
+    const user = userEvent.setup();
+    const rectAt = (top: number) =>
+      vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue({
+        top,
+        bottom: top + 18,
+        left: 10,
+        right: 60,
+        width: 50,
+        height: 18,
+        x: 10,
+        y: top,
+        toJSON: () => ({}),
+      });
+    const spy = rectAt(200);
+    const { unmount } = render(
+      <Tooltip text="Drag to reposition" placement="above">
+        <button type="button">Grip</button>
+      </Tooltip>,
+    );
+    await user.hover(screen.getByRole("button", { name: "Grip" }));
+    expect(tipIn(document.body)).toHaveAttribute("data-above");
+    unmount();
+    spy.mockRestore();
+
+    const near = rectAt(10);
+    render(
+      <Tooltip text="Drag to reposition" placement="above">
+        <button type="button">Grip</button>
+      </Tooltip>,
+    );
+    await user.hover(screen.getByRole("button", { name: "Grip" }));
+    expect(tipIn(document.body)).not.toHaveAttribute("data-above");
+    near.mockRestore();
+  });
+
   it("opens for keyboard focus and closes on Escape", async () => {
     const user = userEvent.setup();
     render(

@@ -11367,6 +11367,10 @@
         "note": "renamed to pressed, matching Button and IconButton"
       },
       {
+        "key": "ui-kit . Tooltip",
+        "note": "takes an optional placement, so a tip can stand above an anchor that sits over the content it would cover"
+      },
+      {
         "key": "ui-kit . TrajectoryWithheldNote",
         "note": "Removed. A withheld orbit path is a ReckoningDecline, shown with DeclinedEmptyState like any declined model"
       },
@@ -17895,6 +17899,10 @@
       {
         "key": "ui-kit . ToggleButtonProps#pressed?",
         "note": "toggle state is pressed on Button, ToggleButton and IconButton"
+      },
+      {
+        "key": "ui-kit . TooltipProps#placement?",
+        "note": "New: which side of its child the tip stands on, below by default"
       },
       {
         "key": "ui-kit . UiKitThemeProvider",
