@@ -630,38 +630,58 @@ const WIDGETS: WidgetRenderConfig[] = [
         scroll: 800,
         forFixtures: ["multiple-active-contracts"],
       },
-      // The Completed and Failed tabs, opened.
+      // The Completed and Failed state chips, pressed.
       {
-        name: "completed-tab-default-6x8",
+        name: "completed-filter-default-6x8",
         w: 6,
         h: 8,
         forFixtures: ["finished-contracts"],
         clicks: [
-          { selector: '[role="tab"][id$="completed-tab"]', awaitMs: 100 },
+          {
+            selector:
+              '[role="group"][aria-label="Filter contracts by state"] button:nth-child(4)',
+            awaitMs: 100,
+          },
         ],
       },
       {
-        name: "completed-tab-compact-4x5",
+        name: "completed-filter-compact-4x5",
         w: 4,
         h: 5,
         forFixtures: ["finished-contracts"],
         clicks: [
-          { selector: '[role="tab"][id$="completed-tab"]', awaitMs: 100 },
+          {
+            selector:
+              '[role="group"][aria-label="Filter contracts by state"] button:nth-child(4)',
+            awaitMs: 100,
+          },
         ],
       },
       {
-        name: "failed-tab-default-6x8",
+        name: "failed-filter-default-6x8",
         w: 6,
         h: 8,
         forFixtures: ["finished-contracts"],
-        clicks: [{ selector: '[role="tab"][id$="failed-tab"]', awaitMs: 100 }],
+        clicks: [
+          {
+            selector:
+              '[role="group"][aria-label="Filter contracts by state"] button:nth-child(5)',
+            awaitMs: 100,
+          },
+        ],
       },
       {
-        name: "failed-tab-compact-4x5",
+        name: "failed-filter-compact-4x5",
         w: 4,
         h: 5,
         forFixtures: ["finished-contracts"],
-        clicks: [{ selector: '[role="tab"][id$="failed-tab"]', awaitMs: 100 }],
+        clicks: [
+          {
+            selector:
+              '[role="group"][aria-label="Filter contracts by state"] button:nth-child(5)',
+            awaitMs: 100,
+          },
+        ],
       },
     ],
   },

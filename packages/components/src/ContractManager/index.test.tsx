@@ -536,7 +536,7 @@ describe("formatDeadline", () => {
 });
 
 describe("finished contracts", () => {
-  it("leaves the Completed and Failed tabs unselectable while nothing has finished", async () => {
+  it("counts what has finished on each state chip", async () => {
     const fixture = newFixture();
     renderContract(fixture);
     act(() => {
@@ -548,9 +548,15 @@ describe("finished contracts", () => {
       });
     });
     await waitFor(() => expect(screen.getByText("A")).toBeInTheDocument());
-    expect(screen.getByRole("tab", { name: "Active" })).toBeEnabled();
-    expect(screen.getByRole("tab", { name: "Completed" })).toBeDisabled();
-    expect(screen.getByRole("tab", { name: "Failed" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /^Active/ })).toHaveTextContent(
+      "Active1",
+    );
+    expect(
+      screen.getByRole("button", { name: /^Completed/ }),
+    ).toHaveTextContent("Completed0");
+    expect(screen.getByRole("button", { name: /^Failed/ })).toHaveTextContent(
+      "Failed0",
+    );
   });
 
   it("lists each completed contract with what it paid and each failed one with what it cost", async () => {
@@ -583,19 +589,49 @@ describe("finished contracts", () => {
       });
     });
     await waitFor(() =>
-      expect(
-        screen.getByRole("tab", { name: "Completed" }),
-      ).toBeInTheDocument(),
+      expect(screen.getByText("Launch a new vessel")).toBeInTheDocument(),
     );
-    expect(screen.queryByText("Launch a new vessel")).toBeNull();
     const user = userEvent.setup();
-    await user.click(screen.getByRole("tab", { name: "Completed" }));
+    await user.click(screen.getByRole("button", { name: /^Completed/ }));
     expect(screen.getByText("Launch a new vessel")).toBeInTheDocument();
+    expect(screen.queryByText("Test the RT-5 Flea")).toBeNull();
     expect(visibleText()).toMatch(/3,000/);
-    await user.click(screen.getByRole("tab", { name: "Failed" }));
+    await user.click(screen.getByRole("button", { name: /^Failed/ }));
     expect(screen.getByText("Test the RT-5 Flea")).toBeInTheDocument();
+    expect(screen.queryByText("Launch a new vessel")).toBeNull();
     expect(visibleText()).toMatch(/−2,000/);
     expect(visibleText()).toMatch(/−2\.0/);
     expect(visibleText()).toMatch(/Rockomax Conglomerate/);
+  });
+
+  it("narrows every state by the typed title", async () => {
+    const fixture = newFixture();
+    renderContract(fixture);
+    act(() => {
+      emitContracts(fixture, {
+        active: [
+          { id: 1, title: "Fly by the Mun", parameters: [] },
+          { id: 2, title: "Orbit Kerbin", parameters: [] },
+        ],
+        offered: [{ id: 3, title: "Land on the Mun", parameters: [] }],
+        completedRecent: [],
+        failedRecent: [],
+      });
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Orbit Kerbin")).toBeInTheDocument(),
+    );
+    const user = userEvent.setup();
+    await user.type(screen.getByRole("searchbox"), "mun");
+    expect(screen.getByText("Fly by the Mun")).toBeInTheDocument();
+    expect(screen.getByText("Land on the Mun")).toBeInTheDocument();
+    expect(screen.queryByText("Orbit Kerbin")).toBeNull();
+    await user.click(screen.getByRole("button", { name: /^Offered/ }));
+    expect(screen.queryByText("Fly by the Mun")).toBeNull();
+    expect(screen.getByText("Land on the Mun")).toBeInTheDocument();
+    await user.type(screen.getByRole("searchbox"), "zzz");
+    expect(
+      screen.getByText("No contracts match the filter"),
+    ).toBeInTheDocument();
   });
 });
