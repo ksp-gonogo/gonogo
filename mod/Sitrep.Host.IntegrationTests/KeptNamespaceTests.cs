@@ -19,7 +19,7 @@ namespace Sitrep.Host.IntegrationTests
     public class KeptNamespaceTests
     {
         private static readonly TimeSpan Timeout = TestBudgets.Op;
-        private static readonly TimeSpan Quiet = TimeSpan.FromMilliseconds(400);
+        private static readonly TimeSpan Quiet = TestBudgets.Quiet;
 
         private const string Topic = KeptTestUplink.Prefix + "fuelTank";
 

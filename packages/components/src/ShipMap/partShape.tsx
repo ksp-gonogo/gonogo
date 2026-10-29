@@ -65,8 +65,14 @@ const SHAPE_STATE_SHAPES: ReadonlySet<PartType> = new Set<PartType>([
   "clamp",
 ]);
 
-/** How far each tone is mixed toward black (below the middle) or white (above it), in percent. */
-const TONE_MIX = [-34, -17, 0, 14, 28];
+/** What each tone is mixed toward, black below the middle and white above it, and by how much. */
+const TONE_MIX: readonly ({ toward: string; share: string } | null)[] = [
+  { toward: "black", share: "34%" },
+  { toward: "black", share: "17%" },
+  null,
+  { toward: "white", share: "14%" },
+  { toward: "white", share: "28%" },
+];
 
 /** Sharp edges inside a part are drawn lighter than its outline, so the outline still reads first. */
 const CREASE_OPACITY = 0.5;
@@ -74,8 +80,8 @@ const CREASE_OPACITY = 0.5;
 /** The fill of a face of `tone` on a part whose own colour is `fill`. */
 export function toneFill(fill: string, tone: number): string {
   const mix = TONE_MIX[Math.max(0, Math.min(TONE_STEPS - 1, tone))];
-  if (mix === 0) return fill;
-  return `color-mix(in srgb, ${fill}, ${mix < 0 ? "black" : "white"} ${Math.abs(mix)}%)`;
+  if (mix === null) return fill;
+  return `color-mix(in srgb, ${fill}, ${mix.toward} ${mix.share})`;
 }
 
 /** Shapes a part carries beyond its box, in the same pixel space as the box. */
@@ -160,7 +166,7 @@ const MeshShape = memo(function MeshShape({
             data-role="mesh-crease"
             d={drawing.creases}
             fill="none"
-            stroke={edge}
+            stroke={toneFill(fill, 0)}
             strokeWidth={creaseWidth / metre}
             strokeLinecap="round"
             opacity={CREASE_OPACITY}
