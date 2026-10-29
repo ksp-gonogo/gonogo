@@ -41,7 +41,7 @@ export interface ShapeRegion {
 /** One mesh as seen from one place. */
 export interface MeshView {
   /** The outline of every face seen, as `ShapeRegion.loops` are drawn. */
-  outline: number[][];
+  silhouette: number[][];
   regions: ShapeRegion[];
   /** Every face seen, as x, y, z for each of its three corners. */
   triangles: Float64Array;
@@ -54,7 +54,7 @@ export interface MeshView {
 /** A part's shape ready to draw: SVG path data in metres in the drawn box's frame, y up. */
 export interface ShapeDrawing {
   /** The outline of everything seen of the part, filled together as its silhouette. Empty when nothing of the part shows. */
-  outline: string;
+  silhouette: string;
   /** Lit patches in paint order, each path one tone, so a nearer patch covers a farther one. */
   faces: { tone: number; d: string }[];
   /**
@@ -316,7 +316,7 @@ export function viewMesh(
       creases.push(xs[a], ys[a], zs[a], xs[b], ys[b], zs[b]);
     }
   }
-  return { outline, regions, triangles, triangleRegion, creases };
+  return { silhouette: outline, regions, triangles, triangleRegion, creases };
 }
 
 /**
@@ -706,7 +706,7 @@ function creaseShows(
  */
 export function combineViews(views: readonly MeshView[]): ShapeDrawing {
   const outline = views
-    .flatMap((v) => v.outline)
+    .flatMap((v) => v.silhouette)
     .map(loopPath)
     .join("");
   const offsets: number[] = [];
@@ -715,7 +715,8 @@ export function combineViews(views: readonly MeshView[]): ShapeDrawing {
     offsets.push(regions.length);
     regions.push(...v.regions);
   }
-  if (regions.length === 0) return { outline, faces: [], creases: "" };
+  if (regions.length === 0)
+    return { silhouette: outline, faces: [], creases: "" };
   const grid = depthGrid(views, offsets);
   const faces = paintRuns(regions, grid)
     .map((run) => ({
@@ -730,7 +731,7 @@ export function combineViews(views: readonly MeshView[]): ShapeDrawing {
       creases += `M${mm(v.creases[i])} ${mm(v.creases[i + 1])} ${mm(v.creases[i + 3])} ${mm(v.creases[i + 4])}`;
     }
   }
-  return { outline, faces, creases };
+  return { silhouette: outline, faces, creases };
 }
 
 /** Keys rounded to a tenth of a millimetre or a ten-thousandth, so float noise does not miss the cache. */

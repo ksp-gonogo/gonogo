@@ -186,14 +186,14 @@ describe("projecting a shape", () => {
       .box([-0.5, -0.5, -0.5], [0.5, 0.5, 0.5])
       .mesh();
     const square = loopsOf(
-      drawShape(shapeOf(cube), IDENTITY, SCREEN_LIGHT).outline,
+      drawShape(shapeOf(cube), IDENTITY, SCREEN_LIGHT).silhouette,
     );
     expect(square).toHaveLength(1);
     expect(square[0]).toHaveLength(4);
     expect(xRange(square[0])).toEqual([-0.5, 0.5]);
 
     const moved = loopsOf(
-      drawShape(shapeOf(cube), translate(2, 1, 0), SCREEN_LIGHT).outline,
+      drawShape(shapeOf(cube), translate(2, 1, 0), SCREEN_LIGHT).silhouette,
     );
     expect(xRange(moved[0])).toEqual([1.5, 2.5]);
     expect(Math.min(...moved[0].map((p) => p[1]))).toBe(0.5);
@@ -205,7 +205,7 @@ describe("projecting a shape", () => {
       .box([1.5, -0.5, -0.5], [2.5, 0.5, 0.5])
       .mesh();
     const loops = loopsOf(
-      drawShape(shapeOf(pair), THREE_FACES, SCREEN_LIGHT).outline,
+      drawShape(shapeOf(pair), THREE_FACES, SCREEN_LIGHT).silhouette,
     );
     expect(loops).toHaveLength(2);
     const [left, right] = loops.map(xRange).sort((a, b) => a[0] - b[0]);
@@ -262,7 +262,7 @@ describe("projecting a shape", () => {
       )
       .mesh();
     const loops = loopsOf(
-      drawShape(shapeOf(u), IDENTITY, SCREEN_LIGHT).outline,
+      drawShape(shapeOf(u), IDENTITY, SCREEN_LIGHT).silhouette,
     );
     expect(loops).toHaveLength(1);
     const [outline] = loops;
@@ -283,9 +283,9 @@ describe("projecting a shape", () => {
         [0, 0, -1],
       )
       .mesh();
-    expect(drawShape(shapeOf(sheet), IDENTITY, SCREEN_LIGHT).outline).not.toBe(
-      "",
-    );
+    expect(
+      drawShape(shapeOf(sheet), IDENTITY, SCREEN_LIGHT).silhouette,
+    ).not.toBe("");
     const cube = new MeshBuilder().box([-1, -1, -1], [1, 1, 1]).mesh();
     const view = viewMesh(cube, IDENTITY, SCREEN_LIGHT);
     // Only the face toward the viewer remains, as its two triangles.
@@ -425,11 +425,11 @@ describe("posing a shape", () => {
 
   it("moves a posed mesh by its matrix", () => {
     const shape = shapeOf(body.mesh("body"), leg().mesh("leg"));
-    const rest = loopsOf(drawShape(shape, IDENTITY, SCREEN_LIGHT).outline);
+    const rest = loopsOf(drawShape(shape, IDENTITY, SCREEN_LIGHT).silhouette);
     const out = loopsOf(
       drawShape(shape, IDENTITY, SCREEN_LIGHT, [
         { mesh: "leg", shown: true, transform: [...translate(3, 0, 0)] },
-      ]).outline,
+      ]).silhouette,
     );
     const legAt = (loops: [number, number][][]) =>
       Math.max(...loops.map((l) => xRange(l)[1]));
@@ -440,17 +440,17 @@ describe("posing a shape", () => {
   it("lets a pose show a mesh the shape hides, and hide one it shows", () => {
     const shape = shapeOf(body.mesh("body"), leg().mesh("leg", false));
     expect(
-      loopsOf(drawShape(shape, IDENTITY, SCREEN_LIGHT).outline),
+      loopsOf(drawShape(shape, IDENTITY, SCREEN_LIGHT).silhouette),
     ).toHaveLength(1);
     expect(
       loopsOf(
         drawShape(shape, IDENTITY, SCREEN_LIGHT, [{ mesh: "leg", shown: true }])
-          .outline,
+          .silhouette,
       ),
     ).toHaveLength(2);
     expect(
       drawShape(shape, IDENTITY, SCREEN_LIGHT, [{ mesh: "body", shown: false }])
-        .outline,
+        .silhouette,
     ).toBe("");
   });
 
@@ -496,7 +496,7 @@ describe("a Ship Map part with a shape", () => {
     expect(waiting.shapeDrawing).toBeUndefined();
 
     const drawn = buildShipMapPart(partRow(), null, undefined, 0, null, shape);
-    expect(drawn.shapeDrawing?.outline).not.toBe("");
+    expect(drawn.shapeDrawing?.silhouette).not.toBe("");
     expect(drawn.shapeDrawing?.faces.length).toBeGreaterThan(0);
   });
 
@@ -544,7 +544,7 @@ describe("a Ship Map part with a shape", () => {
       null,
       shape,
     );
-    expect(bare.shapeDrawing?.outline).not.toBe("");
+    expect(bare.shapeDrawing?.silhouette).not.toBe("");
   });
 
   it("counts a mesh the part does not draw toward its box on any part but a fairing", () => {

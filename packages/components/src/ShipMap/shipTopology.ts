@@ -497,7 +497,7 @@ export function buildShipMapPart(
     const light = [lx * cos - ly * sin, lx * sin + ly * cos, lz] as const;
     const drawn = drawShape(shape, frame, light, part.shapePoses);
     // A shape with nothing shown from here would leave no part at all, so the drawing by type stands in for it.
-    if (drawn.outline) shapeDrawing = drawn;
+    if (drawn.silhouette) shapeDrawing = drawn;
   }
   const anchor =
     type === "strut"

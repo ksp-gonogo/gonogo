@@ -139,7 +139,7 @@ const MeshShape = memo(function MeshShape({
       <g transform={`translate(${x} ${y}) scale(${metre} ${-metre})`}>
         <path
           data-role="mesh-outline-edge"
-          d={drawing.outline}
+          d={drawing.silhouette}
           fill={fill}
           stroke={edge}
           strokeWidth={(edgeWidth * 2) / metre}
@@ -147,7 +147,7 @@ const MeshShape = memo(function MeshShape({
         />
         <path
           data-role="mesh-outline"
-          d={drawing.outline}
+          d={drawing.silhouette}
           fill={fill}
           stroke="none"
         />
