@@ -58,7 +58,11 @@ function drawnOutline(label: string): { x: number; y: number }[][] {
       { silhouette },
     ),
   );
-  return [...markup.matchAll(/<polygon[^>]*points="([^"]+)"/g)].map((m) =>
+  return [
+    ...markup.matchAll(
+      /<polygon data-role="mesh-outline"[^>]*points="([^"]+)"/g,
+    ),
+  ].map((m) =>
     m[1].split(" ").map((pair) => {
       const [x, y] = pair.split(",").map(Number);
       return { x: x / PX_PER_METRE, y: -y / PX_PER_METRE };
