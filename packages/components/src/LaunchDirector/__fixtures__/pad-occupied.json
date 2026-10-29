@@ -52,6 +52,20 @@
         }
       },
       {
+        "channel": "trackingStation.catalog",
+        "value": {
+          "entries": [
+            {
+              "vesselId": "5b1d7f0e-0000-4000-8000-000000000001",
+              "name": "Kerbal X",
+              "vesselType": 6,
+              "situation": 1,
+              "bodyIndex": 1
+            }
+          ]
+        }
+      },
+      {
         "channel": "spaceCenter.savedShips",
         "value": []
       },

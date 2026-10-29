@@ -2,6 +2,7 @@ import { AugmentSlot } from "@ksp-gonogo/core";
 import type { UseCommandResult } from "@ksp-gonogo/sitrep-client";
 import type { CatalogEntry } from "@ksp-gonogo/sitrep-sdk";
 import {
+  Button,
   type CommandButtonHandle,
   SelectableRow,
   Text,
@@ -9,7 +10,11 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useEffect } from "react";
 import { ArmedButton } from "./ArmedButton";
-import { CraftDiagram, SavedCraftDiagram } from "./CraftDiagram";
+import {
+  CraftDiagram,
+  SavedCraftDiagram,
+  SavedCraftStages,
+} from "./CraftDiagram";
 import { CrewPicker } from "./CrewPicker";
 import { type CrewMember, crewReading } from "./crew";
 import { FlyVesselMenu } from "./FlyVesselMenu";
@@ -130,6 +135,13 @@ export function PadSection(props: PadSectionProps) {
                   </PadOccupancy>
                 </SelectableRow>
                 <PadAside>
+                  {!expanded && (
+                    <FlyOccupant
+                      site={site}
+                      flyable={flyable}
+                      switchCmd={switchCmd}
+                    />
+                  )}
                   <AugmentSlot
                     name="launch-director.pad"
                     props={{
@@ -175,12 +187,15 @@ function OpenPad({
   launchCmd,
   recoverVesselCmd,
   revertEditorCmd,
+  flyable,
+  switchCmd,
 }: PadSectionProps & { site: LaunchSiteEntry }) {
   if (site.occupied === true) {
     // The craft on a runway came from the SPH; anything else is taken to be a pad's VAB craft.
     const editor = site.facility === "SPH" ? "SPH" : "VAB";
     return (
       <PadActions>
+        <FlyOccupant site={site} flyable={flyable} switchCmd={switchCmd} />
         {/* The vessel on a pad is not the active one, so it is recovered by its id. */}
         {site.occupantId !== null && (
           <ArmedButton
@@ -277,6 +292,13 @@ function OpenPad({
                 </Text>
               )}
             </LaunchControls>
+            {!split && (
+              <SavedCraftStages
+                key={`${launchFacilityArg(ship)}/${ship.file}`}
+                facility={launchFacilityArg(ship)}
+                file={ship.file}
+              />
+            )}
           </PadColumn>
         )
       }
@@ -296,6 +318,36 @@ function OpenPad({
         <CraftDiagram topology={undefined} />
       )}
     </CraftMapLayout>
+  );
+}
+
+/**
+ * The primary control on an occupied pad or runway: flies the vessel standing
+ * there, through the same switch command as the fleet menu. Drawn only when
+ * the roster lists the occupant, since a vessel the roster does not know
+ * cannot be switched to.
+ */
+function FlyOccupant({
+  site,
+  flyable,
+  switchCmd,
+}: {
+  site: LaunchSiteEntry;
+  flyable: readonly CatalogEntry[];
+  switchCmd: CommandButtonHandle;
+}) {
+  if (site.occupied !== true || site.occupantId === null) return null;
+  const vessel = flyable.find((v) => v.vesselId === site.occupantId);
+  if (!vessel) return null;
+  return (
+    <Button
+      type="button"
+      variant="primary"
+      data-fly-occupant
+      onClick={() => void switchCmd.send({ vesselId: vessel.vesselId })}
+    >
+      Fly {vessel.name}
+    </Button>
   );
 }
 
