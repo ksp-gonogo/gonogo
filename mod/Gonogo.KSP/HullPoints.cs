@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Gonogo.KSP
@@ -23,6 +24,9 @@ namespace Gonogo.KSP
 
         /// <summary>The most points a part publishes over all its pieces.</summary>
         public const int MaxPoints = 96;
+
+        /// <summary>The fewest points that must be left under <see cref="MaxPoints"/> for a piece that does not fit whole to be kept and share them.</summary>
+        public const int MinPointsPerPiece = 12;
 
         /// <summary>The coarser direction set a mesh's vertices are thinned with once, so each scan walks a few dozen candidates instead of every vertex.</summary>
         private const int CandidateDirections = 128;
@@ -105,10 +109,16 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// The pieces a part publishes: the largest <see cref="MaxPieces"/> of
-        /// <paramref name="pieces"/>, fewer when their points would pass
-        /// <see cref="MaxPoints"/>. What is dropped is the smallest pieces by
-        /// their longest side, the knobs and hinges that add little to a part's
-        /// outline. Each piece is a flat list of x, y, z triples.
+        /// <paramref name="pieces"/>, by their longest side, within
+        /// <see cref="MaxPoints"/> over all of them. The first piece that does
+        /// not fit whole is still kept while at least
+        /// <see cref="MinPointsPerPiece"/> of its points would fit, and the
+        /// points are then shared evenly: each kept piece is cut to the same
+        /// number of its leading points (see <see cref="Tracker.ToTriples"/>
+        /// for their order), or keeps all of its own where it has fewer. So an
+        /// engine's shroud, body and nozzle are all drawn. What is dropped is
+        /// the smallest pieces, the knobs and hinges that add little to a
+        /// part's outline. Each piece is a flat list of x, y, z triples.
         /// </summary>
         public static List<double[]> Limit(IReadOnlyList<double[]> pieces)
         {
@@ -118,16 +128,34 @@ namespace Gonogo.KSP
             var points = 0;
             foreach (var piece in bySize)
             {
-                if (kept.Count == MaxPieces || points + piece.Length / 3 > MaxPoints)
+                if (kept.Count == MaxPieces)
                 {
+                    break;
+                }
+
+                var room = MaxPoints - points;
+                if (piece.Length / 3 <= room)
+                {
+                    kept.Add(piece);
+                    points += piece.Length / 3;
                     continue;
                 }
 
-                kept.Add(piece);
-                points += piece.Length / 3;
+                if (room >= MinPointsPerPiece)
+                {
+                    kept.Add(piece);
+                    points += piece.Length / 3;
+                    break;
+                }
             }
 
-            return kept;
+            var share = MaxPoints;
+            while (kept.Sum(piece => Math.Min(piece.Length / 3, share)) > MaxPoints)
+            {
+                share--;
+            }
+
+            return kept.Select(piece => piece.Length / 3 <= share ? piece : piece.Take(share * 3).ToArray()).ToList();
         }
 
         private static double Longest(double[] piece)
