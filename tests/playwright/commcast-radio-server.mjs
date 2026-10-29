@@ -271,6 +271,23 @@ export function startRadioStreamServer({ port, vantage }) {
   const snapshot = new Map();
   snapshots.set(port, snapshot);
 
+  /*
+   * Frames per phase of a blinking vantage stamp, or 0 for a steady one. While
+   * blinking, this port's frames carry the stamp for that many frames, then
+   * the mod's empty stamp (no command centre active) for as many.
+   */
+  let blinkEvery = 0;
+  let framesSent = 0;
+
+  function stampedMeta(now) {
+    const m = meta(vantage, now, now);
+    if (blinkEvery > 0 && Math.floor(framesSent / blinkEvery) % 2 === 1) {
+      m.vantage = "";
+    }
+    framesSent += 1;
+    return m;
+  }
+
   function sendTo(client, topic) {
     if (!snapshot.has(topic)) return;
     if (client.ws.readyState !== client.ws.OPEN) return;
@@ -280,7 +297,7 @@ export function startRadioStreamServer({ port, vantage }) {
         type: "stream-data",
         topic,
         payload: snapshot.get(topic),
-        meta: meta(vantage, now, now),
+        meta: stampedMeta(now),
       }),
     );
   }
@@ -294,6 +311,13 @@ export function startRadioStreamServer({ port, vantage }) {
     if (req.url === "/version") {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ version: "fake", buildTime: "test" }));
+      return;
+    }
+    if (req.url?.startsWith("/blink-vantage") && req.method === "POST") {
+      blinkEvery =
+        Number(new URL(req.url, "http://x").searchParams.get("every")) || 0;
+      res.writeHead(200, { "Content-Type": "text/plain" });
+      res.end("ok\n");
       return;
     }
     if (req.url === "/publish" && req.method === "POST") {
