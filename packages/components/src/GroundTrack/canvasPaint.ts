@@ -89,6 +89,7 @@ export function paintMapBase(
     h,
     camera,
     textureImage,
+    dimTexture,
     bodyColor,
     suppressVanilla,
     layers,
@@ -96,7 +97,8 @@ export function paintMapBase(
     w: number;
     h: number;
     camera: Camera;
-    textureImage: HTMLImageElement | null;
+    textureImage: CanvasImageSource | null;
+    dimTexture?: boolean;
     bodyColor: string | undefined;
     suppressVanilla: boolean;
     layers: readonly BaseSurfaceLayer[];
@@ -117,6 +119,7 @@ export function paintMapBase(
     ctx.setTransform(...cameraTransform(camera, w, h, shift));
     paintBaseSurface(ctx, {
       textureImage,
+      dimTexture,
       bodyColor,
       suppressVanilla,
       layers,

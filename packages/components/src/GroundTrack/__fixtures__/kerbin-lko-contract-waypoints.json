@@ -101,9 +101,52 @@
               "index": 1,
               "parentIndex": 0,
               "radius": 600000,
-              "orbit": null,
+              "orbit": {
+                "sma": 13599840256
+              },
               "surfaceGravity": 1.00034160493135,
-              "rotationPeriod": 21549.4251830899
+              "rotationPeriod": 21549.4251830899,
+              "isHome": true
+            },
+            {
+              "name": "Mun",
+              "index": 2,
+              "parentIndex": 1,
+              "radius": 200000,
+              "orbit": {
+                "sma": 12000000
+              },
+              "surfaceGravity": 0.166056700098353,
+              "rotationPeriod": 138984.376574476
+            },
+            {
+              "name": "Duna",
+              "index": 3,
+              "parentIndex": 0,
+              "radius": 320000,
+              "orbit": {
+                "sma": 20726155264
+              },
+              "surfaceGravity": 0.294,
+              "rotationPeriod": 65517.859
+            },
+            {
+              "name": "Eeloo",
+              "index": 4,
+              "parentIndex": 0,
+              "radius": 210000,
+              "orbit": {
+                "sma": 90118820000
+              },
+              "surfaceGravity": 0.169,
+              "rotationPeriod": 19460
+            },
+            {
+              "name": "Sun",
+              "index": 0,
+              "parentIndex": null,
+              "radius": 261600000,
+              "orbit": null
             }
           ]
         }

@@ -12,12 +12,15 @@ interface PoiKindStyle {
   background: string;
   border: string;
   borderStyle: "solid" | "dashed";
+  /** Square for a place on the ground, round for everything else, so a pad never reads as the craft's own dot. */
+  shape?: "square";
 }
 
 const KSC_STYLE: PoiKindStyle = {
-  background: "var(--color-accent-fg)",
-  border: "var(--color-accent-fg)",
+  background: "var(--color-text-primary)",
+  border: "var(--color-text-primary)",
   borderStyle: "solid",
+  shape: "square",
 };
 const LAUNCH_SITE_STYLE: PoiKindStyle = {
   background: "var(--color-text-muted)",
@@ -97,6 +100,9 @@ export const PoiMarkerButton = forwardRef<
         ...POI_MARKER_BUTTON_STYLE,
         background: $style.background,
         border: `2px ${$style.borderStyle} ${$style.border}`,
+        ...($style.shape === "square"
+          ? { borderRadius: "var(--radius-regular)" }
+          : {}),
         ...style,
       }}
       {...rest}
@@ -113,6 +119,51 @@ const POI_MARKER_BUTTON_STYLE: CSSProperties = {
   padding: 0,
   borderRadius: "var(--radius-circle)",
   pointerEvents: "auto",
+};
+
+/**
+ * The name of a contract waypoint, set below its ring and clear of the craft's
+ * crosshair so it does not cover the craft beside it. A marker in the right
+ * part of the map reads leftward, so the name stays on the map.
+ */
+export function PoiMapLabel({
+  x,
+  y,
+  leftward,
+  children,
+}: Readonly<{
+  x: number;
+  y: number;
+  leftward: boolean;
+  children?: ReactNode;
+}>) {
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        ...POI_MAP_LABEL_STYLE,
+        left: x,
+        top: y + POI_LABEL_DROP,
+        transform: leftward ? "translateX(-100%)" : undefined,
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+/** Below the craft's crosshair (12 px) and ring (6 px) with a little air, so a craft over the same point is not covered. */
+const POI_LABEL_DROP = 14;
+
+const POI_MAP_LABEL_STYLE: CSSProperties = {
+  position: "absolute",
+  maxWidth: 72,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  pointerEvents: "none",
+  fontSize: "var(--font-size-caption)",
+  color: "var(--color-tag-yellow-fg)",
 };
 
 export const PoiHoverCard = forwardRef<

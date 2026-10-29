@@ -210,6 +210,7 @@ function GroundTrackComponent({
     camera,
     bodyTexture: body?.texture,
     bodyColor: body?.color,
+    bodyDetail: telemetry.bodyDetail,
     baseLayers,
     trajectoryRef,
     trajectoryCount,
