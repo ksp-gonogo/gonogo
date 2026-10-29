@@ -531,7 +531,10 @@ export function createFrameDelayStream(
         stamps?.dispose();
         pipeline.dispose();
       },
-      flush: pipeline.flush,
+      flush: () => {
+        stamps?.reset();
+        pipeline.flush();
+      },
     };
   } catch (err) {
     // Fail OPEN, not through: pipeline construction runs synchronously right
