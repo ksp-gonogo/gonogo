@@ -43,11 +43,11 @@ function layoutOf(container: HTMLElement): string {
 describe("the Ship Map rotate control", () => {
   it("leaves the look of Reset and Turn to the kit's button, so hover and focus change them", async () => {
     mount({ turn: 1 });
-    await screen.findByRole("button", { name: "Rotate view right" });
+    await screen.findByRole("button", { name: "Rotate view clockwise" });
     for (const name of [
       "Reset view",
-      "Rotate view left",
-      "Rotate view right",
+      "Rotate view anticlockwise",
+      "Rotate view clockwise",
     ]) {
       const style = screen.getByRole("button", { name }).getAttribute("style");
       expect(style ?? "", name).not.toMatch(/background|color|border/);
@@ -58,10 +58,12 @@ describe("the Ship Map rotate control", () => {
     const user = userEvent.setup();
     const { onConfigChange } = mount({ turn: 3 });
     await user.click(
-      await screen.findByRole("button", { name: "Rotate view right" }),
+      await screen.findByRole("button", { name: "Rotate view clockwise" }),
     );
     expect(onConfigChange).toHaveBeenLastCalledWith({ turn: 4 });
-    await user.click(screen.getByRole("button", { name: "Rotate view left" }));
+    await user.click(
+      screen.getByRole("button", { name: "Rotate view anticlockwise" }),
+    );
     expect(onConfigChange).toHaveBeenLastCalledWith({ turn: 2 });
   });
 
@@ -69,25 +71,29 @@ describe("the Ship Map rotate control", () => {
     const user = userEvent.setup();
     const { onConfigChange } = mount({ turn: 7 });
     await user.click(
-      await screen.findByRole("button", { name: "Rotate view right" }),
+      await screen.findByRole("button", { name: "Rotate view clockwise" }),
     );
     expect(onConfigChange).toHaveBeenLastCalledWith({ turn: 0 });
   });
 
-  it("offers the default view only once the view is turned, and returns to it", async () => {
+  it("has no separate default-angle button, and Reset returns a turned view to its default angle", async () => {
     const user = userEvent.setup();
-    const fresh = mount(undefined);
-    await screen.findByRole("button", { name: "Rotate view right" });
+    const { onConfigChange } = mount({ turn: 2 });
+    await screen.findByRole("button", { name: "Rotate view clockwise" });
     expect(
       screen.queryByRole("button", { name: "Default view angle" }),
     ).toBeNull();
-    fresh.container.remove();
+    await user.click(screen.getByRole("button", { name: "Reset view" }));
+    expect(onConfigChange).toHaveBeenLastCalledWith({ turn: 0 });
+  });
 
-    const turned = mount({ turn: 2 });
-    await user.click(
-      await screen.findByRole("button", { name: "Default view angle" }),
-    );
-    expect(turned.onConfigChange).toHaveBeenLastCalledWith({ turn: 0 });
+  it("labels the turn buttons with arrows and not the word Turn", async () => {
+    mount({ turn: 0 });
+    for (const name of ["Rotate view clockwise", "Rotate view anticlockwise"]) {
+      const button = await screen.findByRole("button", { name });
+      expect(button.textContent).toBe("");
+      expect(button.querySelector("svg")).not.toBeNull();
+    }
   });
 
   it("draws the craft differently once turned, and as it was after a full turn", async () => {
