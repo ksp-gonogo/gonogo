@@ -8,7 +8,6 @@
       "system.channels",
       "system.dataRates",
       "system.units",
-      "system.uplink.delays",
       "system.uplink.gates",
       "system.uplink.pending",
       "system.uplinks"

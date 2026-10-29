@@ -35,21 +35,6 @@ export function arrivalUtOf(
 }
 
 /**
- * When a command sent now reaches a target `oneWaySeconds` away: the send time
- * plus that delay, or `undefined` when the delay or the clock is not known.
- * Useful for checking a command to something other than the active craft
- * against the time it acts at. Used by {@link useCommand}.
- */
-export function arrivalUtAfter(
-  clock: Pick<ViewClockView, "viewUt" | "scetUt">,
-  oneWaySeconds: number | null,
-): number | undefined {
-  if (oneWaySeconds === null) return undefined;
-  const arrival = clock.scetUt(clock.viewUt()) + oneWaySeconds;
-  return Number.isFinite(arrival) ? arrival : undefined;
-}
-
-/**
  * Whether `command` would reach the vessel at or after the UT it acts at, read
  * off the args field its declaration names. A command that declares no such
  * field, args that do not carry it, or an unknown arrival judge nothing: the

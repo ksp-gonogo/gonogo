@@ -2,8 +2,6 @@ import {
   Button,
   Floating,
   PanZoomViewport,
-  RotateAnticlockwiseIcon,
-  RotateClockwiseIcon,
   useElementSize,
   usePanZoom,
 } from "@ksp-gonogo/ui-kit";
@@ -146,10 +144,7 @@ export function ShipDiagram({
       <Button
         size="sm"
         type="button"
-        onClick={() => {
-          resetView();
-          if (turn !== 0) onTurn?.(0);
-        }}
+        onClick={resetView}
         aria-label="Reset view"
         style={RESET_BUTTON}
       >
@@ -161,20 +156,31 @@ export function ShipDiagram({
             size="sm"
             type="button"
             onClick={() => onTurn(turn - 1)}
-            aria-label="Rotate view anticlockwise"
+            aria-label="Rotate view left"
             style={ROTATE_BUTTON}
           >
-            <RotateAnticlockwiseIcon size={14} />
+            {"Turn <"}
           </Button>
           <Button
             size="sm"
             type="button"
             onClick={() => onTurn(turn + 1)}
-            aria-label="Rotate view clockwise"
+            aria-label="Rotate view right"
             style={ROTATE_BUTTON}
           >
-            <RotateClockwiseIcon size={14} />
+            {"Turn >"}
           </Button>
+          {turn !== 0 && (
+            <Button
+              size="sm"
+              type="button"
+              onClick={() => onTurn(0)}
+              aria-label="Default view angle"
+              style={ROTATE_BUTTON}
+            >
+              Default
+            </Button>
+          )}
         </div>
       )}
       <ShipDiagramSvg
@@ -257,7 +263,7 @@ const ROTATE_GROUP: CSSProperties = {
   zIndex: RESET_BUTTON.zIndex,
 };
 
-const ROTATE_BUTTON: CSSProperties = { position: "static" };
+const ROTATE_BUTTON: CSSProperties = { ...RESET_BUTTON, position: "static" };
 
 // Static, not the menu's own absolute, so it stays in the layer's flow and the layer can be measured.
 const MENU_IN_LAYER: CSSProperties = { position: "static" };

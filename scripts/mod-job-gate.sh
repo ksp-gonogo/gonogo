@@ -40,10 +40,7 @@ Contract codegen is buildable and its committed output is current|same:Every gen
 Pack and gate KspGonogo.Sitrep.Contract|mod:pack
 Upload the NuGet package|ci:uploads the packed file as a run artifact and checks nothing
 An Uplink builds against the packed contract|mod:probe
-Which Uplinks build against the packed contract|ci:continue-on-error in the job, a report on each Uplink rather than a gate, so failing a push on it would hold the push to more than CI does
-Read the gonogo-uplinks commit to probe|ci:reads a file into a step output for the checkout after it
-Checkout gonogo-uplinks|ci:fetches the gonogo-uplinks repo at the commit the ref file names, with a secret
-Real Uplinks route and deliver|ci:builds every Uplink from that checkout, which a push has no copy of, then runs the routing probe over them'
+Which Uplinks build against the packed contract|ci:continue-on-error in the job, a report on each Uplink rather than a gate, so failing a push on it would hold the push to more than CI does'
 
 # `mod/` because every C# test that reads the tree roots itself at
 # mod/Gonogo.sln and walks only inside mod/, and the `packages/` paths in

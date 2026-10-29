@@ -312,9 +312,6 @@ public static class RtConfig
                 typeof(CommandGateItem),
                 typeof(CommandGateItemSet),
                 typeof(CommandGateReport),
-                // system.uplink.delays, each delayed command's delay to its own target
-                typeof(UplinkDelay),
-                typeof(UplinkDelayReport),
                 typeof(ChannelGate),
                 typeof(MissingUnlock),
                 typeof(LockedValue),

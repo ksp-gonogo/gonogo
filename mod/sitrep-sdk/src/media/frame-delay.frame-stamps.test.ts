@@ -241,24 +241,3 @@ describe("a camera restarting inside one capture epoch", () => {
     expect(written.slice(firstNew).length).toBeGreaterThan(FPS);
   });
 });
-
-describe("a source whose UT steps back with no epoch change and no flush", () => {
-  it("releases the new source's frames instead of clamping them behind the old flight's last UT", async () => {
-    const reloadAt = 4;
-    const gameUt = (wall: number) =>
-      wall < reloadAt
-        ? 1000 + GAME_RATE * wall
-        : 200 + GAME_RATE * (wall - reloadAt);
-    const written = await play({
-      seconds: 8,
-      delaySeconds: 1,
-      dating: "clock",
-      gameUt,
-      stampFor: () => null,
-    });
-
-    const firstNew = written.findIndex((f) => f.ut < 900);
-    expect(firstNew).toBeGreaterThan(-1);
-    expect(written.slice(firstNew).length).toBeGreaterThan(FPS);
-  });
-});

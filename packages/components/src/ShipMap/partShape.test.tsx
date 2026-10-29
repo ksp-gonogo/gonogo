@@ -179,52 +179,6 @@ describe("a part drawn from its mesh outline", () => {
     expect(markup).toMatch(/^<g opacity="0.95">/);
   });
 
-  it("draws a part's pieces as one silhouette: every edge first, then every fill with no edge of its own", () => {
-    const markup = renderToStaticMarkup(
-      renderPartShape(
-        "engine",
-        BOX,
-        CENTER,
-        "var(--color-info-mark)",
-        false,
-        1,
-        1,
-        undefined,
-        true,
-        {
-          silhouette: [
-            [
-              { x: 10, y: 10 },
-              { x: 50, y: 10 },
-              { x: 50, y: 50 },
-              { x: 10, y: 50 },
-            ],
-            [
-              { x: 20, y: 20 },
-              { x: 40, y: 20 },
-              { x: 40, y: 80 },
-              { x: 20, y: 80 },
-            ],
-          ],
-        },
-      ),
-    );
-    const roles = [
-      ...markup.matchAll(/data-role="(mesh-outline(?:-edge)?)"/g),
-    ].map((m) => m[1]);
-    expect(roles).toEqual([
-      "mesh-outline-edge",
-      "mesh-outline-edge",
-      "mesh-outline",
-      "mesh-outline",
-    ]);
-    for (const fillPolygon of markup.match(
-      /<polygon data-role="mesh-outline"[^>]*>/g,
-    ) ?? []) {
-      expect(fillPolygon).toContain('stroke="none"');
-    }
-  });
-
   it("falls back to the hand-drawn shape without an outline", () => {
     const markup = renderToStaticMarkup(
       renderPartShape(

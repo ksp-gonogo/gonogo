@@ -33,12 +33,6 @@ export interface BaseSurfaceLayer {
 export interface BaseSurfaceInput {
   /** The body's stock texture, or null if none is loaded. */
   textureImage: CanvasImageSource | null;
-  /**
-   * Whether the texture is dimmed under a dark wash, which the photographic stock
-   * texture needs to sit behind the marks. The pencil sketch is drawn at its
-   * own brightness and sets this false. Defaults to true.
-   */
-  dimTexture?: boolean;
   /** Last-resort colour wash for bodies with no texture loaded yet. */
   bodyColor: string | undefined;
   /**
@@ -62,7 +56,6 @@ export function paintBaseSurface(
   ctx: BaseSurfaceCtx,
   {
     textureImage,
-    dimTexture = true,
     bodyColor,
     suppressVanilla,
     layers,
@@ -71,7 +64,7 @@ export function paintBaseSurface(
   }: BaseSurfaceInput,
 ): void {
   if (!suppressVanilla)
-    paintVanilla(ctx, textureImage, dimTexture, bodyColor, worldW, worldH);
+    paintVanilla(ctx, textureImage, bodyColor, worldW, worldH);
 
   for (const layer of layers) {
     ctx.drawImage(layer.canvas, 0, 0, worldW, worldH);
@@ -82,17 +75,14 @@ export function paintBaseSurface(
 function paintVanilla(
   ctx: BaseSurfaceCtx,
   textureImage: CanvasImageSource | null,
-  dimTexture: boolean,
   bodyColor: string | undefined,
   worldW: number,
   worldH: number,
 ): void {
   if (textureImage) {
     ctx.drawImage(textureImage, 0, 0, worldW, worldH);
-    if (dimTexture) {
-      ctx.fillStyle = "rgba(0,0,0,0.25)";
-      ctx.fillRect(0, 0, worldW, worldH);
-    }
+    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    ctx.fillRect(0, 0, worldW, worldH);
     return;
   }
   if (!bodyColor) return;

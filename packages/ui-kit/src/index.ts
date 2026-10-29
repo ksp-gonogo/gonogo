@@ -411,8 +411,6 @@ export {
   PlusIcon,
   PushUpIcon,
   RecallIcon,
-  RotateAnticlockwiseIcon,
-  RotateClockwiseIcon,
   SatelliteIcon,
   SendIcon,
   SettingsIcon,

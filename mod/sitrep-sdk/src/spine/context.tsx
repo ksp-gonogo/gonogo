@@ -38,7 +38,6 @@ import {
 import { noteUndeclaredRead } from "./contribution-scope";
 import { registerCoreReckoners } from "./core-reckoners";
 import { DelayAuthority } from "./delay-authority";
-import { DelayAuthorityContext } from "./delay-authority-context";
 import {
   dvCurrentStageResourceChannel,
   dvCurrentStageResourceMaxChannel,
@@ -359,12 +358,10 @@ export function TelemetryProvider({
   return (
     <TelemetryClientContext.Provider value={client}>
       <TimelineStoreContext.Provider value={store}>
-        <DelayAuthorityContext.Provider value={delayAuthority}>
-          {delayAuthority ? (
-            <OwnCraftDelayGate authority={delayAuthority} />
-          ) : null}
-          {children}
-        </DelayAuthorityContext.Provider>
+        {delayAuthority ? (
+          <OwnCraftDelayGate authority={delayAuthority} />
+        ) : null}
+        {children}
       </TimelineStoreContext.Provider>
     </TelemetryClientContext.Provider>
   );

@@ -9507,14 +9507,6 @@
         "note": "the useDataSources element type, now on the facade as well as the spine"
       },
       {
-        "key": "sitrep-sdk ./spine DelayAuthority#commandDelaySeconds",
-        "note": "New: the delay of a command to the active craft from a centre, null where none is known, never the craft before"
-      },
-      {
-        "key": "sitrep-sdk ./spine DelayAuthority#observeIdentity",
-        "note": "New: a change of craft seen on vessel.identity forgets the delays held for the craft before it"
-      },
-      {
         "key": "sitrep-sdk ./spine FrameCoordinates#position",
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
       },
@@ -13073,14 +13065,6 @@
         "note": "New: the Values a widget wants at a faster rate tier while it is open"
       },
       {
-        "key": "sitrep-sdk . ~SystemUplinkDelaysTopicPayloadMap",
-        "note": "New: the payload map entry for system.uplink.delays"
-      },
-      {
-        "key": "sitrep-sdk . ~SystemUplinkDelaysTopicPayloadMap#\"system.uplink.delays\"",
-        "note": "New: system.uplink.delays, where each delayed command goes and its delay when that is not the active craft"
-      },
-      {
         "key": "sitrep-sdk . ~Vec3Tuple",
         "note": "The bare [x, y, z] tuple type the frame arithmetic takes and returns, under a name the unit system's Vector3 does not share"
       },
@@ -14577,14 +14561,6 @@
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
       },
       {
-        "key": "sitrep-sdk ./registry ~SystemUplinkDelaysTopicPayloadMap",
-        "note": "New: the payload map entry for system.uplink.delays"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~SystemUplinkDelaysTopicPayloadMap#\"system.uplink.delays\"",
-        "note": "New: system.uplink.delays, where each delayed command goes and its delay when that is not the active craft"
-      },
-      {
         "key": "sitrep-sdk ./registry ~ThemeColors",
         "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
       },
@@ -15011,10 +14987,6 @@
       {
         "key": "sitrep-sdk ./spine GroupMember#topic?",
         "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
-      },
-      {
-        "key": "sitrep-sdk ./spine IDENTITY_TOPIC",
-        "note": "New: the vessel.identity topic the delay authority reads to see a change of craft"
       },
       {
         "key": "sitrep-sdk ./spine LockScopeRegistry#observe?",
@@ -15789,14 +15761,6 @@
         "note": "Places an entity where a named body is at the instant on screen, in the frame the diagram draws in, held when the body's place is held"
       },
       {
-        "key": "sitrep-sdk ./spine ~SystemUplinkDelaysTopicPayloadMap",
-        "note": "New: the payload map entry for system.uplink.delays"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~SystemUplinkDelaysTopicPayloadMap#\"system.uplink.delays\"",
-        "note": "New: system.uplink.delays, where each delayed command goes and its delay when that is not the active craft"
-      },
-      {
         "key": "sitrep-sdk ./spine ~TrackingStationProjection",
         "note": "The Tracking Station widget's name for SystemViewProjection"
       },
@@ -16459,14 +16423,6 @@
       {
         "key": "sitrep-sdk ./testing ~SystemEntitySubjectPosition#subject",
         "note": "Places an entity where a named body is at the instant on screen, in the frame the diagram draws in, held when the body's place is held"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~SystemUplinkDelaysTopicPayloadMap",
-        "note": "New: the payload map entry for system.uplink.delays"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~SystemUplinkDelaysTopicPayloadMap#\"system.uplink.delays\"",
-        "note": "New: system.uplink.delays, where each delayed command goes and its delay when that is not the active craft"
       },
       {
         "key": "sitrep-sdk ./testing ~TelemetryClientOptions#outstanding?",
@@ -17819,14 +17775,6 @@
       {
         "key": "ui-kit . ReservedTextProps#shown",
         "note": "the text drawn"
-      },
-      {
-        "key": "ui-kit . RotateAnticlockwiseIcon",
-        "note": "a circular arrow running anticlockwise, for a control that turns a view a step"
-      },
-      {
-        "key": "ui-kit . RotateClockwiseIcon",
-        "note": "a circular arrow running clockwise, for a control that turns a view a step"
       },
       {
         "key": "ui-kit . STREAM_DOWN_TIP",

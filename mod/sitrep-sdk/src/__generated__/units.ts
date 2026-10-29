@@ -1633,14 +1633,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     epoch: "count",
     laneSeq: "count",
   },
-  "UplinkDelay": {
-    centre: "id",
-    command: "id",
-    oneWaySeconds: "s",
-  },
-  "UplinkDelayReport": {
-    activeVessel: "id",
-  },
   "UplinkResendRequest": {
     craft: "id",
     epoch: "count",
@@ -2807,9 +2799,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     meta: "PayloadMeta",
     settings: "ModSettingRow[]",
   },
-  "NamespaceDeclaration": {
-    template: "ChannelDeclaration",
-  },
   "PartActions": {
     actions: "PartActionEntry[]",
     meta: "PayloadMeta",
@@ -2891,9 +2880,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "TrackingStationVesselResources": {
     resources: "*ResourceAmount",
   },
-  "UplinkDelayReport": {
-    elsewhere: "UplinkDelay[]",
-  },
   "UplinkHealth": {
     facts: "UplinkHealthFact[]",
   },
@@ -2901,7 +2887,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     channels: "ChannelDeclaration[]",
     clientSource: "UplinkClientSource",
     commands: "CommandDeclaration[]",
-    namespaces: "NamespaceDeclaration[]",
   },
   "VesselAttitude": {
     meta: "PayloadMeta",

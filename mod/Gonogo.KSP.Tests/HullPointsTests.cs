@@ -279,40 +279,6 @@ namespace Gonogo.KSP.Tests
             Assert.Equal(3, kept.Count);
         }
 
-        /*
-         * The shape of an engine with a shroud: shroud and body would take 76
-         * of the 96 points whole, and the nozzle that does not fit whole is
-         * still kept, with the points shared evenly over all three.
-         */
-        [Fact]
-        public void APieceThatDoesNotFitWholeIsKeptAndThePointsShared()
-        {
-            double[] Round(double offset, double size)
-            {
-                var flat = new List<double>();
-                for (var p = 0; p < HullPoints.MaxPointsPerPiece; p++)
-                {
-                    flat.Add(offset + size * System.Math.Cos(p * 0.3));
-                    flat.Add(size * System.Math.Sin(p * 0.3));
-                    flat.Add(p * 0.001);
-                }
-                return flat.ToArray();
-            }
-
-            var shroud = Round(0, 1.25);
-            var body = Round(5, 0.9);
-            var nozzle = Round(10, 0.7);
-
-            var kept = HullPoints.Limit(new List<double[]> { nozzle, body, shroud });
-
-            var share = HullPoints.MaxPoints / 3;
-            Assert.Equal(3, kept.Count);
-            Assert.Equal(shroud.Take(share * 3), kept[0]);
-            Assert.Equal(body.Take(share * 3), kept[1]);
-            Assert.Equal(nozzle.Take(share * 3), kept[2]);
-            Assert.True(kept.Sum(piece => piece.Length / 3) <= HullPoints.MaxPoints);
-        }
-
         [Fact]
         public void NothingAddedPublishesNothing()
         {

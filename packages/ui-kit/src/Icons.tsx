@@ -38,8 +38,6 @@ import {
   Radio,
   RectangleHorizontal,
   RectangleVertical,
-  RotateCcw,
-  RotateCw,
   Rows2,
   Satellite,
   Settings,
@@ -401,20 +399,6 @@ export const PushUpIcon = makeIcon(ArrowUpToLine);
  * @category Icons
  */
 export const RecallIcon = makeIcon(Undo2);
-/**
- * A circular arrow running clockwise. Useful for the control that turns a view
- * a step clockwise. Used by the Ship Map's view controls.
- *
- * @category Icons
- */
-export const RotateClockwiseIcon = makeIcon(RotateCw);
-/**
- * A circular arrow running anticlockwise. Useful for the control that turns a
- * view a step anticlockwise. Used by the Ship Map's view controls.
- *
- * @category Icons
- */
-export const RotateAnticlockwiseIcon = makeIcon(RotateCcw);
 /**
  * A rectangle split into two columns. Useful for the control that gives a tile
  * half the width. Used by the mobile dashboard's tile size controls.

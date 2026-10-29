@@ -1933,12 +1933,6 @@ describe("useCommand delay reading", () => {
         <DelayReadout />
       </fixture.Provider>,
     );
-    act(() => {
-      fixture.transport.emit("system.uplink.delays", {
-        activeVessel: ["deploy"],
-        elsewhere: [],
-      });
-    });
     return fixture;
   }
 

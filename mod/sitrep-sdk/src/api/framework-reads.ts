@@ -10,13 +10,10 @@
  * @category Reading telemetry
  */
 export const FRAMEWORK_READS = {
-  /** What `useCommand` reads: the pending and gated commands, each command's target and its delay, the active craft, and the link, delay, predicted route and predicted loss they wait on. */
+  /** What `useCommand` reads: the pending and gated commands, and the link, delay, predicted route and predicted loss they wait on. */
   useCommand: [
     "system.uplink.pending",
     "system.uplink.gates",
-    "system.uplink.delays",
-    "commandCentre.activeVesselDelay",
-    "vessel.identity",
     "comms.link",
     "comms.delay",
     "comms.route",

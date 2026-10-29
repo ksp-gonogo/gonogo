@@ -27,7 +27,6 @@ import { groupBaseLayersByUplink } from "./orderBaseLayers";
 import type { BaseSurfaceLayer } from "./paintBaseSurface";
 import type { useBaseLayers } from "./useBaseLayers";
 import type { ModelledPosition } from "./useModelledPosition";
-import { usePencilBase } from "./usePencilBase";
 import type { TrajectoryPoint } from "./useTrajectoryBuffer";
 import { shouldSuppressVanillaBase } from "./vanillaSuppression";
 
@@ -36,8 +35,6 @@ interface MapPaintingInputs {
   camera: Camera;
   bodyTexture: string | undefined;
   bodyColor: string | undefined;
-  /** How finely the body's pencil map is drawn, 0 to 1. */
-  bodyDetail: number;
   baseLayers: ReturnType<typeof useBaseLayers>;
   /** The flown trail's buffer, newest last, and a count that moves whenever its content does. */
   trajectoryRef: RefObject<TrajectoryPoint[]>;
@@ -110,7 +107,6 @@ export function useMapPainting({
   camera,
   bodyTexture,
   bodyColor,
-  bodyDetail,
   baseLayers,
   trajectoryRef,
   trajectoryCount,
@@ -135,12 +131,6 @@ export function useMapPainting({
   const predictionRef = useRef<HTMLCanvasElement>(null);
 
   const { textureImage, textureReady } = useBodyTexture(bodyTexture);
-  const pencil = usePencilBase(
-    textureImage,
-    bodyTexture,
-    bodyDetail,
-    containerSize?.w,
-  );
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: baseLayers.version bumps when the ground-track.base slot supplies (or withdraws) a canvas; the canvas reference is stable across mutations (tracked via a ref rather than state), so we depend on the version to trigger a redraw
   useEffect(() => {
@@ -171,8 +161,7 @@ export function useMapPainting({
       w,
       h,
       camera,
-      textureImage: pencil ?? textureImage,
-      dimTexture: pencil === null,
+      textureImage,
       bodyColor,
       suppressVanilla,
       layers,
@@ -183,7 +172,6 @@ export function useMapPainting({
     camera,
     textureReady,
     textureImage,
-    pencil,
     bodyColor,
     baseLayers.version,
   ]);

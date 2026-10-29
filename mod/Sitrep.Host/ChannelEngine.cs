@@ -1875,7 +1875,6 @@ namespace Sitrep.Host
                 Volatile.Read(ref _gateReportStale) ? null : Volatile.Read(ref _commandGateReport);
             _engineStateTopics.Add(UplinkGatesTopic);
             DeclareGateCheck();
-            DeclareUplinkDelays();
             _commandGateBudget = new PerfBudget(
                 "ChannelEngine gate evaluations/sec",
                 threshold: GateEvaluationBudget,
@@ -2248,10 +2247,6 @@ namespace Sitrep.Host
             _currentRegisteringUplinkId = id;
             try
             {
-                foreach (var declared in uplink.Manifest.Namespaces)
-                {
-                    RegisterDynamicNamespace(declared.Prefix, declared.Template);
-                }
                 uplink.Register(this);
             }
             catch (Exception ex)
@@ -9856,7 +9851,6 @@ namespace Sitrep.Host
                 _revealBuffer.Clear();
                 _recordings.Clear();
                 _heldForUnknownDelay.Clear();
-                _uplinkDelayHistory.Clear();
                 _recordedBytes = 0;
                 _heldSampleBytes.Clear();
                 _releasing.Clear();
@@ -10038,7 +10032,6 @@ namespace Sitrep.Host
             // the sampled-source handles (SetVesselDelay) and the delay refresh
             // above run before it is known. See RefreshLedgerDelays.
             RefreshLedgerDelays();
-            RememberUplinkDelays(tick.Ut);
             _courier.ReissueWhereRoutesReturned();
             RepointKeyRoutedStreams();
             AdvanceLensDelivery(tick.Ut);
@@ -10486,17 +10479,15 @@ namespace Sitrep.Host
         /// <see cref="UnplacedLensNode"/>, so the command is refused rather than
         /// timed by the active craft.
         /// </summary>
-        private string ResolveSubjectNode(DispatchCommandJob job) => ResolveSubjectNode(job.Command, job.Args);
-
-        private string ResolveSubjectNode(string command, object? args)
+        private string ResolveSubjectNode(DispatchCommandJob job)
         {
-            if (!_commandDeclarations.TryGetValue(command, out var declaration)
+            if (!_commandDeclarations.TryGetValue(job.Command, out var declaration)
                 || string.IsNullOrEmpty(declaration.Subject))
             {
                 return NodeId;
             }
 
-            return NodeFor(FillSubjectArgs(declaration.Subject, args));
+            return NodeFor(FillSubjectArgs(declaration.Subject, job.Args));
         }
 
         /// <summary>

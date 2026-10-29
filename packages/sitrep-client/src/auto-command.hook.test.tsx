@@ -1,6 +1,6 @@
 import { act, render } from "@ksp-gonogo/test-utils";
 import { CommandDelay } from "@ksp-gonogo/ui-kit";
-import { type ReactNode, useEffect } from "react";
+import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAutoCommand } from "./auto-command";
 import { TelemetryClient } from "./client";
@@ -58,26 +58,10 @@ function setup() {
     return (
       <TelemetryProvider client={client} store={store}>
         {children}
-        <StageGoesToTheActiveCraft transport={transport} />
       </TelemetryProvider>
     );
   }
   return { wall, transport, clock, staged, Provider };
-}
-
-/** Says, once mounted and so subscribed, that `stage` addresses the active craft, as the mod's `system.uplink.delays` does. */
-function StageGoesToTheActiveCraft({
-  transport,
-}: {
-  transport: StubTransport;
-}) {
-  useEffect(() => {
-    transport.emit("system.uplink.delays", {
-      activeVessel: ["stage"],
-      elsewhere: [],
-    });
-  }, [transport]);
-  return null;
 }
 
 function Harness(props: {

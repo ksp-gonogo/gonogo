@@ -203,9 +203,6 @@ export interface FrameDelayPipeline {
   stats(): FrameDelayStats;
 }
 
-/** How far, in seconds of UT, a frame may be dated behind the last one before it is a restarted source and not stamp noise. */
-const SOURCE_RESTART_UT_STEP_SECONDS = 1;
-
 const DEFAULT_MAX_BUFFERED_FRAMES = 300; // ~10s @ 30fps; see module docstring
 
 /**
@@ -223,7 +220,6 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
 ): FrameDelayPipeline {
   let disposed = false;
   let awaitingKeyframe = false;
-  let lastDatedUt = Number.NEGATIVE_INFINITY;
   const stats: FrameDelayStats = {
     read: 0,
     presented: 0,
@@ -297,17 +293,6 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
       }
       stats.read += 1;
       const keyframe = opts.isKeyframe?.(frame) ?? false;
-      const ut = opts.captureUt(frame);
-      /* Dated far behind the last frame: the source restarted, and clamping up
-         to the old timeline's last UT would hold every new frame until the new
-         one outlasts the old. */
-      if (
-        Number.isFinite(ut) &&
-        ut < lastDatedUt - SOURCE_RESTART_UT_STEP_SECONDS
-      ) {
-        api.flush();
-      }
-      if (Number.isFinite(ut)) lastDatedUt = ut;
       if (awaitingKeyframe) {
         if (!keyframe) {
           stats.awaitingKeyframeDropped += 1;
@@ -317,16 +302,17 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
         awaitingKeyframe = false;
       }
       buffer.push({
-        ut,
+        ut: opts.captureUt(frame),
         keyframe,
         data: frame,
         bytes: opts.frameBytes?.(frame) ?? 1,
       });
     }
   }
-  const api: FrameDelayPipeline = {
+  void pump();
+
+  return {
     flush() {
-      lastDatedUt = Number.NEGATIVE_INFINITY;
       const discardedBefore = stats.flushDropped + stats.pacerSkipped;
       buffer.flush();
       pacer?.reset();
@@ -356,8 +342,6 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
       pacer?.tick(nowWall);
     },
   };
-  void pump();
-  return api;
 }
 
 /**
