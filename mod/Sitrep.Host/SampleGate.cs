@@ -20,6 +20,8 @@ namespace Sitrep.Host
         private double? _lastSampledUt;
         private double? _previousTickUt;
         private double _lastSampledRealSec;
+        private double? _slotBeforeLastUt;
+        private double _slotBeforeLastRealSec;
         private readonly LoadState _load;
         private readonly TopicCadence? _cadence;
 
@@ -47,9 +49,36 @@ namespace Sitrep.Host
             {
                 return false;
             }
+            Take(ut, realSec);
+            return true;
+        }
+
+        /// <summary>
+        /// Gives back the slot of the admission just made, for a tick the engine
+        /// declined and so never sampled: the next tick is admitted again where
+        /// leaving it taken would wait a whole interval, a sample lost from the
+        /// stream. Does nothing unless an admission is held.
+        /// </summary>
+        public void Decline()
+        {
+            if (!_holdsSlot)
+            {
+                return;
+            }
+            _holdsSlot = false;
+            _lastSampledUt = _slotBeforeLastUt;
+            _lastSampledRealSec = _slotBeforeLastRealSec;
+        }
+
+        private bool _holdsSlot;
+
+        private void Take(double ut, double realSec)
+        {
+            _slotBeforeLastUt = _lastSampledUt;
+            _slotBeforeLastRealSec = _lastSampledRealSec;
+            _holdsSlot = true;
             _lastSampledUt = ut;
             _lastSampledRealSec = realSec;
-            return true;
         }
 
         /// <summary>
@@ -63,8 +92,7 @@ namespace Sitrep.Host
                 return false;
             }
             _previousTickUt = ut;
-            _lastSampledUt = ut;
-            _lastSampledRealSec = realSec;
+            Take(ut, realSec);
             return true;
         }
 

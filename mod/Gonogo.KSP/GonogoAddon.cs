@@ -652,9 +652,13 @@ namespace Gonogo.KSP
                         return snapshot;
                     },
                     full: requested || _recordingEnabled);
-                if (!taken && requested)
+                if (!taken)
                 {
-                    _engine.RequestSample();
+                    _sampleGate.Decline();
+                    if (requested)
+                    {
+                        _engine.RequestSample();
+                    }
                 }
             }
             catch (Exception ex)
