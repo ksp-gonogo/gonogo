@@ -306,7 +306,6 @@ describe("GroundTrack's imaging chip across a dropped link", () => {
 describe("GroundTrack when a map source hides the stock terrain and has no data", () => {
   let restoreResizeObserver: () => void = () => {};
   afterEach(() => {
-    clearAugments();
     restoreResizeObserver();
   });
 
