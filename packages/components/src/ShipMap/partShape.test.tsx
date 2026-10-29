@@ -1,7 +1,5 @@
-import { render } from "@ksp-gonogo/sitrep-sdk/testing";
-import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { renderPartShape } from "./partShape";
 
 const BOX = { x: 10, y: 20, w: 40, h: 80 };
@@ -96,136 +94,8 @@ describe("a landing leg", () => {
   });
 });
 
-describe("a part drawn from its mesh outline", () => {
-  const silhouette = [
-    [
-      { x: 12, y: 30 },
-      { x: 48, y: 22 },
-      { x: 40, y: 98 },
-      { x: 14, y: 90 },
-    ],
-  ];
-
-  function drawn(type: Parameters<typeof renderPartShape>[0]): string {
-    return renderToStaticMarkup(
-      renderPartShape(
-        type,
-        BOX,
-        CENTER,
-        "var(--color-info-mark)",
-        false,
-        1,
-        1,
-        undefined,
-        true,
-        { silhouette },
-      ),
-    );
-  }
-
-  it.each([
-    "engine",
-    "tank",
-    "booster",
-    "decoupler",
-    "nose-cone",
-    "fin",
-    "capsule",
-    "rcs",
-    "solar",
-    "docking-port",
-    "other",
-  ] as const)("draws a %s as its outline", (type) => {
-    const markup = drawn(type);
-    expect(markup).toContain('data-role="mesh-outline"');
-    expect(markup).toContain("12,30 48,22 40,98 14,90");
-  });
-
-  it.each([
-    "gear",
-    "parachute",
-    "strut",
-    "clamp",
-  ] as const)("keeps the shape of a %s, which says something the silhouette does not", (type) => {
-    expect(drawn(type)).not.toContain('data-role="mesh-outline"');
-  });
-
-  it("draws one polygon for each mesh outline, with the part's opacity on the group", () => {
-    const markup = renderToStaticMarkup(
-      renderPartShape(
-        "solar",
-        BOX,
-        CENTER,
-        "var(--color-info-mark)",
-        false,
-        1,
-        1,
-        undefined,
-        true,
-        {
-          silhouette: [
-            ...silhouette,
-            [
-              { x: 60, y: 10 },
-              { x: 70, y: 10 },
-              { x: 65, y: 20 },
-            ],
-          ],
-        },
-      ),
-    );
-    expect(markup.match(/data-role="mesh-outline"/g)).toHaveLength(2);
-    expect(markup).toContain("60,10 70,10 65,20");
-    expect(markup).toMatch(/^<g opacity="0.95">/);
-  });
-
-  it("draws a part's pieces as one silhouette: every edge first, then every fill with no edge of its own", () => {
-    const markup = renderToStaticMarkup(
-      renderPartShape(
-        "engine",
-        BOX,
-        CENTER,
-        "var(--color-info-mark)",
-        false,
-        1,
-        1,
-        undefined,
-        true,
-        {
-          silhouette: [
-            [
-              { x: 10, y: 10 },
-              { x: 50, y: 10 },
-              { x: 50, y: 50 },
-              { x: 10, y: 50 },
-            ],
-            [
-              { x: 20, y: 20 },
-              { x: 40, y: 20 },
-              { x: 40, y: 80 },
-              { x: 20, y: 80 },
-            ],
-          ],
-        },
-      ),
-    );
-    const roles = [
-      ...markup.matchAll(/data-role="(mesh-outline(?:-edge)?)"/g),
-    ].map((m) => m[1]);
-    expect(roles).toEqual([
-      "mesh-outline-edge",
-      "mesh-outline-edge",
-      "mesh-outline",
-      "mesh-outline",
-    ]);
-    for (const fillPolygon of markup.match(
-      /<polygon data-role="mesh-outline"[^>]*>/g,
-    ) ?? []) {
-      expect(fillPolygon).toContain('stroke="none"');
-    }
-  });
-
-  it("falls back to the hand-drawn shape without an outline", () => {
+describe("a part with no 3D shape", () => {
+  it("is drawn by its type within its box", () => {
     const markup = renderToStaticMarkup(
       renderPartShape(
         "tank",
@@ -239,46 +109,5 @@ describe("a part drawn from its mesh outline", () => {
     );
     expect(markup).not.toContain('data-role="mesh-outline"');
     expect(markup).toContain("<rect");
-  });
-});
-
-describe("a part drawn from a mesh silhouette", () => {
-  it("renders without a duplicate key when two outlines share their points", async () => {
-    const outline = [
-      { x: 10, y: 20 },
-      { x: 50, y: 20 },
-      { x: 30, y: 100 },
-    ];
-    const errors: unknown[][] = [];
-    const spy = vi.spyOn(console, "error").mockImplementation((...a) => {
-      errors.push(a);
-    });
-    try {
-      const { container } = render(
-        <svg aria-hidden="true">
-          {renderPartShape(
-            "tank",
-            BOX,
-            CENTER,
-            "var(--color-info-mark)",
-            false,
-            1,
-            1,
-            undefined,
-            true,
-            { silhouette: [outline, outline] },
-          )}
-        </svg>,
-      );
-      expect(
-        container.querySelectorAll('[data-role="mesh-outline"]'),
-      ).toHaveLength(2);
-      await expectNoA11yViolations(container);
-    } finally {
-      spy.mockRestore();
-    }
-    expect(errors.map((a) => String(a[0]))).not.toContainEqual(
-      expect.stringContaining("same key"),
-    );
   });
 });

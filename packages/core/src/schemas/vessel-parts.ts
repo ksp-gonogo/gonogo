@@ -74,12 +74,6 @@ export interface TopologyPart {
   bounds: {
     size: { x: number; y: number; z: number };
     center?: { x: number; y: number; z: number };
-    /**
-     * The points of a convex hull around each drawn mesh of the part,
-     * part-local metres, from the live meshes: one list of points per mesh.
-     * Absent when a mesh could not be read, which a consumer draws as the box.
-     */
-    hull?: { x: number; y: number; z: number }[][];
   };
   /**
    * The key of the part's 3D shape, read from `parts.shape.<shape>`. Parts of

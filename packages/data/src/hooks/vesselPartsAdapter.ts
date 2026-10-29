@@ -110,7 +110,6 @@ function deriveTopologyPart(p: VesselPart): TopologyPart {
             z: metres(p.bounds.center.z),
           }
         : undefined,
-      hull: hullPieces(p.bounds.hull),
     },
     shape: p.shape ?? undefined,
     shapePoses: shapePoses(p.shapePoses),
@@ -263,24 +262,4 @@ export function buildPartStateByFlightId(
 /** A length read off the wire as plain metres: the one place the part geometry's lengths leave the unit system. */
 function metres(length: Value<"m">): number {
   return length.magnitude;
-}
-
-/** The pieces of a part's hull, each the flat x, y, z triples the wire carries, as points. A piece that is not a whole number of points, or has under three, is no piece. */
-function hullPieces(
-  wire: readonly { points: readonly Value<"m">[] }[] | null | undefined,
-): { x: number; y: number; z: number }[][] | undefined {
-  const pieces: { x: number; y: number; z: number }[][] = [];
-  for (const { points: flat } of wire ?? []) {
-    if (flat.length < 9 || flat.length % 3 !== 0) continue;
-    const piece: { x: number; y: number; z: number }[] = [];
-    for (let i = 0; i < flat.length; i += 3) {
-      piece.push({
-        x: metres(flat[i]),
-        y: metres(flat[i + 1]),
-        z: metres(flat[i + 2]),
-      });
-    }
-    pieces.push(piece);
-  }
-  return pieces.length > 0 ? pieces : undefined;
 }

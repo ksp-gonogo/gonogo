@@ -282,7 +282,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/data/src/hooks/useManeuverNodes.ts": 4,
   "packages/data/src/hooks/useDataSeries.ts": 1,
   // 15: the wire-to-plain-model adapter for the parts list. Part geometry's
-  // lengths (position, box, hull points) share the one `metres` funnel, and the
+  // lengths (position and box) share the one `metres` funnel, and the
   // rest is the same boundary said once per field, the last a mesh's pose
   // matrix, which only plain-number matrix maths reads.
   "packages/data/src/hooks/vesselPartsAdapter.ts": 15,

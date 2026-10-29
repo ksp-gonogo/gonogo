@@ -86,11 +86,6 @@ export function ShipPartGroup({
   if (p.shapeDrawing) {
     marks.shape = { drawing: p.shapeDrawing, center, pxPerMetre };
   }
-  if (p.silhouette) {
-    marks.silhouette = p.silhouette.map((outline) =>
-      outline.map((q) => inBox(q.x, q.y)),
-    );
-  }
   if (p.anchor) marks.anchor = inBox(p.anchor.x, p.anchor.y);
   const showFuel = p.type === "tank" || p.type === "booster";
 

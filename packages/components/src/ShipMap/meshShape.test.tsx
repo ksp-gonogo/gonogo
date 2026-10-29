@@ -16,6 +16,7 @@ import {
   drawShape,
   SCREEN_LIGHT,
   type ShapeDrawing,
+  shapeFitsBox,
   TONE_STEPS,
   viewMesh,
 } from "./meshShape";
@@ -476,16 +477,8 @@ function partRow(overrides: Partial<TopologyPart> = {}): TopologyPart {
     up: [0, 1, 0],
     forward: [0, 0, 1],
     bounds: {
-      size: { x: 0.3, y: 0.8, z: 0.3 },
-      center: { x: 0, y: 0, z: 0 },
-      hull: [
-        [
-          { x: -0.15, y: -0.4, z: -0.15 },
-          { x: 0.15, y: -0.4, z: 0.15 },
-          { x: 0.15, y: 0.4, z: -0.15 },
-          { x: -0.15, y: 0.4, z: 0.15 },
-        ],
-      ],
+      size: { x: 0.333, y: 1.796, z: 0.818 },
+      center: { x: -0.086, y: 0, z: 0 },
     },
     dryMass: 0.025,
     inverseStage: 1,
@@ -497,21 +490,51 @@ function partRow(overrides: Partial<TopologyPart> = {}): TopologyPart {
 }
 
 describe("a Ship Map part with a shape", () => {
-  it("is drawn from its real shape once it has arrived, and from its outline until then", () => {
+  it("is drawn from its real shape once it has arrived, and by its type until then", () => {
     const shape = decodePartShape(decoupler);
     const waiting = buildShipMapPart(partRow(), null, undefined, 0);
     expect(waiting.shapeDrawing).toBeUndefined();
-    expect(waiting.silhouette).toBeDefined();
 
     const drawn = buildShipMapPart(partRow(), null, undefined, 0, null, shape);
     expect(drawn.shapeDrawing?.outline).not.toBe("");
     expect(drawn.shapeDrawing?.faces.length).toBeGreaterThan(0);
   });
 
+  it("is drawn by its type when it was built or stretched in the game and its shape does not fill its box", () => {
+    const shape = decodePartShape(decoupler);
+    const stretched = partRow({
+      bounds: {
+        size: { x: 0.333, y: 3.6, z: 0.818 },
+        center: { x: -0.086, y: 0, z: 0 },
+      },
+    });
+    expect(
+      buildShipMapPart(stretched, null, undefined, 0, null, shape).shapeDrawing,
+    ).toBeUndefined();
+    expect(shapeFitsBox(shape, stretched.bounds.size)).toBe(false);
+    expect(shapeFitsBox(shape, partRow().bounds.size)).toBe(true);
+  });
+
+  it("fills its box as its poses move its meshes", () => {
+    const shape = decodePartShape(decoupler);
+    const size = partRow().bounds.size;
+    const lifted = shape.meshes.map((m) => ({
+      mesh: m.key,
+      shown: true,
+      transform: [1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0],
+    }));
+    expect(shapeFitsBox(shape, size, lifted)).toBe(true);
+    expect(shapeFitsBox(shape, size, lifted.slice(0, 1))).toBe(false);
+  });
+
   it("shares one projection between parts of one kind standing the same way", () => {
     const shape = decodePartShape(winglet);
+    const wing = {
+      size: { x: 1.629, y: 2.016, z: 0.107 },
+      center: { x: -0.075, y: -0.034, z: 0 },
+    };
     const a = buildShipMapPart(
-      partRow({ flightId: 1, orgPos: [0, 0, 0] }),
+      partRow({ flightId: 1, orgPos: [0, 0, 0], bounds: wing }),
       null,
       undefined,
       0,
@@ -519,13 +542,14 @@ describe("a Ship Map part with a shape", () => {
       shape,
     );
     const b = buildShipMapPart(
-      partRow({ flightId: 2, orgPos: [0, 4, 0] }),
+      partRow({ flightId: 2, orgPos: [0, 4, 0], bounds: wing }),
       null,
       undefined,
       0,
       null,
       shape,
     );
+    expect(a.shapeDrawing).toBeDefined();
     expect(b.shapeDrawing).toBe(a.shapeDrawing);
   });
 });

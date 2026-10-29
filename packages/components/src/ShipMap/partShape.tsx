@@ -54,21 +54,6 @@ function domeHalfPoints(
 const FIN_TIP_TAPER = 0.2;
 
 /**
- * The part types drawn by what they do and not by the silhouette of their
- * mesh: a leg's strut and foot follow its deploy state, a parachute splits by
- * canopy state, a strut is a link and a clamp is a translucent overlay on
- * other parts. A fairing is drawn from its mesh outline when the wire carries
- * one, in the same translucent overlay style as its fallback box. Every other
- * type is drawn from its mesh outline when the wire carries one.
- */
-const STATE_SHAPES: ReadonlySet<PartType> = new Set<PartType>([
-  "gear",
-  "parachute",
-  "strut",
-  "clamp",
-]);
-
-/**
  * The part types still drawn by what they do once their 3D shape has
  * arrived: a parachute splits by canopy state, a strut is a link and a clamp
  * a translucent overlay. A landing leg is drawn from its shape, which its
@@ -103,8 +88,6 @@ export interface PartMarks {
     y2: number;
     width: number;
   };
-  /** The part's outline from its meshes, one convex outline per mesh, in the same pixel space as the box. */
-  silhouette?: { x: number; y: number }[][];
   /** Where a structural strut attaches. */
   anchor?: { x: number; y: number };
   /** The part's lit 3D shape, in metres, and where its frame sits: the box centre in pixels and how many pixels a metre is. */
@@ -116,10 +99,9 @@ export interface PartMarks {
 }
 
 /**
- * A part drawn from its lit 3D shape, in the same one-silhouette layering as
- * an outline drawn from the hull: the outline is stroked at twice the edge
- * width, then filled over it, so only the outside of the union keeps its
- * line. The lit faces go over that in paint order, and the sharp edges the
+ * A part drawn from its lit 3D shape as one silhouette: the outline is
+ * stroked at twice the edge width, then filled over it, so only the outside
+ * of the union keeps its line. The lit faces go over that in paint order, and the sharp edges the
  * faces do not hide go on top. `x`, `y` place the drawing's frame in pixels
  * and `metre` is how many pixels a metre is; widths are in pixels. Memoised
  * on its plain props, so a telemetry tick that leaves the part where it was
@@ -232,54 +214,6 @@ export function renderPartShape(
         creaseWidth={strokeWidth}
         opacity={overlay ? 0.45 : opacity}
       />
-    );
-  }
-
-  if (marks.silhouette && !STATE_SHAPES.has(type)) {
-    // Identical outlines (mirrored meshes) share their points, so a repeat takes an ordinal suffix to stay unique.
-    const seen = new Map<string, number>();
-    const outlines = marks.silhouette.map((outline) => {
-      const points = outline.map((q) => `${q.x},${q.y}`).join(" ");
-      const n = seen.get(points) ?? 0;
-      seen.set(points, n + 1);
-      return { points, key: `${points}#${n}` };
-    });
-    const overlay = type === "fairing";
-    const edge = overlay
-      ? isHot
-        ? "var(--color-tag-yellow-fg)"
-        : "var(--color-text-dim)"
-      : stroke;
-    const edgeWidth = overlay ? Math.max(strokeWidth, 1 / zoom) : strokeWidth;
-    /*
-     * A part reads as one silhouette: every piece is stroked at twice the edge
-     * width first, then every piece is filled over the strokes. An edge inside
-     * another piece is covered by its fill, so only the outside of the union
-     * keeps its line, at the width a single piece's stroke would show.
-     */
-    return (
-      <g opacity={overlay ? 0.45 : opacity}>
-        {outlines.map(({ points, key }) => (
-          <polygon
-            key={`edge-${key}`}
-            data-role="mesh-outline-edge"
-            points={points}
-            fill={fill}
-            stroke={edge}
-            strokeWidth={edgeWidth * 2}
-            strokeLinejoin="round"
-          />
-        ))}
-        {outlines.map(({ points, key }) => (
-          <polygon
-            key={key}
-            data-role="mesh-outline"
-            points={points}
-            fill={fill}
-            stroke="none"
-          />
-        ))}
-      </g>
     );
   }
 

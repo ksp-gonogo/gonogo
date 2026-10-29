@@ -148,10 +148,11 @@ function closedPieces(across: Int32Array, degenerate: Uint8Array): Uint8Array {
         const u = across[t * 3 + e];
         if (u === -1) {
           open[id] = true;
-        } else if (piece[u] === -1) {
-          piece[u] = id;
-          stack.push(u);
+          continue;
         }
+        if (piece[u] !== -1) continue;
+        piece[u] = id;
+        stack.push(u);
       }
     }
   }
@@ -309,23 +310,32 @@ export function viewMesh(
       const u = joined !== -1 && flat[joined] ? -1 : joined;
       // Each shared edge is looked at once, from its lower face.
       if (u !== -1 && u < t) continue;
-      let draw: boolean;
-      if (u === -1) {
-        draw = side[t] !== 0;
-      } else if (side[t] === 0 && side[u] === 0) {
-        draw = false;
-      } else if (side[t] !== side[u]) {
-        draw = true;
-      } else {
-        draw = nx[t] * nx[u] + ny[t] * ny[u] + nz[t] * nz[u] < CREASE_COS;
-      }
-      if (!draw) continue;
+      if (!edgeIsCrease(t, u, side, nx, ny, nz)) continue;
       const a = corner(t, e);
       const b = corner(t, (e + 1) % 3);
       creases.push(xs[a], ys[a], zs[a], xs[b], ys[b], zs[b]);
     }
   }
   return { outline, regions, triangles, triangleRegion, creases };
+}
+
+/**
+ * Whether the edge of face `t` shared with face `u` (-1 for an open edge) is
+ * drawn: an open edge of a face seen, an edge between a face seen and one
+ * not, or one where two faces seen meet at more than `CREASE_ANGLE_DEG`.
+ */
+function edgeIsCrease(
+  t: number,
+  u: number,
+  side: Int8Array,
+  nx: Float64Array,
+  ny: Float64Array,
+  nz: Float64Array,
+): boolean {
+  if (u === -1) return side[t] !== 0;
+  if (side[t] === 0 && side[u] === 0) return false;
+  if (side[t] !== side[u]) return true;
+  return nx[t] * nx[u] + ny[t] * ny[u] + nz[t] * nz[u] < CREASE_COS;
 }
 
 /**
@@ -796,4 +806,71 @@ export function drawShape(
     views.push(cachedMeshView(mesh, placed, light));
   }
   return remember(cache, key, combineViews(views));
+}
+
+/** How far a shape's extent may stray from its part's box on any axis before the part is drawn by its type: this share of the box, or this many metres, whichever is more. */
+const FIT_SHARE = 0.1;
+const FIT_METRES = 0.05;
+
+const fits = new WeakMap<DecodedPartShape, Map<string, boolean>>();
+
+/**
+ * Whether `shape`, with `poses` moving its meshes, fills the part's own box
+ * of `size` (part-local metres) on every axis. Every mesh counts, drawn or
+ * not, as it does in the box. A part built or stretched in the game, such as
+ * a procedural tank, a fairing's shell or a fuel line, has a box the shape of
+ * its kind does not fill, and is drawn by its type within its box instead.
+ */
+export function shapeFitsBox(
+  shape: DecodedPartShape,
+  size: { x: number; y: number; z: number },
+  poses?: ShapePoses,
+): boolean {
+  const poseKey = poses
+    ? poses
+        .map((p) => `${p.mesh}:${p.transform ? keyOf(p.transform) : ""}`)
+        .join(";")
+    : "";
+  const key = `${keyOf([size.x, size.y, size.z])}|${poseKey}`;
+  let cache = fits.get(shape);
+  if (!cache) {
+    cache = new Map();
+    fits.set(shape, cache);
+  }
+  const kept = cache.get(key);
+  if (kept !== undefined) return kept;
+
+  const byMesh = new Map(poses?.map((p) => [p.mesh, p]));
+  const lo = [Infinity, Infinity, Infinity];
+  const hi = [-Infinity, -Infinity, -Infinity];
+  for (const mesh of shape.meshes) {
+    const m = byMesh.get(mesh.key)?.transform;
+    const moved = m && m.length === 12 ? m : undefined;
+    const p = mesh.positions;
+    for (let i = 0; i + 2 < p.length; i += 3) {
+      const x = p[i];
+      const y = p[i + 1];
+      const z = p[i + 2];
+      const at = moved
+        ? [
+            moved[0] * x + moved[1] * y + moved[2] * z + moved[3],
+            moved[4] * x + moved[5] * y + moved[6] * z + moved[7],
+            moved[8] * x + moved[9] * y + moved[10] * z + moved[11],
+          ]
+        : [x, y, z];
+      for (let a = 0; a < 3; a++) {
+        if (at[a] < lo[a]) lo[a] = at[a];
+        if (at[a] > hi[a]) hi[a] = at[a];
+      }
+    }
+  }
+  const box = [size.x, size.y, size.z];
+  const fit =
+    lo[0] <= hi[0] &&
+    box.every(
+      (extent, a) =>
+        Math.abs(hi[a] - lo[a] - extent) <=
+        Math.max(FIT_METRES, FIT_SHARE * extent),
+    );
+  return remember(cache, key, fit);
 }

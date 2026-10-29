@@ -7,8 +7,12 @@ import type {
 } from "@ksp-gonogo/core";
 import type { DecodedPartShape } from "@ksp-gonogo/data";
 import { classifyPart } from "./classifyPart";
-import { drawShape, SCREEN_LIGHT, type ShapeDrawing } from "./meshShape";
-import { convexHull, type OutlinePoint } from "./outline";
+import {
+  drawShape,
+  SCREEN_LIGHT,
+  type ShapeDrawing,
+  shapeFitsBox,
+} from "./meshShape";
 
 /** Diagram-side categories: one per visually distinct shape. Every other KSP category is "other". */
 export type PartType =
@@ -79,9 +83,7 @@ export interface ShipMapPart {
    * (a wheel folded into a bay), which is drawn as the outline of its box.
    */
   stowedStrut?: StowedStrut;
-  /** The part's mesh seen from this view, as a convex outline in metres in the drawn box's frame from the box centre. Absent when the part carries no mesh outline, which is drawn as its box. */
-  silhouette?: OutlinePoint[][];
-  /** The part's 3D shape seen from this view and lit, in metres in the drawn box's frame from the box centre. Absent until the part's shape has arrived, when it has none, or when none of its meshes shows, and then the part is drawn from `silhouette`. */
+  /** The part's 3D shape seen from this view and lit, in metres in the drawn box's frame from the box centre. Absent until the part's shape has arrived, when it has none, when it does not fill the part's box, or when none of its meshes shows, and then the part is drawn by its type within its box. */
   shapeDrawing?: ShapeDrawing;
   /** For a structural strut: where it attaches, in metres in the drawn box's frame from the box centre. */
   anchor?: { x: number; y: number };
@@ -390,7 +392,9 @@ function planformOf(
  * caller picks the view once per vessel (`pickView`, turned by the operator's
  * rotation): the angle in radians about the spine at which the diagram looks
  * at the craft, 0 putting the vessel's X axis across the screen. `shape` is
- * the part's 3D shape once it has arrived, drawn as the part's own row poses it.
+ * the part's 3D shape once it has arrived, drawn as the part's own row poses it
+ * when it fills the part's box (see `shapeFitsBox`); otherwise, and until it
+ * arrives, the part is drawn by its type within its box.
  */
 export function buildShipMapPart(
   part: TopologyPart,
@@ -460,21 +464,8 @@ export function buildShipMapPart(
       width: stowed.width,
     };
   }
-  const silhouette = (part.bounds.hull ?? [])
-    .map((piece) =>
-      convexHull(
-        piece.map((point) =>
-          inBoxFrame({
-            x: point.x - centre.x,
-            y: point.y - centre.y,
-            z: point.z - centre.z,
-          }),
-        ),
-      ),
-    )
-    .filter((outline) => outline.length > 0);
   let shapeDrawing: ShapeDrawing | undefined;
-  if (shape) {
+  if (shape && shapeFitsBox(shape, size, part.shapePoses)) {
     /* The map from a part-local point to the drawn box's frame, as `inBoxFrame` takes a point from the box centre, with the depth toward the viewer as its third row. */
     const linear = [axes.right, axes.up, axes.forward].map((dir) => {
       const lat = latOf(dir);
@@ -497,7 +488,7 @@ export function buildShipMapPart(
     const [lx, ly, lz] = SCREEN_LIGHT;
     const light = [lx * cos - ly * sin, lx * sin + ly * cos, lz] as const;
     const drawn = drawShape(shape, frame, light, part.shapePoses);
-    // A shape with nothing shown from here would leave no part at all, so the outline stands in for it.
+    // A shape with nothing shown from here would leave no part at all, so the drawing by type stands in for it.
     if (drawn.outline) shapeDrawing = drawn;
   }
   const anchor =
@@ -523,7 +514,6 @@ export function buildShipMapPart(
     tipSign: planform?.tipSign,
     trailingCut: planform ? TRAILING_CUT_PARTS[part.name] : undefined,
     stowedStrut,
-    silhouette: silhouette.length ? silhouette : undefined,
     shapeDrawing,
     anchor,
     dryMass: part.dryMass,
