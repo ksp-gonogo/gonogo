@@ -11,7 +11,14 @@ import type {
 } from "@ksp-gonogo/sitrep-sdk";
 import { useSeat } from "@ksp-gonogo/sitrep-sdk/spine";
 import type { ReactNode } from "react";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { getStationKey } from "../peer/stationPeerId";
 import { useStationNameOptional } from "../stationIdentity";
 import { CommcastLog } from "./CommcastLog";
@@ -198,10 +205,24 @@ export function useContactPlan(): readonly PlannedContact[] | undefined {
   return pairs;
 }
 
-/** The local reader's vantage, the shape every reveal decision is made against. */
+/**
+ * The last value a reading held while it was defined, so a reading that blinks
+ * to `undefined` between frames does not read as the value having gone.
+ */
+export function useRetained<T>(value: T | undefined): T | undefined {
+  const held = useRef(value);
+  if (value !== undefined) held.current = value;
+  return held.current;
+}
+
+/**
+ * The local reader's vantage, the shape every reveal decision is made against.
+ * Once the stream has stamped a frame the vantage stays known, so the thread
+ * bar's names do not change as the stamp blinks out and back.
+ */
 export function useMyVantage(): Vantage {
   const seat = useSeat();
-  const vantageId = useObservedVantage();
+  const vantageId = useRetained(useObservedVantage());
   return useMemo(
     () => ({ seat, ...(vantageId === undefined ? {} : { vantageId }) }),
     [seat, vantageId],
