@@ -48,6 +48,8 @@
     <Compile Include="..\Gonogo.KSP\MakingHistoryReads.cs" />
     <!-- FairingRings.cs turns a fairing's saved sections into its ring list and carries no KSP or Unity type. -->
     <Compile Include="..\Gonogo.KSP\FairingRings.cs" />
+    <!-- SavedPartRules.cs decides a saved part's variant and which structural-node structures it shows, and carries no KSP or Unity type. -->
+    <Compile Include="..\Gonogo.KSP\SavedPartRules.cs" />
     <Compile Include="..\Gonogo.KSP\ExpansionHealth.cs" />
     <Compile Include="..\Gonogo.KSP\LogTail.cs" />
     <Compile Include="..\Gonogo.KSP\RescanGate.cs" />

@@ -6,7 +6,7 @@ using UnityEngine;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// A loaded part's meshes compared with its shape on <c>parts.shape.&lt;key&gt;</c>:
+    /// A part's meshes compared with its shape on <c>parts.shape.&lt;key&gt;</c>:
     /// the ones that have moved, or are drawn when the shape has them hidden or the
     /// other way round, each with the matrix that carries it from the shape's place
     /// to where it stands now. This is how a deployed leg, an open bay or a turned
@@ -33,7 +33,7 @@ namespace Gonogo.KSP
         /// saved row with no variant draws the part as it comes.
         /// </summary>
         public static string? VariantFor(Part prefab, string? variant) =>
-            !string.IsNullOrEmpty(variant) ? variant : prefab.variants?.SelectedVariant?.Name;
+            SavedPartRules.VariantName(variant, prefab.variants?.SelectedVariant?.Name);
 
         /// <summary>
         /// The raw <c>shapePoses</c> rows for a loaded part whose meshes are
@@ -71,6 +71,73 @@ namespace Gonogo.KSP
                 });
             }
             return poses;
+        }
+
+        /// <summary>
+        /// The raw <c>shapePoses</c> rows for a part read from a save, which has no
+        /// live meshes to compare: each structure a <c>ModuleStructuralNode</c> of
+        /// <paramref name="prefab"/> owns, shown or hidden as the module would show
+        /// it on the loaded part. <paramref name="savedNodes"/> are the part's saved
+        /// <c>ModuleStructuralNode</c> modules in order, and
+        /// <paramref name="attachedNodes"/> the attach nodes that have a part on
+        /// them. Null when every mesh stands as the shape has it.
+        /// </summary>
+        public static List<object?>? Saved(Part prefab, string? variant, IReadOnlyList<ConfigNode?> savedNodes, ICollection<string> attachedNodes)
+        {
+            var modules = prefab.Modules?.GetModules<ModuleStructuralNode>();
+            if (modules == null || modules.Count == 0)
+            {
+                return null;
+            }
+
+            var meshes = RestMeshes(prefab, VariantFor(prefab, variant));
+            List<object?>? poses = null;
+            for (var i = 0; i < modules.Count; i++)
+            {
+                var module = modules[i];
+                var root = prefab.FindModelTransform(module.rootObject);
+                if (root == null)
+                {
+                    continue;
+                }
+
+                var saved = i < savedNodes.Count ? savedNodes[i] : null;
+                var shown = SavedPartRules.StructureShown(
+                    SavedPartRules.SavedFlag(saved?.GetValue("visibilityState"), module.visibilityState),
+                    module.spawnManually,
+                    SavedPartRules.SavedFlag(saved?.GetValue("spawnState"), module.spawnState),
+                    module.reverseVisibility,
+                    module.attachNodeNames,
+                    attachedNodes);
+                foreach (var mesh in meshes)
+                {
+                    if (mesh.Shown == shown || mesh.Renderer == null || !mesh.Renderer.transform.IsChildOf(root))
+                    {
+                        continue;
+                    }
+                    (poses ??= new List<object?>()).Add(new Dictionary<string, object?>
+                    {
+                        ["mesh"] = mesh.Key,
+                        ["shown"] = shown,
+                        ["transform"] = null,
+                    });
+                }
+            }
+            return poses;
+        }
+
+        /* A prefab's meshes by part name and variant, read once a session: a saved craft is read again on every look. Main thread only. */
+        private static readonly Dictionary<string, List<PartMesh>> PrefabMeshes = new Dictionary<string, List<PartMesh>>(StringComparer.Ordinal);
+
+        private static List<PartMesh> RestMeshes(Part prefab, string? variant)
+        {
+            var key = (prefab.partInfo?.name ?? prefab.name) + "|" + variant;
+            if (!PrefabMeshes.TryGetValue(key, out var meshes))
+            {
+                meshes = PartMeshBounds.Meshes(prefab, variant);
+                PrefabMeshes[key] = meshes;
+            }
+            return meshes;
         }
 
         private static Dictionary<string, PartMesh>? RestOf(Part part, string key, string? variant)

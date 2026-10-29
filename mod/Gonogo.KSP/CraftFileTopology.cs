@@ -91,7 +91,8 @@ namespace Gonogo.KSP
             /* A launched vessel reports its parts in the root part's frame, with the root at the origin, so this does too. */
             var framed = CraftFileTree.InRootFrame(
                 rootRotation, position[0] - rootPosition[0], position[1] - rootPosition[1], position[2] - rootPosition[2]);
-            var box = ProtoVesselTopology.Measure(info.name, prefab, VariantOf(node));
+            var variant = PartShapePoses.VariantFor(prefab, VariantOf(node));
+            var box = ProtoVesselTopology.Measure(info.name, prefab, variant);
             var orientation = new Quaternion((float)rotation[0], (float)rotation[1], (float)rotation[2], (float)rotation[3]);
 
             var modules = new List<object?>();
@@ -133,7 +134,8 @@ namespace Gonogo.KSP
                     ["size"] = Vec3Array(box.Size),
                     ["center"] = box.HasMesh ? Vec3Array(box.Center) : null,
                 },
-                ["shape"] = PartShapeWire.Key(info.name, VariantOf(node)),
+                ["shape"] = PartShapeWire.Key(info.name, variant),
+                ["shapePoses"] = PartShapePoses.Saved(prefab, variant, SavedModules(node, nameof(ModuleStructuralNode)), SavedPartRules.AttachedFromCraftFile(node.GetValues("attN"))),
                 ["fairing"] = FairingShellRead.Saved(FairingShellRead.SavedModule(node.GetNodes("MODULE")), prefab),
                 ["dryMass"] = (double)prefab.mass + Number(node.GetValue("modMass")),
                 ["inverseStage"] = (int)Number(node.GetValue("istg"), -1),
@@ -144,6 +146,20 @@ namespace Gonogo.KSP
                 ["modules"] = modules,
                 ["resources"] = resources,
             };
+        }
+
+        /// <summary>The part's saved modules named <paramref name="name"/>, in the order they were saved.</summary>
+        private static List<ConfigNode?> SavedModules(ConfigNode part, string name)
+        {
+            var found = new List<ConfigNode?>();
+            foreach (var module in part.GetNodes("MODULE"))
+            {
+                if (module.GetValue("name") == name)
+                {
+                    found.Add(module);
+                }
+            }
+            return found;
         }
 
         /// <summary>The variant the part was saved with, from its part-variants module, or null when it has none.</summary>

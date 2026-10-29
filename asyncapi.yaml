@@ -23967,8 +23967,10 @@ components:
             The meshes of this part that do not stand as its `PartShape` has them, each
             with where it stands now and whether it is drawn: a deployed leg, an open
             bay door, a turned nozzle, a shroud switched off. A mesh not listed is drawn
-            as the shape has it. `null` when every mesh does, and always `null` for a
-            part read from a saved craft or an unloaded craft, which stands as built.
+            as the shape has it. `null` when every mesh does. A part read from a saved
+            craft or an unloaded craft stands as built, so its only rows are the
+            structures it shows or hides by what is attached to it, such as a fairing's
+            interstage truss.
         fairing:
           description: |-
             The shell of a procedural fairing, as rings stacked along its axis. `null`

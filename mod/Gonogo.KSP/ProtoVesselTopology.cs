@@ -65,7 +65,8 @@ namespace Gonogo.KSP
         {
             var info = pps.partInfo;
             var prefab = info?.partPrefab;
-            var box = Measure(info?.name, prefab, pps.moduleVariantName);
+            var variant = prefab != null ? PartShapePoses.VariantFor(prefab, pps.moduleVariantName) : pps.moduleVariantName;
+            var box = Measure(info?.name, prefab, variant);
 
             string? parentId = null;
             var parentIndex = PartTreeRules.ParentIndex(index, pps.parentIdx, snapshots.Count);
@@ -134,7 +135,8 @@ namespace Gonogo.KSP
                     ["size"] = Vec3Array(box.Size),
                     ["center"] = box.HasMesh ? Vec3Array(box.Center) : null,
                 },
-                ["shape"] = info != null ? PartShapeWire.Key(info.name, pps.moduleVariantName) : null,
+                ["shape"] = info != null ? PartShapeWire.Key(info.name, variant) : null,
+                ["shapePoses"] = prefab != null ? PartShapePoses.Saved(prefab, variant, SavedModules(pps, nameof(ModuleStructuralNode)), AttachedNodes(pps)) : null,
                 ["fairing"] = FairingShellRead.Saved(SavedFairing(pps), prefab),
                 ["dryMass"] = (double)pps.mass,
                 ["inverseStage"] = pps.inverseStageIndex,
@@ -176,6 +178,40 @@ namespace Gonogo.KSP
                 ["tracking"] = null,
                 ["flameout"] = null,
             };
+        }
+
+        /// <summary>The saved values of the part's modules named <paramref name="name"/>, in the order they were saved.</summary>
+        private static List<ConfigNode?> SavedModules(ProtoPartSnapshot pps, string name)
+        {
+            var found = new List<ConfigNode?>();
+            if (pps.modules != null)
+            {
+                foreach (var module in pps.modules)
+                {
+                    if (module?.moduleName == name)
+                    {
+                        found.Add(module.moduleValues);
+                    }
+                }
+            }
+            return found;
+        }
+
+        /// <summary>The part's attach nodes that have a part on them.</summary>
+        private static HashSet<string> AttachedNodes(ProtoPartSnapshot pps)
+        {
+            var nodes = new List<KeyValuePair<string, int>>();
+            if (pps.attachNodes != null)
+            {
+                foreach (var node in pps.attachNodes)
+                {
+                    if (node != null)
+                    {
+                        nodes.Add(new KeyValuePair<string, int>(node.id, node.partIdx));
+                    }
+                }
+            }
+            return SavedPartRules.AttachedFromSnapshots(nodes);
         }
 
         /// <summary>The saved values of the part's fairing module, or null when it has none saved.</summary>

@@ -130,8 +130,9 @@ public class VesselPart
     /// has them, each with where it stands now and whether it is drawn: a
     /// deployed leg, an open bay door, a turned nozzle, a shroud switched off.
     /// A mesh not listed is drawn as the shape has it. <c>null</c> when every
-    /// mesh does, and always <c>null</c> for a part read from a saved craft or
-    /// an unloaded craft, which stands as built.
+    /// mesh does. A part read from a saved craft or an unloaded craft stands as
+    /// built, so its only rows are the structures it shows or hides by what is
+    /// attached to it, such as a fairing's interstage truss.
     /// </summary>
     public List<PartShapePose>? ShapePoses { get; set; }
 
