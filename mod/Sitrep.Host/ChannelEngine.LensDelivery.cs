@@ -168,6 +168,8 @@ namespace Sitrep.Host
                     }
                     ProcessUnsubscribe(session, bound.Key);
                     ProcessSubscribe(session, bound.Key);
+                    // With another holder the topic's count never reaches zero, so the subscribe above forces no keyframe, and the new node's archive is empty.
+                    _emitter.NotifySubscribed(bound.Key);
                 }
             }
         }
