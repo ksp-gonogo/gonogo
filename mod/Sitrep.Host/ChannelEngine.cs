@@ -10033,7 +10033,7 @@ namespace Sitrep.Host
             // above run before it is known. See RefreshLedgerDelays.
             RefreshLedgerDelays();
             _courier.ReissueWhereRoutesReturned();
-            RepointLensStreams();
+            RepointKeyRoutedStreams();
             AdvanceLensDelivery(tick.Ut);
             ReleaseReadingsNowTimed(tick.Ut);
             using (PerfTelemetry.Time("courier.craftReach"))
@@ -11448,9 +11448,9 @@ namespace Sitrep.Host
             try
             {
                 var boundNode = NodeFor(topic);
-                if (LensNodeFor(topic) != null)
+                if (RoutesByKeySegment(topic))
                 {
-                    session.LensNodes[topic] = boundNode;
+                    session.RoutedNodes[topic] = boundNode;
                 }
                 unsubscribe = _courier.SubscribeStream(boundNode, topic, vantage, delivered =>
                 {
@@ -11576,7 +11576,7 @@ namespace Sitrep.Host
                 // and bail out WITHOUT setting Unsubscribers/sending an ack,
                 // the client's subscribe simply never completes, matching
                 // "unavailable channel" behavior elsewhere in this class.
-                session.LensNodes.Remove(topic);
+                session.RoutedNodes.Remove(topic);
                 if (_subscriptions.Unsubscribe(topic))
                 {
                     _subscribedTopics.TryRemove(topic, out _);
@@ -11815,7 +11815,7 @@ namespace Sitrep.Host
             {
                 unsubscribe();
                 session.Unsubscribers.Remove(topic);
-                session.LensNodes.Remove(topic);
+                session.RoutedNodes.Remove(topic);
                 if (_subscriptions.Unsubscribe(topic))
                 {
                     _subscribedTopics.TryRemove(topic, out _);
@@ -12756,7 +12756,7 @@ namespace Sitrep.Host
             /// The node each lens topic's stream was bound to at subscribe, so a lens that
             /// is placed or moves afterwards can be found and re-pointed. Courier-thread only.
             /// </summary>
-            public readonly Dictionary<string, string> LensNodes = new Dictionary<string, string>();
+            public readonly Dictionary<string, string> RoutedNodes = new Dictionary<string, string>();
 
             /// <summary>
             /// The command centre this connection chose with a set-vantage message, or

@@ -141,26 +141,50 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Courier thread: re-subscribes every lens topic whose lens now stands at a
-        /// different node than the one its stream was bound to, the same
-        /// unsubscribe-then-subscribe a moved vantage gets. A lens placed after a client
-        /// subscribed (bound to the unplaced node until then) and a lens that moves
-        /// both follow their lens, so a reading is never left held on the old node and
-        /// never timed by it.
+        /// Whether the node a topic routes to depends on its key segment, so it can
+        /// change while a client stays subscribed: a lens topic (the lens moves) or a
+        /// topic under a per-vessel namespace (its key resolves to another craft).
         /// </summary>
-        private void RepointLensStreams()
+        private bool RoutesByKeySegment(string topic)
         {
-            if (_perLensNamespacePrefixes.Count == 0)
+            if (LensNodeFor(topic) != null)
+            {
+                return true;
+            }
+            foreach (var prefix in _perVesselNamespacePrefixes)
+            {
+                if (topic.StartsWith(prefix, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Courier thread: re-subscribes every key-routed topic whose key now resolves
+        /// to a different node than the one its stream was bound to, the same
+        /// unsubscribe-then-subscribe a moved vantage gets, and asks the emitter for a
+        /// keyframe so the subscriber is handed the current value at once even when
+        /// other subscribers keep the topic's count above zero. A lens placed after a
+        /// client subscribed (bound to the unplaced node until then), a lens that
+        /// moves, and a processor whose part is staged onto another craft all follow
+        /// their key, so a reading is never left held on the old node and never
+        /// timed by it.
+        /// </summary>
+        private void RepointKeyRoutedStreams()
+        {
+            if (_perLensNamespacePrefixes.Count == 0 && _perVesselNamespacePrefixes.Count == 0)
             {
                 return;
             }
             foreach (var session in _sessions.Values)
             {
-                if (session.LensNodes.Count == 0)
+                if (session.RoutedNodes.Count == 0)
                 {
                     continue;
                 }
-                foreach (var bound in session.LensNodes.ToArray())
+                foreach (var bound in session.RoutedNodes.ToArray())
                 {
                     if (NodeFor(bound.Key) == bound.Value)
                     {
