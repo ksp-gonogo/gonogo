@@ -1623,9 +1623,11 @@ namespace Sitrep.Core
         /// infinite delay for that vantage is skipped at delivery and at catch-up, so
         /// a fact that changed once during the silence would otherwise stay unseen
         /// until it changed again. It arrives after the delay now in force, or at
-        /// once when that has already passed.
+        /// once when that has already passed. Only a sample recorded at or after
+        /// <paramref name="sinceUt"/> is sent, so a vantage that began listening later is
+        /// not sent what left before it did.
         /// </summary>
-        public void ReissueUnheard(string node, string vantage)
+        public void ReissueUnheard(string node, string vantage, double sinceUt = double.NegativeInfinity)
         {
             if (!_subscribers.TryGetValue(node, out var byTopic))
             {
@@ -1648,7 +1650,9 @@ namespace Sitrep.Core
                     continue;
                 }
                 var newest = archived[archived.Count - 1];
-                if (newest.Stamp == null || !double.IsPositiveInfinity(newest.Stamp.For(vantage)))
+                if (newest.ValidAt < sinceUt
+                    || newest.Stamp == null
+                    || !double.IsPositiveInfinity(newest.Stamp.For(vantage)))
                 {
                     continue;
                 }
@@ -1664,6 +1668,73 @@ namespace Sitrep.Core
                         }
                     });
                 }
+            }
+        }
+
+        /*
+         * The (node, vantage) pairs a sweep found with no route, so the sweep that finds
+         * the route back knows to send what was missed. Courier-thread-only.
+         */
+        private readonly Dictionary<(string Node, string Vantage), double> _routeless = new Dictionary<(string, string), double>();
+        private readonly HashSet<(string Node, string Vantage)> _routeSeen = new HashSet<(string, string)>();
+        private readonly List<(string Node, string Vantage)> _routeGone = new List<(string, string)>();
+        private readonly List<(string Node, string Vantage, double SinceUt)> _routeReturned = new List<(string, string, double)>();
+
+        /// <summary>
+        /// Sends every subscribed vantage whose route to a node has returned since the last
+        /// call the newest sample of each topic it missed while it had none (see
+        /// <see cref="ReissueUnheard"/>). Run once per tick after the delay ledger is
+        /// written, so every vantage and node is covered, not only one.
+        /// </summary>
+        public void ReissueWhereRoutesReturned()
+        {
+            _routeSeen.Clear();
+            _routeReturned.Clear();
+            foreach (var byNode in _subscribers)
+            {
+                foreach (var subs in byNode.Value.Values)
+                {
+                    foreach (var subscriber in subs)
+                    {
+                        var pair = (byNode.Key, subscriber.Vantage);
+                        if (!_routeSeen.Add(pair))
+                        {
+                            continue;
+                        }
+                        if (double.IsPositiveInfinity(_network.DelayTo(subscriber.Vantage, byNode.Key)))
+                        {
+                            if (!_routeless.ContainsKey(pair))
+                            {
+                                _routeless[pair] = _clock.Now();
+                            }
+                            continue;
+                        }
+                        if (_routeless.TryGetValue(pair, out var since))
+                        {
+                            _routeless.Remove(pair);
+                            _routeReturned.Add((pair.Item1, pair.Item2, since));
+                        }
+                    }
+                }
+            }
+            if (_routeless.Count > 0)
+            {
+                _routeGone.Clear();
+                foreach (var pair in _routeless.Keys)
+                {
+                    if (!_routeSeen.Contains(pair))
+                    {
+                        _routeGone.Add(pair);
+                    }
+                }
+                foreach (var pair in _routeGone)
+                {
+                    _routeless.Remove(pair);
+                }
+            }
+            foreach (var pair in _routeReturned)
+            {
+                ReissueUnheard(pair.Node, pair.Vantage, pair.SinceUt);
             }
         }
 
