@@ -80,20 +80,18 @@ describe("Administration Building short form", () => {
         tech: null,
       });
     });
-    await screen.findByText("Open Source");
+    await screen.findAllByText(/Aggressive Negotiations|Open Source/);
     return view;
   }
 
   it("draws the full form in a short tile that is wide enough for it", async () => {
     await renderShort(5, [], 18);
-    expect(
-      screen.getByRole("region", { name: "Available" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Available" })).toBeInTheDocument();
   });
 
   it("draws one line per strategy with its state and its one action, and no Active or Available sections", async () => {
     await renderShort(5);
-    expect(screen.queryByRole("region", { name: "Available" })).toBeNull();
+    expect(screen.queryByRole("tab", { name: "Available" })).toBeNull();
     expect(screen.getByText("LOCKED")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /^Deactivate$/ }),
@@ -161,9 +159,7 @@ describe("Administration Building short form", () => {
 
   it("keeps the full cards from 7 rows up", async () => {
     await renderShort(9);
-    expect(
-      screen.getByRole("region", { name: "Available" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Available" })).toBeInTheDocument();
   });
 
   it("has no accessibility violations", async () => {

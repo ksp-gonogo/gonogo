@@ -11,6 +11,7 @@ import {
   setupStreamFixture,
 } from "../test/setupStreamFixture";
 import { AdministrationBuildingComponent, parseStrategies } from "./index";
+import { openTab } from "./openTab";
 
 /**
  * Eligibility is three-valued and the widget draws all three. A null
@@ -145,7 +146,7 @@ describe("Administration Building with an eligibility it could not read", () => 
     renderStrategies(fixture);
     emitCareer(fixture, [REFUSED]);
 
-    const locked = await screen.findByRole("region", { name: "Locked" });
+    const locked = await openTab("Locked");
     expect(within(locked).getByText("Patriotism Drive")).toBeInTheDocument();
     expect(
       within(locked).getByText(/Requires more reputation/i),
@@ -157,7 +158,7 @@ describe("Administration Building with an eligibility it could not read", () => 
     renderStrategies(fixture);
     emitCareer(fixture, [UNANSWERED, REFUSED]);
 
-    const locked = await screen.findByRole("region", { name: "Locked" });
+    const locked = await openTab("Locked");
     expect(within(locked).queryByText("Orbital Logistics")).toBeNull();
     expect(within(locked).getByText("Patriotism Drive")).toBeInTheDocument();
   });
@@ -168,7 +169,7 @@ describe("Administration Building with an eligibility it could not read", () => 
     renderStrategies(fixture);
     emitCareer(fixture, [UNANSWERED]);
 
-    const available = await screen.findByRole("region", { name: "Available" });
+    const available = await openTab("Available");
     expect(within(available).queryByText("Orbital Logistics")).toBeNull();
   });
 
@@ -177,9 +178,7 @@ describe("Administration Building with an eligibility it could not read", () => 
     renderStrategies(fixture);
     emitCareer(fixture, [UNANSWERED]);
 
-    const unknown = await screen.findByRole("region", {
-      name: "Eligibility unknown",
-    });
+    const unknown = await openTab("Eligibility unknown");
     expect(within(unknown).getByText("Orbital Logistics")).toBeInTheDocument();
     // On screen rather than in a tooltip, which is invisible to a keyboard and to a glance.
     expect(within(unknown).getByText(UNANSWERED_REASON)).toBeInTheDocument();
@@ -194,9 +193,7 @@ describe("Administration Building with an eligibility it could not read", () => 
       { ...UNANSWERED, id: "Second", title: "Deep Space Relay" },
     ]);
 
-    const unknown = await screen.findByRole("region", {
-      name: "Eligibility unknown",
-    });
+    const unknown = await openTab("Eligibility unknown");
     expect(within(unknown).getByText("Deep Space Relay")).toBeInTheDocument();
     expect(within(unknown).getAllByText(UNANSWERED_REASON)).toHaveLength(1);
   });
@@ -215,9 +212,7 @@ describe("Administration Building with an eligibility it could not read", () => 
       },
     ]);
 
-    const unknown = await screen.findByRole("region", {
-      name: "Eligibility unknown",
-    });
+    const unknown = await openTab("Eligibility unknown");
     expect(within(unknown).getByText(UNANSWERED_REASON)).toBeInTheDocument();
     expect(
       within(unknown).getByText(/eligibility check failed/),
@@ -229,9 +224,7 @@ describe("Administration Building with an eligibility it could not read", () => 
     renderStrategies(fixture);
     emitCareer(fixture, [UNANSWERED]);
 
-    const unknown = await screen.findByRole("region", {
-      name: "Eligibility unknown",
-    });
+    const unknown = await openTab("Eligibility unknown");
     expect(within(unknown).getByText(/12,500/)).toBeInTheDocument();
   });
 
@@ -241,6 +234,7 @@ describe("Administration Building with an eligibility it could not read", () => 
     emitCareer(fixture, [UNANSWERED]);
 
     // The unread reason is on screen in the list; the control itself is the command's to decide.
+    await openTab("Eligibility unknown");
     const activate = await screen.findByRole("button", { name: "Activate" });
     expect(activate).toBeEnabled();
     expect(activate).not.toHaveAttribute("aria-disabled");
@@ -298,7 +292,7 @@ describe("Administration Building with a verdict derived off-screen", () => {
     renderStrategies(fixture);
     emitCareer(fixture, [DERIVED_NO]);
 
-    const locked = await screen.findByRole("region", { name: "Locked" });
+    const locked = await openTab("Locked");
     expect(within(locked).getByText("Patriotism Drive")).toBeInTheDocument();
     expect(
       within(locked).getByText("You cannot afford this strategy."),
@@ -311,7 +305,7 @@ describe("Administration Building with a verdict derived off-screen", () => {
     renderStrategies(fixture);
     emitCareer(fixture, [DERIVED_YES]);
 
-    const available = await screen.findByRole("region", { name: "Available" });
+    const available = await openTab("Available");
     expect(within(available).getByText("Open Door Policy")).toBeInTheDocument();
   });
 
@@ -320,6 +314,7 @@ describe("Administration Building with a verdict derived off-screen", () => {
     renderStrategies(fixture);
     emitCareer(fixture, [DERIVED_YES]);
 
+    await openTab("Available");
     const activate = await screen.findByRole("button", { name: "Activate" });
     expect(activate).toBeEnabled();
 
@@ -344,9 +339,7 @@ describe("Administration Building committing a strategy the roster left unanswer
     renderStrategies(fixture);
     emitCareer(fixture, [UNANSWERED], { activationPatched: false });
 
-    const unknown = await screen.findByRole("region", {
-      name: "Eligibility unknown",
-    });
+    const unknown = await openTab("Eligibility unknown");
     expect(
       within(unknown).getByText(/made when you confirm/),
     ).toBeInTheDocument();
@@ -362,6 +355,7 @@ describe("Administration Building committing a strategy the roster left unanswer
     renderStrategies(fixture);
     emitCareer(fixture, [UNANSWERED], { activationPatched: true });
 
+    await openTab("Eligibility unknown");
     const activate = await screen.findByRole("button", { name: "Activate" });
     expect(activate).toBeEnabled();
   });
@@ -376,6 +370,7 @@ describe("Administration Building committing a strategy the roster left unanswer
       "another mod changes how a strategy activates",
     );
 
+    await openTab("Eligibility unknown");
     const activate = await screen.findByRole("button", {
       name: /another mod changes how a strategy activates/,
     });
@@ -398,7 +393,7 @@ describe("Administration Building committing a strategy the roster left unanswer
       { activationPatched: false },
     );
 
-    const locked = await screen.findByRole("region", { name: "Locked" });
+    const locked = await openTab("Locked");
     expect(within(locked).getByText("Orbital Logistics")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Activate" })).toBeNull();
   });
@@ -410,6 +405,7 @@ describe("Administration Building committing a strategy the roster left unanswer
       activationPatched: false,
     });
 
+    await openTab("Eligibility unknown");
     const activate = await screen.findByRole("button", { name: "Activate" });
     expect(activate).toBeEnabled();
     expect(

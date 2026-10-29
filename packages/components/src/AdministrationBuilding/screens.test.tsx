@@ -308,7 +308,11 @@ describe("Administration Building: the screen contribution slot", () => {
     expect(await screen.findByText("Polar Orbit Survey")).toBeTruthy();
     // Every strategy is on screen, ungrouped.
     expect(screen.getByText("Chief Designer Aster")).toBeTruthy();
-    expect(screen.queryByRole("tablist")).toBeNull();
+    expect(
+      screen.queryByRole("tablist", {
+        name: "Administration Building screens",
+      }),
+    ).toBeNull();
   });
 
   it("draws a tab per contributed screen and lists only that screen's departments", async () => {
@@ -356,7 +360,9 @@ describe("Administration Building: the screen contribution slot", () => {
     act(() => {
       emitCareer(stream, PLANTED_CAREER);
     });
-    await screen.findByRole("tablist");
+    await screen.findByRole("tablist", {
+      name: "Administration Building screens",
+    });
 
     await user.click(screen.getByRole("tab", { name: "Other" }));
     expect(screen.getByText("Chief Designer Aster")).toBeTruthy();
@@ -376,7 +382,9 @@ describe("Administration Building: the screen contribution slot", () => {
     act(() => {
       emitCareer(stream, PLANTED_CAREER);
     });
-    await screen.findByRole("tablist");
+    await screen.findByRole("tablist", {
+      name: "Administration Building screens",
+    });
 
     const surveys = screen.getByRole("tab", { name: "Surveys" });
     surveys.focus();
@@ -409,7 +417,9 @@ describe("Administration Building: the screen contribution slot", () => {
     act(() => {
       emitCareer(stream, PLANTED_CAREER);
     });
-    await screen.findByRole("tablist");
+    await screen.findByRole("tablist", {
+      name: "Administration Building screens",
+    });
 
     const leads = screen.getByRole("tab", { name: "Leads" });
     expect(leads).not.toBeDisabled();
@@ -448,9 +458,11 @@ describe("Administration Building: the screen contribution slot", () => {
     act(() => {
       emitCareer(stream, PLANTED_CAREER);
     });
-    await screen.findByRole("tablist");
+    await screen.findByRole("tablist", {
+      name: "Administration Building screens",
+    });
 
-    expect(screen.getByLabelText("Active")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Active" })).toBeInTheDocument();
     expect(screen.queryByTestId("screen-body")).toBeNull();
     expect(screen.queryByRole("separator")).toBeNull();
   });
@@ -474,7 +486,9 @@ describe("Administration Building: the screen contribution slot", () => {
     act(() => {
       emitCareer(stream, PLANTED_CAREER);
     });
-    await screen.findByRole("tablist");
+    await screen.findByRole("tablist", {
+      name: "Administration Building screens",
+    });
 
     await waitFor(() =>
       expect(screen.getByTestId("screen-body")).toHaveTextContent(
@@ -508,8 +522,12 @@ describe("Administration Building: the screen contribution slot", () => {
     );
     expect(inset).not.toBeNull();
     if (inset === null) return;
-    expect(within(inset).getByLabelText("Active")).toBeInTheDocument();
-    expect(within(inset).getByLabelText("Available")).toBeInTheDocument();
+    expect(
+      within(inset).getByRole("tab", { name: "Active" }),
+    ).toBeInTheDocument();
+    expect(
+      within(inset).getByRole("tab", { name: "Available" }),
+    ).toBeInTheDocument();
     expect(within(inset).getByTestId("screen-body")).toBeInTheDocument();
   });
 
@@ -527,12 +545,15 @@ describe("Administration Building: the screen contribution slot", () => {
     act(() => {
       emitCareer(stream, PLANTED_CAREER);
     });
-    await screen.findByRole("tablist");
+    await screen.findByRole("tablist", {
+      name: "Administration Building screens",
+    });
     expect(screen.queryByText("Surveys", { ignore: "[role=tab]" })).toBeNull();
 
     // The trailing screen names no department, so there the chip is the only thing that says which is which.
     await user.click(screen.getByRole("tab", { name: "Other" }));
     expect(screen.getByText("Engineering")).toBeTruthy();
+    await user.click(screen.getByRole("tab", { name: "Locked" }));
     expect(screen.getByText("Administration")).toBeTruthy();
   });
 
@@ -564,12 +585,14 @@ describe("Administration Building: the screen contribution slot", () => {
     act(() => {
       emitCareer(stream, PLANTED_CAREER);
     });
-    await screen.findByRole("tablist");
+    await screen.findByRole("tablist", {
+      name: "Administration Building screens",
+    });
 
     await user.click(screen.getByRole("tab", { name: "Finances" }));
     expect(await screen.findByTestId("finances-body")).toBeTruthy();
-    expect(screen.queryByLabelText("Active")).toBeNull();
-    expect(screen.queryByLabelText("Available")).toBeNull();
+    expect(screen.queryByRole("tab", { name: "Active" })).toBeNull();
+    expect(screen.queryByRole("tab", { name: "Available" })).toBeNull();
     expect(screen.queryByText(/No active strategies/)).toBeNull();
     expect(screen.queryByText(/No strategies available/)).toBeNull();
 
@@ -595,7 +618,9 @@ describe("Administration Building: the screen contribution slot", () => {
     act(() => {
       emitCareer(stream, PLANTED_CAREER);
     });
-    await screen.findByRole("tablist");
+    await screen.findByRole("tablist", {
+      name: "Administration Building screens",
+    });
 
     // Surveys are eligible under PLANTED_CAREER, so a host Activate would normally draw here.
     expect(screen.getByText("Polar Orbit Survey")).toBeTruthy();
@@ -640,7 +665,9 @@ describe("Administration Building: the screen contribution slot", () => {
         }),
       ]);
     });
-    await screen.findByRole("tablist");
+    await screen.findByRole("tablist", {
+      name: "Administration Building screens",
+    });
 
     expect(screen.getByText("Polar Orbit Survey")).toBeTruthy();
     expect(screen.queryByText(/23\.5/)).toBeNull();
@@ -669,7 +696,9 @@ describe("Administration Building: the screen contribution slot", () => {
     act(() => {
       emitCareer(stream, PLANTED_CAREER);
     });
-    await screen.findByRole("tablist");
+    await screen.findByRole("tablist", {
+      name: "Administration Building screens",
+    });
     await expectNoA11yViolations(container);
   });
 });

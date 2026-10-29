@@ -17,6 +17,7 @@ import {
   parseEffectLines,
   parseStrategies,
 } from "./index";
+import { openTab } from "./openTab";
 
 function emitCareer(
   fixture: ReturnType<typeof setupStreamFixture>,
@@ -265,8 +266,37 @@ describe("AdministrationBuildingComponent", () => {
       });
     });
 
+    const available = await openTab("Available");
     expect(
-      await screen.findByText(/Deactivate the running strategy first/i),
+      within(available).getByText(/Deactivate the running strategy first/i),
+    ).toBeInTheDocument();
+  });
+
+  it("opens on Active when a strategy is running", async () => {
+    renderWidget();
+    act(() => {
+      emitCareer(stream, [SAMPLE_ACTIVE, SAMPLE_BLOCKED], {
+        funds: 289848,
+        reputation: 976,
+        science: 0,
+      });
+    });
+    expect(
+      await screen.findByRole("tab", { name: "Active", selected: true }),
+    ).toBeInTheDocument();
+  });
+
+  it("opens on Available when no strategy is running", async () => {
+    renderWidget();
+    act(() => {
+      emitCareer(stream, [SAMPLE_BLOCKED], {
+        funds: 289848,
+        reputation: 976,
+        science: 0,
+      });
+    });
+    expect(
+      await screen.findByRole("tab", { name: "Available", selected: true }),
     ).toBeInTheDocument();
   });
 
@@ -280,7 +310,7 @@ describe("AdministrationBuildingComponent", () => {
       });
     });
 
-    const locked = await screen.findByRole("region", { name: "Locked" });
+    const locked = await openTab("Locked");
     expect(within(locked).getByText("Patriotism Drive")).toBeInTheDocument();
     expect(
       within(locked).getByText(/Requires more reputation/i),
