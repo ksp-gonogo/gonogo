@@ -81,7 +81,8 @@ const MODULES = import.meta.glob<{ default: Fixture }>(
 );
 
 interface WireManeuver {
-  nodes?: Array<{ ut: number; patches?: WirePatch[] }>;
+  /** A locked field arrives as an object naming what is missing, not a list. */
+  nodes?: Array<{ ut: number; patches?: WirePatch[] }> | { locked: unknown[] };
 }
 
 interface Scene {
@@ -184,7 +185,7 @@ function elementFingerprint(s: Scene): string {
     s.orbit.argPe,
     s.orbit.mu,
     s.bodyName,
-    (s.maneuver?.nodes ?? []).map((n) => [
+    (Array.isArray(s.maneuver?.nodes) ? s.maneuver.nodes : []).map((n) => [
       n.ut,
       (n.patches ?? []).map((p) => [p.sma, p.ecc, p.inc, p.lan, p.argPe]),
     ]),
@@ -209,6 +210,9 @@ describe("GroundTrack fixtures describe scenes that can exist", () => {
     expect(scenes.map((s) => s.slug).sort()).toEqual([
       "kerbin-held-over-desert",
       "kerbin-launchpad",
+      "kerbin-lko-contract-waypoints",
+      "kerbin-lko-contract-waypoints-empty-map",
+      "kerbin-lko-contract-waypoints-tracking-station-level-1",
       "kerbin-lko-equator",
       "kerbin-mun-encounter",
       "kerbin-over-desert",

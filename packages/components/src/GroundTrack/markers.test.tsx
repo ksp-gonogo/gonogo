@@ -4,11 +4,12 @@ import {
   registerAugment,
 } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import {
   createDomainAvailabilityStore,
   DomainAvailabilityContext,
 } from "@ksp-gonogo/ui-kit";
+import { installFixedSizeResizeObserver } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { GroundTrackComponent } from "./index";
@@ -303,9 +304,17 @@ describe("GroundTrack's imaging chip across a dropped link", () => {
 });
 
 describe("GroundTrack when a map source hides the stock terrain and has no data", () => {
-  afterEach(() => clearAugments());
+  let restoreResizeObserver: () => void = () => {};
+  afterEach(() => {
+    clearAugments();
+    restoreResizeObserver();
+  });
 
-  it("still draws the vessel and its prediction over the empty map", async () => {
+  it("still draws the vessel, its prediction and the contract waypoints over the empty map", async () => {
+    restoreResizeObserver = installFixedSizeResizeObserver({
+      width: 600,
+      height: 300,
+    });
     clearAugments();
     registerAugment({
       id: "test-empty-terrain",
@@ -327,6 +336,44 @@ describe("GroundTrack when a map source hides the stock terrain and has no data"
     );
     act(() => store.setAvailable("test-empty-terrain-domain", true));
     emitDescent(fixture);
+    act(() => {
+      fixture.emit("vessel.identity", {
+        vesselId: "v1",
+        name: "Kerbal X",
+        vesselType: 0,
+        situation: 1,
+        parentBodyIndex: 1,
+        launchUt: 0,
+      });
+      fixture.emit("spaceCenter.pois", [
+        {
+          id: "contract:3f2b8c1e-5a4d-4e7a-9c11-0a6d2b7e4f10",
+          kind: "contractTarget",
+          bodyIndex: 1,
+          latitude: -2.5,
+          longitude: -40,
+          label: "Survey the Kerbin shores",
+          status: "active",
+          contractAgent: "Kerbin World-Firsts Record-Keeping Society",
+          contractFundsAdvance: 8200,
+          contractFundsCompletion: 24600,
+          contractDateDeadline: null,
+        },
+        {
+          id: "contract:9d14e0aa-7c52-4b1f-8e33-52b9c1d6a8f2",
+          kind: "contractTarget",
+          bodyIndex: 1,
+          latitude: -14,
+          longitude: -110,
+          label: "Recover a probe from the desert",
+          status: "available",
+          contractAgent: "Rockomax Conglomerate",
+          contractFundsAdvance: 3100,
+          contractFundsCompletion: 12400,
+          contractDateDeadline: null,
+        },
+      ]);
+    });
 
     await waitFor(() =>
       expect(container.querySelector("[data-vessel-marker]")).not.toBeNull(),
@@ -334,5 +381,13 @@ describe("GroundTrack when a map source hides the stock terrain and has no data"
     expect(
       container.querySelector("[data-prediction-segments]"),
     ).not.toBeNull();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Survey the Kerbin shores" }),
+      ).toBeInTheDocument(),
+    );
+    expect(
+      screen.getByRole("button", { name: "Recover a probe from the desert" }),
+    ).toBeInTheDocument();
   });
 });
