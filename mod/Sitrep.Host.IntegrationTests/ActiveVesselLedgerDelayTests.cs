@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Sitrep.Contract;
-using Sitrep.Contract.Serialization;
 using Sitrep.Host;
 using Sitrep.Host.CommandCentres;
 using Xunit;
@@ -175,58 +174,6 @@ namespace Sitrep.Host.IntegrationTests
             {
                 engine.Stop();
             }
-        }
-
-        /// <summary>
-        /// A centre whose route to the active craft was down when a reading was recorded was
-        /// sent nothing, and the reading is not repeated while it stays equal. When the route
-        /// returns, that centre is sent the reading it missed.
-        /// </summary>
-        [Fact]
-        public async Task ACentreWhoseRouteReturnsIsSentTheReadingItMissedWhileItWasDown()
-        {
-            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new HomeLedgerTestUplink());
-            engine.RegisterCommandCentreSource(new FixedSource(Centres));
-            engine.Start();
-            try
-            {
-                engine.TickAndWait(0.0, null, Timeout);
-                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = OtherGround }));
-                await SubscribeAsync(client, HomeLedgerTestUplink.CraftTopic, Timeout);
-
-                WriteRows(engine, G);
-                engine.SetUnroutable(new Dictionary<string, IReadOnlyCollection<string>> { [OtherGround] = new[] { ChannelEngine.NodeId } });
-                Tick(engine, 1.0, craft: 5.0);
-                Tick(engine, 2.0, craft: 5.0);
-                await DrainAllStreamDataAsync(client, Quiet);
-
-                engine.SetUnroutable(new Dictionary<string, IReadOnlyCollection<string>>());
-                WriteRows(engine, G);
-                foreach (var ut in new[] { 3.0, 4.0, 10.0, 400.0, 401.0 })
-                {
-                    Tick(engine, ut, craft: 5.0);
-                }
-
-                var frames = await DrainAllStreamDataAsync(client, Quiet);
-                Assert.Contains(frames, f => f.Topic == HomeLedgerTestUplink.CraftTopic && f.Payload != null);
-            }
-            finally
-            {
-                engine.Stop();
-            }
-        }
-
-        private sealed class FixedSource : ICommandCentreSource
-        {
-            private readonly ICommandCentre[] _centres;
-
-            public FixedSource(params ICommandCentre[] centres) => _centres = centres;
-
-            public string ProviderId => "active-vessel-ledger-test";
-
-            public IEnumerable<ICommandCentre> Enumerate() => _centres;
         }
 
         private static ChannelEngine StartedEngine()

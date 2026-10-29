@@ -1667,54 +1667,6 @@ namespace Sitrep.Core
             }
         }
 
-        /*
-         * The (node, vantage) pairs a sweep found with no route, so the sweep that finds
-         * the route back knows to send what was missed. Courier-thread-only.
-         */
-        private readonly HashSet<(string Node, string Vantage)> _routeless = new HashSet<(string, string)>();
-        private readonly HashSet<(string Node, string Vantage)> _routeSeen = new HashSet<(string, string)>();
-        private readonly List<(string Node, string Vantage)> _routeReturned = new List<(string, string)>();
-
-        /// <summary>
-        /// Sends every subscribed vantage whose route to a node has returned since the last
-        /// call the newest sample of each topic it missed while it had none (see
-        /// <see cref="ReissueUnheard"/>). Run once per tick after the delay ledger is
-        /// written, so every vantage and node is covered, not only one.
-        /// </summary>
-        public void ReissueWhereRoutesReturned()
-        {
-            _routeSeen.Clear();
-            _routeReturned.Clear();
-            foreach (var byNode in _subscribers)
-            {
-                foreach (var subs in byNode.Value.Values)
-                {
-                    foreach (var subscriber in subs)
-                    {
-                        var pair = (byNode.Key, subscriber.Vantage);
-                        if (!_routeSeen.Add(pair))
-                        {
-                            continue;
-                        }
-                        if (double.IsPositiveInfinity(_network.DelayTo(subscriber.Vantage, byNode.Key)))
-                        {
-                            _routeless.Add(pair);
-                            continue;
-                        }
-                        if (_routeless.Remove(pair))
-                        {
-                            _routeReturned.Add(pair);
-                        }
-                    }
-                }
-            }
-            _routeless.RemoveWhere(pair => !_routeSeen.Contains(pair));
-            foreach (var pair in _routeReturned)
-            {
-                ReissueUnheard(pair.Node, pair.Vantage);
-            }
-        }
-
         /// <summary>
         /// Lets go of everything held for <paramref name="node"/>: its archive, its
         /// subscribers and what was owed them. For a node nothing will record on

@@ -3838,6 +3838,7 @@ namespace Sitrep.Host
             {
                 _network.SetDelay(centre, HomeCommandNode, double.PositiveInfinity);
             }
+            var heardAgain = _homeSilentCentres.Where(oneWaySecondsByCentre.ContainsKey).ToList();
             _homeSilentCentres = silent;
 
             _homeRowCentres.Clear();
@@ -3849,6 +3850,17 @@ namespace Sitrep.Host
                 }
                 _network.SetDelay(row.Key, HomeCommandNode, row.Value);
                 _homeRowCentres.Add(row.Key);
+            }
+
+            /* What changed while a centre had no route home never reached it, and a
+               fact that changes once is not sent again. The newest of each is sent
+               now that the route is back. */
+            foreach (var centre in heardAgain)
+            {
+                if (centre != MetaVantage)
+                {
+                    _courier.ReissueUnheard(HomeCommandNode, centre);
+                }
             }
         }
 
@@ -9186,7 +9198,7 @@ namespace Sitrep.Host
         /// <summary>
         /// A craft switched to has told the ground nothing yet, whether its link is down or
         /// its signal delay has not elapsed, so what the active-vessel topics still hold
-        /// belongs to the craft left behind. Each one that holds a reading is withdrawn
+        /// belongs to the craft left behind. Each one that has been recorded is withdrawn
         /// at once, since the switch is the ground's own act and no signal carries it, so a
         /// subscriber reads no reading instead of another craft's. The new craft's own
         /// samples reach the ground after its delay, or when its link comes up.
@@ -9198,19 +9210,14 @@ namespace Sitrep.Host
                 var topic = entry.Key;
                 if (entry.Value.Delay != DelayRole.Delayed
                     || IsFreezeExempt(topic)
-                    || NodeFor(topic) != NodeId)
+                    || NodeFor(topic) != NodeId
+                    || !_lastRecordedUt.ContainsKey(topic))
                 {
                     continue;
                 }
-                // A topic whose last recording was cleared by a timeline reset can still
-                // have the old craft's reading in the archive.
-                if (_lastRecordedUt.ContainsKey(topic) || _courier.HasAnyArchiveTail(NodeId, topic))
-                {
-                    RecordThrough(topic, null, ut, new DelayStamp(0.0));
-                }
-                // The emitter's last-emitted value is the old craft's whether or not it was
-                // ever recorded (a dark craft's samples are held, then discarded), so an equal
-                // first sample from the new craft would be suppressed.
+                RecordThrough(topic, null, ut, new DelayStamp(0.0));
+                // The withdrawal bypassed the emitter, whose last-emitted value is still the
+                // old craft's: an equal first sample from the new craft would be suppressed.
                 _emitter.Rebaseline(topic);
             }
         }
@@ -10030,7 +10037,6 @@ namespace Sitrep.Host
             // the sampled-source handles (SetVesselDelay) and the delay refresh
             // above run before it is known. See RefreshLedgerDelays.
             RefreshLedgerDelays();
-            _courier.ReissueWhereRoutesReturned();
             RepointLensStreams();
             AdvanceLensDelivery(tick.Ut);
             ReleaseReadingsNowTimed(tick.Ut);
