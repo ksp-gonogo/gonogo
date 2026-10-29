@@ -122,7 +122,7 @@ namespace Gonogo.DevTools
                 var reason = index < trace.RequestedIndex && fetch.Mode == TimeWarp.Modes.HIGH
                     ? LimitReason(fetch, trace.RequestedIndex)
                     : null;
-                trace.Record(Time.realtimeSinceStartup - _requestedAt, index, rate, reason);
+                trace.Record(Time.realtimeSinceStartup - _requestedAt, index, rate, reason, ReadCraft(trace.RequestedIndex));
             }
             catch (Exception ex)
             {
@@ -148,6 +148,26 @@ namespace Gonogo.DevTools
             method.Invoke(fetch, args);
             var status = args[2]?.ToString();
             return status == "CLEAR" ? null : status;
+        }
+
+        private static WarpTrace.CraftState? ReadCraft(int requestedIndex)
+        {
+            var vessel = FlightGlobals.ActiveVessel;
+            var fetch = TimeWarp.fetch;
+            if (vessel == null)
+            {
+                return null;
+            }
+
+            double? limit = null;
+            if (fetch != null && vessel.mainBody != null && fetch.altitudeLimits != null
+                && requestedIndex >= 0 && requestedIndex < fetch.altitudeLimits.Length)
+            {
+                limit = fetch.GetAltitudeLimit(requestedIndex, vessel.mainBody);
+            }
+
+            vessel.GetConnectedResourceTotals(PartResourceLibrary.ElectricityHashcode, out var amount, out var max);
+            return new WarpTrace.CraftState(vessel.altitude, limit, amount, max);
         }
 
         private void Update()
@@ -260,7 +280,7 @@ namespace Gonogo.DevTools
                     return;
                 }
 
-                _trace = new WarpTrace(index);
+                _trace = new WarpTrace(index) { AtRequest = ReadCraft(index) };
                 _requestedAt = Time.realtimeSinceStartup;
 
                 // Not instant: letting KSP ramp is what makes a refusal show up

@@ -58,7 +58,33 @@ namespace Gonogo.KSP.Tests.DevTools
             trace.Record(0.1, 7, 100000f, null);
             trace.Record(2.0, 3, 50f, null);
 
-            Assert.EndsWith(", no reason from the game", trace.Verdict(finalIndex: 3).Message);
+            Assert.EndsWith(
+                ", lowered by something other than the game's own limits (for example another mod)",
+                trace.Verdict(finalIndex: 3).Message);
+        }
+
+        [Fact]
+        public void ALoweringWithNoReasonReportsTheChargeAtRequestAndAtDrop()
+        {
+            var trace = new WarpTrace(7) { AtRequest = new WarpTrace.CraftState(700000, 600000, 530, 1000) };
+            trace.Record(0.1, 7, 100000f, null);
+            trace.Record(0.4, 0, 1f, null, new WarpTrace.CraftState(700000, 600000, 4.5, 1000));
+
+            Assert.EndsWith(
+                "; electric charge at request 530 of 1000, at drop 4.5 of 1000",
+                trace.Verdict(finalIndex: 0).Message);
+        }
+
+        [Fact]
+        public void AnAltitudeLimitNamesTheCraftAltitudeAndTheLimitOfTheRung()
+        {
+            var trace = new WarpTrace(7);
+            trace.Record(0.1, 5, 1000f, "NOT_IN_ATMOSPHERE", new WarpTrace.CraftState(20000, 600000, null, null));
+
+            Assert.Equal(
+                "never reached 7: the game ran at most 5, now 5: the vessel is in or about to enter the atmosphere"
+                + " (craft at 20000 m, limit for the requested rung 600000 m)",
+                trace.Verdict(finalIndex: 5).Message);
         }
 
         [Fact]
