@@ -2,11 +2,12 @@
 /**
  * Does the engine route what the real, released Uplinks declare?
  *
- *   node scripts/uplink-routing-probe.mjs --uplinks <gonogo-uplinks checkout> [--only <dir>...]
+ *   node scripts/uplink-routing-probe.mjs --uplinks <gonogo-uplinks checkout> [--nupkg <file>] [--only <dir>...]
  *
- * Packs the contract from this commit into a scratch copy of the checkout (the
- * way `vendor-uplinks-reference-set.sh` pins it there), builds each Uplink's
- * plugin against that package, and hands every plugin to
+ * Pins the contract into a scratch copy of the checkout, either the package
+ * `--nupkg` names (the one a CI step has already packed and gated) or one packed
+ * from this commit the way `vendor-uplinks-reference-set.sh` does, builds each
+ * Uplink's plugin against it, and hands every plugin to
  * `uplink-routing-probe/`: a real `ChannelEngine`, the mod's own
  * `UplinkDiscovery`, and for each declared channel, command Subject and
  * dynamic namespace a check that the topic routes to a placed node and that a
@@ -23,15 +24,27 @@
  */
 import { spawnSync } from "node:child_process";
 import {
+  copyFileSync,
   cpSync,
   existsSync,
+  mkdirSync,
   readdirSync,
   readFileSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { makeTempDir } from "./temp-dir.mjs";
+
+/**
+ * Uplinks whose plugin cannot be loaded with the reference set the `mod` job
+ * has: their types reference UnityEngine.UI, which that set does not carry. Each
+ * is probed when the set has it and printed as not probed when it does not. The
+ * list only shrinks: an Uplink not named here that fails to load is a failure,
+ * and a named one that loads is reported so it can come off.
+ */
+const KNOWN_UNLOADABLE = ["kerbalism", "testflight"];
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -74,14 +87,44 @@ cpSync(resolve(uplinksArg), scratch, {
   filter: (src) => !/[\\/](node_modules|\.git|bin|obj)([\\/]|$)/.test(src),
 });
 
-const pin = run(
-  "bash",
-  [join(ROOT, "scripts/vendor-uplinks-reference-set.sh"), scratch, "HEAD"],
-  { cwd: ROOT },
-);
-if (pin.status !== 0) {
-  console.error(`✖ could not pack the contract:\n${pin.stdout}${pin.stderr}`);
-  process.exit(1);
+const [nupkgArg] = flagValues("--nupkg");
+if (nupkgArg) {
+  /* A package a CI step has already packed and gated, used as it is so the probe
+     tries exactly the file that step vouched for. The version every project in the
+     scratch copy references is read off the file name. */
+  const nupkg = resolve(nupkgArg);
+  const version = basename(nupkg).match(
+    /^KspGonogo\.Sitrep\.Contract\.(.+)\.nupkg$/,
+  )?.[1];
+  if (!version || !existsSync(nupkg)) {
+    console.error(`✖ ${nupkgArg} is not a KspGonogo.Sitrep.Contract package`);
+    process.exit(2);
+  }
+  const feed = join(scratch, "vendor", "nuget");
+  mkdirSync(feed, { recursive: true });
+  for (const old of readdirSync(feed)) {
+    if (/^KspGonogo\.Sitrep\.Contract\..+\.nupkg$/.test(old))
+      rmSync(join(feed, old));
+  }
+  copyFileSync(nupkg, join(feed, basename(nupkg)));
+  const props = join(scratch, "Directory.Build.props");
+  writeFileSync(
+    props,
+    readFileSync(props, "utf8").replace(
+      /<GonogoContractVersion>[^<]*<\/GonogoContractVersion>/,
+      `<GonogoContractVersion>${version}</GonogoContractVersion>`,
+    ),
+  );
+} else {
+  const pin = run(
+    "bash",
+    [join(ROOT, "scripts/vendor-uplinks-reference-set.sh"), scratch, "HEAD"],
+    { cwd: ROOT },
+  );
+  if (pin.status !== 0) {
+    console.error(`✖ could not pack the contract:\n${pin.stdout}${pin.stderr}`);
+    process.exit(1);
+  }
 }
 
 const dirs = readdirSync(join(scratch, "uplinks")).filter(
@@ -225,13 +268,24 @@ const refs = [
 
 let failed = 0;
 let checked = 0;
+const skipped = [];
 for (const { dir, dll } of plugins) {
-  const probe = run("dotnet", [probeDll, ...refs, dll]);
+  const listed = KNOWN_UNLOADABLE.includes(dir);
+  const probe = run("dotnet", [
+    probeDll,
+    ...(listed ? ["--allow-unloadable"] : []),
+    ...refs,
+    dll,
+  ]);
   const lines = probe.stdout
     .split("\n")
-    .filter((l) => /^(ok|FAIL|note) /.test(l));
+    .filter((l) => /^(ok|FAIL|note|skip) /.test(l));
   console.log(`== ${dir}`);
   for (const line of lines) console.log(line);
+  const wasSkipped = lines.some((l) => l.startsWith("skip"));
+  if (wasSkipped) skipped.push(dir);
+  if (listed && !wasSkipped)
+    console.log(`note ${dir} loaded here, so it can come off KNOWN_UNLOADABLE`);
   checked += lines.filter((l) => l.startsWith("ok")).length;
   if (probe.status !== 0) {
     failed++;
@@ -250,7 +304,7 @@ if (checked === 0) {
 }
 console.log(
   failed === 0
-    ? `routing probe: ${plugins.length} Uplink(s) probed, every declared topic routes and delivers`
+    ? `routing probe: ${plugins.length - skipped.length} of ${plugins.length} Uplink(s) probed, every declared topic routes and delivers${skipped.length > 0 ? `; not probed, a reference assembly is missing here: ${skipped.join(", ")}` : ""}`
     : `routing probe: ${failed} of ${plugins.length} Uplink(s) failed`,
 );
 process.exit(failed === 0 ? 0 : 1);

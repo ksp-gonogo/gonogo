@@ -1117,7 +1117,7 @@ jobs:
         env:
           KSP_GAMEDATA: ${{ github.workspace }}/ksp-managed/GameData
           KSP_MANAGED: ${{ github.workspace }}/ksp-managed/KSP_Data/Managed
-        run: node scripts/uplink-routing-probe.mjs --uplinks gonogo-uplinks
+        run: node scripts/uplink-routing-probe.mjs --uplinks gonogo-uplinks --nupkg "$RUNNER_TEMP"/nuget/KspGonogo.Sitrep.Contract.*.nupkg
 
   # Sitrep.Host.IntegrationTests is serial by design (TestParallelization.cs:
   # real sockets under wall-clock budgets) and takes 15 minutes in one process,
