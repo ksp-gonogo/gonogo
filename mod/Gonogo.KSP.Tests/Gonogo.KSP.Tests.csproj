@@ -151,6 +151,7 @@
          CrewedVesselSource.cs, needs a live Vessel and is not compiled here at all
          - same carve-out as CommNetOcclusion.cs above. -->
     <Compile Include="..\Gonogo.KSP\CommandCentres\CommandCentreReach.cs" />
+    <Compile Include="..\Gonogo.KSP\CommandCentres\HomeSearchRule.cs" />
     <!-- CalendarEpoch.cs reflects the real-world anchor off whatever date
          formatter the game installed. It takes a plain object and names no KSP
          type, so the shapes it has to survive (an anchor named epoch, an

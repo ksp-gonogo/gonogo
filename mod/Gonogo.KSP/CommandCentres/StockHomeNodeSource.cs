@@ -150,26 +150,22 @@ namespace Gonogo.KSP.CommandCentres
         /*
          * Finding every CommNetHome walks all the scene's objects, which costs about ten
          * milliseconds on the main thread and is asked several times a sample. The homes are
-         * created with the scene, so the list found is kept until the scene changes, one of its
-         * homes is destroyed, or this many real seconds have gone by, which is how long a home
-         * made after the scene loaded can go unseen. Each home is still read live every call.
+         * created with the scene, so the list found is kept until HomeSearchRule calls for
+         * another search: a scene change, a destroyed home, a change in how many home nodes
+         * the CommNet network holds, or its fallback age. Each home is still read live every call.
          */
-        private const float HomeSearchSeconds = 5f;
         private static CommNetHome[]? _foundHomes;
         private static GameScenes _foundIn;
         private static float _foundAt;
+        private static int? _foundHomeNodes;
 
         internal static CommNetHome[] FindHomes()
         {
             var now = UnityEngine.Time.realtimeSinceStartup;
             var cached = _foundHomes;
-            if (cached != null
-                && cached.Length > 0
-                && _foundIn == HighLogic.LoadedScene
-                && now - _foundAt < HomeSearchSeconds
-                && now >= _foundAt)
+            var intact = true;
+            if (cached != null)
             {
-                var intact = true;
                 foreach (var home in cached)
                 {
                     if (home == null)
@@ -178,17 +174,42 @@ namespace Gonogo.KSP.CommandCentres
                         break;
                     }
                 }
-                if (intact)
-                {
-                    return cached;
-                }
+            }
+
+            var homeNodes = HomeNodesInNetwork();
+            if (cached != null
+                && !HomeSearchRule.SearchAgain(cached.Length > 0, intact, _foundIn == HighLogic.LoadedScene, now - _foundAt, homeNodes, _foundHomeNodes))
+            {
+                return cached;
             }
 
             var found = UnityEngine.Object.FindObjectsOfType<CommNetHome>();
             _foundHomes = found;
             _foundIn = HighLogic.LoadedScene;
             _foundAt = now;
+            _foundHomeNodes = homeNodes;
             return found;
+        }
+
+        /// <summary>How many home nodes the CommNet network holds now, or null while there is no network.</summary>
+        private static int? HomeNodesInNetwork()
+        {
+            var network = CommNetNetwork.Instance != null ? CommNetNetwork.Instance.CommNet : null;
+            if (network == null)
+            {
+                return null;
+            }
+
+            var homes = 0;
+            for (var i = 0; i < network.Count; i++)
+            {
+                var node = network[i];
+                if (node != null && node.isHome)
+                {
+                    homes++;
+                }
+            }
+            return homes;
         }
 
         private static IEnumerable<HomeReading> ReadSceneHomes()
