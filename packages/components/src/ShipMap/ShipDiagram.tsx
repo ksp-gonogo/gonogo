@@ -51,7 +51,7 @@ interface Props {
 }
 
 /** The diagram is too small to hold the rotate control beside the reset one under this width, in px. */
-const ROTATE_MIN_WIDTH = 220;
+export const ROTATE_MIN_WIDTH = 220;
 
 export function ShipDiagram({
   parts,

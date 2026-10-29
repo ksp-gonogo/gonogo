@@ -1,13 +1,15 @@
 import { AugmentSlot, type VesselTopology } from "@ksp-gonogo/core";
 import { Unit } from "@ksp-gonogo/ui-kit";
-import type { ComponentProps, CSSProperties } from "react";
+import { type ComponentProps, type CSSProperties, useState } from "react";
 import { ShipDiagram } from "./ShipDiagram";
+import { StageColumn, useRoomForStageColumn } from "./StageColumn";
 import type {
   ShipMapPart,
   ShipMapPartMetaEntry,
   ShipMapPartMeterEntry,
 } from "./shipTopology";
 import type { ShipMapOverlayContext } from "./slots";
+import type { StageEntry } from "./stageStack";
 
 export type InvokePartAction = (
   flightId: number,
@@ -33,6 +35,7 @@ export function ShipMapBody({
   onInvokePartAction,
   turn,
   onTurn,
+  stages,
 }: {
   topology: VesselTopology | undefined;
   parts: ShipMapPart[];
@@ -52,7 +55,11 @@ export function ShipMapBody({
   turn: number;
   /** Sets the number of presses the view is turned from its default. */
   onTurn: (turn: number) => void;
+  /** The staging stack still to fire; empty when no part carries a stage. */
+  stages: StageEntry[];
 }) {
+  const [rowEl, setRowEl] = useState<HTMLDivElement | null>(null);
+  const roomForStages = useRoomForStageColumn(rowEl);
   if (!topology) {
     return (
       <div style={PLACEHOLDER}>
@@ -74,28 +81,31 @@ export function ShipMapBody({
           </span>
         )}
       </div>
-      <div ref={setWrapEl} style={DIAGRAM_WRAP}>
-        {/* Ambient external-temperature tint, behind the SVG. */}
-        <div
-          style={{ ...TINT_LAYER, background: ambientTint ?? "transparent" }}
-        />
-        <ShipDiagram
-          parts={parts}
-          highlightPartId={hottestPartId}
-          width={size.w}
-          height={size.h}
-          throttle={throttle}
-          partMeters={partMeters}
-          partMeta={partMeta}
-          onInvokePartAction={onInvokePartAction}
-          turn={turn}
-          onTurn={onTurn}
-        />
-        {overlayContext && (
-          <div style={OVERLAY_LAYER}>
-            <AugmentSlot name="ship-map.overlay" props={overlayContext} />
-          </div>
-        )}
+      <div ref={setRowEl} style={ROW}>
+        <div ref={setWrapEl} style={DIAGRAM_WRAP}>
+          {/* Ambient external-temperature tint, behind the SVG. */}
+          <div
+            style={{ ...TINT_LAYER, background: ambientTint ?? "transparent" }}
+          />
+          <ShipDiagram
+            parts={parts}
+            highlightPartId={hottestPartId}
+            width={size.w}
+            height={size.h}
+            throttle={throttle}
+            partMeters={partMeters}
+            partMeta={partMeta}
+            onInvokePartAction={onInvokePartAction}
+            turn={turn}
+            onTurn={onTurn}
+          />
+          {overlayContext && (
+            <div style={OVERLAY_LAYER}>
+              <AugmentSlot name="ship-map.overlay" props={overlayContext} />
+            </div>
+          )}
+        </div>
+        {roomForStages && stages.length > 0 && <StageColumn stages={stages} />}
       </div>
     </>
   );
@@ -133,8 +143,16 @@ const OVERLAY_LAYER: CSSProperties = {
   pointerEvents: "none",
 };
 
+// The diagram keeps the width the stage column leaves it and is never the one that collapses.
+const ROW: CSSProperties = {
+  flex: 1,
+  minHeight: 0,
+  display: "flex",
+};
+
 const DIAGRAM_WRAP: CSSProperties = {
   flex: 1,
+  minWidth: 0,
   minHeight: 0,
   display: "flex",
   alignItems: "stretch",

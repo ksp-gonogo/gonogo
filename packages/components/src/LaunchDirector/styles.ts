@@ -348,3 +348,47 @@ export const LastRecovery__Figures = styled.div`
   color: var(--color-text-dim);
   overflow-wrap: anywhere;
 `;
+
+/** The craft's side view with its staging order beneath, one column so both stay in view while a long craft list scrolls. */
+export const CraftMapColumn = styled.div`
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-related);
+  min-width: 0;
+`;
+
+export const StageList = styled.ol`
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-related-packed);
+  max-height: 8rem;
+  overflow-y: auto;
+  min-width: 0;
+  font-size: var(--font-size-compact);
+  &:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+`;
+
+export const StageRow = styled.li`
+  display: flex;
+  gap: var(--gap-related);
+  align-items: baseline;
+  min-width: 0;
+`;
+
+export const StageNumber = styled.span`
+  flex: none;
+  color: var(--color-text-muted);
+`;
+
+export const StageParts = styled.span`
+  min-width: 0;
+  overflow-wrap: anywhere;
+`;

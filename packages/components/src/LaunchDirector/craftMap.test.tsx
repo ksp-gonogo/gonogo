@@ -109,6 +109,36 @@ describe("LaunchDirector: the open pad's craft and the picked craft's side view"
     await expectNoA11yViolations(view.container);
   });
 
+  it("lists the picked craft's stages in staging order beside its side view, and beneath its crew when the tile is too small for the view", async () => {
+    for (const [w, h] of [
+      [14, 16],
+      [7, 10],
+    ]) {
+      const { emit, view } = mount(w, h);
+      emit((e) => !isParts(e));
+      fireEvent.click(await screen.findByText("LFV-2 Wave Probe"));
+      emit(isParts);
+
+      const list = await screen.findByRole("list", { name: "Stages" });
+      const rows = [...list.querySelectorAll("li")].map((li) => li.textContent);
+      expect(rows.length).toBeGreaterThan(0);
+      const numbers = rows.map((r) =>
+        Number(/^Stage (\d+)/.exec(r ?? "")?.[1]),
+      );
+      expect(numbers).toEqual([...numbers].sort((a, b) => b - a));
+      expect(rows.join(" ")).toMatch(/ x\d/);
+      await expectNoA11yViolations(view.container);
+      view.unmount();
+    }
+  });
+
+  it("shows no stages until the craft's parts arrive", async () => {
+    const { emit } = mount(14, 16);
+    emit((e) => !isParts(e));
+    fireEvent.click(await screen.findByText("LFV-2 Wave Probe"));
+    expect(screen.queryByRole("list", { name: "Stages" })).toBeNull();
+  });
+
   it("keys the craft's topic by its facility, so the runway's craft is read from the SPH", async () => {
     const user = userEvent.setup();
     const { fixture, emit } = mount(14, 16);
@@ -155,7 +185,7 @@ describe("LaunchDirector: the open pad's craft and the picked craft's side view"
     expect(fixture.transport.sentCommands).toEqual([]);
   });
 
-  it("below 9 columns by 12 rows keeps the list as it was and opens no craft file", async () => {
+  it("below 9 columns by 12 rows keeps the list as it was and draws no side view, only the picked craft's stages", async () => {
     const { fixture, view, emit } = mount(8, 12);
     emit((e) => !isParts(e));
     await screen.findByText("LFV-2 Wave");
@@ -167,8 +197,10 @@ describe("LaunchDirector: the open pad's craft and the picked craft's side view"
       "LFV-2 Wave",
     ]);
     expect(view.container.querySelector("[data-craft-map]")).toBeNull();
-    fireEvent.click(screen.getByText("LFV-2 Wave"));
     expect(fixture.transport.isSubscribed(WAVE_TOPIC)).toBe(false);
+    fireEvent.click(screen.getByText("LFV-2 Wave"));
+    expect(fixture.transport.isSubscribed(WAVE_TOPIC)).toBe(true);
+    expect(view.container.querySelector("[data-craft-map]")).toBeNull();
     expect(document.body.textContent).not.toContain("launched");
   });
 

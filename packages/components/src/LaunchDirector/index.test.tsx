@@ -512,6 +512,65 @@ describe("LaunchDirectorComponent", () => {
     ).toBe(false);
   });
 
+  it("offers Fly on the opened and the collapsed pad row when the roster lists the occupant, through the switch command", async () => {
+    const user = userEvent.setup();
+    const { container } = renderWidget();
+    act(() => {
+      stream.emit("spaceCenter.savedShips", []);
+      stream.emit("trackingStation.catalog", {
+        entries: [
+          {
+            vesselId: "5b1d7f0e-0000-4000-8000-000000000001",
+            name: "Kerbal X",
+            vesselType: 6,
+            situation: 1,
+            bodyIndex: 1,
+          },
+        ],
+      });
+      stream.emit("spaceCenter.launchSites", [
+        padSite("LaunchPad", "KSC Pad", {
+          padOccupied: true,
+          padVesselTitle: "Kerbal X",
+          padVesselId: "5b1d7f0e-0000-4000-8000-000000000001",
+        }),
+      ]);
+    });
+
+    const fly = await screen.findByRole("button", { name: "Fly Kerbal X" });
+    expect(screen.getByText("Recover")).toBeInTheDocument();
+    await user.click(fly);
+    await waitFor(() => {
+      const sent = stream.transport.sentCommands.find(
+        (c) => c.command === "ksp.switchVessel",
+      );
+      expect(sent).toMatchObject({
+        args: { vesselId: "5b1d7f0e-0000-4000-8000-000000000001" },
+      });
+    });
+    await expectNoA11yViolations(container);
+  });
+
+  it("offers no Fly for an occupant the roster does not list", async () => {
+    renderWidget();
+    act(() => {
+      stream.emit("spaceCenter.savedShips", []);
+      stream.emit("trackingStation.catalog", { entries: [] });
+      stream.emit("spaceCenter.launchSites", [
+        padSite("LaunchPad", "KSC Pad", {
+          padOccupied: true,
+          padVesselTitle: "Kerbal X",
+          padVesselId: "5b1d7f0e-0000-4000-8000-000000000001",
+        }),
+      ]);
+    });
+
+    expect(await screen.findByText(/On pad: Kerbal X/i)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /^Fly Kerbal X/ }),
+    ).not.toBeInTheDocument();
+  });
+
   it("draws no Recover for a pad vessel the mod gave no id for, and still offers the revert", async () => {
     renderWidget();
     act(() => {

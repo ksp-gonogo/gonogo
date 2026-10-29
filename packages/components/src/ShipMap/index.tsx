@@ -27,6 +27,7 @@ import {
 } from "./shipTopology";
 import { turnedView, VIEW_STEPS_PER_TURN } from "./shipView";
 import type { ShipMapOverlayContext } from "./slots";
+import { buildStageStack } from "./stageStack";
 import { useBaseView } from "./useBaseView";
 
 const topics = defineTopicManifest({
@@ -35,6 +36,7 @@ const topics = defineTopicManifest({
     "vessel.thermal",
     "vessel.flight",
     "vessel.control",
+    "vessel.structure",
   ],
   // Only what the diagram draws: ThermalStatus draws the rest of `vessel.thermal`, and its alarms do not belong here.
   fields: [
@@ -44,6 +46,7 @@ const topics = defineTopicManifest({
     "vessel.thermal.hottestPart.internalTemp",
     "vessel.flight.externalTemperature",
     "vessel.control.throttle",
+    "vessel.structure.currentStage",
   ],
 });
 
@@ -95,6 +98,13 @@ function ShipMapComponent({
     0,
   );
 
+  // The marked stage is a verdict about now, so only a current reading names it; a held one leaves the stack unmarked.
+  const structureReading = topics.useTelemetry("vessel.structure");
+  const currentStage =
+    structureReading.state === "observed"
+      ? structureReading.value.currentStage
+      : undefined;
+
   const flightIds = useMemo(
     () => topology?.parts.map((p) => p.flightId) ?? [],
     [topology],
@@ -131,6 +141,12 @@ function ShipMapComponent({
       );
     });
   }, [topology, liveByFlightId, baseView, turn]);
+
+  // Stages already fired are left out, as the in-game stack drops them.
+  const stages = useMemo(
+    () => buildStageStack(parts, currentStage).filter((s) => !s.spent),
+    [parts, currentStage],
+  );
 
   // A state-backed ref so the effect re-attaches when DiagramWrap mounts, which happens only once topology exists.
   const [wrapEl, setWrapEl] = useState<HTMLDivElement | null>(null);
@@ -221,6 +237,7 @@ function ShipMapComponent({
         onInvokePartAction={onInvokePartAction}
         turn={turn}
         onTurn={setTurn}
+        stages={stages}
       />
     </Box>
   );
