@@ -15,8 +15,10 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import { magnitudeOf } from "../shared/magnitude";
+import { ChargeTrendBox, chargeTrendBadges } from "./ChargeTrendBox";
 import { ContributionSection } from "./ContributionSection";
 import { netRate, netUnit } from "./chargeRate";
+import { chargeTrend, useSmoothedRate } from "./chargeTrend";
 import type { PowerSystemsConfig } from "./config";
 import { type NetTone, netToneWithUnrated, splitCamel } from "./flow";
 import { OtherDrawRow } from "./OtherDrawRow";
@@ -122,6 +124,11 @@ export function PowerSystemsComponent({
   const shownConsumed =
     measuredConsumption === undefined ? totalConsumed : -measuredConsumption;
 
+  const smoothedNet = useSmoothedRate(
+    isCharge && flowMeasured && !drawUnknown ? shownNet : undefined,
+  );
+  const trend = chargeTrend(smoothedNet, storage?.amount, storage?.maxAmount);
+
   const seriesKey = `vessel.resources.resources.${resource}.current`;
   const series = useDataSeries(seriesKey, SPARKLINE_WINDOW_SEC);
   const sparkValues = useMemo(
@@ -193,6 +200,7 @@ export function PowerSystemsComponent({
     return (
       <Panel
         panelTitle="POWER"
+        panelBadges={chargeTrendBadges(trend)}
         fitToSize
         sections={
           <Section gap="related-dense" style={COMPACT_BODY}>
@@ -212,6 +220,7 @@ export function PowerSystemsComponent({
                 NULL_DISPLAY
               )}
             </Text>
+            <ChargeTrendBox trend={trend} compact />
           </Section>
         }
       />
@@ -223,6 +232,7 @@ export function PowerSystemsComponent({
       <Panel
         panelTitle="POWER SYSTEMS"
         compactTitle={["POWER"]}
+        panelBadges={chargeTrendBadges(trend)}
         panelAside={
           <Select
             style={RESOURCE_SELECT}
@@ -268,6 +278,8 @@ export function PowerSystemsComponent({
               measuredDisagrees={measuredDisagrees}
               storage={storage}
             />
+
+            <ChargeTrendBox trend={trend} />
 
             {storage && storage.maxAmount > 0 && sparkValues.length >= 2 && (
               <ResourceTrend

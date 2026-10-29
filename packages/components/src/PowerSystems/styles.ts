@@ -198,3 +198,23 @@ export const NET_LABEL_COLOUR: Record<NetTone, string> = {
   warn: "var(--color-warn-text)",
   neutral: "var(--color-text-faint)",
 };
+
+export const TREND_BOX: CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  gap: "var(--gap-related)",
+  marginBottom: "var(--gap-related-comfortable)",
+  padding: "var(--inset-surface)",
+  background: "var(--color-surface-panel)",
+  border: "1px solid var(--color-border-subtle)",
+  borderRadius: "var(--radius-regular)",
+};
+
+export const TREND_BOX_COMPACT: CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "var(--gap-related)",
+};
