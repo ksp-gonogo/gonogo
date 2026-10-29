@@ -15,6 +15,7 @@ import { Button, Switch } from "@ksp-gonogo/ui";
 import { Cluster, Notice, Stack, Text, Unit } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
+import { DEV_ONLY_CORE_ROW_PATHS, devOptionsShown } from "./devOptions";
 import {
   Empty,
   RowDesc,
@@ -125,7 +126,12 @@ export function GonogoSettings({
   const rows = model.rows.filter(
     (row) =>
       row.owner === owner &&
-      (tag === undefined || (row.tags ?? []).includes(tag)),
+      (tag === undefined || (row.tags ?? []).includes(tag)) &&
+      !(
+        owner === CORE_OWNER &&
+        DEV_ONLY_CORE_ROW_PATHS.has(row.path) &&
+        !devOptionsShown()
+      ),
   );
   const undeclared = model.undeclared.find(
     (failure) => failure.uplinkId === owner,

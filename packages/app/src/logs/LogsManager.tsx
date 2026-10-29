@@ -21,6 +21,7 @@ import {
   useState,
 } from "react";
 import styled from "styled-components";
+import { devOptionsShown } from "../settings/devOptions";
 import { downloadLogs } from "./downloadLogs";
 import { GithubIssueForm } from "./GithubIssueForm";
 import { recentLogsWindow } from "./recentLogsWindow";
@@ -83,18 +84,20 @@ export function LogsManager() {
 
   return (
     <Container>
-      <Stack as="section" gap="related-comfortable">
-        <SectionTitle as="h3">Console output</SectionTitle>
-        <Switch
-          checked={verbose}
-          onChange={toggleVerbose}
-          label="Verbose logging"
-        />
-        <Foot>
-          Prints debug lines from every part of the app to the browser console.
-          Warnings and errors always print.
-        </Foot>
-      </Stack>
+      {devOptionsShown() && (
+        <Stack as="section" gap="related-comfortable">
+          <SectionTitle as="h3">Console output</SectionTitle>
+          <Switch
+            checked={verbose}
+            onChange={toggleVerbose}
+            label="Verbose logging"
+          />
+          <Foot>
+            Prints debug lines from every part of the app to the browser
+            console. Warnings and errors always print.
+          </Foot>
+        </Stack>
+      )}
 
       <Stack as="section" gap="related-comfortable">
         <SectionTitle as="h3">Log buffer</SectionTitle>

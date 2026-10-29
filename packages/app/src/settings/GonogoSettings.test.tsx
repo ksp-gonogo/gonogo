@@ -18,7 +18,7 @@ import {
   waitFor,
 } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GonogoSettings } from "./GonogoSettings";
 
 const TOPIC = "settings.gonogo";
@@ -103,6 +103,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   for (const unmount of unmounts) unmount();
   unmounts.length = 0;
 });
@@ -158,6 +159,33 @@ describe("GonogoSettings", () => {
     expect(
       screen.queryByRole("checkbox", { name: "Apply light-time delay" }),
     ).toBeNull();
+  });
+
+  it("hides the mod's developer rows in a release build and shows them with the developer flag", async () => {
+    vi.stubEnv("DEV", false);
+    const devRow: Row = {
+      path: "SAMPLE_TIMING/enabled",
+      owner: "gonogo",
+      kind: SettingKind.Bool,
+      label: "Log how long each part of the game sample takes",
+      value: "False",
+      default: "False",
+    };
+    registerDataSource(sitrep("connected"));
+    const { fixture } = mount();
+    await publish(fixture, model([...ROWS, devRow]));
+
+    expect(
+      await screen.findByRole("checkbox", { name: "Apply light-time delay" }),
+    ).toBeChecked();
+    expect(screen.queryByRole("checkbox", { name: devRow.label })).toBeNull();
+
+    vi.stubEnv("VITE_GONOGO_DEV_OPTIONS", "true");
+    const second = mount();
+    await publish(second.fixture, model([...ROWS, devRow]));
+    expect(
+      await screen.findByRole("checkbox", { name: devRow.label }),
+    ).toBeInTheDocument();
   });
 
   it("with a tag, draws only the owner's rows carrying it", async () => {

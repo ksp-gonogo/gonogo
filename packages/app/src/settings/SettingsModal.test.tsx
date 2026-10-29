@@ -1326,6 +1326,15 @@ describe("SettingsModal: Data rate", () => {
     ).toBeInTheDocument();
   });
 
+  it("is offered in a release build too", () => {
+    vi.stubEnv("DEV", false);
+    renderModal("main");
+    expect(
+      screen.getByRole("checkbox", { name: "Faster data rate" }),
+    ).toBeInTheDocument();
+    vi.unstubAllEnvs();
+  });
+
   it("has no control on a station", () => {
     renderModal("station");
     expect(

@@ -145,6 +145,32 @@ describe("LogsManager: Verbose logging", () => {
   });
 });
 
+describe("LogsManager: developer options", () => {
+  it("hides verbose logging and keeps the log buffer in a release build", () => {
+    vi.stubEnv("DEV", false);
+    renderManager();
+    expect(
+      screen.queryByRole("checkbox", { name: /verbose logging/i }),
+    ).toBeNull();
+    expect(screen.getByText(/entries buffered/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /download/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /send feedback/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows verbose logging in a release build made with the developer flag", () => {
+    vi.stubEnv("DEV", false);
+    vi.stubEnv("VITE_GONOGO_DEV_OPTIONS", "true");
+    renderManager();
+    expect(
+      screen.getByRole("checkbox", { name: /verbose logging/i }),
+    ).toBeInTheDocument();
+  });
+});
+
 describe("LogsManager: Feedback", () => {
   it("emits a bug-report tagged entry with the description and recent-logs slice on submit", async () => {
     // Fake timers (shouldAdvanceTime so userEvent's internal delays still

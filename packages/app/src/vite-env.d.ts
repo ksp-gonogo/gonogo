@@ -12,6 +12,12 @@ declare const __GONOGO_CONTRACT_MINOR__: number;
 
 interface ImportMetaEnv {
   readonly VITE_AXIOM_TOKEN?: string;
+  /**
+   * Set to "true" to show the developer-only settings (verbose logging, the
+   * log buffer, the mod's recording and timing rows) in
+   * a build that is not a dev server.
+   */
+  readonly VITE_GONOGO_DEV_OPTIONS?: string;
   readonly VITE_AXIOM_DATASET?: string;
   readonly VITE_AXIOM_URL?: string;
   readonly VITE_AXIOM_ORG_ID?: string;
