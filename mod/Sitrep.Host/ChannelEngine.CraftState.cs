@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Sitrep.Contract;
 using Sitrep.Core;
@@ -677,6 +678,21 @@ namespace Sitrep.Host
                 catch (Exception ex)
                 {
                     LogHostFault("a timeline-reset listener threw", ex);
+                }
+            }
+            foreach (var registered in _registeredUplinks.ToArray())
+            {
+                if (!(registered.Value is IUplinkTimelineListener listener) || !IsUplinkAvailable(registered.Key))
+                {
+                    continue;
+                }
+                try
+                {
+                    listener.OnTimelineReset(TimelineResetChangedSave);
+                }
+                catch (Exception ex)
+                {
+                    LogHostFault("an Uplink's timeline-reset hook threw", ex);
                 }
             }
         }

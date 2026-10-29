@@ -1439,11 +1439,6 @@ namespace Sitrep.Host.Comms
         {
             if (looked.Roster == null)
             {
-                _rosterAsked.Clear();
-                foreach (var asked in _figuresAsked.Values)
-                {
-                    asked.Clear();
-                }
                 return;
             }
             var home = _audience!.HomeCentre();
@@ -1504,10 +1499,10 @@ namespace Sitrep.Host.Comms
                         to);
                 }
             }
-            _rosterAsked.Clear();
+            ForgetAsks(_rosterAsked, centres);
             foreach (var asked in _figuresAsked.Values)
             {
-                asked.Clear();
+                ForgetAsks(asked, centres);
             }
         }
 
@@ -1615,6 +1610,7 @@ namespace Sitrep.Host.Comms
                 return;
             }
             var sent = 0;
+            List<string>? unserved = null;
             foreach (var centre in planning)
             {
                 var news = _hearing!.NewsAt(centre) + _hearing.ContactNewsAt(centre);
@@ -1674,14 +1670,26 @@ namespace Sitrep.Host.Comms
                 }
                 if (looked.VesselsUnread && entries.Count == 0)
                 {
-                    // The game still holds its craft where its list cannot be read, so a centre that heard of none has nothing to say, which is not a list of none.
+                    // The game still holds its craft where its list cannot be read, so a centre that heard of none has nothing to say, which is not a list of none. Its news is forgotten and its ask kept, so the catalog goes once the list is readable.
+                    _vesselsNews.Remove(centre);
+                    if (_vesselsAsked.Contains(centre))
+                    {
+                        (unserved ??= new List<string>()).Add(centre);
+                    }
                     continue;
                 }
                 _streams!.PublishAddressedTo(
                     CatalogTopic, new Dictionary<string, object?> { ["entries"] = entries }, looked.Ut, ToItself(centre));
                 sent++;
             }
-            _vesselsAsked.Clear();
+            ForgetAsks(_vesselsAsked, planning);
+            if (unserved != null)
+            {
+                foreach (var centre in unserved)
+                {
+                    _vesselsAsked.Add(centre);
+                }
+            }
             CatalogFramesBudget.Record(sent, looked.Ut);
         }
 
@@ -2054,7 +2062,20 @@ namespace Sitrep.Host.Comms
                 _nextLossSent[centre] = figure;
                 _streams!.PublishAddressedTo(NextLossTopic, figure, looked.Ut, ToItself(centre));
             }
-            _nextLossAsked.Clear();
+            ForgetAsks(_nextLossAsked, planning);
+        }
+
+        /// <summary>Drops the asks of the centres a pass visited, keeping those of a centre it did not reach so they are served when it is.</summary>
+        private static void ForgetAsks(HashSet<string> asked, IReadOnlyCollection<string> visited)
+        {
+            if (asked.Count == 0)
+            {
+                return;
+            }
+            foreach (var centre in visited)
+            {
+                asked.Remove(centre);
+            }
         }
 
         private static bool SameLoss(CommsNextLoss a, CommsNextLoss b) =>
@@ -2102,6 +2123,7 @@ namespace Sitrep.Host.Comms
             var lightFactor = _audience.LightFactor();
             var modelled = _audience.NetworkModelled();
             var source = looked.ActiveCraft ?? "game";
+            List<string>? waiting = null;
             foreach (var centre in planning)
             {
                 var radio = looked.ActiveCraft == null ? null : _hearing!.RadioAt(centre, looked.ActiveCraft);
@@ -2139,6 +2161,7 @@ namespace Sitrep.Host.Comms
                 {
                     // Between one plan and the next the centre believes what it last believed.
                     frames += PublishSignal(looked, centre, _believed.Of(centre, looked.ActiveCraft), radio);
+                    (waiting ??= new List<string>()).Add(centre);
                     continue;
                 }
                 var asked = false;
@@ -2197,9 +2220,27 @@ namespace Sitrep.Host.Comms
                     frames++;
                 }
             }
-            foreach (var asked in _pathsAsked.Values)
+            foreach (var pair in _pathsAsked)
             {
-                asked.Clear();
+                // A centre waiting on its first plan keeps its asks for the path figures it was not sent; the signal ones it was served.
+                if (waiting == null || pair.Key == SignalTopic || pair.Key == DegradeTopic)
+                {
+                    pair.Value.Clear();
+                    continue;
+                }
+                var keep = new List<string>();
+                foreach (var centre in waiting)
+                {
+                    if (pair.Value.Contains(centre))
+                    {
+                        keep.Add(centre);
+                    }
+                }
+                pair.Value.Clear();
+                foreach (var centre in keep)
+                {
+                    pair.Value.Add(centre);
+                }
             }
             PathFramesBudget.Record(frames, looked.Ut);
         }

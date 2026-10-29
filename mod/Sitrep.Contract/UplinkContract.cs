@@ -1871,6 +1871,33 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
+    /// Optional second interface for an Uplink that remembers what it last
+    /// published, so it can forget it when the timeline is reset.
+    ///
+    /// <para>The timeline is reset when the game loads another save or rewinds
+    /// to an earlier time (a quickload). Every client is told to resynchronise,
+    /// and each channel starts again as if nothing had been sent, so a value an
+    /// Uplink withholds because it matches the one it published before the reset
+    /// is never delivered again. An Uplink that keeps such a cache clears it in
+    /// <see cref="OnTimelineReset"/> and publishes afresh.</para>
+    ///
+    /// <para>Used by an Uplink that publishes a body's map layers only when
+    /// they change, so that a widget already open shows them after a load.</para>
+    /// </summary>
+    /// <category>Uplink API</category>
+    public interface IUplinkTimelineListener
+    {
+        /// <summary>
+        /// Called after the timeline was reset, on Gonogo's sampling thread, the
+        /// same thread as <see cref="ISnapshotSampler.Sample"/>. A throw is
+        /// reported and does not affect other Uplinks.
+        /// </summary>
+        /// <param name="saveChanged"><c>true</c> when the game loaded a different
+        /// save, <c>false</c> when it rewound within the same one.</param>
+        void OnTimelineReset(bool saveChanged);
+    }
+
+    /// <summary>
     /// Coarse self-reported health for one <see cref="ISitrepUplink"/>, as
     /// returned by <see cref="ISitrepUplink.Health"/>.
     /// </summary>
