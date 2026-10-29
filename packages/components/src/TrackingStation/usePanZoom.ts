@@ -14,7 +14,11 @@ import {
 import { EDGE_POINTER_INSET } from "./diagramMarks";
 
 const MIN_ZOOM = 0.3;
-export const MAX_ZOOM = 25;
+/** The furthest the operator can zoom in, enough to pull a craft apart from the body it sits on. */
+export const MAX_ZOOM = 400;
+
+/** The furthest an automatic framing of an orbit zooms in. */
+export const MAX_FRAMING_ZOOM = 25;
 
 /** How much further than the parent body the widest view reaches, as a ratio of its distance. */
 const PARENT_MARGIN = 1.15;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { widestZoom } from "./usePanZoom";
+import { MAX_FRAMING_ZOOM, MAX_ZOOM, widestZoom } from "./usePanZoom";
 
 const AT_CENTRE = { x: 0, y: 0 };
 
@@ -41,5 +41,12 @@ describe("widestZoom", () => {
     expect(widestZoom(parent, { x: 100, y: 0 })).toBeLessThan(
       widestZoom(parent, AT_CENTRE),
     );
+  });
+});
+
+describe("zoom limits", () => {
+  it("lets the operator zoom well past where an orbit is framed", () => {
+    expect(MAX_ZOOM).toBeGreaterThanOrEqual(200);
+    expect(MAX_ZOOM).toBeGreaterThan(MAX_FRAMING_ZOOM);
   });
 });
