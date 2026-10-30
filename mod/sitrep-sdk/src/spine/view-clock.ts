@@ -1,4 +1,5 @@
 import type { DelayLane } from "../delay-roles";
+import { SampleStepTracker } from "../sample-step-tracker";
 import {
   type ClockFormulaInputs,
   type ClockFormulaSnapshot,
@@ -86,6 +87,7 @@ export class ViewClock {
   private anchorWall: number | undefined;
   private anchorUt: number | undefined;
   private maxSampleUt = Number.NEGATIVE_INFINITY;
+  private readonly sampleSteps = new SampleStepTracker();
   private lastObservedWall: number | undefined;
   /**
    * Monotonic cursor behind {@link viewUt}, kept apart from {@link scetUt}'s so
@@ -132,6 +134,7 @@ export class ViewClock {
     if (epoch > this.epoch) {
       this.epoch = epoch;
       this.maxSampleUt = Number.NEGATIVE_INFINITY;
+      this.sampleSteps.reset();
       this.lastConfirmedViewUt.delayed = Number.NEGATIVE_INFINITY;
       this.lastConfirmedViewUt["true-now"] = Number.NEGATIVE_INFINITY;
       this.lastScetUt = Number.NEGATIVE_INFINITY;
@@ -158,6 +161,12 @@ export class ViewClock {
     }
     this.lastObservedWall = wallNow;
     if (validAt > this.maxSampleUt) this.maxSampleUt = validAt;
+    this.sampleSteps.observe(this.maxSampleUt, wallNow);
+  }
+
+  /** How often the latest sample time advances, in wall-clock seconds, or `undefined` until two advances have been seen. */
+  sampleStepSeconds(): number | undefined {
+    return this.sampleSteps.stepSeconds();
   }
 
   /** The client's epoch generation: bumped by `observeSample` on a rewind. Read-only mirror of `ClientTimeline.epoch`'s reset generation. */

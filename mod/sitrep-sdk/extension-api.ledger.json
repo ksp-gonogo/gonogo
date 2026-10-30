@@ -9827,6 +9827,10 @@
         "note": "Gains an optional replayed argument: a replayed sample anchors the estimate only when it is the newest delivery seen"
       },
       {
+        "key": "sitrep-sdk ./spine ViewClock#sampleStepSeconds",
+        "note": "New: how often the latest sample time advances, in wall-clock seconds"
+      },
+      {
         "key": "sitrep-sdk ./spine ViewClock#wallNow",
         "note": "New: the page's own clock in seconds, which runs on while the game is paused or warping"
       },
@@ -10193,6 +10197,10 @@
       {
         "key": "sitrep-sdk ./testing ViewClock#observeSample",
         "note": "Gains an optional replayed argument: a replayed sample anchors the estimate only when it is the newest delivery seen"
+      },
+      {
+        "key": "sitrep-sdk ./testing ViewClock#sampleStepSeconds",
+        "note": "New: how often the latest sample time advances, in wall-clock seconds"
       },
       {
         "key": "sitrep-sdk ./testing ViewClock#wallNow",
@@ -13393,6 +13401,10 @@
         "note": "New: the lead limit a pipeline starts from, now exported"
       },
       {
+        "key": "sitrep-sdk ./media DelayClockLike#sampleStepSeconds?",
+        "note": "New: how often the latest sample time advances, in wall-clock seconds"
+      },
+      {
         "key": "sitrep-sdk ./media DelayedPlayoutBufferOptions#keepArrivalOrder?",
         "note": "New: plays frames in the order they were pushed instead of sorting by stamp"
       },
@@ -13471,6 +13483,10 @@
       {
         "key": "sitrep-sdk ./media PacedFrame#keyframe?",
         "note": "New: marks a frame decodable on its own, read when gopSafeSkip is set"
+      },
+      {
+        "key": "sitrep-sdk ./media PresentationPacerOptions#expectedReleaseGapSeconds?",
+        "note": "New: a pacer with nothing presented yet holds its first run to end at the next release, by a gap it reads each time"
       },
       {
         "key": "sitrep-sdk ./media PresentationPacerOptions#gopSafeSkip?",

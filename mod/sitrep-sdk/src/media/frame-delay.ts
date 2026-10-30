@@ -152,6 +152,8 @@ export interface FrameDelayPipelineOptions<Frame extends FrameLike> {
     maxBacklogSeconds: number;
     /** See `PresentationPacerOptions.maxLeadSeconds`. */
     maxLeadSeconds?: number;
+    /** See `PresentationPacerOptions.expectedReleaseGapSeconds`. */
+    expectedReleaseGapSeconds?: () => number | undefined;
   };
 }
 
@@ -263,6 +265,7 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
     ? new PresentationPacer<Frame>({
         maxBacklogSeconds: opts.pacing.maxBacklogSeconds,
         maxLeadSeconds: opts.pacing.maxLeadSeconds,
+        expectedReleaseGapSeconds: opts.pacing.expectedReleaseGapSeconds,
         gopSafeSkip: opts.gopSafeEviction,
         onPresent: (f) => writeAndClose(f.data),
         onCatchUp: () => {
@@ -324,6 +327,21 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
         api.flush();
       }
       if (Number.isFinite(ut)) lastDatedUt = ut;
+      /* The buffer drops frames still undated once a dated one arrives. A
+         delta pushed after them cannot be decoded, and if one of them was the
+         keyframe nothing else asks for another. */
+      if (
+        opts.gopSafeEviction &&
+        !keyframe &&
+        !awaitingKeyframe &&
+        Number.isFinite(ut) &&
+        buffer
+          .peekQueue()
+          .some((queued) => queued.ut === Number.POSITIVE_INFINITY)
+      ) {
+        awaitingKeyframe = true;
+        opts.onNeedKeyframe?.();
+      }
       if (awaitingKeyframe) {
         if (!keyframe) {
           stats.awaitingKeyframeDropped += 1;

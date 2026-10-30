@@ -142,7 +142,21 @@ export interface PresentationPacerOptions<Frame> {
    * `keyframe`.
    */
   gopSafeSkip?: boolean;
+  /**
+   * Reads how long, in wall-clock seconds, the source currently waits between
+   * one release and the next, such as the telemetry interval a delayed camera's
+   * frames are confirmed by, or `undefined` while that is not known. With it set
+   * and a gap known, a pacer that has presented nothing yet holds its first
+   * frames so the run ends when the next release is due, instead of showing them
+   * at once and then waiting for that release with nothing to show. Unset, or
+   * with no gap known, the first frames are shown at once. A gap above the lead
+   * limit is held to just under it.
+   */
+  expectedReleaseGapSeconds?: () => number | undefined;
 }
+
+/** The most of the lead limit a held first run may use, so it is never taken for a runaway queue. */
+const HOLD_LEAD_SHARE = 0.95;
 
 /** See `PresentationPacerOptions.rateBaselineSeconds`: ten frames of a 20 ms
  *  audio grid, two of a 10 Hz release burst. */
@@ -176,6 +190,13 @@ export class PresentationPacer<Frame> {
    *  `null` before the first one ever (in which case the next frame is due
    *  immediately, at whatever `nowWall` the next `tick()` supplies). */
   private lastPresented: { ut: number; wall: number } | null = null;
+  private presentedAny = false;
+  /**
+   * Set by `reset()` once something had been presented, so the start hold that
+   * follows knows the screen was already live. `wall` is the first tick after
+   * the reset, from which the wait for the next frames is counted.
+   */
+  private resumedFrom: { wall: number | null } | null = null;
   /**
    * The two ends of the arrival baseline the playout rate is measured over.
    *
@@ -267,6 +288,9 @@ export class PresentationPacer<Frame> {
   tick(nowWall: number): void {
     const previousTickWall = this.lastTickWall;
     this.lastTickWall = nowWall;
+    if (this.resumedFrom !== null && this.resumedFrom.wall === null) {
+      this.resumedFrom.wall = nowWall;
+    }
     if (this.arrivedSinceTick) {
       this.arrivedSinceTick = false;
       this.recordBurstGap(previousTickWall, nowWall);
@@ -290,6 +314,7 @@ export class PresentationPacer<Frame> {
         this.lastPresented = { ut: head.ut, wall: nowWall };
       }
     }
+    this.holdColdStart(head, newest, nowWall, rate);
     const headDue = this.dueWallFor(head, nowWall, rate);
     const lead = this.dueWallFor(newest, nowWall, rate) - nowWall;
     /*
@@ -312,13 +337,42 @@ export class PresentationPacer<Frame> {
       const due = this.dueWallFor(next, nowWall, rate);
       if (nowWall < due) break; // not due yet, wait for a later tick
       this.queue.shift();
-      this.opts.onPresent(next);
+      this.present(next);
       // Anchor at the SCHEDULED due time, not the actual `nowWall` a tick
       // happened to land on: keeps spacing exact (each frame `deltaUT × rate`
       // apart) even when `tick()` calls are irregular, rather than
       // compounding jitter from one frame to the next.
       this.lastPresented = { ut: next.ut, wall: due };
     }
+  }
+
+  /*
+   * Nothing has been presented, so there is no earlier frame to space the queue
+   * from. Presenting from now would show the run released so far and leave the
+   * screen idle until the next release, which arrives a whole gap after this
+   * one; spacing it from a start that ends the run at that release keeps frames
+   * flowing. It only ever moves a frame's presentation later. After a reset of a
+   * pacer that had been showing frames, the time already spent waiting for the
+   * restarted run counts toward that hold, so the picture is never held for
+   * longer than one release gap in all.
+   */
+  private holdColdStart(
+    head: PacedFrame<Frame>,
+    newest: PacedFrame<Frame>,
+    nowWall: number,
+    rate: number,
+  ): void {
+    if (this.lastPresented !== null) return;
+    const measured = this.opts.expectedReleaseGapSeconds?.();
+    if (measured === undefined || !(measured > 0)) return;
+    const gap = Math.min(measured, HOLD_LEAD_SHARE * this.leadLimitSeconds());
+    const run = (newest.ut - head.ut) * rate;
+    const waited =
+      this.resumedFrom?.wall != null ? nowWall - this.resumedFrom.wall : 0;
+    this.lastPresented = {
+      ut: head.ut,
+      wall: nowWall + Math.max(0, gap - run - waited),
+    };
   }
 
   /*
@@ -362,13 +416,18 @@ export class PresentationPacer<Frame> {
     );
   }
 
+  private present(frame: PacedFrame<Frame>): void {
+    this.presentedAny = true;
+    this.opts.onPresent(frame);
+  }
+
   private skipToNewest(newest: PacedFrame<Frame>, nowWall: number): void {
     for (const dropped of this.queue) {
       if (dropped !== newest) this.opts.onSkip?.(dropped);
     }
     this.queue = [];
     this.opts.onCatchUp?.();
-    this.opts.onPresent(newest);
+    this.present(newest);
     this.lastPresented = { ut: newest.ut, wall: nowWall };
   }
 
@@ -390,7 +449,7 @@ export class PresentationPacer<Frame> {
     if (keyAt === -1) {
       const all = this.queue;
       this.queue = [];
-      for (const f of all) this.opts.onPresent(f);
+      for (const f of all) this.present(f);
       const last = all[all.length - 1];
       if (last) this.lastPresented = { ut: last.ut, wall: nowWall };
       return;
@@ -400,7 +459,7 @@ export class PresentationPacer<Frame> {
     }
     const key = this.queue.shift();
     if (!key) return;
-    this.opts.onPresent(key);
+    this.present(key);
     this.lastPresented = { ut: key.ut, wall: nowWall };
   }
 
@@ -415,6 +474,7 @@ export class PresentationPacer<Frame> {
     this.rebaseOnNextTick = false;
     this.lastTickWall = null;
     this.lastPresented = null;
+    this.resumedFrom = this.presentedAny ? { wall: null } : null;
     this.arrivalAnchor = null;
     this.arrivalLatest = null;
     this.arrivedSinceTick = false;

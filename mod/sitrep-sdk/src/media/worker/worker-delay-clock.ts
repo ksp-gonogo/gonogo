@@ -26,6 +26,7 @@
  * environment with fake timers, no real Worker context needed.
  */
 
+import { SampleStepTracker } from "../../sample-step-tracker";
 import {
   type ClockFormulaSnapshot,
   computeConfirmedEdgeUt,
@@ -76,6 +77,7 @@ export function createWorkerDelayClock(
   opts: WorkerDelayClockOptions,
 ): WorkerDelayClock {
   let current: ClockFormulaSnapshot = COLD_SNAPSHOT;
+  const sampleSteps = new SampleStepTracker();
   const listeners = new Set<(viewUt: number) => void>();
   const pollIntervalMs = opts.pollIntervalMs ?? 16;
   const startInterval = opts.setIntervalFn ?? setInterval;
@@ -112,8 +114,11 @@ export function createWorkerDelayClock(
       };
     },
     applySnapshot(next) {
+      if (next.epoch !== current.epoch) sampleSteps.reset();
       current = next;
+      sampleSteps.observe(next.maxSampleUt, opts.nowWall());
     },
+    sampleStepSeconds: () => sampleSteps.stepSeconds(),
     currentSnapshot() {
       return current;
     },

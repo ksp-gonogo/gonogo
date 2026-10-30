@@ -24,6 +24,29 @@ describe("createWorkerDelayClock", () => {
     expect(clock.confirmedEdgeUt()).toBe(10); // clamped to the sample, exactly like ViewClock
   });
 
+  it("measures how often the snapshots advance the latest sample time", () => {
+    let wall = 0;
+    const clock = createWorkerDelayClock({ nowWall: () => wall });
+    const snapshot = (maxSampleUt: number) => ({
+      epoch: 0,
+      anchorWall: 0,
+      anchorUt: maxSampleUt,
+      maxSampleUt,
+      delaySeconds: 0,
+      warpRate: 1,
+      slackSeconds: 0,
+    });
+    expect(clock.sampleStepSeconds?.()).toBeUndefined();
+
+    for (let i = 0; i < 4; i++) {
+      wall = i * 0.1;
+      clock.applySnapshot(snapshot(i));
+      clock.applySnapshot(snapshot(i));
+    }
+
+    expect(clock.sampleStepSeconds?.()).toBeCloseTo(0.1, 6);
+  });
+
   it("evaluates the delay-limited regime correctly too", () => {
     let wall = 0;
     const clock = createWorkerDelayClock({ nowWall: () => wall });

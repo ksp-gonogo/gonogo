@@ -63,6 +63,13 @@ export interface DelayClockLike {
    * `pump()` instead.
    */
   onFrame(cb: (viewUt: number) => void): () => void;
+  /**
+   * How often, in wall-clock seconds, the latest confirmed sample time advances
+   * and releases a new run of frames, such as the telemetry interval. Leave it
+   * out, or return `undefined` until it has been measured, and a delayed feed
+   * starts without waiting for the next release.
+   */
+  sampleStepSeconds?(): number | undefined;
 }
 
 /**

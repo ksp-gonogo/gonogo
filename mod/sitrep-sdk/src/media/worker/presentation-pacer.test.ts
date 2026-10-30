@@ -611,4 +611,134 @@ describe("PresentationPacer lead limit against bursts released far apart", () =>
       expect(pacer.leadLimitSeconds()).toBe(Number.POSITIVE_INFINITY);
     });
   });
+
+  describe("expectedReleaseGapSeconds", () => {
+    function build(gap: number | undefined | (() => number | undefined)) {
+      const presented: { label: string; wall: number }[] = [];
+      let wall = 0;
+      const pacer = new PresentationPacer<string>({
+        onPresent: (f) => presented.push({ label: f.data, wall }),
+        maxBacklogSeconds: 0.5,
+        maxLeadSeconds: 2,
+        expectedReleaseGapSeconds: typeof gap === "function" ? gap : () => gap,
+      });
+      const run = (to: number) => {
+        for (; wall <= to; wall += 0.01) pacer.tick(wall);
+      };
+      return { pacer, presented, run };
+    }
+
+    it("holds a first run so it ends when the next release is due", () => {
+      const { pacer, presented, run } = build(1);
+
+      pacer.submit(frame(0, "a"));
+      pacer.submit(frame(0.1, "b"));
+      pacer.submit(frame(0.2, "c"));
+      run(1.5);
+
+      const walls = presented.map((p) => p.wall);
+      expect(presented.map((p) => p.label)).toEqual(["a", "b", "c"]);
+      expect(walls[0]).toBeGreaterThanOrEqual(0.79);
+      expect(walls[2]).toBeGreaterThanOrEqual(0.99);
+    });
+
+    it("does not hold a first run that already spans the gap", () => {
+      const { pacer, presented, run } = build(1);
+
+      pacer.submit(frame(0, "a"));
+      pacer.submit(frame(1, "b"));
+      run(0.05);
+
+      expect(presented.map((p) => p.label)).toEqual(["a"]);
+    });
+
+    it("holds again after a reset, since nothing has been presented then either", () => {
+      const { pacer, presented, run } = build(1);
+      pacer.submit(frame(0, "a"));
+      run(1.2);
+      pacer.reset();
+      const before = presented.length;
+
+      pacer.submit(frame(50, "b"));
+      run(1.5);
+
+      expect(presented.length).toBe(before);
+      run(2.4);
+      expect(presented.map((p) => p.label)).toEqual(["a", "b"]);
+    });
+
+    it("counts the wait for a restarted run toward the hold once frames had been shown", () => {
+      const { pacer, presented, run } = build(0.1);
+      pacer.submit(frame(0, "a"));
+      run(0.3);
+      pacer.reset();
+      run(0.43);
+      const resetAt = presented.length;
+
+      pacer.submit(frame(50, "b"));
+      run(0.6);
+
+      expect(presented.length).toBe(resetAt + 1);
+      expect(presented[resetAt]?.wall).toBeLessThan(0.45);
+    });
+
+    it("still holds a restarted run for the rest of the gap when it arrives soon after the reset", () => {
+      const { pacer, presented, run } = build(1);
+      pacer.submit(frame(0, "a"));
+      run(1.2);
+      pacer.reset();
+      run(1.25);
+      const resetAt = presented.length;
+
+      pacer.submit(frame(50, "b"));
+      run(1.6);
+      expect(presented.length).toBe(resetAt);
+      run(2.4);
+
+      expect(presented.length).toBe(resetAt + 1);
+    });
+
+    it("shows a first frame at once while no gap has been measured", () => {
+      const { pacer, presented, run } = build(() => undefined);
+
+      pacer.submit(frame(0, "a"));
+      run(0.02);
+
+      expect(presented.map((p) => p.label)).toEqual(["a"]);
+    });
+
+    it("reads the gap again each time the pacer starts cold", () => {
+      let gap: number | undefined = 1;
+      const { pacer, presented, run } = build(() => gap);
+      pacer.submit(frame(0, "a"));
+      run(1.2);
+      pacer.reset();
+      gap = 0.1;
+
+      pacer.submit(frame(50, "b"));
+      run(1.5);
+
+      expect(presented.map((p) => p.label)).toEqual(["a", "b"]);
+      expect(presented[1]?.wall).toBeLessThan(1.4);
+    });
+
+    it("holds a gap longer than the lead limit to just under it", () => {
+      const { pacer, presented, run } = build(10);
+
+      pacer.submit(frame(0, "a"));
+      pacer.submit(frame(0.1, "b"));
+      run(2.5);
+
+      expect(presented.map((p) => p.label)).toEqual(["a", "b"]);
+    });
+
+    it("shows a first frame at once when no gap is given", () => {
+      const { pacer, presented, run } = build(undefined);
+
+      pacer.submit(frame(0, "a"));
+      run(0.02);
+
+      expect(presented.map((p) => p.label)).toEqual(["a"]);
+    });
+  });
 });

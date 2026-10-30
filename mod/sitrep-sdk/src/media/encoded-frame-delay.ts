@@ -168,6 +168,7 @@ export function attachEncodedFrameDelayTransform(
       maxBacklogSeconds:
         opts.maxPacingBacklogSeconds ?? DEFAULT_PACING_MAX_BACKLOG_SECONDS,
       maxLeadSeconds: DEFAULT_PACING_MAX_LEAD_SECONDS,
+      expectedReleaseGapSeconds: () => opts.view.sampleStepSeconds?.(),
     },
   });
 }
