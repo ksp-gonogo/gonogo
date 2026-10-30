@@ -299,7 +299,7 @@ export class PresentationPacer<Frame> {
      */
     if (
       nowWall - headDue > this.opts.maxBacklogSeconds ||
-      lead > this.leadLimit()
+      lead > this.leadLimitSeconds()
     ) {
       if (this.opts.gopSafeSkip) this.catchUpWithoutBreakingReferences(nowWall);
       else this.skipToNewest(newest, nowWall);
@@ -346,7 +346,14 @@ export class PresentationPacer<Frame> {
     if (this.burstGaps.length > BURST_GAP_HISTORY) this.burstGaps.shift();
   }
 
-  private leadLimit(): number {
+  /**
+   * How far ahead of now, in wall-clock seconds, the newest queued frame may be
+   * due before the pacer jumps to it: the configured `maxLeadSeconds`, raised to
+   * a quarter more than the longest recent gap between bursts. Infinity when no
+   * `maxLeadSeconds` was given. Useful for holding a detached feed long enough
+   * for the pacer to settle after it is shown again.
+   */
+  leadLimitSeconds(): number {
     const configured = this.opts.maxLeadSeconds;
     if (configured === undefined) return Number.POSITIVE_INFINITY;
     return Math.max(

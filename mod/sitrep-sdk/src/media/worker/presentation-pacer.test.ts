@@ -575,4 +575,40 @@ describe("PresentationPacer lead limit against bursts released far apart", () =>
     expect(r.catchUps).toBeGreaterThan(0);
     expect(r.skipped).toBeGreaterThan(0);
   });
+
+  describe("leadLimitSeconds", () => {
+    it("is the configured lead before anything has been paced", () => {
+      const pacer = new PresentationPacer<string>({
+        onPresent: () => {},
+        maxBacklogSeconds: 0.5,
+        maxLeadSeconds: 2,
+      });
+
+      expect(pacer.leadLimitSeconds()).toBe(2);
+    });
+
+    it("follows a long gap between bursts upward, to a quarter more than the gap", () => {
+      const pacer = new PresentationPacer<string>({
+        onPresent: () => {},
+        maxBacklogSeconds: 0.5,
+        maxLeadSeconds: 2,
+      });
+      /* A ticking caller sees a burst arrive every six seconds. */
+      pacer.submit(frame(0, "a"));
+      pacer.tick(0);
+      for (let wall = 0.1; wall < 6; wall += 0.1) pacer.tick(wall);
+      pacer.submit(frame(1, "b"));
+      pacer.tick(6);
+      expect(pacer.leadLimitSeconds()).toBeCloseTo(7.5, 5);
+    });
+
+    it("is unlimited when no lead is configured", () => {
+      const pacer = new PresentationPacer<string>({
+        onPresent: () => {},
+        maxBacklogSeconds: 0.5,
+      });
+
+      expect(pacer.leadLimitSeconds()).toBe(Number.POSITIVE_INFINITY);
+    });
+  });
 });

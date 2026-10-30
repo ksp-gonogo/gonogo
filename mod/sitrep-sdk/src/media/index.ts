@@ -41,6 +41,7 @@ export type {
 } from "./frame-delay";
 export {
   createFrameDelayStream,
+  DEFAULT_PACING_MAX_LEAD_SECONDS,
   isFrameDelaySupported,
   runFrameDelayPipeline,
   startPacingTicker,

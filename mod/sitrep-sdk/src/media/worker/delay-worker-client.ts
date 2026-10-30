@@ -29,7 +29,10 @@ import type { ClockFormulaSnapshot } from "../../view-clock-formula";
 import type { CaptureClockSample } from "../capture-clock";
 import type { DelayClockLike } from "../delayed-playout-buffer";
 import type { FrameDelayStats, FrameDelayStream } from "../frame-delay";
-import { startPacingTicker } from "../frame-delay";
+import {
+  DEFAULT_PACING_MAX_LEAD_SECONDS,
+  startPacingTicker,
+} from "../frame-delay";
 import type { FrameStampFeed } from "../frame-stamp-timeline";
 import type {
   CreatePipelineMessage,
@@ -98,6 +101,7 @@ interface PendingReady {
 const pendingReady = new Map<string, PendingReady>();
 const nonFatalErrorHandlers = new Map<string, (reason: string) => void>();
 const statsHandlers = new Map<string, (stats: FrameDelayStats) => void>();
+const leadLimits = new Map<string, number>();
 
 /** The interval to ask the worker for, or undefined when nobody listens. */
 function statsIntervalFor(opts: {
@@ -139,6 +143,11 @@ function getSharedWorker(): Worker | null {
           return;
         case "pipelineStats":
           statsHandlers.get(msg.pipelineId)?.(msg.stats);
+          return;
+        case "pipelineLeadLimit":
+          if (leadLimits.has(msg.pipelineId)) {
+            leadLimits.set(msg.pipelineId, msg.seconds);
+          }
           return;
       }
     };
@@ -287,6 +296,7 @@ export async function createWorkerFrameDelayStream(
     opts.onError?.(new Error(reason));
   });
   if (opts.onStats) statsHandlers.set(pipelineId, opts.onStats);
+  leadLimits.set(pipelineId, DEFAULT_PACING_MAX_LEAD_SECONDS);
   const stopTicker = startPipelineTicker(worker, pipelineId, opts);
 
   return {
@@ -296,11 +306,14 @@ export async function createWorkerFrameDelayStream(
       stopStamps();
       nonFatalErrorHandlers.delete(pipelineId);
       statsHandlers.delete(pipelineId);
+      leadLimits.delete(pipelineId);
       post(worker, { type: "dispose", pipelineId });
     },
     flush: () => {
       post(worker, { type: "flush", pipelineId });
     },
+    leadLimitSeconds: () =>
+      leadLimits.get(pipelineId) ?? DEFAULT_PACING_MAX_LEAD_SECONDS,
   };
 }
 
@@ -356,6 +369,15 @@ export interface EncodedFrameDelayHandle {
   dispose(): void;
   /** Drops the frames the pipeline holds. */
   flush(): void;
+  /**
+   * How far ahead of now, in seconds, the pacer lets the newest frame be due
+   * before it jumps to it: {@link DEFAULT_PACING_MAX_LEAD_SECONDS}, raised to a
+   * quarter more than the longest recent gap between bursts. The worker reports
+   * it when it changes, so this returns the last figure reported, and never
+   * null. Useful for holding a detached feed for the signal delay plus this
+   * figure.
+   */
+  leadLimitSeconds(): number;
 }
 
 /**
@@ -402,6 +424,7 @@ export function attachEncodedWorkerFrameDelay(
     opts.onError?.(new Error(reason));
   });
   if (opts.onStats) statsHandlers.set(pipelineId, opts.onStats);
+  leadLimits.set(pipelineId, DEFAULT_PACING_MAX_LEAD_SECONDS);
   const stopTicker = startPipelineTicker(worker, pipelineId, opts);
 
   return {
@@ -410,11 +433,14 @@ export function attachEncodedWorkerFrameDelay(
       stopStamps();
       nonFatalErrorHandlers.delete(pipelineId);
       statsHandlers.delete(pipelineId);
+      leadLimits.delete(pipelineId);
       post(worker, { type: "dispose", pipelineId });
       receiver.transform = null;
     },
     flush: () => {
       post(worker, { type: "flush", pipelineId });
     },
+    leadLimitSeconds: () =>
+      leadLimits.get(pipelineId) ?? DEFAULT_PACING_MAX_LEAD_SECONDS,
   };
 }

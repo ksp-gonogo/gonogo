@@ -203,6 +203,16 @@ export interface FrameDelayPipeline {
   tickPacing(nowWall: number): void;
   /** A snapshot of the pipeline's running totals. */
   stats(): FrameDelayStats;
+  /**
+   * How far ahead of now, in seconds, the pacer lets the newest frame be due
+   * before it jumps to it. It is {@link DEFAULT_PACING_MAX_LEAD_SECONDS},
+   * raised to a quarter more than the longest recent gap between the bursts the
+   * delay releases, so it is never lower than that and never null, including
+   * before anything has been paced. Useful for holding a detached feed for the
+   * signal delay plus this figure, which is how long the picture takes to
+   * recover after it is shown again. Read on demand, with no subscription.
+   */
+  leadLimitSeconds(): number;
 }
 
 /** How far, in seconds of UT, a frame may be dated behind the last one before it is a restarted source and not stamp noise. */
@@ -361,6 +371,12 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
     tickPacing(nowWall: number) {
       pacer?.tick(nowWall);
     },
+    leadLimitSeconds: () => {
+      const limit = pacer?.leadLimitSeconds();
+      return limit !== undefined && Number.isFinite(limit)
+        ? limit
+        : DEFAULT_PACING_MAX_LEAD_SECONDS;
+    },
   };
   void pump();
   return api;
@@ -426,6 +442,11 @@ const DEFAULT_PACING_MAX_BACKLOG_SECONDS = 0.5;
  * normal speed, and more under time warp: a burst spanning more than this (above
  * about 2.5x warp) is shown as its newest frame, so the video plays at the
  * telemetry's rate there.
+ * Useful as the lead limit a delayed video starts from, and as the figure
+ * `leadLimitSeconds()` returns before anything has been paced. Used by the
+ * delay pipelines.
+ *
+ * @category Delayed video
  */
 export const DEFAULT_PACING_MAX_LEAD_SECONDS = 2;
 
@@ -477,6 +498,14 @@ export interface FrameDelayStream {
   dispose(): void;
   /** Drops the frames it holds. */
   flush(): void;
+  /**
+   * How far ahead of now, in seconds, the pacer lets the newest frame be due
+   * before it jumps to it: {@link DEFAULT_PACING_MAX_LEAD_SECONDS}, raised to a
+   * quarter more than the longest recent gap between bursts. The same figure on
+   * every backend, and never null, including before the first frame is shown.
+   * Useful for holding a detached feed for the signal delay plus this figure.
+   */
+  leadLimitSeconds(): number;
 }
 
 /**
@@ -557,6 +586,7 @@ export function createFrameDelayStream(
         stamps?.reset();
         pipeline.flush();
       },
+      leadLimitSeconds: () => pipeline.leadLimitSeconds(),
     };
   } catch (err) {
     // Fail OPEN, not through: pipeline construction runs synchronously right

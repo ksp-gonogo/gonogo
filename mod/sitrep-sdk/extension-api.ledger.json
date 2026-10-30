@@ -9203,8 +9203,16 @@
         "note": "New: says the shared build failed, so a consumer can stop waiting and acquire again"
       },
       {
+        "key": "sitrep-sdk ./media EncodedFrameDelayHandle#leadLimitSeconds",
+        "note": "New: the pacer lead limit in seconds, as last reported by the worker"
+      },
+      {
         "key": "sitrep-sdk ./media EncodedFrameDelayOptions#captureUt",
         "note": "Takes the frame it dates, so a stamp can be looked up by the frame's RTP timestamp"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameDelayPipeline#leadLimitSeconds",
+        "note": "New: the pacer lead limit in seconds, never below the default"
       },
       {
         "key": "sitrep-sdk ./media FrameDelayPipeline#stats",
@@ -9217,6 +9225,14 @@
       {
         "key": "sitrep-sdk ./media FrameDelayPipelineOptions#pacing?",
         "note": "Gains maxLeadSeconds, the limit on how far ahead a paced frame may be due"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameDelayStream#leadLimitSeconds",
+        "note": "New: the pacer lead limit in seconds, the same on every backend"
+      },
+      {
+        "key": "sitrep-sdk ./media PresentationPacer#leadLimitSeconds",
+        "note": "New: the live lead limit, public after being private"
       },
       {
         "key": "sitrep-sdk ./media PresentationPacer#reset",
@@ -13371,6 +13387,10 @@
       {
         "key": "sitrep-sdk ./media CreateWorkerFrameDelayStreamOptions#statsIntervalMs?",
         "note": "New: how often onStats is called"
+      },
+      {
+        "key": "sitrep-sdk ./media DEFAULT_PACING_MAX_LEAD_SECONDS",
+        "note": "New: the lead limit a pipeline starts from, now exported"
       },
       {
         "key": "sitrep-sdk ./media DelayedPlayoutBufferOptions#keepArrivalOrder?",

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { DEFAULT_PACING_MAX_LEAD_SECONDS } from "../frame-delay";
 import {
   type CreateWorkerFrameDelayStreamOptions,
   createWorkerFrameDelayStream,
@@ -19,7 +20,11 @@ class SilentWorker {
     SilentWorker.built.push(this);
   }
 
-  postMessage(): void {}
+  posted: { type?: string; pipelineId?: string }[] = [];
+
+  postMessage(message?: { type?: string; pipelineId?: string }): void {
+    if (message) this.posted.push(message);
+  }
 
   terminate(): void {
     this.terminated = true;
@@ -87,5 +92,29 @@ describe("createWorkerFrameDelayStream when the worker fails", () => {
     expect(SilentWorker.built).toHaveLength(2);
     SilentWorker.built[1]?.onerror?.({ message: "died again" });
     await expect(second).resolves.toBeNull();
+  });
+
+  describe("leadLimitSeconds", () => {
+    it("is the default before the worker reports, then the last figure it posted", async () => {
+      vi.stubGlobal("Worker", SilentWorker);
+      vi.stubGlobal("MediaStream", OneTrackStream);
+      const waiting = createWorkerFrameDelayStream(camera(), options);
+      const [worker] = SilentWorker.built;
+      const pipelineId = worker?.posted.find(
+        (m) => m.type === "createPipeline",
+      )?.pipelineId;
+      worker?.onmessage?.({
+        data: { type: "pipelineReady", pipelineId, track: {} },
+      } as MessageEvent);
+      const stream = await waiting;
+
+      expect(stream?.leadLimitSeconds()).toBe(DEFAULT_PACING_MAX_LEAD_SECONDS);
+
+      worker?.onmessage?.({
+        data: { type: "pipelineLeadLimit", pipelineId, seconds: 7.5 },
+      } as MessageEvent);
+
+      expect(stream?.leadLimitSeconds()).toBe(7.5);
+    });
   });
 });

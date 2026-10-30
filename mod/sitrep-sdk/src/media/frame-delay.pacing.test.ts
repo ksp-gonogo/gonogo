@@ -12,6 +12,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { DelayClockLike } from "./delayed-playout-buffer";
 import {
+  DEFAULT_PACING_MAX_LEAD_SECONDS,
   type FrameSink,
   type FrameSource,
   runFrameDelayPipeline,
@@ -171,5 +172,26 @@ describe("runFrameDelayPipeline: pacing wiring", () => {
 
     expect(sink.written).toEqual(["red"]); // "green" never written
     expect(frames[1]?.closeCount).toBe(1); // but it IS closed (no leak)
+  });
+
+  it("reports the default lead limit before anything is paced, with or without pacing", () => {
+    for (const pacing of [
+      undefined,
+      {
+        maxBacklogSeconds: 0.5,
+        maxLeadSeconds: DEFAULT_PACING_MAX_LEAD_SECONDS,
+      },
+    ]) {
+      const pipeline = runFrameDelayPipeline<ColourFrame>({
+        view: manualClock(),
+        captureUt: () => 0,
+        source: queuedSource([]),
+        sink: recordingSink(),
+        pacing,
+      });
+
+      expect(pipeline.leadLimitSeconds()).toBe(DEFAULT_PACING_MAX_LEAD_SECONDS);
+      pipeline.dispose();
+    }
   });
 });

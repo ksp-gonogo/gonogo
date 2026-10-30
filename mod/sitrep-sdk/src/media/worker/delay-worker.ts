@@ -44,6 +44,8 @@
  *                               mirrors `runFrameDelayPipeline`'s `onError`.
  *  - `pipelineStats`        : the pipeline's running frame totals, posted every
  *                               `statsIntervalMs` for a pipeline that asked.
+ *  - `pipelineLeadLimit`    : the pacer's lead limit, posted when a pacing
+ *                               tick finds it changed, never on a timer.
  *
  * Encoded-transform path (2026-07-16):
  * `self.onrtctransform` (native platform event, not one of the message
@@ -80,6 +82,7 @@ import {
   type FrameStamp,
   type FrameStampFeed,
 } from "../frame-stamp-timeline";
+import { tickReportingLeadLimit } from "./lead-limit-report";
 import { createNowWall } from "./time-base";
 import {
   createWorkerDelayClock,
@@ -163,11 +166,18 @@ export interface PipelineStatsMessage {
   stats: FrameDelayStats;
 }
 
+export interface PipelineLeadLimitMessage {
+  type: "pipelineLeadLimit";
+  pipelineId: string;
+  seconds: number;
+}
+
 export type WorkerToMainMessage =
   | PipelineReadyMessage
   | PipelineErrorMessage
   | PipelineNonFatalErrorMessage
-  | PipelineStatsMessage;
+  | PipelineStatsMessage
+  | PipelineLeadLimitMessage;
 
 // This package's shared tsconfig targets the default DOM lib (not
 // "webworker": the two are mutually exclusive libs, and swapping the
@@ -402,7 +412,11 @@ function handleCreatePipeline(msg: CreatePipelineMessage): void {
     });
     entry.pipeline = pipeline;
     entry.stopPacingTicker = startPacingTicker(
-      pipeline.tickPacing,
+      tickReportingLeadLimit(
+        msg.pipelineId,
+        pipeline,
+        workerSelf.postMessage.bind(workerSelf),
+      ),
       clockNowWall,
     );
     entry.stopStats = startStatsReporter(
@@ -495,7 +509,14 @@ function handleRtcTransform(event: RtcTransformEventLike): void {
     },
   });
   entry.pipeline = pipeline;
-  entry.stopPacingTicker = startPacingTicker(pipeline.tickPacing, clockNowWall);
+  entry.stopPacingTicker = startPacingTicker(
+    tickReportingLeadLimit(
+      pipelineId,
+      pipeline,
+      workerSelf.postMessage.bind(workerSelf),
+    ),
+    clockNowWall,
+  );
   entry.stopStats = startStatsReporter(
     pipelineId,
     pipeline,
