@@ -49,6 +49,7 @@ namespace Gonogo.KSP.CommandCentres
         private readonly CommandCentreRegistry _registry;
         private readonly Func<HomeCommand> _home;
         private readonly ChannelEngine? _lensEngine;
+        private readonly Action<string>? _lensSitesLog;
         private IUplinkHost? _host;
 
         /// <param name="registry">The same registry the engine enumerates for set-vantage validation.</param>
@@ -57,8 +58,9 @@ namespace Gonogo.KSP.CommandCentres
         /// Null answers not identified, which is what a test that models no claimant wants.
         /// </param>
         /// <param name="lensEngine">The engine that delivers knowledge to camera lenses; null declares no <c>lensSites</c> capability.</param>
-        public CommandCentreDelayUplink(CommandCentreRegistry registry, Func<HomeCommand>? home = null, ChannelEngine? lensEngine = null)
+        public CommandCentreDelayUplink(CommandCentreRegistry registry, Func<HomeCommand>? home = null, ChannelEngine? lensEngine = null, Action<string>? lensSitesLog = null)
         {
+            _lensSitesLog = lensSitesLog;
             _registry = registry;
             _home = home ?? (() => HomeCommand.NotIdentified);
             _lensEngine = lensEngine;
@@ -70,7 +72,7 @@ namespace Gonogo.KSP.CommandCentres
             {
                 return;
             }
-            var sites = new LensSitesSource(_lensEngine, NamedGroundStations);
+            var sites = new LensSitesSource(_lensEngine, NamedGroundStations, _lensSitesLog);
             kernel.RegisterCapability(new CapabilityDescriptor
             {
                 Id = LensSitesCapability.Id,

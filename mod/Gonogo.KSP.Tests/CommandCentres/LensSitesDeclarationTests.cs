@@ -71,6 +71,33 @@ namespace Gonogo.KSP.Tests.CommandCentres
             Assert.Equal("ground:East", sites.GroundStationNear(1, 0.0, 1.0));
         }
 
+        [Fact]
+        public void ANearestStationQuestionIsLoggedOnceWithEveryStationWeighed()
+        {
+            var lines = new List<string>();
+            var registry = new CommandCentreRegistry();
+            registry.RegisterSource(new StaticSource(new ICommandCentre[]
+            {
+                Station("ground:Kerbin: KSC", "Kerbin: KSC", 1, -0.1, -74.6),
+                new KspCommandCentre("ground:Mun", "Mun", CommandCentreKind.GroundStation, 2, new CommNode(), new Vector3d(0.0, 0.0, 0.0), active: true, nodeName: "Mun"),
+            }));
+            var kernel = new Kernel();
+            new CommandCentreDelayUplink(registry, lensEngine: new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0), lensSitesLog: lines.Add).DeclareCapabilities(kernel);
+            kernel.Resolve(new ResolveOptions { KernelVersion = "1.0.0" });
+            var sites = kernel.Query<ILensSites>(LensSitesCapability.Id);
+
+            sites.GroundStationNear(1, -0.09, -74.55);
+            sites.GroundStationNear(1, -0.09, -74.55);
+            sites.GroundStationNear(3, 0.0, 0.0);
+
+            Assert.Equal(2, lines.Count);
+            Assert.Contains("body=1", lines[0]);
+            Assert.Contains("ground:Kerbin: KSC (lat -0.1 lon -74.6", lines[0]);
+            Assert.Contains("ground:Mun (body 2, no coordinates)", lines[0]);
+            Assert.EndsWith("pick=ground:Kerbin: KSC", lines[0]);
+            Assert.EndsWith("pick=none", lines[1]);
+        }
+
         private static ILensSites SitesOver(params KspCommandCentre[] centres)
         {
             var registry = new CommandCentreRegistry();

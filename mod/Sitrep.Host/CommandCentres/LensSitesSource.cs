@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
 using Sitrep.Contract;
 
 namespace Sitrep.Host.CommandCentres
@@ -39,11 +41,15 @@ namespace Sitrep.Host.CommandCentres
     {
         private readonly ChannelEngine _engine;
         private readonly Func<IEnumerable<NamedGroundStation>> _stations;
+        private readonly Action<string>? _log;
+        private readonly Dictionary<string, string> _lastNear = new Dictionary<string, string>(StringComparer.Ordinal);
 
         /// <param name="engine">The engine whose courier advances each scope's delivered knowledge.</param>
         /// <param name="stations">The active ground stations, read on the main thread.</param>
-        public LensSitesSource(ChannelEngine engine, Func<IEnumerable<NamedGroundStation>> stations)
+        /// <param name="log">Receives one line each time a nearest-station question gets a different answer, naming every station it weighed; null logs nothing.</param>
+        public LensSitesSource(ChannelEngine engine, Func<IEnumerable<NamedGroundStation>> stations, Action<string>? log = null)
         {
+            _log = log;
             _engine = engine ?? throw new ArgumentNullException(nameof(engine));
             _stations = stations ?? throw new ArgumentNullException(nameof(stations));
         }
@@ -52,8 +58,24 @@ namespace Sitrep.Host.CommandCentres
 
         public string? GroundStationNamed(string nodeName) => StationNamed(_stations(), nodeName);
 
-        public string? GroundStationNear(int bodyIndex, double latitude, double longitude) =>
-            StationNear(_stations(), bodyIndex, latitude, longitude);
+        public string? GroundStationNear(int bodyIndex, double latitude, double longitude)
+        {
+            if (_log == null)
+            {
+                return StationNear(_stations(), bodyIndex, latitude, longitude);
+            }
+            var trace = new StringBuilder();
+            var pick = StationNear(_stations(), bodyIndex, latitude, longitude, trace);
+            var key = bodyIndex.ToString(CultureInfo.InvariantCulture) + "|" + latitude.ToString("R", CultureInfo.InvariantCulture) + "|" + longitude.ToString("R", CultureInfo.InvariantCulture);
+            var line = "GroundStationNear body=" + bodyIndex + " lat=" + latitude.ToString("0.#####", CultureInfo.InvariantCulture)
+                + " lon=" + longitude.ToString("0.#####", CultureInfo.InvariantCulture) + ": " + trace + " pick=" + (pick ?? "none");
+            if (!_lastNear.TryGetValue(key, out var last) || last != line)
+            {
+                _lastNear[key] = line;
+                _log(line);
+            }
+            return pick;
+        }
 
         public void Bind(string scope, string site, string commandingCentre) =>
             _engine.BindLensSite(scope, site, commandingCentre);
@@ -89,18 +111,27 @@ namespace Sitrep.Host.CommandCentres
         /// The id of the station nearest the point along the body's surface, or null
         /// for none on that body or for two equally near.
         /// </summary>
-        public static string? StationNear(IEnumerable<NamedGroundStation> stations, int bodyIndex, double latitude, double longitude)
+        public static string? StationNear(IEnumerable<NamedGroundStation> stations, int bodyIndex, double latitude, double longitude, StringBuilder? trace = null)
         {
             string? best = null;
             var bestAngle = double.MaxValue;
             var tied = false;
+            var weighed = 0;
             foreach (var station in stations)
             {
+                weighed++;
                 if (station.BodyIndex != bodyIndex || station.Latitude is not double lat || station.Longitude is not double lon)
                 {
+                    trace?.Append(station.Id).Append(station.BodyIndex is int other
+                        ? " (body " + other.ToString(CultureInfo.InvariantCulture) + (station.Latitude == null || station.Longitude == null ? ", no coordinates)" : ", other body)")
+                        : " (no body), ");
+                    trace?.Append(station.BodyIndex is int ? ", " : string.Empty);
                     continue;
                 }
                 var angle = SurfaceAngle(latitude, longitude, lat, lon);
+                trace?.Append(station.Id).Append(" (lat ").Append(lat.ToString("0.#####", CultureInfo.InvariantCulture))
+                    .Append(" lon ").Append(lon.ToString("0.#####", CultureInfo.InvariantCulture))
+                    .Append(" angle ").Append(angle.ToString("0.########", CultureInfo.InvariantCulture)).Append("), ");
                 if (angle < bestAngle - TieRadians)
                 {
                     best = station.Id;
@@ -113,6 +144,11 @@ namespace Sitrep.Host.CommandCentres
                     tied = true;
                     bestAngle = Math.Min(bestAngle, angle);
                 }
+            }
+            trace?.Insert(0, "stations " + weighed.ToString(CultureInfo.InvariantCulture) + ": ");
+            if (tied)
+            {
+                trace?.Append("tie");
             }
             return tied ? null : best;
         }

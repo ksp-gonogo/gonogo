@@ -239,7 +239,7 @@ namespace Gonogo.KSP
                 _engine.RegisterCommandCentreSeatSource(seatSource);
                 ccRegistry.RegisterSeatSource(seatSource);
                 var homeEngine = _engine;
-                RegisterCoreUplink(_engine, new CommandCentres.CommandCentreDelayUplink(ccRegistry, () => homeEngine.CurrentHomeCommand, homeEngine));
+                RegisterCoreUplink(_engine, new CommandCentres.CommandCentreDelayUplink(ccRegistry, () => homeEngine.CurrentHomeCommand, homeEngine, line => GonogoLog.Info("lens-sites", line)));
                 // One shared hand-off: the planner and the link capture write it,
                 // store-and-forward delivery reads it.
                 var deliveryInputs = new Sitrep.Host.Comms.DeliveryInputs();
