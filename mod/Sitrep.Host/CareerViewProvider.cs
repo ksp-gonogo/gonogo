@@ -65,16 +65,6 @@ namespace Sitrep.Host
         /// <summary>The <c>career.contractEvent</c> topic: one event per contract that completes or fails.</summary>
         public const string ContractEventTopic = "career.contractEvent";
 
-        /// <summary>
-        /// The game time a contract finish is stamped at. KSP records a finish time only
-        /// when a contract is completed or failed through its own <c>Complete</c> and
-        /// <c>Fail</c> calls; a contract whose last parameter completes moves straight
-        /// to the finished state and leaves it at 0, so that value means unrecorded
-        /// and the finish is stamped at <paramref name="nowUt"/> instead.
-        /// </summary>
-        public static double ContractFinishUt(double dateFinished, double nowUt) =>
-            dateFinished > 0.0 ? dateFinished : nowUt;
-
         /// <summary>One finished contract as the <c>career.contractEvent</c> wire dictionary.</summary>
         public static Dictionary<string, object?> BuildContractEvent(
             string id,
