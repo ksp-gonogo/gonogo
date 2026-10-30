@@ -26,6 +26,28 @@ namespace Sitrep.Host.Comms
             return carried;
         }
 
+        /// <summary>
+        /// The directions <see cref="Of"/> leaves out only because a hop's rate
+        /// could not be read: no hop is known not to carry them, and at least one
+        /// is unread. A route that was not found has none.
+        /// </summary>
+        /// <param name="hops">The hops of the route in the order it runs, or null when it was not found.</param>
+        public static CommsDirection Unknown(IReadOnlyList<CommsRouteHop>? hops)
+        {
+            if (hops == null)
+            {
+                return CommsDirection.None;
+            }
+            var broken = CommsDirection.None;
+            var unread = CommsDirection.None;
+            foreach (var hop in hops)
+            {
+                unread |= hop.Unread;
+                broken |= CommsDirection.Both & ~hop.Carries & ~hop.Unread;
+            }
+            return unread & ~broken;
+        }
+
         /// <summary>The same route read from its last node back to its first.</summary>
         public static CommsDirection Flip(CommsDirection carried) =>
             (carried.HasFlag(CommsDirection.Forward) ? CommsDirection.Reverse : CommsDirection.None)

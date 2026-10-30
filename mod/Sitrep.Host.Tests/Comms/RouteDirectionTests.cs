@@ -38,6 +38,30 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Equal(CommsDirection.None, RouteDirection.Of(hops));
         }
 
+        [Fact]
+        public void AHopWithAnUnreadRateDoesNotMakeTheRouteCarryThatWay()
+        {
+            var hops = new[] { Hop(CommsDirection.Both), new CommsRouteHop(1.0, false, null, null, CommsDirection.Both, CommsDirection.Forward) };
+
+            Assert.Equal(CommsDirection.Reverse, RouteDirection.Of(hops));
+            Assert.Equal(CommsDirection.Forward, RouteDirection.Unknown(hops));
+        }
+
+        [Fact]
+        public void ABrokenHopMakesTheRouteBrokenNotUnknownWhateverElseIsUnread()
+        {
+            var hops = new[] { Hop(CommsDirection.Reverse), new CommsRouteHop(1.0, false, null, null, CommsDirection.None, CommsDirection.Both) };
+
+            Assert.Equal(CommsDirection.None, RouteDirection.Of(hops));
+            Assert.Equal(CommsDirection.Reverse, RouteDirection.Unknown(hops));
+        }
+
+        [Fact]
+        public void ARouteNotFoundIsBrokenNotUnknown()
+        {
+            Assert.Equal(CommsDirection.None, RouteDirection.Unknown(null));
+        }
+
         [Theory]
         [InlineData(CommsDirection.Forward, CommsDirection.Reverse)]
         [InlineData(CommsDirection.Reverse, CommsDirection.Forward)]

@@ -829,12 +829,25 @@ public readonly struct CommsRouteHop
     /// <param name="toHandle">The destination endpoint's node, or null.</param>
     /// <param name="carries">The directions the hop can carry a signal in, relative to the way the route runs.</param>
     public CommsRouteHop(double distanceMeters, bool touchesHome, CommsNodeHandle? fromHandle, CommsNodeHandle? toHandle, CommsDirection carries)
+        : this(distanceMeters, touchesHome, fromHandle, toHandle, carries, CommsDirection.None)
+    {
+    }
+
+    /// <summary>A hop that also names the directions whose rate could not be read.</summary>
+    /// <param name="distanceMeters">Straight-line distance between the two endpoints, in metres.</param>
+    /// <param name="touchesHome">True when either endpoint is a ground station.</param>
+    /// <param name="fromHandle">The origin endpoint's node, or null.</param>
+    /// <param name="toHandle">The destination endpoint's node, or null.</param>
+    /// <param name="carries">The directions the hop is known to carry a signal in, relative to the way the route runs.</param>
+    /// <param name="unread">The directions whose rate could not be read, which are left out of <paramref name="carries"/>.</param>
+    public CommsRouteHop(double distanceMeters, bool touchesHome, CommsNodeHandle? fromHandle, CommsNodeHandle? toHandle, CommsDirection carries, CommsDirection unread)
     {
         DistanceMeters = distanceMeters;
         TouchesHome = touchesHome;
         FromHandle = fromHandle;
         ToHandle = toHandle;
-        Carries = carries;
+        Carries = carries & ~unread;
+        Unread = unread;
     }
 
     /// <summary>Straight-line distance between the hop's two endpoints, in metres.</summary>
@@ -858,6 +871,15 @@ public readonly struct CommsRouteHop
     /// links always work both ways leaves it at <see cref="CommsDirection.Both"/>.
     /// </summary>
     public CommsDirection Carries { get; }
+
+    /// <summary>
+    /// The directions whose data rate could not be read, so it is not known
+    /// whether the hop carries a signal that way. A direction in here is never in
+    /// <see cref="Carries"/>, and is neither a working direction nor a broken one.
+    /// <see cref="CommsDirection.None"/> when every rate was read, or the backend
+    /// has no rates to read.
+    /// </summary>
+    public CommsDirection Unread { get; }
 }
 
 /// <summary>
@@ -867,7 +889,9 @@ public readonly struct CommsRouteHop
 /// <see cref="Forward"/> and telemetry in <see cref="Reverse"/>.
 ///
 /// <para>A backend reports it on each <see cref="CommsRouteHop"/>. A route
-/// carries a direction only when every one of its hops does.</para>
+/// carries a direction only when every one of its hops does, so a direction a
+/// hop lists in <see cref="CommsRouteHop.Unread"/> keeps the route from carrying
+/// it without marking it broken.</para>
 /// </summary>
 /// <category>Uplink API</category>
 [System.Flags]
@@ -960,7 +984,10 @@ public interface ICommsBackend : ISitrepProvider
     /// from <paramref name="from"/> to <paramref name="to"/>. Gonogo refuses a
     /// command along a route that does not carry <see cref="CommsDirection.Forward"/>,
     /// and hears nothing back along one that does not carry
-    /// <see cref="CommsDirection.Reverse"/>. A backend whose links always work
+    /// <see cref="CommsDirection.Reverse"/>. A direction whose data rate could not
+    /// be read goes in <see cref="CommsRouteHop.Unread"/> and is left out of
+    /// <see cref="CommsRouteHop.Carries"/>: Gonogo treats it as not carrying, and
+    /// reports it as unknown rather than broken. A backend whose links always work
     /// both ways reports <see cref="CommsDirection.Both"/>.</para>
     /// <internal>
     /// On the interface because routing is the elected backend's rule, not a
