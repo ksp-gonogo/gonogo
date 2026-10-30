@@ -1,5 +1,6 @@
 import {
   CatalogContact,
+  DeployedOffReason,
   DeployedPowerState,
   registerAugment,
   Staleness,
@@ -340,6 +341,179 @@ describe("DeployedScienceComponent", () => {
     expect(screen.queryByText(/Unsent/)).toBeNull();
   });
 
+  it("shows an experiment that is on as On", async () => {
+    const fixture = newFixture();
+    renderDeployed(fixture);
+    await emitStations(fixture, [{}]);
+    await screen.findByText("Seismometer");
+    expect(screen.getByText("On")).toBeInTheDocument();
+    expect(screen.queryByText(/^Off/)).toBeNull();
+  });
+
+  it("words an experiment the game switched off by its cause, never as a switch an operator pressed", async () => {
+    const fixture = newFixture();
+    renderDeployed(fixture);
+    await emitStations(fixture, [
+      {
+        report: stationReport({
+          experiments: [
+            experiment({
+              partName: "A",
+              enabled: false,
+              offReason: DeployedOffReason.Completed,
+            }),
+            experiment({
+              partName: "B",
+              enabled: false,
+              offReason: DeployedOffReason.InvalidSituation,
+            }),
+            experiment({
+              partName: "C",
+              enabled: false,
+              offReason: DeployedOffReason.Unknown,
+            }),
+          ],
+        }),
+      },
+    ]);
+    await screen.findByText("A");
+    expect(screen.getByText("Off: finished")).toBeInTheDocument();
+    expect(screen.getByText("Off: situation")).toBeInTheDocument();
+    expect(screen.getByText("Off")).toBeInTheDocument();
+    expect(visibleText()).not.toMatch(/switched off by|turned off|by hand/i);
+  });
+
+  it("does not call an experiment that is off collecting", async () => {
+    const fixture = newFixture();
+    renderDeployed(fixture);
+    await emitStations(fixture, [
+      {
+        report: stationReport({
+          experiments: [
+            experiment({
+              scienceCompletedPercentage: 40,
+              enabled: false,
+              offReason: DeployedOffReason.InvalidSituation,
+            }),
+          ],
+        }),
+      },
+    ]);
+    await screen.findByText("Off: situation");
+    expect(screen.queryByText("Collecting")).toBeNull();
+  });
+
+  it("draws nothing for a switch the mod could not read, rather than Off", async () => {
+    const fixture = newFixture();
+    renderDeployed(fixture);
+    await emitStations(fixture, [
+      {
+        report: stationReport({
+          experiments: [experiment({ enabled: null, offReason: null })],
+        }),
+      },
+    ]);
+    await screen.findByText("Seismometer");
+    expect(screen.queryByText("On")).toBeNull();
+    expect(screen.queryByText(/^Off/)).toBeNull();
+  });
+
+  it("shows the switch of an experiment on a cluster that is not loaded", async () => {
+    const fixture = newFixture();
+    renderDeployed(fixture);
+    await emitStations(fixture, [
+      {
+        report: stationReport({
+          // The mod reads an unloaded cluster from the game's registry and reports the same fields.
+          experiments: [
+            experiment({
+              enabled: false,
+              offReason: DeployedOffReason.Completed,
+            }),
+          ],
+        }),
+      },
+    ]);
+    await screen.findByText("Seismometer");
+    expect(screen.getByText("Off: finished")).toBeInTheDocument();
+  });
+
+  it("raises the worst deployment status to the panel header summary", async () => {
+    const fixture = newFixture();
+    renderDeployed(fixture);
+    await emitStations(fixture, [
+      {
+        entry: { vesselId: MUN_STATION, name: "Mun Base" },
+        report: stationReport({
+          stationName: "Mun Base",
+          experiments: [
+            experiment({ partName: "A", enabled: true }),
+            experiment({
+              partName: "B",
+              enabled: false,
+              offReason: DeployedOffReason.InvalidSituation,
+            }),
+          ],
+        }),
+      },
+      {
+        entry: { vesselId: MINMUS_STATION, name: "Minmus Base" },
+        report: stationReport({
+          stationName: "Minmus Base",
+          experiments: [experiment({ partName: "D", enabled: true })],
+        }),
+      },
+    ]);
+    await screen.findByText("Off: situation");
+    expect(document.querySelector("[data-live-region]")).toHaveTextContent(
+      "Mun Base, B: Off: situation",
+    );
+  });
+
+  it("adds nothing to the panel summary for experiments that are on or finished", async () => {
+    const fixture = newFixture();
+    renderDeployed(fixture);
+    await emitStations(fixture, [
+      {
+        report: stationReport({
+          experiments: [
+            experiment({ partName: "A", enabled: true }),
+            experiment({
+              partName: "B",
+              enabled: false,
+              offReason: DeployedOffReason.Completed,
+            }),
+            experiment({
+              partName: "C",
+              enabled: false,
+              offReason: DeployedOffReason.Unknown,
+            }),
+          ],
+        }),
+      },
+    ]);
+    await screen.findByText("Off: finished");
+    expect(document.querySelector("[data-live-region]")).not.toHaveTextContent(
+      /Off/,
+    );
+  });
+
+  it("adds nothing to the panel summary for a switch the mod could not read", async () => {
+    const fixture = newFixture();
+    renderDeployed(fixture);
+    await emitStations(fixture, [
+      {
+        report: stationReport({
+          experiments: [experiment({ enabled: null, offReason: null })],
+        }),
+      },
+    ]);
+    await screen.findByText("Seismometer");
+    expect(document.querySelector("[data-live-region]")).not.toHaveTextContent(
+      /Seismometer: /,
+    );
+  });
+
   it("says it is waiting for a station whose report has not arrived", async () => {
     const fixture = newFixture();
     renderDeployed(fixture);
@@ -435,7 +609,11 @@ describe("DeployedScienceComponent", () => {
       },
     ]);
     await waitFor(() =>
-      expect(screen.getAllByText(/Unpowered/i).length).toBe(2),
+      expect(
+        screen
+          .getAllByRole("status")
+          .filter((el) => el.textContent === "Unpowered"),
+      ).toHaveLength(2),
     );
     expect(screen.queryByText(/Brownout/i)).toBeNull();
   });

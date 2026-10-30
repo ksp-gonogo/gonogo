@@ -1,5 +1,6 @@
 using System;
 using CommNet;
+using Sitrep.Contract;
 using Expansions.Serenity.DeployedScience.Runtime;
 
 namespace Gonogo.KSP
@@ -83,6 +84,27 @@ namespace Gonogo.KSP
         /// </summary>
         internal static double? StoredData(DeployedScienceCluster? cluster, uint partPersistentId)
         {
+            return ExperimentOf(cluster, partPersistentId)?.StoredScienceData;
+        }
+
+        /// <summary>
+        /// Why the experiment is off, from the cluster's own record of it and the
+        /// <paramref name="enabled"/> the caller read. Null when the experiment is
+        /// on or <paramref name="enabled"/> is null. An experiment the cluster has
+        /// no record of is off for no cause that can be found.
+        /// </summary>
+        internal static DeployedOffReason? OffReason(DeployedScienceCluster? cluster, uint partPersistentId, bool? enabled)
+        {
+            var experiment = ExperimentOf(cluster, partPersistentId);
+            return BreakingGroundReads.OffReason(
+                enabled,
+                experiment?.ExperimentSituationValid,
+                experiment?.TotalScienceGenerated,
+                experiment?.ScienceLimit);
+        }
+
+        private static DeployedScienceExperiment? ExperimentOf(DeployedScienceCluster? cluster, uint partPersistentId)
+        {
             var parts = cluster?.DeployedScienceParts;
             if (parts == null)
             {
@@ -93,7 +115,7 @@ namespace Gonogo.KSP
             {
                 if (part != null && part.PartId == partPersistentId && part.Experiment != null)
                 {
-                    return part.Experiment.StoredScienceData;
+                    return part.Experiment;
                 }
             }
 

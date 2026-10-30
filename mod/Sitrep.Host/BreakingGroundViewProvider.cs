@@ -37,6 +37,8 @@ namespace Sitrep.Host
     ///     "power" (int? DeployedPowerState, what a client branches on),
     ///     "powerAvailable", "powerRequired", "deployedOnGround",
     ///     "storedData", "dataSendFailed", "sendPathHome",
+    ///     "enabled" (bool?, the experiment's own switch, read loaded or not),
+    ///     "offReason" (int? DeployedOffReason, absent while on or unread),
     ///     "stationId" (the controller vessel's guid, absent when it cannot be
     ///     placed), "stationName", "stationBody", "stationSituation",
     ///     "stationBiome" }, ... ] | null
@@ -243,6 +245,8 @@ namespace Sitrep.Host
             ["storedData"] = SnapshotDict.GetDouble(raw, "storedData"),
             ["stranded"] = IsStranded(SnapshotDict.GetDouble(raw, "scienceCompletedPercentage"), SnapshotDict.GetDouble(raw, "storedData")),
             ["deployedOnGround"] = SnapshotDict.GetBool(raw, "deployedOnGround"),
+            ["enabled"] = SnapshotDict.GetBool(raw, "enabled"),
+            ["offReason"] = SnapshotDict.GetInt(raw, "offReason"),
         };
     }
 }

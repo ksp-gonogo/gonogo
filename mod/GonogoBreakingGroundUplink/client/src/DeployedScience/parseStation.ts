@@ -1,5 +1,6 @@
 import {
   type CatalogContact,
+  DeployedOffReason,
   DeployedPowerState,
   type TrackingStationCatalog,
   VesselType,
@@ -23,7 +24,13 @@ export interface DeployedExperiment {
   stranded: boolean | null;
   transmitted: number | null;
   collecting: boolean | null;
+  /** Whether the experiment is switched on. `null` is unread, which is not off. */
+  enabled: boolean | null;
+  /** Why it is off where the game says; `unknown` is off with no automatic cause. `null` while on or unread. */
+  offReason: ExperimentOffReason | null;
 }
+
+export type ExperimentOffReason = "completed" | "invalid-situation" | "unknown";
 
 /** One station's report as the widget draws it, off `deployed.station.<controllerVesselId>.report`. */
 export interface DeployedStation {
@@ -67,6 +74,22 @@ function poweredFromState(power: unknown): boolean | null {
   return (power as DeployedPowerState) === DeployedPowerState.Powered;
 }
 
+/** Branch on the mod's ordinal; a reason the client does not know reads as unknown, never as a cause. */
+function offReasonFrom(
+  enabled: boolean | null,
+  reason: unknown,
+): ExperimentOffReason | null {
+  if (enabled !== false || typeof reason !== "number") return null;
+  switch (reason as DeployedOffReason) {
+    case DeployedOffReason.Completed:
+      return "completed";
+    case DeployedOffReason.InvalidSituation:
+      return "invalid-situation";
+    default:
+      return "unknown";
+  }
+}
+
 function experimentFrom(
   raw: unknown,
   index: number,
@@ -82,6 +105,7 @@ function experimentFrom(
   const transmittedShare = clamp01OrNull(
     transmittedPercent === null ? null : transmittedPercent / 100,
   );
+  const enabled = boolOrNull(e.enabled);
   const experimentId = stringOrNull(e.experimentId);
   const partName = stringOrNull(e.partName);
   return {
@@ -97,7 +121,11 @@ function experimentFrom(
       value === null || transmittedShare === null
         ? null
         : value * transmittedShare,
-    collecting: completed === null ? null : completed < 100,
+    // An experiment that is switched off is not collecting, however far it has got.
+    collecting:
+      completed === null ? null : completed < 100 && enabled !== false,
+    enabled,
+    offReason: offReasonFrom(enabled, e.offReason),
   };
 }
 

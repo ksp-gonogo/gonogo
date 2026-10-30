@@ -8219,6 +8219,14 @@
         "note": "a deployed experiment carries the data it holds unsent, in Mits, in place of the share of its science not yet transmitted"
       },
       {
+        "key": "sitrep-sdk . DeployedScienceExperiment#enabled",
+        "note": "Added: whether the experiment is switched on, `null` when it could not be read"
+      },
+      {
+        "key": "sitrep-sdk . DeployedScienceExperiment#offReason",
+        "note": "Added: why an experiment that is off is off, where the game's own state says; `null` while on or unread"
+      },
+      {
         "key": "sitrep-sdk . DeployedScienceExperiment#stored",
         "note": "Removed: the figure was a share of the science value derived from two percentages; the data an experiment is actually holding is backlog"
       },
@@ -10305,6 +10313,14 @@
       {
         "key": "sitrep-sdk ./testing ~DeployedScienceExperiment#backlog",
         "note": "a deployed experiment carries the data it holds unsent, in Mits, in place of the share of its science not yet transmitted"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~DeployedScienceExperiment#enabled",
+        "note": "Added: whether the experiment is switched on, `null` when it could not be read"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~DeployedScienceExperiment#offReason",
+        "note": "Added: why an experiment that is off is off, where the game's own state says; `null` while on or unread"
       },
       {
         "key": "sitrep-sdk ./testing ~DeployedScienceExperiment#stored",
@@ -13713,6 +13729,10 @@
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
       },
       {
+        "key": "sitrep-sdk ./registry ~DeployedScienceExperiment#enabled",
+        "note": "Added: whether the experiment is switched on, `null` when it could not be read"
+      },
+      {
         "key": "sitrep-sdk ./registry ~DeployedScienceExperiment#id",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
       },
@@ -13723,6 +13743,10 @@
       {
         "key": "sitrep-sdk ./registry ~DeployedScienceExperiment#name",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~DeployedScienceExperiment#offReason",
+        "note": "Added: why an experiment that is off is off, where the game's own state says; `null` while on or unread"
       },
       {
         "key": "sitrep-sdk ./registry ~DeployedScienceExperiment#partId",

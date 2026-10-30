@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using Sitrep.Contract;
 
 namespace Gonogo.KSP
 {
@@ -118,6 +119,40 @@ namespace Gonogo.KSP
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Why a deployed experiment is off, from the two facts the game tests
+        /// before it switches an experiment off by itself: an invalid situation
+        /// (checked every physics frame) and generated science at its limit.
+        ///
+        /// <para><c>null</c> when the experiment is on or its state was not read.
+        /// <see cref="DeployedOffReason.Unknown"/> is an experiment that is off with
+        /// neither cause present, which covers a switch pressed by hand and any
+        /// cause this does not know; it is never reported as a hand switch.</para>
+        /// </summary>
+        public static DeployedOffReason? OffReason(
+            bool? enabled,
+            bool? situationValid,
+            double? scienceGenerated,
+            double? scienceLimit)
+        {
+            if (enabled != false)
+            {
+                return null;
+            }
+
+            if (situationValid == false)
+            {
+                return DeployedOffReason.InvalidSituation;
+            }
+
+            if (situationValid == true && scienceGenerated != null && scienceLimit != null && scienceGenerated >= scienceLimit)
+            {
+                return DeployedOffReason.Completed;
+            }
+
+            return DeployedOffReason.Unknown;
         }
 
         /// <summary>

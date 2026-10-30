@@ -668,7 +668,9 @@
     },
     "DeployedStationExperiment": {
       "deployedOnGround": "flag",
+      "enabled": "flag",
       "experimentId": "id",
+      "offReason": "enum",
       "partName": "text",
       "scienceCompletedPercentage": "%",
       "scienceLimit": "science",
@@ -3191,6 +3193,9 @@
     "DeployedStation": {
       "power": "DeployedPowerState"
     },
+    "DeployedStationExperiment": {
+      "offReason": "DeployedOffReason"
+    },
     "FlightCurrent": {
       "phase": "Situation"
     },
@@ -3443,6 +3448,11 @@
       "4": "Resting",
       "5": "Dead",
       "6": "Missing"
+    },
+    "DeployedOffReason": {
+      "0": "Completed",
+      "1": "InvalidSituation",
+      "2": "Unknown"
     },
     "DeployedPowerState": {
       "0": "Powered",

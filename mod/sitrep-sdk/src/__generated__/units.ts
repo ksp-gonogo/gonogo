@@ -708,7 +708,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "DeployedStationExperiment": {
     deployedOnGround: "flag",
+    enabled: "flag",
     experimentId: "id",
+    offReason: "enum",
     partName: "text",
     scienceCompletedPercentage: "%",
     scienceLimit: "science",
@@ -3276,6 +3278,9 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   "DeployedStation": {
     power: "DeployedPowerState",
   },
+  "DeployedStationExperiment": {
+    offReason: "DeployedOffReason",
+  },
   "FlightCurrent": {
     phase: "Situation",
   },
@@ -3565,6 +3570,11 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
     4: "Resting",
     5: "Dead",
     6: "Missing",
+  },
+  "DeployedOffReason": {
+    0: "Completed",
+    1: "InvalidSituation",
+    2: "Unknown",
   },
   "DeployedPowerState": {
     0: "Powered",

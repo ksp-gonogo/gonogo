@@ -913,6 +913,10 @@ export interface DeployedScienceExperiment {
   transmitted: number | null;
   /** True while collection is under 100%. `null` when progress is not reported. */
   collecting: boolean | null;
+  /** Whether the experiment is switched on. `null` when not reported, which is not the same as off. */
+  enabled: boolean | null;
+  /** Why an experiment that is off is off, where the game's own state says: it finished, or its situation is not one it can run in. `unknown` is off with neither cause, and does not say who switched it. `null` while on or when not reported. */
+  offReason: "completed" | "invalid-situation" | "unknown" | null;
 }
 
 /**

@@ -18,8 +18,10 @@ import {
   Text,
   Tooltip,
   Unit,
+  useStatusContribution,
 } from "@ksp-gonogo/ui-kit";
 import {
+  type DeployedExperiment,
   type DeployedStation,
   parseStation,
   type StationListing,
@@ -30,7 +32,9 @@ const XS2_STYLE = { fontSize: "var(--font-size-caption)" } as const;
 
 const FIGURE_AND_BADGE = {
   display: "inline-flex",
+  flexWrap: "wrap",
   alignItems: "center",
+  justifyContent: "flex-end",
   gap: "var(--gap-related)",
 } as const;
 
@@ -92,6 +96,61 @@ function linkLabel(contact: CatalogContact | null): LinkLabel {
       // Neutral, not `nogo`: nothing has been heard either way.
       return { label: "Contact unknown", tone: "neutral" };
   }
+}
+
+interface SwitchLabel {
+  label: string;
+  tone: Tone;
+  hint: string;
+}
+
+/**
+ * Whether the experiment is switched on, or null when that was not read: an unread switch draws nothing, never "Off".
+ * An off experiment is worded by the game's own cause where it gives one, and never as something an operator did.
+ */
+function switchLabel(experiment: DeployedExperiment): SwitchLabel | null {
+  if (experiment.enabled === null) return null;
+  if (experiment.enabled) {
+    return {
+      label: "On",
+      tone: "go",
+      hint: "This experiment is switched on",
+    };
+  }
+  switch (experiment.offReason) {
+    case "completed":
+      return {
+        label: "Off: finished",
+        tone: "neutral",
+        hint: "The game switched this experiment off when it finished collecting",
+      };
+    case "invalid-situation":
+      return {
+        label: "Off: situation",
+        tone: "nogo",
+        hint: "The game switched this experiment off because its situation is not one it can run in",
+      };
+    default:
+      return {
+        label: "Off",
+        tone: "caution",
+        hint: "This experiment is switched off",
+      };
+  }
+}
+
+/** Raises an experiment's error state to the panel header's status row, and draws nothing. */
+function ExperimentStatus({
+  id,
+  label,
+  severity,
+}: {
+  id: string;
+  label: string;
+  severity: "nogo";
+}) {
+  useStatusContribution({ id, severity, label });
+  return null;
 }
 
 /** The unsent data of the experiments that are still sending, or null unless every such store was read. */
@@ -232,24 +291,44 @@ export function DeployedStationCard({ listing }: { listing: StationListing }) {
               )}
             </Text>
 
-            {station.experiments.map((exp) => (
-              <Stack key={`${station.id}-${exp.partId}`}>
-                {/* No completion draws the absent form, not an empty track. */}
-                <Meter
-                  label={exp.name}
-                  tone="go"
-                  value={
-                    exp.progress === null
-                      ? null
-                      : progressRatioReading(reading, exp.progress)
-                  }
-                  valueLabelNode={
-                    exp.progress === null ? undefined : (
+            {station.experiments.map((exp) => {
+              const state = switchLabel(exp);
+              return (
+                <Stack key={`${station.id}-${exp.partId}`}>
+                  {state?.tone === "nogo" && (
+                    <ExperimentStatus
+                      id={`${station.id}-${exp.partId}-switch`}
+                      label={`${heading}, ${exp.name}: ${state.label}`}
+                      severity={state.tone}
+                    />
+                  )}
+                  {/* No completion draws the absent form, not an empty track. */}
+                  <Meter
+                    label={exp.name}
+                    tone="go"
+                    value={
+                      exp.progress === null
+                        ? null
+                        : progressRatioReading(reading, exp.progress)
+                    }
+                    valueLabelNode={
                       <span style={FIGURE_AND_BADGE}>
-                        <Unit
-                          value={progressPercentReading(reading, exp.progress)}
-                          decimals={0}
-                        />
+                        {exp.progress !== null && (
+                          <Unit
+                            value={progressPercentReading(
+                              reading,
+                              exp.progress,
+                            )}
+                            decimals={0}
+                          />
+                        )}
+                        {state && (
+                          <Tooltip text={state.hint}>
+                            <Badge tone={state.tone} size="sm">
+                              {state.label}
+                            </Badge>
+                          </Tooltip>
+                        )}
                         {exp.stranded === true && (
                           <Tooltip text="This experiment has finished and will not send what it still holds, a kerbal has to retrieve it">
                             <Badge tone="caution" size="sm">
@@ -265,19 +344,19 @@ export function DeployedStationCard({ listing }: { listing: StationListing }) {
                           </Tooltip>
                         )}
                       </span>
-                    )
-                  }
-                />
-                <AugmentSlot
-                  name="deployed-science.experiment"
-                  props={{
-                    experiment: exp,
-                    body: station.body ?? "",
-                    held: reading,
-                  }}
-                />
-              </Stack>
-            ))}
+                    }
+                  />
+                  <AugmentSlot
+                    name="deployed-science.experiment"
+                    props={{
+                      experiment: exp,
+                      body: station.body ?? "",
+                      held: reading,
+                    }}
+                  />
+                </Stack>
+              );
+            })}
           </>
         )}
       </Stack>

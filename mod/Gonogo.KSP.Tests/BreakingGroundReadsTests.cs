@@ -1,5 +1,6 @@
 using System;
 using Gonogo.KSP;
+using Sitrep.Contract;
 using Xunit;
 
 namespace Gonogo.KSP.Tests
@@ -182,6 +183,34 @@ namespace Gonogo.KSP.Tests
         {
             Assert.True(BreakingGroundReads.SendPathHome(
                 noCommsModel: true, connectionPresent: null, signalStrength: null, lastHopHome: null));
+        }
+
+        [Fact]
+        public void OffReasonIsNullWhileTheExperimentIsOnOrUnread()
+        {
+            Assert.Null(BreakingGroundReads.OffReason(true, false, 100.0, 50.0));
+            Assert.Null(BreakingGroundReads.OffReason(null, false, 100.0, 50.0));
+        }
+
+        [Fact]
+        public void OffReasonNamesTheInvalidSituationTheGameSwitchesOffOn()
+        {
+            Assert.Equal(DeployedOffReason.InvalidSituation, BreakingGroundReads.OffReason(false, false, 10.0, 50.0));
+        }
+
+        [Fact]
+        public void OffReasonNamesCompletionWhenTheSituationIsValidAndTheLimitIsReached()
+        {
+            Assert.Equal(DeployedOffReason.Completed, BreakingGroundReads.OffReason(false, true, 50.0, 50.0));
+        }
+
+        [Fact]
+        public void OffReasonIsUnknownWhenNeitherAutomaticCauseIsPresent()
+        {
+            // A switch pressed by hand looks exactly like this, so it is never named as one.
+            Assert.Equal(DeployedOffReason.Unknown, BreakingGroundReads.OffReason(false, true, 10.0, 50.0));
+            Assert.Equal(DeployedOffReason.Unknown, BreakingGroundReads.OffReason(false, null, 100.0, 50.0));
+            Assert.Equal(DeployedOffReason.Unknown, BreakingGroundReads.OffReason(false, true, null, 50.0));
         }
     }
 }

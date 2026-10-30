@@ -677,6 +677,59 @@ public class DeployedStationExperiment
     /// <summary>Whether the experiment part is deployed on the ground (<c>DeployedSciencePart.DeployedOnGround</c>).</summary>
     [SitrepUnit(Units.Flag)]
     public bool? DeployedOnGround { get; set; }
+
+    /// <summary>
+    /// Whether the experiment is switched on (<c>DeployedSciencePart.Enabled</c>).
+    /// An experiment that is off collects and sends nothing. Off is not always
+    /// somebody's switch: the game also turns an experiment off by itself, see
+    /// <see cref="OffReason"/>.
+    ///
+    /// <para>Read for a cluster whether or not its vessel is loaded. <c>null</c>
+    /// when it could not be read, which is a third state and must not be shown
+    /// as off.</para>
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? Enabled { get; set; }
+
+    /// <summary>
+    /// Why the experiment is off, where the game's own state says. <c>null</c>
+    /// whenever the experiment is on, or <see cref="Enabled"/> could not be read.
+    /// <see cref="DeployedOffReason.Unknown"/> is an experiment that is off with
+    /// no automatic cause to be found, and it does not say who or what turned it
+    /// off.
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public DeployedOffReason? OffReason { get; set; }
+}
+
+/// <summary>
+/// Why a deployed experiment is switched off, defined by this contract rather
+/// than by KSP.
+///
+/// <para>KSP stores only the off state. The two automatic shut-offs are told
+/// apart from the facts each one tests: an experiment switches itself off when
+/// its situation is no longer valid for the experiment, and when it has
+/// generated all the science it can. It is an ordinal on the wire and a closed
+/// union on the client like every other enum in this contract.</para>
+/// <internal>
+/// Being ours, it needs no mirror test: nobody else owns its numbering.
+/// </internal>
+/// </summary>
+/// <category>Science</category>
+#if SITREP_CODEGEN
+[TsEnum]
+#endif
+[SitrepContract]
+public enum DeployedOffReason
+{
+    /// <summary>The experiment has generated all the science it can and the game switched it off.</summary>
+    Completed,
+
+    /// <summary>The experiment's situation is not one it can run in and the game switched it off.</summary>
+    InvalidSituation,
+
+    /// <summary>Off, with neither automatic cause present.</summary>
+    Unknown,
 }
 
 /// <summary>

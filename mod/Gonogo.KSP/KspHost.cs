@@ -7123,6 +7123,7 @@ namespace Gonogo.KSP
                                 : null,
                             ["deployedOnGround"] = ReflectBool(type, module, "DeployedOnGround"),
                         };
+                        AddEnabledFacts(loadedEntry, cluster as DeployedScienceCluster, part.persistentId, ReflectBool(type, module, "Enabled"));
                         AddStationFacts(loadedEntry, cluster as DeployedScienceCluster, part.persistentId);
                         list.Add(loadedEntry);
                     }
@@ -7208,8 +7209,20 @@ namespace Gonogo.KSP
                 ["powerRequired"] = cluster.PowerRequired,
                 ["deployedOnGround"] = sciencePart.DeployedOnGround,
             };
+            AddEnabledFacts(entry, cluster, sciencePart.PartId, sciencePart.Enabled);
             AddStationFacts(entry, cluster, sciencePart.PartId);
             return entry;
+        }
+
+        /// <summary>
+        /// Whether the experiment is switched on, and why not when it is off. Both
+        /// are written for a loaded and an unloaded experiment alike; an
+        /// <paramref name="enabled"/> that could not be read leaves both null.
+        /// </summary>
+        private static void AddEnabledFacts(Dictionary<string, object?> entry, DeployedScienceCluster? cluster, uint partPersistentId, bool? enabled)
+        {
+            entry["enabled"] = enabled;
+            entry["offReason"] = (int?)DeployedStationLink.OffReason(cluster, partPersistentId, enabled);
         }
 
         /// <summary>

@@ -44,6 +44,7 @@ export function experiment(
     scienceLimit: 60,
     storedData: 0,
     deployedOnGround: true,
+    enabled: true,
     ...over,
   };
 }

@@ -475,6 +475,51 @@ namespace Sitrep.Host.Tests
             Assert.Null(StrandedOf(null, 5.1)["stranded"]);
         }
 
+        private static Dictionary<string, object?> SwitchOf(object? enabled, object? offReason)
+        {
+            var raw = Experiment("station-a", "Mun Station", "Spectro Variometer", true, 0.0);
+            if (enabled != null)
+            {
+                raw["enabled"] = enabled;
+            }
+            if (offReason != null)
+            {
+                raw["offReason"] = offReason;
+            }
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?> { ["deployedScience"] = new List<object?> { raw } },
+            };
+            var station = Assert.Single(Assert.IsType<Dictionary<string, Dictionary<string, object?>>>(
+                BreakingGroundViewProvider.BuildStations(snapshot))).Value;
+            return Assert.IsType<Dictionary<string, object?>>(Assert.Single(Assert.IsType<List<object?>>(station["experiments"])));
+        }
+
+        [Fact]
+        public void BuildStationsCarriesAnExperimentThatIsOn()
+        {
+            var experiment = SwitchOf(true, null);
+            Assert.Equal(true, experiment["enabled"]);
+            Assert.Null(experiment["offReason"]);
+        }
+
+        [Fact]
+        public void BuildStationsCarriesTheReasonAnExperimentIsOff()
+        {
+            var experiment = SwitchOf(false, (int)DeployedOffReason.Completed);
+            Assert.Equal(false, experiment["enabled"]);
+            Assert.Equal((int)DeployedOffReason.Completed, experiment["offReason"]);
+        }
+
+        [Fact]
+        public void BuildStationsLeavesTheSwitchUnreadRatherThanOff()
+        {
+            var experiment = SwitchOf(null, null);
+            Assert.Null(experiment["enabled"]);
+            Assert.Null(experiment["offReason"]);
+        }
+
         [Fact]
         public void BuildStationsLeavesOutAnExperimentWithNoControllerVessel()
         {

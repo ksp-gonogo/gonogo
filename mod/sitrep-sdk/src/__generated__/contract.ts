@@ -7845,6 +7845,49 @@ export interface DeployedStationExperiment
 	* (`DeployedSciencePart.DeployedOnGround`).
 	*/
 	deployedOnGround?: boolean | null;
+	/**
+	* Whether the experiment is switched on (`DeployedSciencePart.Enabled`). An
+	* experiment that is off collects and sends nothing. Off is not always
+	* somebody's switch: the game also turns an experiment off by itself, see
+	* `DeployedStationExperiment.offReason`.
+	*
+	* Read for a cluster whether or not its vessel is loaded. `null` when it could
+	* not be read, which is a third state and must not be shown as off.
+	*/
+	enabled?: boolean | null;
+	/**
+	* Why the experiment is off, where the game's own state says. `null` whenever
+	* the experiment is on, or `DeployedStationExperiment.enabled` could not be
+	* read. `DeployedOffReason.Unknown` is an experiment that is off with no
+	* automatic cause to be found, and it does not say who or what turned it off.
+	*/
+	offReason?: DeployedOffReason | null;
+}
+/**
+* Why a deployed experiment is switched off, defined by this contract rather
+* than by KSP.
+*
+* KSP stores only the off state. The two automatic shut-offs are told apart
+* from the facts each one tests: an experiment switches itself off when its
+* situation is no longer valid for the experiment, and when it has generated
+* all the science it can. It is an ordinal on the wire and a closed union on
+* the client like every other enum in this contract.
+*
+* @category Science
+*/
+export enum DeployedOffReason {
+	/**
+	* The experiment has generated all the science it can and the game switched it
+	* off.
+	*/
+	Completed = 0,
+	/**
+	* The experiment's situation is not one it can run in and the game switched it
+	* off.
+	*/
+	InvalidSituation = 1,
+	/** Off, with neither automatic cause present. */
+	Unknown = 2
 }
 /**
 * A deployed-science cluster's power state, defined by this contract rather
