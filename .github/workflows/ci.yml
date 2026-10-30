@@ -1266,11 +1266,11 @@ jobs:
       - name: Build workspace
         run: pnpm build
 
-      - name: Check out gonogo-uplinks main
+      - name: Check out gonogo-uplinks staging
         uses: actions/checkout@v5
         with:
           repository: ksp-gonogo/gonogo-uplinks
-          ref: main
+          ref: staging
           path: gonogo-uplinks
           persist-credentials: false
 
