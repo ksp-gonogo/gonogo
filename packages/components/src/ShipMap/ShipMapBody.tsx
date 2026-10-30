@@ -2,7 +2,7 @@ import { AugmentSlot, type VesselTopology } from "@ksp-gonogo/core";
 import { Unit } from "@ksp-gonogo/ui-kit";
 import { type ComponentProps, type CSSProperties, useState } from "react";
 import { ShipDiagram } from "./ShipDiagram";
-import { StageColumn, useRoomForStageColumn } from "./StageColumn";
+import { StageColumn, useShipMapLayout } from "./StageColumn";
 import type {
   ShipMapPart,
   ShipMapPartMetaEntry,
@@ -36,6 +36,7 @@ export function ShipMapBody({
   turn,
   onTurn,
   stages,
+  columns,
 }: {
   topology: VesselTopology | undefined;
   parts: ShipMapPart[];
@@ -57,9 +58,12 @@ export function ShipMapBody({
   onTurn: (turn: number) => void;
   /** The staging stack still to fire; empty when no part carries a stage. */
   stages: StageEntry[];
+  /** How many grid columns the tile spans, when the dashboard says. */
+  columns: number | undefined;
 }) {
   const [rowEl, setRowEl] = useState<HTMLDivElement | null>(null);
-  const roomForStages = useRoomForStageColumn(rowEl);
+  const layout = useShipMapLayout(rowEl, columns);
+  const listOnly = layout === "stages" && stages.length > 0;
   if (!topology) {
     return (
       <div style={PLACEHOLDER}>
@@ -82,30 +86,37 @@ export function ShipMapBody({
         )}
       </div>
       <div ref={setRowEl} style={ROW}>
-        <div ref={setWrapEl} style={DIAGRAM_WRAP}>
-          {/* Ambient external-temperature tint, behind the SVG. */}
-          <div
-            style={{ ...TINT_LAYER, background: ambientTint ?? "transparent" }}
-          />
-          <ShipDiagram
-            parts={parts}
-            highlightPartId={hottestPartId}
-            width={size.w}
-            height={size.h}
-            throttle={throttle}
-            partMeters={partMeters}
-            partMeta={partMeta}
-            onInvokePartAction={onInvokePartAction}
-            turn={turn}
-            onTurn={onTurn}
-          />
-          {overlayContext && (
-            <div style={OVERLAY_LAYER}>
-              <AugmentSlot name="ship-map.overlay" props={overlayContext} />
-            </div>
-          )}
-        </div>
-        {roomForStages && stages.length > 0 && <StageColumn stages={stages} />}
+        {!listOnly && (
+          <div ref={setWrapEl} style={DIAGRAM_WRAP}>
+            {/* Ambient external-temperature tint, behind the SVG. */}
+            <div
+              style={{
+                ...TINT_LAYER,
+                background: ambientTint ?? "transparent",
+              }}
+            />
+            <ShipDiagram
+              parts={parts}
+              highlightPartId={hottestPartId}
+              width={size.w}
+              height={size.h}
+              throttle={throttle}
+              partMeters={partMeters}
+              partMeta={partMeta}
+              onInvokePartAction={onInvokePartAction}
+              turn={turn}
+              onTurn={onTurn}
+            />
+            {overlayContext && (
+              <div style={OVERLAY_LAYER}>
+                <AugmentSlot name="ship-map.overlay" props={overlayContext} />
+              </div>
+            )}
+          </div>
+        )}
+        {stages.length > 0 && (layout === "both" || listOnly) && (
+          <StageColumn stages={stages} fill={listOnly} />
+        )}
       </div>
     </>
   );
@@ -143,7 +154,7 @@ const OVERLAY_LAYER: CSSProperties = {
   pointerEvents: "none",
 };
 
-// The diagram keeps the width the stage column leaves it and is never the one that collapses.
+// The diagram keeps the width the stage column leaves it and is never the one that collapses. Too narrow for both, the stage list takes the whole row and the diagram is not drawn.
 const ROW: CSSProperties = {
   flex: 1,
   minHeight: 0,

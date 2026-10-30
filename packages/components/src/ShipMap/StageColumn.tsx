@@ -6,16 +6,26 @@ import type { StageEntry } from "./stageStack";
 /** The width of the stage column, in pixels. */
 const STAGE_COLUMN_WIDTH = 136;
 
-/** The widget width, in pixels, below which the stage column gives way: the diagram keeps the width its rotate controls need. */
+/** The widget width, in pixels, below which the diagram and the stage column no longer fit side by side, so the diagram is drawn alone. */
 export const STAGE_COLUMN_MIN_WIDGET_WIDTH =
   ROTATE_MIN_WIDTH + STAGE_COLUMN_WIDTH;
 
+/** The widest tile, in grid columns, that shows the stage list alone. */
+export const STAGE_LIST_ONLY_MAX_COLUMNS = 5;
+
+export type ShipMapLayout = "both" | "diagram" | "stages";
+
 /**
- * Whether a container is wide enough to carry the stage column beside the
- * diagram. True until the container has been measured, so a first paint and an
+ * What a tile carries: the stage list alone when it spans at most
+ * `STAGE_LIST_ONLY_MAX_COLUMNS` grid columns, otherwise the diagram and the stage
+ * column side by side when the container is wide enough, or the diagram alone.
+ * Reads as both until the container has been measured, so a first paint and an
  * environment with no resize observer both keep the column.
  */
-export function useRoomForStageColumn(el: HTMLElement | null): boolean {
+export function useShipMapLayout(
+  el: HTMLElement | null,
+  columns: number | undefined,
+): ShipMapLayout {
   const [room, setRoom] = useState(true);
   useEffect(() => {
     if (!el || typeof ResizeObserver === "undefined") return;
@@ -29,7 +39,10 @@ export function useRoomForStageColumn(el: HTMLElement | null): boolean {
     ro.observe(el);
     return () => ro.disconnect();
   }, [el]);
-  return room;
+  if (columns !== undefined && columns <= STAGE_LIST_ONLY_MAX_COLUMNS) {
+    return "stages";
+  }
+  return room ? "both" : "diagram";
 }
 
 /**
@@ -39,11 +52,22 @@ export function useRoomForStageColumn(el: HTMLElement | null): boolean {
  * only while the stage number is a current reading. Stages already fired are
  * not listed, as in game. Used beside the Ship Map diagram.
  */
-export function StageColumn({ stages }: { stages: StageEntry[] }) {
+export function StageColumn({
+  stages,
+  fill = false,
+}: {
+  stages: StageEntry[];
+  /** Fills the whole width of its row, with no diagram beside it. */
+  fill?: boolean;
+}) {
   return (
     // The column scrolls when stages outgrow the tile, and a scrolling region has to take keyboard focus to be operable.
-    // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable region must be focusable
-    <section aria-label="Staging" style={COLUMN} tabIndex={0}>
+    <section
+      aria-label="Staging"
+      style={fill ? COLUMN_ALONE : COLUMN}
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable region must be focusable
+      tabIndex={0}
+    >
       <h3 style={HEADING}>Stages</h3>
       <ol style={LIST}>
         {stages.map((s) => (
@@ -90,6 +114,8 @@ const COLUMN: CSSProperties = {
   borderLeft: "1px solid var(--color-border-subtle)",
   fontSize: "var(--font-size-compact)",
 };
+
+const COLUMN_ALONE: CSSProperties = { ...COLUMN, flex: 1, borderLeft: "none" };
 
 const HEADING: CSSProperties = {
   margin: 0,

@@ -62,6 +62,7 @@ interface ShipMapConfig {
 
 function ShipMapComponent({
   config,
+  w,
   onConfigChange,
 }: Readonly<ComponentProps<ShipMapConfig>>) {
   const turn = normaliseTurn(config?.turn);
@@ -227,6 +228,7 @@ function ShipMapComponent({
     <Box surface="app" style={MAP_SURFACE}>
       {shapeSources}
       <ShipMapBody
+        columns={w}
         topology={topology}
         parts={parts}
         hottestName={hottestName}
@@ -269,8 +271,8 @@ registerComponent<ShipMapConfig>({
   name: "Ship Map",
   description:
     "A view of your vessel part by part, side-on for a rocket and from above for a plane, turnable in steps, each part tinted by its heat, with fill bars on tanks and boosters and the hottest part picked out.",
-  tags: ["telemetry", "ship"],
-  defaultSize: { w: 8, h: 10 },
+  tags: ["telemetry", "ship", "staging", "stages"],
+  defaultSize: { w: 12, h: 10 },
   minSize: { w: 5, h: 5 },
   component: ShipMapComponent,
   augmentSlots: ["ship-map.overlay"],
