@@ -791,7 +791,31 @@ namespace Sitrep.Host
                 return new DeliveryPrediction(null, null, lane.Vantage, null, deleteAt);
             }
             var prediction = ForecastFrom(lane, lane.Vantage, now, now, deleteAt, routes);
-            return prediction.Route == null ? new DeliveryPrediction(null, null, lane.Vantage, null, deleteAt) : prediction;
+            return prediction.Route == null ? new DeliveryPrediction(null, null, lane.Vantage, null, deleteAt) : OnTheLedgerFlight(lane, lane.Vantage, now, prediction);
+        }
+
+        /*
+         * A command the plan believes open all the way flies as one flight whose
+         * length is the ledger's path when it has one, and the plan's own only
+         * when it has none (DeliveryNetwork.Launch), so that is the arrival and
+         * reply quoted. A command that waits on the way, or that has left its
+         * centre, is left on the plan: no flight has a length to read yet.
+         */
+        private DeliveryPrediction OnTheLedgerFlight(LaneKey lane, string start, double now, DeliveryPrediction planned)
+        {
+            if (planned.ArrivalUt == null || planned.HeldAt != null || !string.Equals(start, lane.Vantage, StringComparison.Ordinal))
+            {
+                return planned;
+            }
+            var links = new EngineDeliveryLinks(this);
+            var forward = links.LivePath(lane.Vantage, lane.Craft);
+            if (forward == null)
+            {
+                return planned;
+            }
+            var arrival = now + forward.Value;
+            var back = links.LivePath(lane.Craft, lane.Vantage) ?? forward.Value;
+            return new DeliveryPrediction(arrival, arrival + back, null, null, planned.CancelDeadlineUt, planned.Route);
         }
 
         /// <summary>
@@ -884,7 +908,7 @@ namespace Sitrep.Host
                 {
                     continue;
                 }
-                var next = ForecastFrom(journey.Lane, start, readyUt, now, journey.DeleteAt, routes);
+                var next = OnTheLedgerFlight(journey.Lane, start, journey.SentUt, ForecastFrom(journey.Lane, start, readyUt, now, journey.DeleteAt, routes));
                 entry.PredictedHeldAt = next.HeldAt;
                 entry.PredictedHeldUntilUt = next.HeldUntilUt;
                 entry.PredictedArrivalUt = next.ArrivalUt;
