@@ -2,10 +2,9 @@ import {
   clearActionHandlers,
   DashboardItemContext,
   dispatchAction,
-  PerfBudget,
 } from "@ksp-gonogo/core";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { NavballComponent } from "./index";
 
@@ -14,12 +13,6 @@ import { NavballComponent } from "./index";
  * is registered on the panel's delay rail, which says what the game refused and
  * why. The test render mounts a rail, as the dashboard does around every widget.
  */
-
-beforeEach(() => {
-  PerfBudget.getAll()
-    .find((b) => b.name.startsWith("useActionInput register"))
-    ?.reset();
-});
 
 afterEach(() => {
   clearActionHandlers();

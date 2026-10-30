@@ -1,30 +1,16 @@
-import {
-  clearActionHandlers,
-  dispatchAction,
-  PerfBudget,
-} from "@ksp-gonogo/core";
+import { clearActionHandlers, dispatchAction } from "@ksp-gonogo/core";
 import { act, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import {
   expectNoA11yViolations,
   renderWidget,
 } from "@ksp-gonogo/ui-kit/testing";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import "./index";
 
-beforeEach(() => {
-  PerfBudget.getAll()
-    .find((b) => b.name.startsWith("useActionInput register"))
-    ?.reset();
-});
-
 afterEach(() => {
   clearActionHandlers();
-  // Each mount registers ~30 actions, so back-to-back mounts would trip the register/sec budget.
-  PerfBudget.getAll()
-    .find((b) => b.name.startsWith("useActionInput register"))
-    ?.reset();
 });
 
 function essentialTexts(): string[] {

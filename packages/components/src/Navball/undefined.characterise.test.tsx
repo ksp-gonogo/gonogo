@@ -1,8 +1,4 @@
-import {
-  clearActionHandlers,
-  DashboardItemContext,
-  PerfBudget,
-} from "@ksp-gonogo/core";
+import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
@@ -41,10 +37,6 @@ let fixture: StreamFixture;
 const teardowns: Array<() => void> = [];
 
 beforeEach(() => {
-  // Each mount registers ~30 actions, so back-to-back mounts would trip the register/sec budget.
-  PerfBudget.getAll()
-    .find((b) => b.name.startsWith("useActionInput register"))
-    ?.reset();
   fixture = setupStreamFixture({
     pinnedUt: 0,
     suspendFrames: true,

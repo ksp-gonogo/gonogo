@@ -37,15 +37,16 @@ import { useDashboardItemId } from "./dashboard-item";
  * via `registerComponent({ actions: [...] })`), so this is safe.
  */
 
-/**
- * Soft cap on action-handler register operations. Should be near-zero in
- * steady state: every widget mounts once and registers once. A spike
- * means a widget is re-mounting (likely a key/identity bug) or
- * re-running its useActionInput effect on every parent render (the
- * regression this hook was rewritten to prevent).
+/*
+ * Counts only a hook registering the same actions for the same instance id again
+ * while it stays mounted, which is what a re-register loop (an instance id that
+ * flaps between renders) produces. First registrations at mount are not
+ * counted: a page load registers every action of every widget at once, and
+ * that is not a fault. StrictMode re-runs each effect once on mount, so the
+ * first re-run of a hook is free and only a third run onward is counted.
  */
-const ACTION_REGISTER_BUDGET = new PerfBudget({
-  name: "useActionInput register/sec",
+const ACTION_REREGISTER_BUDGET = new PerfBudget({
+  name: "useActionInput re-registrations/sec",
   threshold: 50,
   windowMs: 1000,
   unit: "registrations",
@@ -61,6 +62,7 @@ export function useActionInput<Actions extends readonly ActionDefinition[]>(
   // no re-render, no effect trigger.
   const handlersRef = useRef(handlers);
   handlersRef.current = handlers;
+  const runsRef = useRef(new Map<string, number>());
 
   // Register stable proxy handlers ONCE on mount. The proxy reads
   // `handlersRef.current` at dispatch time so closure freshness is
@@ -68,6 +70,8 @@ export function useActionInput<Actions extends readonly ActionDefinition[]>(
   // comment for the static-action-set assumption.
   useEffect(() => {
     const actionIds = Object.keys(handlersRef.current);
+    const runs = (runsRef.current.get(instanceId) ?? 0) + 1;
+    runsRef.current.set(instanceId, runs);
     for (const actionId of actionIds) {
       const proxy: ActionHandler = (payload) => {
         const fn: unknown = Reflect.get(handlersRef.current, actionId);
@@ -76,7 +80,7 @@ export function useActionInput<Actions extends readonly ActionDefinition[]>(
           : undefined;
       };
       registerActionHandler(instanceId, actionId, proxy);
-      ACTION_REGISTER_BUDGET.record();
+      if (runs > 2) ACTION_REREGISTER_BUDGET.record();
     }
     return () => {
       for (const actionId of actionIds) {

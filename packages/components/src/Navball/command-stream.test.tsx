@@ -2,11 +2,10 @@ import {
   clearActionHandlers,
   DashboardItemContext,
   dispatchAction,
-  PerfBudget,
 } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import type { JSX, ReactNode } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { NavballComponent, sasModeOrdinal } from "./index";
 
@@ -26,13 +25,6 @@ const STOCK_GROUPS_ALL_OFF = Array.from({ length: 10 }, (_, i) => ({
 const CONTROL_MODE_CONFIG = { controlMode: true };
 // Large enough to clear the control surface's size gate.
 const CONTROL_SIZE = { w: 10, h: 20 };
-
-beforeEach(() => {
-  // Each mount registers ~30 actions, so back-to-back mounts would trip the register/sec budget.
-  PerfBudget.getAll()
-    .find((b) => b.name.startsWith("useActionInput register"))
-    ?.reset();
-});
 
 afterEach(() => {
   clearActionHandlers();

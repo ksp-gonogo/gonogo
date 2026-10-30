@@ -1,22 +1,12 @@
-import {
-  clearActionHandlers,
-  dispatchAction,
-  PerfBudget,
-} from "@ksp-gonogo/core";
+import { clearActionHandlers, dispatchAction } from "@ksp-gonogo/core";
 import { act, waitFor } from "@ksp-gonogo/test-utils";
 import {
   expectNoA11yViolations,
   renderWidget,
 } from "@ksp-gonogo/ui-kit/testing";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import "./index";
-
-beforeEach(() => {
-  PerfBudget.getAll()
-    .find((b) => b.name.startsWith("useActionInput register"))
-    ?.reset();
-});
 
 afterEach(() => clearActionHandlers());
 

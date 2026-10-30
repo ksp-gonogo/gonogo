@@ -2,10 +2,9 @@ import {
   clearActionHandlers,
   DashboardItemContext,
   dispatchAction,
-  PerfBudget,
 } from "@ksp-gonogo/core";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import type { NavballConfig } from "./config";
 import { NavballComponent, sasModeOrdinal } from "./index";
@@ -13,13 +12,6 @@ import type { SasMode } from "./sasModes";
 
 const PRESS = { kind: "button", value: true } as const;
 const RELEASE = { kind: "button", value: false } as const;
-
-beforeEach(() => {
-  // Each mount registers ~30 actions, so back-to-back mounts would trip the register/sec budget.
-  PerfBudget.getAll()
-    .find((b) => b.name.startsWith("useActionInput register"))
-    ?.reset();
-});
 
 afterEach(() => {
   clearActionHandlers();

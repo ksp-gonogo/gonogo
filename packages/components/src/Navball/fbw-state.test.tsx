@@ -2,11 +2,10 @@ import {
   clearActionHandlers,
   DashboardItemContext,
   dispatchAction,
-  PerfBudget,
 } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactElement, ReactNode } from "react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -19,12 +18,6 @@ import { NavballComponent } from "./index";
  * by dropping the override. The mod's own `vessel.control.flyByWire` settles it
  * whenever no command is travelling, so a reload cannot show off while armed.
  */
-
-beforeEach(() => {
-  PerfBudget.getAll()
-    .find((b) => b.name.startsWith("useActionInput register"))
-    ?.reset();
-});
 
 afterEach(() => {
   clearActionHandlers();

@@ -90,8 +90,8 @@ describe("useActionInput", () => {
 
   it("does NOT re-register handlers on parent re-render, even when the handlers object identity changes every render", () => {
     // Reset the budget so the assertion is sensitive to this test's calls.
-    const budget = PerfBudget.getAll().find((b) =>
-      b.name.startsWith("useActionInput register"),
+    const budget = PerfBudget.getAll().find(
+      (b) => b.name === "useActionInput re-registrations/sec",
     );
     expect(budget).toBeDefined();
     if (!budget) return;
@@ -119,10 +119,8 @@ describe("useActionInput", () => {
         <Renderer />
       </Harness>,
     );
-    // One initial registration on mount.
     expect(budget.getExceedanceCount()).toBe(0);
-    const registrationsAfterMount = budget.windowTotal();
-    expect(registrationsAfterMount).toBe(1);
+    expect(budget.windowTotal()).toBe(0);
 
     // Force ten parent re-renders with fresh handler-object identities.
     for (let i = 0; i < 10; i++) {
@@ -130,8 +128,8 @@ describe("useActionInput", () => {
         triggerRender?.();
       });
     }
-    // No additional registrations: the proxy stays put.
-    expect(budget.windowTotal()).toBe(1);
+    // No registrations at all: the proxy stays put.
+    expect(budget.windowTotal()).toBe(0);
 
     // The proxy still routes to the latest closure: dispatch fires the current handler, which sees the up-to-date spy.
     dispatchAction("widget-1", "toggle", { kind: "button", value: true });
@@ -155,5 +153,54 @@ describe("useActionInput", () => {
       window.removeEventListener("error", swallow);
       suppress.mockRestore();
     }
+  });
+});
+
+describe("useActionInput re-registration budget", () => {
+  const budget = () => {
+    const found = PerfBudget.getAll().find(
+      (b) => b.name === "useActionInput re-registrations/sec",
+    );
+    if (!found) throw new Error("budget not registered");
+    return found;
+  };
+
+  function Many({ n }: { n: number }) {
+    const ids = Array.from({ length: n }, (_, i) => `w-${i}`);
+    return (
+      <>
+        {ids.map((id) => (
+          <Harness key={id} instanceId={id}>
+            <ToggleConsumer onToggle={() => ({})} />
+          </Harness>
+        ))}
+      </>
+    );
+  }
+
+  it("stays silent when many widgets register at mount", () => {
+    budget().reset();
+    render(<Many n={200} />);
+    expect(budget().windowTotal()).toBe(0);
+    expect(budget().getExceedanceCount()).toBe(0);
+  });
+
+  it("counts registrations repeated for the same instance while mounted", () => {
+    budget().reset();
+    let flip: (() => void) | null = null;
+    function Flapping() {
+      const [tick, setTick] = useState(0);
+      flip = () => setTick((n) => n + 1);
+      return (
+        <Harness instanceId={tick % 2 === 0 ? "a" : "b"}>
+          <ToggleConsumer onToggle={() => ({})} />
+        </Harness>
+      );
+    }
+    render(<Flapping />);
+    expect(budget().windowTotal()).toBe(0);
+    for (let i = 0; i < 8; i++) act(() => flip?.());
+    expect(budget().windowTotal()).toBeGreaterThan(0);
+    budget().reset();
   });
 });
