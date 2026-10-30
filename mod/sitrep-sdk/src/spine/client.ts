@@ -443,6 +443,13 @@ export class TelemetryClient {
    * forward on the client's clock until a frame says it runs again.
    */
   private gamePaused = false;
+
+  /**
+   * Whether the newest `game-state` said a scene is loading. UT does not
+   * advance through a load, so it holds the game's UT still the same way a
+   * pause does.
+   */
+  private gameLoading = false;
   /** The keyframe interval each topic's `subscribed` ack declared, kept so a store attached later is told too. */
   private readonly declaredKeyframeIntervals = new Map<string, number>();
 
@@ -1529,6 +1536,7 @@ export class TelemetryClient {
     }
     if (message.type === "game-state") {
       this.gameState = { state: message.state, scene: message.scene };
+      this.noteLoading(message.state === "loading");
       for (const store of this.stores) {
         store.setGameState(message.state, message.scene);
       }
@@ -1733,7 +1741,7 @@ export class TelemetryClient {
   private gameUtNow(): number | undefined {
     const anchor = this.gameClock;
     if (!anchor) return undefined;
-    if (this.gamePaused) return anchor.ut;
+    if (this.gamePaused || this.gameLoading) return anchor.ut;
     return anchor.ut + (this.clock.now() - anchor.at);
   }
 
@@ -1760,6 +1768,17 @@ export class TelemetryClient {
       };
     }
     this.gamePaused = paused;
+  }
+
+  /** Holds the game's UT still from the moment a load starts and lets it run again from there when it ends. */
+  private noteLoading(loading: boolean): void {
+    if (loading === this.gameLoading) return;
+    const anchor = this.gameClock;
+    const ut = this.gameUtNow();
+    if (anchor && ut !== undefined) {
+      this.gameClock = { ut, at: this.clock.now(), epoch: anchor.epoch };
+    }
+    this.gameLoading = loading;
   }
 
   /** The UT a pause began at: the record's own, never earlier than the estimate on the same timeline. */
@@ -1861,14 +1880,14 @@ export class TelemetryClient {
    * The reading of the client's clock at which a command's deadline in game UT
    * and its margin run out, were the game to run at normal speed from the
    * newest frame. Worked from that frame's own reading, so a deadline a whole
-   * number of seconds away lands on one. Infinite while the game is paused, so
+   * number of seconds away lands on one. Infinite while the game is paused or loading, so
    * the timer keeps rechecking rather than spending the deadline on the pause.
    */
   private clockTimeOfLoss(pending: PendingCommand): number | undefined {
     const anchor = this.gameClock;
     const dueUt = pending.gameDeadlineUt;
     if (!anchor || dueUt === undefined) return undefined;
-    if (this.gamePaused) return Number.POSITIVE_INFINITY;
+    if (this.gamePaused || this.gameLoading) return Number.POSITIVE_INFINITY;
     return anchor.at + (dueUt + LOSS_MARGIN - anchor.ut);
   }
 

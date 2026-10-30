@@ -943,7 +943,13 @@ export function useCommand(
             !unsent.some((u) => u.id === l.id),
         ),
       );
-      if (promoted.length > 0) setFounds((prev) => [...prev, ...promoted]);
+      if (promoted.length > 0) {
+        setFounds((prev) => [
+          ...prev,
+          // Same repeated notify as `undelivered` below.
+          ...promoted.filter((f) => !prev.some((seen) => seen.id === f.id)),
+        ]);
+      }
       if (unsent.length > 0) {
         setUndelivered((prev) => [
           ...prev,
