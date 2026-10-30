@@ -35,6 +35,16 @@ import {
   PLANTED_TINY_MISFIT_ID,
 } from "./probe/plantedTinyMisfit";
 import type { ScreenProbePayload } from "./probe/screen-entry";
+import {
+  findActionShifts,
+  findDeadTextTargets,
+  findSvgHtmlTextOverlaps,
+  proveActionShiftCheckWorks,
+  proveHitTargetCheckWorks,
+  proveSvgHtmlOverlapWorks,
+} from "./renderGateChecks";
+import { settleDebt } from "./renderGateDebt";
+import { stressScenes } from "./renderGateStress";
 import { findContentUnderStickyBar } from "./stickyBarBacking";
 
 const require = createRequire(import.meta.url);
@@ -254,6 +264,17 @@ export interface WidgetRenderConfig {
    * boxes with overhanging content that nobody has checked.
    */
   mustFitBoxes?: boolean;
+  /**
+   * Render the generated stress scenes of this config's fixtures instead of the
+   * fixtures themselves; see `renderGateStress.ts`.
+   */
+  stress?: boolean;
+  /**
+   * Fire each declared action once the render is measured, and report controls
+   * that move. It leaves the widget in the state the actions made, so it is for
+   * a gate that discards the picture.
+   */
+  checkActions?: boolean;
 }
 
 /** A viewport size the screen harness renders a screen at. Unlike a widget
@@ -301,6 +322,14 @@ export interface ScreenRenderConfig {
 declare global {
   var __renderProbe: ((payload: ProbePayload) => Promise<void>) | undefined;
   var __auditTinyFit: (() => MinFitFinding[] | null) | undefined;
+  var __probeActions:
+    | ((
+        widgetId: string,
+      ) => { id: string; label: string; kind: "button" | "analog" }[])
+    | undefined;
+  var __dispatchProbeAction:
+    | ((id: string, kind: "button" | "analog") => void)
+    | undefined;
   var __renderScreen:
     | ((payload: ScreenProbePayload) => Promise<void>)
     | undefined;
@@ -440,6 +469,9 @@ export async function renderWidgets(
       );
 
       await proveOverlapDetectorWorks(page);
+      await proveSvgHtmlOverlapWorks(page);
+      await proveHitTargetCheckWorks(page);
+      await proveActionShiftCheckWorks(page);
       await proveOverrunDetectorWorks(page);
       await proveClipDetectorWorks(page);
       await proveTinyFitAuditWorks(page);
@@ -494,6 +526,23 @@ export async function renderWidgets(
     if (workers > 1) {
       for (const list of Object.values(findings)) list.sort();
       pageErrors.sort();
+    }
+
+    const debt = settleDebt(
+      Object.entries(findings),
+      new Set(configs.map((c) => c.widgetId)),
+    );
+    if (debt.covered > 0) {
+      console.warn(
+        `\n[warn] ${debt.covered} finding(s) are known debt in renderGateDebt.ts and were not reported.`,
+      );
+    }
+    if (debt.stale.length > 0) {
+      throw new Error(
+        `${debt.stale.length} entr(ies) in RENDER_GATE_DEBT reported nothing:\n  ` +
+          debt.stale.join("\n  ") +
+          "\n(Delete them so the next finding cannot slip in under one.)",
+      );
     }
 
     // Before the gates, because a gate's verdict only covers what rendered: a clean overlap report over 16 of 42 widgets is not a clean tree.
@@ -584,6 +633,35 @@ export async function renderWidgets(
             "and a threshold label given the same corner of the plot.)",
         );
       }
+    }
+
+    if (findings.svgHtmlOverlaps.length > 0) {
+      const message =
+        `${findings.svgHtmlOverlaps.length} chart caption(s) painted under or over a line of HTML text:\n  ` +
+        findings.svgHtmlOverlaps.join("\n  ");
+      if (process.env.PROBE_ALLOW_OVERLAP === "1") {
+        console.warn(`\n[warn] ${message}`);
+      } else {
+        throw new Error(
+          `${message}\n(Set PROBE_ALLOW_OVERLAP=1 to render anyway. An axis title, tick or threshold label is drawn in the chart and a legend, notice or tooltip is drawn in the page, so each was laid out without knowing about the other.)`,
+        );
+      }
+    }
+
+    if (findings.hitTargets.length > 0) {
+      throw new Error(
+        `${findings.hitTargets.length} line(s) of text beside a control that a press on the text does not reach a control through:\n  ` +
+          findings.hitTargets.join("\n  ") +
+          "\n(Text laid out as part of a control's row reads as part of the control. Make the text part of the control, or label it for the control, or take it out of the row.)",
+      );
+    }
+
+    if (findings.actionShifts.length > 0) {
+      throw new Error(
+        `${findings.actionShifts.length} control(s) moved when another control's action was fired:\n  ` +
+          findings.actionShifts.join("\n  ") +
+          "\n(A control that moves under the operator's pointer gets pressed in its new place. Give the control that appears or disappears a slot of its own, or reserve the room.)",
+      );
     }
 
     if (findings.overruns.length > 0) {
@@ -2237,11 +2315,17 @@ async function proveTinyFitAuditWorks(page: Page): Promise<void> {
  * configs rendered and the other 28 were never gated or compared to a baseline. In the `visual` job, which is red on purpose, that is invisible. A
  * run now surveys the whole set and fails at the end holding all of it.
  */
-interface RenderFindings {
+type RenderFindings = {
   /** Graphics laid out at zero width or height (the paint gate). */
   crushedGraphics: string[];
   /** Stacked siblings painting into the same pixels. */
   overlaps: string[];
+  /** Chart captions and HTML text painting into the same pixels. */
+  svgHtmlOverlaps: string[];
+  /** Text beside a control that no press on it reaches a control through. */
+  hitTargets: string[];
+  /** Controls that moved when a declared action was fired. */
+  actionShifts: string[];
   /** Drawn boxes whose content runs past their own right edge. */
   overruns: string[];
   /** Elements a clipping ancestor hides entirely (the inverse of `overlaps`). */
@@ -2267,7 +2351,7 @@ interface RenderFindings {
   a11y: string[];
   /** Scrolled rows that show through the panel's sticky bar. */
   stickyBar: string[];
-}
+};
 
 /**
  * Resolves once the page has gone a run of frames with no DOM change and no resize of `#root`.
@@ -2330,6 +2414,9 @@ function noFindings(): RenderFindings {
   return {
     crushedGraphics: [],
     overlaps: [],
+    svgHtmlOverlaps: [],
+    hitTargets: [],
+    actionShifts: [],
     overruns: [],
     clipped: [],
     clipSurvey: [],
@@ -2438,7 +2525,9 @@ async function renderOneWidget(
       const payload = probePayload({
         widgetId: config.widgetId,
         fixture: fixture.data,
-        size: mode,
+        size: fixture.modeConfig
+          ? { ...mode, config: { ...mode.config, ...fixture.modeConfig } }
+          : mode,
         profile,
         gridCell: gridCell && !fullContent,
         asDashboard: mode.asDashboard,
@@ -2608,6 +2697,16 @@ async function renderOneWidget(
           `${config.widgetId} @ ${mode.name} (${sceneLabel}): ${overlap}`,
         );
       }
+      for (const overlap of await findSvgHtmlTextOverlaps(page)) {
+        findings.svgHtmlOverlaps.push(
+          `${config.widgetId} @ ${mode.name} (${sceneLabel}): ${overlap}`,
+        );
+      }
+      for (const dead of await findDeadTextTargets(page)) {
+        findings.hitTargets.push(
+          `${config.widgetId} @ ${mode.name} (${sceneLabel}): ${dead}`,
+        );
+      }
       if (config.mustFitBoxes) {
         for (const overrun of await findOverrunningBoxes(page)) {
           findings.overruns.push(
@@ -2629,6 +2728,19 @@ async function renderOneWidget(
         for (const fallback of await findFontFallbacks(page, cdp)) {
           findings.fontFallbacks.push(
             `${config.widgetId} @ ${mode.name} (${sceneLabel}): ${fallback}`,
+          );
+        }
+      }
+      // Last, because firing the actions leaves the widget in the state they made.
+      if (
+        config.checkActions &&
+        !capture &&
+        fixture === fixtures[0] &&
+        mode === largestMode(config.modes)
+      ) {
+        for (const shift of await findActionShifts(page, config.widgetId)) {
+          findings.actionShifts.push(
+            `${config.widgetId} @ ${mode.name} (${sceneLabel}): ${shift}`,
           );
         }
       }
@@ -2898,15 +3010,31 @@ async function cleanArtifacts(
   }
 }
 
+/** The mode with the most tile area, where a widget has room to show every control. */
+function largestMode(modes: readonly SizeMode[]): SizeMode | undefined {
+  return [...modes].sort((a, b) => b.w * b.h - a.w * a.h)[0];
+}
+
 /** One scene a render config renders: a fixture file and what it holds. */
 export interface SceneFixture {
   name: string;
   file: string;
   data: Record<string, unknown>;
+  /** Overlaid on every mode's config for this scene, so a generated scene can set what the modes would otherwise override. */
+  modeConfig?: Record<string, unknown>;
+  /** A scene the gate generated, whose findings are measured against its own debt list. */
+  stress?: boolean;
 }
 
 /** The scenes `config` renders: every top-level `.json` in its fixtures directory. */
 export async function sceneFixtures(
+  config: WidgetRenderConfig,
+): Promise<SceneFixture[]> {
+  const authored = await authoredScenes(config);
+  return config.stress ? stressScenes(config.widgetId, authored) : authored;
+}
+
+async function authoredScenes(
   config: WidgetRenderConfig,
 ): Promise<SceneFixture[]> {
   const fixturesDir = resolve(COMPONENTS_SRC, config.fixturesPath);
