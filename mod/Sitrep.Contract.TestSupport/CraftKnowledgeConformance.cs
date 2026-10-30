@@ -52,15 +52,21 @@ namespace Sitrep.Contract.TestSupport
             Assert.True(
                 reading.UncertaintyM is not double radius || (radius >= 0.0 && !double.IsNaN(radius) && !double.IsInfinity(radius)),
                 what + ": UncertaintyM is a finite radius in metres, or null when it cannot be bounded; never negative and never a stand-in for unbounded.");
+            Assert.True(
+                reading.Place == null || (reading.UncertaintyM != null && IsFinite(reading.Place.Position)),
+                what + ": a Place carries a finite position and the radius around it, so UncertaintyM is set whenever Place is.");
         }
+
+        private static bool IsFinite(Vector3d v) =>
+            !double.IsNaN(v.X + v.Y + v.Z) && !double.IsInfinity(v.X + v.Y + v.Z);
 
         private static void AssertUnknown(CraftKnowledgeReading? reading, string what)
         {
             Assert.True(reading != null, what + ": KnowledgeAt returned null rather than CraftKnowledgeReading.Unknown.");
             Assert.True(reading!.State == CraftKnowledgeState.Unknown, what + " reads " + reading.State + "; nothing is known of it, so it reads Unknown.");
             Assert.True(
-                reading.HeldGrade == null && reading.LastKnownUt == null && reading.UncertaintyM == null,
-                what + ": an unknown craft carries no grade, no time and no uncertainty.");
+                reading.HeldGrade == null && reading.LastKnownUt == null && reading.UncertaintyM == null && reading.Place == null,
+                what + ": an unknown craft carries no grade, no time, no uncertainty and no place.");
             Assert.False(reading.LineOfSight, what + ": LineOfSight is false for an unknown craft, so it never reveals one the centre has not learned of.");
         }
     }

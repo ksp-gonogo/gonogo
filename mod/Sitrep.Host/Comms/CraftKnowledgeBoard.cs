@@ -302,7 +302,7 @@ namespace Sitrep.Host.Comms
                 return CraftKnowledgeReading.Unknown;
             }
             var sample = Sample(vesselId, entry, board.LookUt, ut);
-            return new CraftKnowledgeReading(sample.State, sample.HeldGrade, sample.LastKnownUt, sample.UncertaintyM, sample.LineOfSight);
+            return new CraftKnowledgeReading(sample.State, sample.HeldGrade, sample.LastKnownUt, sample.UncertaintyM, sample.LineOfSight, sample.Place);
         }
 
         public int ReadCentre(string centreId, double ut, CraftKnowledgeSample[] buffer, out long version)
@@ -329,22 +329,23 @@ namespace Sitrep.Host.Comms
         {
             var fix = entry.Fix;
             var uncertainty = fix.UncertaintyMAt(ut);
+            var place = fix.PlaceAt(ut);
             // No sample was taken after the last look, so light is not counted as arrived past it, except from a change the look solved the instant of.
             var lineOfSight = InViewByLight(entry, ut, lookUt);
             if (fix.InContact)
             {
-                return new CraftKnowledgeSample(vesselId, CraftKnowledgeState.Heard, null, fix.LastKnownUt, uncertainty, lineOfSight);
+                return new CraftKnowledgeSample(vesselId, CraftKnowledgeState.Heard, null, fix.LastKnownUt, uncertainty, lineOfSight, place);
             }
             if (entry.Sighted && lineOfSight)
             {
-                return new CraftKnowledgeSample(vesselId, CraftKnowledgeState.Seen, null, fix.LastKnownUt, uncertainty, lineOfSight);
+                return new CraftKnowledgeSample(vesselId, CraftKnowledgeState.Seen, null, fix.LastKnownUt, uncertainty, lineOfSight, place);
             }
             if (Reckonable(fix.Known))
             {
-                return new CraftKnowledgeSample(vesselId, CraftKnowledgeState.Modelled, null, fix.LastKnownUt, uncertainty, lineOfSight);
+                return new CraftKnowledgeSample(vesselId, CraftKnowledgeState.Modelled, null, fix.LastKnownUt, uncertainty, lineOfSight, place);
             }
             var grade = entry.EverInContact ? HeldGrade.LastBeforeBlackout : HeldGrade.Held;
-            return new CraftKnowledgeSample(vesselId, CraftKnowledgeState.Held, grade, fix.LastKnownUt, uncertainty, lineOfSight);
+            return new CraftKnowledgeSample(vesselId, CraftKnowledgeState.Held, grade, fix.LastKnownUt, uncertainty, lineOfSight, place);
         }
 
         /// <summary>A craft that was holding its course above every atmosphere, or standing on the ground, when last known: its place can be carried forward.</summary>

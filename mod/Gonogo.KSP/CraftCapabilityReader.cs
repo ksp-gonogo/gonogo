@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using Expansions.Serenity;
 using ModuleWheels;
 using Sitrep.Host.Comms;
+using UnityEngine;
+using ContractVector = Sitrep.Contract.Vector3d;
 
 namespace Gonogo.KSP
 {
@@ -38,7 +40,9 @@ namespace Gonogo.KSP
             {
                 last = (null, null, vessel.loaded ? Driven(vessel) : DrivenSaved(vessel.protoVessel));
             }
-            return new CraftCapability(last.DeltaV, last.Acceleration, Airspeed(vessel), last.Driven, Thrusting(vessel));
+            var thrusting = Thrusting(vessel);
+            return new CraftCapability(
+                last.DeltaV, last.Acceleration, Airspeed(vessel), last.Driven, thrusting, thrusting == true ? EngineAcceleration(vessel) : null);
         }
 
         /// <summary>
@@ -78,6 +82,55 @@ namespace Gonogo.KSP
                 }
             }
             return false;
+        }
+
+        /// <summary>
+        /// The acceleration the engines give the loaded craft now, split along its
+        /// own prograde, radial and normal. Null when no engine is producing thrust
+        /// (reaction thrusters alone are left out) or its mass or motion gives no
+        /// frame to split it in.
+        /// </summary>
+        private static ThrustAcceleration? EngineAcceleration(Vessel vessel)
+        {
+            var mass = vessel.GetTotalMass();
+            if (vessel.parts == null || vessel.mainBody == null || !(mass > 0f))
+            {
+                return null;
+            }
+            var force = new Vector3d(0.0, 0.0, 0.0);
+            foreach (var part in vessel.parts)
+            {
+                if (part == null)
+                {
+                    continue;
+                }
+                foreach (var engine in part.FindModulesImplementing<ModuleEngines>())
+                {
+                    if (!(engine.finalThrust > 0f) || engine.thrustTransforms == null)
+                    {
+                        continue;
+                    }
+                    for (var i = 0; i < engine.thrustTransforms.Count; i++)
+                    {
+                        var share = engine.thrustTransformMultipliers != null && i < engine.thrustTransformMultipliers.Count
+                            ? engine.thrustTransformMultipliers[i]
+                            : 1f / engine.thrustTransforms.Count;
+                        force += (Vector3d)(-engine.thrustTransforms[i].forward) * (engine.finalThrust * share);
+                    }
+                }
+            }
+            if (force.sqrMagnitude <= 0.0)
+            {
+                return null;
+            }
+            // Thrust in kN over mass in tonnes is m/s².
+            var thrust = force / mass;
+            var height = vessel.CoMD - vessel.mainBody.position;
+            var velocity = vessel.obt_velocity;
+            return ThrustFrame.Split(
+                new ContractVector(height.x, height.y, height.z),
+                new ContractVector(velocity.x, velocity.y, velocity.z),
+                new ContractVector(thrust.x, thrust.y, thrust.z));
         }
 
         private void ReadLoaded(Vessel vessel)

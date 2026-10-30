@@ -71,6 +71,10 @@ namespace Sitrep.Host.Comms
             {
                 return null;
             }
+            if (capability.Thrusting == true && PlacePrediction.PlaceAt(known, ut) is { } burning)
+            {
+                return burning.RadiusM;
+            }
             var airborneOrGrounded = known.Surface != null || capability.AirspeedMs != null;
             if (airborneOrGrounded && capability.DrivenWithoutPropellant)
             {

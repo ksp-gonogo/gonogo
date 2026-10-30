@@ -2758,8 +2758,18 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "CraftFileParts": {
     parts: "VesselPart[]",
   },
+  "CraftKnowledgeReading": {
+    place: "CraftPlace",
+  },
+  "CraftKnowledgeSample": {
+    place: "CraftPlace",
+  },
   "CraftLoad": {
     measured: "CraftFileRecord",
+  },
+  "CraftPlace": {
+    frame: "PropagationFrame",
+    position: "Vector3d",
   },
   "CrashReport": {
     flightStats: "CrashFlightStats",

@@ -75,6 +75,56 @@ namespace Sitrep.Contract
         NoGame = 5,
     }
 
+    /// <summary>How a <see cref="CraftPlace"/> was reckoned from what the centre last knew of the craft.</summary>
+    /// <category>Host and Kernel</category>
+    public enum CraftPlaceBasis
+    {
+        /// <summary>The craft was last known coasting, so its place is where the orbit it was on puts it.</summary>
+        Coasting = 0,
+
+        /// <summary>
+        /// The craft was last known under thrust, so its place is the last known
+        /// state carried forward with that thrust held until its delta-v is spent,
+        /// under the body's gravity, by fixed-step numerical integration.
+        /// </summary>
+        Burning = 1,
+    }
+
+    /// <summary>
+    /// Where a command centre reckons a craft is at one instant: a position from
+    /// the centre of the body the craft orbits, in metres, in that body's
+    /// non-rotating frame, the frame <see cref="PropagationFrame.CentredOn"/> names.
+    /// Useful for an Uplink that points something at the craft, such as a ground
+    /// camera, which aims at this place within
+    /// <see cref="CraftKnowledgeReading.UncertaintyM"/> of it.
+    /// </summary>
+    /// <category>Host and Kernel</category>
+    public sealed class CraftPlace
+    {
+        /// <summary>Builds a place. Nothing but the provider needs to.</summary>
+        /// <param name="bodyIndex">The index, in the provider's body table, of the body the craft orbits.</param>
+        /// <param name="position">The craft's position from that body's centre, in metres.</param>
+        /// <param name="basis">How the place was reckoned.</param>
+        public CraftPlace(int bodyIndex, Vector3d position, CraftPlaceBasis basis)
+        {
+            BodyIndex = bodyIndex;
+            Position = position;
+            Basis = basis;
+        }
+
+        /// <summary>The index, in the provider's body table, of the body the craft orbits and the place is measured from.</summary>
+        public int BodyIndex { get; }
+
+        /// <summary>The frame <see cref="Position"/> is in: non-rotating and centred on <see cref="BodyIndex"/>.</summary>
+        public PropagationFrame Frame => PropagationFrame.CentredOn(BodyIndex);
+
+        /// <summary>The craft's position from the centre of its body, in metres, in <see cref="Frame"/>.</summary>
+        public Vector3d Position { get; }
+
+        /// <summary>How the place was reckoned from what the centre last knew of the craft.</summary>
+        public CraftPlaceBasis Basis { get; }
+    }
+
     /// <summary>
     /// What one command centre knows of one craft at one instant, as
     /// <see cref="ICraftKnowledge.KnowledgeAt"/> answers it.
@@ -93,7 +143,20 @@ namespace Sitrep.Contract
         /// <param name="uncertaintyM">How far the craft can be from where the centre places it, in metres.</param>
         /// <param name="lineOfSight">Whether the light that has reached the centre shows the craft in view.</param>
         public CraftKnowledgeReading(CraftKnowledgeState state, HeldGrade? heldGrade, double? lastKnownUt, double? uncertaintyM, bool lineOfSight)
+            : this(state, heldGrade, lastKnownUt, uncertaintyM, lineOfSight, null)
         {
+        }
+
+        /// <summary>Builds a reading that says where the craft is reckoned to be. Nothing but the provider needs to.</summary>
+        /// <param name="state">How the centre knows where the craft is.</param>
+        /// <param name="heldGrade">Why the place stopped updating, for <see cref="CraftKnowledgeState.Held"/> only.</param>
+        /// <param name="lastKnownUt">The last instant the centre knows the craft's place.</param>
+        /// <param name="uncertaintyM">How far the craft can be from where the centre places it, in metres.</param>
+        /// <param name="lineOfSight">Whether the light that has reached the centre shows the craft in view.</param>
+        /// <param name="place">Where the centre reckons the craft is at the instant asked about, or null when it cannot say.</param>
+        public CraftKnowledgeReading(CraftKnowledgeState state, HeldGrade? heldGrade, double? lastKnownUt, double? uncertaintyM, bool lineOfSight, CraftPlace? place)
+        {
+            Place = place;
             State = state;
             HeldGrade = heldGrade;
             LastKnownUt = lastKnownUt;
@@ -125,6 +188,18 @@ namespace Sitrep.Contract
         /// <see cref="CraftKnowledgeState.Unknown"/>; null is not zero.
         /// </summary>
         public double? UncertaintyM { get; }
+
+        /// <summary>
+        /// Where the centre reckons the craft is at the instant asked about,
+        /// which <see cref="UncertaintyM"/> is the radius around. Set for a craft
+        /// last known orbiting above its atmosphere that was either coasting, or
+        /// thrusting with its thrust and delta-v read, and the instant is within
+        /// how far its orbit can be trusted and how far a burn is carried forward.
+        /// Null otherwise, including for a craft whose thrust was not read: its
+        /// place is then not predicted and <see cref="UncertaintyM"/> is the bound
+        /// of a craft that burned flat out since it was last known.
+        /// </summary>
+        public CraftPlace? Place { get; }
 
         /// <summary>
         /// Whether the light that has reached the centre by the instant asked
@@ -183,7 +258,21 @@ namespace Sitrep.Contract
         /// <param name="uncertaintyM">How far the craft can be from where the centre places it, in metres.</param>
         /// <param name="lineOfSight">Whether the light that has reached the centre shows the craft in view.</param>
         public CraftKnowledgeSample(string vesselId, CraftKnowledgeState state, HeldGrade? heldGrade, double? lastKnownUt, double? uncertaintyM, bool lineOfSight)
+            : this(vesselId, state, heldGrade, lastKnownUt, uncertaintyM, lineOfSight, null)
         {
+        }
+
+        /// <summary>Builds a sample that says where the craft is reckoned to be. Nothing but the provider needs to.</summary>
+        /// <param name="vesselId">The craft's id, in the <c>vessel.id.ToString()</c> form every fleet topic keys on.</param>
+        /// <param name="state">How the centre knows where the craft is.</param>
+        /// <param name="heldGrade">Why the place stopped updating, for <see cref="CraftKnowledgeState.Held"/> only.</param>
+        /// <param name="lastKnownUt">The last instant the centre knows the craft's place.</param>
+        /// <param name="uncertaintyM">How far the craft can be from where the centre places it, in metres.</param>
+        /// <param name="lineOfSight">Whether the light that has reached the centre shows the craft in view.</param>
+        /// <param name="place">Where the centre reckons the craft is, or null when it cannot say.</param>
+        public CraftKnowledgeSample(string vesselId, CraftKnowledgeState state, HeldGrade? heldGrade, double? lastKnownUt, double? uncertaintyM, bool lineOfSight, CraftPlace? place)
+        {
+            Place = place;
             VesselId = vesselId;
             State = state;
             HeldGrade = heldGrade;
@@ -206,6 +295,9 @@ namespace Sitrep.Contract
 
         /// <summary>The radius in metres around the placed craft, or null when it cannot be bounded; see <see cref="CraftKnowledgeReading.UncertaintyM"/>.</summary>
         public double? UncertaintyM { get; }
+
+        /// <summary>Where the centre reckons the craft is, or null; see <see cref="CraftKnowledgeReading.Place"/>.</summary>
+        public CraftPlace? Place { get; }
 
         /// <summary>Whether the light that has reached the centre shows the craft in view; see <see cref="CraftKnowledgeReading.LineOfSight"/>.</summary>
         public bool LineOfSight { get; }

@@ -9,13 +9,14 @@ namespace Sitrep.Host.Comms
     /// </summary>
     public sealed class CraftCapability
     {
-        public CraftCapability(double? deltaVMs, double? maxAccelerationMs2, double? airspeedMs, bool drivenWithoutPropellant, bool? thrusting = null)
+        public CraftCapability(double? deltaVMs, double? maxAccelerationMs2, double? airspeedMs, bool drivenWithoutPropellant, bool? thrusting = null, ThrustAcceleration? thrustAcceleration = null)
         {
             DeltaVMs = deltaVMs;
             MaxAccelerationMs2 = maxAccelerationMs2;
             AirspeedMs = airspeedMs;
             DrivenWithoutPropellant = drivenWithoutPropellant;
             Thrusting = thrusting;
+            ThrustAcceleration = thrustAcceleration;
         }
 
         /// <summary>The craft's total delta-v in vacuum, in m/s: the most it can change its velocity by. Null when it was not read.</summary>
@@ -36,5 +37,12 @@ namespace Sitrep.Host.Comms
         /// rails and does not burn. Null when it was not read, which is not false.
         /// </summary>
         public bool? Thrusting { get; }
+
+        /// <summary>
+        /// The acceleration the craft's engines gave it when it was read, split
+        /// along its own prograde, radial and normal directions then. Null when it
+        /// was not thrusting, was thrusting on thrusters alone, or none was read.
+        /// </summary>
+        public ThrustAcceleration? ThrustAcceleration { get; }
     }
 }

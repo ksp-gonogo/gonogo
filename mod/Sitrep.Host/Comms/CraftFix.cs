@@ -1,3 +1,5 @@
+using Sitrep.Contract;
+
 namespace Sitrep.Host.Comms
 {
     /// <summary>
@@ -36,5 +38,12 @@ namespace Sitrep.Host.Comms
         /// Null when it cannot be bounded, which is not zero.
         /// </summary>
         public double? UncertaintyMAt(double ut) => PositionUncertainty.Bound(Known, LastKnownUt, ut);
+
+        /// <summary>
+        /// Where the centre reckons the craft is at <paramref name="ut"/>, from the
+        /// state it last knew it in, or null when that cannot be said; see
+        /// <see cref="PlacePrediction.PlaceAt"/>.
+        /// </summary>
+        public CraftPlace? PlaceAt(double ut) => PlacePrediction.PlaceAt(Known, ut)?.Place;
     }
 }
