@@ -83,7 +83,7 @@ namespace Gonogo.KSP.CommandCentres
         private IEnumerable<NamedGroundStation> NamedGroundStations() =>
             _registry.EnumerateActive()
                 .Where(c => c.Kind == CommandCentreKind.GroundStation)
-                .Select(c => new NamedGroundStation(c.Id, (c as KspCommandCentre)?.NodeName));
+                .Select(c => new NamedGroundStation(c.Id, (c as KspCommandCentre)?.NodeName, c.BodyIndex, c.Latitude, c.Longitude));
 
         /// <summary>
         /// Degraded while the registry is dropping a centre for an id another centre

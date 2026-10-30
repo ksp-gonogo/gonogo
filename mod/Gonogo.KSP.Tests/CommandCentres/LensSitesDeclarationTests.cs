@@ -40,6 +40,61 @@ namespace Gonogo.KSP.Tests.CommandCentres
         }
 
         [Fact]
+        public void ASurfacePointBelongsToTheNearestStationOnItsBody()
+        {
+            var sites = SitesOver(
+                Station("ground:Kerbin: KSC", "Kerbin: KSC", 1, -0.1, -74.6),
+                Station("ground:Woomerang", "Woomerang", 1, 45.3, -0.1),
+                Station("ground:Mun Base", "Mun Base", 2, -0.1, -74.6));
+
+            Assert.Equal("ground:Kerbin: KSC", sites.GroundStationNear(1, -0.09, -74.55));
+            Assert.Equal("ground:Woomerang", sites.GroundStationNear(1, 45.0, 0.0));
+            Assert.Equal("ground:Mun Base", sites.GroundStationNear(2, 45.0, 0.0));
+        }
+
+        [Fact]
+        public void NoStationOnTheBodyIsNoAnswer()
+        {
+            var sites = SitesOver(Station("ground:Kerbin: KSC", "Kerbin: KSC", 1, -0.1, -74.6));
+
+            Assert.Null(sites.GroundStationNear(2, -0.1, -74.6));
+        }
+
+        [Fact]
+        public void TwoStationsEquallyNearIsNoAnswer()
+        {
+            var sites = SitesOver(
+                Station("ground:West", "West", 1, 0.0, -10.0),
+                Station("ground:East", "East", 1, 0.0, 10.0));
+
+            Assert.Null(sites.GroundStationNear(1, 0.0, 0.0));
+            Assert.Equal("ground:East", sites.GroundStationNear(1, 0.0, 1.0));
+        }
+
+        private static ILensSites SitesOver(params KspCommandCentre[] centres)
+        {
+            var registry = new CommandCentreRegistry();
+            registry.RegisterSource(new StaticSource(centres));
+            var kernel = new Kernel();
+            new CommandCentreDelayUplink(registry, lensEngine: new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0)).DeclareCapabilities(kernel);
+            kernel.Resolve(new ResolveOptions { KernelVersion = "1.0.0" });
+            return kernel.Query<ILensSites>(LensSitesCapability.Id);
+        }
+
+        private static KspCommandCentre Station(string id, string nodeName, int bodyIndex, double latitude, double longitude) =>
+            new KspCommandCentre(
+                id,
+                nodeName,
+                CommandCentreKind.GroundStation,
+                bodyIndex,
+                node: new CommNode(),
+                position: new Vector3d(0.0, 0.0, 0.0),
+                active: true,
+                latitude: latitude,
+                longitude: longitude,
+                nodeName: nodeName);
+
+        [Fact]
         public void WithoutAnEngineNoCapabilityIsDeclared()
         {
             var kernel = new Kernel();

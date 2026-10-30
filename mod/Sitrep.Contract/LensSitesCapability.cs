@@ -44,6 +44,20 @@ namespace Sitrep.Contract
         string? GroundStationNamed(string nodeName);
 
         /// <summary>
+        /// The roster id of the active ground station nearest the surface point at
+        /// <paramref name="latitude"/> and <paramref name="longitude"/> on the body
+        /// <paramref name="bodyIndex"/>, as <c>bodies</c> numbers it: the station that
+        /// runs a launch site or other surface site that is not itself a network node.
+        /// Distance is along the surface. Null when no active ground station stands on
+        /// that body, and when two stations are equally near, so a lens is never placed
+        /// at a guess between them. Main thread only.
+        /// </summary>
+        /// <param name="bodyIndex">The body the site is on.</param>
+        /// <param name="latitude">The site's body-fixed latitude in degrees.</param>
+        /// <param name="longitude">The site's body-fixed longitude in degrees.</param>
+        string? GroundStationNear(int bodyIndex, double latitude, double longitude);
+
+        /// <summary>
         /// Starts delivering <paramref name="commandingCentre"/>'s knowledge to
         /// the lens at <paramref name="site"/>, counted into
         /// <paramref name="scope"/>. Lenses bound to one scope are aged by the
