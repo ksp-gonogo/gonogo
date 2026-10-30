@@ -391,7 +391,7 @@ export const prereleasePinRule: Rule = {
       severity: strict ? ("error" as const) : ("warning" as const),
       file: join(uplinkDir, "uplink.json"),
       line: 1,
-      message: `${pin}, a prerelease. ${strict ? "A prerelease is never a pin on main" : "It may be tried here, and cannot be released or merged to main"}: CKAN orders it above the release it is for, so a relationship on it refuses that release.`,
+      message: `${pin}, a prerelease. ${strict ? "A prerelease is never a pin on main" : "It may be tried here and released as a candidate, and cannot be in a full release or merged to main"}: CKAN orders it above the release it is for, so a relationship on it refuses that release.`,
       fixable: false,
       fix: "Pin the release, or run `uplink-tools deps bump` once the mod publishes it.",
     }));

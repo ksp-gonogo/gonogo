@@ -26,13 +26,23 @@ describe("prereleasePins", () => {
       { dependencies: { "@example/pkg": "1.11.0-rc.10" } },
     );
     expect(prereleasePins(dir)).toHaveLength(4);
-    expect(prereleasePinFault(dir)).toContain("never a pin in a release");
+    expect(prereleasePinFault(dir, "1.2.0")).toContain(
+      "never a pin in a release",
+    );
+  });
+
+  it("lets a candidate pin a prerelease, and refuses the full release of the same pins", () => {
+    const dir = uplinkOn(mod({ builtAgainst: "1.12.0-rc.2" }));
+    expect(prereleasePinFault(dir, "1.3.0-rc.1")).toBeUndefined();
+    expect(prereleasePinFault(dir, "1.3.0")).toContain(
+      "uplink.json mod.builtAgainst is 1.12.0-rc.2",
+    );
   });
 
   it("finds nothing in release pins, and a tag pin is not a prerelease", () => {
     const dir = uplinkOn(mod({ builtAgainst: "2026081218-Levi-Civita" }));
     expect(prereleasePins(dir)).toEqual([]);
-    expect(prereleasePinFault(dir)).toBeUndefined();
+    expect(prereleasePinFault(dir, "1.2.0")).toBeUndefined();
   });
 });
 

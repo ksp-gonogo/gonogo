@@ -32,7 +32,9 @@ export const RELEASE_USAGE = `uplink-tools release [options]
 
   An Uplink has one version and it is written in three places: client/package.json,
   defineUplinkClient's version, and the version folder in uplink.json's
-  client.url. release refuses when they disagree.
+  client.url. release refuses when they disagree. A pin on a prerelease of the
+  mod is refused unless that version is itself a candidate (-rc.N), which is
+  never listed on CKAN.
 
   The client lands in client/dist/<id>/ and the mod zip in dist/, or both
   under --out: <out>/<id>/ for the client and <out>/ for the zip.
@@ -178,17 +180,18 @@ export async function release(
     );
   }
 
-  const candidatePin = prereleasePinFault(uplinkDir);
-  if (candidatePin) throw new Error(candidatePin);
-
-  const placeholder = givenDevPath ? undefined : placeholderUrlFault(url);
-  if (placeholder) throw new Error(placeholder);
-
   const clientDir = join(uplinkDir, "client");
   const versionFile = join(clientDir, "package.json");
   const version = existsSync(versionFile)
     ? str(field(JSON.parse(readFileSync(versionFile, "utf8")), "version"))
     : "";
+
+  const candidatePin = prereleasePinFault(uplinkDir, version);
+  if (candidatePin) throw new Error(candidatePin);
+
+  const placeholder = givenDevPath ? undefined : placeholderUrlFault(url);
+  if (placeholder) throw new Error(placeholder);
+
   const wrongUrl =
     url && !givenDevPath ? urlVersionFault(url, version) : undefined;
   if (wrongUrl) throw new Error(wrongUrl);

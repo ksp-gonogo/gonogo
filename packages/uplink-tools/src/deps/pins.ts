@@ -50,14 +50,22 @@ export function prereleasePins(uplinkDir: string): string[] {
   return found;
 }
 
-/** The sentence a release refuses with when a pin is a prerelease, or undefined. */
-export function prereleasePinFault(uplinkDir: string): string | undefined {
+/**
+ * The sentence a release refuses with when a pin is a prerelease, or undefined.
+ * A candidate, an Uplink whose own `version` is a prerelease, may pin one: it
+ * is never listed on CKAN, so no relationship is published from its pins.
+ */
+export function prereleasePinFault(
+  uplinkDir: string,
+  version: string,
+): string | undefined {
+  if (isPrerelease(plainVersion(version))) return undefined;
   const pins = prereleasePins(uplinkDir);
   if (pins.length === 0) return undefined;
   return (
     `${pins.join("; ")}. A prerelease is never a pin in a release: its version sorts above the ` +
     "release it is for in CKAN's ordering, so a relationship on it would refuse the real release. " +
-    "Pin the release, or run `uplink-tools deps bump`."
+    "Pin the release, release this as a candidate, or run `uplink-tools deps bump`."
   );
 }
 
