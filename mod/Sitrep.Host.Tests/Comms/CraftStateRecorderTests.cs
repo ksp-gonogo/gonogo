@@ -213,6 +213,32 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Empty(recorder.Capture(burned, ContactPlanSchedule.MinDriftReplanSeconds + 1.0, null).States);
         }
 
+        [Fact]
+        public void ACraftUnderThrustOrInTheAirIsReadOnEveryPassItsOrbitMoves()
+        {
+            var recorder = new CraftStateRecorder();
+            CraftCapability Capability(bool? thrusting, double? airspeed) => new CraftCapability(1_000.0, 20.0, airspeed, false, thrusting);
+            ContactGameNode Climbing(double sma, CraftCapability capability)
+            {
+                var node = Craft("a", Orbit(sma));
+                node.Capability = capability;
+                return node;
+            }
+            recorder.Capture(Look(Climbing(700_000.0, Capability(true, 250.0))), 0.0, null);
+
+            for (var pass = 1; pass <= 5; pass++)
+            {
+                var ut = pass * 1.0;
+                var batch = recorder.Capture(Look(Climbing(700_000.0 + (pass * 5_000.0), Capability(true, 250.0))), ut, null);
+                var state = Assert.Single(batch.States);
+                Assert.True(ut - state.CapturedUt <= 1.0, "pass " + pass + " captured at " + state.CapturedUt);
+            }
+
+            var coasting = new CraftStateRecorder();
+            coasting.Capture(Look(Climbing(700_000.0, Capability(false, null))), 0.0, null);
+            Assert.Empty(coasting.Capture(Look(Climbing(750_000.0, Capability(false, null))), 1.0, null).States);
+        }
+
         /// <summary>
         /// Under warp a pass comes every thousand game seconds, so every craft's
         /// refresh is due at every pass, and reading a craft costs a link model

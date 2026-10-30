@@ -787,10 +787,14 @@ namespace Sitrep.Host.Comms
                 return (now.Surface.Value.PositionAt(0.0) - was.Surface!.Value.PositionAt(0.0)).Magnitude()
                     > ContactPlanSchedule.SurfaceToleranceMeters;
             }
+            // A craft under thrust or in the air is bounded from its capture, so each centre that hears it live needs a capture one pass old.
             return now.Orbit.HasValue
-                && ut >= last.State.CapturedUt + ContactPlanSchedule.MinDriftReplanSeconds
+                && (ut >= last.State.CapturedUt + ContactPlanSchedule.MinDriftReplanSeconds || UnderItsOwnPush(now))
                 && ContactPlanSchedule.Moved(was.Orbit!.Value, now.Orbit.Value);
         }
+
+        private static bool UnderItsOwnPush(ContactGameNode node) =>
+            node.Capability is { } capability && (capability.Thrusting == true || capability.AirspeedMs != null);
 
         private static CraftState StateOf(ContactGameNode node, ContactGameLook look, double ut, Kernel? kernel) =>
             Unnamed(node, look, ut, kernel).Named(node.DisplayName).WithCapability(node.Capability);
