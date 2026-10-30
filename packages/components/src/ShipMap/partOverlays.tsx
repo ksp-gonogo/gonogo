@@ -40,8 +40,8 @@ function overlayFor(
 ): React.ReactNode {
   switch (m.type) {
     case "engine":
-      // "active" means staged and ready, not thrusting: the flame is gated on throttle.
-      return m.state === "active" && throttle > 0
+      // "active" means ignited, not thrusting: a flamed-out engine keeps it, so the flame also needs fuel and throttle.
+      return m.state === "active" && !m.flameout && throttle > 0
         ? renderEngineFlame(box, zoom)
         : null;
     case "solarPanel":

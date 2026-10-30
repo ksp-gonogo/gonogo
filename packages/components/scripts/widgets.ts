@@ -2181,7 +2181,12 @@ const WIDGETS: WidgetRenderConfig[] = [
       // Registered default.
       { name: "default-8x10", w: 8, h: 10 },
       // The widget's minSize, where the stage column has to give way to the diagram.
-      { name: "min-5x5", w: 5, h: 5, forFixtures: ["staged-rocket"] },
+      {
+        name: "min-5x5",
+        w: 5,
+        h: 5,
+        forFixtures: ["staged-rocket", "engine-burning", "engine-burned-out"],
+      },
       // Wide enough for the stage column beside a diagram that keeps its rotate controls.
       { name: "wide-12x10", w: 12, h: 10, forFixtures: ["staged-rocket"] },
       // Wider/taller: the colour-spread fixture stacks four parts with several meters each, the default size crops it.

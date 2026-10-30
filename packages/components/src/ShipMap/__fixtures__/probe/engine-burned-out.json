@@ -1,0 +1,328 @@
+{
+  "_meta": {
+    "shows": "The first-stage engine still ignited at full throttle but out of propellant, drawing no flame.",
+    "scenario": "engine-burned-out",
+    "notes": "Reliant active with flameout true while the throttle input stays at 1."
+  },
+  "_stream": {
+    "emits": [
+      {
+        "channel": "vessel.parts",
+        "value": {
+          "parts": [
+            {
+              "id": "1",
+              "name": "mk1pod.v2",
+              "title": "Mk1 Command Pod",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 1.25,
+                  "y": 1.14,
+                  "z": 1.25
+                }
+              },
+              "dryMass": 0.5,
+              "inverseStage": -1,
+              "maxTemp": 2000,
+              "category": "Pods",
+              "categoryOrdinal": 6,
+              "modules": ["ModuleCommand"],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {},
+              "moduleStates": []
+            },
+            {
+              "id": "2",
+              "parentId": "1",
+              "name": "parachuteSingle",
+              "title": "Mk16 Parachute",
+              "position": {
+                "x": 0,
+                "y": 0.77,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 1.25,
+                  "y": 0.4,
+                  "z": 1.25
+                }
+              },
+              "dryMass": 0.5,
+              "inverseStage": 0,
+              "maxTemp": 2000,
+              "category": "Utility",
+              "categoryOrdinal": 9,
+              "modules": ["ModuleParachute"],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {},
+              "moduleStates": []
+            },
+            {
+              "id": "3",
+              "parentId": "1",
+              "name": "fuelTankSmallFlat",
+              "title": "FL-T400 Fuel Tank",
+              "position": {
+                "x": 0,
+                "y": -1.495,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 1.25,
+                  "y": 1.85,
+                  "z": 1.25
+                }
+              },
+              "dryMass": 0.5,
+              "inverseStage": -1,
+              "maxTemp": 2000,
+              "category": "FuelTank",
+              "categoryOrdinal": 7,
+              "modules": [],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {
+                "LiquidFuel": {
+                  "amount": 180,
+                  "maxAmount": 180
+                },
+                "Oxidizer": {
+                  "amount": 198.00000000000003,
+                  "maxAmount": 220
+                }
+              },
+              "moduleStates": []
+            },
+            {
+              "id": "4",
+              "parentId": "3",
+              "name": "liquidEngine3.v2",
+              "title": "LV-909 Terrier",
+              "position": {
+                "x": 0,
+                "y": -3.02,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 1.25,
+                  "y": 1.2,
+                  "z": 1.25
+                }
+              },
+              "dryMass": 0.5,
+              "inverseStage": 1,
+              "maxTemp": 2000,
+              "category": "Engine",
+              "categoryOrdinal": 3,
+              "modules": ["ModuleEngines"],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {},
+              "moduleStates": []
+            },
+            {
+              "id": "5",
+              "parentId": "4",
+              "name": "Decoupler_2",
+              "title": "TD-12 Decoupler",
+              "position": {
+                "x": 0,
+                "y": -3.82,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 1.25,
+                  "y": 0.4,
+                  "z": 1.25
+                }
+              },
+              "dryMass": 0.5,
+              "inverseStage": 2,
+              "maxTemp": 2000,
+              "category": "Coupling",
+              "categoryOrdinal": 8,
+              "modules": [],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {},
+              "moduleStates": []
+            },
+            {
+              "id": "6",
+              "parentId": "5",
+              "name": "fuelTankSmallFlat",
+              "title": "FL-T400 Fuel Tank",
+              "position": {
+                "x": 0,
+                "y": -4.945,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 1.25,
+                  "y": 1.85,
+                  "z": 1.25
+                }
+              },
+              "dryMass": 0.5,
+              "inverseStage": -1,
+              "maxTemp": 2000,
+              "category": "FuelTank",
+              "categoryOrdinal": 7,
+              "modules": [],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {
+                "LiquidFuel": {
+                  "amount": 180,
+                  "maxAmount": 180
+                },
+                "Oxidizer": {
+                  "amount": 198.00000000000003,
+                  "maxAmount": 220
+                }
+              },
+              "moduleStates": []
+            },
+            {
+              "id": "7",
+              "parentId": "2",
+              "name": "parachuteSingle",
+              "title": "Mk16 Parachute",
+              "position": {
+                "x": 0,
+                "y": 1.17,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 1.25,
+                  "y": 0.4,
+                  "z": 1.25
+                }
+              },
+              "dryMass": 0.5,
+              "inverseStage": 0,
+              "maxTemp": 2000,
+              "category": "Utility",
+              "categoryOrdinal": 9,
+              "modules": ["ModuleParachute"],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {},
+              "moduleStates": []
+            },
+            {
+              "id": "9",
+              "parentId": "6",
+              "name": "liquidEngine1-2",
+              "title": "Reliant Engine",
+              "position": {
+                "x": 0,
+                "y": -6.47,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 1.25,
+                  "y": 1.2,
+                  "z": 1.25
+                }
+              },
+              "dryMass": 0.5,
+              "inverseStage": 3,
+              "maxTemp": 2000,
+              "category": "Engine",
+              "categoryOrdinal": 3,
+              "modules": ["ModuleEngines"],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {},
+              "moduleStates": [
+                {
+                  "type": "engine",
+                  "state": "active",
+                  "tracking": null,
+                  "flameout": true
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.structure",
+        "value": {
+          "currentStage": 3,
+          "partCount": 8
+        }
+      },
+      {
+        "channel": "vessel.control",
+        "value": {
+          "sas": false,
+          "sasMode": 0,
+          "rcs": false,
+          "gear": false,
+          "brakes": false,
+          "lights": false,
+          "abort": false,
+          "precisionControl": false,
+          "actionGroups": [],
+          "throttle": 1
+        }
+      }
+    ]
+  }
+}

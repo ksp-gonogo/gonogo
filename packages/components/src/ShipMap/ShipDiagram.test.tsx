@@ -423,6 +423,21 @@ describe("ShipDiagram", () => {
     ).toHaveLength(1);
   });
 
+  it("omits the engine flame when an ignited engine has flamed out", () => {
+    const spent: ShipMapPart[] = [
+      {
+        ...PARTS[2],
+        partState: [{ type: "engine", state: "active", flameout: true }],
+      },
+    ];
+    const { container } = render(
+      <ShipDiagram parts={spent} width={400} height={400} />,
+    );
+    expect(
+      container.querySelectorAll('g[data-role="engine-flame"]'),
+    ).toHaveLength(0);
+  });
+
   it("omits the engine flame when state is inactive", () => {
     const idle: ShipMapPart[] = [
       {
