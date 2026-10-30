@@ -87,8 +87,7 @@ const REGISTRATIONS = [
   ...UPLINK_BUNDLE_TARGETS.map((target) =>
     join(target.clientDir, "src", "index.ts"),
   ),
-  // The app's own two widgets, by path: they are not a package of their own, and they carry a minSize like every other widget.
-  resolve(APP_DIR, "src/goNoGo/GoNoGoComponent.tsx"),
+  // The app's own widget, by path: it is not a package of its own, and it carries a minSize like every other widget.
   resolve(APP_DIR, "src/notes/NotesComponent.tsx"),
 ];
 

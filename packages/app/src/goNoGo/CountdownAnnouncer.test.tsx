@@ -1,6 +1,6 @@
 import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
-import { CountdownAnnouncer } from "./GoNoGoComponent";
+import { CountdownAnnouncer } from "./countdownCues";
 
 /**
  * Exercises the sr-only announcer without needing the surrounding PeerClient /

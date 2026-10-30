@@ -25,6 +25,9 @@ import { VantageControl } from "./VantageControl";
  * each; nothing else here branches.
  *
  * `actions` are the screen's header controls, drawn at the top right.
+ * `centre` is drawn in the middle of the strip, centred on the page rather
+ * than on the room the fields leave, and drops to a row of its own on a
+ * narrow screen.
  *
  * The strip itself is deliberately not a live region: the time field updates
  * roughly once a second off the live view clock, and an
@@ -43,20 +46,26 @@ import { VantageControl } from "./VantageControl";
  * back to the centre mission control stands at. Either way it is only there
  * while a craft is flying.
  */
-export function MissionBanner({ actions }: Readonly<{ actions?: ReactNode }>) {
+export function MissionBanner({
+  actions,
+  centre,
+}: Readonly<{ actions?: ReactNode; centre?: ReactNode }>) {
   return (
     <Banner role="group" aria-label="Mission status">
-      <BannerField label="UT">
-        <BannerDate />
-      </BannerField>
-      <BannerField label="Command centre">
-        <VantageControl />
-      </BannerField>
-      <VesselField />
-      <EvaField />
-      <SignalDelayField />
-      <StreamStatusField />
-      <GameStatusField />
+      <Fields>
+        <BannerField label="UT">
+          <BannerDate />
+        </BannerField>
+        <BannerField label="Command centre">
+          <VantageControl />
+        </BannerField>
+        <VesselField />
+        <EvaField />
+        <SignalDelayField />
+        <StreamStatusField />
+        <GameStatusField />
+      </Fields>
+      {centre ? <Centre>{centre}</Centre> : null}
       {actions ? <Actions>{actions}</Actions> : null}
     </Banner>
   );
@@ -228,11 +237,32 @@ const WarnValue = styled.span`
   color: var(--color-warn-text);
 `;
 
+/** Below this width the centre takes a row of its own under the fields and actions. */
+const NARROW_BANNER = "56rem";
+
+const Fields = styled.div`
+  grid-area: fields;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--gap-section);
+  row-gap: var(--gap-related);
+  min-width: 0;
+`;
+
+const Centre = styled.div`
+  grid-area: centre;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+`;
+
 const Actions = styled.div`
+  grid-area: actions;
+  justify-self: end;
   display: inline-flex;
   align-items: center;
   gap: var(--gap-related);
-  margin-left: auto;
   min-width: 0;
 `;
 
@@ -248,16 +278,25 @@ const GameStatus = styled.span`
 `;
 
 const Banner = styled.div`
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas: "fields centre actions";
   align-items: center;
   column-gap: var(--gap-section);
+  row-gap: var(--gap-related);
   min-height: 30px;
   flex-shrink: 0;
   margin-bottom: var(--gap-mission-bar);
   padding: var(--inset-mission-bar);
   background: var(--color-surface-app);
   font-variant-numeric: tabular-nums;
+
+  @media (max-width: ${NARROW_BANNER}) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "fields actions"
+      "centre centre";
+  }
 `;
 
 const InlinePair = styled.span`

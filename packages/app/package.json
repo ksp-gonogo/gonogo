@@ -16,6 +16,7 @@
     "render-commcast": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-commcast.ts",
     "render-alarms": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-alarms.ts",
     "render-flight-outcome": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-flight-outcome.ts",
+    "render-gonogo-header": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-gonogo-header.ts",
     "render-layouts-header": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-layouts-header.ts",
     "render-header-delay": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-header-delay.ts",
     "render-header-badges": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-header-badges.ts",
