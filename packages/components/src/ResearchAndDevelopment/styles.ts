@@ -64,7 +64,6 @@ export const GraphCard = styled.button<{
 
 // Off both type scales: the fixed CARD_H of 48 leaves a 37px content budget that the title already fills; changing these means raising CARD_H.
 export const GraphCardTitle = styled.span<{ $reserve: string }>`
-  padding-right: ${(p) => p.$reserve};
   font-size: 11px;
   font-weight: 600;
   color: var(--color-text-primary);
@@ -74,6 +73,14 @@ export const GraphCardTitle = styled.span<{ $reserve: string }>`
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+
+  /* Room for the corner mark beside the first line only, so the second line runs the card's full width. */
+  &::before {
+    content: "";
+    float: right;
+    width: ${(p) => p.$reserve};
+    height: 1.15em;
+  }
 `;
 
 /* Each figure's own side bearing differs, so the right gap is picked per figure to land its visible right inset on its visible top inset. */
