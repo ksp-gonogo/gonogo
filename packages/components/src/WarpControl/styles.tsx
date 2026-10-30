@@ -30,14 +30,18 @@ export function rateStyle(tone: RateTone) {
   } as const;
 }
 
-/* The rate readout with the pause button beside it, one line whatever the tile's width. */
+/*
+ * The rate readout with the pause button beside it, one line whatever the tile's
+ * width. It never shrinks below its content: the buttons wrap under it instead
+ * of the readout drawing over them.
+ */
 export const RATE_ROW_STYLE = {
   flex: "1 1 70px",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   gap: "var(--gap-related)",
-  minWidth: 0,
+  minWidth: "min-content",
 } as const;
 
 /* Off the type scale, which stops at --font-size-lg: this is a display-tier readout. */
