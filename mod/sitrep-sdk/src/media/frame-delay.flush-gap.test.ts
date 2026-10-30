@@ -164,14 +164,48 @@ describe("runFrameDelayPipeline: a keyframe that had no capture stamp yet", () =
     const onNeedKeyframe = vi.fn();
     const { push, setEdge, written, pipeline, run } = harness(onNeedKeyframe);
 
+    push(coded("K0", "key", Number.POSITIVE_INFINITY));
     push(coded("d0", "delta", Number.POSITIVE_INFINITY));
     push(coded("K1", "key", 5));
     push(coded("d1", "delta", 5.03));
-    await vi.waitFor(() => expect(pipeline.stats().read).toBe(3));
+    await vi.waitFor(() => expect(pipeline.stats().read).toBe(4));
     setEdge(6);
     run(0.5);
 
     expect(written.map((w) => w.label)).toEqual(["K1", "d1"]);
+    expect(onNeedKeyframe).not.toHaveBeenCalled();
+  });
+});
+
+describe("runFrameDelayPipeline: encoded video from a source that starts mid-group", () => {
+  it("writes nothing before the first keyframe and asks for one once", async () => {
+    const onNeedKeyframe = vi.fn();
+    const { push, setEdge, written, pipeline, run } = harness(onNeedKeyframe);
+
+    push(coded("d0", "delta", 5));
+    push(coded("d1", "delta", 5.03));
+    push(coded("K1", "key", 5.06));
+    push(coded("d2", "delta", 5.09));
+    await vi.waitFor(() => expect(pipeline.stats().read).toBe(4));
+    setEdge(6);
+    run(0.5);
+
+    expect(written.map((w) => w.label)).toEqual(["K1", "d2"]);
+    expect(pipeline.stats().awaitingKeyframeDropped).toBe(2);
+    expect(onNeedKeyframe).toHaveBeenCalledTimes(1);
+  });
+
+  it("starts with a keyframe without asking for one", async () => {
+    const onNeedKeyframe = vi.fn();
+    const { push, setEdge, written, pipeline, run } = harness(onNeedKeyframe);
+
+    push(coded("K0", "key", 5));
+    push(coded("d0", "delta", 5.03));
+    await vi.waitFor(() => expect(pipeline.stats().read).toBe(2));
+    setEdge(6);
+    run(0.5);
+
+    expect(written.map((w) => w.label)).toEqual(["K0", "d0"]);
     expect(onNeedKeyframe).not.toHaveBeenCalled();
   });
 });

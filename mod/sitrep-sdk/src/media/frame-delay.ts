@@ -236,7 +236,14 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
   opts: FrameDelayPipelineOptions<Frame>,
 ): FrameDelayPipeline {
   let disposed = false;
-  let awaitingKeyframe = false;
+  /* An encoded stream cannot be decoded from a delta, and a source that starts
+     mid-group sends some first, so it begins by waiting for a keyframe. */
+  let awaitingKeyframe = opts.gopSafeEviction === true;
+  let keyframeRequested = false;
+  const requestKeyframe = () => {
+    keyframeRequested = true;
+    opts.onNeedKeyframe?.();
+  };
   let lastDatedUt = Number.NEGATIVE_INFINITY;
   const stats: FrameDelayStats = {
     read: 0,
@@ -340,15 +347,17 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
           .some((queued) => queued.ut === Number.POSITIVE_INFINITY)
       ) {
         awaitingKeyframe = true;
-        opts.onNeedKeyframe?.();
+        requestKeyframe();
       }
       if (awaitingKeyframe) {
         if (!keyframe) {
           stats.awaitingKeyframeDropped += 1;
           frame.close?.();
+          if (!keyframeRequested) requestKeyframe();
           continue;
         }
         awaitingKeyframe = false;
+        keyframeRequested = false;
       }
       buffer.push({
         ut,
@@ -370,7 +379,7 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
         stats.flushDropped + stats.pacerSkipped > discardedBefore
       ) {
         awaitingKeyframe = true;
-        opts.onNeedKeyframe?.();
+        requestKeyframe();
       }
     },
     dispose() {
