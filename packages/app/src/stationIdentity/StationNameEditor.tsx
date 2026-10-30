@@ -17,8 +17,8 @@ import {
  *
  * Pricing the swap: Label's 9px would take --font-size-2xs (+1px), which is
  * 11px under `@media (pointer: coarse)`, i.e. 2px of growth on a Steam Deck.
- * This chip renders in the station screen's mission banner, beside the layout
- * history controls, so growing it pushes them along. Growing it is not free.
+ * This chip renders in the middle of the station screen's mission banner,
+ * beside the vote, so growing it pushes the vote along. Growing it is not free.
  *
  * The same measurement holds the chip's inset off --inset-control. NameSpan
  * and NameInput ARE the pressable class the name describes, but the control
@@ -44,7 +44,7 @@ const Label = styled.span<{ $compact: boolean }>`
   color: var(--color-text-dim);
 `;
 
-const NameSpan = styled.button<{ $compact: boolean }>`
+const NameSpan = styled.button<{ $compact: boolean; $bare: boolean }>`
   background: none;
   border: 1px dashed transparent;
   border-radius: var(--radius-regular);
@@ -54,7 +54,7 @@ const NameSpan = styled.button<{ $compact: boolean }>`
   cursor: text;
   letter-spacing: 0.05em;
   /* A long name gives way with an ellipsis rather than wrapping onto a second line of the banner. */
-  max-width: 16ch;
+  max-width: ${({ $bare }) => ($bare ? "24ch" : "16ch")};
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -91,10 +91,16 @@ const NameInput = styled.input<{ $compact: boolean }>`
 
 /**
  * Editable station-name chip. Click to edit; Enter or blur commits; Escape
- * reverts. Used both on the connect screen (compact=false) and the post-
- * connect banner chip (compact=true).
+ * reverts. Used on the connect screen and, `bare` of its "Station" caption, in
+ * the middle of the connected station's header beside its vote.
  */
-export function StationNameEditor({ compact = false }: { compact?: boolean }) {
+export function StationNameEditor({
+  compact = false,
+  bare = false,
+}: {
+  compact?: boolean;
+  bare?: boolean;
+}) {
   const service = useStationIdentityService();
   const name = useStationName();
   const [editing, setEditing] = useState(false);
@@ -120,7 +126,7 @@ export function StationNameEditor({ compact = false }: { compact?: boolean }) {
 
   return (
     <Wrap $compact={compact}>
-      <Label $compact={compact}>Station</Label>
+      {!bare && <Label $compact={compact}>Station</Label>}
       {editing ? (
         <NameInput
           ref={inputRef}
@@ -140,7 +146,11 @@ export function StationNameEditor({ compact = false }: { compact?: boolean }) {
         />
       ) : (
         <Tooltip text="Click to rename" focusable>
-          <NameSpan $compact={compact} onClick={() => setEditing(true)}>
+          <NameSpan
+            $compact={compact}
+            $bare={bare}
+            onClick={() => setEditing(true)}
+          >
             {name}
           </NameSpan>
         </Tooltip>

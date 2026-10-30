@@ -1,14 +1,20 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { DashboardItemContext, ScreenProvider } from "@ksp-gonogo/core";
+import { ScreenProvider } from "@ksp-gonogo/core";
+import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
 import { parseServerMessage, type StreamData } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, screen } from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { ModalProvider } from "@ksp-gonogo/ui";
 import { describe, expect, it, vi } from "vitest";
 import { type PeerClient, PeerClientProvider } from "../peer/PeerClientContext";
+import {
+  StationIdentityProvider,
+  StationIdentityService,
+} from "../stationIdentity";
 import { idlePeerClient } from "../test/peerFakes";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { GoNoGoComponent } from "./GoNoGoComponent";
+import { StationPollControl } from "./StationPollControl";
 
 /**
  * A flight recovered while the craft was out of contact, played from the wire as the rig recorded it: the Space Center scene and the end of the flight arrive together, and the craft's identity is never withdrawn, so the control has to follow the scene.
@@ -51,13 +57,19 @@ function mountStation() {
   const client: PeerClient = { ...idlePeerClient(), sendGonogoAbort };
   render(
     <ScreenProvider value="station">
-      <PeerClientProvider client={client}>
-        <fixture.Provider>
-          <DashboardItemContext.Provider value={{ instanceId: "gng" }}>
-            <GoNoGoComponent id="gng" w={6} h={8} />
-          </DashboardItemContext.Provider>
-        </fixture.Provider>
-      </PeerClientProvider>
+      <ModalProvider>
+        <SerialDeviceProvider
+          service={new SerialDeviceService({ screenKey: "station" })}
+        >
+          <StationIdentityProvider service={new StationIdentityService()}>
+            <PeerClientProvider client={client}>
+              <fixture.Provider>
+                <StationPollControl />
+              </fixture.Provider>
+            </PeerClientProvider>
+          </StationIdentityProvider>
+        </SerialDeviceProvider>
+      </ModalProvider>
     </ScreenProvider>,
   );
   const frames = recordedFrames(["vessel.identity", "spaceCenter.scene"]);
@@ -81,7 +93,6 @@ function mountStation() {
   return { playUntil, playOne, sendGonogoAbort };
 }
 
-/** The abort control carries the alert role, so it is found by its label. */
 async function abortControl() {
   const label = await screen.findByText("ABORT");
   const button = label.closest("button");
@@ -109,15 +120,13 @@ describe("GO/NO-GO station abort after a recovery", () => {
     expect(await abortControl()).toBeEnabled();
   });
 
-  it("is disabled, saying why, once the game is at the Space Center", async () => {
+  it("is gone once the game is at the Space Center", async () => {
     const { playUntil, playOne, sendGonogoAbort } = mountStation();
     playUntil(arrivesAtSpaceCenter);
+    await abortControl();
     playOne();
 
-    const abort = await abortControl();
-    expect(abort).toBeDisabled();
-    expect(abort).toHaveTextContent("No flight in progress");
-    abort.click();
+    await waitFor(() => expect(screen.queryByText("ABORT")).toBeNull());
     expect(sendGonogoAbort).not.toHaveBeenCalled();
   });
 });

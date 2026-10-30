@@ -16,7 +16,6 @@ import { createRoot } from "react-dom/client";
 // and data sources (from ./dataSources).
 import "@ksp-gonogo/components"; // triggers all component self-registration
 import "./commcast/CommcastComponent"; // app-level component: registers on import
-import "./goNoGo/GoNoGoComponent"; // app-level component: registers on import
 import "./notes/NotesComponent"; // app-level component: registers on import
 import App from "./App";
 import { CrashScreen } from "./CrashScreen";
