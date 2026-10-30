@@ -184,7 +184,7 @@ describe("GO/NO-GO in a station's header", () => {
     expect(screen.getByText("Stage sent")).toBeInTheDocument();
   });
 
-  it("opens the vote's input binding from the gear beside the name", async () => {
+  it("opens the vote's input binding from the gear", async () => {
     station(idlePeerClient());
     fireEvent.click(screen.getByRole("button", { name: "Vote input" }));
     expect(await screen.findByText("Toggle GO/NO-GO")).toBeInTheDocument();

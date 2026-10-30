@@ -33,7 +33,7 @@ const BOX_TEXT: Record<BoxState, string> = {
 /**
  * The middle of the main screen's header in the flight scene: every
  * connected station by name, coloured by its vote, and in their place the
- * countdown once every station in the poll is GO.
+ * countdown once every station in the poll is "GO".
  */
 export function MainPollHeader() {
   const { inFlight } = useGameContext();
@@ -59,7 +59,7 @@ export function MainPollHeader() {
             const state = boxState(s, snapshot);
             const text = BOX_TEXT[state];
             return (
-              <Box
+              <StationBox
                 key={s.peerId}
                 $state={state}
                 role="status"
@@ -71,12 +71,12 @@ export function MainPollHeader() {
                 <BoxVote aria-hidden={text === "" ? true : undefined}>
                   {text || "\u00a0"}
                 </BoxVote>
-              </Box>
+              </StationBox>
             );
           })}
         </Boxes>
       )}
-      <Notice>{notice}</Notice>
+      <PollNotice>{notice}</PollNotice>
     </Centre>
   );
 }
@@ -128,7 +128,7 @@ const BOX_COLOR: Record<BoxState, string> = {
   none: "var(--color-text-muted)",
 };
 
-const Box = styled.div<{ $state: BoxState }>`
+const StationBox = styled.div<{ $state: BoxState }>`
   display: inline-flex;
   flex-direction: column;
   align-items: center;
@@ -159,7 +159,7 @@ const BoxVote = styled.span`
 `;
 
 /** What the poll last did: why a countdown was held, or whether the T-0 action was sent. */
-const Notice = styled(LiveRegion)`
+const PollNotice = styled(LiveRegion)`
   font-size: var(--font-size-caption);
   letter-spacing: 0.1em;
   color: var(--color-warn-text);
