@@ -27,7 +27,9 @@ import { VantageControl } from "./VantageControl";
  * `actions` are the screen's header controls, drawn at the top right.
  * `centre` is drawn in the middle of the strip, centred on the page rather
  * than on the room the fields leave, and drops to a row of its own on a
- * narrow screen.
+ * narrow screen. `centreControls` are the controls for what the centre shows:
+ * beside `actions` where there is room, and under the centre on a phone, where
+ * the actions get a row of their own and the fields stack as a list.
  *
  * The strip itself is deliberately not a live region: the time field updates
  * roughly once a second off the live view clock, and an
@@ -49,7 +51,14 @@ import { VantageControl } from "./VantageControl";
 export function MissionBanner({
   actions,
   centre,
-}: Readonly<{ actions?: ReactNode; centre?: ReactNode }>) {
+  centreControls,
+}: Readonly<{
+  actions?: ReactNode;
+  centre?: ReactNode;
+  centreControls?: ReactNode;
+}>) {
+  const phone = usePhoneBanner();
+  const controlsBelow = phone && centreControls;
   return (
     <Banner role="group" aria-label="Mission status">
       <Fields>
@@ -65,10 +74,37 @@ export function MissionBanner({
         <StreamStatusField />
         <GameStatusField />
       </Fields>
-      {centre ? <Centre>{centre}</Centre> : null}
-      {actions ? <Actions>{actions}</Actions> : null}
+      {centre || controlsBelow ? (
+        <Centre>
+          {centre}
+          {controlsBelow ? centreControls : null}
+        </Centre>
+      ) : null}
+      {actions || centreControls ? (
+        <Actions>
+          {controlsBelow ? null : centreControls}
+          {actions}
+        </Actions>
+      ) : null}
     </Banner>
   );
+}
+
+/** True while the screen is phone width, where the banner stacks into rows. */
+function usePhoneBanner(): boolean {
+  const query = `(max-width: ${PHONE_BANNER})`;
+  const [phone, setPhone] = useState(
+    () => globalThis.matchMedia?.(query).matches ?? false,
+  );
+  useEffect(() => {
+    const mql = globalThis.matchMedia?.(query);
+    if (!mql) return;
+    setPhone(mql.matches);
+    const onChange = (e: MediaQueryListEvent) => setPhone(e.matches);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, [query]);
+  return phone;
 }
 
 /** The view time at the one-second resolution the date shows, re-rendering only when that second changes. */
@@ -240,6 +276,21 @@ const WarnValue = styled.span`
 /** Below this width the centre takes a row of its own under the fields and actions. */
 const NARROW_BANNER = "56rem";
 
+/** Below this width the actions take the top row and the fields stack as a list. */
+export const PHONE_BANNER = "36rem";
+
+const InlinePair = styled.span`
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--gap-related);
+`;
+
+/*
+ * On a phone the fields are a two-column list, captions in one column and
+ * values in the other. Every field, including one wrapped in its own live
+ * region, spans both columns and lays its caption and value on the list's own
+ * columns through subgrid, so the values line up whatever wraps a field.
+ */
 const Fields = styled.div`
   grid-area: fields;
   display: flex;
@@ -248,12 +299,30 @@ const Fields = styled.div`
   column-gap: var(--gap-section);
   row-gap: var(--gap-related);
   min-width: 0;
+
+  @media (max-width: ${PHONE_BANNER}) {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    column-gap: var(--gap-related);
+    align-items: baseline;
+
+    & > *,
+    & > * > ${InlinePair} {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: subgrid;
+      align-items: baseline;
+    }
+  }
 `;
 
 const Centre = styled.div`
   grid-area: centre;
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: center;
+  gap: var(--gap-related);
   min-width: 0;
 `;
 
@@ -297,12 +366,15 @@ const Banner = styled.div`
       "fields actions"
       "centre centre";
   }
-`;
 
-const InlinePair = styled.span`
-  display: inline-flex;
-  align-items: baseline;
-  gap: var(--gap-related);
+  @media (max-width: ${PHONE_BANNER}) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "actions"
+      "fields"
+      "centre";
+    row-gap: var(--gap-section);
+  }
 `;
 
 const FieldValue = styled.span`

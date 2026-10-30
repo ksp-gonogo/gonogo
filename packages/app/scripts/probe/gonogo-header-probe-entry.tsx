@@ -153,7 +153,6 @@ async function renderScene(scene: Scene): Promise<void> {
 
   const actions = (
     <>
-      {scene.screen === "main" && <PollSettingsControl />}
       <LayoutHistoryControl dashboard={dashboard} />
       <HelpButton />
     </>
@@ -174,7 +173,15 @@ async function renderScene(scene: Scene): Promise<void> {
                 <StationIdentityProvider service={identity}>
                   <PeerClientProvider client={stationClient(scene)}>
                     <GoNoGoHostProvider service={host}>
-                      <MissionBanner centre={centre} actions={actions} />
+                      <MissionBanner
+                        centre={centre}
+                        centreControls={
+                          scene.screen === "main" ? (
+                            <PollSettingsControl />
+                          ) : undefined
+                        }
+                        actions={actions}
+                      />
                     </GoNoGoHostProvider>
                   </PeerClientProvider>
                 </StationIdentityProvider>
