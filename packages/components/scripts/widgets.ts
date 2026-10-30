@@ -826,7 +826,7 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "tall-5x14", w: 5, h: 14 },
       // Wide landscape: buttons and rows have horizontal breathing room.
       { name: "wide-10x7", w: 10, h: 7 },
-      // The open pad's craft in launch order with the picked one's side view: just below the size that shows it, and well above.
+      // The open pad's craft in launch order with the picked one's side view: drawn from the default size up, here at a tile a little larger and well above.
       {
         name: "craft-map-8x12",
         w: 8,

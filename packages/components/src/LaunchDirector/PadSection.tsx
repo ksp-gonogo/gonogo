@@ -306,7 +306,7 @@ function OpenPad({
   );
   if (!split) return picker;
   return (
-    <CraftMapLayout>
+    <CraftMapLayout data-craft-map-layout="">
       {picker}
       {ship ? (
         <SavedCraftDiagram

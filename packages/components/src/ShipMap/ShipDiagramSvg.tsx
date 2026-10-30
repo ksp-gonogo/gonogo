@@ -53,6 +53,8 @@ export interface ShipDiagramSvgProps {
    * bars, which is what render paths outside the contribution framework get.
    */
   partMeters?: ReadonlyMap<string, readonly ShipMapPartMeterEntry[]>;
+  /** The most pixels one metre of craft may draw at, so a small craft keeps its size beside a large one instead of filling the viewport. Omit to always fill it. */
+  maxScale?: number;
   /** The id of the dense cluster whose expanded box is open, or null for none. */
   openClusterId?: string | null;
   /** Fired when the expand icon beside a cluster is pressed, with its id, or null to close. Omit for a static render, which still draws the icon and any open box. */
@@ -75,6 +77,7 @@ export function ShipDiagramSvg({
   onPartActivate,
   throttle = 1,
   partMeters,
+  maxScale,
   openClusterId = null,
   onToggleCluster,
 }: Readonly<ShipDiagramSvgProps>) {
@@ -116,7 +119,7 @@ export function ShipDiagramSvg({
     );
   }
 
-  const baseScale = computeShipBaseScale(bounds, width, height);
+  const baseScale = computeShipBaseScale(bounds, width, height, maxScale);
   const clusters = findDenseClusters(
     projected,
     CLUSTER_GAP_PX / (baseScale * cam.zoom),

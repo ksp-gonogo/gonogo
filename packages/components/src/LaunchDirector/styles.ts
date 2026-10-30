@@ -294,7 +294,7 @@ export const VesselSwitchHint = styled.div`
 
 export const CraftMapLayout = styled.div`
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.7fr);
   gap: var(--gap-related);
   align-items: start;
 `;
@@ -304,7 +304,7 @@ export const CraftDiagramFrame = styled.div`
   position: sticky;
   top: 0;
   aspect-ratio: 3 / 4;
-  min-height: 200px;
+  min-height: 120px;
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-regular);
   background: var(--color-surface-app);

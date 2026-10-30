@@ -34,10 +34,12 @@ export function computeShipBaseScale(
   bounds: { w: number; h: number },
   width: number,
   height: number,
+  maxScale = Number.POSITIVE_INFINITY,
 ): number {
   return Math.min(
     (width - SHIP_DIAGRAM_PADDING * 2) / Math.max(bounds.w, 0.001),
     (height - SHIP_DIAGRAM_PADDING * 2) / Math.max(bounds.h, 0.001),
+    maxScale,
   );
 }
 

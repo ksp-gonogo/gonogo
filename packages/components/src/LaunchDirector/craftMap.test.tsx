@@ -185,8 +185,8 @@ describe("LaunchDirector: the open pad's craft and the picked craft's side view"
     expect(fixture.transport.sentCommands).toEqual([]);
   });
 
-  it("below 9 columns by 12 rows keeps the list as it was and draws no side view, only the picked craft's stages", async () => {
-    const { fixture, view, emit } = mount(8, 12);
+  it("below 7 columns by 10 rows keeps the list as it was and draws no side view, only the picked craft's stages", async () => {
+    const { fixture, view, emit } = mount(6, 12);
     emit((e) => !isParts(e));
     await screen.findByText("LFV-2 Wave");
 
@@ -205,7 +205,7 @@ describe("LaunchDirector: the open pad's craft and the picked craft's side view"
   });
 
   it("is not shown on a tile wide enough but too short", async () => {
-    const { view, emit } = mount(14, 11);
+    const { view, emit } = mount(14, 9);
     emit((e) => !isParts(e));
     await screen.findByText("LFV-2 Wave");
     expect(view.container.querySelector("[data-craft-map]")).toBeNull();

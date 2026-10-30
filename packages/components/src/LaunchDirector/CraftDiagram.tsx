@@ -15,9 +15,15 @@ import {
   CraftNoParts,
 } from "./styles";
 
+/** The most pixels a metre of craft draws at in the craft map, so a probe core is not drawn as large as a launch vehicle. */
+const CRAFT_MAP_MAX_PX_PER_METRE = 60;
+
+/** The height of the scroll fade a panel draws over the bottom of its body, which hides whatever sits under it. */
+const PANEL_BOTTOM_FADE_PX = 44;
+
 /** The smallest tile that fits a readable map beside the craft names. */
-export const CRAFT_MAP_MIN_COLS = 9;
-export const CRAFT_MAP_MIN_ROWS = 12;
+export const CRAFT_MAP_MIN_COLS = 7;
+export const CRAFT_MAP_MIN_ROWS = 10;
 
 /**
  * The side view of one saved craft file, drawn from the part tree the mod reads
@@ -103,6 +109,7 @@ export function CraftDiagram({
   const [openClusterId, setOpenClusterId] = useState<string | null>(null);
   const [wrapEl, setWrapEl] = useState<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ w: 240, h: 240 });
+  const [roomBelow, setRoomBelow] = useState<number | null>(null);
   useEffect(() => {
     if (!wrapEl || typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver((entries) => {
@@ -114,11 +121,43 @@ export function CraftDiagram({
       }
     });
     ro.observe(wrapEl);
-    return () => ro.disconnect();
+    // The frame is sized by its column's width, so the room left in the scroller below the map's own top is what keeps it inside the tile.
+    const body = wrapEl.closest("[data-panel-body]");
+    const layout = wrapEl.closest("[data-craft-map-layout]");
+    let measure: ResizeObserver | null = null;
+    if (body && layout) {
+      const fit = () => {
+        const top =
+          layout.getBoundingClientRect().top -
+          body.getBoundingClientRect().top +
+          body.scrollTop;
+        const bottomInset = Number.parseFloat(
+          getComputedStyle(body).paddingBottom,
+        );
+        const room = Math.floor(
+          body.clientHeight -
+            top -
+            (Number.isFinite(bottomInset) ? bottomInset : 0) -
+            PANEL_BOTTOM_FADE_PX,
+        );
+        setRoomBelow(room > 0 ? room : null);
+      };
+      measure = new ResizeObserver(fit);
+      measure.observe(body);
+      measure.observe(layout);
+    }
+    return () => {
+      ro.disconnect();
+      measure?.disconnect();
+    };
   }, [wrapEl]);
 
   return (
-    <CraftDiagramFrame ref={setWrapEl} data-craft-map>
+    <CraftDiagramFrame
+      ref={setWrapEl}
+      data-craft-map
+      style={roomBelow ? { maxHeight: roomBelow } : undefined}
+    >
       {shapeSources}
       {parts.length === 0 ? (
         <CraftNoParts role="img" aria-label="No part data for this craft">
@@ -131,6 +170,7 @@ export function CraftDiagram({
             width={size.w}
             height={size.h}
             throttle={0}
+            maxScale={CRAFT_MAP_MAX_PX_PER_METRE}
             openClusterId={openClusterId}
             onToggleCluster={setOpenClusterId}
           />
