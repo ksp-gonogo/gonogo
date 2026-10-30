@@ -43,7 +43,11 @@ export function PanelStatusDot({ severity, count = 1 }: PanelStatusDotProps) {
           $fill={TONE_STATUS[severity]}
           $ink={TONE_ON_STATUS[severity]}
         >
-          {count}
+          <PanelStatusDot__Digits aria-hidden="true">
+            <text x="50%" y="50%" dy="0.365em" textAnchor="middle">
+              {count}
+            </text>
+          </PanelStatusDot__Digits>
         </PanelStatusDot__Count>
       )}
     </PanelStatusDot__Root>
@@ -64,8 +68,8 @@ const PanelStatusDot__Root = styled.span<{
   justify-content: center;
   /* One fixed diameter whether or not a count is shown; the count is out of flow, so it cannot affect this box's size. */
   height: ${DOT_DIAMETER};
-  /* The count's own size, so the width below can be counted in its digits. */
-  font-size: 7px;
+  /* The count's own size, so the width below can be counted in its digits. Digits this size are six pixels tall, which centre in the eight-pixel dot on whole pixels; at seven they are five, and one engine places the baseline half a pixel above or below the middle. */
+  font-size: 8px;
   /* More than one digit grows the dot sideways into a pill, keeping its height and its place on the title's line. */
   width: ${({ $digits }) =>
     $digits > 1 ? `calc(${$digits}ch + 4px)` : DOT_DIAMETER};
@@ -95,4 +99,19 @@ const PanelStatusDot__Count = styled.span<{ $fill: string; $ink: string }>`
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   line-height: var(--line-height-flush);
+`;
+
+/*
+ * The count is SVG text, not a text node: HTML text places its glyph origin on a device pixel
+ * independently of where the dot's box snaps, so a dot at a fractional position in a header drew
+ * its digits up to a pixel off centre. SVG text is placed from the same box. The half-cap-height
+ * shift (0.365em, the digits' cap height of 0.73em halved) puts the digits' middle on the dot's.
+ */
+const PanelStatusDot__Digits = styled.svg`
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: currentColor;
 `;

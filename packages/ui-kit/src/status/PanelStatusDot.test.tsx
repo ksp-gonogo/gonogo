@@ -43,6 +43,18 @@ describe("PanelStatusDot", () => {
     expect(rule).toContain("border-radius:var(--radius-circle)");
   });
 
+  it("draws the count as text centred on the dot's middle, in an SVG that does not announce it twice", () => {
+    render(<PanelStatusDot severity="warn" count={9} />);
+    const dot = screen.getByRole("img", { name: "9 warning" });
+    const svg = dot.querySelector("svg");
+    expect(svg).toHaveAttribute("aria-hidden", "true");
+    const text = svg?.querySelector("text");
+    expect(text).toHaveAttribute("text-anchor", "middle");
+    expect(text).toHaveAttribute("x", "50%");
+    expect(text).toHaveAttribute("y", "50%");
+    expect(text).toHaveTextContent("9");
+  });
+
   it("has no axe violations with and without a count", async () => {
     const { container } = render(
       <>
