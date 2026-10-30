@@ -19,7 +19,7 @@ import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { MissionMeta, MissionRecord } from "../storage/MissionStore";
 import { MissionStore } from "../storage/MissionStore";
 import { resetAutoRecordStatusForTests } from "./autoRecordStatus";
@@ -96,6 +96,15 @@ beforeEach(() => {
   clearRegistry();
   localStorage.clear();
   resetAutoRecordStatusForTests();
+});
+
+/*
+ * The table loads flights and then contract finishes in two awaits, so the
+ * second state update can land after a test that stopped at the first render.
+ * Holding act open here carries it, while the tree is still mounted.
+ */
+afterEach(async () => {
+  await act(async () => {});
 });
 
 describe("FlightsManager", () => {
@@ -178,7 +187,6 @@ describe("FlightsManager", () => {
     expect(
       within(await rowOf("Elsewhere")).queryByText("Orbit Kerbin"),
     ).toBeNull();
-    await act(async () => {});
   });
 
   it("shows a renamed flight under its current name with the launch name as a detail", async () => {

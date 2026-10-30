@@ -78,5 +78,15 @@ namespace Gonogo.KSP.Tests.ObjectiveDelay
 
             Assert.Contains("HeldAtHome = true", declaration, StringComparison.Ordinal);
         }
+
+        /// <summary>A contract finished by its last parameter has no recorded finish time, so the stamp must come from the clock.</summary>
+        [Fact]
+        public void AContractFinishIsStampedThroughTheUnrecordedTimeRule()
+        {
+            var career = CurrencyDelaySourceText.ReadRelative("CareerUplink.cs");
+            var body = CurrencyDelaySourceText.MethodBody(career, "private void PublishFinish(global::Contracts.Contract? contract, bool completed)");
+
+            Assert.Contains("CareerViewProvider.ContractFinishUt(contract.DateFinished, _host.NowUt())", body, StringComparison.Ordinal);
+        }
     }
 }

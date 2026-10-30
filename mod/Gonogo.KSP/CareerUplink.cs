@@ -34,6 +34,7 @@ namespace Gonogo.KSP
     public sealed class CareerUplink : ISitrepUplink
     {
         private readonly ICareerActuator _actuator;
+        private IUplinkHost? _host;
         private IChannelPublisher? _contractEvents;
         private IDynamicChannelSource? _pendingObjectives;
         private bool _subscribed;
@@ -181,6 +182,7 @@ namespace Gonogo.KSP
             host.AddChannelSource(CareerViewProvider.Topic, CareerViewProvider.BuildCareer);
             host.AddChannelSource(CareerViewProvider.ModeTopic, CareerViewProvider.BuildCareerMode);
             host.AddChannelSource(CareerViewProvider.FacilitiesTopic, CareerViewProvider.BuildFacilities);
+            _host = host;
             _contractEvents = host.Publisher(CareerViewProvider.ContractEventTopic);
             _pendingObjectives = host.RegisterDynamicNamespace(CareerObjectiveTopics.Prefix, new ChannelDeclaration
             {
@@ -278,12 +280,12 @@ namespace Gonogo.KSP
 
         private void PublishFinish(global::Contracts.Contract? contract, bool completed)
         {
-            if (contract == null || _contractEvents == null)
+            if (contract == null || _contractEvents == null || _host == null)
             {
                 return;
             }
 
-            var finishedUt = contract.DateFinished;
+            var finishedUt = CareerViewProvider.ContractFinishUt(contract.DateFinished, _host.NowUt());
             var payload = CareerViewProvider.BuildContractEvent(
                 contract.ContractID.ToString(),
                 contract.Title,
