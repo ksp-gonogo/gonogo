@@ -63,16 +63,14 @@ function baseShape(): DecodedPartShape {
   };
 }
 
-function fairingRow(
-  cargoBay: "retracted" | "extended",
-  fairing?: FairingProfile,
-): TopologyPart {
+function fairingRow(fairing?: FairingProfile): TopologyPart {
   return {
     flightId: 7,
     persistentId: 7,
     parentFlightId: null,
     name: "fairingSize1",
     title: "AE-FF1 Airstream Protective Shell (1.25m)",
+    manufacturer: "",
     category: "Payload",
     categoryOrdinal: 13,
     orgPos: [0, 0, 0],
@@ -82,14 +80,15 @@ function fairingRow(
       size: { x: 1.3125, y: 3.48, z: 1.3125 },
       center: { x: 0, y: 1.53, z: 0 },
     },
+    crewCapacity: 0,
+    crashTolerance: 8,
     dryMass: 0.136,
     inverseStage: 2,
     maxTemp: 2600,
     shape: "fairingSize1.White",
     modules: ["ModuleProceduralFairing", "ModuleCargoBay"],
-    moduleStates: [{ type: "cargoBay", state: cargoBay }],
     fairing,
-  } as unknown as TopologyPart;
+  };
 }
 
 describe("fairing shell from its profile", () => {
@@ -123,7 +122,7 @@ describe("fairing shell from its profile", () => {
 
   it("draws a standing shell over the base ring, and the base ring alone once the shell is gone", () => {
     const closed = buildShipMapPart(
-      fairingRow("retracted", profile()),
+      fairingRow(profile()),
       null,
       undefined,
       0,
@@ -136,7 +135,7 @@ describe("fairing shell from its profile", () => {
     expect(closed.size.y).toBeCloseTo(2.5627, 3);
 
     const jettisoned = buildShipMapPart(
-      fairingRow("extended", profile([])),
+      fairingRow(profile([])),
       null,
       undefined,
       0,
@@ -150,7 +149,7 @@ describe("fairing shell from its profile", () => {
 
   it("draws a fairing whose row predates the shell by its type, within its own box", () => {
     const unknown = buildShipMapPart(
-      fairingRow("retracted"),
+      fairingRow(),
       null,
       undefined,
       0,

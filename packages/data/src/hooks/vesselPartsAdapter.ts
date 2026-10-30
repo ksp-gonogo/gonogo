@@ -133,22 +133,19 @@ function shapePoses(
 /** A fairing's shell with its ring pairs split into `{ h, r }`. */
 function fairingShell(wire: VesselPart["fairing"]): TopologyPart["fairing"] {
   if (!wire) return undefined;
-  const flat = wire.rings.map((n) => n.magnitude);
+  const axis = axisTuple(wire.axis) ?? [0, 0, 0];
+  const flat = wire.rings.map(metres);
   const rings: { h: number; r: number }[] = [];
   for (let i = 0; i + 1 < flat.length; i += 2) {
     rings.push({ h: flat[i], r: flat[i + 1] });
   }
   return {
     pivot: {
-      x: wire.pivot.x.magnitude,
-      y: wire.pivot.y.magnitude,
-      z: wire.pivot.z.magnitude,
+      x: metres(wire.pivot.x),
+      y: metres(wire.pivot.y),
+      z: metres(wire.pivot.z),
     },
-    axis: {
-      x: wire.axis.x.magnitude,
-      y: wire.axis.y.magnitude,
-      z: wire.axis.z.magnitude,
-    },
+    axis: { x: axis[0], y: axis[1], z: axis[2] },
     rings,
   };
 }
