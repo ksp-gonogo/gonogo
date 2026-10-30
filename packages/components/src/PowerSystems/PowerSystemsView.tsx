@@ -63,7 +63,7 @@ export function PowerSystemsComponent({
   w,
   h,
 }: Readonly<ComponentProps<PowerSystemsConfig>>) {
-  const { topology, liveByFlightId, resourcesWithFlow, resourcesPresent } =
+  const { topology, liveByFlightId, resourcesListed, resourcesPresent } =
     useLiveParts();
 
   /**
@@ -83,11 +83,11 @@ export function PowerSystemsComponent({
 
   const { resource, pickerResources, pick } = useResourcePick(
     config?.defaultResource ?? "ElectricCharge",
-    resourcesWithFlow,
+    resourcesListed,
     resourcesPresent,
   );
 
-  useCycleResourceAction(resourcesWithFlow, resource, pick);
+  useCycleResourceAction(resourcesListed, resource, pick);
 
   const scope = useMemo<PowerSystemsScope>(() => ({ resource }), [resource]);
 
@@ -167,7 +167,7 @@ export function PowerSystemsComponent({
     );
   }
 
-  if (resourcesWithFlow.length === 0) {
+  if (resourcesListed.length === 0) {
     return (
       <Panel
         panelTitle="POWER SYSTEMS"

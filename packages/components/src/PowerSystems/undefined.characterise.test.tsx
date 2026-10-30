@@ -128,8 +128,8 @@ describe("PowerSystems: what undefined means today", () => {
     expect(screen.queryByText("PROD")).toBeNull();
   });
 
-  it("renders the no-flow empty state when every part's flow field is absent", async () => {
-    // An absent flow does not count as a resource with flow, so a full battery with no flow readings reads as "no active flow".
+  it("shows the stored charge, not the no-flow state, when every part's flow field is absent", async () => {
+    // A stored resource with no flow readings is still a resource the vessel has, so the widget draws it rather than claiming there is nothing.
     const fixture = newFixture();
     renderPower(fixture, "ps-noflow");
 
@@ -139,16 +139,9 @@ describe("PowerSystems: what undefined means today", () => {
       });
     });
 
-    await waitFor(() =>
-      expect(screen.getByRole("status")).toHaveTextContent(
-        "No active flow on any resource",
-      ),
-    );
-    expect(
-      screen.getByText(/Deploy a solar panel, run a generator/),
-    ).toBeTruthy();
-    expect(screen.queryByText("STORED")).toBeNull();
-    expect(screen.queryByText("NET")).toBeNull();
+    await waitFor(() => expect(screen.getByLabelText("Resource")).toBeTruthy());
+    expect(screen.queryByText("No active flow on any resource")).toBeNull();
+    expect(screen.getByText("STORED")).toBeTruthy();
   });
 
   it("shows no MEASURED cell at all while parts.power has never arrived", async () => {

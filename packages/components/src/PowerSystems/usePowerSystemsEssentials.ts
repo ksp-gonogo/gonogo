@@ -28,21 +28,21 @@ function resourceLabel(resource: string): string {
 export function usePowerSystemsEssentials({
   config,
 }: Readonly<ComponentProps<PowerSystemsConfig>>): readonly TinyEssential[] {
-  const { topology, liveByFlightId, resourcesWithFlow, resourcesPresent } =
+  const { topology, liveByFlightId, resourcesListed, resourcesPresent } =
     useLiveParts();
   const partsReading = useTelemetry("vessel.parts");
   const { resource, pick } = useResourcePick(
     config?.defaultResource ?? "ElectricCharge",
-    resourcesWithFlow,
+    resourcesListed,
     resourcesPresent,
   );
-  useCycleResourceAction(resourcesWithFlow, resource, pick);
+  useCycleResourceAction(resourcesListed, resource, pick);
   const breakdown = useResourceBreakdown(topology, liveByFlightId, resource);
   const measured = useMeasuredCharge(resource);
   const net = measured.net ?? breakdown.net;
   const unratedCount = measured.net === undefined ? breakdown.unratedCount : 0;
   if (!topology) return [{ label: "NET" }];
-  if (resourcesWithFlow.length === 0) {
+  if (resourcesListed.length === 0) {
     return [{ label: "NET", word: "NO FLOW" }];
   }
   if (measured.unknown) {

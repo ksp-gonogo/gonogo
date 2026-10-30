@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { PowerSystemsActions } from "./config";
 import { type Contribution, countUnratedProcesses } from "./flow";
 
-/** The vessel's topology, each part's live slice, and the resources any part reports a flow for. */
+/**
+ * The vessel's topology, each part's live slice, the resources any part reports a flow for, and the resources the vessel can choose between: those that flow plus those it stores.
+ */
 export function useLiveParts() {
   const topology = useTopology();
   const flightIds = useMemo(
@@ -32,7 +34,24 @@ export function useLiveParts() {
     }
     return Array.from(set).sort();
   }, [liveByFlightId]);
-  return { topology, liveByFlightId, resourcesWithFlow, resourcesPresent };
+  // A stored resource with no rated producer or consumer (a battery before anything draws) is still one the operator reads and picks.
+  const resourcesListed = useMemo(() => {
+    const set = new Set(resourcesWithFlow);
+    for (const slice of liveByFlightId.values()) {
+      if (!slice.resources) continue;
+      for (const [name, row] of Object.entries(slice.resources)) {
+        if (row && (row.maxAmount ?? 0) > 0) set.add(name);
+      }
+    }
+    return Array.from(set).sort();
+  }, [liveByFlightId, resourcesWithFlow]);
+  return {
+    topology,
+    liveByFlightId,
+    resourcesWithFlow,
+    resourcesListed,
+    resourcesPresent,
+  };
 }
 
 /**
@@ -40,7 +59,7 @@ export function useLiveParts() {
  */
 export function useResourcePick(
   defaultResource: string,
-  resourcesWithFlow: readonly string[],
+  resourcesListed: readonly string[],
   resourcesPresent: readonly string[],
 ) {
   const [resource, setResource] = useState(defaultResource);
@@ -52,22 +71,22 @@ export function useResourcePick(
   }, [defaultResource]);
   useEffect(() => {
     if (userPicked) return;
-    if (resourcesWithFlow.length === 0) return;
+    if (resourcesListed.length === 0) return;
     if (
-      !resourcesWithFlow.includes(resource) &&
+      !resourcesListed.includes(resource) &&
       !resourcesPresent.includes(resource)
     ) {
-      setResource(resourcesWithFlow[0]);
+      setResource(resourcesListed[0]);
     }
-  }, [resourcesWithFlow, resourcesPresent, resource, userPicked]);
+  }, [resourcesListed, resourcesPresent, resource, userPicked]);
 
   // The current pick stays in the options even when its flow has vanished, so the select keeps showing it.
   const pickerResources = useMemo(
     () =>
-      resourcesWithFlow.includes(resource)
-        ? resourcesWithFlow
-        : [...resourcesWithFlow, resource].sort(),
-    [resourcesWithFlow, resource],
+      resourcesListed.includes(resource)
+        ? resourcesListed
+        : [...resourcesListed, resource].sort(),
+    [resourcesListed, resource],
   );
 
   const pick = (name: string) => {
@@ -176,18 +195,18 @@ export function useResourceBreakdown(
   };
 }
 
-/** Binds the next-resource action: it steps the pick through the resources that have flow, whichever size the widget is drawn at. */
+/** Binds the next-resource action: it steps the pick through the listed resources, whichever size the widget is drawn at. */
 export function useCycleResourceAction(
-  resourcesWithFlow: readonly string[],
+  resourcesListed: readonly string[],
   resource: string,
   pick: (name: string) => void,
 ) {
   useActionInput<PowerSystemsActions>({
     "cycle-resource": (payload) => {
       if (payload.kind === "button" && payload.value !== true) return undefined;
-      if (resourcesWithFlow.length === 0) return undefined;
-      const idx = resourcesWithFlow.indexOf(resource);
-      const next = resourcesWithFlow[(idx + 1) % resourcesWithFlow.length];
+      if (resourcesListed.length === 0) return undefined;
+      const idx = resourcesListed.indexOf(resource);
+      const next = resourcesListed[(idx + 1) % resourcesListed.length];
       pick(next);
       return { resource: next };
     },

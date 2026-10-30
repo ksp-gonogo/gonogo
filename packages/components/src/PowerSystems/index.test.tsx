@@ -5,6 +5,7 @@ import {
 } from "@ksp-gonogo/core";
 import {
   act,
+  fireEvent,
   render as rtlRender,
   screen,
   waitFor,
@@ -110,13 +111,51 @@ describe("PowerSystems: states + resource pick", () => {
     expect(screen.getByText("Waiting for vessel topology...")).toBeTruthy();
   });
 
-  it("shows the deploy-a-panel hint when no resource has live flow", async () => {
+  it("shows the deploy-a-panel hint when nothing is stored and nothing flows", async () => {
     const { fixture } = renderWidget("ps-no-flow");
-    act(() => fixture.emit("vessel.parts", NO_FLOW_WIRE));
+    act(() =>
+      fixture.emit("vessel.parts", {
+        parts: [part("1", "Strut", {})],
+      }),
+    );
     await waitFor(() =>
       expect(screen.getByText("No active flow on any resource")).toBeTruthy(),
     );
     expect(screen.getByText(/Deploy a solar panel/)).toBeTruthy();
+  });
+
+  it("shows the stored charge of a craft with a battery and no flow, not the no-flow hint", async () => {
+    const { fixture } = renderWidget("ps-battery-only");
+    act(() => fixture.emit("vessel.parts", NO_FLOW_WIRE));
+    await waitFor(() => expect(screen.getByLabelText("Resource")).toBeTruthy());
+    expect(screen.queryByText("No active flow on any resource")).toBeNull();
+    expect((screen.getByLabelText("Resource") as HTMLSelectElement).value).toBe(
+      "ElectricCharge",
+    );
+  });
+
+  it("keeps ElectricCharge in the picker after another resource is picked", async () => {
+    const { fixture } = renderWidget("ps-ec-stays");
+    act(() =>
+      fixture.emit("vessel.parts", {
+        parts: [
+          part("1", "Battery", {
+            ElectricCharge: { amount: 50, maxAmount: 100 },
+          }),
+          part("2", "Booster", {
+            SolidFuel: { amount: 200, maxAmount: 400, flow: -2 },
+          }),
+        ],
+      }),
+    );
+    await waitFor(() => expect(screen.getByLabelText("Resource")).toBeTruthy());
+    const select = screen.getByLabelText("Resource") as HTMLSelectElement;
+    act(() => {
+      fireEvent.change(select, { target: { value: "SolidFuel" } });
+    });
+    expect(select.value).toBe("SolidFuel");
+    const options = Array.from(select.options).map((o) => o.value);
+    expect(options).toContain("ElectricCharge");
   });
 
   it("stays on ElectricCharge when it is stored but only another resource flows", async () => {
