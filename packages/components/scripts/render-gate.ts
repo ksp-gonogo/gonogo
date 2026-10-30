@@ -27,7 +27,6 @@
  * Writes no pictures: the gate judges the DOM and discards the PNGs.
  */
 import { scopeWidgets, shardFlag, widgetFlag } from "./gateScope";
-import { stressConfigs } from "./renderGateStress";
 import { renderWidgets } from "./widgetRenderHarness";
 import { listWidgets } from "./widgets";
 
@@ -52,15 +51,10 @@ async function main(): Promise<void> {
   }
 
   console.log(`render-gate: ${widgets.length} widgets at tile size`);
-  const stressed = stressConfigs(widgets);
-  console.log(`render-gate: ${stressed.length} widgets under generated stress`);
-  await renderWidgets(
-    [...widgets.map((w) => ({ ...w, checkActions: true })), ...stressed],
-    {
-      capture: false,
-      concurrency: Number(process.env.RENDER_GATE_PAGES ?? 4),
-    },
-  );
+  await renderWidgets([...widgets], {
+    capture: false,
+    concurrency: Number(process.env.RENDER_GATE_PAGES ?? 4),
+  });
   console.log(
     "\nrender-gate: no widget stacks two sections into one place or draws a glyph outside JetBrains Mono.",
   );

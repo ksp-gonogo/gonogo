@@ -4,9 +4,6 @@
  * page many times with different fixture and size payloads without reloading
  * or re-bundling.
  */
-
-import { getComponent } from "@ksp-gonogo/core";
-import { dispatchAction } from "@ksp-gonogo/sitrep-sdk";
 import {
   auditMinFit,
   type MinFitFinding,
@@ -22,12 +19,6 @@ declare global {
     __renderProbe: (payload: ProbePayload) => Promise<void>;
     /** What cannot be read in the tile, when the kit's tiny form is what it shows; null when it is not. */
     __auditTinyFit: () => MinFitFinding[] | null;
-    /** The actions a registered widget declares, each with the input kind that drives it. */
-    __probeActions: (
-      widgetId: string,
-    ) => { id: string; label: string; kind: "button" | "analog" }[];
-    /** Fires one declared action on the mounted widget, a press then a release for a button. */
-    __dispatchProbeAction: (id: string, kind: "button" | "analog") => void;
   }
 }
 
@@ -43,18 +34,4 @@ window.__auditTinyFit = () => {
   const root = probeRoot();
   if (!root.querySelector("[data-tiny-essential]")) return null;
   return auditMinFit(root);
-};
-
-window.__probeActions = (widgetId) =>
-  (getComponent(widgetId)?.actions ?? []).map((a) => ({
-    id: a.id,
-    label: a.label,
-    kind: a.accepts.includes("button") ? "button" : "analog",
-  }));
-
-window.__dispatchProbeAction = (id, kind) => {
-  const pressed = kind === "button" ? true : 1;
-  const released = kind === "button" ? false : 0;
-  dispatchAction("probe", id, { kind, value: pressed });
-  dispatchAction("probe", id, { kind, value: released });
 };

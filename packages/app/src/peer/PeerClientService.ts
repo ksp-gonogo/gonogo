@@ -665,13 +665,6 @@ export class PeerClientService {
     });
     conn.on("close", () => {
       if (!current()) return;
-      /* The main screen closes the data connection once the endpoint reports
-         this station open, which can reach the station before its own link
-         reports the same. The link then takes over, and the attempt's
-         deadline covers one that never does. */
-      if (this.pendingEndpoint !== null && this.pendingEndpoint.link !== conn) {
-        return;
-      }
       logger.info(`[PeerClient] connection closed`);
       this.retryPolicy.handleUnexpectedClose();
     });
