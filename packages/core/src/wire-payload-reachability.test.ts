@@ -167,6 +167,7 @@ describe("wire payload reachability", () => {
     const core = execFileSync("git", ["ls-files", "mod/Sitrep.Core"], {
       cwd: REPO_ROOT,
       encoding: "utf8",
+      maxBuffer: 256 * 1024 * 1024,
     })
       .split("\n")
       .filter((rel) => rel.endsWith(".cs"));
@@ -266,7 +267,7 @@ describe("wire payload reachability", () => {
     const untracked = execFileSync(
       "git",
       ["ls-files", "--others", "--exclude-standard", "mod"],
-      { cwd: REPO_ROOT, encoding: "utf8" },
+      { cwd: REPO_ROOT, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 },
     )
       .split("\n")
       .filter(gate.isProductionSourcePath);

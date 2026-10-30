@@ -91,7 +91,7 @@ function gitFiles(dir: string): string[] {
   return execFileSync(
     "git",
     ["ls-files", "--cached", "--others", "--exclude-standard", dir],
-    { cwd: REPO_ROOT, encoding: "utf8" },
+    { cwd: REPO_ROOT, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 },
   )
     .split("\n")
     .filter(Boolean);
