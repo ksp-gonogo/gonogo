@@ -39,12 +39,12 @@ import { makeTempDir } from "./temp-dir.mjs";
 
 /**
  * Uplinks whose plugin cannot be loaded with the reference set the `mod` job
- * has: their types reference UnityEngine.UI, which that set does not carry. Each
- * is probed when the set has it and printed as not probed when it does not. The
- * list only shrinks: an Uplink not named here that fails to load is a failure,
- * and a named one that loads is reported so it can come off.
+ * has because their types reference an assembly it does not carry. A named
+ * Uplink is printed as not probed when it cannot load and probed when it can.
+ * The list only shrinks: an Uplink not named here that fails to load is a
+ * failure, and a named one that loads is reported so it can come off.
  */
-const KNOWN_UNLOADABLE = ["kerbalism", "testflight"];
+const KNOWN_UNLOADABLE = [];
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
