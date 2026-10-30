@@ -171,7 +171,7 @@ async function main(): Promise<void> {
   let failures = 0;
   try {
     for (const scene of SCENES) {
-      const height = scene.tall ? (scene.action === "input" ? 640 : 380) : 200;
+      const height = scene.tall ? 640 : 200;
       const context = await browser.newContext({
         viewport: { width: scene.pxW, height },
         deviceScaleFactor: 2,

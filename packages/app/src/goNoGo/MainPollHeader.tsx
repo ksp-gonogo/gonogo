@@ -1,6 +1,7 @@
 import { useGameContext } from "@ksp-gonogo/core";
 import { LiveRegion } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
+import { PHONE_BANNER } from "../components/MissionBanner";
 import {
   CountdownAnnouncer,
   CountdownLine,
@@ -66,7 +67,10 @@ export function MainPollHeader() {
                 aria-label={text ? `${s.name}: ${text}` : s.name}
               >
                 <BoxName>{s.name}</BoxName>
-                {text && <BoxVote>{text}</BoxVote>}
+                {/* A box with no vote keeps the vote line's height, so every box in a row is one size. */}
+                <BoxVote aria-hidden={text === "" ? true : undefined}>
+                  {text || "\u00a0"}
+                </BoxVote>
               </Box>
             );
           })}
@@ -84,14 +88,25 @@ const Centre = styled.div`
   align-items: center;
   gap: var(--gap-related-dense);
   min-width: 0;
+
+  @media (max-width: ${PHONE_BANNER}) {
+    width: 100%;
+  }
 `;
 
+/* On a phone the boxes fill the row in equal columns, so a second row lines up under the first. */
 const Boxes = styled.div`
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: var(--gap-related);
   min-width: 0;
+
+  @media (max-width: ${PHONE_BANNER}) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+    width: 100%;
+  }
 `;
 
 const BOX_BORDER: Record<BoxState, string> = {

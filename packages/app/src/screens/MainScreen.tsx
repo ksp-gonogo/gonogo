@@ -478,9 +478,11 @@ function MainDashboard({
             centre={
               screen === "main" ? <MainPollHeader /> : <StationPollControl />
             }
+            centreControls={
+              screen === "main" ? <PollSettingsControl /> : undefined
+            }
             actions={
               <>
-                {screen === "main" && <PollSettingsControl />}
                 <LayoutHistoryControl dashboard={controller} />
                 <HelpButton />
               </>
