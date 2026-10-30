@@ -51,6 +51,18 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void ContractFinishUtUsesTheRecordedFinishTime()
+        {
+            Assert.Equal(115.0, CareerViewProvider.ContractFinishUt(115.0, 200.0));
+        }
+
+        [Fact]
+        public void ContractFinishUtFallsBackToNowWhenTheGameRecordedNoFinishTime()
+        {
+            Assert.Equal(200.0, CareerViewProvider.ContractFinishUt(0.0, 200.0));
+        }
+
+        [Fact]
         public void BuildObjectivePendingCarriesTheKeyHomeSettlesItBy()
         {
             var row = CareerViewProvider.BuildObjectivePending(
