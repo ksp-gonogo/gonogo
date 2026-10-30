@@ -361,14 +361,62 @@ func TestTheTabClosingASessionClosesTheStation(t *testing.T) {
 	waitFor(t, s.closed, "the station's data channel closing")
 }
 
-func TestASecondTabReplacesTheFirstAndDropsItsStations(t *testing.T) {
+func TestASecondTabIsToldBusyAndTheFirstKeepsItsStations(t *testing.T) {
 	_, url := startEndpoint(t, Config{})
 	first := dialTab(t, url)
 	s := newStation(t)
 	join(t, first, s, 1, "station-a")
-	dialTab(t, url)
-	waitFor(t, first.done, "the first tab's socket closing")
-	waitFor(t, s.closed, "the first tab's station closing")
+
+	second, _, err := websocket.DefaultDialer.Dial(url, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer second.Close()
+	_ = second.SetReadDeadline(time.Now().Add(wait))
+	_, msg, err := second.ReadMessage()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got map[string]any
+	_ = json.Unmarshal(msg, &got)
+	if got["type"] != "busy" {
+		t.Fatalf("got %v, wanted a busy frame", got)
+	}
+	if _, _, err := second.ReadMessage(); err == nil {
+		t.Fatal("the refused tab's socket stayed open")
+	}
+	select {
+	case <-first.done:
+		t.Fatal("the first tab lost its socket to the second")
+	case <-s.closed:
+		t.Fatal("the first tab's station was dropped by the second tab")
+	case <-time.After(300 * time.Millisecond):
+	}
+}
+
+func TestATabThatStopsAnsweringPingsIsDroppedAndAnotherTakesOver(t *testing.T) {
+	_, url := startEndpoint(t, Config{TabPingInterval: 20 * time.Millisecond, TabTimeout: 150 * time.Millisecond})
+	// Never reads, so it never answers a ping.
+	dead, _, err := websocket.DefaultDialer.Dial(url, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dead.Close()
+	deadline := time.Now().Add(wait)
+	for time.Now().Before(deadline) {
+		conn, _, err := websocket.DefaultDialer.Dial(url, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = conn.SetReadDeadline(time.Now().Add(time.Second))
+		_, msg, err := conn.ReadMessage()
+		conn.Close()
+		if err == nil && strings.Contains(string(msg), `"status"`) {
+			return
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	t.Fatal("a tab that stopped answering pings kept the endpoint")
 }
 
 func TestTheStationClosingTellsTheTab(t *testing.T) {

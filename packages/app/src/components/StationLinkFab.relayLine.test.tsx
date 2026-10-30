@@ -91,6 +91,21 @@ describe("Add station relay line", () => {
     ).toBeInTheDocument();
   });
 
+  it("says another main screen is serving stations when the relay turns this one away", async () => {
+    server.use(
+      stationsSocket.addEventListener("connection", ({ client }) => {
+        client.send(JSON.stringify({ type: "busy" }));
+      }),
+    );
+    const { dialog } = await openPanel();
+    expect(
+      await within(dialog).findByText(
+        "Another main screen is serving stations. Close it and this one takes over.",
+      ),
+    ).toBeInTheDocument();
+    expect(within(dialog).queryByText(/The relay is not running/)).toBeNull();
+  });
+
   it("points to the setting rather than explaining it, and opens Settings from it", async () => {
     relayRunning("refused");
     const { user, dialog } = await openPanel();

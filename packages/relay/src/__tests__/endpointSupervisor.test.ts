@@ -46,6 +46,51 @@ describe("EndpointSupervisor", () => {
     await sup.stop();
   });
 
+  it("restarts a running endpoint so it starts again with what start reads now", async () => {
+    let lan = "198.51.100.5";
+    const started: string[] = [];
+    let stopped = 0;
+    const sup = new EndpointSupervisor({
+      discover: async () => "203.0.113.1",
+      start: () => {
+        started.push(lan);
+        return {
+          ...handle(),
+          stop: async () => {
+            stopped += 1;
+          },
+        };
+      },
+      onFatal: () => {},
+    });
+    await sup.begin();
+    lan = "198.51.100.24";
+    await sup.restart();
+    expect(started).toEqual(["198.51.100.5", "198.51.100.24"]);
+    expect(stopped).toBe(1);
+    expect(sup.handle).not.toBeNull();
+    await sup.stop();
+  });
+
+  it("does not restart an endpoint that is not running", async () => {
+    let starts = 0;
+    const sup = new EndpointSupervisor({
+      retryMs: 60_000,
+      discover: async () => {
+        throw new Error("offline");
+      },
+      start: () => {
+        starts += 1;
+        return handle();
+      },
+      onFatal: () => {},
+    });
+    await sup.begin();
+    await sup.restart();
+    expect(starts).toBe(0);
+    await sup.stop();
+  });
+
   it("serves /bootstrap-config while the endpoint is unavailable, with /health giving the reason", async () => {
     const sup = new EndpointSupervisor({
       retryMs: 60_000,

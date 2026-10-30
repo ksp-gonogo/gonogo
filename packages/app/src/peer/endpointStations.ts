@@ -92,6 +92,8 @@ interface PendingBridge {
   timer: ReturnType<typeof setTimeout>;
 }
 const MAX_BACKOFF_MS = 30_000;
+/** How often a main screen the endpoint turned away asks again, so it takes over soon after the other one closes. */
+const BUSY_RETRY_MS = 10_000;
 
 /**
  * The main screen's socket to the relay's station endpoint. Every station
@@ -114,9 +116,25 @@ export class EndpointStations {
   private readonly bridges = new Map<number, PendingBridge>();
   private readonly links = new Map<number, EndpointConnection>();
   private readonly pending = new Map<number, PendingJoin>();
-  private readonly events = new TypedListeners<{ available: [up: boolean] }>();
+  private busy = false;
+  private readonly events = new TypedListeners<{
+    available: [up: boolean];
+    heldElsewhere: [held: boolean];
+  }>();
 
-  constructor(private readonly url: () => string) {}
+  constructor(
+    private readonly url: () => string,
+    private readonly busyRetryMs = BUSY_RETRY_MS,
+  ) {}
+
+  /** Whether the endpoint turned this main screen away because another main screen holds it. */
+  get heldElsewhere(): boolean {
+    return this.busy;
+  }
+
+  onHeldElsewhere(cb: (held: boolean) => void): () => void {
+    return this.events.on("heldElsewhere", cb);
+  }
 
   /** Whether the endpoint is there to take a station now. */
   get available(): boolean {
@@ -140,6 +158,7 @@ export class EndpointStations {
 
   stop(): void {
     this.stopped = true;
+    this.setBusy(false);
     if (this.retryTimer !== null) clearTimeout(this.retryTimer);
     this.retryTimer = null;
     const socket = this.socket;
@@ -243,7 +262,9 @@ export class EndpointStations {
 
   private scheduleRetry(): void {
     if (this.stopped || this.retryTimer !== null) return;
-    const delay = Math.min(1_000 * 2 ** this.attempt, MAX_BACKOFF_MS);
+    const delay = this.busy
+      ? this.busyRetryMs
+      : Math.min(1_000 * 2 ** this.attempt, MAX_BACKOFF_MS);
     this.attempt += 1;
     this.retryTimer = setTimeout(() => {
       this.retryTimer = null;
@@ -266,6 +287,12 @@ export class EndpointStations {
     for (const conn of [...this.links.values()]) conn.markClosed();
     this.links.clear();
     this.setUp(false);
+  }
+
+  private setBusy(busy: boolean): void {
+    if (this.busy === busy) return;
+    this.busy = busy;
+    this.events.emit("heldElsewhere", busy);
   }
 
   private setUp(up: boolean): void {
@@ -334,7 +361,11 @@ export class EndpointStations {
           ),
         );
         return;
+      case "busy":
+        this.setBusy(true);
+        return;
       case "status":
+        this.setBusy(false);
         this.current = {
           port: typeof f.port === "number" ? f.port : 0,
           publicIp:

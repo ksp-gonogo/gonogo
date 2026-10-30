@@ -114,6 +114,9 @@ async function exitNow(code: number): Promise<never> {
 const discover = () =>
   discoverPublicIp({ override: config.publicIp ?? undefined });
 
+/* The address the endpoint advertises for this computer: `LAN_IP` at first, then whatever the main screen sends. */
+let advertisedLan = config.lanIp;
+
 const endpoint = new EndpointSupervisor({
   discover,
   onDiscoveryFailed: (err) =>
@@ -133,7 +136,7 @@ const endpoint = new EndpointSupervisor({
       port: config.endpointPort,
       control: `127.0.0.1:${config.endpointControlPort}`,
       publicIp,
-      lanIp: config.lanIp,
+      lanIp: advertisedLan,
       omitUdp: config.endpointOmitUdp,
       onExit,
       logger: {
@@ -163,6 +166,10 @@ const forwarding = new PortForwarding(
     enabled: config.portMapping && !config.skipEndpoint,
     router: config.routerIp,
     lan: config.lanIp,
+  },
+  (lan) => {
+    advertisedLan = lan;
+    void endpoint.restart();
   },
 );
 void forwarding.start();

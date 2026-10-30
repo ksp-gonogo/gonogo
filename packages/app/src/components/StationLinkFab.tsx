@@ -217,8 +217,8 @@ function pathText(path: ConnectionPath | null): string {
 }
 
 /**
- * What stops stations on other networks joining: the relay not running, or
- * its port not opened on the router. Shows nothing once the relay has had the
+ * What stops stations on other networks joining: the relay not running,
+ * another main screen holding it, or its port not opened on the router. Shows nothing once the relay has had the
  * router open it. A port forwarded by hand cannot be seen from here, so that
  * case reads the same as no forward. Read again every 30 s while the window is
  * open.
@@ -227,6 +227,7 @@ function EndpointState() {
   const [status, setStatus] = useState<EndpointStatus | null>(
     peerHostService.endpoint.status,
   );
+  const [held, setHeld] = useState(peerHostService.endpoint.heldElsewhere);
   const opened = usePortOpened();
   useEffect(
     () =>
@@ -235,7 +236,16 @@ function EndpointState() {
       ),
     [],
   );
+  useEffect(() => peerHostService.endpoint.onHeldElsewhere(setHeld), []);
 
+  if (held) {
+    return (
+      <StatusIndicator tone="warn" live>
+        Another main screen is serving stations. Close it and this one takes
+        over.
+      </StatusIndicator>
+    );
+  }
   if (!status) {
     return (
       <StatusIndicator tone="warn" live>

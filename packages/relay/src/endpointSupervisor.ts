@@ -62,6 +62,19 @@ export class EndpointSupervisor {
     }
   }
 
+  /**
+   * Stop the running endpoint and start it again, so it picks up whatever
+   * `start` reads now. Does nothing while no endpoint is running: one still
+   * waiting on discovery starts with the current values anyway.
+   */
+  async restart(): Promise<void> {
+    const running = this.handle;
+    if (this.stopped || !running) return;
+    this.handle = null;
+    await running.stop();
+    await this.begin();
+  }
+
   async stop(): Promise<void> {
     this.stopped = true;
     if (this.timer) clearTimeout(this.timer);

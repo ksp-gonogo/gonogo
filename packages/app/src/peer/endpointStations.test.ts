@@ -73,6 +73,34 @@ describe("the main screen's endpoint socket", () => {
     expect(stations.available).toBe(false);
   });
 
+  it("when the endpoint says another main screen holds it, stays down, reports it and asks again slowly until it can take over", async () => {
+    let attempts = 0;
+    let busy = true;
+    server.use(
+      link.addEventListener("connection", (event) => {
+        attempts += 1;
+        event.client.send(
+          JSON.stringify(
+            busy ? { type: "busy" } : { type: "status", port: 47100 },
+          ),
+        );
+        if (busy) setTimeout(() => event.client.close(), 5);
+      }),
+    );
+    const stations = new EndpointStations(() => URL, 50);
+    const held: boolean[] = [];
+    stations.onHeldElsewhere((h) => held.push(h));
+    stations.start();
+    await vi.waitFor(() => expect(stations.heldElsewhere).toBe(true));
+    expect(stations.available).toBe(false);
+    await vi.waitFor(() => expect(attempts).toBeGreaterThanOrEqual(3));
+    busy = false;
+    await vi.waitFor(() => expect(stations.available).toBe(true));
+    expect(stations.heldElsewhere).toBe(false);
+    expect(held).toEqual([true, false]);
+    stations.stop();
+  });
+
   it("hands a station's offer to the endpoint and resolves with its answer", async () => {
     const endpoint = fakeEndpoint();
     const stations = await started();

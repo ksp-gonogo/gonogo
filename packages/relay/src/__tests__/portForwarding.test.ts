@@ -104,6 +104,22 @@ describe("automatic port forwarding", () => {
     await f.stop();
   });
 
+  it("reports a changed computer address once, and not when it is sent again unchanged", async () => {
+    const r = recorder();
+    const seen: Array<string | null> = [];
+    const f = new PortForwarding(
+      r.make,
+      { enabled: true, router: ROUTER, lan: null },
+      (lan) => seen.push(lan),
+    );
+    await f.start();
+    await f.set({ enabled: true, router: ROUTER, lan: LAN });
+    await f.set({ enabled: true, router: ROUTER, lan: LAN });
+    await f.set({ enabled: false, router: ROUTER, lan: LAN });
+    expect(seen).toEqual([LAN]);
+    await f.stop();
+  });
+
   it("takes the switch and the router address from the main screen, and reports them", async () => {
     const r = recorder();
     const f = new PortForwarding(r.make, {

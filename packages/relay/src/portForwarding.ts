@@ -59,6 +59,7 @@ export class PortForwarding {
       lan: string | null,
     ) => ForwardingMapper,
     private choice: ForwardingChoice,
+    private readonly onLanChange?: (lan: string | null) => void,
   ) {}
 
   get enabled(): boolean {
@@ -91,7 +92,9 @@ export class PortForwarding {
         next.router === this.choice.router &&
         next.lan === this.choice.lan;
       if (same) return;
+      const lanChanged = next.lan !== this.choice.lan;
       this.choice = next;
+      if (lanChanged) this.onLanChange?.(next.lan);
       await this.close();
       await this.open();
     });

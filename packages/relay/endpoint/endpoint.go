@@ -31,6 +31,10 @@ type Config struct {
 	PendingTimeout time.Duration
 	// MaxBuffered is how many bytes may wait to go out to one station before it is dropped.
 	MaxBuffered uint64
+	// TabPingInterval is how often the endpoint pings the main screen's socket.
+	TabPingInterval time.Duration
+	// TabTimeout is how long the socket may stay silent, pongs included, before the main screen is taken as gone.
+	TabTimeout time.Duration
 	// includeLoopback lets the endpoint answer on 127.0.0.1, which only a test needs.
 	includeLoopback bool
 }
@@ -39,6 +43,8 @@ const (
 	defaultMaxPending     = 8
 	defaultPendingTimeout = 15 * time.Second
 	defaultMaxBuffered    = 4 << 20
+	defaultTabPing        = 5 * time.Second
+	defaultTabTimeout     = 15 * time.Second
 )
 
 // controlFrame is every text frame on the control socket, in both directions.
@@ -79,6 +85,8 @@ type session struct {
 type tab struct {
 	conn *websocket.Conn
 	mu   sync.Mutex
+	// stopPings ends the tab's ping loop; set once the tab holds the endpoint.
+	stopPings func()
 }
 
 func (t *tab) write(kind int, data []byte) {
@@ -118,6 +126,12 @@ func New(cfg Config, udp net.PacketConn, tcp net.Listener) (*Endpoint, error) {
 	}
 	if cfg.PendingTimeout == 0 {
 		cfg.PendingTimeout = defaultPendingTimeout
+	}
+	if cfg.TabPingInterval == 0 {
+		cfg.TabPingInterval = defaultTabPing
+	}
+	if cfg.TabTimeout == 0 {
+		cfg.TabTimeout = defaultTabTimeout
 	}
 	if cfg.MaxBuffered == 0 {
 		cfg.MaxBuffered = defaultMaxBuffered
@@ -172,16 +186,23 @@ func (e *Endpoint) Close() {
 	e.tcp.Close()
 }
 
+// serveTab holds the endpoint for one main screen. A second main screen is told "busy" and
+// closed, because two would take it from each other in turn and drop every station each time.
+// A main screen that stops answering pings is dropped, so a dead one cannot hold it.
 func (e *Endpoint) serveTab(t *tab) {
 	e.mu.Lock()
-	previous := e.tab
+	if e.tab != nil {
+		e.mu.Unlock()
+		log.Printf("a second main screen connected while one is open, refusing it")
+		busy, _ := json.Marshal(controlFrame{Type: "busy"})
+		t.write(websocket.TextMessage, busy)
+		t.conn.Close()
+		return
+	}
 	e.tab = t
 	e.mu.Unlock()
-	if previous != nil {
-		log.Printf("a new main screen connected, replacing the previous one")
-		previous.conn.Close()
-		e.dropAll()
-	}
+	e.keepAlive(t)
+	defer t.stopPings()
 	status, _ := json.Marshal(controlFrame{Type: "status", PublicIP: e.cfg.PublicIP, Port: e.port})
 	t.write(websocket.TextMessage, status)
 
@@ -225,6 +246,28 @@ func (e *Endpoint) serveTab(t *tab) {
 	if current {
 		e.dropAll()
 	}
+}
+
+// keepAlive pings the tab and ends its socket once it has been silent for TabTimeout, which
+// makes the read loop in serveTab return.
+func (e *Endpoint) keepAlive(t *tab) {
+	extend := func() { _ = t.conn.SetReadDeadline(time.Now().Add(e.cfg.TabTimeout)) }
+	extend()
+	t.conn.SetPongHandler(func(string) error { extend(); return nil })
+	done := make(chan struct{})
+	t.stopPings = func() { close(done) }
+	go func() {
+		ticker := time.NewTicker(e.cfg.TabPingInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+				_ = t.conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(time.Second))
+			}
+		}
+	}()
 }
 
 func (e *Endpoint) send(f controlFrame) {
