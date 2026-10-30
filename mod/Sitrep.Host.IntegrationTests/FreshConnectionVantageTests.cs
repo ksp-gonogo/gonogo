@@ -262,6 +262,58 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>A rate tier a connection claimed survives the host re-pointing its subscriptions.</summary>
+        [Fact]
+        public async Task AClaimedRateTier_SurvivesTheResubscribeWhenHomeAppears()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var source = new GroundSource();
+            var homes = new List<HomeNodeFacts>();
+            engine.RegisterCommandCentreSource(source);
+            HomeCommandElection.RegisterCapability(engine.Kernel, () => homes, () => null);
+            engine.RegisterUplink(new EchoUplink());
+            engine.ResolveCapabilities();
+            engine.Start();
+            engine.TickAndWait(0.0, null, Timeout);
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, EchoUplink.DelayedTopic, Timeout);
+                await client.SendAsync(EnvelopeCodec.WriteSetRate(new SetRate { Topic = EchoUplink.DelayedTopic, Tier = DataRateTierNames.Fast }));
+                await WaitForDemandAsync(engine, DataRateTierNames.Fast);
+
+                homes.Add(new HomeNodeFacts(true, "Kerbal Space Center"));
+                source.Ids = HomeCentreIds.Mint(homes);
+                engine.TickAndWait(1.0, null, Timeout);
+                var reAck = await ReceiveTypedAsync<EventMsg>(client, Timeout);
+                Assert.Equal("subscribed", reAck.Name);
+
+                Assert.Equal(DataRateTierNames.Fast, engine.Cadence.DemandReport().First(r => r.Topic == EchoUplink.DelayedTopic).Tier);
+
+                await client.SendAsync(EnvelopeCodec.WriteUnsubscribe(new Unsubscribe { Topic = EchoUplink.DelayedTopic }));
+                await WaitForDemandAsync(engine, null);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        private static async Task WaitForDemandAsync(ChannelEngine engine, string? tier)
+        {
+            var deadline = DateTime.UtcNow + Timeout;
+            while (DateTime.UtcNow < deadline)
+            {
+                var row = engine.Cadence.DemandReport().FirstOrDefault(r => r.Topic == EchoUplink.DelayedTopic);
+                if (tier == null ? row == null : row?.Tier == tier)
+                {
+                    return;
+                }
+                await Task.Delay(10);
+            }
+            throw new TimeoutException("demand never became " + (tier ?? "nothing"));
+        }
+
         /// <summary>A connection that chose a centre stays there when home moves.</summary>
         [Fact]
         public async Task AConnectionThatChose_IsNotRepointedWhenHomeMoves()

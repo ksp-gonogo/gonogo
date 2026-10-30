@@ -4114,8 +4114,16 @@ namespace Sitrep.Host
 
                 foreach (var topic in session.Unsubscribers.Keys.ToArray())
                 {
+                    // The connection never asked to drop its rate tier, so it rides
+                    // through the host's own re-subscribe.
+                    session.RateTiers.TryGetValue(topic, out var tier);
                     ProcessUnsubscribe(session, topic);
                     ProcessSubscribe(session, topic);
+                    if (tier != null)
+                    {
+                        session.RateTiers[topic] = tier;
+                        RecomputeRateDemand(topic);
+                    }
                 }
             }
         }
@@ -11889,6 +11897,7 @@ namespace Sitrep.Host
                 CleanUpSubjectIfGone(topic); // Drop a gone fleet subject's freeze maps.
                 if (session.RateTiers.Remove(topic))
                 {
+                    LogHostInfo("rate tier on \"" + topic + "\" released by " + ShortSessionId(session.Connection) + " (unsubscribe)");
                     RecomputeRateDemand(topic);
                 }
             }
@@ -11917,10 +11926,12 @@ namespace Sitrep.Host
                 {
                     return;
                 }
+                LogHostInfo("rate tier on \"" + topic + "\" released by " + ShortSessionId(session.Connection));
             }
             else
             {
                 session.RateTiers[topic] = tier;
+                LogHostInfo("rate tier on \"" + topic + "\" set to \"" + tier + "\" by " + ShortSessionId(session.Connection));
             }
             RecomputeRateDemand(topic);
         }
