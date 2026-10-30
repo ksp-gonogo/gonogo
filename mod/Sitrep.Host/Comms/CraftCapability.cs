@@ -4,17 +4,18 @@ namespace Sitrep.Host.Comms
     /// What a craft could do to leave the path it is reckoned on, as read with
     /// one of its states: how much delta-v it has left, how hard it can push,
     /// how fast it was moving through an atmosphere and whether anything moves
-    /// it that burns no propellant. Each figure is null where the game gave
-    /// none, which is not zero.
+    /// it that burns no propellant, and whether it was under thrust. Each
+    /// figure is null where the game gave none, which is not zero.
     /// </summary>
     public sealed class CraftCapability
     {
-        public CraftCapability(double? deltaVMs, double? maxAccelerationMs2, double? airspeedMs, bool drivenWithoutPropellant)
+        public CraftCapability(double? deltaVMs, double? maxAccelerationMs2, double? airspeedMs, bool drivenWithoutPropellant, bool? thrusting = null)
         {
             DeltaVMs = deltaVMs;
             MaxAccelerationMs2 = maxAccelerationMs2;
             AirspeedMs = airspeedMs;
             DrivenWithoutPropellant = drivenWithoutPropellant;
+            Thrusting = thrusting;
         }
 
         /// <summary>The craft's total delta-v in vacuum, in m/s: the most it can change its velocity by. Null when it was not read.</summary>
@@ -28,5 +29,12 @@ namespace Sitrep.Host.Comms
 
         /// <summary>Whether driven wheels or rotors can move it, which they do on the ground and in the air without spending delta-v.</summary>
         public bool DrivenWithoutPropellant { get; }
+
+        /// <summary>
+        /// Whether any engine or thruster was producing thrust when the craft was
+        /// read: false for a craft coasting, and for one not loaded, which is on
+        /// rails and does not burn. Null when it was not read, which is not false.
+        /// </summary>
+        public bool? Thrusting { get; }
     }
 }

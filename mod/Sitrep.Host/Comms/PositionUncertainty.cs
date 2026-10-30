@@ -31,9 +31,11 @@ namespace Sitrep.Host.Comms
         /// The radius, in metres, within which the craft lies at
         /// <paramref name="ut"/> if its place was known at
         /// <paramref name="sinceUt"/>. Zero at <paramref name="sinceUt"/>.
-        /// Null when it cannot be bounded: its delta-v was never heard, it is
-        /// gone, the gap runs past how far its orbit can be trusted, its orbit is
-        /// parabolic, or wheels or rotors can move it where it is.
+        /// A craft last heard not under thrust is bounded as if it had no delta-v,
+        /// whatever it carries. Null when it cannot be bounded: its delta-v was
+        /// never heard and it was not heard coasting, it is gone, the gap runs
+        /// past how far its orbit can be trusted, its orbit is parabolic, or
+        /// wheels or rotors can move it where it is.
         /// </summary>
         /// <param name="known">The craft as the centre knows it: where it was going and what it could do.</param>
         public static double? Bound(CraftState known, double sinceUt, double ut)
@@ -52,10 +54,19 @@ namespace Sitrep.Host.Comms
                 return 0.0;
             }
             var capability = known.Capability;
-            if (capability?.DeltaVMs is not double deltaV || (known.Orbit == null && known.Surface == null))
+            if (capability == null || (known.Orbit == null && known.Surface == null))
             {
                 return null;
             }
+            // A craft last heard coasting stays coasting: the bound does not
+            // grow with what its propellant could have done, so an autonomous
+            // burn after it was heard takes the craft out of the bound.
+            var coasting = capability.Thrusting == false;
+            if (!coasting && capability.DeltaVMs == null)
+            {
+                return null;
+            }
+            var deltaV = coasting ? 0.0 : capability.DeltaVMs!.Value;
             if (known.ValidUntilUt is double validUntil && ut > validUntil)
             {
                 return null;

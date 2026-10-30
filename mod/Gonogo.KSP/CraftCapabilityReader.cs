@@ -16,14 +16,14 @@ namespace Gonogo.KSP
     /// thruster, or none holding propellant, is read from its parts whether or
     /// not it is loaded and answers delta-v 0. One not loaded since the save
     /// was opened that does have a thruster with propellant has no delta-v
-    /// known, which is not the same as none.</para>
+    /// known, which is not the same as none, but it is known not to be thrusting.</para>
     /// </summary>
     public sealed class CraftCapabilityReader
     {
         private readonly Dictionary<Guid, (double? DeltaV, double? Acceleration, bool Driven)> _lastLoaded =
             new Dictionary<Guid, (double?, double?, bool)>();
 
-        /// <summary>What <paramref name="vessel"/> could do now, or null when it has never been read loaded.</summary>
+        /// <summary>What <paramref name="vessel"/> could do now. Its delta-v and acceleration are null while it has never been read with a ready simulation.</summary>
         public CraftCapability? Read(Vessel vessel)
         {
             if (vessel.loaded)
@@ -36,9 +36,48 @@ namespace Gonogo.KSP
             }
             if (!_lastLoaded.TryGetValue(vessel.id, out var last))
             {
+                last = (null, null, vessel.loaded ? Driven(vessel) : DrivenSaved(vessel.protoVessel));
+            }
+            return new CraftCapability(last.DeltaV, last.Acceleration, Airspeed(vessel), last.Driven, Thrusting(vessel));
+        }
+
+        /// <summary>
+        /// Whether an engine or a reaction thruster is producing thrust now. An
+        /// unloaded craft is on rails and burns nothing; a kerbal on EVA and a
+        /// craft with no parts to read give null.
+        /// </summary>
+        private static bool? Thrusting(Vessel vessel)
+        {
+            if (!vessel.loaded)
+            {
+                return false;
+            }
+            if (vessel.isEVA || vessel.parts == null)
+            {
                 return null;
             }
-            return new CraftCapability(last.DeltaV, last.Acceleration, Airspeed(vessel), last.Driven);
+            foreach (var part in vessel.parts)
+            {
+                if (part == null)
+                {
+                    continue;
+                }
+                foreach (var engine in part.FindModulesImplementing<ModuleEngines>())
+                {
+                    if (engine.finalThrust > 0f)
+                    {
+                        return true;
+                    }
+                }
+                foreach (var rcs in part.FindModulesImplementing<ModuleRCS>())
+                {
+                    if (rcs.rcsEnabled && rcs.rcs_active)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         private void ReadLoaded(Vessel vessel)

@@ -651,7 +651,7 @@ namespace Sitrep.Host.Comms
             var timeHasCome = itsTurn && TimeHasComeFor(last, Moved(last, node, ut), ut);
             if (!timeHasCome && !LacksALinkToANodeHere(last.State, look))
             {
-                if (!ListedDifferently(last.State.Roster, listed) && !Retargeted(last.State, node, ut, kernel) && !ReasonChanged(last.State, node, look, kernel))
+                if (!ListedDifferently(last.State.Roster, listed) && !Retargeted(last.State, node, ut, kernel) && !ThrustChanged(last.State, node) && !ReasonChanged(last.State, node, look, kernel))
                 {
                     return null;
                 }
@@ -697,6 +697,10 @@ namespace Sitrep.Host.Comms
             }
             return false;
         }
+
+        /// <summary>Whether the craft has started or stopped thrusting since it was last read, which changes how far it can have gone from where it was heard.</summary>
+        private static bool ThrustChanged(CraftState last, ContactGameNode node) =>
+            last.Capability?.Thrusting != node.Capability?.Thrusting;
 
         /// <summary>
         /// Whether a dish of the craft is aimed somewhere other than where the last

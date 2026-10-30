@@ -28,8 +28,8 @@ namespace Sitrep.Host.Tests.Comms
         private static CraftState Orbiting(OrbitElements orbit, CraftCapability? capability, double capturedUt = 1000.0, double? validUntilUt = null) =>
             CraftState.Orbiting(Probe, capturedUt, 1, orbit, null, validUntilUt, true, new Dictionary<string, CraftLink>()).WithCapability(capability);
 
-        private static CraftCapability Can(double? deltaV, double? acceleration, double? airspeed = null, bool driven = false) =>
-            new CraftCapability(deltaV, acceleration, airspeed, driven);
+        private static CraftCapability Can(double? deltaV, double? acceleration, double? airspeed = null, bool driven = false, bool? thrusting = null) =>
+            new CraftCapability(deltaV, acceleration, airspeed, driven, thrusting);
 
         [Fact]
         public void ACraftPushingTenMetresPerSecondSquaredIsWithinEighteenKilometresAMinuteLater()
@@ -72,6 +72,40 @@ namespace Sitrep.Host.Tests.Comms
         {
             Assert.Equal(0.0, PositionUncertainty.Bound(Orbiting(LowOrbit, Can(0.0, null)), 1000.0, 1060.0));
             Assert.Equal(2.0 * 100.0 * 60.0, PositionUncertainty.Bound(Orbiting(LowOrbit, Can(0.0, null, 100.0)), 1000.0, 1060.0)!.Value, 1);
+        }
+
+        [Fact]
+        public void ACraftLastHeardCoastingIsBoundedByCoastingAloneHoweverMuchItCarries()
+        {
+            Assert.Equal(0.0, PositionUncertainty.Bound(Orbiting(LowOrbit, Can(2000.0, 10.0, thrusting: false)), 1000.0, 1000.0 + 86_400.0));
+        }
+
+        [Fact]
+        public void ACraftNeverLoadedIsOnRailsSoItsDeltaVNeedNotBeKnownToBoundIt()
+        {
+            Assert.Equal(0.0, PositionUncertainty.Bound(Orbiting(FarOrbit, Can(null, null, thrusting: false)), 1000.0, 1060.0));
+        }
+
+        [Fact]
+        public void ACraftLastHeardUnderThrustIsBoundedFlatOut()
+        {
+            Assert.Equal(18_000.0, PositionUncertainty.Bound(Orbiting(FarOrbit, Can(2000.0, 10.0, thrusting: true)), 1000.0, 1060.0)!.Value, 1);
+        }
+
+        [Fact]
+        public void ACraftWhoseThrustWasNotReadKeepsTheFlatOutBound()
+        {
+            Assert.Equal(18_000.0, PositionUncertainty.Bound(Orbiting(FarOrbit, Can(2000.0, 10.0, thrusting: null)), 1000.0, 1060.0)!.Value, 1);
+            Assert.Null(PositionUncertainty.Bound(Orbiting(FarOrbit, Can(null, 10.0, thrusting: null)), 1000.0, 1060.0));
+        }
+
+        [Fact]
+        public void ACraftLastHeardCoastingStillDriftsOnTheGroundWithWheels()
+        {
+            var landed = CraftState.Landed(Probe, 1000.0, 1, new RotatingGroundStation(new Vector3d(1.0, 0.0, 0.0), 0.0, 21_549.425, 600_000.0, 0.0, new Vector3d(0.0, 0.0, 1.0)), new Dictionary<string, CraftLink>())
+                .WithCapability(Can(0.0, null, driven: true, thrusting: false));
+
+            Assert.Null(PositionUncertainty.Bound(landed, 1000.0, 1060.0));
         }
 
         [Fact]
