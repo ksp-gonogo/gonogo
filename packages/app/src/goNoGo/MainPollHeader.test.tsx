@@ -56,7 +56,7 @@ function hostWith(stations: [string, string, Vote][]): GoNoGoHostService {
 }
 
 function mainHeader(service: GoNoGoHostService, scene = "Flight") {
-  const fixture = setupStreamFixture();
+  const fixture = setupStreamFixture({ suspendFrames: true });
   const view = render(
     <ScreenProvider value="main">
       <GoNoGoHostProvider service={service}>

@@ -148,16 +148,18 @@ async function cleanRenders(dir: string): Promise<void> {
   }
 }
 
+const ACTIONS: Record<
+  NonNullable<Scene["action"]>,
+  (page: Page) => Promise<void>
+> = {
+  vote: (page) => page.getByRole("button", { name: "NO-GO" }).click(),
+  hover: (page) => page.getByRole("button", { name: "NO-GO" }).hover(),
+  settings: (page) => page.getByRole("button", { name: /On go:/ }).click(),
+  input: (page) => page.getByRole("button", { name: "Vote input" }).click(),
+};
+
 async function act(page: Page, then: Scene["action"]): Promise<void> {
-  if (then === "vote") {
-    await page.getByRole("button", { name: "NO-GO" }).click();
-  } else if (then === "hover") {
-    await page.getByRole("button", { name: "NO-GO" }).hover();
-  } else if (then === "settings") {
-    await page.getByRole("button", { name: /On go:/ }).click();
-  } else if (then === "input") {
-    await page.getByRole("button", { name: "Vote input" }).click();
-  }
+  if (then) await ACTIONS[then](page);
   await page.waitForTimeout(250);
 }
 

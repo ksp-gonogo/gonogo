@@ -26,17 +26,17 @@ import { type StationPoll, useStationPoll } from "./useStationPoll";
 import { VOTE_ACTIONS, voteInputs } from "./voteInput";
 
 /**
- * The middle of a station's header: its name, the input binding for its vote,
- * and the vote itself, which becomes ABORT once the craft has lifted off.
- * Holds this screen's vote, so it is mounted once per screen.
+ * The middle of a station's header: its name, its vote, which becomes "ABORT"
+ * once the craft has lifted off, and the input binding for the vote. Holds
+ * this screen's vote, so it is mounted once per screen.
  */
 export function StationPollControl() {
   const poll = useStationPoll(usePeerClient());
   return (
     <Centre role="group" aria-label="GO/NO-GO">
       <StationNameEditor bare />
-      <VoteInputButton />
       <PollButtons poll={poll} />
+      <VoteInputButton />
       <PollStatus poll={poll} />
     </Centre>
   );
@@ -60,7 +60,6 @@ function PollButtons({ poll }: Readonly<{ poll: StationPoll }>) {
       {poll.voting && (
         <Tooltip text={poll.inPoll ? onGo : null}>
           <Button
-            size="sm"
             variant={poll.inPoll && poll.vote === "go" ? "primary" : "default"}
             tone={
               poll.inPoll ? (poll.vote === "go" ? "go" : "nogo") : undefined
@@ -78,7 +77,7 @@ function PollButtons({ poll }: Readonly<{ poll: StationPoll }>) {
         </Tooltip>
       )}
       {poll.launched && (
-        <Button size="sm" variant="primary" tone="nogo" onClick={poll.abort}>
+        <Button variant="primary" tone="nogo" onClick={poll.abort}>
           ABORT
         </Button>
       )}
@@ -99,21 +98,21 @@ function PollStatus({ poll }: Readonly<{ poll: StationPoll }>) {
           <CountdownAnnouncer secondsLeft={secondsLeft} />
         </>
       )}
-      <Notice>
+      <PollNotice>
         {poll.abortedBy
           ? `Aborted by ${poll.abortedBy}`
           : poll.notice && secondsLeft === null
             ? noticeLabel(poll.notice)
             : ""}
-      </Notice>
+      </PollNotice>
     </>
   );
 }
 
 /**
- * The gear beside the station's name: opens the same input picker a widget's
- * Inputs tab uses, for the key or controller button that flips the vote and
- * the one that aborts. The binding belongs to this screen.
+ * The gear after the station's vote: opens the same input picker a
+ * widget's Inputs tab uses, for the key or controller button that flips the
+ * vote and the one that aborts. The binding belongs to this screen.
  */
 function VoteInputButton() {
   const screen = useScreen();
@@ -152,7 +151,7 @@ const Centre = styled.div`
 `;
 
 /** What the poll last did: why a countdown was held, whether the T-0 action was sent, or who aborted. */
-const Notice = styled(LiveRegion)`
+const PollNotice = styled(LiveRegion)`
   font-size: var(--font-size-caption);
   letter-spacing: 0.1em;
   color: var(--color-warn-text);
