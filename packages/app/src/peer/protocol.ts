@@ -187,10 +187,10 @@ export type PeerMessage =
      towards one. */
   | { type: "gonogo-vote"; status: "go" | "no-go" | null }
   /* Host → stations when the poll reads GO: at least one screen has voted GO
-     and none has voted NO-GO. `t0Ms` is a wall-clock (`Date.now()`) instant:
-     pre-synchronise to the host so the countdown display matches across
-     devices within a small skew. */
-  | { type: "gonogo-countdown-start"; t0Ms: number }
+     and none has voted NO-GO. `remainingMs` is the time left at the moment
+     of sending; a station counts it down from the frame's arrival on its own
+     clock, so screens agree whatever their clocks read. */
+  | { type: "gonogo-countdown-start"; remainingMs: number }
   /* Host → stations whenever the action the host fires at T-0 changes, and to a
      station as it joins. `label` is the action's display name, or `null` when
      nothing fires. */

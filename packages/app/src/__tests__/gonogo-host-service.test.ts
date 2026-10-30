@@ -22,7 +22,10 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { GoNoGoHostService } from "../goNoGo/GoNoGoHostService";
+import {
+  DEFAULT_GONOGO_CONFIG,
+  GoNoGoHostService,
+} from "../goNoGo/GoNoGoHostService";
 import { ON_GO_NONE } from "../goNoGo/onGo";
 import type { PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
@@ -294,6 +297,27 @@ describe("GoNoGoHostService", () => {
     ]);
   });
 
+  it("tells a station that joins mid-countdown how long is left", () => {
+    host.fireConnect("peer-1");
+    host.fireVote("peer-1", "go");
+    vi.advanceTimersByTime(4_000);
+    host.fireConnect("late");
+    const start = host.sent.find(
+      (m) => m.peerId === "late" && m.msg.type === "gonogo-countdown-start",
+    );
+    expect(start?.msg).toEqual({
+      type: "gonogo-countdown-start",
+      remainingMs: DEFAULT_GONOGO_CONFIG.countdownLengthMs - 4_000,
+    });
+  });
+
+  it("sends a joining station no countdown when none is running", () => {
+    host.fireConnect("late");
+    expect(host.sent.some((m) => m.msg.type === "gonogo-countdown-start")).toBe(
+      false,
+    );
+  });
+
   it("starts a countdown when all connected stations vote GO", () => {
     host.fireConnect("peer-1");
     host.fireConnect("peer-2");
@@ -305,7 +329,9 @@ describe("GoNoGoHostService", () => {
     host.fireVote("peer-2", "go");
     expect(svc.getSnapshot().countdown).not.toBeNull();
     const countdownStart = lastBroadcast(host, "gonogo-countdown-start");
-    expect(countdownStart.t0Ms).toBeGreaterThan(Date.now());
+    expect(countdownStart.remainingMs).toBe(
+      DEFAULT_GONOGO_CONFIG.countdownLengthMs,
+    );
   });
 
   it("cancels the countdown when a vote flips to NO-GO", () => {

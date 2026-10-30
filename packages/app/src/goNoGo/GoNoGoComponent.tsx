@@ -24,6 +24,7 @@ import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import styled from "styled-components";
 import { usePeerClient } from "../peer/PeerClientContext";
 import { playCountdownTone } from "../sound";
+import { secondsUntil } from "./countdownClock";
 import { useGoNoGoHost, useGoNoGoSnapshot } from "./GoNoGoHostContext";
 import { DEFAULT_GONOGO_CONFIG } from "./GoNoGoHostService";
 import { type GoNoGoNotice, noticeLabel } from "./notice";
@@ -293,7 +294,7 @@ function StationView({
   }
 
   const secondsLeft = countdown
-    ? Math.max(0, (countdown.t0Ms - Date.now()) / 1000)
+    ? secondsUntil(countdown.t0Ms, Date.now())
     : null;
 
   const voteText = inPoll ? (vote === "go" ? "GO" : "NO-GO") : "NOT IN POLL";
@@ -447,7 +448,7 @@ function MainView({
   const { stations, countdown, abort, launched, reopened, notice } = snapshot;
   const polling = !launched || reopened;
   const secondsLeft = countdown
-    ? Math.max(0, (countdown.t0Ms - Date.now()) / 1000)
+    ? secondsUntil(countdown.t0Ms, Date.now())
     : null;
 
   // Selective rendering: chrome (the T-0 action line) drops at small widths so the GO/NO-GO grid stays the focus.

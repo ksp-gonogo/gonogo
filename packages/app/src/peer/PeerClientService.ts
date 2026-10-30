@@ -4,6 +4,7 @@ import { debugPeer, logger } from "@ksp-gonogo/logger";
 import type { DataRateTier } from "@ksp-gonogo/sitrep-sdk";
 import type { ConnectProgress } from "@ksp-gonogo/ui";
 import Peer, { type DataConnection } from "peerjs";
+import { localDeadline } from "../goNoGo/countdownClock";
 import type { RunningUplink } from "../uplinks/loaderState";
 import type { HostUplinkFailure } from "../uplinks/loadFailures";
 import { DeliveryMeter, deliveryChannel } from "./DeliveryMeter";
@@ -1808,8 +1809,9 @@ export class PeerClientService {
       this.events.emit("writeRefused", msg.refused);
     },
     "gonogo-countdown-start": (msg) => {
-      this.lastCountdownT0Ms = msg.t0Ms;
-      this.events.emit("gonogoCountdownStart", msg.t0Ms);
+      const t0Ms = localDeadline(msg.remainingMs, Date.now());
+      this.lastCountdownT0Ms = t0Ms;
+      this.events.emit("gonogoCountdownStart", t0Ms);
     },
     "gonogo-on-go": (msg) => {
       this.lastOnGoLabel = msg.label;

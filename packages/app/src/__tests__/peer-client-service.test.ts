@@ -102,6 +102,7 @@ vi.mock("peerjs", () => ({ default: FakePeer }));
 import type { Meta, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
 import { sha256Integrity } from "@ksp-gonogo/sitrep-sdk/uplink-load";
+import { secondsUntil } from "../goNoGo/countdownClock";
 import type { ConnStatus } from "../peer/PeerClientService";
 import { PeerClientService } from "../peer/PeerClientService";
 import type { PeerMessage } from "../peer/protocol";
@@ -1552,13 +1553,20 @@ describe("PeerClientService: GO/NO-GO broadcasts", () => {
   });
 
   describe("countdown sticky replay", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     // gonogo-countdown-start is a fire-and-forget broadcast.
     it("replays a running countdown to a late subscriber", async () => {
       const svc = new PeerClientService();
       const t0Ms = Date.now() + 8_000;
       fromHost(svc).send({
         type: "gonogo-countdown-start",
-        t0Ms,
+        remainingMs: 8_000,
       });
 
       const received: number[] = [];
@@ -1572,7 +1580,7 @@ describe("PeerClientService: GO/NO-GO broadcasts", () => {
       const svc = new PeerClientService();
       fromHost(svc).send({
         type: "gonogo-countdown-start",
-        t0Ms: Date.now() + 8_000,
+        remainingMs: 8_000,
       });
       fromHost(svc).send({
         type: "gonogo-countdown-cancel",
@@ -1589,13 +1597,39 @@ describe("PeerClientService: GO/NO-GO broadcasts", () => {
       const svc = new PeerClientService();
       fromHost(svc).send({
         type: "gonogo-countdown-start",
-        t0Ms: Date.now() - 1_000,
+        remainingMs: -1_000,
       });
 
       const received: number[] = [];
       svc.onGonogoCountdownStart((t) => received.push(t));
       await Promise.resolve();
       expect(received).toEqual([]);
+    });
+
+    it("shows two stations the same time left whatever their clocks read or their frames' delay", async () => {
+      const real = Date.parse("2026-10-28T20:30:00Z");
+      const clockOffsetMs = { a: -7_000, b: 4_000 };
+      const latencyMs = { a: 20, b: 180 };
+      const t0 = { a: 0, b: 0 };
+
+      for (const id of ["a", "b"] as const) {
+        const svc = new PeerClientService();
+        svc.onGonogoCountdownStart((t) => {
+          t0[id] = t;
+        });
+        vi.setSystemTime(real + latencyMs[id] + clockOffsetMs[id]);
+        fromHost(svc).send({
+          type: "gonogo-countdown-start",
+          remainingMs: 10_000,
+        });
+        await Promise.resolve();
+      }
+
+      const readAt = real + 3_000;
+      const left = (id: "a" | "b") =>
+        secondsUntil(t0[id], readAt + clockOffsetMs[id]);
+      expect(left("a")).toBeCloseTo(7, 0);
+      expect(Math.abs(left("a") - left("b"))).toBeLessThan(0.2);
     });
 
     it("still delivers live countdown events to existing subscribers exactly once", async () => {
@@ -1606,7 +1640,7 @@ describe("PeerClientService: GO/NO-GO broadcasts", () => {
       const t0Ms = Date.now() + 8_000;
       fromHost(svc).send({
         type: "gonogo-countdown-start",
-        t0Ms,
+        remainingMs: 8_000,
       });
       await Promise.resolve();
       expect(received).toEqual([t0Ms]);

@@ -125,6 +125,12 @@ export class GoNoGoHostService {
         // A screen that has just joined has no vote, and a screen with no vote is not in the poll: its first vote decides what it does to a countdown.
         this.connectedPeers.add(peerId);
         this.host.sendToPeer(peerId, this.onGoMessage());
+        if (this.countdown) {
+          this.host.sendToPeer(peerId, {
+            type: "gonogo-countdown-start",
+            remainingMs: Math.max(0, this.countdown.t0Ms - Date.now()),
+          });
+        }
         if (this.reopened) {
           this.host.sendToPeer(peerId, {
             type: "gonogo-reset",
@@ -389,7 +395,10 @@ export class GoNoGoHostService {
     }, this.config.countdownLengthMs);
     this.countdown = { t0Ms, timer };
     this.notice = null;
-    this.host.broadcast({ type: "gonogo-countdown-start", t0Ms });
+    this.host.broadcast({
+      type: "gonogo-countdown-start",
+      remainingMs: this.config.countdownLengthMs,
+    });
   }
 
   private cancelCountdownIfRunning(reason: string, hold: CountdownHold): void {
