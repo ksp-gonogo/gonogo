@@ -12,8 +12,11 @@ namespace Gonogo.KSP
     ///
     /// <para>Delta-v and thrust can only be read off a loaded craft, whose stock
     /// stage simulation runs. An unloaded craft keeps what it had when it was
-    /// last loaded, since nothing spends propellant on rails; one not loaded
-    /// since the save was opened has none.</para>
+    /// last loaded, since nothing spends propellant on rails. A craft with no
+    /// thruster, or none holding propellant, is read from its parts whether or
+    /// not it is loaded and answers delta-v 0. One not loaded since the save
+    /// was opened that does have a thruster with propellant has no delta-v
+    /// known, which is not the same as none.</para>
     /// </summary>
     public sealed class CraftCapabilityReader
     {
@@ -25,17 +28,43 @@ namespace Gonogo.KSP
         {
             if (vessel.loaded)
             {
-                var propulsion = Propulsion(vessel);
-                if (propulsion != null)
-                {
-                    _lastLoaded[vessel.id] = (propulsion.Value.DeltaV, propulsion.Value.Acceleration, Driven(vessel));
-                }
+                ReadLoaded(vessel);
+            }
+            else
+            {
+                ReadUnloaded(vessel);
             }
             if (!_lastLoaded.TryGetValue(vessel.id, out var last))
             {
                 return null;
             }
             return new CraftCapability(last.DeltaV, last.Acceleration, Airspeed(vessel), last.Driven);
+        }
+
+        private void ReadLoaded(Vessel vessel)
+        {
+            var propulsion = Propulsion(vessel);
+            if (propulsion != null)
+            {
+                _lastLoaded[vessel.id] = (propulsion.Value.DeltaV, propulsion.Value.Acceleration, Driven(vessel));
+                return;
+            }
+            if (!vessel.isEVA && CanPushLive(vessel) == false)
+            {
+                _lastLoaded[vessel.id] = (0.0, null, Driven(vessel));
+            }
+        }
+
+        private void ReadUnloaded(Vessel vessel)
+        {
+            if (_lastLoaded.ContainsKey(vessel.id) || vessel.isEVA)
+            {
+                return;
+            }
+            if (CanPushSaved(vessel.protoVessel) == false)
+            {
+                _lastLoaded[vessel.id] = (0.0, null, DrivenSaved(vessel.protoVessel));
+            }
         }
 
         /// <summary>Forgets every craft not in <paramref name="listed"/>, by bare guid.</summary>
@@ -88,6 +117,100 @@ namespace Gonogo.KSP
             return (Math.Max(0.0, dv.TotalDeltaVVac), most);
         }
 
+        /// <summary>Whether the loaded craft's parts hold a thruster with propellant, see <see cref="PartsPropulsion.CanPush"/>.</summary>
+        private static bool? CanPushLive(Vessel vessel)
+        {
+            if (vessel.parts == null)
+            {
+                return null;
+            }
+            var thrusters = new List<IReadOnlyList<string>?>();
+            var held = new Dictionary<string, double>();
+            foreach (var part in vessel.parts)
+            {
+                if (part == null)
+                {
+                    continue;
+                }
+                AddThrusters(part, thrusters);
+                if (part.Resources != null)
+                {
+                    foreach (PartResource resource in part.Resources)
+                    {
+                        Hold(held, resource.resourceName, resource.amount);
+                    }
+                }
+            }
+            return PartsPropulsion.CanPush(thrusters, held);
+        }
+
+        /// <summary>
+        /// Whether an unloaded craft's saved parts hold a thruster with propellant.
+        /// Thrusters are read off each part's prefab, since a saved part keeps only
+        /// module values; null when a part's prefab is not available.
+        /// </summary>
+        private static bool? CanPushSaved(ProtoVessel? saved)
+        {
+            if (saved?.protoPartSnapshots == null)
+            {
+                return null;
+            }
+            var thrusters = new List<IReadOnlyList<string>?>();
+            var held = new Dictionary<string, double>();
+            foreach (var snapshot in saved.protoPartSnapshots)
+            {
+                var prefab = snapshot?.partInfo?.partPrefab;
+                if (prefab == null)
+                {
+                    return null;
+                }
+                AddThrusters(prefab, thrusters);
+                if (snapshot!.resources != null)
+                {
+                    foreach (var resource in snapshot.resources)
+                    {
+                        Hold(held, resource.resourceName, resource.amount);
+                    }
+                }
+            }
+            return PartsPropulsion.CanPush(thrusters, held);
+        }
+
+        private static void AddThrusters(Part part, List<IReadOnlyList<string>?> thrusters)
+        {
+            foreach (var engine in part.FindModulesImplementing<ModuleEngines>())
+            {
+                thrusters.Add(Names(engine.propellants));
+            }
+            foreach (var rcs in part.FindModulesImplementing<ModuleRCS>())
+            {
+                thrusters.Add(Names(rcs.propellants));
+            }
+        }
+
+        private static IReadOnlyList<string>? Names(List<Propellant>? propellants)
+        {
+            if (propellants == null)
+            {
+                return null;
+            }
+            var names = new List<string>(propellants.Count);
+            foreach (var propellant in propellants)
+            {
+                if (propellant != null)
+                {
+                    names.Add(propellant.name);
+                }
+            }
+            return names;
+        }
+
+        private static void Hold(Dictionary<string, double> held, string name, double amount)
+        {
+            held.TryGetValue(name, out var total);
+            held[name] = total + amount;
+        }
+
         /// <summary>Whether a wheel motor or a rotor is fitted: either moves the craft without spending delta-v.</summary>
         private static bool Driven(Vessel vessel)
         {
@@ -97,14 +220,34 @@ namespace Gonogo.KSP
             }
             foreach (var part in vessel.parts)
             {
-                if (part != null && part.Modules != null
-                    && (part.Modules.Contains<ModuleWheelMotor>() || part.Modules.Contains<ModuleRoboticServoRotor>()))
+                if (IsDriving(part))
                 {
                     return true;
                 }
             }
             return false;
         }
+
+        /// <summary>As <see cref="Driven"/>, for an unloaded craft, read off each saved part's prefab.</summary>
+        private static bool DrivenSaved(ProtoVessel? saved)
+        {
+            if (saved?.protoPartSnapshots == null)
+            {
+                return false;
+            }
+            foreach (var snapshot in saved.protoPartSnapshots)
+            {
+                if (IsDriving(snapshot?.partInfo?.partPrefab))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static bool IsDriving(Part? part) =>
+            part != null && part.Modules != null
+            && (part.Modules.Contains<ModuleWheelMotor>() || part.Modules.Contains<ModuleRoboticServoRotor>());
 
         /// <summary>
         /// The craft's speed through the air, for one inside an atmosphere, or

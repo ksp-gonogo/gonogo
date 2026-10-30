@@ -49,6 +49,8 @@
     <!-- FairingRings.cs turns a fairing's saved sections into its ring list and carries no KSP or Unity type. -->
     <Compile Include="..\Gonogo.KSP\FairingRings.cs" />
     <!-- SavedPartRules.cs decides a saved part's variant and which structural-node structures it shows, and carries no KSP or Unity type. -->
+    <!-- PartsPropulsion.cs decides from a craft's thrusters and held propellant whether it can push at all, and carries no KSP or Unity type. -->
+    <Compile Include="..\Gonogo.KSP\PartsPropulsion.cs" />
     <Compile Include="..\Gonogo.KSP\SavedPartRules.cs" />
     <Compile Include="..\Gonogo.KSP\ExpansionHealth.cs" />
     <Compile Include="..\Gonogo.KSP\LogTail.cs" />

@@ -68,6 +68,19 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         [Fact]
+        public void ACraftReadFromItsPartsAsHavingNothingToPushWithIsBoundedByCoastingAlone()
+        {
+            Assert.Equal(0.0, PositionUncertainty.Bound(Orbiting(LowOrbit, Can(0.0, null)), 1000.0, 1060.0));
+            Assert.Equal(2.0 * 100.0 * 60.0, PositionUncertainty.Bound(Orbiting(LowOrbit, Can(0.0, null, 100.0)), 1000.0, 1060.0)!.Value, 1);
+        }
+
+        [Fact]
+        public void ACraftWithEnginesAndPropellantThatWasNeverLoadedIsNotAnsweredAsStill()
+        {
+            Assert.Null(PositionUncertainty.Bound(Orbiting(FarOrbit, null), 1000.0, 1060.0));
+        }
+
+        [Fact]
         public void ACraftWhoseDeltaVWasNeverReadIsUnknownRatherThanStill()
         {
             Assert.Null(PositionUncertainty.Bound(Orbiting(FarOrbit, null), 1000.0, 1060.0));
