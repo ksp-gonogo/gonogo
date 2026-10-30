@@ -6,6 +6,7 @@ import type {
 } from "@ksp-gonogo/core";
 import { PerfBudget } from "@ksp-gonogo/core";
 import type {
+  ContractFinish,
   DataKeyMeta,
   FlightChapterRecord,
   FlightRecord,
@@ -235,6 +236,12 @@ export class PeerClientDataSource implements DataSource {
 
   listFlights(): Promise<FlightRecord[]> {
     return this.client.sendFlightRpc<FlightRecord[]>({ op: "list" });
+  }
+
+  listContractFinishes(): Promise<ContractFinish[]> {
+    return this.client.sendFlightRpc<ContractFinish[]>({
+      op: "listContractFinishes",
+    });
   }
 
   getFlight(id: string): Promise<FlightRecord | null> {

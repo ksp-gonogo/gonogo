@@ -102,6 +102,7 @@ export {
 export { type SeriesChoice, seriesChoice } from "./schema/topicSubjects";
 export { IndexedDbStore } from "./storage/IndexedDbStore";
 export type {
+  ContractFinish,
   MissionMeta,
   MissionRecord,
   VideoRecordingRef,

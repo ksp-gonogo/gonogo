@@ -16,7 +16,11 @@
 
 import type { ReactElement } from "react";
 import { createElement } from "react";
-import type { ModSettingsModel, SettingKind } from "../__generated__/contract";
+import type {
+  Meta,
+  ModSettingsModel,
+  SettingKind,
+} from "../__generated__/contract";
 import type {
   AnyCommandReply,
   CommandArgs,
@@ -1128,11 +1132,15 @@ export function useLatestValue<Payload = unknown>(
  * transmission detector, which notices when another command centre starts
  * speaking. A value is read with {@link useStream}.
  *
+ * `handler`'s second argument is the frame's `Meta`: `validAt` is the game time
+ * the event happened and `deliveredAt` the game time it reached the command
+ * centre. It is `undefined` where the frame's `Meta` is not known.
+ *
  * @category Reading telemetry
  */
 export function useStreamEvent<Payload = unknown>(
   topic: string,
-  handler: (payload: Payload) => void,
+  handler: (payload: Payload, meta: Meta | undefined) => void,
 ): void {
   getHost().useStreamEvent(topic, handler);
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { flightRows } from "./flightRows";
+import { contractsOnRow, flightRows } from "./flightRows";
 
 const flight = (
   id: string,
@@ -64,5 +64,37 @@ describe("flightRows", () => {
       new Set(["orbit-b", "orbit-c"]),
     );
     expect(rows).toHaveLength(2);
+  });
+});
+
+describe("contractsOnRow", () => {
+  const finish = (id: string, validAt: number) => ({
+    id,
+    title: id,
+    outcome: "Completed" as const,
+    validAt,
+    deliveredAt: validAt + 5,
+  });
+
+  it("holds the finishes inside the span of every recording a row stands for", () => {
+    const [row] = flightRows(
+      [
+        flight("c2", "orbit-c", 2000, { firstValidUt: 300, lastValidUt: 400 }),
+        flight("c1", "orbit-c", 1000, { firstValidUt: 100, lastValidUt: 200 }),
+      ],
+      new Set(["orbit-c"]),
+    );
+    const held = contractsOnRow(row, [
+      finish("before", 50),
+      finish("first", 150),
+      finish("second", 350),
+      finish("after", 450),
+    ]);
+    expect(held.map((f) => f.id)).toEqual(["first", "second"]);
+  });
+
+  it("holds nothing for a row whose recordings kept no valid-time span", () => {
+    const [row] = flightRows([flight("a", "Alpha", 1000)], new Set());
+    expect(contractsOnRow(row, [finish("x", 100)])).toEqual([]);
   });
 });

@@ -9,7 +9,9 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import { HeartIcon } from "@ksp-gonogo/ui";
 import {
+  Badge,
   EmptyState,
+  MissionDate,
   Notice,
   NULL_DISPLAY,
   writeQuantity,
@@ -24,7 +26,7 @@ import {
 } from "react";
 import styled from "styled-components";
 import { getReplaySessionController } from "../replaySession/ReplaySessionController";
-import type { MissionMeta } from "../storage/MissionStore";
+import type { ContractFinish, MissionMeta } from "../storage/MissionStore";
 import type { FlightRecord } from "../types";
 import {
   getAutoRecordStatus,
@@ -32,7 +34,7 @@ import {
 } from "./autoRecordStatus";
 import { ChaptersEditor } from "./ChaptersEditor";
 import { FlightGraph } from "./FlightGraph";
-import { flightRows } from "./flightRows";
+import { contractsOnRow, flightRows } from "./flightRows";
 import type { MissionHistorySource } from "./MissionHistorySource";
 
 function formatDate(ms: number): string {
@@ -186,6 +188,9 @@ export function FlightsManager({
 }: FlightsManagerProps = {}) {
   const isMain = screen === "main";
   const [flights, setFlights] = useState<FlightRecord[]>([]);
+  const [contractFinishes, setContractFinishes] = useState<ContractFinish[]>(
+    [],
+  );
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmClearAll, setConfirmClearAll] = useState(false);
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
@@ -227,6 +232,12 @@ export function FlightsManager({
       return;
     }
     setFlights(list.sort((a, b) => b.launchedAt - a.launchedAt));
+    if (typeof src.listContractFinishes !== "function") return;
+    try {
+      setContractFinishes(await src.listContractFinishes());
+    } catch (err) {
+      console.warn("FlightsManager: failed to load contract finishes", err);
+    }
     // Drop selections that no longer exist after a delete/clear.
     setSelectedIds((prev) => {
       const valid = new Set<string>();
@@ -462,6 +473,31 @@ export function FlightsManager({
                             EVA: {f.evaKerbals.join(", ")}
                           </FlightDetail>
                         )}
+                        {contractsOnRow(row, contractFinishes).map((c) => (
+                          <ContractFinishLine key={`${c.id}:${c.outcome}`}>
+                            <Badge
+                              size="sm"
+                              tone={c.outcome === "Completed" ? "go" : "nogo"}
+                            >
+                              {c.outcome === "Completed"
+                                ? "completed"
+                                : "failed"}
+                            </Badge>
+                            <span>{c.title ?? NULL_DISPLAY}</span>
+                            <ContractFinishTime>
+                              <MissionDate
+                                value={c.validAt}
+                                context={{ frame: "scet" }}
+                              />
+                            </ContractFinishTime>
+                            <ContractFinishTime>
+                              <MissionDate
+                                value={c.deliveredAt}
+                                context={{ frame: "received" }}
+                              />
+                            </ContractFinishTime>
+                          </ContractFinishLine>
+                        ))}
                         {f.outcome?.kind === "recovered" && (
                           <OutcomeBadge
                             $tone="go"
@@ -872,6 +908,19 @@ const FlightDetail = styled.span`
   display: block;
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
+`;
+
+const ContractFinishLine = styled.span`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--gap-trailing-mark);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+`;
+
+const ContractFinishTime = styled.span`
+  white-space: nowrap;
 `;
 
 const LaunchName = styled.span`

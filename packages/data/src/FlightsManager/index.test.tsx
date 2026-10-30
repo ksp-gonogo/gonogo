@@ -143,6 +143,44 @@ describe("FlightsManager", () => {
     expect(screen.getByRole("columnheader", { name: "Ended" })).toBeTruthy();
   });
 
+  it("shows a contract finished during a flight on that flight's row, and none on a flight it did not happen in", async () => {
+    const store = freshStore();
+    registerDataSource(new MissionHistorySource(store));
+    await seedMission(store, {
+      vesselName: "Flown",
+      firstValidUt: 100,
+      lastValidUt: 500,
+    });
+    await seedMission(store, {
+      vesselName: "Elsewhere",
+      firstValidUt: 1000,
+      lastValidUt: 1500,
+    });
+    await store.saveContractFinish({
+      id: "42",
+      title: "Orbit Kerbin",
+      outcome: "Failed",
+      validAt: 300,
+      deliveredAt: 310,
+    });
+
+    render(<FlightsManager />);
+
+    const rowOf = async (name: string) =>
+      (await screen.findByText(name)).closest("tr") as HTMLElement;
+    const flown = within(await rowOf("Flown"));
+    await waitFor(() => {
+      expect(flown.getByText("Orbit Kerbin")).toBeTruthy();
+    });
+    expect(flown.getByText("failed")).toBeTruthy();
+    expect(flown.getByText("SCET")).toBeTruthy();
+    expect(flown.getByText("RECEIVED")).toBeTruthy();
+    expect(
+      within(await rowOf("Elsewhere")).queryByText("Orbit Kerbin"),
+    ).toBeNull();
+    await act(async () => {});
+  });
+
   it("shows a renamed flight under its current name with the launch name as a detail", async () => {
     const store = freshStore();
     registerDataSource(new MissionHistorySource(store));

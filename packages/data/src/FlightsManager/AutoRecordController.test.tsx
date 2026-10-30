@@ -1394,4 +1394,33 @@ describe("AutoRecordController", () => {
       expect(flights[0]?.joinedVesselName).toBe("Alpha");
     });
   });
+
+  it("holds a contract finish with the game time it happened and the time it arrived, with no flight active", async () => {
+    const rig = buildRig();
+    render(
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled scene="SpaceCenter" />
+      </TelemetryProvider>,
+    );
+    act(() => {
+      rig.transport.emit(
+        "career.contractEvent",
+        { id: "42", title: "Orbit Kerbin", agent: "C7", outcome: "Completed" },
+        { validAt: 1000, deliveredAt: 1004 },
+      );
+      rig.clock.scrubTo(1004);
+      rig.raf.flush();
+    });
+    await act(async () => {});
+
+    expect(await rig.missionStore.listContractFinishes()).toEqual([
+      {
+        id: "42",
+        title: "Orbit Kerbin",
+        outcome: "Completed",
+        validAt: 1000,
+        deliveredAt: 1004,
+      },
+    ]);
+  });
 });

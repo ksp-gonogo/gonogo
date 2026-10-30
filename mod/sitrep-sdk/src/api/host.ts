@@ -16,6 +16,7 @@
 // ---------------------------------------------------------------------------
 
 import type { ComponentType } from "react";
+import type { Meta } from "../__generated__/contract";
 import type {
   AnyCommandReply,
   CommandArgs,
@@ -121,7 +122,7 @@ export interface GonogoHost {
   /** What {@link useStreamEvent} calls. */
   useStreamEvent<Payload = unknown>(
     topic: string,
-    handler: (payload: Payload) => void,
+    handler: (payload: Payload, meta: Meta | undefined) => void,
   ): void;
   /** What {@link useLateTelemetrySubscribe} calls. */
   useLateTelemetrySubscribe(): LateTelemetrySubscribe;
