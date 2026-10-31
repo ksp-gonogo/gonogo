@@ -28,7 +28,7 @@
 import type { ClockFormulaSnapshot } from "../../view-clock-formula";
 import type { CaptureClockSample } from "../capture-clock";
 import type { DelayClockLike } from "../delayed-playout-buffer";
-import type { FrameDelayStats, FrameDelayStream } from "../frame-delay";
+import type { FrameDelayStatsDetail, FrameDelayStream } from "../frame-delay";
 import {
   DEFAULT_PACING_MAX_LEAD_SECONDS,
   startPacingTicker,
@@ -82,7 +82,7 @@ export interface CreateWorkerFrameDelayStreamOptions {
   /** Called with a non-fatal pipeline error. */
   onError?(error: unknown): void;
   /** Called with the worker's running frame totals every `statsIntervalMs`. */
-  onStats?(stats: FrameDelayStats): void;
+  onStats?(stats: FrameDelayStatsDetail): void;
   /** How often `onStats` is called, in milliseconds. Defaults to 5000. */
   statsIntervalMs?: number;
 }
@@ -100,7 +100,7 @@ interface PendingReady {
 }
 const pendingReady = new Map<string, PendingReady>();
 const nonFatalErrorHandlers = new Map<string, (reason: string) => void>();
-const statsHandlers = new Map<string, (stats: FrameDelayStats) => void>();
+const statsHandlers = new Map<string, (stats: FrameDelayStatsDetail) => void>();
 const leadLimits = new Map<string, number>();
 
 /** The interval to ask the worker for, or undefined when nobody listens. */
@@ -349,7 +349,7 @@ export interface AttachEncodedFrameDelayOptions {
   /** Called with a non-fatal pipeline error. */
   onError?(error: unknown): void;
   /** Called with the worker's running frame totals every `statsIntervalMs`. */
-  onStats?(stats: FrameDelayStats): void;
+  onStats?(stats: FrameDelayStatsDetail): void;
   /** How often `onStats` is called, in milliseconds. Defaults to 5000. */
   statsIntervalMs?: number;
 }
