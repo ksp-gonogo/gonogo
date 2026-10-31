@@ -1,14 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#050505" rx="96" ry="96"/>
-  <text
-    x="256"
-    y="256"
-    fill="#00cc66"
-    font-family="monospace"
-    font-size="220"
-    font-weight="700"
-    text-anchor="middle"
-    dominant-baseline="central"
-    letter-spacing="-10"
-  >GG</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+<g transform="translate(90.0 66.94732677097255) rotate(-18)"><path d="M -86 0 A 86 22 0 0 1 86 0" fill="none" stroke="#77ccff" stroke-width="8" stroke-linecap="round"/></g>
+<rect x="25.5" y="25.5" width="129" height="129" rx="30" fill="#0d0d0d" stroke="#333333" stroke-width="3"/>
+<g transform="translate(90.0 66.94732677097255) rotate(-18)"><path d="M -86 0 A 86 22 0 0 0 86 0" fill="none" stroke="#77ccff" stroke-width="8" stroke-linecap="round"/></g>
+<circle cx="90.0" cy="90.0" r="34" fill="#0d0d0d"/>
+<circle cx="90.0" cy="90.0" r="30" fill="#00ff88"/>
 </svg>
