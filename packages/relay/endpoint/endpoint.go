@@ -117,8 +117,6 @@ type Endpoint struct {
 	tab      *tab
 	sessions map[uint32]*session
 	bridges  map[uint32]*bridge
-	// bridgeSerial counts the bridges ever opened on this endpoint.
-	bridgeSerial uint32
 }
 
 // New builds an endpoint on an already-bound UDP socket and TCP listener with the same port number.
@@ -139,7 +137,7 @@ func New(cfg Config, udp net.PacketConn, tcp net.Listener) (*Endpoint, error) {
 		cfg.MaxBuffered = defaultMaxBuffered
 	}
 	se := webrtc.SettingEngine{}
-	se.SetICEUDPMux(webrtc.NewICEUDPMux(nil, newBoundedWriteConn(udp)))
+	se.SetICEUDPMux(webrtc.NewICEUDPMux(nil, udp))
 	se.SetICETCPMux(webrtc.NewICETCPMux(nil, tcp, 8))
 	se.SetNetworkTypes([]webrtc.NetworkType{
 		webrtc.NetworkTypeUDP4, webrtc.NetworkTypeUDP6,
@@ -466,8 +464,11 @@ func (e *Endpoint) dropAll() {
 	e.bridges = map[uint32]*bridge{}
 	e.mu.Unlock()
 	for _, b := range bridges {
-		log.Printf("bridge %d closed: the main screen left", b.serial)
-		b.shutdown()
+		b.timer.Stop()
+		go b.upstream.Close()
+		if b.station != nil {
+			go b.station.Close()
+		}
 	}
 	for _, s := range all {
 		s.timer.Stop()
