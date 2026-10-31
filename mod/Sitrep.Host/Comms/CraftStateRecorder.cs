@@ -63,6 +63,17 @@ namespace Sitrep.Host.Comms
         /// </summary>
         public const int ReadsAgainPerPass = 1;
 
+        /// <summary>
+        /// How many craft in the air that the game measures accelerating one pass
+        /// reads again, beside <see cref="ReadsAgainPerPass"/>: each such craft is
+        /// read every pass, so its capture is one pass old when a centre reads it.
+        /// Past this many, the craft take turns, the capture of each is as many
+        /// passes old as there are craft over this number plus one, and the bound on
+        /// where it is grows with that age. The reads count against
+        /// <c>StatesRecordedBudget</c> as every other does.
+        /// </summary>
+        public const int AirReadsPerPass = 4;
+
         private sealed class Read
         {
             public Read(ContactGameNode node, CraftState state)
@@ -594,6 +605,7 @@ namespace Sitrep.Host.Comms
         private HashSet<string> RationedReads(ContactGameLook look, double ut)
         {
             var waiting = new List<(bool First, double CapturedUt, string Id)>();
+            var airborne = new List<(double CapturedUt, string Id)>();
             var movedFirst = !_movedWentFirst;
             foreach (var node in look.Nodes)
             {
@@ -602,6 +614,11 @@ namespace Sitrep.Host.Comms
                     continue;
                 }
                 var moved = Moved(last, node, ut);
+                if (moved && node.Orbit.HasValue && !node.Surface.HasValue && AcceleratingInTheAir(node))
+                {
+                    airborne.Add((last.State.CapturedUt, node.Id));
+                    continue;
+                }
                 if (TimeHasComeFor(last, moved, ut))
                 {
                     waiting.Add((movedFirst && moved, last.State.CapturedUt, node.Id));
@@ -612,6 +629,11 @@ namespace Sitrep.Host.Comms
                 : a.CapturedUt != b.CapturedUt ? a.CapturedUt.CompareTo(b.CapturedUt)
                 : string.CompareOrdinal(a.Id, b.Id));
             var chosen = new HashSet<string>(StringComparer.Ordinal);
+            airborne.Sort((a, b) => a.CapturedUt != b.CapturedUt ? a.CapturedUt.CompareTo(b.CapturedUt) : string.CompareOrdinal(a.Id, b.Id));
+            for (var i = 0; i < airborne.Count && i < AirReadsPerPass; i++)
+            {
+                chosen.Add(airborne[i].Id);
+            }
             var jumped = false;
             for (var i = 0; i < waiting.Count && i < ReadsAgainPerPass; i++)
             {
@@ -787,11 +809,20 @@ namespace Sitrep.Host.Comms
                 return (now.Surface.Value.PositionAt(0.0) - was.Surface!.Value.PositionAt(0.0)).Magnitude()
                     > ContactPlanSchedule.SurfaceToleranceMeters;
             }
+            // A craft in the air that the game measures accelerating, or whose engines or parachutes can change that, is read every pass: its capture is the only word of it, and a capture kept because its orbit has not moved far is a capture that grows old.
+            if (now.Orbit.HasValue && AcceleratingInTheAir(now))
+            {
+                return ut > last.State.CapturedUt;
+            }
             // A craft under thrust or in the air is bounded from its capture, so each centre that hears it live needs a capture one pass old.
             return now.Orbit.HasValue
                 && (ut >= last.State.CapturedUt + ContactPlanSchedule.MinDriftReplanSeconds || UnderItsOwnPush(now))
                 && ContactPlanSchedule.Moved(was.Orbit!.Value, now.Orbit.Value);
         }
+
+        private static bool AcceleratingInTheAir(ContactGameNode node) =>
+            node.Capability is { AirspeedMs: not null } capability
+            && (capability.MeasuredAcceleration != null || capability.Thrusting == true || capability.PartsRead);
 
         private static bool UnderItsOwnPush(ContactGameNode node) =>
             node.Capability is { } capability && (capability.Thrusting == true || capability.AirspeedMs != null);

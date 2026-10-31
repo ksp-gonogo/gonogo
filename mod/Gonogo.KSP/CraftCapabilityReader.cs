@@ -41,8 +41,12 @@ namespace Gonogo.KSP
                 last = (null, null, vessel.loaded ? Driven(vessel) : DrivenSaved(vessel.protoVessel));
             }
             var thrusting = Thrusting(vessel);
+            var airspeed = Airspeed(vessel);
+            var measured = airspeed.HasValue ? MeasuredAcceleration(vessel) : null;
+            var parts = measured.HasValue ? ReadParts(vessel) : null;
             return new CraftCapability(
-                last.DeltaV, last.Acceleration, Airspeed(vessel), last.Driven, thrusting, thrusting == true ? EngineAcceleration(vessel) : null);
+                last.DeltaV, last.Acceleration, airspeed, last.Driven, thrusting, thrusting == true ? EngineAcceleration(vessel) : null,
+                measured, parts?.EngineChange, parts?.Canopies, parts?.AirDensity, parts?.DeployHeight, parts?.Extent);
         }
 
         /// <summary>
@@ -131,6 +135,144 @@ namespace Gonogo.KSP
                 new ContractVector(height.x, height.y, height.z),
                 new ContractVector(velocity.x, velocity.y, velocity.z),
                 new ContractVector(thrust.x, thrust.y, thrust.z));
+        }
+
+        /// <summary>
+        /// What the game measured the loaded craft accelerating at, less gravity's
+        /// share (its own <c>perturbation</c>, the smoothed change of its orbital
+        /// velocity over the last frames, minus the gravitational acceleration), split
+        /// along its prograde, radial and normal. Null for a craft the game is not
+        /// simulating (on rails, where the orbit is already right) and for a reading
+        /// that is not a number.
+        /// </summary>
+        private static ThrustAcceleration? MeasuredAcceleration(Vessel vessel)
+        {
+            if (!vessel.loaded || vessel.packed || vessel.mainBody == null)
+            {
+                return null;
+            }
+            var push = vessel.perturbation;
+            if (double.IsNaN(push.x) || double.IsNaN(push.y) || double.IsNaN(push.z))
+            {
+                return null;
+            }
+            var height = vessel.CoMD - vessel.mainBody.position;
+            var velocity = vessel.obt_velocity;
+            return ThrustFrame.Split(
+                new ContractVector(height.x, height.y, height.z),
+                new ContractVector(velocity.x, velocity.y, velocity.z),
+                new ContractVector(push.x, push.y, push.z));
+        }
+
+        private sealed class PartsReading
+        {
+            public double EngineChange;
+            public List<CanopyReading> Canopies = new List<CanopyReading>();
+            public double AirDensity;
+            public double DeployHeight;
+            public double Extent;
+        }
+
+        /// <summary>
+        /// What the craft's own parts can still change, for the loaded craft in an
+        /// atmosphere: each ignited engine's change from its thrust now to nothing or
+        /// to full, each unignited engine of the next stage to full, over the craft's
+        /// mass; and each parachute that is armed or part open, with the drag it would
+        /// give part open and fully open and what the game needs before it opens
+        /// fully. A decoupler, a parachute in the next stage, a solid motor's burnout
+        /// and the time a canopy takes to open are not read. Null when the craft has
+        /// no mass or no parts to read.
+        /// </summary>
+        private static PartsReading? ReadParts(Vessel vessel)
+        {
+            var mass = vessel.GetTotalMass();
+            if (vessel.parts == null || !(mass > 0f))
+            {
+                return null;
+            }
+            var reading = new PartsReading { AirDensity = vessel.atmDensity };
+            var change = 0.0;
+            foreach (var part in vessel.parts)
+            {
+                if (part == null)
+                {
+                    continue;
+                }
+                foreach (var engine in part.FindModulesImplementing<ModuleEngines>())
+                {
+                    if (engine.EngineIgnited && !engine.flameout)
+                    {
+                        var now = (double)engine.finalThrust;
+                        change += Math.Max(now, engine.maxThrust - now);
+                        continue;
+                    }
+                    if (!engine.EngineIgnited && part.inverseStage == vessel.currentStage - 1)
+                    {
+                        change += engine.maxThrust;
+                    }
+                }
+                foreach (var chute in part.FindModulesImplementing<ModuleParachute>())
+                {
+                    var armed = chute.deploymentState == ModuleParachute.deploymentStates.ACTIVE;
+                    if (!armed && chute.deploymentState != ModuleParachute.deploymentStates.SEMIDEPLOYED)
+                    {
+                        continue;
+                    }
+                    // An armed canopy opens only while the game's own safety reading is within what its owner allowed.
+                    var held = armed && (int)chute.deploymentSafeState > chute.automateSafeDeploy;
+                    reading.Canopies.Add(new CanopyReading(
+                        ParachuteDrag.PerPressure(PhysicsGlobals.DragMultiplier, chute.semiDeployedDrag * (double)part.mass, mass),
+                        ParachuteDrag.PerPressure(PhysicsGlobals.DragMultiplier, chute.fullyDeployedDrag * (double)part.mass, mass),
+                        chute.deployAltitude,
+                        held ? chute.maxSafeSpeedAtRef : (double?)null));
+                }
+            }
+            reading.Extent = Extent(vessel);
+            // Thrust in kN over mass in tonnes is m/s².
+            reading.EngineChange = change / mass;
+            // The game opens a canopy fully below its deploy height above sea level, or with ground that near below the part.
+            reading.DeployHeight = vessel.heightFromTerrain >= 0f ? Math.Min(vessel.altitude, vessel.heightFromTerrain) : vessel.altitude;
+            return reading;
+        }
+
+        /// <summary>
+        /// The radius of the sphere round the craft's centre of mass that holds it: half
+        /// the diagonal of the box the game measures round its parts, and the far corner
+        /// of the bounds of each parachute canopy that is part or fully open, which the
+        /// game draws and the craft's own size does not include.
+        /// </summary>
+        private static double Extent(Vessel vessel)
+        {
+            var size = vessel.vesselSize;
+            var extent = 0.5 * Math.Sqrt((double)size.x * size.x + (double)size.y * size.y + (double)size.z * size.z);
+            var centre = vessel.CoMD;
+            foreach (var part in vessel.parts)
+            {
+                if (part == null)
+                {
+                    continue;
+                }
+                foreach (var chute in part.FindModulesImplementing<ModuleParachute>())
+                {
+                    if (chute.deploymentState != ModuleParachute.deploymentStates.SEMIDEPLOYED
+                        && chute.deploymentState != ModuleParachute.deploymentStates.DEPLOYED)
+                    {
+                        continue;
+                    }
+                    var canopy = part.FindModelTransform(chute.canopyName);
+                    if (canopy == null)
+                    {
+                        continue;
+                    }
+                    foreach (var renderer in canopy.GetComponentsInChildren<Renderer>())
+                    {
+                        var box = renderer.bounds;
+                        var reach = (box.center - (Vector3)centre).magnitude + box.extents.magnitude;
+                        extent = Math.Max(extent, reach);
+                    }
+                }
+            }
+            return extent;
         }
 
         private void ReadLoaded(Vessel vessel)

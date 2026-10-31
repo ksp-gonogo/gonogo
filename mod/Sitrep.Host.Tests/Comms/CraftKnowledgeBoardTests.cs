@@ -185,6 +185,29 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         [Fact]
+        public void TheBulkReadCarriesTheSizeOfTheCraftAsLastHeardAndNoneForOneWhoseSizeWasNot()
+        {
+            var (board, hearing, host) = Listening();
+            host.State!(CraftState.Orbiting(Probe, 1000.0, 1, FarOrbit, null, null, true, new Dictionary<string, CraftLink>())
+                .WithCapability(new CraftCapability(0.0, 0.0, 6.0, false, false, null, null, 0.0, new CanopyReading[0], 1.1, 300.0, 11.5)));
+            host.Reach!(new CraftReach(Probe, 1000.0, Reached));
+            board.Note(new[] { Home }, hearing, 1100.0, OutOfView);
+            var buffer = new CraftKnowledgeSample[4];
+
+            board.ReadCentre(Home, 1160.0, buffer, out _);
+
+            Assert.Equal(11.5, buffer[0].ExtentM);
+
+            var (unread, unreadHearing, unreadHost) = Listening();
+            unreadHost.State!(Orbiting());
+            unreadHost.Reach!(new CraftReach(Probe, 1000.0, Reached));
+            unread.Note(new[] { Home }, unreadHearing, 1100.0, OutOfView);
+            unread.ReadCentre(Home, 1160.0, buffer, out _);
+
+            Assert.Null(buffer[0].ExtentM);
+        }
+
+        [Fact]
         public void TheBulkReadFillsTheBufferWithWhatEachSingleReadAnswers()
         {
             var (board, hearing, host) = Listening();

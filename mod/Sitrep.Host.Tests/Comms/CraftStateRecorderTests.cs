@@ -239,6 +239,61 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Empty(coasting.Capture(Look(Climbing(750_000.0, Capability(false, null))), 1.0, null).States);
         }
 
+        /// <summary>The seconds between a craft's reads over twenty passes a second apart, for each craft of a fleet flying at steady speed in the air with an unchanged orbit.</summary>
+        private static List<double>[] ReadIntervals(int craftCount)
+        {
+            var capability = new CraftCapability(0.0, 0.0, 6.0, false, false, null, new ThrustAcceleration(0.0, 9.8, 0.0));
+            ContactGameNode Descending(int i)
+            {
+                var node = Craft("c" + i, Orbit(700_000.0));
+                node.Capability = capability;
+                return node;
+            }
+            var fleet = Enumerable.Range(0, craftCount).Select(Descending).ToArray();
+            var recorder = new CraftStateRecorder();
+            var last = new double[craftCount];
+            var intervals = Enumerable.Range(0, craftCount).Select(_ => new List<double>()).ToArray();
+            recorder.Capture(Look(fleet), 0.0, null);
+            for (var pass = 1; pass <= 20; pass++)
+            {
+                foreach (var state in recorder.Capture(Look(fleet), pass, null).States)
+                {
+                    var index = int.Parse(state.Id.Substring(CraftStateRecorder.VesselPrefix.Length + 1));
+                    intervals[index].Add(pass - last[index]);
+                    last[index] = pass;
+                }
+            }
+            return intervals;
+        }
+
+        [Fact]
+        public void ALoneCraftInTheAirWithAnUnchangedOrbitIsReadOnEveryPassSoItsCaptureIsAlwaysOnePassOld()
+        {
+            var intervals = ReadIntervals(1);
+
+            Assert.Equal(20, intervals[0].Count);
+            Assert.All(intervals[0], gap => Assert.Equal(1.0, gap));
+        }
+
+        [Fact]
+        public void ThreeCraftInTheAirAreEachReadOnEveryPassSoEveryCaptureIsStillOnePassOld()
+        {
+            var intervals = ReadIntervals(3);
+
+            Assert.All(intervals, craft => Assert.Equal(20, craft.Count));
+            Assert.All(intervals, craft => Assert.All(craft, gap => Assert.Equal(1.0, gap)));
+        }
+
+        [Fact]
+        public void PastTheAirRationTheCraftTakeTurnsAndTheirCapturesAreOlderForIt()
+        {
+            var intervals = ReadIntervals(CraftStateRecorder.AirReadsPerPass + 1);
+
+            Assert.Equal(20 * CraftStateRecorder.AirReadsPerPass, intervals.Sum(craft => craft.Count));
+            Assert.All(intervals, craft => Assert.InRange(craft.Max(), 1.0, 2.0));
+            Assert.Contains(intervals, craft => craft.Max() == 2.0);
+        }
+
         /// <summary>
         /// Under warp a pass comes every thousand game seconds, so every craft's
         /// refresh is due at every pass, and reading a craft costs a link model

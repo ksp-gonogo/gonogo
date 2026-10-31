@@ -124,6 +124,74 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>
+        /// The most the air can move a craft in the atmosphere off the path it is
+        /// reckoned on over <paramref name="elapsed"/> seconds: <see cref="FreeFall"/>
+        /// of <see cref="AeroAcceleration"/>, limited by the speed there is to take
+        /// away. That is the craft's airspeed plus what gravity gives a path that
+        /// has no drag over the gap, <paramref name="gravity"/> times
+        /// <paramref name="elapsed"/>, since a prediction that leaves drag out is
+        /// ahead of a craft the air holds at terminal speed by exactly that.
+        /// </summary>
+        public static double AirDeviation(double airspeed, double gravity, double elapsed) =>
+            FreeFall(airspeed + gravity * elapsed, AeroAcceleration(airspeed), elapsed);
+
+        /// <summary>
+        /// The error of holding the craft's measured acceleration, as a fraction of it,
+        /// the same order as <see cref="PlacePrediction.DirectionError"/> and
+        /// <see cref="PlacePrediction.MagnitudeError"/> together.
+        /// </summary>
+        public const double MeasuredAccelerationError = 0.1;
+
+        /// <summary>The smallest error, in m/s², the game's smoothed reading of a craft's acceleration can carry.</summary>
+        public const double MeasuredAccelerationResolution = 0.1;
+
+        /// <summary>
+        /// What the craft's own parts can move it off the path it is reckoned on, over
+        /// <paramref name="elapsed"/> seconds, when its engines and parachutes were
+        /// read: the error of holding its measured acceleration, what each ignited
+        /// engine (and each one in the next stage) can change it by, and what a
+        /// parachute that is armed or part open would add in the furthest state it can
+        /// reach in the gap (part open, or fully open once the craft can fall below the
+        /// height the game opens it at) at this speed and air density, limited by the
+        /// speed there is to take away. An armed parachute the game holds back at this
+        /// speed would open at its safe speed, so it counts at that speed. A part that cannot
+        /// change anything adds nothing.
+        /// </summary>
+        /// <param name="measuredMs2">The size of the acceleration held.</param>
+        /// <param name="pull">What gravity pulls the craft with, in m/s².</param>
+        public static double PartsDeviation(CraftCapability capability, double measuredMs2, double airspeed, double pull, double elapsed)
+        {
+            var held = 0.5 * (MeasuredAccelerationError * measuredMs2 + MeasuredAccelerationResolution) * elapsed * elapsed;
+            var engines = FreeFall(capability.DeltaVMs ?? 1e9, capability.EngineChangeAcceleration!.Value, elapsed);
+            var pressure = 0.0;
+            foreach (var canopy in capability.Canopies!)
+            {
+                // Open fully only below the height the game lets it, which the craft can fall to in the gap.
+                var descent = airspeed * elapsed + 0.5 * pull * elapsed * elapsed;
+                var full = capability.DeployHeightM is not double height || height - descent < canopy.DeployAltitudeM;
+                var per = full ? canopy.FullPerPressure : canopy.SemiPerPressure;
+                var speed = canopy.SafeSpeedMs is double safe ? Math.Min(airspeed, safe) : airspeed;
+                pressure += per * speed * speed;
+            }
+            var acceleration = 0.5 * capability.AirDensityKgM3!.Value * pressure;
+            var chute = FreeFall(airspeed + pull * elapsed, acceleration, elapsed);
+            return held + engines + chute;
+        }
+
+        /// <summary>
+        /// What the engines and the air can move a craft off the path it is reckoned on
+        /// when its parts were not read: its engines from a cut to flat out, and the air
+        /// by <see cref="AirDeviation"/>.
+        /// </summary>
+        public static double FloorDeviation(CraftCapability capability, double airspeed, double pull, double elapsed)
+        {
+            var push = capability.Thrusting == true
+                ? FreeFall(capability.DeltaVMs!.Value, capability.MaxAccelerationMs2 ?? capability.ThrustAcceleration?.Magnitude, elapsed)
+                : 0.0;
+            return push + AirDeviation(airspeed, pull, elapsed);
+        }
+
+        /// <summary>
         /// How far a craft with <paramref name="deltaV"/> and
         /// <paramref name="acceleration"/> can get in <paramref name="elapsed"/>
         /// seconds from where it would have been, in a frame falling with it:

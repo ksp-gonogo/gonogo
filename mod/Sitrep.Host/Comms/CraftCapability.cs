@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Sitrep.Host.Comms
 {
     /// <summary>
@@ -9,7 +11,7 @@ namespace Sitrep.Host.Comms
     /// </summary>
     public sealed class CraftCapability
     {
-        public CraftCapability(double? deltaVMs, double? maxAccelerationMs2, double? airspeedMs, bool drivenWithoutPropellant, bool? thrusting = null, ThrustAcceleration? thrustAcceleration = null)
+        public CraftCapability(double? deltaVMs, double? maxAccelerationMs2, double? airspeedMs, bool drivenWithoutPropellant, bool? thrusting = null, ThrustAcceleration? thrustAcceleration = null, ThrustAcceleration? measuredAcceleration = null, double? engineChangeAcceleration = null, IReadOnlyList<CanopyReading>? canopies = null, double? airDensityKgM3 = null, double? deployHeightM = null, double? extentM = null)
         {
             DeltaVMs = deltaVMs;
             MaxAccelerationMs2 = maxAccelerationMs2;
@@ -17,6 +19,12 @@ namespace Sitrep.Host.Comms
             DrivenWithoutPropellant = drivenWithoutPropellant;
             Thrusting = thrusting;
             ThrustAcceleration = thrustAcceleration;
+            MeasuredAcceleration = measuredAcceleration;
+            EngineChangeAcceleration = engineChangeAcceleration;
+            Canopies = canopies;
+            AirDensityKgM3 = airDensityKgM3;
+            DeployHeightM = deployHeightM;
+            ExtentM = extentM;
         }
 
         /// <summary>The craft's total delta-v in vacuum, in m/s: the most it can change its velocity by. Null when it was not read.</summary>
@@ -44,5 +52,46 @@ namespace Sitrep.Host.Comms
         /// was not thrusting, was thrusting on thrusters alone, or none was read.
         /// </summary>
         public ThrustAcceleration? ThrustAcceleration { get; }
+
+        /// <summary>
+        /// Every acceleration but gravity's that the game measured on the craft
+        /// when it was read, engines, drag and lift together, split along its own
+        /// prograde, radial and normal as <see cref="ThrustAcceleration"/> is. Read
+        /// only for a loaded craft in an atmosphere that the game is simulating;
+        /// null for one on rails and where the game gave no frame to split it in.
+        /// </summary>
+        public ThrustAcceleration? MeasuredAcceleration { get; }
+
+        /// <summary>
+        /// The most the craft's engines can change its acceleration by, in m/s²:
+        /// each ignited engine from what it gives now to nothing or to full thrust,
+        /// and each engine in the next stage from nothing to full, over the craft's
+        /// mass. Read with <see cref="MeasuredAcceleration"/>, and null where that was
+        /// not, which is not zero: no engine changes nothing, a craft whose parts
+        /// were not read is unknown.
+        /// </summary>
+        public double? EngineChangeAcceleration { get; }
+
+        /// <summary>
+        /// The parachutes that are armed or part open, each as <see cref="CanopyReading"/>
+        /// has it. Empty when none can open further; null where the parts were not read.
+        /// </summary>
+        public IReadOnlyList<CanopyReading>? Canopies { get; }
+
+        /// <summary>The lower of the craft's height above sea level and above the ground below it, in metres, which is what decides whether a canopy may open fully. Null where it was not read.</summary>
+        public double? DeployHeightM { get; }
+
+        /// <summary>The air density at the craft when it was read, in kg/m³. Null where it was not read.</summary>
+        public double? AirDensityKgM3 { get; }
+
+        /// <summary>
+        /// The radius in metres of the sphere round the craft's centre of mass that holds
+        /// all of it when it was read: its parts and the canopy of a parachute that was
+        /// part or fully open. Null where it was not read.
+        /// </summary>
+        public double? ExtentM { get; }
+
+        /// <summary>Whether the craft's engines and parachutes were read, so that what they can change is known and not assumed.</summary>
+        public bool PartsRead => EngineChangeAcceleration != null && Canopies != null && AirDensityKgM3 != null;
     }
 }

@@ -53,6 +53,9 @@ namespace Sitrep.Host.Comms
         /// <summary>The error assumed in the size of a held thrust, as a fraction of it.</summary>
         public const double MagnitudeError = 0.1;
 
+        /// <summary>How long, in seconds, a craft's measured acceleration is held when it is carried forward: long enough for a gap between captures, short enough that an engine cut or a parachute cut away is not carried on for minutes.</summary>
+        public const double MeasuredHoldSeconds = 10.0;
+
         private static readonly KeplerProvider Kepler = new KeplerProvider();
 
         /// <summary>
@@ -95,7 +98,8 @@ namespace Sitrep.Host.Comms
             {
                 return null;
             }
-            if (Carried(known, orbit, thrust, deltaV, elapsed) is not Vector3d position)
+            if (!(thrust.Magnitude > 0.0) || !(deltaV >= 0.0)
+                || Carried(known, orbit, thrust, deltaV / thrust.Magnitude, elapsed) is not Vector3d position)
             {
                 return null;
             }
@@ -109,20 +113,19 @@ namespace Sitrep.Host.Comms
             return new PredictedPlace(new CraftPlace(known.BodyIndex, position, CraftPlaceBasis.Burning), radius);
         }
 
-        /// <summary>The place the held thrust carries the craft to over <paramref name="elapsed"/> seconds from its capture, or null when the thrust cannot be held in the body's frame or has no size.</summary>
-        private static Vector3d? Carried(CraftState known, OrbitElements orbit, ThrustAcceleration thrust, double deltaV, double elapsed)
+        /// <summary>The place the held acceleration carries the craft to over <paramref name="elapsed"/> seconds from its capture, held for <paramref name="holdSeconds"/> of them and coasting after, or null when it cannot be held in the body's frame or has no size.</summary>
+        private static Vector3d? Carried(CraftState known, OrbitElements orbit, ThrustAcceleration thrust, double holdSeconds, double elapsed)
         {
             var start = Kepler.Solve(PropagationTarget.Vessel(known.Id, known.BodyIndex, orbit), known.CapturedUt);
             if (thrust.InFrameOf(start.Position, start.Velocity) is not Vector3d held)
             {
                 return null;
             }
-            var magnitude = thrust.Magnitude;
-            if (!(magnitude > 0.0) || !(deltaV >= 0.0))
+            if (!(thrust.Magnitude > 0.0))
             {
                 return null;
             }
-            var burnSeconds = deltaV / magnitude;
+            var burnSeconds = holdSeconds;
             var position = start.Position;
             var velocity = start.Velocity;
             var t = 0.0;
@@ -143,13 +146,17 @@ namespace Sitrep.Host.Comms
 
         /*
          * A craft in the atmosphere is carried forward on the orbit it was heard on,
-         * with its held thrust while it is thrusting, as one above it is. Drag and lift
-         * are not modelled, so they are in the radius: the most the air can move the
-         * craft off that path is what stopping it would, and the most its engines can is
-         * what they would do from a cut to flat out. The gravity gradient is read at the
-         * craft's own radius, as it would be for a circular orbit there, since the
-         * eccentric factor of a steep sub-orbital arc is far larger than anything a gap
-         * in the air can reach.
+         * under the acceleration the game measured on it at the capture (engines, drag
+         * and lift together) held for MeasuredHoldSeconds, so a craft at terminal speed
+         * under a parachute holds its velocity where a ballistic path would fall away
+         * from it. Without a measurement it keeps its held engine thrust while it is
+         * thrusting, and coasts otherwise. What the radius covers is the change in
+         * that acceleration over the gap: the engines from a cut to flat out, and the
+         * air by the most it can add or take away, which the craft's speed through it
+         * and the speed gravity would have given a ballistic path limit. The gravity
+         * gradient is read at the craft's own radius, as it would be for a circular
+         * orbit there, since the eccentric factor of a steep sub-orbital arc is far
+         * larger than anything a gap in the air can reach.
          */
         private static PredictedPlace? Airborne(CraftState known, OrbitElements orbit, CraftCapability capability, double airspeed, double ut)
         {
@@ -170,9 +177,14 @@ namespace Sitrep.Host.Comms
             }
             var basis = CraftPlaceBasis.Coasting;
             Vector3d? carried = null;
-            if (thrusting && capability.ThrustAcceleration is ThrustAcceleration thrust)
+            if (capability.MeasuredAcceleration is ThrustAcceleration measured)
             {
-                carried = Carried(known, orbit, thrust, capability.DeltaVMs!.Value, elapsed);
+                carried = Carried(known, orbit, measured, MeasuredHoldSeconds, elapsed);
+                basis = CraftPlaceBasis.Burning;
+            }
+            if (carried == null && thrusting && capability.ThrustAcceleration is ThrustAcceleration thrust && thrust.Magnitude > 0.0)
+            {
+                carried = Carried(known, orbit, thrust, capability.DeltaVMs!.Value / thrust.Magnitude, elapsed);
                 basis = CraftPlaceBasis.Burning;
             }
             if (carried == null)
@@ -180,13 +192,14 @@ namespace Sitrep.Host.Comms
                 carried = Kepler.Solve(PropagationTarget.Vessel(known.Id, known.BodyIndex, orbit), ut).Position;
                 basis = CraftPlaceBasis.Coasting;
             }
-            var turn = Math.Sqrt(orbit.Mu / Math.Pow(start.Position.Magnitude(), 3.0));
+            var height = start.Position.Magnitude();
+            var turn = Math.Sqrt(orbit.Mu / Math.Pow(height, 3.0));
             var gravity = PositionUncertainty.CircularGravityAt(turn * elapsed);
-            var push = thrusting
-                ? PositionUncertainty.FreeFall(capability.DeltaVMs!.Value, capability.MaxAccelerationMs2 ?? capability.ThrustAcceleration?.Magnitude, elapsed)
-                : 0.0;
-            var air = PositionUncertainty.FreeFall(airspeed, PositionUncertainty.AeroAcceleration(airspeed), elapsed);
-            return new PredictedPlace(new CraftPlace(known.BodyIndex, carried.Value, basis), gravity * (push + air));
+            var pull = orbit.Mu / (height * height);
+            var covered = capability.PartsRead && capability.MeasuredAcceleration is ThrustAcceleration held
+                ? PositionUncertainty.PartsDeviation(capability, held.Magnitude, airspeed, pull, elapsed)
+                : PositionUncertainty.FloorDeviation(capability, airspeed, pull, elapsed);
+            return new PredictedPlace(new CraftPlace(known.BodyIndex, carried.Value, basis), gravity * covered);
         }
 
         private static void Advance(ref Vector3d position, ref Vector3d velocity, Vector3d push, double mu, double h)

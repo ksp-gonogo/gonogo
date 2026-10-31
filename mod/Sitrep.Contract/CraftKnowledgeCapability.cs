@@ -271,7 +271,22 @@ namespace Sitrep.Contract
         /// <param name="lineOfSight">Whether the light that has reached the centre shows the craft in view.</param>
         /// <param name="place">Where the centre reckons the craft is, or null when it cannot say.</param>
         public CraftKnowledgeSample(string vesselId, CraftKnowledgeState state, HeldGrade? heldGrade, double? lastKnownUt, double? uncertaintyM, bool lineOfSight, CraftPlace? place)
+            : this(vesselId, state, heldGrade, lastKnownUt, uncertaintyM, lineOfSight, place, null)
         {
+        }
+
+        /// <summary>Builds a sample that also says how large the craft is as the centre last heard of it. Nothing but the provider needs to.</summary>
+        /// <param name="vesselId">The craft's id, in the <c>vessel.id.ToString()</c> form every fleet topic keys on.</param>
+        /// <param name="state">How the centre knows where the craft is.</param>
+        /// <param name="heldGrade">Why the place stopped updating, for <see cref="CraftKnowledgeState.Held"/> only.</param>
+        /// <param name="lastKnownUt">The last instant the centre knows the craft's place.</param>
+        /// <param name="uncertaintyM">How far the craft can be from where the centre places it, in metres.</param>
+        /// <param name="lineOfSight">Whether the light that has reached the centre shows the craft in view.</param>
+        /// <param name="place">Where the centre reckons the craft is, or null when it cannot say.</param>
+        /// <param name="extentM">The craft's own radius in metres as the centre last heard it, or null when it was not heard.</param>
+        public CraftKnowledgeSample(string vesselId, CraftKnowledgeState state, HeldGrade? heldGrade, double? lastKnownUt, double? uncertaintyM, bool lineOfSight, CraftPlace? place, double? extentM)
+        {
+            ExtentM = extentM;
             Place = place;
             VesselId = vesselId;
             State = state;
@@ -301,6 +316,16 @@ namespace Sitrep.Contract
 
         /// <summary>Whether the light that has reached the centre shows the craft in view; see <see cref="CraftKnowledgeReading.LineOfSight"/>.</summary>
         public bool LineOfSight { get; }
+
+        /// <summary>
+        /// The radius in metres of the sphere round the craft's centre of mass that holds
+        /// all of it, as the centre last heard it: the craft's parts, and the canopy of a
+        /// parachute that was part or fully open. Null when the craft's size was not
+        /// heard, which is not zero. Useful for framing the craft on a camera, beside
+        /// <see cref="UncertaintyM"/>, which is the bound on where it is and not how big
+        /// it is.
+        /// </summary>
+        public double? ExtentM { get; }
     }
 
     /// <summary>

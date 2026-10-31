@@ -172,11 +172,14 @@ namespace Sitrep.Host.Tests.Comms
         private static double LowOrbitGravity(double elapsed) =>
             PositionUncertainty.CircularGravityAt(Math.Sqrt(KerbinMu / Math.Pow(700_000.0, 3.0)) * elapsed);
 
+        /// <summary>What gravity pulls a craft at the low orbit's radius with, in m/s², which is what the airborne bound limits the air by.</summary>
+        private const double LowOrbitPull = KerbinMu / (700_000.0 * 700_000.0);
+
         [Fact]
         public void InAnAtmosphereTheAirCanOnlyStopTheCraftAndWheelsMakeItUnknown()
         {
-            // No delta-v, 100 m/s through the air, 50 m/s² of air for 30 s: stopped after 2 s, so 100 × 30 - 100² / 100 = 2 900 m.
-            var expected = LowOrbitGravity(30.0) * 2_900.0;
+            // No delta-v, 100 m/s through the air, 50 m/s² of air for 30 s, limited by the 100 m/s plus what gravity gives a path with no drag over the gap.
+            var expected = LowOrbitGravity(30.0) * PositionUncertainty.FreeFall(100.0 + LowOrbitPull * 30.0, 50.0, 30.0);
             Assert.Equal(expected, PositionUncertainty.Bound(Orbiting(LowOrbit, Can(0.0, 0.0, airspeed: 100.0, thrusting: false)), 1000.0, 1030.0)!.Value, 6);
             Assert.Null(PositionUncertainty.Bound(Orbiting(LowOrbit, Can(0.0, 0.0, airspeed: 100.0, driven: true, thrusting: false)), 1000.0, 1030.0));
         }
@@ -189,17 +192,17 @@ namespace Sitrep.Host.Tests.Comms
 
             var radius = PositionUncertainty.Bound(climbing, 1000.0, 1001.0)!.Value;
 
-            Assert.Equal(LowOrbitGravity(1.0) * (15.0 + PositionUncertainty.FreeFall(600.0, PositionUncertainty.AeroAcceleration(600.0), 1.0)), radius, 6);
+            Assert.Equal(LowOrbitGravity(1.0) * (15.0 + PositionUncertainty.AirDeviation(600.0, LowOrbitPull, 1.0)), radius, 6);
             Assert.True(radius < 1_200.0);
         }
 
         [Fact]
         public void ACraftTenSecondsOldInTheAirGrowsAsTheSquareOfTheGapNotTheGap()
         {
-            // 200 m/s with the 50 m/s² floor of air. The engine can move it 30 × 10² / 2 = 1 500 m; the air stops it after 4 s: 200 × 10 - 200² / 100 = 1 600 m. Together 3 100 m, where twice the airspeed through the gap gave 4 000 m.
+            // 200 m/s with the 50 m/s² floor of air. The engine can move it 30 × 10² / 2 = 1 500 m; the air by the speed there is to take away, 200 m/s and what gravity gives a path with no drag over the gap.
             var climbing = Orbiting(LowOrbit, new CraftCapability(2000.0, 30.0, 200.0, false, true, new ThrustAcceleration(30.0, 0.0, 0.0)));
 
-            Assert.Equal(LowOrbitGravity(10.0) * 3_100.0, PositionUncertainty.Bound(climbing, 1000.0, 1010.0)!.Value, 6);
+            Assert.Equal(LowOrbitGravity(10.0) * (1_500.0 + PositionUncertainty.AirDeviation(200.0, LowOrbitPull, 10.0)), PositionUncertainty.Bound(climbing, 1000.0, 1010.0)!.Value, 6);
         }
 
         [Fact]

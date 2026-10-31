@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Host.Comms;
@@ -147,6 +148,199 @@ namespace Sitrep.Host.Tests.Comms
 
             Assert.Equal(CraftPlaceBasis.Coasting, place.Place.Basis);
             Assert.True(place.RadiusM >= 0.5 * 30.0);
+        }
+
+        /// <summary>A craft 2 km above Kerbin at the equator, falling at 6 m/s under a parachute and turning with the planet at 175 m/s, as the inertial frame sees it.</summary>
+        private static readonly Vector3d ChutePosition = new Vector3d(602_000.0, 0.0, 0.0);
+
+        private static readonly Vector3d ChuteVelocity = new Vector3d(-6.0, 175.0, 0.0);
+
+        private static OrbitElements OrbitThrough(Vector3d position, Vector3d velocity, double ut)
+        {
+            var r = position.Magnitude();
+            var speed2 = Vector3d.Dot(velocity, velocity);
+            var h = position.X * velocity.Y - position.Y * velocity.X;
+            var scale = (speed2 - KerbinMu / r) / KerbinMu;
+            var ex = scale * position.X - Vector3d.Dot(position, velocity) / KerbinMu * velocity.X;
+            var ey = scale * position.Y - Vector3d.Dot(position, velocity) / KerbinMu * velocity.Y;
+            var ecc = Math.Sqrt(ex * ex + ey * ey);
+            var argPe = Math.Atan2(ey, ex);
+            var sma = 1.0 / (2.0 / r - speed2 / KerbinMu);
+            var nu = Math.Atan2(position.Y, position.X) - argPe;
+            var eccentric = 2.0 * Math.Atan(Math.Sqrt((1.0 - ecc) / (1.0 + ecc)) * Math.Tan(nu / 2.0));
+            var mean = eccentric - ecc * Math.Sin(eccentric);
+            Assert.True(h > 0.0);
+            return new OrbitElements(sma, ecc, 0.0, 0.0, argPe, mean, ut, KerbinMu);
+        }
+
+        private static CraftState Chute(CraftCapability capability)
+        {
+            var orbit = OrbitThrough(ChutePosition, ChuteVelocity, 1000.0);
+            return CraftState.Orbiting(Probe, 1000.0, 1, orbit, null, null, true, new Dictionary<string, CraftLink>()).WithCapability(capability);
+        }
+
+        /// <summary>What the game would measure on the craft: the drag that holds it at terminal speed, equal and opposite to gravity.</summary>
+        private static ThrustAcceleration HoldingUp()
+        {
+            var up = ChutePosition * (KerbinMu / Math.Pow(ChutePosition.Magnitude(), 3.0));
+            var basis = ThrustAcceleration.Basis(ChutePosition, ChuteVelocity)!.Value;
+            return new ThrustAcceleration(Vector3d.Dot(up, basis.Prograde), Vector3d.Dot(up, basis.Radial), Vector3d.Dot(up, basis.Normal));
+        }
+
+        private static Vector3d Straight(double seconds) => ChutePosition + ChuteVelocity * seconds;
+
+        [Fact]
+        public void ACraftAtTerminalSpeedUnderAParachuteHoldsItsVelocityWhereAFallingPathWouldDropAwayFromIt()
+        {
+            var held = Chute(new CraftCapability(0.0, 0.0, 6.0, false, false, null, HoldingUp()));
+            var ballistic = Chute(new CraftCapability(0.0, 0.0, 6.0, false, false));
+
+            Assert.Equal(0.0, Distance(PlacePrediction.PlaceAt(held, 1000.0)!.Value.Place.Position, ChutePosition), 3);
+            foreach (var seconds in new[] { 1.0, 2.0, 5.0 })
+            {
+                Assert.True(Distance(PlacePrediction.PlaceAt(held, 1000.0 + seconds)!.Value.Place.Position, Straight(seconds)) < 0.1, "held: " + seconds);
+                Assert.True(Distance(PlacePrediction.PlaceAt(ballistic, 1000.0 + seconds)!.Value.Place.Position, Straight(seconds)) > 0.4 * KerbinMu / Math.Pow(ChutePosition.Magnitude(), 2.0) * seconds * seconds, "ballistic: " + seconds);
+            }
+        }
+
+        [Theory]
+        [InlineData(1.0)]
+        [InlineData(2.0)]
+        [InlineData(3.0)]
+        [InlineData(5.0)]
+        public void AParachuteDescentStaysInsideItsRadiusWhetherTheCaptureIsFreshOrLate(double seconds)
+        {
+            var known = Chute(new CraftCapability(0.0, 0.0, 6.0, false, false, null, HoldingUp()));
+            var place = PlacePrediction.PlaceAt(known, 1000.0 + seconds)!.Value;
+            var pull = KerbinMu / Math.Pow(ChutePosition.Magnitude(), 2.0);
+
+            // The canopy holds it: it keeps its speed.
+            Assert.True(Distance(place.Place.Position, Straight(seconds)) <= place.RadiusM);
+            // The canopy is cut away: it falls, 0.5 g t² behind a path that holds its speed.
+            var falling = new KeplerProvider().Solve(PropagationTarget.Vessel(Probe, 1, OrbitThrough(ChutePosition, ChuteVelocity, 1000.0)), 1000.0 + seconds).Position;
+            Assert.True(Distance(place.Place.Position, falling) <= place.RadiusM, $"cut away at {seconds} s: {Distance(place.Place.Position, falling):F1} m outside {place.RadiusM:F1} m");
+            Assert.True(0.5 * pull * seconds * seconds <= place.RadiusM + 1e-6);
+        }
+
+        [Fact]
+        public void TheRadiusOfACaptureThatIsLateFollowsItsAgeAsTheSquareOfItNotAConstant()
+        {
+            var known = Chute(new CraftCapability(0.0, 0.0, 6.0, false, false, null, HoldingUp()));
+
+            var radii = new[] { 1.0, 3.0, 5.0 }.Select(seconds => PositionUncertainty.Bound(known, 1000.0, 1000.0 + seconds)!.Value).ToArray();
+
+            Assert.True(radii[0] < radii[1] && radii[1] < radii[2]);
+            Assert.True(radii[2] > 5.0 * radii[0], $"{radii[0]:F1} m at 1 s and {radii[2]:F1} m at 5 s");
+        }
+
+        private static double Pull => KerbinMu / Math.Pow(ChutePosition.Magnitude(), 2.0);
+
+        /// <summary>The Mk16 on a 1 t craft: 450 drag when open and 1 when part open, a 0.1 t canopy, opening below 500 m, or at the given safe speed when the game holds it back.</summary>
+        private static CanopyReading Mk16(double? safeSpeed = null) =>
+            new CanopyReading(ParachuteDrag.PerPressure(8.0, 1.0 * 0.1, 1.0), ParachuteDrag.PerPressure(8.0, 450.0 * 0.1, 1.0), 500.0, safeSpeed);
+
+        /// <summary>A capability with its parts read: what the engines can change, the canopies that can still open, the air density and the height the canopies open at.</summary>
+        private static CraftCapability Read(double deltaV, bool thrusting, ThrustAcceleration measured, double engineChange, double airspeed, double deployHeight, params CanopyReading[] canopies) =>
+            new CraftCapability(deltaV, engineChange, airspeed, false, thrusting, null, measured, engineChange, canopies, 1.1, deployHeight);
+
+        private static double RadiusAt(CraftState known, double seconds) => PositionUncertainty.Bound(known, 1000.0, 1000.0 + seconds)!.Value;
+
+        [Fact]
+        public void ASteadyParachuteDescentIsFramedWithinAFewMetresWhenItsPartsCanChangeNothing()
+        {
+            // A deployed canopy, no engine, 9.75 m/s² held: 0.5 × (0.1 × 9.75 + 0.1) × t².
+            var known = Chute(Read(0.0, false, HoldingUp(), 0.0, 5.0, 300.0));
+
+            Assert.Equal(0.5 * (0.1 * Pull + 0.1) * 1.0, RadiusAt(known, 1.0), 1);
+            Assert.Equal(0.5 * (0.1 * Pull + 0.1) * 4.0, RadiusAt(known, 2.0), 1);
+            Assert.True(RadiusAt(known, 2.0) < 3.0);
+        }
+
+        [Fact]
+        public void ARocketUnderThrustIsFramedByItsOwnEngineGoingToNothingAndWhatItsHeldAccelerationCanBeWrongBy()
+        {
+            // 35 m/s² from engines that can drop to nothing: 0.5 × 35 × t² on top of the held error 0.5 × (3.5 + 0.1) × t².
+            var known = Chute(Read(2000.0, true, new ThrustAcceleration(35.0, 0.0, 0.0), 35.0, 150.0, 300.0));
+
+            Assert.Equal((17.5 + 1.8) * 1.0, RadiusAt(known, 1.0), 0);
+            Assert.Equal((17.5 + 1.8) * 4.0, RadiusAt(known, 2.0), 0);
+        }
+
+        [Fact]
+        public void ACoastingCraftWithAnArmedParachuteIsFramedByTheCanopyFullyOpenOnceItCanFallBelowTheOpeningHeight()
+        {
+            // 1 t capsule, Mk16: 0.36 per half density speed squared fully open; at 1.1 kg/m³ and 100 m/s that is 1 980 m/s².
+            var known = Chute(Read(0.0, false, new ThrustAcceleration(-0.5, 0.0, 0.0), 0.0, 100.0, 300.0, Mk16()));
+
+            var expected = PositionUncertainty.FreeFall(100.0 + Pull * 2.0, 1_980.0, 2.0) + 0.5 * (0.05 + 0.1) * 4.0;
+            Assert.Equal(expected, RadiusAt(known, 2.0), 0);
+        }
+
+        [Fact]
+        public void AnArmedParachuteHighAboveItsOpeningHeightCanOnlyBePartOpenAndOneThatCanFallBelowItCanBeFullyOpen()
+        {
+            // 700 m up at 100 m/s: after 1 s it can have fallen 105 m, still above 500 m, so part open: 4.4 m/s². After 2 s it can have fallen 220 m, below 500 m: fully open.
+            var known = Chute(Read(0.0, false, new ThrustAcceleration(-0.5, 0.0, 0.0), 0.0, 100.0, 700.0, Mk16()));
+            var held = 0.5 * (0.05 + 0.1);
+
+            Assert.Equal(PositionUncertainty.FreeFall(100.0 + Pull, 0.5 * 1.1 * 8e-4 * 1e4, 1.0) + held, RadiusAt(known, 1.0), 1);
+            Assert.Equal(PositionUncertainty.FreeFall(100.0 + Pull * 2.0, 1_980.0, 2.0) + held * 4.0, RadiusAt(known, 2.0), 0);
+            Assert.True(RadiusAt(known, 1.0) < 12.0);
+        }
+
+        [Fact]
+        public void AnArmedParachuteTheGameHoldsBackCountsAtTheSpeedItWouldOpenAtNotTheSpeedOfTheCraft()
+        {
+            var free = Chute(Read(0.0, false, new ThrustAcceleration(-0.5, 0.0, 0.0), 0.0, 100.0, 300.0, Mk16()));
+            var waiting = Chute(Read(0.0, false, new ThrustAcceleration(-0.5, 0.0, 0.0), 0.0, 100.0, 300.0, Mk16(60.0)));
+            var slow = Chute(Read(0.0, false, new ThrustAcceleration(-0.5, 0.0, 0.0), 0.0, 40.0, 300.0, Mk16(60.0)));
+
+            Assert.True(RadiusAt(waiting, 2.0) < RadiusAt(free, 2.0));
+            // At 60 m/s it opens with 0.5 × 1.1 × 0.36 × 60² = 713 m/s², whatever speed the craft has above that.
+            var expected = PositionUncertainty.FreeFall(100.0 + Pull * 2.0, 0.5 * 1.1 * 0.36 * 3_600.0, 2.0) + 0.5 * (0.05 + 0.1) * 4.0;
+            Assert.Equal(expected, RadiusAt(waiting, 2.0), 0);
+            // Below its safe speed it counts at the speed the craft has.
+            Assert.Equal(PositionUncertainty.FreeFall(40.0 + Pull * 2.0, 0.5 * 1.1 * 0.36 * 1_600.0, 2.0) + 0.5 * (0.05 + 0.1) * 4.0, RadiusAt(slow, 2.0), 0);
+        }
+
+        [Fact]
+        public void TheStockMk16OnAOneTonneCapsuleFallsAtTheTerminalSpeedTheGameGivesIt()
+        {
+            // 450 drag on a 0.1 t canopy, a 1 t craft, the game's drag multiplier of 8: it settles at about 6.7 m/s at sea level, where the stock craft does.
+            var perPressure = ParachuteDrag.PerPressure(8.0, 450.0 * 0.1, 1.0);
+
+            var terminal = ParachuteDrag.TerminalSpeed(perPressure, 1.225, 9.81);
+
+            Assert.InRange(terminal, 6.0, 7.0);
+        }
+
+        [Theory]
+        [InlineData(1.0)]
+        [InlineData(3.0)]
+        public void EveryRecordHoldsTheTrueDeviationOverItsLifeWhenAnEngineCutsOrAChuteOpens(double age)
+        {
+            // An engine that cuts at the capture: 35 m/s² taken away for the whole life.
+            var rocket = Chute(Read(2000.0, true, new ThrustAcceleration(35.0, 0.0, 0.0), 35.0, 150.0, 300.0));
+            // A canopy that goes to full drag at the capture: dv/dt = -c v² with c half the density times what the canopy gives per pressure.
+            var armed = Chute(Read(0.0, false, new ThrustAcceleration(-0.5, 0.0, 0.0), 0.0, 100.0, 300.0, Mk16()));
+            var c = 0.5 * 1.1 * 0.36;
+
+            for (var life = 0.0; life <= 1.0; life += 0.25)
+            {
+                var t = age + life;
+                Assert.True(0.5 * 35.0 * t * t <= RadiusAt(rocket, t), $"engine cut, age {age} s, +{life} s");
+                Assert.True(100.0 * t - Math.Log(1.0 + c * 100.0 * t) / c <= RadiusAt(armed, t), $"chute opens, age {age} s, +{life} s");
+            }
+        }
+
+        [Fact]
+        public void AnUnreadCraftKeepsTheFloorAndAReadOneWithNothingToChangeDoesNot()
+        {
+            var unread = Chute(new CraftCapability(0.0, 0.0, 6.0, false, false, null, HoldingUp()));
+            var read = Chute(Read(0.0, false, HoldingUp(), 0.0, 6.0, 300.0));
+
+            Assert.True(RadiusAt(unread, 1.0) > 10.0);
+            Assert.True(RadiusAt(read, 1.0) < 1.0);
         }
 
         [Fact]

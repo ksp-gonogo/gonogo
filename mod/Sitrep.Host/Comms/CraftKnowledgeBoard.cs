@@ -330,22 +330,23 @@ namespace Sitrep.Host.Comms
             var fix = entry.Fix;
             var uncertainty = fix.UncertaintyMAt(ut);
             var place = fix.PlaceAt(ut);
+            var extent = fix.Known.Capability?.ExtentM;
             // No sample was taken after the last look, so light is not counted as arrived past it, except from a change the look solved the instant of.
             var lineOfSight = InViewByLight(entry, ut, lookUt);
             if (fix.InContact)
             {
-                return new CraftKnowledgeSample(vesselId, CraftKnowledgeState.Heard, null, fix.LastKnownUt, uncertainty, lineOfSight, place);
+                return new CraftKnowledgeSample(vesselId, CraftKnowledgeState.Heard, null, fix.LastKnownUt, uncertainty, lineOfSight, place, extent);
             }
             if (entry.Sighted && lineOfSight)
             {
-                return new CraftKnowledgeSample(vesselId, CraftKnowledgeState.Seen, null, fix.LastKnownUt, uncertainty, lineOfSight, place);
+                return new CraftKnowledgeSample(vesselId, CraftKnowledgeState.Seen, null, fix.LastKnownUt, uncertainty, lineOfSight, place, extent);
             }
             if (Reckonable(fix.Known))
             {
-                return new CraftKnowledgeSample(vesselId, CraftKnowledgeState.Modelled, null, fix.LastKnownUt, uncertainty, lineOfSight, place);
+                return new CraftKnowledgeSample(vesselId, CraftKnowledgeState.Modelled, null, fix.LastKnownUt, uncertainty, lineOfSight, place, extent);
             }
             var grade = entry.EverInContact ? HeldGrade.LastBeforeBlackout : HeldGrade.Held;
-            return new CraftKnowledgeSample(vesselId, CraftKnowledgeState.Held, grade, fix.LastKnownUt, uncertainty, lineOfSight, place);
+            return new CraftKnowledgeSample(vesselId, CraftKnowledgeState.Held, grade, fix.LastKnownUt, uncertainty, lineOfSight, place, extent);
         }
 
         /// <summary>A craft that was holding its course above every atmosphere, or standing on the ground, when last known: its place can be carried forward.</summary>
