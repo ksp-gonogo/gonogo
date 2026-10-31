@@ -6,6 +6,7 @@ import {
   installDomStubs,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import { setQuantityLocale } from "@ksp-gonogo/ui-kit";
+import { setDefaultShareCodeForTests } from "../peer/hostDefaults";
 import { installGonogoHost } from "../uplinks/host";
 
 installDomStubs();
@@ -17,6 +18,10 @@ installDomStubs();
 // "the gonogo host has not been installed" without this. Install the real
 // host so those imports resolve to the real core singletons, matching prod.
 installGonogoHost();
+
+/* A host is given its join code by the game's host record; a test that starts
+   one with no game behind it hosts under this. */
+setDefaultShareCodeForTests("TEST23");
 
 // Soft-cap regression gate: any test that pushes a registered PerfBudget
 // over its threshold fails. See PerfBudget.installTestGate for opt-out.

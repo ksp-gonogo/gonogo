@@ -22,6 +22,7 @@ export const GENERATED_TRUENOW_TOPICS = [
   "alarm.scet.topics",
   "comms.occlusion",
   "game.dlc",
+  "host.record",
   "ksp.revertAvailability",
   "settings.gonogo",
   "spaceCenter.scene",

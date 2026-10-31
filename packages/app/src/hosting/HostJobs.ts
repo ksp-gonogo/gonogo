@@ -56,42 +56,22 @@ export class HostJobs {
     const target = this.current;
     if (!target) return undefined;
     if (this.commandView?.target !== target) {
-      const stand = (vantage: string | undefined) =>
-        vantage || this.plainStationVantage();
-      const view = new Proxy(target, {
-        get: (client, prop) => {
-          if (prop === "dispatch") {
-            return (
-              command: string,
-              args?: unknown,
-              label?: string,
-              topic?: string,
-              vantage?: string,
-              requestId?: string,
-            ) =>
-              client.dispatch(
-                command,
-                args,
-                label,
-                topic,
-                stand(vantage),
-                requestId,
-              );
-          }
-          if (prop === "dispatchGroup") {
-            return (
-              members: Parameters<TelemetryClient["dispatchGroup"]>[0],
-              vantage?: string,
-              groupId?: string,
-            ) => client.dispatchGroup(members, stand(vantage), groupId);
-          }
-          const member = Reflect.get(client, prop, client);
-          return typeof member === "function" ? member.bind(client) : member;
-        },
-      });
-      this.commandView = { target, view };
+      this.commandView = {
+        target,
+        view: sendingFrom(target, () => this.plainStationVantage()),
+      };
     }
     return this.commandView.view;
+  }
+
+  /**
+   * The jobs connection as something to send commands on from `centre`: a
+   * command that names no centre leaves from it, with its delay. `undefined`
+   * while the connection is not open.
+   */
+  commandClientAt(centre: string): TelemetryClient | undefined {
+    const target = this.current;
+    return target ? sendingFrom(target, () => centre) : undefined;
   }
 
   /** Calls `listener` whenever the host-jobs connection is replaced or lost. */
@@ -130,6 +110,48 @@ export class HostJobs {
   alarmVantage(): string {
     return this.plain?.selectedVantage ?? this.plain?.observedVantage ?? "";
   }
+}
+
+/**
+ * `client` with every command that names no centre sent from the one
+ * `defaultCentre` gives. Reads and everything else are the client itself.
+ */
+function sendingFrom(
+  client: TelemetryClient,
+  defaultCentre: () => string,
+): TelemetryClient {
+  const stand = (vantage: string | undefined) => vantage || defaultCentre();
+  return new Proxy(client, {
+    get: (target, prop) => {
+      if (prop === "dispatch") {
+        return (
+          command: string,
+          args?: unknown,
+          label?: string,
+          topic?: string,
+          vantage?: string,
+          requestId?: string,
+        ) =>
+          target.dispatch(
+            command,
+            args,
+            label,
+            topic,
+            stand(vantage),
+            requestId,
+          );
+      }
+      if (prop === "dispatchGroup") {
+        return (
+          members: Parameters<TelemetryClient["dispatchGroup"]>[0],
+          vantage?: string,
+          groupId?: string,
+        ) => target.dispatchGroup(members, stand(vantage), groupId);
+      }
+      const member = Reflect.get(target, prop, target);
+      return typeof member === "function" ? member.bind(target) : member;
+    },
+  });
 }
 
 let registered: HostJobs | undefined;

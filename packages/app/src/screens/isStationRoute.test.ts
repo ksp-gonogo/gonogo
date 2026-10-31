@@ -141,3 +141,27 @@ describe("bootsWithoutDirectMod", () => {
     expect(bootsWithoutDirectMod()).toBe(false);
   });
 });
+
+describe("the four addresses", () => {
+  afterEach(() => {
+    setPath("/");
+  });
+
+  it.each([
+    ["/", "main"],
+    ["/pilot", "pilot"],
+    ["/station", "station"],
+    ["/pilot/station", "pilot-station"],
+    ["/pilot/station?host=ABC234", "pilot-station"],
+  ])("reads %s as %s", (path, route) => {
+    setPath(path);
+    expect(currentRoute()).toBe(route);
+  });
+
+  it("boots a pilot station without a socket of its own to the mod", () => {
+    setPath("/pilot/station");
+    expect(bootsWithoutDirectMod()).toBe(true);
+    setPath("/pilot");
+    expect(bootsWithoutDirectMod()).toBe(false);
+  });
+});

@@ -60,10 +60,7 @@ const TRANSIENT_PREFIXES = ["gonogo.sitrep.outstandingCommands."];
  * another device clones the instance identity, which
  * is usually wrong, so they're excluded unless the operator opts in via the
  * "Include device identity" checkbox. `gonogo.station.name` is deliberately not
- * here (it's a human label, safe to carry across devices), and neither is
- * `gonogo-host-share-code`: that's a chosen, portable host address you'd want
- * preserved on restore, not per-device identity, so it backs up like any other
- * config key.
+ * here: it's a human label, safe to carry across devices.
  */
 const IDENTITY_KEYS = new Set<string>([
   "gonogo.station.key",

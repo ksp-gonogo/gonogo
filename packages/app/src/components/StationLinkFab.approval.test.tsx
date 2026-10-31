@@ -46,8 +46,12 @@ const { Hub } = vi.hoisted(() => {
 
 vi.mock("peerjs", () => ({ default: Hub.Peer }));
 
+import { HostRole } from "../hosting/HostRole";
+import { registerHostRole } from "../hosting/HostRoleContext";
+import { ModApprovalBook } from "../peer/approvalBook";
 import { peerHostService } from "../peer/PeerHostService";
 import { StationApprovalPrompt } from "../stationApproval/StationApprovalPrompt";
+import { FakeHostMod } from "../test/fakeHostMod";
 import { StationLinkFab } from "./StationLinkFab";
 
 const stations: InstanceType<typeof Hub.Connection>[] = [];
@@ -83,8 +87,14 @@ afterEach(() => {
 });
 
 describe("Add station panel approved stations", () => {
-  it("lists an approved station and forgets it, disconnecting it", async () => {
+  it("lists a station approved in the game's record and revokes it there, disconnecting it", async () => {
     const user = userEvent.setup();
+    const mod = new FakeHostMod();
+    const role = new HostRole("tab-host");
+    role.attach(mod.connect());
+    await act(async () => {});
+    const unregister = registerHostRole(role);
+    const detach = peerHostService.attachApprovals(new ModApprovalBook(role));
     await act(async () => {
       await peerHostService.start();
     });
@@ -97,8 +107,21 @@ describe("Add station panel approved stations", () => {
     const flight = await join("p9", "Flight");
     const dialog = screen.getByRole("dialog");
     await user.click(
-      within(dialog).getByRole("button", { name: /^Approve station Flight/ }),
+      await within(dialog).findByRole("button", {
+        name: /^Approve station Flight/,
+      }),
     );
+    /* The approval goes to the game and comes back on its record a few
+       microtasks later, re-rendering the open panel. */
+    await act(async () => {
+      await vi.waitFor(() =>
+        expect(
+          within(dialog).queryByRole("button", {
+            name: "Remove station Flight",
+          }),
+        ).not.toBeNull(),
+      );
+    });
     expect(
       within(dialog).getByRole("button", { name: "Remove station Flight" }),
     ).toBeVisible();
@@ -106,10 +129,17 @@ describe("Add station panel approved stations", () => {
     await user.click(
       within(dialog).getByRole("button", { name: "Remove station Flight" }),
     );
+    await act(async () => {});
     expect(flight.open).toBe(false);
+    expect(mod.record().stations).toEqual([]);
     expect(
       within(dialog).queryByRole("button", { name: "Remove station Flight" }),
     ).toBeNull();
+    act(() => {
+      detach();
+      unregister();
+      role.dispose();
+    });
   });
 });
 

@@ -4950,6 +4950,190 @@ export interface GameDlc
 	makingHistory: boolean;
 }
 /**
+* Which screen hosts this game, the code a remote station joins with, and the
+* remote stations the host has approved. One screen per game hosts: the others
+* join it, and the game mod is the referee because every local screen on every
+* machine reaches it.
+*
+* A screen asks for the role with `host.claim` and keeps it by sending
+* `host.heartbeat`. Whether the screen reading this holds the role is not on
+* this Topic, since every screen reads the same value: a screen compares
+* `HostRecordModel.holderId` with the `HostRoleReply.holderId` its own claim
+* was answered with.
+*
+* Never delayed by signal delay: it describes the screens in front of the
+* operator, not a craft. Neither a screen's token nor a station's credential
+* is ever on it, only ids that name them.
+*
+* @category Hosting
+* @categoryDescription Hosting
+* The record of which screen hosts a game, with the commands that claim, keep
+* and give up the role and the ones that manage the join code and the approved
+* remote stations.
+*/
+export interface HostRecordModel
+{
+	/**
+	* Whether a screen holds the role now, including one whose connection has
+	* closed and whose grace has not run out.
+	*/
+	held: boolean;
+	/**
+	* True while the holder's connection is closed and the role is kept for it to
+	* come back, as a page reload does. The role is freed when the grace ends.
+	*/
+	holderAway: boolean;
+	/**
+	* The id of the screen that holds the role, or an empty string when nobody
+	* does.
+	*/
+	holderId: string;
+	/**
+	* The code a remote station enters to join the host: six characters from the
+	* letters and digits that cannot be mistaken for one another. It stays the
+	* same until `host.code.regenerate` changes it, whichever screen hosts.
+	*/
+	code: string;
+	/** The remote stations the host has approved, oldest first. */
+	stations: ApprovedStationState[];
+}
+/**
+* One remote station the host has approved.
+*
+* @category Hosting
+*/
+export interface ApprovedStationState
+{
+	/**
+	* An id that names the station without revealing its credential. It is what
+	* `host.station.revoke` takes.
+	*/
+	id: string;
+	/** The name the station reported when it was approved. */
+	name: string;
+	/** When the station was first approved, in Unix milliseconds. */
+	approvedAt: Value<"count">;
+}
+/**
+* The answer to `host.claim` and `host.heartbeat`: whether the screen that
+* sent it holds the role, and who does. A refused claim is an ordinary answer
+* with `HostRoleReply.holds` false, not a failed command.
+*
+* A screen that sent a heartbeat and reads `HostRoleReply.holds` false has
+* lost the role, having been cut off for longer than the grace while another
+* screen took over, and stops hosting at once.
+*
+* @category Command results
+*/
+export interface HostRoleReply
+{
+	/** Whether the screen that sent the command holds the role now. */
+	holds: boolean;
+	/**
+	* The id of the screen that holds the role, or an empty string when nobody
+	* does. Matches `HostRecordModel.holderId`.
+	*/
+	holderId: string;
+	/** How often the holder is asked to send a heartbeat. */
+	heartbeatSeconds: Value<"s">;
+	/**
+	* How long after its last heartbeat or the close of its connection a holder
+	* keeps the role before it is freed.
+	*/
+	graceSeconds: Value<"s">;
+}
+/**
+* The answer to `host.station.check`: whether a station's credential is one
+* the host approved.
+*
+* @category Command results
+*/
+export interface HostStationCheckReply
+{
+	/** Whether the credential belongs to an approved station. */
+	approved: boolean;
+	/** The station's id, or an empty string when it is not approved. */
+	stationId: string;
+	/**
+	* The name the station was approved under, or an empty string when it is not
+	* approved.
+	*/
+	name: string;
+}
+/**
+* Take or keep the host role, keep it, give it up, or mint a new join code.
+* Arguments to `host.claim`, `host.heartbeat`, `host.release` and
+* `host.code.regenerate`: the token the screen keeps for itself.
+*
+* The token is one per browser tab. It survives a reload and is not copied by
+* a duplicated tab, so the mod can tell a reload, which takes the role
+* straight back inside the grace, from a second tab, which is refused. It is a
+* secret between the tab and the mod and is never published.
+*
+* `host.claim` and `host.heartbeat` answer with a `HostRoleReply`.
+* `host.release` frees the role at once and `host.code.regenerate` replaces
+* the join code; both are refused for a token that does not hold the role.
+* Never delayed by signal delay.
+*
+* @category Command arguments
+*/
+export interface HostTokenArgs
+{
+	/** The token the screen keeps for itself. */
+	token: string;
+}
+/**
+* Approve a remote station by the credential it presents. Arguments to
+* `host.station.approve`: the holder's token, and the station's credential and
+* name. Approving a credential already approved renames the station. Refused
+* for a token that does not hold the role. Never delayed by signal delay.
+*
+* @category Command arguments
+*/
+export interface HostApproveStationArgs
+{
+	/** The token of the screen that holds the role. */
+	token: string;
+	/**
+	* The secret the station presents to the host. It is stored by the mod and
+	* never published.
+	*/
+	credential: string;
+	/** The name to show for the station. */
+	name: string;
+}
+/**
+* Revoke an approved remote station. Arguments to `host.station.revoke`: the
+* holder's token and the id of the station, from `ApprovedStationState.id`.
+* Refused for a token that does not hold the role. Never delayed by signal
+* delay.
+*
+* @category Command arguments
+*/
+export interface HostRevokeStationArgs
+{
+	/** The token of the screen that holds the role. */
+	token: string;
+	/** The station's id from `ApprovedStationState.id`. */
+	stationId: string;
+}
+/**
+* Ask whether a credential is one the host approved. Arguments to
+* `host.station.check`, answered with a `HostStationCheckReply`: the holder's
+* token and the credential a station presented. The host calls it when a
+* remote station connects, since the credentials are not published. Refused
+* for a token that does not hold the role. Never delayed by signal delay.
+*
+* @category Command arguments
+*/
+export interface HostCheckStationArgs
+{
+	/** The token of the screen that holds the role. */
+	token: string;
+	/** The credential the station presented. */
+	credential: string;
+}
+/**
 * One drill (resource harvester) on the active vessel. The field set is what
 * every ISRU model shares, which is exactly what stock ISRU has: resource,
 * abundance, rate, deploy and running, plus the two identification fields.

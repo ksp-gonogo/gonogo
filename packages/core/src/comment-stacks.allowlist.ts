@@ -157,7 +157,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/app/src/peer/PeerClientDataSource.ts": 2,
   "packages/app/src/peer/PeerClientService.ts": 5,
   "packages/app/src/peer/PeerHostService.bundleFetch.test.ts": 1,
-  "packages/app/src/peer/PeerHostService.ts": 6,
+  "packages/app/src/peer/PeerHostService.ts": 5,
   "packages/app/src/peer/PeerHostService.uplinkRelay.test.ts": 1,
   "packages/app/src/peer/protocol.ts": 2,
   "packages/app/src/peer/typedListeners.ts": 1,

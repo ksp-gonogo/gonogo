@@ -4,6 +4,7 @@
     "trueNow": [
       "comms.dataRate",
       "comms.linkMargin",
+      "host.record",
       "settings.gonogo",
       "system.channels",
       "system.dataRates",

@@ -89,10 +89,10 @@ export function useHostingHosts(): MainHosts | null {
  * Host and port follow the saved connection settings the display follows, so a
  * change to them reconnects both.
  */
-function useHostJobsConnection(
+export function useHostJobsConnection(
   jobs: HostJobs,
   enabled: boolean,
-  openTransport: OpenJobsTransport,
+  openTransport: OpenJobsTransport = openLiveJobsTransport,
 ): void {
   const { host, port } = useSyncExternalStore(
     subscribeSitrepHostConfig,
@@ -159,17 +159,33 @@ function useHostJobsConnection(
  */
 export function HostingProvider({
   ownsMesh,
+  seat = "main",
+  jobs: givenJobs,
   openTransport = openLiveJobsTransport,
   children,
 }: {
   ownsMesh: boolean;
+  /**
+   * Where the hosting screen sits. A pilot's screen stands at no command
+   * centre, so the stations that chose none read from home and it shows no
+   * poll.
+   */
+  seat?: "main" | "pilot";
+  /** The jobs link of a screen that already holds its connection to the game. */
+  jobs?: HostJobs;
   openTransport?: OpenJobsTransport;
   children: ReactNode;
 }) {
-  const [jobs] = useState(() => new HostJobs());
+  const [ownJobs] = useState(() => new HostJobs());
+  const jobs = givenJobs ?? ownJobs;
   const [hosts, setHosts] = useState<MainHosts | null>(null);
 
-  useHostJobsConnection(jobs, ownsMesh, openTransport);
+  useHostJobsConnection(jobs, ownsMesh && !givenJobs, openTransport);
+
+  useEffect(() => {
+    if (!ownsMesh || seat !== "pilot") return;
+    return peerHostService.servePlainStationsAtHome();
+  }, [ownsMesh, seat]);
 
   useEffect(() => {
     if (!ownsMesh) return;
@@ -189,7 +205,12 @@ export function HostingProvider({
    */
   useEffect(() => {
     const built: MainHosts = {
-      goNoGoHost: new GoNoGoHostService(peerHostService),
+      goNoGoHost: new GoNoGoHostService(peerHostService, {
+        hostCentre: () =>
+          seat === "pilot" ? null : (peerHostService.getCommandCentre() ?? ""),
+        commandFrom: (centre) =>
+          ownsMesh ? jobs.commandClientAt(centre) : undefined,
+      }),
       pushHost: new PushHostService(peerHostService),
       alarmHost: createAlarmHost(peerHostService, {
         hostJobs: ownsMesh ? jobs : undefined,
@@ -206,7 +227,7 @@ export function HostingProvider({
       built.maneuverTriggerHost.dispose();
       setHosts(null);
     };
-  }, [jobs, ownsMesh]);
+  }, [jobs, ownsMesh, seat]);
 
   if (!hosts) return null;
   return (
@@ -215,6 +236,7 @@ export function HostingProvider({
         <>
           <SitrepVantageSessions peerHost={peerHostService} />
           <HostUplinksAnnouncer host={peerHostService} />
+          {seat === "pilot" && <HomeCentreAnnouncer jobs={jobs} />}
         </>
       )}
       {children}
@@ -230,20 +252,52 @@ export function HostingProvider({
  * Mount inside the screen's display provider: the stations read what that
  * session reads, so they follow the screen's picker. Renders nothing.
  */
-export function PlainStationFeed({ ownsMesh }: { ownsMesh: boolean }) {
+export function PlainStationFeed({
+  ownsMesh,
+  seat = "main",
+}: {
+  ownsMesh: boolean;
+  seat?: "main" | "pilot";
+}) {
   const jobs = useContext(HostingContext)?.jobs;
   const client = useTelemetryClientOptional();
+  const servesPlainStations = ownsMesh && seat === "main";
 
   useEffect(() => {
-    if (!jobs || !client || !ownsMesh) return;
+    if (!jobs || !client || !servesPlainStations) return;
     return jobs.attachPlainStationSession(client);
-  }, [jobs, client, ownsMesh]);
+  }, [jobs, client, servesPlainStations]);
 
   return (
     <>
       <SitrepPeerRelay peerHost={peerHostService} />
       <HostRatePacer />
-      {ownsMesh && <HostCommandCentreAnnouncer host={peerHostService} />}
+      {servesPlainStations && (
+        <HostCommandCentreAnnouncer host={peerHostService} />
+      )}
     </>
   );
+}
+
+/**
+ * Tells the peer mesh that the host stands at the home command centre, for a
+ * pilot host, whose own screen is aboard a craft. The centre is the one the
+ * mod stamps the jobs connection's frames with, since that connection never
+ * chooses one.
+ */
+function HomeCentreAnnouncer({ jobs }: { jobs: HostJobs }) {
+  const client = useSyncExternalStore(
+    (cb) => jobs.onClientChange(cb),
+    () => jobs.client,
+    () => jobs.client,
+  );
+  const home = useSyncExternalStore(
+    (cb) => client?.onObservedVantageChange(cb) ?? (() => {}),
+    () => client?.observedVantage ?? null,
+    () => client?.observedVantage ?? null,
+  );
+  useEffect(() => {
+    peerHostService.setCommandCentre(home);
+  }, [home]);
+  return null;
 }

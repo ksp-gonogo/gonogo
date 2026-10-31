@@ -29,6 +29,12 @@ const SITREP_REPLAY_PORT = 18090;
 // power-systems.spec.ts/fuel-status.spec.ts via bootstrapPair's `sitrepPort`.
 const SITREP_REPLAY_TOPOLOGY_PORT = 18091;
 /**
+ * A fake game with nothing loaded, answering only for the host record. The app
+ * under test points here by default, so a local screen finds a game to host on
+ * in a spec that seeds no stream of its own. See bare-mod-server.mjs.
+ */
+const BARE_MOD_PORT = 18089;
+/**
  * One stream per screen for the radio scenes, because a signal delay is a
  * property of a pair: the vantage a screen observes comes off its own session's
  * frames. Three ports, three vantages, one mission control and two craft at
@@ -112,6 +118,15 @@ export default defineConfig({
       stdout: "pipe",
       stderr: "pipe",
       timeout: 15_000,
+    },
+    {
+      command: "node ./tests/playwright/bare-mod-server.mjs",
+      url: `http://localhost:${BARE_MOD_PORT}/health`,
+      reuseExistingServer: !process.env.CI,
+      stdout: "pipe",
+      stderr: "pipe",
+      timeout: 15_000,
+      env: { BARE_MOD_PORT: String(BARE_MOD_PORT) },
     },
     {
       command: "node ./tests/playwright/sitrep-stream-server.mjs",
@@ -201,6 +216,7 @@ export default defineConfig({
         VITE_E2E_SOCKET_TRACE: "true",
         // Point the app's relay client (relayAddress.ts) at the test relay rather than the dev default (localhost:3002).
         VITE_RELAY_URL: `http://localhost:${RELAY_PORT}`,
+        VITE_SITREP_PORT: String(BARE_MOD_PORT),
       },
     },
     {
@@ -223,6 +239,7 @@ export default defineConfig({
         VITE_PEER_SECURE: "false",
         VITE_E2E_SOCKET_TRACE: "true",
         VITE_RELAY_URL: `http://localhost:${RELAY_PORT}`,
+        VITE_SITREP_PORT: String(BARE_MOD_PORT),
       },
     },
     {
@@ -240,6 +257,7 @@ export default defineConfig({
         VITE_PEER_SECURE: "false",
         VITE_E2E_SOCKET_TRACE: "true",
         VITE_RELAY_URL: `http://localhost:${RELAY_PORT}`,
+        VITE_SITREP_PORT: String(BARE_MOD_PORT),
       },
     },
   ],

@@ -11,6 +11,7 @@ import { Cluster, Tooltip } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { SETUP_LINKS } from "../firstRun/setupGuide";
+import { useHostRole, useHostRoleState } from "../hosting/HostRoleContext";
 import {
   CONNECTION_PATH_LABEL,
   type ConnectionPath,
@@ -47,14 +48,43 @@ export function StationLinkFab() {
 }
 
 function StationLinkPanel() {
+  const role = useHostRoleState();
+  if (role.kind === "joined")
+    return <JoinedLinkPanel code={role.record.code} />;
+  return <HostLinkPanel />;
+}
+
+/**
+ * The join code on a screen that has joined another host, so it can be given
+ * to a remote station from any local screen.
+ */
+function JoinedLinkPanel({ code }: { code: string }) {
+  const { addresses, qr } = stationAddresses({
+    code,
+    origin: globalThis.location.origin,
+    baseUrl: import.meta.env.BASE_URL,
+    channel: CHANNEL,
+    override: import.meta.env.VITE_STATION_URL,
+  });
+  return (
+    <Wrap>
+      <Cluster>
+        <Label>Join code</Label>
+        <Code>{code}</Code>
+      </Cluster>
+      <StationAddressList addresses={addresses} qr={qr} />
+    </Wrap>
+  );
+}
+
+function HostLinkPanel() {
   // The modal portal renders outside the PeerHostProvider subtree, so the
   // usePeerHost() context hook would always return null in here. Subscribe
   // to the service singleton directly: it already drives the provider's
   // state, so this sees the same value without relying on React context.
   const [peerId, setPeerId] = useState<string | null>(peerHostService.peerId);
-  // The operator-facing short join code. Stable across refreshes; only a
-  // regenerate changes it. Both the QR and the typed value are this code,
-  // the station derives the broker peer id (`gonogo-host-<code>`) from it.
+  // The game's join code. Both the QR and the typed value are this code; the
+  // station derives the broker peer id (`gonogo-host-<code>`) from it.
   const [shareCode, setShareCode] = useState(peerHostService.shareCode);
   // True while the host is retry-reclaiming its derived id after an unclean
   // restart (the broker still holds the stale slot). Surfaced as a status so
@@ -122,14 +152,14 @@ function StationLinkPanel() {
 }
 
 /**
- * Two-step button: idle → "New join code" → "Confirm" → mints a fresh
- * operator-facing join code and re-claims the new derived
- * `gonogo-host-<newCode>` peer id (clean teardown of the old, claim of the
- * new). The old code stops working and every live station channel drops, so
- * stations must be re-shared the new code. Also the recovery path when a
- * host can't reclaim a stuck broker slot.
+ * Two-step button: idle → "New join code" → "Confirm" → asks the game for a
+ * fresh join code, which the host then re-claims its broker id under. The old
+ * code stops working and every live station channel drops, so stations must be
+ * re-shared the new code. Also the recovery path when a host can't reclaim a
+ * stuck broker slot.
  */
 function RegenerateRow() {
+  const role = useHostRole();
   const [phase, setPhase] = useState<"idle" | "confirming" | "running">("idle");
 
   useEffect(() => {
@@ -141,7 +171,7 @@ function RegenerateRow() {
   async function run() {
     setPhase("running");
     try {
-      await peerHostService.regenerateShareCode();
+      await role?.regenerateCode();
     } finally {
       setPhase("idle");
     }

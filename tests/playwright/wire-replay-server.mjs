@@ -37,6 +37,7 @@ import { createServer } from "node:http";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { WebSocketServer } from "ws";
+import { createHostRecord } from "./fake-host-record.mjs";
 import { deliveredAt, readWireFixture } from "./wire-fixture.mjs";
 
 const PORT = Number.parseInt(process.env.WIRE_REPLAY_PORT ?? "18098", 10);
@@ -221,6 +222,20 @@ export function startWireReplayServer({ port = PORT } = {}) {
 
   // The mod accepts the socket at its root, as WebSocketTransport expects.
   const wss = new WebSocketServer({ server: http });
+  const hostRecord = createHostRecord({
+    send,
+    meta: () => ({
+      source: "wire-replay",
+      validAt: nowUt,
+      seq: 0,
+      deliveredAt: nowUt,
+      vantage: "",
+      quality: 0,
+      active: true,
+      staleness: 0,
+      timelineEpoch: 0,
+    }),
+  });
   wss.on("connection", (ws) => {
     const topics = new Set();
     clients.set(ws, topics);
@@ -234,6 +249,7 @@ export function startWireReplayServer({ port = PORT } = {}) {
       } catch {
         return;
       }
+      if (hostRecord.handle(ws, message)) return;
       if (message?.type === "ping") {
         send(ws, { type: "pong", nonce: message.nonce ?? "" });
       }
@@ -246,7 +262,10 @@ export function startWireReplayServer({ port = PORT } = {}) {
       }
       if (message?.type === "unsubscribe") topics.delete(message.topic);
     });
-    ws.on("close", () => clients.delete(ws));
+    ws.on("close", () => {
+      clients.delete(ws);
+      hostRecord.closed(ws);
+    });
   });
 
   http.listen(port, () => {

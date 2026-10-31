@@ -67,6 +67,11 @@
       "radialOut": "m/s",
       "ut": "ut"
     },
+    "ApprovedStationState": {
+      "approvedAt": "count",
+      "id": "id",
+      "name": "text"
+    },
     "ArchiveEntry": {
       "biome": "text",
       "body": "text",
@@ -853,6 +858,39 @@
     },
     "HireApplicantArgs": {
       "applicantName": "id"
+    },
+    "HostApproveStationArgs": {
+      "credential": "id",
+      "name": "text",
+      "token": "id"
+    },
+    "HostCheckStationArgs": {
+      "credential": "id",
+      "token": "id"
+    },
+    "HostRecordModel": {
+      "code": "id",
+      "held": "flag",
+      "holderAway": "flag",
+      "holderId": "id"
+    },
+    "HostRevokeStationArgs": {
+      "stationId": "id",
+      "token": "id"
+    },
+    "HostRoleReply": {
+      "graceSeconds": "s",
+      "heartbeatSeconds": "s",
+      "holderId": "id",
+      "holds": "flag"
+    },
+    "HostStationCheckReply": {
+      "approved": "flag",
+      "name": "text",
+      "stationId": "id"
+    },
+    "HostTokenArgs": {
+      "token": "id"
     },
     "InstrumentEntry": {
       "continuous": "flag",
@@ -2065,6 +2103,12 @@
       "breakingGround": "flag",
       "makingHistory": "flag"
     },
+    "host.record": {
+      "code": "id",
+      "held": "flag",
+      "holderAway": "flag",
+      "holderId": "id"
+    },
     "isru.converters": {
       "partId": "id",
       "partTitle": "text",
@@ -2746,6 +2790,9 @@
       "breach": "LimitBreach",
       "missing": "MissingUnlock[]"
     },
+    "HostRecordModel": {
+      "stations": "ApprovedStationState[]"
+    },
     "ICommandGateInputs": {
       "inputs": "GateInput[]"
     },
@@ -3029,6 +3076,9 @@
     },
     "eva.crew": {
       "kerbals": "EvaCrewMember[]"
+    },
+    "host.record": {
+      "stations": "ApprovedStationState[]"
     },
     "isru.converters": {
       "inputs": "IsruResourceFlow[]",
