@@ -324,6 +324,10 @@ const Centre = styled.div`
   justify-content: center;
   gap: var(--gap-related);
   min-width: 0;
+
+  &:empty {
+    display: none;
+  }
 `;
 
 const Actions = styled.div`
@@ -374,6 +378,19 @@ const Banner = styled.div`
       "fields"
       "centre";
     row-gap: var(--gap-section);
+  }
+
+  /* With nothing in the centre, the fields keep the whole width beside the actions. */
+  &:has(> ${Centre}:empty) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "fields actions";
+
+    @media (max-width: ${PHONE_BANNER}) {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-areas:
+        "actions"
+        "fields";
+    }
   }
 `;
 

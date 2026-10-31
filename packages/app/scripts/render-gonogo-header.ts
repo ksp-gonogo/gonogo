@@ -39,6 +39,7 @@ interface Scene {
   action?: "vote" | "hover" | "settings" | "input";
   /** Room below the header for a popover or a dialog. */
   tall?: boolean;
+  spaceCentre?: boolean;
 }
 
 const MIXED: [string, Vote][] = [
@@ -85,9 +86,19 @@ const WIDTHS: [string, number][] = [
   ["wide", 1600],
 ];
 
-const SCENES = BASE_SCENES.flatMap((s) =>
-  WIDTHS.map(([suffix, pxW]) => ({ ...s, name: `${s.name}-${suffix}`, pxW })),
-);
+const SCENES = [
+  ...BASE_SCENES.flatMap((s) =>
+    WIDTHS.map(([suffix, pxW]) => ({ ...s, name: `${s.name}-${suffix}`, pxW })),
+  ),
+  /* The space centre at the width where the header's side columns are narrowest, so a centre with nothing in it shows whether it still takes room. */
+  {
+    name: "main-space-centre-900",
+    screen: "main" as const,
+    stations: MIXED,
+    spaceCentre: true,
+    pxW: 900,
+  },
+];
 
 function themeCss(css: string): string {
   if (!/:root\s*\{/.test(css)) {

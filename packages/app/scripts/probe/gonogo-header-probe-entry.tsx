@@ -52,6 +52,8 @@ interface Scene {
   launched?: boolean;
   /** Station: the main screen reset the poll after liftoff. */
   reopened?: boolean;
+  /** The game is at the space centre rather than in flight. */
+  spaceCentre?: boolean;
   pxW: number;
 }
 
@@ -194,7 +196,10 @@ async function renderScene(scene: Scene): Promise<void> {
   );
 
   const topics: [string, unknown][] = [
-    ["spaceCenter.scene", { scene: "Flight" }],
+    [
+      "spaceCenter.scene",
+      { scene: scene.spaceCentre ? "SpaceCenter" : "Flight" },
+    ],
     [
       "vessel.identity",
       {
@@ -216,11 +221,12 @@ async function renderScene(scene: Scene): Promise<void> {
     await twoFrames();
     const text = el.textContent ?? "";
     const centreDrawn =
-      scene.screen === "main"
+      scene.spaceCentre ||
+      (scene.screen === "main"
         ? (scene.stations ?? []).every(([n]) => text.includes(n)) ||
           text.includes("T −")
         : text.includes("Flight Director") &&
-          (!scene.launched || text.includes("ABORT"));
+          (!scene.launched || text.includes("ABORT")));
     if (text.includes("Kerbal X") && centreDrawn) break;
   }
   await new Promise((r) => setTimeout(r, 120));
