@@ -1423,4 +1423,40 @@ describe("AutoRecordController", () => {
       },
     ]);
   });
+  it("holds a contract finish that arrives while a flight is recording, as the wire carries it", async () => {
+    const rig = buildRig();
+    render(
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled scene="Flight" />
+      </TelemetryProvider>,
+    );
+    start(rig, 496.54, {
+      flightId: "vA",
+      vesselId: "vA",
+      vesselName: "MkI-stock",
+    });
+    tickFrame(rig, 500, "vA", "MkI-stock");
+    act(() => {
+      rig.transport.emit(
+        "career.contractEvent",
+        {
+          id: "15220046646",
+          title: "Launch our first vessel!",
+          agent: "Kerbin World-Firsts Record-Keeping Society",
+          outcome: "Completed",
+        },
+        {
+          validAt: 507.04,
+          deliveredAt: 507.04,
+          source: "home-command",
+          vantage: "ground:Kerbin: KSC",
+        },
+      );
+      rig.clock.scrubTo(507.04);
+      rig.raf.flush();
+    });
+    await act(async () => {});
+
+    expect(await rig.missionStore.listContractFinishes()).toHaveLength(1);
+  });
 });

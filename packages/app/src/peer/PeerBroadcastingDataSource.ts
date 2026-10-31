@@ -212,6 +212,73 @@ export class PeerBroadcastingDataSource extends DataSourceWrapper {
     return real.saveMissionPart(meta, part, fixture);
   }
 
+  saveMission(record: unknown): Promise<void> {
+    const real = this.real as {
+      saveMission?: (record: unknown) => Promise<void>;
+    };
+    if (!real.saveMission) {
+      return Promise.reject(
+        new Error("saveMission not supported by wrapped source"),
+      );
+    }
+    return real.saveMission(record);
+  }
+
+  setFlightEndReason(
+    id: string,
+    endReason: number,
+    joinedVesselName?: string,
+    joinedVesselId?: string,
+  ): Promise<void> {
+    const real = this.real as {
+      setFlightEndReason?: (
+        id: string,
+        endReason: number,
+        joinedVesselName?: string,
+        joinedVesselId?: string,
+      ) => Promise<void>;
+    };
+    return (
+      real.setFlightEndReason?.(
+        id,
+        endReason,
+        joinedVesselName,
+        joinedVesselId,
+      ) ?? Promise.resolve()
+    );
+  }
+
+  reopenFlight(id: string): Promise<void> {
+    const real = this.real as { reopenFlight?: (id: string) => Promise<void> };
+    return real.reopenFlight?.(id) ?? Promise.resolve();
+  }
+
+  evictFullHistoryStore(missionId?: string): void {
+    const real = this.real as {
+      evictFullHistoryStore?: (missionId?: string) => void;
+    };
+    real.evictFullHistoryStore?.(missionId);
+  }
+
+  saveContractFinish(finish: unknown): Promise<void> {
+    const real = this.real as {
+      saveContractFinish?: (finish: unknown) => Promise<void>;
+    };
+    if (!real.saveContractFinish) {
+      return Promise.reject(
+        new Error("saveContractFinish not supported by wrapped source"),
+      );
+    }
+    return real.saveContractFinish(finish);
+  }
+
+  listContractFinishes(): Promise<unknown[]> {
+    const real = this.real as {
+      listContractFinishes?: () => Promise<unknown[]>;
+    };
+    return real.listContractFinishes?.() ?? Promise.resolve([]);
+  }
+
   deleteFlight(id: string): Promise<void> {
     const real = this.real as {
       deleteFlight?: (id: string) => Promise<void>;
