@@ -1,79 +1,21 @@
-import { useTelemetry } from "@ksp-gonogo/core";
-import {
-  useSelectedVantage,
-  useTelemetryClientOptional,
-} from "@ksp-gonogo/sitrep-client";
+import { useTelemetryClientOptional } from "@ksp-gonogo/sitrep-client";
 import { useEffect } from "react";
 
 /**
- * The vantage id of the craft this page is aboard, or `undefined` until the
- * craft has named itself and the roster agrees it is a command centre.
+ * Asks the mod to keep a pilot's telemetry session at the active craft.
  *
- * The id comes off the `vessel.orbit` payload's own `meta.source`. The mod
- * stamps that `"vessel:<guid>"` (`Sitrep.Host.VesselViewProvider.BuildMeta`)
- * and `Gonogo.KSP.CommandCentres.CrewedVesselSource` mints a crewed centre's
- * id from the same guid the same way, so the two strings are equal by
- * construction rather than by a format this file would otherwise restate.
- *
- * Not the envelope `meta.source` beside it, which is the Courier node and is
- * the literal `"system"` for every non-fleet topic, so no roster id could ever
- * equal it and this binding would never fire. A sample with no payload meta
- * (a recording or golden fixture) names no craft, and keeps the ground vantage.
- *
- * The roster is asked first because `ChannelEngine.HandleSetVantage` refuses
- * an id that is not a currently-active centre while
- * `TelemetryClient.setVantage` tracks the request optimistically: asking for a
- * craft the mod will not accept leaves every reader of `selectedVantage`
- * naming a centre the frames are not from. A craft that is no centre (nobody
- * crewed at a control source, or no antenna anything could ever reach) keeps
- * the ground vantage, which is where its data genuinely comes from.
- */
-function usePilotCraftVantageId(): string | undefined {
-  // The craft the samples are about, which a quiet link does not change.
-  const orbitReading = useTelemetry("vessel.orbit");
-  const subjectId =
-    orbitReading.state === "observed" || orbitReading.state === "held"
-      ? orbitReading.value.meta?.source
-      : undefined;
-  // Same read as `VantageControl`'s `useActiveCentres`, minus the home-centre question this has no use for: a held roster is still the roster, and only never-arrived is empty.
-  const rosterReading = useTelemetry("commandCentre.roster");
-  const roster =
-    rosterReading.state === "observed" || rosterReading.state === "held"
-      ? rosterReading.value
-      : undefined;
-  const isActiveCentre = (roster ?? []).some(
-    (centre) => centre.active && centre.id === subjectId,
-  );
-  return isActiveCentre ? subjectId : undefined;
-}
-
-/**
- * Pins a pilot's telemetry session to the vantage of the craft they are aboard.
- *
- * Renders nothing: it is a binding, not a control. A pilot holds their own
- * session and therefore their own vantage, and nothing on the page ever
- * selected one, so the mod kept the session at home and a human strapped into
- * the craft read every instrument at the ground's signal delay. That is the one thing `/pilot` exists to prevent.
- *
- * Gated on the selected vantage rather than the observed one. Observed lags a
- * whole signal delay behind the request that moved it, so comparing against it
- * would re-send `set-vantage` (and re-subscribe every active topic with it) on
- * every render until the frames caught up.
- *
- * It only ever moves the vantage onto a craft. Losing the reading is not
- * evidence the pilot got out, so a frame that stops arriving leaves the
- * binding where the last one put it, and a vessel switch re-points it as soon
- * as the new craft's own sample names itself.
+ * Renders nothing: it is a binding, not a control. The request is sent once.
+ * From then on the mod moves the session itself when the game changes craft
+ * (a switch, an EVA, a docking or an undock), so a pilot reads and flies the
+ * active craft with no signal delay, crewed or not, and the page never names a
+ * craft. With no active craft the session reads from the home command centre.
  */
 export function PilotVantage() {
   const client = useTelemetryClientOptional();
-  const selected = useSelectedVantage();
-  const craftVantageId = usePilotCraftVantageId();
 
   useEffect(() => {
-    if (craftVantageId === undefined || craftVantageId === selected) return;
-    client?.setVantage(craftVantageId);
-  }, [client, craftVantageId, selected]);
+    client?.followActiveCraft();
+  }, [client]);
 
   return null;
 }

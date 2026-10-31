@@ -360,5 +360,53 @@ namespace Sitrep.Host.Tests.CommandCentres
             Assert.DoesNotContain(calls, x => x.vantage == "vessel:G" && x.node == "centre.ksc");
         }
 
+        /// <summary>
+        /// A seat is an origin: it is timed to each centre by its route, and a seat
+        /// with no route to a centre gets no row at all. It is never a destination and
+        /// has no row to itself, so no pair for a seat can read zero by default.
+        /// </summary>
+        [Fact]
+        public void PopulateCentrePairs_TimesASeatToACentreOnlyOverARoute_AndNeverAsADestination()
+        {
+            var (calls, sink) = Recorder();
+            var centres = new ICommandCentre[] { new FakeCommandCentre("ksc"), new FakeCommandCentre("ground:gs1") };
+            var seats = new ICommandCentre[] { new FakeCommandCentre("vessel:G", CommandCentreKind.CrewedVessel) };
+
+            new AuthorityMatrixPass().PopulateCentrePairs(
+                centres,
+                (from, to) => from.Id == "vessel:G" && to.Id == "ksc" ? 3.0 : (double?)null,
+                sink,
+                seats);
+
+            Assert.Contains(calls, x => x.vantage == "vessel:G" && x.node == "centre.ksc" && x.s == 3.0);
+            Assert.DoesNotContain(calls, x => x.vantage == "vessel:G" && x.node == "centre.ground:gs1");
+            Assert.DoesNotContain(calls, x => x.node == "centre.vessel:G");
+            Assert.DoesNotContain(calls, x => x.vantage == "vessel:G" && x.s == 0.0);
+        }
+
+        [Fact]
+        public void PopulateCentrePairs_ASeatWithNoRouteToAnyCentreWritesNothing()
+        {
+            var (calls, sink) = Recorder();
+            var centres = new ICommandCentre[] { new FakeCommandCentre("ksc") };
+            var seats = new ICommandCentre[] { new FakeCommandCentre("vessel:G", CommandCentreKind.CrewedVessel) };
+
+            new AuthorityMatrixPass().PopulateCentrePairs(centres, (_, __) => null, sink, seats);
+
+            Assert.DoesNotContain(calls, x => x.vantage == "vessel:G");
+        }
+
+        [Fact]
+        public void Populate_ASeatReadsItsOwnCraftAtZero_AndAnotherCraftOnlyOverARoute()
+        {
+            var (calls, sink) = Recorder();
+            var seat = new ICommandCentre[] { new FakeCommandCentre("vessel:G", CommandCentreKind.CrewedVessel) };
+
+            new AuthorityMatrixPass().Populate(seat, new[] { "G", "H" }, (_, guid) => guid == "H" ? (double?)null : 9.0, sink);
+
+            Assert.Contains(calls, x => x.vantage == "vessel:G" && x.node == "fleet.G" && x.s == 0.0);
+            Assert.DoesNotContain(calls, x => x.vantage == "vessel:G" && x.node == "fleet.H");
+        }
+
     }
 }

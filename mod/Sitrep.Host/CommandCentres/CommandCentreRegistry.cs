@@ -27,6 +27,7 @@ namespace Sitrep.Host.CommandCentres
         private static readonly IReadOnlyList<CommandCentreIdCollision> NoCollisions = new CommandCentreIdCollision[0];
 
         private readonly List<ICommandCentreSource> _sources = new List<ICommandCentreSource>();
+        private readonly List<ICommandCentreSource> _seatSources = new List<ICommandCentreSource>();
         private readonly Action<string>? _report;
         private readonly HashSet<string> _reportedIds = new HashSet<string>(StringComparer.Ordinal);
         private volatile IReadOnlyList<CommandCentreIdCollision> _collisions = NoCollisions;
@@ -44,6 +45,15 @@ namespace Sitrep.Host.CommandCentres
         public CommandCentreRegistry(Action<string>? report) => _report = report;
 
         public void RegisterSource(ICommandCentreSource source) => _sources.Add(source);
+
+        /// <summary>
+        /// Registers a source of seats: the craft a session can stand aboard without
+        /// that craft being a command centre. A seat is read like a centre (the same
+        /// id scheme, the same routing node) but is never part of
+        /// <see cref="EnumerateActive"/>, so it reaches no roster, no home election
+        /// and no vantage picker.
+        /// </summary>
+        public void RegisterSeatSource(ICommandCentreSource source) => _seatSources.Add(source);
 
         /// <summary>The id collisions the most recent <see cref="EnumerateActive"/> pass dropped a centre for.</summary>
         public IReadOnlyList<CommandCentreIdCollision> Collisions => _collisions;
@@ -99,7 +109,85 @@ namespace Sitrep.Host.CommandCentres
             return result;
         }
 
+        /// <summary>
+        /// The seats a session can stand at now: every active seat from the seat
+        /// sources, minus any whose id is already an active centre (a craft that is a
+        /// command centre is that centre, not a seat as well), deduped by id.
+        /// </summary>
+        public IReadOnlyList<ICommandCentre> EnumerateSeats()
+        {
+            var held = _seatPassResult;
+            if (held != null)
+            {
+                return held;
+            }
+
+            var taken = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var centre in EnumerateActive())
+            {
+                taken.Add(centre.Id);
+            }
+
+            var result = new List<ICommandCentre>();
+            foreach (var seat in ReadSeats())
+            {
+                if (taken.Add(seat.Id))
+                {
+                    result.Add(seat);
+                }
+            }
+
+            if (_passOpen)
+            {
+                _seatPassResult = result;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// The id of the first active seat, whether or not that id is also an active
+        /// centre, or null when no seat source has one. For the active craft this is
+        /// where a session that follows it stands.
+        /// </summary>
+        public string? FirstSeatId()
+        {
+            var seats = ReadSeats();
+            return seats.Count == 0 ? null : seats[0].Id;
+        }
+
+        private IReadOnlyList<ICommandCentre> ReadSeats()
+        {
+            var held = _rawSeatPassResult;
+            if (held != null)
+            {
+                return held;
+            }
+
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            var result = new List<ICommandCentre>();
+            foreach (var source in _seatSources)
+            {
+                foreach (var seat in source.Enumerate())
+                {
+                    if (seat.IsActiveNow() && seen.Add(seat.Id))
+                    {
+                        result.Add(seat);
+                    }
+                }
+            }
+
+            if (_passOpen)
+            {
+                _rawSeatPassResult = result;
+            }
+
+            return result;
+        }
+
         private volatile IReadOnlyList<ICommandCentre>? _passResult;
+        private volatile IReadOnlyList<ICommandCentre>? _seatPassResult;
+        private volatile IReadOnlyList<ICommandCentre>? _rawSeatPassResult;
         private volatile bool _passOpen;
 
         /// <summary>
@@ -111,6 +199,8 @@ namespace Sitrep.Host.CommandCentres
         public void BeginPass()
         {
             _passResult = null;
+            _seatPassResult = null;
+            _rawSeatPassResult = null;
             _passOpen = true;
         }
 
@@ -119,6 +209,8 @@ namespace Sitrep.Host.CommandCentres
         {
             _passOpen = false;
             _passResult = null;
+            _seatPassResult = null;
+            _rawSeatPassResult = null;
         }
 
         private void Report(List<CommandCentreIdCollision> collisions)

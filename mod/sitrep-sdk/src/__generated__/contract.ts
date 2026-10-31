@@ -4103,13 +4103,25 @@ export interface CapRate
 * menu) at none, stamping its frames with an empty `vantage`. Every frame's
 * `meta.vantage` says which of these is in force.
 *
+* The reserved id `"active-craft"` is always accepted and names no centre: it
+* asks the host to keep the connection at the active craft, crewed or not, and
+* to move it whenever the game changes craft, with no further message. The
+* active craft is read and commanded at no delay, and frames say which craft
+* in `meta.vantage` as `"vessel:<guid>"`. While there is no active craft (the
+* Space Center, the Tracking Station, the main menu) the connection stays at
+* the vantage a fresh one starts at. Choosing a centre afterwards ends the
+* following.
+*
 * @category Stream messages
 */
 export interface SetVantage
 {
 	/** The frame type, always `"set-vantage"`. */
 	type: "set-vantage";
-	/** The command centre Id to adopt as this connection's vantage. */
+	/**
+	* The command centre Id to adopt as this connection's vantage, or
+	* `"active-craft"` to follow the active craft.
+	*/
 	centreId: string;
 }
 /**

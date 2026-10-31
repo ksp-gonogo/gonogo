@@ -11,3 +11,10 @@
  * the session is observing from. Matches the C# `MetaVantage` constant.
  */
 export const META_VANTAGE = "meta";
+
+/**
+ * The reserved vantage id that asks the mod to keep a connection at the active
+ * craft and to move it whenever the game changes craft. It names no centre and
+ * is never stamped on a frame. Matches the C# `ActiveCraftVantage` constant.
+ */
+export const ACTIVE_CRAFT_VANTAGE = "active-craft";

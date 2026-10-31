@@ -18,7 +18,7 @@ import { warnConnectionError } from "./connection-error-warning";
 import { CommandError, type CommandStatus } from "./lifecycle";
 import type { TimelineStore } from "./timeline-store";
 import { type TopicOwnership, TopicOwnershipTracker } from "./topic-ownership";
-import { META_VANTAGE } from "./vantage";
+import { ACTIVE_CRAFT_VANTAGE, META_VANTAGE } from "./vantage";
 
 type Callback = (value: unknown) => void;
 /** A subscriber that is also handed the `Meta` of the frame that carried the value, where the client still holds it. */
@@ -423,6 +423,8 @@ export class TelemetryClient {
   private readonly idPrefix: string;
   private selectedVantageId: string | undefined;
   private observedVantageId: string | undefined;
+  /** Whether the mod was asked to keep this connection at the active craft: see {@link followActiveCraft}. */
+  private followingActiveCraft = false;
   /** Raw-frame tap listeners: see `onRawMessage`. */
   private readonly rawMessageListeners = new Set<
     (message: ServerMessage) => void
@@ -783,10 +785,14 @@ export class TelemetryClient {
    * `undefined` is "wherever the server puts a connection that has not chosen",
    * which is the home command, and not a centre id this client could spell: the
    * server alone knows which centre is home. Where that turned out to be is
-   * {@link observedVantage}.
+   * {@link observedVantage}. After {@link followActiveCraft} it is that observed
+   * centre, since the mod chooses it.
    */
   get selectedVantage(): string | undefined {
-    return this.selectedVantageId;
+    // While following, the mod picks the centre, so the one in force is the one the frames name.
+    return this.followingActiveCraft
+      ? this.observedVantageId
+      : this.selectedVantageId;
   }
 
   /**
@@ -856,8 +862,32 @@ export class TelemetryClient {
     // not from; and the re-subscribe below would churn the whole topic set for
     // a request nothing will act on.
     if (!this.canSetVantage) return;
+    this.followingActiveCraft = false;
     this.selectedVantageId = centreId;
     for (const listener of this.vantageListeners) listener();
+    this.sendVantage(centreId);
+  }
+
+  /**
+   * Ask the mod to keep this connection at the active craft, and to move it
+   * whenever the game changes craft (a switch, an EVA, a docking or an undock),
+   * with no further message from this client. While there is no active craft
+   * the connection stays at the vantage a fresh connection starts at. Useful for
+   * a screen that flies whichever craft is active, which sends this once instead
+   * of naming a craft. Used by the pilot screen.
+   *
+   * Does nothing when the connection is already following, and on a transport
+   * that cannot carry a vantage. {@link selectedVantage} then reports the centre
+   * the frames name.
+   */
+  followActiveCraft(): void {
+    if (!this.canSetVantage || this.followingActiveCraft) return;
+    this.followingActiveCraft = true;
+    for (const listener of this.vantageListeners) listener();
+    this.sendVantage(ACTIVE_CRAFT_VANTAGE);
+  }
+
+  private sendVantage(centreId: string): void {
     this.transport.send({ type: "set-vantage", centreId });
     // Re-point existing subscriptions at the new vantage: the server reads the selected vantage at subscribe time, so an active topic must re-subscribe.
     for (const topic of this.subscribers.keys()) {
@@ -1449,12 +1479,20 @@ export class TelemetryClient {
     if (vantage === "") {
       if (this.observedVantageId === undefined) return;
       this.observedVantageId = undefined;
-      for (const listener of this.observedVantageListeners) listener();
+      this.notifyObservedVantage();
       return;
     }
     if (vantage === this.observedVantageId) return;
     this.observedVantageId = vantage;
+    this.notifyObservedVantage();
+  }
+
+  private notifyObservedVantage(): void {
     for (const listener of this.observedVantageListeners) listener();
+    // A following connection's selection is the observed one.
+    if (this.followingActiveCraft) {
+      for (const listener of this.vantageListeners) listener();
+    }
   }
 
   /**

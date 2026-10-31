@@ -30,8 +30,10 @@ interface Scene {
   vantage: string;
   /** The seat the header is drawn for. */
   screen: "main" | "pilot";
-  /** A vantage this session asks for, as the picker or a pilot's binding would. */
+  /** A vantage this session asks for, as the picker would. */
   select?: string;
+  /** The pilot screen's request to follow the active craft. */
+  follow?: boolean;
   /** The command centre mission control is standing at, as the host tells a pilot. */
   hostCentre?: string;
   /** Topics the header under test reads, so the first pass repeats until each has a subscriber. */
@@ -70,6 +72,7 @@ async function renderScene(scene: Scene): Promise<void> {
   const transport = new StubTransport();
   client = new TelemetryClient(transport);
   if (scene.select) client.setVantage(scene.select);
+  if (scene.follow) client.followActiveCraft();
   const banner = (
     <ScreenProvider value={scene.screen}>
       <TelemetryProvider client={client}>

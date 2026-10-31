@@ -133,6 +133,46 @@ namespace Gonogo.KSP.Tests.CommandCentres
             Assert.False(ledger.Carried.ContainsKey("ground:Baikerbanur"));
         }
 
+        /// <summary>
+        /// A seat on a craft that is no centre reads its own craft at zero, and reaches
+        /// KSC only where a route exists. With a route it is priced, without one there
+        /// is no row (never zero), and no row is ever written to the seat as a
+        /// destination. The seat is not a roster entry either way.
+        /// </summary>
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void ASeatIsPricedToKscOnlyWhereARouteExists(bool linked)
+        {
+            var centres = new ICommandCentre[] { new FixedCentre("ground:KSC") };
+            var seats = new ICommandCentre[] { new FixedCentre("vessel:m1") };
+
+            var ledger = CommandCentreDelayUplink.BuildLedger(
+                centres,
+                HomeCommand.NotIdentified,
+                new[] { "m1" },
+                "m1",
+                (centre, guid, isHome) => centre.Id == "vessel:m1" ? null : new CommandCentreDelayUplink.CentreRoute(2.0, CommsDirection.Both),
+                (from, to) => from.Id == "vessel:m1" && linked ? 4.0 : (double?)null,
+                centre => null,
+                centre => null,
+                seats);
+
+            Assert.Equal(0.0, Assert.Single(ledger.Rows, r => r.Vantage == "vessel:m1" && r.Node == "fleet.m1").Seconds);
+            Assert.Equal(0.0, Assert.Single(ledger.Rows, r => r.Vantage == "vessel:m1" && r.Node == Sitrep.Host.ChannelEngine.NodeId).Seconds);
+            var toKsc = ledger.Rows.Where(r => r.Vantage == "vessel:m1" && r.Node == "centre.ground:KSC").ToList();
+            if (linked)
+            {
+                Assert.Equal(4.0, Assert.Single(toKsc).Seconds);
+            }
+            else
+            {
+                Assert.Empty(toKsc);
+            }
+            Assert.DoesNotContain(ledger.Rows, r => r.Node == "centre.vessel:m1");
+            Assert.Equal(new[] { "ground:KSC" }, CommandCentreDelayUplink.ToRoster(centres, HomeCommand.NotIdentified).Select(e => e.Id).ToArray());
+        }
+
         private static CommandCentreDelayUplink Uplink(PublishRecordingHost host, params string[] centreIds) =>
             Uplink(host, HomeCommand.NotIdentified, centreIds);
 

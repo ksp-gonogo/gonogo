@@ -383,11 +383,32 @@ namespace Sitrep.Host.CommandCentres
         /// delay for a command that could not be delivered).
         /// </param>
         /// <param name="setDelay">Writes an explicit (vantage, node, seconds) pair.</param>
+        /// <param name="seats">
+        /// Seats, which stand as an origin only: each is timed to every active centre by
+        /// its route, and no row is written to a seat as a destination or from a seat to
+        /// itself. A seat with no route to a centre gets no row, never a zero.
+        /// </param>
         public void PopulateCentrePairs(
             IReadOnlyList<ICommandCentre> activeCentres,
             Func<ICommandCentre, ICommandCentre, double?> routeDelay,
-            Action<string, string, double> setDelay)
+            Action<string, string, double> setDelay,
+            IReadOnlyList<ICommandCentre>? seats = null)
         {
+            if (seats != null)
+            {
+                foreach (var seat in seats)
+                {
+                    foreach (var to in activeCentres)
+                    {
+                        var seconds = routeDelay(seat, to);
+                        if (seconds != null)
+                        {
+                            setDelay(seat.Id, CentreNode(to.Id), seconds.Value);
+                        }
+                    }
+                }
+            }
+
             foreach (var from in activeCentres)
             {
                 foreach (var to in activeCentres)

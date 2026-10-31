@@ -1,6 +1,7 @@
-import { useGameContext, useTelemetry } from "@ksp-gonogo/core";
+import { useGameContext, useScreen, useTelemetry } from "@ksp-gonogo/core";
 import {
   useGameStatus,
+  useObservedVantage,
   useStreamConnected,
   useViewClockOptional,
 } from "@ksp-gonogo/sitrep-client";
@@ -65,9 +66,7 @@ export function MissionBanner({
         <BannerField label="UT">
           <BannerDate />
         </BannerField>
-        <BannerField label="Command centre">
-          <VantageControl />
-        </BannerField>
+        <CommandCentreField />
         <VesselField />
         <EvaField />
         <SignalDelayField />
@@ -87,6 +86,22 @@ export function MissionBanner({
         </Actions>
       ) : null}
     </Banner>
+  );
+}
+
+/**
+ * The command centre the frames are delayed from. A pilot who is following a
+ * craft stands at that craft, which the vessel field beside it already names, so
+ * the field is left out while the vantage is a craft and drawn again at home.
+ */
+function CommandCentreField() {
+  const pilot = useScreen() === "pilot";
+  const observed = useObservedVantage();
+  if (pilot && observed?.startsWith("vessel:")) return null;
+  return (
+    <BannerField label="Command centre">
+      <VantageControl />
+    </BannerField>
   );
 }
 

@@ -676,6 +676,27 @@ describe("PeerTransport", () => {
     telemetry.dispose();
   });
 
+  it("sends the follow request to the host as the follow request, and replays it, never a craft id", () => {
+    const client = makeFakeClient();
+    const transport = new PeerTransport(asService(client));
+    const telemetry = new TelemetryClient(transport);
+    telemetry.subscribe("vessel.orbit", () => {});
+    client.sentVantages.length = 0;
+
+    telemetry.followActiveCraft();
+    telemetry.followActiveCraft();
+
+    expect(client.sentVantages).toEqual(["active-craft"]);
+
+    client.sentVantages.length = 0;
+    client.emitStatus("reconnecting");
+    client.emitStatus("connected");
+
+    expect(client.sentVantages).toEqual(["active-craft"]);
+
+    telemetry.dispose();
+  });
+
   it("forwards a direct set-vantage to the host", () => {
     const client = makeFakeClient();
     const transport = new PeerTransport(asService(client));

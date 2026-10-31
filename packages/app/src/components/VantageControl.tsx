@@ -86,15 +86,29 @@ export function useActiveCentres(): {
  * delayed data still has to know which centre it is delayed from or they cannot
  * interpret any of it, so the answer stays on screen; only the lever goes.
  *
- * A pilot reads it too, for a different reason. `PilotVantage` pins that seat
- * to the craft the human is aboard, so the lever would be a control that
- * fights its own binding: pick anything else and the next frame puts it back.
- * The seat is defined by where the operator is, and that is not theirs to
- * choose. Nothing is lost that the mod would have allowed either, since a
- * craft the pin cannot reach is one `set-vantage` refuses anyway.
+ * A pilot reads it too, for a different reason. `PilotVantage` asks the mod to
+ * keep that seat at the active craft, so the lever would be a control that
+ * fights the mod: pick anything else and the mod's next move puts it back. The
+ * seat is defined by which craft is active, and that is not the pilot's to
+ * choose here. The readout names the craft.
  */
 export function VantageControl() {
   return useScreen() === "main" ? <VantagePicker /> : <VantageReadout />;
+}
+
+/**
+ * The active craft's name, when `observed` is that craft's own vantage, and
+ * `undefined` otherwise. A craft that is no command centre (an uncrewed probe, a
+ * craft with no antenna) is not in the roster, so its name comes from its own
+ * identity sample. Held, not live: the name does not change when the link is quiet.
+ */
+function useActiveCraftName(observed: string | undefined): string | undefined {
+  const reading = useTelemetry("vessel.identity");
+  if (reading.state !== "observed" && reading.state !== "held") {
+    return undefined;
+  }
+  const { vesselId, name } = reading.value;
+  return observed === `vessel:${vesselId}` && name !== "" ? name : undefined;
 }
 
 /**
@@ -112,6 +126,7 @@ function VantageReadout() {
   const { active, homeId } = useActiveCentres();
   const observed = useObservedVantage();
   const entry = active.find((c) => c.id === observed);
+  const craftName = useActiveCraftName(observed);
 
   return (
     <VantageReadout__Root role="status" aria-live="polite">
@@ -123,7 +138,9 @@ function VantageReadout() {
       ) : (
         <>
           <Text size="xs">
-            {entry ? vantageLabels(active).get(entry.id) : "Unknown"}
+            {entry
+              ? vantageLabels(active).get(entry.id)
+              : (craftName ?? "Unknown")}
           </Text>
           {observed === homeId && <HomeBadge />}
         </>

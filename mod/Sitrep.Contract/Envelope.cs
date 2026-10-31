@@ -544,6 +544,15 @@ public class CapRate
 /// order, and while no command centre is active at all (the main menu) at none,
 /// stamping its frames with an empty <c>vantage</c>. Every frame's
 /// <c>meta.vantage</c> says which of these is in force.</para>
+///
+/// <para>The reserved id <c>"active-craft"</c> is always accepted and names no
+/// centre: it asks the host to keep the connection at the active craft, crewed or
+/// not, and to move it whenever the game changes craft, with no further message. The
+/// active craft is read and commanded at no delay, and frames say which craft in
+/// <c>meta.vantage</c> as <c>"vessel:&lt;guid&gt;"</c>. While there is no active craft
+/// (the Space Center, the Tracking Station, the main menu) the connection stays at
+/// the vantage a fresh one starts at. Choosing a centre afterwards ends the
+/// following.</para>
 /// </summary>
 /// <category>Stream messages</category>
 [SitrepContract]
@@ -560,7 +569,7 @@ public class SetVantage
     public string Type { get; set; } = "set-vantage";
 
     /// <summary>The command centre Id to adopt as this connection's
-    /// vantage.</summary>
+    /// vantage, or <c>"active-craft"</c> to follow the active craft.</summary>
     [SitrepUnit(Units.Id)]
     public string CentreId { get; set; } = "";
 }

@@ -154,6 +154,7 @@ namespace Gonogo.KSP.CommandCentres
             }
 
             var centres = _registry.EnumerateActive();
+            var seats = _registry.EnumerateSeats();
             var config = CommsCoreUplink.SignalDelayConfig;
             // Resolved ONCE per pass, not per row: the election does not change
             // mid-capture, and every routed row below is solved by this backend's
@@ -175,7 +176,8 @@ namespace Gonogo.KSP.CommandCentres
                     guid == activeGuid ? activeRoutes : null, nameOf),
                 (from, to) => RouteCentreDelay(backend, from, to, config, solves),
                 centre => SecondsToHome(centre, config),
-                centre => ReachesGround(centre, vessels, config));
+                centre => ReachesGround(centre, vessels, config),
+                seats);
             capture.Ut = snapshot != null ? snapshot.Ut : 0.0;
             capture.ActiveRoutes = activeRoutes;
             capture.OffTheGround = FleetCommsReader.OffTheGround(vessels, config);
@@ -210,9 +212,16 @@ namespace Gonogo.KSP.CommandCentres
             Func<ICommandCentre, string, bool, CentreRoute?> routeToCraft,
             Func<ICommandCentre, ICommandCentre, double?> routeBetweenCentres,
             Func<ICommandCentre, double?> secondsToHome,
-            Func<ICommandCentre, bool?> reachesGround)
+            Func<ICommandCentre, bool?> reachesGround,
+            IReadOnlyList<ICommandCentre>? seats = null)
         {
             var homeId = HomeCentreId(centres, home);
+            /*
+             * A seat is timed like a centre everywhere a centre is an ORIGIN, and
+             * nowhere it is a destination. The home election and the roster above
+             * and below read `centres` alone, so a seat is never home and never listed.
+             */
+            var origins = seats == null || seats.Count == 0 ? centres : centres.Concat(seats).ToList();
             var rows = new List<AuthorityRow>();
             void Row(string vantage, string node, double seconds) =>
                 rows.Add(new AuthorityRow { Vantage = vantage, Node = node, Seconds = seconds });
@@ -233,16 +242,16 @@ namespace Gonogo.KSP.CommandCentres
             CommsDirection Carries(ICommandCentre centre, string guid) => Solved(centre, guid)?.Carries ?? CommsDirection.Both;
 
             var pass = new AuthorityMatrixPass();
-            pass.Populate(centres, subjectGuids, Routed, Row);
+            pass.Populate(origins, subjectGuids, Routed, Row);
             pass.PopulateActiveVessel(
-                centres,
+                origins,
                 activeGuid,
                 homeId,
                 Routed,
                 (vantage, seconds) => Row(vantage, ChannelEngine.NodeId, seconds));
-            pass.PopulateCentrePairs(centres, routeBetweenCentres, Row);
+            pass.PopulateCentrePairs(centres, routeBetweenCentres, Row, seats);
             pass.PopulateHomeCommand(
-                centres,
+                origins,
                 homeId,
                 secondsToHome,
                 (vantage, seconds) => Row(vantage, ChannelEngine.HomeCommandNode, seconds));
@@ -250,7 +259,7 @@ namespace Gonogo.KSP.CommandCentres
             return new LedgerCapture
             {
                 Rows = rows,
-                Carried = pass.Carried(centres, homeId, subjectGuids, activeGuid, Routed, Carries, reachesGround),
+                Carried = pass.Carried(origins, homeId, subjectGuids, activeGuid, Routed, Carries, reachesGround),
             };
         }
 

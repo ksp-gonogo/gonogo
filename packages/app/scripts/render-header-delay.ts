@@ -48,6 +48,7 @@ const GS1 = "ground:Ground Station 1";
 const GS2 = "ground:Ground Station 2";
 const MUN_STATION = "vessel:mun-station";
 const CRAFT = "vessel:kerbal-x";
+const PROBE = "vessel:pathfinder";
 
 const ROSTER = [
   {
@@ -138,7 +139,10 @@ interface Scene {
   screen: "main" | "pilot";
   vantage: string;
   select?: string;
+  follow?: boolean;
   hostCentre?: string;
+  /** Text the header must also contain once settled, such as the craft's name. */
+  mustContain?: string;
   emit: [string, unknown][];
   /**
    * How the header's text ends once the scene has settled, for each code
@@ -229,7 +233,7 @@ const SCENES: Scene[] = [
     name: "pilot-aboard",
     screen: "pilot",
     vantage: CRAFT,
-    select: CRAFT,
+    follow: true,
     hostCentre: KSC,
     settled: {
       after: "DelaySignal delay 3min 7s",
@@ -242,7 +246,7 @@ const SCENES: Scene[] = [
     name: "pilot-aboard-ground-station",
     screen: "pilot",
     vantage: CRAFT,
-    select: CRAFT,
+    follow: true,
     hostCentre: GS1,
     settled: {
       after: "DelaySignal delay 42s",
@@ -255,7 +259,7 @@ const SCENES: Scene[] = [
     name: "pilot-aboard-unrouted",
     screen: "pilot",
     vantage: CRAFT,
-    select: CRAFT,
+    follow: true,
     hostCentre: GS2,
     settled: {
       after: "DelaySignal delay 3min 7s via home",
@@ -268,13 +272,78 @@ const SCENES: Scene[] = [
     name: "pilot-blackout",
     screen: "pilot",
     vantage: CRAFT,
-    select: CRAFT,
+    follow: true,
     hostCentre: KSC,
     settled: {
       after: "DelaySignal delay: disconnected",
       before: "DelaySignal delay 0s",
     },
     emit: [...flight(false), ["vessel.orbit", CRAFT_ORBIT]],
+  },
+  {
+    // The pilot follows a crewed pod, which is a command centre in the roster.
+    name: "pilot-follows-crewed-pod",
+    screen: "pilot",
+    vantage: CRAFT,
+    follow: true,
+    hostCentre: KSC,
+    mustContain: "Kerbal X",
+    settled: {
+      after: "DelaySignal delay 3min 7s",
+      before: "DelaySignal delay 3min 7s",
+    },
+    emit: [
+      ...flight(true),
+      ["vessel.orbit", CRAFT_ORBIT],
+      ["vessel.identity", { vesselId: "kerbal-x", name: "Kerbal X" }],
+    ],
+  },
+  {
+    // The pilot follows an uncrewed probe, which is no command centre and not in the roster.
+    name: "pilot-follows-uncrewed-probe",
+    screen: "pilot",
+    vantage: PROBE,
+    follow: true,
+    hostCentre: KSC,
+    mustContain: "Pathfinder Probe",
+    settled: {
+      after: "DelaySignal delay 3min 7s",
+      before: "DelaySignal delay 3min 7s",
+    },
+    emit: [
+      ...flight(true),
+      ["vessel.orbit", { ...CRAFT_ORBIT, meta: { source: PROBE, quality: 0 } }],
+      ["vessel.identity", { vesselId: "pathfinder", name: "Pathfinder Probe" }],
+    ],
+  },
+  {
+    // Mission control is the probe itself: its delay to the craft is zero, though home is minutes away.
+    name: "pilot-probe-zero-delay",
+    screen: "pilot",
+    vantage: PROBE,
+    follow: true,
+    hostCentre: PROBE,
+    mustContain: "Pathfinder Probe",
+    settled: { after: "Pathfinder Probe", before: "Pathfinder Probe" },
+    emit: [
+      ...flight(true),
+      ["vessel.orbit", { ...CRAFT_ORBIT, meta: { source: PROBE, quality: 0 } }],
+      ["vessel.identity", { vesselId: "pathfinder", name: "Pathfinder Probe" }],
+    ],
+  },
+  {
+    // No active craft (the Space Center): the pilot reads from the home command centre.
+    name: "pilot-space-center",
+    screen: "pilot",
+    vantage: KSC,
+    follow: true,
+    hostCentre: KSC,
+    settled: { after: "KSCHome", before: "KSCHome" },
+    emit: [
+      ["commandCentre.roster", ROSTER],
+      ["spaceCenter.scene", { scene: "SpaceCenter" }],
+      ["comms.link", { connected: false }],
+    ],
   },
   {
     // Delay switched off: the wire reads a known zero, and the header has no delay to state.
@@ -449,6 +518,7 @@ async function main(): Promise<void> {
           vantage: scene.vantage,
           screen: scene.screen,
           select: scene.select,
+          follow: scene.follow,
           hostCentre: scene.hostCentre,
           awaitTopics,
           pxW: PX_W,
@@ -473,6 +543,16 @@ async function main(): Promise<void> {
         throw new Error(
           `${name}: header never settled on "${expected}", last read "${text}"`,
         );
+      }
+      if (scene.mustContain) {
+        const text = await page.evaluate(
+          () => document.getElementById("root")?.textContent ?? "",
+        );
+        if (!text.includes(scene.mustContain)) {
+          throw new Error(
+            `${name}: header does not name "${scene.mustContain}", read "${text}"`,
+          );
+        }
       }
       const out = join(OUT_DIR, `${name}.png`);
       const root = await page.$("#root");

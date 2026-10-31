@@ -61,6 +61,62 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
+        public async Task ASeat_IsSelectable_UntilItsCrewLeave_AndIsNoCentre()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterCommandCentreSource(
+                new StaticSource("ground:gs1", CommandCentreKind.GroundStation));
+            var seat = new SwitchableSeatSource("vessel:g1");
+            engine.RegisterCommandCentreSeatSource(seat);
+            engine.Start();
+            engine.TickAndWait(0.0, null, Timeout);
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+
+                await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "vessel:g1" }));
+                await client.AssertNoMessageArrivesAsync(Quiet);
+                Assert.True(engine.IsVantageSelectable("vessel:g1"));
+
+                // The crew leave, or the active craft changes: the next tick drops the seat.
+                seat.Occupied = false;
+                engine.TickAndWait(1.0, null, Timeout);
+
+                await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "vessel:g1" }));
+                var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
+                Assert.Equal(FaultCode.UnknownVantage, error.Code);
+                Assert.Contains("is not an active command centre", error.Message);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
+        public async Task ASeat_DoesNotMoveWhereAFreshConnectionStarts()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterCommandCentreSource(
+                new StaticSource("ground:gs1", CommandCentreKind.GroundStation));
+            engine.RegisterCommandCentreSeatSource(new SwitchableSeatSource("vessel:g1"));
+            engine.RegisterUplink(new EchoVantageTestUplink());
+            engine.Start();
+            engine.TickAndWait(0.0, null, Timeout);
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+
+                var baseline = await DispatchAndAwaitResponse(client, "r0");
+                Assert.Equal("ground:gs1", baseline.Meta.Vantage);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
         public async Task UnknownCentre_KeepsPriorVantage_ReturnsError()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
@@ -554,6 +610,25 @@ namespace Sitrep.Host.IntegrationTests
 
                 Interlocked.Increment(ref _mainThreadEnumerations);
                 yield return _centre;
+            }
+        }
+
+        private sealed class SwitchableSeatSource : ICommandCentreSource
+        {
+            private readonly string _id;
+
+            public SwitchableSeatSource(string id) => _id = id;
+
+            public bool Occupied { get; set; } = true;
+
+            public string ProviderId => "seat-test";
+
+            public IEnumerable<ICommandCentre> Enumerate()
+            {
+                if (Occupied)
+                {
+                    yield return new StaticSource(_id, CommandCentreKind.CrewedVessel).Enumerate().First();
+                }
             }
         }
 

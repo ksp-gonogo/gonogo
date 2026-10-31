@@ -98,6 +98,63 @@ namespace Sitrep.Host.Tests.CommandCentres
             Assert.Equal(new[] { "vessel:g1" }, reg.EnumerateActive().Select(c => c.Id).ToArray());
         }
 
+        [Fact]
+        public void ASeatIsNotACentre_NeverInEnumerateActive_AndAppearsOnlyInEnumerateSeats()
+        {
+            var reg = new CommandCentreRegistry();
+            reg.RegisterSource(new FakeCommandCentreSource("a", new FakeCommandCentre("ksc")));
+            reg.RegisterSeatSource(new FakeCommandCentreSource(
+                "seat", new FakeCommandCentre("vessel:g1", CommandCentreKind.CrewedVessel)));
+
+            Assert.Equal(new[] { "ksc" }, reg.EnumerateActive().Select(c => c.Id).ToArray());
+            Assert.Equal(new[] { "vessel:g1" }, reg.EnumerateSeats().Select(c => c.Id).ToArray());
+        }
+
+        [Fact]
+        public void ACraftThatIsAlreadyACentre_IsNotAlsoASeat()
+        {
+            var reg = new CommandCentreRegistry();
+            reg.RegisterSource(new FakeCommandCentreSource(
+                "a", new FakeCommandCentre("vessel:g1", CommandCentreKind.CrewedVessel)));
+            reg.RegisterSeatSource(new FakeCommandCentreSource(
+                "seat", new FakeCommandCentre("vessel:g1", CommandCentreKind.CrewedVessel)));
+
+            Assert.Empty(reg.EnumerateSeats());
+            Assert.Empty(reg.Collisions);
+        }
+
+        [Fact]
+        public void ASeatThatIsNotActiveNow_IsNotOffered_AndTheSetFollowsTheSourceEachCall()
+        {
+            var mutable = new MutableSource("seat");
+            var reg = new CommandCentreRegistry();
+            reg.RegisterSeatSource(mutable);
+
+            Assert.Empty(reg.EnumerateSeats());
+
+            mutable.Centres = new ICommandCentre[] { new FakeCommandCentre("vessel:g1", CommandCentreKind.CrewedVessel) };
+            Assert.Equal(new[] { "vessel:g1" }, reg.EnumerateSeats().Select(c => c.Id).ToArray());
+
+            mutable.Centres = new ICommandCentre[] { new FakeCommandCentre("vessel:g1", CommandCentreKind.CrewedVessel, active: false) };
+            Assert.Empty(reg.EnumerateSeats());
+        }
+
+        [Fact]
+        public void FirstSeatId_NamesTheCraftEvenWhenItIsAlreadyACentre_AndIsNullWithNoSeat()
+        {
+            var reg = new CommandCentreRegistry();
+            var seats = new MutableSource("seat");
+            reg.RegisterSource(new FakeCommandCentreSource(
+                "a", new FakeCommandCentre("vessel:g1", CommandCentreKind.CrewedVessel)));
+            reg.RegisterSeatSource(seats);
+
+            Assert.Null(reg.FirstSeatId());
+
+            seats.Centres = new ICommandCentre[] { new FakeCommandCentre("vessel:g1", CommandCentreKind.CrewedVessel) };
+            Assert.Equal("vessel:g1", reg.FirstSeatId());
+            Assert.Empty(reg.EnumerateSeats());
+        }
+
         private sealed class MutableSource : ICommandCentreSource
         {
             public MutableSource(string id) => ProviderId = id;

@@ -75,6 +75,42 @@ describe("VantageControl on a station", () => {
     fixture.unmount();
   });
 
+  it("names an uncrewed craft that is no command centre from its own identity", () => {
+    const fixture = mountStation("pilot");
+    fixture.emitRoster(ROSTER);
+    act(() => {
+      fixture.emit(
+        "vessel.identity",
+        { vesselId: "probe-1", name: "Pathfinder Probe" },
+        { vantage: "vessel:probe-1" },
+      );
+      fixture.store.beginFrame();
+    });
+
+    expect(screen.getByRole("status")).toHaveTextContent("Pathfinder Probe");
+    expect(screen.queryByText("Unknown")).toBeNull();
+
+    fixture.unmount();
+  });
+
+  it("keeps naming the home centre when the identity belongs to no craft in force", () => {
+    const fixture = mountStation("pilot");
+    fixture.emitRoster(ROSTER);
+    act(() => {
+      fixture.emit(
+        "vessel.identity",
+        { vesselId: "probe-1", name: "Pathfinder Probe" },
+        { vantage: KSC },
+      );
+      fixture.store.beginFrame();
+    });
+
+    expect(screen.getByRole("status")).toHaveTextContent("KSC");
+    expect(screen.queryByText("Pathfinder Probe")).toBeNull();
+
+    fixture.unmount();
+  });
+
   it("does not claim a command centre before any frame has said which one", () => {
     const fixture = mountStation();
 

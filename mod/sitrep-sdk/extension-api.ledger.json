@@ -9735,6 +9735,10 @@
         "note": "New: sends several commands as one command-group frame"
       },
       {
+        "key": "sitrep-sdk ./spine TelemetryClient#followActiveCraft",
+        "note": "New: asks the mod to keep the connection at the active craft, moved by the mod when the craft changes"
+      },
+      {
         "key": "sitrep-sdk ./spine TelemetryClient#holdCommands",
         "note": "New: keeps the records of named commands past the sweep of answered ones, so a command group keeps reading its members' answers"
       },
@@ -10837,6 +10841,10 @@
       {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#dispatchGroup",
         "note": "New: sends several commands as one command-group frame"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#followActiveCraft",
+        "note": "New: asks the mod to keep the connection at the active craft, moved by the mod when the craft changes"
       },
       {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#holdCommands",

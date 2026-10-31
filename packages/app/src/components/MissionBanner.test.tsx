@@ -868,6 +868,15 @@ function renderPilot() {
   return { ...view, tell, fly };
 }
 
+describe("MissionBanner command centre field on the pilot screen", () => {
+  it("is left out while the frames are from a craft", async () => {
+    const { fly } = renderPilot();
+    await fly(true);
+
+    expect(screen.queryByText("Command centre")).toBeNull();
+  });
+});
+
 describe("MissionBanner signal delay aboard the craft", () => {
   it("shows the delay to mission control's home centre, not zero", async () => {
     const expected = unitMarkup(187.4);

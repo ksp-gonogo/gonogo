@@ -132,6 +132,28 @@ describe("TelemetryClient subscriptions", () => {
     });
     expect(sendSpy).toHaveBeenCalledWith({ type: "subscribe", topic: "v.alt" });
   });
+  it("followActiveCraft asks once, re-subscribes active topics, and reports the centre the frames name", () => {
+    const t = new StubTransport();
+    const sendSpy = vi.spyOn(t, "send");
+    const client = new TelemetryClient(t);
+    client.subscribe("v.alt", () => {});
+    sendSpy.mockClear();
+    let changes = 0;
+    client.onSelectedVantageChange(() => {
+      changes += 1;
+    });
+
+    client.followActiveCraft();
+    client.followActiveCraft();
+
+    expect(
+      sendSpy.mock.calls.filter(([m]) => m.type === "set-vantage"),
+    ).toEqual([[{ type: "set-vantage", centreId: "active-craft" }]]);
+    expect(sendSpy).toHaveBeenCalledWith({ type: "subscribe", topic: "v.alt" });
+    expect(client.selectedVantage).toBeUndefined();
+    expect(changes).toBe(1);
+  });
+
   it("sends unsubscribe only when the last subscriber leaves (ref-counted)", () => {
     const t = new StubTransport();
     const sendSpy = vi.spyOn(t, "send");

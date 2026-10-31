@@ -233,6 +233,11 @@ namespace Gonogo.KSP
                     _engine.RegisterCommandCentreSource(src);
                     ccRegistry.RegisterSource(src);
                 }
+                // The active craft is a place to stand even when it is no command centre,
+                // so a session that follows it reads it live whatever the craft carries.
+                var seatSource = new CommandCentres.ActiveCraftSeatSource();
+                _engine.RegisterCommandCentreSeatSource(seatSource);
+                ccRegistry.RegisterSeatSource(seatSource);
                 var homeEngine = _engine;
                 RegisterCoreUplink(_engine, new CommandCentres.CommandCentreDelayUplink(ccRegistry, () => homeEngine.CurrentHomeCommand, homeEngine));
                 // One shared hand-off: the planner and the link capture write it,

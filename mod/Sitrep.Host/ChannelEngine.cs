@@ -48,6 +48,14 @@ namespace Sitrep.Host
         public const string MetaVantage = "meta";
 
         /// <summary>
+        /// The reserved <c>set-vantage</c> id that asks the host to keep a connection at the
+        /// active craft, wherever the game moves it. It names no place of its own: the
+        /// connection stands at the craft's id while there is an active craft, and at the
+        /// fresh-connection vantage while there is none.
+        /// </summary>
+        public const string ActiveCraftVantage = "active-craft";
+
+        /// <summary>
         /// Per-vessel node namespace: a topic "fleet.&lt;guid&gt;.&lt;field&gt;"
         /// records under the per-vessel Courier node "fleet.&lt;guid&gt;", so
         /// <c>DelayTo(vantage, node)</c> can give each vessel its own signal delay.
@@ -323,6 +331,19 @@ namespace Sitrep.Host
         private IReadOnlyList<ICommandCentre> _activeCentres = new ICommandCentre[0];
 
         /// <summary>
+        /// The ids of the seats at the last main-loop tick: the active craft while it
+        /// carries crew and is not itself a command centre. Published by
+        /// <see cref="CaptureCommandCentresOnMain"/> the same way as
+        /// <see cref="_activeCentreIds"/> and read by <see cref="IsSelectableVantage"/>.
+        /// Deliberately a separate set, so a seat is selectable as a vantage without
+        /// becoming a centre to the node rows, the home election or the roster.
+        /// </summary>
+        private volatile HashSet<string> _seatIds = NoActiveCentreIds;
+
+        /// <summary>Main-loop-thread only: the active craft's id as this tick's capture read it, handed to the settle that follows.</summary>
+        private string? _nextActiveCraftVantage;
+
+        /// <summary>
         /// The ground stations among <see cref="_activeCentreIds"/>, published by the same
         /// capture and under the same rule.
         /// </summary>
@@ -362,6 +383,14 @@ namespace Sitrep.Host
         /// subscriptions (see <see cref="ProcessFreshConnectionVantageMoved"/>).
         /// </summary>
         private volatile string _freshConnectionVantage = CommandCentres.FreshConnectionVantage.None;
+
+        /// <summary>
+        /// The id of the active craft's seat as of the last main-loop tick, or null while
+        /// there is no active craft (the Space Center, the Tracking Station, the main menu).
+        /// Where a connection that asked to follow the active craft stands. Written on the
+        /// main-loop thread, read on the Courier thread by <see cref="VantageOf"/>.
+        /// </summary>
+        private volatile string? _activeCraftVantage;
 
         /// <summary>Main-loop-thread only: the last home state logged, so a steady one is logged once.</summary>
         private string? _loggedHomeState;
@@ -3915,6 +3944,16 @@ namespace Sitrep.Host
         }
 
         /// <summary>
+        /// Registers a source of seats, the craft a session may stand aboard without the
+        /// craft being a command centre. A seat is a vantage and nothing else: it is not
+        /// in the roster, the home election or the picker.
+        /// </summary>
+        public void RegisterCommandCentreSeatSource(ICommandCentreSource source)
+        {
+            _commandCentres.RegisterSeatSource(source);
+        }
+
+        /// <summary>
         /// Whether a client-supplied vantage id names a place this connection may
         /// observe or dispatch from: it must name a currently-active command centre.
         /// No id is special. A connection that never chose one is at
@@ -3942,7 +3981,7 @@ namespace Sitrep.Host
         /// that tick, one sample stale.</para>
         /// </summary>
         private bool IsSelectableVantage(string centreId) =>
-            _activeCentreIds.Contains(centreId);
+            _activeCentreIds.Contains(centreId) || _seatIds.Contains(centreId);
 
         /// <summary>
         /// Whether <paramref name="centreId"/> is an active command centre, or
@@ -3962,7 +4001,8 @@ namespace Sitrep.Host
         public bool? IsVantageSelectable(string centreId)
         {
             var active = _activeCentreIds;
-            return active.Count == 0 ? (bool?)null : active.Contains(centreId);
+            var seats = _seatIds;
+            return active.Count == 0 && seats.Count == 0 ? (bool?)null : active.Contains(centreId) || seats.Contains(centreId);
         }
 
         /// <summary>
@@ -4000,8 +4040,16 @@ namespace Sitrep.Host
                     }
                 }
 
+                var seatIds = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var seat in _commandCentres.EnumerateSeats())
+                {
+                    seatIds.Add(seat.Id);
+                }
+
                 _activeCentres = active;
                 _activeCentreIds = ids;
+                _seatIds = seatIds;
+                _nextActiveCraftVantage = _commandCentres.FirstSeatId();
                 _activeGroundIds = groundIds;
                 _activeGroundSites = groundSites;
                 _consecutiveCentreCaptureThrows = 0;
@@ -4051,13 +4099,17 @@ namespace Sitrep.Host
                 LogFreshConnectionVantage(home, ground.Count, next);
             }
 
-            if (next == _freshConnectionVantage)
+            var freshMoved = next != _freshConnectionVantage;
+            var craft = _nextActiveCraftVantage;
+            var craftMoved = craft != _activeCraftVantage;
+            if (!freshMoved && !craftMoved)
             {
                 return;
             }
 
             _freshConnectionVantage = next;
-            EnqueueJob(new FreshConnectionVantageMovedJob());
+            _activeCraftVantage = craft;
+            EnqueueJob(new FreshConnectionVantageMovedJob(freshMoved, craftMoved));
         }
 
         private CommandCentres.SurfaceSite? ReadSpaceCentre()
@@ -4091,10 +4143,14 @@ namespace Sitrep.Host
 
         /// <summary>
         /// The vantage a connection observes and dispatches from: the one it chose, or
-        /// <see cref="_freshConnectionVantage"/> until it chooses one.
+        /// <see cref="_freshConnectionVantage"/> until it chooses one. A connection that
+        /// asked to follow the active craft stands at <see cref="_activeCraftVantage"/>
+        /// while there is one, and falls back to the fresh-connection vantage while not.
         /// </summary>
         private string VantageOf(ClientSession session) =>
-            session.ChosenVantage ?? _freshConnectionVantage;
+            session.ChosenVantage
+            ?? (session.FollowsActiveCraft ? _activeCraftVantage : null)
+            ?? _freshConnectionVantage;
 
         /// <summary>
         /// Courier-thread-only: re-subscribe every topic of every connection that has
@@ -4103,11 +4159,22 @@ namespace Sitrep.Host
         /// client sends after its own set-vantage, and for the same reason: a stream is
         /// bound to the vantage it was subscribed under.
         /// </summary>
-        private void ProcessFreshConnectionVantageMoved()
+        private void ProcessFreshConnectionVantageMoved(FreshConnectionVantageMovedJob moved)
         {
             foreach (var session in _sessions.Values)
             {
                 if (session.ChosenVantage != null)
+                {
+                    continue;
+                }
+
+                // A follower stands at the active craft while there is one, so only a move of
+                // the craft re-points it then. A connection that never asked to follow is not
+                // touched by a change of craft.
+                var affected = session.FollowsActiveCraft
+                    ? moved.ActiveCraft || (moved.Fresh && _activeCraftVantage == null)
+                    : moved.Fresh;
+                if (!affected)
                 {
                     continue;
                 }
@@ -4172,10 +4239,22 @@ namespace Sitrep.Host
         /// Apply a client set-vantage request: switch the connection's
         /// vantage to a command centre. The id must name a currently-active centre,
         /// else the prior vantage is kept and an error is returned. Once chosen, the
-        /// connection stays there and no longer follows home.
+        /// connection stays there and no longer follows home. The reserved
+        /// <see cref="ActiveCraftVantage"/> id is always accepted and makes the connection
+        /// follow the active craft instead.
         /// </summary>
         private void HandleSetVantage(ClientSession session, SetVantage sv)
         {
+            if (sv.CentreId == ActiveCraftVantage)
+            {
+                // Accepted whatever the game is showing: with no active craft the connection
+                // stays at the fresh-connection vantage until there is one.
+                session.ChosenVantage = null;
+                session.FollowsActiveCraft = true;
+                EnqueueJob(new FreshConnectionVantageMovedJob(false, true));
+                return;
+            }
+
             if (!IsSelectableVantage(sv.CentreId))
             {
                 var error = new ErrorMsg
@@ -4190,6 +4269,7 @@ namespace Sitrep.Host
             // Reference assignment is atomic; the Courier thread reads the new
             // vantage on subsequent subscribes/dispatches (an eventually-consistent
             // switch, matching the client re-subscribing its topics at the new vantage).
+            session.FollowsActiveCraft = false;
             session.ChosenVantage = sv.CentreId;
         }
 
@@ -8003,7 +8083,7 @@ namespace Sitrep.Host
                                 ProcessCapRate(capRate.Session, capRate.Tier, capRate.SamplesPerSecond);
                                 break;
                             case FreshConnectionVantageMovedJob:
-                                ProcessFreshConnectionVantageMoved();
+                                ProcessFreshConnectionVantageMoved((FreshConnectionVantageMovedJob)job);
                                 break;
                         }
                     }
@@ -12240,7 +12320,7 @@ namespace Sitrep.Host
             {
                 var vantage = session.ChosenVantage;
                 LogHostInfo("client " + ShortSessionId(session.Connection) + " disconnected ("
-                    + (vantage == null ? "default vantage" : "vantage " + vantage) + ", "
+                    + (vantage != null ? "vantage " + vantage : session.FollowsActiveCraft ? "following the active craft" : "default vantage") + ", "
                     + _sessions.Count + " still connected)");
             }
 
@@ -12741,6 +12821,14 @@ namespace Sitrep.Host
         /// <summary>Queued when the fresh-connection vantage moves; see <c>ProcessFreshConnectionVantageMoved</c>.</summary>
         private sealed class FreshConnectionVantageMovedJob : IEngineJob
         {
+            public readonly bool Fresh;
+            public readonly bool ActiveCraft;
+
+            public FreshConnectionVantageMovedJob(bool fresh, bool activeCraft)
+            {
+                Fresh = fresh;
+                ActiveCraft = activeCraft;
+            }
         }
 
         private sealed class AdvanceJob : IEngineJob
@@ -12864,6 +12952,13 @@ namespace Sitrep.Host
             /// Written on a socket thread, read on the Courier thread.
             /// </summary>
             public volatile string? ChosenVantage;
+
+            /// <summary>
+            /// Whether this connection asked to follow the active craft (the reserved
+            /// <see cref="ActiveCraftVantage"/> id) and has chosen no centre since. Written on a
+            /// socket thread, read on the Courier thread.
+            /// </summary>
+            public volatile bool FollowsActiveCraft;
 
             /// <summary>The rate tier this connection asks for on each subscribed topic, base ones left out. Courier-thread-only.</summary>
             public readonly Dictionary<string, string> RateTiers = new Dictionary<string, string>(StringComparer.Ordinal);

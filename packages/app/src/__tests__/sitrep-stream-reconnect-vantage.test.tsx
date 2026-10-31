@@ -70,6 +70,9 @@ function Seat() {
       <button type="button" onClick={() => client?.setVantage(CRAFT)}>
         choose
       </button>
+      <button type="button" onClick={() => client?.followActiveCraft()}>
+        follow
+      </button>
       <div>chosen:{chosen ?? "none"}</div>
       <div>observed:{observed ?? "none"}</div>
     </div>
@@ -170,6 +173,46 @@ describe("a chosen vantage across a reconnect", () => {
     );
     expect(connections[1].received.join("")).toContain(CRAFT);
     expect(screen.getByText(`chosen:${CRAFT}`)).toBeTruthy();
+    await act(async () => {});
+  });
+  it("replays the follow request, not the last craft the frames named", async () => {
+    const connections: Connection[] = [];
+    server.use(
+      link.addEventListener("connection", ({ client }) => {
+        const received: string[] = [];
+        client.addEventListener("message", (event) =>
+          received.push(String(event.data)),
+        );
+        connections.push({ client, received });
+      }),
+    );
+    render(
+      <SitrepTelemetryProvider enabled host="localhost" port={8090}>
+        <Seat />
+      </SitrepTelemetryProvider>,
+    );
+    await waitFor(() => expect(connections).toHaveLength(1));
+    await waitFor(() => expect(getSitrepTransportStatus()).toBe("connected"));
+    await act(async () => {
+      screen.getByRole("button", { name: "follow" }).click();
+    });
+    await act(async () => {
+      connections[0].client.send(frame(CRAFT));
+    });
+    expect(await screen.findByText(`chosen:${CRAFT}`)).toBeTruthy();
+
+    await act(async () => {
+      connections[0].client.close();
+    });
+    await waitFor(() => expect(connections).toHaveLength(2), {
+      timeout: 10_000,
+    });
+    await waitFor(() => expect(getSitrepTransportStatus()).toBe("connected"));
+
+    await waitFor(() =>
+      expect(connections[1].received.join("")).toContain("active-craft"),
+    );
+    expect(connections[1].received.join("")).not.toContain(CRAFT);
     await act(async () => {});
   });
 });
