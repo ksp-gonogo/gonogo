@@ -49,7 +49,8 @@ namespace Gonogo.KSP
             _source = new ContactPlanSource(
                 this,
                 () => Time.realtimeSinceStartup,
-                message => GonogoLog.Sink("ContactPlanUplink: " + message));
+                message => GonogoLog.Sink("ContactPlanUplink: " + message),
+                log: message => GonogoLog.Sink("[Sitrep]" + message));
         }
 
         public UplinkHealth Health() => _source.Health();

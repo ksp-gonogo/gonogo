@@ -405,6 +405,7 @@ namespace Sitrep.Host.Comms
         private readonly Action<string> _warn;
         private readonly bool _planInline;
         private readonly ContactPlanRunner _runner = new ContactPlanRunner();
+        private readonly Action<string> _log;
         private readonly CraftStateRecorder _craft = new CraftStateRecorder();
         private IUplinkHost? _host;
         private ICraftStateHost? _craftHost;
@@ -494,9 +495,11 @@ namespace Sitrep.Host.Comms
         /// <param name="game">The game the plan is made of.</param>
         /// <param name="wallSeconds">Wall time in seconds, for pacing how often the game is looked at.</param>
         /// <param name="warn">Where a plan that threw is reported.</param>
+        /// <param name="log">Where what the radius of each craft read in the air is made of is written, one line per read.</param>
         /// <param name="planInline">Run each round of plans on the Courier thread instead of a pool thread, so the tick that starts one also publishes it. For a scripted game, where which tick a plan lands on has to be the same every run.</param>
-        public ContactPlanSource(IContactGame game, Func<float> wallSeconds, Action<string>? warn = null, bool planInline = false)
+        public ContactPlanSource(IContactGame game, Func<float> wallSeconds, Action<string>? warn = null, bool planInline = false, Action<string>? log = null)
         {
+            _log = log ?? (_ => { });
             _game = game;
             _wallSeconds = wallSeconds;
             _warn = warn ?? (_ => { });
@@ -785,6 +788,13 @@ namespace Sitrep.Host.Comms
             var readStarted = System.Diagnostics.Stopwatch.GetTimestamp();
             var batch = _craft.Capture(look, snapshot.Ut, _host.Kernel, RosterOf(snapshot));
             Sitrep.Host.SampleTiming.Add("cp.craft", System.Diagnostics.Stopwatch.GetTimestamp() - readStarted);
+            foreach (var state in batch.States)
+            {
+                if (PlacePrediction.DescribeBound(state, state.CapturedUt + 2.0) is string bound)
+                {
+                    _log("[BOUND] " + bound);
+                }
+            }
             ReportSlowLook(wall, lookedTicks, System.Diagnostics.Stopwatch.GetTimestamp() - readStarted, batch.States.Count, look.Nodes.Count);
             return new Looked(
                 snapshot.Ut,

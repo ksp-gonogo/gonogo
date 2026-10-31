@@ -11,7 +11,7 @@ namespace Sitrep.Host.Comms
     /// </summary>
     public sealed class CraftCapability
     {
-        public CraftCapability(double? deltaVMs, double? maxAccelerationMs2, double? airspeedMs, bool drivenWithoutPropellant, bool? thrusting = null, ThrustAcceleration? thrustAcceleration = null, ThrustAcceleration? measuredAcceleration = null, double? engineChangeAcceleration = null, IReadOnlyList<CanopyReading>? canopies = null, double? airDensityKgM3 = null, double? deployHeightM = null, double? extentM = null)
+        public CraftCapability(double? deltaVMs, double? maxAccelerationMs2, double? airspeedMs, bool drivenWithoutPropellant, bool? thrusting = null, ThrustAcceleration? thrustAcceleration = null, ThrustAcceleration? measuredAcceleration = null, double? engineChangeAcceleration = null, IReadOnlyList<CanopyReading>? canopies = null, double? airDensityKgM3 = null, double? deployHeightM = null, double? extentM = null, IReadOnlyList<LockedEngineReading>? lockedEngines = null)
         {
             DeltaVMs = deltaVMs;
             MaxAccelerationMs2 = maxAccelerationMs2;
@@ -25,6 +25,7 @@ namespace Sitrep.Host.Comms
             AirDensityKgM3 = airDensityKgM3;
             DeployHeightM = deployHeightM;
             ExtentM = extentM;
+            LockedEngines = lockedEngines ?? new LockedEngineReading[0];
         }
 
         /// <summary>The craft's total delta-v in vacuum, in m/s: the most it can change its velocity by. Null when it was not read.</summary>
@@ -90,6 +91,14 @@ namespace Sitrep.Host.Comms
         /// part or fully open. Null where it was not read.
         /// </summary>
         public double? ExtentM { get; }
+
+        /// <summary>
+        /// The ignited engines whose throttle is locked, each with how long its
+        /// propellant lasts. Their thrust is not in <see cref="EngineChangeAcceleration"/>:
+        /// a locked engine changes nothing until it burns out. Empty where there are none
+        /// and where the parts were not read.
+        /// </summary>
+        public IReadOnlyList<LockedEngineReading> LockedEngines { get; }
 
         /// <summary>Whether the craft's engines and parachutes were read, so that what they can change is known and not assumed.</summary>
         public bool PartsRead => EngineChangeAcceleration != null && Canopies != null && AirDensityKgM3 != null;

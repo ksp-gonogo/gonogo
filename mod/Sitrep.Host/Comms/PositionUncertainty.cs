@@ -159,23 +159,87 @@ namespace Sitrep.Host.Comms
         /// </summary>
         /// <param name="measuredMs2">The size of the acceleration held.</param>
         /// <param name="pull">What gravity pulls the craft with, in m/s².</param>
-        public static double PartsDeviation(CraftCapability capability, double measuredMs2, double airspeed, double pull, double elapsed)
+        public static double PartsDeviation(CraftCapability capability, double measuredMs2, double airspeed, double pull, double elapsed) =>
+            PartsTerms(capability, measuredMs2, airspeed, pull, elapsed).Total;
+
+        /// <summary>The share of a locked engine's burn time its reading can be wrong by, as a fraction.</summary>
+        public const double BurnTimeError = 0.1;
+
+        /// <summary>The smallest error, in seconds, in the time a locked engine's propellant lasts.</summary>
+        public const double BurnTimeResolution = 0.1;
+
+        /*
+         * A locked engine's burnout is carried in the place the craft is reckoned at, so
+         * what is left is how far the burn time can be out: the craft is out by the
+         * engine's acceleration times the time between the burnout it was carried
+         * through and the one it had. Where no burn time was read it is not carried at
+         * all, and the engine can have burnt out at once.
+         */
+        private static double LockedEngineDeviation(LockedEngineReading locked, double? deltaV, double elapsed)
+        {
+            if (!(locked.BurnSeconds > 0.0))
+            {
+                return FreeFall(deltaV ?? 1e9, locked.AccelerationMs2, elapsed);
+            }
+            var burn = locked.BurnSeconds;
+            var error = BurnTimeError * burn + BurnTimeResolution;
+            return Math.Max(
+                BurnedFor(locked.AccelerationMs2, burn - error, burn, elapsed),
+                BurnedFor(locked.AccelerationMs2, burn, burn + error, elapsed));
+        }
+
+        /// <summary>How far apart two craft are after <paramref name="elapsed"/> seconds that burn at <paramref name="acceleration"/> for <paramref name="shorter"/> and <paramref name="longer"/> seconds.</summary>
+        private static double BurnedFor(double acceleration, double shorter, double longer, double elapsed)
+        {
+            var early = Math.Max(0.0, elapsed - Math.Max(0.0, shorter));
+            var late = Math.Max(0.0, elapsed - longer);
+            return 0.5 * acceleration * (early * early - late * late);
+        }
+
+        /// <summary>The three terms <see cref="PartsDeviation"/> adds, in metres.</summary>
+        public readonly struct PartsBound
+        {
+            public PartsBound(double held, double engines, double chute)
+            {
+                Held = held;
+                Engines = engines;
+                Chute = chute;
+            }
+
+            /// <summary>The error of holding the measured acceleration.</summary>
+            public double Held { get; }
+
+            /// <summary>What the engines can change.</summary>
+            public double Engines { get; }
+
+            /// <summary>What the parachutes can add.</summary>
+            public double Chute { get; }
+
+            public double Total => Held + Engines + Chute;
+        }
+
+        /// <summary>The terms of <see cref="PartsDeviation"/> one by one.</summary>
+        public static PartsBound PartsTerms(CraftCapability capability, double measuredMs2, double airspeed, double pull, double elapsed)
         {
             var held = 0.5 * (MeasuredAccelerationError * measuredMs2 + MeasuredAccelerationResolution) * elapsed * elapsed;
             var engines = FreeFall(capability.DeltaVMs ?? 1e9, capability.EngineChangeAcceleration!.Value, elapsed);
+            foreach (var locked in capability.LockedEngines)
+            {
+                engines += LockedEngineDeviation(locked, capability.DeltaVMs, elapsed);
+            }
             var pressure = 0.0;
             foreach (var canopy in capability.Canopies!)
             {
                 // Open fully only below the height the game lets it, which the craft can fall to in the gap.
                 var descent = airspeed * elapsed + 0.5 * pull * elapsed * elapsed;
                 var full = capability.DeployHeightM is not double height || height - descent < canopy.DeployAltitudeM;
-                var per = full ? canopy.FullPerPressure : canopy.SemiPerPressure;
+                var per = full ? canopy.SemiPerPressure + (canopy.FullPerPressure - canopy.SemiPerPressure) * canopy.OpenShare(elapsed) : canopy.SemiPerPressure;
                 var speed = canopy.SafeSpeedMs is double safe ? Math.Min(airspeed, safe) : airspeed;
                 pressure += per * speed * speed;
             }
             var acceleration = 0.5 * capability.AirDensityKgM3!.Value * pressure;
             var chute = FreeFall(airspeed + pull * elapsed, acceleration, elapsed);
-            return held + engines + chute;
+            return new PartsBound(held, engines, chute);
         }
 
         /// <summary>

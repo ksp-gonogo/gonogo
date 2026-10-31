@@ -46,7 +46,7 @@ namespace Gonogo.KSP
             var parts = measured.HasValue ? ReadParts(vessel) : null;
             return new CraftCapability(
                 last.DeltaV, last.Acceleration, airspeed, last.Driven, thrusting, thrusting == true ? EngineAcceleration(vessel) : null,
-                measured, parts?.EngineChange, parts?.Canopies, parts?.AirDensity, parts?.DeployHeight, parts?.Extent);
+                measured, parts?.EngineChange, parts?.Canopies, parts?.AirDensity, parts?.DeployHeight, parts?.Extent, parts?.LockedEngines);
         }
 
         /// <summary>
@@ -164,9 +164,112 @@ namespace Gonogo.KSP
                 new ContractVector(push.x, push.y, push.z));
         }
 
+        /// <summary>
+        /// The canopy of an armed, part open or opening parachute, with the time its
+        /// animations leave before it is fully open: the part-open animation's remainder,
+        /// then the full opening animation, whose progress sets its drag. Null for a
+        /// parachute that is stowed, cut or fully open.
+        /// </summary>
+        private static CanopyReading? Canopy(ModuleParachute chute, Part part, float mass)
+        {
+            var state = chute.deploymentState;
+            if (state == ModuleParachute.deploymentStates.DEPLOYED && !(chute.animTime < 1f))
+            {
+                return null;
+            }
+            if (state != ModuleParachute.deploymentStates.ACTIVE && state != ModuleParachute.deploymentStates.SEMIDEPLOYED && state != ModuleParachute.deploymentStates.DEPLOYED)
+            {
+                return null;
+            }
+            var semi = ParachuteDrag.PerPressure(PhysicsGlobals.DragMultiplier, chute.semiDeployedDrag * (double)part.mass, mass);
+            var full = ParachuteDrag.PerPressure(PhysicsGlobals.DragMultiplier, chute.fullyDeployedDrag * (double)part.mass, mass);
+            var rampSeconds = AnimationSeconds(chute, chute.fullyDeployedAnimation, chute.deploymentSpeed);
+            if (state == ModuleParachute.deploymentStates.DEPLOYED)
+            {
+                return CanopyReading.Opening(semi, full, rampSeconds, chute.animTime, chute.deploymentCurve);
+            }
+            var armed = state == ModuleParachute.deploymentStates.ACTIVE;
+            var semiSeconds = AnimationSeconds(chute, chute.semiDeployedAnimation, chute.semiDeploymentSpeed);
+            var openAfter = armed ? semiSeconds : (1.0 - Math.Min(1.0, chute.animTime)) * semiSeconds;
+            // An armed canopy opens only while the game's own safety reading is within what its owner allowed.
+            var held = armed && (int)chute.deploymentSafeState > chute.automateSafeDeploy;
+            return new CanopyReading(semi, full, chute.deployAltitude, held ? chute.maxSafeSpeedAtRef : (double?)null, openAfter, rampSeconds, 0.0, chute.deploymentCurve);
+        }
+
+        private static readonly System.Reflection.FieldInfo? ChuteAnimation = typeof(ModuleParachute).GetField("Anim");
+
+        /*
+         * The animation is read through reflection so the plugin needs no reference to
+         * Unity's animation module, which the build's set of game assemblies does not carry.
+         */
+        /// <summary>How long a parachute's animation takes at its deployment speed, in seconds; zero where the game has no such clip, which counts as at once.</summary>
+        private static double AnimationSeconds(ModuleParachute chute, string clip, float speed)
+        {
+            if (!(speed > 0f) || string.IsNullOrEmpty(clip) || ChuteAnimation?.GetValue(chute) is not object animation)
+            {
+                return 0.0;
+            }
+            try
+            {
+                var state = animation.GetType().GetProperty("Item", new[] { typeof(string) })?.GetValue(animation, new object[] { clip });
+                return state?.GetType().GetProperty("length")?.GetValue(state, null) is float length ? length / speed : 0.0;
+            }
+            catch (System.Reflection.TargetInvocationException)
+            {
+                return 0.0;
+            }
+        }
+
+        /// <summary>How much of each propellant every ignited engine on the craft draws in a second, by resource id.</summary>
+        private static Dictionary<int, double> Draw(Vessel vessel)
+        {
+            var draw = new Dictionary<int, double>();
+            var step = (double)TimeWarp.fixedDeltaTime;
+            foreach (var part in vessel.parts)
+            {
+                if (part == null)
+                {
+                    continue;
+                }
+                foreach (var engine in part.FindModulesImplementing<ModuleEngines>())
+                {
+                    if (!engine.EngineIgnited || engine.flameout || !(step > 0.0))
+                    {
+                        continue;
+                    }
+                    foreach (var propellant in engine.propellants)
+                    {
+                        draw.TryGetValue(propellant.id, out var so);
+                        draw[propellant.id] = so + propellant.currentRequirement / step;
+                    }
+                }
+            }
+            return draw;
+        }
+
+        /// <summary>
+        /// How long the engine's propellant lasts at the rate every engine draws it now:
+        /// the shortest of its propellants. Zero where a draw was not measured, which
+        /// counts as burning out at once.
+        /// </summary>
+        private static double BurnSeconds(ModuleEngines engine, Dictionary<int, double> draw)
+        {
+            var burn = double.PositiveInfinity;
+            foreach (var propellant in engine.propellants)
+            {
+                if (!draw.TryGetValue(propellant.id, out var rate) || !(rate > 0.0))
+                {
+                    return 0.0;
+                }
+                burn = Math.Min(burn, propellant.totalResourceAvailable / rate);
+            }
+            return double.IsInfinity(burn) ? 0.0 : burn;
+        }
+
         private sealed class PartsReading
         {
             public double EngineChange;
+            public List<LockedEngineReading> LockedEngines = new List<LockedEngineReading>();
             public List<CanopyReading> Canopies = new List<CanopyReading>();
             public double AirDensity;
             public double DeployHeight;
@@ -179,8 +282,9 @@ namespace Gonogo.KSP
         /// to full, each unignited engine of the next stage to full, over the craft's
         /// mass; and each parachute that is armed or part open, with the drag it would
         /// give part open and fully open and what the game needs before it opens
-        /// fully. A decoupler, a parachute in the next stage, a solid motor's burnout
-        /// and the time a canopy takes to open are not read. Null when the craft has
+        /// fully. A solid motor is read as a locked engine with the time its propellant
+        /// lasts. A canopy the game calls deployed while its opening animation still
+        /// runs counts as opening. A decoupler and a parachute in the next stage are not read. Null when the craft has
         /// no mass or no parts to read.
         /// </summary>
         private static PartsReading? ReadParts(Vessel vessel)
@@ -192,6 +296,7 @@ namespace Gonogo.KSP
             }
             var reading = new PartsReading { AirDensity = vessel.atmDensity };
             var change = 0.0;
+            var draw = Draw(vessel);
             foreach (var part in vessel.parts)
             {
                 if (part == null)
@@ -203,6 +308,12 @@ namespace Gonogo.KSP
                     if (engine.EngineIgnited && !engine.flameout)
                     {
                         var now = (double)engine.finalThrust;
+                        // A locked throttle on a flat thrust curve can only lose thrust, when the propellant is gone.
+                        if (engine.throttleLocked && !engine.useThrustCurve)
+                        {
+                            reading.LockedEngines.Add(new LockedEngineReading(now / mass, BurnSeconds(engine, draw)));
+                            continue;
+                        }
                         change += Math.Max(now, engine.maxThrust - now);
                         continue;
                     }
@@ -213,18 +324,10 @@ namespace Gonogo.KSP
                 }
                 foreach (var chute in part.FindModulesImplementing<ModuleParachute>())
                 {
-                    var armed = chute.deploymentState == ModuleParachute.deploymentStates.ACTIVE;
-                    if (!armed && chute.deploymentState != ModuleParachute.deploymentStates.SEMIDEPLOYED)
+                    if (Canopy(chute, part, mass) is CanopyReading canopy)
                     {
-                        continue;
+                        reading.Canopies.Add(canopy);
                     }
-                    // An armed canopy opens only while the game's own safety reading is within what its owner allowed.
-                    var held = armed && (int)chute.deploymentSafeState > chute.automateSafeDeploy;
-                    reading.Canopies.Add(new CanopyReading(
-                        ParachuteDrag.PerPressure(PhysicsGlobals.DragMultiplier, chute.semiDeployedDrag * (double)part.mass, mass),
-                        ParachuteDrag.PerPressure(PhysicsGlobals.DragMultiplier, chute.fullyDeployedDrag * (double)part.mass, mass),
-                        chute.deployAltitude,
-                        held ? chute.maxSafeSpeedAtRef : (double?)null));
                 }
             }
             reading.Extent = Extent(vessel);

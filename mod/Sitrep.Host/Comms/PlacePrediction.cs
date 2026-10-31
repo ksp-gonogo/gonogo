@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Propagation;
 
@@ -114,7 +115,7 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>The place the held acceleration carries the craft to over <paramref name="elapsed"/> seconds from its capture, held for <paramref name="holdSeconds"/> of them and coasting after, or null when it cannot be held in the body's frame or has no size.</summary>
-        private static Vector3d? Carried(CraftState known, OrbitElements orbit, ThrustAcceleration thrust, double holdSeconds, double elapsed)
+        private static Vector3d? Carried(CraftState known, OrbitElements orbit, ThrustAcceleration thrust, double holdSeconds, double elapsed, IReadOnlyList<(double At, double Acceleration)>? burnouts = null, ThrustAcceleration? engines = null)
         {
             var start = Kepler.Solve(PropagationTarget.Vessel(known.Id, known.BodyIndex, orbit), known.CapturedUt);
             if (thrust.InFrameOf(start.Position, start.Velocity) is not Vector3d held)
@@ -128,6 +129,10 @@ namespace Sitrep.Host.Comms
             var burnSeconds = holdSeconds;
             var position = start.Position;
             var velocity = start.Velocity;
+            // A burnout takes its engine's share of the held acceleration away, along the engines' own thrust where that is known.
+            var along = engines is ThrustAcceleration thrusting && thrusting.Magnitude > 0.0 && thrusting.InFrameOf(start.Position, start.Velocity) is Vector3d unit
+                ? unit * (1.0 / thrusting.Magnitude)
+                : held * (1.0 / thrust.Magnitude);
             var t = 0.0;
             while (t < elapsed)
             {
@@ -138,6 +143,18 @@ namespace Sitrep.Host.Comms
                     step = Math.Min(step, burnSeconds - t);
                 }
                 var push = pushing ? held : new Vector3d(0.0, 0.0, 0.0);
+                if (burnouts != null && pushing)
+                {
+                    foreach (var burnout in burnouts)
+                    {
+                        if (burnout.At > t)
+                        {
+                            step = Math.Min(step, burnout.At - t);
+                            continue;
+                        }
+                        push = push - along * burnout.Acceleration;
+                    }
+                }
                 Advance(ref position, ref velocity, push, orbit.Mu, step);
                 t += step;
             }
@@ -158,6 +175,53 @@ namespace Sitrep.Host.Comms
          * orbit there, since the eccentric factor of a steep sub-orbital arc is far
          * larger than anything a gap in the air can reach.
          */
+        /// <summary>
+        /// What the radius of a craft in the air at <paramref name="ut"/> is made of, as
+        /// one line of name=value pairs: the elapsed time, the speed and height it was
+        /// read at, each term of its bound and what the bound counts of its parts. Null
+        /// where the craft's parts were not read.
+        /// </summary>
+        public static string? DescribeBound(CraftState known, double ut)
+        {
+            if (!known.Exists || known.Orbit is not OrbitElements orbit || known.Capability is not { PartsRead: true } capability
+                || capability.MeasuredAcceleration is not ThrustAcceleration held || capability.AirspeedMs is not double airspeed)
+            {
+                return null;
+            }
+            var elapsed = ut - known.CapturedUt;
+            if (!(elapsed > 0.0))
+            {
+                return null;
+            }
+            var height = Kepler.Solve(PropagationTarget.Vessel(known.Id, known.BodyIndex, orbit), known.CapturedUt).Position.Magnitude();
+            var terms = PositionUncertainty.PartsTerms(capability, held.Magnitude, airspeed, orbit.Mu / (height * height), elapsed);
+            var altitude = double.PositiveInfinity;
+            foreach (var canopy in capability.Canopies!)
+            {
+                altitude = Math.Min(altitude, canopy.DeployAltitudeM);
+            }
+            var format = System.Globalization.CultureInfo.InvariantCulture;
+            return string.Format(
+                format,
+                "craft={0} elapsed={1:F2} airspeedMs={2:F1} heightM={3:F0} deployAltitudeM={4} heldM={5:F1} enginesM={6:F1} chuteM={7:F1} canopies={8} lockedEngines={9}",
+                known.Id, elapsed, airspeed, capability.DeployHeightM ?? double.NaN, double.IsInfinity(altitude) ? "none" : altitude.ToString("F0", format), terms.Held, terms.Engines, terms.Chute,
+                capability.Canopies.Count, capability.LockedEngines.Count);
+        }
+
+        /// <summary>When each locked engine whose burn time was read runs out, and what it gives the craft until then.</summary>
+        private static IReadOnlyList<(double At, double Acceleration)>? Burnouts(CraftCapability capability)
+        {
+            List<(double At, double Acceleration)>? burnouts = null;
+            foreach (var locked in capability.LockedEngines)
+            {
+                if (locked.BurnSeconds > 0.0)
+                {
+                    (burnouts ??= new List<(double At, double Acceleration)>()).Add((locked.BurnSeconds, locked.AccelerationMs2));
+                }
+            }
+            return burnouts;
+        }
+
         private static PredictedPlace? Airborne(CraftState known, OrbitElements orbit, CraftCapability capability, double airspeed, double ut)
         {
             var thrusting = capability.Thrusting == true;
@@ -179,7 +243,7 @@ namespace Sitrep.Host.Comms
             Vector3d? carried = null;
             if (capability.MeasuredAcceleration is ThrustAcceleration measured)
             {
-                carried = Carried(known, orbit, measured, MeasuredHoldSeconds, elapsed);
+                carried = Carried(known, orbit, measured, MeasuredHoldSeconds, elapsed, Burnouts(capability), capability.ThrustAcceleration);
                 basis = CraftPlaceBasis.Burning;
             }
             if (carried == null && thrusting && capability.ThrustAcceleration is ThrustAcceleration thrust && thrust.Magnitude > 0.0)

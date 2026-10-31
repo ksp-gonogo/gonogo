@@ -256,6 +256,107 @@ namespace Sitrep.Host.Tests.Comms
             Assert.True(RadiusAt(known, 2.0) < 3.0);
         }
 
+        private static CraftCapability WithSolidMotor(double burnSeconds) =>
+            new CraftCapability(2000.0, 100.0, 150.0, false, true, null, new ThrustAcceleration(100.0, 0.0, 0.0), 0.0, new CanopyReading[0], 1.1, 300.0, null, new[] { new LockedEngineReading(100.0, burnSeconds) });
+
+        [Fact]
+        public void ASolidMotorThatBurnsPastTheEndOfTheRecordAddsNothingToTheRadius()
+        {
+            var known = Chute(WithSolidMotor(10.0));
+
+            // Only the held error 0.5 × (0.1 × 100 + 0.1) × t²: 20 m at 2 s, where a throttled engine would add 200.
+            Assert.Equal(0.5 * (0.1 * 100.0 + 0.1) * 4.0, RadiusAt(known, 2.0), 0);
+            Assert.True(RadiusAt(known, 2.0) < 25.0);
+        }
+
+        [Fact]
+        public void ASolidMotorThatBurnsOutInsideTheRecordCostsOnlyWhatItsBurnTimeCanBeWrongBy()
+        {
+            var known = Chute(WithSolidMotor(1.5));
+
+            // Held 0.5 × (0.1 × 100 + 0.1) × 4 = 20.2 m, and the burn out by ± 0.25 s: 0.5 × 100 × (0.75² - 0.5²) = 15.6 m.
+            Assert.Equal(20.2 + 15.6, RadiusAt(known, 2.0), 0);
+        }
+
+        [Fact]
+        public void TheLiftoffOfTheRigDescentIsFramedWithinTensOfMetresWhereItWas241()
+        {
+            // Rig 189 at UT 312: 105 m/s² from a motor with 1.3 s left, framed at 209.5 m for the engine alone.
+            var known = Chute(new CraftCapability(2000.0, 105.0, 122.0, false, true, null, new ThrustAcceleration(105.0, 0.0, 0.0), 0.0, new CanopyReading[0], 1.1, 88.0, null, new[] { new LockedEngineReading(105.0, 1.3) }));
+
+            Assert.True(RadiusAt(known, 2.0) < 75.0, $"{RadiusAt(known, 2.0):F1} m");
+        }
+
+        [Fact]
+        public void ACraftIsCarriedThroughTheBurnoutOfASolidMotorWhereHeldThrustWouldCarryItOnAhead()
+        {
+            var burnsOut = Chute(WithSolidMotor(1.0));
+            var unread = Chute(WithSolidMotor(0.0));
+
+            var apart = Distance(PlacePrediction.PlaceAt(burnsOut, 1002.0)!.Value.Place.Position, PlacePrediction.PlaceAt(unread, 1002.0)!.Value.Place.Position);
+
+            // Thrust of 100 m/s² gone for the last second of two: 0.5 × 100 × 1².
+            Assert.Equal(50.0, apart, 0);
+        }
+
+        [Fact]
+        public void AMotorWhoseBurnTimeWasNotToldCountsAsBurningOutAtOnce()
+        {
+            var known = Chute(WithSolidMotor(0.0));
+
+            Assert.True(RadiusAt(known, 2.0) > 200.0);
+        }
+
+        [Fact]
+        public void AParachuteJustArmedIsNotFramedAsFullyOpenBeforeItsPartOpenAnimationCanEnd()
+        {
+            // Rig 189 at staging: 119 m/s, 702 m up, below the 1000 m opening height, framed at 273.6 m as if fully open at once.
+            var semi = ParachuteDrag.PerPressure(8.0, 1.0 * 0.1, 1.0);
+            var full = ParachuteDrag.PerPressure(8.0, 450.0 * 0.1, 1.0);
+            var atOnce = Chute(Read(0.0, false, HoldingUp(), 0.0, 119.0, 702.0, new CanopyReading(semi, full, 1000.0, null)));
+            var timed = Chute(Read(0.0, false, HoldingUp(), 0.0, 119.0, 702.0, new CanopyReading(semi, full, 1000.0, null, 2.2, 3.0, 0.0, 2.5)));
+
+            Assert.True(RadiusAt(atOnce, 2.0) > 200.0);
+            Assert.True(RadiusAt(timed, 2.0) < 60.0, $"{RadiusAt(timed, 2.0):F1} m");
+        }
+
+        [Fact]
+        public void ACanopyPartWayThroughOpeningIsFramedByTheDragItsAnimationCanHaveReachedNotByFullDrag()
+        {
+            var semi = ParachuteDrag.PerPressure(8.0, 1.0 * 0.1, 1.0);
+            var full = ParachuteDrag.PerPressure(8.0, 450.0 * 0.1, 1.0);
+            var ramping = Chute(Read(0.0, false, HoldingUp(), 0.0, 119.0, 400.0, CanopyReading.Opening(semi, full, 3.0, 0.2, 2.5)));
+            var instant = Chute(Read(0.0, false, HoldingUp(), 0.0, 119.0, 400.0, CanopyReading.Opening(semi, full)));
+
+            Assert.True(RadiusAt(ramping, 2.0) < RadiusAt(instant, 2.0));
+            Assert.True(RadiusAt(ramping, 2.0) > 20.0);
+        }
+
+        [Fact]
+        public void TheBoundOfACraftInTheAirIsDescribedTermByTermWithTheSpeedAndHeightItWasReadAt()
+        {
+            var known = Chute(Read(0.0, false, HoldingUp(), 0.0, 105.0, 690.0, CanopyReading.Opening(1.0, 2.0)));
+
+            var line = PlacePrediction.DescribeBound(known, 1002.0)!;
+
+            Assert.Contains("airspeedMs=105.0", line);
+            Assert.Contains("heightM=690", line);
+            Assert.Contains("deployAltitudeM=none", line);
+            Assert.Contains("canopies=1 lockedEngines=0", line);
+            Assert.Null(PlacePrediction.DescribeBound(Chute(new CraftCapability(0.0, 0.0, 6.0, false, false)), 1002.0));
+        }
+
+        [Fact]
+        public void ACanopyWhoseFullOpeningHasStartedIsFramedByItsDragClimbingToFullBeforeTheRecordEnds()
+        {
+            // Rig descent: 105 m/s, 690 m up, a canopy the game calls deployed while its drag still climbs; the camera's aim ran 75 m off in the second after.
+            var semi = ParachuteDrag.PerPressure(8.0, 1.0 * 0.1, 1.0);
+            var full = ParachuteDrag.PerPressure(8.0, 450.0 * 0.1, 1.0);
+            var known = Chute(Read(0.0, false, HoldingUp(), 0.0, 105.0, 690.0, CanopyReading.Opening(semi, full)));
+
+            Assert.True(RadiusAt(known, 2.0) >= 75.0, $"{RadiusAt(known, 2.0):F1} m");
+        }
+
         [Fact]
         public void ARocketUnderThrustIsFramedByItsOwnEngineGoingToNothingAndWhatItsHeldAccelerationCanBeWrongBy()
         {
