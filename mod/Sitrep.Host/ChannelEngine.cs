@@ -8126,6 +8126,7 @@ namespace Sitrep.Host
                 // it lands at each centre one of that centre's own light-times
                 // after the instant it describes.
                 RecordThrough(topic, value, ut, ExemptStampFor(topic));
+                RecordLinkUpForOwnSeat(topic, value, ut);
                 return;
             }
 
@@ -8204,6 +8205,22 @@ namespace Sitrep.Host
                 IsKeyframeFor(topic, value),
                 null,
                 DelayStamp.DeliveredTo(seat, 0.0));
+        }
+
+        /// <summary>
+        /// The crew aboard a craft are never cut off from it, so at the craft's own
+        /// vantage <c>comms.link</c> reads connected whatever the link to a centre
+        /// is doing. A connected sample goes to that vantage alone, recorded after
+        /// the real one at the same instant so it is the newest the seat reads;
+        /// every other vantage skips it and reads the outage.
+        /// </summary>
+        private void RecordLinkUpForOwnSeat(string topic, object? value, double ut)
+        {
+            if (topic != ConnectivityMetaTopic || value is not CommsLink { Connected: false } down)
+            {
+                return;
+            }
+            RecordForOwnSeat(topic, new CommsLink { Connected = true, Meta = down.Meta }, ut);
         }
 
         /// <summary>
