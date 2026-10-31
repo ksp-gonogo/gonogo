@@ -75,7 +75,7 @@ function recordingSink(): FrameSink<CodedFrame> & { written: string[] } {
   };
 }
 
-function encodedPipeline(onNeedKeyframe?: () => void) {
+function encodedPipeline(onNeedKeyframe?: () => unknown) {
   const clock = manualClock();
   const source = pushSource();
   const sink = recordingSink();
@@ -161,5 +161,57 @@ describe("runFrameDelayPipeline: encoded video after a flush", () => {
 
     expect(sink.written[1]).toBe("K1");
     expect(pipeline.stats().pacerSkipped).toBe(2);
+  });
+});
+
+describe("runFrameDelayPipeline: keyframe waits in the totals", () => {
+  it("times the wait from the flush to the keyframe, and shows the wait in progress", async () => {
+    vi.useFakeTimers({ toFake: ["performance"] });
+    try {
+      const { source, pipeline } = encodedPipeline(() => undefined);
+      source.push(coded("K0", "key"));
+      await vi.waitFor(() => expect(pipeline.stats().read).toBe(1));
+      vi.advanceTimersByTime(50);
+      expect(pipeline.stats().keyframeWaits).toBe(1);
+
+      pipeline.flush();
+      vi.advanceTimersByTime(400);
+      expect(pipeline.stats().keyframeWaitingMs).toBeGreaterThanOrEqual(400);
+      expect(pipeline.stats().keyframeRequests).toBe(1);
+
+      source.push(coded("K1", "key"));
+      await vi.waitFor(() => expect(pipeline.stats().read).toBe(2));
+      const after = pipeline.stats();
+      expect(after.keyframeWaits).toBe(2);
+      expect(after.keyframeWaitingMs).toBe(0);
+      expect(after.keyframeWaitMsLongest).toBeGreaterThanOrEqual(400);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("counts a request the source could not take, whether it says so or throws", async () => {
+    for (const refuse of [
+      () => false,
+      () => Promise.reject(new Error("no")),
+      () => {
+        throw new Error("no");
+      },
+    ]) {
+      const { source, pipeline } = encodedPipeline(refuse);
+      source.push(coded("K0", "key"));
+      await vi.waitFor(() => expect(pipeline.stats().read).toBe(1));
+      pipeline.flush();
+      await vi.waitFor(() =>
+        expect(pipeline.stats().keyframeRequestsFailed).toBe(1),
+      );
+    }
+  });
+
+  it("reports the frames still held in the buffer", async () => {
+    const { source, pipeline } = encodedPipeline();
+    source.push(coded("K0", "key"));
+    source.push(coded("d1", "delta"));
+    await vi.waitFor(() => expect(pipeline.stats().buffered).toBe(2));
   });
 });

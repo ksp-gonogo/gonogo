@@ -42,6 +42,7 @@ func main() {
 	}()
 	log.Printf("endpoint listening on UDP and TCP %d, advertising %q and %q", *port, *publicIP, *lanIP)
 
+	dumpGoroutinesOnSignal()
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
 	<-sig

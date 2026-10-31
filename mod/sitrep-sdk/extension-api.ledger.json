@@ -13477,12 +13477,40 @@
         "note": "New: frames dropped while waiting for a keyframe after a flush"
       },
       {
+        "key": "sitrep-sdk ./media FrameDelayStats#buffered",
+        "note": "New: frames held in the delay buffer now"
+      },
+      {
         "key": "sitrep-sdk ./media FrameDelayStats#evicted",
         "note": "New: frames evicted over the buffer's size limit"
       },
       {
         "key": "sitrep-sdk ./media FrameDelayStats#flushDropped",
         "note": "New: frames dropped by a flush"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameDelayStats#keyframeRequests",
+        "note": "New: times the pipeline asked the source for a keyframe"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameDelayStats#keyframeRequestsFailed",
+        "note": "New: keyframe requests the source could not take"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameDelayStats#keyframeWaitMsLongest",
+        "note": "New: the longest ended keyframe wait"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameDelayStats#keyframeWaitMsTotal",
+        "note": "New: the total length of the ended keyframe waits"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameDelayStats#keyframeWaitingMs",
+        "note": "New: how long the keyframe wait in progress has lasted"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameDelayStats#keyframeWaits",
+        "note": "New: keyframe waits that have ended"
       },
       {
         "key": "sitrep-sdk ./media FrameDelayStats#pacerCatchUps",

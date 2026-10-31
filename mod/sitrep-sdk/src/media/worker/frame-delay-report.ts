@@ -1,0 +1,70 @@
+import { logger } from "../../api/logger";
+import type { FrameDelayStats } from "../frame-delay";
+
+/** The log tag a delayed camera's summaries are written under. */
+export const FRAME_DELAY_LOG_TAG = "frame-delay";
+
+/** How often a delayed camera writes its summary, in milliseconds. */
+export const FRAME_DELAY_SUMMARY_INTERVAL_MS = 10_000;
+
+interface SummaryLog {
+  info(message: string, context?: Record<string, unknown>): void;
+  warn(message: string, context?: Record<string, unknown>): void;
+}
+
+/**
+ * The function that turns each running-totals report from one delayed camera
+ * into a log line: what came in and went out since the last report, how many
+ * frames were skipped or dropped, how many keyframes were asked for and how
+ * long the waits for them ran, and how much is buffered now. Writes one warning
+ * the first time a keyframe request could not be sent, since the picture then
+ * waits for the sender's own keyframe interval after every skip.
+ */
+export function createFrameDelayReporter(
+  pipelineId: string,
+  logTo?: SummaryLog,
+): (stats: FrameDelayStats) => void {
+  let previous: FrameDelayStats | null = null;
+  let warnedUnsupported = false;
+  return (stats) => {
+    const log = logTo ?? logger.tag(FRAME_DELAY_LOG_TAG);
+    const since = (pick: (s: FrameDelayStats) => number) =>
+      pick(stats) - (previous ? pick(previous) : 0);
+    log.info("frame delay summary", {
+      pipelineId,
+      framesIn: since((s) => s.read),
+      framesOut: since((s) => s.presented),
+      pacerSkipped: since((s) => s.pacerSkipped),
+      pacerCatchUps: since((s) => s.pacerCatchUps),
+      flushDropped: since((s) => s.flushDropped),
+      evicted: since((s) => s.evicted),
+      awaitingKeyframeDropped: since((s) => s.awaitingKeyframeDropped),
+      keyframeRequests: since((s) => s.keyframeRequests),
+      keyframeRequestsFailed: since((s) => s.keyframeRequestsFailed),
+      keyframeWaits: since((s) => s.keyframeWaits),
+      keyframeWaitMsLongest: Math.round(stats.keyframeWaitMsLongest),
+      keyframeWaitingMs: Math.round(stats.keyframeWaitingMs),
+      buffered: stats.buffered,
+    });
+    if (stats.keyframeRequestsFailed > 0 && !warnedUnsupported) {
+      warnedUnsupported = true;
+      log.warn(
+        "keyframe requests cannot be sent from this browser, so a skipped or flushed picture waits for the sender's own keyframe interval",
+        { pipelineId },
+      );
+    }
+    previous = stats;
+  };
+}
+
+/** `onStats` and the summary writer, called together. */
+export function withFrameDelayReporter(
+  pipelineId: string,
+  onStats: ((stats: FrameDelayStats) => void) | undefined,
+): (stats: FrameDelayStats) => void {
+  const report = createFrameDelayReporter(pipelineId);
+  return (stats) => {
+    report(stats);
+    onStats?.(stats);
+  };
+}
