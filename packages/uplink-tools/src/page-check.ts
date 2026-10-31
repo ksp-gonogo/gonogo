@@ -16,6 +16,7 @@ import {
 } from "./render/docs";
 import { assertEveryWidgetCovered, buildScenes } from "./render/scenes";
 import { buildUplinkSpec, SPEC_FILE, uplinkSpecJson } from "./render/spec";
+import { unresolvedUnitTokens } from "./render/unit-tokens";
 import { WIDGET_RECORDS_FILE, widgetRecordsJson } from "./render/widgetRecord";
 import { readWireSurface } from "./render/wire";
 
@@ -95,6 +96,16 @@ interface GeneratedPage {
 function generatePage(options: PageCheckOptions): GeneratedPage {
   const pkg = resolveUplinkPackage(options.root ?? process.cwd());
   const inventory = readInventory(options.uplink);
+
+  const unresolved = unresolvedUnitTokens(
+    join(pkg.dir, "src", "__generated__", "units.json"),
+  );
+  if (unresolved.length > 0) {
+    throw new Error(
+      `units.json uses ${unresolved.length === 1 ? "a unit" : "units"} that nothing registers: ${unresolved.join(", ")}.\n` +
+        "Register each with `registerUnit` in the client, or give the field a unit the sdk defines.",
+    );
+  }
 
   const scenes = buildScenes(pkg, inventory);
   assertEveryWidgetCovered(scenes, inventory);
