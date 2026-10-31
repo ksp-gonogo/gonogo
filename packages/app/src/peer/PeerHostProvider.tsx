@@ -17,6 +17,15 @@ interface PeerHostContextValue {
 const PeerHostContext = createContext<PeerHostContextValue>({ peerId: null });
 export const usePeerHost = () => useContext(PeerHostContext);
 
+/**
+ * StrictMode runs an effect's cleanup and setup back to back on mount. A stop
+ * there destroys the Peer while its broker WebSocket is still connecting, and
+ * Firefox holds back the next WebSocket to that host, so the replacement Peer
+ * registers seconds late or not at all. The stop waits one task and a setup
+ * that follows straight away cancels it.
+ */
+let pendingStop: ReturnType<typeof setTimeout> | null = null;
+
 export function PeerHostProvider({ children }: { children: ReactNode }) {
   const [peerId, setPeerId] = useState<string | null>(peerHostService.peerId);
 
@@ -43,11 +52,18 @@ export function PeerHostProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
+    if (pendingStop !== null) {
+      clearTimeout(pendingStop);
+      pendingStop = null;
+    }
     void peerHostService.start();
     const unsub = peerHostService.onPeerIdChange(setPeerId);
     return () => {
       unsub();
-      peerHostService.stop();
+      pendingStop = setTimeout(() => {
+        pendingStop = null;
+        peerHostService.stop();
+      }, 0);
     };
   }, []);
 

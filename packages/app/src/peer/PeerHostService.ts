@@ -3070,6 +3070,8 @@ export class PeerHostService {
     this.stopHeartbeat();
     this.relayRegistration.stopHeartbeat();
     this.detachLifecycleListeners();
+    // Destroying the Peer emits "disconnected", which arms a reconnect timer, so it goes first and the timers are cleared after it.
+    this.destroyPeer();
     if (this.brokerReconnectTimer !== null) {
       clearTimeout(this.brokerReconnectTimer);
       this.brokerReconnectTimer = null;
@@ -3081,7 +3083,6 @@ export class PeerHostService {
     }
     this.reclaimAttempt = 0;
     this.setReclaiming(false);
-    this.destroyPeer();
     this.peerId = null;
     this.connections.clear();
     this.waiting.clear();
