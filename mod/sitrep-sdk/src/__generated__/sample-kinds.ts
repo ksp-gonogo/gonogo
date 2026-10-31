@@ -48,7 +48,6 @@ export const GENERATED_CHANNEL_KINDS = {
   "flight.started": "event",
   "flight.vesselChanged": "event",
   "game.dlc": "discrete",
-  "host.record": "discrete",
   "isru.converters": "continuous",
   "isru.drills": "continuous",
   "ksp.revertAvailability": "discrete",

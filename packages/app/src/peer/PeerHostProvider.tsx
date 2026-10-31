@@ -26,17 +26,7 @@ export const usePeerHost = () => useContext(PeerHostContext);
  */
 let pendingStop: ReturnType<typeof setTimeout> | null = null;
 
-/**
- * Hosts the peer mesh while mounted, under `code`, the game's join code. A
- * changed code re-claims the broker id under the new one.
- */
-export function PeerHostProvider({
-  code,
-  children,
-}: {
-  code: string;
-  children: ReactNode;
-}) {
+export function PeerHostProvider({ children }: { children: ReactNode }) {
   const [peerId, setPeerId] = useState<string | null>(peerHostService.peerId);
 
   // Wrapping must happen synchronously during render, before React's commit
@@ -61,14 +51,11 @@ export function PeerHostProvider({
     return null;
   });
 
-  const [startCode] = useState(code);
   useEffect(() => {
     if (pendingStop !== null) {
       clearTimeout(pendingStop);
       pendingStop = null;
     }
-    // Not running here, so the code is taken at once and start hosts under it.
-    void peerHostService.adoptShareCode(startCode);
     void peerHostService.start();
     const unsub = peerHostService.onPeerIdChange(setPeerId);
     return () => {
@@ -78,11 +65,7 @@ export function PeerHostProvider({
         peerHostService.stop();
       }, 0);
     };
-  }, [startCode]);
-
-  useEffect(() => {
-    void peerHostService.adoptShareCode(code);
-  }, [code]);
+  }, []);
 
   return (
     <PeerHostContext.Provider value={{ peerId }}>

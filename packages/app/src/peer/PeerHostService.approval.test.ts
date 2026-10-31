@@ -114,16 +114,13 @@ const localStorageMock = {
 vi.stubGlobal("localStorage", localStorageMock);
 
 import { logger } from "@ksp-gonogo/logger";
-import { HostRole } from "../hosting/HostRole";
-import { MemoryApprovalBook } from "../test/approveStation";
-import { FakeHostMod } from "../test/fakeHostMod";
-import { ModApprovalBook } from "./approvalBook";
 import {
   AWAITING_APPROVAL,
   PeerHostService,
   type PendingStation,
 } from "./PeerHostService";
 import { asPeerMessage, type PeerMessage } from "./protocol";
+import { stationApprovals } from "./stationApprovals";
 
 type FakeConn = InstanceType<typeof FakeHub.DataConnection>;
 
@@ -132,13 +129,8 @@ interface Station {
   told: PeerMessage[];
 }
 
-/** The game's approvals, kept across every host a test starts, as the mod keeps them. */
-let book = new MemoryApprovalBook();
-
 async function startedHost(): Promise<PeerHostService> {
   const host = new PeerHostService();
-  host.attachApprovals(book);
-  await host.adoptShareCode("ABC234");
   await host.start();
   await Promise.resolve();
   return host;
@@ -229,7 +221,6 @@ describe("a station the main screen has not approved", () => {
   afterEach(() => {
     FakeHub.reset();
     localStorageMock.clear();
-    book = new MemoryApprovalBook();
   });
 
   it("is sent nothing but its hello, the analytics switch and where its approval stands", async () => {
@@ -381,7 +372,7 @@ describe("a station the main screen has not approved", () => {
     expect(told).toContainEqual({ type: "station-approval", state: "refused" });
     expect(station.conn.open).toBe(false);
     expect(host.pendingStations()).toEqual([]);
-    expect(book.lookup("cred-a").approved).toBe(false);
+    expect(stationApprovals.isApproved("cred-a")).toBe(false);
     host.stop();
   });
 
@@ -405,7 +396,6 @@ describe("a station the main screen approves", () => {
   afterEach(() => {
     FakeHub.reset();
     localStorageMock.clear();
-    book = new MemoryApprovalBook();
   });
 
   it("is served from then on and leaves the pending list", async () => {
@@ -445,7 +435,7 @@ describe("a station the main screen approves", () => {
     const host = await startedHost();
     const station = await join(host, "station-a", "cred-a");
     host.approveStation("station-a");
-    host.removeApprovedStation("id-cred-a");
+    host.removeApprovedStation("cred-a");
     expect(station.conn.open).toBe(false);
     expect(station.told).toContainEqual({
       type: "station-approval",
@@ -458,72 +448,6 @@ describe("a station the main screen approves", () => {
     expect(host.pendingStations()).toEqual([
       { peerId: "station-a2", name: "Flight" },
     ]);
-    host.stop();
-  });
-});
-
-describe("a station approved in the game's record", () => {
-  afterEach(() => {
-    FakeHub.reset();
-    localStorageMock.clear();
-  });
-
-  /** A host whose approvals are asked of the game through its role. */
-  async function hostOverTheGame(mod: FakeHostMod): Promise<PeerHostService> {
-    const role = new HostRole("tab-new-host");
-    role.attach(mod.connect());
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
-    const host = new PeerHostService();
-    host.attachApprovals(new ModApprovalBook(role));
-    await host.adoptShareCode(mod.code);
-    await host.start();
-    await Promise.resolve();
-    return host;
-  }
-
-  async function settle(): Promise<void> {
-    for (let i = 0; i < 10; i++) await Promise.resolve();
-  }
-
-  it("is let in with no prompt after a takeover, the new host checking its credential with the game", async () => {
-    const mod = new FakeHostMod();
-    mod.seedStation("cred-a", "Flight");
-    const host = await hostOverTheGame(mod);
-
-    const station = await join(host, "station-a", "cred-a");
-    await settle();
-
-    expect(host.pendingStations()).toEqual([]);
-    expect(station.told).toContainEqual({
-      type: "station-approval",
-      state: "approved",
-    });
-    expect(mod.sent.map((s) => s.command)).toContain("host.station.check");
-    host.stop();
-  });
-
-  it("raises a credential the game does not know, and approving it writes it to the game", async () => {
-    const mod = new FakeHostMod();
-    const host = await hostOverTheGame(mod);
-
-    const station = await join(host, "station-b", "cred-unknown");
-    await settle();
-    expect(host.pendingStations()).toEqual([
-      { peerId: "station-b", name: "Flight" },
-    ]);
-
-    host.approveStation("station-b");
-    await settle();
-
-    expect(mod.record().stations).toEqual([
-      expect.objectContaining({ name: "Flight" }),
-    ]);
-    expect(station.told).toContainEqual({
-      type: "station-approval",
-      state: "approved",
-    });
     host.stop();
   });
 });
@@ -572,7 +496,6 @@ describe("every other write from a station", () => {
   afterEach(() => {
     FakeHub.reset();
     localStorageMock.clear();
-    book = new MemoryApprovalBook();
   });
 
   it("is refused with the reason before approval, and nothing reaches the main screen", async () => {

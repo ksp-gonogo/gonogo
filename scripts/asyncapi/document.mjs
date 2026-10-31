@@ -925,7 +925,6 @@ const NAMESPACE_SUMMARIES = {
   eva: "Kerbals outside a craft",
   flight: "Flight start, end and vessel changes",
   game: "Which expansions are installed",
-  host: "Which screen hosts the game, its join code and the approved remote stations",
   isru: "Resource drills and converters",
   ksp: "Launching, reverting and recovering vessels",
   missions: "The active Making History mission",

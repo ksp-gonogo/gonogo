@@ -49,6 +49,10 @@ describe("isBackupKey", () => {
   it("always includes the station name (a label, not identity)", () => {
     expect(isBackupKey("gonogo.station.name", false)).toBe(true);
   });
+
+  it("includes the host share code by default (a portable address, not identity)", () => {
+    expect(isBackupKey("gonogo-host-share-code", false)).toBe(true);
+  });
 });
 
 describe("buildBackup", () => {

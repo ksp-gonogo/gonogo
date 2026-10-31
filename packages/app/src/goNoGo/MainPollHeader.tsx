@@ -11,7 +11,6 @@ import {
 import { useGoNoGoSnapshot } from "./GoNoGoHostContext";
 import type { GoNoGoSnapshot, StationSnapshot } from "./GoNoGoHostService";
 import { noticeLabel } from "./notice";
-import { PollCentreName } from "./PollCentreName";
 
 type BoxState = "go" | "no-go" | "abort" | "none";
 
@@ -32,22 +31,19 @@ const BOX_TEXT: Record<BoxState, string> = {
 };
 
 /**
- * The middle of the host's header in the flight scene: the poll at the
- * command centre the host stands at, named with that centre, with every
- * station voting in it by name, coloured by its vote, and in their place the
- * countdown once every station in the poll is "GO". A host that stands at no
- * centre, a pilot's, shows none.
+ * The middle of the main screen's header in the flight scene: every
+ * connected station by name, coloured by its vote, and in their place the
+ * countdown once every station in the poll is "GO".
  */
 export function MainPollHeader() {
   const { inFlight } = useGameContext();
   const snapshot = useGoNoGoSnapshot();
   const secondsLeft = useSecondsLeft(snapshot?.countdown?.t0Ms ?? null);
-  if (!inFlight || !snapshot || snapshot.centre === null) return null;
+  if (!inFlight || !snapshot) return null;
   const notice =
     snapshot.notice && secondsLeft === null ? noticeLabel(snapshot.notice) : "";
   return (
     <Centre role="group" aria-label="GO/NO-GO">
-      <PollCentreName centre={snapshot.centre} />
       {secondsLeft !== null ? (
         <>
           <CountdownLine

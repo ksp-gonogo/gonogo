@@ -146,15 +146,6 @@ public static class RtConfig
                 typeof(ModSettingsModel),
                 typeof(ModSettingRow),
                 typeof(WriteModSettingArgs),
-                // host.record, the screen that hosts, and the commands that keep it
-                typeof(HostRecordModel),
-                typeof(ApprovedStationState),
-                typeof(HostRoleReply),
-                typeof(HostStationCheckReply),
-                typeof(HostTokenArgs),
-                typeof(HostApproveStationArgs),
-                typeof(HostRevokeStationArgs),
-                typeof(HostCheckStationArgs),
                 // comms.* channels
                 typeof(CommsConnectivity),
                 typeof(CommsSignal),

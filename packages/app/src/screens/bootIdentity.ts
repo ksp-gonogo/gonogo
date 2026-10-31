@@ -9,8 +9,5 @@ import { currentRoute } from "./isStationRoute";
  */
 export function stampBootRole(): void {
   const route = currentRoute();
-  logger.setIdentity({
-    role:
-      route === "main" ? "host" : route === "pilot-station" ? "pilot" : route,
-  });
+  logger.setIdentity({ role: route === "main" ? "host" : route });
 }

@@ -131,7 +131,7 @@ import {
   StubTransport,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import { approveConnection } from "../test/approveStation";
-import { HOME_SESSION, PeerHostService } from "./PeerHostService";
+import { PeerHostService } from "./PeerHostService";
 
 const TOPIC = "thirdparty.readout";
 const CRAFT = "vessel:abc-123";
@@ -364,67 +364,6 @@ describe("a connection's upstream vantage", () => {
  * sizes the delay-UX pills, and not cosmetic at all once the address decides
  * the command's delay.
  */
-describe("a station that chose no centre, on a pilot's host", () => {
-  afterEach(() => {
-    setActiveTelemetryClientForTests(undefined);
-    FakeHub.reset();
-    localStorageMock.clear();
-  });
-
-  const HOME = "ground:KSC";
-
-  it("reads from a session at home rather than the pilot's own, and stands at home", async () => {
-    const host = await startedHost();
-    const release = host.servePlainStationsAtHome();
-    host.setCommandCentre(HOME);
-    const hostSink = makeSink();
-    const homeSink = makeSink();
-    host.attachSitrepSink(hostSink);
-    host.attachSitrepSinkFor(HOME_SESSION, homeSink);
-
-    const conn = await connectStation(host, "station-a");
-    claim(conn, TOPIC);
-
-    expect(homeSink.live.has(TOPIC)).toBe(true);
-    expect(hostSink.live.has(TOPIC)).toBe(false);
-    expect(host.requestedVantages()).toEqual([HOME_SESSION]);
-    expect(host.centreOf("station-a")).toBe(HOME);
-    release();
-    host.stop();
-  });
-
-  it("sends its command from home, naming no other centre", async () => {
-    const host = await startedHost();
-    const release = host.servePlainStationsAtHome();
-    const vantages: Array<string | undefined> = [];
-    setActiveTelemetryClientForTests({
-      dispatch: (
-        _command: string,
-        _args: unknown,
-        _label: string,
-        _topic: string,
-        vantage?: string,
-      ) => {
-        vantages.push(vantage);
-        return { requestId: "c1", result: Promise.resolve(null) };
-      },
-    } as never);
-    const conn = await connectStation(host, "station-a");
-
-    conn.emit("data", {
-      type: "sitrep-command-request",
-      requestId: "r1",
-      command: "vessel.control.throttle",
-      args: {},
-    });
-    await Promise.resolve();
-
-    expect(vantages).toEqual([""]);
-    release();
-    host.stop();
-  });
-});
-
 describe("a peer's command address", () => {
   afterEach(() => {
     setActiveTelemetryClientForTests(undefined);

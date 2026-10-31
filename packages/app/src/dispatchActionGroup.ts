@@ -10,7 +10,6 @@ import {
   type DispatchCommandRefusal,
   dispatchActiveCommandTopic,
   sampleActiveReading,
-  type TelemetryClient,
 } from "@ksp-gonogo/sitrep-client";
 import type { TopicReading, VesselControl } from "@ksp-gonogo/sitrep-sdk";
 
@@ -60,16 +59,12 @@ function toggleRefusal(
  * the point of the toggle-to-absolute bridge existing at all), so a held
  * reading refuses.
  *
- * `through` is the client to send it on, when not the screen's own: a
- * GO/NO-GO poll's action leaves from the poll's centre.
- *
  * The group names are taken off a held reading too, the same way
  * `useActionGroups` does: "AG1: Solar Panels" is still called that whatever the
  * link is doing. Only the value decays.
  */
 export function dispatchActionGroup(
   actionGroupId: string,
-  through?: TelemetryClient,
 ): ActionGroupDispatch {
   const reading = sampleActiveReading<VesselControl>("vessel.control");
   const named =
@@ -94,7 +89,7 @@ export function dispatchActionGroup(
   if (args === TOGGLE_INVALID) {
     return { routed: false, refusal: toggleRefusal(group.name, reading.state) };
   }
-  const outcome = dispatchActiveCommandTopic(command, args, through);
+  const outcome = dispatchActiveCommandTopic(command, args);
   return outcome.routed
     ? outcome
     : { routed: false, refusal: "no telemetry stream carried the command" };

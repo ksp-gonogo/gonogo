@@ -805,7 +805,6 @@ export class PeerClientService {
       version?: string;
       buildTime?: string;
       seat?: import("@ksp-gonogo/sitrep-sdk/spine").Seat;
-      centre?: string;
     },
   ) {
     this.conn?.send({
@@ -822,7 +821,6 @@ export class PeerClientService {
       ...(info?.seat && info.seat !== "mission-control"
         ? { seat: info.seat }
         : {}),
-      ...(info?.centre ? { centre: info.centre } : {}),
     } satisfies PeerMessage);
   }
 

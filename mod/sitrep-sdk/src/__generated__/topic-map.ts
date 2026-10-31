@@ -59,7 +59,6 @@ import type {
   FlightVesselChanged,
   GameAlarmList,
   GameDlc,
-  HostRecordModel,
   InstrumentEntry,
   IsruConverterEntry,
   IsruDrillEntry,
@@ -190,8 +189,6 @@ export interface GeneratedTopicPayloadMap {
   "flight.vesselChanged": FlightVesselChanged;
   /** Which KSP expansions ("DLC") are installed. */
   "game.dlc": GameDlc;
-  /** Which screen hosts this game, the code a remote station joins with, and the remote stations the host has approved. */
-  "host.record": HostRecordModel;
   /** One chemical converter on the active vessel. */
   "isru.converters": IsruConverterEntry[];
   /** One drill (resource harvester) on the active vessel. */
@@ -337,7 +334,6 @@ export const GENERATED_TOPIC_IDS = [
   "flight.started",
   "flight.vesselChanged",
   "game.dlc",
-  "host.record",
   "isru.converters",
   "isru.drills",
   "ksp.revertAvailability",

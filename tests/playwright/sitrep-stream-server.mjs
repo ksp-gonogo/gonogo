@@ -56,7 +56,6 @@
  */
 import { createServer } from "node:http";
 import { WebSocketServer } from "ws";
-import { createHostRecord } from "./fake-host-record.mjs";
 
 const PORT = Number.parseInt(process.env.SITREP_REPLAY_PORT ?? "8090", 10);
 
@@ -367,10 +366,6 @@ export function startReplayServer({ port = PORT, extraTopics = {} } = {}) {
 
   let connectCount = 0;
 
-  const hostRecord = createHostRecord({
-    send: (ws, frame) => ws.send(JSON.stringify(frame)),
-    meta: () => frameMeta(0),
-  });
   wss.on("connection", (ws) => {
     connectCount += 1;
     const myId = connectCount;
@@ -407,7 +402,6 @@ export function startReplayServer({ port = PORT, extraTopics = {} } = {}) {
         return;
       }
       if (typeof data !== "object" || data === null) return;
-      if (hostRecord.handle(ws, data)) return;
 
       if (data.type === "subscribe" && typeof data.topic === "string") {
         subs.add(data.topic);
@@ -420,7 +414,6 @@ export function startReplayServer({ port = PORT, extraTopics = {} } = {}) {
 
     ws.on("close", () => {
       clearInterval(ticker);
-      hostRecord.closed(ws);
       process.stdout.write(`[sitrep-replay] disconnect (was #${myId})\n`);
     });
   });

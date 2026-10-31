@@ -27,7 +27,6 @@
  */
 import { createServer } from "node:http";
 import { WebSocketServer } from "ws";
-import { createHostRecord } from "./fake-host-record.mjs";
 
 const UT_EPOCH = 1_000_000;
 const WALL_EPOCH_SECONDS = 1_756_000_000;
@@ -268,12 +267,6 @@ function handle(from, command, args) {
   return `unknown command ${command}`;
 }
 
-/* One game behind all three ports, so the screens of a scene host or join each other. */
-const hostRecord = createHostRecord({
-  send: (ws, frame) => ws.send(JSON.stringify(frame)),
-  meta: () => meta("", ut(), ut()),
-});
-
 export function startRadioStreamServer({ port, vantage }) {
   const snapshot = new Map();
   snapshots.set(port, snapshot);
@@ -383,7 +376,6 @@ export function startRadioStreamServer({ port, vantage }) {
         return;
       }
       if (typeof data !== "object" || data === null) return;
-      if (hostRecord.handle(ws, data)) return;
       if (data.type === "subscribe" && typeof data.topic === "string") {
         client.subs.add(data.topic);
         sendTo(client, data.topic);
@@ -413,7 +405,6 @@ export function startRadioStreamServer({ port, vantage }) {
     ws.on("close", () => {
       clearInterval(ticker);
       clients.delete(client);
-      hostRecord.closed(ws);
       process.stdout.write(`[radio-stream ${vantage}] disconnect\n`);
     });
   });

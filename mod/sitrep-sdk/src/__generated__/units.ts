@@ -107,11 +107,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     radialOut: "m/s",
     ut: "ut",
   },
-  "ApprovedStationState": {
-    approvedAt: "count",
-    id: "id",
-    name: "text",
-  },
   "ArchiveEntry": {
     biome: "text",
     body: "text",
@@ -898,39 +893,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "HireApplicantArgs": {
     applicantName: "id",
-  },
-  "HostApproveStationArgs": {
-    credential: "id",
-    name: "text",
-    token: "id",
-  },
-  "HostCheckStationArgs": {
-    credential: "id",
-    token: "id",
-  },
-  "HostRecordModel": {
-    code: "id",
-    held: "flag",
-    holderAway: "flag",
-    holderId: "id",
-  },
-  "HostRevokeStationArgs": {
-    stationId: "id",
-    token: "id",
-  },
-  "HostRoleReply": {
-    graceSeconds: "s",
-    heartbeatSeconds: "s",
-    holderId: "id",
-    holds: "flag",
-  },
-  "HostStationCheckReply": {
-    approved: "flag",
-    name: "text",
-    stationId: "id",
-  },
-  "HostTokenArgs": {
-    token: "id",
   },
   "InstrumentEntry": {
     continuous: "flag",
@@ -2148,12 +2110,6 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     breakingGround: "flag",
     makingHistory: "flag",
   },
-  "host.record": {
-    code: "id",
-    held: "flag",
-    holderAway: "flag",
-    holderId: "id",
-  },
   "isru.converters": {
     partId: "id",
     partTitle: "text",
@@ -2864,9 +2820,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     breach: "LimitBreach",
     missing: "MissingUnlock[]",
   },
-  "HostRecordModel": {
-    stations: "ApprovedStationState[]",
-  },
   "ICommandGateInputs": {
     inputs: "GateInput[]",
   },
@@ -3152,9 +3105,6 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "eva.crew": {
     kerbals: "EvaCrewMember[]",
-  },
-  "host.record": {
-    stations: "ApprovedStationState[]",
   },
   "isru.converters": {
     inputs: "IsruResourceFlow[]",

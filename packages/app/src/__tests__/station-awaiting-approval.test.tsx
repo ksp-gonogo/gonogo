@@ -145,7 +145,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ANALYTICS_CONSENT_KEY } from "../analytics/AnalyticsConsentService";
 import { PeerHostService } from "../peer/PeerHostService";
 import { StationScreen } from "../screens/StationScreen";
-import { MemoryApprovalBook } from "../test/approveStation";
 
 const WAITING = "Waiting for the main screen to approve this station";
 
@@ -174,7 +173,6 @@ describe("a station waiting for the main screen's approval", () => {
 
   it("shows only that it is waiting, then its dashboard once approved", async () => {
     host = new PeerHostService();
-    host.attachApprovals(new MemoryApprovalBook());
     await host.start();
     await waitFor(() => expect(host.peerId).not.toBeNull());
     globalThis.history.replaceState({}, "", `/station?host=${host.shareCode}`);

@@ -16,7 +16,6 @@ import {
   it,
   vi,
 } from "vitest";
-import { testApprovals } from "../test/approveStation";
 
 const { FakeHub } = vi.hoisted(() => {
   class FakeDataConnection {
@@ -356,7 +355,10 @@ describe("a station joining through the endpoint", () => {
       },
     });
     const credential = "e2e0station0credential0000000000";
-    testApprovals().approve(credential, "E2E");
+    store.set(
+      "gonogo.host.approvedStations",
+      JSON.stringify([{ credential, name: "E2E", approvedAt: 0 }]),
+    );
     const { host, peer } = await startedHost();
     await vi.waitFor(() => expect(host.endpoint.available).toBe(true));
     join(peer, "station-a", "gne-1");

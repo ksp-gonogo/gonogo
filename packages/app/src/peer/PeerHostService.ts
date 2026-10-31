@@ -27,7 +27,6 @@ import type { HostJobs } from "../hosting/HostJobs";
 import type { RunningUplink } from "../uplinks/loaderState";
 import type { HostUplinkFailure } from "../uplinks/loadFailures";
 import { BUILD_TIME, VERSION } from "../version";
-import type { ApprovalBook, ApprovalLookup } from "./approvalBook";
 import {
   BundleFetchCache,
   fetchWithDeadline,
@@ -37,7 +36,6 @@ import { type ConnectionPath, readConnectionPath } from "./connectionPath";
 import { DeliveryMeter, deliveryChannel } from "./DeliveryMeter";
 import { joinMetadata, readJoin } from "./endpointJoin";
 import { EndpointConnection, EndpointStations } from "./endpointStations";
-import { defaultApprovals, defaultShareCode } from "./hostDefaults";
 import { deriveHostPeerId } from "./hostPeerId";
 import { attachIceDiagnostics } from "./iceDiagnostics";
 import { MessageDispatcher } from "./MessageDispatcher";
@@ -48,10 +46,17 @@ import { asPeerMessage, HOST_HEARTBEAT_MS } from "./protocol";
 import { RelayRegistration } from "./RelayRegistration";
 import { STUN_SERVERS, stationsSocketUrl } from "./relayAddress";
 import { SentOnChange } from "./sentOnChange";
+import { stationApprovals } from "./stationApprovals";
 import type { StationLink } from "./stationLink";
 import { StationPacer } from "./stationPace";
 import { TypedListeners } from "./typedListeners";
 import { encodeWideNumbers } from "./wideNumbers";
+
+// The host's sole persisted identity. The PeerJS peer id is *derived* from
+// this code (`gonogo-host-<CODE>`) rather than persisted: stations derive the
+// same id from the operator-typed code and connect directly, no broker
+// directory in between. See `hostPeerId.ts` for the derivation.
+const SHARE_CODE_KEY = "gonogo-host-share-code";
 
 /** How long the connection carrying the endpoint's answer to a station is kept, for a station that never reads it. */
 const ANSWER_CARRIER_MS = 15_000;
@@ -90,14 +95,6 @@ export interface UplinkRelayHandle {
  * vantage a connection actually asks for.
  */
 export const HOST_SESSION = "host";
-
-/**
- * The vantage key for a session of the host's own at the home command centre:
- * what a connection that chose no vantage reads from when the hosting screen
- * does not stand at a command centre. Never a roster id, for the reason
- * {@link HOST_SESSION} is not.
- */
-export const HOME_SESSION = "home";
 
 export interface SitrepSubscriptionSink {
   /** Hold an upstream subscription for `topic`. Returns its release. */
@@ -177,16 +174,61 @@ const PEER_BROADCAST_COUNT_BUDGET = new PerfBudget({
   unit: "messages",
 });
 
-/** Hand `lookup`'s answer to `then`, at once when it is already known. */
-function whenLooked(
-  lookup: ApprovalLookup | Promise<ApprovalLookup>,
-  then: (answer: ApprovalLookup) => void,
-): void {
-  if (lookup instanceof Promise) {
-    void lookup.then(then, () => then({ approved: false }));
-    return;
+const CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no ambiguous 0/O/1/I/L
+
+/**
+ * How many characters a freshly-minted share code carries. Six of this
+ * 32-character alphabet is about 1.07e9 codes, where four was 1,048,576.
+ *
+ * The code is the only thing standing between a stranger and a hosted game:
+ * the host's broker peer id is derived from it (`gonogo-host-<CODE>`, see
+ * `hostPeerId.ts`), so the public PeerJS broker will answer whether a guessed
+ * code is live, and the broker has no rate limiting to slow that down. Four
+ * characters behind an online oracle like that is a speed bump; six is a gate.
+ */
+const SHARE_CODE_LENGTH = 6;
+
+/** A share code this build would mint: six characters of {@link CHARS}. */
+const SHARE_CODE_FORM = new RegExp(`^[${CHARS}]{${SHARE_CODE_LENGTH}}$`);
+
+/**
+ * A fresh share code, drawn from the platform CSPRNG.
+ *
+ * Deliberately no `Math.random()` fallback. This value is a secret, and a
+ * fallback would mint a weak one that looks exactly like a strong one, which
+ * is the whole failure this replaced. `crypto.getRandomValues` has been in
+ * every browser since IE11, so the throw is unreachable in a browser and
+ * loud anywhere else.
+ */
+function generateShortId(): string {
+  if (typeof crypto === "undefined" || !crypto.getRandomValues) {
+    throw new Error(
+      "cannot mint a share code: this environment has no crypto.getRandomValues",
+    );
   }
-  then(lookup);
+  // Rejection-free because 32 divides 256 exactly: every byte maps to one
+  // character with no modulo bias. An alphabet whose length is not a power
+  // of two would need the rejection loop this deliberately does not have.
+  const bytes = crypto.getRandomValues(new Uint8Array(SHARE_CODE_LENGTH));
+  return Array.from(bytes, (b) => CHARS[b % CHARS.length]).join("");
+}
+
+/**
+ * The host's stable share-code, minted once and persisted. The PeerJS peer
+ * id is derived from it (`gonogo-host-<CODE>`); a host refresh re-claims the
+ * *same* derived id, so the operator's code stays valid and stations
+ * reconnect transparently. Only `regenerateShareCode()` changes it.
+ *
+ * A stored code not of the form this build mints is replaced, so a code drawn
+ * from a weaker source or a shorter alphabet never outlives the build that
+ * minted it.
+ */
+function getOrCreateShareCode(): string {
+  const saved = localStorage.getItem(SHARE_CODE_KEY);
+  if (saved && SHARE_CODE_FORM.test(saved)) return saved;
+  const code = generateShortId();
+  localStorage.setItem(SHARE_CODE_KEY, code);
+  return code;
 }
 
 /**
@@ -239,8 +281,6 @@ type StationInfoListener = (
     stationKey?: string;
     /** Which seat this peer is at. Absent means mission control. */
     seat?: Seat;
-    /** The command centre a screen with its own connection to the game stands at. */
-    centre?: string;
   },
 ) => void;
 type GonogoVoteListener = (
@@ -421,10 +461,7 @@ export class PeerHostService {
    * until `admit` moves it into `connections`.
    */
   private waiting: Set<StationLink> = new Set();
-  private approvalBook: ApprovalBook | undefined;
   private approvalsUnsub: (() => void) | null = null;
-  /** Each connection's approved station id, once its credential was found approved. */
-  private readonly connStationId = new Map<StationLink, string>();
   /** Single typed event registry replacing the former ~22 hand-rolled
    *  `ListenerSet` fields. The `onX` methods are thin wrappers over
    *  `events.on("x", cb)` and the dispatcher fires via `events.emit("x", ...)`,
@@ -573,20 +610,18 @@ export class PeerHostService {
    */
   private readonly sitrepSinks = new Map<string, SitrepSubscriptionSink>();
   private hostJobs: HostJobs | undefined;
-  /** The session a connection that chose no vantage reads from. */
-  private plainSession: string = HOST_SESSION;
 
   /** The host's broker peer id: the *derived* `gonogo-host-<shareCode>`
    *  form (not the operator-facing share code). Null until the broker
    *  confirms it with an `open`. Stations connect to this directly; the
    *  operator never sees it (they see `shareCode`). */
   peerId: string | null = null;
-  /**
-   * The join code stations enter, from the game's host record, so it is the
-   * same whichever screen hosts. Both ends derive the broker peer id from it.
-   * Empty until {@link adoptShareCode} is given one.
-   */
-  shareCode = defaultShareCode();
+  /** Stable, operator-facing share-code. Persisted and stable across host
+   *  refreshes: the "Add station" UI shows this, stations type/scan it,
+   *  and both ends derive the broker peer id from it. The operator can mint
+   *  a fresh one on demand via `regenerateShareCode()` (the Add Station
+   *  modal's reset control); that's the only thing that changes it. */
+  shareCode: string = getOrCreateShareCode();
   /** The relay's station endpoint, which carries every station that joins while it is up. */
   readonly endpoint = new EndpointStations(stationsSocketUrl);
   private flightListChangeUnsub: (() => void) | null = null;
@@ -633,7 +668,6 @@ export class PeerHostService {
   private readonly onResume = () => this.resumeBroker();
 
   async start() {
-    if (this.shareCode === "") this.shareCode = defaultShareCode();
     this.deliveryMeter.start();
     // Stamp the log identity before anything that can fail, errors fired
     // pre-`open` (unavailable-id, a broker that never answers) otherwise
@@ -646,10 +680,10 @@ export class PeerHostService {
     // reclaim that re-opens the Peer: doesn't stack duplicate handlers.
     this.attachLifecycleListeners();
     this.startHeartbeat();
-    this.approvalsUnsub ??=
-      this.approvals().onChange?.(() => {
-        for (const conn of [...this.waiting]) this.serveIfApproved(conn);
-      }) ?? null;
+    // An approval can land while its station waits: from the prompt, or from another tab of this main screen sharing the store.
+    this.approvalsUnsub ??= stationApprovals.subscribe(() => {
+      for (const conn of [...this.waiting]) this.serveIfApproved(conn);
+    });
     this.openPeer();
   }
 
@@ -663,7 +697,7 @@ export class PeerHostService {
    */
   private openPeer(): void {
     // A second Peer under the same derived id would leak the first and trip a permanent unavailable-id reclaim loop; the reclaim and regenerate paths null `this.peer` first.
-    if (this.peer || this.shareCode === "") return;
+    if (this.peer) return;
     const peerId = deriveHostPeerId(this.shareCode);
     // `key: "gonogo"` isolates us from the default `peerjs` namespace on the
     // public 0.peerjs.com broker. Without it, our short ids collide with
@@ -1070,39 +1104,15 @@ export class PeerHostService {
   private serveIfApproved(conn: StationLink): void {
     if (!this.waiting.has(conn)) return;
     const credential = this.connCredential.get(conn);
-    if (credential === undefined) return;
-    whenLooked(this.approvals().lookup(credential), (answer) => {
-      if (!answer.approved || !this.waiting.has(conn)) return;
-      this.serveApproved(conn, answer.stationId);
-    });
-  }
-
-  /** Tell a waiting station it is approved, and serve it. */
-  private serveApproved(conn: StationLink, stationId: string): void {
-    this.connStationId.set(conn, stationId);
+    if (credential === undefined || !stationApprovals.isApproved(credential)) {
+      return;
+    }
     this.setPending(this.pending.filter((p) => p.peerId !== conn.peer));
     conn.send({
       type: "station-approval",
       state: "approved",
     } satisfies PeerMessage);
     this.admit(conn);
-  }
-
-  /** The approvals in force: the game's once attached. */
-  private approvals(): ApprovalBook {
-    return this.approvalBook ?? defaultApprovals();
-  }
-
-  /**
-   * Read and keep approvals through `book`, the game's record of them. Returns
-   * the release.
-   */
-  attachApprovals(book: ApprovalBook): () => void {
-    this.approvalBook = book;
-    for (const conn of [...this.waiting]) this.serveIfApproved(conn);
-    return () => {
-      if (this.approvalBook === book) this.approvalBook = undefined;
-    };
   }
 
   /**
@@ -1216,7 +1226,6 @@ export class PeerHostService {
     if (this.stationPaths.delete(conn.peer)) this.events.emit("stationPaths");
     this.peerIdToStationKey.delete(conn.peer);
     this.connCredential.delete(conn);
-    this.connStationId.delete(conn);
     const leftPending = this.pending.find((p) => p.peerId === conn.peer);
     this.setPending(this.pending.filter((p) => p.peerId !== conn.peer));
     if (leftPending) this.events.emit("pendingStationLeft", leftPending);
@@ -1308,7 +1317,6 @@ export class PeerHostService {
   private commandVantageFor(conn: StationLink, override?: string): string {
     if (override) return override;
     const connVantage = this.vantageOf(conn);
-    if (connVantage === HOME_SESSION) return "";
     if (connVantage !== HOST_SESSION) return connVantage;
     return this.hostJobs?.plainStationVantage() ?? "";
   }
@@ -1394,12 +1402,11 @@ export class PeerHostService {
    * sees that vantage's view of every topic it holds as soon as it arrives
    * rather than keeping the old one's until the next emission.
    */
-  private setConnVantage(conn: StationLink, vantage: string | undefined): void {
-    if (this.vantageOf(conn) === (vantage ?? this.plainSession)) return;
+  private setConnVantage(conn: StationLink, vantage: string): void {
+    if (this.vantageOf(conn) === vantage) return;
     const claimed = [...(this.sitrepSubs.get(conn) ?? [])];
     for (const topic of claimed) this.releaseSitrepSub(conn, topic);
-    if (vantage === undefined) this.connVantage.delete(conn);
-    else this.connVantage.set(conn, vantage);
+    this.connVantage.set(conn, vantage);
     for (const topic of claimed) this.retainSitrepSub(conn, topic);
     this.announceRequestedVantages();
     this.events.emit("centresChanged");
@@ -1410,26 +1417,9 @@ export class PeerHostService {
     this.events.emit("requestedVantages", this.requestedVantages());
   }
 
-  /** Which upstream session `conn` reads from: the plain-station session until it asks otherwise. */
+  /** Which upstream session `conn` reads from: the host's own until it asks otherwise. */
   private vantageOf(conn: StationLink): string {
-    return this.connVantage.get(conn) ?? this.plainSession;
-  }
-
-  /**
-   * Serve every connection that chose no vantage from a session at the home
-   * command centre rather than from the hosting screen's own, for a host whose
-   * screen stands aboard a craft. Set before any station connects. Returns the
-   * release.
-   */
-  servePlainStationsAtHome(): () => void {
-    this.plainSession = HOME_SESSION;
-    this.announceRequestedVantages();
-    this.events.emit("centresChanged");
-    return () => {
-      this.plainSession = HOST_SESSION;
-      this.announceRequestedVantages();
-      this.events.emit("centresChanged");
-    };
+    return this.connVantage.get(conn) ?? HOST_SESSION;
   }
 
   /**
@@ -1716,9 +1706,7 @@ export class PeerHostService {
     const conn = this.findConnByPeerId(peerId);
     if (!conn) return null;
     const vantage = this.vantageOf(conn);
-    return vantage === HOST_SESSION || vantage === HOME_SESSION
-      ? this.commandCentre
-      : vantage;
+    return vantage === HOST_SESSION ? this.commandCentre : vantage;
   }
 
   /** Every connected peer id, for whatever fans a message out by centre. */
@@ -2017,7 +2005,7 @@ export class PeerHostService {
       this.syncRateHold(conn, msg.topic);
     },
     "sitrep-set-vantage": (msg, conn) => {
-      this.setConnVantage(conn, msg.vantage ?? undefined);
+      this.setConnVantage(conn, msg.vantage ?? HOST_SESSION);
     },
     "uplink-bundle-request": (msg, conn) => {
       void this.handleUplinkBundleRequest(msg, conn);
@@ -2067,7 +2055,6 @@ export class PeerHostService {
         buildTime: msg.buildTime,
         stationKey: msg.stationKey,
         seat: msg.seat,
-        centre: msg.centre,
       });
     },
     "station-credential": (msg, conn) => {
@@ -2322,28 +2309,22 @@ export class PeerHostService {
    */
   private raiseIfUnapproved(conn: StationLink, name: string): void {
     const credential = this.connCredential.get(conn);
-    if (credential === undefined) {
-      this.raisePending(conn, name, false);
+    const approved = stationApprovals
+      .list()
+      .find((s) => s.credential === credential);
+    if (approved) {
+      if (approved.name !== name) {
+        stationApprovals.approve(approved.credential, name);
+      }
+      this.setPending(this.pending.filter((p) => p.peerId !== conn.peer));
+      conn.send({
+        type: "station-approval",
+        state: "approved",
+      } satisfies PeerMessage);
+      this.admit(conn);
       return;
     }
-    whenLooked(this.approvals().lookup(credential), (answer) => {
-      if (!this.waiting.has(conn) && !this.connections.has(conn)) return;
-      if (!answer.approved) {
-        this.raisePending(conn, name, true);
-        return;
-      }
-      if (answer.name !== name) void this.approvals().approve(credential, name);
-      this.serveApproved(conn, answer.stationId);
-    });
-  }
-
-  /** Raise a station on the main screen, if it can be approved, and tell it it waits. */
-  private raisePending(
-    conn: StationLink,
-    name: string,
-    approvable: boolean,
-  ): void {
-    if (approvable) {
+    if (credential !== undefined) {
       const entry: PendingStation = { peerId: conn.peer, name };
       const known = this.pending.some((p) => p.peerId === conn.peer);
       this.setPending(
@@ -2401,14 +2382,7 @@ export class PeerHostService {
     const credential = conn ? this.connCredential.get(conn) : undefined;
     this.setPending(this.pending.filter((p) => p.peerId !== peerId));
     if (!conn || !credential) return;
-    const approved = this.approvals().approve(
-      credential,
-      entry?.name ?? peerId,
-    );
-    if (approved instanceof Promise) {
-      void approved.then(() => this.serveIfApproved(conn));
-      return;
-    }
+    stationApprovals.approve(credential, entry?.name ?? peerId);
     this.serveIfApproved(conn);
   }
 
@@ -2419,11 +2393,11 @@ export class PeerHostService {
     if (conn) this.disconnectRefused(conn);
   }
 
-  /** Revoke an approved station, by the id the game names it with, and disconnect it if it is here. */
-  removeApprovedStation(stationId: string): void {
-    void this.approvals().revoke(stationId);
-    for (const [conn, held] of [...this.connStationId]) {
-      if (held === stationId) this.disconnectRefused(conn);
+  /** Forget an approved station and disconnect it if it is here. */
+  removeApprovedStation(credential: string): void {
+    stationApprovals.remove(credential);
+    for (const [conn, held] of [...this.connCredential]) {
+      if (held === credential) this.disconnectRefused(conn);
     }
   }
 
@@ -3125,9 +3099,13 @@ export class PeerHostService {
   }
 
   /**
-   * Subscribe to share-code changes. Fires with the current value at once and
-   * on every change, which happens only when the game's join code changes; a
-   * plain peer-id rotation leaves it alone.
+   * Subscribe to share-code changes. Fires with the current value
+   * immediately (so a late subscriber sees the right code without waiting
+   * for a regenerate) and on every subsequent change. The share-code only
+   * changes when the operator clicks the Add Station modal's reset control
+   * (`regenerateShareCode()`); a plain peer-id rotation leaves it alone.
+   * The modal subscribes to this so a regenerate visibly updates the
+   * displayed code even though the peer id is unchanged.
    */
   onShareCodeChange(cb: (shareCode: string) => void): () => void {
     const unsub = this.events.on("shareCode", cb);
@@ -3155,19 +3133,28 @@ export class PeerHostService {
   }
 
   /**
-   * Host under `code`, the game's join code, re-claiming the broker id derived
-   * from it. A running host with a different code tears its peer down and
-   * comes back under the new one, so every station connection drops and the
-   * stations that held the old code have to be given the new one.
+   * Mint a fresh operator-facing share-code and re-claim the new derived
+   * `gonogo-host-<newCode>` peer id. Used by the Add Station modal's reset
+   * control: a clean teardown of the old Peer (freeing the old derived
+   * id's broker slot) followed by a fresh `openPeer()` against the new
+   * derived id. Every live station data channel drops; stations that held
+   * the old code must be re-shared the new one (the old code stops working
+   * because nothing on the broker answers to its derived id any more).
+   *
+   * Also doubles as the "host stuck" recovery: a fresh code sidesteps a
+   * broker slot the old code can't reclaim.
    */
-  async adoptShareCode(code: string): Promise<void> {
-    if (code === this.shareCode) return;
-    const running = this.peer !== null || this.reclaimTimer !== null;
-    logger.info(`[PeerHost] hosting under share code ${code}`);
-    if (running) this.stop();
-    this.shareCode = code;
-    this.events.emit("shareCode", code);
-    if (running) await this.start();
+  async regenerateShareCode(): Promise<void> {
+    const next = generateShortId();
+    logger.info(`[PeerHost] regenerating share code: newCode=${next}`);
+    // Tear the current Peer + timers down cleanly, then mint the new code
+    // and bring a fresh Peer up against its derived id. stop() also detaches
+    // lifecycle listeners, so re-attach them via start().
+    this.stop();
+    localStorage.setItem(SHARE_CODE_KEY, next);
+    this.shareCode = next;
+    this.events.emit("shareCode", next);
+    await this.start();
   }
 }
 

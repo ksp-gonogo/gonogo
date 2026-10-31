@@ -98,16 +98,57 @@ describe("PeerHostService: stable host id (derived from share code)", () => {
     service.stop();
   });
 
-  it("hosts under the code it is given, and keeps nothing of its own in storage", async () => {
+  it("the share-code is stable, persisted under its own key, and derives the peer id", async () => {
     const { PeerHostService } = await import("../peer/PeerHostService");
+    const a = new PeerHostService();
+    const persisted = localStorage.getItem("gonogo-host-share-code");
+    expect(persisted).toBe(a.shareCode);
+    expect(a.shareCode).toMatch(/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/);
+
+    // A second service instance reads the SAME persisted share-code.
+    const b = new PeerHostService();
+    expect(b.shareCode).toBe(a.shareCode);
+  });
+
+  it("mints the share code from the platform CSPRNG, never Math.random", async () => {
+    /*
+     * The code is the only thing between a stranger and a hosted game: the
+     * broker answers whether a guessed `gonogo-host-<CODE>` is live, so the
+     * code's strength IS the gate. A `Math.random()` code looks exactly like
+     * a crypto one, which is why this asserts the SOURCE and not just the
+     * shape.
+     */
+    const getRandomValues = vi.spyOn(crypto, "getRandomValues");
+    const mathRandom = vi.spyOn(Math, "random");
+    const { PeerHostService } = await import("../peer/PeerHostService");
+
     const service = new PeerHostService();
-    await service.adoptShareCode("QRS456");
+
+    expect(getRandomValues).toHaveBeenCalled();
+    expect(mathRandom).not.toHaveBeenCalled();
+    expect(service.shareCode).toHaveLength(6);
+    getRandomValues.mockRestore();
+    mathRandom.mockRestore();
+  });
+
+  it.each([
+    ["shorter", "AB3K"],
+    ["outside the alphabet", "AB0O1I"],
+  ])("replaces a stored code that is %s on load", async (_why, stored) => {
+    localStorage.setItem("gonogo-host-share-code", stored);
+    const { PeerHostService } = await import("../peer/PeerHostService");
+
+    const service = new PeerHostService();
     await service.start();
     await flush();
 
-    expect(service.shareCode).toBe("QRS456");
-    expect(FakePeer.last?.id).toBe("gonogo-host-QRS456");
-    expect(localStorage.length).toBe(0);
+    expect(service.shareCode).toMatch(
+      /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/,
+    );
+    expect(localStorage.getItem("gonogo-host-share-code")).toBe(
+      service.shareCode,
+    );
+    expect(FakePeer.last?.id).toBe(`gonogo-host-${service.shareCode}`);
     service.stop();
   });
 
@@ -203,28 +244,41 @@ describe("PeerHostService: stable host id (derived from share code)", () => {
     expect(firstPeer?.destroyed).toBe(true);
   });
 
-  it("comes back under a new code the game gives it, claiming the new derived id", async () => {
+  it("regenerateShareCode mints + persists a new code and re-claims the new derived id", async () => {
     const { PeerHostService } = await import("../peer/PeerHostService");
     const service = new PeerHostService();
-    await service.adoptShareCode("ABC234");
     await service.start();
     await flush();
+
+    const oldCode = service.shareCode;
     const oldPeer = FakePeer.last;
 
+    // Observe the share-code notification the modal relies on to re-render.
     const observed: string[] = [];
     const unsub = service.onShareCodeChange((c) => observed.push(c));
-    await flush();
+    await flush(); // flush the replay microtask
     observed.length = 0;
 
-    await service.adoptShareCode("XYZ789");
+    await service.regenerateShareCode();
     await flush();
 
-    expect(observed).toEqual(["XYZ789"]);
+    // The in-memory code + the persisted key both rotated.
+    expect(service.shareCode).not.toBe(oldCode);
+    expect(service.shareCode).toMatch(
+      /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/,
+    );
+    expect(localStorage.getItem("gonogo-host-share-code")).toBe(
+      service.shareCode,
+    );
+    // Listeners were notified with the new code (drives the UI re-render).
+    expect(observed).toContain(service.shareCode);
+
+    // The old derived-id Peer was destroyed and a fresh one claimed the NEW derived id.
     expect(oldPeer?.destroyed).toBe(true);
     const newPeer = FakePeer.last;
     expect(newPeer).not.toBe(oldPeer);
-    expect(newPeer?.id).toBe("gonogo-host-XYZ789");
-    expect(service.peerId).toBe("gonogo-host-XYZ789");
+    expect(newPeer?.id).toBe(`gonogo-host-${service.shareCode}`);
+    expect(service.peerId).toBe(`gonogo-host-${service.shareCode}`);
 
     unsub();
     service.stop();

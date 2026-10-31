@@ -66,12 +66,6 @@ import type {
   GateCheckRequest,
   GateVerdict,
   HireApplicantArgs,
-  HostApproveStationArgs,
-  HostCheckStationArgs,
-  HostRevokeStationArgs,
-  HostRoleReply,
-  HostStationCheckReply,
-  HostTokenArgs,
   InvokePartActionArgs,
   LaunchArgs,
   NoCommandArgs,
@@ -151,20 +145,6 @@ export interface GeneratedCommandArgsMap {
   "commcast.radio.transmit": CommcastRadioTransmitArgs;
   /** Turn a kerbal's headlamp on or off. */
   "eva.kerbal.setLamp": SetEvaLampArgs;
-  /** Ask for the host role. */
-  "host.claim": HostTokenArgs;
-  /** Replace the join code with a new one. */
-  "host.code.regenerate": HostTokenArgs;
-  /** Tell the mod the hosting screen is still there. */
-  "host.heartbeat": HostTokenArgs;
-  /** Give the host role up at once. */
-  "host.release": HostTokenArgs;
-  /** Approve a remote station. */
-  "host.station.approve": HostApproveStationArgs;
-  /** Ask whether a station's credential is approved. */
-  "host.station.check": HostCheckStationArgs;
-  /** Revoke an approved remote station. */
-  "host.station.revoke": HostRevokeStationArgs;
   /** Load a saved craft onto a launch site. */
   "ksp.launch": LaunchArgs;
   /** Recover the active vessel. */
@@ -312,20 +292,6 @@ export interface GeneratedCommandReplyMap {
   "commcast.radio.transmit": CommandResult;
   /** Turn a kerbal's headlamp on or off. */
   "eva.kerbal.setLamp": CommandResult;
-  /** Ask for the host role. */
-  "host.claim": HostRoleReply;
-  /** Replace the join code with a new one. */
-  "host.code.regenerate": CommandResult;
-  /** Tell the mod the hosting screen is still there. */
-  "host.heartbeat": HostRoleReply;
-  /** Give the host role up at once. */
-  "host.release": CommandResult;
-  /** Approve a remote station. */
-  "host.station.approve": CommandResult;
-  /** Ask whether a station's credential is approved. */
-  "host.station.check": HostStationCheckReply;
-  /** Revoke an approved remote station. */
-  "host.station.revoke": CommandResult;
   /** Load a saved craft onto a launch site. */
   "ksp.launch": CommandResult;
   /** Recover the active vessel. */
@@ -465,13 +431,6 @@ export const GENERATED_COMMAND_REPLY_TYPES = {
   "commcast.message.send": "CommcastSendReceipt",
   "commcast.radio.transmit": "CommandResult",
   "eva.kerbal.setLamp": "CommandResult",
-  "host.claim": "HostRoleReply",
-  "host.code.regenerate": "CommandResult",
-  "host.heartbeat": "HostRoleReply",
-  "host.release": "CommandResult",
-  "host.station.approve": "CommandResult",
-  "host.station.check": "HostStationCheckReply",
-  "host.station.revoke": "CommandResult",
   "ksp.launch": "CommandResult",
   "ksp.recover": "CommandResult",
   "ksp.recoverVessel": "CommandResult",
@@ -585,13 +544,6 @@ export const GENERATED_COMMAND_RAIL = {
   "commcast.message.send": { replies: true, delayed: false },
   "commcast.radio.transmit": { replies: true, delayed: false },
   "eva.kerbal.setLamp": { replies: true, delayed: true },
-  "host.claim": { replies: true, delayed: false },
-  "host.code.regenerate": { replies: true, delayed: false },
-  "host.heartbeat": { replies: true, delayed: false },
-  "host.release": { replies: true, delayed: false },
-  "host.station.approve": { replies: true, delayed: false },
-  "host.station.check": { replies: true, delayed: false },
-  "host.station.revoke": { replies: true, delayed: false },
   "ksp.launch": { replies: true, delayed: false },
   "ksp.recover": { replies: true, delayed: false },
   "ksp.recoverVessel": { replies: true, delayed: false },
@@ -667,13 +619,6 @@ export const GENERATED_COMMAND_IDS = [
   "commcast.message.send",
   "commcast.radio.transmit",
   "eva.kerbal.setLamp",
-  "host.claim",
-  "host.code.regenerate",
-  "host.heartbeat",
-  "host.release",
-  "host.station.approve",
-  "host.station.check",
-  "host.station.revoke",
   "ksp.launch",
   "ksp.recover",
   "ksp.recoverVessel",

@@ -30,7 +30,7 @@ How a station joins depends on whether the relay in the container is running:
 - **With the relay running**, every station joins through it, on one port: friends on your home network and friends over the internet alike. A friend on your home network needs nothing set up. A friend on another network needs that one port open on your router, as described below
 - **Without the relay**, stations connect to the main screen tab directly. That works for friends on your home network only
 
-The game keeps the join code, so it stays the same whichever screen hosts, until you press **New join code**.
+The join code stays the same until you press **New join code**, or until the main screen browser's site data is cleared.
 
 ### What the chips mean
 

@@ -141,9 +141,9 @@ export async function seedContext(
 }
 
 /**
- * Give a context the one station credential every fake game has approved
- * (`fake-host-record.mjs`), so a spec's station is served without a click on
- * the approval prompt.
+ * Give a context the one station credential every seeded main screen has
+ * approved, so a spec's station is served without a click on the approval
+ * prompt. Seeds both halves, so it serves a main screen and a station alike.
  */
 export async function seedApprovedStation(
   context: BrowserContext,
@@ -151,6 +151,10 @@ export async function seedApprovedStation(
   await context.addInitScript((credential: string) => {
     try {
       localStorage.setItem("gonogo.station.credential", credential);
+      localStorage.setItem(
+        "gonogo.host.approvedStations",
+        JSON.stringify([{ credential, name: "E2E", approvedAt: 0 }]),
+      );
     } catch {
       /* private mode / quota: ignore; the seed just won't apply */
     }
