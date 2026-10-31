@@ -16,16 +16,31 @@ import (
 
 const wait = 10 * time.Second
 
+// listenSharedPort opens a UDP socket on an ephemeral port and a TCP listener
+// on the same number. The TCP half can already be taken by another process, so
+// a failed bind retries with a fresh UDP port.
+func listenSharedPort(t *testing.T) (*net.UDPConn, net.Listener) {
+	t.Helper()
+	var lastErr error
+	for range 50 {
+		udp, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		tcp, err := net.Listen("tcp4", udp.LocalAddr().String())
+		if err == nil {
+			return udp, tcp
+		}
+		lastErr = err
+		udp.Close()
+	}
+	t.Fatal(lastErr)
+	return nil, nil
+}
+
 func startEndpoint(t *testing.T, cfg Config) (*Endpoint, string) {
 	t.Helper()
-	udp, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1)})
-	if err != nil {
-		t.Fatal(err)
-	}
-	tcp, err := net.Listen("tcp4", udp.LocalAddr().String())
-	if err != nil {
-		t.Fatal(err)
-	}
+	udp, tcp := listenSharedPort(t)
 	cfg.LANIP = "127.0.0.1"
 	cfg.includeLoopback = true
 	e, err := New(cfg, udp, tcp)
