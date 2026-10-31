@@ -52,6 +52,22 @@ namespace Gonogo.KSP.Tests
         }
 
         [Fact]
+        public void AParachuteCanopyIsLeftOutOfThePartBox()
+        {
+            var hidden = VariantMeshRule.WithCanopies(new HashSet<string> { "tubeLong" }, new string?[] { "canopy", null, "" });
+
+            Assert.Contains("canopy", hidden!);
+            Assert.Contains("tubeLong", hidden!);
+            Assert.Equal(2, hidden!.Count);
+        }
+
+        [Fact]
+        public void APartWithNoCanopyAndNoHiddenMeshesStaysUnrestricted()
+        {
+            Assert.Null(VariantMeshRule.WithCanopies(null, new string?[] { null }));
+        }
+
+        [Fact]
         public void AMeshTheSelectedVariantShowsIsNeverHiddenByAnotherVariant()
         {
             var hidden = VariantMeshRule.Hidden(Variant(("tubeLong", true)), new[] { Medium }, _ => false);

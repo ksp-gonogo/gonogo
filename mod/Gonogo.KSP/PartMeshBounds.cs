@@ -10,7 +10,8 @@ namespace Gonogo.KSP
     /// <summary>
     /// A part's box in its own frame: the union of the vertices of every mesh
     /// under the part's <c>model</c> transform, active or not, so an engine's
-    /// hidden shroud still counts and a deploy animation changes nothing.
+    /// hidden shroud still counts. A parachute's canopy is left out, since its
+    /// deploy animation scales it far past the part.
     ///
     /// <para>A part with variants carries every variant's meshes under its model
     /// and hides the ones the selected variant does not use, so a part's box is
@@ -66,7 +67,7 @@ namespace Gonogo.KSP
             HashSet<string>? hiddenByVariant;
             using (SampleTiming.Part("topo.mesh.variant"))
             {
-                hiddenByVariant = HiddenByVariant(part, variantName);
+                hiddenByVariant = Excluded(part, variantName);
             }
             MeshRenderer[] renderers;
             using (SampleTiming.Part("topo.mesh.renderers"))
@@ -132,7 +133,7 @@ namespace Gonogo.KSP
                 return result;
             }
 
-            var hiddenByVariant = HiddenByVariant(part, variantName);
+            var hiddenByVariant = Excluded(part, variantName);
             foreach (var renderer in model.GetComponentsInChildren<MeshRenderer>(true))
             {
                 var filter = renderer.GetComponent<MeshFilter>();
@@ -268,6 +269,23 @@ namespace Gonogo.KSP
 
             VertexCache.Add(mesh, vertices);
             return vertices;
+        }
+
+        /// <summary>
+        /// The names of the transforms left out of the part's box: those the
+        /// selected variant switches off and any parachute canopy.
+        /// </summary>
+        private static HashSet<string>? Excluded(Part part, string? variantName)
+        {
+            var canopies = new List<string?>();
+            foreach (var module in part.Modules)
+            {
+                if (module is ModuleParachute chute)
+                {
+                    canopies.Add(chute.canopyName);
+                }
+            }
+            return VariantMeshRule.WithCanopies(HiddenByVariant(part, variantName), canopies);
         }
 
         /// <summary>

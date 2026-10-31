@@ -4,7 +4,7 @@ import type React from "react";
 import { styled } from "styled-components";
 import { chuteStateOf } from "./partChute";
 import { partAriaLabel, renderResourceFill } from "./partMeters";
-import { renderPartStateOverlays } from "./partOverlays";
+import { renderPartStateOverlays, type ScreenBox } from "./partOverlays";
 import {
   colorFor,
   heatTintFor,
@@ -166,7 +166,13 @@ export function ShipPartGroup({
           pointerEvents="none"
         />
       )}
-      {showFuel && renderResourceFill(meters, box, heldHatchId)}
+      {showFuel &&
+        renderResourceFill(
+          meters,
+          p.type === "booster" ? withoutNozzle(box) : box,
+          heldHatchId,
+          `${heldHatchId}-fuel-${p.flightId}`,
+        )}
       {p.ecFlowSign && !isHot && (
         <rect
           data-role="ec-flow-ring"
@@ -248,3 +254,11 @@ export const PartGroup = styled.g`
     visibility: visible;
   }
 `;
+
+/** The share of a solid booster's box, from its base, that is nozzle rather than propellant. */
+const BOOSTER_NOZZLE_SHARE = 0.32;
+
+/** A booster's box less its nozzle, so its fuel bar sits over the casing that holds the propellant. */
+function withoutNozzle(box: ScreenBox): ScreenBox {
+  return { ...box, h: box.h * (1 - BOOSTER_NOZZLE_SHARE) };
+}

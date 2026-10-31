@@ -51,7 +51,10 @@ const AWAITING_RULING: Readonly<Record<string, string>> = {
  * Pairs the scan forms that the component never draws, each with what decides
  * the real ground and that the scan cannot see.
  */
-const NOT_DRAWN_TOGETHER: Readonly<Record<string, string>> = {};
+const NOT_DRAWN_TOGETHER: Readonly<Record<string, string>> = {
+  "components/ShipMap/partMeters.tsx <rect>: text-inverse fill on surface-panel":
+    "the fuel gauge track is drawn over the part's own colour inside the diagram, and its dark fill is what separates it from that colour",
+};
 
 /** Token literals the scan cannot follow to what paints them, each with why. */
 const UNTRACED: Readonly<Record<string, string>> = {

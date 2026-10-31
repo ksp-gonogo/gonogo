@@ -23,8 +23,13 @@ function partsOf(file: string): WirePart[] {
 describe("probe vessel.parts fixtures", () => {
   const files = readdirSync(DIR).filter((f) => f.endsWith(".json"));
 
+  // A capture from the game keeps its real attach-node overlaps and side-mounted parts, so only hand-built fixtures are held to the stacking rule.
+  const handBuilt = files.filter(
+    (f) => !JSON.parse(readFileSync(join(DIR, f), "utf8"))._meta?.captured,
+  );
+
   it.each(
-    files,
+    handBuilt,
   )("%s stacks each part against its parent with no gap or overlap", (file) => {
     const parts = partsOf(file);
     const byId = new Map(parts.map((p) => [p.id, p]));

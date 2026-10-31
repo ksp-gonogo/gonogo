@@ -42,5 +42,25 @@ namespace Gonogo.KSP
 
             return hidden;
         }
+
+        /// <summary>
+        /// <paramref name="hidden"/> and every non-blank name in
+        /// <paramref name="canopies"/>: a parachute's canopy is scaled up by its
+        /// deploy animation, so it stays out of the part's box or a deployed
+        /// chute is drawn as large as its canopy.
+        /// </summary>
+        public static HashSet<string>? WithCanopies(HashSet<string>? hidden, IEnumerable<string?> canopies)
+        {
+            foreach (var name in canopies)
+            {
+                if (string.IsNullOrEmpty(name))
+                {
+                    continue;
+                }
+                hidden ??= new HashSet<string>(StringComparer.Ordinal);
+                hidden.Add(name!);
+            }
+            return hidden;
+        }
     }
 }

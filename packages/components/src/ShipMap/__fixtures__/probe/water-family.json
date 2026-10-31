@@ -29,6 +29,11 @@
                   "x": 1.25,
                   "y": 1.14,
                   "z": 1.25
+                },
+                "center": {
+                  "x": 0,
+                  "y": 0.0915,
+                  "z": 0
                 }
               },
               "dryMass": 0.8,
@@ -49,7 +54,7 @@
               "title": "PPD-12 Life Support Tank",
               "position": {
                 "x": 0,
-                "y": -1.07,
+                "y": -0.9785,
                 "z": 0
               },
               "up": {
@@ -95,7 +100,7 @@
               "title": "Waste Recovery Tank",
               "position": {
                 "x": 0,
-                "y": -2.07,
+                "y": -1.9785,
                 "z": 0
               },
               "up": {

@@ -29,6 +29,11 @@
                   "x": 1.25,
                   "y": 1.14,
                   "z": 1.25
+                },
+                "center": {
+                  "x": 0,
+                  "y": 0.0915,
+                  "z": 0
                 }
               },
               "dryMass": 0.5,
@@ -49,7 +54,7 @@
               "title": "Mk16 Parachute",
               "position": {
                 "x": 0,
-                "y": 0.77,
+                "y": 0.8615,
                 "z": 0
               },
               "up": {
@@ -82,7 +87,7 @@
               "title": "FL-T400 Fuel Tank",
               "position": {
                 "x": 0,
-                "y": -1.495,
+                "y": -1.4035,
                 "z": 0
               },
               "up": {
@@ -124,7 +129,7 @@
               "title": "LV-909 Terrier",
               "position": {
                 "x": 0,
-                "y": -3.02,
+                "y": -2.9285,
                 "z": 0
               },
               "up": {
@@ -157,7 +162,7 @@
               "title": "TD-12 Decoupler",
               "position": {
                 "x": 0,
-                "y": -3.82,
+                "y": -3.7285,
                 "z": 0
               },
               "up": {
@@ -190,7 +195,7 @@
               "title": "FL-T400 Fuel Tank",
               "position": {
                 "x": 0,
-                "y": -4.945,
+                "y": -4.8535,
                 "z": 0
               },
               "up": {
@@ -232,7 +237,7 @@
               "title": "Mk16 Parachute",
               "position": {
                 "x": 0,
-                "y": 1.17,
+                "y": 1.2615,
                 "z": 0
               },
               "up": {
@@ -265,7 +270,7 @@
               "title": "Reliant Engine",
               "position": {
                 "x": 0,
-                "y": -6.47,
+                "y": -6.3785,
                 "z": 0
               },
               "up": {

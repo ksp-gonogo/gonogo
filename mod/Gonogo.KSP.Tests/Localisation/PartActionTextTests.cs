@@ -40,6 +40,12 @@ namespace Gonogo.KSP.Tests.Localisation
         [InlineData("  ")]
         [InlineData("-")]
         [InlineData(" - ")]
+        [InlineData("\u2013")]
+        [InlineData("\u2014")]
+        [InlineData("\u2212")]
+        [InlineData("<b>\u2014</b>")]
+        [InlineData("--")]
+        [InlineData("...")]
         [InlineData("<b></b>")]
         public void AStringWithNoWordsReadsAsAbsent(string? stored)
         {

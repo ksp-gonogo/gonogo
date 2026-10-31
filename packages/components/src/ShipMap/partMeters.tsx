@@ -89,6 +89,15 @@ function fillRatio(row: ShipMapPartMeterEntry): number | null {
   return Math.max(0, Math.min(1, amount.dividedBy(capacity).magnitude));
 }
 
+/** The share of a part's width the fill bars take together. */
+const BAR_STRIP_SHARE = 0.25;
+
+/** The corner radius of the fill bar strip, in diagram units. */
+const BAR_CORNER_RADIUS = 3;
+
+/** The thinnest a fill bar is drawn, in diagram units, before the strip widens. */
+const MIN_BAR_WIDTH = 6;
+
 /**
  * The compact in-body fill bars, one segment per contributed meter, as raw
  * SVG rects. `ShipDiagram`'s tooltip renders the same entries through `<Meter>`.
@@ -97,68 +106,86 @@ export function renderResourceFill(
   meters: readonly ShipMapPartMeterEntry[],
   box: ScreenBox,
   heldHatchId: string,
+  clipId: string,
 ): React.ReactNode {
   const drainable = meters.filter((m) => fillRatio(m) !== null);
   if (drainable.length === 0) return null;
 
   const padX = Math.max(2, box.w * 0.18);
   const padY = Math.max(2, box.h * 0.08);
-  const innerW = box.w - padX * 2;
   const innerH = box.h - padY * 2;
-  if (innerW <= 0 || innerH <= 0) return null;
   const gap = 1;
+  // The bars share a strip a quarter of the part wide, starting at the left padding, so the part's shape stays visible beside them. Many bars widen it so none is thinner than MIN_BAR_WIDTH.
+  const wanted = Math.max(
+    box.w * BAR_STRIP_SHARE,
+    drainable.length * MIN_BAR_WIDTH + gap * (drainable.length - 1),
+  );
+  const innerW = Math.min(wanted, box.w - padX * 2);
+  if (innerW <= 0 || innerH <= 0) return null;
   const barW = (innerW - gap * (drainable.length - 1)) / drainable.length;
   if (barW <= 0) return null;
 
   return (
     <g pointerEvents="none">
-      {drainable.map((m, i) => {
-        const ratio = fillRatio(m) ?? 0;
-        const fillH = innerH * ratio;
-        const barX = box.x + padX + i * (barW + gap);
-        const barTop = box.y + padY + (innerH - fillH);
-        // Status tints the track, never the fill, which is always the resource's identity colour.
-        const statusBorder = m.status
-          ? METER_STATUS_COLOR[m.status]
-          : undefined;
-        // The kit Meter's rule: a held capacity hatches the unfilled part of the track, a held amount dims the fill.
-        const trackHeld = isHeldFigure(m.capacity);
-        const fillHeld = isHeldFigure(m.amount);
-        return (
-          <g key={m.resource}>
-            <rect
-              x={barX}
-              y={box.y + padY}
-              width={barW}
-              height={innerH}
-              fill="var(--color-surface-raised)"
-              opacity={0.35}
-              stroke={statusBorder}
-              strokeWidth={statusBorder ? 1 : 0}
-              strokeOpacity={0.9}
-            />
-            <rect
-              x={barX}
-              y={barTop}
-              width={barW}
-              height={fillH}
-              fill={resourceColor(m.resource)}
-              opacity={fillHeld ? 0.4 : 0.85}
-            />
-            {trackHeld && innerH - fillH > 0 && (
+      {/* One rounded outline for the whole strip, so only its four outer corners are rounded. */}
+      <clipPath id={clipId}>
+        <rect
+          x={box.x + padX}
+          y={box.y + padY}
+          width={innerW}
+          height={innerH}
+          rx={Math.min(BAR_CORNER_RADIUS, innerW / 2)}
+        />
+      </clipPath>
+      <g clipPath={`url(#${clipId})`}>
+        {drainable.map((m, i) => {
+          const ratio = fillRatio(m) ?? 0;
+          const fillH = innerH * ratio;
+          const barX = box.x + padX + i * (barW + gap);
+          const barTop = box.y + padY + (innerH - fillH);
+          // Status tints the track, never the fill, which is always the resource's identity colour.
+          const statusBorder = m.status
+            ? METER_STATUS_COLOR[m.status]
+            : undefined;
+          // The kit Meter's rule: a held capacity hatches the unfilled part of the track, a held amount dims the fill.
+          const trackHeld = isHeldFigure(m.capacity);
+          const fillHeld = isHeldFigure(m.amount);
+          return (
+            <g key={m.resource}>
               <rect
-                data-held-hatch=""
                 x={barX}
                 y={box.y + padY}
                 width={barW}
-                height={innerH - fillH}
-                fill={`url(#${heldHatchId})`}
-                opacity={0.55}
+                height={innerH}
+                fill="var(--color-text-inverse)"
+                opacity={0.45}
+                stroke={statusBorder}
+                strokeWidth={statusBorder ? 2 : 0}
+                strokeOpacity={0.9}
               />
-            )}
-          </g>
-        );
-      })}
+              <rect
+                x={barX}
+                y={barTop}
+                width={barW}
+                height={fillH}
+                fill={resourceColor(m.resource)}
+                opacity={fillHeld ? 0.3 : 0.6}
+              />
+              {trackHeld && innerH - fillH > 0 && (
+                <rect
+                  data-held-hatch=""
+                  x={barX}
+                  y={box.y + padY}
+                  width={barW}
+                  height={innerH - fillH}
+                  fill={`url(#${heldHatchId})`}
+                  opacity={0.55}
+                />
+              )}
+            </g>
+          );
+        })}
+      </g>
     </g>
   );
 }

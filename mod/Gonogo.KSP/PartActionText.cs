@@ -8,7 +8,7 @@ namespace Gonogo.KSP
     /// A part action's label or group heading as the player reads it in the Part
     /// Action Window: a localisation tag resolved through <c>Localizer</c>, rich
     /// text markup (<c>&lt;b&gt;</c>, <c>&lt;color=...&gt;</c>) removed, and
-    /// nothing returned for a string that carries no words. A part mod
+    /// nothing returned for a string that carries no letters or digits. A part mod
     /// may store a tag as the group name and markup in the label, which the
     /// game's own window renders but a plain-text client cannot.
     /// </summary>
@@ -16,7 +16,8 @@ namespace Gonogo.KSP
     {
         /// <summary>
         /// The readable text of <paramref name="stored"/>, or <c>null</c> when it
-        /// is blank, a lone dash (a placeholder row), or a tag the Localizer has
+        /// is blank, carries no letter or digit (a lone hyphen, en dash, em dash or
+        /// minus is a placeholder row), or a tag the Localizer has
         /// no entry for.
         /// </summary>
         public static string? Clean(string? stored)
@@ -40,11 +41,23 @@ namespace Gonogo.KSP
             }
 
             text = StripMarkup(text).Trim();
-            if (text.Length == 0 || text == "-" || text.StartsWith("#", StringComparison.Ordinal))
+            if (!HasLetterOrDigit(text) || text.StartsWith("#", StringComparison.Ordinal))
             {
                 return null;
             }
             return text;
+        }
+
+        private static bool HasLetterOrDigit(string text)
+        {
+            foreach (var c in text)
+            {
+                if (char.IsLetterOrDigit(c))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static string StripMarkup(string text)

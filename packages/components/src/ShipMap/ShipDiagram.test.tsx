@@ -192,7 +192,7 @@ describe("ShipDiagram", () => {
     expect(pattern?.querySelector("rect")?.getAttribute("fill")).toBe(
       "var(--color-warn-mark)",
     );
-    expect(hatch?.previousElementSibling?.getAttribute("opacity")).toBe("0.4");
+    expect(hatch?.previousElementSibling?.getAttribute("opacity")).toBe("0.3");
     expect(container.querySelector("rect[stroke-dasharray]")).toBeNull();
 
     fireEvent.focus(screen.getByLabelText(/FL-T400 Fuel Tank/));
@@ -234,7 +234,7 @@ describe("ShipDiagram", () => {
       container
         .querySelector(`rect[fill="${resourceColor("LiquidFuel")}"]`)
         ?.getAttribute("opacity"),
-    ).toBe("0.4");
+    ).toBe("0.3");
 
     fireEvent.focus(screen.getByLabelText(/FL-T400 Fuel Tank/));
     const meter = screen.getByRole("meter", { name: /LiquidFuel/ });
@@ -268,7 +268,7 @@ describe("ShipDiagram", () => {
     );
     const hatch = container.querySelector("rect[data-held-hatch]");
     expect(hatch).not.toBeNull();
-    expect(hatch?.previousElementSibling?.getAttribute("opacity")).toBe("0.85");
+    expect(hatch?.previousElementSibling?.getAttribute("opacity")).toBe("0.6");
   });
 
   it("draws no hatch for a live level", () => {
