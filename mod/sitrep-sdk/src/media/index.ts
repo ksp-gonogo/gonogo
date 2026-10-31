@@ -34,6 +34,7 @@ export type {
   FrameDelayPipeline,
   FrameDelayPipelineOptions,
   FrameDelayStats,
+  FrameDelayStatsDetail,
   FrameDelayStream,
   FrameLike,
   FrameSink,

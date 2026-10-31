@@ -73,7 +73,7 @@ import {
 import {
   DEFAULT_PACING_MAX_LEAD_SECONDS,
   type FrameDelayPipeline,
-  type FrameDelayStats,
+  type FrameDelayStatsDetail,
   runFrameDelayPipeline,
   startPacingTicker,
 } from "../frame-delay";
@@ -163,7 +163,7 @@ export interface PipelineNonFatalErrorMessage {
 export interface PipelineStatsMessage {
   type: "pipelineStats";
   pipelineId: string;
-  stats: FrameDelayStats;
+  stats: FrameDelayStatsDetail;
 }
 
 export interface PipelineLeadLimitMessage {
