@@ -180,6 +180,14 @@ describe("Unit: a value renders whole", () => {
     expect(screen.getByText("science")).toBeInTheDocument();
   });
 
+  it("draws a currency over something as the currency's glyph, then the rest, and says it in words", () => {
+    const { container } = render(<Unit value={value("science/day", 12.5)} />);
+    expect(container.querySelector("svg")).toBeInTheDocument();
+    expect(unitEl(container).textContent).toContain("/day");
+    expect(unitEl(container).textContent).not.toContain("science/day");
+    expect(screen.getByText("science per day")).toBeInTheDocument();
+  });
+
   it("shows a null value as the null token, with no unit beside it", () => {
     // A unit beside the null token would read as a measurement that happens to be missing.
     const { container } = render(<Unit value={null} />);

@@ -29,6 +29,7 @@ import {
   type PresentableAs,
   readsAsOneFigure,
   speakQuantity,
+  splitCurrencyCompound,
   wordForSymbol,
 } from "./units";
 import { VisuallyHidden } from "./VisuallyHidden";
@@ -251,7 +252,10 @@ function UnitSymbol({
   if (symbol === "") return null;
 
   const word = wordForSymbol(symbol);
-  const Glyph = ICON_BY_SYMBOL[symbol as keyof typeof ICON_BY_SYMBOL];
+  // A currency over something ("sci/day") keeps its glyph and writes the rest as text after it.
+  const compound = splitCurrencyCompound(symbol);
+  const Glyph =
+    ICON_BY_SYMBOL[(compound?.head ?? symbol) as keyof typeof ICON_BY_SYMBOL];
   const attached = ATTACHED.has(symbol);
 
   // The word replaces the symbol in the accessibility tree; a symbol with no word stays announced rather than the unit vanishing.
@@ -268,7 +272,10 @@ function UnitSymbol({
           data-unit={token}
         >
           {Glyph ? (
-            <Glyph size="1em" />
+            <>
+              <Glyph size="1em" />
+              {compound && <span aria-hidden="true">/{compound.rest}</span>}
+            </>
           ) : spoken ? (
             <span aria-hidden="true">{symbol}</span>
           ) : (

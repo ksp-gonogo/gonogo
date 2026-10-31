@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { registerUnit, resetUnitRegistry } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, describe, expect, it } from "vitest";
-import { unresolvedUnitTokens } from "./unit-tokens";
+import { currencyWordTokens, unresolvedUnitTokens } from "./unit-tokens";
 
 const dirs: string[] = [];
 
@@ -53,5 +53,24 @@ describe("a units.json token must resolve to a unit", () => {
     expect(unresolvedUnitTokens(join(tmpdir(), "no-such-units.json"))).toEqual(
       [],
     );
+  });
+});
+
+describe("a units.json token never shows a currency's name as text", () => {
+  it("accepts a currency and a currency rate", () => {
+    const path = unitsFile({
+      Lab: { gained: "science", rate: "science/day", price: "funds" },
+    });
+    expect(currencyWordTokens(path)).toEqual([]);
+  });
+
+  it("reports a token that spells a currency out", () => {
+    const path = unitsFile({
+      Planted: { a: "xscience/day", b: "reputation_pts", c: "m" },
+    });
+    expect(currencyWordTokens(path)).toEqual([
+      "reputation_pts",
+      "xscience/day",
+    ]);
   });
 });

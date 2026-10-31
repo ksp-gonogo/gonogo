@@ -16,7 +16,7 @@ import {
 } from "./render/docs";
 import { assertEveryWidgetCovered, buildScenes } from "./render/scenes";
 import { buildUplinkSpec, SPEC_FILE, uplinkSpecJson } from "./render/spec";
-import { unresolvedUnitTokens } from "./render/unit-tokens";
+import { currencyWordTokens, unresolvedUnitTokens } from "./render/unit-tokens";
 import { WIDGET_RECORDS_FILE, widgetRecordsJson } from "./render/widgetRecord";
 import { readWireSurface } from "./render/wire";
 
@@ -104,6 +104,16 @@ function generatePage(options: PageCheckOptions): GeneratedPage {
     throw new Error(
       `units.json uses ${unresolved.length === 1 ? "a unit" : "units"} that nothing registers: ${unresolved.join(", ")}.\n` +
         "Register each with `registerUnit` in the client, or give the field a unit the sdk defines.",
+    );
+  }
+
+  const spelled = currencyWordTokens(
+    join(pkg.dir, "src", "__generated__", "units.json"),
+  );
+  if (spelled.length > 0) {
+    throw new Error(
+      `units.json uses ${spelled.length === 1 ? "a unit" : "units"} the screen would write with a currency's name as text: ${spelled.join(", ")}.\n` +
+        "A currency is drawn as its glyph or letter; name the unit with the currency as its numerator, such as `science/day`.",
     );
   }
 

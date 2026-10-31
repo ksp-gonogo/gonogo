@@ -676,7 +676,15 @@ const WORD_BY_SYMBOL: Record<string, string> = {
  * category kinds display as an empty string and have nothing to announce).
  */
 export function wordForSymbol(symbol: string): string | undefined {
-  return WORD_BY_SYMBOL[symbol];
+  const direct = WORD_BY_SYMBOL[symbol];
+  if (direct !== undefined) return direct;
+  const compound = splitCurrencyCompound(symbol);
+  if (compound === undefined) return undefined;
+  const head = WORD_BY_SYMBOL[compound.head];
+  if (head === undefined) return undefined;
+  // The denominator is singular ("per megabyte"), and a word ending in "ius" or "is" ("celsius") has no plural to drop.
+  const rest = WORD_BY_SYMBOL[compound.rest]?.replace(/(?<![iu])s$/, "");
+  return `${head} per ${rest ?? compound.rest}`;
 }
 
 function formatWhole(
@@ -754,7 +762,35 @@ export function displaySymbol(
   unit: string,
   kind: QuantityKind | undefined,
 ): string {
+  const compound = splitCurrencyCompound(unit);
+  if (compound !== undefined) return `${compound.head}/${compound.rest}`;
   return kind === undefined ? unit : (DISPLAY_BY_KIND[kind] ?? unit);
+}
+
+/** The currency names a compound token may start with, and the symbol each is drawn as (the glyph where it has one). */
+const CURRENCY_HEAD: Record<string, string> = {
+  science: "sci",
+  funds: "f",
+  reputation: "rep",
+  sci: "sci",
+  f: "f",
+  rep: "rep",
+};
+
+/**
+ * A compound unit whose numerator is a currency (`science/day`, `science/MB`),
+ * split into the symbol that currency is drawn as and the rest of the token.
+ * Undefined for any other token, including a bare currency.
+ */
+export function splitCurrencyCompound(
+  token: string,
+): { head: string; rest: string } | undefined {
+  const slash = token.indexOf("/");
+  if (slash <= 0) return undefined;
+  const head = CURRENCY_HEAD[token.slice(0, slash)];
+  return head === undefined
+    ? undefined
+    : { head, rest: token.slice(slash + 1) };
 }
 
 /**
@@ -1067,7 +1103,8 @@ export function formatQuantity(
     const decimals = opts.decimals ?? (kind ? DECIMALS[kind] : undefined);
     return {
       value: decimals === undefined ? String(value) : fixed(value, decimals),
-      symbol: unit === undefined || unit === "1" ? "" : unit,
+      symbol:
+        unit === undefined || unit === "1" ? "" : displaySymbol(unit, kind),
       rung: unit ?? "",
     };
   }
