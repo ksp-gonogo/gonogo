@@ -54,6 +54,7 @@ import {
   type GonogoHost,
   hasHost,
 } from "@ksp-gonogo/sitrep-sdk";
+import { getRegisteredHostJobs } from "../hosting/HostJobs";
 import { useAlarmRequest } from "./useAlarmRequest";
 import { useUplinkRelay } from "./useUplinkRelay";
 
@@ -106,10 +107,17 @@ export function buildGonogoHost(): GonogoHost {
     useTelemetryStoreOptional: () => useTelemetryStoreOptional(),
     useViewClockOptional: () => useViewClockOptional(),
     useTopicClock: (topic) => useTopicClock(topic),
-    getActiveTelemetryClient: () =>
-      getActiveTelemetryClient() as ReturnType<
-        GonogoHost["getActiveTelemetryClient"]
-      >,
+    /*
+     * A hosting screen's Uplinks send their commands on the host's jobs
+     * connection, from the centre the screen's picker chose. Without one (a
+     * station, a pilot page) the mounted client is the only one there is.
+     */
+    getActiveTelemetryClient: () => {
+      const jobs = getRegisteredHostJobs();
+      return (
+        jobs ? jobs.commandClient() : getActiveTelemetryClient()
+      ) as ReturnType<GonogoHost["getActiveTelemetryClient"]>;
+    },
     useTelemetryClientOptional: () =>
       useTelemetryClientOptional() as ReturnType<
         GonogoHost["useTelemetryClientOptional"]

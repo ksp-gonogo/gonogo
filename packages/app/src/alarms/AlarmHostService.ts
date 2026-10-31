@@ -4,6 +4,7 @@ import { logger } from "@ksp-gonogo/logger";
 import { getViewUt, sampleActiveTopic } from "@ksp-gonogo/sitrep-client";
 import { type CommsDelay, magnitudeOf } from "@ksp-gonogo/sitrep-sdk";
 import { dispatchActionGroup } from "../dispatchActionGroup";
+import type { HostJobs } from "../hosting/HostJobs";
 import type { PeerHostService } from "../peer/PeerHostService";
 import { AlarmPeerBridge } from "./AlarmPeerBridge";
 import { AlarmWarpPlanner } from "./AlarmWarpPlanner";
@@ -64,6 +65,11 @@ export interface AlarmHostOptions {
    * `comms.delay` reading; a test injects its own.
    */
   getOwltSeconds?: () => number;
+  /**
+   * The host's own jobs connection, which the simulation's copy of every alarm
+   * is armed through. Omitted on a screen that holds none.
+   */
+  hostJobs?: HostJobs;
 }
 
 /**
@@ -209,6 +215,7 @@ export class AlarmHostService {
        alarm it names had been read out of storage, and be dropped. */
     this.loadAlarms();
     this.scetBridge = new ScetAlarmBridge({
+      hostJobs: opts.hostJobs,
       getAlarms: () => this.alarms,
       onFired: (id, firedAtUt, actionsWithheld) =>
         this.onScetFired(id, firedAtUt, actionsWithheld),

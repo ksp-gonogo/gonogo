@@ -11,6 +11,7 @@
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { HostJobs } from "../hosting/HostJobs";
 
 const { FakeHub } = vi.hoisted(() => {
   /** Enough RTCPeerConnection for `attachIceDiagnostics` to watch. */
@@ -58,7 +59,11 @@ const { FakeHub } = vi.hoisted(() => {
       for (const cb of this.listeners.get(event) ?? []) cb(...args);
     }
 
-    send() {}
+    readonly sent: unknown[] = [];
+
+    send(message?: unknown) {
+      this.sent.push(message);
+    }
 
     close() {
       this.open = false;
@@ -504,5 +509,93 @@ describe("a peer's command address", () => {
       "station-a-0",
     );
     host.stop();
+  });
+
+  describe("with the host's jobs connection attached", () => {
+    const CENTRE_B = "ground:Outpost B";
+
+    /** A client that records the vantage of each dispatch, standing in for the jobs connection. */
+    function jobsConnection() {
+      const vantages: Array<string | undefined> = [];
+      const client = {
+        dispatch: (
+          _command: string,
+          _args: unknown,
+          _label: string,
+          _topic: string,
+          vantage?: string,
+        ) => {
+          vantages.push(vantage);
+          return { requestId: "j1", result: Promise.resolve(null) };
+        },
+      };
+      const jobs = new HostJobs();
+      jobs.setClient(client as never);
+      return { jobs, vantages };
+    }
+
+    it("sends a plain station's command through the jobs connection, from the centre the host's screen is showing it", async () => {
+      const host = await startedHost();
+      const mounted = captureDispatches();
+      const { jobs, vantages } = jobsConnection();
+      jobs.attachPlainStationSession({ selectedVantage: CENTRE_B });
+      host.attachHostJobs(jobs);
+      const station = await connectStation(host, "station-a");
+
+      command(station);
+      await Promise.resolve();
+
+      expect(vantages).toEqual([CENTRE_B]);
+      expect(mounted).toEqual([]);
+      host.stop();
+    });
+
+    it("leaves a plain station's command at home while the host's screen has chosen no centre", async () => {
+      const host = await startedHost();
+      const { jobs, vantages } = jobsConnection();
+      jobs.attachPlainStationSession({});
+      host.attachHostJobs(jobs);
+      const station = await connectStation(host, "station-a");
+
+      command(station);
+      await Promise.resolve();
+
+      expect(vantages).toEqual([""]);
+      host.stop();
+    });
+
+    it("keeps a station with a centre of its own at that centre, whatever the host's screen shows", async () => {
+      const host = await startedHost();
+      const { jobs, vantages } = jobsConnection();
+      jobs.attachPlainStationSession({ selectedVantage: CENTRE_B });
+      host.attachHostJobs(jobs);
+      const pilot = await connectStation(host, "pilot-a");
+      setVantage(pilot, CRAFT);
+
+      command(pilot);
+      await Promise.resolve();
+
+      expect(vantages).toEqual([CRAFT]);
+      host.stop();
+    });
+
+    it("refuses a command while the jobs connection is not open, rather than sending it from the mounted client", async () => {
+      const host = await startedHost();
+      const mounted = captureDispatches();
+      const jobs = new HostJobs();
+      host.attachHostJobs(jobs);
+      const station = await connectStation(host, "station-a");
+      command(station);
+      await Promise.resolve();
+
+      expect(mounted).toEqual([]);
+      expect(station.sent).toContainEqual(
+        expect.objectContaining({
+          type: "sitrep-command-error",
+          requestId: "r1",
+        }),
+      );
+      host.stop();
+    });
   });
 });

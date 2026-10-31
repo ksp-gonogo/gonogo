@@ -92,4 +92,20 @@ describe("dispatchActiveCommandTopic under the arrival deadline", () => {
 
     expect(transport.sentCommands).toHaveLength(1);
   });
+
+  it("sends on the client it is given, and not on the mounted one", () => {
+    const mounted = new StubTransport();
+    const own = new StubTransport();
+    setActiveTelemetryClientForTests(createTestTelemetryClient(mounted));
+
+    const outcome = dispatchActiveCommandTopic(
+      "vessel.control.stage",
+      {},
+      createTestTelemetryClient(own),
+    );
+
+    expect(outcome.routed).toBe(true);
+    expect(own.sentCommands).toHaveLength(1);
+    expect(mounted.sentCommands).toHaveLength(0);
+  });
 });

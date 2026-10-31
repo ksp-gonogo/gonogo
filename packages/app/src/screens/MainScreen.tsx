@@ -35,7 +35,6 @@ import {
   AlarmsFab,
   AlarmsLauncherBridge,
   AlarmsModal,
-  createAlarmHost,
   FiredAlarmPills,
   SafetyMarginPill,
   UnscheduledWarpPill,
@@ -70,13 +69,16 @@ import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
 import { FirstRunSetupHost } from "../firstRun/FirstRunSetupHost";
 import {
   GoNoGoHostProvider,
-  GoNoGoHostService,
   MainPollHeader,
   PollSettingsControl,
   StationPollControl,
   voteInputSource,
 } from "../goNoGo";
-import { createManeuverTriggerHost } from "../maneuverTriggers";
+import {
+  HostingProvider,
+  PlainStationFeed,
+  useHostingHosts,
+} from "../hosting/HostingProvider";
 import {
   LayoutHistoryControl,
   MissionProfilesFab,
@@ -90,13 +92,10 @@ import {
   useMissionProfilesService,
   useProfileDashboard,
 } from "../missionProfiles";
-import { createNotesHost } from "../notes/createNotesHost";
 import { NotesHostProvider } from "../notes/NotesHostContext";
-import { HostCommandCentreAnnouncer } from "../peer/HostCommandCentreAnnouncer";
 import { peerHostService } from "../peer/PeerHostService";
 import { PushedDashboardOverlay } from "../pushToMain/PushedDashboardOverlay";
 import { PushHostProvider } from "../pushToMain/PushHostContext";
-import { PushHostService } from "../pushToMain/PushHostService";
 import { syncAutoPortForward } from "../relay/autoPortForward";
 import {
   ConsoleSettingsFromHost,
@@ -111,12 +110,8 @@ import { StationApprovalPrompt } from "../stationApproval/StationApprovalPrompt"
 import { ScopedStationIdentity } from "../stationIdentity";
 import { AugmentAvailabilityFeeder } from "../telemetry/AugmentAvailabilityFeeder";
 import { syncDataRate } from "../telemetry/dataRate";
-import { HostRatePacer } from "../telemetry/HostRatePacer";
 import { PilotVantage } from "../telemetry/PilotVantage";
-import { SitrepPeerRelay } from "../telemetry/SitrepPeerRelay";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
-import { SitrepVantageSessions } from "../telemetry/SitrepVantageSessions";
-import { HostUplinksAnnouncer } from "../uplinks/HostUplinksAnnouncer";
 import { UplinkHealthRetry } from "../uplinks/UplinkHealthRetry";
 import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
 import { UplinkLoadGate } from "../uplinks/UplinkLoadGate";
@@ -204,14 +199,6 @@ const NoActiveVessel__Body = styled.div`
   text-align: center;
 `;
 
-interface MainHosts {
-  goNoGoHost: GoNoGoHostService;
-  pushHost: PushHostService;
-  alarmHost: ReturnType<typeof createAlarmHost>;
-  notesHost: ReturnType<typeof createNotesHost>;
-  maneuverTriggerHost: ReturnType<typeof createManeuverTriggerHost>;
-}
-
 /**
  * The direct-WS screen, at whichever seat the route puts it.
  *
@@ -248,36 +235,37 @@ export function MainScreen({
    * somebody else's and this screen must not build one.
    */
   const hostsThePeerMesh = screen !== "pilot";
+  return (
+    <HostingProvider ownsMesh={hostsThePeerMesh}>
+      <MainScreenDisplay
+        screen={screen}
+        transport={transport}
+        hostsThePeerMesh={hostsThePeerMesh}
+      />
+    </HostingProvider>
+  );
+}
+
+/**
+ * The screen's own display: a local reader at whatever seat the screen sits at,
+ * and the dashboard drawn from it. The host services and the jobs connection it
+ * sends commands through come from the hosting piece above.
+ */
+function MainScreenDisplay({
+  screen,
+  transport,
+  hostsThePeerMesh,
+}: {
+  screen: Screen;
+  transport?: Transport;
+  hostsThePeerMesh: boolean;
+}) {
+  const hosts = useHostingHosts();
   const [serialService] = useState(
     () => new SerialDeviceService({ screenKey: screen }),
   );
   const [settingsService] = useState(() => new SettingsService());
   const [missionProfiles] = useState(() => new MissionProfilesService(screen));
-  /*
-   * The hosts subscribe to the peer host in their constructors, so they are
-   * built in an effect and disposed with it: a useState initialiser runs
-   * twice under StrictMode and the spare would stay subscribed, sending every
-   * stage and countdown twice.
-   */
-  const [hosts, setHosts] = useState<MainHosts | null>(null);
-  useEffect(() => {
-    const built: MainHosts = {
-      goNoGoHost: new GoNoGoHostService(peerHostService),
-      pushHost: new PushHostService(peerHostService),
-      alarmHost: createAlarmHost(peerHostService),
-      notesHost: createNotesHost(peerHostService),
-      maneuverTriggerHost: createManeuverTriggerHost(peerHostService),
-    };
-    setHosts(built);
-    return () => {
-      built.goNoGoHost.dispose();
-      built.pushHost.dispose();
-      built.alarmHost.dispose();
-      built.notesHost.dispose();
-      built.maneuverTriggerHost.dispose();
-      setHosts(null);
-    };
-  }, []);
   useEffect(() => {
     if (!hostsThePeerMesh) return;
     return peerHostService.setHostLayoutsSource(() =>
@@ -339,27 +327,8 @@ export function MainScreen({
 
   return (
     <SitrepTelemetryProvider transport={transport} screenKey={screen}>
-      <SitrepPeerRelay peerHost={peerHostService} />
-      <HostRatePacer />
+      <PlainStationFeed ownsMesh={hostsThePeerMesh} />
       <CommcastLink log={commcastLog} />
-      {/*
-       * The host's own session is the relay above; this serves every OTHER
-       * vantage a connected peer has asked to observe from, one mod session
-       * each. It holds nothing until somebody asks, which is every session
-       * with no remote pilot in it.
-       *
-       * Not on a pilot page: a pilot joins the mesh as a CLIENT and has no
-       * peers of its own to serve. The host singleton is never started on that
-       * route so this would sit inert either way, but saying it here means the
-       * invariant does not depend on that staying true.
-       */}
-      {hostsThePeerMesh && <SitrepVantageSessions peerHost={peerHostService} />}
-      {hostsThePeerMesh && (
-        <>
-          <HostCommandCentreAnnouncer host={peerHostService} />
-          <HostUplinksAnnouncer host={peerHostService} />
-        </>
-      )}
       <AugmentAvailabilityFeeder />
       {screen !== "pilot" && <UplinkHealthRetry />}
       {/*

@@ -16,6 +16,7 @@ import {
   ScetAlarmState,
   ScetAlarmThresholdOp,
 } from "@ksp-gonogo/sitrep-sdk";
+import type { HostJobs } from "../hosting/HostJobs";
 import {
   type Alarm,
   type AlarmFireAction,
@@ -83,6 +84,13 @@ const THRESHOLD_OP_MEMBER: Readonly<Record<ThresholdOp, ScetAlarmThresholdOp>> =
   };
 
 export interface ScetAlarmBridgeContext {
+  /**
+   * The host's own jobs connection, which the bridge arms and reads the roster
+   * through, and the session whose centre a command-vantage alarm is armed at.
+   * Omitted on a screen that holds none, where the bridge uses whichever
+   * client is mounted.
+   */
+  hostJobs?: HostJobs;
   /** The host's current alarm list, read live so the bridge never holds a stale copy. */
   getAlarms(): readonly Alarm[];
   /**
@@ -259,7 +267,9 @@ export class ScetAlarmBridge {
    */
   start(): void {
     if (this.disposed || this.unsubscribeClient) return;
-    this.unsubscribeClient = subscribeActiveTelemetryClient(() => this.bind());
+    this.unsubscribeClient = this.ctx.hostJobs
+      ? this.ctx.hostJobs.onClientChange(() => this.bind())
+      : subscribeActiveTelemetryClient(() => this.bind());
     this.bind();
   }
 
@@ -397,16 +407,31 @@ export class ScetAlarmBridge {
   }
 
   /**
+   * Send a command on the host's jobs connection, or on the mounted client where
+   * the screen holds none. With a jobs connection configured but not yet open
+   * the command is not routed: falling back to the mounted client would send it
+   * from wherever the screen's picker stands.
+   */
+  private dispatch(command: string, args: unknown) {
+    const { hostJobs } = this.ctx;
+    if (!hostJobs) return dispatchActiveCommandTopic(command, args);
+    const client = hostJobs.commandClient();
+    return client
+      ? dispatchActiveCommandTopic(command, args, client)
+      : ({ routed: false } as const);
+  }
+
+  /**
    * Arm one alarm on the mod. Arming an id the mod already holds replaces it,
    * so an edit needs no disarm-then-arm to race.
    */
-  private arm(alarm: Alarm): void {
+  arm(alarm: Alarm): void {
     const armed = this.buildArmArgs(alarm);
     if (armed === NOT_YET) {
       this.askAgainLater(alarm.id);
       return;
     }
-    const outcome = dispatchActiveCommandTopic(SCET_ARM_COMMAND, armed);
+    const outcome = this.dispatch(SCET_ARM_COMMAND, armed);
     if (!outcome.routed) {
       logger.warn("alarm-host: SCET arm not routed", { id: alarm.id });
       this.askAgainLater(alarm.id);
@@ -506,7 +531,7 @@ export class ScetAlarmBridge {
 
   /** Disarm one alarm on the mod. Harmless for an id it does not hold. */
   disarm(id: string): void {
-    const outcome = dispatchActiveCommandTopic(SCET_DISARM_COMMAND, { id });
+    const outcome = this.dispatch(SCET_DISARM_COMMAND, { id });
     if (!outcome.routed) {
       logger.warn("alarm-host: SCET disarm not routed", { id });
       return;
@@ -531,10 +556,13 @@ export class ScetAlarmBridge {
        screen is commanding from, so the mod compares against the readings that
        place has actually been sent: the centre it chose, or until it chooses,
        the one the mod stamped its frames with. */
-    const client = getActiveTelemetryClient();
+    const { hostJobs } = this.ctx;
+    const client = hostJobs ? undefined : getActiveTelemetryClient();
     const vantage = isAtSubjectVantage(trigger)
       ? ""
-      : (client?.selectedVantage ?? client?.observedVantage ?? "");
+      : hostJobs
+        ? hostJobs.alarmVantage()
+        : (client?.selectedVantage ?? client?.observedVantage ?? "");
     if (!isAtSubjectVantage(trigger) && vantage === "") return NOT_YET;
     if (trigger.kind === "time") {
       const craft = getVesselIdentity()?.vesselId;
@@ -673,7 +701,9 @@ export class ScetAlarmBridge {
   private bind(): void {
     if (this.disposed) return;
     this.unbindTopics();
-    const client = getActiveTelemetryClient();
+    const client = this.ctx.hostJobs
+      ? this.ctx.hostJobs.client
+      : getActiveTelemetryClient();
     if (!client) return;
     this.unsubscribeRoster = client.subscribe(SCET_ROSTER_TOPIC, (payload) => {
       this.rosterIds = readRosterIds(payload);

@@ -8291,12 +8291,12 @@
         "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
       },
       {
-        "key": "sitrep-sdk . GonogoHost#useTopicClock",
-        "note": "The host member behind useTopicClock"
-      },
-      {
         "key": "sitrep-sdk . GonogoHost#useStreamEvent",
         "note": "the event handler is also given the frame's Meta, whose validAt and deliveredAt stamp when the event happened and when it arrived"
+      },
+      {
+        "key": "sitrep-sdk . GonogoHost#useTopicClock",
+        "note": "The host member behind useTopicClock"
       },
       {
         "key": "sitrep-sdk . GonogoHost#useViewClock",
@@ -9863,6 +9863,10 @@
         "note": "Drops its ut argument, since the catalogue no longer holds anything that depends on an instant; where a body is at an instant is systemPosesAt"
       },
       {
+        "key": "sitrep-sdk ./spine dispatchActiveCommandTopic",
+        "note": "Takes an optional third argument naming the client to send on, for a caller that holds a connection of its own"
+      },
+      {
         "key": "sitrep-sdk ./spine fromFrame",
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
       },
@@ -10383,12 +10387,12 @@
         "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
       },
       {
-        "key": "sitrep-sdk ./testing ~GonogoHost#useTopicClock",
-        "note": "The host member behind useTopicClock"
-      },
-      {
         "key": "sitrep-sdk ./testing ~GonogoHost#useStreamEvent",
         "note": "the event handler is also given the frame's Meta, whose validAt and deliveredAt stamp when the event happened and when it arrived"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~GonogoHost#useTopicClock",
+        "note": "The host member behind useTopicClock"
       },
       {
         "key": "sitrep-sdk ./testing ~GonogoHost#useViewClock",

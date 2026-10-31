@@ -1206,12 +1206,17 @@ function describeDispatchRejection(error: unknown): DispatchCommandRefusal {
  * A routed command settles asynchronously, and `settled` never rejects. It
  * resolves with the simulation's refusal (its code and message as written)
  * when the command was refused, and with `undefined` when it succeeded.
+ *
+ * `through` names the client to send on, for a caller that holds a connection
+ * of its own and must not follow whichever provider mounted last. The arrival
+ * check still reads the mounted provider's clock.
  */
 export function dispatchActiveCommandTopic(
   command: string,
   args: unknown,
+  through?: TelemetryClient,
 ): DispatchActiveCommandResult {
-  const client = activeTelemetryClient;
+  const client = through ?? activeTelemetryClient;
   if (!client) return { routed: false };
   const clock = activeViewClock;
   const arrivalUt = clock

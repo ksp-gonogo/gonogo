@@ -7,7 +7,10 @@ import type {
   FlightRecord,
 } from "@ksp-gonogo/data";
 import { debugPeer, logger } from "@ksp-gonogo/logger";
-import { getActiveTelemetryClient } from "@ksp-gonogo/sitrep-client";
+import {
+  getActiveTelemetryClient,
+  type TelemetryClient,
+} from "@ksp-gonogo/sitrep-client";
 import type { DataRateTier, RelayCaller } from "@ksp-gonogo/sitrep-sdk";
 import {
   CommandErrorCode,
@@ -20,6 +23,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import type { Seat } from "@ksp-gonogo/sitrep-sdk/spine";
 import Peer, { type DataConnection } from "peerjs";
+import type { HostJobs } from "../hosting/HostJobs";
 import type { RunningUplink } from "../uplinks/loaderState";
 import type { HostUplinkFailure } from "../uplinks/loadFailures";
 import { BUILD_TIME, VERSION } from "../version";
@@ -604,6 +608,7 @@ export class PeerHostService {
    * carries enough information to do.
    */
   private readonly sitrepSinks = new Map<string, SitrepSubscriptionSink>();
+  private hostJobs: HostJobs | undefined;
 
   /** The host's broker peer id: the *derived* `gonogo-host-<shareCode>`
    *  form (not the operator-facing share code). Null until the broker
@@ -1277,6 +1282,41 @@ export class PeerHostService {
       this.sitrepSubs.delete(conn);
       this.connVantage.delete(conn);
     }
+  }
+
+  /**
+   * Relay stations' commands through the host's own jobs connection, which sits
+   * at the home command centre whatever the screen's picker says. Until one is
+   * attached the commands go through whichever client is mounted, as on a
+   * screen that holds no jobs connection of its own. Returns the release.
+   */
+  attachHostJobs(jobs: HostJobs): () => void {
+    this.hostJobs = jobs;
+    return () => {
+      if (this.hostJobs === jobs) this.hostJobs = undefined;
+    };
+  }
+
+  /**
+   * The client a station's command is dispatched through. With a jobs
+   * connection attached this never falls back to the mounted client, since that
+   * one follows the screen's picker and would send the command from a centre
+   * its sender was not told it is reading.
+   */
+  private commandClient(): TelemetryClient | undefined {
+    return this.hostJobs ? this.hostJobs.client : getActiveTelemetryClient();
+  }
+
+  /**
+   * Where a command from `conn` leaves from when the sender names no centre: the
+   * centre its own session reads, and for a station on the host's session, the
+   * centre the host's screen is showing it.
+   */
+  private commandVantageFor(conn: StationLink, override?: string): string {
+    if (override) return override;
+    const connVantage = this.vantageOf(conn);
+    if (connVantage !== HOST_SESSION) return connVantage;
+    return this.hostJobs?.plainStationVantage() ?? "";
   }
 
   /**
@@ -2775,10 +2815,9 @@ export class PeerHostService {
    * `useCommand` routes a widget's command through the stream; if this RPC
    * didn't exist, that command would silently no-op on a station.
    *
-   * `getActiveTelemetryClient()` is the host's own live client (the same
-   * plain-class accessor `dispatchActiveCommand()` uses), this is a
-   * pass-through, never a second connection to the mod: the host is the
-   * only thing that ever talks to the mod server.
+   * The command goes out through the host's own jobs connection (the mounted
+   * client on a screen that holds none), a pass-through: a station never talks
+   * to the mod server itself.
    *
    * `meta` on the response is a placeholder, not sourced from the mod's own
    * `command-response` frame: `TelemetryClient.dispatch()`'s result Promise
@@ -2807,21 +2846,21 @@ export class PeerHostService {
        * vantage; its commands must be addressed the same way, or the two
        * disagree about where the peer is standing.
        *
-       * Today that only sizes the delay-UX pills. It stops being cosmetic the
-       * moment a command's address decides its DELAY, at which point a pilot's
-       * input to the craft they are sitting in would be held for the ground's
-       * light-time.
+       * The address decides the command's delay, so a pilot's input to the
+       * craft they are sitting in is not held for the ground's light-time.
        *
-       * A connection that never asked for a vantage still sends `""`, which is
-       * exactly what it sent before, so nothing about a plain station changes.
+       * A connection that never asked for a vantage reads the host's own
+       * session, and `commandVantageFor` names the centre that session stands
+       * at. The jobs connection carries no vantage of its own, so without that
+       * name the command would leave from home while the station was shown the
+       * centre the host's picker chose.
        */
-      const connVantage = this.vantageOf(conn);
       return client.dispatch(
         msg.command,
         msg.args,
         msg.label ?? "",
         msg.topic ?? "",
-        msg.vantage || (connVantage === HOST_SESSION ? "" : connVantage),
+        this.commandVantageFor(conn, msg.vantage),
         /*
          * The station's own id, not a fresh host one: the mod stamps it on the
          * pending queue, and the station's `useCommand` looks for its own id
@@ -2842,7 +2881,7 @@ export class PeerHostService {
     msg: Extract<PeerMessage, { type: "sitrep-command-group" }>,
     conn: StationLink,
   ): Promise<void> {
-    const client = getActiveTelemetryClient();
+    const client = this.commandClient();
     const refuseAll = (code: string, message: string) => {
       for (const member of msg.members) {
         conn.send({
@@ -2859,7 +2898,6 @@ export class PeerHostService {
     }
     let dispatched: ReturnType<typeof client.dispatchGroup>;
     try {
-      const connVantage = this.vantageOf(conn);
       dispatched = client.dispatchGroup(
         msg.members.map((member) => ({
           command: member.command,
@@ -2868,7 +2906,7 @@ export class PeerHostService {
           topic: member.topic,
           requestId: member.requestId,
         })),
-        msg.vantage || (connVantage === HOST_SESSION ? "" : connVantage),
+        this.commandVantageFor(conn, msg.vantage),
         msg.groupId,
       );
     } catch (err) {
@@ -2896,11 +2934,9 @@ export class PeerHostService {
   private async relaySitrepCommand(
     msg: { requestId: string; command: string },
     conn: StationLink,
-    start: (
-      client: NonNullable<ReturnType<typeof getActiveTelemetryClient>>,
-    ) => Promise<unknown>,
+    start: (client: TelemetryClient) => Promise<unknown>,
   ): Promise<void> {
-    const client = getActiveTelemetryClient();
+    const client = this.commandClient();
     if (!client) {
       conn.send({
         type: "sitrep-command-error",
