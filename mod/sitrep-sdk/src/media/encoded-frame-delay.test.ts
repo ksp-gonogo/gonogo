@@ -210,4 +210,28 @@ describe("attachEncodedFrameDelayTransform", () => {
     });
     pipeline.dispose();
   });
+
+  it("counts a transformer with no keyframe request as a request the sender never got", async () => {
+    const { transformer } = fakeTransformer([deltaFrame(10)]);
+    const pipeline = attachEncodedFrameDelayTransform(transformer, {
+      view: manualClock(),
+      captureUt: () => 100,
+    });
+    await vi.waitFor(() =>
+      expect(pipeline.stats().keyframeRequestsFailed).toBe(1),
+    );
+    expect(pipeline.stats().keyframeRequests).toBe(1);
+  });
+
+  it("asks a transformer that can take it, and counts nothing failed", async () => {
+    const sent = vi.fn(() => Promise.resolve());
+    const { transformer } = fakeTransformer([deltaFrame(10)]);
+    transformer.sendKeyFrameRequest = sent;
+    const pipeline = attachEncodedFrameDelayTransform(transformer, {
+      view: manualClock(),
+      captureUt: () => 100,
+    });
+    await vi.waitFor(() => expect(sent).toHaveBeenCalledTimes(1));
+    expect(pipeline.stats().keyframeRequestsFailed).toBe(0);
+  });
 });
