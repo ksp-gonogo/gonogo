@@ -464,10 +464,17 @@ public class SavedShipEntry
 #endif
 public class CraftFileParts
 {
-    /// <summary>Every part in the craft file, in file order. Never null; a file
-    /// that cannot be read publishes nothing rather than an empty or partial
-    /// list.</summary>
+    /// <summary>Every part in the craft file, in file order. Never null. Empty
+    /// only when the file could not be turned into a part tree, in which case
+    /// <see cref="Failure"/> says why. A craft file that has not been read yet
+    /// has no sample on its topic at all.</summary>
     public List<VesselPart> Parts { get; set; } = new();
+
+    /// <summary>Why <see cref="Parts"/> is empty: the file could not be read, it
+    /// has no parts, or this install has none of its parts (naming a few).
+    /// <c>null</c> when the file read cleanly.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? Failure { get; set; }
 }
 
 /// <summary>

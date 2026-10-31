@@ -578,6 +578,9 @@
       "secondaryBody": "text",
       "targetFrameSelected": "flag"
     },
+    "CraftFileParts": {
+      "failure": "text"
+    },
     "CrashFlightStats": {
       "flightEndMode": "text",
       "groundDistance": "m",

@@ -153,15 +153,38 @@ describe("LaunchDirector: the open pad's craft and the picked craft's side view"
     expect(fixture.transport.isSubscribed(WAVE_TOPIC)).toBe(false);
   });
 
-  it("draws the absence dash for a craft the mod has sent no parts for", async () => {
+  it("shows a spinner, not the dash, while the picked craft's parts are awaited", async () => {
     const { fixture, emit } = mount(14, 16);
     emit((e) => !isParts(e));
     fireEvent.click(await screen.findByText("Kerbin Relay A"));
 
     expect(fixture.transport.isSubscribed(RELAY_TOPIC)).toBe(true);
     expect(
+      await screen.findByRole("status", { name: "Reading the craft's parts" }),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("img", { name: "No part data for this craft" }),
+    ).toBeNull();
+  });
+
+  it("draws the absence dash once the mod says the craft has no parts, and the spinner goes", async () => {
+    const { fixture, emit } = mount(14, 16);
+    emit((e) => !isParts(e));
+    fireEvent.click(await screen.findByText("Kerbin Relay A"));
+    act(() => {
+      fixture.emit(RELAY_TOPIC, {
+        parts: [],
+        failure: "the file could not be read (IOException)",
+      });
+    });
+
+    expect(
       await screen.findByRole("img", { name: "No part data for this craft" }),
     ).toBeTruthy();
+    expect(
+      screen.queryByRole("status", { name: "Reading the craft's parts" }),
+    ).toBeNull();
+    expect(screen.queryByText(/IOException/)).toBeNull();
   });
 
   it("offers no part actions: no part is focusable and clicking one sends nothing", async () => {

@@ -618,6 +618,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     secondaryBody: "text",
     targetFrameSelected: "flag",
   },
+  "CraftFileParts": {
+    failure: "text",
+  },
   "CrashFlightStats": {
     flightEndMode: "text",
     groundDistance: "m",

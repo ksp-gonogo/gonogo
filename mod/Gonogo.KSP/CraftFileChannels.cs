@@ -48,6 +48,8 @@ namespace Gonogo.KSP
         private readonly CraftReadCache _reads = new CraftReadCache(RetrySeconds);
         /* The file version each watched topic was last captured at, forgotten when nobody watches it, so a subscriber arriving later is sent the tree again. */
         private readonly Dictionary<string, long> _captured = new Dictionary<string, long>(StringComparer.Ordinal);
+        /* The reason each watched topic was last sent as unreadable, forgotten with it, so each reason is sent once and a later subscriber is sent it again. */
+        private readonly Dictionary<string, string> _failed = new Dictionary<string, string>(StringComparer.Ordinal);
 
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
@@ -155,9 +157,17 @@ namespace Gonogo.KSP
 
                 if (read.Rows == null)
                 {
+                    var failure = read.Failure ?? "the file could not be read";
+                    if (!_failed.TryGetValue(key, out var told) || told != failure)
+                    {
+                        _failed[key] = failure;
+                        captures.Add(new CraftCapture { Key = key, Failure = failure });
+                    }
+
                     continue;
                 }
 
+                _failed.Remove(key);
                 _captured[key] = file.Modified;
                 captures.Add(new CraftCapture { Key = key, Rows = read.Rows });
             }
@@ -170,10 +180,18 @@ namespace Gonogo.KSP
                 }
             }
 
+            foreach (var key in new List<string>(_failed.Keys))
+            {
+                if (!watched.Contains(key))
+                {
+                    _failed.Remove(key);
+                }
+            }
+
             return captures.Count == 0 ? null : new CraftFileCapture { Ut = CraftCaptureStamp.Ut(snapshot?.Ut, Planetarium.GetUniversalTime), Crafts = captures };
         }
 
-        /// <summary>COURIER-THREAD: publish each captured craft's part tree on its own topic.</summary>
+        /// <summary>COURIER-THREAD: publish each captured craft's part tree on its own topic, or an empty one carrying why the file gave none.</summary>
         internal void HandleOnCourier(object? captured)
         {
             if (captured is not CraftFileCapture capture || _source == null)
@@ -183,10 +201,7 @@ namespace Gonogo.KSP
 
             foreach (var craft in capture.Crafts)
             {
-                if (VesselPartsViewProvider.BuildCraftFilePartsWire(craft.Rows) is { } wire)
-                {
-                    _source.Publisher(craft.Key).Publish(wire, capture.Ut);
-                }
+                _source.Publisher(craft.Key).Publish(VesselPartsViewProvider.BuildCraftFilePartsWire(craft.Rows, craft.Failure), capture.Ut);
             }
         }
 
@@ -205,7 +220,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                return CraftRead.Failed("the file could not be read (" + ex.GetType().Name + ": " + ex.Message + ")");
+                return CraftRead.Failed("the file could not be read (" + ex.GetType().Name + ")");
             }
         }
 
@@ -221,6 +236,7 @@ namespace Gonogo.KSP
             {
                 _reads.Clear();
                 _captured.Clear();
+                _failed.Clear();
             }
 
             _files.Clear();
@@ -269,7 +285,8 @@ namespace Gonogo.KSP
         private sealed class CraftCapture
         {
             public string Key = "";
-            public List<object?> Rows = new List<object?>();
+            public List<object?>? Rows;
+            public string? Failure;
         }
 
         private sealed class CraftFileCapture

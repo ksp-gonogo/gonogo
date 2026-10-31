@@ -93,6 +93,24 @@ describe("useCraftFileTopology", () => {
     );
   });
 
+  it("reads an empty tree for a file the mod could not read, which is not the same as nothing yet", async () => {
+    const t = new StubTransport();
+    render(
+      <TelemetryProvider client={new TelemetryClient(t)}>
+        <TopologyProbe facility="VAB" file="Broken" />
+      </TelemetryProvider>,
+    );
+    expect(screen.getByText("parts:none")).toBeTruthy();
+
+    act(() => {
+      t.emit("spaceCenter.craft.VAB.Broken.parts", {
+        parts: [],
+        failure: "the file has no PART nodes",
+      });
+    });
+    await waitFor(() => expect(screen.getByText(/^parts:0 /)).toBeTruthy());
+  });
+
   it("knows nothing of a file whose topic never delivers", () => {
     const t = new StubTransport();
     render(

@@ -1,6 +1,6 @@
 import type { PartResources, VesselTopology } from "@ksp-gonogo/core";
 import { useCraftFileTopology } from "@ksp-gonogo/data";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { NULL_DISPLAY, Spinner } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import { ShipDiagramSvg } from "../ShipMap/ShipDiagramSvg";
 import { buildShipMapPart, type ShipMapPart } from "../ShipMap/shipTopology";
@@ -28,8 +28,8 @@ export const CRAFT_MAP_MIN_ROWS = 10;
 /**
  * The side view of one saved craft file, drawn from the part tree the mod reads
  * out of the file. It opens the file's part topic for as long as it is mounted,
- * which is what has the mod measure the craft. Draws the absence dash until the
- * tree arrives.
+ * which is what has the mod measure the craft. Draws a spinner until the tree
+ * arrives, and the absence dash when the tree that arrives has no parts.
  */
 export function SavedCraftDiagram({
   facility,
@@ -44,6 +44,7 @@ export function SavedCraftDiagram({
     <CraftMapColumn>
       <CraftDiagram
         topology={tracked?.topology}
+        awaiting={!tracked}
         resourcesByFlightId={tracked?.resourcesByFlightId}
       />
       <CraftStages stages={stages} />
@@ -80,14 +81,17 @@ function useCraftStages(topology: VesselTopology | undefined) {
 /**
  * A craft's side view from a part tree handed in, with nothing bound to the
  * active vessel: no heat, no throttle and no part actions. Crowded parts still
- * open in a box, which changes only the view. Absence of a tree draws the
- * absence dash.
+ * open in a box, which changes only the view. A tree with no parts, or none,
+ * draws the absence dash, unless `awaiting` says the tree is still on its way
+ * and a spinner stands in.
  */
 export function CraftDiagram({
   topology,
   resourcesByFlightId,
+  awaiting = false,
 }: {
   topology: VesselTopology | undefined;
+  awaiting?: boolean;
   resourcesByFlightId?: ReadonlyMap<number, PartResources>;
 }) {
   const { shapes, sources: shapeSources } = usePartShapes(topology?.parts);
@@ -160,8 +164,15 @@ export function CraftDiagram({
     >
       {shapeSources}
       {parts.length === 0 ? (
-        <CraftNoParts role="img" aria-label="No part data for this craft">
-          {NULL_DISPLAY}
+        <CraftNoParts
+          role={awaiting ? undefined : "img"}
+          aria-label={awaiting ? undefined : "No part data for this craft"}
+        >
+          {awaiting ? (
+            <Spinner size={20} aria-label="Reading the craft's parts" />
+          ) : (
+            NULL_DISPLAY
+          )}
         </CraftNoParts>
       ) : (
         <CraftDiagramLayer>

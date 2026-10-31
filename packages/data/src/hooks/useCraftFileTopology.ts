@@ -33,8 +33,9 @@ export function craftFileTopic(facility: string, file: string): string {
 /**
  * The part tree of one saved craft file, from
  * `spaceCenter.craft.<facility>.<file>.parts`. Undefined until the mod has sent
- * it. The facility is part of the key because a VAB file and an SPH file can
- * share a name.
+ * it, and an empty tree when the mod could not make one from the file. The
+ * facility is part of the key because a VAB file and an SPH file can share a
+ * name.
  *
  * Opening it is what makes the mod read the file, so mount it only for a craft
  * the operator is looking at. A design on the ground reaches every command

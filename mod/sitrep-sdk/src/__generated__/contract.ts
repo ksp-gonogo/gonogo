@@ -8753,10 +8753,18 @@ export interface SavedShipEntry
 export interface CraftFileParts
 {
 	/**
-	* Every part in the craft file, in file order. Never null; a file that cannot
-	* be read publishes nothing rather than an empty or partial list.
+	* Every part in the craft file, in file order. Never null. Empty only when the
+	* file could not be turned into a part tree, in which case
+	* `CraftFileParts.failure` says why. A craft file that has not been read yet
+	* has no sample on its topic at all.
 	*/
 	parts: VesselPart[];
+	/**
+	* Why `CraftFileParts.parts` is empty: the file could not be read, it has no
+	* parts, or this install has none of its parts (naming a few). `null` when the
+	* file read cleanly.
+	*/
+	failure?: string | null;
 }
 /**
 * A wrapper carrying the count of parts the player can place right now

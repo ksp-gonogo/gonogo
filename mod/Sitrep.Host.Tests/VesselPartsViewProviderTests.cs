@@ -306,9 +306,6 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void ACraftFilesPartTreeKeepsTheTreeAndHasNoLiveState()
         {
-            Assert.Null(VesselPartsViewProvider.BuildCraftFilePartsWire(null));
-            Assert.Null(VesselPartsViewProvider.BuildCraftFilePartsWire(new List<object?>()));
-
             var wire = VesselPartsViewProvider.BuildCraftFilePartsWire(new List<object?>
             {
                 RawPart("1", null),
@@ -316,10 +313,32 @@ namespace Sitrep.Host.Tests
             })!;
 
             Assert.False(wire.ContainsKey("meta"));
+            Assert.Null(wire["failure"]);
             var parts = Assert.IsType<List<object?>>(wire["parts"]);
             var child = Assert.IsType<Dictionary<string, object?>>(parts[1]);
             Assert.Equal("2", child["id"]);
             Assert.Equal("1", child["parentId"]);
+        }
+
+        [Fact]
+        public void ACraftFileThatGaveNoPartsIsAnEmptyTreeThatSaysWhy()
+        {
+            foreach (var rows in new List<object?>?[] { null, new List<object?>() })
+            {
+                var wire = VesselPartsViewProvider.BuildCraftFilePartsWire(rows, "the file could not be read (IOException)");
+
+                Assert.Empty(Assert.IsType<List<object?>>(wire["parts"]));
+                Assert.Equal("the file could not be read (IOException)", wire["failure"]);
+            }
+        }
+
+        [Fact]
+        public void ACraftFileThatGaveNoPartsAndNoReasonStillSaysItHasNoParts()
+        {
+            var wire = VesselPartsViewProvider.BuildCraftFilePartsWire(null);
+
+            Assert.Empty(Assert.IsType<List<object?>>(wire["parts"]));
+            Assert.Equal("the file has no parts", wire["failure"]);
         }
 
         [Fact]

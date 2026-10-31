@@ -112,13 +112,14 @@ namespace Sitrep.Host
         /// <summary>
         /// The <c>spaceCenter.craft.&lt;facility&gt;.&lt;file&gt;.parts</c> wire payload
         /// for one saved craft file, from the raw part rows
-        /// <c>Gonogo.KSP.CraftFileTopology</c> writes. Null when there are no rows to
-        /// map, so a file that could not be read publishes nothing.
+        /// <c>Gonogo.KSP.CraftFileTopology</c> writes. With no rows to map the payload
+        /// carries an empty part list and <paramref name="failure"/>, so a file that
+        /// could not be read is told apart from one not yet read.
         /// </summary>
-        public static Dictionary<string, object?>? BuildCraftFilePartsWire(IEnumerable<object?>? rawTopology) =>
+        public static Dictionary<string, object?> BuildCraftFilePartsWire(IEnumerable<object?>? rawTopology, string? failure = null) =>
             BuildTrackedParts(rawTopology) is { } tracked
                 ? ToWire(new CraftFileParts { Parts = tracked.Parts })
-                : null;
+                : ToWire(new CraftFileParts { Failure = string.IsNullOrEmpty(failure) ? "the file has no parts" : failure });
 
         private static VesselPart MapPart(IDictionary<string, object?> raw)
         {
@@ -336,6 +337,7 @@ namespace Sitrep.Host
         private static Dictionary<string, object?> ToWire(CraftFileParts parts) => new Dictionary<string, object?>
         {
             ["parts"] = parts.Parts.Select(ToWire).ToList<object?>(),
+            ["failure"] = parts.Failure,
         };
 
         private static Dictionary<string, object?> ToWire(VesselPart part) => new Dictionary<string, object?>
