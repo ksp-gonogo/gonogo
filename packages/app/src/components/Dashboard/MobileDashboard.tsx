@@ -8,6 +8,7 @@ import {
   haveUplinksSettled,
   subscribeUplinkOutcomes,
 } from "../../uplinks/loaderState";
+import { GRID_GAP, ROW_PITCH } from "./GridDashboard";
 import type { DashboardItem, DashboardProps } from "./index";
 import { ROW_HEIGHT } from "./layoutNormalization";
 import { ComponentWrapper, highlightStyle } from "./shared";
@@ -20,7 +21,7 @@ import { GearButton } from "./WidgetGearMenu";
 // MobileDashboard: flex-wrap list whose tiles reorder, resize and remove from a per-tile menu.
 //   • mobileWidth='half' items take ~50% and pair on a row when consecutive;
 //     'full' (default) takes the whole row.
-//   • mobileHeight (px) defaults to defaultSize.h * ROW_HEIGHT.
+//   • mobileHeight (px) defaults to the height the same tile has in the desktop grid.
 //   • Item order is driven by `items` (not the persisted grid `layout`).
 export function MobileDashboard({
   items,
@@ -57,6 +58,11 @@ export function MobileDashboard({
       ))}
     </MobileList>
   );
+}
+
+/** The height, in px, a list tile `rows` rows tall draws at: the height the desktop grid gives a tile of that many rows. */
+function listHeightFor(rows: number): number {
+  return rows * ROW_PITCH - GRID_GAP;
 }
 
 interface MobileItemContentProps {
@@ -117,7 +123,7 @@ const MobileItemContent = memo(function MobileItemContent({
   if (!def) {
     // An Uplink's widgets register once its client loads, so nothing is drawn while one is still loading.
     if (uplinkOutcomes.some((o) => o.status === "loading")) return null;
-    const unavailableHeight = 3 * ROW_HEIGHT;
+    const unavailableHeight = listHeightFor(3);
     return (
       <MobileCell
         $half={false}
@@ -144,7 +150,7 @@ const MobileItemContent = memo(function MobileItemContent({
   const effectiveWidth = item.mobileWidth ?? def.mobileWidth ?? "half";
   const half = effectiveWidth === "half";
   const fullHeightPx =
-    def.mobileHeight ?? (def.defaultSize?.h ?? 3) * ROW_HEIGHT;
+    def.mobileHeight ?? listHeightFor(def.defaultSize?.h ?? 3);
   // Per-instance height override; defaults to "full". Half-height pairs
   // alongside another half-height widget if both are also half-width
   // (the row-fill arithmetic still works because the cell wraps).

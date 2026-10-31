@@ -226,8 +226,8 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    */
   mobileWidth?: "full" | "half";
   /**
-   * Height in px for the mobile layout. Defaults to `defaultSize.h * ROW_HEIGHT`
-   * (the same vertical space the widget gets on desktop). Override only when
+   * Height in px for the mobile layout. Defaults to the height
+   * `defaultSize.h` rows have in the desktop grid. Override only when
    * the desktop default looks cramped at full mobile width, typically graphs
    * and maps that benefit from extra vertical room in portrait.
    */
