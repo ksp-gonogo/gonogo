@@ -72,11 +72,11 @@ const INSTRUMENT_LIST = {
   padding: 0,
 } as const;
 
-/** The cards flow across a wide tile, as many columns as fit at a readable width. */
+/** One full-width row per instrument, whatever the tile's width. */
 const INSTRUMENT_GRID = {
   ...INSTRUMENT_LIST,
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fill, minmax(min(14rem, 100%), 1fr))",
+  gridTemplateColumns: "minmax(0, 1fr)",
   gap: "var(--gap-related)",
 } as const;
 

@@ -77,6 +77,10 @@ namespace Sitrep.Host.Tests
             nameof(InstrumentEntry.Running),
             nameof(InstrumentEntry.Producing),
             nameof(InstrumentEntry.RunIssue),
+            // Source-agnostic: every science backend can say which subject an instrument would record against and how much of it is banked.
+            nameof(InstrumentEntry.SubjectId),
+            nameof(InstrumentEntry.Science),
+            nameof(InstrumentEntry.ScienceCap),
             nameof(InstrumentEntry.Extensions),
         };
 

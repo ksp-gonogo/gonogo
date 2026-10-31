@@ -252,6 +252,40 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void BuildInstrumentsCarriesTheCurrentSubjectAndLeavesAnUnknownOneNull()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["science"] = new Dictionary<string, object?>
+                    {
+                        ["instruments"] = new List<object?>
+                        {
+                            new Dictionary<string, object?>
+                            {
+                                ["partId"] = "1",
+                                ["subjectId"] = "crewReport@KerbinSrfLandedLaunchPad",
+                                ["science"] = 0.0,
+                                ["scienceCap"] = 1.5,
+                            },
+                            new Dictionary<string, object?> { ["partId"] = "2" },
+                        },
+                    },
+                },
+            };
+
+            var instruments = ScienceViewProvider.BuildInstruments(snapshot)!;
+            Assert.Equal("crewReport@KerbinSrfLandedLaunchPad", instruments[0].SubjectId);
+            Assert.Equal(0.0, instruments[0].Science);
+            Assert.Equal(1.5, instruments[0].ScienceCap);
+            Assert.Null(instruments[1].SubjectId);
+            Assert.Null(instruments[1].Science);
+            Assert.Null(instruments[1].ScienceCap);
+        }
+
+        [Fact]
         public void ASubGroupPresentWithNoValueIsAnEmptyListNotAbsence()
         {
             var snapshot = new KspSnapshot

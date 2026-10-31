@@ -7579,6 +7579,27 @@ export interface InstrumentEntry
 	*/
 	runIssue?: string | null;
 	/**
+	* The science subject this instrument would record against if run now, from
+	* its experiment and the vessel's current situation, body and biome (the id
+	* `ArchiveEntry.subjectId` lists it under). `null` where the experiment cannot
+	* run in the vessel's current situation, where the save has no R&D (Sandbox),
+	* or where the experiment definition has not resolved.
+	*/
+	subjectId?: string | null;
+	/**
+	* Science banked for `InstrumentEntry.subjectId` so far. `0` when the career
+	* has not yet recovered or transmitted that subject. `null` whenever
+	* `InstrumentEntry.subjectId` is.
+	*/
+	science?: Value<"science"> | null;
+	/**
+	* The most science `InstrumentEntry.subjectId` can ever yield.
+	* `InstrumentEntry.science` over this is how much of what the instrument can
+	* give here has been collected. `null` whenever `InstrumentEntry.subjectId`
+	* is.
+	*/
+	scienceCap?: Value<"science"> | null;
+	/**
 	* The provider-namespaced extension bag, instrument half. Same mechanism and
 	* same rule as `ExperimentEntry.extensions`. This payload carries no number
 	* whose meaning depends on the value model (it is pure operability), so it has

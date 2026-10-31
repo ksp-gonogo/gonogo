@@ -19,7 +19,8 @@
             "inoperable": false,
             "rerunnable": true,
             "resettable": true,
-            "holdsData": true
+            "holdsData": true,
+            "title": "Crew Report"
           },
           {
             "partId": "1071315383",
@@ -29,7 +30,8 @@
             "inoperable": true,
             "rerunnable": false,
             "resettable": false,
-            "holdsData": true
+            "holdsData": true,
+            "title": "Mystery Goo™ Observation"
           },
           {
             "partId": "342573834",
@@ -39,7 +41,8 @@
             "inoperable": false,
             "rerunnable": true,
             "resettable": true,
-            "holdsData": false
+            "holdsData": false,
+            "title": "Atmospheric Pressure Scan"
           }
         ]
       },

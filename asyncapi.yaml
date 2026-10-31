@@ -16479,6 +16479,36 @@ components:
             for display. `null` when nothing is in the way. Prose in the game's
             language, so never branch on it, and never a signal or return fact: it
             answers why nothing is being generated, not why nothing is arriving home.
+        subjectId:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: id
+          description: |-
+            The science subject this instrument would record against if run now, from
+            its experiment and the vessel's current situation, body and biome (the id
+            `ArchiveEntry.subjectId` lists it under). `null` where the experiment cannot
+            run in the vessel's current situation, where the save has no R&D (Sandbox),
+            or where the experiment definition has not resolved.
+        science:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: science
+          description: |-
+            Science banked for `InstrumentEntry.subjectId` so far. `0` when the career
+            has not yet recovered or transmitted that subject. `null` whenever
+            `InstrumentEntry.subjectId` is.
+        scienceCap:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: science
+          description: |-
+            The most science `InstrumentEntry.subjectId` can ever yield.
+            `InstrumentEntry.science` over this is how much of what the instrument can
+            give here has been collected. `null` whenever `InstrumentEntry.subjectId`
+            is.
         extensions:
           type:
             - object

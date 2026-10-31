@@ -206,6 +206,8 @@ registerComponent<ScienceDataConfig>({
   augmentSlots: ["science-data.aboard-row"],
   contributionSlots: ["science-data.archive-readouts"],
   pushable: true,
+  // The career and Space Center topics it reads would keep it off the pilot's screen, but the Aboard tab is the one a crew uses in flight.
+  seats: ["mission-control", "pilot"],
 });
 
 export { ScienceDataComponent };

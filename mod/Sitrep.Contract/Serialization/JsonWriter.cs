@@ -873,6 +873,18 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "runIssue");
             sb.Append(':');
             AppendNullableString(sb, e.RunIssue);
+            sb.Append(',');
+            AppendString(sb, "subjectId");
+            sb.Append(':');
+            AppendNullableString(sb, e.SubjectId);
+            sb.Append(',');
+            AppendString(sb, "science");
+            sb.Append(':');
+            AppendNullableNumber(sb, e.Science);
+            sb.Append(',');
+            AppendString(sb, "scienceCap");
+            sb.Append(':');
+            AppendNullableNumber(sb, e.ScienceCap);
             AppendProviderExtensions(sb, e.Extensions);
             sb.Append('}');
         }

@@ -350,6 +350,34 @@ public class InstrumentEntry
     [SitrepUnit(Units.Text)]
     public string? RunIssue { get; set; }
 
+    /// <summary>
+    /// The science subject this instrument would record against if run now,
+    /// from its experiment and the vessel's current situation, body and biome
+    /// (the id <see cref="ArchiveEntry.SubjectId"/> lists it under). <c>null</c>
+    /// where the experiment cannot run in the vessel's current situation, where
+    /// the save has no R&amp;D (Sandbox), or where the experiment definition has
+    /// not resolved.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? SubjectId { get; set; }
+
+    /// <summary>
+    /// Science banked for <see cref="SubjectId"/> so far. <c>0</c> when the
+    /// career has not yet recovered or transmitted that subject. <c>null</c>
+    /// whenever <see cref="SubjectId"/> is.
+    /// </summary>
+    [SitrepUnit(Units.Science)]
+    public double? Science { get; set; }
+
+    /// <summary>
+    /// The most science <see cref="SubjectId"/> can ever yield.
+    /// <see cref="Science"/> over this is how much of what the instrument can
+    /// give here has been collected. <c>null</c> whenever
+    /// <see cref="SubjectId"/> is.
+    /// </summary>
+    [SitrepUnit(Units.Science)]
+    public double? ScienceCap { get; set; }
+
     /// <summary> The provider-namespaced extension bag, instrument half. Same
     /// mechanism and same rule as <see cref="ExperimentEntry.Extensions"/>.
     /// This payload carries no number whose meaning depends on the value model

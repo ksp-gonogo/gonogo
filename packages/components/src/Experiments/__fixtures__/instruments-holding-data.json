@@ -20,7 +20,11 @@
             "rerunnable": true,
             "resettable": true,
             "dataIsCollectable": true,
-            "holdsData": true
+            "holdsData": true,
+            "subjectId": "crewReport@KerbinInSpaceLowShores",
+            "science": 0.0,
+            "scienceCap": 1.5,
+            "title": "Crew Report"
           },
           {
             "partId": "1071315383",
@@ -31,7 +35,11 @@
             "rerunnable": false,
             "resettable": false,
             "dataIsCollectable": false,
-            "holdsData": true
+            "holdsData": true,
+            "subjectId": "mysteryGoo@KerbinInSpaceLow",
+            "science": 2.4,
+            "scienceCap": 9.0,
+            "title": "Mystery Goo™ Observation"
           },
           {
             "partId": "342573834",
@@ -42,7 +50,11 @@
             "rerunnable": true,
             "resettable": true,
             "dataIsCollectable": true,
-            "holdsData": false
+            "holdsData": false,
+            "subjectId": null,
+            "science": null,
+            "scienceCap": null,
+            "title": "Atmospheric Pressure Scan"
           }
         ]
       },

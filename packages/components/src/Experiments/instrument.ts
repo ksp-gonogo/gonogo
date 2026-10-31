@@ -1,4 +1,4 @@
-import type { Reading, TopicPayload } from "@ksp-gonogo/sitrep-sdk";
+import type { Reading, TopicPayload, Value } from "@ksp-gonogo/sitrep-sdk";
 
 /**
  * One science instrument aboard the active vessel: the widget's parsed shape and
@@ -43,6 +43,12 @@ export interface TitledInstrument extends Instrument {
   evaCollectable?: boolean;
   /** Whether the experiment can be reset; `null` where the wire did not say, which is neither answer. */
   resettable?: boolean | null;
+  /**
+   * The share of what this experiment can yield where the vessel is now that
+   * the career has banked, 0 to 1. Absent where the wire named no subject or
+   * no cap, so a missing figure is never drawn as 0%.
+   */
+  collected?: Value<"ratio">;
 }
 
 /**

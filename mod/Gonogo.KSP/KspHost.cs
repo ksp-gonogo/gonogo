@@ -6801,6 +6801,8 @@ namespace Gonogo.KSP
                     }
                     catch { holdsData = null; }
 
+                    var (subjectId, banked, cap) = CurrentExperimentSubject(vessel, exp);
+
                     list ??= new List<object?>();
                     list.Add(new Dictionary<string, object?>
                     {
@@ -6808,6 +6810,9 @@ namespace Gonogo.KSP
                         ["partName"] = partName,
                         ["experimentId"] = exp.experimentID,
                         ["title"] = title,
+                        ["subjectId"] = subjectId,
+                        ["science"] = banked,
+                        ["scienceCap"] = cap,
                         ["deployed"] = exp.Deployed,
                         ["inoperable"] = exp.Inoperable,
                         ["rerunnable"] = exp.rerunnable,
@@ -6821,6 +6826,74 @@ namespace Gonogo.KSP
             }
 
             return list;
+        }
+
+        /// <summary>
+        /// The subject an experiment module would record against if run now,
+        /// with the science banked for it and its cap. Mirrors how
+        /// <see cref="ModuleScienceExperiment"/> picks its subject (situation
+        /// from <c>ScienceUtil.GetExperimentSituation</c>; a biome only where
+        /// <c>BiomeIsRelevantWhile</c>, landed-at name first, else the biome
+        /// map). It builds a throwaway <see cref="ScienceSubject"/> instead of
+        /// calling <c>ResearchAndDevelopment.GetExperimentSubject</c>, which
+        /// registers any subject it has not seen in the career's archive.
+        /// All null in Sandbox (no R&amp;D) and where the experiment cannot run
+        /// in the current situation; banked is 0 for a subject not yet in the
+        /// archive.
+        /// </summary>
+        private static (string? subjectId, double? science, double? scienceCap) CurrentExperimentSubject(
+            Vessel vessel, ModuleScienceExperiment module)
+        {
+            try
+            {
+                if (ResearchAndDevelopment.Instance == null || vessel.mainBody == null)
+                {
+                    return (null, null, null);
+                }
+
+                var definition = module.experiment ?? ResearchAndDevelopment.GetExperiment(module.experimentID);
+                if (definition == null)
+                {
+                    return (null, null, null);
+                }
+
+                var situation = ScienceUtil.GetExperimentSituation(vessel);
+                if (!definition.IsAvailableWhile(situation, vessel.mainBody))
+                {
+                    return (null, null, null);
+                }
+
+                var biome = "";
+                var displayBiome = "";
+                if (definition.BiomeIsRelevantWhile(situation))
+                {
+                    if (!string.IsNullOrEmpty(vessel.landedAt))
+                    {
+                        biome = Vessel.GetLandedAtString(vessel.landedAt);
+                        displayBiome = global::KSP.Localization.Localizer.Format(vessel.displaylandedAt);
+                    }
+                    else
+                    {
+                        biome = ScienceUtil.GetExperimentBiome(vessel.mainBody, vessel.latitude, vessel.longitude);
+                        displayBiome = ScienceUtil.GetBiomedisplayName(vessel.mainBody, biome);
+                    }
+
+                    if (string.IsNullOrEmpty(displayBiome))
+                    {
+                        displayBiome = biome;
+                    }
+                }
+
+                var candidate = new ScienceSubject(definition, situation, vessel.mainBody, biome, displayBiome);
+                var archived = ResearchAndDevelopment.GetSubjectByID(candidate.id);
+                var cap = archived != null ? archived.scienceCap : candidate.scienceCap;
+                var banked = archived != null ? archived.science : 0f;
+                return (candidate.id, (double)banked, (double)cap);
+            }
+            catch
+            {
+                return (null, null, null);
+            }
         }
 
         /// <summary>

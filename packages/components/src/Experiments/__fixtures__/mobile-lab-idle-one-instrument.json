@@ -8,7 +8,7 @@
   "sci.instruments": [
     {
       "partId": 1,
-      "partName": "Mystery Goo\u2122 Containment Unit",
+      "partName": "Mystery Goo™ Containment Unit",
       "experimentId": "mysteryGoo",
       "deployed": false,
       "holdsData": false,
@@ -38,12 +38,13 @@
         "value": [
           {
             "partId": 1,
-            "partName": "Mystery Goo\u2122 Containment Unit",
+            "partName": "Mystery Goo™ Containment Unit",
             "experimentId": "mysteryGoo",
             "deployed": false,
             "holdsData": false,
             "rerunnable": false,
-            "inoperable": false
+            "inoperable": false,
+            "title": "Mystery Goo™ Observation"
           }
         ]
       },

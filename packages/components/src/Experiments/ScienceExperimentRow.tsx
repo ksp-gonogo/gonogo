@@ -13,9 +13,11 @@ import {
   HeldFigure,
   heldWord,
   Inline,
+  Stack,
   Tag,
   Text,
   Tooltip,
+  Unit,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import type { TitledInstrument } from "./instrument";
@@ -69,10 +71,22 @@ function experimentOnPart(instrument: TitledInstrument): string {
 }
 
 /** Holds a badge's height, so a row of badges never sits tighter than one control. */
-const BADGE_SLOT = { minHeight: "var(--control-height)" } as const;
+const BADGE_SLOT = {
+  minHeight: "var(--control-height)",
+  alignItems: "center",
+} as const;
 
-/** Holds the controls' height whether or not this instrument offers any, so every card is the same height. */
-const ACTION_SLOT = { minHeight: "var(--control-height)" } as const;
+/**
+ * Holds the controls' height whether or not this instrument offers any, so every
+ * row is the same height and Start becoming Stop (or Deploy becoming Transmit)
+ * moves nothing. Right-aligned, and free to wrap inside the row on a narrow tile.
+ */
+const ACTION_SLOT = {
+  minHeight: "var(--control-height)",
+  justifyContent: "flex-end",
+  maxWidth: "100%",
+  minWidth: 0,
+} as const;
 
 /**
  * A single science-instrument card: the part's name, its state badges when it
@@ -125,7 +139,7 @@ export function ScienceExperimentRow({
         });
     };
   const actions = (
-    <Inline inset wrap style={ACTION_SLOT}>
+    <Inline wrap style={ACTION_SLOT}>
       {continuous &&
         !instrument.inoperable &&
         instrument.running === false &&
@@ -195,100 +209,109 @@ export function ScienceExperimentRow({
     (continuous && typeof instrument.running === "boolean") ||
     (!continuous && instrument.deployed) ||
     instrument.inoperable;
+  const badges = hasBadge ? (
+    <Inline wrap style={BADGE_SLOT} data-badges="">
+      {instrument.hasData && (
+        <Tooltip text={said(BADGE_MEANING.data)}>
+          <Badge held={heldGrade} tone="go">
+            DATA
+          </Badge>
+        </Tooltip>
+      )}
+      {continuous && instrument.running === true && (
+        <Tooltip
+          text={said(
+            instrument.producing === false
+              ? BADGE_MEANING.waiting
+              : BADGE_MEANING.running,
+          )}
+        >
+          <Badge
+            held={heldGrade}
+            tone={instrument.producing === false ? "caution" : "go"}
+          >
+            {instrument.producing === false ? "WAITING" : "RUNNING"}
+          </Badge>
+        </Tooltip>
+      )}
+      {continuous && instrument.running === false && (
+        <Tooltip text={said(BADGE_MEANING.stopped)}>
+          <Badge held={heldGrade}>STOPPED</Badge>
+        </Tooltip>
+      )}
+      {!continuous && instrument.deployed && (
+        <Tooltip text={said(BADGE_MEANING.deployed)}>
+          <Badge held={heldGrade}>DEPLOYED</Badge>
+        </Tooltip>
+      )}
+      {/* An experiment whose reusability is unknown is not one-shot, and a continuous one is not run once. */}
+      {!continuous &&
+        !instrument.rerunnable &&
+        instrument.rerunnableKnown !== false && (
+          <Tooltip
+            text={
+              instrument.resettable === true
+                ? BADGE_MEANING.oneShotResettable
+                : instrument.resettable === false
+                  ? BADGE_MEANING.oneShotFinal
+                  : BADGE_MEANING.oneShot
+            }
+          >
+            <Tag label="ONE-SHOT" />
+          </Tooltip>
+        )}
+      {instrument.inoperable && (
+        <Tooltip text={said(BADGE_MEANING.inoperable)}>
+          <Badge held={heldGrade} tone="nogo">
+            INOPERABLE
+          </Badge>
+        </Tooltip>
+      )}
+    </Inline>
+  ) : undefined;
   return (
     <Card
       as="li"
       title={underPart ? experimentName(instrument) : instrument.partTitle}
+      titleRight={actions}
       tone={
         instrument.inoperable ? "nogo" : instrument.hasData ? "go" : undefined
       }
-      footer={actions}
     >
-      {hasBadge && (
-        <Inline wrap style={BADGE_SLOT} data-badges="">
-          {instrument.hasData && (
-            <Tooltip text={said(BADGE_MEANING.data)}>
-              <Badge held={heldGrade} tone="go">
-                DATA
-              </Badge>
-            </Tooltip>
+      <Stack gap="related-dense">
+        {badges}
+        <Text level="muted" size="xs">
+          {!underPart && experimentName(instrument)}
+          {instrument.dataKnown !== false && (
+            <DataState
+              text={`${underPart ? "" : " · "}${dataText(instrument)}`}
+              held={hasBadge ? undefined : heldGrade}
+            />
           )}
-          {continuous && instrument.running === true && (
-            <Tooltip
-              text={said(
-                instrument.producing === false
-                  ? BADGE_MEANING.waiting
-                  : BADGE_MEANING.running,
-              )}
-            >
-              <Badge
-                held={heldGrade}
-                tone={instrument.producing === false ? "caution" : "go"}
-              >
-                {instrument.producing === false ? "WAITING" : "RUNNING"}
-              </Badge>
-            </Tooltip>
+          {instrument.collected !== undefined && (
+            <>
+              {instrument.dataKnown !== false || !underPart ? " · " : ""}
+              <Unit value={instrument.collected} decimals={0} /> collected
+            </>
           )}
-          {continuous && instrument.running === false && (
-            <Tooltip text={said(BADGE_MEANING.stopped)}>
-              <Badge held={heldGrade}>STOPPED</Badge>
-            </Tooltip>
-          )}
-          {!continuous && instrument.deployed && (
-            <Tooltip text={said(BADGE_MEANING.deployed)}>
-              <Badge held={heldGrade}>DEPLOYED</Badge>
-            </Tooltip>
-          )}
-          {/* An experiment whose reusability is unknown is not one-shot, and a continuous one is not run once. */}
-          {!continuous &&
-            !instrument.rerunnable &&
-            instrument.rerunnableKnown !== false && (
-              <Tooltip
-                text={
-                  instrument.resettable === true
-                    ? BADGE_MEANING.oneShotResettable
-                    : instrument.resettable === false
-                      ? BADGE_MEANING.oneShotFinal
-                      : BADGE_MEANING.oneShot
-                }
-              >
-                <Tag label="ONE-SHOT" />
-              </Tooltip>
-            )}
-          {instrument.inoperable && (
-            <Tooltip text={said(BADGE_MEANING.inoperable)}>
-              <Badge held={heldGrade} tone="nogo">
-                INOPERABLE
-              </Badge>
-            </Tooltip>
-          )}
-        </Inline>
-      )}
-      <Text level="muted" size="xs">
-        {!underPart && experimentName(instrument)}
-        {instrument.dataKnown !== false && (
-          <DataState
-            text={`${underPart ? "" : " · "}${dataText(instrument)}`}
-            held={hasBadge ? undefined : heldGrade}
-          />
+        </Text>
+        {continuous && instrument.running === true && instrument.runIssue && (
+          <Text level="muted" size="xs">
+            {instrument.runIssue}
+          </Text>
         )}
-      </Text>
-      {continuous && instrument.running === true && instrument.runIssue && (
-        <Text level="muted" size="xs">
-          {instrument.runIssue}
+        {/* The button's own live region announces the refusal, so this line is for sight only. */}
+        {deployRefusal !== null && (
+          <Text level="muted" size="xs">
+            {deployRefusal}
+          </Text>
+        )}
+        <Text level="muted" size="xs" role="status" aria-live="polite">
+          {unchanged !== null && unchanged.whileRunning === instrument.running
+            ? unchanged.text
+            : null}
         </Text>
-      )}
-      {/* The button's own live region announces the refusal, so this line is for sight only. */}
-      {deployRefusal !== null && (
-        <Text level="muted" size="xs">
-          {deployRefusal}
-        </Text>
-      )}
-      <Text level="muted" size="xs" role="status" aria-live="polite">
-        {unchanged !== null && unchanged.whileRunning === instrument.running
-          ? unchanged.text
-          : null}
-      </Text>
+      </Stack>
     </Card>
   );
 }

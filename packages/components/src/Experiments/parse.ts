@@ -1,3 +1,4 @@
+import { isValue, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { asQuantityish, magnitudeOf } from "../shared/magnitude";
 import type { TitledInstrument } from "./instrument";
 
@@ -14,6 +15,27 @@ function partIdOf(raw: unknown): string | null {
 /** A wire bool with its absence kept as undefined. */
 function asOptionalFlag(value: unknown): boolean | undefined {
   return typeof value === "boolean" ? value : undefined;
+}
+
+/** A wire quantity as a value, with a plain number taken as science; undefined for anything else. */
+function scienceValue(raw: unknown): Value<"science"> | undefined {
+  if (isValue(raw)) return raw as Value<"science">;
+  return typeof raw === "number" && Number.isFinite(raw)
+    ? value("science", raw)
+    : undefined;
+}
+
+/** The banked share of the subject's cap, held to 0 to 1, or undefined where either figure is absent or the cap is not positive. */
+function collectedShare(
+  science: unknown,
+  cap: unknown,
+): Value<"ratio"> | undefined {
+  const banked = scienceValue(science);
+  const ceiling = scienceValue(cap);
+  if (!banked || !ceiling?.greaterThan(0)) return undefined;
+  const share = banked.per(ceiling).in("ratio") as Value<"ratio">;
+  if (share.greaterThan(1)) return value("ratio", 1);
+  return share.lessThan(0) ? value("ratio", 0) : share;
 }
 
 /**
@@ -44,6 +66,7 @@ export function parseInstruments(raw: unknown): TitledInstrument[] | null {
       rerunnableKnown: typeof e.rerunnable === "boolean",
       inoperable: e.inoperable === true,
       resettable: typeof e.resettable === "boolean" ? e.resettable : null,
+      collected: collectedShare(e.science, e.scienceCap),
       continuous: asOptionalFlag(e.continuous),
       running: asOptionalFlag(e.running),
       producing: asOptionalFlag(e.producing),

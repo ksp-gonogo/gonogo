@@ -905,6 +905,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     resettable: "flag",
     runIssue: "text",
     running: "flag",
+    science: "science",
+    scienceCap: "science",
+    subjectId: "id",
     title: "text",
   },
   "InventoryItem": {
@@ -2230,6 +2233,9 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     resettable: "flag",
     runIssue: "text",
     running: "flag",
+    science: "science",
+    scienceCap: "science",
+    subjectId: "id",
     title: "text",
   },
   "science.lab": {

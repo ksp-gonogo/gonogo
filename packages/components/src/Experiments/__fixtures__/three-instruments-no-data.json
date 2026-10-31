@@ -22,7 +22,7 @@
       "holdsData": false,
       "deployed": false,
       "rerunnable": false,
-      "partName": "Mystery Goo\u2122 Containment Unit",
+      "partName": "Mystery Goo™ Containment Unit",
       "experimentId": "mysteryGoo",
       "partId": 1071315383
     },
@@ -49,16 +49,18 @@
             "rerunnable": true,
             "partName": "Mk1 Command Pod",
             "experimentId": "crewReport",
-            "partId": 3960381880
+            "partId": 3960381880,
+            "title": "Crew Report"
           },
           {
             "inoperable": false,
             "holdsData": false,
             "deployed": false,
             "rerunnable": false,
-            "partName": "Mystery Goo\u2122 Containment Unit",
+            "partName": "Mystery Goo™ Containment Unit",
             "experimentId": "mysteryGoo",
-            "partId": 1071315383
+            "partId": 1071315383,
+            "title": "Mystery Goo™ Observation"
           },
           {
             "inoperable": false,
@@ -67,7 +69,8 @@
             "rerunnable": true,
             "partName": "PresMat Barometer",
             "experimentId": "barometerScan",
-            "partId": 342573834
+            "partId": 342573834,
+            "title": "Atmospheric Pressure Scan"
           }
         ]
       },

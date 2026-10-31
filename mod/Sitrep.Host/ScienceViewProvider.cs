@@ -199,6 +199,9 @@ namespace Sitrep.Host
             Running = SnapshotDict.GetBool(raw, "running"),
             Producing = SnapshotDict.GetBool(raw, "producing"),
             RunIssue = SnapshotDict.GetString(raw, "runIssue"),
+            SubjectId = SnapshotDict.GetString(raw, "subjectId"),
+            Science = SnapshotDict.GetDouble(raw, "science"),
+            ScienceCap = SnapshotDict.GetDouble(raw, "scienceCap"),
         };
 
         private static LabEntry BuildLabEntry(IDictionary<string, object?> raw) => new LabEntry

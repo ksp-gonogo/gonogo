@@ -1,7 +1,27 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { parseInstruments, parseLab } from "./parse";
 
 describe("parseInstruments", () => {
+  it("reads the collected share from the subject's banked science over its cap, and leaves it out where either is absent", () => {
+    const parsed = parseInstruments([
+      { partId: 1, science: 3, scienceCap: 12 },
+      { partId: 2, science: 0, scienceCap: 1.5 },
+      { partId: 3, science: 20, scienceCap: 10 },
+      { partId: 4, science: null, scienceCap: null },
+      { partId: 5, science: 0, scienceCap: 0 },
+      { partId: 6 },
+    ]);
+    expect(parsed?.map((p) => p.collected)).toEqual([
+      value("ratio", 0.25),
+      value("ratio", 0),
+      value("ratio", 1),
+      undefined,
+      undefined,
+      undefined,
+    ]);
+  });
+
   it("carries whether an instrument can be reset, and null when the wire did not say", () => {
     const parsed = parseInstruments([
       { partId: 1, rerunnable: false, resettable: true },

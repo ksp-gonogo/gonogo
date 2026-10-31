@@ -865,6 +865,9 @@
       "resettable": "flag",
       "runIssue": "text",
       "running": "flag",
+      "science": "science",
+      "scienceCap": "science",
+      "subjectId": "id",
       "title": "text"
     },
     "InventoryItem": {
@@ -2185,6 +2188,9 @@
       "resettable": "flag",
       "runIssue": "text",
       "running": "flag",
+      "science": "science",
+      "scienceCap": "science",
+      "subjectId": "id",
       "title": "text"
     },
     "science.lab": {

@@ -189,13 +189,6 @@ describe("the built-in catalogue, derived", () => {
             "career",
             "spaceCenter",
           ],
-          "id": "science-data",
-        },
-        {
-          "domains": [
-            "career",
-            "spaceCenter",
-          ],
           "id": "space-center-status",
         },
         {
