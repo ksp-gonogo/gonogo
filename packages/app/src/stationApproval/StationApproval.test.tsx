@@ -2,13 +2,15 @@ import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { HostRole } from "../hosting/HostRole";
+import { HostRoleProvider } from "../hosting/HostRoleContext";
 import type { StationApproval } from "../peer/PeerClientService";
 import type { PendingStation } from "../peer/PeerHostService";
-import { stationApprovals } from "../peer/stationApprovals";
 import {
   StationIdentityProvider,
   StationIdentityService,
 } from "../stationIdentity";
+import { FakeHostMod } from "../test/fakeHostMod";
 import { ApprovedStations } from "./ApprovedStations";
 import { StationApprovalNotice } from "./StationApprovalNotice";
 import { StationApprovalPrompt } from "./StationApprovalPrompt";
@@ -49,9 +51,10 @@ class FakeHost {
     this.refused.push(peerId);
     this.set(this.pending.filter((p) => p.peerId !== peerId));
   };
-  removeApprovedStation = (credential: string) => {
-    this.removed.push(credential);
-    stationApprovals.remove(credential);
+  role: HostRole | undefined;
+  removeApprovedStation = (stationId: string) => {
+    this.removed.push(stationId);
+    void this.role?.revokeStation(stationId);
   };
   set(next: readonly PendingStation[]) {
     this.pending = next;
@@ -189,12 +192,29 @@ describe("a station that leaves before it is approved", () => {
   });
 });
 
+/** A host role holding the role over a game that already approved `stations`. */
+async function hostingRole(stations: [string, string][]): Promise<HostRole> {
+  const mod = new FakeHostMod();
+  for (const [credential, name] of stations) mod.seedStation(credential, name);
+  const role = new HostRole("tab-host");
+  role.attach(mod.connect());
+  await act(async () => {});
+  return role;
+}
+
 describe("ApprovedStations", () => {
-  it("lists each approved station with Remove", async () => {
-    stationApprovals.approve("cred-a", "Booster");
-    stationApprovals.approve("cred-b", "Retro");
+  it("lists each station the game has approved, with Remove", async () => {
+    const role = await hostingRole([
+      ["cred-a", "Booster"],
+      ["cred-b", "Retro"],
+    ]);
     const host = new FakeHost();
-    const { container } = render(<ApprovedStations host={host} />);
+    host.role = role;
+    const { container } = render(
+      <HostRoleProvider role={role}>
+        <ApprovedStations host={host} />
+      </HostRoleProvider>,
+    );
     expect(screen.getByText("Booster")).toBeVisible();
     expect(screen.getByText("Retro")).toBeVisible();
     await expectNoA11yViolations(container);
@@ -202,13 +222,19 @@ describe("ApprovedStations", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "Remove station Booster" }),
     );
-    expect(host.removed).toEqual(["cred-a"]);
+    await act(async () => {});
+    expect(host.removed).toEqual(["id-cred-a"]);
     expect(screen.queryByText("Booster")).toBeNull();
     expect(screen.getByText("Retro")).toBeVisible();
   });
 
-  it("says when none are approved", () => {
-    render(<ApprovedStations host={new FakeHost()} />);
+  it("says when none are approved", async () => {
+    const role = await hostingRole([]);
+    render(
+      <HostRoleProvider role={role}>
+        <ApprovedStations host={new FakeHost()} />
+      </HostRoleProvider>,
+    );
     expect(screen.getByText("No stations approved yet")).toBeVisible();
   });
 });

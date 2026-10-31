@@ -79,6 +79,8 @@ import {
   PlainStationFeed,
   useHostingHosts,
 } from "../hosting/HostingProvider";
+import type { HostJobs } from "../hosting/HostJobs";
+import { useHostRole } from "../hosting/HostRoleContext";
 import {
   LayoutHistoryControl,
   MissionProfilesFab,
@@ -93,7 +95,10 @@ import {
   useProfileDashboard,
 } from "../missionProfiles";
 import { NotesHostProvider } from "../notes/NotesHostContext";
+import { useHostCentre } from "../peer/HostCommandCentreAnnouncer";
+import type { PeerClientService } from "../peer/PeerClientService";
 import { peerHostService } from "../peer/PeerHostService";
+import { StationInfoBroadcaster } from "../peer/StationInfoBroadcaster";
 import { PushedDashboardOverlay } from "../pushToMain/PushedDashboardOverlay";
 import { PushHostProvider } from "../pushToMain/PushHostContext";
 import { syncAutoPortForward } from "../relay/autoPortForward";
@@ -200,20 +205,31 @@ const NoActiveVessel__Body = styled.div`
 `;
 
 /**
- * The direct-WS screen, at whichever seat the route puts it.
+ * A screen with its own view of the game, at whichever seat the route puts it.
  *
- * `"main"` is a command centre at KSC and hosts the peer mesh; `"pilot"` is a
- * human aboard the craft, which is a different seat on the same transport and
- * is not a host. The two share this file rather than forking it because the
- * twenty-deep provider tower below is the thing that would drift, and every
- * genuine difference between them is one of the three values threaded from
- * this prop.
+ * `"main"` stands at a command centre; `"pilot"` is a human aboard the craft,
+ * a different seat on the same kind of connection. Either can host the peer
+ * mesh or have joined another screen that does. The two seats share this file
+ * rather than forking it because the twenty-deep provider tower below is the
+ * thing that would drift.
  */
 export function MainScreen({
   screen = "main",
   transport,
+  hosting,
+  jobs,
+  joinedVia,
 }: {
   screen?: Screen;
+  /** Whether this screen hosts the peer mesh. Absent, a mission-control screen does and a pilot's does not. */
+  hosting?: boolean;
+  /** The hosting screen's connection to the game for its own jobs, when it already holds one. */
+  jobs?: HostJobs;
+  /**
+   * The peer link of a local screen that has joined another host, over which
+   * it tells the host who it is and where it stands.
+   */
+  joinedVia?: PeerClientService;
   /**
    * The telemetry transport to observe through, instead of the direct
    * `ws://` socket this screen otherwise builds.
@@ -234,13 +250,18 @@ export function MainScreen({
    * peer host: it joins the mesh as a client, so the canonical thread is
    * somebody else's and this screen must not build one.
    */
-  const hostsThePeerMesh = screen !== "pilot";
+  const hostsThePeerMesh = hosting ?? screen !== "pilot";
   return (
-    <HostingProvider ownsMesh={hostsThePeerMesh}>
+    <HostingProvider
+      ownsMesh={hostsThePeerMesh}
+      seat={screen === "pilot" ? "pilot" : "main"}
+      jobs={jobs}
+    >
       <MainScreenDisplay
         screen={screen}
         transport={transport}
         hostsThePeerMesh={hostsThePeerMesh}
+        joinedVia={joinedVia}
       />
     </HostingProvider>
   );
@@ -255,10 +276,12 @@ function MainScreenDisplay({
   screen,
   transport,
   hostsThePeerMesh,
+  joinedVia,
 }: {
   screen: Screen;
   transport?: Transport;
   hostsThePeerMesh: boolean;
+  joinedVia?: PeerClientService;
 }) {
   const hosts = useHostingHosts();
   const [serialService] = useState(
@@ -284,9 +307,8 @@ function MainScreenDisplay({
   useEffect(() => initSoundSettings(settingsService), [settingsService]);
   useEffect(() => syncDataRate(settingsService), [settingsService]);
   useEffect(
-    () =>
-      screen === "main" ? syncAutoPortForward(settingsService) : undefined,
-    [screen, settingsService],
+    () => (hostsThePeerMesh ? syncAutoPortForward(settingsService) : undefined),
+    [hostsThePeerMesh, settingsService],
   );
 
   useEffect(() => {
@@ -327,7 +349,10 @@ function MainScreenDisplay({
 
   return (
     <SitrepTelemetryProvider transport={transport} screenKey={screen}>
-      <PlainStationFeed ownsMesh={hostsThePeerMesh} />
+      <PlainStationFeed
+        ownsMesh={hostsThePeerMesh}
+        seat={screen === "pilot" ? "pilot" : "main"}
+      />
       <CommcastLink log={commcastLog} />
       <AugmentAvailabilityFeeder />
       {screen !== "pilot" && <UplinkHealthRetry />}
@@ -339,7 +364,7 @@ function MainScreenDisplay({
       {screen === "pilot" && <PilotVantage />}
       <ScreenProvider value={screen}>
         <SettingsProvider service={settingsService}>
-          {screen === "main" && (
+          {screen === "main" && hostsThePeerMesh && (
             <>
               <AnalyticsConsentHost
                 service={analyticsConsentService}
@@ -371,6 +396,9 @@ function MainScreenDisplay({
               >
                 <NotesHostProvider service={notesHost}>
                   <ScopedStationIdentity defaultName={DEFAULT_NAME_FOR[screen]}>
+                    {joinedVia && (
+                      <JoinedScreenInfo client={joinedVia} screen={screen} />
+                    )}
                     <CommcastLogProviderOrPassthrough log={commcastLog}>
                       <ManeuverTriggerProvider service={maneuverTriggerHost}>
                         <RootProviders screen={screen}>
@@ -382,6 +410,7 @@ function MainScreenDisplay({
                                     <UplinkLoadGate host={peerHostService}>
                                       <MainDashboard
                                         screen={screen}
+                                        hosting={hostsThePeerMesh}
                                         serialService={serialService}
                                       />
                                     </UplinkLoadGate>
@@ -414,9 +443,11 @@ function MainScreenDisplay({
  */
 function MainDashboard({
   screen,
+  hosting,
   serialService,
 }: {
   screen: Screen;
+  hosting: boolean;
   serialService: SerialDeviceService;
 }) {
   const { scene, inFlight, hasGameSignal } = useGameContext();
@@ -444,11 +475,9 @@ function MainDashboard({
         <Layout as="main" aria-label="Mission control">
           <UplinkIntegrityBanner />
           <MissionBanner
-            centre={
-              screen === "main" ? <MainPollHeader /> : <StationPollControl />
-            }
+            centre={<PollCentre screen={screen} hosting={hosting} />}
             centreControls={
-              screen === "main" ? <PollSettingsControl /> : undefined
+              screen === "main" && hosting ? <PollSettingsControl /> : undefined
             }
             actions={
               <>
@@ -480,7 +509,7 @@ function MainDashboard({
             <ComponentOverlay />
             <FlightsFabWithMissionHistory />
             <SerialPortRecoveryWatcher />
-            <StationLinkFab />
+            <LocalLinkFab />
             <FullscreenFab bottom={264} />
             <SettingsFab bottom={324} />
             <MissionProfilesFab bottom={384} dashboard={controller} />
@@ -509,8 +538,12 @@ function MainDashboard({
             <ContactLossBanner />
             <HomeFallbackNotice />
             <ModVersionBanner />
-            <StationBuildMismatchNotice host={peerHostService} />
-            <StationApprovalPrompt host={peerHostService} />
+            {hosting && (
+              <>
+                <StationBuildMismatchNotice host={peerHostService} />
+                <StationApprovalPrompt host={peerHostService} />
+              </>
+            )}
             <SceneSwitchPrompt dashboard={controller} />
             <ProfileSwitchBanner dashboard={controller} />
           </BannerStack>
@@ -518,6 +551,43 @@ function MainDashboard({
         </Layout>
       </MainAlarmsLauncherScope>
     </ProfileOverlayProvider>
+  );
+}
+
+/**
+ * The header's GO/NO-GO: the host's view of the poll at its centre, or on a
+ * mission-control screen that joined another host, its own vote. A pilot has
+ * no poll.
+ */
+function PollCentre({ screen, hosting }: { screen: Screen; hosting: boolean }) {
+  if (screen === "pilot") return null;
+  return hosting ? <MainPollHeader /> : <StationPollControl />;
+}
+
+/** The join code's button, on a local screen: one that hosts or joins by itself. */
+function LocalLinkFab() {
+  return useHostRole() ? <StationLinkFab /> : null;
+}
+
+/**
+ * Tells the host who this joined local screen is and the centre it stands at,
+ * which the host cannot see, since this screen reads the game over its own
+ * connection.
+ */
+function JoinedScreenInfo({
+  client,
+  screen,
+}: {
+  client: PeerClientService;
+  screen: Screen;
+}) {
+  const centre = useHostCentre();
+  return (
+    <StationInfoBroadcaster
+      client={client}
+      seat={screen === "pilot" ? "pilot" : "mission-control"}
+      centre={screen === "pilot" ? undefined : centre}
+    />
   );
 }
 

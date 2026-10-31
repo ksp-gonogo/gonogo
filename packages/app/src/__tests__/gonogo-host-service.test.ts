@@ -27,6 +27,7 @@ import {
   GoNoGoHostService,
 } from "../goNoGo/GoNoGoHostService";
 import { ON_GO_NONE } from "../goNoGo/onGo";
+import { HostJobs } from "../hosting/HostJobs";
 import type { PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
 import type { SettingsService } from "../settings";
@@ -42,7 +43,7 @@ import { asHostService } from "../test/peerFakes";
 class FakeHost {
   broadcasts: PeerMessage[] = [];
   sent: Array<{ peerId: string; msg: PeerMessage }> = [];
-  private listeners = {
+  protected listeners = {
     connect: new Set<(peerId: string) => void>(),
     disconnect: new Set<(peerId: string) => void>(),
     stationInfo: new Set<
@@ -59,8 +60,16 @@ class FakeHost {
     this.broadcasts.push(msg);
   }
 
+  /**
+   * A poll message goes to each screen voting in its centre, one send per
+   * screen; it is recorded once among the broadcasts, as a message every voter
+   * was told.
+   */
   sendToPeer(peerId: string, msg: PeerMessage): void {
     this.sent.push({ peerId, msg });
+    if (msg.type !== "gonogo-on-go" && this.broadcasts.at(-1) !== msg) {
+      this.broadcasts.push(msg);
+    }
   }
 
   onPeerConnect(cb: (peerId: string) => void) {
@@ -943,5 +952,119 @@ describe("GoNoGoHostService", () => {
     expect(svc.getSnapshot().abort?.stationName).toBe("FLIGHT");
     expect(sent).toContain("vessel.control.setAbort");
     ascentClient.dispose();
+  });
+
+  describe("one poll per command centre", () => {
+    const A = "ground:Outpost A";
+    const B = "ground:Outpost B";
+
+    /** A peer host that also says where each remote station's session stands. */
+    class CentredHost extends FakeHost {
+      readonly sessionCentre = new Map<string, string>();
+      centreOf(peerId: string): string | null {
+        return this.sessionCentre.get(peerId) ?? null;
+      }
+      onCentresChanged(_cb: () => void) {
+        return () => {};
+      }
+      fireInfo(
+        peerId: string,
+        info: { name: string; seat?: "pilot"; centre?: string },
+      ) {
+        for (const cb of this.listeners.stationInfo) cb(peerId, info);
+      }
+    }
+
+    let centred: CentredHost;
+    let polls: GoNoGoHostService;
+    let hostCentre: string | null;
+    let jobsTransport: StubTransport;
+    let jobs: HostJobs;
+
+    beforeEach(() => {
+      centred = new CentredHost();
+      hostCentre = A;
+      jobsTransport = new StubTransport();
+      jobsTransport.setCommandHandler(() => null);
+      jobs = new HostJobs();
+      jobs.setClient(new TelemetryClient(jobsTransport));
+      polls = new GoNoGoHostService(centred.asHost(), {
+        hostCentre: () => hostCentre,
+        commandFrom: (centre) => jobs.commandClientAt(centre),
+      });
+      polls.setConfig({ countdownLengthMs: 5_000 });
+      centred.fireConnect("station-a");
+      centred.sessionCentre.set("station-a", A);
+      centred.fireInfo("station-a", { name: "ALPHA" });
+      centred.fireConnect("local-b");
+      centred.fireInfo("local-b", { name: "BRAVO", centre: B });
+      centred.fireConnect("pilot");
+      centred.fireInfo("pilot", { name: "PILOT", seat: "pilot" });
+    });
+
+    afterEach(() => {
+      polls.dispose();
+      jobs.client?.dispose();
+    });
+
+    const toldTo = (peerId: string) =>
+      centred.sent.filter((s) => s.peerId === peerId).map((s) => s.msg.type);
+
+    it("counts only the votes at its own centre, and tells only that centre's screens", () => {
+      centred.fireVote("station-a", "go");
+      centred.fireVote("local-b", "no-go");
+
+      expect(polls.getSnapshot()).toMatchObject({
+        centre: A,
+        stations: [{ peerId: "station-a", status: "go" }],
+      });
+      expect(polls.getSnapshot().countdown).not.toBeNull();
+      expect(toldTo("station-a")).toContain("gonogo-countdown-start");
+      expect(toldTo("local-b")).not.toContain("gonogo-countdown-start");
+      expect(toldTo("pilot")).not.toContain("gonogo-countdown-start");
+    });
+
+    it("shows a host at the other centre that centre's poll and none of the first", () => {
+      centred.fireVote("station-a", "go");
+      hostCentre = B;
+
+      expect(polls.getSnapshot()).toMatchObject({
+        centre: B,
+        stations: [{ peerId: "local-b", status: null }],
+        countdown: null,
+      });
+    });
+
+    it("gives a pilot no poll, and a pilot's vote starts nothing", () => {
+      centred.fireVote("pilot", "go");
+
+      expect(polls.getSnapshot().countdown).toBeNull();
+      expect(polls.getSnapshot().stations.map((s) => s.peerId)).not.toContain(
+        "pilot",
+      );
+      hostCentre = null;
+      expect(polls.getSnapshot()).toMatchObject({ centre: null, stations: [] });
+    });
+
+    it("sends the GO from its own centre through the jobs connection, while the screen's own display sits elsewhere", async () => {
+      centred.fireVote("station-a", "go");
+      vi.advanceTimersByTime(5_001);
+      await drainDispatch();
+
+      expect(jobsTransport.sentCommands).toEqual([
+        expect.objectContaining({ vantage: A }),
+      ]);
+      expect(transport.sentCommands).toEqual([]);
+    });
+
+    it("never fires a poll still open when the host steps down", async () => {
+      centred.fireVote("station-a", "go");
+      polls.dispose();
+      vi.advanceTimersByTime(10_000);
+      await drainDispatch();
+
+      expect(jobsTransport.sentCommands).toEqual([]);
+      expect(transport.sentCommands).toEqual([]);
+    });
   });
 });

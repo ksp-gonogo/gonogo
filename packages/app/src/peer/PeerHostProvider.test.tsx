@@ -15,7 +15,7 @@ describe("PeerHostProvider lifecycle", () => {
 
     const view = render(
       <StrictMode>
-        <PeerHostProvider>{null}</PeerHostProvider>
+        <PeerHostProvider code="ABC234">{null}</PeerHostProvider>
       </StrictMode>,
     );
     await act(async () => {

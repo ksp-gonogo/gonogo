@@ -29,9 +29,15 @@ export interface StationInfoAnnouncer {
 export function StationInfoBroadcaster({
   client,
   seat,
+  centre,
 }: {
   client: StationInfoAnnouncer;
   seat: Seat;
+  /**
+   * The command centre this screen stands at, for a screen reading the game
+   * over its own connection. The host votes it in that centre's poll.
+   */
+  centre?: string | null;
 }) {
   const name = useStationName();
   useEffect(() => {
@@ -40,6 +46,7 @@ export function StationInfoBroadcaster({
         version: VERSION,
         buildTime: BUILD_TIME,
         seat,
+        ...(centre ? { centre } : {}),
       });
     const unsub = client.onConnectionStatus((status) => {
       if (status === "connected") send();
@@ -49,6 +56,6 @@ export function StationInfoBroadcaster({
     return () => {
       unsub();
     };
-  }, [client, name, seat]);
+  }, [client, name, seat, centre]);
   return null;
 }

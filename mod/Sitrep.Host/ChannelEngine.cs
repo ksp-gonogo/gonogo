@@ -1851,6 +1851,8 @@ namespace Sitrep.Host
             // Store-and-forward: comms.journey and the cancel and send-again commands.
             DeclareDeliveryChannels();
 
+            DeclareHostRecord();
+
             // Built-in system.uplink.pending declaration + source: see
             // UplinkPendingTopic's doc comment. Declared (and its source
             // wired) BEFORE Start(), same single-writer-before-start rule as
@@ -8016,6 +8018,7 @@ namespace Sitrep.Host
             while (true)
             {
                 _jobSignal.Wait(JobPollInterval);
+                _hostRecord?.Expire();
 
                 while (_jobs.TryDequeue(out var job))
                 {
@@ -10732,7 +10735,7 @@ namespace Sitrep.Host
                 UplinkCancelCommand => typeof(UplinkCancelRequest),
                 UplinkResendCommand => typeof(UplinkResendRequest),
                 GateCheckCommand => typeof(GateCheckRequest),
-                _ => null,
+                _ => HostCommandArgsType(job.Command),
             };
             if (argsType == null)
             {
@@ -10772,7 +10775,7 @@ namespace Sitrep.Host
 
             // A cancel or a send again acts on the store-and-forward network, which
             // lives on this thread; it never runs on the game's main thread.
-            if (TryHandleUplinkAction(job))
+            if (TryHandleUplinkAction(job) || TryHandleHostCommand(job))
             {
                 return;
             }
@@ -12058,6 +12061,7 @@ namespace Sitrep.Host
 
         private void ProcessDisconnect(ClientSession session)
         {
+            _hostRecord?.ConnectionClosed(session.Connection.Id);
             foreach (var topic in session.Unsubscribers.Keys)
             {
                 if (_subscriptions.Unsubscribe(topic))
@@ -12092,6 +12096,7 @@ namespace Sitrep.Host
         {
             var session = new ClientSession(connection);
             _sessions[connection.Id] = session;
+            EnqueueJob(new CourierActionJob(() => HostRecord.NoteConnection()));
             LogHostInfo("client " + ShortSessionId(connection) + " connected (" + _sessions.Count + " connected)");
 
             // Messages first: a close that came before this is raised as soon as

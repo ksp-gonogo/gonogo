@@ -280,6 +280,12 @@ namespace Sitrep.Contract.Serialization
                 case Sitrep.Contract.UplinkActionReply uplinkActionReply:
                     AppendUplinkActionReply(sb, uplinkActionReply);
                     break;
+                case Sitrep.Contract.HostRoleReply hostRoleReply:
+                    AppendHostRoleReply(sb, hostRoleReply);
+                    break;
+                case Sitrep.Contract.HostStationCheckReply hostStationCheckReply:
+                    AppendHostStationCheckReply(sb, hostStationCheckReply);
+                    break;
                 case Sitrep.Contract.CommcastSendReceipt sendReceipt:
                     // commcast.message.send's reply payload, inside CommandResult<CommcastSendReceipt>.Payload.
                     sb.Append('{');
@@ -2306,6 +2312,44 @@ namespace Sitrep.Contract.Serialization
                 AppendInteger(sb, seq);
             }
             sb.Append(']');
+            sb.Append('}');
+        }
+
+        private static void AppendHostRoleReply(StringBuilder sb, Sitrep.Contract.HostRoleReply r)
+        {
+            sb.Append('{');
+            AppendString(sb, "holds");
+            sb.Append(':');
+            AppendBool(sb, r.Holds);
+            sb.Append(',');
+            AppendString(sb, "holderId");
+            sb.Append(':');
+            AppendString(sb, r.HolderId ?? "");
+            sb.Append(',');
+            AppendString(sb, "heartbeatSeconds");
+            sb.Append(':');
+            AppendNumber(sb, r.HeartbeatSeconds);
+            sb.Append(',');
+            AppendString(sb, "graceSeconds");
+            sb.Append(':');
+            AppendNumber(sb, r.GraceSeconds);
+            sb.Append('}');
+        }
+
+        private static void AppendHostStationCheckReply(StringBuilder sb, Sitrep.Contract.HostStationCheckReply r)
+        {
+            sb.Append('{');
+            AppendString(sb, "approved");
+            sb.Append(':');
+            AppendBool(sb, r.Approved);
+            sb.Append(',');
+            AppendString(sb, "stationId");
+            sb.Append(':');
+            AppendString(sb, r.StationId ?? "");
+            sb.Append(',');
+            AppendString(sb, "name");
+            sb.Append(':');
+            AppendString(sb, r.Name ?? "");
             sb.Append('}');
         }
 

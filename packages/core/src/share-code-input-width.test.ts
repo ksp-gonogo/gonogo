@@ -25,8 +25,8 @@ import { describe, expect, it } from "vitest";
 const SCAN_ROOTS = ["packages", "mod"];
 
 /** Where the minted length is declared. Read, never duplicated. */
-const MINT_FILE = "packages/app/src/peer/PeerHostService.ts";
-const MINT_RE = /const SHARE_CODE_LENGTH = (\d+);/;
+const MINT_FILE = "mod/Sitrep.Host/Hosting/HostRecord.cs";
+const MINT_RE = /public const int CodeLength = (\d+);/;
 
 /**
  * A file deals with host codes if it names one of these. Deliberately the
@@ -83,7 +83,7 @@ function mintedLength(root: string): number {
   const match = MINT_RE.exec(text);
   if (match === null) {
     throw new Error(
-      `${MINT_FILE} no longer declares SHARE_CODE_LENGTH in the shape this scan reads. ` +
+      `${MINT_FILE} no longer declares CodeLength in the shape this scan reads. ` +
         "Fix the pattern rather than dropping the check: a scan that cannot find the " +
         "minted length would otherwise compare every input against nothing.",
     );

@@ -260,6 +260,10 @@ const ALLOWED_TRUENOW: Record<string, number> = {
    * declaration.
    */
   "mod/Sitrep.Host/ChannelEngine.UplinkDelays.cs": 1,
+
+  // host.record: which screen hosts the game, its join code and the approved
+  // stations. It describes the screens in front of the operator, not a craft.
+  "mod/Sitrep.Host/ChannelEngine.Hosting.cs": 1,
 };
 
 function findRepoRoot(start: string): string {

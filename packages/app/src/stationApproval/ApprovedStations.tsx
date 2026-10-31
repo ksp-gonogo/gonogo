@@ -1,7 +1,6 @@
 import { Button } from "@ksp-gonogo/ui-kit";
-import { useSyncExternalStore } from "react";
+import { useHostRecord } from "../hosting/HostRoleContext";
 import { peerHostService } from "../peer/PeerHostService";
-import { stationApprovals } from "../peer/stationApprovals";
 import {
   Empty,
   RowDesc,
@@ -12,17 +11,14 @@ import {
 
 type Host = Pick<typeof peerHostService, "removeApprovedStation">;
 
-const subscribe = (cb: () => void) => stationApprovals.subscribe(cb);
-const snapshot = () => stationApprovals.list();
-
 const approvedOn = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
 
 /**
- * The stations this main screen has approved, each with Remove. A removed
- * station is disconnected, and is asked about again the next time it joins.
+ * The stations the game has approved, each with Remove. A removed station is
+ * disconnected, and is asked about again the next time it joins.
  */
 export function ApprovedStations({ host = peerHostService }: { host?: Host }) {
-  const approved = useSyncExternalStore(subscribe, snapshot, snapshot);
+  const approved = useHostRecord()?.stations ?? [];
 
   if (approved.length === 0) {
     return <Empty>No stations approved yet</Empty>;
@@ -31,7 +27,7 @@ export function ApprovedStations({ host = peerHostService }: { host?: Host }) {
   return (
     <>
       {approved.map((station) => (
-        <SettingLine key={station.credential}>
+        <SettingLine key={station.id}>
           <RowText>
             <RowLabel>{station.name}</RowLabel>
             <RowDesc>
@@ -39,7 +35,7 @@ export function ApprovedStations({ host = peerHostService }: { host?: Host }) {
             </RowDesc>
           </RowText>
           <Button
-            onClick={() => host.removeApprovedStation(station.credential)}
+            onClick={() => host.removeApprovedStation(station.id)}
             aria-label={`Remove station ${station.name}`}
           >
             Remove

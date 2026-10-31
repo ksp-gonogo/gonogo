@@ -20,30 +20,16 @@ type ConnStatus = Parameters<
 >[0];
 
 /**
- * The pilot's page: a human aboard the craft.
+ * The pilot's page at `/pilot/station`: a human aboard the craft, on a device
+ * that joins a host with its code and reads the game through it.
  *
- * Its whole shape follows from separating two planes the rest of the app runs
- * together:
+ * The host serves it from a mod session of its own that follows the active
+ * craft (`SitrepVantageSessions`), carried over the peer link by
+ * `PeerTransport`. The same link carries the shared thread and the roster.
  *
- *   - the observation plane is a `TelemetryClient` over a transport. A pilot
- *     holds its own `WebSocketTransport` straight to the mod, so it has its own
- *     session and therefore its own vantage. `MainScreen` builds that itself
- *     when handed no transport, which is why this route renders `MainScreen`
- *     rather than forking it
- *   - the coordination plane is the PeerJS mesh: the shared thread, notes,
- *     alarms, GO/NO-GO, the roster. A pilot joins it as a client
- *
- * A station happens to use the mesh for both, which is why the two read as one
- * thing. They are not, and a pilot is the case that separates them: direct-WS
- * on one plane and a peer on the other. Rendering `/pilot` outside a peer
- * provider would give it its own vantage and make it not a peer at all, so it
- * would never send `station-info`, never join the roster, and could not reach
- * the thread.
- *
- * The mesh is not a gate on the page. A station blocks until it is connected
- * because it has nothing to show otherwise; a pilot is flying either way, and
- * losing mission control is a thing that happens to a spacecraft rather than a
- * reason to stop rendering the instruments.
+ * The link is not a gate on the page once it has been set up: a pilot is
+ * flying either way, and losing mission control is a thing that happens to a
+ * spacecraft rather than a reason to stop rendering the instruments.
  */
 export function PilotScreen() {
   const [client] = useState(() => new PeerClientService());
@@ -119,19 +105,7 @@ export function PilotScreen() {
     };
   }, []);
 
-  /*
-   * A secure origin cannot open an insecure socket, so a hosted build has no
-   * way to reach the mod directly and is fed through the peer link instead:
-   * the host opens a second mod session at this pilot's vantage and relays it
-   * (`SitrepVantageSessions`). On http:// the direct socket is both available
-   * and better, since it is a session of the pilot's own with no dependence on
-   * mission control staying up.
-   */
-  const [relayedTransport] = useState(() =>
-    globalThis.location.protocol === "https:"
-      ? new PeerTransport(client)
-      : undefined,
-  );
+  const [relayedTransport] = useState(() => new PeerTransport(client));
 
   const connected = status === "connected";
   // Nothing saved and nothing tried: the operator has to be asked once. This
@@ -185,7 +159,11 @@ export function PilotScreen() {
             <Button onClick={() => setDismissed(true)}>Dismiss</Button>
           </PilotScreen__CommsBanner>
         )}
-        <MainScreen screen="pilot" transport={relayedTransport} />
+        <MainScreen
+          screen="pilot"
+          hosting={false}
+          transport={relayedTransport}
+        />
       </PeerClientProvider>
     </ScopedStationIdentity>
   );

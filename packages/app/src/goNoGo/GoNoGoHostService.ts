@@ -1,19 +1,18 @@
 /**
- * Main-screen aggregator for GO/NO-GO readiness + post-launch abort.
+ * The host's GO/NO-GO polls and the post-launch abort.
  *
- * Tracks:
- *   - which peers are connected
- *   - each peer's self-reported station name
- *   - each peer's current vote (go / no-go / null = no widget mounted)
- *   - launch state (derived from the mission elapsed time crossing 0)
- *   - countdown lifecycle when all peers vote go
- *   - abort trigger + attribution when a station pushes the button post-launch
+ * One poll per command centre: the mission-control screens standing at a
+ * centre vote in its poll, and a pilot votes in none. Each poll has its own
+ * countdown, and when it passes, its T-0 action goes out as a command from its
+ * centre. Tracks each peer's name, seat, centre and vote, the launch state (the
+ * mission elapsed time crossing 0) and who aborted.
  *
- * Subscribable: exposes a shallow snapshot; emits on any state change so
- * the React UI can render via useSyncExternalStore / useState+useEffect.
+ * Subscribable: exposes a shallow snapshot of the poll at the host screen's own
+ * centre; emits on any state change.
  */
 
 import { logger } from "@ksp-gonogo/logger";
+import type { TelemetryClient } from "@ksp-gonogo/sitrep-client";
 import {
   dispatchActiveCommandTopic,
   getVesselIdentity,
@@ -21,6 +20,7 @@ import {
   onActiveTimelineFrame,
 } from "@ksp-gonogo/sitrep-client";
 import { Situation, type Value, value } from "@ksp-gonogo/sitrep-sdk";
+import type { Seat } from "@ksp-gonogo/sitrep-sdk/spine";
 import { dispatchActionGroup } from "../dispatchActionGroup";
 import type { PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
@@ -28,7 +28,7 @@ import { playAbortTone, playCountdownTone } from "../sound";
 import type { CountdownHold, GoNoGoNotice } from "./notice";
 import { DEFAULT_ON_GO, ON_GO_NONE } from "./onGo";
 
-/** The slice of the peer host this aggregator reads: five lifecycle subscriptions plus the sends it makes. */
+/** The slice of the peer host this aggregator reads: the lifecycle subscriptions, where each peer stands, and the sends it makes. */
 type GoNoGoHost = Pick<
   PeerHostService,
   | "onPeerConnect"
@@ -38,7 +38,39 @@ type GoNoGoHost = Pick<
   | "onGonogoAbort"
   | "broadcast"
   | "sendToPeer"
->;
+> &
+  Partial<Pick<PeerHostService, "centreOf" | "onCentresChanged">>;
+
+/**
+ * Where the host's polls send their commands from and which poll its own
+ * screen shows.
+ */
+export interface GoNoGoPlaces {
+  /** The centre the host screen stands at, or `null` for a screen that stands at none, such as a pilot's. */
+  hostCentre(): string | null;
+  /** A client that sends a command from `centre`, with that centre's delay. */
+  commandFrom(centre: string): TelemetryClient | undefined;
+}
+
+const NO_PLACES: GoNoGoPlaces = {
+  hostCentre: () => "",
+  commandFrom: () => undefined,
+};
+
+/** The state of one command centre's poll. */
+interface CentrePoll {
+  countdown: { t0Ms: number; timer: ReturnType<typeof setTimeout> } | null;
+  notice: GoNoGoNotice | null;
+  /**
+   * Set when a countdown reaches T-0, and what keeps a second one from
+   * starting. `launched` cannot do that job: it turns true only when the
+   * craft's own mission time arrives, which under signal delay is later than
+   * T-0, and a vote repeated in between would count down and stage again.
+   * Cleared when the poll stops passing, when the craft is back on the pad, or
+   * when the stage was not taken.
+   */
+  committed: boolean;
+}
 
 /**
  * Seconds since liftoff on the view clock, or `null` before the clamps release
@@ -65,6 +97,8 @@ export interface StationSnapshot {
 }
 
 export interface GoNoGoSnapshot {
+  /** The command centre whose poll this is, `""` before the host screen knows where it stands, `null` when it stands at none. */
+  centre: string | null;
   stations: StationSnapshot[];
   countdown: { t0Ms: number } | null;
   launched: boolean;
@@ -95,62 +129,47 @@ type Listener = () => void;
 export class GoNoGoHostService {
   private peerIdToName = new Map<string, string>();
   private peerIdToVote = new Map<string, Vote>();
+  private peerIdToSeat = new Map<string, Seat | undefined>();
+  /** The centre a local screen said it stands at; a remote station's comes from its session. */
+  private peerIdToCentre = new Map<string, string>();
   private connectedPeers = new Set<string>();
-  private countdown: {
-    t0Ms: number;
-    timer: ReturnType<typeof setTimeout>;
-  } | null = null;
+  private polls = new Map<string, CentrePoll>();
   private launched = false;
   private reopened = false;
   private abortInFlight = false;
-  private notice: GoNoGoNotice | null = null;
-  /**
-   * Set when a countdown reaches T-0, and what keeps a second one from
-   * starting. `launched` cannot do that job: it turns true only when the
-   * craft's own mission time arrives, which under signal delay is later than
-   * T-0, and a vote repeated in between would count down and stage again.
-   * Cleared when the poll stops passing, when the craft is back on the pad, or
-   * when the stage was not taken.
-   */
-  private committed = false;
   private abort: { peerId: string; stationName: string; at: number } | null =
     null;
   private config: GoNoGoConfig = { ...DEFAULT_GONOGO_CONFIG };
   private listeners = new Set<Listener>();
   private unsubs: Array<() => void> = [];
 
-  constructor(private host: GoNoGoHost) {
+  constructor(
+    private host: GoNoGoHost,
+    private places: GoNoGoPlaces = NO_PLACES,
+  ) {
     this.unsubs.push(
       host.onPeerConnect((peerId) => {
         // A screen that has just joined has no vote, and a screen with no vote is not in the poll: its first vote decides what it does to a countdown.
         this.connectedPeers.add(peerId);
         this.host.sendToPeer(peerId, this.onGoMessage());
-        if (this.countdown) {
-          this.host.sendToPeer(peerId, {
-            type: "gonogo-countdown-start",
-            remainingMs: Math.max(0, this.countdown.t0Ms - Date.now()),
-          });
-        }
-        if (this.reopened) {
-          this.host.sendToPeer(peerId, {
-            type: "gonogo-reset",
-            reopened: true,
-          });
-        }
+        this.tellJoiner(peerId);
         this.emit();
       }),
     );
 
     this.unsubs.push(
       host.onPeerDisconnect((peerId) => {
+        const centre = this.voterCentre(peerId);
         this.connectedPeers.delete(peerId);
         const stationName = this.peerIdToName.get(peerId) ?? "Unknown";
         this.peerIdToName.delete(peerId);
+        this.peerIdToSeat.delete(peerId);
+        this.peerIdToCentre.delete(peerId);
         const hadVote = (this.peerIdToVote.get(peerId) ?? null) !== null;
         this.peerIdToVote.delete(peerId);
         // A screen with no vote was not in the poll, so its leaving changes nothing for a countdown.
-        if (hadVote || !this.pollIsGo()) {
-          this.cancelCountdownIfRunning("station disconnected", {
+        if (centre !== null && (hadVote || !this.pollIsGo(centre))) {
+          this.cancelCountdownIfRunning(centre, "station disconnected", {
             cause: "dropped",
             station: stationName,
           });
@@ -162,18 +181,34 @@ export class GoNoGoHostService {
     this.unsubs.push(
       host.onStationInfo((peerId, info) => {
         this.peerIdToName.set(peerId, info.name);
+        this.peerIdToSeat.set(peerId, info.seat);
+        if (info.centre) this.peerIdToCentre.set(peerId, info.centre);
+        else this.peerIdToCentre.delete(peerId);
+        this.recheckCountdowns();
         this.emit();
       }),
     );
 
+    if (host.onCentresChanged) {
+      this.unsubs.push(
+        host.onCentresChanged(() => {
+          this.recheckCountdowns();
+          this.emit();
+        }),
+      );
+    }
+
     this.unsubs.push(
       host.onGonogoVote((peerId, status) => {
         this.peerIdToVote.set(peerId, status);
-        if (this.pollIsGo()) {
-          this.maybeStartCountdown();
+        const centre = this.voterCentre(peerId);
+        if (centre === null) return;
+        if (this.pollIsGo(centre)) {
+          this.maybeStartCountdown(centre);
         } else {
-          this.committed = false;
+          this.pollAt(centre).committed = false;
           this.cancelCountdownIfRunning(
+            centre,
             status === null
               ? "the last GO vote was withdrawn"
               : `vote flipped to ${status}`,
@@ -226,6 +261,67 @@ export class GoNoGoHostService {
     );
   }
 
+  /**
+   * The centre whose poll `peerId` votes in, or `null` for a pilot, who votes
+   * in none. A local screen states its own centre; a remote station stands
+   * where its session reads from. `""` while neither is known.
+   */
+  private voterCentre(peerId: string): string | null {
+    if (this.peerIdToSeat.get(peerId) === "pilot") return null;
+    return (
+      this.peerIdToCentre.get(peerId) ?? this.host.centreOf?.(peerId) ?? ""
+    );
+  }
+
+  private pollAt(centre: string): CentrePoll {
+    let poll = this.polls.get(centre);
+    if (!poll) {
+      poll = { countdown: null, notice: null, committed: false };
+      this.polls.set(centre, poll);
+    }
+    return poll;
+  }
+
+  /** The connected peers voting in `centre`'s poll. */
+  private votersAt(centre: string): string[] {
+    return [...this.connectedPeers].filter(
+      (peerId) => this.voterCentre(peerId) === centre,
+    );
+  }
+
+  /** Send `msg` to the screens voting in `centre`'s poll and to nobody else. */
+  private tellCentre(centre: string, msg: PeerMessage): void {
+    for (const peerId of this.votersAt(centre)) {
+      this.host.sendToPeer(peerId, msg);
+    }
+  }
+
+  /** Bring a screen that has just joined up to date with its centre's poll. */
+  private tellJoiner(peerId: string): void {
+    const centre = this.voterCentre(peerId);
+    const countdown =
+      centre === null ? null : (this.polls.get(centre)?.countdown ?? null);
+    if (countdown) {
+      this.host.sendToPeer(peerId, {
+        type: "gonogo-countdown-start",
+        remainingMs: Math.max(0, countdown.t0Ms - Date.now()),
+      });
+    }
+    if (this.reopened) {
+      this.host.sendToPeer(peerId, { type: "gonogo-reset", reopened: true });
+    }
+  }
+
+  /** Hold every countdown whose poll no longer passes, after a screen moved centre. */
+  private recheckCountdowns(): void {
+    for (const [centre, poll] of this.polls) {
+      if (!poll.countdown || this.pollIsGo(centre)) continue;
+      this.cancelCountdownIfRunning(centre, "a station left this centre", {
+        cause: "dropped",
+      });
+    }
+  }
+
   /** The launch-state transition for one mission elapsed time. */
   private handleMissionTime(missionTime: Value<"s">): void {
     const wasLaunched = this.launched;
@@ -233,14 +329,18 @@ export class GoNoGoHostService {
     if (wasLaunched && !this.launched) {
       // Revert to pad: clear abort so the operator can try again.
       this.abort = null;
-      this.committed = false;
+      for (const poll of this.polls.values()) poll.committed = false;
       if (this.reopened) {
         this.reopened = false;
         this.host.broadcast({ type: "gonogo-reset", reopened: false });
       }
     }
-    if (this.launched && !this.reopened && this.countdown) {
-      this.cancelCountdownIfRunning("launch detected", { cause: "launch" });
+    if (this.launched && !this.reopened) {
+      for (const centre of this.polls.keys()) {
+        this.cancelCountdownIfRunning(centre, "launch detected", {
+          cause: "launch",
+        });
+      }
     }
     if (wasLaunched !== this.launched || wasLaunched) this.emit();
   }
@@ -249,13 +349,17 @@ export class GoNoGoHostService {
    * Send the abort and, only once the craft has taken it, record it, sound the
    * alert and tell every station who aborted. An abort that had no stream to
    * travel on, or that the game refused, is recorded nowhere, so the next press
-   * from any station sends it again.
+   * from any station sends it again. It leaves from the centre of the screen
+   * that pressed it.
    */
   private async sendAbort(peerId: string, stationName: string): Promise<void> {
     this.abortInFlight = true;
-    const refusal = await this.dispatchCommand("vessel.control.setAbort", {
-      enabled: true,
-    });
+    const centre = this.voterCentre(peerId);
+    const refusal = await this.dispatchCommand(
+      "vessel.control.setAbort",
+      { enabled: true },
+      centre ? this.places.commandFrom(centre) : undefined,
+    );
     this.abortInFlight = false;
     if (refusal !== undefined) {
       logger.warn(
@@ -294,29 +398,36 @@ export class GoNoGoHostService {
   private async dispatchCommand(
     command: string,
     args: unknown,
+    through: TelemetryClient | undefined,
   ): Promise<string | undefined> {
-    const outcome = dispatchActiveCommandTopic(command, args);
+    const outcome = dispatchActiveCommandTopic(command, args, through);
     if (!outcome.routed) return "no telemetry stream is connected";
     const refusal = await outcome.settled;
     return refusal?.message;
   }
 
+  /** The poll at the host screen's own centre, which is the one its header shows. */
   getSnapshot(): GoNoGoSnapshot {
+    const centre = this.places.hostCentre();
+    const poll = centre === null ? undefined : this.polls.get(centre);
     const stations: StationSnapshot[] = [];
-    for (const peerId of this.connectedPeers) {
-      stations.push({
-        peerId,
-        name: this.peerIdToName.get(peerId) ?? "Unknown",
-        status: this.peerIdToVote.get(peerId) ?? null,
-      });
+    if (centre !== null) {
+      for (const peerId of this.votersAt(centre)) {
+        stations.push({
+          peerId,
+          name: this.peerIdToName.get(peerId) ?? "Unknown",
+          status: this.peerIdToVote.get(peerId) ?? null,
+        });
+      }
     }
     return {
+      centre,
       stations,
-      countdown: this.countdown ? { t0Ms: this.countdown.t0Ms } : null,
+      countdown: poll?.countdown ? { t0Ms: poll.countdown.t0Ms } : null,
       launched: this.launched,
       reopened: this.reopened,
       abort: this.abort,
-      notice: this.notice,
+      notice: poll?.notice ?? null,
       config: { ...this.config },
     };
   }
@@ -341,16 +452,18 @@ export class GoNoGoHostService {
   }
 
   /**
-   * Start the poll over: cancel a countdown in flight, forget every vote and
-   * the T-0 commit, and tell every station to drop its own vote. After launch
-   * this re-opens the poll, so a later event can be polled; the abort and its
-   * attribution are untouched.
+   * Start every poll over: cancel the countdowns in flight, forget every vote
+   * and the T-0 commits, and tell every station to drop its own vote. After
+   * launch this re-opens the polls, so a later event can be polled; the abort
+   * and its attribution are untouched.
    */
   reset(): void {
-    this.notice = null;
-    this.cancelCountdownIfRunning("reset", { cause: "reset" });
+    for (const [centre, poll] of this.polls) {
+      poll.notice = null;
+      this.cancelCountdownIfRunning(centre, "reset", { cause: "reset" });
+      poll.committed = false;
+    }
     this.peerIdToVote.clear();
-    this.committed = false;
     this.reopened = this.launched;
     this.host.broadcast({ type: "gonogo-reset", reopened: this.reopened });
     this.emit();
@@ -361,23 +474,26 @@ export class GoNoGoHostService {
     return () => this.listeners.delete(listener);
   }
 
+  /** Drop every poll: a countdown still running never reaches T-0. */
   dispose(): void {
-    if (this.countdown) clearTimeout(this.countdown.timer);
-    this.countdown = null;
+    for (const poll of this.polls.values()) {
+      if (poll.countdown) clearTimeout(poll.countdown.timer);
+      poll.countdown = null;
+    }
     for (const u of this.unsubs) u();
     this.unsubs = [];
     this.listeners.clear();
   }
 
   /**
-   * Whether the poll passes: at least one connected screen has voted "GO" and
-   * none has voted "NO-GO". A screen with no vote is not in the poll, whether
-   * it never showed the widget or has removed it, so it neither blocks a
-   * countdown nor counts towards one. No votes at all does not pass.
+   * Whether `centre`'s poll passes: at least one screen voting in it has voted
+   * "GO" and none has voted "NO-GO". A screen with no vote is not in the poll,
+   * whether it never showed the widget or has removed it, so it neither blocks
+   * a countdown nor counts towards one. No votes at all does not pass.
    */
-  private pollIsGo(): boolean {
+  private pollIsGo(centre: string): boolean {
     let go = 0;
-    for (const peerId of this.connectedPeers) {
+    for (const peerId of this.votersAt(centre)) {
       const vote = this.peerIdToVote.get(peerId) ?? null;
       if (vote === "no-go") return false;
       if (vote === "go") go++;
@@ -385,37 +501,45 @@ export class GoNoGoHostService {
     return go > 0;
   }
 
-  private maybeStartCountdown(): void {
-    if ((this.launched && !this.reopened) || this.committed) return;
-    if (this.countdown) return;
-    if (!this.pollIsGo()) return;
+  private maybeStartCountdown(centre: string): void {
+    const poll = this.pollAt(centre);
+    if ((this.launched && !this.reopened) || poll.committed) return;
+    if (poll.countdown) return;
+    if (!this.pollIsGo(centre)) return;
     const t0Ms = Date.now() + this.config.countdownLengthMs;
     const timer = setTimeout(() => {
-      this.onCountdownReached();
+      this.onCountdownReached(centre);
     }, this.config.countdownLengthMs);
-    this.countdown = { t0Ms, timer };
-    this.notice = null;
-    this.host.broadcast({
+    poll.countdown = { t0Ms, timer };
+    poll.notice = null;
+    this.tellCentre(centre, {
       type: "gonogo-countdown-start",
       remainingMs: this.config.countdownLengthMs,
     });
   }
 
-  private cancelCountdownIfRunning(reason: string, hold: CountdownHold): void {
-    if (!this.countdown) return;
-    clearTimeout(this.countdown.timer);
-    this.countdown = null;
-    this.notice = { kind: "held", ...hold };
-    this.host.broadcast({ type: "gonogo-countdown-cancel", reason, hold });
+  private cancelCountdownIfRunning(
+    centre: string,
+    reason: string,
+    hold: CountdownHold,
+  ): void {
+    const poll = this.polls.get(centre);
+    if (!poll?.countdown) return;
+    clearTimeout(poll.countdown.timer);
+    poll.countdown = null;
+    poll.notice = { kind: "held", ...hold };
+    this.tellCentre(centre, { type: "gonogo-countdown-cancel", reason, hold });
   }
 
-  private onCountdownReached(): void {
-    if (!this.countdown) return;
-    this.countdown = null;
-    this.committed = true;
-    // The countdown is spent: clear the votes and tell every station, so none keeps a chip at T-0 or a vote for a poll that has finished.
-    this.peerIdToVote.clear();
-    this.host.broadcast({ type: "gonogo-reset", reopened: this.reopened });
+  private onCountdownReached(centre: string): void {
+    const poll = this.polls.get(centre);
+    if (!poll?.countdown) return;
+    poll.countdown = null;
+    poll.committed = true;
+    // The countdown is spent: clear the votes and tell the centre's screens, so none keeps a chip at T-0 or a vote for a poll that has finished.
+    for (const peerId of this.votersAt(centre))
+      this.peerIdToVote.delete(peerId);
+    this.tellCentre(centre, { type: "gonogo-reset", reopened: this.reopened });
     // T-0 commit tone. Fired here (not in CountdownTone) because the
     // component unmounts the instant the countdown clears, so a 100ms tick
     // can't reliably observe secondsLeft === 0. This is the success path
@@ -424,33 +548,41 @@ export class GoNoGoHostService {
     // is instantiated only on MainScreen.
     playCountdownTone(true);
     if (this.config.onGo !== ON_GO_NONE) {
-      void this.fireOnGo(this.config.onGo);
+      void this.fireOnGo(centre, this.config.onGo);
     } else {
-      this.announceOutcome(null, true);
+      this.announceOutcome(centre, null, true);
     }
     this.emit();
   }
 
   /**
    * Fire the chosen action at T-0, through the command the ActionGroup widget
-   * sends. An action the craft did not take leaves the countdown restartable.
+   * sends, from the poll's own centre. An action the craft did not take leaves
+   * the countdown restartable.
    */
-  private async fireOnGo(actionGroupId: string): Promise<void> {
-    const outcome = dispatchActionGroup(actionGroupId);
+  private async fireOnGo(centre: string, actionGroupId: string): Promise<void> {
+    const outcome = dispatchActionGroup(
+      actionGroupId,
+      centre ? this.places.commandFrom(centre) : undefined,
+    );
     const refusal = outcome.routed
       ? (await outcome.settled)?.message
       : outcome.refusal;
     if (refusal !== undefined) {
       logger.warn(`[GoNoGoHost] T-0 action not sent: ${refusal}`);
-      this.committed = false;
+      this.pollAt(centre).committed = false;
     }
-    this.announceOutcome(this.config.onGoLabel, refusal === undefined);
+    this.announceOutcome(centre, this.config.onGoLabel, refusal === undefined);
   }
 
-  /** Record what T-0 did and tell every station, so none is left reading a reset as the answer. */
-  private announceOutcome(action: string | null, sent: boolean): void {
-    this.notice = { kind: "outcome", action, sent };
-    this.host.broadcast({ type: "gonogo-outcome", action, sent });
+  /** Record what T-0 did and tell the centre's screens, so none is left reading a reset as the answer. */
+  private announceOutcome(
+    centre: string,
+    action: string | null,
+    sent: boolean,
+  ): void {
+    this.pollAt(centre).notice = { kind: "outcome", action, sent };
+    this.tellCentre(centre, { type: "gonogo-outcome", action, sent });
     this.emit();
   }
 

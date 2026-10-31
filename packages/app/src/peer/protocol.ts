@@ -179,6 +179,10 @@ export type PeerMessage =
       // matching this message's existing back-compat posture: every client
       // that predates the pilot seat is at a command centre by construction.
       seat?: import("@ksp-gonogo/sitrep-sdk/spine").Seat;
+      // The command centre a screen reading the game over its own connection
+      // stands at, which the host cannot see. Absent for a station reading
+      // through the host, whose centre is its session's.
+      centre?: string;
     }
   /* Station → host whenever the local GO/NO-GO vote changes. `null` means no
      GO/NO-GO widget is mounted on that screen, which is also what a screen

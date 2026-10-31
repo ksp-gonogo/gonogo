@@ -461,6 +461,12 @@ const WIRE_BUDGET: Record<string, number> = {
    * already names.
    */
   "packages/data/src/hooks/useDataSeries.ts": 2,
+  /*
+   * 1: approvedAt, Unix milliseconds the approved-stations list turns into a
+   * date. Nothing draws a wall-clock date from a Value, so it is unwrapped once
+   * where `host.record` enters the app.
+   */
+  "packages/app/src/hosting/hostRecord.ts": 1,
 };
 
 /**

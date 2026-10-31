@@ -14,6 +14,7 @@ import {
   Tooltip,
 } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
+import { useHostCentre } from "../peer/HostCommandCentreAnnouncer";
 import { usePeerClient } from "../peer/PeerClientContext";
 import { StationNameEditor } from "../stationIdentity";
 import {
@@ -22,19 +23,23 @@ import {
   useSecondsLeft,
 } from "./countdownCues";
 import { noticeLabel } from "./notice";
+import { PollCentreName } from "./PollCentreName";
 import { type StationPoll, useStationPoll } from "./useStationPoll";
 import { VOTE_ACTIONS, voteInputs } from "./voteInput";
 
 /**
- * The middle of a station's header: its name, its vote, which becomes "ABORT"
- * once the craft has lifted off, and the input binding for the vote. Holds
- * this screen's vote, so it is mounted once per screen.
+ * The middle of a mission-control station's header: its name, the command
+ * centre whose poll it votes in, its vote, which becomes "ABORT" once the
+ * craft has lifted off, and the input binding for the vote. Holds this
+ * screen's vote, so it is mounted once per screen.
  */
 export function StationPollControl() {
   const poll = useStationPoll(usePeerClient());
+  const centre = useHostCentre();
   return (
     <Centre role="group" aria-label="GO/NO-GO">
       <StationNameEditor bare />
+      <PollCentreName centre={centre} />
       <PollButtons poll={poll} />
       <VoteInputButton />
       <PollStatus poll={poll} />

@@ -11,7 +11,7 @@ import type {
 } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect } from "react";
 import { isTransmission } from "../commcast/topics";
-import type { PeerHostService } from "../peer/PeerHostService";
+import { HOME_SESSION, type PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
 import { requestRateUnderChoice } from "./dataRate";
 import { getSitrepHostConfig } from "./sitrepRuntime";
@@ -77,7 +77,8 @@ const openLiveSession: OpenVantageSession = (vantage) => {
     onStreamFrame: () => SITREP_VANTAGE_RELAY_BUDGET.record(),
   });
   const client = new TelemetryClient(transport as Transport);
-  client.setVantage(vantage);
+  // A session that chooses no vantage is placed at the home command centre.
+  if (vantage !== HOME_SESSION) client.setVantage(vantage);
   return client;
 };
 
