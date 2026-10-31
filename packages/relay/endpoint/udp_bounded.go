@@ -45,6 +45,9 @@ func newBoundedWriteConn(pc net.PacketConn) *boundedWriteConn {
 		if err := c.SetWriteBuffer(udpSendBuffer); err != nil {
 			log.Printf("could not enlarge the UDP send buffer: %v", err)
 		}
+		if size, err := sendBufferOf(pc); err == nil {
+			log.Printf("udp send buffer is %d bytes, %d asked for", size, udpSendBuffer)
+		}
 	}
 	return &boundedWriteConn{PacketConn: pc, limit: udpWriteLimit, hold: udpBlockedHold, blocked: map[netip.AddrPort]time.Time{}}
 }

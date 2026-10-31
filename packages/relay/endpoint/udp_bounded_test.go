@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net"
 	"net/netip"
 	"os"
@@ -130,31 +131,26 @@ func TestADestinationIsTriedAgainOnceItsHoldEnds(t *testing.T) {
 }
 
 func TestTheEndpointsSocketAsksForALargerSendBuffer(t *testing.T) {
+	logs := captureLog(t)
 	udp, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1)})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer udp.Close()
-	before := sendBufferOf(t, udp)
-	newBoundedWriteConn(udp)
-	if after := sendBufferOf(t, udp); after <= before {
-		t.Errorf("the send buffer is %d bytes, it was %d before", after, before)
-	}
-}
-
-func sendBufferOf(t *testing.T, c *net.UDPConn) int {
-	t.Helper()
-	raw, err := c.SyscallConn()
+	before, err := sendBufferOf(udp)
 	if err != nil {
 		t.Fatal(err)
 	}
-	var size int
-	var gerr error
-	if err := raw.Control(func(fd uintptr) { size, gerr = getSendBuffer(int(fd)) }); err != nil {
+	newBoundedWriteConn(udp)
+	after, err := sendBufferOf(udp)
+	if err != nil {
 		t.Fatal(err)
 	}
-	if gerr != nil {
-		t.Fatal(gerr)
+	if after <= before {
+		t.Errorf("the send buffer is %d bytes, it was %d before", after, before)
 	}
-	return size
+	want := fmt.Sprintf("udp send buffer is %d bytes, %d asked for", after, udpSendBuffer)
+	if !strings.Contains(logs.String(), want) {
+		t.Errorf("the log has no %q:\n%s", want, logs.String())
+	}
 }
