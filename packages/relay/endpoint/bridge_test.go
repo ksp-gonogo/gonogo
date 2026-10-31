@@ -184,7 +184,12 @@ func bridgeThrough(t *testing.T, tb *fakeTab, sid, bid uint32, m *mediaStation, 
 
 func joinedStation(t *testing.T) (*fakeTab, *station) {
 	t.Helper()
-	_, url := startEndpoint(t, Config{})
+	return joinedStationWith(t, Config{})
+}
+
+func joinedStationWith(t *testing.T, cfg Config) (*fakeTab, *station) {
+	t.Helper()
+	_, url := startEndpoint(t, cfg)
 	tb := dialTab(t, url)
 	s := newStation(t)
 	join(t, tb, s, 1, "station-a")

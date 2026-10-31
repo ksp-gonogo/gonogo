@@ -35,6 +35,8 @@ type Config struct {
 	TabPingInterval time.Duration
 	// TabTimeout is how long the socket may stay silent, pongs included, before the main screen is taken as gone.
 	TabTimeout time.Duration
+	// HeartbeatInterval is how often a live bridge logs what each of its legs carried.
+	HeartbeatInterval time.Duration
 	// includeLoopback lets the endpoint answer on 127.0.0.1, which only a test needs.
 	includeLoopback bool
 }
@@ -45,6 +47,7 @@ const (
 	defaultMaxBuffered    = 4 << 20
 	defaultTabPing        = 5 * time.Second
 	defaultTabTimeout     = 15 * time.Second
+	defaultHeartbeat      = time.Second
 )
 
 // controlFrame is every text frame on the control socket, in both directions.
@@ -117,6 +120,11 @@ type Endpoint struct {
 	tab      *tab
 	sessions map[uint32]*session
 	bridges  map[uint32]*bridge
+	// bridgeSerial counts the bridges ever opened on this endpoint.
+	bridgeSerial uint32
+	// closing is set once Close has begun, and beats counts the bridges' heartbeat goroutines still running, which Close waits for.
+	closing bool
+	beats   sync.WaitGroup
 }
 
 // New builds an endpoint on an already-bound UDP socket and TCP listener with the same port number.
@@ -133,11 +141,14 @@ func New(cfg Config, udp net.PacketConn, tcp net.Listener) (*Endpoint, error) {
 	if cfg.TabTimeout == 0 {
 		cfg.TabTimeout = defaultTabTimeout
 	}
+	if cfg.HeartbeatInterval == 0 {
+		cfg.HeartbeatInterval = defaultHeartbeat
+	}
 	if cfg.MaxBuffered == 0 {
 		cfg.MaxBuffered = defaultMaxBuffered
 	}
 	se := webrtc.SettingEngine{}
-	se.SetICEUDPMux(webrtc.NewICEUDPMux(nil, udp))
+	se.SetICEUDPMux(webrtc.NewICEUDPMux(nil, newBoundedWriteConn(udp)))
 	se.SetICETCPMux(webrtc.NewICETCPMux(nil, tcp, 8))
 	se.SetNetworkTypes([]webrtc.NetworkType{
 		webrtc.NetworkTypeUDP4, webrtc.NetworkTypeUDP6,
@@ -177,11 +188,13 @@ func (e *Endpoint) Close() {
 	e.mu.Lock()
 	t := e.tab
 	e.tab = nil
+	e.closing = true
 	e.mu.Unlock()
 	if t != nil {
 		t.conn.Close()
 	}
 	e.dropAll()
+	e.beats.Wait()
 	e.udp.Close()
 	e.tcp.Close()
 }
@@ -464,11 +477,8 @@ func (e *Endpoint) dropAll() {
 	e.bridges = map[uint32]*bridge{}
 	e.mu.Unlock()
 	for _, b := range bridges {
-		b.timer.Stop()
-		go b.upstream.Close()
-		if b.station != nil {
-			go b.station.Close()
-		}
+		log.Printf("bridge %d closed: the main screen left", b.serial)
+		b.shutdown()
 	}
 	for _, s := range all {
 		s.timer.Stop()
