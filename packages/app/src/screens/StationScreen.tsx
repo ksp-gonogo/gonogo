@@ -42,7 +42,6 @@ import { SignalLossIndicator } from "../components/SignalLossIndicator";
 import { StationConnectionFab } from "../components/StationConnectionFab";
 import { StationSupersededNotice } from "../components/StationSupersededNotice";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
-import { StationPollControl, voteInputSource } from "../goNoGo";
 import { downloadLogs } from "../logs/downloadLogs";
 import { ManeuverTriggerClientService } from "../maneuverTriggers";
 import {
@@ -182,7 +181,7 @@ export function StationScreen() {
   useEffect(() => {
     const dispatcher = new InputDispatcher({
       service: serialService,
-      getItems: () => [...dashboard.getItems(), voteInputSource("station")],
+      getItems: dashboard.getItems,
       ...profileInputOptions(missionProfiles, controller, serialService),
     });
     return () => {
@@ -403,9 +402,9 @@ export function StationScreen() {
                             <Layout as="main" aria-label="Station dashboard">
                               <UplinkIntegrityBanner />
                               <MissionBanner
-                                centre={<StationPollControl />}
                                 actions={
                                   <>
+                                    <StationNameEditor compact />
                                     <LayoutHistoryControl
                                       dashboard={controller}
                                     />

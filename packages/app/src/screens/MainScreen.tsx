@@ -68,14 +68,7 @@ import { StationBuildMismatchNotice } from "../components/StationBuildMismatchNo
 import { StationLinkFab } from "../components/StationLinkFab";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
 import { FirstRunSetupHost } from "../firstRun/FirstRunSetupHost";
-import {
-  GoNoGoHostProvider,
-  GoNoGoHostService,
-  MainPollHeader,
-  PollSettingsControl,
-  StationPollControl,
-  voteInputSource,
-} from "../goNoGo";
+import { GoNoGoHostProvider, GoNoGoHostService } from "../goNoGo";
 import { createManeuverTriggerHost } from "../maneuverTriggers";
 import {
   LayoutHistoryControl,
@@ -460,13 +453,13 @@ function MainDashboard({
   useEffect(() => {
     const dispatcher = new InputDispatcher({
       service: serialService,
-      getItems: () => [...dashboard.getItems(), voteInputSource(screen)],
+      getItems: dashboard.getItems,
       ...profileInputOptions(profiles, controller, serialService),
     });
     return () => {
       dispatcher.dispose();
     };
-  }, [serialService, dashboard.getItems, profiles, controller, screen]);
+  }, [serialService, dashboard.getItems, profiles, controller]);
 
   return (
     <ProfileOverlayProvider dashboard={dashboard}>
@@ -475,12 +468,6 @@ function MainDashboard({
         <Layout as="main" aria-label="Mission control">
           <UplinkIntegrityBanner />
           <MissionBanner
-            centre={
-              screen === "main" ? <MainPollHeader /> : <StationPollControl />
-            }
-            centreControls={
-              screen === "main" ? <PollSettingsControl /> : undefined
-            }
             actions={
               <>
                 <LayoutHistoryControl dashboard={controller} />

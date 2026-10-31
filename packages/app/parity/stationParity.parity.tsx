@@ -21,6 +21,7 @@ vi.mock("peerjs", async (importOriginal) => {
 });
 
 import "@ksp-gonogo/components";
+import "../src/goNoGo/GoNoGoComponent";
 import "../src/notes/NotesComponent";
 import { getComponent } from "@ksp-gonogo/core";
 import { afterEach, describe, expect, it, vi } from "vitest";

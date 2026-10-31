@@ -1,0 +1,314 @@
+import "./appWidgets";
+import { ScreenProvider } from "@ksp-gonogo/core";
+import { holdActiveTopicRead } from "@ksp-gonogo/sitrep-sdk/spine";
+import { type ReactNode, useEffect, useMemo } from "react";
+import { GoNoGoHostProvider } from "../../app/src/goNoGo/GoNoGoHostContext";
+import {
+  GoNoGoHostService,
+  type Vote,
+} from "../../app/src/goNoGo/GoNoGoHostService";
+import {
+  type PeerClient,
+  PeerClientProvider,
+} from "../../app/src/peer/PeerClientContext";
+import { initSoundSettings } from "../../app/src/sound/soundSettings";
+import { AppWidgetScene, type ScenePress } from "./AppWidgetScene";
+
+/*
+ * Silenced for every story: the countdown blips each second and an abort
+ * sounds a tone, neither of which a review page should play.
+ */
+initSoundSettings({
+  get: () => false,
+  subscribe: () => () => {},
+});
+
+/** The instant the view clock is pinned at, and the liftoff a launched scene is past. */
+const VIEW_UT = 5_000_000;
+const LIFTOFF_UT = VIEW_UT - 184;
+
+/** The craft on the pad, or 184 s past liftoff. */
+function vesselStream(launched: boolean): Record<string, unknown> {
+  return {
+    _stream: {
+      pinnedUt: VIEW_UT,
+      emits: [
+        {
+          channel: "vessel.identity",
+          value: {
+            vesselId: "ares-4",
+            name: "Ares 4",
+            vesselType: 0,
+            situation: launched ? 5 : 2,
+            parentBodyIndex: 1,
+            launchUt: launched ? LIFTOFF_UT : null,
+          },
+        },
+        {
+          channel: "vessel.control",
+          value: {
+            actionGroups: [
+              { index: 1, name: "Custom 01", state: false },
+              { index: 2, name: "Custom 02", state: false },
+              { index: 3, name: "Custom 03", state: false },
+            ],
+          },
+        },
+      ],
+    },
+  };
+}
+
+type Listener = (...args: never[]) => void;
+
+/** The part of the peer host the vote aggregator listens on, driven by the scene. */
+class ScenePeerHost {
+  private listeners = new Map<string, Set<Listener>>();
+
+  private on(event: string, cb: Listener): () => void {
+    const set = this.listeners.get(event) ?? new Set();
+    set.add(cb);
+    this.listeners.set(event, set);
+    return () => set.delete(cb);
+  }
+
+  fire(event: string, ...args: unknown[]): void {
+    for (const cb of this.listeners.get(event) ?? []) {
+      (cb as (...a: unknown[]) => void)(...args);
+    }
+  }
+
+  onPeerConnect = (cb: Listener) => this.on("connect", cb);
+  onPeerDisconnect = (cb: Listener) => this.on("disconnect", cb);
+  onStationInfo = (cb: Listener) => this.on("info", cb);
+  onGonogoVote = (cb: Listener) => this.on("vote", cb);
+  onGonogoAbort = (cb: Listener) => this.on("abort", cb);
+  broadcast = () => {};
+  sendToPeer = () => {};
+}
+
+/** One station on the main screen's board. */
+export interface SceneStation {
+  peerId: string;
+  name: string;
+  vote: Vote;
+}
+
+export interface GoNoGoMainSceneProps {
+  stations: readonly SceneStation[];
+  /** Past liftoff, so the board reads mission active. */
+  launched?: boolean;
+  /** The station whose abort the host has taken, by peer id. Only honoured once launched. */
+  abortBy?: string;
+  /** How long a countdown the widget is configured for. */
+  countdownSeconds?: number;
+  /** Once the craft has lifted off, the operator presses Reset and the stations vote again, so the board counts a later event. */
+  resetAfterLaunch?: boolean;
+  /** What the widget is set to fire at T-0: an action group id or "none". Defaults to Stage. */
+  onGo?: string;
+  w: number;
+  h: number;
+}
+
+/**
+ * The main screen's board, over a vote aggregator fed by stations that have
+ * joined and voted. Every vote lands before the widget mounts, so a board
+ * whose stations are all `GO` is already counting down when it first draws.
+ */
+export function GoNoGoMainScene(props: GoNoGoMainSceneProps) {
+  const { stations, launched = false, abortBy, w, h } = props;
+  const countdownSeconds = props.countdownSeconds ?? 60;
+  const scene = useMemo(() => {
+    const peers = new ScenePeerHost();
+    const service = new GoNoGoHostService(peers);
+    service.setConfig({ countdownLengthMs: countdownSeconds * 1000 });
+    for (const s of stations) {
+      peers.fire("connect", s.peerId);
+      peers.fire("info", s.peerId, {
+        name: s.name,
+      });
+    }
+    for (const s of stations) peers.fire("vote", s.peerId, s.vote);
+    return { peers, service };
+  }, [stations, countdownSeconds]);
+  useEffect(() => () => scene.service.dispose(), [scene]);
+  /*
+   * The aggregator samples the craft's identity without holding it, so on the
+   * main screen something else has to. Nothing in this scene would, and the
+   * probe drops an emit on a topic nobody holds.
+   */
+  useEffect(() => holdActiveTopicRead("vessel.identity", "gonogo story"), []);
+  useEffect(() => holdActiveTopicRead("vessel.control", "gonogo story"), []);
+
+  const wrap = useMemo(
+    () => (tree: ReactNode) => (
+      <ScreenProvider value="main">
+        <GoNoGoHostProvider service={scene.service}>{tree}</GoNoGoHostProvider>
+      </ScreenProvider>
+    ),
+    [scene],
+  );
+  const fixture = useMemo(() => vesselStream(launched), [launched]);
+  const mode = useMemo(
+    () => ({ config: { countdownSeconds, onGo: props.onGo } }),
+    [countdownSeconds, props.onGo],
+  );
+
+  // An abort is only taken, and a poll only re-opened, once the host has seen the craft leave the pad.
+  const onDriven = async () => {
+    if (abortBy === undefined && !props.resetAfterLaunch) return;
+    const deadline = Date.now() + 3_000;
+    while (!scene.service.getSnapshot().launched && Date.now() < deadline) {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
+    if (abortBy !== undefined) scene.peers.fire("abort", abortBy);
+    if (props.resetAfterLaunch) {
+      scene.service.reset();
+      for (const s of stations) scene.peers.fire("vote", s.peerId, s.vote);
+    }
+  };
+
+  return (
+    <AppWidgetScene
+      widgetId="gonogo"
+      fixture={fixture}
+      w={w}
+      h={h}
+      mode={mode}
+      wrap={wrap}
+      onDriven={onDriven}
+    />
+  );
+}
+
+/** A station's link to a host that relays countdowns and aborts, driven by the scene. */
+class ScenePeerClient implements PeerClient {
+  private abortNotify = new Set<(stationName: string, at: number) => void>();
+  private resetListeners = new Set<(reopened: boolean) => void>();
+
+  constructor(
+    private readonly countdownFor: number | undefined,
+    private readonly onGoLabel: string | null | undefined,
+  ) {}
+
+  getConnStatus = () => "connected" as const;
+  onConnectionStatus = () => () => {};
+  onHostHello = () => () => {};
+  getHostVersion = () => null;
+  onHostRestart = () => () => {};
+  getHostCommandCentre = () => null;
+  onHostCommandCentreChange = () => () => {};
+  onHostUplinksChange = () => () => {};
+  sendGonogoVote = () => {};
+  sendGonogoAbort = () => {};
+  onGonogoCountdownCancel = () => () => {};
+  onGonogoOutcome = () => () => {};
+  getApproval = () => "approved" as const;
+  onApprovalChange = () => () => {};
+  sendWidgetPush = () => {};
+  sendWidgetRecall = () => {};
+  onNotesSnapshot = () => () => {};
+  sendNoteAdd = () => true;
+  sendNoteUpdate = () => true;
+  sendNoteDelete = () => true;
+  sendNoteReorder = () => true;
+  onNoteResult = () => () => {};
+  sendUplinkRelay = () => new Promise<unknown>(() => {});
+  sendBundleFetch = () => new Promise<ArrayBuffer>(() => {});
+  sendManifestFetch = () => new Promise<unknown>(() => {});
+  requestHostLayouts = () => Promise.resolve([]);
+
+  onGonogoReset = (cb: (reopened: boolean) => void) => {
+    this.resetListeners.add(cb);
+    return () => this.resetListeners.delete(cb);
+  };
+
+  /** The host resetting the poll, as it tells every station. */
+  notifyReset(reopened: boolean): void {
+    for (const cb of this.resetListeners) cb(reopened);
+  }
+
+  onGonogoOnGo = (cb: (label: string | null) => void) => {
+    if (this.onGoLabel !== undefined) cb(this.onGoLabel);
+    return () => {};
+  };
+
+  onGonogoCountdownStart = (cb: (t0Ms: number) => void) => {
+    if (this.countdownFor !== undefined)
+      cb(Date.now() + this.countdownFor * 1000);
+    return () => {};
+  };
+
+  onGonogoAbortNotify = (cb: (stationName: string, at: number) => void) => {
+    this.abortNotify.add(cb);
+    return () => this.abortNotify.delete(cb);
+  };
+
+  /** The host relaying who aborted, as it does to every station. */
+  notifyAbort(stationName: string): void {
+    for (const cb of this.abortNotify) cb(stationName, Date.now());
+  }
+}
+
+export interface GoNoGoStationSceneProps {
+  /** Past liftoff, so the button has become `ABORT`. */
+  launched?: boolean;
+  /** Seconds left on a countdown the host has started. */
+  countdownFrom?: number;
+  /** What the host says it fires at T-0, or `null` for nothing. Left out, the host has not said. */
+  onGoLabel?: string | null;
+  /** The host presses Reset once the station has mounted and made its presses. */
+  hostResets?: boolean;
+  /** The station the host says aborted, once launched. */
+  abortedBy?: string;
+  /** Controls pressed once mounted, such as the vote itself. */
+  presses?: readonly ScenePress[];
+  w: number;
+  h: number;
+}
+
+/** A station's button, connected to a host that relays countdowns and aborts. */
+export function GoNoGoStationScene(props: GoNoGoStationSceneProps) {
+  const {
+    launched = false,
+    countdownFrom,
+    onGoLabel,
+    hostResets,
+    abortedBy,
+    presses,
+    w,
+    h,
+  } = props;
+  const scene = useMemo(() => {
+    const client = new ScenePeerClient(countdownFrom, onGoLabel);
+    const wrap = (tree: ReactNode) => (
+      <ScreenProvider value="station">
+        <PeerClientProvider client={client}>{tree}</PeerClientProvider>
+      </ScreenProvider>
+    );
+    return { client, wrap };
+  }, [countdownFrom, onGoLabel]);
+  const fixture = useMemo(() => vesselStream(launched), [launched]);
+
+  // A station drops an abort notice while it is still on the pad, so the relay waits for the button to become ABORT.
+  const onDriven = async (_mount: unknown, root: HTMLElement) => {
+    if (hostResets) scene.client.notifyReset(false);
+    if (abortedBy === undefined) return;
+    const deadline = Date.now() + 3_000;
+    while (!root.textContent?.includes("ABORT") && Date.now() < deadline) {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
+    scene.client.notifyAbort(abortedBy);
+  };
+  return (
+    <AppWidgetScene
+      widgetId="gonogo"
+      fixture={fixture}
+      w={w}
+      h={h}
+      wrap={scene.wrap}
+      presses={presses}
+      onDriven={onDriven}
+    />
+  );
+}

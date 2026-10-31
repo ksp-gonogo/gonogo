@@ -4,6 +4,7 @@
  */
 import "./setup";
 import "../../app/src/commcast/CommcastComponent";
+import "../../app/src/goNoGo/GoNoGoComponent";
 import "../../app/src/notes/NotesComponent";
 import type { ReactNode } from "react";
 import { NotesHostProvider } from "../../app/src/notes/NotesHostContext";

@@ -8,6 +8,8 @@
  * station was not told something belongs in {@link PARITY_DEBT}, never here.
  */
 export const MEANT_TO_DIFFER: Readonly<Record<string, string>> = {
+  gonogo:
+    "The main screen tallies every participant's vote and runs the countdown; every other screen casts its own vote and reads the tally back",
   notes:
     "The main screen owns the canonical list and edits it in place; a station mirrors it over the notes channel, not the telemetry relay",
 };

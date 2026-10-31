@@ -217,3 +217,15 @@ describe("applyMinSizes", () => {
     });
   });
 });
+
+describe("applyMinSizes on the GO/NO-GO board", () => {
+  it("stops the board at 36 by 16 and keeps it at least 3 by 3", async () => {
+    clearRegistry();
+    await import("../goNoGo/GoNoGoComponent");
+    const items: DashboardItem[] = [{ i: "g", componentId: "gonogo" }];
+    const [big] = applyMinSizes([{ i: "g", x: 0, y: 0, w: 40, h: 30 }], items);
+    expect(big).toMatchObject({ w: 36, h: 16, maxW: 36, maxH: 16 });
+    const [small] = applyMinSizes([{ i: "g", x: 0, y: 0, w: 1, h: 1 }], items);
+    expect(small).toMatchObject({ w: 3, h: 3, minW: 3, minH: 3 });
+  });
+});

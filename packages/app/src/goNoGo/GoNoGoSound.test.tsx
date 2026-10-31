@@ -1,7 +1,5 @@
-import { ScreenProvider } from "@ksp-gonogo/core";
-import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
+import { DashboardItemContext, ScreenProvider } from "@ksp-gonogo/core";
 import { act, render } from "@ksp-gonogo/test-utils";
-import { ModalProvider } from "@ksp-gonogo/ui";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type PeerClient, PeerClientProvider } from "../peer/PeerClientContext";
 import type { SettingsService } from "../settings";
@@ -11,17 +9,12 @@ import {
   initSoundSettings,
 } from "../sound/soundSettings";
 import {
-  StationIdentityProvider,
-  StationIdentityService,
-} from "../stationIdentity";
-import {
   type FakeOscillator,
   installFakeAudio,
   makeSoundService,
 } from "../test/fakeAudio";
 import { idlePeerClient } from "../test/peerFakes";
-import { CountdownTone } from "./countdownCues";
-import { StationPollControl } from "./StationPollControl";
+import { CountdownTone, GoNoGoComponent } from "./GoNoGoComponent";
 
 /**
  * A station link whose countdown-start emitter the test drives, so a
@@ -100,17 +93,11 @@ describe("GO/NO-GO sounds", () => {
     const { client, startCountdown } = makeFakeClient();
     render(
       <ScreenProvider value="station">
-        <ModalProvider>
-          <SerialDeviceProvider
-            service={new SerialDeviceService({ screenKey: "station" })}
-          >
-            <StationIdentityProvider service={new StationIdentityService()}>
-              <PeerClientProvider client={client}>
-                <StationPollControl />
-              </PeerClientProvider>
-            </StationIdentityProvider>
-          </SerialDeviceProvider>
-        </ModalProvider>
+        <DashboardItemContext.Provider value={{ instanceId: "gonogo-1" }}>
+          <PeerClientProvider client={client}>
+            <GoNoGoComponent id="gonogo-1" config={{}} w={4} h={4} />
+          </PeerClientProvider>
+        </DashboardItemContext.Provider>
       </ScreenProvider>,
     );
 
@@ -122,7 +109,7 @@ describe("GO/NO-GO sounds", () => {
       vi.advanceTimersByTime(6_000);
     });
 
-    // A station draws neither CountdownTone nor any host tone, so its silence is structural, not just gated.
+    // StationView renders neither CountdownTone nor any host tone, silence is structural, not just gated.
     expect(oscillators).toHaveLength(0);
   });
 });

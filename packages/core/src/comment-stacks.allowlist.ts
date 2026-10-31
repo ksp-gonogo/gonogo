@@ -146,6 +146,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/app/src/components/VantageControl.undefined.characterise.test.tsx": 4,
   "packages/app/src/dataSources/sitrep.ts": 1,
   "packages/app/src/goNoGo/CountdownAnnouncer.test.tsx": 1,
+  "packages/app/src/goNoGo/GoNoGoComponent.tsx": 2,
   "packages/app/src/logs/LogsManager.test.tsx": 2,
   "packages/app/src/main.tsx": 3,
   "packages/app/src/maneuverTriggers/ManeuverTriggerHostService.ts": 1,
