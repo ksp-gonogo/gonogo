@@ -157,9 +157,11 @@ export function attachEncodedFrameDelayTransform(
     gopSafeEviction: true,
     keepSinkOpenOnDispose: true,
     onNeedKeyframe: () => {
-      // A transformer that cannot take the request leaves the wait for the sender's own keyframe interval, which the totals report as a failed request.
-      if (typeof transformer.sendKeyFrameRequest !== "function") return false;
-      return transformer.sendKeyFrameRequest();
+      try {
+        transformer.sendKeyFrameRequest?.().catch(() => {});
+      } catch {
+        // A transformer that refuses the request leaves the wait for the sender's own keyframe interval.
+      }
     },
     onError: opts.onError,
     pacing: {

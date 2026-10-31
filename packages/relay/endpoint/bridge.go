@@ -26,20 +26,12 @@ Video costs one copy of the stream per bridged station on the home internet uplo
 type bridge struct {
 	id  uint32
 	sid uint32
-	// serial numbers the endpoint's bridges in the order they were opened and is the number the log lines carry, because the main screen restarts its own ids at 1 each time it loads.
-	serial uint32
 	// offer is the station's offer, answered once the upstream side is negotiated.
 	offer    string
 	sections []section
 	station  *webrtc.PeerConnection
 	upstream *webrtc.PeerConnection
 	timer    *time.Timer
-	// beat is how often the bridge logs its traffic counts.
-	beat time.Duration
-	// done closes when the bridge is dropped.
-	done      chan struct{}
-	closeOnce sync.Once
-	counts    bridgeCounts
 
 	mu sync.Mutex
 	// local is the track sent to the station for each mid.
@@ -54,24 +46,6 @@ type section struct {
 }
 
 const bridgeTimeout = 15 * time.Second
-
-/*
-bridgedVideoFmtp is the one video format the camera server sends: constrained baseline, with
-packetization mode 1 because its packets carry fragmented and aggregated units, which mode 0
-does not allow. The upstream offer lists only this format, so the server's answer names the
-codec it will send and nothing else. A station is answered with the same codec, never another
-H.264 format the browser also offered.
-*/
-const bridgedVideoFmtp = "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f"
-
-func bridgedVideoCodec() webrtc.RTPCodecParameters {
-	return webrtc.RTPCodecParameters{RTPCodecCapability: webrtc.RTPCodecCapability{
-		MimeType:     webrtc.MimeTypeH264,
-		ClockRate:    90000,
-		SDPFmtpLine:  bridgedVideoFmtp,
-		RTCPFeedback: []webrtc.RTCPFeedback{{Type: "nack"}, {Type: "nack", Parameter: "pli"}},
-	}}
-}
 
 func (e *Endpoint) bridgeOffer(f controlFrame) {
 	refuse := func(reason string) { e.send(controlFrame{Type: "bridge-close", Bid: f.Bid, Reason: reason}) }
@@ -89,9 +63,7 @@ func (e *Endpoint) bridgeOffer(f controlFrame) {
 	b := &bridge{
 		id: f.Bid, sid: f.Sid, offer: f.SDP, sections: sections, upstream: upstream,
 		local: map[string]*webrtc.TrackLocalStaticRTP{}, remote: map[string]*webrtc.TrackRemote{},
-		done: make(chan struct{}), beat: e.cfg.HeartbeatInterval,
 	}
-	b.watchLeg("upstream", upstream)
 
 	e.mu.Lock()
 	s := e.sessions[f.Sid]
@@ -106,20 +78,14 @@ func (e *Endpoint) bridgeOffer(f controlFrame) {
 		}
 		return
 	}
-	e.bridgeSerial++
-	b.serial = e.bridgeSerial
 	e.bridges[f.Bid] = b
 	b.timer = time.AfterFunc(bridgeTimeout, func() { e.dropBridge(b.id, "timeout") })
 	e.mu.Unlock()
-	log.Printf("bridge %d is bid %d of session %d", b.serial, b.id, b.sid)
 
 	for _, sec := range sections {
 		tr, err := upstream.AddTransceiverFromKind(sec.kind, webrtc.RTPTransceiverInit{Direction: webrtc.RTPTransceiverDirectionRecvonly})
 		if err == nil {
 			err = tr.SetMid(sec.mid)
-		}
-		if err == nil && sec.kind == webrtc.RTPCodecTypeVideo {
-			err = tr.SetCodecPreferences([]webrtc.RTPCodecParameters{bridgedVideoCodec()})
 		}
 		if err != nil {
 			e.dropBridge(b.id, err.Error())
@@ -128,7 +94,6 @@ func (e *Endpoint) bridgeOffer(f controlFrame) {
 	}
 	upstream.OnTrack(func(track *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
 		mid := receiver.RTPTransceiver().Mid()
-		log.Printf("bridge %d section %s upstream sends payload type %d: %s", b.serial, mid, track.PayloadType(), describeCodec(track.Codec().RTPCodecCapability))
 		b.mu.Lock()
 		b.remote[mid] = track
 		local := b.local[mid]
@@ -136,30 +101,15 @@ func (e *Endpoint) bridgeOffer(f controlFrame) {
 		if local == nil {
 			return
 		}
-		go func() {
-			for {
-				pkts, _, err := receiver.ReadRTCP()
-				if err != nil {
-					return
-				}
-				b.counts.upstreamRTCP.Add(int64(len(pkts)))
-			}
-		}()
 		for {
 			pkt, _, err := track.ReadRTP()
 			if err != nil {
 				return
 			}
-			b.counts.upstreamRead.Add(1)
-			if err := local.WriteRTP(pkt); err != nil {
-				b.counts.stationWriteErr.Add(1)
-			} else {
-				b.counts.stationWritten.Add(1)
-			}
+			_ = local.WriteRTP(pkt)
 		}
 	})
 	upstream.OnConnectionStateChange(func(state webrtc.PeerConnectionState) {
-		b.logLegState("upstream", state, upstream)
 		if state == webrtc.PeerConnectionStateFailed || state == webrtc.PeerConnectionStateClosed {
 			e.dropBridge(b.id, "upstream "+state.String())
 		}
@@ -218,7 +168,6 @@ func (e *Endpoint) bridgeAnswer(f controlFrame) {
 		if !ok {
 			continue
 		}
-		log.Printf("bridge %d section %s upstream answered %s", b.serial, sec.mid, describeCodec(codec))
 		track, err := webrtc.NewTrackLocalStaticRTP(codec, sec.kind.String()+sec.mid, "bridge")
 		if err != nil {
 			e.dropBridge(b.id, err.Error())
@@ -235,9 +184,7 @@ func (e *Endpoint) bridgeAnswer(f controlFrame) {
 		b.mu.Unlock()
 	}
 
-	b.watchLeg("station", station)
 	station.OnConnectionStateChange(func(state webrtc.PeerConnectionState) {
-		b.logLegState("station", state, station)
 		if state == webrtc.PeerConnectionStateFailed || state == webrtc.PeerConnectionStateClosed {
 			e.dropBridge(b.id, "station "+state.String())
 		}
@@ -264,14 +211,6 @@ func (e *Endpoint) bridgeAnswer(f controlFrame) {
 			senders[sender] = mid
 		}
 		go b.relayKeyframeRequests(sender, senders[sender])
-		if tr.Kind() == webrtc.RTPCodecTypeVideo {
-			if codec, ok := codecs[senders[sender]]; ok {
-				if err := tr.SetCodecPreferences([]webrtc.RTPCodecParameters{{RTPCodecCapability: codec}}); err != nil {
-					e.dropBridge(b.id, "station offered no "+describeCodec(codec))
-					return
-				}
-			}
-		}
 	}
 	answer, err := station.CreateAnswer(nil)
 	if err != nil {
@@ -285,22 +224,7 @@ func (e *Endpoint) bridgeAnswer(f controlFrame) {
 	}
 	<-gathered
 	b.timer.Stop()
-	e.mu.Lock()
-	beating := !e.closing
-	if beating {
-		e.beats.Add(1)
-	}
-	e.mu.Unlock()
-	if beating {
-		go func() {
-			defer e.beats.Done()
-			b.heartbeat()
-		}()
-	}
-	log.Printf("bridge %d for session %d ready with %d sections", b.serial, b.sid, len(b.sections))
-	for mid, pt := range answeredPayloadTypes(station.LocalDescription().SDP) {
-		log.Printf("bridge %d section %s station answered %s", b.serial, mid, pt)
-	}
+	log.Printf("bridge %d for session %d ready with %d sections", b.id, b.sid, len(b.sections))
 	sdpText := withCandidates(station.LocalDescription().SDP, e.cfg.PublicIP, e.cfg.LANIP, e.port, e.cfg.OmitUDP)
 	e.send(controlFrame{Type: "bridge-ready", Bid: b.id, SDP: sdpText})
 }
@@ -312,7 +236,6 @@ func (b *bridge) relayKeyframeRequests(sender *webrtc.RTPSender, mid string) {
 		if err != nil {
 			return
 		}
-		b.counts.stationRTCP.Add(int64(len(pkts)))
 		for _, p := range pkts {
 			switch p.(type) {
 			case *rtcp.PictureLossIndication, *rtcp.FullIntraRequest:
@@ -392,27 +315,14 @@ func (e *Endpoint) dropBridge(bid uint32, reason string) {
 	if b == nil {
 		return
 	}
-	if reason == "" {
-		log.Printf("bridge %d closed: the main screen asked", b.serial)
-	} else {
-		log.Printf("bridge %d closed: %s", b.serial, reason)
+	b.timer.Stop()
+	go b.upstream.Close()
+	if b.station != nil {
+		go b.station.Close()
 	}
-	b.shutdown()
 	if reason != "" {
 		e.send(controlFrame{Type: "bridge-close", Bid: bid, Reason: reason})
 	}
-}
-
-// shutdown stops the bridge's timer and heartbeat and closes both its connections, once however many paths reach it.
-func (b *bridge) shutdown() {
-	b.closeOnce.Do(func() {
-		b.timer.Stop()
-		close(b.done)
-		go b.upstream.Close()
-		if b.station != nil {
-			go b.station.Close()
-		}
-	})
 }
 
 // dropBridgesOf closes every bridge a station opened, when the station leaves.
@@ -452,48 +362,7 @@ func mediaSections(offer string) ([]section, bool, error) {
 	return out, hasData, nil
 }
 
-// describeCodec is a codec as one log line: its name, clock rate and format parameters.
-func describeCodec(c webrtc.RTPCodecCapability) string {
-	return fmt.Sprintf("%s/%d fmtp %q", c.MimeType, c.ClockRate, c.SDPFmtpLine)
-}
-
-// answeredPayloadTypes lists, for each media section of an answer, the formats it carries in order, each as "pt name fmtp".
-func answeredPayloadTypes(answer string) map[string]string {
-	var desc sdp.SessionDescription
-	if err := desc.Unmarshal([]byte(answer)); err != nil {
-		return nil
-	}
-	out := map[string]string{}
-	for _, md := range desc.MediaDescriptions {
-		kind := md.MediaName.Media
-		if kind != "video" && kind != "audio" {
-			continue
-		}
-		mid, _ := md.Attribute("mid")
-		var parts []string
-		for _, pt := range md.MediaName.Formats {
-			line := pt
-			for _, a := range md.Attributes {
-				switch {
-				case a.Key == "rtpmap" && strings.HasPrefix(a.Value, pt+" "):
-					line += " " + strings.TrimPrefix(a.Value, pt+" ")
-				case a.Key == "fmtp" && strings.HasPrefix(a.Value, pt+" "):
-					line += " " + strings.TrimPrefix(a.Value, pt+" ")
-				}
-			}
-			parts = append(parts, line)
-		}
-		out[mid] = strings.Join(parts, " | ")
-	}
-	return out
-}
-
-/*
-answeredCodecs reads the codec the upstream server chose for each media section of its answer:
-the first format that is a media codec, with its clock rate, format parameters and feedback.
-An answer lists every format both sides can use, retransmission formats among them, so the
-first line is not always the codec that is sent; the upstream offer is narrowed so that it is.
-*/
+// answeredCodecs reads the codec the upstream server chose for each media section of its answer.
 func answeredCodecs(answer string) (map[string]webrtc.RTPCodecCapability, error) {
 	var desc sdp.SessionDescription
 	if err := desc.Unmarshal([]byte(answer)); err != nil {
@@ -506,53 +375,29 @@ func answeredCodecs(answer string) (map[string]webrtc.RTPCodecCapability, error)
 			continue
 		}
 		mid, _ := md.Attribute("mid")
+		pt := md.MediaName.Formats[0]
 		var codec webrtc.RTPCodecCapability
-		for _, pt := range md.MediaName.Formats {
-			codec = webrtc.RTPCodecCapability{}
-			for _, a := range md.Attributes {
-				switch {
-				case a.Key == "rtpmap" && strings.HasPrefix(a.Value, pt+" "):
-					parts := strings.Split(strings.TrimPrefix(a.Value, pt+" "), "/")
-					codec.MimeType = kind + "/" + parts[0]
-					if len(parts) > 1 {
-						rate, _ := strconv.ParseUint(parts[1], 10, 32)
-						codec.ClockRate = uint32(rate)
-					}
-					if len(parts) > 2 {
-						channels, _ := strconv.ParseUint(parts[2], 10, 16)
-						codec.Channels = uint16(channels)
-					}
-				case a.Key == "fmtp" && strings.HasPrefix(a.Value, pt+" "):
-					codec.SDPFmtpLine = strings.TrimPrefix(a.Value, pt+" ")
-				case a.Key == "rtcp-fb" && strings.HasPrefix(a.Value, pt+" "):
-					fb := strings.Fields(strings.TrimPrefix(a.Value, pt+" "))
-					if len(fb) > 0 {
-						f := webrtc.RTCPFeedback{Type: fb[0]}
-						if len(fb) > 1 {
-							f.Parameter = fb[1]
-						}
-						codec.RTCPFeedback = append(codec.RTCPFeedback, f)
-					}
+		for _, a := range md.Attributes {
+			switch {
+			case a.Key == "rtpmap" && strings.HasPrefix(a.Value, pt+" "):
+				parts := strings.Split(strings.TrimPrefix(a.Value, pt+" "), "/")
+				codec.MimeType = kind + "/" + parts[0]
+				if len(parts) > 1 {
+					rate, _ := strconv.ParseUint(parts[1], 10, 32)
+					codec.ClockRate = uint32(rate)
 				}
+				if len(parts) > 2 {
+					channels, _ := strconv.ParseUint(parts[2], 10, 16)
+					codec.Channels = uint16(channels)
+				}
+			case a.Key == "fmtp" && strings.HasPrefix(a.Value, pt+" "):
+				codec.SDPFmtpLine = strings.TrimPrefix(a.Value, pt+" ")
 			}
-			if codec.MimeType != "" && !isAuxiliaryCodec(codec.MimeType) {
-				break
-			}
-			codec = webrtc.RTPCodecCapability{}
 		}
 		if codec.MimeType == "" {
-			return nil, fmt.Errorf("section %s names no codec", mid)
+			return nil, fmt.Errorf("section %s names no codec for payload type %s", mid, pt)
 		}
 		out[mid] = codec
 	}
 	return out, nil
-}
-
-// isAuxiliaryCodec is whether a format carries repair or redundancy for another format and no media of its own.
-func isAuxiliaryCodec(mime string) bool {
-	switch strings.ToLower(mime[strings.Index(mime, "/")+1:]) {
-	case "rtx", "red", "ulpfec", "flexfec-03":
-		return true
-	}
-	return false
 }
