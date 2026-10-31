@@ -13501,38 +13501,6 @@
         "note": "New: frames read from the source"
       },
       {
-        "key": "sitrep-sdk ./media FrameDelayStatsDetail",
-        "note": "New: the frame-delay totals with the buffer depth and keyframe request and wait counters"
-      },
-      {
-        "key": "sitrep-sdk ./media FrameDelayStatsDetail#buffered",
-        "note": "New: frames held in the delay buffer now"
-      },
-      {
-        "key": "sitrep-sdk ./media FrameDelayStatsDetail#keyframeRequests",
-        "note": "New: times the pipeline asked the source for a keyframe"
-      },
-      {
-        "key": "sitrep-sdk ./media FrameDelayStatsDetail#keyframeRequestsFailed",
-        "note": "New: keyframe requests the source could not take"
-      },
-      {
-        "key": "sitrep-sdk ./media FrameDelayStatsDetail#keyframeWaitMsLongest",
-        "note": "New: the longest ended keyframe wait"
-      },
-      {
-        "key": "sitrep-sdk ./media FrameDelayStatsDetail#keyframeWaitMsTotal",
-        "note": "New: the total length of the ended keyframe waits"
-      },
-      {
-        "key": "sitrep-sdk ./media FrameDelayStatsDetail#keyframeWaitingMs",
-        "note": "New: how long the keyframe wait in progress has lasted"
-      },
-      {
-        "key": "sitrep-sdk ./media FrameDelayStatsDetail#keyframeWaits",
-        "note": "New: keyframe waits that have ended"
-      },
-      {
         "key": "sitrep-sdk ./media FrameStamp",
         "note": "New: one camera frame's capture stamp and the feed that delivers them"
       },

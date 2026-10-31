@@ -28,7 +28,7 @@
 import type { ClockFormulaSnapshot } from "../../view-clock-formula";
 import type { CaptureClockSample } from "../capture-clock";
 import type { DelayClockLike } from "../delayed-playout-buffer";
-import type { FrameDelayStatsDetail, FrameDelayStream } from "../frame-delay";
+import type { FrameDelayStats, FrameDelayStream } from "../frame-delay";
 import {
   DEFAULT_PACING_MAX_LEAD_SECONDS,
   startPacingTicker,
@@ -39,10 +39,6 @@ import type {
   MainToWorkerMessage,
   WorkerToMainMessage,
 } from "./delay-worker";
-import {
-  FRAME_DELAY_SUMMARY_INTERVAL_MS,
-  withFrameDelayReporter,
-} from "./frame-delay-report";
 
 /**
  * A {@link DelayClockLike} that can also hand over its state to copy into a
@@ -86,12 +82,12 @@ export interface CreateWorkerFrameDelayStreamOptions {
   /** Called with a non-fatal pipeline error. */
   onError?(error: unknown): void;
   /** Called with the worker's running frame totals every `statsIntervalMs`. */
-  onStats?(stats: FrameDelayStatsDetail): void;
-  /** How often `onStats` is called, in milliseconds. Defaults to 10000. */
+  onStats?(stats: FrameDelayStats): void;
+  /** How often `onStats` is called, in milliseconds. Defaults to 5000. */
   statsIntervalMs?: number;
 }
 
-const DEFAULT_STATS_INTERVAL_MS = FRAME_DELAY_SUMMARY_INTERVAL_MS;
+const DEFAULT_STATS_INTERVAL_MS = 5000;
 
 const DEFAULT_MAX_PACING_BACKLOG_SECONDS = 0.5; // see frame-delay.ts's own default + rationale
 
@@ -104,12 +100,17 @@ interface PendingReady {
 }
 const pendingReady = new Map<string, PendingReady>();
 const nonFatalErrorHandlers = new Map<string, (reason: string) => void>();
-const statsHandlers = new Map<string, (stats: FrameDelayStatsDetail) => void>();
+const statsHandlers = new Map<string, (stats: FrameDelayStats) => void>();
 const leadLimits = new Map<string, number>();
 
-/** The interval to ask the worker for: every pipeline reports, since the summary log is always written. */
-function statsIntervalFor(opts: { statsIntervalMs?: number }): number {
-  return opts.statsIntervalMs ?? DEFAULT_STATS_INTERVAL_MS;
+/** The interval to ask the worker for, or undefined when nobody listens. */
+function statsIntervalFor(opts: {
+  onStats?: unknown;
+  statsIntervalMs?: number;
+}): number | undefined {
+  return opts.onStats
+    ? (opts.statsIntervalMs ?? DEFAULT_STATS_INTERVAL_MS)
+    : undefined;
 }
 
 function getSharedWorker(): Worker | null {
@@ -294,10 +295,7 @@ export async function createWorkerFrameDelayStream(
   nonFatalErrorHandlers.set(pipelineId, (reason) => {
     opts.onError?.(new Error(reason));
   });
-  statsHandlers.set(
-    pipelineId,
-    withFrameDelayReporter(pipelineId, opts.onStats),
-  );
+  if (opts.onStats) statsHandlers.set(pipelineId, opts.onStats);
   leadLimits.set(pipelineId, DEFAULT_PACING_MAX_LEAD_SECONDS);
   const stopTicker = startPipelineTicker(worker, pipelineId, opts);
 
@@ -351,8 +349,8 @@ export interface AttachEncodedFrameDelayOptions {
   /** Called with a non-fatal pipeline error. */
   onError?(error: unknown): void;
   /** Called with the worker's running frame totals every `statsIntervalMs`. */
-  onStats?(stats: FrameDelayStatsDetail): void;
-  /** How often `onStats` is called, in milliseconds. Defaults to 10000. */
+  onStats?(stats: FrameDelayStats): void;
+  /** How often `onStats` is called, in milliseconds. Defaults to 5000. */
   statsIntervalMs?: number;
 }
 
@@ -425,10 +423,7 @@ export function attachEncodedWorkerFrameDelay(
   nonFatalErrorHandlers.set(pipelineId, (reason) => {
     opts.onError?.(new Error(reason));
   });
-  statsHandlers.set(
-    pipelineId,
-    withFrameDelayReporter(pipelineId, opts.onStats),
-  );
+  if (opts.onStats) statsHandlers.set(pipelineId, opts.onStats);
   leadLimits.set(pipelineId, DEFAULT_PACING_MAX_LEAD_SECONDS);
   const stopTicker = startPipelineTicker(worker, pipelineId, opts);
 

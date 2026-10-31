@@ -138,11 +138,9 @@ export interface FrameDelayPipelineOptions<Frame extends FrameLike> {
    * Called when `flush()` has left an encoded stream without the frames its
    * next frames depend on, so the source can be asked for a keyframe sooner than
    * its own interval. Until one arrives, frames that need earlier ones are
-   * dropped instead of written. Only used with `gopSafeEviction`. Return
-   * `false`, or a promise that rejects, when the request could not be made, so
-   * the totals can say the source was never asked.
+   * dropped instead of written. Only used with `gopSafeEviction`.
    */
-  onNeedKeyframe?(): unknown;
+  onNeedKeyframe?(): void;
   /**
    * Spaces released frames out by their own UT intervals rather than writing
    * them at once (see {@link PresentationPacer}). Unset, each frame is written
@@ -184,31 +182,6 @@ export interface FrameDelayStats {
 }
 
 /**
- * {@link FrameDelayStats} plus the delay buffer's depth and how the pipeline's
- * keyframe requests and waits went. Useful for telling a camera that waits long
- * for a keyframe after a flush from one the source never answers. Returned by
- * `FrameDelayPipeline.stats()` and passed to `onStats`.
- *
- * @category Delayed video
- */
-export interface FrameDelayStatsDetail extends FrameDelayStats {
-  /** Frames held in the delay buffer now, waiting for their release time. */
-  buffered: number;
-  /** Times the pipeline asked the source for a keyframe. */
-  keyframeRequests: number;
-  /** Keyframe requests the source could not take, so its own keyframe interval is the only way out of the wait. */
-  keyframeRequestsFailed: number;
-  /** Waits for a keyframe that have ended, each from the moment the pipeline began dropping deltas to the keyframe arriving. */
-  keyframeWaits: number;
-  /** The total length of the ended keyframe waits, in milliseconds. */
-  keyframeWaitMsTotal: number;
-  /** The longest ended keyframe wait, in milliseconds. */
-  keyframeWaitMsLongest: number;
-  /** How long the keyframe wait in progress has lasted, in milliseconds, or 0 with none. */
-  keyframeWaitingMs: number;
-}
-
-/**
  * A running frame delay pipeline: the controls for emptying it, stopping it and
  * driving its pacing. Useful for ending a delayed video when the operator
  * switches camera or leaves the screen. Returned by
@@ -231,7 +204,7 @@ export interface FrameDelayPipeline {
    *  pacer: see `pacing`'s doc above. */
   tickPacing(nowWall: number): void;
   /** A snapshot of the pipeline's running totals. */
-  stats(): FrameDelayStatsDetail;
+  stats(): FrameDelayStats;
   /**
    * How far ahead of now, in seconds, the pacer lets the newest frame be due
    * before it jumps to it. It is {@link DEFAULT_PACING_MAX_LEAD_SECONDS},
@@ -267,43 +240,12 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
      mid-group sends some first, so it begins by waiting for a keyframe. */
   let awaitingKeyframe = opts.gopSafeEviction === true;
   let keyframeRequested = false;
-  let awaitingSince: number | null =
-    opts.gopSafeEviction === true ? performance.now() : null;
-  const beginKeyframeWait = () => {
-    awaitingKeyframe = true;
-    awaitingSince ??= performance.now();
-  };
-  const endKeyframeWait = () => {
-    awaitingKeyframe = false;
-    keyframeRequested = false;
-    if (awaitingSince === null) return;
-    const waited = performance.now() - awaitingSince;
-    awaitingSince = null;
-    stats.keyframeWaits += 1;
-    stats.keyframeWaitMsTotal += waited;
-    stats.keyframeWaitMsLongest = Math.max(stats.keyframeWaitMsLongest, waited);
-  };
   const requestKeyframe = () => {
     keyframeRequested = true;
-    stats.keyframeRequests += 1;
-    const failed = () => {
-      stats.keyframeRequestsFailed += 1;
-    };
-    try {
-      const outcome = opts.onNeedKeyframe?.();
-      if (outcome === false) {
-        failed();
-        return;
-      }
-      if (outcome !== null && typeof outcome === "object") {
-        Promise.resolve(outcome).catch(failed);
-      }
-    } catch {
-      failed();
-    }
+    opts.onNeedKeyframe?.();
   };
   let lastDatedUt = Number.NEGATIVE_INFINITY;
-  const stats: FrameDelayStatsDetail = {
+  const stats: FrameDelayStats = {
     read: 0,
     presented: 0,
     pacerSkipped: 0,
@@ -311,13 +253,6 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
     flushDropped: 0,
     evicted: 0,
     awaitingKeyframeDropped: 0,
-    buffered: 0,
-    keyframeRequests: 0,
-    keyframeRequestsFailed: 0,
-    keyframeWaits: 0,
-    keyframeWaitMsTotal: 0,
-    keyframeWaitMsLongest: 0,
-    keyframeWaitingMs: 0,
   };
 
   const writeAndClose = (data: Frame) => {
@@ -411,7 +346,7 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
           .peekQueue()
           .some((queued) => queued.ut === Number.POSITIVE_INFINITY)
       ) {
-        beginKeyframeWait();
+        awaitingKeyframe = true;
         requestKeyframe();
       }
       if (awaitingKeyframe) {
@@ -421,7 +356,8 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
           if (!keyframeRequested) requestKeyframe();
           continue;
         }
-        endKeyframeWait();
+        awaitingKeyframe = false;
+        keyframeRequested = false;
       }
       buffer.push({
         ut,
@@ -442,7 +378,7 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
         opts.gopSafeEviction &&
         stats.flushDropped + stats.pacerSkipped > discardedBefore
       ) {
-        beginKeyframeWait();
+        awaitingKeyframe = true;
         requestKeyframe();
       }
     },
@@ -458,12 +394,7 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
         void Promise.resolve(opts.sink.close()).catch(() => {});
       }
     },
-    stats: () => ({
-      ...stats,
-      buffered: buffer.peekQueue().length,
-      keyframeWaitingMs:
-        awaitingSince === null ? 0 : performance.now() - awaitingSince,
-    }),
+    stats: () => ({ ...stats }),
     tickPacing(nowWall: number) {
       pacer?.tick(nowWall);
     },
@@ -573,7 +504,7 @@ export interface CreateFrameDelayStreamOptions {
    *  is always on; only the threshold can be changed. */
   maxPacingBacklogSeconds?: number;
   /** Called with the pipeline's running frame totals every `statsIntervalMs`. */
-  onStats?(stats: FrameDelayStatsDetail): void;
+  onStats?(stats: FrameDelayStats): void;
   /** How often `onStats` is called, in milliseconds. Defaults to 5000. */
   statsIntervalMs?: number;
 }
