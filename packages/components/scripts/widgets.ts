@@ -840,6 +840,15 @@ const WIDGETS: WidgetRenderConfig[] = [
         clicks: [{ selector: "[data-ship-row]" }],
         forFixtures: ["pad-craft-parts"],
       },
+      // The expander icon on a crowded ring of parts: hovered, the parts show in a popover beside it, off the widget.
+      {
+        name: "cluster-hover-14x16",
+        w: 14,
+        h: 16,
+        clicks: [{ selector: "[data-ship-row]" }],
+        hovers: [{ selector: '[data-role="cluster-expand"]' }],
+        forFixtures: ["pad-craft-parts"],
+      },
       // A craft the mod has sent no parts for: the map draws the absence dash.
       {
         name: "craft-map-no-data-14x16",
@@ -1076,6 +1085,26 @@ const WIDGETS: WidgetRenderConfig[] = [
         w: 7,
         h: 14,
         clicks: [{ selector: '[data-pad-row][aria-pressed="false"]' }],
+        forFixtures: ["pre-launch-mixed"],
+      },
+      // More kerbals picked than the craft has seats: the launch control is dark and says so.
+      {
+        name: "crew-over-seats-7x24",
+        w: 7,
+        h: 24,
+        clicks: [
+          { selector: "[data-ship-row]:not([aria-disabled='true'])" },
+          { selector: '[data-crew-chip="Jebediah Kerman"]' },
+          { selector: '[data-crew-chip="Bill Kerman"]' },
+        ],
+        forFixtures: ["pre-launch-mixed"],
+      },
+      // Scrolled a little: the rows passing under the pinned header fade out at its lower edge.
+      {
+        name: "scrolled-7x10",
+        w: 7,
+        h: 10,
+        scroll: 100,
         forFixtures: ["pre-launch-mixed"],
       },
       // The wide-short extreme at this widget's minSize height, where the shared 18x5 falls below it.

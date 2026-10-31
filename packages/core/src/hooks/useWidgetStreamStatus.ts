@@ -3,6 +3,7 @@ import {
   useTelemetryStoreOptional,
   worstStatus,
 } from "@ksp-gonogo/sitrep-client";
+import { delayLaneOf } from "@ksp-gonogo/sitrep-sdk";
 import {
   formatStreamStatus,
   severityFromStreamStatus,
@@ -67,8 +68,12 @@ export function useWidgetStreamStatus(
 ): StreamStatusValue | null {
   const store = useTelemetryStoreOptional();
   // Keyed on the ids themselves: a config object changes identity on every edit.
-  // Outside the flight scene there is no active vessel, so the last vessel's Topics, held at a
-  // blackout grade by a craft left out of contact, describe nothing on screen.
+  /*
+   * Outside the flight scene there is no active vessel, so what the last vessel's node still holds,
+   * at a blackout grade for a craft left out of contact, describes nothing on screen. That node
+   * carries every Topic read on the signal-delay lane (vessel.*, crash.*, target.*), where the
+   * Topics held at home or read without delay are the ground's own and stay judged.
+   */
   const sceneReading = useTelemetry("spaceCenter.scene");
   const scene =
     sceneReading.state === "observed" || sceneReading.state === "held"
@@ -76,7 +81,7 @@ export function useWidgetStreamStatus(
       : undefined;
   const noActiveVessel = typeof scene === "string" && scene !== "Flight";
   const topicKey = widgetDeclaredTopics(def, config)
-    .filter((topic) => !(noActiveVessel && topic.startsWith("vessel.")))
+    .filter((topic) => !(noActiveVessel && delayLaneOf(topic) === "delayed"))
     .join("\n");
   const topics = useMemo(
     () => (topicKey === "" ? [] : topicKey.split("\n")),

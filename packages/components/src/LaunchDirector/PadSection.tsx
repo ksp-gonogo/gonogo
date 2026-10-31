@@ -8,7 +8,7 @@ import {
   Text,
   Unit,
 } from "@ksp-gonogo/ui-kit";
-import { useEffect } from "react";
+import { useEffect, useId } from "react";
 import { ArmedButton } from "./ArmedButton";
 import {
   CraftDiagram,
@@ -219,17 +219,34 @@ function OpenPad({
           confirmLabel="Confirm revert"
           pendingLabel="Reverting..."
         />
+        <LaunchControls>
+          <BlockedLaunch
+            reason={`${padKindLabel(site.facility)} is occupied`}
+          />
+        </LaunchControls>
       </PadActions>
     );
   }
   if (!craftKnown) {
-    return <EmptyNote>Awaiting saved-craft telemetry</EmptyNote>;
+    return (
+      <>
+        <EmptyNote>Awaiting saved-craft telemetry</EmptyNote>
+        <LaunchControls>
+          <BlockedLaunch reason="No saved craft yet" />
+        </LaunchControls>
+      </>
+    );
   }
   if (padCraft.length === 0) {
     return (
-      <EmptyNote>
-        No saved craft for this {padKindLabel(site.facility).toLowerCase()}
-      </EmptyNote>
+      <>
+        <EmptyNote>
+          No saved craft for this {padKindLabel(site.facility).toLowerCase()}
+        </EmptyNote>
+        <LaunchControls>
+          <BlockedLaunch reason="No craft to launch" />
+        </LaunchControls>
+      </>
     );
   }
   const ship = selectedShip
@@ -250,6 +267,19 @@ function OpenPad({
     ship.minimumCrew > manifest.length
       ? ship.minimumCrew
       : null;
+  /** The game seats a named kerbal only while a seat is free and leaves the rest ashore without refusing, so the control is withheld rather than launching short of the selection. */
+  const crewOver =
+    ship !== undefined &&
+    ship.crewSeats !== null &&
+    manifest.length > ship.crewSeats
+      ? manifest.length - ship.crewSeats
+      : null;
+  const launchBlocked =
+    crewShort !== null
+      ? `Pick at least ${crewShort} crew to launch ${ship?.name}`
+      : crewOver !== null
+        ? `${manifest.length} crew selected for ${ship?.crewSeats} ${ship?.crewSeats === 1 ? "seat" : "seats"}: deselect ${crewOver}`
+        : null;
   const picker = (
     <ShipPicker
       padCraft={padCraft}
@@ -274,23 +304,18 @@ function OpenPad({
               rows={rows}
             />
             <LaunchControls>
-              {crewShort === null ? (
-                <LaunchAction
-                  handle={launchCmd}
-                  args={{
-                    shipName: ship.file,
-                    facility: launchFacilityArg(ship),
-                    site: site.name,
-                    crew: manifest,
-                  }}
-                  shipName={ship.name}
-                  crewCount={manifest.length}
-                />
-              ) : (
-                <Text level="muted" size="xs">
-                  Pick at least {crewShort} crew to launch {ship.name}
-                </Text>
-              )}
+              <LaunchAction
+                handle={launchCmd}
+                args={{
+                  shipName: ship.file,
+                  facility: launchFacilityArg(ship),
+                  site: site.name,
+                  crew: manifest,
+                }}
+                shipName={ship.name}
+                crewCount={manifest.length}
+                blockedReason={launchBlocked}
+              />
             </LaunchControls>
             {!split && (
               <SavedCraftStages
@@ -304,10 +329,25 @@ function OpenPad({
       }
     />
   );
-  if (!split) return picker;
+  const pickPrompt = ship ? null : (
+    <LaunchControls>
+      <BlockedLaunch reason="Pick a craft to launch" />
+    </LaunchControls>
+  );
+  if (!split) {
+    return (
+      <>
+        {picker}
+        {pickPrompt}
+      </>
+    );
+  }
   return (
     <CraftMapLayout data-craft-map-layout="">
-      {picker}
+      <PadColumn>
+        {picker}
+        {pickPrompt}
+      </PadColumn>
       {ship ? (
         <SavedCraftDiagram
           key={`${launchFacilityArg(ship)}/${ship.file}`}
@@ -355,25 +395,33 @@ function FlyOccupant({
  * The launch control. It asks the mod whether this launch would be refused
  * whenever the craft, the pad or the crew changes, so a centre that may not
  * launch from this pad sees the control dark with the mod's reason before it
- * presses anything.
+ * presses anything. A reason of the widget's own (crew short of or over the
+ * seats) darkens it first and is written beside it.
  */
 function LaunchAction({
   handle,
   args,
   shipName,
   crewCount,
+  blockedReason,
 }: {
   handle: PadSectionProps["launchCmd"];
   args: { shipName: string; facility: string; site: string; crew: string[] };
   shipName: string;
   crewCount: number;
+  blockedReason: string | null;
 }) {
   const { check } = handle;
   const choice = JSON.stringify(args);
   // biome-ignore lint/correctness/useExhaustiveDependencies: the choice, serialised, is the trigger
   useEffect(() => {
-    void check?.(args);
-  }, [check, choice]);
+    if (blockedReason === null) void check?.(args);
+  }, [check, choice, blockedReason]);
+  if (blockedReason !== null) {
+    return (
+      <BlockedLaunch label={`Launch ${shipName}`} reason={blockedReason} />
+    );
+  }
   return (
     <ArmedButton
       bindAs="launch"
@@ -389,5 +437,32 @@ function LaunchAction({
       confirmLabel="Confirm launch"
       pendingLabel="Launching..."
     />
+  );
+}
+
+/** The launch control dark, with what is missing written beside it. It carries no command, so nothing can be sent from it. */
+function BlockedLaunch({
+  label = "Launch",
+  reason,
+}: {
+  label?: string;
+  reason: string;
+}) {
+  const reasonId = useId();
+  return (
+    <>
+      <Button
+        type="button"
+        variant="primary"
+        disabled
+        disabledReason={reason}
+        aria-describedby={reasonId}
+      >
+        {label}
+      </Button>
+      <Text level="muted" size="xs" id={reasonId}>
+        {reason}
+      </Text>
+    </>
   );
 }

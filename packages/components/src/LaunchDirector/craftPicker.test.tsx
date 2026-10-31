@@ -179,11 +179,55 @@ describe("LaunchDirector craft list", () => {
 
     expect(screen.queryByText(/Launch Plane unmanned/i)).toBeNull();
     expect(
+      screen.getByRole("button", { name: "Launch Plane" }),
+    ).toHaveAttribute("aria-disabled", "true");
+    expect(
       screen.getByText(/Pick at least 1 crew to launch Plane/i),
     ).toBeVisible();
 
     await user.click(screen.getByText(/Jeb/));
     expect(screen.getByText(/Launch Plane \(1 crew\)/i)).toBeInTheDocument();
+  });
+
+  it("darkens the launch control and says so when more crew are picked than the craft has seats", async () => {
+    const user = userEvent.setup();
+    renderWidget();
+    const kerbal = (name: string) => ({
+      name,
+      trait: "Pilot",
+      experienceLevel: 3,
+      available: true,
+      unavailableReason: "",
+      standing: 2,
+      situation: "Available",
+    });
+    emit([PAD], [], [kerbal("Jeb"), kerbal("Bill")]);
+    act(() => {
+      stream.emit("spaceCenter.savedShips", [
+        { ...craft("Probe"), crewSeats: 1 },
+      ]);
+    });
+
+    await user.click(await screen.findByText("Probe"));
+    await user.click(screen.getByText(/Jeb/));
+    await user.click(screen.getByText(/Bill/));
+
+    expect(
+      screen.getByRole("button", { name: "Launch Probe" }),
+    ).toHaveAttribute("aria-disabled", "true");
+    expect(
+      screen.getByText("2 crew selected for 1 seat: deselect 1"),
+    ).toBeVisible();
+  });
+
+  it("keeps the launch control on screen, dark, before a craft is picked", async () => {
+    renderWidget();
+    emit([PAD], ["Mun Hopper"]);
+
+    expect(
+      await screen.findByRole("button", { name: "Launch" }),
+    ).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByText("Pick a craft to launch")).toBeVisible();
   });
 
   it("says when no craft matches", async () => {

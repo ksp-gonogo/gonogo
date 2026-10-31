@@ -236,6 +236,39 @@ describe("useWidgetStreamStatus", () => {
       expect(screen.getByText("status:none")).toBeTruthy();
     });
 
+    it("does not badge a blackout of the last craft's other signal-delay Topics at the Space Center", async () => {
+      const transport = new StubTransport();
+      function CrashProbe() {
+        const status = useWidgetStreamStatus({
+          optionalChannels: ["crash.hasRecent", "spaceCenter.launchSites"],
+        });
+        return (
+          <>
+            <Reads topic="crash.hasRecent" />
+            <Reads topic="spaceCenter.scene" />
+            <div>status:{status ?? "none"}</div>
+          </>
+        );
+      }
+      render(
+        <Host transport={transport}>
+          <CrashProbe />
+        </Host>,
+      );
+      act(() => {
+        transport.emit("spaceCenter.scene", { scene: "SpaceCenter" });
+        transport.emit(
+          "crash.hasRecent",
+          { recent: false },
+          { staleness: Staleness.LastBeforeBlackout },
+        );
+      });
+      await screen.findByText("spaceCenter.scene:observed");
+      await screen.findByText("crash.hasRecent:held");
+
+      expect(screen.getByText("status:none")).toBeTruthy();
+    });
+
     it("still badges the blackout while the vessel is the one being flown", async () => {
       const transport = new StubTransport();
       render(

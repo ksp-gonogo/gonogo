@@ -143,6 +143,48 @@ describe("an Uplink channel's delay role, carried on system.uplinks", () => {
     expect(store.sample(DYNAMIC_HELD)?.validAt).toBe(UT_NOW);
   });
 
+  describe("a saved craft's part tree, under spaceCenter.craft.", () => {
+    const CRAFT_TOPIC = "spaceCenter.craft.VAB.MkI.parts";
+    const craftRoles = {
+      ...fixture.delayRoles,
+      heldAtHomePrefixes: ["spaceCenter.craft."],
+    };
+
+    it("reads current once the roster names the prefix, though its tree arrived first", () => {
+      const { store, deliver } = connect(undefined);
+      deliver(CRAFT_TOPIC, { parts: [{ id: "1" }] }, UT_NOW);
+      store.beginFrame();
+      // Until the roster arrives the prefix is unknown and reads a light-time behind the craft.
+      expect(store.sample(CRAFT_TOPIC)).toBeUndefined();
+
+      deliver(fixture.topic, { uplinks: [], delayRoles: craftRoles }, UT_NOW);
+      store.beginFrame();
+
+      expect(store.sample(CRAFT_TOPIC)?.validAt).toBe(UT_NOW);
+    });
+
+    it("reads a tree stamped at UT 0 in a game long past it, held but still shown", () => {
+      const { store, deliver } = connect({ delayRoles: craftRoles });
+      deliver(CRAFT_TOPIC, { parts: [{ id: "1" }] }, 0);
+      store.beginFrame();
+
+      expect(store.sample(CRAFT_TOPIC)?.payload).toEqual({
+        parts: [{ id: "1" }],
+      });
+      expect(["live", "held", "last-before-blackout"]).toContain(
+        store.sampleStatus(CRAFT_TOPIC, store.currentFrame()),
+      );
+    });
+
+    it("stays unread for a roster that does not name the prefix, however current the tree is", () => {
+      const { store, deliver } = connect({ delayRoles: fixture.delayRoles });
+      deliver(CRAFT_TOPIC, { parts: [{ id: "1" }] }, UT_NOW);
+      store.beginFrame();
+
+      expect(store.sample(CRAFT_TOPIC)).toBeUndefined();
+    });
+  });
+
   it("holds a held-at-home dynamic namespace back from a mod that sends no such list", () => {
     const { heldAtHomePrefixes: _, ...older } = fixture.delayRoles;
     const { store, deliver } = connect({ delayRoles: older });

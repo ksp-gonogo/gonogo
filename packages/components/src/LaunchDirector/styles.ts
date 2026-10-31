@@ -176,6 +176,8 @@ export const CrewTrait = styled.span`
 
 export const LaunchControls = styled.div`
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--gap-related);
   margin-top: var(--gap-actions);
 `;

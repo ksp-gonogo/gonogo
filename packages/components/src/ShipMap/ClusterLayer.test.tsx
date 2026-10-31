@@ -1,6 +1,13 @@
 import type { VesselTopology } from "@ksp-gonogo/core";
-import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import fuellinePostStage2 from "./__fixtures__/fuelline-tester-poststage2.json";
 import lfv2WaveProbe from "./__fixtures__/lfv2-wave-probe-14parts.json";
@@ -47,7 +54,28 @@ describe("the expand icon on a dense cluster", () => {
     expect(container.querySelector('[data-role="cluster-expand"]')).toBeNull();
   });
 
-  it("opens a box with each part and a leader line to it when pressed", () => {
+  it("pins a popover with each part when pressed", () => {
+    render(
+      <ShipDiagram
+        parts={partsOf(lfv2WaveProbe as Fixture)}
+        width={600}
+        height={700}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Expand the 9 parts/ }));
+    const box = document.body.querySelector('[data-role="cluster-box"]');
+    expect(box).not.toBeNull();
+    expect(
+      document.body.querySelectorAll('[data-role="cluster-member"]'),
+    ).toHaveLength(9);
+    expect(
+      screen
+        .getByRole("button", { name: /Close the 9 parts/ })
+        .getAttribute("aria-expanded"),
+    ).toBe("true");
+  });
+
+  it("draws the popover outside the diagram's own tree, so the widget cannot clip it", () => {
     const { container } = render(
       <ShipDiagram
         parts={partsOf(lfv2WaveProbe as Fixture)}
@@ -56,20 +84,52 @@ describe("the expand icon on a dense cluster", () => {
       />,
     );
     fireEvent.click(screen.getByRole("button", { name: /Expand the 9 parts/ }));
-    const box = container.querySelector('[data-role="cluster-box"]');
-    expect(box).not.toBeNull();
-    const members = container.querySelectorAll('[data-role="cluster-member"]');
-    expect(members).toHaveLength(9);
-    for (const m of members) expect(m.querySelector("line")).not.toBeNull();
+    expect(container.querySelector('[data-role="cluster-box"]')).toBeNull();
     expect(
-      screen
-        .getByRole("button", { name: /Close the 9 parts/ })
-        .getAttribute("aria-expanded"),
-    ).toBe("true");
+      document.body.querySelector('[data-role="cluster-box"]'),
+    ).not.toBeNull();
   });
 
-  it("opens from the keyboard and closes on Escape with focus back on the icon", () => {
-    const { container } = render(
+  it("shows the popover while the pointer is on the icon and drops it after the pointer leaves", async () => {
+    const user = userEvent.setup();
+    render(
+      <ShipDiagram
+        parts={partsOf(lfv2WaveProbe as Fixture)}
+        width={600}
+        height={700}
+      />,
+    );
+    const icon = screen.getByRole("button", { name: /Expand the 9 parts/ });
+    await user.hover(icon);
+    expect(
+      document.body.querySelector('[data-role="cluster-box"]'),
+    ).not.toBeNull();
+    expect(icon.getAttribute("aria-expanded")).toBe("false");
+    await user.unhover(icon);
+    await waitFor(() =>
+      expect(
+        document.body.querySelector('[data-role="cluster-box"]'),
+      ).toBeNull(),
+    );
+  });
+
+  it("shows the popover on keyboard focus like hover", () => {
+    render(
+      <ShipDiagram
+        parts={partsOf(lfv2WaveProbe as Fixture)}
+        width={600}
+        height={700}
+      />,
+    );
+    const icon = screen.getByRole("button", { name: /Expand the 9 parts/ });
+    act(() => icon.focus());
+    expect(
+      document.body.querySelector('[data-role="cluster-box"]'),
+    ).not.toBeNull();
+  });
+
+  it("pins from the keyboard and closes on Escape with focus back on the icon", () => {
+    render(
       <ShipDiagram
         parts={partsOf(lfv2WaveProbe as Fixture)}
         width={600}
@@ -78,12 +138,10 @@ describe("the expand icon on a dense cluster", () => {
     );
     const icon = screen.getByRole("button", { name: /Expand the 9 parts/ });
     fireEvent.keyDown(icon, { key: "Enter" });
-    const close = screen.getByRole("button", {
-      name: "Close the expanded parts",
-    });
-    expect(document.activeElement).toBe(close);
-    fireEvent.keyDown(close, { key: "Escape" });
-    expect(container.querySelector('[data-role="cluster-box"]')).toBeNull();
+    expect(icon.getAttribute("aria-expanded")).toBe("true");
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(document.body.querySelector('[data-role="cluster-box"]')).toBeNull();
+    expect(icon.getAttribute("aria-expanded")).toBe("false");
     expect(document.activeElement?.getAttribute("data-role")).toBe(
       "cluster-expand",
     );

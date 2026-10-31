@@ -303,6 +303,26 @@ export async function findDeadTextTargets(page: Page): Promise<string[]> {
         }
         if (!row || !control) continue;
 
+        // Text a control in the row names in aria-describedby or aria-labelledby is the control's own description, so a press beside it needs no control under it.
+        const named = new Set<string>();
+        for (const c of Array.from(row.children)) {
+          if (!c.matches(controlSelector)) continue;
+          for (const attr of ["aria-describedby", "aria-labelledby"]) {
+            for (const id of (c.getAttribute(attr) ?? "").split(/\s+/)) {
+              if (id !== "") named.add(id);
+            }
+          }
+        }
+        let described = false;
+        for (
+          let n: Element | null = owner;
+          n && n !== row;
+          n = n.parentElement
+        ) {
+          if (n.id !== "" && named.has(n.id)) described = true;
+        }
+        if (described) continue;
+
         range.selectNodeContents(node);
         const rects = Array.from(range.getClientRects()).filter(
           (r) => r.width > 0 && r.height > 0,
@@ -342,9 +362,11 @@ export async function findDeadTextTargets(page: Page): Promise<string[]> {
 }
 
 /**
- * Plants a title beside a button that no press can reach, which must be
- * reported, and a title that is part of its button, a label for one and a line
- * in a row with no control, which must not.
+ * Plants a title beside a button that no press can reach and a line beside a
+ * button that names a different element as its description, which must be
+ * reported, and a title that is part of its button, a label for one, a line the
+ * button names as its description and a line in a row with no control, which
+ * must not.
  */
 export async function proveHitTargetCheckWorks(page: Page): Promise<void> {
   await page.evaluate(() => {
@@ -357,6 +379,8 @@ export async function proveHitTargetCheckWorks(page: Page): Promise<void> {
         <div style="display:flex;gap:8px"><span style="pointer-events:none">fires-dead-title</span><button type="button">go</button></div>
         <div style="display:flex;gap:8px"><button type="button"><span>quiet-in-button</span></button></div>
         <div style="display:flex;gap:8px"><label for="hit-quiet">quiet-label</label><input id="hit-quiet" /></div>
+        <div style="display:flex;gap:8px"><span id="hit-other" style="pointer-events:none">fires-wrong-description</span><button type="button" aria-describedby="hit-elsewhere">go</button></div>
+        <div style="display:flex;gap:8px"><span id="hit-described" style="pointer-events:none">quiet-described</span><button type="button" aria-describedby="hit-described">go</button></div>
         <div style="display:flex;gap:8px"><span>quiet-no-control</span><span>other</span></div>
       </div>`;
     host.appendChild(box);
@@ -368,6 +392,12 @@ export async function proveHitTargetCheckWorks(page: Page): Promise<void> {
   if (!found.some((f) => f.includes("fires-dead-title"))) {
     throw new Error(
       "The hit-target check is BLIND: a title beside a button that no press can reach was not reported, so a clean run proves nothing about what a mouse can press.\n" +
+        `What it did report: ${found.length === 0 ? "nothing" : found.join("; ")}`,
+    );
+  }
+  if (!found.some((f) => f.includes("fires-wrong-description"))) {
+    throw new Error(
+      "The hit-target check is BLIND: a line beside a button that names some other element as its description was not reported, so an association by name is not being matched by id.\n" +
         `What it did report: ${found.length === 0 ? "nothing" : found.join("; ")}`,
     );
   }

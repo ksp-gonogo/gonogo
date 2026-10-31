@@ -1642,6 +1642,22 @@ const PanelStickyTop = styled.div`
         top / 100% min(44px, 100%) no-repeat,
       var(--color-surface-panel);
   }
+
+  /* Rows scrolling under the header fade out at its lower edge, where the eye meets them, instead of being cut off hard. */
+  &[data-panel-glow-top]::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    height: 20px;
+    pointer-events: none;
+    background: linear-gradient(
+      to bottom,
+      var(--color-surface-panel),
+      transparent
+    );
+  }
 `;
 
 /** The sticky unit, marked while the body has content above to scroll back to so its top glow shows. */

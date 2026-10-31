@@ -244,7 +244,6 @@ export function ShipDiagramSvg({
             };
           }}
           width={width}
-          height={height}
           openId={openClusterId}
           onToggle={(id) => onToggleCluster?.(id)}
         />

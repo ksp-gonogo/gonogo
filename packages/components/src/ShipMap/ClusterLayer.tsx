@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { CloseIcon, Floating, IconButton } from "@ksp-gonogo/ui-kit";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { DenseCluster } from "./denseCluster";
 import { chuteStateOf } from "./partChute";
 import { colorFor, renderPartShape } from "./partShape";
@@ -54,18 +55,28 @@ interface Point {
   y: number;
 }
 
+/** How long the popover outlives the pointer leaving its icon, so the pointer can cross the gap to it. */
+const HOVER_LINGER_MS = 150;
+
+/** The gap between an icon and the popover beside it. */
+const ICON_GAP = 8;
+
+/** The room the popover's layout is sized for, independent of the widget it opens from. */
+const POPOVER_ROOM = { w: 640, h: 360 };
+
 /**
- * The expand icons beside each dense cluster of radial parts and, for the open
- * one, a box at the side of the view laying every part of it out at its own
- * proportions, each with a leader line to where it sits on the craft. Drawn in
- * screen space so it stays one size however far the view is zoomed. Used by the
- * Ship Map for rings of parts too crowded to tell apart in place.
+ * The expand icons beside each dense cluster of radial parts and a popover
+ * laying every part of the cluster out at its own proportions. Hovering or
+ * focusing an icon shows the popover; pressing the icon pins it open until the
+ * icon is pressed again or Escape is pressed. The popover is drawn over the
+ * page beside the icon, so the widget's edge does not clip it. The icons are
+ * drawn in screen space so they stay one size however far the view is zoomed.
+ * Used by the Ship Map for rings of parts too crowded to tell apart in place.
  */
 export function ClusterLayer({
   clusters,
   toScreen,
   width,
-  height,
   openId,
   onToggle,
 }: {
@@ -73,25 +84,65 @@ export function ClusterLayer({
   /** A metre-space lateral and axial position as a point in the SVG's own pixels. */
   toScreen: (lat: number, axial: number) => Point;
   width: number;
-  height: number;
+  /** The cluster pinned open, which stays until it is toggled off or Escape is pressed. */
   openId: string | null;
   onToggle: (id: string | null) => void;
 }) {
   const iconRefs = useRef(new Map<string, SVGGElement>());
-  const open = clusters.find((c) => c.id === openId);
-  const close = () => {
-    onToggle(null);
-    if (open) iconRefs.current.get(open.id)?.focus();
+  const [hoverId, setHoverId] = useState<string | null>(null);
+  const lingerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const holdHover = (id: string) => {
+    if (lingerRef.current) clearTimeout(lingerRef.current);
+    lingerRef.current = null;
+    setHoverId(id);
   };
+  const releaseHover = () => {
+    if (lingerRef.current) clearTimeout(lingerRef.current);
+    lingerRef.current = setTimeout(() => setHoverId(null), HOVER_LINGER_MS);
+  };
+  useEffect(
+    () => () => {
+      if (lingerRef.current) clearTimeout(lingerRef.current);
+    },
+    [],
+  );
+  /* Returning focus to the icon after a close must not read as focusing it to look, which would open the popover again. */
+  const quietFocusRef = useRef(false);
+  const focusIcon = useCallback((id: string) => {
+    quietFocusRef.current = true;
+    iconRefs.current.get(id)?.focus();
+    quietFocusRef.current = false;
+  }, []);
+  const shownId = openId ?? hoverId;
+  const shown = clusters.find((c) => c.id === shownId);
+  useEffect(() => {
+    if (!shown) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setHoverId(null);
+      if (openId !== null) {
+        onToggle(null);
+        focusIcon(openId);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [shown, openId, onToggle, focusIcon]);
   return (
     <g data-role="cluster-layer">
-      {open && (
-        <ClusterBox
-          cluster={open}
-          toScreen={toScreen}
-          width={width}
-          height={height}
-          onClose={close}
+      {shown && (
+        <ClusterPopover
+          cluster={shown}
+          pinned={shown.id === openId}
+          iconRect={() =>
+            iconRefs.current.get(shown.id)?.getBoundingClientRect()
+          }
+          onEnter={() => holdHover(shown.id)}
+          onLeave={releaseHover}
+          onClose={() => {
+            onToggle(null);
+            focusIcon(shown.id);
+          }}
         />
       )}
       {clusters.map((c) => {
@@ -114,6 +165,12 @@ export function ClusterLayer({
             aria-label={`${isOpen ? "Close" : "Expand"} the ${c.members.length} parts clustered here`}
             style={{ cursor: "pointer" }}
             onClick={activate}
+            onPointerEnter={() => holdHover(c.id)}
+            onPointerLeave={releaseHover}
+            onFocus={() => {
+              if (!quietFocusRef.current) holdHover(c.id);
+            }}
+            onBlur={releaseHover}
             onKeyDown={(e: React.KeyboardEvent) => {
               if (e.key !== "Enter" && e.key !== " ") return;
               e.preventDefault();
@@ -172,21 +229,22 @@ function ExpandGlyph({
   );
 }
 
-function ClusterBox({
+function ClusterPopover({
   cluster,
-  toScreen,
-  width,
-  height,
+  pinned,
+  iconRect,
+  onEnter,
+  onLeave,
   onClose,
 }: {
   cluster: DenseCluster;
-  toScreen: ClusterLayerProps["toScreen"];
-  width: number;
-  height: number;
+  pinned: boolean;
+  /** Where the cluster's icon is on screen, so the popover sits beside it rather than over it. */
+  iconRect: () => DOMRect | undefined;
+  onEnter: () => void;
+  onLeave: () => void;
   onClose: () => void;
 }) {
-  const closeRef = useRef<SVGGElement>(null);
-  useEffect(() => closeRef.current?.focus(), []);
   const members = [...cluster.members].sort(
     (a, b) => a.lat - b.lat || b.axial - a.axial,
   );
@@ -195,101 +253,87 @@ function ClusterBox({
     scale: k,
     boxW,
     boxH,
-  } = boxLayoutFor(members.length, width, height);
+  } = boxLayoutFor(members.length, POPOVER_ROOM.w, POPOVER_ROOM.h);
   const tileW = TILE_W * k;
   const tileH = TILE_H * k;
   const gap = TILE_GAP * k;
   const pad = BOX_PAD * k;
   const titleH = TITLE_H * k;
-  const centre = toScreen(
-    (cluster.latMin + cluster.latMax) / 2,
-    (cluster.axialMin + cluster.axialMax) / 2,
-  );
-  const boxX = centre.x < width / 2 ? width - boxW - 6 : 6;
-  const boxY = 6;
   return (
-    <g data-role="cluster-box">
-      <title>{`The ${members.length} clustered parts, laid out`}</title>
-      <rect
-        x={boxX}
-        y={boxY}
+    <Floating
+      anchor={() => {
+        const rect = iconRect();
+        if (!rect) return null;
+        /* The layer goes after its anchor when it fits and before it otherwise, so the anchor is the icon's edge on whichever side has the room. */
+        const roomRight = window.innerWidth - (rect.right + ICON_GAP);
+        return {
+          x: roomRight >= boxW ? rect.right + ICON_GAP : rect.left - ICON_GAP,
+          y: rect.top,
+        };
+      }}
+      role="group"
+      aria-label={`The ${members.length} clustered parts, laid out`}
+      style={{ pointerEvents: "auto" }}
+      onPointerEnter={onEnter}
+      onPointerLeave={onLeave}
+    >
+      <svg
+        data-role="cluster-box"
         width={boxW}
         height={boxH}
-        rx={6}
-        fill="var(--color-surface-sunken)"
-        stroke="var(--color-border-strong)"
-      />
-      <text
-        x={boxX + pad}
-        y={boxY + 17 * k}
-        fill="var(--color-text-primary)"
-        fontSize={Math.max(8, 11 * k)}
+        style={{ display: "block" }}
       >
-        {`${members.length} parts`}
-      </text>
-      {/* biome-ignore lint/a11y/useSemanticElements: an SVG group cannot be a <button> */}
-      <g
-        ref={closeRef}
-        role="button"
-        tabIndex={0}
-        aria-label="Close the expanded parts"
-        style={{ cursor: "pointer", outline: "none" }}
-        onClick={onClose}
-        onKeyDown={(e: React.KeyboardEvent) => {
-          if (e.key !== "Enter" && e.key !== " " && e.key !== "Escape") return;
-          e.preventDefault();
-          onClose();
-        }}
-      >
+        <title>{`The ${members.length} clustered parts, laid out`}</title>
         <rect
-          x={boxX + boxW - 24 * k}
-          y={boxY + 4 * k}
-          width={18 * k}
-          height={18 * k}
-          rx={3}
-          fill="var(--color-surface-raised)"
-          stroke="var(--color-go-text)"
+          x={0.5}
+          y={0.5}
+          width={boxW - 1}
+          height={boxH - 1}
+          rx={6}
+          fill="var(--color-surface-sunken)"
+          stroke="var(--color-border-strong)"
         />
-        <path
-          d={`M ${boxX + boxW - 19 * k},${boxY + 9 * k} l ${8 * k},${8 * k} M ${boxX + boxW - 11 * k},${boxY + 9 * k} l ${-8 * k},${8 * k}`}
-          stroke="var(--color-go-text)"
-          strokeWidth={1.5}
-        />
-      </g>
-      {members.map((p, i) => {
-        const tileX = boxX + pad + (i % columns) * (tileW + gap);
-        const tileY =
-          boxY + titleH + pad + Math.floor(i / columns) * (tileH + gap);
-        const anchorX = boxX < width / 2 ? tileX + tileW : tileX;
-        return (
+        <text
+          x={pad}
+          y={17 * k}
+          fill="var(--color-text-primary)"
+          fontSize={Math.max(8, 11 * k)}
+        >
+          {`${members.length} parts`}
+        </text>
+        {members.map((p, i) => (
           <MemberTile
             key={p.flightId}
             part={p}
-            tile={{ x: tileX, y: tileY }}
+            tile={{
+              x: pad + (i % columns) * (tileW + gap),
+              y: titleH + pad + Math.floor(i / columns) * (tileH + gap),
+            }}
             scale={k}
-            leaderFrom={{ x: anchorX, y: tileY + tileH / 2 }}
-            leaderTo={toScreen(p.lat, p.axial)}
           />
-        );
-      })}
-    </g>
+        ))}
+      </svg>
+      {pinned && (
+        <IconButton
+          aria-label="Close the expanded parts"
+          onClick={onClose}
+          style={{ position: "absolute", top: 4 * k, right: 6 * k }}
+        >
+          <CloseIcon />
+        </IconButton>
+      )}
+    </Floating>
   );
 }
-
-type ClusterLayerProps = Parameters<typeof ClusterLayer>[0];
 
 function MemberTile({
   part: p,
   tile,
   scale: k,
-  leaderFrom,
-  leaderTo,
 }: {
   part: ProjectedPart;
   tile: Point;
   scale: number;
-  leaderFrom: Point;
-  leaderTo: Point;
 }) {
   const pw = Math.max(p.body.latMax - p.body.latMin, 1e-3);
   const ph = Math.max(p.body.axialMax - p.body.axialMin, 1e-3);
@@ -302,23 +346,6 @@ function MemberTile({
   const label = p.title || p.name;
   return (
     <g data-role="cluster-member" data-part-id={p.flightId}>
-      <line
-        x1={leaderFrom.x}
-        y1={leaderFrom.y}
-        x2={leaderTo.x}
-        y2={leaderTo.y}
-        stroke="var(--color-accent-fg)"
-        strokeWidth={0.8}
-        opacity={0.75}
-        pointerEvents="none"
-      />
-      <circle
-        cx={leaderTo.x}
-        cy={leaderTo.y}
-        r={2.5}
-        fill="var(--color-accent-fg)"
-        pointerEvents="none"
-      />
       <rect
         x={tile.x}
         y={tile.y}

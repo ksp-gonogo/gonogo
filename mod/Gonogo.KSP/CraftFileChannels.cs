@@ -32,6 +32,9 @@ namespace Gonogo.KSP
         /// </summary>
         private const double ListSeconds = 2.0;
 
+        /// <summary>How long a craft file that gave no parts waits before it is read again, so one that never reads is not tried every tick.</summary>
+        private const double RetrySeconds = 5.0;
+
         private static readonly PerfBudget CraftBuildBudget = new PerfBudget(
             "CraftFileChannels crafts read", threshold: 20, windowSec: 1.0, unit: "crafts");
 
@@ -42,7 +45,7 @@ namespace Gonogo.KSP
         private readonly List<CraftFile> _files = new List<CraftFile>();
         private double _listedAt = double.NegativeInfinity;
         private string? _listedSave;
-        private readonly Dictionary<string, CachedRows> _rows = new Dictionary<string, CachedRows>(StringComparer.Ordinal);
+        private readonly CraftReadCache _reads = new CraftReadCache(RetrySeconds);
         /* The file version each watched topic was last captured at, forgotten when nobody watches it, so a subscriber arriving later is sent the tree again. */
         private readonly Dictionary<string, long> _captured = new Dictionary<string, long>(StringComparer.Ordinal);
 
@@ -108,6 +111,7 @@ namespace Gonogo.KSP
             }
 
             RefreshListing(save);
+            var now = Time.realtimeSinceStartup;
             var watched = new HashSet<string>(StringComparer.Ordinal);
             var captures = new List<CraftCapture>();
             var built = 0;
@@ -125,7 +129,13 @@ namespace Gonogo.KSP
                     continue;
                 }
 
-                var hit = _rows.TryGetValue(file.Path, out var cached) && cached.Modified == file.Modified;
+                var hit = _reads.TryGet(file.Path, file.Modified, now, out var read);
+                if (hit && read.Rows == null)
+                {
+                    /* A failed read waits out its retry time, and the file is not marked sent, so the retry that succeeds is published. */
+                    continue;
+                }
+
                 if (!hit && built > 0)
                 {
                     /* One craft is read per tick, so opening a long list of crafts does not stall a frame. */
@@ -134,17 +144,22 @@ namespace Gonogo.KSP
 
                 if (!hit)
                 {
-                    CraftBuildBudget.Record(1, snapshot != null ? snapshot.Ut : 0.0);
+                    CraftBuildBudget.Record(1, CraftCaptureStamp.Ut(snapshot?.Ut, Planetarium.GetUniversalTime));
                     built++;
-                    cached = new CachedRows(file.Modified, ReadRows(file.Path));
-                    _rows[file.Path] = cached;
+                    read = ReadRows(file.Path);
+                    if (_reads.Store(file.Path, file.Modified, now, read))
+                    {
+                        GonogoLog.Warn("craftFiles", "the " + file.Facility + " craft " + file.Name + " cannot be drawn: " + read.Failure);
+                    }
+                }
+
+                if (read.Rows == null)
+                {
+                    continue;
                 }
 
                 _captured[key] = file.Modified;
-                if (cached.Rows != null)
-                {
-                    captures.Add(new CraftCapture { Key = key, Rows = cached.Rows });
-                }
+                captures.Add(new CraftCapture { Key = key, Rows = read.Rows });
             }
 
             foreach (var key in new List<string>(_captured.Keys))
@@ -155,7 +170,7 @@ namespace Gonogo.KSP
                 }
             }
 
-            return captures.Count == 0 ? null : new CraftFileCapture { Ut = snapshot != null ? snapshot.Ut : 0.0, Crafts = captures };
+            return captures.Count == 0 ? null : new CraftFileCapture { Ut = CraftCaptureStamp.Ut(snapshot?.Ut, Planetarium.GetUniversalTime), Crafts = captures };
         }
 
         /// <summary>COURIER-THREAD: publish each captured craft's part tree on its own topic.</summary>
@@ -175,16 +190,22 @@ namespace Gonogo.KSP
             }
         }
 
-        private static List<object?>? ReadRows(string path)
+        private static CraftRead ReadRows(string path)
         {
             try
             {
-                return CraftFileTopology.Build(ConfigNode.Load(path));
+                var node = ConfigNode.Load(path);
+                if (node == null)
+                {
+                    return CraftRead.Failed("the file could not be read");
+                }
+
+                var rows = CraftFileTopology.Build(node, out var failure);
+                return rows != null ? CraftRead.Of(rows) : CraftRead.Failed(failure ?? "it has no parts");
             }
             catch (Exception ex)
             {
-                GonogoLog.WarnLimited("craft file part read failed for " + path + ", omitting", ex);
-                return null;
+                return CraftRead.Failed("the file could not be read (" + ex.GetType().Name + ": " + ex.Message + ")");
             }
         }
 
@@ -198,7 +219,7 @@ namespace Gonogo.KSP
 
             if (_listedSave != save)
             {
-                _rows.Clear();
+                _reads.Clear();
                 _captured.Clear();
             }
 
@@ -243,19 +264,6 @@ namespace Gonogo.KSP
             public string Name = "";
             public string Path = "";
             public long Modified;
-        }
-
-        private sealed class CachedRows
-        {
-            public CachedRows(long modified, List<object?>? rows)
-            {
-                Modified = modified;
-                Rows = rows;
-            }
-
-            public long Modified { get; }
-
-            public List<object?>? Rows { get; }
         }
 
         private sealed class CraftCapture

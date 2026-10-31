@@ -20,12 +20,18 @@ namespace Gonogo.KSP
     /// </summary>
     internal static class CraftFileTopology
     {
-        /// <summary>The craft's part rows, or null when the file has no parts this install knows.</summary>
-        public static List<object?>? Build(ConfigNode? craft)
+        /// <summary>
+        /// The craft's part rows, or null when the file has no parts this install
+        /// knows, with <paramref name="failure"/> saying which and naming the parts
+        /// this install lacks.
+        /// </summary>
+        public static List<object?>? Build(ConfigNode? craft, out string? failure)
         {
+            failure = null;
             var nodes = craft?.GetNodes("PART");
             if (nodes == null || nodes.Length == 0)
             {
+                failure = "the file has no PART nodes";
                 return null;
             }
 
@@ -68,7 +74,28 @@ namespace Gonogo.KSP
                 }
             }
 
-            return list.Count == 0 ? null : list;
+            if (list.Count == 0)
+            {
+                failure = "this install has none of its parts, such as " + string.Join(", ", MissingNames(keys, kept, 3));
+                return null;
+            }
+
+            return list;
+        }
+
+        private static List<string> MissingNames(List<string> keys, bool[] kept, int max)
+        {
+            var names = new List<string>();
+            for (var i = 0; i < keys.Count && names.Count < max; i++)
+            {
+                var name = CraftFileTree.PartName(keys[i]);
+                if (!kept[i] && !names.Contains(name))
+                {
+                    names.Add(name);
+                }
+            }
+
+            return names;
         }
 
         private static Dictionary<string, object?>? BuildPart(ConfigNode node, int index, double[] rootPosition, double[] rootRotation)
