@@ -1,6 +1,5 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import {
-  AugmentSlot,
   registerComponent,
   useContributions,
   useTelemetry,
@@ -287,16 +286,13 @@ function ExperimentsBody({
             <ScienceExperimentRow
               instrument={inst}
               underPart
+              augmented
               deployCmd={deployCmd}
               startCmd={startCmd}
               stopCmd={stopCmd}
               transmitCmd={transmitCmd}
               onTransmitted={onTransmitted}
               heldGrade={instrumentsHeld}
-            />
-            <AugmentSlot
-              name="experiments.instrument"
-              props={{ instrument: inst }}
             />
           </Fragment>
         ))}

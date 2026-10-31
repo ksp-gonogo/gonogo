@@ -1,3 +1,4 @@
+import { AugmentSlot } from "@ksp-gonogo/core";
 import type { HeldGrade } from "@ksp-gonogo/sitrep-client";
 import {
   type CommandReply,
@@ -58,6 +59,8 @@ export interface ScienceExperimentRowProps {
   heldGrade?: HeldGrade;
   /** True where the row sits under its part's heading: the card is then titled by its experiment and does not repeat the part. */
   underPart?: boolean;
+  /** Draws the `experiments.instrument` augment slot inside the card, after the facts line. */
+  augmented?: boolean;
 }
 
 /** The experiment a card is for, by its title where the wire has one. */
@@ -103,6 +106,7 @@ export function ScienceExperimentRow({
   onTransmitted,
   heldGrade,
   underPart,
+  augmented,
 }: Readonly<ScienceExperimentRowProps>) {
   const continuous = instrument.continuous === true;
   // The reply to one press that found the instrument already where it was sent; it holds only while the reading agrees.
@@ -295,6 +299,9 @@ export function ScienceExperimentRow({
             </>
           )}
         </Text>
+        {augmented && (
+          <AugmentSlot name="experiments.instrument" props={{ instrument }} />
+        )}
         {continuous && instrument.running === true && instrument.runIssue && (
           <Text level="muted" size="xs">
             {instrument.runIssue}

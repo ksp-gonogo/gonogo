@@ -868,16 +868,17 @@ export interface ExperimentsInstrument {
 
 /**
  * Props passed to every `experiments.instrument` augment, once for each stock
- * instrument row in the Experiments widget. The augment draws directly after
- * the row inside a list, so render a list item. Instruments that come from the
- * `experiments.instruments` contribution slot get no augment.
- * Useful for adding detail under an instrument's row. Used by the Experiments
- * widget.
+ * instrument row in the Experiments widget. The augment draws inside the
+ * instrument's card, after its facts line, so render inline content such as a
+ * line of text or a small cluster, never a list item. Instruments that come
+ * from the `experiments.instruments` contribution slot get no augment.
+ * Useful for adding a line of detail to an instrument's card. Used by the
+ * Experiments widget.
  *
  * @category Widget slots
  */
 export interface ExperimentsInstrumentSlotContext {
-  /** The instrument whose row this follows. */
+  /** The instrument whose card this sits in. */
   instrument: ExperimentsInstrument;
 }
 
@@ -1182,10 +1183,10 @@ declare module "./types" {
     "landing-status.actions": Record<string, never>;
 
     /**
-     * A row after each stock instrument in the Experiments widget's list, for
-     * detail of your own about that instrument. It sits inside the list, so
-     * render a list item. Instruments from the `experiments.instruments`
-     * contribution slot get none. Passes an
+     * A line inside each stock instrument's card in the Experiments widget,
+     * after the card's facts line, for detail of your own about that
+     * instrument. Render inline content, not a list item. Instruments from the
+     * `experiments.instruments` contribution slot get none. Passes an
      * {@link ExperimentsInstrumentSlotContext}.
      */
     "experiments.instrument": ExperimentsInstrumentSlotContext;

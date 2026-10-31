@@ -115,6 +115,34 @@ describe("Experiments: augment slots", () => {
     expect(augment.textContent).toBe("LAB: Mystery Goo");
   });
 
+  it("draws the per-instrument augment inside that instrument's card, after its facts line", async () => {
+    function InlineAugment() {
+      return <span data-testid="sci-inline-augment">EARNING</span>;
+    }
+    await renderFullList();
+
+    act(() => {
+      registerAugment({
+        id: "test-sci-inline",
+        augments: "experiments.instrument",
+        component: InlineAugment,
+      });
+    });
+
+    const augment = await screen.findByTestId("sci-inline-augment");
+    const card = augment.closest("li");
+    expect(card).not.toBeNull();
+    // The card is the instrument's own: its title and its facts line are in the same element.
+    expect(card?.textContent).toContain(INSTRUMENT.expId);
+    const facts = screen.getByText(/Holds data/);
+    expect(card?.contains(facts)).toBe(true);
+    expect(
+      facts.compareDocumentPosition(augment) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // No second list item for the augment: one card, one li.
+    expect(card?.parentElement?.children.length).toBe(1);
+  });
+
   it("renders a test augment bound to the header actions segment", async () => {
     // A propless header segment, mounted by `Panel` from the widget's identity alone.
     function ActionsAugment() {
