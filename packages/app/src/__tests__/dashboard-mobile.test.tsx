@@ -403,10 +403,10 @@ describe("Dashboard: mobile / touch path", () => {
       .closest("[data-mobile-height]");
     expect(tallCell?.getAttribute("data-mobile-height")).toBe("320");
 
-    // Fallback: the desktop grid's height for a 4-row tile, 4 * 33 - 20 = 112.
+    // Fallback: defaultSize.h (4) * ROW_HEIGHT (25) = 100.
     const defaultCell = screen
       .getByTestId("default-body")
       .closest("[data-mobile-height]");
-    expect(defaultCell?.getAttribute("data-mobile-height")).toBe("112");
+    expect(defaultCell?.getAttribute("data-mobile-height")).toBe("100");
   });
 });

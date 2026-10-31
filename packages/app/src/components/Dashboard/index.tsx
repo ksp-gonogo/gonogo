@@ -26,7 +26,7 @@ export interface DashboardItem {
   mobileWidth?: "full" | "half";
   /**
    * Per-instance override for the mobile-layout height. `"full"` uses
-   * the component's `mobileHeight` (or the height `defaultSize.h` rows have in the desktop grid);
+   * the component's `mobileHeight` (or `defaultSize.h * ROW_HEIGHT`);
    * `"half"` halves it so two short widgets can share a row alongside
    * a half-width neighbour. Toggled by the height button next to the
    * width toggle.

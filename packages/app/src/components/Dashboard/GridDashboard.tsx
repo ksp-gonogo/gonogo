@@ -28,7 +28,7 @@ export const GRID_GAP = 20;
  * rows tall is `33h - GRID_GAP` px, the gap now taken out of the tile and not
  * added to the page.
  */
-export const ROW_PITCH = 33;
+const ROW_PITCH = 33;
 
 /**
  * The grid width, in px, past which rows grow. Up to it a row keeps the 33px
