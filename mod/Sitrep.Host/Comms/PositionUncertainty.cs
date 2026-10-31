@@ -20,6 +20,23 @@ namespace Sitrep.Host.Comms
         private const int GravityTableSteps = 4096;
 
         /// <summary>
+        /// The least deceleration, in metres per second squared, the air is allowed
+        /// to add to a craft's motion in a gap: a parachute opening is a few times
+        /// gravity. A first value awaiting a measurement on the rig.
+        /// </summary>
+        public const double AeroFloorAccelerationMs2 = 50.0;
+
+        /// <summary>
+        /// The speed at which a blunt craft with no parachute stops gaining speed
+        /// falling through air at sea level, in metres per second. A first value
+        /// awaiting a measurement on the rig, taken low so the bound is never under
+        /// the drag of a capsule at speed.
+        /// </summary>
+        public const double BluntTerminalSpeedMs = 100.0;
+
+        private const double StandardGravityMs2 = 9.80665;
+
+        /// <summary>
         /// The gravity factor of a circular orbit at each step of its first
         /// turn: the most a velocity change applied up to that many radians of
         /// mean motion earlier has moved the craft, per m/s per second.
@@ -75,6 +92,10 @@ namespace Sitrep.Host.Comms
             {
                 return burning.RadiusM;
             }
+            if (known.Surface == null && capability.AirspeedMs != null && known.Orbit != null && PlacePrediction.PlaceAt(known, ut) is { } airborne)
+            {
+                return airborne.RadiusM;
+            }
             var airborneOrGrounded = known.Surface != null || capability.AirspeedMs != null;
             if (airborneOrGrounded && capability.DrivenWithoutPropellant)
             {
@@ -88,6 +109,18 @@ namespace Sitrep.Host.Comms
             }
             var gravity = Gravity(known.Orbit!.Value, elapsed);
             return gravity == null ? null : gravity * pushed + air;
+        }
+
+        /// <summary>
+        /// The most the air can slow or turn a craft moving at
+        /// <paramref name="airspeed"/>, in metres per second squared: drag grows
+        /// with the square of speed, so at the speed a blunt craft would fall at
+        /// it equals gravity, and below that the floor holds.
+        /// </summary>
+        public static double AeroAcceleration(double airspeed)
+        {
+            var ratio = airspeed / BluntTerminalSpeedMs;
+            return Math.Max(AeroFloorAccelerationMs2, StandardGravityMs2 * ratio * ratio);
         }
 
         /// <summary>

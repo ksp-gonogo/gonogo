@@ -113,11 +113,40 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         [Fact]
-        public void ACraftBurningInAnAtmosphereIsNotPlaced()
+        public void ACraftBurningInAnAtmosphereIsCarriedOnItsHeldThrustAndWheelsOrRotorsAreNotPlaced()
         {
-            var known = Heard(new CraftCapability(2000.0, 10.0, 150.0, false, true, new ThrustAcceleration(10.0, 0.0, 0.0)));
+            var thrust = new ThrustAcceleration(10.0, 0.0, 0.0);
+            var known = Heard(new CraftCapability(2000.0, 10.0, 150.0, false, true, thrust));
 
-            Assert.Null(PlacePrediction.PlaceAt(known, 1060.0));
+            var place = PlacePrediction.PlaceAt(known, 1060.0)!.Value;
+
+            Assert.Equal(CraftPlaceBasis.Burning, place.Place.Basis);
+            Assert.True(Distance(place.Place.Position, new KeplerProvider().Solve(PropagationTarget.Vessel(Probe, 1, LowOrbit), 1060.0).Position) > 1_000.0);
+            Assert.Null(PlacePrediction.PlaceAt(Heard(new CraftCapability(2000.0, 10.0, 150.0, true, true, thrust)), 1060.0));
+        }
+
+        [Fact]
+        public void ACraftCoastingInAnAtmosphereIsWhereItsOrbitPutsItWithTheAirsRadius()
+        {
+            var known = Heard(new CraftCapability(0.0, 0.0, 150.0, false, false));
+
+            var place = PlacePrediction.PlaceAt(known, 1001.0)!.Value;
+
+            Assert.Equal(CraftPlaceBasis.Coasting, place.Place.Basis);
+            Assert.Equal(0.0, Distance(place.Place.Position, new KeplerProvider().Solve(PropagationTarget.Vessel(Probe, 1, LowOrbit), 1001.0).Position), 6);
+            Assert.True(place.RadiusM > 0.5 * PositionUncertainty.AeroFloorAccelerationMs2 - 1e-9);
+            Assert.Equal(0.0, PlacePrediction.PlaceAt(known, 1000.0)!.Value.RadiusM);
+        }
+
+        [Fact]
+        public void ACraftInAnAtmosphereWhoseThrustIsUnknownIsPlacedOnItsOrbitWithTheEnginesInTheRadius()
+        {
+            var known = Heard(new CraftCapability(2000.0, 30.0, 150.0, false, true));
+
+            var place = PlacePrediction.PlaceAt(known, 1001.0)!.Value;
+
+            Assert.Equal(CraftPlaceBasis.Coasting, place.Place.Basis);
+            Assert.True(place.RadiusM >= 0.5 * 30.0);
         }
 
         [Fact]

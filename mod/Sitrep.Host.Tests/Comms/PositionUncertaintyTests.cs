@@ -168,12 +168,62 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Equal(0.0, PositionUncertainty.Bound(Orbiting(parabolic, Can(0.0, 0.0)), 1000.0, 1060.0));
         }
 
+        /// <summary>The gravity factor of a circular reading at the craft's own radius after the gap, as the airborne bound applies it.</summary>
+        private static double LowOrbitGravity(double elapsed) =>
+            PositionUncertainty.CircularGravityAt(Math.Sqrt(KerbinMu / Math.Pow(700_000.0, 3.0)) * elapsed);
+
         [Fact]
-        public void InAnAtmosphereDragAndLiftCanTurnTheWholeAirspeedAround()
+        public void InAnAtmosphereTheAirCanOnlyStopTheCraftAndWheelsMakeItUnknown()
         {
-            // No delta-v, 100 m/s through the air: 2 × 100 × 30 = 6 000 m.
-            Assert.Equal(6_000.0, PositionUncertainty.Bound(Orbiting(LowOrbit, Can(0.0, 0.0, airspeed: 100.0)), 1000.0, 1030.0)!.Value, 6);
-            Assert.Null(PositionUncertainty.Bound(Orbiting(LowOrbit, Can(0.0, 0.0, airspeed: 100.0, driven: true)), 1000.0, 1030.0));
+            // No delta-v, 100 m/s through the air, 50 m/s² of air for 30 s: stopped after 2 s, so 100 × 30 - 100² / 100 = 2 900 m.
+            var expected = LowOrbitGravity(30.0) * 2_900.0;
+            Assert.Equal(expected, PositionUncertainty.Bound(Orbiting(LowOrbit, Can(0.0, 0.0, airspeed: 100.0, thrusting: false)), 1000.0, 1030.0)!.Value, 6);
+            Assert.Null(PositionUncertainty.Bound(Orbiting(LowOrbit, Can(0.0, 0.0, airspeed: 100.0, driven: true, thrusting: false)), 1000.0, 1030.0));
+        }
+
+        [Fact]
+        public void AClimbingCraftIsWithinMetresAfterASecondNotAKilometre()
+        {
+            // 30 m/s² of engine and 50 m/s² of air for 1 s: 15 + 25 = 40 m, where twice the airspeed through the gap gave 1 200 m.
+            var climbing = Orbiting(LowOrbit, new CraftCapability(2000.0, 30.0, 600.0, false, true, new ThrustAcceleration(30.0, 0.0, 0.0)));
+
+            var radius = PositionUncertainty.Bound(climbing, 1000.0, 1001.0)!.Value;
+
+            Assert.Equal(LowOrbitGravity(1.0) * (15.0 + PositionUncertainty.FreeFall(600.0, PositionUncertainty.AeroAcceleration(600.0), 1.0)), radius, 6);
+            Assert.True(radius < 1_200.0);
+        }
+
+        [Fact]
+        public void ACraftTenSecondsOldInTheAirGrowsAsTheSquareOfTheGapNotTheGap()
+        {
+            // 200 m/s with the 50 m/s² floor of air. The engine can move it 30 × 10² / 2 = 1 500 m; the air stops it after 4 s: 200 × 10 - 200² / 100 = 1 600 m. Together 3 100 m, where twice the airspeed through the gap gave 4 000 m.
+            var climbing = Orbiting(LowOrbit, new CraftCapability(2000.0, 30.0, 200.0, false, true, new ThrustAcceleration(30.0, 0.0, 0.0)));
+
+            Assert.Equal(LowOrbitGravity(10.0) * 3_100.0, PositionUncertainty.Bound(climbing, 1000.0, 1010.0)!.Value, 6);
+        }
+
+        [Fact]
+        public void AFastLowCraftTenSecondsOldIsInsideTheBoundWhenAnythingAsDraggyAsACapsuleSlowsIt()
+        {
+            // 600 m/s at 2 km with a craft that falls at 100 m/s at sea level: drag is v² g / 100² of air density 0.7 of sea level.
+            const double v0 = 600.0;
+            var k = 9.80665 * 0.7 / (100.0 * 100.0);
+            var travelled = Math.Log(1.0 + k * v0 * 10.0) / k;
+            var deviation = v0 * 10.0 - travelled;
+
+            var radius = PositionUncertainty.Bound(Orbiting(LowOrbit, Can(0.0, 0.0, airspeed: v0, thrusting: false)), 1000.0, 1010.0)!.Value;
+
+            Assert.True(deviation < radius, $"deviation {deviation:F0} m is outside the bound {radius:F0} m");
+            Assert.True(radius < 2.0 * v0 * 10.0, "it is tighter than twice the airspeed through the gap");
+        }
+
+        [Fact]
+        public void ACraftThatOpensAParachuteInTheGapEndsInsideTheBoundAfterASecond()
+        {
+            // 100 m/s, a canopy that decelerates it at 30 m/s² for the second: 15 m off the coast path, inside 25 m.
+            var radius = PositionUncertainty.Bound(Orbiting(LowOrbit, Can(0.0, 0.0, airspeed: 100.0, thrusting: false)), 1000.0, 1001.0)!.Value;
+
+            Assert.True(0.5 * 30.0 * 1.0 < radius);
         }
 
         [Fact]
@@ -185,6 +235,8 @@ namespace Sitrep.Host.Tests.Comms
             // 100 m/s at 5 m/s² is still burning after 10 s: 5 × 10² / 2 = 250 m.
             Assert.Equal(250.0, PositionUncertainty.Bound(landed.WithCapability(Can(100.0, 5.0)), 1000.0, 1010.0)!.Value, 6);
             Assert.Null(PositionUncertainty.Bound(landed.WithCapability(Can(0.0, 0.0, driven: true)), 1000.0, 1010.0));
+            // On the pad with no airspeed yet, and still on the ground with some, the bound is the same push and no air.
+            Assert.Equal(250.0, PositionUncertainty.Bound(landed.WithCapability(Can(100.0, 5.0, airspeed: 0.0)), 1000.0, 1010.0)!.Value, 6);
         }
 
         [Fact]
