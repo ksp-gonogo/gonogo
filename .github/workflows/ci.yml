@@ -101,8 +101,11 @@ jobs:
       - name: Playwright e2e (${{ matrix.browser }})
         run: pnpm exec playwright test --project=${{ matrix.browser }}
 
-      - name: Upload Playwright traces on failure
-        if: failure()
+      # Firefox keeps its traces on a green run too: a test that failed its
+      # first attempt and passed the retry leaves its first-attempt trace in
+      # test-results/, and only this artifact carries it.
+      - name: Upload Playwright traces
+        if: ${{ !cancelled() && (failure() || matrix.browser == 'firefox') }}
         uses: actions/upload-artifact@v4
         with:
           name: playwright-traces-${{ matrix.browser }}

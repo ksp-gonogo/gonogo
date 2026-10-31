@@ -198,6 +198,7 @@ export default defineConfig({
         VITE_PEER_PORT: String(BROKER_PORT),
         VITE_PEER_PATH: "/myapp",
         VITE_PEER_SECURE: "false",
+        VITE_E2E_SOCKET_TRACE: "true",
         // Point the app's relay client (relayAddress.ts) at the test relay rather than the dev default (localhost:3002).
         VITE_RELAY_URL: `http://localhost:${RELAY_PORT}`,
       },
@@ -220,6 +221,7 @@ export default defineConfig({
         VITE_PEER_PORT: String(BROKER_PORT),
         VITE_PEER_PATH: "/myapp",
         VITE_PEER_SECURE: "false",
+        VITE_E2E_SOCKET_TRACE: "true",
         VITE_RELAY_URL: `http://localhost:${RELAY_PORT}`,
       },
     },
@@ -236,6 +238,7 @@ export default defineConfig({
         VITE_PEER_PORT: String(BROKER_PORT),
         VITE_PEER_PATH: "/myapp",
         VITE_PEER_SECURE: "false",
+        VITE_E2E_SOCKET_TRACE: "true",
         VITE_RELAY_URL: `http://localhost:${RELAY_PORT}`,
       },
     },

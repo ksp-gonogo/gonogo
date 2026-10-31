@@ -40,6 +40,7 @@ import { deriveHostPeerId } from "./hostPeerId";
 import { attachIceDiagnostics } from "./iceDiagnostics";
 import { MessageDispatcher } from "./MessageDispatcher";
 import { peerBrokerOptions } from "./peerOptions";
+import { traceBrokerSocket } from "./peerSocketTrace";
 import type { HostLayout, PeerMessage } from "./protocol";
 import { asPeerMessage, HOST_HEARTBEAT_MS } from "./protocol";
 import { RelayRegistration } from "./RelayRegistration";
@@ -709,6 +710,7 @@ export class PeerHostService {
       config: { iceServers: STUN_SERVERS },
     });
     this.peer = peer;
+    traceBrokerSocket(peer, `host ${this.shareCode}`);
 
     this.peer.on("open", (id) => {
       this.peerId = id;

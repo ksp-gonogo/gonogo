@@ -11,6 +11,8 @@ declare const __GONOGO_CONTRACT_MAJOR__: number;
 declare const __GONOGO_CONTRACT_MINOR__: number;
 
 interface ImportMetaEnv {
+  /** Set to "true" by the Playwright dev servers to log each host broker socket's state. */
+  readonly VITE_E2E_SOCKET_TRACE?: string;
   readonly VITE_AXIOM_TOKEN?: string;
   /**
    * Set to "true" to show the developer-only settings (verbose logging, the
