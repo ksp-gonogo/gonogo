@@ -373,4 +373,92 @@ describe("Rendezvous: augment slots", () => {
     );
     expect(screen.getByTestId("cam").textContent).toBe("cam=7");
   });
+
+  describe("after a dock clears the target", () => {
+    function openDockingHud(config: Record<string, unknown>) {
+      registerAugment<"rendezvous.camera">({
+        id: "test-camera",
+        augments: "rendezvous.camera",
+        component: () => <div data-testid="cam" />,
+      });
+      const fixture = setupStreamFixture({ suspendFrames: true });
+      renderWidget(fixture, config, { w: 12, h: 9 });
+      act(() => {
+        fixture.emit("vessel.target", {
+          name: "Test Station",
+          kind: KIND.Vessel,
+          relativePosition: atRange(2),
+          relativeVelocity: atRange(-0.5),
+        });
+        fixture.emit("vessel.dock", {
+          relativePosition: atRange(2),
+          relativeVelocity: atRange(-0.5),
+          distance: 2,
+          forwardDot: 0.99,
+        });
+      });
+      return fixture;
+    }
+
+    it("keeps the camera mounted behind the no-target notice", async () => {
+      const fixture = openDockingHud({});
+      await waitFor(() =>
+        expect(screen.getByTestId("cam")).toBeInTheDocument(),
+      );
+      const cam = screen.getByTestId("cam");
+
+      act(() => {
+        fixture.emit("vessel.target", null);
+      });
+
+      await waitFor(() =>
+        expect(screen.getByText("No target set in KSP")).toBeInTheDocument(),
+      );
+      expect(screen.getByTestId("cam")).toBeInTheDocument();
+      expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull();
+      expect(cam.isConnected).toBe(true);
+    });
+
+    it("shows no camera when the target was never in docking range", async () => {
+      registerAugment<"rendezvous.camera">({
+        id: "test-camera",
+        augments: "rendezvous.camera",
+        component: () => <div data-testid="cam" />,
+      });
+      const fixture = setupStreamFixture({ suspendFrames: true });
+      renderWidget(fixture, {}, { w: 12, h: 9 });
+      act(() => {
+        fixture.emit("vessel.target", {
+          name: "Far",
+          kind: KIND.Vessel,
+          relativePosition: atRange(5000),
+          relativeVelocity: atRange(-0.5),
+        });
+      });
+      await waitFor(() => expect(visibleText()).toContain("Far"));
+      act(() => {
+        fixture.emit("vessel.target", null);
+      });
+      await waitFor(() =>
+        expect(screen.getByText("No target set in KSP")).toBeInTheDocument(),
+      );
+      expect(screen.queryByTestId("cam")).toBeNull();
+    });
+
+    it("shows no camera in the HUD-only variant", async () => {
+      const fixture = openDockingHud({ hudMode: "hud" });
+      await waitFor(() =>
+        expect(
+          screen.getByRole("region", { name: /Docking HUD/ }),
+        ).toBeInTheDocument(),
+      );
+      act(() => {
+        fixture.emit("vessel.target", null);
+      });
+      await waitFor(() =>
+        expect(screen.getByText("No target set in KSP")).toBeInTheDocument(),
+      );
+      expect(screen.queryByTestId("cam")).toBeNull();
+    });
+  });
 });

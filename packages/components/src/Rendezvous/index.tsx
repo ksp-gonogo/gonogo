@@ -2,6 +2,7 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent } from "@ksp-gonogo/core";
 import type { TinyEssential } from "@ksp-gonogo/sitrep-sdk";
 import { EmptyState } from "@ksp-gonogo/ui-kit";
+import { useEffect, useRef } from "react";
 import { closingRateReading, rangeReading } from "../shared/dockAngles";
 import { ApproachHud } from "./ApproachHud";
 import type { DockingHudMode, RendezvousConfig } from "./config";
@@ -55,6 +56,21 @@ function RendezvousComponent({
     targetState,
   });
 
+  // View choice is distance-driven, but the chrome still backs off in a small slot.
+  const rows = h ?? 5;
+  const cols = w ?? 6;
+
+  /*
+   * KSP clears the target the moment a dock completes. The docking camera
+   * outlives that (the port's camera stays on the merged vessel), so the
+   * picture stays up while the target is absent, until a target is set again
+   * or the camera leaves the roster.
+   */
+  const wasDocking = useRef(false);
+  useEffect(() => {
+    if (targetState !== "absent") wasDocking.current = mode === "docking-hud";
+  }, [mode, targetState]);
+
   if (targetState === "pending") {
     return (
       <TargetPanel>
@@ -74,16 +90,38 @@ function RendezvousComponent({
 
   // A cleared target arrives as a tombstone; `tarName === undefined` guards a record without a name.
   if (targetState === "absent" || tarName === undefined) {
+    if (
+      targetState === "absent" &&
+      wasDocking.current &&
+      hudMode === "hud-with-camera"
+    ) {
+      return (
+        <DockingHud
+          name=""
+          distance={undefined}
+          figuresReading={undefined}
+          relVel={undefined}
+          ax={undefined}
+          ay={undefined}
+          az={undefined}
+          x={undefined}
+          y={undefined}
+          forwardDot={undefined}
+          modelled={undefined}
+          showCamera
+          cleared
+          cameraFlightId={config?.cameraFlightId}
+          cols={cols}
+          rows={rows}
+        />
+      );
+    }
     return (
       <TargetPanel>
         <EmptyState>No target set in KSP</EmptyState>
       </TargetPanel>
     );
   }
-
-  // View choice is distance-driven, but the chrome still backs off in a small slot.
-  const rows = h ?? 5;
-  const cols = w ?? 6;
 
   if (mode === "docking-hud") {
     return (

@@ -3,6 +3,7 @@ import type { ReckoningBasis } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Cluster,
+  EmptyState,
   FramedDisplay,
   Grid,
   NULL_DISPLAY,
@@ -36,6 +37,12 @@ interface DockingHudProps {
   /** Present when the separation was carried forward rather than observed, with the model's basis. */
   modelled: { basis: ReckoningBasis } | undefined;
   showCamera: boolean;
+  /**
+   * The target is gone (a dock completed). The camera slot stays where it was so
+   * its picture is not torn down; the readouts and reticle give way to the
+   * no-target notice.
+   */
+  cleared?: boolean;
   cameraFlightId: number | null | undefined;
   cols: number;
   rows: number;
@@ -59,6 +66,7 @@ export function DockingHud(props: DockingHudProps) {
     forwardDot,
     modelled,
     showCamera,
+    cleared = false,
     cameraFlightId,
     cols,
     rows,
@@ -122,7 +130,9 @@ export function DockingHud(props: DockingHudProps) {
     cameraFlightId,
   };
 
-  const readouts = (
+  const readouts = cleared ? (
+    <EmptyState>No target set in KSP</EmptyState>
+  ) : (
     <div>
       <Cluster
         justify="between"
@@ -262,7 +272,7 @@ export function DockingHud(props: DockingHudProps) {
   return (
     <Panel
       role="region"
-      aria-label={`Docking HUD for ${name}`}
+      aria-label={cleared ? undefined : `Docking HUD for ${name}`}
       panelTitle="DOCKING"
       // The frame is the body, alone, and the readouts are the panel's aside; a tile too small for a frame keeps the readouts as its body.
       panelSidebar={showViewport ? readouts : undefined}
@@ -286,20 +296,26 @@ export function DockingHud(props: DockingHudProps) {
                     "radial-gradient(circle at center, rgba(0, 255, 136, 0.08) 0%, rgba(0, 0, 0, 0.3) 70%)",
                 }}
               >
-                <Crosshair />
-                <Reticle
-                  aligned={aligned}
-                  left={along(dx, layer.w / 2)}
-                  top={along(dy, layer.h / 2)}
-                />
+                {!cleared && <Crosshair />}
+                {!cleared && (
+                  <Reticle
+                    aligned={aligned}
+                    left={along(dx, layer.w / 2)}
+                    top={along(dy, layer.h / 2)}
+                  />
+                )}
                 {/* Axis ticks at half and full travel give the pilot the scale, the same on both axes. */}
-                {[-1, -0.5, 0.5, 1].map((units) => (
-                  <HorizTick key={`h${units}`} left={tick(units)} />
-                ))}
-                {[-1, -0.5, 0.5, 1].map((units) => (
-                  <VertTick key={`v${units}`} top={tick(units)} />
-                ))}
-                <AugmentSlot name="rendezvous.overlay" props={hudContext} />
+                {!cleared &&
+                  [-1, -0.5, 0.5, 1].map((units) => (
+                    <HorizTick key={`h${units}`} left={tick(units)} />
+                  ))}
+                {!cleared &&
+                  [-1, -0.5, 0.5, 1].map((units) => (
+                    <VertTick key={`v${units}`} top={tick(units)} />
+                  ))}
+                {!cleared && (
+                  <AugmentSlot name="rendezvous.overlay" props={hudContext} />
+                )}
               </div>
             </FramedDisplay>
           </Section>

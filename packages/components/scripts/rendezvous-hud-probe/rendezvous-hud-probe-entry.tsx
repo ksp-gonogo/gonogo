@@ -90,6 +90,8 @@ export interface RendezvousHudProbePayload {
   pinnedUt?: number;
   /** Replayed in order, one `StubTransport.emit` per entry, post-mount. */
   emits: RendezvousHudProbeEmit[];
+  /** Replayed after the widget has settled on `emits`, for a change that has to land on a view already showing. */
+  thenEmits?: RendezvousHudProbeEmit[];
   /** Widget config for this render; `hudMode` is what mounts the camera slot. */
   config: Record<string, unknown>;
   /** Grid units passed to the widget (`w`/`h` props), gate its layout branches. */
@@ -213,6 +215,16 @@ async function renderRendezvousHudProbe(
   await rafTick();
   await rafTick();
   await settle(250);
+
+  for (const e of payload.thenEmits ?? []) {
+    streamFixture.emit(e.channel, e.value);
+    await rafTick();
+  }
+  if (payload.thenEmits?.length) {
+    await rafTick();
+    await rafTick();
+    await settle(250);
+  }
 }
 
 declare global {
