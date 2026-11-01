@@ -6,7 +6,7 @@
  * rather than closing, as it does when the main screen's tab vanishes.
  */
 
-import { ws } from "msw";
+import { HttpResponse, http, ws } from "msw";
 import { setupServer } from "msw/node";
 import {
   afterAll,
@@ -187,6 +187,9 @@ function serveEndpoint() {
     );
   };
   server.use(
+    http.get("http://localhost:3002/bootstrap-config", () =>
+      HttpResponse.json({ kspHost: null, stationEndpoint: true }),
+    ),
     link.addEventListener("connection", ({ client }) => {
       socket = client;
       bySid.clear();

@@ -120,6 +120,7 @@ export class EndpointStations {
   private readonly links = new Map<number, EndpointConnection>();
   private readonly pending = new Map<number, PendingJoin>();
   private busy = false;
+  private probing = false;
   private readonly events = new TypedListeners<{
     available: [up: boolean];
     heldElsewhere: [held: boolean];
@@ -129,6 +130,8 @@ export class EndpointStations {
     private readonly url: () => string,
     private readonly busyRetryMs = BUSY_RETRY_MS,
     private readonly aliveMs = ALIVE_INTERVAL_MS,
+    /** Asked before each socket is opened: false means the relay has no endpoint and no socket is opened, null means the relay could not be asked and the attempt is retried. Without it the socket is opened at once. */
+    private readonly probe?: () => Promise<boolean | null>,
   ) {}
 
   /** Whether the endpoint turned this main screen away because another main screen holds it. */
@@ -245,6 +248,22 @@ export class EndpointStations {
 
   private connect(): void {
     if (this.stopped) return;
+    if (!this.probe) {
+      this.openSocket();
+      return;
+    }
+    if (this.probing) return;
+    this.probing = true;
+    void this.probe().then((has) => {
+      this.probing = false;
+      if (this.stopped || has === false) return;
+      if (has === null) this.scheduleRetry();
+      else this.openSocket();
+    });
+  }
+
+  private openSocket(): void {
+    if (this.stopped || this.socket) return;
     let socket: WebSocket;
     try {
       socket = new WebSocket(this.url());

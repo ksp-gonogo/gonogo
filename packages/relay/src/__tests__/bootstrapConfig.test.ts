@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 import { registerBootstrapConfigRoutes } from "../bootstrapConfig.js";
 
 describe("bootstrap-config route (fastify.inject)", () => {
-  async function buildApp(kspHost?: string | null) {
+  async function buildApp(kspHost?: string | null, stationEndpoint?: boolean) {
     const app = Fastify();
-    registerBootstrapConfigRoutes(app, { kspHost });
+    registerBootstrapConfigRoutes(app, { kspHost, stationEndpoint });
     await app.ready();
     return app;
   }
@@ -14,21 +14,31 @@ describe("bootstrap-config route (fastify.inject)", () => {
     const app = await buildApp("192.0.2.50");
     const res = await app.inject({ method: "GET", url: "/bootstrap-config" });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ kspHost: "192.0.2.50" });
+    expect(res.json()).toEqual({
+      kspHost: "192.0.2.50",
+      stationEndpoint: true,
+    });
     await app.close();
   });
 
   it("returns null when KSP_HOST is unset (public relay deployments)", async () => {
     const app = await buildApp(undefined);
     const res = await app.inject({ method: "GET", url: "/bootstrap-config" });
-    expect(res.json()).toEqual({ kspHost: null });
+    expect(res.json()).toEqual({ kspHost: null, stationEndpoint: true });
     await app.close();
   });
 
   it("normalises empty / whitespace-only values to null", async () => {
     const app = await buildApp("   ");
     const res = await app.inject({ method: "GET", url: "/bootstrap-config" });
-    expect(res.json()).toEqual({ kspHost: null });
+    expect(res.json()).toEqual({ kspHost: null, stationEndpoint: true });
+    await app.close();
+  });
+
+  it("reports a relay started without the station endpoint", async () => {
+    const app = await buildApp(null, false);
+    const res = await app.inject({ method: "GET", url: "/bootstrap-config" });
+    expect(res.json()).toEqual({ kspHost: null, stationEndpoint: false });
     await app.close();
   });
 });
