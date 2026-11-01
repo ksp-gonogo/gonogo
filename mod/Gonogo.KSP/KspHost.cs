@@ -3986,7 +3986,7 @@ namespace Gonogo.KSP
 
             double[]? relativePosition = null;
             var targetTransform = target.GetTransform();
-            var vesselTransform = vessel.GetTransform();
+            var vesselTransform = OwnRangeOrigin(vessel, target);
             if (targetTransform != null && vesselTransform != null)
             {
                 var relPos = (Vector3d)targetTransform.position - (Vector3d)vesselTransform.position;
@@ -4024,6 +4024,27 @@ namespace Gonogo.KSP
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// The point the target's range is measured from. For a docking port target while the
+        /// vessel is controlled from one of its own docking ports, that port's capture face
+        /// (<c>nodeTransform</c>, the same point the dock contact test and <c>vessel.dock</c> use),
+        /// so the range is face to face. Otherwise the vessel's own reference transform.
+        /// </summary>
+        private static Transform? OwnRangeOrigin(Vessel vessel, ITargetable target)
+        {
+            if (target is ModuleDockingNode)
+            {
+                var controlled = vessel.GetReferenceTransformPart();
+                var port = controlled != null ? controlled.FindModuleImplementing<ModuleDockingNode>() : null;
+                if (port != null && port.nodeTransform != null)
+                {
+                    return port.nodeTransform;
+                }
+            }
+
+            return vessel.GetTransform();
         }
 
         /// <summary>
