@@ -2333,10 +2333,6 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "graceSeconds");
             sb.Append(':');
             AppendNumber(sb, r.GraceSeconds);
-            sb.Append(',');
-            AppendString(sb, "generation");
-            sb.Append(':');
-            AppendInteger(sb, r.Generation);
             sb.Append('}');
         }
 

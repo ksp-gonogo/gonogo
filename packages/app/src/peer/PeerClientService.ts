@@ -10,7 +10,7 @@ import type { HostUplinkFailure } from "../uplinks/loadFailures";
 import { DeliveryMeter, deliveryChannel } from "./DeliveryMeter";
 import { EndpointHostLink } from "./endpointHostLink";
 import { joinMetadata, readJoin } from "./endpointJoin";
-import { deriveHostPeerIds } from "./hostPeerId";
+import { deriveHostPeerId } from "./hostPeerId";
 import { attachIceDiagnostics } from "./iceDiagnostics";
 import { MessageDispatcher } from "./MessageDispatcher";
 import { peerBrokerOptions } from "./peerOptions";
@@ -105,20 +105,11 @@ const BROKER_ERROR_TYPES = new Set([
   "ssl-unavailable",
 ]);
 
-/** The slot of the host ring a `peer-unavailable` error names, or -1 when it names some other peer. */
-function missingHostSlot(err: PeerJsError, hostPeerIds: string[]): number {
-  if (!err.message.startsWith(PEER_UNAVAILABLE_PREFIX)) return -1;
-  return hostPeerIds.indexOf(err.message.slice(PEER_UNAVAILABLE_PREFIX.length));
-}
-
-/** One broker id of the host ring this station is trying, with the links it may reach it by. */
-interface HostCandidate {
-  slot: number;
-  id: string;
-  /** The PeerJS data connection, once it is made. */
-  conn: (StationLink & { peerConnection?: RTCPeerConnection }) | null;
-  /** The endpoint link this station offered that host, until it opens or the host serves the data connection instead. */
-  endpoint: { id: string; link: EndpointHostLink } | null;
+function isMissingHost(err: PeerJsError, hostPeerId: string | null): boolean {
+  if (!hostPeerId) return true;
+  if (!err.message.startsWith(PEER_UNAVAILABLE_PREFIX)) return false;
+  const target = err.message.slice(PEER_UNAVAILABLE_PREFIX.length);
+  return target === hostPeerId;
 }
 
 /** Re-exported at its historical home so existing importers keep working. */
@@ -174,7 +165,7 @@ type ClientEventMap = {
   hostUplinks: [uplinks: RunningUplink[] | null];
   hostUplinkFailures: [failures: HostUplinkFailure[]];
   flightListChange: [];
-  hostUnavailable: [shareCode: string];
+  hostUnavailable: [hostPeerId: string];
   superseded: [superseded: boolean];
   approval: [approval: StationApproval];
   writeRefused: [refused: string];
@@ -207,12 +198,8 @@ export class PeerClientService {
   private conn: (StationLink & { peerConnection?: RTCPeerConnection }) | null =
     null;
   private lastHostMessageAt = 0;
-  /** The ring of host ids tried this attempt, one candidate each. */
-  private readonly candidates = new Map<number, HostCandidate>();
-  /** Slots the broker reported no such peer for this attempt. */
-  private readonly unavailableSlots = new Set<number>();
-  /** The generation the host this station is joined to said in its hello, or -1 before it has. */
-  private hostGeneration = -1;
+  /** The endpoint link this station offered the main screen, until it opens or the main screen serves the data connection instead. */
+  private pendingEndpoint: { id: string; link: EndpointHostLink } | null = null;
   private silenceTimer: ReturnType<typeof setInterval> | null = null;
   /** This station's own pace while connected, reported to the host every other silence check. */
   private readonly pace = new PaceMonitor();
@@ -220,12 +207,10 @@ export class PeerClientService {
   private silenceChecks = 0;
   private attemptTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly attemptDeadlineMs: number;
-  /** The broker ids a host under the operator-typed share code may hold
-   *  (`gonogo-host-<CODE>-<slot>`), derived in `connect()`. Stable across
-   *  the session and read by `openPeer()` as the reconnect targets, a host
-   *  that refreshed or was replaced is reconnected to transparently. */
-  private hostPeerIds: string[] = [];
-  /** The broker id of the host this station is joined to, null before it has chosen one. */
+  /** The host's broker peer id, derived from the operator-typed share-code
+   *  (`gonogo-host-<CODE>`) in `connect()`. Stable across the session and
+   *  read by `openPeer()` as the reconnect target, a host that refreshed
+   *  and re-claimed the same derived id is reconnected to transparently. */
   private hostPeerId: string | null = null;
   /** Fresh per `openPeer()` call. Reusing the same id across retries
    *  collides with the broker's id-hold (~30–60 s) when a previous
@@ -348,7 +333,7 @@ export class PeerClientService {
       retryTimeoutMs,
       // Always read the *current* peer id, a closure capture of the initial value would log a stale id after the first regeneration.
       stationPeerId: () => this.stationPeerId,
-      hostPeerId: () => this.hostPeerId ?? this.hostPeerIds[0] ?? null,
+      hostPeerId: () => this.hostPeerId,
       tearDown: () => this.tearDownPeer(),
       rejectPending: (reason) => this.rejectPendingQueries(reason),
       emitStatus: (status) => this.emitConnStatus(status),
@@ -374,12 +359,7 @@ export class PeerClientService {
    * never opened, retries ended) stays stopped.
    */
   private readonly onPageShow = (event: PageTransitionEvent) => {
-    if (
-      !event.persisted ||
-      this.hostPeerIds.length === 0 ||
-      this.shareCode === null
-    )
-      return;
+    if (!event.persisted || !this.hostPeerId || this.shareCode === null) return;
     if (this.connStatus === "idle" || this.connStatus === "disconnected")
       return;
     this.connect(this.shareCode);
@@ -393,13 +373,13 @@ export class PeerClientService {
       window.removeEventListener("pageshow", this.onPageShow);
       window.addEventListener("pageshow", this.onPageShow);
     }
-    // `code` is the operator-typed share code. Derive the host's ring of
-    // broker peer ids once and hold them as the reconnect targets.
+    // `code` is the operator-typed share code. Derive the host's broker peer
+    // id (`gonogo-host-<CODE>`) once and hold it as the reconnect target.
     this.shareCode = code;
     this.setSuperseded(false);
     this.setApproval("unknown");
-    this.hostPeerIds = deriveHostPeerIds(code);
-    this.hostPeerId = null;
+    this.hostPeerId = deriveHostPeerId(code);
+    logger.setIdentity({ hostPeerId: this.hostPeerId });
     this.retryPolicy.beginConnect();
     this.tearDownPeer();
     this.hostChannelStalls = 0;
@@ -410,13 +390,13 @@ export class PeerClientService {
   }
 
   /**
-   * Open this station's Peer, then connect straight to every id of the host's
-   * ring once the broker handshake completes (inside `peer.on("open")`).
-   * There's no resolve hop: the targets are `gonogo-host-<shareCode>-<slot>`,
-   * known synchronously from the typed code.
+   * Open this station's Peer, then connect straight to the host's derived
+   * id once the broker handshake completes (inside `peer.on("open")`).
+   * There's no resolve hop: the target is `gonogo-host-<shareCode>`, known
+   * synchronously from the typed code.
    */
   private openPeer() {
-    if (this.hostPeerIds.length === 0) return;
+    if (!this.hostPeerId) return;
     const { entered } = this.connectProgress;
     const hostMissing = this.hostMissingOnLastAttempt;
     this.hostMissingOnLastAttempt = false;
@@ -444,11 +424,11 @@ export class PeerClientService {
       logger.setIdentity({ peerId: this.stationPeerId });
     }
     logger.info(
-      `[PeerClient] opening peer as ${this.stationPeerId} (host=${this.hostPeerIds[0]?.replace(/-\d+$/, "")})`,
+      `[PeerClient] opening peer as ${this.stationPeerId}` +
+        (this.hostPeerId
+          ? ` (host=${this.hostPeerId})`
+          : " (resolving host...)"),
     );
-    this.unavailableSlots.clear();
-    this.hostPeerId = null;
-    this.hostGeneration = -1;
     this.emitConnStatus("connecting");
     this.connectProgress = {
       ...this.connectProgress,
@@ -486,94 +466,42 @@ export class PeerClientService {
         if (answered) this.setBrokerClosed(true);
         else this.setBrokerReachable(false);
       }
-      /*
-       * PeerJS emits `peer-unavailable` on the *Peer* (not the conn) when any
-       * outgoing peer.connect() targets a missing id, so the error is matched
-       * to its slot. An id of the ring with no host on it is expected: the
-       * host holds one slot of four. A failed auxiliary connect on this Peer
-       * would otherwise tear down a live host conn here.
-       */
-      if (isPeerJsError(err) && err.type === "peer-unavailable") {
-        const slot = missingHostSlot(err, this.hostPeerIds);
-        if (slot < 0) {
-          debugPeer("ignoring auxiliary peer-unavailable", {
-            message: err.message,
-          });
-          return;
-        }
-        this.dropCandidate(slot);
-        this.unavailableSlots.add(slot);
-        if (this.hostPeerId !== null) return;
-        if (this.unavailableSlots.size < this.hostPeerIds.length) {
-          this.afterCandidateLost();
-          return;
-        }
-        // Surface the "host not on broker" case explicitly so the connect
-        // screen can show a specific "couldn't find that code" message
-        // instead of the generic reconnecting spinner. Fires every retry
-        // while the host stays missing: listeners debounce as they like.
+      // PeerJS emits `peer-unavailable` on the *Peer* (not the conn) when
+      // any outgoing peer.connect() targets a missing id, so a failed
+      // auxiliary connect on this Peer would otherwise tear down our live
+      // host conn here.
+      // Only treat it as a host failure when the host is the missing peer.
+      if (
+        isPeerJsError(err) &&
+        err.type === "peer-unavailable" &&
+        !isMissingHost(err, this.hostPeerId)
+      ) {
+        debugPeer("ignoring auxiliary peer-unavailable", {
+          message: err.message,
+        });
+        return;
+      }
+      // Surface the "host not on broker" case explicitly so the connect
+      // screen can show a specific "couldn't find that code" message
+      // instead of the generic reconnecting spinner. Fires every retry
+      // while the host stays missing: listeners debounce as they like.
+      if (
+        isPeerJsError(err) &&
+        err.type === "peer-unavailable" &&
+        this.hostPeerId
+      ) {
         this.hostMissingOnLastAttempt = true;
-        this.events.emit("hostUnavailable", this.shareCode ?? "");
+        this.events.emit("hostUnavailable", this.hostPeerId);
       }
       this.retryPolicy.handlePeerError(err);
     });
   }
 
-  /**
-   * Join the host under the share code: one candidate per id of the ring, each
-   * offering the relay's endpoint as well. The data connection carries this
-   * station's offer for the endpoint, and a main screen running one answers
-   * with a connection of its own back to this station, which then joins
-   * through the endpoint. A main screen without one serves the data
-   * connection. A browser that cannot make an offer connects directly only.
-   *
-   * Only one host holds the role at a time, but an earlier one may still
-   * answer, so every candidate is watched: see {@link considerLink}.
-   */
-  private joinHost(peer: Peer): void {
-    this.hostPeerIds.forEach((id, slot) => {
-      const candidate: HostCandidate = {
-        slot,
-        id,
-        conn: null,
-        endpoint: null,
-      };
-      this.candidates.set(slot, candidate);
-      if (typeof RTCPeerConnection === "undefined") {
-        this.connectToHost(candidate);
-        return;
-      }
-      const link = new EndpointHostLink(id);
-      const offerId = `gne-${Math.random().toString(36).slice(2, 10)}`;
-      candidate.endpoint = { id: offerId, link };
-      link.createOffer().then(
-        (sdp) => {
-          if (this.peer !== peer || this.candidates.get(slot) !== candidate) {
-            return;
-          }
-          this.connectToHost(
-            candidate,
-            joinMetadata({ kind: "join", id: offerId, sdp }),
-          );
-        },
-        () => {
-          if (this.peer !== peer || this.candidates.get(slot) !== candidate) {
-            return;
-          }
-          this.dropEndpoint(candidate);
-          this.connectToHost(candidate);
-        },
-      );
-    });
-  }
-
-  /** Open the data channel to one slot of the host's ring. Requires the Peer to be open. */
-  private connectToHost(
-    candidate: HostCandidate,
-    metadata?: Record<string, unknown>,
-  ): void {
-    if (!this.peer) return;
-    logger.info(`[PeerClient] connecting to host=${candidate.id}`);
+  /** Open the data channel to the host's derived id. Requires the Peer to
+   *  be open and `hostPeerId` set. */
+  private connectToHost(metadata?: Record<string, unknown>): void {
+    if (!this.peer || !this.hostPeerId) return;
+    logger.info(`[PeerClient] connecting to host=${this.hostPeerId}`);
     /*
      * `reliable: true` is what makes PeerJS open the channel ordered; without
      * it the channel is reliable but unordered. Every class on this link is
@@ -584,16 +512,11 @@ export class PeerClientService {
      * radio chunks play in arrival order. Delivery is unchanged either way, so
      * the only cost is head-of-line waiting behind a lost packet's retransmit.
      */
-    const conn = this.peer.connect(candidate.id, {
+    const conn = this.peer.connect(this.hostPeerId, {
       reliable: true,
       metadata,
     });
-    candidate.conn = conn;
-    /* A main screen running the endpoint holds the data connection of a
-       station that offered to join through it, unserved, so for that
-       connection the first message, not its opening, says this is the path
-       the station stays on. */
-    this.watchLink(candidate, conn, { held: candidate.endpoint !== null });
+    this.wireHostLink(conn);
     /* A large message such as an Uplink bundle arrives in many pieces and
        raises `data` only once the last one is in. On a slow link that takes
        longer than the silence limit, and each piece shows the host is there. */
@@ -614,199 +537,84 @@ export class PeerClientService {
   }
 
   /**
-   * Watch one link to a candidate host until it becomes the station's link.
-   * `held` is for a link that carries nothing until the host serves it, so
-   * only a message, not the link opening, shows the host is there.
+   * Connect to the main screen, offering the relay's endpoint as well: the
+   * data connection carries this station's offer for the endpoint, and a main
+   * screen running one answers with a connection of its own back to this
+   * station, which then joins through the endpoint. A main screen without
+   * one serves the data connection. A browser that cannot make an offer
+   * connects directly only.
    */
-  private watchLink(
-    candidate: HostCandidate,
-    link: StationLink & { peerConnection?: RTCPeerConnection },
-    { held }: { held: boolean },
-  ): void {
-    if (!held) {
-      link.on("open", () => this.considerLink(candidate, link, null));
-    }
-    link.on("data", (raw) => this.considerLink(candidate, link, raw));
-    link.on("close", () => {
-      if (
-        this.conn === link ||
-        this.candidates.get(candidate.slot) !== candidate
-      )
-        return;
-      if (candidate.conn === link) candidate.conn = null;
-      /* The main screen closes the data connection it holds once the endpoint
-         reports this station open, which can reach the station before its own
-         link does: that candidate is still waiting on the link. */
-      if (candidate.conn === null && candidate.endpoint === null) {
-        this.candidates.delete(candidate.slot);
-        this.afterCandidateLost();
-      }
-    });
-  }
-
-  /**
-   * The last link this attempt was waiting on closed without a host being
-   * chosen, so the attempt retries at once instead of waiting out its deadline.
-   * Every slot reported missing is the broker's verdict instead, handled where
-   * it arrives.
-   */
-  private afterCandidateLost(): void {
-    if (this.hostPeerId !== null || this.candidates.size > 0) return;
-    if (this.unavailableSlots.size >= this.hostPeerIds.length) return;
-    this.retryPolicy.handleUnexpectedClose();
-  }
-
-  /**
-   * A candidate's link opened or carried its first word. With no host chosen
-   * yet it becomes the station's link. With one chosen, a host that says hello
-   * with a higher generation than it replaces it, since the host that took the
-   * role last is the one the mod will keep; any other is let go. That covers
-   * an earlier host that resumes after a hang and still answers until its next
-   * heartbeat tells it to stop.
-   */
-  private considerLink(
-    candidate: HostCandidate,
-    link: StationLink & { peerConnection?: RTCPeerConnection },
-    raw: unknown,
-  ): void {
-    if (this.conn === link || this.candidates.get(candidate.slot) !== candidate)
+  private joinHost(peer: Peer): void {
+    const hostPeerId = this.hostPeerId;
+    if (!hostPeerId) return;
+    if (typeof RTCPeerConnection === "undefined") {
+      this.connectToHost();
       return;
-    const msg = raw === null ? null : asPeerMessage(raw);
-    const generation = msg?.type === "hello" ? msg.generation : null;
-    if (this.conn !== null) {
-      if (generation === null) return;
-      if (generation <= this.hostGeneration) {
-        this.dropCandidate(candidate.slot);
-        return;
-      }
-      logger.info(
-        `[PeerClient] a newer host answered (generation ${generation}): switching to host=${candidate.id}`,
-      );
-      this.leaveHost();
     }
-    this.chooseLink(candidate, link, raw, generation);
-  }
-
-  private chooseLink(
-    candidate: HostCandidate,
-    link: StationLink & { peerConnection?: RTCPeerConnection },
-    raw: unknown,
-    generation: number | null,
-  ): void {
-    this.hostPeerId = candidate.id;
-    this.hostGeneration = generation ?? -1;
-    logger.setIdentity({ hostPeerId: candidate.id });
-    const viaEndpoint = candidate.endpoint?.link === link;
-    if (viaEndpoint) {
-      const direct = candidate.conn;
-      candidate.conn = null;
-      try {
-        direct?.close();
-      } catch {
-        /* already closed */
-      }
-    } else {
-      this.dropEndpoint(candidate);
-    }
-    if (viaEndpoint) {
-      logger.info(
-        `[PeerClient] joining host=${candidate.id} through the endpoint`,
-      );
-    }
-    this.wireHostLink(link, { open: true });
-    if (raw !== null) this.onHostData(raw);
-  }
-
-  /** Let go of the host this station is joined to, closing no more than its link. */
-  private leaveHost(): void {
-    const hostId = this.hostPeerId;
-    const link = this.conn;
-    this.silenceCleanup();
-    this.conn = null;
-    this.hostPeerId = null;
-    this.hostGeneration = -1;
-    for (const candidate of this.candidates.values()) {
-      if (candidate.id === hostId) {
-        this.candidates.delete(candidate.slot);
-        this.dropEndpoint(candidate);
-      }
-    }
-    try {
-      link?.close();
-    } catch {
-      /* already closed */
-    }
-  }
-
-  /** Stop the checks that run only while joined to a host. */
-  private silenceCleanup(): void {
-    if (this.silenceTimer !== null) {
-      clearInterval(this.silenceTimer);
-      this.silenceTimer = null;
-    }
-    this.pace.stop();
+    const link = new EndpointHostLink(hostPeerId);
+    const id = `gne-${Math.random().toString(36).slice(2, 10)}`;
+    this.pendingEndpoint = { id, link };
+    link.createOffer().then(
+      (sdp) => {
+        if (this.peer !== peer) return;
+        this.connectToHost(joinMetadata({ kind: "join", id, sdp }));
+      },
+      () => {
+        if (this.peer !== peer) return;
+        this.dropPendingEndpoint();
+        this.connectToHost();
+      },
+    );
   }
 
   /**
    * A connection the main screen opened to this station. Its only use is to
    * carry the endpoint's answer to this station's offer, read from its
-   * metadata, so it is closed once open. The data connection stays a
-   * candidate's link until the endpoint link opens, since a station on
-   * another network may never reach the endpoint and the main screen then
-   * serves it on that connection.
+   * metadata, so it is closed once open. The data connection stays the station's link until
+   * the endpoint link opens, since a station on another network may never
+   * reach the endpoint and the main screen then serves it on that connection.
    */
   private takeEndpointAnswer(peer: Peer, conn: DataConnection): void {
     const answer = readJoin(conn.metadata);
     /* Not closed at once: PeerJS is still applying the connection's offer,
        and closing under it fails that with an error on the whole peer. */
     conn.on("open", () => conn.close());
+    const pending = this.pendingEndpoint;
     if (this.peer !== peer || answer?.kind !== "answer") return;
-    const candidate = [...this.candidates.values()].find(
-      (c) => c.endpoint?.id === answer.id,
+    if (!pending || answer.id !== pending.id) return;
+    const { link } = pending;
+    logger.info(
+      `[PeerClient] joining host=${this.hostPeerId} through the endpoint`,
     );
-    const endpoint = candidate?.endpoint;
-    if (!candidate || !endpoint) return;
-    const { link } = endpoint;
+    link.on("open", () => {
+      if (this.pendingEndpoint !== pending) return;
+      this.pendingEndpoint = null;
+      const direct = this.conn;
+      this.wireHostLink(link, { open: true });
+      try {
+        direct?.close();
+      } catch {
+        /* already closed */
+      }
+    });
     link.onPiece = (bytes) => {
       if (this.conn !== link) return;
       this.lastHostMessageAt = Date.now();
       this.countBundlePiece(bytes);
     };
-    this.watchLink(candidate, link, { held: true });
     link.accept(answer.sdp).catch((err: unknown) => {
       logger.warn("[PeerClient] the endpoint's answer did not apply", {
         error: err instanceof Error ? err.message : String(err),
       });
-      if (candidate.endpoint === endpoint) this.dropEndpoint(candidate);
+      if (this.pendingEndpoint === pending) this.dropPendingEndpoint();
     });
   }
 
-  /** Close the endpoint link offered to a host and not opened. */
-  private dropEndpoint(candidate: HostCandidate): void {
-    const endpoint = candidate.endpoint;
-    candidate.endpoint = null;
-    endpoint?.link.close();
-  }
-
-  /** Stop trying one slot: its data connection and endpoint offer are closed. */
-  private dropCandidate(slot: number): void {
-    const candidate = this.candidates.get(slot);
-    if (!candidate) return;
-    this.candidates.delete(slot);
-    this.dropEndpoint(candidate);
-    const conn = candidate.conn;
-    candidate.conn = null;
-    if (conn === null || conn === this.conn) return;
-    try {
-      conn.close();
-    } catch {
-      /* already closed */
-    }
-  }
-
-  /** Close every candidate and the endpoint offers, for a new attempt or a stop. */
-  private dropCandidates(): void {
-    for (const slot of [...this.candidates.keys()]) this.dropCandidate(slot);
+  /** Close the endpoint link offered to the main screen and not opened. */
+  private dropPendingEndpoint(): void {
+    const pending = this.pendingEndpoint;
+    this.pendingEndpoint = null;
+    pending?.link.close();
   }
 
   /**
@@ -835,6 +643,11 @@ export class PeerClientService {
       );
       this.retryPolicy.handleUnexpectedClose();
     });
+    /* A main screen running the endpoint holds the data connection of a
+       station that offered to join through it, unserved, so for that
+       connection the first message, not its opening, says this is the path
+       the station stays on. */
+    const held = this.pendingEndpoint !== null;
     let announced = false;
     const announce = () => {
       if (announced) return;
@@ -842,17 +655,27 @@ export class PeerClientService {
       this.hostLinkOpened(conn);
     };
     if (open) announce();
-    if (!open)
+    if (!open && !held)
       conn.on("open", () => {
         if (current()) announce();
       });
     conn.on("data", (raw) => {
       if (!current()) return;
+      this.dropPendingEndpoint();
       announce();
-      this.onHostData(raw);
+      this.lastHostMessageAt = Date.now();
+      const msg = asPeerMessage(raw);
+      if (msg) this.handleMessage(msg);
     });
     conn.on("close", () => {
       if (!current()) return;
+      /* The main screen closes the data connection once the endpoint reports
+         this station open, which can reach the station before its own link
+         reports the same. The link then takes over, and the attempt's
+         deadline covers one that never does. */
+      if (this.pendingEndpoint !== null && this.pendingEndpoint.link !== conn) {
+        return;
+      }
       logger.info(`[PeerClient] connection closed`);
       this.retryPolicy.handleUnexpectedClose();
     });
@@ -860,12 +683,6 @@ export class PeerClientService {
       if (!current()) return;
       logger.error("[PeerClient] connection error", err);
     });
-  }
-
-  private onHostData(raw: unknown): void {
-    this.lastHostMessageAt = Date.now();
-    const msg = asPeerMessage(raw);
-    if (msg) this.handleMessage(msg);
   }
 
   /** The station's link to the main screen is open: announce this station on it. */
@@ -926,11 +743,11 @@ export class PeerClientService {
       /* A host that never answers an offer looks the same as a main screen
          that is not up. Only an ICE negotiation already under way marks the
          attempt as a real stall for the channel-failure count. */
-      const negotiating = [...this.candidates.values()].some((c) => {
-        const pc = c.conn?.peerConnection;
-        return pc !== undefined && pc.iceConnectionState !== "new";
-      });
-      if (!negotiating) this.hostMissingOnLastAttempt = true;
+      const pc = (this.conn as { peerConnection?: RTCPeerConnection } | null)
+        ?.peerConnection;
+      if (!pc || pc.iceConnectionState === "new") {
+        this.hostMissingOnLastAttempt = true;
+      }
       this.retryPolicy.handleAttemptTimeout();
     }, this.attemptDeadlineMs);
   }
@@ -944,15 +761,17 @@ export class PeerClientService {
 
   private tearDownPeer() {
     this.clearAttemptDeadline();
-    this.silenceCleanup();
+    this.dropPendingEndpoint();
+    if (this.silenceTimer !== null) {
+      clearInterval(this.silenceTimer);
+      this.silenceTimer = null;
+    }
+    this.pace.stop();
     // Cleared before closing, so the events closing emits find no current connection to fail.
     const conn = this.conn;
     const peer = this.peer;
     this.peer = null;
     this.conn = null;
-    this.hostPeerId = null;
-    this.hostGeneration = -1;
-    this.dropCandidates();
     try {
       conn?.close();
     } catch {
@@ -1881,7 +1700,6 @@ export class PeerClientService {
   private readonly dispatcher = new MessageDispatcher<void>({
     hello: (msg) => {
       this.hostVersion = { version: msg.version, buildTime: msg.buildTime };
-      this.hostGeneration = msg.generation;
       const prevToken = this.hostSessionToken;
       this.hostSessionToken = msg.sessionToken;
       logger.info(
@@ -2211,7 +2029,6 @@ export class PeerClientService {
     this.retryPolicy.cancel();
     this.tearDownPeer();
     this.rejectPendingQueries("peer client disconnected");
-    this.hostPeerIds = [];
     this.hostPeerId = null;
     logger.info("[PeerClient] disconnected");
   }

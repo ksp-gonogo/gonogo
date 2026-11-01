@@ -27,8 +27,6 @@ export interface RoleAnswer {
   holderId: string;
   heartbeatSeconds: number;
   graceSeconds: number;
-  /** How many times the mod has granted the role, this grant included when `holds`. */
-  generation: number;
 }
 
 /** What `host.station.check` answered. */
@@ -104,13 +102,11 @@ export function readRoleAnswer(result: unknown): RoleAnswer | undefined {
   const reply = payload as Partial<Record<keyof HostRoleReply, unknown>>;
   const heartbeatSeconds = numberOf(reply.heartbeatSeconds);
   const graceSeconds = numberOf(reply.graceSeconds);
-  const generation = numberOf(reply.generation);
   if (
     typeof reply.holds !== "boolean" ||
     typeof reply.holderId !== "string" ||
     heartbeatSeconds === undefined ||
-    graceSeconds === undefined ||
-    generation === undefined
+    graceSeconds === undefined
   ) {
     return undefined;
   }
@@ -119,7 +115,6 @@ export function readRoleAnswer(result: unknown): RoleAnswer | undefined {
     holderId: reply.holderId,
     heartbeatSeconds,
     graceSeconds,
-    generation,
   };
 }
 

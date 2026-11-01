@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 type Listener = (...args: unknown[]) => void;
 
 // Minimal FakePeer that ECHOES its constructed id on open, so tests can
-// assert the host claims the derived `gonogo-host-<code>-<slot>` id. Tracks all
+// assert the host claims the derived `gonogo-host-<code>` id. Tracks all
 // constructed instances + whether each was destroyed.
 class FakePeer {
   private listeners = new Map<string, Listener[]>();
@@ -74,13 +74,13 @@ describe("PeerHostService: stable host id (derived from share code)", () => {
     vi.useRealTimers();
   });
 
-  it("claims the derived gonogo-host-<shareCode>-<slot> id and exposes it as peerId", async () => {
+  it("claims the derived gonogo-host-<shareCode> id and exposes it as peerId", async () => {
     const { PeerHostService } = await import("../peer/PeerHostService");
     const service = new PeerHostService();
     await service.start();
     await flush();
 
-    const expectedId = `gonogo-host-${service.shareCode}-0`;
+    const expectedId = `gonogo-host-${service.shareCode}`;
     // The Peer was constructed with the derived id...
     expect(FakePeer.last?.id).toBe(expectedId);
     // ...and peerId is the broker id echoed on open.
@@ -106,12 +106,12 @@ describe("PeerHostService: stable host id (derived from share code)", () => {
     await flush();
 
     expect(service.shareCode).toBe("QRS456");
-    expect(FakePeer.last?.id).toBe("gonogo-host-QRS456-0");
+    expect(FakePeer.last?.id).toBe("gonogo-host-QRS456");
     expect(localStorage.length).toBe(0);
     service.stop();
   });
 
-  it("when every slot of the ring is held, RETRY-RECLAIMS the ring from the same slot (the code never changes)", async () => {
+  it("on unavailable-id, RETRY-RECLAIMS the SAME derived id (does not rotate to a new one)", async () => {
     vi.useFakeTimers();
     const { PeerHostService, HOST_RECLAIM_INTERVAL_MS } = await import(
       "../peer/PeerHostService"
@@ -120,7 +120,7 @@ describe("PeerHostService: stable host id (derived from share code)", () => {
     void service.start();
     await vi.advanceTimersByTimeAsync(0);
 
-    const claimedId = `gonogo-host-${service.shareCode}-0`;
+    const claimedId = `gonogo-host-${service.shareCode}`;
     expect(service.peerId).toBe(claimedId);
     const firstPeer = FakePeer.last;
 
@@ -132,12 +132,9 @@ describe("PeerHostService: stable host id (derived from share code)", () => {
     await vi.advanceTimersByTimeAsync(0); // flush the replay microtask
     reclaiming.length = 0;
 
-    for (let slot = 0; slot < 4; slot++) {
-      FakePeer.last?.emit("error", { type: "unavailable-id" });
-    }
+    firstPeer?.emit("error", { type: "unavailable-id" });
     expect(service.isReclaiming()).toBe(true);
     expect(firstPeer?.destroyed).toBe(true);
-    expect(FakePeer.last?.destroyed).toBe(true);
 
     // The retry timer fires → a fresh Peer is constructed with the SAME derived id, and once it opens, reclaiming clears.
     await vi.advanceTimersByTimeAsync(HOST_RECLAIM_INTERVAL_MS);
@@ -145,7 +142,7 @@ describe("PeerHostService: stable host id (derived from share code)", () => {
 
     const reclaimPeer = FakePeer.last;
     expect(reclaimPeer).not.toBe(firstPeer);
-    expect(reclaimPeer?.id).toBe(claimedId); // the ring starts again at the same slot
+    expect(reclaimPeer?.id).toBe(claimedId); // SAME id, not rotated
     expect(service.peerId).toBe(claimedId);
     expect(service.isReclaiming()).toBe(false);
     // The share code was never changed by the reclaim.
@@ -169,7 +166,7 @@ describe("PeerHostService: stable host id (derived from share code)", () => {
     // Exactly one live Peer: the guard stopped the second start from leaking a duplicate claiming the same derived id.
     const live = FakePeer.instances.filter((p) => !p.destroyed);
     expect(live).toHaveLength(1);
-    expect(service.peerId).toBe(`gonogo-host-${service.shareCode}-0`);
+    expect(service.peerId).toBe(`gonogo-host-${service.shareCode}`);
     expect(service.isReclaiming()).toBe(false);
     service.stop();
   });
@@ -228,8 +225,8 @@ describe("PeerHostService: stable host id (derived from share code)", () => {
     expect(oldPeer?.destroyed).toBe(true);
     const newPeer = FakePeer.last;
     expect(newPeer).not.toBe(oldPeer);
-    expect(newPeer?.id).toBe("gonogo-host-XYZ789-0");
-    expect(service.peerId).toBe("gonogo-host-XYZ789-0");
+    expect(newPeer?.id).toBe("gonogo-host-XYZ789");
+    expect(service.peerId).toBe("gonogo-host-XYZ789");
 
     unsub();
     service.stop();
@@ -246,7 +243,7 @@ describe("PeerHostService: stable host id (derived from share code)", () => {
     await expect(service.start()).resolves.toBeUndefined();
     await flush();
     // The host still claimed its derived id regardless of the relay.
-    expect(service.peerId).toBe(`gonogo-host-${service.shareCode}-0`);
+    expect(service.peerId).toBe(`gonogo-host-${service.shareCode}`);
     service.stop();
   });
 });

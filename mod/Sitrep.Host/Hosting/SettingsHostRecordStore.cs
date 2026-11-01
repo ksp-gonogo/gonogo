@@ -11,7 +11,7 @@ namespace Sitrep.Host.Hosting
     /// operator's settings and never in the save, so loading another save does
     /// not change the join code or forget an approved station.
     ///
-    /// <para>The four rows are never declared. <see cref="SettingsPublisher"/>
+    /// <para>The three rows are never declared. <see cref="SettingsPublisher"/>
     /// publishes declared rows only, so the last holder's token and the stations'
     /// credentials never reach <c>settings.gonogo</c>, and no settings save can
     /// name them either.</para>
@@ -20,7 +20,6 @@ namespace Sitrep.Host.Hosting
     {
         internal const string CodePath = "Host/JoinCode";
         internal const string LastHolderPath = "Host/LastHolder";
-        internal const string GenerationPath = "Host/Generation";
         internal const string StationsPath = "Host/Stations";
 
         private readonly SettingsStore _settings;
@@ -36,9 +35,6 @@ namespace Sitrep.Host.Hosting
             {
                 Code = Blank(_settings.Text(CodePath)),
                 LastHolderToken = Blank(_settings.Text(LastHolderPath)),
-                Generation = long.TryParse(_settings.Text(GenerationPath), NumberStyles.Integer, CultureInfo.InvariantCulture, out var generation) && generation > 0
-                    ? generation
-                    : 0,
             };
             foreach (var entry in (_settings.Text(StationsPath) ?? string.Empty).Split(';'))
             {
@@ -59,7 +55,6 @@ namespace Sitrep.Host.Hosting
         {
             _settings.Stage(CodePath, saved.Code ?? string.Empty);
             _settings.Stage(LastHolderPath, saved.LastHolderToken ?? string.Empty);
-            _settings.Stage(GenerationPath, saved.Generation.ToString(CultureInfo.InvariantCulture));
             _settings.Stage(StationsPath, Encode(saved.Stations));
             _settings.Commit();
         }

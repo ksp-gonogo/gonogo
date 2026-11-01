@@ -879,7 +879,6 @@
       "token": "id"
     },
     "HostRoleReply": {
-      "generation": "count",
       "graceSeconds": "s",
       "heartbeatSeconds": "s",
       "holderId": "id",

@@ -69,16 +69,16 @@ const { FakePeer } = vi.hoisted(() => {
 
 vi.mock("peerjs", () => ({ default: FakePeer }));
 
-import { deriveHostPeerIds } from "../peer/hostPeerId";
+import { deriveHostPeerId } from "../peer/hostPeerId";
 import { PeerClientService } from "../peer/PeerClientService";
 
 // Drive the broker handshake on a freshly-constructed FakePeer: open the
-// Peer (which connects straight to every id of the host's ring), then open
-// the data connection of one slot.
-async function driveOpen(peer: InstanceType<typeof FakePeer>, slot = 0) {
+// Peer (which connects straight to the derived host id), then open the
+// resulting host data connection.
+async function driveOpen(peer: InstanceType<typeof FakePeer>) {
   peer.emit("open", peer.id);
-  await vi.waitFor(() => expect(peer._conns).toHaveLength(4));
-  peer._conns[slot]?.emit("open");
+  await vi.waitFor(() => expect(peer._lastConn).not.toBeNull());
+  peer._lastConn?.emit("open");
 }
 
 describe("PeerClientService: stable host id (derived connect target)", () => {
@@ -90,53 +90,54 @@ describe("PeerClientService: stable host id (derived connect target)", () => {
     vi.restoreAllMocks();
   });
 
-  it("connects directly to every gonogo-host-<code>-<slot> id of the ring", async () => {
+  it("connects directly to the derived gonogo-host-<code> id", async () => {
     const svc = new PeerClientService();
     svc.connect("SHARE");
 
-    // The Peer is constructed up front; the host targets are known synchronously from the code: no resolve hop.
+    // The Peer is constructed up front; the host target is known synchronously from the code: no resolve hop.
     expect(FakePeer.instances).toHaveLength(1);
 
     await driveOpen(FakePeer.instances[0]);
 
-    expect(FakePeer.instances[0]._conns.map((c) => c.target)).toEqual(
-      deriveHostPeerIds("SHARE"),
+    expect(FakePeer.instances[0]._lastConnectTarget).toBe(
+      deriveHostPeerId("SHARE"),
     );
-    expect(FakePeer.instances[0]._conns.map((c) => c.target)).toEqual([
-      "gonogo-host-SHARE-0",
-      "gonogo-host-SHARE-1",
-      "gonogo-host-SHARE-2",
-      "gonogo-host-SHARE-3",
-    ]);
+    expect(FakePeer.instances[0]._lastConnectTarget).toBe("gonogo-host-SHARE");
   });
 
-  it("uppercases the operator code before deriving the targets", async () => {
+  it("uppercases the operator code before deriving the target", async () => {
     const svc = new PeerClientService();
     svc.connect("ab3k");
     await driveOpen(FakePeer.instances[0]);
-    // Host codes are uppercase + prefix is lowercase; both ends must derive the same ids, so the code is normalised to uppercase first.
-    expect(FakePeer.instances[0]._conns[0].target).toBe("gonogo-host-AB3K-0");
+    // Host codes are uppercase + prefix is lowercase; both ends must derive the same id, so the code is normalised to uppercase first.
+    expect(FakePeer.instances[0]._lastConnectTarget).toBe("gonogo-host-AB3K");
   });
 
-  it("re-derives the SAME ring on each reconnect (a replacement host takes one of its slots)", async () => {
+  it("passes through a value that already carries the prefix (idempotent derive)", async () => {
+    // A ?host= URL minted by an older build (or a test harness) may carry the full derived id: it must not get double-prefixed.
+    const svc = new PeerClientService();
+    svc.connect("gonogo-host-XK3F");
+    await driveOpen(FakePeer.instances[0]);
+    expect(FakePeer.instances[0]._lastConnectTarget).toBe("gonogo-host-XK3F");
+  });
+
+  it("re-derives the SAME id on each reconnect (host refresh re-claims it)", async () => {
     const svc = new PeerClientService({
       retryIntervalMs: 50,
       retryTimeoutMs: 60_000,
     });
 
     svc.connect("STABLE");
-    await driveOpen(FakePeer.instances[0], 2);
-    expect(FakePeer.instances[0]._conns[2].target).toBe("gonogo-host-STABLE-2");
+    await driveOpen(FakePeer.instances[0]);
+    expect(FakePeer.instances[0]._lastConnectTarget).toBe("gonogo-host-STABLE");
 
     // Host refreshes; its conn drops. The station's retry loop re-opens a
-    // fresh Peer and re-derives the same targets, no rotation, no resolve.
-    FakePeer.instances[0]._conns[2]?.emit("close");
+    // fresh Peer and re-derives the same target, no rotation, no resolve.
+    FakePeer.instances[0]._lastConn?.emit("close");
     await vi.waitFor(() => expect(FakePeer.instances).toHaveLength(2));
-    await driveOpen(FakePeer.instances[1], 3);
+    await driveOpen(FakePeer.instances[1]);
 
-    expect(FakePeer.instances[1]._conns.map((c) => c.target)).toEqual(
-      deriveHostPeerIds("STABLE"),
-    );
+    expect(FakePeer.instances[1]._lastConnectTarget).toBe("gonogo-host-STABLE");
   });
 });
 

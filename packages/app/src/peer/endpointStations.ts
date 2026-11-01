@@ -94,7 +94,7 @@ interface PendingBridge {
 const MAX_BACKOFF_MS = 30_000;
 /** How often the page tells the endpoint it is running. The endpoint drops a main screen that sends nothing for 15 s, because the browser answers its pings even when the page's scripts are stopped. */
 export const ALIVE_INTERVAL_MS = 5_000;
-/** How often a main screen the endpoint turned away asks again when it is not sure it should host, so it takes over soon after the other one closes. A screen that holds the host role passes a shorter interval. */
+/** How often a main screen the endpoint turned away asks again, so it takes over soon after the other one closes. */
 const BUSY_RETRY_MS = 10_000;
 
 /**
