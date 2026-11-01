@@ -78,14 +78,6 @@ const { FakeHub } = vi.hoisted(() => {
       return conn;
     }
 
-    disconnected = false;
-    disconnect() {
-      this.disconnected = true;
-    }
-    reconnect() {
-      this.disconnected = false;
-    }
-
     destroy() {}
   }
   return { FakeHub: { Peer: FakePeer } };
@@ -109,11 +101,7 @@ import {
 import type { Packable } from "peerjs-js-binarypack";
 import { encodeFrames, FrameReader } from "./endpointFraming";
 import { joinMetadata, readJoin } from "./endpointJoin";
-import {
-  ENDPOINT_OPEN_MS,
-  HOST_RECLAIM_INTERVAL_MS,
-  PeerHostService,
-} from "./PeerHostService";
+import { ENDPOINT_OPEN_MS, PeerHostService } from "./PeerHostService";
 
 const link = ws.link("ws://localhost:3002/stations");
 const server = setupServer();
@@ -406,64 +394,5 @@ describe("a station joining through the endpoint", () => {
     ]);
     unregisterUplinkHandle("camera-uplink");
     host.stop();
-  });
-});
-
-describe("a host that freezes and resumes", () => {
-  it("lets go of the endpoint when the page freezes and takes it back on resume while it hosts", async () => {
-    endpoint();
-    const { host, peer } = await startedHost();
-    await vi.waitFor(() => expect(host.endpoint.available).toBe(true));
-
-    document.dispatchEvent(new Event("freeze"));
-    expect(host.endpoint.available).toBe(false);
-    expect(peer.disconnected).toBe(true);
-
-    document.dispatchEvent(new Event("resume"));
-    await vi.waitFor(() => expect(host.endpoint.available).toBe(true));
-    host.stop();
-  });
-
-  it("does not reopen the endpoint on resume once it has stopped hosting", async () => {
-    endpoint();
-    const { host } = await startedHost();
-    await vi.waitFor(() => expect(host.endpoint.available).toBe(true));
-    host.stop();
-    document.dispatchEvent(new Event("resume"));
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(host.endpoint.available).toBe(false);
-  });
-});
-
-describe("a host whose broker id is still held", () => {
-  it("retries at the short fixed interval and never waits longer", async () => {
-    endpoint();
-    const { host, peer } = await startedHost();
-    vi.useFakeTimers({ toFake: ["setTimeout"] });
-    try {
-      const delays: number[] = [];
-      const real = globalThis.setTimeout;
-      const spy = vi.spyOn(globalThis, "setTimeout").mockImplementation(((
-        fn: () => void,
-        ms?: number,
-      ) => {
-        delays.push(ms ?? 0);
-        return real(fn, ms);
-      }) as typeof setTimeout);
-      for (let i = 0; i < 4; i++) {
-        FakeHub.Peer.current?.emit("error", { type: "unavailable-id" });
-        await vi.advanceTimersByTimeAsync(HOST_RECLAIM_INTERVAL_MS);
-      }
-      spy.mockRestore();
-      const reclaims = delays.filter((d) => d >= 1_000);
-      expect(reclaims.length).toBeGreaterThanOrEqual(4);
-      expect(new Set(reclaims.slice(0, 4))).toEqual(
-        new Set([HOST_RECLAIM_INTERVAL_MS]),
-      );
-      expect(peer).toBeDefined();
-    } finally {
-      vi.useRealTimers();
-      host.stop();
-    }
   });
 });

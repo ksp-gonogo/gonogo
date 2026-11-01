@@ -408,9 +408,6 @@ const paceLogger = logger.tag("peer:pace");
 
 /** The most main-thread time one slice of a subscribe replay takes before the next waits for a macrotask. */
 const REPLAY_SLICE_MS = 8;
-
-/** How often a host retries the broker id after it was taken, so the new host lands soon after the broker lets the old one go. */
-export const HOST_RECLAIM_INTERVAL_MS = 3_000;
 /** A subscribe replay waits while a station's send queue holds this much, well under the 256 KiB the pacer reads as falling behind. */
 const REPLAY_QUEUE_BYTES = 64 * 1024;
 
@@ -648,11 +645,8 @@ export class PeerHostService {
   private readonly onBeforeUnload = () => this.destroyPeer();
   private readonly onFreeze = () => this.suspendBroker();
   private readonly onResume = () => this.resumeBroker();
-  /** True between `start()` and `stop()`, which is while this screen holds the host role. */
-  private running = false;
 
   async start() {
-    this.running = true;
     if (this.shareCode === "") this.shareCode = defaultShareCode();
     this.deliveryMeter.start();
     // Stamp the log identity before anything that can fail, errors fired
@@ -921,9 +915,10 @@ export class PeerHostService {
   /**
    * Retry-reclaim the derived peer id after an `unavailable-id`. Destroys
    * the dead Peer, surfaces the "reclaiming" status, and schedules a
-   * `openPeer()` against the same id after a fixed interval. A screen only
-   * hosts while it holds the role, so it retries at a steady pace until the
-   * broker's stale-slot timer (~30–60s) frees the id and `open` clears it.
+   * backed-off `openPeer()` against the same id. Each subsequent
+   * `unavailable-id` (the broker hasn't freed the slot yet) lengthens the
+   * backoff up to a 30s cap: the broker's stale-slot timer fires within
+   * ~30–60s, so we keep trying until `openPeer()`'s `open` clears it.
    */
   private scheduleReclaim(): void {
     this.setReclaiming(true);
@@ -931,7 +926,7 @@ export class PeerHostService {
     this.destroyPeer();
     if (this.reclaimTimer !== null) return; // already scheduled
     const attempt = ++this.reclaimAttempt;
-    const delayMs = HOST_RECLAIM_INTERVAL_MS;
+    const delayMs = Math.min(1_000 * 2 ** (attempt - 1), 30_000);
     logger.warn(
       `[PeerHost] unavailable-id: reclaiming derived id in ${delayMs}ms (attempt ${attempt})`,
     );
@@ -1031,8 +1026,6 @@ export class PeerHostService {
    * open so connected stations aren't torn down by the suspend cycle.
    */
   private suspendBroker(): void {
-    // The endpoint holds one main screen at a time, so a frozen page lets go of it as well as the broker id.
-    this.endpoint.stop();
     if (!this.peer) return;
     const p = this.peer as Peer & { disconnected?: boolean };
     if (p.disconnected) return;
@@ -1054,7 +1047,6 @@ export class PeerHostService {
    * (derived) id. Covers laptop wake and the bfcache-restore path.
    */
   private resumeBroker(): void {
-    if (this.running) this.endpoint.start();
     if (!this.peer) return;
     const p = this.peer as Peer & {
       disconnected?: boolean;
@@ -3162,7 +3154,6 @@ export class PeerHostService {
   }
 
   stop() {
-    this.running = false;
     this.deliveryMeter.stop();
     this.flightListChangeUnsub?.();
     this.flightListChangeUnsub = null;

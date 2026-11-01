@@ -33,7 +33,7 @@ type Config struct {
 	MaxBuffered uint64
 	// TabPingInterval is how often the endpoint pings the main screen's socket.
 	TabPingInterval time.Duration
-	// TabTimeout is how long the socket may go without a frame from the main screen's page before it is taken as gone. Pongs do not count: the browser answers pings while the page's scripts are stopped.
+	// TabTimeout is how long the socket may stay silent, pongs included, before the main screen is taken as gone.
 	TabTimeout time.Duration
 	// HeartbeatInterval is how often a live bridge logs what each of its legs carried.
 	HeartbeatInterval time.Duration
@@ -228,7 +228,6 @@ func (e *Endpoint) serveTab(t *tab) {
 		if err != nil {
 			break
 		}
-		e.extendTab(t)
 		if kind == websocket.BinaryMessage {
 			e.forward(msg)
 			continue
@@ -262,11 +261,12 @@ func (e *Endpoint) serveTab(t *tab) {
 	}
 }
 
-// keepAlive pings the tab so a dead network path shows up as a write failure, and starts the
-// read deadline that serveTab's loop extends on every frame the page sends. The socket ends once
-// the page has sent nothing for TabTimeout, which makes the read loop return.
+// keepAlive pings the tab and ends its socket once it has been silent for TabTimeout, which
+// makes the read loop in serveTab return.
 func (e *Endpoint) keepAlive(t *tab) {
-	e.extendTab(t)
+	extend := func() { _ = t.conn.SetReadDeadline(time.Now().Add(e.cfg.TabTimeout)) }
+	extend()
+	t.conn.SetPongHandler(func(string) error { extend(); return nil })
 	done := make(chan struct{})
 	t.stopPings = func() { close(done) }
 	go func() {
@@ -281,10 +281,6 @@ func (e *Endpoint) keepAlive(t *tab) {
 			}
 		}
 	}()
-}
-
-func (e *Endpoint) extendTab(t *tab) {
-	_ = t.conn.SetReadDeadline(time.Now().Add(e.cfg.TabTimeout))
 }
 
 func (e *Endpoint) send(f controlFrame) {

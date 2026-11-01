@@ -256,39 +256,6 @@ describe("a local screen", () => {
     expect(mod.sent.map((s) => s.command)).toContain("host.claim");
   });
 
-  it("never opens the station endpoint while another screen holds the role, and opens it once granted", async () => {
-    const sockets: string[] = [];
-    vi.stubGlobal(
-      "WebSocket",
-      class {
-        static readonly OPEN = 1;
-        readyState = 0;
-        binaryType = "";
-        constructor(url: string) {
-          if (url.endsWith("/stations")) sockets.push(url);
-        }
-        addEventListener() {}
-        send() {}
-        close() {}
-      },
-    );
-    const mod = new FakeHostMod();
-    const other = new HostRole("tab-other");
-    other.attach(mod.connect());
-    await settle();
-    const { publish } = renderLocal(connectionTo(mod), mod);
-    await settle();
-    await publish();
-    await settle();
-    expect(sockets).toEqual([]);
-
-    other.release();
-    await settle();
-    await untilPeerId(`gonogo-host-${mod.code}`);
-    expect(sockets.length).toBeGreaterThan(0);
-    other.dispose();
-  });
-
   it("joins the holder's code with nothing typed when another screen holds the role", async () => {
     const mod = new FakeHostMod();
     const other = new HostRole("tab-other");

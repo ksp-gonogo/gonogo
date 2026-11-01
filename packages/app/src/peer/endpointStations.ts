@@ -92,8 +92,6 @@ interface PendingBridge {
   timer: ReturnType<typeof setTimeout>;
 }
 const MAX_BACKOFF_MS = 30_000;
-/** How often the page tells the endpoint it is running. The endpoint drops a main screen that sends nothing for 15 s, because the browser answers its pings even when the page's scripts are stopped. */
-export const ALIVE_INTERVAL_MS = 5_000;
 /** How often a main screen the endpoint turned away asks again, so it takes over soon after the other one closes. */
 const BUSY_RETRY_MS = 10_000;
 
@@ -113,7 +111,6 @@ export class EndpointStations {
   private stopped = true;
   private attempt = 0;
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
-  private aliveTimer: ReturnType<typeof setInterval> | null = null;
   private nextSid = 1;
   private nextBid = 1;
   private readonly bridges = new Map<number, PendingBridge>();
@@ -128,7 +125,6 @@ export class EndpointStations {
   constructor(
     private readonly url: () => string,
     private readonly busyRetryMs = BUSY_RETRY_MS,
-    private readonly aliveMs = ALIVE_INTERVAL_MS,
   ) {}
 
   /** Whether the endpoint turned this main screen away because another main screen holds it. */
@@ -167,14 +163,8 @@ export class EndpointStations {
     this.retryTimer = null;
     const socket = this.socket;
     this.socket = null;
-    this.stopAlive();
     socket?.close();
     this.lost();
-  }
-
-  private stopAlive(): void {
-    if (this.aliveTimer !== null) clearInterval(this.aliveTimer);
-    this.aliveTimer = null;
   }
 
   /**
@@ -254,11 +244,6 @@ export class EndpointStations {
     }
     socket.binaryType = "arraybuffer";
     this.socket = socket;
-    this.stopAlive();
-    this.aliveTimer = setInterval(
-      () => this.sendControl({ type: "alive" }),
-      this.aliveMs,
-    );
     socket.addEventListener("message", (event) => {
       if (this.socket !== socket) return;
       if (typeof event.data === "string") {
@@ -270,7 +255,6 @@ export class EndpointStations {
     socket.addEventListener("close", () => {
       if (this.socket !== socket) return;
       this.socket = null;
-      this.stopAlive();
       this.lost();
       this.scheduleRetry();
     });
