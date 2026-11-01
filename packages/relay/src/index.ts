@@ -205,10 +205,7 @@ registerAnalyticsConfigRoutes(fastify, {
 
 // First-run bootstrap: republish the bundle's KSP_HOST so the SPA can seed
 // its data-source defaults. Unset outside the bundle → { kspHost: null }.
-registerBootstrapConfigRoutes(fastify, {
-  kspHost: process.env.KSP_HOST,
-  stationEndpoint: !config.skipEndpoint,
-});
+registerBootstrapConfigRoutes(fastify, { kspHost: process.env.KSP_HOST });
 await fastify.listen({ port: config.port, host: "0.0.0.0" });
 bridgeInfo(`relay listening on :${config.port}`);
 

@@ -113,10 +113,7 @@ describe("EndpointSupervisor", () => {
 
     const boot = await app.inject({ method: "GET", url: "/bootstrap-config" });
     expect(boot.statusCode).toBe(200);
-    expect(boot.json()).toEqual({
-      kspHost: "192.0.2.50",
-      stationEndpoint: true,
-    });
+    expect(boot.json()).toEqual({ kspHost: "192.0.2.50" });
 
     const health = await app.inject({ method: "GET", url: "/health" });
     expect(health.statusCode).toBe(200);

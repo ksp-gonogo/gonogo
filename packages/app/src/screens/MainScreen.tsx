@@ -30,14 +30,12 @@ import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import {
   AlarmBanner,
-  AlarmClientService,
   AlarmHostProvider,
   AlarmsCancelledPill,
   AlarmsFab,
   AlarmsLauncherBridge,
   AlarmsModal,
   FiredAlarmPills,
-  NO_ALARM_SERVICE,
   SafetyMarginPill,
   UnscheduledWarpPill,
   useAlarmHost,
@@ -221,7 +219,6 @@ export function MainScreen({
   hosting,
   jobs,
   joinedVia,
-  hostLink,
 }: {
   screen?: Screen;
   /** Whether this screen hosts the peer mesh. Absent, a mission-control screen does and a pilot's does not. */
@@ -233,11 +230,6 @@ export function MainScreen({
    * it tells the host who it is and where it stands.
    */
   joinedVia?: PeerClientService;
-  /**
-   * The peer link to the host whose alarms and notes this screen reads, when it
-   * joins one. Defaults to `joinedVia`.
-   */
-  hostLink?: PeerClientService;
   /**
    * The telemetry transport to observe through, instead of the direct
    * `ws://` socket this screen otherwise builds.
@@ -270,7 +262,6 @@ export function MainScreen({
         transport={transport}
         hostsThePeerMesh={hostsThePeerMesh}
         joinedVia={joinedVia}
-        hostLink={hostLink ?? joinedVia}
       />
     </HostingProvider>
   );
@@ -286,18 +277,13 @@ function MainScreenDisplay({
   transport,
   hostsThePeerMesh,
   joinedVia,
-  hostLink,
 }: {
   screen: Screen;
   transport?: Transport;
   hostsThePeerMesh: boolean;
   joinedVia?: PeerClientService;
-  hostLink?: PeerClientService;
 }) {
   const hosts = useHostingHosts();
-  const [alarmClient] = useState(() =>
-    hostLink ? new AlarmClientService(hostLink) : null,
-  );
   const [serialService] = useState(
     () => new SerialDeviceService({ screenKey: screen }),
   );
@@ -358,8 +344,8 @@ function MainScreenDisplay({
   }, []);
 
   if (!hosts) return null;
-  const { goNoGoHost, pushHost, notesHost, maneuverTriggerHost } = hosts;
-  const alarmHost = hosts.alarmHost ?? alarmClient ?? NO_ALARM_SERVICE;
+  const { goNoGoHost, pushHost, alarmHost, notesHost, maneuverTriggerHost } =
+    hosts;
 
   return (
     <SitrepTelemetryProvider transport={transport} screenKey={screen}>
@@ -408,7 +394,7 @@ function MainScreenDisplay({
               <WarpIntentProvider
                 announce={() => alarmHost.announceWarpIntent()}
               >
-                <OptionalNotesHost service={notesHost}>
+                <NotesHostProvider service={notesHost}>
                   <ScopedStationIdentity defaultName={DEFAULT_NAME_FOR[screen]}>
                     {joinedVia && (
                       <JoinedScreenInfo client={joinedVia} screen={screen} />
@@ -437,7 +423,7 @@ function MainScreenDisplay({
                       </ManeuverTriggerProvider>
                     </CommcastLogProviderOrPassthrough>
                   </ScopedStationIdentity>
-                </OptionalNotesHost>
+                </NotesHostProvider>
               </WarpIntentProvider>
             </AlarmHostProvider>
           </ReplaySessionProvider>
@@ -581,18 +567,6 @@ function PollCentre({ screen, hosting }: { screen: Screen; hosting: boolean }) {
 /** The join code's button, on a local screen: one that hosts or joins by itself. */
 function LocalLinkFab() {
   return useHostRole() ? <StationLinkFab /> : null;
-}
-
-/** Provides the notes the host keeps, or nothing on a screen that reads them from a host. */
-function OptionalNotesHost({
-  service,
-  children,
-}: {
-  service: NonNullable<ReturnType<typeof useHostingHosts>>["notesHost"];
-  children: ReactNode;
-}) {
-  if (!service) return <>{children}</>;
-  return <NotesHostProvider service={service}>{children}</NotesHostProvider>;
 }
 
 /**

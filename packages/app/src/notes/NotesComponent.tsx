@@ -19,10 +19,9 @@ const NOT_CONNECTED = "Not connected to the main screen";
 const OK: Promise<NoteOutcome> = Promise.resolve({ status: "ok" });
 
 function NotesComponent(_props: Readonly<ComponentProps>) {
-  // The host owns the canonical lists and every other screen mirrors the one for its centre over the peer mesh, a joined local screen and a pilot page included.
+  // The host owns the canonical lists and every other screen mirrors the one for its centre over the peer mesh; a pilot page is a mesh client too.
   const screen = useScreen();
-  const client = usePeerClient();
-  if (screen !== "main" || client) return <StationView />;
+  if (screen !== "main") return <StationView />;
   return <MainView />;
 }
 

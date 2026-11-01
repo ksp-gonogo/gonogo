@@ -285,16 +285,6 @@ export type PeerMessage =
   // The host records the requested index so the unscheduled-warp detector
   // doesn't false-positive on a legitimate station-initiated change.
   | { type: "alarm-warp-intent"; index: number }
-  // Screen → host: an alarm banner control not about one alarm; `seconds` is the warp-margin value.
-  | {
-      type: "alarm-control";
-      action:
-        | "acknowledge-cancelled"
-        | "warp-to-begin"
-        | "warp-to-cancel"
-        | "warp-margin";
-      seconds?: number;
-    }
   // ──────────────────────────────────────────────────────────────────────
   // Maneuver-planner conditional triggers. Host owns the canonical list,
   // observes the chosen telemetry key on each tick, and dispatches the

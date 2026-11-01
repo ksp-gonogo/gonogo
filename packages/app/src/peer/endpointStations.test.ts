@@ -65,56 +65,6 @@ async function started(): Promise<EndpointStations> {
   return stations;
 }
 
-describe("the main screen's endpoint socket, asking the relay first", () => {
-  it("opens no socket when the relay says it has no station endpoint", async () => {
-    let connections = 0;
-    server.use(
-      link.addEventListener("connection", () => {
-        connections += 1;
-      }),
-    );
-    const probe = vi.fn(async () => false);
-    const stations = new EndpointStations(() => URL, 50, probe);
-    stations.start();
-    await vi.waitFor(() => expect(probe).toHaveBeenCalledTimes(1));
-    await new Promise((r) => setTimeout(r, 150));
-    stations.stop();
-    expect(connections).toBe(0);
-    expect(probe).toHaveBeenCalledTimes(1);
-    expect(stations.available).toBe(false);
-  });
-
-  it("opens the socket when the relay says it has the endpoint", async () => {
-    fakeEndpoint();
-    const stations = new EndpointStations(
-      () => URL,
-      50,
-      async () => true,
-    );
-    stations.start();
-    await vi.waitFor(() => expect(stations.available).toBe(true));
-    stations.stop();
-  });
-
-  it("opens no socket while the relay cannot be asked, and opens one once it answers", async () => {
-    fakeEndpoint();
-    let asked = 0;
-    const stations = new EndpointStations(
-      () => URL,
-      50,
-      async () => (asked++ === 0 ? null : true),
-    );
-    vi.useFakeTimers();
-    stations.start();
-    await vi.advanceTimersByTimeAsync(0);
-    expect(stations.available).toBe(false);
-    await vi.advanceTimersByTimeAsync(1_000);
-    vi.useRealTimers();
-    await vi.waitFor(() => expect(stations.available).toBe(true));
-    stations.stop();
-  });
-});
-
 describe("the main screen's endpoint socket", () => {
   it("is available once the endpoint sends its status", async () => {
     fakeEndpoint();

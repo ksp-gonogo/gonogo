@@ -257,14 +257,6 @@ function makeHost(): {
       captured.warpIntentCb = cb;
       return () => {};
     },
-    onAlarmControl:
-      (
-        _cb: (
-          peerId: string,
-          msg: Extract<PeerMessage, { type: "alarm-control" }>,
-        ) => void,
-      ) =>
-      () => {},
     onPeerConnect: (cb: PeerConnectCb) => {
       captured.peerConnectCb = cb;
       return () => {};

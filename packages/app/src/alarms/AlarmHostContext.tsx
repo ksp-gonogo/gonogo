@@ -1,55 +1,15 @@
 import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useState } from "react";
-import { EMPTY_SNAPSHOT } from "./AlarmClientService";
 import type { AlarmHostService } from "./AlarmHostService";
 import type { AlarmSnapshot } from "./types";
 
-/**
- * What the alarm banner, the alarms modal and the warp control call. The host's
- * own service satisfies it, and so does `AlarmClientService` on a screen that
- * reads the list from a host over the peer link.
- */
-export interface AlarmService {
-  snapshot(): AlarmSnapshot;
-  subscribe(cb: (snap: AlarmSnapshot) => void): () => void;
-  addAlarm(input: Parameters<AlarmHostService["addAlarm"]>[0]): unknown;
-  updateAlarm(
-    id: string,
-    patch: Parameters<AlarmHostService["updateAlarm"]>[1],
-  ): void;
-  deleteAlarm(id: string): void;
-  acknowledgeAlarm(id: string): void;
-  acknowledgeUnscheduledWarp(): void;
-  acknowledgeAlarmsCancelled(): void;
-  announceWarpIntent(): void;
-  beginWarpTo(): void;
-  cancelWarpTo(): void;
-  setWarpSafetyMargin(seconds: number): void;
-}
-
-/** An alarm list that is always empty and takes every change as a no-op, for a screen with neither a host of its own nor one to read from. */
-export const NO_ALARM_SERVICE: AlarmService = {
-  snapshot: () => EMPTY_SNAPSHOT,
-  subscribe: () => () => {},
-  addAlarm: () => undefined,
-  updateAlarm: () => {},
-  deleteAlarm: () => {},
-  acknowledgeAlarm: () => {},
-  acknowledgeUnscheduledWarp: () => {},
-  acknowledgeAlarmsCancelled: () => {},
-  announceWarpIntent: () => {},
-  beginWarpTo: () => {},
-  cancelWarpTo: () => {},
-  setWarpSafetyMargin: () => {},
-};
-
-const AlarmHostContext = createContext<AlarmService | null>(null);
+const AlarmHostContext = createContext<AlarmHostService | null>(null);
 
 export function AlarmHostProvider({
   service,
   children,
 }: {
-  service: AlarmService;
+  service: AlarmHostService;
   children: ReactNode;
 }) {
   return (
@@ -59,7 +19,7 @@ export function AlarmHostProvider({
   );
 }
 
-export function useAlarmHost(): AlarmService {
+export function useAlarmHost(): AlarmHostService {
   const svc = useContext(AlarmHostContext);
   if (!svc) {
     throw new Error("useAlarmHost must be used inside an <AlarmHostProvider>");

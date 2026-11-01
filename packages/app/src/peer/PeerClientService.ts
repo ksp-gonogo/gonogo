@@ -972,17 +972,6 @@ export class PeerClientService {
     } satisfies PeerMessage);
   }
 
-  sendAlarmControl(
-    action: Extract<PeerMessage, { type: "alarm-control" }>["action"],
-    seconds?: number,
-  ) {
-    this.conn?.send({
-      type: "alarm-control",
-      action,
-      seconds,
-    } satisfies PeerMessage);
-  }
-
   sendTriggerArm(input: {
     dataKey: string;
     op: import("@ksp-gonogo/components").ThresholdOp;

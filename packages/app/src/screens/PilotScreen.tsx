@@ -162,7 +162,6 @@ export function PilotScreen() {
         <MainScreen
           screen="pilot"
           hosting={false}
-          hostLink={client}
           transport={relayedTransport}
         />
       </PeerClientProvider>

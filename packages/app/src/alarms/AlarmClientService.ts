@@ -13,7 +13,7 @@ import { DEFAULT_WARP_SAFETY_MARGIN_SECONDS } from "./types";
  * use the same API on either screen.
  */
 
-export const EMPTY_SNAPSHOT: AlarmSnapshot = {
+const EMPTY_SNAPSHOT: AlarmSnapshot = {
   alarms: [],
   ut: null,
   warp: { index: 0, rate: 1, mode: "UNKNOWN" },
@@ -92,26 +92,5 @@ export class AlarmClientService {
 
   registerStationWarpIntent(index: number): void {
     this.client.sendAlarmWarpIntent(index);
-  }
-
-  /** Tells the host this screen's own warp press was deliberate, at the rate the host last reported. */
-  announceWarpIntent(): void {
-    this.client.sendAlarmWarpIntent(this.current.warp.index);
-  }
-
-  acknowledgeAlarmsCancelled(): void {
-    this.client.sendAlarmControl("acknowledge-cancelled");
-  }
-
-  beginWarpTo(): void {
-    this.client.sendAlarmControl("warp-to-begin");
-  }
-
-  cancelWarpTo(): void {
-    this.client.sendAlarmControl("warp-to-cancel");
-  }
-
-  setWarpSafetyMargin(seconds: number): void {
-    this.client.sendAlarmControl("warp-margin", seconds);
   }
 }

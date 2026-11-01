@@ -46,11 +46,7 @@ import { traceBrokerSocket } from "./peerSocketTrace";
 import type { HostLayout, PeerMessage } from "./protocol";
 import { asPeerMessage, HOST_HEARTBEAT_MS } from "./protocol";
 import { RelayRegistration } from "./RelayRegistration";
-import {
-  relayHasStationEndpoint,
-  STUN_SERVERS,
-  stationsSocketUrl,
-} from "./relayAddress";
+import { STUN_SERVERS, stationsSocketUrl } from "./relayAddress";
 import { SentOnChange } from "./sentOnChange";
 import type { StationLink } from "./stationLink";
 import { StationPacer } from "./stationPace";
@@ -270,10 +266,6 @@ type AlarmDeleteListener = (peerId: string, id: string) => void;
 type AlarmAcknowledgeListener = (peerId: string, id: string) => void;
 type AlarmAckListener = (peerId: string) => void;
 type AlarmWarpIntentListener = (peerId: string, index: number) => void;
-type AlarmControlListener = (
-  peerId: string,
-  msg: Extract<PeerMessage, { type: "alarm-control" }>,
-) => void;
 type TriggerArmListener = (
   peerId: string,
   msg: Extract<PeerMessage, { type: "trigger-arm" }>,
@@ -332,7 +324,6 @@ const STATION_WRITES: ReadonlySet<PeerMessage["type"]> = new Set([
   "alarm-acknowledge",
   "alarm-ack-unscheduled-warp",
   "alarm-warp-intent",
-  "alarm-control",
   "note-add",
   "note-update",
   "note-delete",
@@ -402,7 +393,6 @@ type HostEventMap = {
   alarmAcknowledge: Parameters<AlarmAcknowledgeListener>;
   alarmAck: Parameters<AlarmAckListener>;
   alarmWarpIntent: Parameters<AlarmWarpIntentListener>;
-  alarmControl: Parameters<AlarmControlListener>;
   triggerArm: Parameters<TriggerArmListener>;
   triggerCancel: Parameters<TriggerCancelListener>;
   noteAdd: Parameters<NoteAddListener>;
@@ -612,11 +602,7 @@ export class PeerHostService {
    */
   shareCode = defaultShareCode();
   /** The relay's station endpoint, which carries every station that joins while it is up. */
-  readonly endpoint = new EndpointStations(
-    stationsSocketUrl,
-    undefined,
-    relayHasStationEndpoint,
-  );
+  readonly endpoint = new EndpointStations(stationsSocketUrl);
   private flightListChangeUnsub: (() => void) | null = null;
   /** True while we're retry-reclaiming the derived peer id after an
    *  `unavailable-id` (broker still holds a stale slot from an unclean
@@ -2181,9 +2167,6 @@ export class PeerHostService {
     "alarm-warp-intent": (msg, conn) => {
       this.events.emit("alarmWarpIntent", conn.peer, msg.index);
     },
-    "alarm-control": (msg, conn) => {
-      this.events.emit("alarmControl", conn.peer, msg);
-    },
     "trigger-arm": (msg, conn) => {
       this.events.emit("triggerArm", conn.peer, msg);
     },
@@ -2619,10 +2602,6 @@ export class PeerHostService {
 
   onAlarmWarpIntent(cb: AlarmWarpIntentListener): () => void {
     return this.events.on("alarmWarpIntent", cb);
-  }
-
-  onAlarmControl(cb: AlarmControlListener): () => void {
-    return this.events.on("alarmControl", cb);
   }
 
   onTriggerArm(cb: TriggerArmListener): () => void {
