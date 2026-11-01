@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import type { ConnStatus, PeerClientService } from "./PeerClientService";
 
 interface Props {
-  client: PeerClientService;
+  client: Pick<PeerClientService, "onConnectionStatus">;
 }
 
 /**
@@ -14,9 +14,10 @@ interface Props {
  * least once) there was no affordance to tell the operator the host
  * went away: they'd just see telemetry freeze.
  *
- * Renders nothing while connected. On "reconnecting" shows a warning
- * pill; on "disconnected" escalates to a nogo pill. The banner clears
- * the moment connStatus flips back to "connected".
+ * Renders nothing while connected. On "disconnected" it shows a nogo pill;
+ * in every other state, including the "connecting" and "idle" the retry loop
+ * passes through between attempts, a warning pill. The banner clears the
+ * moment connStatus flips back to "connected".
  */
 export function HostDisconnectBanner({ client }: Props) {
   const [status, setStatus] = useState<ConnStatus>("connected");
@@ -27,11 +28,9 @@ export function HostDisconnectBanner({ client }: Props) {
     });
   }, [client]);
 
-  if (status === "connected" || status === "idle" || status === "connecting") {
-    return null;
-  }
+  if (status === "connected") return null;
 
-  const reconnecting = status === "reconnecting";
+  const reconnecting = status !== "disconnected";
   return (
     <BannerPill
       accent={
