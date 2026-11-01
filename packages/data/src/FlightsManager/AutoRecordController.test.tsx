@@ -153,6 +153,23 @@ afterEach(() => {
 });
 
 describe("AutoRecordController", () => {
+  it("starts recording when the Flight scene arrives after the only flight.current tick", () => {
+    const rig = buildRig();
+    const tree = (scene: "Unknown" | "Flight") => (
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled scene={scene} />
+      </TelemetryProvider>
+    );
+    const { rerender } = render(tree("Unknown"));
+    start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+    tickFrame(rig, 0, "vA", "Alpha");
+    expect(getAutoRecordStatus().recording).toBe(false);
+
+    act(() => rerender(tree("Flight")));
+
+    expect(getAutoRecordStatus().recording).toBe(true);
+  });
+
   it("adds no row when a page load at the Space Center is sent the retained events of a closed flight", async () => {
     const rig = buildRig();
     const tree = (scene: "Flight" | "SpaceCenter") => (
