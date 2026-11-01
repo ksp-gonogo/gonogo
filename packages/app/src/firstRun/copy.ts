@@ -23,7 +23,7 @@ export const WIZARD_COPY = {
   "welcome.heading": "Welcome",
   "welcome.advance": "Setup",
   "welcome.parts":
-    "Gonogo has two parts: this app, which runs in a container, and the Gonogo mod, which runs inside KSP and sends the game's data to it.",
+    "Gonogo has two parts: this app and the Gonogo mod, which runs inside KSP and sends the game's data to it.",
 
   "container.heading": "Start the app",
   "container.advance": "Friends on other networks",
