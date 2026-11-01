@@ -1953,6 +1953,13 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "connected");
             sb.Append(':');
             AppendNullableBool(sb, l.Connected);
+            if (l.RouteHome != null)
+            {
+                sb.Append(',');
+                AppendString(sb, "routeHome");
+                sb.Append(':');
+                AppendNullableBool(sb, l.RouteHome);
+            }
             sb.Append(',');
             AppendString(sb, "meta");
             sb.Append(':');
