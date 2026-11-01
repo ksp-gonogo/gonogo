@@ -43,12 +43,14 @@ namespace Sitrep.Host.Hosting
             foreach (var entry in (_settings.Text(StationsPath) ?? string.Empty).Split(';'))
             {
                 var fields = entry.Split(',');
-                if (fields.Length == 3
+                var seen = 0L;
+                if ((fields.Length == 3 || fields.Length == 4)
                     && long.TryParse(fields[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out var at)
+                    && (fields.Length == 3 || long.TryParse(fields[3], NumberStyles.Integer, CultureInfo.InvariantCulture, out seen))
                     && Uri.UnescapeDataString(fields[0]).Length > 0)
                 {
                     saved.Stations.Add(new ApprovedStationRecord(
-                        Uri.UnescapeDataString(fields[0]), Uri.UnescapeDataString(fields[1]), at));
+                        Uri.UnescapeDataString(fields[0]), Uri.UnescapeDataString(fields[1]), at, seen));
                 }
             }
 
@@ -81,7 +83,8 @@ namespace Sitrep.Host.Hosting
 
                 sb.Append(Uri.EscapeDataString(s.Credential)).Append(',')
                     .Append(Uri.EscapeDataString(s.Name)).Append(',')
-                    .Append(s.ApprovedAtUnixMs.ToString(CultureInfo.InvariantCulture));
+                    .Append(s.ApprovedAtUnixMs.ToString(CultureInfo.InvariantCulture)).Append(',')
+                    .Append(s.LastSeenUnixMs.ToString(CultureInfo.InvariantCulture));
             }
 
             return sb.ToString();
