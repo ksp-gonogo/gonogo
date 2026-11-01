@@ -9,6 +9,7 @@ import {
   type PeerClient,
   PeerClientProvider,
 } from "../../src/peer/PeerClientContext";
+import { peerHostService } from "../../src/peer/PeerHostService";
 import { idlePeerClient } from "../../src/test/peerFakes";
 
 /**
@@ -36,6 +37,8 @@ interface Scene {
   follow?: boolean;
   /** The command centre mission control is standing at, as the host tells a pilot. */
   hostCentre?: string;
+  /** The pilot screen hosts: no peer link, mission control's centre is its own. */
+  hosting?: boolean;
   /** Topics the header under test reads, so the first pass repeats until each has a subscriber. */
   awaitTopics: string[];
   pxW: number;
@@ -80,10 +83,13 @@ async function renderScene(scene: Scene): Promise<void> {
       </TelemetryProvider>
     </ScreenProvider>
   );
+  peerHostService.setCommandCentre(
+    scene.hosting ? (scene.hostCentre ?? null) : null,
+  );
   root = createRoot(host);
   root.render(
     <ThemeProvider theme={harnessTheme}>
-      {scene.screen === "pilot" ? (
+      {scene.screen === "pilot" && !scene.hosting ? (
         <PeerClientProvider client={peerClientAt(scene.hostCentre)}>
           {banner}
         </PeerClientProvider>

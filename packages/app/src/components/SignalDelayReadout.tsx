@@ -20,6 +20,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useEffect, useState } from "react";
 import { usePeerClient } from "../peer/PeerClientContext";
+import { peerHostService } from "../peer/PeerHostService";
 import { useActiveCentres } from "./VantageControl";
 
 /** What the header can truthfully say about the delay in force. */
@@ -244,13 +245,22 @@ function useCentreDelays(): ReadonlyMap<string, number> | undefined {
   return readCentreDelays(payload) ?? undefined;
 }
 
-/** The centre the host's main screen stands at, or `null` before the host has said. */
+/**
+ * The centre mission control stands at: the host's, told to a joined or remote
+ * screen over its peer link, or this screen's own on a screen that hosts.
+ */
 function useHostCommandCentre(): string | null {
   const peer = usePeerClient();
   const [centreId, setCentreId] = useState<string | null>(
-    () => peer?.getHostCommandCentre() ?? null,
+    () => peer?.getHostCommandCentre() ?? peerHostService.getCommandCentre(),
   );
-  useEffect(() => peer?.onHostCommandCentreChange(setCentreId), [peer]);
+  useEffect(() => {
+    if (peer) return peer.onHostCommandCentreChange(setCentreId);
+    setCentreId(peerHostService.getCommandCentre());
+    return peerHostService.onCentresChanged(() =>
+      setCentreId(peerHostService.getCommandCentre()),
+    );
+  }, [peer]);
   return centreId;
 }
 

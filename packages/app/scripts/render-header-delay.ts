@@ -141,6 +141,8 @@ interface Scene {
   select?: string;
   follow?: boolean;
   hostCentre?: string;
+  /** The pilot screen hosts, so it reads mission control's centre from itself, with no peer link. */
+  hosting?: boolean;
   /** Text the header must also contain once settled, such as the craft's name. */
   mustContain?: string;
   emit: [string, unknown][];
@@ -227,6 +229,41 @@ const SCENES: Scene[] = [
     select: GS2,
     settled: { after: "DelaySignal delay: disconnected", before: NOT_REPORTED },
     emit: flight(false),
+  },
+  {
+    // A hosting pilot aboard a craft far from home, standing at home itself.
+    name: "pilot-hosting-aboard",
+    screen: "pilot",
+    hosting: true,
+    vantage: CRAFT,
+    follow: true,
+    hostCentre: KSC,
+    settled: {
+      after: "DelaySignal delay 3min 7s",
+      before: "DelaySignal delay 3min 7s",
+    },
+    emit: [...flight(true), ["vessel.orbit", CRAFT_ORBIT]],
+  },
+  {
+    // A hosting pilot on the pad: the delay home is a few milliseconds.
+    name: "pilot-hosting-pad",
+    screen: "pilot",
+    hosting: true,
+    vantage: CRAFT,
+    follow: true,
+    hostCentre: KSC,
+    settled: {
+      after: "DelaySignal delay 2 ms",
+      before: "DelaySignal delay 2 ms",
+    },
+    emit: [
+      ["commandCentre.roster", ROSTER],
+      ["spaceCenter.scene", { scene: "Flight" }],
+      ["comms.delay", { oneWaySeconds: 0.002, source: SIGNAL_DELAY }],
+      ["commandCentre.activeVesselDelay", CENTRE_DELAYS],
+      ["comms.link", { connected: true }],
+      ["vessel.orbit", CRAFT_ORBIT],
+    ],
   },
   {
     // A pilot aboard the craft, mission control at home.
@@ -520,6 +557,7 @@ async function main(): Promise<void> {
           select: scene.select,
           follow: scene.follow,
           hostCentre: scene.hostCentre,
+          hosting: scene.hosting,
           awaitTopics,
           pxW: PX_W,
           pxH: PX_H,

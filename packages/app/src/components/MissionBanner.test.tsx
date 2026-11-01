@@ -27,9 +27,10 @@ import {
 import { NULL_DISPLAY, Unit } from "@ksp-gonogo/ui-kit";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { Profiler, type ReactNode } from "react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { PeerClientProvider } from "../peer/PeerClientContext";
 import { PeerClientService } from "../peer/PeerClientService";
+import { peerHostService } from "../peer/PeerHostService";
 import { MissionBanner } from "./MissionBanner";
 
 const KSC = "ground:Kerbal Space Center";
@@ -805,7 +806,7 @@ class PeerAt extends PeerClientService {
  * figures off the wire itself. The message that tells a real peer link is
  * covered where the service is (`host-command-centre-peer`).
  */
-function renderPilot() {
+function renderPilot({ hosting = false } = {}) {
   const transport = new StubTransport();
   const client = new TelemetryClient(transport);
   const clock = new ViewClock();
@@ -823,15 +824,20 @@ function renderPilot() {
         deliveredAt: validAt,
       });
     });
+  const screenTree = (
+    <ScreenProvider value="pilot">
+      <TelemetryProvider client={client} store={store}>
+        <MissionBanner />
+        <LinkReport />
+      </TelemetryProvider>
+    </ScreenProvider>
+  );
   const view = render(
-    <PeerClientProvider client={peer}>
-      <ScreenProvider value="pilot">
-        <TelemetryProvider client={client} store={store}>
-          <MissionBanner />
-          <LinkReport />
-        </TelemetryProvider>
-      </ScreenProvider>
-    </PeerClientProvider>,
+    hosting ? (
+      screenTree
+    ) : (
+      <PeerClientProvider client={peer}>{screenTree}</PeerClientProvider>
+    ),
   );
   act(() => {
     client.setVantage(CRAFT);
@@ -867,6 +873,43 @@ function renderPilot() {
   };
   return { ...view, tell, fly };
 }
+
+describe("MissionBanner signal delay on a hosting pilot", () => {
+  afterEach(() => {
+    act(() => {
+      peerHostService.setCommandCentre(null);
+    });
+  });
+
+  it("reads the delay to the centre the hosting screen itself stands at", async () => {
+    const expected = unitMarkup(187.4);
+    act(() => {
+      peerHostService.setCommandCentre(KSC);
+    });
+    const { fly } = renderPilot({ hosting: true });
+    await fly(true);
+
+    await waitFor(() => {
+      expect(delayValue()?.innerHTML).toContain(expected);
+    });
+  });
+
+  it("follows the hosting screen's centre as it moves", async () => {
+    const expected = unitMarkup(42.5);
+    act(() => {
+      peerHostService.setCommandCentre(KSC);
+    });
+    const { fly } = renderPilot({ hosting: true });
+    await fly(true);
+
+    act(() => {
+      peerHostService.setCommandCentre(GS1);
+    });
+    await waitFor(() => {
+      expect(delayValue()?.innerHTML).toContain(expected);
+    });
+  });
+});
 
 describe("MissionBanner command centre field on the pilot screen", () => {
   it("is left out while the frames are from a craft", async () => {

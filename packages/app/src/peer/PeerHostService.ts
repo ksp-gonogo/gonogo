@@ -340,6 +340,19 @@ const WAITING_STATION_MAY_SEND: ReadonlySet<PeerMessage["type"]> = new Set([
   "station-credential",
 ]);
 
+/**
+ * What a station not yet approved has said about what it reads, kept for the
+ * moment it is. A reconnecting station replays these as soon as its link
+ * opens, and the game's answer on its approval takes a round trip, so they
+ * arrive while it waits.
+ */
+interface HeldReads {
+  vantage?: PeerMessage;
+  topics: Map<string, PeerMessage>;
+  rates: Map<string, PeerMessage>;
+  vote?: PeerMessage;
+}
+
 /** `meta` for a command reply the host writes itself rather than relays. */
 const HOST_REPLY_META = {
   source: "sitrep-command-rpc",
@@ -529,6 +542,7 @@ export class PeerHostService {
    * reads the host's, which is what every connection did before this existed.
    */
   private readonly connVantage = new Map<StationLink, string>();
+  private readonly heldReads = new WeakMap<StationLink, HeldReads>();
   /** The rate tier each connection asks for on its topics, base ones left out. */
   private readonly connRates = new Map<
     StationLink,
@@ -1148,6 +1162,53 @@ export class PeerHostService {
     // subscribe every time), so we gate on a single attach.
     void this.attachFlightListChangeBroadcaster();
     this.events.emit("peerConnect", conn.peer);
+    this.applyHeldReads(conn);
+    this.announceRequestedVantages();
+  }
+
+  /** Remember what a waiting station says about what it reads, to apply when it is admitted. */
+  private holdRead(msg: PeerMessage, conn: StationLink): void {
+    let held = this.heldReads.get(conn);
+    if (!held) {
+      held = { topics: new Map(), rates: new Map() };
+      this.heldReads.set(conn, held);
+    }
+    switch (msg.type) {
+      case "sitrep-set-vantage":
+        held.vantage = msg;
+        return;
+      case "sitrep-subscribe":
+        held.topics.set(msg.topic, msg);
+        return;
+      case "sitrep-unsubscribe":
+        held.topics.delete(msg.topic);
+        return;
+      case "sitrep-set-rate":
+        held.rates.set(msg.topic, msg);
+        return;
+      case "gonogo-vote":
+        held.vote = msg;
+        return;
+    }
+  }
+
+  /**
+   * Act on what a station said while it waited, in the order a live one says
+   * it: the vantage it reads from, the topics, their rate tiers, then its vote.
+   */
+  private applyHeldReads(conn: StationLink): void {
+    const held = this.heldReads.get(conn);
+    if (!held) return;
+    this.heldReads.delete(conn);
+    const replay = [
+      held.vantage,
+      ...held.topics.values(),
+      ...held.rates.values(),
+      held.vote,
+    ];
+    for (const msg of replay) {
+      if (msg) this.dispatcher.dispatch(msg, conn);
+    }
   }
 
   /**
@@ -1213,6 +1274,7 @@ export class PeerHostService {
     this.droppedConnections.add(conn);
     const wasServed = this.connections.delete(conn);
     this.waiting.delete(conn);
+    this.heldReads.delete(conn);
     if (this.stationPaths.delete(conn.peer)) this.events.emit("stationPaths");
     this.peerIdToStationKey.delete(conn.peer);
     this.connCredential.delete(conn);
@@ -1249,7 +1311,7 @@ export class PeerHostService {
     logger.info(
       `[PeerHost] connection ${why}: peer=${conn.peer}, total=${this.connections.size}`,
     );
-    if (hadVantage) this.announceRequestedVantages();
+    if (hadVantage || wasServed) this.announceRequestedVantages();
     if (wasServed) this.events.emit("peerDisconnect", conn.peer);
   }
 
@@ -2207,6 +2269,7 @@ export class PeerHostService {
       !this.connections.has(conn) &&
       !WAITING_STATION_MAY_SEND.has(msg.type)
     ) {
+      if (this.waiting.has(conn)) this.holdRead(msg, conn);
       this.refuseWaiting(msg, conn);
       return;
     }
