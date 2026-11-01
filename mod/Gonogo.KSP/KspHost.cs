@@ -3871,7 +3871,7 @@ namespace Gonogo.KSP
                 return index >= 0 ? PropagationTarget.Body(index) : (PropagationTarget?)null;
             }
 
-            var orbit = target.GetOrbit();
+            var orbit = CurrentOrbitOf(target);
             if (orbit == null || orbit.referenceBody == null)
             {
                 return null;
@@ -4005,7 +4005,7 @@ namespace Gonogo.KSP
                 ["relativeVelocity"] = new[] { relVel.x, relVel.y, relVel.z },
             };
 
-            var targetOrbit = target.GetOrbit();
+            var targetOrbit = CurrentOrbitOf(target);
             if (targetOrbit != null)
             {
                 result["orbit"] = BuildOrbit(targetOrbit);
@@ -4024,6 +4024,32 @@ namespace Gonogo.KSP
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// The target's orbit as it stands now. A physics-loaded vessel's stored
+        /// elements can be minutes old, so its orbit is rebuilt from its position
+        /// and velocity at the current time, the way stock's own vessel update
+        /// does; see <see cref="TargetOrbitFreshness"/>.
+        /// </summary>
+        private static Orbit? CurrentOrbitOf(ITargetable target)
+        {
+            var stored = target.GetOrbit();
+            var vessel = target.GetVessel();
+            if (stored == null || stored.referenceBody == null || vessel == null
+                || !TargetOrbitFreshness.RebuildsFromState(true, vessel.loaded, vessel.packed))
+            {
+                return stored;
+            }
+
+            var body = stored.referenceBody;
+            var fresh = new Orbit();
+            fresh.UpdateFromStateVectors(
+                ((Vector3d)vessel.CoMD - body.position).xzy,
+                vessel.obt_velocity.xzy,
+                body,
+                Planetarium.GetUniversalTime());
+            return fresh;
         }
 
         private static (string Type, string? VesselId, uint? PartId) ClassifyTarget(ITargetable target)
