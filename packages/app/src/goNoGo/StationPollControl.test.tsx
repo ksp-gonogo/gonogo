@@ -183,6 +183,25 @@ describe("GO/NO-GO in a station's header", () => {
     expect(votes.at(-1)).toBe("no-go");
   });
 
+  it("drops its countdown when the main screen restarts mid-countdown", async () => {
+    let restart: () => void = () => {};
+    const client: PeerClient = {
+      ...idlePeerClient(),
+      onHostRestart: (cb) => {
+        restart = cb;
+        return () => {};
+      },
+      onGonogoCountdownStart: (cb) => {
+        cb(Date.now() + 30_000);
+        return () => {};
+      },
+    };
+    station(client);
+    expect(await screen.findByRole("timer")).toBeInTheDocument();
+    await act(async () => restart());
+    expect(screen.queryByRole("timer")).toBeNull();
+  });
+
   it("shows why a countdown was held and which station dropped", async () => {
     let hold: (reason: string | undefined, h: CountdownHold) => void = () => {};
     const client: PeerClient = {
