@@ -80,7 +80,11 @@ export class HostRole {
     this.detachRecord = connection.subscribe(HOST_RECORD_TOPIC, (value) =>
       this.onRecord(value),
     );
-    if (this.answered) this.claim();
+    /* Only the holder claims again on a new connection. A joined screen
+       watches the record on it, because the mod grants the role to any screen
+       once the holder's connection has closed, and a joined screen that
+       reconnects beside a holder doing the same must not take it. */
+    if (this.holds) this.claim();
     return () => {
       if (this.connection !== connection) return;
       this.detachRecord?.();

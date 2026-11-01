@@ -126,6 +126,32 @@ describe("a local screen's part in the host role", () => {
     expect(mod.sent.map((s) => s.command)).toContain("host.release");
   });
 
+  it("claims at once, and without a takeover, when the holder's connection has closed", async () => {
+    const mod = new FakeHostMod();
+    const host = await open(mod, "tab-a");
+    host.connection.close();
+    host.role.dispose();
+
+    const fresh = await open(mod, "tab-b");
+
+    expect(fresh.role.state).toMatchObject({
+      kind: "hosting",
+      takeover: false,
+    });
+  });
+
+  it("does not claim from a holder that is away when a joined screen reconnects", async () => {
+    const mod = new FakeHostMod();
+    const host = await open(mod, "tab-a");
+    const joined = await open(mod, "tab-b");
+    host.connection.close();
+
+    joined.role.attach(mod.connect());
+    await settle();
+
+    expect(joined.role.state.kind).toBe("joined");
+  });
+
   it("takes the role straight back on a reload inside the grace", async () => {
     const mod = new FakeHostMod();
     const host = await open(mod, "tab-a");

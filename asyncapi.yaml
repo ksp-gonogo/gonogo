@@ -16847,7 +16847,8 @@ components:
           x-sitrep-unit: flag
           description: |-
             True while the holder's connection is closed and the role is kept for it to
-            come back, as a page reload does. The role is freed when the grace ends.
+            come back, as a page reload does. A screen that claims the role in this time
+            is granted it. The role is freed when the grace ends.
         holderId:
           type: string
           x-sitrep-unit: id

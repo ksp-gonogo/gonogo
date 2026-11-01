@@ -97,11 +97,12 @@ namespace Sitrep.Host.IntegrationTests
                 var first = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
                 Assert.Contains("\"holds\":true", await AskAsync(first, "c1", "host.claim", new Dictionary<string, object?> { ["token"] = "tab-a" }));
 
-                await first.DisposeAsync();
 
                 var refused = await AskAsync(other, "c2", "host.claim", new Dictionary<string, object?> { ["token"] = "tab-b" });
                 Assert.Contains("\"holds\":false", refused);
                 Assert.Contains("\"holderId\":\"" + HostRecord.PublicId("tab-a") + "\"", refused);
+
+                await first.DisposeAsync();
 
                 await using var reloaded = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
                 Assert.Contains("\"holds\":true", await AskAsync(reloaded, "c3", "host.claim", new Dictionary<string, object?> { ["token"] = "tab-a" }));
@@ -113,10 +114,9 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
-        public async Task AHolderWhoseSocketClosedIsFreedOnceTheGraceRunsOut()
+        public async Task AnotherScreenIsGrantedTheRoleAsSoonAsTheHoldersSocketHasClosed()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.SetHostRecordTimingsForTests(new HostRecordTimings { GraceSeconds = 0.4 });
             engine.Start();
             try
             {
@@ -130,7 +130,7 @@ namespace Sitrep.Host.IntegrationTests
                 var n = 0;
                 do
                 {
-                    await Task.Delay(100);
+                    await Task.Delay(50);
                     answer = await AskAsync(other, "d-b" + n++, "host.claim", new Dictionary<string, object?> { ["token"] = "tab-b" });
                 }
                 while (answer.Contains("\"holds\":false") && DateTime.UtcNow < deadline);
