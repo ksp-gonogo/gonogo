@@ -143,10 +143,16 @@ async function renderScene(scene: Scene): Promise<void> {
   dashboard.attach();
 
   const peers = new ProbePeers();
-  host = new GoNoGoHostService(asHostService(peers));
+  host = new GoNoGoHostService(asHostService(peers), {
+    hostCentre: () => "ground:Kerbal Space Center",
+    commandFrom: () => undefined,
+  });
   for (const [i, [name, vote]] of (scene.stations ?? []).entries()) {
     peers.fire("connect", `p${i}`);
-    peers.fire("info", `p${i}`, { name });
+    peers.fire("info", `p${i}`, {
+      name,
+      centre: "ground:Kerbal Space Center",
+    });
     peers.fire("vote", `p${i}`, vote);
   }
 
@@ -196,6 +202,17 @@ async function renderScene(scene: Scene): Promise<void> {
   );
 
   const topics: [string, unknown][] = [
+    [
+      "commandCentre.roster",
+      [
+        {
+          id: "ground:Kerbal Space Center",
+          displayName: "Kerbin: KSC",
+          active: true,
+          isHome: true,
+        },
+      ],
+    ],
     [
       "spaceCenter.scene",
       { scene: scene.spaceCentre ? "SpaceCenter" : "Flight" },

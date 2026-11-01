@@ -85,3 +85,20 @@ export function writeThreeFigures(quantity: {
       : 0;
   return writeQuantity(quantity, { decimals });
 }
+
+/**
+ * The fewest decimals, from `floor` up to six, at which every adjacent pair of
+ * `ticks`, each divided by `divisor`, is written differently. Used by a y axis
+ * with no unit so a narrow range never prints one label on every gridline.
+ */
+export function tickDecimals(
+  ticks: readonly number[],
+  divisor: number,
+  floor: number,
+): number {
+  for (let d = floor; d < 6; d++) {
+    const written = ticks.map((n) => (n / divisor).toFixed(d));
+    if (written.every((w, k) => k === 0 || w !== written[k - 1])) return d;
+  }
+  return 6;
+}
