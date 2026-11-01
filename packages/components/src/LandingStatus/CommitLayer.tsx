@@ -39,6 +39,11 @@ export const REGIME_TONE: Record<LandingRegime, Tone> = {
 
 const IMPACT_CAPTION = "BEST-BURN IMPACT";
 
+const IMPACT_ETA_CAPTION = "IMPACT ETA";
+
+/** Lets the caption take the width left beside its figure and wrap there, so the figure is not squeezed by the caption's full length. */
+const FILL_BESIDE = { flex: "1 1 0" } as const;
+
 /** The craft's parachutes as `vessel.landing` reports them; each field null when unsent. */
 export interface ParachuteStatus {
   deployment: string | null;
@@ -112,6 +117,8 @@ export interface CommitLayerProps {
   descending?: boolean;
   /** Whether the game has sent a landing prediction. A craft not descending with none reads differently from one with one. */
   predicted?: boolean;
+  /** Seconds until the craft's own orbit reaches the surface, while it is not yet falling toward it: the hero then reads the countdown in place of there being no prediction. Null when the orbit clears the surface. */
+  orbitImpactSeconds?: number | null;
   /** True while the flight's crash is on record: whatever the wreck still reports, the hero says the vessel was destroyed, never landed. */
   crashed?: boolean;
   /** The centre has heard nothing from the craft for longer than it expected: the hero says so in place of the last held descent, and never says the craft crashed, which the centre cannot know. */
@@ -157,6 +164,7 @@ function resolveHero({
   contactLoss = null,
   descending = true,
   predicted = false,
+  orbitImpactSeconds = null,
   noLandingVector = false,
   burning = false,
 }: Readonly<CommitLayerProps>): Hero {
@@ -179,6 +187,13 @@ function resolveHero({
   }
   // Nothing to burn against: no burn timing or link request, only what is so.
   if (!descending) {
+    if (orbitImpactSeconds != null) {
+      return hero(
+        <Countdown value={orbitImpactSeconds} precise />,
+        IMPACT_ETA_CAPTION,
+        "warn",
+      );
+    }
     return hero(
       NULL_DISPLAY,
       predicted ? "NOT DESCENDING" : "NO LANDING PREDICTION",
@@ -242,7 +257,14 @@ export function CommitLayer(props: Readonly<CommitLayerProps>) {
           </Readout>
         ) : (
           (parachuteLine(props.parachute) ??
-          (props.descending === false ? (
+          (props.descending === false && props.orbitImpactSeconds != null ? (
+            <Readout tone="warn">
+              <Countdown value={props.orbitImpactSeconds} precise />
+              <ReadoutCaption style={FILL_BESIDE}>
+                {IMPACT_ETA_CAPTION}
+              </ReadoutCaption>
+            </Readout>
+          ) : props.descending === false ? (
             <Readout>
               {NULL_DISPLAY}
               <ReadoutCaption>
@@ -281,7 +303,15 @@ export function CommitLayer(props: Readonly<CommitLayerProps>) {
       <RowsOrLine inline={props.inline}>
         <Readout tone={heroTone}>
           {heroValue}
-          {heroCaption && <ReadoutCaption>{heroCaption}</ReadoutCaption>}
+          {heroCaption && (
+            <ReadoutCaption
+              style={
+                heroCaption === IMPACT_ETA_CAPTION ? FILL_BESIDE : undefined
+              }
+            >
+              {heroCaption}
+            </ReadoutCaption>
+          )}
         </Readout>
         <Readout tone={noLandingVector ? "nogo" : "neutral"}>
           {showImpact ? (

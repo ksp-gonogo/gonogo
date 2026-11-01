@@ -300,6 +300,7 @@ function LandingStatusComponent({
       landed={landed}
       descending={descending}
       predicted={landing !== undefined}
+      orbitImpactSeconds={model.orbitImpactSeconds}
       crashed={crash !== undefined}
       contactLoss={contactLoss}
       noLandingVector={noLandingVector}
