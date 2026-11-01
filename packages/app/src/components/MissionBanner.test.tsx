@@ -1096,7 +1096,11 @@ describe("MissionBanner vessel and EVA fields with the active craft out of conta
   };
 
   it("says the vessel is not known while flying with no identity, never another craft", async () => {
+    const atDelay = unitMarkup(4);
     await mount();
+    await waitFor(() => {
+      expect(delayValue()?.innerHTML).toContain(atDelay);
+    });
     const caption = await screen.findByText("Vessel");
     expect(caption.nextElementSibling).toHaveTextContent(/not known/i);
   });
