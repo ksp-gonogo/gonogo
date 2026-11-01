@@ -113,7 +113,9 @@ describe("PeerHostService: stable host id (derived from share code)", () => {
 
   it("on unavailable-id, RETRY-RECLAIMS the SAME derived id (does not rotate to a new one)", async () => {
     vi.useFakeTimers();
-    const { PeerHostService } = await import("../peer/PeerHostService");
+    const { PeerHostService, HOST_RECLAIM_INTERVAL_MS } = await import(
+      "../peer/PeerHostService"
+    );
     const service = new PeerHostService();
     void service.start();
     await vi.advanceTimersByTimeAsync(0);
@@ -134,8 +136,8 @@ describe("PeerHostService: stable host id (derived from share code)", () => {
     expect(service.isReclaiming()).toBe(true);
     expect(firstPeer?.destroyed).toBe(true);
 
-    // The backoff timer fires → a fresh Peer is constructed with the SAME derived id, and once it opens, reclaiming clears.
-    await vi.advanceTimersByTimeAsync(1_000);
+    // The retry timer fires → a fresh Peer is constructed with the SAME derived id, and once it opens, reclaiming clears.
+    await vi.advanceTimersByTimeAsync(HOST_RECLAIM_INTERVAL_MS);
     await vi.advanceTimersByTimeAsync(0);
 
     const reclaimPeer = FakePeer.last;

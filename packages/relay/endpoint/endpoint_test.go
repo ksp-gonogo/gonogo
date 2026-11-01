@@ -434,6 +434,54 @@ func TestATabThatStopsAnsweringPingsIsDroppedAndAnotherTakesOver(t *testing.T) {
 	t.Fatal("a tab that stopped answering pings kept the endpoint")
 }
 
+// takenOverWithin reports whether a second main screen is accepted (gets a status frame) within d.
+func takenOverWithin(t *testing.T, url string, d time.Duration) bool {
+	t.Helper()
+	deadline := time.Now().Add(d)
+	for time.Now().Before(deadline) {
+		conn, _, err := websocket.DefaultDialer.Dial(url, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = conn.SetReadDeadline(time.Now().Add(time.Second))
+		_, msg, err := conn.ReadMessage()
+		conn.Close()
+		if err == nil && strings.Contains(string(msg), `"status"`) {
+			return true
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	return false
+}
+
+func TestATabThatAnswersPingsButSendsNoFrameIsDropped(t *testing.T) {
+	_, url := startEndpoint(t, Config{TabPingInterval: 20 * time.Millisecond, TabTimeout: 300 * time.Millisecond})
+	// dialTab keeps reading, so the client library answers every ping: the network stack of a page whose scripts are paused.
+	dialTab(t, url)
+	if !takenOverWithin(t, url, wait) {
+		t.Fatal("a tab that only answered pings kept the endpoint")
+	}
+}
+
+func TestATabThatSendsAliveFramesKeepsTheEndpoint(t *testing.T) {
+	_, url := startEndpoint(t, Config{TabPingInterval: 20 * time.Millisecond, TabTimeout: 300 * time.Millisecond})
+	tb := dialTab(t, url)
+	stop := time.After(1200 * time.Millisecond)
+	tick := time.NewTicker(100 * time.Millisecond)
+	defer tick.Stop()
+	for {
+		select {
+		case <-stop:
+			if takenOverWithin(t, url, 80*time.Millisecond) {
+				t.Fatal("a tab sending alive frames lost the endpoint")
+			}
+			return
+		case <-tick.C:
+			tb.send(map[string]any{"type": "alive"})
+		}
+	}
+}
+
 func TestTheStationClosingTellsTheTab(t *testing.T) {
 	_, url := startEndpoint(t, Config{})
 	tb := dialTab(t, url)
