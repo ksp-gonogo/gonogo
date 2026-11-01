@@ -101,6 +101,23 @@ describe("the main screen's endpoint socket", () => {
     stations.stop();
   });
 
+  it("sends an alive frame on its own timer while open, and stops when stopped", async () => {
+    const endpoint = fakeEndpoint();
+    const stations = new EndpointStations(() => URL, 50, 20);
+    stations.start();
+    await vi.waitFor(() => expect(stations.available).toBe(true));
+    await vi.waitFor(() =>
+      expect(
+        endpoint.control.filter((f) => f.type === "alive").length,
+      ).toBeGreaterThanOrEqual(3),
+    );
+    stations.stop();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    const after = endpoint.control.length;
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    expect(endpoint.control).toHaveLength(after);
+  });
+
   it("hands a station's offer to the endpoint and resolves with its answer", async () => {
     const endpoint = fakeEndpoint();
     const stations = await started();
