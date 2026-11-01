@@ -4416,6 +4416,12 @@ export interface EvaCrewMember
 	parentVesselId?: string | null;
 	/** The kerbal's name, from the EVA vessel's `GetName()`. */
 	name?: string | null;
+	/**
+	* Whether the game has this kerbal loaded, which is true within physics range
+	* of the vessel in focus. A kerbal that is not loaded is orbiting or standing
+	* elsewhere and has no suit state of its own to read.
+	*/
+	loaded?: boolean | null;
 }
 /**
 * The roster of kerbals currently outside a craft, loaded or not, so a client

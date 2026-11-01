@@ -15496,6 +15496,15 @@ components:
             - "null"
           x-sitrep-unit: text
           description: The kerbal's name, from the EVA vessel's `GetName()`.
+        loaded:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: |-
+            Whether the game has this kerbal loaded, which is true within physics range
+            of the vessel in focus. A kerbal that is not loaded is orbiting or standing
+            elsewhere and has no suit state of its own to read.
     EventMsg:
       type: object
       description: |-

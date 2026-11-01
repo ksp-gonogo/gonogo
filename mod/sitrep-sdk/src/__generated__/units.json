@@ -709,6 +709,7 @@
     },
     "EvaCrewMember": {
       "kerbalVesselId": "id",
+      "loaded": "flag",
       "name": "text",
       "parentVesselId": "id"
     },

@@ -749,6 +749,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "EvaCrewMember": {
     kerbalVesselId: "id",
+    loaded: "flag",
     name: "text",
     parentVesselId: "id",
   },
