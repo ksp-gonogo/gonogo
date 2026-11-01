@@ -71,7 +71,7 @@ function badgeText(): string | null {
   const pill =
     screen.queryByText("COMMS LINKED") ??
     screen.queryByText("NO COMMS LINK") ??
-    screen.queryByText("COMMS AWAITING") ??
+    screen.queryByText("Awaiting first signal") ??
     screen.queryByText(`COMMS ${NULL_DISPLAY}`);
   return pill?.textContent ?? null;
 }
@@ -81,7 +81,7 @@ describe("FleetComms badge: what undefined means today", () => {
     renderBadge();
 
     // A reading not yet heard from is awaited, neither LINK nor NO LINK.
-    await waitFor(() => expect(badgeText()).toBe("COMMS AWAITING"));
+    await waitFor(() => expect(badgeText()).toBe("Awaiting first signal"));
     expect(badgeText()).not.toBe("COMMS LINKED");
     expect(badgeText()).not.toBe("NO COMMS LINK");
   });

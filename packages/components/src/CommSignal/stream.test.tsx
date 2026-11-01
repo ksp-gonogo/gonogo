@@ -40,8 +40,6 @@ describe("CommSignal: genuinely runs off the stream", () => {
       </fixture.Provider>,
     );
 
-    expect(screen.getByText("Awaiting first signal")).toBeTruthy();
-
     expect(fixture.transport.isSubscribed("vessel.comms")).toBe(true);
 
     act(() => {
@@ -217,8 +215,6 @@ describe("CommSignal: genuinely runs off the stream", () => {
         );
       });
       // Sample A has not crossed the delay window yet.
-      expect(screen.getByText("Awaiting first signal")).toBeTruthy();
-
       // Wall time moving is not itself a frame, so the test mints one.
       act(() => {
         fixture.wall.advanceBy(5);

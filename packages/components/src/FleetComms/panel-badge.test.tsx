@@ -66,7 +66,9 @@ describe("TrackingStation panel badge (fleet-comms-badge contribution)", () => {
     act(() => {
       fixture.store.beginFrame();
     });
-    expect(await screen.findByText("COMMS AWAITING")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Awaiting first signal"),
+    ).toBeInTheDocument();
     expect(screen.queryByText("NO COMMS LINK")).toBeNull();
   });
 

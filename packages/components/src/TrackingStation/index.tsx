@@ -3,6 +3,7 @@ import {
   AugmentSlot,
   defineTopicManifest,
   registerComponent,
+  useAwaitingFirstSignal,
   useContributions,
   useOrbitSolve,
   useOrbitSolveReading,
@@ -75,6 +76,7 @@ import { orbitFramingZoom } from "./orbitFraming";
 import { SystemDiagram } from "./SystemDiagram";
 import { SystemEntitiesLayer } from "./SystemEntitiesLayer";
 import {
+  CommsAwaitingCaption,
   CommsSourceCaption,
   HeldPlanCaption,
   TargetOrbitCaption,
@@ -253,6 +255,7 @@ function TrackingStationComponent({
       ? targetReading.value.name
       : undefined;
   // Read directly for the host-side selection path; a held relay graph still says what the topology last was.
+  const awaitingFirstSignal = useAwaitingFirstSignal();
   const commsNetworkReading = topics.useTelemetry("comms.network");
   const commsNetwork =
     commsNetworkReading.state === "observed" ||
@@ -919,6 +922,7 @@ function TrackingStationComponent({
             {targetTrajectory?.shape === "withheld" && (
               <DeclinedEmptyState declined={targetTrajectory.declined} />
             )}
+            {awaitingFirstSignal && <CommsAwaitingCaption />}
             {commsSource !== undefined && (
               <CommsSourceCaption
                 source={commsSource}

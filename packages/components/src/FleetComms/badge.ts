@@ -1,7 +1,7 @@
-import { CORE_UPLINK_CLIENT } from "@ksp-gonogo/core";
+import { CORE_UPLINK_CLIENT, isAwaitingFirstSignal } from "@ksp-gonogo/core";
 import type { CommsLink, TopicCurrency } from "@ksp-gonogo/sitrep-sdk";
 import type { BadgeEntry } from "@ksp-gonogo/ui-kit";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { AWAITING_FIRST_SIGNAL, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 
 /**
  * `true` connected, `false` a positive report of no link, `null` unknown, and
@@ -15,7 +15,7 @@ export function commsLinkState(link: TopicCurrency<CommsLink>): CommsLinkState {
   if (link.state === "observed" || link.state === "held")
     return link.value.connected ?? null;
   // A topic that arrived saying it has nothing is an answer, so only one not yet heard from is awaited.
-  return link.state === "pending" ? "awaiting" : null;
+  return isAwaitingFirstSignal(link) ? "awaiting" : null;
 }
 
 /** An unknown link still draws a badge, so it stays distinguishable from no comms at all. */
@@ -26,7 +26,7 @@ export function commsLinkBadge(link: CommsLinkState | undefined): BadgeEntry[] {
     return [{ id: "fleet-comms-link", label: "NO COMMS LINK", tone: "nogo" }];
   if (link === "awaiting")
     return [
-      { id: "fleet-comms-link", label: "COMMS AWAITING", tone: "neutral" },
+      { id: "fleet-comms-link", label: AWAITING_FIRST_SIGNAL, tone: "neutral" },
     ];
   return [
     { id: "fleet-comms-link", label: `COMMS ${NULL_DISPLAY}`, tone: "neutral" },

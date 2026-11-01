@@ -78,6 +78,11 @@ describe("CrewStatus, what undefined telemetry renders today", () => {
     );
 
     act(() => {
+      fixture.emit("comms.connectivity", {
+        connected: true,
+        controlSource: 0,
+        hasLocalControl: true,
+      });
       fixture.emit("vessel.crew", null, { seq: 2, validAt: 2 });
     });
 
