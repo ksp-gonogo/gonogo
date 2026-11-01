@@ -242,22 +242,18 @@ export function SitrepTelemetryProvider({
           },
         })
       : undefined;
-    /*
-     * Mirror the status of the transport this screen reads through, owned or
-     * injected: a pilot or station has no socket of its own to the game, so
-     * its stream is the link to the host, and that is what every instrument
-     * guard and the offline banner must report.
-     */
+    // Mirror the OWNED transport's connection status into the Connection tab's
+    // "Sitrep Stream" row: an injected test transport has no bearing on what
+    // that row should report about the real connection.
     const traceStatus = streamStatusTracer(logger.tag("sitrep"));
-    const statusSource = ownedTransport ?? injectedTransport;
-    const unsubStatus = statusSource?.onStatusChange((status) => {
+    const unsubStatus = ownedTransport?.onStatusChange((status) => {
       reportSitrepTransportStatus(status);
       traceStatus(status);
       if (status === "connected") setVantageRefused(false);
     });
-    if (statusSource) {
-      reportSitrepTransportStatus(statusSource.status);
-      traceStatus(statusSource.status);
+    if (ownedTransport) {
+      reportSitrepTransportStatus(ownedTransport.status);
+      traceStatus(ownedTransport.status);
     }
     setSitrepRetryHandler(
       ownedTransport ? () => ownedTransport.retryNow() : null,
