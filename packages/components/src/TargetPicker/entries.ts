@@ -108,3 +108,37 @@ export function targetArgsFor(entry: TargetListEntry) {
   // An `Other`-kind entry has no id-based set command, so a click is intentionally a no-op.
   return null;
 }
+
+/**
+ * Appends a number to the name of every docking port that shares its name with
+ * another port of the same craft, in ascending part id order, so ports the
+ * mod names identically can be told apart. Ports with a name of their own, and
+ * every other entry, are returned unchanged.
+ */
+export function numberSharedPortNames(
+  list: readonly TargetListEntry[],
+): TargetListEntry[] {
+  const groups = new Map<string, TargetListEntry[]>();
+  for (const e of list) {
+    if (e.kind !== TargetKind.Part || e.partId == null) continue;
+    const key = `${e.vesselId}\u0000${e.name}`;
+    const group = groups.get(key);
+    if (group) group.push(e);
+    else groups.set(key, [e]);
+  }
+  const numbered = new Map<TargetListEntry, string>();
+  for (const group of groups.values()) {
+    if (group.length < 2) continue;
+    const ordered = [...group].sort(
+      (a, b) => (a.partId as number) - (b.partId as number),
+    );
+    for (const [i, e] of ordered.entries()) {
+      numbered.set(e, `${e.name} ${i + 1}`);
+    }
+  }
+  if (numbered.size === 0) return [...list];
+  return list.map((e) => {
+    const name = numbered.get(e);
+    return name === undefined ? e : { ...e, name };
+  });
+}

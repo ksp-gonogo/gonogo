@@ -52,6 +52,7 @@ import {
   solidRegionCover,
 } from "./plotLayers";
 import { placeThresholdLabels } from "./thresholdLabels";
+import { tickDecimals } from "./ticks";
 
 /**
  * The samples of one line on a graph, as parallel `x` and `y` arrays; `x` is unix ms on a time chart
@@ -2159,18 +2160,25 @@ function computeYDomain(
   return [Math.min(...all), Math.max(...all)];
 }
 
-function formatYTick(n: number): string {
+function formatYTick(n: number, ticks?: readonly number[]): string {
   if (n === 0) return "0";
-  if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(n) >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000) {
+    const d = ticks ? tickDecimals(ticks, 1_000_000, 1) : 1;
+    return `${(n / 1_000_000).toFixed(d)}M`;
+  }
+  if (abs >= 1_000) {
+    const d = ticks ? tickDecimals(ticks, 1_000, 1) : 1;
+    return `${(n / 1_000).toFixed(d)}k`;
+  }
   if (Number.isInteger(n)) return String(n);
   // Scientific notation, or a log axis below 0.01 would print several ticks as "0.00".
-  if (Math.abs(n) < 0.01) {
-    const exp = Math.floor(Math.log10(Math.abs(n)));
+  if (abs < 0.01) {
+    const exp = Math.floor(Math.log10(abs));
     const mantissa = n / 10 ** exp;
     return Math.abs(mantissa - 1) < 1e-9
       ? `1e${exp}`
       : `${mantissa.toFixed(1)}e${exp}`;
   }
-  return n.toFixed(2);
+  return n.toFixed(ticks ? tickDecimals(ticks, 1, 2) : 2);
 }

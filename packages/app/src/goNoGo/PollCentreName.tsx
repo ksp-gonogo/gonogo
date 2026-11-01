@@ -12,11 +12,14 @@ export function PollCentreName({ centre }: { centre: string | null }) {
   if (!name) return null;
   return (
     <PollCentreName__Text>
-      <span className="sr-only">Poll at </span>
-      {name}
+      <PollCentreName__Label>Poll at</PollCentreName__Label> {name}
     </PollCentreName__Text>
   );
 }
+
+const PollCentreName__Label = styled.span`
+  text-transform: uppercase;
+`;
 
 const PollCentreName__Text = styled.span`
   font-size: var(--font-size-caption);
