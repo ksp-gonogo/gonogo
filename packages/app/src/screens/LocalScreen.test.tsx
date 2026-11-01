@@ -184,6 +184,17 @@ async function settle(): Promise<void> {
   }
 }
 
+/** Wait for the peer host to hold one slot of the ring `code` owns, whichever slot the mod's grant count points at. */
+async function untilHostingUnder(code: string): Promise<void> {
+  await act(async () => {
+    await vi.waitFor(() =>
+      expect(peerHostService.peerId).toMatch(
+        new RegExp(`^gonogo-host-${code}-[0-3]$`),
+      ),
+    );
+  });
+}
+
 /**
  * Wait inside act for the peer host to reach `peerId`, since the broker's
  * answer lands on a later microtask and updates the mounted screen.
@@ -252,7 +263,7 @@ describe("a local screen", () => {
     await settle();
 
     expect(screen.queryByText("Waiting for the game")).toBeNull();
-    await untilPeerId(`gonogo-host-${mod.code}`);
+    await untilHostingUnder(mod.code);
     expect(mod.sent.map((s) => s.command)).toContain("host.claim");
   });
 
@@ -284,7 +295,7 @@ describe("a local screen", () => {
 
     other.release();
     await settle();
-    await untilPeerId(`gonogo-host-${mod.code}`);
+    await untilHostingUnder(mod.code);
     expect(sockets.length).toBeGreaterThan(0);
     other.dispose();
   });
@@ -328,7 +339,7 @@ describe("a local screen", () => {
     other.release();
     await settle();
 
-    await untilPeerId(`gonogo-host-${mod.code}`);
+    await untilHostingUnder(mod.code);
     expect(
       screen.getByText(
         "This screen is now the host. It does not have the previous host's notes, the thread, alarms that are not on the game's clock and GO/NO-GO votes.",
@@ -342,14 +353,18 @@ describe("a local screen", () => {
     await settle();
     await publish();
     await settle();
-    await untilPeerId(`gonogo-host-${mod.code}`);
+    await untilHostingUnder(mod.code);
 
     act(() => mod.seize("tab-elsewhere"));
     await settle();
 
     await untilPeerId(null);
     expect(screen.queryByText("Waiting for the game")).toBeNull();
-    expect(peerRegistry.has(`gonogo-host-${mod.code}`)).toBe(false);
+    expect(
+      [...peerRegistry.keys()].some((id) =>
+        id.startsWith(`gonogo-host-${mod.code}-`),
+      ),
+    ).toBe(false);
   });
 
   it("keeps the role across a reload while another screen is open, and the other screen never hosts", async () => {
@@ -359,7 +374,7 @@ describe("a local screen", () => {
     await settle();
     await page.publish();
     await settle();
-    await untilPeerId(`gonogo-host-${mod.code}`);
+    await untilHostingUnder(mod.code);
     const other = new HostRole("tab-other");
     const otherKinds: string[] = [];
     other.subscribe(() => otherKinds.push(other.state.kind));
@@ -382,7 +397,7 @@ describe("a local screen", () => {
     await reloaded.publish();
     await settle();
 
-    await untilPeerId(`gonogo-host-${mod.code}`);
+    await untilHostingUnder(mod.code);
     expect(mod.sent.map((s) => s.command)).not.toContain("host.release");
     expect(otherKinds).not.toContain("hosting");
     expect(other.state.kind).toBe("joined");

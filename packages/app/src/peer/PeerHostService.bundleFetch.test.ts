@@ -68,7 +68,18 @@ const { FakeHub } = vi.hoisted(() => {
 
     connect(hostId: string) {
       const host = FakePeer.registry.get(hostId);
-      if (!host) throw new Error(`host ${hostId} not registered`);
+      if (!host) {
+        /* PeerJS reports a missing id on the Peer, as `peer-unavailable`. */
+        queueMicrotask(() =>
+          this.emit(
+            "error",
+            Object.assign(new Error(`Could not connect to peer ${hostId}`), {
+              type: "peer-unavailable",
+            }),
+          ),
+        );
+        return new FakeDataConnection(hostId);
+      }
       const stationOutbound = new FakeDataConnection(hostId);
       const hostInbound = new FakeDataConnection(this.id);
       stationOutbound.peerConn = hostInbound;
@@ -149,7 +160,7 @@ async function connectedPair() {
   await Promise.resolve();
 
   const client = track(new PeerClientService());
-  client.connect(host.peerId ?? "");
+  client.connect(host.shareCode);
   for (let i = 0; i < 6; i++) await Promise.resolve();
 
   return { host, client };
@@ -317,9 +328,9 @@ describe("PeerHostService.handleUplinkBundleRequest (D6 conduit)", () => {
     await Promise.resolve();
 
     const clientA = track(new PeerClientService());
-    clientA.connect(host.peerId ?? "");
+    clientA.connect(host.shareCode);
     const clientB = track(new PeerClientService());
-    clientB.connect(host.peerId ?? "");
+    clientB.connect(host.shareCode);
     for (let i = 0; i < 6; i++) await Promise.resolve();
 
     const [resultA, resultB] = await Promise.all([

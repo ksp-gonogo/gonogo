@@ -100,17 +100,19 @@ describe("station to host data channel", () => {
     const svc = new PeerClientService();
     svc.connect("ABCD");
     try {
-      /* The endpoint link's channel comes first, then PeerJS's, whose connection carries that link's offer. */
-      await vi.waitFor(() => expect(recorded).toHaveLength(2));
+      /* Each of the four ring ids has an endpoint link's channel, then PeerJS's, whose connection carries that link's offer. */
+      await vi.waitFor(() => expect(recorded).toHaveLength(8));
       for (const channel of recorded) {
         expect(channel.init).toEqual({ ordered: true });
       }
-      const direct = recorded.find((c) => c.label !== "gonogo");
       const peer = await svc.waitForPeer();
       /* `Peer.connections` is typed `Object`; at runtime it maps peer id to that peer's connections. */
       const connections = peer.connections as Record<string, DataConnection[]>;
-      const [conn] = connections["gonogo-host-ABCD"] ?? [];
-      expect(conn).toMatchObject({ label: direct?.label, reliable: true });
+      for (let slot = 0; slot < 4; slot += 1) {
+        const [conn] = connections[`gonogo-host-ABCD-${slot}`] ?? [];
+        expect(conn).toMatchObject({ reliable: true });
+        expect(recorded.map((c) => c.label)).toContain(conn.label);
+      }
     } finally {
       svc.disconnect();
     }

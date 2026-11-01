@@ -48,7 +48,8 @@ async function getMainPeerId(page: Page): Promise<string> {
           peerHostService?: { peerId?: string | null };
         };
         const id = w.peerHostService?.peerId;
-        return typeof id === "string" && /^gonogo-host-[A-Z0-9]{4,}$/.test(id)
+        return typeof id === "string" &&
+          /^gonogo-host-[A-Z0-9]{4,}-[0-3]$/.test(id)
           ? id
           : null;
       },

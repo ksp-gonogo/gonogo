@@ -28,13 +28,17 @@ let pendingStop: ReturnType<typeof setTimeout> | null = null;
 
 /**
  * Hosts the peer mesh while mounted, under `code`, the game's join code. A
- * changed code re-claims the broker id under the new one.
+ * changed code re-claims the broker id under the new one. `generation` is the
+ * mod's grant count for the role, which the host announces to stations so they
+ * stay with the newest host.
  */
 export function PeerHostProvider({
   code,
+  generation,
   children,
 }: {
   code: string;
+  generation: number;
   children: ReactNode;
 }) {
   const [peerId, setPeerId] = useState<string | null>(peerHostService.peerId);
@@ -62,6 +66,7 @@ export function PeerHostProvider({
   });
 
   const [startCode] = useState(code);
+  const [startGeneration] = useState(generation);
   useEffect(() => {
     if (pendingStop !== null) {
       clearTimeout(pendingStop);
@@ -69,6 +74,7 @@ export function PeerHostProvider({
     }
     // Not running here, so the code is taken at once and start hosts under it.
     void peerHostService.adoptShareCode(startCode);
+    peerHostService.adoptGeneration(startGeneration);
     void peerHostService.start();
     const unsub = peerHostService.onPeerIdChange(setPeerId);
     return () => {
@@ -78,11 +84,15 @@ export function PeerHostProvider({
         peerHostService.stop();
       }, 0);
     };
-  }, [startCode]);
+  }, [startCode, startGeneration]);
 
   useEffect(() => {
     void peerHostService.adoptShareCode(code);
   }, [code]);
+
+  useEffect(() => {
+    peerHostService.adoptGeneration(generation);
+  }, [generation]);
 
   return (
     <PeerHostContext.Provider value={{ peerId }}>
