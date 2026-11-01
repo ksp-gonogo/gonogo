@@ -114,6 +114,17 @@ public class HostRoleReply
     /// <summary>How long after its last heartbeat or the close of its connection a holder keeps the role before it is freed.</summary>
     [SitrepUnit(Units.Seconds)]
     public double GraceSeconds { get; set; }
+
+    /// <summary>
+    /// How many times the role has been granted, counting the grant this answer
+    /// reports when <see cref="Holds"/> is true. It rises by one on each
+    /// <c>host.claim</c> that grants the role, including to the holder returning
+    /// after a reload, never on a heartbeat, and keeps rising across a game
+    /// restart. A screen hosting a remote station reads it to tell the newest
+    /// host from an older one that is still answering.
+    /// </summary>
+    [SitrepUnit(Units.Count)]
+    public long Generation { get; set; }
 }
 
 /// <summary>

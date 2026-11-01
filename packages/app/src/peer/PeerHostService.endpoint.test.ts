@@ -435,7 +435,59 @@ describe("a host that freezes and resumes", () => {
   });
 });
 
+/** Fire `unavailable-id` on the Peer the host just opened, as the broker does for an id it still holds. */
+function refuseCurrentSlot(): string {
+  const peer = FakeHub.Peer.current;
+  if (!peer) throw new Error("no peer");
+  peer.emit("error", { type: "unavailable-id" });
+  return peer.id;
+}
+
 describe("a host whose broker id is still held", () => {
+  it("takes the next free slot at once, with no reclaim, when the slot its generation points at is held", async () => {
+    endpoint();
+    const host = new PeerHostService();
+    host.shareCode = "ABC234";
+    host.adoptGeneration(6);
+    await host.start();
+    expect(FakeHub.Peer.current?.id).toBe("gonogo-host-ABC234-2");
+
+    expect(refuseCurrentSlot()).toBe("gonogo-host-ABC234-2");
+
+    expect(FakeHub.Peer.current?.id).toBe("gonogo-host-ABC234-3");
+    expect(host.isReclaiming()).toBe(false);
+    await vi.waitFor(() => expect(host.peerId).toBe("gonogo-host-ABC234-3"));
+    host.stop();
+  });
+
+  it("falls back to the reclaim interval only when all four slots are held, then walks the ring again", async () => {
+    endpoint();
+    const host = new PeerHostService();
+    host.shareCode = "ABC234";
+    host.adoptGeneration(2);
+    await host.start();
+    vi.useFakeTimers({ toFake: ["setTimeout"] });
+    try {
+      const tried: string[] = [];
+      for (let i = 0; i < 4; i++) tried.push(refuseCurrentSlot());
+      expect(tried).toEqual([
+        "gonogo-host-ABC234-2",
+        "gonogo-host-ABC234-3",
+        "gonogo-host-ABC234-0",
+        "gonogo-host-ABC234-1",
+      ]);
+      expect(host.isReclaiming()).toBe(true);
+
+      await vi.advanceTimersByTimeAsync(HOST_RECLAIM_INTERVAL_MS - 1);
+      expect(FakeHub.Peer.current?.id).toBe("gonogo-host-ABC234-1");
+      await vi.advanceTimersByTimeAsync(1);
+      expect(FakeHub.Peer.current?.id).toBe("gonogo-host-ABC234-2");
+    } finally {
+      vi.useRealTimers();
+      host.stop();
+    }
+  });
+
   it("retries at the short fixed interval and never waits longer", async () => {
     endpoint();
     const { host, peer } = await startedHost();
@@ -450,8 +502,8 @@ describe("a host whose broker id is still held", () => {
         delays.push(ms ?? 0);
         return real(fn, ms);
       }) as typeof setTimeout);
-      for (let i = 0; i < 4; i++) {
-        FakeHub.Peer.current?.emit("error", { type: "unavailable-id" });
+      for (let round = 0; round < 4; round++) {
+        for (let slot = 0; slot < 4; slot++) refuseCurrentSlot();
         await vi.advanceTimersByTimeAsync(HOST_RECLAIM_INTERVAL_MS);
       }
       spy.mockRestore();
@@ -465,5 +517,44 @@ describe("a host whose broker id is still held", () => {
       vi.useRealTimers();
       host.stop();
     }
+  });
+
+  it("carries the generation from the role claim in its hello", async () => {
+    endpoint({ opens: false });
+    const host = new PeerHostService();
+    host.shareCode = "ABC234";
+    host.adoptGeneration(6);
+    await host.start();
+    await vi.waitFor(() => expect(host.peerId).not.toBeNull());
+
+    const conn = FakeHub.Peer.current?.incoming("station-a");
+    conn?.emit("open");
+
+    expect(conn?.sent[0]).toMatchObject({ type: "hello", generation: 6 });
+    host.stop();
+  });
+
+  it("asks the endpoint again after a busy refusal at the same short interval", async () => {
+    const delays: number[] = [];
+    const real = globalThis.setTimeout;
+    const spy = vi.spyOn(globalThis, "setTimeout").mockImplementation(((
+      fn: () => void,
+      ms?: number,
+    ) => {
+      delays.push(ms ?? 0);
+      return real(fn, ms);
+    }) as typeof setTimeout);
+    server.use(
+      link.addEventListener("connection", ({ client }) => {
+        client.send(JSON.stringify({ type: "busy" }));
+        setTimeout(() => client.close(), 5);
+      }),
+    );
+    const host = new PeerHostService();
+    await host.start();
+    await vi.waitFor(() => expect(host.endpoint.heldElsewhere).toBe(true));
+    await vi.waitFor(() => expect(delays).toContain(HOST_RECLAIM_INTERVAL_MS));
+    spy.mockRestore();
+    host.stop();
   });
 });

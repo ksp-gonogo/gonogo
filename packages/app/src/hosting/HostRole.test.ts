@@ -36,6 +36,19 @@ describe("a local screen's part in the host role", () => {
     );
   });
 
+  it("carries the mod's grant count in the hosting state, and moves it when the role is granted again", async () => {
+    const mod = new FakeHostMod();
+    const role = new HostRole("tab-a");
+    role.attach(mod.connect());
+    await settle();
+    expect(role.state).toMatchObject({ kind: "hosting", generation: 1 });
+
+    role.attach(mod.connect());
+    await settle();
+
+    expect(role.state).toMatchObject({ kind: "hosting", generation: 2 });
+  });
+
   it("joins the holder when a second screen is refused, with the holder's code", async () => {
     const mod = new FakeHostMod();
     await open(mod, "tab-a");

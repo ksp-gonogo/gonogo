@@ -43,6 +43,49 @@ namespace Sitrep.Host.Tests.Hosting
         }
 
         [Fact]
+        public void TheGenerationRisesByOneOnEachGrant_ANewHolderAndTheSameHolderReturning()
+        {
+            var world = new World();
+            var record = world.Open();
+
+            Assert.Equal(1, record.Claim("tab-a", "conn-1").Generation);
+
+            record.ConnectionClosed("conn-1");
+            Assert.Equal(2, record.Claim("tab-a", "conn-2").Generation);
+
+            record.Release("tab-a");
+            Assert.Equal(3, record.Claim("tab-b", "conn-3").Generation);
+        }
+
+        [Fact]
+        public void TheGenerationDoesNotMoveOnAHeartbeatOrARefusedClaim()
+        {
+            var world = new World();
+            var record = world.Open();
+            var granted = record.Claim("tab-a", "conn-1");
+
+            world.Clock.Seconds += 5;
+            var beat = record.Heartbeat("tab-a", "conn-1");
+            var refused = record.Claim("tab-b", "conn-2");
+
+            Assert.Equal(granted.Generation, beat.Generation);
+            Assert.Equal(granted.Generation, refused.Generation);
+        }
+
+        [Fact]
+        public void TheGenerationKeepsRisingAcrossARestart()
+        {
+            var world = new World();
+            var first = world.Open();
+            first.Claim("tab-a", "conn-1");
+            first.Claim("tab-a", "conn-1");
+
+            var second = world.Open();
+
+            Assert.Equal(3, second.Claim("tab-a", "conn-9").Generation);
+        }
+
+        [Fact]
         public void TheFirstClaimIsGranted()
         {
             var record = new World().Open();

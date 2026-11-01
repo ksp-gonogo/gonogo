@@ -71,6 +71,8 @@ export function createHostRecord({ send, meta }) {
   const expiry = setInterval(expire, 1000);
   expiry.unref?.();
 
+  /* Counts the grants, as the mod does. */
+  let generation = 0;
   const roleReply = (holds) => ({
     success: true,
     payload: {
@@ -78,6 +80,7 @@ export function createHostRecord({ send, meta }) {
       holderId: holderToken ? idOf(holderToken) : "",
       heartbeatSeconds: HEARTBEAT_SECONDS,
       graceSeconds: GRACE_SECONDS,
+      generation,
     },
   });
   const refused = {
@@ -101,6 +104,7 @@ export function createHostRecord({ send, meta }) {
     switch (command) {
       case "host.claim":
         if (holderToken !== null && !holds) return roleReply(false);
+        generation += 1;
         take(token, ws);
         return roleReply(true);
       case "host.heartbeat":

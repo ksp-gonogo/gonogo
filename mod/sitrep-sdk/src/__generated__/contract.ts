@@ -5047,6 +5047,15 @@ export interface HostRoleReply
 	* keeps the role before it is freed.
 	*/
 	graceSeconds: Value<"s">;
+	/**
+	* How many times the role has been granted, counting the grant this answer
+	* reports when `HostRoleReply.holds` is true. It rises by one on each
+	* `host.claim` that grants the role, including to the holder returning after a
+	* reload, never on a heartbeat, and keeps rising across a game restart. A
+	* screen hosting a remote station reads it to tell the newest host from an
+	* older one that is still answering.
+	*/
+	generation: Value<"count">;
 }
 /**
 * The answer to `host.station.check`: whether a station's credential is one

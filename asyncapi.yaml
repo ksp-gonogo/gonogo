@@ -16898,6 +16898,7 @@ components:
         - holderId
         - heartbeatSeconds
         - graceSeconds
+        - generation
       properties:
         holds:
           type: boolean
@@ -16919,6 +16920,16 @@ components:
           description: |-
             How long after its last heartbeat or the close of its connection a holder
             keeps the role before it is freed.
+        generation:
+          type: number
+          x-sitrep-unit: count
+          description: |-
+            How many times the role has been granted, counting the grant this answer
+            reports when `HostRoleReply.holds` is true. It rises by one on each
+            `host.claim` that grants the role, including to the holder returning after a
+            reload, never on a heartbeat, and keeps rising across a game restart. A
+            screen hosting a remote station reads it to tell the newest host from an
+            older one that is still answering.
     HostStationCheckReply:
       type: object
       description: |-

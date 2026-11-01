@@ -101,6 +101,29 @@ describe("the main screen's endpoint socket", () => {
     stations.stop();
   });
 
+  it("waits 10 s before asking again after a busy refusal unless told a shorter interval", async () => {
+    server.use(
+      link.addEventListener("connection", (event) => {
+        event.client.send(JSON.stringify({ type: "busy" }));
+        setTimeout(() => event.client.close(), 5);
+      }),
+    );
+    const delays: number[] = [];
+    const real = globalThis.setTimeout;
+    const spy = vi.spyOn(globalThis, "setTimeout").mockImplementation(((
+      fn: () => void,
+      ms?: number,
+    ) => {
+      delays.push(ms ?? 0);
+      return real(fn, ms);
+    }) as typeof setTimeout);
+    const stations = new EndpointStations(() => URL);
+    stations.start();
+    await vi.waitFor(() => expect(delays).toContain(10_000));
+    spy.mockRestore();
+    stations.stop();
+  });
+
   it("sends an alive frame on its own timer while open, and stops when stopped", async () => {
     const endpoint = fakeEndpoint();
     const stations = new EndpointStations(() => URL, 50, 20);
