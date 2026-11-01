@@ -2886,6 +2886,32 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void BuildWarpCarriesTheHighestRungTheGameAllowsNow()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                time: new Dictionary<string, object?> { ["warpRate"] = 40.0, ["warpRateIndex"] = 5, ["maxWarpRateIndex"] = 3, ["warpMode"] = "HIGH", ["paused"] = false });
+
+            var warp = VesselViewProvider.BuildWarp(snapshot);
+
+            Assert.NotNull(warp);
+            Assert.Equal(3, warp!.MaxWarpRateIndex);
+        }
+
+        [Fact]
+        public void BuildWarpLeavesTheHighestAllowedRungNullWhenTheGameCannotSayWhatItIs()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                time: new Dictionary<string, object?> { ["warpRate"] = 1.0, ["warpRateIndex"] = 0, ["warpMode"] = "HIGH", ["paused"] = false });
+
+            var warp = VesselViewProvider.BuildWarp(snapshot);
+
+            Assert.NotNull(warp);
+            Assert.Null(warp!.MaxWarpRateIndex);
+        }
+
+        [Fact]
         public void BuildWarpLeavesTheRateTableNullRatherThanGuessingAtStocks()
         {
             // A game with no warp controller to read the table off. Null is the

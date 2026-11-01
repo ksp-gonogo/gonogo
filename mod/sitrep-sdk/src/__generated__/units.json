@@ -1883,6 +1883,7 @@
     },
     "WarpState": {
       "keyframeFloorSec": "s",
+      "maxWarpRateIndex": "id",
       "observationQuantumUt": "s",
       "paused": "flag",
       "sampleIntervalUt": "s",
@@ -2374,6 +2375,7 @@
     },
     "time.warp": {
       "keyframeFloorSec": "s",
+      "maxWarpRateIndex": "id",
       "observationQuantumUt": "s",
       "paused": "flag",
       "sampleIntervalUt": "s",
