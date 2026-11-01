@@ -11,6 +11,7 @@ import { ModalProvider } from "@ksp-gonogo/ui";
 import { UiKitThemeProvider } from "@ksp-gonogo/ui-kit";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { installSocketTrace } from "./peer/peerSocketTrace";
 // Side-effect imports below trigger self-registration of built-in
 // extensions: themes (from @ksp-gonogo/ui), components (from @ksp-gonogo/components),
 // and data sources (from ./dataSources).
@@ -41,6 +42,7 @@ stampBootRole();
 // when the host broadcasts its consent over PeerJS (see StationScreen).
 // Console + ring-buffer logging is always on, unaffected by consent.
 logger.info(`gonogo v${VERSION} (build ${BUILD_TIME})`);
+installSocketTrace();
 installGlobalErrorHooks(window, logger);
 
 // Pass the Vite base URL so texture paths resolve correctly under sub-path deployments (e.g. /gonogo/bodies/ on GitHub Pages).
