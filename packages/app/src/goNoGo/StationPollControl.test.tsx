@@ -17,8 +17,14 @@ import type { CountdownHold } from "./notice";
 import { StationPollControl } from "./StationPollControl";
 import { VOTE_INSTANCE_ID } from "./voteInput";
 
-function station(client: PeerClient, scene = "Flight") {
-  const fixture = setupStreamFixture({ suspendFrames: true });
+function station(
+  client: PeerClient,
+  scene = "Flight",
+  fixtureOpts: Parameters<typeof setupStreamFixture>[0] = {
+    suspendFrames: true,
+  },
+) {
+  const fixture = setupStreamFixture(fixtureOpts);
   const view = render(
     <ScreenProvider value="station">
       <ModalProvider>
@@ -37,7 +43,7 @@ function station(client: PeerClient, scene = "Flight") {
     </ScreenProvider>,
   );
   act(() => fixture.emit("spaceCenter.scene", { scene }));
-  return view;
+  return { ...view, fixture };
 }
 
 async function voteButton(text: string): Promise<HTMLElement> {
@@ -67,12 +73,40 @@ describe("GO/NO-GO in a station's header", () => {
       "aria-disabled",
       "true",
     );
-    expect(votes.at(-1)).toBeNull();
+    expect(votes).toEqual([]);
     await expectNoA11yViolations(container);
 
     await act(async () => setApproval("approved"));
     expect(await screen.findByText("NO-GO")).toBeInTheDocument();
     expect(votes.at(-1)).toBe("no-go");
+  });
+
+  it("sends no vote at all while the station waits, and refuses abort", async () => {
+    const votes: Array<"go" | "no-go" | null> = [];
+    const aborts: number[] = [];
+    const client: PeerClient = {
+      ...idlePeerClient(),
+      getApproval: () => "pending",
+      sendGonogoVote: (v) => {
+        votes.push(v);
+      },
+      sendGonogoAbort: () => {
+        aborts.push(1);
+      },
+    };
+    const { fixture } = station(client, "Flight", { pinnedUt: 100 });
+    act(() => fixture.emit("vessel.identity", { launchUt: 10 }));
+    const abort = await voteButton("ABORT");
+    expect(abort).toHaveAttribute("aria-disabled", "true");
+    fireEvent.click(abort);
+    act(() => {
+      dispatchAction(VOTE_INSTANCE_ID, "abort", {
+        kind: "button",
+        value: true,
+      });
+    });
+    expect(aborts).toEqual([]);
+    expect(votes).toEqual([]);
   });
 
   it("flips the vote on a press and says what fires at T-0 on hover", async () => {

@@ -15,7 +15,11 @@ import {
   hydratePayload,
   samplesPerSecondOf,
 } from "@ksp-gonogo/sitrep-sdk";
-import type { ConnStatus, PeerClientService } from "../peer/PeerClientService";
+import type {
+  ConnStatus,
+  PeerClientService,
+  StationApproval,
+} from "../peer/PeerClientService";
 
 /** Matches the host relay's per-topic history at one sample a second, the most it can replay of one topic; scaled by the topic's rate as the relay's is. */
 const SEEN_FRAMES_PER_TOPIC = 1500;
@@ -44,6 +48,15 @@ function toTransportStatus(status: ConnStatus): TransportStatus {
 /** What a station's command refused for want of the host's stream to the mod says. */
 const HOST_NOT_CONNECTED =
   "not sent: the main screen has no connection to the game. Nothing was sent, so send it again once the connection is back.";
+
+/** Whether the main screen's word on this station lets it act. Unknown is allowed: the main screen refuses a write it has not approved either way. */
+function isApproved(approval: StationApproval): boolean {
+  return approval !== "pending" && approval !== "refused";
+}
+
+/** What a station's command refused because the main screen has not approved the station says. */
+const NOT_APPROVED =
+  "not sent: the main screen has not approved this station. Nothing was sent.";
 
 /**
  * A `Transport` (`@ksp-gonogo/sitrep-client`) fed by PeerJS instead of a live
@@ -135,6 +148,14 @@ export class PeerTransport implements Transport {
    * main screen's view of the connection.
    */
   private hostLinkUp = true;
+  /**
+   * False while the main screen has not approved this station, or has refused
+   * it. Commands are the one way a station acts through this transport, so
+   * while it is false the transport reports itself not connected, which is
+   * what darkens every command control, and refuses a command it is handed.
+   * Reads still go out: the main screen holds them until it approves.
+   */
+  private approved: boolean;
   private readonly messageListeners = new Set<
     (message: ServerMessage, delivery?: { replayed: boolean }) => void
   >();
@@ -173,7 +194,15 @@ export class PeerTransport implements Transport {
 
   constructor(private readonly client: PeerClientService) {
     this._status = toTransportStatus(client.getConnStatus());
+    this.approved = isApproved(client.getApproval());
     this.unsubs = [
+      client.onApprovalChange((approval) => {
+        const before = this.status;
+        this.approved = isApproved(approval);
+        if (this.status !== before) {
+          for (const listener of this.statusListeners) listener(this.status);
+        }
+      }),
       client.onSitrepReset(() => {
         this.gameState = undefined;
         this.seenFrames.clear();
@@ -276,7 +305,7 @@ export class PeerTransport implements Transport {
   }
 
   get status(): TransportStatus {
-    return this._status === "connected" && !this.hostLinkUp
+    return this._status === "connected" && !(this.hostLinkUp && this.approved)
       ? "reconnecting"
       : this._status;
   }
@@ -284,6 +313,17 @@ export class PeerTransport implements Transport {
   send(message: ClientMessage): void {
     if (message.type === "command-request") {
       const { requestId } = message;
+      if (this._status === "connected" && !this.approved) {
+        queueMicrotask(() =>
+          this.deliver({
+            type: "error",
+            requestId,
+            code: FaultCode.NoClient,
+            message: NOT_APPROVED,
+          }),
+        );
+        return;
+      }
       if (this._status === "connected" && !this.hostLinkUp) {
         queueMicrotask(() =>
           this.deliver({
@@ -324,6 +364,19 @@ export class PeerTransport implements Transport {
       return;
     }
     if (message.type === "command-group") {
+      if (this._status === "connected" && !this.approved) {
+        for (const { requestId } of message.members) {
+          queueMicrotask(() =>
+            this.deliver({
+              type: "error",
+              requestId,
+              code: FaultCode.NoClient,
+              message: NOT_APPROVED,
+            }),
+          );
+        }
+        return;
+      }
       if (this._status === "connected" && !this.hostLinkUp) {
         for (const { requestId } of message.members) {
           queueMicrotask(() =>

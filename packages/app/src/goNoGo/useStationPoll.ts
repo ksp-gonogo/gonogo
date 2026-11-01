@@ -82,9 +82,9 @@ export function useStationPoll(client: PeerClient | null): StationPoll {
 
   // Split from the lifecycle effect below so a vote flip never transiently sends null, which would cancel a countdown in flight.
   useEffect(() => {
-    if (!client) return;
+    if (!client || !inPoll) return;
     client.sendGonogoVote(effectiveVote);
-  }, [client, effectiveVote]);
+  }, [client, effectiveVote, inPoll]);
 
   const effectiveVoteRef = useRef(effectiveVote);
   useEffect(() => {
@@ -171,7 +171,7 @@ export function useStationPoll(client: PeerClient | null): StationPoll {
   };
 
   const abort = () => {
-    if (!inFlight || !launched || !client) return;
+    if (!inFlight || !launched || !inPoll || !client) return;
     iAbortedRef.current = true;
     client.sendGonogoAbort();
   };
