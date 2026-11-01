@@ -692,6 +692,8 @@ export class PeerClientService {
   ): void {
     this.hostPeerId = candidate.id;
     this.hostGeneration = generation ?? -1;
+    // Approval belongs to one link: the host just chosen has not yet answered for this station, and its hello is handled after this.
+    this.setApproval("unknown");
     logger.setIdentity({ hostPeerId: candidate.id });
     const viaEndpoint = candidate.endpoint?.link === link;
     if (viaEndpoint) {

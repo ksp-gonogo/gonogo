@@ -62,11 +62,8 @@ export function useStationPoll(client: PeerClient | null): StationPoll {
     launchUt != null && viewUt?.minus(launchUt).greaterThan(0) === true;
   const [vote, setVote] = useState<"go" | "no-go">("no-go");
   const [approval, setApproval] = useState(() => client?.getApproval());
-  useEffect(() => {
-    if (!client) return;
-    setApproval(client.getApproval());
-    return client.onApprovalChange(setApproval);
-  }, [client]);
+  // The host refuses a vote or an abort from a station it has not approved, so nothing is sent until this link's host has said so.
+  const approvedRef = useRef(client?.getApproval() === "approved");
   const inPoll = approval !== "pending" && approval !== "refused";
   const [notice, setNotice] = useState<GoNoGoNotice | null>(null);
   // Set when the host resets the poll after launch, so the vote is offered again beside ABORT until the craft is back on the pad.
@@ -82,14 +79,29 @@ export function useStationPoll(client: PeerClient | null): StationPoll {
 
   // Split from the lifecycle effect below so a vote flip never transiently sends null, which would cancel a countdown in flight.
   useEffect(() => {
-    if (!client || !inPoll) return;
+    if (!client || !approvedRef.current) return;
     client.sendGonogoVote(effectiveVote);
-  }, [client, effectiveVote, inPoll]);
+  }, [client, effectiveVote]);
 
   const effectiveVoteRef = useRef(effectiveVote);
   useEffect(() => {
     effectiveVoteRef.current = effectiveVote;
   }, [effectiveVote]);
+  // Each approval is a new link, so the vote and any abort pressed before it are sent again here, after the restart reset on hello has cleared a stale GO.
+  useEffect(() => {
+    if (!client) return;
+    approvedRef.current = client.getApproval() === "approved";
+    setApproval(client.getApproval());
+    return client.onApprovalChange((next) => {
+      approvedRef.current = next === "approved";
+      setApproval(next);
+      if (next !== "approved") return;
+      if (effectiveVoteRef.current !== null) {
+        client.sendGonogoVote(effectiveVoteRef.current);
+      }
+      if (iAbortedRef.current) client.sendGonogoAbort();
+    });
+  }, [client]);
   const launchedRef = useRef(launched);
   useEffect(() => {
     launchedRef.current = launched;
@@ -119,15 +131,9 @@ export function useStationPoll(client: PeerClient | null): StationPoll {
       effectiveVoteRef.current = eligibleRef.current ? "no-go" : null;
       setVote("no-go");
     });
-    // On hello rather than on connect, so the restart above has already cleared the vote before it is resent.
-    const unsubHello = client.onHostHello(() => {
-      client.sendGonogoVote(effectiveVoteRef.current);
-      if (iAbortedRef.current) client.sendGonogoAbort();
-    });
     return () => {
-      unsubHello();
       unsubRestart();
-      client.sendGonogoVote(null);
+      if (approvedRef.current) client.sendGonogoVote(null);
     };
   }, [client]);
 
@@ -156,7 +162,7 @@ export function useStationPoll(client: PeerClient | null): StationPoll {
         setCountdownT0(null);
         setNotice(null);
         setPollOpen(reopened);
-        client.sendGonogoVote(next);
+        if (approvedRef.current) client.sendGonogoVote(next);
       }),
       client.onGonogoAbortNotify((stationName) => setAbortedBy(stationName)),
     ];
@@ -173,7 +179,7 @@ export function useStationPoll(client: PeerClient | null): StationPoll {
   const abort = () => {
     if (!inFlight || !launched || !inPoll || !client) return;
     iAbortedRef.current = true;
-    client.sendGonogoAbort();
+    if (approvedRef.current) client.sendGonogoAbort();
   };
 
   const voteRef = useRef(vote);

@@ -242,4 +242,87 @@ describe("GO/NO-GO in a station's header", () => {
     fireEvent.click(screen.getByRole("button", { name: "Vote input" }));
     expect(await screen.findByText("Toggle GO/NO-GO")).toBeInTheDocument();
   });
+
+  describe("on a new link to a main screen", () => {
+    function relinking() {
+      const sent: Array<"go" | "no-go" | null> = [];
+      let approval: StationApproval = "approved";
+      const listeners = new Set<(a: StationApproval) => void>();
+      const announce = (a: StationApproval) => {
+        for (const cb of listeners) cb(a);
+      };
+      const restarts = new Set<() => void>();
+      const restart = () => {
+        for (const cb of restarts) cb();
+      };
+      const client: PeerClient = {
+        ...idlePeerClient(),
+        getApproval: () => approval,
+        onApprovalChange: (cb) => {
+          listeners.add(cb);
+          return () => listeners.delete(cb);
+        },
+        onHostRestart: (cb) => {
+          restarts.add(cb);
+          return () => restarts.delete(cb);
+        },
+        sendGonogoVote: (v) => {
+          sent.push(v);
+        },
+      };
+      return {
+        client,
+        sent,
+        relink: (next: StationApproval) => {
+          approval = "unknown";
+          announce("unknown");
+          restart();
+          approval = next;
+          announce(next);
+        },
+        announce,
+        restart,
+      };
+    }
+
+    it("sends nothing until the new main screen approves, then exactly one NO-GO", async () => {
+      const { client, sent, announce, restart } = relinking();
+      station(client);
+      await screen.findByText("NO-GO");
+      sent.length = 0;
+
+      await act(async () => {
+        announce("unknown");
+        restart();
+      });
+      expect(sent).toEqual([]);
+      await act(async () => announce("approved"));
+      expect(sent).toEqual(["no-go"]);
+    });
+
+    it("turns a held GO into NO-GO before the resend", async () => {
+      const { client, sent, announce, restart } = relinking();
+      station(client);
+      fireEvent.click(await voteButton("NO-GO"));
+      await screen.findByText("GO");
+      sent.length = 0;
+
+      await act(async () => {
+        announce("unknown");
+        restart();
+      });
+      await act(async () => announce("approved"));
+      expect(sent).toEqual(["no-go"]);
+    });
+
+    it("never sends a vote to a main screen that refuses the station", async () => {
+      const { client, sent, relink } = relinking();
+      station(client);
+      await screen.findByText("NO-GO");
+      sent.length = 0;
+
+      await act(async () => relink("refused"));
+      expect(sent).toEqual([]);
+    });
+  });
 });

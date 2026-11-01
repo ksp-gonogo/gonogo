@@ -4,10 +4,17 @@ import { fileURLToPath } from "node:url";
 import { ScreenProvider } from "@ksp-gonogo/core";
 import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
 import { parseServerMessage, type StreamData } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
 import { describe, expect, it, vi } from "vitest";
 import { type PeerClient, PeerClientProvider } from "../peer/PeerClientContext";
+import type { StationApproval } from "../peer/PeerClientService";
 import {
   StationIdentityProvider,
   StationIdentityService,
@@ -51,10 +58,14 @@ function recordedFrames(topics: readonly string[]): Frame[] {
   return frames.sort((a, b) => a.meta.deliveredAt - b.meta.deliveredAt);
 }
 
-function mountStation() {
+function mountStation(overrides: Partial<PeerClient> = {}) {
   const fixture = setupStreamFixture({ pinnedUt: 637_583_965 });
   const sendGonogoAbort = vi.fn();
-  const client: PeerClient = { ...idlePeerClient(), sendGonogoAbort };
+  const client: PeerClient = {
+    ...idlePeerClient(),
+    sendGonogoAbort,
+    ...overrides,
+  };
   render(
     <ScreenProvider value="station">
       <ModalProvider>
@@ -128,5 +139,24 @@ describe("GO/NO-GO station abort after a recovery", () => {
 
     await waitFor(() => expect(screen.queryByText("ABORT")).toBeNull());
     expect(sendGonogoAbort).not.toHaveBeenCalled();
+  });
+
+  it("sends an abort pressed before the new main screen approved it only once it has", async () => {
+    let approval: StationApproval = "unknown";
+    let announce: (a: StationApproval) => void = () => {};
+    const { playUntil, sendGonogoAbort } = mountStation({
+      getApproval: () => approval,
+      onApprovalChange: (cb) => {
+        announce = cb;
+        return () => {};
+      },
+    });
+    playUntil(arrivesAtSpaceCenter);
+    fireEvent.click(await abortControl());
+    expect(sendGonogoAbort).not.toHaveBeenCalled();
+
+    approval = "approved";
+    await act(async () => announce("approved"));
+    expect(sendGonogoAbort).toHaveBeenCalledTimes(1);
   });
 });
