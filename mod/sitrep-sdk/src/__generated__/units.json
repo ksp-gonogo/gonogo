@@ -509,7 +509,8 @@
       "untilUt": "ut"
     },
     "CommsLink": {
-      "connected": "flag"
+      "connected": "flag",
+      "routeHome": "flag"
     },
     "CommsNetworkEdge": {
       "a": "id",
@@ -2005,7 +2006,8 @@
       "epoch": "count"
     },
     "comms.link": {
-      "connected": "flag"
+      "connected": "flag",
+      "routeHome": "flag"
     },
     "comms.nextLoss": {
       "basis": "enum",

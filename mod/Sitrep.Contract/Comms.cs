@@ -722,6 +722,16 @@ public class CommsLink
     /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool? Connected { get; set; }
+    /// <summary>
+    /// Whether the craft has a route to a command centre, sent only to a pilot
+    /// aboard the craft, whose <see cref="Connected"/> always reads true because
+    /// the crew are never cut off from their own craft. False while the craft is
+    /// out of contact with mission control. <c>null</c> at every other vantage
+    /// and whenever the craft is in contact, where <see cref="Connected"/> already
+    /// says it.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? RouteHome { get; set; }
     /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>).</summary>
     public PayloadMeta Meta { get; set; } = new();
 }
