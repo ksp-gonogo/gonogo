@@ -55,11 +55,14 @@ export type PeerMessage =
   // stations can distinguish "transient broker hiccup, same host process"
   // from "host restarted": used to clear stale GO/NO-GO votes that would
   // otherwise re-broadcast from station memory on reconnect.
+  // `generation` is the mod's grant count for the host role at the moment this
+  // host claimed it: a station that hears from two hosts stays with the higher.
   | {
       type: "hello";
       version: string;
       buildTime: string;
       sessionToken: string;
+      generation: number;
     }
   | {
       type: "schema";

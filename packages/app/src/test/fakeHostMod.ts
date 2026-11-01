@@ -16,6 +16,8 @@ export class FakeHostMod {
   private holderConnection: FakeRoleConnection | undefined;
   private holderAway = false;
   private deadline = 0;
+  /** How many times the role has been granted, as the mod counts. */
+  private generation = 0;
   private readonly stations = new Map<
     string,
     { id: string; name: string; approvedAt: number }
@@ -95,12 +97,14 @@ export class FakeHostMod {
         holderId: this.holderToken ? idOf(this.holderToken) : "",
         heartbeatSeconds: this.heartbeatSeconds,
         graceSeconds: this.graceSeconds,
+        generation: this.generation,
       },
     });
     const refused = { success: false, errorCode: "wrongState" };
     switch (command) {
       case "host.claim":
         if (this.holderToken !== undefined && !holds) return roleReply(false);
+        this.generation += 1;
         this.take(token, connection);
         return roleReply(true);
       case "host.heartbeat":

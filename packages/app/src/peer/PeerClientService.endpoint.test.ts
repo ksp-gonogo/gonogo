@@ -1,8 +1,9 @@
 /**
- * How a station chooses its path to the main screen: its data connection
- * carries an offer for the endpoint, and it joins through the endpoint when
- * the main screen answers that offer and the link opens, or stays on the
- * data connection when the main screen serves it instead.
+ * How a station chooses its path to the main screen: each data connection to
+ * a slot of the host's id ring carries an offer for the endpoint, and it joins
+ * through the endpoint when the main screen answers that offer and the link
+ * carries its hello, or stays on the data connection when the main screen
+ * serves it instead.
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -53,7 +54,7 @@ const { Fakes } = vi.hoisted(() => {
     }
     /** The main screen opening a connection to this station. */
     incoming(metadata: unknown) {
-      const conn = new FakeDataConnection("gonogo-host-ABCD", metadata);
+      const conn = new FakeDataConnection("gonogo-host-ABCD-0", metadata);
       this.emit("connection", conn);
       return conn;
     }
@@ -66,7 +67,7 @@ vi.mock("peerjs", () => ({ default: Fakes.Peer }));
 
 /** Enough RTCPeerConnection for the station's endpoint link: it records the answer and opens its channel on demand. */
 class FakeRTCPeerConnection {
-  static last: FakeRTCPeerConnection | null = null;
+  static all: FakeRTCPeerConnection[] = [];
   readonly channel = Object.assign(new EventTarget(), {
     binaryType: "blob",
     sent: [] as Uint8Array[],
@@ -79,7 +80,7 @@ class FakeRTCPeerConnection {
   remote: RTCSessionDescriptionInit | null = null;
   iceConnectionState = "new";
   constructor() {
-    FakeRTCPeerConnection.last = this;
+    FakeRTCPeerConnection.all.push(this);
   }
   createDataChannel() {
     return this.channel;
@@ -100,13 +101,35 @@ class FakeRTCPeerConnection {
   }
 }
 
-import { FrameReader } from "./endpointFraming";
+import { encodeFrames, FrameReader } from "./endpointFraming";
 import { joinMetadata, readJoin } from "./endpointJoin";
 import { PeerClientService } from "./PeerClientService";
+import { asPeerMessage } from "./protocol";
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  FakeRTCPeerConnection.all = [];
 });
+
+const HELLO = {
+  type: "hello",
+  version: "1",
+  buildTime: "t",
+  sessionToken: "s",
+  generation: 1,
+};
+
+/** The main screen's hello arriving over an endpoint link. */
+function helloOver(
+  pc: FakeRTCPeerConnection | undefined,
+  generation = HELLO.generation,
+): void {
+  for (const frame of encodeFrames({ ...HELLO, generation })) {
+    pc?.channel.dispatchEvent(
+      Object.assign(new Event("message"), { data: frame.buffer }),
+    );
+  }
+}
 
 type FakeConn = InstanceType<typeof Fakes.DataConnection>;
 
@@ -114,81 +137,125 @@ async function joining(): Promise<{
   svc: PeerClientService;
   peer: InstanceType<typeof Fakes.Peer>;
   direct: FakeConn;
+  pc: FakeRTCPeerConnection;
   id: string;
 }> {
   vi.stubGlobal("RTCPeerConnection", FakeRTCPeerConnection);
   const svc = new PeerClientService({ peerId: "station-test" });
   svc.connect("ABCD");
   await vi.waitFor(() =>
-    expect(Fakes.Peer.current?.connections).toHaveLength(1),
+    expect(Fakes.Peer.current?.connections).toHaveLength(4),
   );
   const peer = Fakes.Peer.current;
   if (!peer) throw new Error("no peer");
   const direct = peer.connections[0];
-  expect(direct.peer).toBe("gonogo-host-ABCD");
+  expect(direct.peer).toBe("gonogo-host-ABCD-0");
   const join = readJoin(direct.metadata);
   expect(join).toMatchObject({ kind: "join", sdp: "v=station-offer" });
-  return { svc, peer, direct, id: join?.id ?? "" };
+  return {
+    svc,
+    peer,
+    direct,
+    pc: FakeRTCPeerConnection.all[0],
+    id: join?.id ?? "",
+  };
 }
 
 describe("a station choosing its path to the main screen", () => {
   it("joins through the endpoint with the answer the main screen sends back", async () => {
-    const { svc, peer, direct, id } = await joining();
+    const { svc, peer, direct, pc, id } = await joining();
     const carrier = peer.incoming(
       joinMetadata({ kind: "answer", id, sdp: "v=endpoint-answer" }),
     );
     expect(carrier.closed).toBe(false);
     carrier.emit("open");
     expect(carrier.closed).toBe(true);
-    const pc = FakeRTCPeerConnection.last;
     await vi.waitFor(() =>
-      expect(pc?.remote).toEqual({ type: "answer", sdp: "v=endpoint-answer" }),
+      expect(pc.remote).toEqual({ type: "answer", sdp: "v=endpoint-answer" }),
     );
     expect(direct.closed).toBe(false);
-    pc?.channel.dispatchEvent(new Event("open"));
+    pc.channel.dispatchEvent(new Event("open"));
+    helloOver(pc);
     expect(direct.closed).toBe(true);
     expect(svc.getConnStatus()).toBe("connected");
-    const first = new FrameReader().push(pc?.channel.sent[0] as Uint8Array);
+    const first = new FrameReader().push(pc.channel.sent[0] as Uint8Array);
     expect(first).toMatchObject({ type: "station-credential" });
     svc.disconnect();
   });
 
   it("joins through the endpoint even when its data connection opened first", async () => {
-    const { peer, direct, id } = await joining();
+    const { peer, direct, pc, id } = await joining();
     direct.open = true;
     direct.emit("open");
     peer.incoming(joinMetadata({ kind: "answer", id, sdp: "v=endpoint" }));
-    const pc = FakeRTCPeerConnection.last;
-    await vi.waitFor(() => expect(pc?.remote?.sdp).toBe("v=endpoint"));
-    pc?.channel.dispatchEvent(new Event("open"));
+    await vi.waitFor(() => expect(pc.remote?.sdp).toBe("v=endpoint"));
+    pc.channel.dispatchEvent(new Event("open"));
+    helloOver(pc);
     expect(direct.closed).toBe(true);
-    const first = new FrameReader().push(pc?.channel.sent[0] as Uint8Array);
+    const first = new FrameReader().push(pc.channel.sent[0] as Uint8Array);
     expect(first).toMatchObject({ type: "station-credential" });
   });
 
+  it("keeps exactly one link through the endpoint when two hosts answer, the one with the higher generation", async () => {
+    const { svc, peer, direct, pc: pcOlder } = await joining();
+    const newerOffer = readJoin(peer.connections[1].metadata);
+    const pcNewer = FakeRTCPeerConnection.all[1];
+    peer.incoming(
+      joinMetadata({
+        kind: "answer",
+        id: readJoin(direct.metadata)?.id ?? "",
+        sdp: "v=older",
+      }),
+    );
+    peer.incoming(
+      joinMetadata({
+        kind: "answer",
+        id: newerOffer?.id ?? "",
+        sdp: "v=newer",
+      }),
+    );
+    await vi.waitFor(() => expect(pcNewer.remote?.sdp).toBe("v=newer"));
+    pcOlder.channel.dispatchEvent(new Event("open"));
+    pcNewer.channel.dispatchEvent(new Event("open"));
+
+    helloOver(pcOlder);
+    helloOver(pcNewer, 2);
+
+    expect(pcOlder.closed).toBe(true);
+    expect(pcNewer.closed).toBe(false);
+    const credential = (pc: FakeRTCPeerConnection) =>
+      pc.channel.sent.filter(
+        (f) =>
+          asPeerMessage(new FrameReader().push(f))?.type ===
+          "station-credential",
+      );
+    expect(credential(pcOlder)).toHaveLength(1);
+    expect(credential(pcNewer)).toHaveLength(1);
+    svc.disconnect();
+  });
+
   it("stays on its data connection when the endpoint answers but its link never opens", async () => {
-    const { svc, peer, direct, id } = await joining();
+    const { svc, peer, direct, pc, id } = await joining();
     direct.open = true;
     direct.emit("open");
     expect(svc.getConnStatus()).not.toBe("connected");
     peer.incoming(joinMetadata({ kind: "answer", id, sdp: "v=unreachable" }));
-    const pc = FakeRTCPeerConnection.last;
-    await vi.waitFor(() => expect(pc?.remote?.sdp).toBe("v=unreachable"));
+    await vi.waitFor(() => expect(pc.remote?.sdp).toBe("v=unreachable"));
     direct.emit("data", { type: "host-heartbeat" });
-    expect(pc?.closed).toBe(true);
+    expect(pc.closed).toBe(true);
     expect(direct.closed).toBe(false);
     expect(svc.getConnStatus()).toBe("connected");
     svc.disconnect();
   });
 
   it("stays on its data connection once the main screen serves it", async () => {
-    const { svc, peer, direct, id } = await joining();
+    const { svc, peer, direct, pc, id } = await joining();
     direct.open = true;
     direct.emit("open");
     direct.emit("data", { type: "host-heartbeat" });
     expect(svc.getConnStatus()).toBe("connected");
     peer.incoming(joinMetadata({ kind: "answer", id, sdp: "v=late" }));
-    expect(FakeRTCPeerConnection.last?.remote).toBeNull();
+    expect(pc.remote).toBeNull();
     expect(direct.closed).toBe(false);
     svc.disconnect();
   });
@@ -198,7 +265,9 @@ describe("a station choosing its path to the main screen", () => {
     peer.incoming(
       joinMetadata({ kind: "answer", id: "gne-someone-else", sdp: "v=0" }),
     );
-    expect(FakeRTCPeerConnection.last?.remote).toBeNull();
+    expect(FakeRTCPeerConnection.all.every((pc) => pc.remote === null)).toBe(
+      true,
+    );
     expect(direct.closed).toBe(false);
     svc.disconnect();
   });
@@ -208,9 +277,11 @@ describe("a station choosing its path to the main screen", () => {
     const svc = new PeerClientService({ peerId: "station-test" });
     svc.connect("ABCD");
     await vi.waitFor(() =>
-      expect(Fakes.Peer.current?.connections).toHaveLength(1),
+      expect(Fakes.Peer.current?.connections).toHaveLength(4),
     );
-    expect(Fakes.Peer.current?.connections[0].metadata).toBeUndefined();
+    expect(
+      Fakes.Peer.current?.connections.every((c) => c.metadata === undefined),
+    ).toBe(true);
     svc.disconnect();
   });
 });

@@ -919,6 +919,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     token: "id",
   },
   "HostRoleReply": {
+    generation: "count",
     graceSeconds: "s",
     heartbeatSeconds: "s",
     holderId: "id",

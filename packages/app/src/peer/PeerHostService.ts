@@ -38,7 +38,11 @@ import { DeliveryMeter, deliveryChannel } from "./DeliveryMeter";
 import { joinMetadata, readJoin } from "./endpointJoin";
 import { EndpointConnection, EndpointStations } from "./endpointStations";
 import { defaultApprovals, defaultShareCode } from "./hostDefaults";
-import { deriveHostPeerId } from "./hostPeerId";
+import {
+  deriveHostPeerId,
+  HOST_PEER_SLOTS,
+  HOST_RETRY_INTERVAL_MS,
+} from "./hostPeerId";
 import { attachIceDiagnostics } from "./iceDiagnostics";
 import { MessageDispatcher } from "./MessageDispatcher";
 import { peerBrokerOptions } from "./peerOptions";
@@ -416,7 +420,7 @@ const paceLogger = logger.tag("peer:pace");
 const REPLAY_SLICE_MS = 8;
 
 /** How often a host retries the broker id after it was taken, so the new host lands soon after the broker lets the old one go. */
-export const HOST_RECLAIM_INTERVAL_MS = 3_000;
+export const HOST_RECLAIM_INTERVAL_MS = HOST_RETRY_INTERVAL_MS;
 /** A subscribe replay waits while a station's send queue holds this much, well under the 256 KiB the pacer reads as falling behind. */
 const REPLAY_QUEUE_BYTES = 64 * 1024;
 
@@ -599,7 +603,7 @@ export class PeerHostService {
   /** The session a connection that chose no vantage reads from. */
   private plainSession: string = HOST_SESSION;
 
-  /** The host's broker peer id: the *derived* `gonogo-host-<shareCode>`
+  /** The host's broker peer id: the *derived* `gonogo-host-<shareCode>-<slot>`
    *  form (not the operator-facing share code). Null until the broker
    *  confirms it with an `open`. Stations connect to this directly; the
    *  operator never sees it (they see `shareCode`). */
@@ -610,18 +614,31 @@ export class PeerHostService {
    * Empty until {@link adoptShareCode} is given one.
    */
   shareCode = defaultShareCode();
+  /**
+   * The mod's grant count when this screen took the host role, carried in
+   * every `hello` so a station that hears from two hosts stays with the
+   * newer, and used to pick the first broker slot to try.
+   */
+  private generation = 0;
+  /** The slot of the share code's id ring the next Peer is opened under. */
+  private slot = 0;
+  /** Slots refused in a row since the last `open`, so a full ring falls back to the reclaim loop. */
+  private slotsRefused = 0;
   /** The relay's station endpoint, which carries every station that joins while it is up. */
-  readonly endpoint = new EndpointStations(stationsSocketUrl);
+  readonly endpoint = new EndpointStations(
+    stationsSocketUrl,
+    HOST_RETRY_INTERVAL_MS,
+  );
   private flightListChangeUnsub: (() => void) | null = null;
   /** True while we're retry-reclaiming the derived peer id after an
    *  `unavailable-id` (broker still holds a stale slot from an unclean
    *  prior tab). Drives the main-screen "Reclaiming your share code..."
    *  status. Cleared on the next successful `open`. */
   private reclaiming = false;
-  /** Exponential-backoff state for the reclaim loop. Separate from the
+  /** Attempt count for the reclaim loop. Separate from the
    *  broker-reconnect backoff (which keeps the *same* id over a transient
-   *  WS blip): reclaim destroys the dead Peer and re-claims the same
-   *  derived id until the broker frees the stale one (~30–60s). */
+   *  WS blip): reclaim destroys the dead Peer and walks the ring again
+   *  until the broker frees a stale id (~30–60s). */
   private reclaimAttempt = 0;
   private reclaimTimer: ReturnType<typeof setTimeout> | null = null;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
@@ -660,6 +677,8 @@ export class PeerHostService {
   async start() {
     this.running = true;
     if (this.shareCode === "") this.shareCode = defaultShareCode();
+    this.slot = this.generation % HOST_PEER_SLOTS;
+    this.slotsRefused = 0;
     this.deliveryMeter.start();
     // Stamp the log identity before anything that can fail, errors fired
     // pre-`open` (unavailable-id, a broker that never answers) otherwise
@@ -690,7 +709,7 @@ export class PeerHostService {
   private openPeer(): void {
     // A second Peer under the same derived id would leak the first and trip a permanent unavailable-id reclaim loop; the reclaim and regenerate paths null `this.peer` first.
     if (this.peer || this.shareCode === "") return;
-    const peerId = deriveHostPeerId(this.shareCode);
+    const peerId = deriveHostPeerId(this.shareCode, this.slot);
     // `key: "gonogo"` isolates us from the default `peerjs` namespace on the
     // public 0.peerjs.com broker. Without it, our short ids collide with
     // every other PeerJS app on the planet using the default key, the broker
@@ -715,6 +734,7 @@ export class PeerHostService {
         this.reclaimAttempt = 0;
         this.setReclaiming(false);
       }
+      this.slotsRefused = 0;
       // Reset the broker-reconnect backoff: a successful open means
       // whatever was wrong with the broker WS has cleared, and the next
       // disconnect should retry quickly. Without this reset, a long-
@@ -788,13 +808,26 @@ export class PeerHostService {
         logger.error("[PeerHost] peer error", err);
       }
       if (peerErr.type !== "unavailable-id") return;
-      // The broker still holds a stale slot for our derived id, almost
-      // always a prior tab/process that didn't send a clean leave (the
-      // broker frees it on its ~30–60s keepalive timer). We do NOT rotate
-      // to a different id (that would invalidate the operator's share code
-      // and every station's reconnect target). Instead we retry-RECLAIM the
-      // SAME derived id with backoff until the broker releases it; stations
-      // reconnect automatically the moment it comes back.
+      /*
+       * The broker still holds this slot's id, almost always a prior tab or
+       * process that didn't send a clean leave (a hung tab keeps it as long
+       * as it hangs, a closed lid until the broker's own timeout). The code
+       * owns a ring of ids and a station tries every one, so the next slot
+       * is taken at once. Only a ring with every slot held waits, retrying
+       * on the reclaim interval until the broker lets one go.
+       */
+      if (this.peer !== peer) return;
+      this.slotsRefused += 1;
+      this.slot = (this.slot + 1) % HOST_PEER_SLOTS;
+      if (this.slotsRefused < HOST_PEER_SLOTS) {
+        logger.warn(
+          `[PeerHost] broker slot held: trying slot ${this.slot} of ${HOST_PEER_SLOTS}`,
+        );
+        this.destroyPeer();
+        this.openPeer();
+        return;
+      }
+      this.slotsRefused = 0;
       this.scheduleReclaim();
     });
   }
@@ -844,6 +877,7 @@ export class PeerHostService {
         version: VERSION,
         buildTime: BUILD_TIME,
         sessionToken: this.sessionToken,
+        generation: this.generation,
       } satisfies PeerMessage);
       // Sent before approval, so a station still waiting, or refused, can ship the logs that say why it never joined.
       conn.send(this.analyticsConsentMessage());
@@ -925,11 +959,12 @@ export class PeerHostService {
   }
 
   /**
-   * Retry-reclaim the derived peer id after an `unavailable-id`. Destroys
-   * the dead Peer, surfaces the "reclaiming" status, and schedules a
-   * `openPeer()` against the same id after a fixed interval. A screen only
-   * hosts while it holds the role, so it retries at a steady pace until the
-   * broker's stale-slot timer (~30–60s) frees the id and `open` clears it.
+   * Retry-reclaim the code's id ring once every slot answered
+   * `unavailable-id`. Destroys the dead Peer, surfaces the "reclaiming"
+   * status, and schedules a walk of the ring from the same slot after a fixed
+   * interval. A screen only hosts while it holds the role, so it retries at a
+   * steady pace until the broker's stale-slot timer (~30–60s) frees an id and
+   * `open` clears it.
    */
   private scheduleReclaim(): void {
     this.setReclaiming(true);
@@ -3237,6 +3272,11 @@ export class PeerHostService {
     if (!this.heartbeatTimer) return;
     clearInterval(this.heartbeatTimer);
     this.heartbeatTimer = null;
+  }
+
+  /** Carry `generation`, the mod's grant count for this screen's hold on the role, in every `hello` from now on. */
+  adoptGeneration(generation: number): void {
+    this.generation = generation;
   }
 
   /**

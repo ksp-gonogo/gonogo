@@ -69,7 +69,18 @@ const { FakeHub } = vi.hoisted(() => {
     /** Station-side outbound connect. Pairs with a host conn, fires opens. */
     connect(hostId: string) {
       const host = FakePeer.registry.get(hostId);
-      if (!host) throw new Error(`host ${hostId} not registered`);
+      if (!host) {
+        /* PeerJS reports a missing id on the Peer, as `peer-unavailable`. */
+        queueMicrotask(() =>
+          this.emit(
+            "error",
+            Object.assign(new Error(`Could not connect to peer ${hostId}`), {
+              type: "peer-unavailable",
+            }),
+          ),
+        );
+        return new FakeDataConnection(hostId);
+      }
       const stationOutbound = new FakeDataConnection(hostId);
       const hostInbound = new FakeDataConnection(this.id);
       stationOutbound.peerConn = hostInbound;
@@ -167,7 +178,7 @@ describe("kOS execute tunnel (station → host → kos, via uplink-relay)", () =
     await Promise.resolve(); // let FakePeer "open" fire and register host id
 
     const client = new PeerClientService();
-    client.connect(host.peerId ?? "");
+    client.connect(host.shareCode);
     // Flush microtasks so the station's conn + host's conn both fire "open".
     for (let i = 0; i < 6; i++) await Promise.resolve();
     approveStation();
@@ -195,7 +206,7 @@ describe("kOS execute tunnel (station → host → kos, via uplink-relay)", () =
     await Promise.resolve();
 
     const client = new PeerClientService();
-    client.connect(host.peerId ?? "");
+    client.connect(host.shareCode);
     for (let i = 0; i < 6; i++) await Promise.resolve();
     approveStation();
 
@@ -223,7 +234,7 @@ describe("kOS execute tunnel (station → host → kos, via uplink-relay)", () =
     await Promise.resolve();
 
     const client = new PeerClientService();
-    client.connect(host.peerId ?? "");
+    client.connect(host.shareCode);
     for (let i = 0; i < 6; i++) await Promise.resolve();
     approveStation();
 
@@ -244,7 +255,7 @@ describe("kOS execute tunnel (station → host → kos, via uplink-relay)", () =
     await Promise.resolve();
 
     const client = new PeerClientService();
-    client.connect(host.peerId ?? "");
+    client.connect(host.shareCode);
     for (let i = 0; i < 6; i++) await Promise.resolve();
     approveStation();
 
