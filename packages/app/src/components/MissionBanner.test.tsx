@@ -1082,3 +1082,22 @@ describe("MissionBanner delay at zero", () => {
     await act(async () => {});
   });
 });
+
+describe("MissionBanner vessel and EVA fields with the active craft out of contact", () => {
+  const mount = async () => {
+    const fixture = setupDelayedStream();
+    render(
+      <fixture.Provider>
+        <MissionBanner />
+      </fixture.Provider>,
+    );
+    await fixture.flyAt(4);
+    return fixture;
+  };
+
+  it("says the vessel is not known while flying with no identity, never another craft", async () => {
+    await mount();
+    const caption = await screen.findByText("Vessel");
+    expect(caption.nextElementSibling).toHaveTextContent(/not known/i);
+  });
+});

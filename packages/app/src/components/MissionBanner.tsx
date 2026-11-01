@@ -171,15 +171,26 @@ function BannerField({
   );
 }
 
-/** The active craft's name, and nothing while there is no craft or its name has not arrived. */
+/**
+ * The active craft's name. While a craft is flying and its identity has not
+ * arrived (no contact), the field says the name is not known rather than
+ * leaving a gap or naming another craft. Nothing at all outside a flight.
+ */
 function VesselField() {
   const identity = useTelemetry("vessel.identity");
-  if (identity.state !== "observed" && identity.state !== "held") return null;
-  const name = identity.value.name.trim();
-  if (name === "") return null;
+  const { inFlight } = useGameContext();
+  const known =
+    identity.state === "observed" || identity.state === "held"
+      ? identity.value.name.trim()
+      : "";
+  if (known === "" && !inFlight) return null;
   return (
     <BannerField label="Vessel">
-      <VesselName>{name}</VesselName>
+      {known === "" ? (
+        <NotKnown>not known</NotKnown>
+      ) : (
+        <VesselName>{known}</VesselName>
+      )}
     </BannerField>
   );
 }
@@ -411,5 +422,9 @@ const Banner = styled.div`
 
 const FieldValue = styled.span`
   font-size: var(--font-size-value);
+  color: var(--color-text-muted);
+`;
+
+const NotKnown = styled.span`
   color: var(--color-text-muted);
 `;
