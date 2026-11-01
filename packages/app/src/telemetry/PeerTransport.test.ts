@@ -71,6 +71,9 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
   const statusListeners = new Set<(status: ConnStatus) => void>();
   const resetListeners = new Set<() => void>();
   const linkListeners = new Set<(connected: boolean) => void>();
+  type Approval = "unknown" | "pending" | "approved" | "refused";
+  let approval: Approval = "approved";
+  const approvalListeners = new Set<(approval: Approval) => void>();
   const sentCommands: Array<{
     requestId: string;
     command: string;
@@ -95,6 +98,11 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
 
   const fake = {
     getConnStatus: () => status,
+    getApproval: () => approval,
+    onApprovalChange: (cb: (next: Approval) => void) => {
+      approvalListeners.add(cb);
+      return () => approvalListeners.delete(cb);
+    },
     onSitrepFrame: (cb: (message: ServerMessage) => void) => {
       frameListeners.add(cb);
       return () => frameListeners.delete(cb);
@@ -158,6 +166,10 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
     },
     emitReset() {
       for (const cb of resetListeners) cb();
+    },
+    emitApproval(next: Approval) {
+      approval = next;
+      for (const cb of approvalListeners) cb(next);
     },
     emitLink(connected: boolean) {
       for (const cb of linkListeners) cb(connected);
@@ -994,6 +1006,74 @@ describe("PeerTransport follows the host's stream to the mod", () => {
       sentAt: 0,
     });
     expect(fake.sentCommands.map((c) => c.requestId)).toEqual(["b"]);
+    transport.dispose();
+  });
+});
+
+describe("PeerTransport while the main screen has not approved the station", () => {
+  const stage = (requestId: string) =>
+    ({
+      type: "command-request",
+      requestId,
+      command: "vessel.stage",
+      label: "",
+      topic: "",
+      vantage: "",
+      args: undefined,
+      sentAt: 0,
+    }) as const;
+
+  it("reports itself not connected so command controls are disabled, and connected once approved", () => {
+    const fake = makeFakeClient("connected");
+    fake.emitApproval("pending");
+    const transport = new PeerTransport(asService(fake));
+    const seen: string[] = [];
+    transport.onStatusChange((status) => seen.push(status));
+    expect(transport.status).toBe("reconnecting");
+
+    fake.emitApproval("approved");
+    expect(transport.status).toBe("connected");
+    fake.emitApproval("refused");
+    expect(transport.status).toBe("reconnecting");
+    expect(seen).toEqual(["connected", "reconnecting"]);
+    transport.dispose();
+  });
+
+  it("sends no command and refuses it at once, and sends it once approved", async () => {
+    const fake = makeFakeClient("connected");
+    fake.emitApproval("pending");
+    const transport = new PeerTransport(asService(fake));
+    const errors: Array<{ requestId?: string; code?: string }> = [];
+    transport.onMessage((message) => {
+      if (message.type === "error") errors.push(message);
+    });
+
+    transport.send(stage("a"));
+    transport.send({
+      type: "command-group",
+      groupId: "g",
+      vantage: "",
+      members: [{ requestId: "m1", command: "vessel.stage", args: undefined }],
+    } as never);
+    await Promise.resolve();
+    expect(fake.sentCommands).toHaveLength(0);
+    expect(fake.sentGroups).toHaveLength(0);
+    expect(errors.map((e) => e.requestId)).toEqual(["a", "m1"]);
+
+    fake.emitApproval("approved");
+    transport.send(stage("b"));
+    expect(fake.sentCommands.map((c) => c.requestId)).toEqual(["b"]);
+    transport.dispose();
+  });
+
+  it("still sends what the station reads, which the main screen holds until it approves", () => {
+    const fake = makeFakeClient("connected");
+    fake.emitApproval("pending");
+    const transport = new PeerTransport(asService(fake));
+    transport.send({ type: "subscribe", topic: "vessel.flight" } as never);
+    expect(fake.sentSubscribes).toEqual([
+      { op: "subscribe", topic: "vessel.flight" },
+    ]);
     transport.dispose();
   });
 });

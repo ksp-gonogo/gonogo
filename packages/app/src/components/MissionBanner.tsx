@@ -8,6 +8,7 @@ import {
 import { MissionDate, ReadoutCaption } from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
+import { useStationApproved } from "../stationApproval/useStationApproved";
 import { SignalDelayReadout } from "./SignalDelayReadout";
 import { VantageControl } from "./VantageControl";
 
@@ -261,7 +262,10 @@ const STREAM_DOWN_ONSET_MS = 1500;
  * change, and absent while the stream is open.
  */
 function StreamStatusField() {
-  const connected = useStreamConnected();
+  const streamConnected = useStreamConnected();
+  const approved = useStationApproved();
+  // A station waiting for approval reads as not connected so its controls go dark; the waiting notice says why.
+  const connected = streamConnected || !approved;
   const [shown, setShown] = useState(false);
   useEffect(() => {
     if (connected) {

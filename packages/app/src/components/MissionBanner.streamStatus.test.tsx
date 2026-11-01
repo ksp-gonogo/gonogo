@@ -1,6 +1,8 @@
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { PeerClientProvider } from "../peer/PeerClientContext";
+import { idlePeerClient } from "../test/peerFakes";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { MissionBanner } from "./MissionBanner";
 
@@ -49,6 +51,25 @@ describe("MissionBanner stream status", () => {
       vi.advanceTimersByTime(400);
     });
     act(() => store.setTransportConnected(true));
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("says nothing about the mod on a station the main screen has not approved, which the waiting notice already explains", () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const fixture = setupStreamFixture({ pinnedUt: 10 });
+    render(
+      <PeerClientProvider
+        client={{ ...idlePeerClient(), getApproval: () => "pending" }}
+      >
+        <fixture.Provider>
+          <MissionBanner />
+        </fixture.Provider>
+      </PeerClientProvider>,
+    );
+    act(() => fixture.store.setTransportConnected(false));
     act(() => {
       vi.advanceTimersByTime(2000);
     });

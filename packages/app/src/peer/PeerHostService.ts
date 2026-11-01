@@ -355,7 +355,6 @@ interface HeldReads {
   vantage?: PeerMessage;
   topics: Map<string, PeerMessage>;
   rates: Map<string, PeerMessage>;
-  vote?: PeerMessage;
 }
 
 /** `meta` for a command reply the host writes itself rather than relays. */
@@ -1200,15 +1199,12 @@ export class PeerHostService {
       case "sitrep-set-rate":
         held.rates.set(msg.topic, msg);
         return;
-      case "gonogo-vote":
-        held.vote = msg;
-        return;
     }
   }
 
   /**
    * Act on what a station said while it waited, in the order a live one says
-   * it: the vantage it reads from, the topics, their rate tiers, then its vote.
+   * it: the vantage it reads from, the topics, their rate tiers.
    */
   private applyHeldReads(conn: StationLink): void {
     const held = this.heldReads.get(conn);
@@ -1218,7 +1214,6 @@ export class PeerHostService {
       held.vantage,
       ...held.topics.values(),
       ...held.rates.values(),
-      held.vote,
     ];
     for (const msg of replay) {
       if (msg) this.dispatcher.dispatch(msg, conn);
