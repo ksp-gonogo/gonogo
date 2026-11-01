@@ -296,26 +296,6 @@ describe("CrewStatusComponent", () => {
     expect(screen.getAllByText(/Valentina Kerman/)).toHaveLength(1);
   });
 
-  it("leaves a kerbal that is not loaded out of the crew", async () => {
-    const fixture = newFixture();
-    renderCrew(fixture);
-    act(() => {
-      fixture.emit("eva.crew", {
-        count: 2,
-        kerbals: [
-          { kerbalVesselId: "k1", name: "Maxwell Kerman", loaded: true },
-          { kerbalVesselId: "k2", name: "Wernher Kerman", loaded: false },
-        ],
-      });
-    });
-
-    await waitFor(() =>
-      expect(screen.getByText("Maxwell Kerman")).toBeInTheDocument(),
-    );
-    expect(screen.queryByText("Wernher Kerman")).not.toBeInTheDocument();
-    expect(screen.getByText("1 on EVA")).toBeInTheDocument();
-  });
-
   it("says nothing of EVA while nobody is outside", async () => {
     const fixture = newFixture();
     renderCrew(fixture);

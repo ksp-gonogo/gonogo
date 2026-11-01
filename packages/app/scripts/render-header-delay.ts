@@ -158,7 +158,7 @@ interface Scene {
 /** What the header ends with while delay is off: `ZERO_DELAY_BEFORE=1` expects the bare zero the header drew before it left the figure out. */
 const ZERO_SETTLED = process.env.ZERO_DELAY_BEFORE
   ? "DelaySignal delay 0s"
-  : "KSCHomeVesselnot known";
+  : "CCKSCHome";
 
 /** What the header ends with in low orbit: `LEO_DELAY_BEFORE=1` expects the whole-second zero it drew before it stated milliseconds. */
 const LEO_SETTLED = process.env.LEO_DELAY_BEFORE
@@ -413,49 +413,10 @@ const SCENES: Scene[] = [
     ],
   },
   {
-    // The active craft has no link, so its identity never arrives.
-    name: "vessel-not-known",
-    screen: "main",
-    vantage: KSC,
-    mustContain: "not known",
-
-    settled: {
-      after: "DelaySignal delay 3min 7s",
-      before: "DelaySignal delay 3min 7s",
-    },
-    emit: flight(true),
-  },
-  {
-    // A kerbal outside is on the roster while the active craft is not known.
-    name: "eva-kerbal-vessel-not-known",
-    screen: "main",
-    vantage: KSC,
-    settled: {
-      after: "DelaySignal delay 3min 7s",
-      before: "DelaySignal delay 3min 7s",
-    },
-    emit: [
-      ...flight(true),
-      [
-        "eva.crew",
-        {
-          count: 1,
-          kerbals: [
-            {
-              kerbalVesselId: "wernher",
-              parentVesselId: "long-gone",
-              name: "Wernher Kerman",
-            },
-          ],
-        },
-      ],
-    ],
-  },
-  {
     name: "no-active-vessel",
     screen: "main",
     vantage: KSC,
-    settled: { after: "KSCHome", before: "KSCHome" },
+    settled: { after: "CCKSCHome", before: "CCKSCHome" },
     emit: [
       ["commandCentre.roster", ROSTER],
       ["spaceCenter.scene", { scene: "SpaceCenter" }],
@@ -464,7 +425,7 @@ const SCENES: Scene[] = [
   },
 ];
 
-const PX_W = 1400;
+const PX_W = 640;
 const PX_H = 70;
 
 function themeCss(css: string): string {

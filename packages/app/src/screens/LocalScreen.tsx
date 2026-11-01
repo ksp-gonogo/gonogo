@@ -123,7 +123,6 @@ export function LocalScreen({
           role={role}
           jobs={jobs}
           code={state.record.code}
-          generation={state.generation}
           takeover={state.takeover}
         />
       ) : (
@@ -138,14 +137,12 @@ function HostingLocalScreen({
   role,
   jobs,
   code,
-  generation,
   takeover,
 }: {
   seat: Seat;
   role: HostRole;
   jobs: HostJobs;
   code: string;
-  generation: number;
   takeover: boolean;
 }) {
   const [takenOver] = useState(takeover);
@@ -157,7 +154,7 @@ function HostingLocalScreen({
     logger.setIdentity({ role: "host" });
   }, []);
   return (
-    <PeerHostProvider code={code} generation={generation}>
+    <PeerHostProvider code={code}>
       {takenOver && <TakeoverNotice />}
       <MainScreen screen={seat} hosting jobs={jobs} />
     </PeerHostProvider>
@@ -174,7 +171,7 @@ type ConnStatus = Parameters<
  * with the code from the game's record.
  */
 function JoinedLocalScreen({ seat, code }: { seat: Seat; code: string }) {
-  const [client] = useState(() => new PeerClientService({ seat }));
+  const [client] = useState(() => new PeerClientService());
   const [status, setStatus] = useState<ConnStatus>("idle");
   const [hostNotFound, setHostNotFound] = useState(false);
 

@@ -8,7 +8,6 @@ import {
 import { MissionDate, ReadoutCaption } from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
-import { useStationApproved } from "../stationApproval/useStationApproved";
 import { SignalDelayReadout } from "./SignalDelayReadout";
 import { VantageControl } from "./VantageControl";
 
@@ -172,31 +171,20 @@ function BannerField({
   );
 }
 
-/**
- * The active craft's name. While a craft is flying and its identity has not
- * arrived (no contact), the field says the name is not known rather than
- * leaving a gap or naming another craft. Nothing at all outside a flight.
- */
+/** The active craft's name, and nothing while there is no craft or its name has not arrived. */
 function VesselField() {
   const identity = useTelemetry("vessel.identity");
-  const { inFlight } = useGameContext();
-  const known =
-    identity.state === "observed" || identity.state === "held"
-      ? identity.value.name.trim()
-      : "";
-  if (known === "" && !inFlight) return null;
+  if (identity.state !== "observed" && identity.state !== "held") return null;
+  const name = identity.value.name.trim();
+  if (name === "") return null;
   return (
     <BannerField label="Vessel">
-      {known === "" ? (
-        <NotKnown>not known</NotKnown>
-      ) : (
-        <VesselName>{known}</VesselName>
-      )}
+      <VesselName>{name}</VesselName>
     </BannerField>
   );
 }
 
-/** The loaded kerbals outside, those within physics range of the vessel in focus, named, and nothing while there are none. Kerbals the roster marks as not loaded, and the kerbal the vessel field already names, are left out. */
+/** The kerbals outside within physics range, named, and nothing while nobody is. The kerbal the vessel field already names is left out. */
 function EvaField() {
   const crew = useTelemetry("eva.crew");
   const identity = useTelemetry("vessel.identity");
@@ -207,7 +195,6 @@ function EvaField() {
       : undefined;
   const names = crew.value.kerbals.flatMap((kerbal) => {
     const name = kerbal.name?.trim();
-    if (kerbal.loaded === false) return [];
     return name && (ownId === undefined || kerbal.kerbalVesselId !== ownId)
       ? [name]
       : [];
@@ -273,10 +260,7 @@ const STREAM_DOWN_ONSET_MS = 1500;
  * change, and absent while the stream is open.
  */
 function StreamStatusField() {
-  const streamConnected = useStreamConnected();
-  const approved = useStationApproved();
-  // A station waiting for approval reads as not connected so its controls go dark; the waiting notice says why.
-  const connected = streamConnected || !approved;
+  const connected = useStreamConnected();
   const [shown, setShown] = useState(false);
   useEffect(() => {
     if (connected) {
@@ -427,9 +411,5 @@ const Banner = styled.div`
 
 const FieldValue = styled.span`
   font-size: var(--font-size-value);
-  color: var(--color-text-muted);
-`;
-
-const NotKnown = styled.span`
   color: var(--color-text-muted);
 `;

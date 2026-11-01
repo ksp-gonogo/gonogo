@@ -263,45 +263,6 @@ describe("MissionBanner", () => {
     await expectNoA11yViolations(container);
   });
 
-  it("leaves out a kerbal that is not loaded but keeps one who left another craft in physics range", async () => {
-    const fixture = setupTelemetryStream();
-    render(
-      <fixture.Provider>
-        <MissionBanner />
-      </fixture.Provider>,
-    );
-    act(() => {
-      fixture.emitEvaCrew({
-        count: 3,
-        kerbals: [
-          {
-            kerbalVesselId: "k1",
-            parentVesselId: "pod",
-            name: "Jebediah Kerman",
-            loaded: true,
-          },
-          {
-            kerbalVesselId: "k2",
-            parentVesselId: "other-craft",
-            name: "Bob Kerman",
-            loaded: true,
-          },
-          {
-            kerbalVesselId: "k3",
-            parentVesselId: "other-craft",
-            name: "Wernher Kerman",
-            loaded: false,
-          },
-        ],
-      });
-    });
-
-    expect(
-      await screen.findByText("Jebediah Kerman, Bob Kerman"),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/Wernher/)).toBeNull();
-  });
-
   it("shows no vessel field for an empty name", async () => {
     const fixture = setupTelemetryStream();
     render(
@@ -1119,24 +1080,5 @@ describe("MissionBanner delay at zero", () => {
     );
     expect(screen.getByText("Delay")).toBeInTheDocument();
     await act(async () => {});
-  });
-});
-
-describe("MissionBanner vessel and EVA fields with the active craft out of contact", () => {
-  const mount = async () => {
-    const fixture = setupDelayedStream();
-    render(
-      <fixture.Provider>
-        <MissionBanner />
-      </fixture.Provider>,
-    );
-    await fixture.flyAt(4);
-    return fixture;
-  };
-
-  it("says the vessel is not known while flying with no identity, never another craft", async () => {
-    await mount();
-    const caption = await screen.findByText("Vessel");
-    expect(caption.nextElementSibling).toHaveTextContent(/not known/i);
   });
 });

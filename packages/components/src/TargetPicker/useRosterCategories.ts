@@ -1,22 +1,14 @@
 import { TargetKind, type TargetListEntry } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
-import {
-  numberSharedPortNames,
-  SPACE_OBJECT_VESSEL_TYPE,
-  sortByDistance,
-} from "./entries";
+import { SPACE_OBJECT_VESSEL_TYPE, sortByDistance } from "./entries";
 
 /** The roster filtered by name and the asteroid toggle, split into its categories and the Suggested list. */
 export function useRosterCategories(
-  rawEntries: readonly TargetListEntry[],
+  entries: readonly TargetListEntry[],
   filterText: string,
   showSpaceObjects: boolean,
 ) {
   const isFiltering = filterText.length > 0;
-  const entries = useMemo(
-    () => numberSharedPortNames(rawEntries),
-    [rawEntries],
-  );
 
   const nameFiltered = useMemo(() => {
     if (!isFiltering) return entries;

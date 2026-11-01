@@ -76,18 +76,7 @@ const { FakeHub } = vi.hoisted(() => {
 
     connect(hostId: string) {
       const host = FakePeer.registry.get(hostId);
-      if (!host) {
-        /* PeerJS reports a missing id on the Peer, as `peer-unavailable`. */
-        queueMicrotask(() =>
-          this.emit(
-            "error",
-            Object.assign(new Error(`Could not connect to peer ${hostId}`), {
-              type: "peer-unavailable",
-            }),
-          ),
-        );
-        return new FakeDataConnection(hostId);
-      }
+      if (!host) throw new Error(`host ${hostId} not registered`);
       const stationOutbound = new FakeDataConnection(hostId);
       const hostInbound = new FakeDataConnection(this.id);
       stationOutbound.peerConn = hostInbound;
@@ -178,7 +167,7 @@ describe("sitrep-command-request label/topic tunnel (station → host)", () => {
     await Promise.resolve();
 
     const client = new PeerClientService();
-    client.connect(host.shareCode);
+    client.connect(host.peerId ?? "");
     for (let i = 0; i < 6; i++) await Promise.resolve();
     approveStation();
 
@@ -213,7 +202,7 @@ describe("sitrep-command-request label/topic tunnel (station → host)", () => {
     await Promise.resolve();
 
     const client = new PeerClientService();
-    client.connect(host.shareCode);
+    client.connect(host.peerId ?? "");
     for (let i = 0; i < 6; i++) await Promise.resolve();
     approveStation();
 

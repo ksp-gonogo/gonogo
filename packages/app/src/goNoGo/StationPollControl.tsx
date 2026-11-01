@@ -82,17 +82,7 @@ function PollButtons({ poll }: Readonly<{ poll: StationPoll }>) {
         </Tooltip>
       )}
       {poll.launched && (
-        <Button
-          variant="primary"
-          tone="nogo"
-          onClick={poll.abort}
-          disabled={!poll.inPoll}
-          disabledReason={
-            poll.inPoll
-              ? undefined
-              : "The main screen has not approved this station"
-          }
-        >
+        <Button variant="primary" tone="nogo" onClick={poll.abort}>
           ABORT
         </Button>
       )}

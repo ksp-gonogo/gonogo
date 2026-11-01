@@ -20,18 +20,12 @@ export interface RoleConnection {
  *
  * `waiting` until the mod has published the record and answered the first
  * claim. `hosting` while this screen holds the role; `takeover` is true when it
- * took the role over from a host it had joined, and `generation` is the mod's
- * grant count at its latest claim. `joined` while another screen
+ * took the role over from a host it had joined. `joined` while another screen
  * holds it, or nobody does and the mod has not yet let this one claim.
  */
 export type HostRoleState =
   | { kind: "waiting" }
-  | {
-      kind: "hosting";
-      record: HostRecordView;
-      takeover: boolean;
-      generation: number;
-    }
+  | { kind: "hosting"; record: HostRecordView; takeover: boolean }
   | { kind: "joined"; record: HostRecordView };
 
 const WAITING: HostRoleState = { kind: "waiting" };
@@ -57,7 +51,6 @@ export class HostRole {
   private holds = false;
   private ownId = "";
   private takeover = false;
-  private generation = 0;
   private claiming = false;
   private heartbeatMs = DEFAULT_HEARTBEAT_MS;
   private heartbeatTimer: ReturnType<typeof setInterval> | undefined;
@@ -193,7 +186,7 @@ export class HostRole {
       this.heartbeatMs = answer.heartbeatSeconds * 1000;
       this.answered = true;
       if (answer.holds) {
-        this.takeRole(answer.holderId, answer.generation);
+        this.takeRole(answer.holderId);
       } else {
         if (this.holds) this.loseRole();
         if (this.record && !this.record.held) this.scheduleRetry();
@@ -210,11 +203,10 @@ export class HostRole {
     }, this.heartbeatMs);
   }
 
-  private takeRole(holderId: string, generation: number): void {
+  private takeRole(holderId: string): void {
     if (!this.holds) this.takeover = this.current.kind === "joined";
     this.holds = true;
     this.ownId = holderId;
-    this.generation = generation;
     this.stopHeartbeat();
     this.heartbeatTimer = setInterval(() => this.heartbeat(), this.heartbeatMs);
   }
@@ -254,12 +246,7 @@ export class HostRole {
   private derive(): HostRoleState {
     if (!this.answered || !this.record) return WAITING;
     if (this.holds) {
-      return {
-        kind: "hosting",
-        record: this.record,
-        takeover: this.takeover,
-        generation: this.generation,
-      };
+      return { kind: "hosting", record: this.record, takeover: this.takeover };
     }
     return { kind: "joined", record: this.record };
   }
@@ -271,5 +258,5 @@ function sameState(a: HostRoleState, b: HostRoleState): boolean {
   if (a.record !== b.record) return false;
   return a.kind !== "hosting" || b.kind !== "hosting"
     ? true
-    : a.takeover === b.takeover && a.generation === b.generation;
+    : a.takeover === b.takeover;
 }

@@ -4416,12 +4416,6 @@ export interface EvaCrewMember
 	parentVesselId?: string | null;
 	/** The kerbal's name, from the EVA vessel's `GetName()`. */
 	name?: string | null;
-	/**
-	* Whether the game has this kerbal loaded, which is true within physics range
-	* of the vessel in focus. A kerbal that is not loaded is orbiting or standing
-	* elsewhere and has no suit state of its own to read.
-	*/
-	loaded?: boolean | null;
 }
 /**
 * The roster of kerbals currently outside a craft, loaded or not, so a client
@@ -5047,15 +5041,6 @@ export interface HostRoleReply
 	* keeps the role before it is freed.
 	*/
 	graceSeconds: Value<"s">;
-	/**
-	* How many times the role has been granted, counting the grant this answer
-	* reports when `HostRoleReply.holds` is true. It rises by one on each
-	* `host.claim` that grants the role, including to the holder returning after a
-	* reload, never on a heartbeat, and keeps rising across a game restart. A
-	* screen hosting a remote station reads it to tell the newest host from an
-	* older one that is still answering.
-	*/
-	generation: Value<"count">;
 }
 /**
 * The answer to `host.station.check`: whether a station's credential is one

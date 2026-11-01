@@ -26,7 +26,6 @@ describe("the game's host record as the page reads it", () => {
           holderId: "abc",
           heartbeatSeconds: value("s", 5),
           graceSeconds: value("s", 15),
-          generation: value("count", 4),
         },
       }),
     ).toEqual({
@@ -34,7 +33,6 @@ describe("the game's host record as the page reads it", () => {
       holderId: "abc",
       heartbeatSeconds: 5,
       graceSeconds: 15,
-      generation: 4,
     });
   });
 

@@ -361,24 +361,19 @@ describe("a station that reads before the game has answered whether it is approv
     host.stop();
   });
 
-  it("refuses a vote sent while waiting and never counts it, even once approved", async () => {
+  it("counts a vote it sent while waiting once the station is approved", async () => {
     const book = new SlowBook();
     book.approve("cred-a", "Flight");
     const host = await startedHost(book);
     const votes: Array<[string, string | null]> = [];
     host.onGonogoVote((peerId, status) => votes.push([peerId, status]));
-    const station = await join(host, "station-a", "cred-a");
 
+    const station = await join(host, "station-a", "cred-a");
     station.conn.emit("data", { type: "gonogo-vote", status: "no-go" });
-    expect(station.told).toContainEqual(
-      expect.objectContaining({
-        type: "station-write-refused",
-        refused: "gonogo-vote",
-      }),
-    );
+    expect(votes).toEqual([]);
     await book.answer();
 
-    expect(votes).toEqual([]);
+    expect(votes).toEqual([["station-a", "no-go"]]);
     host.stop();
   });
 

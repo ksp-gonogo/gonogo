@@ -2,7 +2,7 @@
   "_meta": {
     "shows": "Jebediah aboard a pod with Bob outside, Bob's helmet on with the visor down, a repair kit and two parachutes in his pack, and his lamp off.",
     "scenario": "eva-kerbal-outside",
-    "source": "Sitrep.Contract.EvaCrew lists every kerbal out of any vessel, marking which are loaded, and each kerbal's own eva.kerbal.<vessel id>.state carries helmetOn, visorState, slotsUsed and the carried items. Part titles are the stock ones; the quantities are illustrative."
+    "source": "Sitrep.Contract.EvaCrew lists the loaded kerbals out of any vessel, and each kerbal's own eva.kerbal.<vessel id>.state carries helmetOn, visorState, slotsUsed and the carried items. Part titles are the stock ones; the quantities are illustrative."
   },
   "_stream": {
     "pinnedUt": 0,
@@ -28,19 +28,12 @@
       {
         "channel": "eva.crew",
         "value": {
-          "count": 2,
+          "count": 1,
           "kerbals": [
             {
               "kerbalVesselId": "bob-eva-1",
               "parentVesselId": "pod-1",
-              "name": "Bob Kerman",
-              "loaded": true
-            },
-            {
-              "kerbalVesselId": "wernher-eva-1",
-              "parentVesselId": "station-1",
-              "name": "Wernher Kerman",
-              "loaded": false
+              "name": "Bob Kerman"
             }
           ]
         }

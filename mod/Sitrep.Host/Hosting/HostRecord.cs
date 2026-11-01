@@ -32,9 +32,6 @@ namespace Sitrep.Host.Hosting
         /// <summary>The token of the last screen to hold the role, or null.</summary>
         public string? LastHolderToken { get; set; }
 
-        /// <summary>How many times the role has been granted, across game restarts.</summary>
-        public long Generation { get; set; }
-
         public List<ApprovedStationRecord> Stations { get; set; } = new List<ApprovedStationRecord>();
     }
 
@@ -62,11 +59,10 @@ namespace Sitrep.Host.Hosting
     /// <summary>What a claim or a heartbeat found.</summary>
     public readonly struct HostRoleOutcome
     {
-        public HostRoleOutcome(bool holds, string? holderId, long generation = 0)
+        public HostRoleOutcome(bool holds, string? holderId)
         {
             Holds = holds;
             HolderId = holderId;
-            Generation = generation;
         }
 
         /// <summary>Whether the caller's token holds the role after the call.</summary>
@@ -74,9 +70,6 @@ namespace Sitrep.Host.Hosting
 
         /// <summary>The public id of whoever holds the role, or null when nobody does.</summary>
         public string? HolderId { get; }
-
-        /// <summary>How many times the role has been granted so far, this grant included when the caller holds it.</summary>
-        public long Generation { get; }
     }
 
     /// <summary>
@@ -247,7 +240,6 @@ namespace Sitrep.Host.Hosting
         /// <summary>
         /// Ask for the role. Granted when nobody holds it, or when the token is
         /// the holder's own (a reload); refused otherwise, with the holder's id.
-        /// Every grant raises the generation by one.
         /// </summary>
         public HostRoleOutcome Claim(string token, string connectionId)
         {
@@ -257,22 +249,22 @@ namespace Sitrep.Host.Hosting
             {
                 if (!string.Equals(_holderToken, token, StringComparison.Ordinal))
                 {
-                    return new HostRoleOutcome(false, HolderId, _saved.Generation);
+                    return new HostRoleOutcome(false, HolderId);
                 }
 
                 TakeOrKeep(token, connectionId);
-                return new HostRoleOutcome(true, HolderId, _saved.Generation);
+                return new HostRoleOutcome(true, HolderId);
             }
 
             if (_nowSeconds() < _restartUntil
                 && _saved.LastHolderToken != null
                 && !string.Equals(_saved.LastHolderToken, token, StringComparison.Ordinal))
             {
-                return new HostRoleOutcome(false, PublicId(_saved.LastHolderToken), _saved.Generation);
+                return new HostRoleOutcome(false, PublicId(_saved.LastHolderToken));
             }
 
             TakeOrKeep(token, connectionId);
-            return new HostRoleOutcome(true, HolderId, _saved.Generation);
+            return new HostRoleOutcome(true, HolderId);
         }
 
         /// <summary>
@@ -288,10 +280,10 @@ namespace Sitrep.Host.Hosting
                 _holderConnection = connectionId;
                 _holderAway = false;
                 _deadline = _nowSeconds() + Timings.GraceSeconds;
-                return new HostRoleOutcome(true, HolderId, _saved.Generation);
+                return new HostRoleOutcome(true, HolderId);
             }
 
-            return new HostRoleOutcome(false, HolderId, _saved.Generation);
+            return new HostRoleOutcome(false, HolderId);
         }
 
         /// <summary>Give the role up at once. False when the token does not hold it.</summary>
@@ -409,9 +401,11 @@ namespace Sitrep.Host.Hosting
             _holderConnection = connectionId;
             _holderAway = false;
             _deadline = _nowSeconds() + Timings.GraceSeconds;
-            _saved.Generation++;
-            _saved.LastHolderToken = token;
-            Persist();
+            if (!string.Equals(_saved.LastHolderToken, token, StringComparison.Ordinal))
+            {
+                _saved.LastHolderToken = token;
+                Persist();
+            }
         }
 
         private void ClearHolder()

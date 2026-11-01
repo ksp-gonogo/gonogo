@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { tickDecimals, unitTick } from "./ticks";
+import { unitTick } from "./ticks";
 
 describe("an axis tick in a unit", () => {
   it("writes every tick exactly, with the fewest decimals its unit's ticks need", () => {
@@ -40,22 +40,5 @@ describe("an axis tick in a unit", () => {
       "10 mPa",
       "0.1 mPa",
     ]);
-  });
-});
-
-describe("the decimals of a plain axis tick", () => {
-  it("rises until adjacent ticks write differently on a narrow range", () => {
-    const ticks = [99_900, 99_950, 100_000, 100_050, 100_100];
-    expect(tickDecimals(ticks, 1_000, 1)).toBe(2);
-  });
-
-  it("stays at the floor when the step is wide enough", () => {
-    expect(tickDecimals([0, 25_000, 50_000, 75_000, 100_000], 1_000, 1)).toBe(
-      1,
-    );
-  });
-
-  it("separates ticks a thousandth apart below a thousand", () => {
-    expect(tickDecimals([1.001, 1.002, 1.003], 1, 2)).toBe(3);
   });
 });

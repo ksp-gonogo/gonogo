@@ -82,9 +82,9 @@ export function useStationPoll(client: PeerClient | null): StationPoll {
 
   // Split from the lifecycle effect below so a vote flip never transiently sends null, which would cancel a countdown in flight.
   useEffect(() => {
-    if (!client || !inPoll) return;
+    if (!client) return;
     client.sendGonogoVote(effectiveVote);
-  }, [client, effectiveVote, inPoll]);
+  }, [client, effectiveVote]);
 
   const effectiveVoteRef = useRef(effectiveVote);
   useEffect(() => {
@@ -114,8 +114,6 @@ export function useStationPoll(client: PeerClient | null): StationPoll {
     // A main screen that restarted has forgotten every vote, so a GO held here from before would otherwise come back as if it still stood.
     const unsubRestart = client.onHostRestart(() => {
       iAbortedRef.current = false;
-      // The new main screen holds no countdown, so one still ticking here would run out and sit at T-0 with nothing to end it.
-      setCountdownT0(null);
       effectiveVoteRef.current = eligibleRef.current ? "no-go" : null;
       setVote("no-go");
     });
@@ -171,7 +169,7 @@ export function useStationPoll(client: PeerClient | null): StationPoll {
   };
 
   const abort = () => {
-    if (!inFlight || !launched || !inPoll || !client) return;
+    if (!inFlight || !launched || !client) return;
     iAbortedRef.current = true;
     client.sendGonogoAbort();
   };

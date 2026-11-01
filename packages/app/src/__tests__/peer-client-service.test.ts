@@ -57,7 +57,6 @@ const { FakePeer } = vi.hoisted(() => {
     private listeners = new Map<string, Array<(...args: unknown[]) => void>>();
 
     _lastConn: FakeDataConnection | null = null;
-    _conns: FakeDataConnection[] = [];
     _lastConnectTarget: string | null = null;
     _options: { config?: { iceServers: RTCIceServer[] } } = {};
 
@@ -84,7 +83,6 @@ const { FakePeer } = vi.hoisted(() => {
     connect(id: string) {
       const conn = new FakeDataConnection();
       this._lastConn = conn;
-      this._conns.push(conn);
       this._lastConnectTarget = id;
       return conn;
     }
@@ -125,19 +123,6 @@ function makeMeta(overrides: Partial<Meta> = {}): Meta {
 }
 
 type FakeConnection = NonNullable<InstanceType<typeof FakePeer>["_lastConn"]>;
-
-/** The broker telling a station that no host holds any id of the code's ring. */
-function ringMissing(peer: InstanceType<typeof FakePeer>, code: string) {
-  for (let slot = 0; slot < 4; slot += 1) {
-    peer.emit(
-      "error",
-      Object.assign(
-        new Error(`Could not connect to peer gonogo-host-${code}-${slot}`),
-        { type: "peer-unavailable" },
-      ),
-    );
-  }
-}
 
 const hostLinks = new WeakMap<PeerClientService, FakeConnection>();
 
@@ -252,7 +237,6 @@ describe("PeerClientService", () => {
       version: "1.2.3",
       buildTime: "2026-04-25T00:00:00.000Z",
       sessionToken: "session-A",
-      generation: 1,
     });
 
     expect(svc.getHostVersion()).toEqual({
@@ -344,7 +328,6 @@ describe("PeerClientService", () => {
         version: "1.0.0",
         buildTime: "t",
         sessionToken,
-        generation: 1,
       });
       conn.emit("data", hello("session-A"));
       conn.emit("close");
@@ -458,7 +441,6 @@ describe("PeerClientService", () => {
       version: "1.0.0",
       buildTime: "2026-05-08T00:00:00.000Z",
       sessionToken: "session-A",
-      generation: 1,
     });
     expect(restarts).toEqual([]);
 
@@ -468,7 +450,6 @@ describe("PeerClientService", () => {
       version: "1.0.0",
       buildTime: "2026-05-08T00:00:00.000Z",
       sessionToken: "session-A",
-      generation: 1,
     });
     expect(restarts).toEqual([]);
 
@@ -478,7 +459,6 @@ describe("PeerClientService", () => {
       version: "1.0.0",
       buildTime: "2026-05-08T00:00:00.000Z",
       sessionToken: "session-B",
-      generation: 1,
     });
     expect(restarts).toEqual([1]);
   });
@@ -552,7 +532,7 @@ describe("PeerClientService reconnect loop", () => {
     for (let i = 0; i < 10; i++) {
       const peer = FakePeer.instances[FakePeer.instances.length - 1];
       peer.emit("open");
-      for (const c of peer._conns) c.emit("close");
+      peer._lastConn?.emit("close");
       vi.advanceTimersByTime(11);
     }
 
@@ -606,7 +586,15 @@ describe("PeerClientService reconnect loop", () => {
       const peer = FakePeer.instances.at(-1);
       if (peer && !peer.destroyed && elapsed % 2_000 === 0) {
         peer.emit("open");
-        ringMissing(peer, "Z6HK");
+        peer.emit(
+          "error",
+          Object.assign(
+            new Error("Could not connect to peer gonogo-host-Z6HK"),
+            {
+              type: "peer-unavailable",
+            },
+          ),
+        );
       }
       vi.advanceTimersByTime(500);
     }
@@ -678,10 +666,14 @@ describe("PeerClientService reconnect loop", () => {
     svc.onConnectionStatus((s) => statuses.push(s));
 
     svc.connect("Z6HK");
-    // Don't open: simulate a fresh attempt where no id of the ring is on the
-    // broker. The connect targets are the DERIVED ids (`gonogo-host-Z6HK-<slot>`),
-    // so those are what peerjs reports as missing.
-    ringMissing(FakePeer.instances[0], "Z6HK");
+    // Don't open: simulate a fresh attempt where the host id isn't on the
+    // broker. The connect target is the DERIVED id (`gonogo-host-Z6HK`), so
+    // that's what peerjs reports as missing.
+    const err = Object.assign(
+      new Error("Could not connect to peer gonogo-host-Z6HK"),
+      { type: "peer-unavailable" },
+    );
+    FakePeer.instances[0].emit("error", err);
 
     expect(statuses).toContain("reconnecting");
     vi.advanceTimersByTime(50);
@@ -697,19 +689,21 @@ describe("PeerClientService reconnect loop", () => {
     svc.onHostChannelFailed((f) => failed.push(f));
 
     svc.connect("Z6HK");
+    const missing = () =>
+      Object.assign(new Error("Could not connect to peer gonogo-host-Z6HK"), {
+        type: "peer-unavailable",
+      });
     for (let i = 0; i < 10; i += 1) {
       const peer = FakePeer.instances[i];
       peer.emit("open");
-      ringMissing(peer, "Z6HK");
+      peer.emit("error", missing());
       vi.advanceTimersByTime(50);
     }
     expect(FakePeer.instances).toHaveLength(11);
     expect(failed).not.toContain(true);
 
     driveOpen(FakePeer.instances[10]);
-    expect(FakePeer.instances[10]._lastConnectTarget).toBe(
-      "gonogo-host-Z6HK-3",
-    );
+    expect(FakePeer.instances[10]._lastConnectTarget).toBe("gonogo-host-Z6HK");
   });
 
   it("keeps retrying past a silent broker and connects once the main appears", () => {
@@ -724,7 +718,12 @@ describe("PeerClientService reconnect loop", () => {
 
     // Attempt 1: the broker answers EXPIRE; every later offer gets no reply.
     FakePeer.instances[0].emit("open");
-    ringMissing(FakePeer.instances[0], "Z6HK");
+    FakePeer.instances[0].emit(
+      "error",
+      Object.assign(new Error("Could not connect to peer gonogo-host-Z6HK"), {
+        type: "peer-unavailable",
+      }),
+    );
     vi.advanceTimersByTime(50);
     expect(FakePeer.instances).toHaveLength(2);
 
@@ -784,7 +783,12 @@ describe("PeerClientService reconnect loop", () => {
     expect(reachable).toEqual([false]);
 
     // A missing host is the OTHER fault: the broker answered, so it must not move the reachability verdict.
-    ringMissing(FakePeer.instances[0], "Z6HK");
+    FakePeer.instances[0].emit(
+      "error",
+      Object.assign(new Error("Could not connect to peer gonogo-host-Z6HK"), {
+        type: "peer-unavailable",
+      }),
+    );
     expect(reachable).toEqual([false]);
 
     // Reaching `open` clears it, once, not on every retry.
@@ -911,7 +915,7 @@ describe("PeerClientService reconnect loop", () => {
     for (let i = 0; i < 10; i++) {
       const peer = FakePeer.instances[FakePeer.instances.length - 1];
       peer.emit("open");
-      for (const c of peer._conns) c.emit("close");
+      peer._lastConn?.emit("close");
       vi.advanceTimersByTime(11);
     }
     expect(svc.getConnStatus()).toBe("disconnected");

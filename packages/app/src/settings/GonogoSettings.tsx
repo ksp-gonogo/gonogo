@@ -294,11 +294,6 @@ function unnamedState(state: never): string {
   return `The settings file is in a state this screen cannot name (${String(state)}).`;
 }
 
-function defaultText(row: SettingsRowState): string {
-  if (row.kind !== SettingKind.Bool) return row.default;
-  return row.default === "True" ? "on" : "off";
-}
-
 function GonogoSettingRow({
   row,
   text,
@@ -318,9 +313,7 @@ function GonogoSettingRow({
         <RowLabel>{label}</RowLabel>
         {row.description && <RowDesc>{row.description}</RowDesc>}
         <RowDesc>
-          {valid
-            ? `Default ${defaultText(row)}`
-            : `Not a ${kindName(row.kind)}.`}
+          {valid ? `Default ${row.default}` : `Not a ${kindName(row.kind)}.`}
         </RowDesc>
       </RowText>
       {row.kind === SettingKind.Bool ? (

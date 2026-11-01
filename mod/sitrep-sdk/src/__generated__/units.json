@@ -709,7 +709,6 @@
     },
     "EvaCrewMember": {
       "kerbalVesselId": "id",
-      "loaded": "flag",
       "name": "text",
       "parentVesselId": "id"
     },
@@ -880,7 +879,6 @@
       "token": "id"
     },
     "HostRoleReply": {
-      "generation": "count",
       "graceSeconds": "s",
       "heartbeatSeconds": "s",
       "holderId": "id",

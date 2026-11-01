@@ -146,7 +146,6 @@ namespace Sitrep.Host
             HolderId = outcome.HolderId ?? "",
             HeartbeatSeconds = record.Timings.HeartbeatSeconds,
             GraceSeconds = record.Timings.GraceSeconds,
-            Generation = outcome.Generation,
         };
 
         private static CommandResult NotTheHolder() =>

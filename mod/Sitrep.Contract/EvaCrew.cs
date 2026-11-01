@@ -204,12 +204,6 @@ public class EvaCrewMember
     /// <summary>The kerbal's name, from the EVA vessel's <c>GetName()</c>.</summary>
     [SitrepUnit(Units.Text)]
     public string? Name { get; set; }
-
-    /// <summary>Whether the game has this kerbal loaded, which is true within physics range of
-    /// the vessel in focus. A kerbal that is not loaded is orbiting or standing elsewhere and has
-    /// no suit state of its own to read.</summary>
-    [SitrepUnit(Units.Flag)]
-    public bool? Loaded { get; set; }
 }
 
 /// <summary>

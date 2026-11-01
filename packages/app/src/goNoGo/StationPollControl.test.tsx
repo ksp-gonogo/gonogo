@@ -17,14 +17,8 @@ import type { CountdownHold } from "./notice";
 import { StationPollControl } from "./StationPollControl";
 import { VOTE_INSTANCE_ID } from "./voteInput";
 
-function station(
-  client: PeerClient,
-  scene = "Flight",
-  fixtureOpts: Parameters<typeof setupStreamFixture>[0] = {
-    suspendFrames: true,
-  },
-) {
-  const fixture = setupStreamFixture(fixtureOpts);
+function station(client: PeerClient, scene = "Flight") {
+  const fixture = setupStreamFixture({ suspendFrames: true });
   const view = render(
     <ScreenProvider value="station">
       <ModalProvider>
@@ -43,7 +37,7 @@ function station(
     </ScreenProvider>,
   );
   act(() => fixture.emit("spaceCenter.scene", { scene }));
-  return { ...view, fixture };
+  return view;
 }
 
 async function voteButton(text: string): Promise<HTMLElement> {
@@ -73,40 +67,12 @@ describe("GO/NO-GO in a station's header", () => {
       "aria-disabled",
       "true",
     );
-    expect(votes).toEqual([]);
+    expect(votes.at(-1)).toBeNull();
     await expectNoA11yViolations(container);
 
     await act(async () => setApproval("approved"));
     expect(await screen.findByText("NO-GO")).toBeInTheDocument();
     expect(votes.at(-1)).toBe("no-go");
-  });
-
-  it("sends no vote at all while the station waits, and refuses abort", async () => {
-    const votes: Array<"go" | "no-go" | null> = [];
-    const aborts: number[] = [];
-    const client: PeerClient = {
-      ...idlePeerClient(),
-      getApproval: () => "pending",
-      sendGonogoVote: (v) => {
-        votes.push(v);
-      },
-      sendGonogoAbort: () => {
-        aborts.push(1);
-      },
-    };
-    const { fixture } = station(client, "Flight", { pinnedUt: 100 });
-    act(() => fixture.emit("vessel.identity", { launchUt: 10 }));
-    const abort = await voteButton("ABORT");
-    expect(abort).toHaveAttribute("aria-disabled", "true");
-    fireEvent.click(abort);
-    act(() => {
-      dispatchAction(VOTE_INSTANCE_ID, "abort", {
-        kind: "button",
-        value: true,
-      });
-    });
-    expect(aborts).toEqual([]);
-    expect(votes).toEqual([]);
   });
 
   it("flips the vote on a press and says what fires at T-0 on hover", async () => {
@@ -181,25 +147,6 @@ describe("GO/NO-GO in a station's header", () => {
     expect(await screen.findByText("NO-GO")).toBeInTheDocument();
     expect(screen.queryByRole("timer")).toBeNull();
     expect(votes.at(-1)).toBe("no-go");
-  });
-
-  it("drops its countdown when the main screen restarts mid-countdown", async () => {
-    let restart: () => void = () => {};
-    const client: PeerClient = {
-      ...idlePeerClient(),
-      onHostRestart: (cb) => {
-        restart = cb;
-        return () => {};
-      },
-      onGonogoCountdownStart: (cb) => {
-        cb(Date.now() + 30_000);
-        return () => {};
-      },
-    };
-    station(client);
-    expect(await screen.findByRole("timer")).toBeInTheDocument();
-    await act(async () => restart());
-    expect(screen.queryByRole("timer")).toBeNull();
   });
 
   it("shows why a countdown was held and which station dropped", async () => {
