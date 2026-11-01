@@ -31,6 +31,18 @@ describe("stationKey", () => {
     expect(first).toBe(second);
   });
 
+  it("gives each seat its own key and keeps mission control on the original", () => {
+    const storage = makeStorage();
+    const mc = getStationKey(storage);
+    const pilot = getStationKey(storage, "pilot");
+    expect(pilot).not.toBe(mc);
+    expect(getStationKey(storage, "pilot")).toBe(pilot);
+    expect(getStationKey(storage, "mission-control")).toBe(mc);
+    expect(
+      getStationPeerId(storage, "pilot").startsWith(`station-${pilot}-`),
+    ).toBe(true);
+  });
+
   it("clearStationKey wipes the persisted id", () => {
     const storage = makeStorage();
     const first = getStationKey(storage);
