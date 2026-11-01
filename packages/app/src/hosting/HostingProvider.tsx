@@ -63,8 +63,9 @@ const openLiveJobsTransport: OpenJobsTransport = (host, port) =>
 export interface MainHosts {
   goNoGoHost: GoNoGoHostService;
   pushHost: PushHostService;
-  alarmHost: ReturnType<typeof createAlarmHost>;
-  notesHost: ReturnType<typeof createNotesHost>;
+  /** `null` on a page that joins a host: its alarms and notes are the host's, read over the peer link. */
+  alarmHost: ReturnType<typeof createAlarmHost> | null;
+  notesHost: ReturnType<typeof createNotesHost> | null;
   maneuverTriggerHost: ReturnType<typeof createManeuverTriggerHost>;
 }
 
@@ -151,8 +152,9 @@ export function useHostJobsConnection(
  * `PlainStationFeed` is the one place the two meet.
  *
  * `ownsMesh` is false on a page that joins the mesh as a client: it builds the
- * services its widgets read and holds no connection of its own, so its alarms
- * and commands go through its display session as they always have.
+ * votes, pushes and maneuver triggers its widgets read and holds no connection
+ * of its own, so its commands go through its display session. It builds no
+ * alarm or notes service, since both live on the host.
  *
  * Children render once the services exist, and read them with
  * `useHostingHosts`.
@@ -212,18 +214,18 @@ export function HostingProvider({
           ownsMesh ? jobs.commandClientAt(centre) : undefined,
       }),
       pushHost: new PushHostService(peerHostService),
-      alarmHost: createAlarmHost(peerHostService, {
-        hostJobs: ownsMesh ? jobs : undefined,
-      }),
-      notesHost: createNotesHost(peerHostService),
+      alarmHost: ownsMesh
+        ? createAlarmHost(peerHostService, { hostJobs: jobs })
+        : null,
+      notesHost: ownsMesh ? createNotesHost(peerHostService) : null,
       maneuverTriggerHost: createManeuverTriggerHost(peerHostService),
     };
     setHosts(built);
     return () => {
       built.goNoGoHost.dispose();
       built.pushHost.dispose();
-      built.alarmHost.dispose();
-      built.notesHost.dispose();
+      built.alarmHost?.dispose();
+      built.notesHost?.dispose();
       built.maneuverTriggerHost.dispose();
       setHosts(null);
     };

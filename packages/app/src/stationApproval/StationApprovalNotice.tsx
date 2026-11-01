@@ -20,6 +20,7 @@ const REFUSED_LABEL: Record<string, string> = {
   "alarm-acknowledge": "Alarm dismissal",
   "alarm-ack-unscheduled-warp": "Warp warning dismissal",
   "alarm-warp-intent": "Warp change",
+  "alarm-control": "Alarm control",
   "trigger-arm": "Maneuver trigger",
   "trigger-cancel": "Maneuver trigger cancel",
 };

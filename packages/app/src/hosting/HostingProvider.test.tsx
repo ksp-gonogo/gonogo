@@ -10,7 +10,11 @@ import { ScetAlarmBridge } from "../alarms/ScetAlarmBridge";
 import type { Alarm } from "../alarms/types";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
 import { buildGonogoHost } from "../uplinks/host";
-import { HostingProvider, PlainStationFeed } from "./HostingProvider";
+import {
+  HostingProvider,
+  PlainStationFeed,
+  useHostingHosts,
+} from "./HostingProvider";
 import { getRegisteredHostJobs } from "./HostJobs";
 
 const CENTRE_B = "ground:Outpost B";
@@ -176,5 +180,34 @@ describe("the callers that mean the host's client", () => {
       ?.dispatch("vessel.control.stage", {});
 
     expect(jobsTransport.sentCommands.map((c) => c.vantage)).toEqual([""]);
+  });
+});
+
+describe("the services a hosting piece builds", () => {
+  function Probe({ seen }: { seen: { alarm?: unknown; notes?: unknown } }) {
+    const hosts = useHostingHosts();
+    seen.alarm = hosts?.alarmHost;
+    seen.notes = hosts?.notesHost;
+    return null;
+  }
+
+  it("include the alarm list and the notes on a host, and neither on a joined screen", async () => {
+    const hostSeen: { alarm?: unknown; notes?: unknown } = {};
+    const joinedSeen: { alarm?: unknown; notes?: unknown } = {};
+    render(
+      <>
+        <HostingProvider ownsMesh openTransport={() => new StubTransport()}>
+          <Probe seen={hostSeen} />
+        </HostingProvider>
+        <HostingProvider ownsMesh={false}>
+          <Probe seen={joinedSeen} />
+        </HostingProvider>
+      </>,
+    );
+    await act(async () => {});
+    expect(hostSeen.alarm).toBeTruthy();
+    expect(hostSeen.notes).toBeTruthy();
+    expect(joinedSeen.alarm).toBeNull();
+    expect(joinedSeen.notes).toBeNull();
   });
 });

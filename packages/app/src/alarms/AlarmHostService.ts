@@ -205,6 +205,10 @@ export class AlarmHostService {
       acknowledgeAlarm: (id) => this.acknowledgeAlarm(id),
       acknowledgeUnscheduledWarp: () => this.acknowledgeUnscheduledWarp(),
       registerStationWarpIntent: () => this.registerStationWarpIntent(),
+      acknowledgeAlarmsCancelled: () => this.acknowledgeAlarmsCancelled(),
+      beginWarpTo: () => this.beginWarpTo(),
+      cancelWarpTo: () => this.cancelWarpTo(),
+      setWarpSafetyMargin: (seconds) => this.setWarpSafetyMargin(seconds),
       getSnapshot: () => this.snapshot(),
     });
 
