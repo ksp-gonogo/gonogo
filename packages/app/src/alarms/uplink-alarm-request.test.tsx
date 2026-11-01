@@ -418,6 +418,7 @@ describe("an Uplink's alarm request", () => {
         onAlarmAcknowledge: () => () => {},
         onAlarmAckUnscheduledWarp: () => () => {},
         onAlarmWarpIntent: () => () => {},
+        onAlarmControl: () => () => {},
         sendToPeer: () => {},
         broadcast: () => {},
       },
@@ -428,6 +429,10 @@ describe("an Uplink's alarm request", () => {
         acknowledgeAlarm: () => {},
         acknowledgeUnscheduledWarp: () => {},
         registerStationWarpIntent: () => {},
+        acknowledgeAlarmsCancelled: () => {},
+        beginWarpTo: () => {},
+        cancelWarpTo: () => {},
+        setWarpSafetyMargin: () => {},
         getSnapshot: () => host.snapshot(),
       },
     );

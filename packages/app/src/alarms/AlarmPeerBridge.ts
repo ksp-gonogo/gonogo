@@ -34,6 +34,12 @@ export interface AlarmPeerHost {
   onAlarmAcknowledge(cb: (peerId: string, id: string) => void): () => void;
   onAlarmAckUnscheduledWarp(cb: (peerId: string) => void): () => void;
   onAlarmWarpIntent(cb: (peerId: string, index: number) => void): () => void;
+  onAlarmControl(
+    cb: (
+      peerId: string,
+      msg: Extract<PeerMessage, { type: "alarm-control" }>,
+    ) => void,
+  ): () => void;
   sendToPeer(peerId: string, msg: PeerMessage): void;
   broadcast(msg: PeerMessage): void;
 }
@@ -55,6 +61,10 @@ export interface AlarmPeerBridgeHandlers {
   acknowledgeAlarm(id: string): void;
   acknowledgeUnscheduledWarp(): void;
   registerStationWarpIntent(): void;
+  acknowledgeAlarmsCancelled(): void;
+  beginWarpTo(): void;
+  cancelWarpTo(): void;
+  setWarpSafetyMargin(seconds: number): void;
   /**
    * Returns the host's current alarm snapshot for targeted delivery to a
    * latecomer station. Without this, a station that connects after an
@@ -133,6 +143,24 @@ export class AlarmPeerBridge {
     });
     host.onAlarmWarpIntent(() => {
       handlers.registerStationWarpIntent();
+    });
+    host.onAlarmControl((_peerId, msg) => {
+      switch (msg.action) {
+        case "acknowledge-cancelled":
+          handlers.acknowledgeAlarmsCancelled();
+          break;
+        case "warp-to-begin":
+          handlers.beginWarpTo();
+          break;
+        case "warp-to-cancel":
+          handlers.cancelWarpTo();
+          break;
+        case "warp-margin":
+          if (typeof msg.seconds === "number") {
+            handlers.setWarpSafetyMargin(msg.seconds);
+          }
+          break;
+      }
     });
     // Latecomer's initial snapshot: fire the host's current alarms at
     // every new peer immediately so the station doesn't wait for the
