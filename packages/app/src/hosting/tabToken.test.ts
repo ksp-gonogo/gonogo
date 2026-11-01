@@ -65,4 +65,18 @@ describe("the token a tab claims the host role with", () => {
     expect(duplicate.token).not.toBe(first.token);
     expect(copy.getItem("gonogo.host.tabToken")).toBe(duplicate.token);
   });
+
+  it("is kept when two acquisitions race and the first is let go, as a strict-mode effect does", async () => {
+    const locks = browserLocks();
+    const storage = sessionStorageCopy();
+    const stored = await acquireTabToken(storage, locks);
+    stored.release();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const first = acquireTabToken(storage, locks);
+    const second = acquireTabToken(storage, locks);
+    void first.then((tab) => tab.release());
+
+    expect((await second).token).toBe(stored.token);
+  });
 });

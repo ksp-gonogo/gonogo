@@ -62,6 +62,9 @@ export interface TabToken {
   release(): void;
 }
 
+/** Acquisitions still in flight, by token, and how many askers share each. */
+const acquiring = new Map<string, { asks: number; tab: Promise<TabToken> }>();
+
 /**
  * The token this tab claims the host role with: kept in `sessionStorage`, so a
  * reload keeps it and the mod takes the role straight back.
@@ -71,16 +74,54 @@ export interface TabToken {
  * named for its token for as long as it is open: a tab that finds the lock held
  * is the copy, and mints a token of its own. A reload lets go of the lock as the
  * old page goes, so the reloaded page takes it again.
+ *
+ * Asking again for a token this page is still acquiring (an effect that runs
+ * twice) joins that acquisition rather than meeting its lock: the lock lets go
+ * once every asker has released.
  */
 export async function acquireTabToken(
   storage: Storage | undefined = globalThis.sessionStorage,
   locks: TabLocks | undefined = globalThis.navigator?.locks,
 ): Promise<TabToken> {
+  const stored = readStored(storage);
+  const joined = stored ? acquiring.get(stored) : undefined;
+  if (joined) {
+    joined.asks += 1;
+    return share(await joined.tab, joined);
+  }
+  const entry = { asks: 1, tab: acquireFresh(storage, locks, stored) };
+  const key = stored;
+  if (key) {
+    acquiring.set(key, entry);
+    void entry.tab.finally(() => acquiring.delete(key));
+  }
+  return share(await entry.tab, entry);
+}
+
+/** A handle on `tab` that gives its lock up once every asker has let go. */
+function share(tab: TabToken, entry: { asks: number }): TabToken {
+  let letGo = false;
+  return {
+    token: tab.token,
+    release() {
+      if (letGo) return;
+      letGo = true;
+      entry.asks -= 1;
+      if (entry.asks === 0) tab.release();
+    },
+  };
+}
+
+async function acquireFresh(
+  storage: Storage | undefined,
+  locks: TabLocks | undefined,
+  stored: string | undefined,
+): Promise<TabToken> {
   let releaseLock: () => void = () => {};
   const released = new Promise<void>((resolve) => {
     releaseLock = resolve;
   });
-  let token = readStored(storage) ?? mintToken();
+  let token = stored ?? mintToken();
   if (locks && !(await holdLock(locks, token, released))) {
     token = mintToken();
     await holdLock(locks, token, released);
