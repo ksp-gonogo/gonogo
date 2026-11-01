@@ -940,10 +940,11 @@ const COUNTED_LIKE_MONEY: ReadonlySet<string> = new Set([
   "reputation",
 ]);
 
-/** `useGrouping`'s string form is ES2023 and the published package targets ES2022, so it is typed here and cast once. */
+/** `useGrouping`'s string form and `signDisplay: "negative"` are ES2023 and the published package targets ES2022, so they are typed here and cast once. */
 interface GroupingOptions
-  extends Omit<Intl.NumberFormatOptions, "useGrouping"> {
+  extends Omit<Intl.NumberFormatOptions, "useGrouping" | "signDisplay"> {
   useGrouping?: "always" | "auto" | "min2" | boolean;
+  signDisplay?: Intl.NumberFormatOptions["signDisplay"] | "negative";
 }
 
 /**
@@ -978,6 +979,8 @@ function numberFormat(decimals: number, money: boolean): Intl.NumberFormat {
       maximumFractionDigits: decimals,
       // `min2` is SI's rule (`3200 K`, `12,400 m`); money always groups (`2,340f`).
       useGrouping: money ? "always" : "min2",
+      // A reading that rounds to zero is written as zero, never "-0".
+      signDisplay: "negative",
     };
     existing = new Intl.NumberFormat(
       locale,
