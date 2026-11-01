@@ -119,6 +119,7 @@ import { AugmentAvailabilityFeeder } from "../telemetry/AugmentAvailabilityFeede
 import { syncDataRate } from "../telemetry/dataRate";
 import { PilotVantage } from "../telemetry/PilotVantage";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
+import { reportSitrepTransportStatus } from "../telemetry/sitrepRuntime";
 import { UplinkHealthRetry } from "../uplinks/UplinkHealthRetry";
 import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
 import { UplinkLoadGate } from "../uplinks/UplinkLoadGate";
@@ -340,6 +341,17 @@ function MainScreenDisplay({
       void serialService.destroy();
     };
   }, [serialService]);
+
+  /*
+   * A screen fed through a peer link opens no socket to the game, so the
+   * Telemetry stream row reports that link's state. Left alone it keeps its
+   * default "disconnected" and raises an offline banner over live readouts.
+   */
+  useEffect(() => {
+    if (!transport) return;
+    reportSitrepTransportStatus(transport.status);
+    return transport.onStatusChange(reportSitrepTransportStatus);
+  }, [transport]);
 
   useEffect(() => {
     const sources = getDataSources();
