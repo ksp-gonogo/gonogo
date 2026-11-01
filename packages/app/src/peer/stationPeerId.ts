@@ -20,6 +20,13 @@
 
 const STATION_KEY_STORAGE = "gonogo.station.key";
 
+/** Mission control keeps the original key; every other seat has its own, so two seats in one browser never share an identity. */
+function storageKeyFor(seat?: string): string {
+  return seat && seat !== "mission-control"
+    ? `${STATION_KEY_STORAGE}.${seat}`
+    : STATION_KEY_STORAGE;
+}
+
 function generateUuid(): string {
   if (
     typeof crypto !== "undefined" &&
@@ -43,12 +50,14 @@ function generateUuid(): string {
  */
 export function getStationKey(
   storage: Storage = globalThis.localStorage,
+  seat?: string,
 ): string {
-  const existing = storage.getItem(STATION_KEY_STORAGE);
+  const storageKey = storageKeyFor(seat);
+  const existing = storage.getItem(storageKey);
   if (existing?.trim()) return existing.trim();
 
   const id = generateUuid();
-  storage.setItem(STATION_KEY_STORAGE, id);
+  storage.setItem(storageKey, id);
   return id;
 }
 
@@ -59,8 +68,9 @@ export function getStationKey(
  */
 export function getStationPeerId(
   storage: Storage = globalThis.localStorage,
+  seat?: string,
 ): string {
-  const key = getStationKey(storage);
+  const key = getStationKey(storage, seat);
   const sessionToken = generateUuid().slice(0, 8);
   return `station-${key}-${sessionToken}`;
 }
