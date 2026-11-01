@@ -1591,7 +1591,6 @@ namespace Sitrep.Host
                 WarpRate = warpRate.Value,
                 WarpRateIndex = warpRateIndex.Value,
                 WarpRates = GetDoubleArray(time, "warpRates"),
-                MaxWarpRateIndex = GetInt(time, "maxWarpRateIndex"),
                 KeyframeFloorSec = Sitrep.Core.ChannelEmitter.KeyframeFloorRealSec,
                 SampleIntervalUt = SampleCadence.IntervalUt,
                 ObservationQuantumUt = GetDouble(time, "tickUt") is { } tickUt
@@ -2211,7 +2210,6 @@ namespace Sitrep.Host
             ["warpRate"] = warp.WarpRate,
             ["warpRateIndex"] = warp.WarpRateIndex,
             ["warpRates"] = warp.WarpRates,
-            ["maxWarpRateIndex"] = warp.MaxWarpRateIndex,
             ["keyframeFloorSec"] = warp.KeyframeFloorSec,
             ["observationQuantumUt"] = warp.ObservationQuantumUt,
             ["sampleIntervalUt"] = warp.SampleIntervalUt,

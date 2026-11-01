@@ -4117,7 +4117,6 @@ namespace Gonogo.KSP
                 ["warpRate"] = (double)TimeWarp.CurrentRate,
                 ["warpRateIndex"] = WarpRung.Index(TimeWarp.fetch != null, TimeWarp.CurrentRateIndex),
                 ["warpRates"] = ReadWarpRates(),
-                ["maxWarpRateIndex"] = ReadMaxWarpRateIndex(),
                 ["warpMode"] = TimeWarp.WarpMode.ToString(),
                 ["paused"] = FlightDriver.Pause,
                 // The UT one FixedUpdate advances the game: the physics step,
@@ -4134,35 +4133,6 @@ namespace Gonogo.KSP
                 ["epoch"] = CalendarEpoch.Read(calendar),
                 ["kerbinTime"] = GameSettings.KERBIN_TIME,
             };
-        }
-
-        /// <summary>
-        /// The highest warp rung the game allows right now, or null where there
-        /// is no warp controller or no active vessel to read an altitude limit
-        /// for. High warp is limited by the active vessel's altitude over its
-        /// reference body; physics warp has one fixed ceiling.
-        /// </summary>
-        private static int? ReadMaxWarpRateIndex()
-        {
-            var warp = TimeWarp.fetch;
-            if (warp == null)
-            {
-                return null;
-            }
-
-            if (TimeWarp.WarpMode == TimeWarp.Modes.LOW)
-            {
-                return warp.maxPhysicsRate_index;
-            }
-
-            var vessel = FlightGlobals.ActiveVessel;
-            var body = vessel?.mainBody;
-            if (vessel == null || body == null)
-            {
-                return null;
-            }
-
-            return warp.GetMaxRateForAltitude(vessel.altitude, body);
         }
 
         /// <summary>

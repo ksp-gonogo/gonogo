@@ -550,7 +550,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "CommsLink": {
     connected: "flag",
-    routeHome: "flag",
   },
   "CommsNetworkEdge": {
     a: "id",
@@ -1924,7 +1923,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "WarpState": {
     keyframeFloorSec: "s",
-    maxWarpRateIndex: "id",
     observationQuantumUt: "s",
     paused: "flag",
     sampleIntervalUt: "s",
@@ -2052,7 +2050,6 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "comms.link": {
     connected: "flag",
-    routeHome: "flag",
   },
   "comms.nextLoss": {
     basis: "enum",
@@ -2422,7 +2419,6 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "time.warp": {
     keyframeFloorSec: "s",
-    maxWarpRateIndex: "id",
     observationQuantumUt: "s",
     paused: "flag",
     sampleIntervalUt: "s",

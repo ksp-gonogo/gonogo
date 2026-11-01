@@ -8295,9 +8295,7 @@ namespace Sitrep.Host
         /// vantage <c>comms.link</c> reads connected whatever the link to a centre
         /// is doing. A connected sample goes to that vantage alone, recorded after
         /// the real one at the same instant so it is the newest the seat reads;
-        /// every other vantage skips it and reads the outage. The sample carries
-        /// <see cref="CommsLink.RouteHome"/> false, the one place the seat can read
-        /// that the craft has no route to a command centre.
+        /// every other vantage skips it and reads the outage.
         /// </summary>
         private void RecordLinkUpForOwnSeat(string topic, object? value, double ut)
         {
@@ -8305,7 +8303,7 @@ namespace Sitrep.Host
             {
                 return;
             }
-            RecordForOwnSeat(topic, new CommsLink { Connected = true, RouteHome = false, Meta = down.Meta }, ut);
+            RecordForOwnSeat(topic, new CommsLink { Connected = true, Meta = down.Meta }, ut);
         }
 
         /// <summary>

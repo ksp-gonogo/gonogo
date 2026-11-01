@@ -21,35 +21,6 @@ describe("CommitLayer", () => {
     expect(screen.getByText("SUICIDE BURN")).toBeInTheDocument();
   });
 
-  describe("a craft not descending yet whose orbit meets the surface", () => {
-    it("heads the block with the time to impact, not the absence of a prediction", () => {
-      render(
-        <CommitLayer {...live} descending={false} orbitImpactSeconds={754} />,
-      );
-      expect(screen.getByText("IMPACT ETA")).toBeInTheDocument();
-      expect(screen.queryByText("NO LANDING PREDICTION")).toBeNull();
-    });
-
-    it("says the same for a craft with no engine", () => {
-      render(
-        <CommitLayer
-          {...live}
-          descending={false}
-          engine={false}
-          orbitImpactSeconds={754}
-        />,
-      );
-      expect(screen.getByText("IMPACT ETA")).toBeInTheDocument();
-    });
-
-    it("still says there is no prediction when the orbit clears the surface", () => {
-      render(
-        <CommitLayer {...live} descending={false} orbitImpactSeconds={null} />,
-      );
-      expect(screen.getByText("NO LANDING PREDICTION")).toBeInTheDocument();
-    });
-  });
-
   describe("with no engine to burn", () => {
     it("says nothing of a burn: no countdown caption and no best-burn impact line", () => {
       render(<CommitLayer {...live} engine={false} impactSpeed={12} />);

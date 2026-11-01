@@ -1220,8 +1220,7 @@ namespace Sitrep.Host.IntegrationTests
         public CentreView Far { get; } = new CentreView();
 
         /// <param name="watchTelemetry">Whether each screen also takes the active craft's telemetry topic and its link report, which a test about what arrives when has to see.</param>
-        /// <param name="seatAboardActive">Whether the active craft is also a seat a session may stand aboard, as a pilot's screen does.</param>
-        public static async Task<ReckonedVantageWorld> StartAsync(ScriptedContactGame? scripted = null, bool watchTelemetry = false, bool seatAboardActive = false)
+        public static async Task<ReckonedVantageWorld> StartAsync(ScriptedContactGame? scripted = null, bool watchTelemetry = false)
         {
             var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             var wall = 0.0;
@@ -1229,10 +1228,6 @@ namespace Sitrep.Host.IntegrationTests
             var game = scripted ?? new ScriptedContactGame();
             engine.RegisterCommandCentreSource(new Grounds(ScriptedContactGame.Home, ScriptedContactGame.Far));
             engine.RegisterCommandCentreSource(new CrewedRelay(game));
-            if (seatAboardActive)
-            {
-                engine.RegisterCommandCentreSeatSource(new ActiveSeat());
-            }
             var uplink = new ScriptedContactUplink(game, engine);
             if (game.LinkStrengths != null)
             {
@@ -1401,30 +1396,6 @@ namespace Sitrep.Host.IntegrationTests
                 public string Id => ScriptedContactGame.Relay;
 
                 public string DisplayName => "Relay";
-
-                public CommandCentreKind Kind => CommandCentreKind.CrewedVessel;
-
-                public int? BodyIndex => null;
-
-                public double? Latitude => null;
-
-                public double? Longitude => null;
-
-                public bool IsActiveNow() => true;
-            }
-        }
-
-        private sealed class ActiveSeat : ICommandCentreSource
-        {
-            public string ProviderId => "reckoned-vantage-seat";
-
-            public IEnumerable<ICommandCentre> Enumerate() => new ICommandCentre[] { new Seat() };
-
-            private sealed class Seat : ICommandCentre
-            {
-                public string Id => ScriptedContactGame.Active;
-
-                public string DisplayName => "Active craft";
 
                 public CommandCentreKind Kind => CommandCentreKind.CrewedVessel;
 

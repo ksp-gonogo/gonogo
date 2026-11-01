@@ -13956,17 +13956,6 @@ components:
             ago; false through a blackout. `null` when nothing is reported yet, which is
             not a lost link: no craft is on screen, or the game has not yet solved the
             link of one that just came on screen.
-        routeHome:
-          type:
-            - boolean
-            - "null"
-          x-sitrep-unit: flag
-          description: |-
-            Whether the craft has a route to a command centre, sent only to a pilot
-            aboard the craft, whose `CommsLink.connected` always reads true because the
-            crew are never cut off from their own craft. False while the craft is out of
-            contact with mission control. `null` at every other vantage and whenever the
-            craft is in contact, where `CommsLink.connected` already says it.
         meta:
           description: The payload's provenance (`"vessel:<guid>"` or `"game"`).
           allOf:
@@ -25446,18 +25435,6 @@ components:
             The current rung (one step) of the warp rate table (KSP's
             `TimeWarp.CurrentRateIndex`), `0` at real time. Under `WarpMode.High` it
             indexes `WarpState.warpRates`.
-        maxWarpRateIndex:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: id
-          description: |-
-            The highest rung of the warp rate table the game lets the craft use right
-            now, for the rung table of the mode in force. Near a body the game limits
-            warp by altitude, so this falls as the craft descends and rises as it
-            climbs; a `WarpState.warpRateIndex` above it is a rung the game is bringing
-            down. Null when the game has no warp controller or no active craft to read a
-            limit for.
         warpMode:
           description: |-
             Which warp mode is in force, on-rails or physics (KSP's

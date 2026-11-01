@@ -844,7 +844,7 @@ function renderPilot({ hosting = false } = {}) {
   });
 
   /** Aboard a craft in flight, 187.4 s from home, with the link as given. */
-  const fly = async (connected: boolean, routeHome?: boolean) => {
+  const fly = async (connected: boolean) => {
     act(() => {
       clock.observeSample(400, 400);
     });
@@ -868,7 +868,7 @@ function renderPilot({ hosting = false } = {}) {
       source: CommsDelaySource.SignalDelay,
     });
     emit("commandCentre.activeVesselDelay", CENTRE_DELAYS);
-    emit("comms.link", { connected, routeHome });
+    emit("comms.link", { connected });
     await screen.findByText(connected ? "link up" : "link down");
   };
   return { ...view, tell, fly };
@@ -891,18 +891,6 @@ describe("MissionBanner signal delay on a hosting pilot", () => {
 
     await waitFor(() => {
       expect(delayValue()?.innerHTML).toContain(expected);
-    });
-  });
-
-  it("says disconnected on a hosting pilot whose seat is told it has no route home", async () => {
-    act(() => {
-      peerHostService.setCommandCentre(KSC);
-    });
-    const { fly } = renderPilot({ hosting: true });
-    await fly(true, false);
-
-    await waitFor(() => {
-      expect(delayValue()?.textContent).toBe("Signal delay: disconnected");
     });
   });
 
@@ -986,31 +974,6 @@ describe("MissionBanner signal delay aboard the craft", () => {
 
     await waitFor(() => {
       expect(delayValue()?.textContent).toBe("Signal delay: disconnected");
-    });
-  });
-
-  it("says disconnected when the craft's own seat is told it has no route home, though its link reads up", async () => {
-    const { tell, fly } = renderPilot();
-    tell(KSC);
-    await fly(true, false);
-
-    await waitFor(() => {
-      expect(delayValue()?.textContent).toBe("Signal delay: disconnected");
-    });
-  });
-
-  it("reads the delay again once the seat is no longer told there is no route home", async () => {
-    const expected = unitMarkup(187.4);
-    const { tell, fly } = renderPilot();
-    tell(KSC);
-    await fly(true, false);
-    await waitFor(() => {
-      expect(delayValue()?.textContent).toBe("Signal delay: disconnected");
-    });
-
-    await fly(true);
-    await waitFor(() => {
-      expect(delayValue()?.innerHTML).toContain(expected);
     });
   });
 

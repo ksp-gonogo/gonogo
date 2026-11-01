@@ -2604,14 +2604,6 @@ export interface CommsLink
 	* link of one that just came on screen.
 	*/
 	connected?: boolean | null;
-	/**
-	* Whether the craft has a route to a command centre, sent only to a pilot
-	* aboard the craft, whose `CommsLink.connected` always reads true because the
-	* crew are never cut off from their own craft. False while the craft is out of
-	* contact with mission control. `null` at every other vantage and whenever the
-	* craft is in contact, where `CommsLink.connected` already says it.
-	*/
-	routeHome?: boolean | null;
 	/** The payload's provenance (`"vessel:<guid>"` or `"game"`). */
 	meta: PayloadMeta;
 }
@@ -13170,15 +13162,6 @@ export interface WarpState
 	* indexes `WarpState.warpRates`.
 	*/
 	warpRateIndex: number;
-	/**
-	* The highest rung of the warp rate table the game lets the craft use right
-	* now, for the rung table of the mode in force. Near a body the game limits
-	* warp by altitude, so this falls as the craft descends and rises as it
-	* climbs; a `WarpState.warpRateIndex` above it is a rung the game is bringing
-	* down. Null when the game has no warp controller or no active craft to read a
-	* limit for.
-	*/
-	maxWarpRateIndex?: number | null;
 	/**
 	* Which warp mode is in force, on-rails or physics (KSP's
 	* `TimeWarp.WarpMode`).

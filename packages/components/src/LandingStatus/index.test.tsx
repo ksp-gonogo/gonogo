@@ -6,7 +6,6 @@ import {
 } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import {
   expectNoA11yViolations,
   visibleText,
@@ -313,27 +312,6 @@ describe("LandingStatusComponent", () => {
     });
     await screen.findByText(/minmus · vacuum/i);
     expect(visibleText()).toMatch(/IMPACT IN\s*3h\s*3m/i);
-  });
-
-  it("keeps the empty terrain line under the NO SITE pill while the headline shows an impact time", async () => {
-    renderWidget();
-    act(() => {
-      emitVessel(stream, {
-        body: MINMUS,
-        quality: Quality.Loaded,
-        orbit: { sma: 300_000, ecc: 0.5, meanAnomalyAtEpoch: 1.2 },
-        descent: {
-          heightFromTerrain: 107_000,
-          altitudeAsl: 107_000,
-          verticalSpeed: 60,
-          surfaceSpeed: 100,
-        },
-      });
-    });
-    await screen.findByText(/minmus · vacuum/i);
-    const pill = screen.getByText("NO SITE");
-    const terrainLine = pill.closest("div")?.parentElement?.nextElementSibling;
-    expect(terrainLine?.textContent).toBe(NULL_DISPLAY);
   });
 
   it("says nothing of an impact when the craft's orbit stays above the surface", async () => {

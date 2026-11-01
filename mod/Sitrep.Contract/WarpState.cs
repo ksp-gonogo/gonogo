@@ -70,21 +70,6 @@ public class WarpState
     [SitrepUnit(Units.Id)]
     public int WarpRateIndex { get; set; }
 
-    /// <summary>The highest rung of the warp rate table the game lets the
-    /// craft use right now, for the rung table of the mode in force. Near a
-    /// body the game limits warp by altitude, so this falls as the craft
-    /// descends and rises as it climbs; a <see cref="WarpRateIndex"/> above it
-    /// is a rung the game is bringing down. Null when the game has no warp
-    /// controller or no active craft to read a limit for.
-    /// <internal>
-    /// High warp: <c>TimeWarp.GetMaxRateForAltitude</c> for the active vessel's
-    /// altitude over its reference body. Physics warp: the fixed
-    /// <c>TimeWarp.maxPhysicsRate_index</c>.
-    /// </internal>
-    /// </summary>
-    [SitrepUnit(Units.Id)]
-    public int? MaxWarpRateIndex { get; set; }
-
     /// <summary>Which warp mode is in force, on-rails or physics (KSP's
     /// <c>TimeWarp.WarpMode</c>).</summary>
     [SitrepUnit(Units.Enumeration)]
