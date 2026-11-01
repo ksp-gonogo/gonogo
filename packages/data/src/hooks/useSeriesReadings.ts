@@ -1,5 +1,6 @@
 import {
   type BandKind,
+  dynamicValue,
   type HeldGrade,
   type Reading,
   type ReadingSeriesRange,
@@ -43,7 +44,7 @@ function bandOf(
 ): UncertaintyBand | undefined {
   if (isQuantity(modelled)) return { value: modelled, ...band };
   if (typeof modelled !== "number") return undefined;
-  return { value: value(band.lo.unit, modelled), ...band };
+  return { value: dynamicValue(band.lo.unit, modelled), ...band };
 }
 
 /** A window `useDataSeries` built, with each sample handed back as the reading it was. */

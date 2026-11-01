@@ -4,14 +4,8 @@ import {
 } from "./__generated__/contract";
 import { PROVIDER_EXTENSIONS_FIELD } from "./extensions";
 import type { TopicId } from "./topics";
-import {
-  asDeterministic,
-  hydrate,
-  isValue,
-  lookupUnit,
-  staticValue,
-  value,
-} from "./unit-system";
+import { asDeterministic, hydrate, isValue, lookupUnit } from "./unit-system";
+import { dynamicStaticValue, dynamicValue } from "./unit-system/value";
 import {
   deterministicWhileForType,
   providerExtensionShapes,
@@ -255,7 +249,7 @@ function wrapScalarOrList(
   unit: string,
   isStatic: boolean,
 ): unknown {
-  const mint = isStatic ? staticValue : value;
+  const mint = isStatic ? dynamicStaticValue : dynamicValue;
   if (typeof current === "number") {
     return mint(unit, current);
   }

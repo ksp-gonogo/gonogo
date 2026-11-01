@@ -1,5 +1,6 @@
 import {
   affineVectorUnitFor,
+  dynamicValue,
   UNIT_DEFINITIONS,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -153,7 +154,7 @@ describe("UnitInput", () => {
 
     it.each(units)("round-trips %s unchanged", (unit) => {
       const onChange = vi.fn();
-      const original = value(unit, 7.5);
+      const original = dynamicValue(unit, 7.5);
       render(
         <UnitInput
           label={`Field ${unit}`}

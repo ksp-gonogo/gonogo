@@ -53,18 +53,18 @@ export const UI_KIT_PRESETS = {
       name: "Live",
       args: {
         "aria-label": "Dial",
-        value: live("deg", 92),
-        min: value("deg", 0),
-        max: value("deg", 360),
+        value: live("°", 92),
+        min: value("°", 0),
+        max: value("°", 360),
       },
     },
     {
       name: "Held",
       args: {
         "aria-label": "Dial",
-        value: held("deg", 92),
-        min: value("deg", 0),
-        max: value("deg", 360),
+        value: held("°", 92),
+        min: value("°", 0),
+        max: value("°", 360),
       },
     },
     {
@@ -72,8 +72,8 @@ export const UI_KIT_PRESETS = {
       args: {
         "aria-label": "Dial",
         value: pending(),
-        min: value("deg", 0),
-        max: value("deg", 360),
+        min: value("°", 0),
+        max: value("°", 360),
       },
     },
     {

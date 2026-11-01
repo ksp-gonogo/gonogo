@@ -535,7 +535,7 @@ function baseMagnitude(value: Value): number {
  * receiver's, which is the same rule `plus`/`minus` already follow on their result.
  */
 function inThisUnit(self: Value, baseMagnitudeOfOther: number): Value {
-  return value(self.unit, baseMagnitudeOfOther / ratioOf(self.unit));
+  return dynamicValue(self.unit, baseMagnitudeOfOther / ratioOf(self.unit));
 }
 
 function baseOperandOf(
@@ -627,7 +627,7 @@ const prototype = {
   },
 
   plus(this: Value, other: Value | number): Value {
-    return value(
+    return dynamicValue(
       this.unit,
       (baseMagnitude(this) + baseOperandOf(this, other, "add")) /
         ratioOf(this.unit),
@@ -638,7 +638,7 @@ const prototype = {
       baseMagnitude(this) - baseOperandOf(this, other, "subtract");
     // A bare operand is a plain amount, so it can never be the point-minus-point case below: only the affine pair of two INSTANTS lands in the vector.
     if (typeof other === "number") {
-      return value(this.unit, difference / ratioOf(this.unit));
+      return dynamicValue(this.unit, difference / ratioOf(this.unit));
     }
     // Point minus point is a VECTOR, and the runtime has to agree with the type
     // that says so. Returning `this.unit` here would tag the gap between two
@@ -647,33 +647,33 @@ const prototype = {
     // rendered token would read `ut`.
     const vector = affineVectorUnitFor(this.unit);
     if (vector !== undefined && affineVectorUnitFor(other.unit) !== undefined) {
-      return value(vector, difference / ratioOf(vector));
+      return dynamicValue(vector, difference / ratioOf(vector));
     }
-    return value(this.unit, difference / ratioOf(this.unit));
+    return dynamicValue(this.unit, difference / ratioOf(this.unit));
   },
 
   times(this: Value, other: Value | number): Value {
     if (typeof other === "number") {
-      return value(this.unit, this.magnitude * other);
+      return dynamicValue(this.unit, this.magnitude * other);
     }
     const dimension = Dim.multiply(
       dimensionOf(this.unit),
       dimensionOf(other.unit),
     );
-    return value(
+    return dynamicValue(
       symbolForDimension(dimension),
       baseMagnitude(this) * baseMagnitude(other),
     );
   },
   dividedBy(this: Value, other: Value | number): Value {
     if (typeof other === "number") {
-      return value(this.unit, this.magnitude / other);
+      return dynamicValue(this.unit, this.magnitude / other);
     }
     const dimension = Dim.divide(
       dimensionOf(this.unit),
       dimensionOf(other.unit),
     );
-    return value(
+    return dynamicValue(
       symbolForDimension(dimension),
       baseMagnitude(this) / baseMagnitude(other),
     );
@@ -683,11 +683,11 @@ const prototype = {
   },
 
   scaled(this: Value, factor: number): Value {
-    return value(this.unit, this.magnitude * factor);
+    return dynamicValue(this.unit, this.magnitude * factor);
   },
   in(this: Value, unit: string): Value {
-    requireSameDimension(this, value(unit, 0), "convert");
-    return value(unit, baseMagnitude(this) / ratioOf(unit));
+    requireSameDimension(this, dynamicValue(unit, 0), "convert");
+    return dynamicValue(unit, baseMagnitude(this) / ratioOf(unit));
   },
 
   equals(this: Value, other: Value | number): boolean {
@@ -741,7 +741,7 @@ const prototype = {
     return this.magnitude < 0;
   },
   abs(this: Value): Value {
-    return this.magnitude < 0 ? value(this.unit, -this.magnitude) : this;
+    return this.magnitude < 0 ? dynamicValue(this.unit, -this.magnitude) : this;
   },
   min(this: Value, other: Value | number): Value {
     // Returns the OPERAND, not a new value, so the unit each was expressed in
@@ -757,16 +757,45 @@ const prototype = {
 };
 
 /**
+ * The unit symbol when it names a declared unit, and `never` otherwise. Useful
+ * for refusing a mistyped or invented unit at compile time. Taken by
+ * {@link value} and {@link staticValue}; an Uplink's own units join it by
+ * augmenting {@link UnitDeclarations}.
+ *
+ * @category Units and values
+ */
+export type CheckedUnit<Unit extends string> = Unit extends DeclaredUnit
+  ? Unit
+  : never;
+
+/**
  * A {@link Value} of `magnitude` in `unit`: `value("m/s", 12)`. Useful for
  * making a figure to show the operator or to compare with telemetry.
  *
- * Any string is accepted as a unit, since an Uplink may declare its own, and
- * declared units autocomplete. A misspelt unit is a unit of its own that
- * combines with nothing, so `value("Klevin", 300).plus(value("K", 1))` throws.
+ * The unit must be declared, so a misspelt or invented unit such as
+ * `value("Klevin", 300)` does not compile, and declared units autocomplete. A
+ * rate is a unit of its own and needs its own declaration. An Uplink's units
+ * are declared by augmenting {@link UnitDeclarations}.
  *
  * @category Units and values
  */
 export function value<Unit extends string>(
+  unit: Unit & CheckedUnit<Unit>,
+  magnitude: number,
+): Value<Unit> {
+  return dynamicValue(unit, magnitude);
+}
+
+/**
+ * A {@link Value} of `magnitude` in a unit known only at runtime, such as one
+ * read from a settings field or passed through a generic component. Useful for
+ * making a figure whose unit the compiler cannot check, which {@link value}
+ * refuses. Used by the kit's unit input to rebuild a value in the unit it was
+ * given. A unit nothing declares combines with nothing but itself.
+ *
+ * @category Units and values
+ */
+export function dynamicValue<Unit extends string>(
   unit: Unit,
   magnitude: number,
 ): Value<Unit> {
@@ -786,6 +815,17 @@ export function value<Unit extends string>(
  * @category Units and values
  */
 export function staticValue<Unit extends string>(
+  unit: Unit & CheckedUnit<Unit>,
+  magnitude: number,
+): Value<Unit> {
+  return dynamicStaticValue(unit, magnitude);
+}
+
+/*
+ * {@link staticValue} without the compile-time unit check, for the runtime
+ * paths that mint a static value from a unit they were handed.
+ */
+export function dynamicStaticValue<Unit extends string>(
   unit: Unit,
   magnitude: number,
 ): Value<Unit> {
@@ -805,7 +845,7 @@ export function staticValue<Unit extends string>(
 export function asStatic<Unit extends string>(
   figure: Value<Unit>,
 ): Value<Unit> {
-  return staticValue(figure.unit, figure.magnitude);
+  return dynamicStaticValue(figure.unit, figure.magnitude);
 }
 
 /**
@@ -925,14 +965,14 @@ export function hydrate<Candidate>(candidate: Candidate): Candidate {
     return candidate;
   }
   if (candidate.static === true) {
-    return staticValue(candidate.unit, candidate.magnitude) as Candidate;
+    return dynamicStaticValue(candidate.unit, candidate.magnitude) as Candidate;
   }
   if (candidate.deterministic === true) {
     return asDeterministic(
-      value(candidate.unit, candidate.magnitude),
+      dynamicValue(candidate.unit, candidate.magnitude),
     ) as Candidate;
   }
-  return value(candidate.unit, candidate.magnitude) as Candidate;
+  return dynamicValue(candidate.unit, candidate.magnitude) as Candidate;
 }
 
 /**
@@ -962,7 +1002,7 @@ export interface Vector3<Unit extends string = string> {
 export function vectorMagnitude<Unit extends string>(
   v: Vector3<Unit>,
 ): Value<Unit> {
-  return value(
+  return dynamicValue(
     v.x.unit,
     Math.hypot(v.x.magnitude, v.y.magnitude, v.z.magnitude),
   );

@@ -9,7 +9,7 @@
 // decoded payload); the compile error is what turns a mistake in hand-written
 // code into a red squiggle instead of a crash in flight.
 
-import { type UnknownUnit, type Value, value } from "./value";
+import { dynamicValue, type UnknownUnit, type Value, value } from "./value";
 
 const watts = value("W", 5);
 const joulesPerSecond = value("J/s", 3);
@@ -114,10 +114,10 @@ export const _irlHoursPlusIrlMinutes = value("irl:h", 1).plus(
 // to `never` and `plus` accepts only an exact match. That is the safe reading
 // when we know nothing about a third party's symbol, and here it happens to be
 // exactly right: grams are not gees.
-const grams = value("snacks:g", 500);
+const grams = dynamicValue("snacks:g", 500);
 const gees = value("g", 2);
 
-export const _gramsPlusGrams = grams.plus(value("snacks:g", 250));
+export const _gramsPlusGrams = grams.plus(dynamicValue("snacks:g", 250));
 
 // @ts-expect-error: a namespaced gram is not the first-party g-force
 export const _gramsPlusGees = grams.plus(gees);

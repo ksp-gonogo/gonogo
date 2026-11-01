@@ -1,6 +1,10 @@
 import type { DataKeyMeta, SeriesRange } from "@ksp-gonogo/data";
 import { useStream } from "@ksp-gonogo/sitrep-client";
-import { deriveReading, seriesKeyOf, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  deriveReading,
+  dynamicValue,
+  seriesKeyOf,
+} from "@ksp-gonogo/sitrep-sdk";
 import { Readout, Sparkline } from "@ksp-gonogo/ui";
 import { NULL_DISPLAY, Panel, Section, Unit } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode } from "react";
@@ -53,10 +57,10 @@ export function GraphReadout({
       : topicReading.state === "held"
         ? deriveReading(
             topicReading,
-            () => value(unit, latest),
-            () => value(unit, latest),
+            () => dynamicValue(unit, latest),
+            () => dynamicValue(unit, latest),
           )
-        : value(unit, latest);
+        : dynamicValue(unit, latest);
 
   // The series label is dropped when it would only repeat the title.
   const readoutTitle = title ?? "GRAPH";

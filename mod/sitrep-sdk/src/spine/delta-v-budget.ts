@@ -1,5 +1,5 @@
 import { observedAt } from "../reading";
-import { isValue, value } from "../unit-system/value";
+import { dynamicValue, isValue } from "../unit-system/value";
 import type { Value } from "../value";
 import type { ReadingState, TopicCurrency } from "./client-reading";
 import { CORE_UPLINK_CLIENT } from "./uplink-clients";
@@ -216,7 +216,7 @@ function totalOf<Unit extends "m/s" | "s" | "count">(
   unit: Unit,
 ): Value<Unit> | null {
   const magnitude = magnitudeOrNaN(raw);
-  return Number.isFinite(magnitude) ? value(unit, magnitude) : null;
+  return Number.isFinite(magnitude) ? dynamicValue(unit, magnitude) : null;
 }
 
 /** The wire subset of `dv.summary` this derivation reads. */

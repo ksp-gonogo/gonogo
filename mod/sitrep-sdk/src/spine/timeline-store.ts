@@ -45,7 +45,7 @@ import {
   reckonableValuesOf,
 } from "../reckonability";
 import type { DerivedChannelDefinition, DerivedGet } from "../timeline";
-import { isValue, type Value, value } from "../unit-system/value";
+import { dynamicValue, isValue, type Value } from "../unit-system/value";
 import {
   type ReckonerFor,
   readingFrom,
@@ -644,7 +644,7 @@ function lerpFieldValue(
     if (lerped === undefined || typeof lerped.value !== "number") {
       return undefined;
     }
-    return { value: value(before.unit, lerped.value) };
+    return { value: dynamicValue(before.unit, lerped.value) };
   }
   if (typeof before === "number" && typeof after === "number") {
     if (ANGULAR_DEGREE_FIELD_NAMES.has(key)) {

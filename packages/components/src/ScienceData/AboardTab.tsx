@@ -1,5 +1,9 @@
 import { AugmentSlot } from "@ksp-gonogo/core";
-import { type CarriedCurrency, datedFrom, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type CarriedCurrency,
+  datedFrom,
+  dynamicValue,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   DataTable,
   type DataTableColumn,
@@ -44,7 +48,7 @@ function dated<UnitSymbol extends string>(
   unit: UnitSymbol,
   amount: number,
 ) {
-  return datedFrom(from, value(unit, amount));
+  return datedFrom(from, dynamicValue(unit, amount));
 }
 
 const breakdownColumns = (

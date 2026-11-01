@@ -43,7 +43,9 @@ export {
 export {
   asDeterministic,
   asStatic,
+  type CheckedUnit,
   carryDeterminism,
+  dynamicValue,
   hydrate,
   isDeterministicValue,
   isExactValue,

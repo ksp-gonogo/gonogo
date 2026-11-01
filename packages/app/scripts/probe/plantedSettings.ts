@@ -4,10 +4,10 @@ import type {
   TopicId,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
+  dynamicValue,
   registerSetting,
   SettingKind,
   type SitrepUnit,
-  value,
 } from "@ksp-gonogo/sitrep-sdk";
 
 /**
@@ -63,7 +63,7 @@ declare module "@ksp-gonogo/sitrep-sdk" {
  * so each row names its own unit.
  */
 function asValue(unit: SitrepUnit, magnitude: number | undefined) {
-  return magnitude === undefined ? undefined : value(unit, magnitude);
+  return magnitude === undefined ? undefined : dynamicValue(unit, magnitude);
 }
 
 const row = <

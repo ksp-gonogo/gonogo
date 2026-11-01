@@ -5,6 +5,7 @@ import {
   asDeterministic,
   asStatic,
   carryDeterminism,
+  dynamicValue,
   hydrate,
   isDeterministicValue,
   isExactValue,
@@ -248,10 +249,14 @@ describe("units outside the catalog", () => {
   it("treats an unknown symbol as its own base", () => {
     // An Uplink's symbol stays usable: it adds to itself, it renders, it
     // divides. What it does not do is get guessed at.
-    expect(value("widgets", 2).plus(value("widgets", 3)).magnitude).toBe(5);
+    expect(
+      dynamicValue("widgets", 2).plus(dynamicValue("widgets", 3)).magnitude,
+    ).toBe(5);
     // @ts-expect-error an unknown symbol plus metres: refused statically and at runtime
-    expect(() => value("widgets", 2).plus(value("m", 3))).toThrow();
-    expect(value("widgets", 6).dividedBy(value("s", 2)).unit).toBe("widgets/s");
+    expect(() => dynamicValue("widgets", 2).plus(value("m", 3))).toThrow();
+    expect(dynamicValue("widgets", 6).dividedBy(value("s", 2)).unit).toBe(
+      "widgets/s",
+    );
   });
 
   it("UnknownUnit is a compile-time brand only; the runtime never sees it", () => {
@@ -263,8 +268,8 @@ describe("units outside the catalog", () => {
     // compile time; nothing changes below that line. `as` stands in here for
     // the narrowing a real boundary (a decoder, an Uplink adapter) would do
     // before choosing to combine two values it cannot statically vouch for.
-    const a = value("Klevin", 300) as Value<UnknownUnit>;
-    const b = value("Klevin", 12) as Value<UnknownUnit>;
+    const a = dynamicValue("Klevin", 300) as Value<UnknownUnit>;
+    const b = dynamicValue("Klevin", 12) as Value<UnknownUnit>;
     expect(a.plus(b as never).magnitude).toBe(312);
     expect(Object.getPrototypeOf(a)).toBe(Object.getPrototypeOf(value("m", 1)));
   });

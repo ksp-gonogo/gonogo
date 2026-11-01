@@ -1,5 +1,6 @@
 import {
   type BandKind,
+  dynamicValue,
   type Reading,
   type Value,
   value,
@@ -27,8 +28,8 @@ function reckoningOf<Unit extends string>(
     basis: "linear-dead-reckoning",
     band: {
       value: drawn,
-      lo: value(drawn.unit, band.lo),
-      hi: value(drawn.unit, band.hi),
+      lo: dynamicValue(drawn.unit, band.lo),
+      hi: dynamicValue(drawn.unit, band.hi),
       kind: band.kind,
     },
   };
@@ -40,7 +41,7 @@ export function live<Unit extends string>(
   magnitude: number,
   band?: BandSpec,
 ): Reading<Value<Unit>> {
-  const drawn = value(unit, magnitude);
+  const drawn = dynamicValue(unit, magnitude);
   return {
     state: "observed",
     value: drawn,
@@ -55,7 +56,7 @@ export function held<Unit extends string>(
   magnitude: number,
   band?: BandSpec,
 ): Reading<Value<Unit>> {
-  const drawn = value(unit, magnitude);
+  const drawn = dynamicValue(unit, magnitude);
   return {
     state: "held",
     value: drawn,

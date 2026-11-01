@@ -1,4 +1,9 @@
-import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  dynamicValue,
+  type Reading,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   ModelledAlongside,
   type ModelledQuantityAlongsideProps,
@@ -40,11 +45,11 @@ function reckoned<U extends string>(
 ): Reading<Value<U>> {
   return {
     state: "observed",
-    value: value(unit, observed),
+    value: dynamicValue(unit, observed),
     atUt: value("ut", 42_000),
     reckoning: {
       status: "available",
-      modelled: value(unit, modelled),
+      modelled: dynamicValue(unit, modelled),
       atUt: value("ut", 42_240),
       beyondReceived,
       basis: "kepler-propagation",

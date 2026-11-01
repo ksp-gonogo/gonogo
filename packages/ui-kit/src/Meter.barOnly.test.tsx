@@ -103,8 +103,8 @@ describe("Meter driven by an amount and a capacity", () => {
       <Meter
         hideLabel
         label="Pad operation progress"
-        value={value("bp", 120)}
-        capacity={value("bp", 400)}
+        value={value("count", 120)}
+        capacity={value("count", 400)}
       />,
     );
     expect(screen.getByRole("meter").getAttribute("aria-valuetext")).toMatch(
@@ -129,8 +129,8 @@ describe("Meter driven by an amount and a capacity", () => {
       <Meter
         hideLabel
         label="Pad operation progress"
-        value={value("bp", 500)}
-        capacity={value("bp", 400)}
+        value={value("count", 500)}
+        capacity={value("count", 400)}
       />,
     );
     expect(screen.getByRole("meter")).toHaveAttribute("aria-valuenow", "100");

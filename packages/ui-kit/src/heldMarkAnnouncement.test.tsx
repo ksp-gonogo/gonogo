@@ -121,9 +121,9 @@ const PAINTERS: Record<string, (grade: HeldGrade | undefined) => ReactElement> =
     ),
     Dial: (grade) => (
       <Dial
-        value={held(value("deg", 90), grade)}
-        min={value("deg", 0)}
-        max={value("deg", 360)}
+        value={held(value("°", 90), grade)}
+        min={value("°", 0)}
+        max={value("°", 360)}
         aria-label="Heading"
       />
     ),
@@ -140,11 +140,11 @@ const PAINTERS: Record<string, (grade: HeldGrade | undefined) => ReactElement> =
       <ReckonedUnit
         value={{
           state: "observed",
-          value: value("deg", 40),
+          value: value("°", 40),
           atUt: value("ut", 1_000),
           reckoning: {
             status: "available",
-            modelled: value("deg", 52),
+            modelled: value("°", 52),
             atUt: value("ut", 1_240),
             beyondReceived: true,
             basis: "kepler-propagation",

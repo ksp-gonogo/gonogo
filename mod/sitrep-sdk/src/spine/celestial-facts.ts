@@ -8,8 +8,8 @@ import {
   isDeterministicValue,
   isValue,
   type Value,
-  value,
 } from "../unit-system";
+import { dynamicValue } from "../unit-system/value";
 import { deriveEscapeVelocity, derivePeriod } from "./body-derivations";
 import { CORE_UPLINK_CLIENT } from "./uplink-clients";
 
@@ -254,7 +254,9 @@ function figureOrNull<Unit extends string>(
   unit: Unit,
 ): Value<Unit> | null {
   if (isValue(x)) return x.isFinite() ? x : null;
-  return typeof x === "number" && Number.isFinite(x) ? value(unit, x) : null;
+  return typeof x === "number" && Number.isFinite(x)
+    ? dynamicValue(unit, x)
+    : null;
 }
 
 /** A figure's size with its sign dropped, still static where the figure was: the sign is a direction, not part of the fact. */

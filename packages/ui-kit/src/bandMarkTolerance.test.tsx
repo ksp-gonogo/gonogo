@@ -1,4 +1,5 @@
 import {
+  dynamicValue,
   type Reading,
   type UncertaintyBand,
   type Value,
@@ -26,9 +27,9 @@ function bandOf<Unit extends string>(
   hi: number,
 ): UncertaintyBand<Unit> {
   return {
-    value: value(unit, (lo + hi) / 2),
-    lo: value(unit, lo),
-    hi: value(unit, hi),
+    value: dynamicValue(unit, (lo + hi) / 2),
+    lo: dynamicValue(unit, lo),
+    hi: dynamicValue(unit, hi),
     kind: "sigma1",
   };
 }

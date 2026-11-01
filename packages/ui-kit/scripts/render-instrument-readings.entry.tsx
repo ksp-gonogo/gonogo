@@ -11,6 +11,7 @@
  * made drawable.
  */
 import {
+  dynamicValue,
   type Reading,
   type UncertaintyBand,
   type Value,
@@ -33,9 +34,9 @@ const bare = new URLSearchParams(location.search).get("bare") === "1";
 function bandOf(c: InstrumentCase): UncertaintyBand | undefined {
   if (!c.band) return undefined;
   return {
-    value: value(c.unit, c.at),
-    lo: value(c.unit, c.band.lo),
-    hi: value(c.unit, c.band.hi),
+    value: dynamicValue(c.unit, c.at),
+    lo: dynamicValue(c.unit, c.band.lo),
+    hi: dynamicValue(c.unit, c.band.hi),
     kind: c.band.kind,
   };
 }
@@ -45,7 +46,7 @@ function bandOf(c: InstrumentCase): UncertaintyBand | undefined {
  * the reading it arrived in on the after side.
  */
 function figureOf(c: InstrumentCase): Value<string> | Reading<Value<string>> {
-  const drawn = value(c.unit, c.at);
+  const drawn = dynamicValue(c.unit, c.at);
   if (bare) return drawn;
   const band = bandOf(c);
   const reckoning: Reading<Value<string>>["reckoning"] =
@@ -73,8 +74,8 @@ function figureOf(c: InstrumentCase): Value<string> | Reading<Value<string>> {
 
 function Instrument({ c }: { c: InstrumentCase }) {
   const figure = figureOf(c);
-  const min = value(c.unit, c.min);
-  const max = value(c.unit, c.max);
+  const min = dynamicValue(c.unit, c.min);
+  const max = dynamicValue(c.unit, c.max);
   if (c.instrument === "gauge") {
     return (
       <Dial
@@ -98,7 +99,7 @@ function Instrument({ c }: { c: InstrumentCase }) {
         max={max}
         width={92}
         height={150}
-        tickStep={value(c.unit, (c.max - c.min) / 4)}
+        tickStep={dynamicValue(c.unit, (c.max - c.min) / 4)}
         aria-label={c.label}
       />
     );
@@ -117,7 +118,7 @@ function Instrument({ c }: { c: InstrumentCase }) {
   }
   return (
     <div style={{ containerType: "inline-size", width: 320 }}>
-      <DivergingBar value={figure} maxAbs={value(c.unit, c.max)} />
+      <DivergingBar value={figure} maxAbs={dynamicValue(c.unit, c.max)} />
     </div>
   );
 }

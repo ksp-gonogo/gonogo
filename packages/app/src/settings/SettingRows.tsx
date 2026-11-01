@@ -1,5 +1,5 @@
 import { useStream } from "@ksp-gonogo/sitrep-client";
-import { value as quantity, SettingKind } from "@ksp-gonogo/sitrep-sdk";
+import { dynamicValue as quantity, SettingKind } from "@ksp-gonogo/sitrep-sdk";
 import { Switch } from "@ksp-gonogo/ui";
 import {
   ReadOnlyField,

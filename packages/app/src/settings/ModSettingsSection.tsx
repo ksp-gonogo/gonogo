@@ -6,7 +6,7 @@ import {
 import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
 import {
   type ModSettingRow,
-  value as quantity,
+  dynamicValue as quantity,
   SettingKind,
 } from "@ksp-gonogo/sitrep-sdk";
 import { useModSettings } from "@ksp-gonogo/sitrep-sdk/spine";

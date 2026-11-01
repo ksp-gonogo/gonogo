@@ -8835,6 +8835,10 @@
         "note": "the setting kind in this type is SettingKind, where it was the words boolean, text and number"
       },
       {
+        "key": "sitrep-sdk . staticValue",
+        "note": "its unit is checked against the declared units, so an undeclared token no longer compiles; dynamicValue builds a value in a unit known only at runtime"
+      },
+      {
         "key": "sitrep-sdk . useCommand",
         "note": "its options are typed by the command's arguments, UseCommandOptions<CommandArgs<Command>> or UseCommandOptions<Args>"
       },
@@ -8861,6 +8865,10 @@
       {
         "key": "sitrep-sdk . useViewClockOptional",
         "note": "the view clock is typed as DelayClockLike instead of unknown"
+      },
+      {
+        "key": "sitrep-sdk . value",
+        "note": "its unit is checked against the declared units, so an invented or misspelt token no longer compiles; dynamicValue builds a value in a unit known only at runtime"
       },
       {
         "key": "sitrep-sdk . ~CarriesCurrency",
@@ -11893,6 +11901,10 @@
         "note": "A pattern for Topic ids built at runtime, one angle-bracket placeholder per dotted segment"
       },
       {
+        "key": "sitrep-sdk . CheckedUnit",
+        "note": "names the unit symbols value and staticValue accept, which an Uplink extends by augmenting UnitDeclarations"
+      },
+      {
         "key": "sitrep-sdk . CommSignalHopRateEntry#held?",
         "note": "CommSignalHopRateEntry carries the reading it was drawn from, so the host widget draws a held value as held"
       },
@@ -13023,6 +13035,10 @@
       {
         "key": "sitrep-sdk . delayVisibility",
         "note": "Decides in one place whether a delay readout is shown, left out for a delay of zero, or replaced by the no-path state"
+      },
+      {
+        "key": "sitrep-sdk . dynamicValue",
+        "note": "builds a value in a unit only known at runtime, such as one read from a setting or passed through a generic component"
       },
       {
         "key": "sitrep-sdk . eccentricFromTrueAnomaly",

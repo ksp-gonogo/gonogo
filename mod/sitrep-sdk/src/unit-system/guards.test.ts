@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { assertGuardsRegistered, isUnit, unitGuard } from "./guards";
 import { registerUnit, resetUnitRegistry } from "./registry";
-import { value } from "./value";
+import { dynamicValue, value } from "./value";
 
 declare module "./declarations" {
   interface UnitDeclarations {
@@ -23,7 +23,7 @@ describe("unitGuard", () => {
     const isOxygen = unitGuard("Oxygen:u");
 
     expect(isOxygen(value("Oxygen:u", 10))).toBe(true);
-    expect(isOxygen(value("Food:u", 10))).toBe(false);
+    expect(isOxygen(dynamicValue("Food:u", 10))).toBe(false);
   });
 
   it("returns false for a symbol nobody registered, rather than throwing", () => {

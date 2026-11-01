@@ -1,8 +1,8 @@
 import type { DataKeyMeta, TopicFieldHandle } from "@ksp-gonogo/data";
 import {
+  dynamicValue,
   seriesKeyOf,
   splitRawFieldSubtopic,
-  value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { resolveAxes } from "./axes";
 import type { GraphConfig, GraphThreshold, GraphViewConfig } from "./types";
@@ -64,7 +64,7 @@ export function graphThresholdsOf(
       "1";
     return {
       id: line.id,
-      value: value(unit, line.value),
+      value: dynamicValue(unit, line.value),
       ...(line.kind === "target"
         ? { kind: "target" as const }
         : { kind: "limit" as const, bad: line.bad ?? "above" }),

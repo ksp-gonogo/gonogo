@@ -1,5 +1,6 @@
 import {
   affineVectorUnitFor,
+  dynamicValue,
   type PointUnit,
   type Value,
   value,
@@ -206,7 +207,7 @@ export function UnitInput<Unit extends string>({
         format={isInstant(unit) ? caretDate : undefined}
         // A calendar instant is eleven characters, which the default box would clip.
         width={isInstant(unit) ? INSTANT_WHEEL_PX : undefined}
-        onChange={(next) => onChange(value(unit, next))}
+        onChange={(next) => onChange(dynamicValue(unit, next))}
       />
       {/* A notch on an instant is an interval, so the notch unit is stated rather than inferred. */}
       <Text
@@ -229,7 +230,7 @@ export function UnitInput<Unit extends string>({
             disabled={disabled}
             // The rate wheel replaces the coarse nudge steps where there is one.
             steps={rate ? [] : undefined}
-            onChange={(ut) => onChange(value(unit, ut))}
+            onChange={(ut) => onChange(dynamicValue(unit, ut))}
           />
           {wheel}
         </Stack>
@@ -256,7 +257,7 @@ export function UnitInput<Unit extends string>({
         0,
       );
       type(index, { text, against: amount });
-      onChange(value(unit, total));
+      onChange(dynamicValue(unit, total));
     };
 
     return (
@@ -285,7 +286,7 @@ export function UnitInput<Unit extends string>({
     const amount = readNumber(text);
     type(0, { text, against: amount ?? magnitude });
     if (amount !== undefined) {
-      onChange(value(unit, amount));
+      onChange(dynamicValue(unit, amount));
     }
   };
 
@@ -316,7 +317,9 @@ export function UnitInput<Unit extends string>({
           value={Number.isFinite(magnitude) ? magnitude : bounds.min}
           // A slider is never mid-edit, so it bypasses the typing buffer.
           onChange={(event) =>
-            onChange(value(unit, readNumber(event.target.value) ?? bounds.min))
+            onChange(
+              dynamicValue(unit, readNumber(event.target.value) ?? bounds.min),
+            )
           }
         />
       ) : null}

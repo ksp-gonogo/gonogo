@@ -1,7 +1,12 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { RegisteredUnit, SitrepUnit } from "@ksp-gonogo/sitrep-sdk";
-import { registerUnit, setKspCalendar, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  dynamicValue,
+  registerUnit,
+  setKspCalendar,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, describe, expect, it } from "vitest";
 import { NULL_DISPLAY } from "./NullValue";
 import {
@@ -650,7 +655,9 @@ describe("the attach rule is one rule", () => {
     // Anything in ATTACHED_SYMBOLS goes hard against the number, as `<Unit>` writes it.
     expect(writeQuantity(value("°", 8), { decimals: 1 })).toBe("8.0°");
     // Everything else keeps SI's space, including the degree-Celsius pair.
-    expect(writeQuantity(value("°C", 20), { decimals: 0 })).toBe("20 °C");
+    expect(writeQuantity(dynamicValue("°C", 20), { decimals: 0 })).toBe(
+      "20 °C",
+    );
     expect(writeQuantity(value("m/s", 5), { decimals: 0 })).toBe("5 m/s");
   });
 

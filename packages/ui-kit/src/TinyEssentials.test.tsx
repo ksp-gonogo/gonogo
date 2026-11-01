@@ -358,7 +358,7 @@ describe("TinyEssentials", () => {
     const THREE: readonly TinyEssential[] = [
       { label: "Alt", value: value("m", 1200) },
       { label: "V/S", value: value("m/s", -12) },
-      { label: "Hdg", value: value("deg", 90) },
+      { label: "Hdg", value: value("°", 90) },
     ];
 
     it("draws the rows that fit, in order, and keeps the rest for a screen reader", async () => {

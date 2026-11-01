@@ -527,8 +527,8 @@ function UplinkProgressBar({
       {!complete && (
         <Text level="muted" size="sm">
           <UnitSharedFormat decimals={1}>
-            <Unit value={value("B", received)} hideUnitInGroup /> of{" "}
-            <Unit value={value("B", total)} />
+            <Unit value={value("bit", received * 8)} hideUnitInGroup /> of{" "}
+            <Unit value={value("bit", total * 8)} />
           </UnitSharedFormat>
         </Text>
       )}

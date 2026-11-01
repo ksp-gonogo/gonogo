@@ -119,10 +119,10 @@ export const Units: Story = {
         <Unit value={value("units", 1_260)} />
       </Line>
       <Line label="Funds">
-        <Unit value={value("f", 1_284_500)} />
+        <Unit value={value("funds", 1_284_500)} />
       </Line>
       <Line label="Science">
-        <Unit value={value("sci", 412)} />
+        <Unit value={value("science", 412)} />
       </Line>
       <Line label="Reputation">
         <Unit value={value("rep", 318)} />

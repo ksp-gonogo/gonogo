@@ -18,7 +18,7 @@ import type {
   Quotient,
   SymbolFor,
 } from "./algebra";
-import { type UnknownUnit, type Value, value } from "./value";
+import { dynamicValue, type UnknownUnit, type Value, value } from "./value";
 
 /**
  * Invariant type equality. `Left extends Right` is not enough: `"m/s"` extends
@@ -191,9 +191,9 @@ export const _undeclaredResource: Expect<
 
 const metres = value("m", 100);
 const seconds = value("s", 4);
-const foodAmount = value("Food:u", 250);
-const foodDensity = value("Food:kg/u", 0.1);
-const foodRate = value("Food:u/s", 0.0001);
+const foodAmount = dynamicValue("Food:u", 250);
+const foodDensity = dynamicValue("Food:kg/u", 0.1);
+const foodRate = dynamicValue("Food:u/s", 0.0001);
 
 const speed = metres.per(seconds);
 export const _speedValue: Expect<typeof speed, Value<"m/s">> = "OK";

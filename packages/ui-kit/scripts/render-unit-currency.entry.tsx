@@ -17,7 +17,12 @@
  * which both treatments of this component have carried, so the same harness
  * renders the tree before this change and the tree after it.
  */
-import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  dynamicValue,
+  type Reading,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { useLayoutEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Countdown } from "../src/Countdown";
@@ -139,7 +144,7 @@ function v<UnitSymbol extends string>(
   unit: UnitSymbol,
   magnitude: number,
 ): Value<UnitSymbol> {
-  return value(unit, magnitude);
+  return dynamicValue(unit, magnitude);
 }
 
 /** Which cells are held, per scene. Indexed by row, then column. */
