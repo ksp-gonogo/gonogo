@@ -258,6 +258,14 @@ describe("a local screen", () => {
 
   it("never opens the station endpoint while another screen holds the role, and opens it once granted", async () => {
     const sockets: string[] = [];
+    const realFetch = globalThis.fetch;
+    vi.stubGlobal("fetch", (input: RequestInfo | URL, init?: RequestInit) =>
+      String(input).endsWith("/bootstrap-config")
+        ? Promise.resolve(
+            Response.json({ kspHost: null, stationEndpoint: true }),
+          )
+        : realFetch(input, init),
+    );
     vi.stubGlobal(
       "WebSocket",
       class {

@@ -5,7 +5,7 @@
  * the station is then served over the endpoint like any other.
  */
 
-import { ws } from "msw";
+import { HttpResponse, http, ws } from "msw";
 import { setupServer } from "msw/node";
 import {
   afterAll,
@@ -137,6 +137,9 @@ function endpoint({ opens = true }: { opens?: boolean } = {}) {
   const bridges: Array<Record<string, unknown>> = [];
   let socket: { send(data: string | ArrayBuffer): void } | null = null;
   server.use(
+    http.get("http://localhost:3002/bootstrap-config", () =>
+      HttpResponse.json({ kspHost: null, stationEndpoint: true }),
+    ),
     link.addEventListener("connection", ({ client }) => {
       socket = client;
       client.send(
@@ -278,6 +281,9 @@ describe("a station joining through the endpoint", () => {
 
   it("serves the station's data connection, with what it already sent, when the endpoint refuses it", async () => {
     server.use(
+      http.get("http://localhost:3002/bootstrap-config", () =>
+        HttpResponse.json({ kspHost: null, stationEndpoint: true }),
+      ),
       link.addEventListener("connection", ({ client }) => {
         client.send(JSON.stringify({ type: "status", port: 47100 }));
         client.addEventListener("message", (m) => {
