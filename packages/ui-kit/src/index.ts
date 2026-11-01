@@ -56,7 +56,11 @@ export {
   type AvatarStackProps,
   initialsOf,
 } from "./AvatarStack";
-export { AwaitingSignal, type AwaitingSignalProps } from "./AwaitingSignal";
+export {
+  AWAITING_FIRST_SIGNAL,
+  AwaitingSignal,
+  type AwaitingSignalProps,
+} from "./AwaitingSignal";
 export {
   type AnchoredPosition,
   type AnchorPoint,

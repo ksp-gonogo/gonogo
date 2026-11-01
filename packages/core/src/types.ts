@@ -363,6 +363,14 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
   /** Reasons the widget stays open while a `requires` is not met. Absent, an unmet `requires` always dims the widget. */
   heldOpenBy?: readonly ComponentHeldOpen[];
   /**
+   * Set when the widget has nothing to draw until the vessel's link report
+   * reaches this command centre. Until then the dashboard draws the awaiting
+   * notice in its place. A widget that keeps drawing without the link leaves it
+   * unset and shows the notice where its missing part goes. Pass `heading` when
+   * the widget's own panel heading differs from its name, so the notice keeps it.
+   */
+  awaitsFirstSignal?: boolean | { heading: string };
+  /**
    * Which seats this widget may be placed at. Omit for the derived default:
    * available everywhere unless the widget declares a topic in a ground domain
    * (`spaceCenter.*`, `career.*`, `recovery.*`, and `commandCentre.*` other

@@ -61,6 +61,8 @@ const EMPTY_BY_DESIGN: Record<string, string> = {
     "the configured group has not been reported, which is the scenario: its own fixture asks for the faint em dash",
   "CommSignal/no-signal-data":
     "loss of signal is the scenario; the widget's subject is the absence",
+  "CommSignal/relay-probe-network":
+    "the fixture deliberately sends no comms.signal, and at tiny-3x3 the widget is the signal readout alone, so that one mode is the unknown-strength bars and a dash fed or not; the other seven modes DO differ, drawing the headline, delay and route",
   "ThermalStatus/no-thermal-data":
     "every reading is the 2.05 K deep-space sentinel under an empty part name, which is the vessel reporting no thermal data rather than a read that failed",
   "AdministrationBuilding/feature-unavailable":

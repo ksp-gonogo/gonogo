@@ -1,12 +1,7 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import {
-  useContributions,
-  useTelemetry,
-  useTimeContexts,
-} from "@ksp-gonogo/core";
+import { useContributions, useTelemetry } from "@ksp-gonogo/core";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
-  AwaitingSignal,
   Cluster,
   EmptyState,
   Grid,
@@ -65,7 +60,6 @@ export function CommSignalComponent({
     connected,
     noSignal,
     nothingHasArrived,
-    awaitingFirstSignal,
     noRoute,
     pct,
     bars,
@@ -76,8 +70,6 @@ export function CommSignalComponent({
     strengthTip,
   } = useSignalVerdict();
   // Reckonable, but read observed-only because it is drawn in the verdicts' styling.
-  const { owltSeconds } = useTimeContexts();
-  const firstSignalIn = owltSeconds > 0 ? owltSeconds : undefined;
   const delayReading = useTelemetry("comms.delay");
   // A lost link has no route, so the last delay and path are not shown as if they still held.
   const lost = connected === false;
@@ -159,13 +151,7 @@ export function CommSignalComponent({
         sections={
           <Section>
             <EmptyState>
-              {awaitingFirstSignal ? (
-                <AwaitingSignal expectedIn={firstSignalIn} />
-              ) : noRoute ? (
-                "No route to the craft"
-              ) : (
-                "No signal data"
-              )}
+              {noRoute ? "No route to the craft" : "No signal data"}
             </EmptyState>
           </Section>
         }

@@ -48,6 +48,7 @@ registerComponent<CrewStatusConfig>({
   defaultConfig: {},
   actions: [],
   pushable: true,
+  awaitsFirstSignal: true,
   requires: ["flight"],
 });
 

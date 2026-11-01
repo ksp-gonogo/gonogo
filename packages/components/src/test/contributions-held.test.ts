@@ -83,7 +83,7 @@ describe("the built-in contributions draw a held value as held", () => {
       compute("tracking-station.badges", "core:fleet-comms-badge", {
         "comms.link": PENDING,
       }) ?? [];
-    expect(badge).toMatchObject({ label: "COMMS AWAITING" });
+    expect(badge).toMatchObject({ label: "Awaiting first signal" });
   });
 
   it("CommNet Signal says no signal from the readings' own currency", () => {

@@ -1,4 +1,9 @@
-import { useScreen, useTelemetry, useTimeContexts } from "@ksp-gonogo/core";
+import {
+  isAwaitingFirstSignal,
+  useScreen,
+  useTelemetry,
+  useTimeContexts,
+} from "@ksp-gonogo/core";
 import {
   readCentreDelays,
   readOneWaySeconds,
@@ -226,7 +231,7 @@ function PilotSignalDelay({ wrap }: { wrap: Wrap | undefined }) {
  */
 function useLinkConnected(): LinkConnected {
   const linkReading = useTelemetry("comms.link");
-  if (linkReading.state === "pending") return "awaiting";
+  if (isAwaitingFirstSignal(linkReading)) return "awaiting";
   return linkReading.state === "observed"
     ? (linkReading.value.connected ?? undefined)
     : undefined;
