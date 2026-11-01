@@ -46,7 +46,11 @@ import { traceBrokerSocket } from "./peerSocketTrace";
 import type { HostLayout, PeerMessage } from "./protocol";
 import { asPeerMessage, HOST_HEARTBEAT_MS } from "./protocol";
 import { RelayRegistration } from "./RelayRegistration";
-import { STUN_SERVERS, stationsSocketUrl } from "./relayAddress";
+import {
+  relayHasStationEndpoint,
+  STUN_SERVERS,
+  stationsSocketUrl,
+} from "./relayAddress";
 import { SentOnChange } from "./sentOnChange";
 import type { StationLink } from "./stationLink";
 import { StationPacer } from "./stationPace";
@@ -602,7 +606,11 @@ export class PeerHostService {
    */
   shareCode = defaultShareCode();
   /** The relay's station endpoint, which carries every station that joins while it is up. */
-  readonly endpoint = new EndpointStations(stationsSocketUrl);
+  readonly endpoint = new EndpointStations(
+    stationsSocketUrl,
+    undefined,
+    relayHasStationEndpoint,
+  );
   private flightListChangeUnsub: (() => void) | null = null;
   /** True while we're retry-reclaiming the derived peer id after an
    *  `unavailable-id` (broker still holds a stale slot from an unclean
