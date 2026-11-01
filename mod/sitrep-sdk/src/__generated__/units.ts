@@ -1924,6 +1924,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "WarpState": {
     keyframeFloorSec: "s",
+    maxWarpRateIndex: "id",
     observationQuantumUt: "s",
     paused: "flag",
     sampleIntervalUt: "s",
@@ -2421,6 +2422,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "time.warp": {
     keyframeFloorSec: "s",
+    maxWarpRateIndex: "id",
     observationQuantumUt: "s",
     paused: "flag",
     sampleIntervalUt: "s",

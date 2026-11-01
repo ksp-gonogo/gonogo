@@ -11,6 +11,7 @@ const base: WarpControlViewProps = {
   currentRate: 4,
   mode: "Physics",
   currentIndex: 3,
+  maxIndex: null,
   paused: false,
   alarmRequired: false,
   blockingDelay: null,

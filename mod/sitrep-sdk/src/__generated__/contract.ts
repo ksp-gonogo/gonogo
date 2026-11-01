@@ -13171,6 +13171,15 @@ export interface WarpState
 	*/
 	warpRateIndex: number;
 	/**
+	* The highest rung of the warp rate table the game lets the craft use right
+	* now, for the rung table of the mode in force. Near a body the game limits
+	* warp by altitude, so this falls as the craft descends and rises as it
+	* climbs; a `WarpState.warpRateIndex` above it is a rung the game is bringing
+	* down. Null when the game has no warp controller or no active craft to read a
+	* limit for.
+	*/
+	maxWarpRateIndex?: number | null;
+	/**
 	* Which warp mode is in force, on-rails or physics (KSP's
 	* `TimeWarp.WarpMode`).
 	*/

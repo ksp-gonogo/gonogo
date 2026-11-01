@@ -34,7 +34,7 @@ import {
 } from "./styles";
 import { WarpToRow } from "./WarpToRow";
 import type { WarpEventTarget } from "./warpEvents";
-import { formatRate, ladderFor, topWarpIndex } from "./warpLevels";
+import { formatRate, ladderFor, topWarpIndex, warpLabel } from "./warpLevels";
 
 export interface WarpControlViewProps {
   cols: number;
@@ -45,6 +45,8 @@ export interface WarpControlViewProps {
   currentRate: number | null;
   mode: string | null;
   currentIndex: number | null;
+  /** The highest rung the game allows right now, or null when it does not say. */
+  maxIndex: number | null;
   paused: boolean | undefined;
   alarmRequired: boolean;
   blockingDelay: "delay" | "no-path" | null;
@@ -67,6 +69,7 @@ export function WarpControlView({
   currentRate,
   mode,
   currentIndex,
+  maxIndex,
   paused,
   alarmRequired,
   blockingDelay,
@@ -100,6 +103,15 @@ export function WarpControlView({
   const downIdx = Math.max(0, idx - 1);
   const topIdx = topWarpIndex(mode);
   const upIdx = Math.min(topIdx, idx + 1);
+  // A rung the game will not go past is named in the mode caption's place, so the tile gains no row.
+  const capLabel =
+    maxIndex !== null &&
+    currentIndex !== null &&
+    currentIndex > 0 &&
+    currentIndex >= maxIndex &&
+    maxIndex < topIdx
+      ? `CAP ${warpLabel(maxIndex, mode)}`
+      : null;
   const upBlockedBecause = !indexKnown
     ? "The warp level is not reported"
     : alarmRequired
@@ -147,6 +159,8 @@ export function WarpControlView({
                   </span>
                   {paused === true ? (
                     <ReadoutCaption>PAUSED</ReadoutCaption>
+                  ) : capLabel !== null && rows >= 4 ? (
+                    <ReadoutCaption>{capLabel}</ReadoutCaption>
                   ) : (
                     showModeCaption &&
                     mode !== null &&

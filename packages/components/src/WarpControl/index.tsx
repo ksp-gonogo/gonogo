@@ -42,6 +42,7 @@ const topics = defineTopicManifest({
   fields: [
     "time.warp.warpRate",
     "time.warp.warpRateIndex",
+    "time.warp.maxWarpRateIndex",
     "time.warp.warpMode",
     "time.warp.paused",
     "comms.delay.oneWaySeconds",
@@ -272,6 +273,12 @@ function WarpControlComponent({
       currentRate={magnitudeOf(warp?.warpRate)}
       mode={normalizeWarpMode(warp?.warpMode)}
       currentIndex={currentIndex}
+      maxIndex={
+        typeof warp?.maxWarpRateIndex === "number" &&
+        Number.isFinite(warp.maxWarpRateIndex)
+          ? Math.round(warp.maxWarpRateIndex)
+          : null
+      }
       paused={effectivePaused}
       alarmRequired={alarmRequired}
       blockingDelay={blockingDelay}
