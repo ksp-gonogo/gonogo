@@ -8,12 +8,11 @@ namespace Sitrep.Host.Hosting
     /// <summary>One remote station the holder has approved, as the record keeps it.</summary>
     public sealed class ApprovedStationRecord
     {
-        public ApprovedStationRecord(string credential, string name, long approvedAtUnixMs, long lastSeenUnixMs = 0)
+        public ApprovedStationRecord(string credential, string name, long approvedAtUnixMs)
         {
             Credential = credential;
             Name = name;
             ApprovedAtUnixMs = approvedAtUnixMs;
-            LastSeenUnixMs = lastSeenUnixMs;
         }
 
         /// <summary>The secret the station presents to the host. It is never published.</summary>
@@ -22,12 +21,6 @@ namespace Sitrep.Host.Hosting
         public string Name { get; }
 
         public long ApprovedAtUnixMs { get; }
-
-        /// <summary>When the host last found the station's credential approved, or zero when it never has since it was approved.</summary>
-        public long LastSeenUnixMs { get; }
-
-        /// <summary>The later of when the station was approved and when it was last seen: how recently it was in use.</summary>
-        public long LastUsedUnixMs => Math.Max(ApprovedAtUnixMs, LastSeenUnixMs);
     }
 
     /// <summary>What the record keeps across a game restart.</summary>
@@ -64,15 +57,6 @@ namespace Sitrep.Host.Hosting
 
         /// <summary>How long, from the first connection after a restart, only the last holder's token may claim.</summary>
         public double RestartSeconds { get; set; } = 30.0;
-
-        /// <summary>How many approved stations the record keeps. Approving past it drops the ones used least recently.</summary>
-        public int MaxStations { get; set; } = 64;
-
-        /// <summary>How long an approved station may go unused before approving another drops it, in seconds (about six months).</summary>
-        public double StationIdleSeconds { get; set; } = 15_552_000.0;
-
-        /// <summary>How stale a station's last-seen time may be before seeing it again writes a fresh one, in seconds.</summary>
-        public double SeenResolutionSeconds { get; set; } = 3600.0;
     }
 
     /// <summary>What a claim or a heartbeat found.</summary>
@@ -109,9 +93,7 @@ namespace Sitrep.Host.Hosting
     /// <para>A holder is freed <see cref="HostRecordTimings.GraceSeconds"/> after
     /// its last heartbeat or the close of the connection it last spoke on,
     /// whichever came later. A claim with the same token inside that time takes
-    /// the role straight back. A claim with any other token is refused while the
-    /// holder's connection is open and granted once it has closed, since a holder
-    /// that reloads comes back with its own token and one that does not has gone.</para>
+    /// the role straight back and any other token is refused until it ends.</para>
     /// </summary>
     public sealed class HostRecord
     {
@@ -263,9 +245,8 @@ namespace Sitrep.Host.Hosting
         }
 
         /// <summary>
-        /// Ask for the role. Granted when nobody holds it, when the token is the
-        /// holder's own (a reload), or when the holder's connection has closed;
-        /// refused otherwise, with the holder's id.
+        /// Ask for the role. Granted when nobody holds it, or when the token is
+        /// the holder's own (a reload); refused otherwise, with the holder's id.
         /// Every grant raises the generation by one.
         /// </summary>
         public HostRoleOutcome Claim(string token, string connectionId)
@@ -274,7 +255,7 @@ namespace Sitrep.Host.Hosting
             Expire();
             if (_holderToken != null)
             {
-                if (!string.Equals(_holderToken, token, StringComparison.Ordinal) && !_holderAway)
+                if (!string.Equals(_holderToken, token, StringComparison.Ordinal))
                 {
                     return new HostRoleOutcome(false, HolderId, _saved.Generation);
                 }
@@ -376,13 +357,11 @@ namespace Sitrep.Host.Hosting
             var at = _saved.Stations.FindIndex(s => string.Equals(s.Credential, credential, StringComparison.Ordinal));
             if (at < 0)
             {
-                _saved.Stations.Add(new ApprovedStationRecord(credential, shown, _nowUnixMs(), _nowUnixMs()));
-                DropUnusedStations();
+                _saved.Stations.Add(new ApprovedStationRecord(credential, shown, _nowUnixMs()));
             }
             else
             {
-                var kept = _saved.Stations[at];
-                _saved.Stations[at] = new ApprovedStationRecord(credential, shown, kept.ApprovedAtUnixMs, kept.LastSeenUnixMs);
+                _saved.Stations[at] = new ApprovedStationRecord(credential, shown, _saved.Stations[at].ApprovedAtUnixMs);
             }
 
             Persist();
@@ -410,30 +389,9 @@ namespace Sitrep.Host.Hosting
             return true;
         }
 
-        /// <summary>
-        /// The approved station a credential belongs to, or null when it is not
-        /// approved. Finding one notes that it is in use, so the stations dropped
-        /// when the list is full are the ones nobody has used.
-        /// </summary>
-        public ApprovedStationRecord? FindStation(string credential)
-        {
-            var at = _saved.Stations.FindIndex(s => string.Equals(s.Credential, credential, StringComparison.Ordinal));
-            if (at < 0)
-            {
-                return null;
-            }
-
-            var station = _saved.Stations[at];
-            var now = _nowUnixMs();
-            if (now - station.LastUsedUnixMs >= (long)(Timings.SeenResolutionSeconds * 1000))
-            {
-                station = new ApprovedStationRecord(station.Credential, station.Name, station.ApprovedAtUnixMs, now);
-                _saved.Stations[at] = station;
-                Persist();
-            }
-
-            return station;
-        }
+        /// <summary>The approved station a credential belongs to, or null when it is not approved.</summary>
+        public ApprovedStationRecord? FindStation(string credential) =>
+            _saved.Stations.Find(s => string.Equals(s.Credential, credential, StringComparison.Ordinal));
 
         /// <summary>Whether the token is the holder's, after the grace has been applied.</summary>
         public bool HoldsRole(string token)
@@ -454,31 +412,6 @@ namespace Sitrep.Host.Hosting
             _saved.Generation++;
             _saved.LastHolderToken = token;
             Persist();
-        }
-
-        /*
-         * A station that clears its browser's storage mints a new credential and
-         * is approved again, and nothing else ever removes the old one, so the
-         * list would only grow. Stations idle past StationIdleSeconds go first, then
-         * the least recently used until the list fits MaxStations.
-         */
-        private void DropUnusedStations()
-        {
-            var idleBefore = _nowUnixMs() - (long)(Timings.StationIdleSeconds * 1000.0);
-            _saved.Stations.RemoveAll(s => s.LastUsedUnixMs < idleBefore);
-            while (_saved.Stations.Count > Timings.MaxStations)
-            {
-                var oldest = 0;
-                for (var i = 1; i < _saved.Stations.Count; i++)
-                {
-                    if (_saved.Stations[i].LastUsedUnixMs < _saved.Stations[oldest].LastUsedUnixMs)
-                    {
-                        oldest = i;
-                    }
-                }
-
-                _saved.Stations.RemoveAt(oldest);
-            }
         }
 
         private void ClearHolder()

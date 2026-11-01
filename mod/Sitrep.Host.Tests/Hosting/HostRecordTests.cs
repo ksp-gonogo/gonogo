@@ -26,7 +26,7 @@ namespace Sitrep.Host.Tests.Hosting
 
             public List<string> Minted { get; } = new List<string>();
 
-            public HostRecord Open(HostRecordTimings? timings = null)
+            public HostRecord Open()
             {
                 var settings = new SettingsStore(Backing);
                 return new HostRecord(
@@ -38,8 +38,7 @@ namespace Sitrep.Host.Tests.Hosting
                         var code = HostRecord.MintCode();
                         Minted.Add(code);
                         return code;
-                    },
-                    timings: timings);
+                    });
             }
         }
 
@@ -161,29 +160,13 @@ namespace Sitrep.Host.Tests.Hosting
 
             world.Clock.Seconds += 14;
 
-            Assert.False(record.Expire());
-            Assert.True(record.Held);
+            Assert.False(record.Claim("tab-b", "conn-2").Holds);
             world.Clock.Seconds += 2;
-            Assert.True(record.Expire());
-            Assert.False(record.Held);
+            Assert.True(record.Claim("tab-b", "conn-2").Holds);
         }
 
         [Fact]
-        public void ADifferentTokenIsRefusedWhileTheHoldersConnectionIsOpen()
-        {
-            var world = new World();
-            var record = world.Open();
-            record.Claim("tab-a", "conn-1");
-            world.Clock.Seconds += 3;
-
-            var refused = record.Claim("tab-b", "conn-2");
-
-            Assert.False(refused.Holds);
-            Assert.Equal(HostRecord.PublicId("tab-a"), refused.HolderId);
-        }
-
-        [Fact]
-        public void ADifferentTokenIsGrantedAtOnceOnceTheHoldersConnectionHasClosed()
+        public void ADifferentTokenInsideTheGrace_ADuplicatedTab_IsRefused()
         {
             var world = new World();
             var record = world.Open();
@@ -191,12 +174,10 @@ namespace Sitrep.Host.Tests.Hosting
             record.ConnectionClosed("conn-1");
             world.Clock.Seconds += 3;
 
-            var granted = record.Claim("tab-b", "conn-2");
+            var refused = record.Claim("tab-b", "conn-2");
 
-            Assert.True(granted.Holds);
-            Assert.Equal(HostRecord.PublicId("tab-b"), granted.HolderId);
-            Assert.False(record.HolderAway);
-            Assert.False(record.Heartbeat("tab-a", "conn-3").Holds);
+            Assert.False(refused.Holds);
+            Assert.Equal(HostRecord.PublicId("tab-a"), refused.HolderId);
         }
 
         [Fact]
@@ -417,66 +398,6 @@ namespace Sitrep.Host.Tests.Hosting
             Assert.Single(record.Stations);
             Assert.Equal("Pilot tablet", record.FindStation("cred-1")!.Name);
             Assert.Equal(at, record.FindStation("cred-1")!.ApprovedAtUnixMs);
-        }
-
-        [Fact]
-        public void ApprovingPastTheLimitDropsTheStationsUsedLeastRecently()
-        {
-            var world = new World();
-            var record = world.Open(new HostRecordTimings { MaxStations = 3, SeenResolutionSeconds = 0 });
-            record.Claim("tab-a", "conn-1");
-            foreach (var n in new[] { 1, 2, 3 })
-            {
-                record.ApproveStation("tab-a", "cred-" + n, "Station " + n);
-                world.Clock.Seconds += 10;
-                record.Heartbeat("tab-a", "conn-1");
-            }
-
-            record.FindStation("cred-1");
-            world.Clock.Seconds += 10;
-            record.Heartbeat("tab-a", "conn-1");
-            record.ApproveStation("tab-a", "cred-4", "Station 4");
-
-            Assert.Equal(new[] { "Station 1", "Station 3", "Station 4" }, record.Stations.Select(s => s.Name).OrderBy(n => n));
-            Assert.Null(record.FindStation("cred-2"));
-        }
-
-        [Fact]
-        public void ApprovingDropsStationsIdleForLongerThanTheIdleLimit()
-        {
-            var world = new World();
-            var record = world.Open(new HostRecordTimings { StationIdleSeconds = 1000 });
-            record.Claim("tab-a", "conn-1");
-            record.ApproveStation("tab-a", "cred-old", "Old tablet");
-            record.ApproveStation("tab-a", "cred-busy", "Busy tablet");
-            world.Clock.Seconds += 600;
-            Assert.NotNull(record.FindStation("cred-busy"));
-            world.Clock.Seconds += 600;
-            record.Claim("tab-a", "conn-2");
-
-            record.ApproveStation("tab-a", "cred-new", "New tablet");
-
-            Assert.Equal(new[] { "Busy tablet", "New tablet" }, record.Stations.Select(s => s.Name).OrderBy(n => n));
-        }
-
-        [Fact]
-        public void WhenAStationWasLastSeenSurvivesARestart_AndARecordWrittenWithoutItStillLoads()
-        {
-            var world = new World();
-            var record = world.Open(new HostRecordTimings { SeenResolutionSeconds = 0 });
-            record.Claim("tab-a", "conn-1");
-            record.ApproveStation("tab-a", "cred-1", "Tablet");
-            world.Clock.Seconds += 100;
-            var seen = record.FindStation("cred-1")!.LastSeenUnixMs;
-
-            Assert.Equal(seen, world.Open().FindStation("cred-1")!.LastSeenUnixMs);
-
-            var old = new SettingsStore(world.Backing);
-            old.Stage(SettingsHostRecordStore.StationsPath, "cred-2,Old,1700000000000");
-            old.Commit();
-            var loaded = world.Open().Stations.Single();
-            Assert.Equal("Old", loaded.Name);
-            Assert.Equal(1700000000000L, loaded.LastUsedUnixMs);
         }
 
         [Fact]

@@ -42,7 +42,7 @@ public class HostRecordModel
     [SitrepUnit(Units.Flag)]
     public bool Held { get; set; }
 
-    /// <summary>True while the holder's connection is closed and the role is kept for it to come back, as a page reload does. A screen that claims the role in this time is granted it. The role is freed when the grace ends.</summary>
+    /// <summary>True while the holder's connection is closed and the role is kept for it to come back, as a page reload does. The role is freed when the grace ends.</summary>
     [SitrepUnit(Units.Flag)]
     public bool HolderAway { get; set; }
 

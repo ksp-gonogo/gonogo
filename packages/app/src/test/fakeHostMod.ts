@@ -103,8 +103,7 @@ export class FakeHostMod {
     const refused = { success: false, errorCode: "wrongState" };
     switch (command) {
       case "host.claim":
-        if (this.holderToken !== undefined && !holds && !this.holderAway)
-          return roleReply(false);
+        if (this.holderToken !== undefined && !holds) return roleReply(false);
         this.generation += 1;
         this.take(token, connection);
         return roleReply(true);

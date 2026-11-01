@@ -11,7 +11,6 @@ import {
 import { HostJobs } from "../hosting/HostJobs";
 import { HostRole, type HostRoleState } from "../hosting/HostRole";
 import { HostRoleProvider, registerHostRole } from "../hosting/HostRoleContext";
-import { releaseOnClose } from "../hosting/releaseOnClose";
 import { TakeoverNotice } from "../hosting/TakeoverNotice";
 import { acquireTabToken, type TabToken } from "../hosting/tabToken";
 import { WaitingForGame } from "../hosting/WaitingForGame";
@@ -33,10 +32,9 @@ const WAITING: HostRoleState = { kind: "waiting" };
  * the tab's own token and follow the connection when it is replaced. `null`
  * until the token is known.
  *
- * A page that closes gives the role up as it goes, and a reload keeps it: the
- * reloaded tab takes the role straight back with its own token inside the
- * grace. A browser that cannot tell the two lets a closed tab go when the
- * grace runs out.
+ * Nothing gives the role up as the page goes: a page going away cannot tell a
+ * reload from a close, and a reloaded tab takes the role straight back with its
+ * own token inside the grace. A closed tab is let go when the grace runs out.
  */
 function useHostRoleOver(
   jobs: HostJobs,
@@ -76,7 +74,6 @@ function useHostRoleOver(
   }, [role, client]);
 
   useEffect(() => (role ? registerHostRole(role) : undefined), [role]);
-  useEffect(() => (role ? releaseOnClose(role) : undefined), [role]);
 
   return role;
 }
