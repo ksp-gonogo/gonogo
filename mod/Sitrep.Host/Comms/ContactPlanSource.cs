@@ -2151,6 +2151,8 @@ namespace Sitrep.Host.Comms
                     ? null
                     : _receivedRoutes.Note(centre, looked.ActiveCraft, looked.Ut, _routes?.ActiveVesselRoute(centre), lightFactor);
                 var cut = gameRoute == null && HeardCut(centre, radio);
+                // The game's route is known to the centre only once the first sample over it lands; until then the plan's path would state a belief the centre does not have.
+                var awaitingRoute = looked.ActiveCraft != null && gameRoute == null && _receivedRoutes.AwaitingFirst(centre);
                 // A delay that is switched off, or a save with no network to cross, is a setting and not a distance: it needs no plan to state. Where delay is merely off, a craft the centre believes has no path still has none.
                 var measured = modelled && lightFactor > 0.0;
                 if (!measured && _host!.IsAnyTopicSubscribed(DelayTopic) && (looked.RoutesDue || _pathsAsked[DelayTopic].Contains(centre)))
@@ -2167,7 +2169,7 @@ namespace Sitrep.Host.Comms
                     _streams!.PublishAddressedTo(DelayTopic, CentreDelay.NotMeasured(modelled, offPath, source), looked.Ut, ToItself(centre));
                     frames++;
                 }
-                if (plan == null && looked.ActiveCraft != null && gameRoute == null)
+                if ((plan == null || awaitingRoute) && looked.ActiveCraft != null && gameRoute == null)
                 {
                     // Between one plan and the next the centre believes what it last believed.
                     frames += PublishSignal(looked, centre, _believed.Of(centre, looked.ActiveCraft), radio);

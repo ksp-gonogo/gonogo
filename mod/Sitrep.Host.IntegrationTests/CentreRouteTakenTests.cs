@@ -173,6 +173,31 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal(after, Delay(view.Latest(ContactPlanSource.DelayTopic))!.Value, 6);
         }
 
+        /// <summary>
+        /// Straight after a scene load the centre has heard nothing of the
+        /// route the game takes its samples over, so it is shown no path and
+        /// no delay rather than the one hop its plan would draw.
+        /// </summary>
+        [Fact]
+        public async Task ACentreThatHasNotYetHeardTheGamesRouteIsShownNeitherAPlanPathNorADelay()
+        {
+            var game = new ScriptedContactGame();
+            game.GameRoutes[Far] = FarRoute();
+            await using var world = await ReckonedVantageWorld.StartAsync(game);
+            var (client, view) = await world.SitDownAtAsync(Far, ContactPlanSource.DelayTopic, ScriptedContactUplink.ActiveTelemetryTopic);
+            await using var _ = client;
+            foreach (var ut in Enumerable.Range(700, 11).Select(s => (double)s))
+            {
+                world.Game.ActiveValue = ut;
+                world.Tick(ut);
+            }
+            await Task.WhenAll(world.SettleAsync(), ReckonedVantageWorld.SettleAsync(client, view));
+
+            Assert.True(view.Path == null || Hops(view.Path).Length == 0);
+            var delay = view.Latest(ContactPlanSource.DelayTopic);
+            Assert.True(delay == null || Delay(delay) == null);
+        }
+
         /// <summary>The delay a centre is quoted in a world where the game states no route, which is its plan's.</summary>
         private static async Task<double?> PlannedDelayAsync(string centre)
         {
