@@ -114,8 +114,6 @@ export function useStationPoll(client: PeerClient | null): StationPoll {
     // A main screen that restarted has forgotten every vote, so a GO held here from before would otherwise come back as if it still stood.
     const unsubRestart = client.onHostRestart(() => {
       iAbortedRef.current = false;
-      // The new main screen holds no countdown, so one still ticking here would run out and sit at T-0 with nothing to end it.
-      setCountdownT0(null);
       effectiveVoteRef.current = eligibleRef.current ? "no-go" : null;
       setVote("no-go");
     });

@@ -171,7 +171,7 @@ type ConnStatus = Parameters<
  * with the code from the game's record.
  */
 function JoinedLocalScreen({ seat, code }: { seat: Seat; code: string }) {
-  const [client] = useState(() => new PeerClientService({ seat }));
+  const [client] = useState(() => new PeerClientService());
   const [status, setStatus] = useState<ConnStatus>("idle");
   const [hostNotFound, setHostNotFound] = useState(false);
 

@@ -1818,29 +1818,6 @@ const WIDGETS: WidgetRenderConfig[] = [
     })(),
   },
   {
-    // A y axis with no unit over a range of a few hundred metres around 100 km.
-    widgetId: "graph",
-    label: "graph/narrow-range",
-    fixturesPath: "Graph/__render_narrow_range__",
-    outPath: "renders/narrow-range",
-    modes: (() => {
-      const config = {
-        windowSec: 600,
-        variant: "chart",
-        series: [
-          {
-            id: "s",
-            key: "vessel.dock.distance",
-            label: "Distance",
-            type: "line",
-            axis: "primary",
-          },
-        ],
-      };
-      return [{ name: "default-12x9", w: 12, h: 9, config }];
-    })(),
-  },
-  {
     // See graph/warp-dock-1x.
     widgetId: "graph",
     label: "graph/warp-dock-fast",

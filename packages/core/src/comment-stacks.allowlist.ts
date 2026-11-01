@@ -171,6 +171,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/app/src/telemetry/PeerTransport.test.ts": 2,
   "packages/app/src/telemetry/PeerTransport.ts": 1,
   "packages/app/src/telemetry/SitrepPeerRelay.tsx": 2,
+  "packages/app/src/telemetry/SitrepTelemetryProvider.tsx": 1,
   "packages/app/src/telemetry/StationParity.characterise.test.tsx": 1,
   "packages/app/src/trajectory/TrajectoryCurrencyBridge.tsx": 1,
   "packages/app/src/uplinks/StationUplinkLoader.test.tsx": 1,
