@@ -12,7 +12,7 @@ const NO_PATH_DELAY = {
 };
 
 describe("CommSignal: a craft with no route to any command centre", () => {
-  it("reads as out of contact once the delay says no route exists", () => {
+  it("reads as out of contact, not as awaiting a first signal that cannot come", () => {
     const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
     render(
       <fixture.Provider>
@@ -21,6 +21,8 @@ describe("CommSignal: a craft with no route to any command centre", () => {
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );
+    expect(screen.getByText("Awaiting first signal")).toBeTruthy();
+
     act(() => {
       fixture.emit("comms.delay", NO_PATH_DELAY);
     });

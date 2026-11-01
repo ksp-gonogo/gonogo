@@ -216,12 +216,6 @@ async function main(): Promise<void> {
       const actualPath = join(actualDir, file);
       const baselinePath = join(baselineDir, file);
       if (!baselineNames.has(file)) {
-        const outDir = resolve(DIFF_OUT, engine, config.widgetId);
-        await mkdir(outDir, { recursive: true });
-        await cp(
-          actualPath,
-          join(outDir, `${file.replace(/\.png$/, "")}.actual.png`),
-        );
         failures.push({
           widget: config.widgetId,
           name: file,

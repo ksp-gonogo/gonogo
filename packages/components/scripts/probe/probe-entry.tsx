@@ -475,12 +475,6 @@ async function mountInto(
     registerDataSource(buffered);
   }
   await buffered.connect();
-  // A fixture that sets `_sitrepHost` pictures a mounted telemetry host, so a guarded widget is not refused for want of one.
-  if (payload.fixture._sitrepHost === true && !getDataSource("sitrep")) {
-    const host = new MockDataSource({ id: "sitrep", keys: [] });
-    registerDataSource(host);
-    await host.connect();
-  }
 
   // Force-load BOTH locked-font weights before mounting so the very first
   // layout uses JetBrains Mono metrics for regular AND bold text. Awaiting
@@ -902,7 +896,6 @@ function guarded(
   if (payload.fixture._guarded !== true) return body;
   return (
     <RequiresGuard
-      awaitsFirstSignal={def.awaitsFirstSignal}
       channels={def.channels}
       families={def.channelFamilies}
       optionalFamilies={def.optionalChannelFamilies}

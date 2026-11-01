@@ -1,5 +1,5 @@
 import { Quality, type Value } from "@ksp-gonogo/sitrep-sdk";
-import { AwaitingSignal, Unit } from "@ksp-gonogo/ui-kit";
+import { Unit } from "@ksp-gonogo/ui-kit";
 import { FRAME_CAPTION } from "./ContactCaption";
 import type { TargetHorizon } from "./targetOrbit";
 
@@ -64,15 +64,6 @@ export function HeldPlanCaption({
       {encountersHidden ? "Route held" : "Route and encounters held"} from the
       craft's report <Unit value={reportAge} decimals={0} /> ago
       {targetName !== null && <> · {targetName} is drawn as of now</>}
-    </div>
-  );
-}
-
-/** The relay graph's first report is still crossing the distance, so no relay or connection line is drawn yet. */
-export function CommsAwaitingCaption() {
-  return (
-    <div style={FRAME_CAPTION} data-comms-awaiting="">
-      Comms network · <AwaitingSignal />
     </div>
   );
 }

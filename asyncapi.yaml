@@ -13956,17 +13956,6 @@ components:
             ago; false through a blackout. `null` when nothing is reported yet, which is
             not a lost link: no craft is on screen, or the game has not yet solved the
             link of one that just came on screen.
-        routeHome:
-          type:
-            - boolean
-            - "null"
-          x-sitrep-unit: flag
-          description: |-
-            Whether the craft has a route to a command centre, sent only to a pilot
-            aboard the craft, whose `CommsLink.connected` always reads true because the
-            crew are never cut off from their own craft. False while the craft is out of
-            contact with mission control. `null` at every other vantage and whenever the
-            craft is in contact, where `CommsLink.connected` already says it.
         meta:
           description: The payload's provenance (`"vessel:<guid>"` or `"game"`).
           allOf:

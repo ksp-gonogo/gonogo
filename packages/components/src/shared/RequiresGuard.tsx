@@ -3,7 +3,6 @@ import {
   type ComponentRequirement,
   HeldOpenContext,
   NO_TELEMETRY_HOST_MESSAGE,
-  useAwaitingFirstSignal,
   useCrashEnding,
   useGameContext,
   useTelemetryHostDown,
@@ -13,7 +12,6 @@ import { type ChannelFamily, familyPrefix } from "@ksp-gonogo/sitrep-sdk";
 import { useClaimCapability } from "@ksp-gonogo/sitrep-sdk/spine";
 import { DimmedOverlay } from "@ksp-gonogo/ui";
 import {
-  AWAITING_FIRST_SIGNAL,
   Cluster,
   LockMark,
   LockScope,
@@ -27,8 +25,6 @@ export interface RequiresGuardProps {
   requires?: readonly ComponentRequirement[];
   /** Reasons the widget stays open while a `requires` is not met. */
   heldOpenBy?: readonly ComponentHeldOpen[];
-  /** The widget has nothing to draw until the link's first report arrives, so the awaiting notice stands in for it until then. */
-  awaitsFirstSignal?: boolean | { heading: string };
   /** The widget's required channels only; optional channels never gate. */
   channels?: readonly string[];
   /**
@@ -69,7 +65,6 @@ export interface RequiresGuardProps {
 export function RequiresGuard({
   requires,
   heldOpenBy,
-  awaitsFirstSignal,
   channels,
   families,
   optionalFamilies,
@@ -125,47 +120,10 @@ export function RequiresGuard({
         channels={healthChecked}
         title={title}
       >
-        {awaitsFirstSignal !== undefined && awaitsFirstSignal !== false ? (
-          <AwaitingFirstSignalGate
-            title={
-              typeof awaitsFirstSignal === "object"
-                ? awaitsFirstSignal.heading
-                : title
-            }
-            compact={compact}
-          >
-            {children}
-          </AwaitingFirstSignalGate>
-        ) : (
-          children
-        )}
+        {children}
       </ReadinessGate>
     </LockScope>
   );
-}
-
-/** Draws the awaiting notice in place of the widget until the link's first report arrives. */
-function AwaitingFirstSignalGate({
-  title,
-  compact,
-  children,
-}: {
-  title?: string;
-  compact?: { title: string };
-  children: ReactNode;
-}) {
-  const awaiting = useAwaitingFirstSignal();
-  if (!awaiting) return <>{children}</>;
-  return compact ? (
-    <TinyNotice title={compact.title} />
-  ) : (
-    <GuardPlaceholder title={title} message={AWAITING_FIRST_SIGNAL} />
-  );
-}
-
-/** A tiny tile has no room for the whole wording, so it draws nothing but the hover heading. */
-function TinyNotice({ title }: { title: string }) {
-  return <Panel panelTitle={title} fitToSize hoverTitle />;
 }
 
 /** Claims one declared channel with the widget's scope, drawing nothing. */

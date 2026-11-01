@@ -4,15 +4,6 @@ import { Countdown } from "./Countdown";
 import { Text } from "./Text";
 
 /**
- * The wording shown in place of a missing figure while the vessel's first link report is still on its way to the command centre.
- * Useful for giving the operator one phrase for that state on every widget that waits for the first report.
- * Used by {@link AwaitingSignal} and by the widget frame of the dashboard.
- *
- * @category EmptyState
- */
-export const AWAITING_FIRST_SIGNAL = "Awaiting first signal";
-
-/**
  * Props for {@link AwaitingSignal}.
  * Useful for giving the notice the time the first report is expected in.
  * Used by {@link AwaitingSignal}.
@@ -48,7 +39,7 @@ export function AwaitingSignal({ expectedIn }: AwaitingSignalProps) {
   const counting = Number.isFinite(total) && total > 0;
   return (
     <>
-      {AWAITING_FIRST_SIGNAL}
+      Awaiting first signal
       {counting && hasHost() && <ClockedRemaining total={total} />}
     </>
   );

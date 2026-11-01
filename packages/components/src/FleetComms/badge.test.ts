@@ -28,11 +28,7 @@ describe("commsLinkBadge", () => {
 
   it("says a link not yet heard from is awaited, which is neither a link nor an outage", () => {
     expect(commsLinkBadge("awaiting")).toEqual([
-      {
-        id: "fleet-comms-link",
-        label: "Awaiting first signal",
-        tone: "neutral",
-      },
+      { id: "fleet-comms-link", label: "COMMS AWAITING", tone: "neutral" },
     ]);
   });
 

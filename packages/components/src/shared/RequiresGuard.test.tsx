@@ -65,8 +65,6 @@ function renderGuard(
     heldOpenBy?: readonly "crash-ending"[];
     channels?: readonly string[];
     title?: string;
-    awaitsFirstSignal?: boolean | { heading: string };
-    compact?: { title: string };
   } = {},
 ) {
   const transport = new StubTransport();
@@ -78,8 +76,6 @@ function renderGuard(
         heldOpenBy={props.heldOpenBy}
         channels={props.channels}
         title={props.title}
-        awaitsFirstSignal={props.awaitsFirstSignal}
-        compact={props.compact}
       >
         {children}
       </RequiresGuard>
@@ -303,57 +299,5 @@ describe("RequiresGuard: held open by the crash a flight ended in", () => {
     await waitFor(() =>
       expect(screen.getByText("Vessel in flight required")).toBeInTheDocument(),
     );
-  });
-});
-
-describe("RequiresGuard: a widget with nothing to draw until the link's first report", () => {
-  it("shows the awaiting notice in place of the widget until the link reports", async () => {
-    const { transport } = renderGuard(<div>widget content</div>, {
-      awaitsFirstSignal: true,
-      title: "Crew Status",
-    });
-    expect(screen.getByText("Awaiting first signal")).toBeInTheDocument();
-    expect(screen.queryByText("widget content")).not.toBeInTheDocument();
-
-    act(() => transport.emit("comms.link", { connected: true }));
-    await waitFor(() =>
-      expect(screen.getByText("widget content")).toBeInTheDocument(),
-    );
-    expect(screen.queryByText("Awaiting first signal")).not.toBeInTheDocument();
-  });
-
-  it("passes a link reported down through, since that is an answer and not a wait", async () => {
-    const { transport } = renderGuard(<div>widget content</div>, {
-      awaitsFirstSignal: true,
-    });
-    act(() => transport.emit("comms.link", { connected: false }));
-    await waitFor(() =>
-      expect(screen.getByText("widget content")).toBeInTheDocument(),
-    );
-  });
-
-  it("leaves a widget that does not declare it alone while the link is pending", () => {
-    renderGuard(<div>widget content</div>);
-    expect(screen.getByText("widget content")).toBeInTheDocument();
-    expect(screen.queryByText("Awaiting first signal")).not.toBeInTheDocument();
-  });
-
-  it("keeps the widget's own heading rather than its registered name", () => {
-    renderGuard(<div>widget content</div>, {
-      awaitsFirstSignal: { heading: "COMMNET" },
-      title: "CommNet Signal",
-    });
-    expect(screen.getByText("COMMNET")).toBeInTheDocument();
-    expect(screen.queryByText("CommNet Signal")).not.toBeInTheDocument();
-  });
-
-  it("keeps only the tiny heading in a tiny tile, never part of the wording", () => {
-    renderGuard(<div>widget content</div>, {
-      awaitsFirstSignal: true,
-      title: "CommNet Signal",
-      compact: { title: "COMMNET" },
-    });
-    expect(screen.getByText("COMMNET")).toBeInTheDocument();
-    expect(screen.queryByText("Awaiting first signal")).not.toBeInTheDocument();
   });
 });

@@ -12073,10 +12073,6 @@
         "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
       },
       {
-        "key": "sitrep-sdk . ComponentDefinition#awaitsFirstSignal?",
-        "note": "Lets a widget with nothing to draw before the link reports have the dashboard draw the awaiting notice in its place"
-      },
-      {
         "key": "sitrep-sdk . ComponentDefinition#channelFamilies?",
         "note": "Families of runtime-built Topics the widget needs, claimed and health-checked by their literal prefix"
       },
@@ -13711,10 +13707,6 @@
       {
         "key": "sitrep-sdk ./registry ~CommandId",
         "note": "Reachable through ./registry now that ComponentDefinition.commands is typed by CommandId; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ComponentDefinition#awaitsFirstSignal?",
-        "note": "Reachable through ./registry with ComponentDefinition; same member"
       },
       {
         "key": "sitrep-sdk ./registry ~ComponentDefinition#channelFamilies?",
@@ -16995,10 +16987,6 @@
       {
         "key": "sitrep-sdk ./uplink-manifest UplinkWrappedMod#tier?",
         "note": "New: the mod block of uplink.json as a named, documented type"
-      },
-      {
-        "key": "ui-kit . AWAITING_FIRST_SIGNAL",
-        "note": "The one wording for a link report that has not arrived yet, shared by every widget that shows it"
       },
       {
         "key": "ui-kit . ActionMenuItem#\"aria-label\"?",

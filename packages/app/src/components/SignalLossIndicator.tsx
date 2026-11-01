@@ -1,8 +1,4 @@
-import {
-  isAwaitingFirstSignal,
-  useTelemetry,
-  useTimeContexts,
-} from "@ksp-gonogo/core";
+import { useTelemetry, useTimeContexts } from "@ksp-gonogo/core";
 import { collapseControlStateLevel } from "@ksp-gonogo/sitrep-client";
 import {
   useViewClockOptional,
@@ -56,7 +52,7 @@ const AWAITING_GRACE_MS = 1500;
 export function SignalLossIndicator() {
   const linkReading = useTelemetry("comms.link");
   const { owltSeconds } = useTimeContexts();
-  const linkPending = isAwaitingFirstSignal(linkReading);
+  const linkPending = linkReading.state === "pending";
   const [graceElapsed, setGraceElapsed] = useState(false);
   useEffect(() => {
     if (!linkPending) {

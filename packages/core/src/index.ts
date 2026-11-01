@@ -40,7 +40,6 @@ export * from "./coverageSource";
 export * from "./declarations";
 export * from "./hooks/defineTopicManifest";
 export * from "./hooks/useActionInput";
-export * from "./hooks/useAwaitingFirstSignal";
 export * from "./hooks/useCrashEnding";
 export * from "./hooks/useDataSources";
 export * from "./hooks/useGameContext";

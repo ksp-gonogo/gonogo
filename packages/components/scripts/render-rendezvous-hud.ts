@@ -62,7 +62,6 @@ interface Mode {
  */
 const MODES: Mode[] = [
   { name: "default-6x9", w: 6, h: 9 },
-  { name: "smallest-4x6", w: 4, h: 6 },
   { name: "tall-8x12", w: 8, h: 12 },
   { name: "landscape-18x5", w: 18, h: 5 },
 ];
@@ -115,7 +114,6 @@ async function main(): Promise<void> {
     console.error("--out-suffix needs a value");
     process.exit(1);
   }
-  const cleared = args.includes("--cleared");
   const outDir = join(
     RENDERS_ROOT,
     suffix ? `rendezvous-hud-${suffix}` : "rendezvous-hud",
@@ -195,7 +193,6 @@ async function main(): Promise<void> {
         const payload: RendezvousHudProbePayload = {
           pinnedUt: fixture._stream.pinnedUt,
           emits: fixture._stream.emits,
-          thenEmits: cleared ? [{ channel: "vessel.target", value: null }] : [],
           config: { autoSwitch: true, hudMode: state.hudMode },
           w: mode.w,
           h: mode.h,

@@ -141,7 +141,6 @@ export function WidgetShell({
                 <RequiresGuard
                   requires={def.requires}
                   heldOpenBy={def.heldOpenBy}
-                  awaitsFirstSignal={def.awaitsFirstSignal}
                   channels={def.channels}
                   families={def.channelFamilies}
                   optionalFamilies={def.optionalChannelFamilies}

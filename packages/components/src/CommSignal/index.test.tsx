@@ -40,6 +40,13 @@ function tooltips(): string[] {
 }
 
 describe("CommSignalComponent", () => {
+  it("says it is awaiting the first signal until any signal field arrives, and never that there is none", () => {
+    renderComm(newFixture());
+    expect(screen.getByText("Awaiting first signal")).toBeInTheDocument();
+    expect(screen.queryByText(/no signal/i)).toBeNull();
+    expect(screen.queryByLabelText(/no signal/i)).toBeNull();
+  });
+
   it("labels the bars accessibly from signal strength", async () => {
     const fixture = newFixture();
     renderComm(fixture);
