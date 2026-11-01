@@ -550,6 +550,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "CommsLink": {
     connected: "flag",
+    routeHome: "flag",
   },
   "CommsNetworkEdge": {
     a: "id",
@@ -2050,6 +2051,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "comms.link": {
     connected: "flag",
+    routeHome: "flag",
   },
   "comms.nextLoss": {
     basis: "enum",

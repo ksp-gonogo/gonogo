@@ -204,6 +204,7 @@ function PilotSignalDelay({ wrap }: { wrap: Wrap | undefined }) {
   const aboard = useSelectedVantage();
   const { homeId } = useActiveCentres();
   const linkConnected = useLinkConnected();
+  const routeHome = useRouteHome();
   const centreDelays = useCentreDelays();
   const homeSeconds =
     readOneWaySeconds(useLatestValue<unknown>("comms.delay")) ?? undefined;
@@ -220,9 +221,22 @@ function PilotSignalDelay({ wrap }: { wrap: Wrap | undefined }) {
           isHome: hostCentre === homeId,
           homeSeconds,
           centreDelays,
-          linkConnected,
+          linkConnected: routeHome === false ? false : linkConnected,
         });
   return <SignalDelayValue state={state} wrap={wrap} />;
+}
+
+/**
+ * Whether the craft has a route to a command centre, as the link report tells
+ * a pilot aboard it. That report's own `connected` always reads true at the
+ * craft, so this field is the only place an outage reaches the pilot; it is
+ * `undefined` whenever the craft is in contact or nothing is reported yet.
+ */
+function useRouteHome(): boolean | undefined {
+  const linkReading = useTelemetry("comms.link");
+  return linkReading.state === "observed"
+    ? (linkReading.value.routeHome ?? undefined)
+    : undefined;
 }
 
 /**
