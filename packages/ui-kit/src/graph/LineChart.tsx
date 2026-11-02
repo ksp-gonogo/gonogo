@@ -353,6 +353,8 @@ const MAX_GUTTER_SHARE = 0.4;
 const SPATIAL_GRID_PITCH_PX = 26;
 /** The strip an axis title takes beside or under its tick labels. */
 const AXIS_TITLE_PX = 14;
+/** The narrowest chart that still has room for axis titles beside its tick labels. */
+const AXIS_TITLE_MIN_WIDTH_PX = 160;
 /** The height of one legend chip row, chip and gap. */
 const LEGEND_ROW_PX = 16;
 /** Space between a legend strip and the chart's edge. */
@@ -690,9 +692,11 @@ export function LineChart({
   const legendStripH =
     legendStrip.rows === 0 ? 0 : legendStrip.rows * LEGEND_ROW_PX + 4;
 
+  const roomForTitles = w >= AXIS_TITLE_MIN_WIDTH_PX;
   const titledX = !bare && !hideXAxis && !!xAxisLabel;
-  const titledY = !bare && !!yAxisLabel;
-  const titledSecondary = !bare && hasSecondary && !!ySecondaryAxisLabel;
+  const titledY = !bare && roomForTitles && !!yAxisLabel;
+  const titledSecondary =
+    !bare && roomForTitles && hasSecondary && !!ySecondaryAxisLabel;
   // A compact plot keeps one pixel of inset so its outermost stroke is not clipped. A spatial plot fills its frame, which clips it to its own corner radius.
   const edge = spatial ? 0 : 1;
   const base = bare
