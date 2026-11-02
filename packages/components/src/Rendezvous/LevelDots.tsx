@@ -1,4 +1,4 @@
-import { Button } from "@ksp-gonogo/ui-kit";
+import { Button, Tooltip } from "@ksp-gonogo/ui-kit";
 import { LEVEL_NAMES } from "./LensStack";
 import type { RendezvousLevel } from "./levels";
 
@@ -39,28 +39,30 @@ export function LevelDots({
       {levels.map((level) => {
         const on = level === current;
         return (
-          <Button
-            key={level}
-            variant="text"
-            size="sm"
-            aria-label={`${LEVEL_NAMES[level]} level`}
-            aria-current={on ? "step" : undefined}
-            title={LEVEL_NAMES[level]}
-            onClick={() => onSelect(level)}
-          >
-            <span
-              aria-hidden="true"
-              style={{
-                display: "block",
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                boxSizing: "border-box",
-                backgroundColor: on ? "var(--color-accent-fg)" : "transparent",
-                border: on ? "none" : "1px solid var(--color-text-faint)",
-              }}
-            />
-          </Button>
+          <Tooltip key={level} text={LEVEL_NAMES[level]}>
+            <Button
+              variant="text"
+              size="sm"
+              aria-label={`${LEVEL_NAMES[level]} level`}
+              aria-current={on ? "step" : undefined}
+              onClick={() => onSelect(level)}
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  display: "block",
+                  width: 8,
+                  height: 8,
+                  borderRadius: "var(--radius-circle)",
+                  boxSizing: "border-box",
+                  backgroundColor: on
+                    ? "var(--color-accent-fg)"
+                    : "transparent",
+                  border: on ? "none" : "1px solid var(--color-text-faint)",
+                }}
+              />
+            </Button>
+          </Tooltip>
         );
       })}
     </fieldset>

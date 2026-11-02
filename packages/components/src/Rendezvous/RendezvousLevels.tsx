@@ -59,7 +59,6 @@ export function RendezvousLevels({
         style={{
           position: "absolute",
           inset: 0,
-          zIndex: 1,
           pointerEvents: "none",
         }}
       >
@@ -73,7 +72,6 @@ export function RendezvousLevels({
             right: 0,
             bottom: 0,
             height: DOTS_HEIGHT,
-            zIndex: 1,
           }}
         >
           <LevelDots levels={levels} current={level} onSelect={onSelect} />

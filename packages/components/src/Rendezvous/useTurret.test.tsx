@@ -42,7 +42,6 @@ describe("useTurret", () => {
   beforeEach(() => {
     now = 0;
     frames = [];
-    vi.spyOn(performance, "now").mockImplementation(() => now);
     vi.stubGlobal("requestAnimationFrame", (cb: (t: number) => void) => {
       frames.push(cb);
       return frames.length;
@@ -77,7 +76,7 @@ describe("useTurret", () => {
       ({ level }: { level: RendezvousLevel }) => useTurret("craft", level),
       { initialProps: { level: "far" as RendezvousLevel } },
     );
-    now = SETTLE_MS + 1;
+    runFrames(SETTLE_MS + 200);
     rerender({ level: "approach" });
     expect(result.current.step).toMatchObject({
       lower: "far",
@@ -97,7 +96,7 @@ describe("useTurret", () => {
       ({ level }: { level: RendezvousLevel }) => useTurret("craft", level),
       { initialProps: { level: "approach" as RendezvousLevel } },
     );
-    now = SETTLE_MS + 1;
+    runFrames(SETTLE_MS + 200);
     rerender({ level: "far" });
     expect(result.current.step).toMatchObject({
       lower: "far",
@@ -114,7 +113,7 @@ describe("useTurret", () => {
       ({ level }: { level: RendezvousLevel }) => useTurret("craft", level),
       { initialProps: { level: "far" as RendezvousLevel } },
     );
-    now = SETTLE_MS + 1;
+    runFrames(SETTLE_MS + 200);
     rerender({ level: "docking" });
     runFrames(now + STEP_MS + 200);
     expect(result.current.shown).toBe("approach");
@@ -127,7 +126,6 @@ describe("useTurret", () => {
       ({ level }: { level: RendezvousLevel }) => useTurret("craft", level),
       { initialProps: { level: "far" as RendezvousLevel } },
     );
-    now = SETTLE_MS - 100;
     rerender({ level: "docking" });
     expect(result.current).toEqual({ shown: "docking", step: null });
   });

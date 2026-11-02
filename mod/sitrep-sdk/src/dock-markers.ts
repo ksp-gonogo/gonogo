@@ -1,7 +1,19 @@
-/** Degrees either axis may be off the port's line for a docking mark to read as lined up. */
+/**
+ * Degrees either axis may be off the port's line for a docking mark to read as
+ * lined up. Useful for colouring an alignment cue the same way as the four
+ * triangles. Used by the Rendezvous widget's border cue.
+ *
+ * @category Widget slots
+ */
 export const DOCK_LINED_UP_DEG = 1;
 
-/** The four marks around a docking port, named for the side of the port each sits on. */
+/**
+ * The four marks around a docking port, named for the side of the port each
+ * sits on. Useful for drawing or styling one triangle at a time. Used by
+ * {@link dockMarkStyles} and {@link dockMarkPath}.
+ *
+ * @category Widget slots
+ */
 export type DockMarkSide = "top" | "right" | "bottom" | "left";
 
 /**
@@ -14,12 +26,22 @@ export type DockMarkSide = "top" | "right" | "bottom" | "left";
  * @category Widget slots
  */
 export interface DockMarkStyle {
+  /** The CSS colour of the triangle. */
   colour?: string;
+  /** Whether the triangle is outlined and dashed rather than filled. */
   dashed?: boolean;
+  /** Whether the triangle is left out. */
   hidden?: boolean;
 }
 
-/** What the four triangles around the target port are drawn from. */
+/**
+ * What the four triangles around the target port are drawn from: whether they
+ * show, the horizontal and vertical angles off the port's line, and whether the
+ * ports are aligned or docked. Useful for styling the triangles the same on a
+ * camera picture and a drawn view. Taken by {@link dockMarkStyles}.
+ *
+ * @category Widget slots
+ */
 export interface DockMarkInput {
   /** Whether the port is in front of the lens, in frame and not hidden behind something; with no camera, whether the port is inside the drawn circle. */
   visible: boolean;
@@ -74,16 +96,35 @@ export function dockMarkStyles(
   };
 }
 
-/** Where the four triangles sit: the centre of the port, half the side of the box they surround, the side of each triangle, and the stroke. Pixels. */
+/**
+ * Where the four triangles sit, in pixels: the centre of the port, half the
+ * side of the box they surround, the side of each triangle, and the stroke.
+ * Useful for drawing the triangles on a picture at any size. Taken by
+ * {@link dockMarkPath}.
+ *
+ * @category Widget slots
+ */
 export interface DockMarkGeometry {
+  /** The horizontal centre of the port. */
   cx: number;
+  /** The vertical centre of the port. */
   cy: number;
+  /** Half the side of the box the triangles surround. */
   half: number;
+  /** The side of each triangle. */
   arm: number;
+  /** The stroke width. */
   stroke: number;
 }
 
-/** The floors a camera picture's marks keep, in the picture's pixels. */
+/**
+ * The smallest size the triangles keep on a camera picture, in the picture's
+ * pixels, so they stay readable when the port is far away. Useful for an Uplink
+ * that draws the marks over its own video.
+ *
+ * @category Widget slots
+ * @intent an Uplink drawing the dock marks over its own camera picture passes these as the floors of {@link dockMarkGeometry}
+ */
 export const DOCK_MARK_CAMERA_FLOORS = {
   half: 14,
   arm: 6,

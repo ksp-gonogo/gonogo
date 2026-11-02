@@ -4,13 +4,13 @@
  * upright, like objectives on a microscope's nosepiece turning one into place.
  */
 
-export interface Point {
+export interface TurretPoint {
   x: number;
   y: number;
 }
 
 /** A circle's place at one instant: its centre, its tilt in radians and its scale. */
-export interface Pose extends Point {
+export interface Pose extends TurretPoint {
   tilt: number;
   scale: number;
 }
@@ -22,7 +22,7 @@ export function ease(t: number): number {
 }
 
 /** Where the pivot sits: below the view's middle, so every arc between the three places turns the same way. */
-export function pivotFor(box: { w: number; h: number }): Point {
+export function pivotFor(box: { w: number; h: number }): TurretPoint {
   return { x: box.w / 2, y: box.h * 1.02 };
 }
 
@@ -44,9 +44,9 @@ function unwrap(from: number, to: number): number {
  * zero on arrival, so every circle on the plane leans together.
  */
 export function arcPose(
-  pivot: Point,
-  from: Point,
-  to: Point,
+  pivot: TurretPoint,
+  from: TurretPoint,
+  to: TurretPoint,
   t: number,
   scaleFrom = 1,
   scaleTo = 1,
@@ -68,10 +68,10 @@ export function arcPose(
 
 /** The three places a circle can be: large, small and out of frame to the left or entering from the right. */
 export interface Places {
-  large: Point;
-  small: Point;
-  out: Point;
-  incoming: Point;
+  large: TurretPoint;
+  small: TurretPoint;
+  out: TurretPoint;
+  incoming: TurretPoint;
   /** The small circle's scale against the large one. */
   smallScale: number;
 }
@@ -82,7 +82,7 @@ export interface Places {
  * and one lean, so none starts or stops before another.
  */
 export function stepPoses(
-  pivot: Point,
+  pivot: TurretPoint,
   places: Places,
   u: number,
 ): { leaving: Pose; old: Pose; arriving: Pose } {

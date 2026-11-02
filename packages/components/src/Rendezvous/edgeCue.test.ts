@@ -71,17 +71,15 @@ describe("dockEdgeCue", () => {
   });
 
   it("is amber off the picture, and green only when both angles are within a degree", () => {
-    expect(dockEdgeCue({ ax: 40, ay: 0, picture: WIDE })?.colour).toBe(
-      "var(--color-warn-mark)",
-    );
+    expect(dockEdgeCue({ ax: 40, ay: 0, picture: WIDE })?.tone).toBe("warn");
     // A very wide-angle picture with a tiny field of view is the only place the port is off it while lined up.
     expect(
       dockEdgeCue({
         ax: 0.9,
         ay: 0.4,
         picture: { frameWidth: 320, frameHeight: 180, vfovDeg: 1 },
-      })?.colour,
-    ).toBe("var(--color-accent-fg)");
+      })?.tone,
+    ).toBe("accent");
   });
 
   it("is null without a picture, an angle or a field, and for a port behind the lens", () => {

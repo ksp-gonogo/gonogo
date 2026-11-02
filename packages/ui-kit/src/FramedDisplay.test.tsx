@@ -74,12 +74,12 @@ describe("FramedDisplay", () => {
     expect(screen.queryByLabelText("trend")).toBeNull();
   });
 
-  it("lights an arc of a circle's border in the colour given, outside the clipped contents", () => {
+  it("lights an arc of a circle's border in the tone given, outside the clipped contents", () => {
     render(
       <FramedDisplay
         data-testid="frame"
         shape="circle"
-        edgeCue={{ angle: 0, colour: "var(--color-warn-mark)", grow: 0.5 }}
+        edgeCue={{ angle: 0, tone: "warn", grow: 0.5 }}
       >
         <svg aria-label="lens" />
       </FramedDisplay>,
@@ -100,8 +100,8 @@ describe("FramedDisplay", () => {
         data-testid="frame"
         shape="circle"
         edgeCue={[
-          { angle: 0, colour: "red", grow: 0.2 },
-          { angle: 180, colour: "green", grow: 1 },
+          { angle: 0, tone: "warn", grow: 0.2 },
+          { angle: 180, tone: "accent", grow: 1 },
         ]}
       />,
     );
@@ -114,7 +114,7 @@ describe("FramedDisplay", () => {
     render(
       <FramedDisplay
         data-testid="frame"
-        edgeCue={{ angle: 0, colour: "red", grow: 1 }}
+        edgeCue={{ angle: 0, tone: "warn", grow: 1 }}
       />,
     );
     const frame = screen.getByTestId("frame");
@@ -313,7 +313,7 @@ describe("FramedDisplay's cue coming and going", () => {
       }, []);
       return <svg aria-label="picture" />;
     }
-    const cue = { angle: 0, colour: "red", grow: 0.5 };
+    const cue = { angle: 0, tone: "warn" as const, grow: 0.5 };
     const { rerender } = render(
       <FramedDisplay shape="circle" edgeCue={[]}>
         <Probe />
@@ -335,14 +335,14 @@ describe("edgeCuePath", () => {
 
   it("starts on the border circle, at the angle a quarter either side of the middle", () => {
     // Angle 0 with a 90 degree span: from 45 degrees below the right-hand point.
-    const [x, y] = nums(edgeCuePath({ angle: 0, colour: "red", grow: 0 }));
+    const [x, y] = nums(edgeCuePath({ angle: 0, tone: "warn", grow: 0 }));
     expect(x).toBeCloseTo(50 + 50 * Math.cos(Math.PI / 4), 2);
     expect(y).toBeCloseTo(50 + 50 * Math.sin(Math.PI / 4), 2);
   });
 
   it("reaches further out as it grows, and a little way at none", () => {
     const reach = (grow: number) => {
-      const d = edgeCuePath({ angle: 0, colour: "red", grow });
+      const d = edgeCuePath({ angle: 0, tone: "warn", grow });
       // The outer edge's start point is the second coordinate pair after the line command.
       const [, , , , , , , , , lx, ly] = nums(d);
       return Math.hypot(lx - 50, ly - 50);
@@ -353,17 +353,17 @@ describe("edgeCuePath", () => {
   });
 
   it("holds grow to its range and treats a missing number as none", () => {
-    expect(edgeCuePath({ angle: 0, colour: "red", grow: 7 })).toBe(
-      edgeCuePath({ angle: 0, colour: "red", grow: 1 }),
+    expect(edgeCuePath({ angle: 0, tone: "warn", grow: 7 })).toBe(
+      edgeCuePath({ angle: 0, tone: "warn", grow: 1 }),
     );
-    expect(edgeCuePath({ angle: 0, colour: "red", grow: Number.NaN })).toBe(
-      edgeCuePath({ angle: 0, colour: "red", grow: 0 }),
+    expect(edgeCuePath({ angle: 0, tone: "warn", grow: Number.NaN })).toBe(
+      edgeCuePath({ angle: 0, tone: "warn", grow: 0 }),
     );
   });
 
   it("is one border thick where it first lights and three at full reach", () => {
     const thickness = (grow: number, borderUnits: number) => {
-      const d = edgeCuePath({ angle: 0, colour: "red", grow }, borderUnits);
+      const d = edgeCuePath({ angle: 0, tone: "warn", grow }, borderUnits);
       const [, , , , , , , , , lx, ly] = nums(d);
       return Math.hypot(lx - 50, ly - 50) - 50;
     };

@@ -97,7 +97,7 @@ export function useRendezvousReading() {
   // Only the observation is carried: where the delay model has already reckoned the position on, it is not moved twice.
   const dockSampleUt =
     dockReading.state === "observed" && dock === dockReading.value
-      ? dockReading.atUt.magnitude
+      ? dockReading.atUt.valueOf()
       : undefined;
   const viewClock = useViewClockOptional();
   const [, redraw] = useReducer((n: number) => n + 1, 0);

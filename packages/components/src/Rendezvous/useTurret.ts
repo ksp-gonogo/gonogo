@@ -60,13 +60,33 @@ export function useTurret(
   const [shown, setShown] = useState(wanted);
   const [step, setStep] = useState<Step | null>(null);
   const frame = useRef<number | null>(null);
-  const born = useRef(performance.now());
+  const settled = useRef(false);
+
+  // A step requested while the widget is only just mounting lands at once: the circles are still being worked out.
+  useEffect(() => {
+    if (typeof requestAnimationFrame !== "function" || prefersReducedMotion()) {
+      settled.current = true;
+      return;
+    }
+    let first: number | null = null;
+    let id = 0;
+    const watch = (now: number) => {
+      first ??= now;
+      if (now - first >= SETTLE_MS) {
+        settled.current = true;
+        return;
+      }
+      id = requestAnimationFrame(watch);
+    };
+    id = requestAnimationFrame(watch);
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   useEffect(() => {
     if (step !== null || shown === wanted) return;
     const path = stepsBetween(target, shown, wanted);
     const next = path[0];
-    const settling = performance.now() - born.current < SETTLE_MS;
+    const settling = !settled.current;
     if (
       next === undefined ||
       settling ||
@@ -80,12 +100,10 @@ export function useTurret(
     const goingIn = order.indexOf(next) > order.indexOf(shown);
     const lower = goingIn ? shown : next;
     const upper = goingIn ? next : shown;
-    const started = performance.now();
-    const tick = () => {
-      const t = Math.max(
-        0,
-        Math.min(1, (performance.now() - started) / STEP_MS),
-      );
+    let started: number | null = null;
+    const tick = (now: number) => {
+      started ??= now;
+      const t = Math.max(0, Math.min(1, (now - started) / STEP_MS));
       setStep({ lower, upper, u: goingIn ? t : 1 - t, goingIn });
       if (t < 1) {
         frame.current = requestAnimationFrame(tick);

@@ -57,7 +57,7 @@ export function useRendezvousGeometry(
 ): RendezvousGeometry {
   const orbitReading = rendezvousTopics.useTelemetry("vessel.orbit");
   const bodiesReading = rendezvousTopics.useTelemetry("trackingStation.bodies");
-  const ut = useViewUt()?.magnitude;
+  const ut = useViewUt()?.valueOf();
   const orbit =
     orbitReading.state === "observed" ? orbitReading.value : undefined;
   const bodies =

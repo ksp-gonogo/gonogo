@@ -72,7 +72,7 @@ export function dockEdgeCue(input: {
   const lined = Math.abs(ax) <= LINED_UP_DEG && Math.abs(ay) <= LINED_UP_DEG;
   return {
     angle: Math.atan2(up, across) / RAD,
-    colour: lined ? "var(--color-accent-fg)" : "var(--color-warn-mark)",
+    tone: lined ? "accent" : "warn",
     grow: Math.min(1, over / FULL_GROW_OVER),
   };
 }

@@ -332,6 +332,7 @@ export {
 } from "./Form";
 export {
   type EdgeCue,
+  type EdgeCueTone,
   FramedDisplay,
   type FramedDisplayProps,
   type FramedDisplayShape,
