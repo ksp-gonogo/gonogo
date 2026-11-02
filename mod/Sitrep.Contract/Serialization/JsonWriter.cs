@@ -2158,6 +2158,10 @@ namespace Sitrep.Contract.Serialization
             sb.Append(':');
             AppendNullableNumber(sb, n.Ut);
             sb.Append(',');
+            AppendString(sb, "nextAcquisitionUt");
+            sb.Append(':');
+            AppendNullableNumber(sb, n.NextAcquisitionUt);
+            sb.Append(',');
             AppendString(sb, "basis");
             sb.Append(':');
             AppendString(sb, n.Basis ?? "");

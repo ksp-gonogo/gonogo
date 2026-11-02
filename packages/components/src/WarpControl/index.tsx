@@ -50,6 +50,7 @@ const topics = defineTopicManifest({
     "vessel.identity.vesselId",
     "trackingStation.catalog.entries",
     "comms.nextLoss.ut",
+    "comms.nextLoss.nextAcquisitionUt",
     "comms.nextLoss.basis",
     "comms.nextLoss.lowConfidence",
     "comms.nextLoss.coveredToUt",
@@ -121,6 +122,7 @@ function useWarpControl(config: WarpControlConfig | undefined) {
     identity: stillTrue(topics.useTelemetry("vessel.identity"), undefined),
     loss: stillTrue(topics.useTelemetry("comms.nextLoss"), undefined),
     light: stillTrue(topics.useTelemetry("vessel.light"), undefined),
+    oneWaySeconds: stillTrue(delayReading, undefined)?.oneWaySeconds?.valueOf(),
     viewUt: viewUt?.valueOf(),
   });
 

@@ -2092,6 +2092,7 @@ namespace Sitrep.Host.Comms
             a.Basis == b.Basis
             && a.LowConfidence == b.LowConfidence
             && a.Ut == b.Ut
+            && a.NextAcquisitionUt == b.NextAcquisitionUt
             && a.CoveredToUt == b.CoveredToUt;
 
         /// <summary>

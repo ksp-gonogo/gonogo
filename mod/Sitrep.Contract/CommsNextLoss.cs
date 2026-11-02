@@ -48,6 +48,15 @@ public class CommsNextLoss
     [SitrepUnit(Units.Enumeration)]
     public string Basis { get; set; } = "not-planned";
 
+    /// <summary>
+    /// With <c>out-of-contact</c>, the universal time the plan next has an open
+    /// route between the centre and the active craft: the instant the link
+    /// closes up, before any signal delay. Null when the plan holds none, and
+    /// always null for every other <see cref="Basis"/>.
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? NextAcquisitionUt { get; set; }
+
     /// <summary>The last universal time the plan reaches. A null <see cref="Ut"/> with <c>no-loss-in-window</c> means no loss before it.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double CoveredToUt { get; set; }
