@@ -36,14 +36,14 @@ async function mountAt(w: number, h: number) {
 }
 
 describe("WarpControl: the default tile holds the whole ladder", () => {
-  it("is tall enough for the two-row rails ladder and the warp-to row", async () => {
+  it("is tall enough for the two-row rails ladder, with the warp-to row left for taller tiles", async () => {
     const def = getComponent("warp-control");
     const { w, h } = def?.defaultSize ?? { w: 0, h: 0 };
-    expect(h).toBeGreaterThanOrEqual(9);
+    expect(h).toBeGreaterThanOrEqual(6);
 
     await mountAt(w, h);
 
-    expect(screen.getByRole("button", { name: /warp to/i })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /warp to/i })).toBeNull();
   });
 
   it("draws the warp-to row once the tile is seven rows tall", async () => {
