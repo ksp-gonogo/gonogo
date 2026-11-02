@@ -1,3 +1,4 @@
+import { useTelemetry, useTimeContexts } from "@ksp-gonogo/core";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   MissionDate,
@@ -20,6 +21,34 @@ export interface FiredFactsProps {
   scet: TimeContext | undefined;
   /** Qualifier for an instant on this screen's arrival clock. */
   received: TimeContext | undefined;
+}
+
+/**
+ * FiredFacts fed from this screen's own warp rate, signal delay and clocks, so
+ * the main screen and every station state the same facts for a fired alarm.
+ */
+export function ScreenFiredFacts({
+  alarm,
+  warpRate,
+}: {
+  alarm: Alarm;
+  warpRate: number;
+}) {
+  const timeContexts = useTimeContexts();
+  const delay = useTelemetry("comms.delay");
+  const noPath =
+    (delay.state === "observed" || delay.state === "held") &&
+    delay.value.oneWaySeconds == null;
+  return (
+    <FiredFacts
+      alarm={alarm}
+      warpRate={warpRate}
+      owltSeconds={timeContexts.owltSeconds}
+      noPath={noPath}
+      scet={timeContexts.scet}
+      received={timeContexts.received}
+    />
+  );
 }
 
 /**

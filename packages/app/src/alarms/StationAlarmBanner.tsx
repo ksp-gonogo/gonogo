@@ -1,5 +1,6 @@
 import { Cluster, Stack } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
+import { ScreenFiredFacts } from "./FiredFacts";
 import { ForeignFireNotice } from "./ForeignFireNotice";
 import { collapseFiredContractParam } from "./firedCollapse";
 import type { Alarm, AlarmSnapshot } from "./types";
@@ -47,16 +48,34 @@ export function StationAlarmBanner({
       {foreign}
       <Wrap role="alert">
         <Stack gap="related-dense">
-          {individuals.map((a) => (
-            <Cluster justify="start" align="baseline" wrap key={a.id}>
+          {individuals.length > 0 && (
+            <Cluster justify="start" align="baseline" wrap>
               <Label>Fired</Label>
-              <AlarmName>{a.name}</AlarmName>
-              <FiredHint>{describe(a)}</FiredHint>
-              <AckButton type="button" onClick={() => onAcknowledge(a.id)}>
-                Acknowledge
+              <AlarmName>{individuals[0].name}</AlarmName>
+              <FiredHint>{describe(individuals[0])}</FiredHint>
+              <ScreenFiredFacts
+                alarm={individuals[0]}
+                warpRate={snap.warp.rate}
+              />
+              {individuals.length > 1 && (
+                <FiredHint>
+                  also fired:{" "}
+                  {individuals
+                    .slice(1)
+                    .map((a) => a.name)
+                    .join(", ")}
+                </FiredHint>
+              )}
+              <AckButton
+                type="button"
+                onClick={() => {
+                  for (const a of individuals) onAcknowledge(a.id);
+                }}
+              >
+                {individuals.length > 1 ? "Acknowledge all" : "Acknowledge"}
               </AckButton>
             </Cluster>
-          ))}
+          )}
           {cpCollapse && (
             <Cluster justify="start" align="baseline" wrap>
               <Label>Fired</Label>

@@ -287,25 +287,25 @@ export function FiredAlarmPills() {
     if (!cpCollapse) return;
     for (const id of cpCollapse.ids) host.acknowledgeAlarm(id);
   };
+  const ackEveryFired = () => {
+    for (const a of firedAlarms) host.acknowledgeAlarm(a.id);
+  };
   if (extras.length === 0 && (cpCollapse === null || headline === null)) {
     return null;
   }
   return (
     <>
-      {extras.map((a) => (
-        <Wrap key={a.id} $tone="fire" role="alert">
+      {extras.length > 0 && (
+        <Wrap $tone="fire" role="alert">
           <Cluster justify="start" align="baseline" wrap>
-            <Label>Fired</Label>
-            <AlarmName>{a.name}</AlarmName>
-            <AckButton
-              type="button"
-              onClick={() => host.acknowledgeAlarm(a.id)}
-            >
-              Ack
+            <Label>Also fired</Label>
+            <AlarmName>{extras.map((a) => a.name).join(", ")}</AlarmName>
+            <AckButton type="button" onClick={ackEveryFired}>
+              Acknowledge all
             </AckButton>
           </Cluster>
         </Wrap>
-      ))}
+      )}
       {cpCollapse && headline !== null && (
         <Wrap $tone="fire" role="alert">
           <Cluster justify="start" align="baseline" wrap>
