@@ -51,6 +51,29 @@ namespace Sitrep.Propagation.Tests.Visibility
             PatchedConicChain.OccludersBetween(stationBody, vesselParent, System(), i => Radii[i]);
 
         [Fact]
+        public void EveryOtherBodyWithASizeJoinsTheChainExceptTheOnesNamed()
+        {
+            var chain = Between(Kerbin, Kerbin);
+
+            var all = PatchedConicChain.WithEveryOtherBody(chain, Radii.Length, i => i == Minmus ? 0.0 : Radii[i], Kerbin);
+
+            Assert.DoesNotContain(all, o => o.BodyIndex == Kerbin);
+            Assert.DoesNotContain(all, o => o.BodyIndex == Minmus);
+            Assert.Contains(all, o => o.BodyIndex == Mun && o.OccludingRadiusMeters == 200_000.0);
+            Assert.Contains(all, o => o.BodyIndex == Jool);
+        }
+
+        [Fact]
+        public void ABodyAlreadyOnTheChainIsNotListedTwice()
+        {
+            var chain = Between(Kerbin, Mun);
+
+            var all = PatchedConicChain.WithEveryOtherBody(chain, Radii.Length, i => Radii[i]);
+
+            Assert.Single(all, o => o.BodyIndex == Mun);
+        }
+
+        [Fact]
         public void SameBodyHasNothingInTheWay()
         {
             Assert.Empty(Between(Kerbin, Kerbin));

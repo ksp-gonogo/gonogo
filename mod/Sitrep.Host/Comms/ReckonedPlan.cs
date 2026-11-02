@@ -174,7 +174,8 @@ namespace Sitrep.Host.Comms
         /// <summary>
         /// The bodies that can come between the two ends: the patched-conic chain
         /// between their bodies, plus each end's own body, which the chain leaves
-        /// out and which is the commonest occluder of all. Null when no path joins
+        /// out and which is the commonest occluder of all, plus every other body
+        /// with a size to the radio, such as a moon of either end's planet. Null when no path joins
         /// the two bodies.
         /// </summary>
         private static List<OccludingBody>? Occluders(int aBody, int bBody, PlanGround ground)
@@ -204,6 +205,8 @@ namespace Sitrep.Host.Comms
                     occluders.Add(body);
                 }
             }
+            // Any other body can stand in the line too, and the game's own network tests all of them.
+            PatchedConicChain.WithEveryOtherBody(occluders, ground.Bodies.Count, ground.OccludingRadius);
             return occluders;
         }
     }
