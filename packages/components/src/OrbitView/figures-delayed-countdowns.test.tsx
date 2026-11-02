@@ -10,7 +10,7 @@ const UT_NOW = 1_000_000;
 const OWLT = 240;
 
 describe("Orbit View figures under signal delay", () => {
-  it("counts to each apsis from the received edge, with the conic's figure for the craft's present beside it", async () => {
+  it("counts to each apsis with the conic's figure for the craft's present alone, marked as modelled", async () => {
     const fixture = setupStreamFixture({
       delaySeconds: OWLT,
       suspendFrames: true,
@@ -46,14 +46,13 @@ describe("Orbit View figures under signal delay", () => {
     });
 
     await waitFor(() =>
-      expect(
-        container.querySelectorAll("[data-modelled-alongside]").length,
-      ).toBe(2),
+      expect(container.querySelectorAll("[data-held]").length).toBeGreaterThan(
+        1,
+      ),
     );
-    const [toAp] = container.querySelectorAll("[data-modelled-alongside]");
-    const observed = toAp?.parentElement?.firstChild?.textContent ?? "";
-    expect(observed).toMatch(/^\d/);
-    expect(toAp?.textContent).not.toBe(observed);
-    expect(toAp?.querySelector("[data-held-mark]")).not.toBeNull();
+    for (const figure of container.querySelectorAll("[data-held]")) {
+      expect(figure.querySelector("[data-held-mark]")).not.toBeNull();
+    }
+    expect(container.querySelector("[data-modelled-alongside]")).toBeNull();
   });
 });

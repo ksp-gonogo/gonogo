@@ -1,13 +1,14 @@
 import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import { formatDuration } from "./formatDuration";
 import { HeldFigure } from "./HeldMark";
-import { ModelledAlongside } from "./ModelledAlongside";
 import { NULL_DISPLAY } from "./NullValue";
 import {
   figureAttributes,
+  MODELLED_TO_SCET,
   modelledBeyondReceived,
   resolveCurrency,
 } from "./readingCurrency";
+import { standsApart, writtenAs } from "./standsApart";
 
 /**
  * Props for {@link Countdown}.
@@ -54,8 +55,10 @@ export interface CountdownProps {
  * one, so it keeps advancing while a model carries it, and freezes on the last
  * observation, with the held mark, otherwise. {@link Unit} does this only when
  * given `reckoned`. A current reading whose model reaches past the newest data
- * received draws its observation, and the model's figure beside it with the
- * modelled mark. An absent value renders
+ * received draws the model's figure alone with the modelled mark, in the place
+ * of the observation, so a countdown is always one figure wide. A model that
+ * reads the same as the observation at the precision drawn leaves the
+ * observation unmarked. An absent value renders
  * {@link NULL_DISPLAY}.
  *
  * @category MissionDate
@@ -78,15 +81,17 @@ export function Countdown({
   const reading = carried != null && "state" in carried ? carried : undefined;
   const modelled = modelledBeyondReceived(reading);
   if (reading?.value !== undefined && modelled !== undefined) {
+    if (!standsApart(reading.value, modelled, writtenAs(format))) {
+      return <>{format(reading.value)}</>;
+    }
     return (
-      <>
-        {format(reading.value)}
-        <ModelledAlongside
-          observed={reading.value}
-          modelled={modelled}
-          write={format}
-        />
-      </>
+      <HeldFigure
+        data-held=""
+        kind="modelled"
+        caption={`${MODELLED_TO_SCET}, last received ${format(reading.value)}`}
+      >
+        {format(modelled)}
+      </HeldFigure>
     );
   }
   const currency = resolveCurrency(carried, { drawsReckoning: true });

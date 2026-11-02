@@ -50,7 +50,7 @@ export interface ModelledFigureAlongsideProps<Figure> {
  * modelled mark. The caller draws the observation first, and the modelled
  * figure never replaces it. Useful for showing the operator what a vessel's
  * state is estimated to be now, next to the last value received from it. Used
- * by {@link Countdown}.
+ * by {@link ReckonedUnit}.
  *
  * Drawn only where the figure stands apart from the observation at the
  * precision both are drawn (see {@link standsApart}), so a model that agrees

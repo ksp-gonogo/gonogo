@@ -130,10 +130,10 @@ describe("OrbitalEventChips under signal delay", () => {
     });
 
     await screen.findByText(/ENC/);
-    const alongside = document.querySelectorAll("[data-modelled-alongside]");
-    expect(visibleText()).toMatch(/24m/);
-    expect(alongside[0]?.textContent).toMatch(/20m/);
-    expect(alongside[0]?.querySelector("[data-held-mark]")).not.toBeNull();
+    const modelled = document.querySelector("[data-held]");
+    expect(modelled?.textContent).toMatch(/20m/);
+    expect(modelled?.querySelector("[data-held-mark]")).not.toBeNull();
+    expect(visibleText()).not.toMatch(/24m/);
   });
 
   it("names what the encounter chip's label stands for, to the keyboard as well as the pointer", async () => {

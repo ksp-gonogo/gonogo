@@ -134,18 +134,19 @@ describe("Countdown under signal delay", () => {
     };
   }
 
-  it("draws the observation, and the model's figure beside it with the modelled mark", () => {
+  it("draws the model's figure alone with the modelled mark, in the place of the observation", () => {
     const { container } = render(
       <Countdown value={carriedToScet(value("s", 90), value("s", 42))} />,
     );
-    expect(container.textContent).toMatch(/^1min 30s/);
-    const alongside = container.querySelector("[data-modelled-alongside]");
-    expect(alongside?.textContent).toContain("42s");
-    expect(alongside?.textContent).not.toContain("1min 30s");
-    expect(alongside?.querySelector("[data-held-mark]")).not.toBeNull();
-    expect(
-      alongside?.querySelector("[data-held]")?.getAttribute("data-tooltip"),
-    ).toBeTruthy();
+    expect(container.querySelector("[data-held]")?.textContent).toContain(
+      "42s",
+    );
+    expect(container.querySelector("[data-held-mark]")).not.toBeNull();
+    const tip = container
+      .querySelector("[data-held]")
+      ?.getAttribute("data-tooltip");
+    expect(tip).toContain("modelled to SCET");
+    expect(tip).toContain("1min 30s");
   });
 
   it("draws the observation alone, unmarked, where the model reads the same", () => {
@@ -153,7 +154,6 @@ describe("Countdown under signal delay", () => {
       <Countdown value={carriedToScet(value("s", 90), value("s", 90.4))} />,
     );
     expect(container.textContent).toBe("1min 30s");
-    expect(container.querySelector("[data-modelled-alongside]")).toBeNull();
     expect(container.querySelector("[data-held-mark]")).toBeNull();
   });
 
@@ -161,15 +161,15 @@ describe("Countdown under signal delay", () => {
     const reading = carriedToScet(value("s", 0.9), value("s", 0.4));
     const whole = render(<Countdown value={reading} />).container;
     const precise = render(<Countdown value={reading} precise />).container;
-    expect(whole.querySelector("[data-modelled-alongside]")).toBeNull();
-    expect(precise.querySelector("[data-modelled-alongside]")).not.toBeNull();
+    expect(whole.querySelector("[data-held-mark]")).toBeNull();
+    expect(precise.querySelector("[data-held-mark]")).not.toBeNull();
   });
 
-  it("draws nothing alongside a model that stays at the received edge", () => {
+  it("draws the observation unmarked for a model that stays at the received edge", () => {
     const { container } = render(
       <Countdown value={reckoned(value("s", 90), value("s", 42))} />,
     );
-    expect(container.querySelector("[data-modelled-alongside]")).toBeNull();
+    expect(container.querySelector("[data-held-mark]")).toBeNull();
   });
 
   it("has no axe violations with the modelled figure drawn", async () => {

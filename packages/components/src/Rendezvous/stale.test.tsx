@@ -232,7 +232,7 @@ describe("Rendezvous under signal delay", () => {
 });
 
 describe("Rendezvous's time to closest approach under signal delay", () => {
-  it("counts down from the received edge, with the target model's figure for the craft's present beside it", async () => {
+  it("counts down with the target model's figure for the craft's present alone, marked as modelled", async () => {
     const owlt = 20;
     const fixture = setupStreamFixture({
       delaySeconds: owlt,
@@ -259,9 +259,10 @@ describe("Rendezvous's time to closest approach under signal delay", () => {
       );
       fixture.emitFrame();
     });
-    await waitFor(() => expect(visibleText()).toMatch(/2min/));
-    const alongside = document.querySelector("[data-modelled-alongside]");
-    expect(alongside?.textContent).toMatch(/1min 40s/);
-    expect(alongside?.querySelector("[data-held-mark]")).not.toBeNull();
+    await waitFor(() => expect(visibleText()).toMatch(/1min 40s/));
+    expect(visibleText()).not.toMatch(/2min/);
+    const modelled = document.querySelector("[data-held]");
+    expect(modelled?.textContent).toMatch(/1min 40s/);
+    expect(modelled?.querySelector("[data-held-mark]")).not.toBeNull();
   });
 });
