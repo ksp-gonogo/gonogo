@@ -120,7 +120,16 @@ export function RoboticsConsoleView({
         <Section key="target" gap="related-dense">
           {/* Relative to the target, so an unread target disables it. */}
           <Cluster justify="between" wrap>
-            <ReadoutCaption>Target</ReadoutCaption>
+            <Inline>
+              <ReadoutCaption>Target</ReadoutCaption>
+              <Text size="sm">
+                {selected.target === null ? (
+                  "unknown"
+                ) : (
+                  <Unit value={readings.target} decimals={decimals} />
+                )}
+              </Text>
+            </Inline>
             <Inline>
               <Button
                 variant="ghost"
@@ -140,13 +149,6 @@ export function RoboticsConsoleView({
               >
                 −
               </Button>
-              <Text size="sm">
-                {selected.target === null ? (
-                  "unknown"
-                ) : (
-                  <Unit value={readings.target} decimals={decimals} />
-                )}
-              </Text>
               <Button
                 variant="ghost"
                 size="sm"
@@ -191,11 +193,6 @@ export function RoboticsConsoleView({
               >
                 Motor {motorStateText(selected.motorEngaged)}
               </ToggleButton>
-              {selected.motorState && (
-                <Text level="muted" size="sm">
-                  {selected.motorState}
-                </Text>
-              )}
               <ToggleButton
                 size="sm"
                 pressed={selected.locked === true}
