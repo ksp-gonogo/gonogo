@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { checkoutEnv } from "../../../../scripts/uplinks-gate-env.mjs";
 import { modChannelsRule, prereleasePinRule } from "../check/rules/manifest";
 import type { CheckContext } from "../check/types";
 import { onMain, prereleasePinFault, prereleasePins } from "./pins";
@@ -54,6 +55,18 @@ describe("manifest/prerelease-pin", () => {
     const found = prereleasePinRule.check(context(rc()));
     expect(found).toHaveLength(1);
     expect(found[0]).toMatchObject({ severity: "error" });
+    vi.unstubAllEnvs();
+  });
+
+  it("is a warning under the gate even when the gonogo run is a pull request to main", () => {
+    const env = checkoutEnv(
+      { GITHUB_BASE_REF: "main", GITHUB_REF_NAME: "123/merge" },
+      "staging",
+    );
+    for (const [key, value] of Object.entries(env))
+      vi.stubEnv(key, value as string);
+    const found = prereleasePinRule.check(context(rc()));
+    expect(found[0]).toMatchObject({ severity: "warning" });
     vi.unstubAllEnvs();
   });
 

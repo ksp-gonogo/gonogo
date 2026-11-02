@@ -35,6 +35,7 @@ import {
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { makeTempDir } from "./temp-dir.mjs";
+import { checkoutBranch, checkoutEnv } from "./uplinks-gate-env.mjs";
 
 const GONOGO = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -51,6 +52,7 @@ if (!target) {
   process.exit(2);
 }
 const UPLINKS = resolve(target);
+const UPLINKS_ENV = checkoutEnv(process.env, checkoutBranch(UPLINKS));
 const PACKAGES = [
   ["mod/sitrep-sdk", "ksp-gonogo-sitrep-sdk"],
   ["packages/ui-kit", "ksp-gonogo-ui-kit"],
@@ -196,7 +198,7 @@ for (const name of names) {
 
   const row = { name, legs: [], failed: [] };
   for (const [leg, cmd, cmdArgs, cwd] of legs) {
-    const r = run(cmd, cmdArgs, cwd);
+    const r = run(cmd, cmdArgs, cwd, UPLINKS_ENV);
     row.legs.push({ leg, ok: r.ok, seconds: r.seconds });
     console.log(
       `  ${r.ok ? "ok  " : "FAIL"} ${name} ${leg} (${r.seconds.toFixed(0)}s)`,
