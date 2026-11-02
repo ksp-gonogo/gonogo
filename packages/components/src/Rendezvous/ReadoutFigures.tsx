@@ -275,7 +275,7 @@ function RangeRateArrow({
   );
 }
 
-/** The name and the range on one row across the top of the box, the name giving way to an ellipsis. */
+/** The name and the range on one row across the top of the box, the name wrapping to a second line where it does not fit. */
 function TopRow({
   width,
   name,
@@ -291,19 +291,15 @@ function TopRow({
         width,
         display: "flex",
         gap: 8,
+        whiteSpace: "normal",
+        height: "auto",
+        alignItems: "flex-start",
       }}
     >
-      <div
-        style={{
-          flex: 1,
-          minWidth: 0,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-        }}
-      >
+      <div style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>
         {name}
       </div>
-      <div style={{ flex: "none" }}>{range}</div>
+      <div style={{ flex: "none", whiteSpace: "nowrap" }}>{range}</div>
     </div>
   );
 }
