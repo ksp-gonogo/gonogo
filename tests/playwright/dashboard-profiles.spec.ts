@@ -2,7 +2,7 @@
  * Switching dashboard layouts must leave every widget where it was on screen,
  * a drag saves into the current layout only, and Undo puts the tile back.
  */
-import type { Page } from "@playwright/test";
+import type { BrowserContext, Page } from "@playwright/test";
 import { test } from "@playwright/test";
 import { expect, seedContext } from "./helpers";
 
@@ -51,13 +51,7 @@ const OLD_PROFILE = {
   updatedAt: 1,
 };
 
-async function seed(
-  browser: Parameters<Parameters<typeof test>[2]>[0]["browser"],
-  profiles: unknown[],
-) {
-  const context = await browser.newContext({
-    viewport: { width: 1600, height: 1000 },
-  });
+async function seed(context: BrowserContext, profiles: unknown[]) {
   await seedContext(context, "gonogo:dashboard:main", {
     items: ITEMS,
     layout: SCREEN_LAYOUT,
@@ -72,7 +66,6 @@ async function seed(
       /* ignore */
     }
   }, profiles);
-  return context;
 }
 
 /** Where each tile sits in the grid, in grid cells, read from the DOM. */
@@ -142,10 +135,8 @@ async function switchToOther(page: Page) {
   await page.waitForTimeout(500);
 }
 
-async function openSeeded(
-  browser: Parameters<Parameters<typeof test>[2]>[0]["browser"],
-) {
-  const context = await seed(browser, [CURRENT_PROFILE, OLD_PROFILE]);
+async function openSeeded(context: BrowserContext) {
+  await seed(context, [CURRENT_PROFILE, OLD_PROFILE]);
   const page = await context.newPage();
   await page.goto("/?uplinkLoaderIds=");
   await expect(page.locator(".dashboard-grid > [data-i]")).toHaveCount(3, {
@@ -168,10 +159,12 @@ async function dragTileA(page: Page) {
 }
 
 test.describe("dashboard layouts", () => {
+  test.use({ viewport: { width: 1600, height: 1000 } });
+
   test("switching to another layout and back keeps every tile where it was", async ({
-    browser,
+    context,
   }) => {
-    const page = await openSeeded(browser);
+    const page = await openSeeded(context);
     const before = await settledCells(page);
 
     await switchToOther(page);
@@ -182,9 +175,9 @@ test.describe("dashboard layouts", () => {
   });
 
   test("a drag saves into the current layout and leaves the other one alone", async ({
-    browser,
+    context,
   }) => {
-    const page = await openSeeded(browser);
+    const page = await openSeeded(context);
     const before = await settledCells(page);
 
     await dragTileA(page);
@@ -201,9 +194,9 @@ test.describe("dashboard layouts", () => {
   });
 
   test("Undo puts a dragged tile back and Redo moves it again", async ({
-    browser,
+    context,
   }) => {
-    const page = await openSeeded(browser);
+    const page = await openSeeded(context);
     const before = await settledCells(page);
 
     await dragTileA(page);
@@ -216,9 +209,9 @@ test.describe("dashboard layouts", () => {
   });
 
   test("a key bound to a layout switches to it, says so, and Undo reverses it", async ({
-    browser,
+    context,
   }) => {
-    const context = await seed(browser, [
+    await seed(context, [
       CURRENT_PROFILE,
       {
         ...OLD_PROFILE,

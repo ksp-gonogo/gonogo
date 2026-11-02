@@ -19,12 +19,11 @@ const tile = (i: string, x: number, y: number, w: number, h: number) => ({
 });
 
 test.describe("dashboard drag", () => {
+  test.use({ viewport: { width: 1600, height: 1000 } });
+
   test("the dragged tile follows the pointer while the placement box snaps to cells", async ({
-    browser,
+    context,
   }) => {
-    const context = await browser.newContext({
-      viewport: { width: 1600, height: 1000 },
-    });
     await seedContext(context, "gonogo:dashboard:main", {
       items: [
         { i: A, componentId: "orbit-view" },
