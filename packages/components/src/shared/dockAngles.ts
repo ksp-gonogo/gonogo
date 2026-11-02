@@ -18,6 +18,33 @@ export function bare<Unit extends string>(v: Vec3Of<Unit>): Vec3 {
   return { x: v.x.magnitude, y: v.y.magnitude, z: v.z.magnitude };
 }
 
+/** The longest a port's last position is carried forward on its velocity, seconds: past it the figure is held rather than run on. */
+export const CARRY_FORWARD_MAX_S = 2;
+
+/**
+ * Where the target port is `seconds` after the sample that gave `position` and
+ * `velocity`, both in the own port's frame: the position moved on at the
+ * velocity, so a figure that arrives once a second moves smoothly between
+ * samples. The time is held to {@link CARRY_FORWARD_MAX_S}, and the axial
+ * distance never carried across zero, which is contact.
+ */
+export function carryForward(
+  position: Vec3,
+  velocity: Vec3,
+  seconds: number,
+): Vec3 {
+  const dt = Number.isFinite(seconds)
+    ? Math.min(Math.max(seconds, 0), CARRY_FORWARD_MAX_S)
+    : 0;
+  if (dt === 0) return position;
+  const z = position.z + velocity.z * dt;
+  return {
+    x: position.x + velocity.x * dt,
+    y: position.y + velocity.y * dt,
+    z: position.z * z < 0 ? 0 : z,
+  };
+}
+
 export function vecMagnitude(v: Vec3): number {
   return Math.hypot(v.x, v.y, v.z);
 }

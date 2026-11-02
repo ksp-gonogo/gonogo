@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { closingSpeed, deriveDockAngles, NEAR_AXIS_M } from "./dockAngles";
+import {
+  CARRY_FORWARD_MAX_S,
+  carryForward,
+  closingSpeed,
+  deriveDockAngles,
+  NEAR_AXIS_M,
+} from "./dockAngles";
 
 describe("closingSpeed", () => {
   it("is positive while the range shrinks", () => {
@@ -44,5 +50,36 @@ describe("deriveDockAngles", () => {
   it("continues unbroken where the near rule starts", () => {
     const at = (z: number) => deriveDockAngles({ x: 0.3, y: 0, z }).ax;
     expect(at(NEAR_AXIS_M + 0.001)).toBeCloseTo(at(NEAR_AXIS_M - 0.001), 2);
+  });
+});
+
+describe("carryForward", () => {
+  const position = { x: 10, y: 1, z: 13.5 };
+  const velocity = { x: 0.8, y: 0, z: -0.5 };
+
+  it("moves the position on at the velocity", () => {
+    const at = carryForward(position, velocity, 0.5);
+    expect(at.x).toBeCloseTo(10.4);
+    expect(at.z).toBeCloseTo(13.25);
+  });
+
+  it("holds the sample where no time has passed or the time is not a number", () => {
+    expect(carryForward(position, velocity, 0)).toBe(position);
+    expect(carryForward(position, velocity, Number.NaN)).toBe(position);
+    expect(carryForward(position, velocity, -3)).toBe(position);
+  });
+
+  it("stops carrying after the longest time", () => {
+    const far = carryForward(position, velocity, 60);
+    expect(far.x).toBeCloseTo(10 + 0.8 * CARRY_FORWARD_MAX_S);
+  });
+
+  it("never carries the axial distance across contact", () => {
+    const near = carryForward(
+      { x: 0, y: 0, z: 0.2 },
+      { x: 0, y: 0, z: -0.5 },
+      1,
+    );
+    expect(near.z).toBe(0);
   });
 });
