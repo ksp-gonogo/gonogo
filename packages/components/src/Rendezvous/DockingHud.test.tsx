@@ -15,6 +15,8 @@ function reticle(ax: number, ay: number): HTMLElement {
       x={0}
       y={0}
       forwardDot={0.99}
+      targetPort={undefined}
+      docked={false}
       modelled={undefined}
       showCamera={false}
       cameraFlightId={undefined}
@@ -47,5 +49,41 @@ describe("DockingHud reticle", () => {
     const ring = reticle(0, 0);
     expect(offsetPx(ring.style.left)).toBe(0);
     expect(offsetPx(ring.style.top)).toBe(0);
+  });
+});
+
+describe("DockingHud aligned tint", () => {
+  function tinted(forwardDot: number): boolean {
+    const { container } = render(
+      <DockingHud
+        name="Docking Port Mk2"
+        distance={62}
+        figuresReading={undefined}
+        relVel={-0.4}
+        ax={undefined}
+        ay={undefined}
+        az={undefined}
+        x={0}
+        y={0}
+        forwardDot={forwardDot}
+        targetPort={undefined}
+        docked={false}
+        modelled={undefined}
+        showCamera={false}
+        cameraFlightId={undefined}
+        cols={6}
+        rows={9}
+      />,
+    );
+    const ring = [...container.querySelectorAll<HTMLElement>("div")].find(
+      (el) => el.style.borderRadius === "var(--radius-circle)",
+    );
+    if (!ring) throw new Error("no reticle ring rendered");
+    return ring.style.border.includes("accent-fg");
+  }
+
+  it("is aligned for ports facing head-on, whose forward vectors are opposed", () => {
+    expect(tinted(-1)).toBe(true);
+    expect(tinted(1)).toBe(false);
   });
 });

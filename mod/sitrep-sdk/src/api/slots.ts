@@ -55,6 +55,23 @@ import type { HeldGrade, Reading } from "../reading";
 // "warp-control.stepper" carries no props today.
 
 /**
+ * The picture a `rendezvous.camera` augment paints behind the docking reticle:
+ * the video's own size and the camera's vertical field of view.
+ * Useful for placing the reticle where the camera draws the target. Passed to
+ * {@link RendezvousHudContext.reportPicture} by the camera augment.
+ *
+ * @category Widget slots
+ */
+export interface RendezvousPicture {
+  /** The video's own width in pixels. */
+  frameWidth: number;
+  /** The video's own height in pixels. */
+  frameHeight: number;
+  /** The camera's vertical field of view in degrees. */
+  vfovDeg: number;
+}
+
+/**
  * Props passed to every `rendezvous.overlay` and `rendezvous.camera` augment.
  *
  * Both slots are drawn only in the docking HUD view, which the Rendezvous widget
@@ -71,27 +88,33 @@ export interface RendezvousHudContext {
   /** Alignment angle in degrees that reaches the edge of the reticle box. The reticle stops at the edge past it. Read it from here and never write the number in, since it can change between releases. */
   maxDeg: number;
   /**
-   * The reticle's offset from the box centre, each axis from -1 to 1: the
-   * alignment angle limited to `maxDeg` and divided by it. Positive `x` is
+   * The reticle's offset from the box centre, each axis from -1 to 1 unless a
+   * camera reported its picture with `reportPicture`: the alignment angle
+   * limited to {@link RendezvousHudContext.maxDeg} and divided by it. Positive `x` is
    * right and positive `y` is down, so a nose-up error reads as negative `y`.
    */
   reticleOffset: { x: number; y: number };
   /**
-   * Pixels the reticle travels per unit of `reticleOffset`, the same on both
+   * Pixels the reticle travels per unit of {@link RendezvousHudContext.reticleOffset}, the same on both
    * axes and measured from the centre of the HUD's frame. An overlay places a
-   * marker `reticleOffset.x * reticleTravelPx` pixels right of centre and
-   * `reticleOffset.y * reticleTravelPx` pixels below it, as CSS
+   * marker the offset's `x` times this many pixels right of centre and its
+   * `y` times this many pixels below it, as CSS
    * `calc(50% + <that many>px)` on each axis, to sit in the same space, so a
    * degree is as far across as it is down.
    */
   reticleTravelPx: number;
   /**
-   * For the `rendezvous.camera` slot: report the aspect (width over height) of
-   * the picture the augment paints with `object-fit: cover`, or `null` once it
-   * paints none. The reticle's degree scale then follows the camera's visible
-   * field rather than the frame. An overlay has no picture and never calls it.
+   * For the `rendezvous.camera` slot: report the picture the augment paints
+   * with `object-fit: cover`, or `null` once it paints none. The picture holds
+   * the video's own size in pixels and the camera's vertical field of view in
+   * degrees. The reticle is then projected
+   * through that field onto the picture as the cover crop shows it, so a target
+   * at an angle lands where the camera draws it, and {@link RendezvousHudContext.reticleOffset} goes past 1
+   * on an axis where the picture shows the target beyond {@link RendezvousHudContext.maxDeg}. With no
+   * picture the reticle keeps a square scale and stops at {@link RendezvousHudContext.maxDeg}. An overlay
+   * has no picture and never calls it.
    */
-  reportPictureAspect: (aspect: number | null) => void;
+  reportPicture: (picture: RendezvousPicture | null) => void;
   /** True while the two ports are within docking-alignment tolerance. */
   aligned: boolean;
   /** Horizontal docking alignment angle in degrees (plain degrees, like `ay`), before any limit is applied. `undefined` while the angle is not reported. */
@@ -100,8 +123,18 @@ export interface RendezvousHudContext {
   ay: number | undefined;
   /** Distance to the target port in metres, as a plain number so a drawing needs no unit conversion. `undefined` until the position is reported. */
   distance: number | undefined;
+  /** True once the active vessel's docking port is joined to the target port, from the port's state reaching pre-attached or docked. `false` while approaching or capturing, and `false` while the port state is not reported. */
+  docked: boolean;
   /**
-   * The reading `aligned`, `ax`, `ay`, `reticleOffset` and `distance` were drawn from, or just its grade. Only a held reading
+   * The ids of the targeted docking port and of the vessel it belongs to, as KSP's persistent ids, the ones
+   * a camera marker names a port by. `undefined` while the port is not reported.
+   * Useful for marking the target port on a camera picture.
+   */
+  targetPort:
+    | { vesselPersistentId: number; portPersistentId: number }
+    | undefined;
+  /**
+   * The reading `aligned`, `ax`, `ay`, {@link RendezvousHudContext.reticleOffset} and `distance` were drawn from, or just its grade. Only a held reading
    * changes anything; while it is held, draw them as held rather than as
    * current. `heldMarking` from `@ksp-gonogo/ui-kit` gives the mark and its
    * words, and says modelled where a model carried them.
@@ -1024,9 +1057,9 @@ declare module "./types" {
     /**
      * The video backdrop behind the reticle box in the Rendezvous widget's
      * docking view. Fill the frame with a camera picture, such as a docking
-     * port camera, and pass its aspect to
-     * {@link RendezvousHudContext.reportPictureAspect} so the
-     * reticle's scale follows the picture. Drawn only while the docking view
+     * port camera, and pass its size and the
+     * camera's field of view to {@link RendezvousHudContext.reportPicture} so the
+     * reticle sits where the camera draws the target. Drawn only while the docking view
      * is shown at a size with room for the frame, and not when the operator
      * picks the view without a camera. Passes a {@link RendezvousHudContext}.
      */

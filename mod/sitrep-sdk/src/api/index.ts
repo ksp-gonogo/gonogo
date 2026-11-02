@@ -160,6 +160,7 @@ export type {
   OrbitOverlayContext,
   PowerSystemsScope,
   RendezvousHudContext,
+  RendezvousPicture,
   ScienceDataAboardRowContext,
   ShipMapBounds,
   ShipMapOverlayContext,

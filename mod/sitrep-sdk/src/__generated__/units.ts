@@ -731,12 +731,16 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "DockAlignment": {
     distance: "m",
     forwardDot: "1",
+    ownPortState: "enum",
     "relativePosition.x": "m",
     "relativePosition.y": "m",
     "relativePosition.z": "m",
     "relativeVelocity.x": "m/s",
     "relativeVelocity.y": "m/s",
     "relativeVelocity.z": "m/s",
+    targetPortPersistentId: "id",
+    targetPortState: "enum",
+    targetVesselPersistentId: "id",
   },
   "ErrorMsg": {
     code: "id",
@@ -2473,12 +2477,16 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "vessel.dock": {
     distance: "m",
     forwardDot: "1",
+    ownPortState: "enum",
     "relativePosition.x": "m",
     "relativePosition.y": "m",
     "relativePosition.z": "m",
     "relativeVelocity.x": "m/s",
     "relativeVelocity.y": "m/s",
     "relativeVelocity.z": "m/s",
+    targetPortPersistentId: "id",
+    targetPortState: "enum",
+    targetVesselPersistentId: "id",
   },
   "vessel.flight": {
     altitudeAsl: "m",
@@ -3356,6 +3364,10 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   "DeployedStationExperiment": {
     offReason: "DeployedOffReason",
   },
+  "DockAlignment": {
+    ownPortState: "DockingPortState",
+    targetPortState: "DockingPortState",
+  },
   "FlightCurrent": {
     phase: "Situation",
   },
@@ -3526,6 +3538,10 @@ export const GENERATED_TOPIC_ENUMS: Readonly<Record<string, EnumsByField>> = {
   "vessel.control": {
     sasMode: "SasMode",
   },
+  "vessel.dock": {
+    ownPortState: "DockingPortState",
+    targetPortState: "DockingPortState",
+  },
   "vessel.identity": {
     situation: "Situation",
     vesselType: "VesselType",
@@ -3657,6 +3673,14 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
     2: "ControllerDisabled",
     3: "Disabled",
     4: "NotConnected",
+  },
+  "DockingPortState": {
+    0: "Ready",
+    1: "Acquire",
+    2: "PreAttached",
+    3: "Docked",
+    4: "Disengage",
+    5: "Disabled",
   },
   "FlightEndReason": {
     0: "Recovered",

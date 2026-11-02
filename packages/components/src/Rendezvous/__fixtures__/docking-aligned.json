@@ -2,7 +2,7 @@
   "_meta": {
     "shows": "A docking port, Docking Port Mk2, 62 m ahead and closing at 0.4 m/s, with the craft lined up on it so the docking reticle is centred and green.",
     "scenario": "docking-aligned",
-    "notes": "Docking-port target at 62m in docking-HUD range (<100m) WITH vessel.dock present, a real docking scenario, so the HUD reticle renders. vessel.dock.relativePosition is a near-boresight offset, so the derived line-of-sight angles (deriveDockAngles) are both < 1°; forwardDot 0.9999 marks it aligned so the reticle renders green. HUD mode forced to 'hud' (no camera) so the render stays deterministic. The legacy `tar.*`/`dock.*` keys drive snapshots.test.tsx; the `_stream` block drives the probe render harness, vessel.target then vessel.dock, so the mode effect steps tracking → approach → docking-hud. Keep the two in sync."
+    "notes": "Docking-port target at 62m in docking-HUD range (<100m) WITH vessel.dock present, a real docking scenario, so the HUD reticle renders. vessel.dock.relativePosition is a near-boresight offset, so the derived line-of-sight angles (deriveDockAngles) are both < 1°; forwardDot -0.9999 marks it aligned so the reticle renders green. HUD mode forced to 'hud' (no camera) so the render stays deterministic. The legacy `tar.*`/`dock.*` keys drive snapshots.test.tsx; the `_stream` block drives the probe render harness, vessel.target then vessel.dock, so the mode effect steps tracking → approach → docking-hud. Keep the two in sync."
   },
   "tar.name": "Docking Port Mk2",
   "tar.type": "Vessel",
@@ -11,7 +11,7 @@
   "dock.relativePosition": { "x": 0.12, "y": -0.07, "z": 62 },
   "dock.relativeVelocityVec": { "x": 0, "y": 0, "z": -0.4 },
   "dock.distanceScalar": 62,
-  "dock.forwardDot": 0.9999,
+  "dock.forwardDot": -0.9999,
   "o.closestTgtApprUT": 0,
   "_stream": {
     "pinnedUt": 0,
@@ -34,7 +34,11 @@
           "relativePosition": { "x": 0.12, "y": -0.07, "z": 62 },
           "relativeVelocity": { "x": 0, "y": 0, "z": -0.4 },
           "distance": 62,
-          "forwardDot": 0.9999
+          "forwardDot": -0.9999,
+          "ownPortState": 0,
+          "targetPortState": 0,
+          "targetVesselPersistentId": 4000000001,
+          "targetPortPersistentId": 1234
         }
       }
     ]

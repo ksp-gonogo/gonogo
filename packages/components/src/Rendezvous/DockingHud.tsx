@@ -18,8 +18,12 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import { Crosshair, HorizTick, Reticle, VertTick } from "./DockingReticle";
-import { reticleTravelPx } from "./reticleGeometry";
-import type { RendezvousHudContext } from "./slots";
+import {
+  type Picture,
+  reticleOffset,
+  reticleTravelPx,
+} from "./reticleGeometry";
+import type { RendezvousHudContext, RendezvousPicture } from "./slots";
 
 interface DockingHudProps {
   name: string;
@@ -32,8 +36,12 @@ interface DockingHudProps {
   az: number | undefined;
   x: number | undefined;
   y: number | undefined;
-  /** Cosine of the angle between the two ports' forward vectors (1 = aligned); takes priority for the reticle tint. */
+  /** Cosine of the angle between the two ports' forward vectors (-1 = facing head-on, aligned); takes priority for the reticle tint. */
   forwardDot: number | undefined;
+  /** True once the own docking port is pre-attached or docked to the target. */
+  docked: boolean;
+  /** The targeted port's persistent ids, handed to the augments so a camera can mark it. */
+  targetPort: RendezvousHudContext["targetPort"];
   /** Present when the separation was carried forward rather than observed, with the model's basis. */
   modelled: { basis: ReckoningBasis } | undefined;
   showCamera: boolean;
@@ -64,6 +72,8 @@ export function DockingHud(props: DockingHudProps) {
     x,
     y,
     forwardDot,
+    targetPort,
+    docked,
     modelled,
     showCamera,
     cleared = false,
@@ -81,34 +91,38 @@ export function DockingHud(props: DockingHudProps) {
   // The smallest size keeps only the closing rate, the headline cue.
   const showAlignmentDetail = cols >= 4;
 
-  // Past ±8° the pilot is reorienting, not docking, so the reticle clamps.
+  // Without a picture, past ±8° the pilot is reorienting, not docking, so the reticle clamps.
   const MAX_DEG = 8;
-  const axClamped =
-    ax === undefined ? 0 : Math.max(-MAX_DEG, Math.min(MAX_DEG, ax));
-  const ayClamped =
-    ay === undefined ? 0 : Math.max(-MAX_DEG, Math.min(MAX_DEG, ay));
-  // -ay puts "nose up" at top.
-  const dx = axClamped / MAX_DEG;
-  const dy = -ayClamped / MAX_DEG;
 
   const { ref: layerRef, size: layer } = useElementSize<HTMLDivElement>({
     w: 1,
     h: 1,
   });
-  const [pictureAspect, reportPictureAspect] = useState<number | null>(null);
+  const [reported, reportPicture] = useState<RendezvousPicture | null>(null);
+  const picture: Picture | null =
+    showCamera && reported !== null
+      ? {
+          aspect: reported.frameWidth / reported.frameHeight,
+          verticalFovDeg: reported.vfovDeg,
+        }
+      : null;
   const travel = reticleTravelPx(
     { width: layer.w, height: layer.h },
-    showCamera ? pictureAspect : null,
+    picture,
+    MAX_DEG,
   );
+  // -ay puts "nose up" at top.
+  const dx = ax === undefined ? 0 : reticleOffset(ax, MAX_DEG, picture);
+  const dy = ay === undefined ? 0 : -reticleOffset(ay, MAX_DEG, picture);
   // The reticle stays in the frame even where the picture's own field runs past it.
   const along = (offset: number, half: number) =>
     `calc(50% + ${Math.max(-half, Math.min(half, offset * travel))}px)`;
   const tick = (units: number) => `calc(50% + ${units * travel}px)`;
 
-  // 0.9998 is within about 1° of dead-on, matching the derived-angle threshold.
+  // Head-on ports have antiparallel forward vectors, so aligned is a dot near -1; 0.9998 is within about 1° of dead-on.
   const aligned =
     forwardDot !== undefined
-      ? forwardDot > 0.9998
+      ? forwardDot < -0.9998
       : ax !== undefined &&
         ay !== undefined &&
         Math.abs(ax) < 1 &&
@@ -121,11 +135,13 @@ export function DockingHud(props: DockingHudProps) {
     maxDeg: MAX_DEG,
     reticleOffset: { x: dx, y: dy },
     reticleTravelPx: travel,
-    reportPictureAspect,
+    reportPicture,
     aligned,
     ax,
     ay,
     distance,
+    targetPort,
+    docked,
     held: figuresReading,
     cameraFlightId,
   };
@@ -296,23 +312,23 @@ export function DockingHud(props: DockingHudProps) {
                     "radial-gradient(circle at center, rgba(0, 255, 136, 0.08) 0%, rgba(0, 0, 0, 0.3) 70%)",
                 }}
               >
-                {!cleared && <Crosshair />}
-                {!cleared && (
-                  <Reticle
-                    aligned={aligned}
-                    left={along(dx, layer.w / 2)}
-                    top={along(dy, layer.h / 2)}
-                  />
+                {picture === null && !cleared && (
+                  <>
+                    <Crosshair />
+                    <Reticle
+                      aligned={aligned}
+                      left={along(dx, layer.w / 2)}
+                      top={along(dy, layer.h / 2)}
+                    />
+                    {/* Axis ticks at half and full travel give the pilot the scale, the same on both axes. */}
+                    {[-1, -0.5, 0.5, 1].map((units) => (
+                      <HorizTick key={`h${units}`} left={tick(units)} />
+                    ))}
+                    {[-1, -0.5, 0.5, 1].map((units) => (
+                      <VertTick key={`v${units}`} top={tick(units)} />
+                    ))}
+                  </>
                 )}
-                {/* Axis ticks at half and full travel give the pilot the scale, the same on both axes. */}
-                {!cleared &&
-                  [-1, -0.5, 0.5, 1].map((units) => (
-                    <HorizTick key={`h${units}`} left={tick(units)} />
-                  ))}
-                {!cleared &&
-                  [-1, -0.5, 0.5, 1].map((units) => (
-                    <VertTick key={`v${units}`} top={tick(units)} />
-                  ))}
                 {!cleared && (
                   <AugmentSlot name="rendezvous.overlay" props={hudContext} />
                 )}

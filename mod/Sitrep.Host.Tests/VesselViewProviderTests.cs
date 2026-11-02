@@ -2302,6 +2302,10 @@ namespace Sitrep.Host.Tests
                     ["relativeVelocity"] = new[] { 0.1, 0.2, 0.3 },
                     ["distance"] = 3.74,
                     ["forwardDot"] = -0.98,
+                    ["ownPortState"] = "Acquire",
+                    ["targetPortState"] = "Acquire (dockee)",
+                    ["targetVesselPersistentId"] = 4000000001.0,
+                    ["targetPortPersistentId"] = 1234.0,
                 });
 
             var dock = VesselViewProvider.BuildDock(snapshot);
@@ -2311,6 +2315,10 @@ namespace Sitrep.Host.Tests
             Assert.Equal(0.2, dock.RelativeVelocity.Y);
             Assert.Equal(3.74, dock.Distance);
             Assert.Equal(-0.98, dock.ForwardDot);
+            Assert.Equal(DockingPortState.Acquire, dock.OwnPortState);
+            Assert.Equal(DockingPortState.Acquire, dock.TargetPortState);
+            Assert.Equal(4000000001u, dock.TargetVesselPersistentId);
+            Assert.Equal(1234u, dock.TargetPortPersistentId);
         }
 
         [Fact]
@@ -3270,6 +3278,10 @@ namespace Sitrep.Host.Tests
                     RelativeVelocity = new Vec3(0.1, 0.2, 0.3),
                     Distance = 3.74,
                     ForwardDot = -0.98,
+                    OwnPortState = DockingPortState.Docked,
+                    TargetPortState = DockingPortState.Docked,
+                    TargetVesselPersistentId = 4000000001u,
+                    TargetPortPersistentId = 1234u,
                     Meta = meta,
                 },
             };
