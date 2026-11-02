@@ -1269,31 +1269,6 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// A probe core with a low SAS tier holds only some modes; the list the
-        /// client greys buttons by is exactly the modes the host reported, and an
-        /// absent key is unknown rather than none.
-        /// </summary>
-        [Fact]
-        public void BuildControlCarriesTheSasModesTheCraftCanHold()
-        {
-            VesselControl? Build(Dictionary<string, object?> control) =>
-                VesselViewProvider.BuildControl(SnapshotWith(
-                    identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
-                    control: control));
-
-            var held = Build(new Dictionary<string, object?>
-            {
-                ["sasModesAvailable"] = new List<object?> { "StabilityAssist", "Prograde", "Retrograde" },
-            })!;
-
-            Assert.Equal(
-                new[] { SasMode.StabilityAssist, SasMode.Prograde, SasMode.Retrograde },
-                held.SasModesAvailable);
-            Assert.Empty(Build(new Dictionary<string, object?> { ["sasModesAvailable"] = new List<object?>() })!.SasModesAvailable!);
-            Assert.Null(Build(new Dictionary<string, object?> { ["sas"] = true })!.SasModesAvailable);
-        }
-
-        /// <summary>
         /// Armed and not armed are both answers, and an absent key is neither:
         /// null means the override could not be read, never off.
         /// </summary>

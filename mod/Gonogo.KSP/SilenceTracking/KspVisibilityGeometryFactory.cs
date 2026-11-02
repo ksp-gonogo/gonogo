@@ -301,7 +301,7 @@ namespace Gonogo.KSP.SilenceTracking
 
         /// <summary>
         /// The bodies that can come between the station's body and the vessel's
-        /// parent, nearest-the-station first, then every other body with a size to the radio. Null when there is no path at
+        /// parent, ordered nearest-the-station first. Null when there is no path at
         /// all, which means the two are in different systems or the hierarchy is
         /// malformed.
         ///
@@ -322,17 +322,13 @@ namespace Gonogo.KSP.SilenceTracking
                 return null;
             }
 
-            Func<int, double> radiusOf = index => index >= 0 && index < bodies.Count
-                ? OccludingRadiusOf(occlusion, bodies[index])
-                : 0.0;
-            var chain = PatchedConicChain.OccludersBetween(
+            return PatchedConicChain.OccludersBetween(
                 stationBodyIndex,
                 vesselParentIndex,
                 KspSystemTable.Current(),
-                radiusOf);
-            return chain == null
-                ? null
-                : PatchedConicChain.WithEveryOtherBody(chain, bodies.Count, radiusOf, stationBodyIndex);
+                index => index >= 0 && index < bodies.Count
+                    ? OccludingRadiusOf(occlusion, bodies[index])
+                    : 0.0);
         }
 
         /// <summary>

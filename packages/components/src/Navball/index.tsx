@@ -116,14 +116,6 @@ function useNavball({
   const controlReading = topics.useTelemetry("vessel.control");
   const control = lastObserved(controlReading);
   const sasMode = enumNameOf<SasModeName>(SAS_MODE_NAMES, control?.sasMode);
-  const availableSasModes = control?.sasModesAvailable
-    ? new Set(
-        control.sasModesAvailable.flatMap((m) => {
-          const name = enumNameOf<SasModeName>(SAS_MODE_NAMES, m);
-          return name && name !== "Unknown" ? [name] : [];
-        }),
-      )
-    : null;
   const sasBadgeMode = sasMode ? badgeSasMode(sasMode) : "";
   const throttle = magnitudeOf(control?.throttle);
   // Only a confirmed `*None` control state disables the buttons: greying out the stick is a claim about the craft.
@@ -203,7 +195,6 @@ function useNavball({
     controlReading,
     control,
     sasMode,
-    availableSasModes,
     sasBadgeMode,
     throttle,
     isControllable,
@@ -273,7 +264,6 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
     controlReading,
     control,
     sasMode,
-    availableSasModes,
     sasBadgeMode,
     throttle,
     isControllable,
@@ -419,7 +409,6 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
             <ControlSurface
               disabled={!isControllable}
               sasMode={sasMode ?? null}
-              availableSasModes={availableSasModes}
               throttleCmd={throttleKnown ? throttleCmd : null}
               onSetThrottleCmd={setThrottleCmd}
               throttleStream={throttleStream}

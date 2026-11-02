@@ -10969,15 +10969,6 @@ export interface VesselControl
 	sasUnavailableReason?: string | null;
 	/** The SAS hold mode. Changed with `vessel.control.setSasMode`. */
 	sasMode?: SasMode | null;
-	/**
-	* The SAS hold modes the vessel can be put in right now, by KSP's own per-mode
-	* check: the Pilot's skill or the probe core's SAS tier, a target for the
-	* target modes, a maneuver node for `Maneuver`. A mode left out is refused by
-	* `vessel.control.setSasMode` as a capability mismatch, so a client can show
-	* it unavailable before it is pressed. Null when the vessel has no autopilot
-	* to ask, in which case no mode is known to be unavailable.
-	*/
-	sasModesAvailable?: SasMode[] | null;
 	/** Whether RCS is on. Changed with `vessel.control.setRcs`. */
 	rcs?: boolean | null;
 	/**

@@ -159,48 +159,6 @@ namespace Sitrep.Host.Tests.Comms
             Assert.False(ReckonedPlan.Request(new[] { settled }, Ground(Ksc), 100.0, 3600.0).Matches(before));
         }
 
-        private const int Sun = 0, Duna = 2, Ike = 3;
-        private const double DunaMu = 3.0136321197e11;
-
-        private static double Rad(double degrees) => degrees * System.Math.PI / 180.0;
-
-        private static readonly SystemBody[] DunaSystem =
-        {
-            new SystemBody(-1, null),
-            new SystemBody(Sun, new OrbitElements(13_599_840_256.0, 0.0, 0.0, 0.0, 0.0, 3.14, 0.0, 1.1723328e18)),
-            new SystemBody(Sun, new OrbitElements(20_726_155_264.0, 0.051, Rad(0.06), Rad(135.5), 0.0, 3.14, 0.0, 1.1723328e18)),
-            new SystemBody(Duna, new OrbitElements(3_200_000.0, 0.03, Rad(0.2), 0.0, 0.0, 1.7, 0.0, DunaMu)),
-        };
-
-        private static double DunaOcclusion(int index) =>
-            index == Kerbin ? 450_000.0 : index == Duna ? 240_000.0 : index == Ike ? 117_000.0 : 0.0;
-
-        /// <summary>
-        /// A relay in a circular equatorial orbit round Duna, 2000 km up, and a station on Kerbin 3.3e10 m
-        /// away: Ike crosses the line between them for about ten minutes, which the game's own network showed
-        /// as the relay out of contact from 2772.3 to 3354.3 (the plan's figures follow from the occluding radii it is given).
-        /// </summary>
-        [Fact]
-        public void AMoonOfTheCraftsPlanetCrossingTheLineClosesTheWindow()
-        {
-            var relay = CraftState.Orbiting(
-                "vessel:relay", 2162.7, Duna,
-                new OrbitElements(2_320_000.0, 0.0, 0.0, Rad(259.84905039149908), Rad(179.85959125613238), 4.8940949811570373, 73.56, DunaMu),
-                null, null, true, Links(("ground:ksc", null)));
-            var station = PlanNode.OnSurface(
-                "ground:ksc", Kerbin, RotatingGroundStation.FromLatitudeLongitude(0.0, 0.0, 0.0, 21_549.425, KerbinRadius, 0.0));
-            var ground = new PlanGround(new[] { station }, DunaSystem, Sun, DunaOcclusion);
-
-            var request = ReckonedPlan.Request(new[] { relay }, ground, 2512.0, 3600.0);
-            Assert.Contains(request.Pairs.Single().Occluders, o => o.BodyIndex == Ike);
-
-            var window = request.Run().Pairs.Single().Windows;
-            var closes = window.Where(w => w.CloseUt != null).Select(w => w.CloseUt!.Value).ToArray();
-            var opens = window.Where(w => w.OpenUt != null).Select(w => w.OpenUt!.Value).ToArray();
-            Assert.Contains(closes, c => c > 2740.0 && c < 2800.0);
-            Assert.Contains(opens, o => o > 3250.0 && o < 3390.0);
-        }
-
         private sealed class FixedMargin : IContactLinkModel
         {
             public double MarginAt(double ut, Vector3d from, Vector3d to, IContactPositions positions) => 1.0;

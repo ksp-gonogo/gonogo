@@ -24,8 +24,6 @@ import type { FbwState } from "./useFlyByWire";
 interface ControlSurfaceProps {
   disabled: boolean;
   sasMode: string | null;
-  /** The SAS modes the craft can hold right now; `null` while it does not say, when every mode is offered. */
-  availableSasModes: ReadonlySet<SasMode> | null;
   /** Commanded throttle (0..1), tracking the readback until touched; `null` while there is neither. */
   throttleCmd: number | null;
   onSetThrottleCmd: (next: number | ((v: number) => number)) => void;
@@ -71,7 +69,6 @@ const NOT_CONTROLLABLE = "The vessel is not controllable";
 export function ControlSurface({
   disabled,
   sasMode,
-  availableSasModes,
   throttleCmd,
   onSetThrottleCmd,
   throttleStream,
@@ -97,7 +94,6 @@ export function ControlSurface({
           {SAS_MODES.map((mode) => {
             const unconfirmedId = unconfirmedSasModes.get(mode);
             const isUnconfirmed = unconfirmedId !== undefined;
-            const cannotHold = availableSasModes?.has(mode) === false;
             return (
               <ToggleButton
                 key={mode}
@@ -114,8 +110,8 @@ export function ControlSurface({
                     ? onDismissSasUnconfirmed(unconfirmedId)
                     : onSetSasMode(mode)
                 }
-                disabled={disabled || (cannotHold && !isUnconfirmed)}
-                disabledReason={disabled ? NOT_CONTROLLABLE : undefined}
+                disabled={disabled}
+                disabledReason={NOT_CONTROLLABLE}
               >
                 {(() => {
                   const markerId = SAS_MODE_MARKERS[mode];
