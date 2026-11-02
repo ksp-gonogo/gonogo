@@ -23657,6 +23657,19 @@ components:
             - $ref: "#/components/schemas/SasMode"
               x-sitrep-unit: enum
             - type: "null"
+        sasModesAvailable:
+          type:
+            - array
+            - "null"
+          items:
+            $ref: "#/components/schemas/SasMode"
+          description: |-
+            The SAS hold modes the vessel can be put in right now, by KSP's own per-mode
+            check: the Pilot's skill or the probe core's SAS tier, a target for the
+            target modes, a maneuver node for `Maneuver`. A mode left out is refused by
+            `vessel.control.setSasMode` as a capability mismatch, so a client can show
+            it unavailable before it is pressed. Null when the vessel has no autopilot
+            to ask, in which case no mode is known to be unavailable.
         rcs:
           type:
             - boolean
