@@ -79,8 +79,11 @@ namespace Sitrep.Host.Comms
                 var down = new CommsNextLoss { Basis = NextLossBasis.OutOfContact, CoveredToUt = plan?.HorizonUt ?? ut };
                 if (plan != null && ut >= plan.FromUt && Includes(plan, craft))
                 {
-                    down.NextAcquisitionUt = NextConnected(
-                        plan, GroundNetwork.EndsOf(craft, home, antennas), GroundNetwork.EndsOf(centre, home, antennas), ut, HorizonFor(plan, ut));
+                    var from = GroundNetwork.EndsOf(craft, home, antennas);
+                    var to = GroundNetwork.EndsOf(centre, home, antennas);
+                    down.NextAcquisitionUt = Connected(plan, from, to, ut)
+                        ? CurrentConnectionStart(plan, from, to, ut)
+                        : NextConnected(plan, from, to, ut, HorizonFor(plan, ut));
                 }
                 return down;
             }
@@ -164,6 +167,37 @@ namespace Sitrep.Host.Comms
                 }
             }
             return null;
+        }
+
+        /**
+         * The instant the route that joins the sources to the destinations at
+         * <paramref name="ut"/> last opened. A live link still reading down while the
+         * plan already holds the route open is the centre catching up with a return that
+         * has happened, so the acquisition is that return and not a later window, which
+         * lies in the part of the plan that is re-solved every frame.
+         */
+        private static double CurrentConnectionStart(
+            ContactPlan plan, IReadOnlyCollection<string> sources, IReadOnlyCollection<string> destinations, double ut)
+        {
+            var opens = new SortedSet<double>();
+            foreach (var pair in plan.Pairs)
+            {
+                foreach (var window in pair.Windows)
+                {
+                    if (window.OpenUt is double open && open <= ut)
+                    {
+                        opens.Add(open);
+                    }
+                }
+            }
+            foreach (var open in opens.Reverse())
+            {
+                if (!Connected(plan, sources, destinations, open - JustAfterSeconds))
+                {
+                    return open;
+                }
+            }
+            return ut;
         }
 
         private static bool Includes(ContactPlan plan, string craft)

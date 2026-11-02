@@ -55,6 +55,21 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         [Fact]
+        public void ADownLiveLinkOverAnOpenPlanReportsTheReturnThePlanHoldsAndNotALaterWindow()
+        {
+            var plan = PlanOf(Pair(
+                "ground:ksc", "vessel:probe", Horizon,
+                new ContactWindow(2000.0, 3000.0), new ContactWindow(5000.0, 6000.0)));
+
+            var first = Next(plan, ut: 2010.0, live: false);
+            var later = Next(plan, ut: 2030.0, live: false);
+
+            Assert.Equal(NextLossBasis.OutOfContact, first.Basis);
+            Assert.Equal(2000.0, first.NextAcquisitionUt!.Value, 9);
+            Assert.Equal(2000.0, later.NextAcquisitionUt!.Value, 9);
+        }
+
+        [Fact]
         public void ADownLiveLinkAlsoCarriesTheNextAcquisitionAndAnInContactCraftNone()
         {
             var plan = PlanOf(Pair("ground:ksc", "vessel:probe", Horizon, new ContactWindow(2156.35, 3000.0)));
