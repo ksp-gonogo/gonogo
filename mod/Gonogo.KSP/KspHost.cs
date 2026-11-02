@@ -448,8 +448,9 @@ namespace Gonogo.KSP
                      * so a kerbal outside belongs to no vessel entry at all. It
                      * also covers several kerbals outside at once, which the
                      * active-vessel resolution cannot see past the one KSP is
-                     * flying. Only kerbals the game has loaded, those within
-                     * physics range of the vessel in focus, are listed.
+                     * flying. Loaded kerbals, those within physics range of the
+                     * vessel in focus, are listed with their suit state; the
+                     * rest follow in evaCrewUnloaded with no suit state.
                      *
                      * An empty list is published rather than the key omitted:
                      * "nobody is outside" is a real answer, and the mapper

@@ -196,7 +196,7 @@ function VesselField() {
   );
 }
 
-/** The kerbals outside within physics range, named, and nothing while nobody is. The kerbal the vessel field already names is left out. */
+/** The loaded kerbals outside, those within physics range of the vessel in focus, named, and nothing while there are none. Kerbals the roster marks as not loaded, and the kerbal the vessel field already names, are left out. */
 function EvaField() {
   const crew = useTelemetry("eva.crew");
   const identity = useTelemetry("vessel.identity");
@@ -207,6 +207,7 @@ function EvaField() {
       : undefined;
   const names = crew.value.kerbals.flatMap((kerbal) => {
     const name = kerbal.name?.trim();
+    if (kerbal.loaded === false) return [];
     return name && (ownId === undefined || kerbal.kerbalVesselId !== ownId)
       ? [name]
       : [];

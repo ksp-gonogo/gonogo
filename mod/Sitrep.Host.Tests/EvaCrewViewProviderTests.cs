@@ -77,7 +77,7 @@ namespace Sitrep.Host.Tests
             Assert.Equal(new[] { "kerbal-1", "kerbal-2" }, eva.Kerbals.ConvertAll(k => k.KerbalVesselId));
             Assert.Equal("craft-1", eva.Kerbals[0].ParentVesselId);
             Assert.Equal("Jebediah Kerman", eva.Kerbals[0].Name);
-            Assert.Equal(3, typeof(EvaCrewMember).GetProperties().Length);
+            Assert.Equal(4, typeof(EvaCrewMember).GetProperties().Length);
         }
 
         [Fact]
@@ -220,6 +220,20 @@ namespace Sitrep.Host.Tests
             Assert.Equal("Bill Kerman", roster.Kerbals[1].Name);
             Assert.Equal("craft-1", roster.Kerbals[1].ParentVesselId);
             Assert.Equal("loaded-1", Assert.Single(suits).KerbalVesselId);
+            Assert.True(roster.Kerbals[0].Loaded);
+            Assert.False(roster.Kerbals[1].Loaded);
+        }
+
+        [Fact]
+        public void TheWireRosterCarriesWhetherEachKerbalIsLoaded()
+        {
+            var snapshot = SnapshotWithUnloaded(new object?[] { Kerbal("loaded-1") }, Unloaded("away-1"));
+
+            var wire = Assert.IsType<Dictionary<string, object?>>(VesselViewProvider.BuildEvaCrewWire(snapshot));
+            var kerbals = Assert.IsAssignableFrom<IList<object?>>(wire["kerbals"]);
+
+            Assert.Equal(true, Assert.IsType<Dictionary<string, object?>>(kerbals[0])["loaded"]);
+            Assert.Equal(false, Assert.IsType<Dictionary<string, object?>>(kerbals[1])["loaded"]);
         }
 
         [Fact]

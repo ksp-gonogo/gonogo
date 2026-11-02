@@ -1339,6 +1339,7 @@ namespace Sitrep.Host
                     KerbalVesselId = kerbal.KerbalVesselId,
                     ParentVesselId = kerbal.ParentVesselId,
                     Name = kerbal.Name,
+                    Loaded = true,
                 });
             }
 
@@ -1384,6 +1385,7 @@ namespace Sitrep.Host
                     KerbalVesselId = id,
                     ParentVesselId = GetString(raw, "parentVesselId"),
                     Name = GetString(raw, "name"),
+                    Loaded = false,
                 });
             }
 
@@ -2144,6 +2146,7 @@ namespace Sitrep.Host
             ["kerbalVesselId"] = member.KerbalVesselId,
             ["parentVesselId"] = member.ParentVesselId,
             ["name"] = member.Name,
+            ["loaded"] = member.Loaded,
         };
 
         private static Dictionary<string, object?> ToWire(EvaKerbal kerbal) => new Dictionary<string, object?>

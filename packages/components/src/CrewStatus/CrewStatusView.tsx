@@ -75,6 +75,7 @@ export function CrewStatusComponent(
   const evaCrew = stillTrue(evaReading, undefined);
   const outside = (evaCrew?.kerbals ?? []).flatMap((kerbal) =>
     kerbal.name &&
+    kerbal.loaded !== false &&
     (identity?.vesselId === undefined ||
       kerbal.kerbalVesselId !== identity.vesselId)
       ? [{ kerbalVesselId: kerbal.kerbalVesselId, name: kerbal.name }]
