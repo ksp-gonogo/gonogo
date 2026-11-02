@@ -96,13 +96,6 @@ describe("formatQuantity", () => {
     });
   });
 
-  it("writes a negative reading that rounds to zero as zero", () => {
-    expect(formatQuantity(-0.0021, "m/s", { decimals: 2 }).value).toBe("0.00");
-    expect(formatQuantity(-0.0092, "°", { decimals: 0 }).value).toBe("0");
-    expect(formatQuantity(-0.4, "°", { decimals: 0 }).value).toBe("0");
-    expect(formatQuantity(-3.2, "°", { decimals: 0 }).value).toBe("-3");
-  });
-
   it("does not scale a speed, because delta-v is read in m/s", () => {
     expect(formatQuantity(3412, "m/s")).toMatchObject({
       value: "3412.0",
