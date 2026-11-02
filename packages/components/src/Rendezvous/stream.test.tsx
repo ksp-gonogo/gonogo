@@ -82,12 +82,16 @@ describe("Rendezvous: genuinely runs off the stream", () => {
         relativePosition: { x: 0, y: 0, z: 62 },
         relativeVelocity: { x: 0, y: 0, z: -0.4 },
       });
-      fixture.emit("vessel.dock", {
-        relativePosition: { x: 2, y: -1.5, z: 40 },
-        relativeVelocity: { x: 0, y: 0, z: -0.40078 },
-        distance: 62,
-        forwardDot: 0.9999,
-      });
+      fixture.emit(
+        "vessel.dock",
+        {
+          relativePosition: { x: 2, y: -1.5, z: 40 },
+          relativeVelocity: { x: 0, y: 0, z: -0.40078 },
+          distance: 62,
+          forwardDot: 0.9999,
+        },
+        { validAt: 10, deliveredAt: 10 },
+      );
     });
 
     await waitFor(() =>

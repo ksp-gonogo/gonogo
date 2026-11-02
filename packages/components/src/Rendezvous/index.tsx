@@ -235,6 +235,8 @@ registerComponent<RendezvousConfig>({
   channels: rendezvousTopics.channels,
   optionalChannels: rendezvousTopics.optionalChannels,
   actions: rendezvousActions,
+  // The docking figures arrive once a second at the base rate; Faster raises them while the widget is open.
+  dataRates: { fast: ["vessel.dock"] },
   defaultConfig: { autoSwitch: true, hudMode: "hud-with-camera" },
   augmentSlots: ["rendezvous.camera", "rendezvous.overlay"],
   pushable: true,
