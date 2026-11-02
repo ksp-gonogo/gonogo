@@ -3,14 +3,16 @@ import { useViewUt, withoutReckoning } from "@ksp-gonogo/sitrep-client";
 import {
   DockingPortState,
   deriveReading,
+  type Reading,
   stillTrue,
   TargetKind,
+  type Value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   bare,
   closingRateReading,
+  closingSpeed,
   deriveDockAngles,
-  radialSpeed,
   rangeReading,
   vecMagnitude,
 } from "../shared/dockAngles";
@@ -19,6 +21,7 @@ import {
 
 export const rendezvousTopics = defineTopicManifest({
   channels: ["vessel.target", "vessel.dock"],
+  optionalChannels: ["vessel.orbit", "trackingStation.bodies"],
 });
 
 /**
@@ -71,6 +74,13 @@ export function useRendezvousReading() {
         : undefined,
   );
 
+  // The miss distance at that closest approach, read the same way.
+  const closestApproachDistance: Reading<Value<"m">> = deriveReading(
+    targetReading,
+    (t) => t.closestApproach?.distance ?? undefined,
+    (t) => t.closestApproach?.distance ?? undefined,
+  );
+
   const tarRelPos = target?.relativePosition && bare(target.relativePosition);
   const tarRelVelVec =
     target?.relativeVelocity && bare(target.relativeVelocity);
@@ -98,7 +108,7 @@ export function useRendezvousReading() {
   const tarDistance = tarRelPos ? vecMagnitude(tarRelPos) : undefined;
   const relVel =
     tarRelPos && tarRelVelVec
-      ? radialSpeed(tarRelPos, tarRelVelVec)
+      ? closingSpeed(tarRelPos, tarRelVelVec)
       : undefined;
   // The plain numbers drive the mode machine and guards; these are what the readouts draw, so a held range is marked.
   const rangeR = rangeReading(targetReading.relativePosition);
@@ -115,18 +125,21 @@ export function useRendezvousReading() {
   const dockAz: number | undefined = undefined;
   const dockX = dockRelPos?.x;
   const dockY = dockRelPos?.y;
-  const derivedDockRelVel =
+  const derivedDockClosing =
     dockRelPos && dockRelVelVec
-      ? radialSpeed(dockRelPos, dockRelVelVec)
+      ? closingSpeed(dockRelPos, dockRelVelVec)
       : undefined;
-  // The docking HUD's Δv row prefers the port-to-port closing rate.
-  const dockingRelVel = derivedDockRelVel ?? relVel;
+  // The docking readout prefers the port-to-port closing rate.
+  const dockingClosing = derivedDockClosing ?? relVel;
   const dockingDistance = dockDistanceStream ?? tarDistance;
   // What dates the docking HUD's figures for an augment drawn over them: the dock reading, unless the distance fell back to a held target range.
   const dockingFiguresReading =
     dockDistanceStream === undefined && targetReading.state === "held"
       ? withoutReckoning(targetReading)
       : dockReading;
+
+  // A docking port is the target: the docking channel is expected to report it once close.
+  const portTargeted = tarKind === TargetKind.Part;
 
   // A real non-body target, read off the ORDINAL: drives the APPROACH view.
   const dockable =
@@ -172,6 +185,7 @@ export function useRendezvousReading() {
     tarName,
     dockable,
     timeToClosestApproach,
+    closestApproachDistance,
     tarDistance,
     relVel,
     rangeR,
@@ -181,13 +195,14 @@ export function useRendezvousReading() {
     dockAz,
     dockX,
     dockY,
-    dockingRelVel,
+    dockingClosing,
     dockingDistance,
     dockingFiguresReading,
     dockForwardDot,
     dockTargetPort,
     dockJoined,
     dockingAvailable,
+    portTargeted,
     alignmentWithheld,
     modelledAlignment,
     outOfContact,

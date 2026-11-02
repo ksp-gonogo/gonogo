@@ -1,0 +1,163 @@
+{
+  "_meta": {
+    "shows": "A docking port 35 m ahead, closing at 0.4 m/s, about 4 degrees off the line sideways and 2.5 degrees vertically: inside the drawn circle, so the reticle sits off-centre with amber triangles round it and no border cue.",
+    "scenario": "docking-off-centre",
+    "notes": "Docking-port target at 35 m with vessel.dock present and the port inside the drawn circle (rim at 8 degrees). The legacy keys drive snapshots.test.tsx; the _stream block drives the probe render harness. Keep the two in sync."
+  },
+  "_stream": {
+    "pinnedUt": 0,
+    "emits": [
+      {
+        "channel": "vessel.target",
+        "value": {
+          "name": "Space Station Hub",
+          "kind": 0,
+          "vesselId": "target-vessel",
+          "bodyIndex": null,
+          "relativePosition": {
+            "x": 0,
+            "y": 0,
+            "z": 35
+          },
+          "relativeVelocity": {
+            "x": 0,
+            "y": 0,
+            "z": -0.4
+          },
+          "closestApproach": {
+            "time": 0,
+            "distance": 0
+          },
+          "orbit": {
+            "referenceBodyIndex": 1,
+            "sma": 700000.0,
+            "ecc": 0.0001,
+            "inc": 0,
+            "lan": 0,
+            "argPe": 0,
+            "meanAnomalyAtEpoch": 1.00005,
+            "epoch": 0,
+            "mu": 3531600000000.0,
+            "timeToAp": null,
+            "timeToPe": null,
+            "encounter": null,
+            "patches": [],
+            "horizon": {
+              "kind": 1,
+              "trajectoryKind": 1
+            },
+            "meta": {
+              "source": "vessel:chaser",
+              "quality": 0
+            }
+          }
+        }
+      },
+      {
+        "channel": "vessel.dock",
+        "value": {
+          "relativePosition": {
+            "x": 2.6,
+            "y": -1.6,
+            "z": 35
+          },
+          "relativeVelocity": {
+            "x": 0,
+            "y": 0,
+            "z": -0.4
+          },
+          "distance": 35,
+          "forwardDot": -0.998,
+          "ownPortState": 0,
+          "targetPortState": 0,
+          "targetVesselPersistentId": 4000000001,
+          "targetPortPersistentId": 1234
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 700000.0,
+          "ecc": 0.0001,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 1.0,
+          "epoch": 0,
+          "mu": 3531600000000.0,
+          "timeToAp": null,
+          "timeToPe": null,
+          "encounter": null,
+          "patches": [],
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          },
+          "meta": {
+            "source": "vessel:chaser",
+            "quality": 0
+          }
+        }
+      },
+      {
+        "channel": "trackingStation.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "sphereOfInfluence": 84159286,
+              "gravParameter": 3531600000000.0,
+              "orbit": null,
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              }
+            },
+            {
+              "name": "Mun",
+              "index": 2,
+              "parentIndex": 1,
+              "radius": 200000,
+              "sphereOfInfluence": 2429559,
+              "gravParameter": 65138398000.0,
+              "orbit": null,
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "tar.name": "Space Station Hub",
+  "tar.type": "Vessel",
+  "tar.relativePosition": {
+    "x": 0,
+    "y": 0,
+    "z": 35
+  },
+  "tar.relativeVelocityVec": {
+    "x": 0,
+    "y": 0,
+    "z": -0.4
+  },
+  "dock.relativePosition": {
+    "x": 2.6,
+    "y": -1.6,
+    "z": 35
+  },
+  "dock.relativeVelocityVec": {
+    "x": 0,
+    "y": 0,
+    "z": -0.4
+  },
+  "dock.distanceScalar": 35,
+  "dock.forwardDot": -0.998,
+  "o.closestTgtApprUT": 0
+}

@@ -181,6 +181,18 @@ export {
   relativeDensityCurve,
   terminalVelocityCurve,
 } from "./descent";
+// The four triangles around a docking port: the look rules and the shape, shared by a camera picture's markers and the drawn view.
+export {
+  DOCK_LINED_UP_DEG,
+  DOCK_MARK_CAMERA_FLOORS,
+  type DockMarkGeometry,
+  type DockMarkInput,
+  type DockMarkSide,
+  type DockMarkStyle,
+  dockMarkGeometry,
+  dockMarkPath,
+  dockMarkStyles,
+} from "./dock-markers";
 // Ordinal->name tables and closed name unions for the contract's enums. On the
 // root barrel rather than in the spine because an Uplink needs them as much as
 // the app does: KSP's ResourceFlowMode reaches the Kerbalism Uplink and its

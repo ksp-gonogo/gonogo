@@ -1,13 +1,21 @@
 {
   "_meta": {
-    "shows": "The Mun set as the target from 850 km away and receding at 547.8 m/s, so the widget stays in plain tracking and never offers docking.",
+    "shows": "The Mun set as the target from 12308 km away and receding at 547.8 m/s, outside its sphere of influence, so the view stays at the Far level and never offers docking.",
     "scenario": "celestial-body-tracking",
     "notes": "Target is a CelestialBody (Mun). Even at close range, dockable=false so mode stays 'tracking' indefinitely. Exercises the CelestialBody gate in the useEffect. The legacy `tar.*` keys drive snapshots.test.tsx; the `_stream` block drives the probe render harness (the widget reads native vessel.target). Keep the two in sync."
   },
   "tar.name": "Mun",
   "tar.type": "CelestialBody",
-  "tar.relativePosition": { "x": 0, "y": 0, "z": 850000 },
-  "tar.relativeVelocityVec": { "x": 0, "y": 0, "z": 547.8 },
+  "tar.relativePosition": {
+    "x": 0,
+    "y": 0,
+    "z": 12307773
+  },
+  "tar.relativeVelocityVec": {
+    "x": 0,
+    "y": 0,
+    "z": 547.8
+  },
   "o.closestTgtApprUT": 0,
   "_stream": {
     "pinnedUt": 0,
@@ -18,10 +26,103 @@
           "name": "Mun",
           "kind": 1,
           "vesselId": "target-vessel",
-          "bodyIndex": null,
-          "relativePosition": { "x": 0, "y": 0, "z": 850000 },
-          "relativeVelocity": { "x": 0, "y": 0, "z": 547.8 },
-          "closestApproach": { "time": 0, "distance": 0 }
+          "bodyIndex": 2,
+          "relativePosition": {
+            "x": 0,
+            "y": 0,
+            "z": 12307773
+          },
+          "relativeVelocity": {
+            "x": 0,
+            "y": 0,
+            "z": 547.8
+          },
+          "closestApproach": {
+            "time": 0,
+            "distance": 0
+          },
+          "orbit": {
+            "referenceBodyIndex": 1,
+            "sma": 12000000.0,
+            "ecc": 0.0001,
+            "inc": 0,
+            "lan": 0,
+            "argPe": 0,
+            "meanAnomalyAtEpoch": 2.0,
+            "epoch": 0,
+            "mu": 3531600000000.0,
+            "timeToAp": null,
+            "timeToPe": null,
+            "encounter": null,
+            "patches": [],
+            "horizon": {
+              "kind": 1,
+              "trajectoryKind": 1
+            },
+            "meta": {
+              "source": "vessel:chaser",
+              "quality": 0
+            }
+          }
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 700000.0,
+          "ecc": 0.0001,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0.0,
+          "epoch": 0,
+          "mu": 3531600000000.0,
+          "timeToAp": null,
+          "timeToPe": null,
+          "encounter": null,
+          "patches": [],
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          },
+          "meta": {
+            "source": "vessel:chaser",
+            "quality": 0
+          }
+        }
+      },
+      {
+        "channel": "trackingStation.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "sphereOfInfluence": 84159286,
+              "gravParameter": 3531600000000.0,
+              "orbit": null,
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              }
+            },
+            {
+              "name": "Mun",
+              "index": 2,
+              "parentIndex": 1,
+              "radius": 200000,
+              "sphereOfInfluence": 2429559,
+              "gravParameter": 65138398000.0,
+              "orbit": null,
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              }
+            }
+          ]
         }
       }
     ]

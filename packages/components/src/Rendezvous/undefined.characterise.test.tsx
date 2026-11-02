@@ -2,7 +2,8 @@ import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { installRendezvousBox } from "../test/rendezvousBox";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -18,7 +19,14 @@ import { RendezvousComponent } from "./index";
 
 const renderedTrees: Array<() => void> = [];
 
+let restoreBox: (() => void) | undefined;
+
+beforeEach(() => {
+  restoreBox = installRendezvousBox();
+});
+
 afterEach(() => {
+  restoreBox?.();
   for (const unmount of renderedTrees) unmount();
   renderedTrees.length = 0;
   clearActionHandlers();
@@ -69,7 +77,7 @@ describe("Rendezvous: nothing has arrived on either topic", () => {
     // The confident absence claim is a different branch and must not be here.
     expect(visibleText(container)).not.toContain("No target set in KSP");
     // Neither specialised view can be entered from nothing: both assert something about now.
-    expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull();
+    expect(screen.queryByRole("group", { name: "Docking level" })).toBeNull();
     expect(screen.queryByText("APPROACH")).toBeNull();
     // No observation, so no age caption.
     expect(visibleText(container)).not.toMatch(/ago/);
@@ -92,10 +100,10 @@ describe("Rendezvous: the vessel.dock absence gate", () => {
 
     await waitFor(() => expect(screen.getByText("APPROACH")).toBeTruthy());
     // 60 m is well inside HUD_ENTER_M (100), so distance alone would promote.
-    expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull();
+    expect(screen.queryByRole("group", { name: "Docking level" })).toBeNull();
     // The dock gate costs the reticle, not the numbers.
-    expect(screen.getByText("Distance")).toBeTruthy();
-    expect(screen.getByText("Closing rate")).toBeTruthy();
+    await waitFor(() => expect(screen.getByText("CA")).toBeTruthy());
+    expect(visibleText()).toContain("60.0 m");
   });
 
   it("treats a vessel.dock tombstone exactly as it treats never-arrived, and drops the HUD", async () => {
@@ -117,9 +125,7 @@ describe("Rendezvous: the vessel.dock absence gate", () => {
       });
     });
     await waitFor(() =>
-      expect(
-        screen.getByRole("region", { name: /Docking HUD for Port Mk2/ }),
-      ).toBeTruthy(),
+      expect(screen.getByRole("group", { name: "Docking level" })).toBeTruthy(),
     );
 
     act(() => {
@@ -127,7 +133,7 @@ describe("Rendezvous: the vessel.dock absence gate", () => {
     });
 
     await waitFor(() => expect(screen.getByText("APPROACH")).toBeTruthy());
-    expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull();
+    expect(screen.queryByRole("group", { name: "Docking level" })).toBeNull();
   });
 });
 
@@ -152,17 +158,15 @@ describe("Rendezvous: a partial vessel.dock record", () => {
     });
 
     await waitFor(() =>
-      expect(
-        screen.getByRole("region", { name: /Docking HUD for Port Mk2/ }),
-      ).toBeTruthy(),
+      expect(screen.getByRole("group", { name: "Docking level" })).toBeTruthy(),
     );
     // The headline is the TARGET's 77 m.
     expect(visibleText(container)).toContain("77.0 m");
-    // The closing row is the target's radial rate.
-    expect(visibleText(container)).toContain("-0.77 m/s");
+    // The closing figure is the target's closing rate, positive while approaching.
+    expect(visibleText(container)).toContain("0.77 m/s");
   });
 
-  it("renders the alignment row from derived angles when forwardDot is absent, with roll always null", async () => {
+  it("shows the port's offset in metres from the dock record when forwardDot is absent", async () => {
     const fixture = dockingFixture();
     const { container } = renderWidget(fixture);
     act(() => {
@@ -180,12 +184,10 @@ describe("Rendezvous: a partial vessel.dock record", () => {
     });
 
     await waitFor(() =>
-      expect(
-        screen.getByRole("region", { name: /Docking HUD for Port Mk2/ }),
-      ).toBeTruthy(),
+      expect(screen.getByRole("group", { name: "Docking level" })).toBeTruthy(),
     );
-    // α and β are derived off `dock.relativePosition`; γ (roll) is not on the wire.
-    expect(visibleText(container)).toContain(`2.9° · -2.1° · ${NULL_DISPLAY}`);
+    // The offset is the dock record's own position across and up.
+    expect(visibleText(container)).toContain("2.00 / -1.50 m");
   });
 });
 
@@ -230,12 +232,12 @@ describe("Rendezvous: a partial vessel.target record", () => {
     expect(screen.queryByText("Waiting for target telemetry")).toBeNull();
     // No geometry also blocks the mode effect, so the target never reaches approach or the HUD.
     expect(screen.queryByText("APPROACH")).toBeNull();
-    expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull();
+    expect(screen.queryByRole("group", { name: "Docking level" })).toBeNull();
     // No relVel, so the closing sub-readout is absent rather than placeholdered.
     expect(visibleText(container)).not.toContain("Closing");
   });
 
-  it("renders TCA as the null placeholder when the record carries no closest approach", async () => {
+  it("renders the closest-approach row as the null placeholder when the record carries no closest approach", async () => {
     // No solver output renders the placeholder rather than a T-0 countdown.
     const fixture = dockingFixture();
     const { container } = renderWidget(fixture, { w: 6, h: 9 });
@@ -249,10 +251,9 @@ describe("Rendezvous: a partial vessel.target record", () => {
     });
 
     await waitFor(() => expect(screen.getByText("APPROACH")).toBeTruthy());
-    expect(screen.getByText("TCA")).toBeTruthy();
-    // Only the TCA row degrades.
+    await waitFor(() => expect(screen.getByText("CA")).toBeTruthy());
+    // Only the closest-approach row degrades.
     expect(visibleText(container)).toMatch(/2\.0 km/);
-    expect(visibleText(container)).toMatch(/−5\.0 m\/s/);
     // No T± countdown anywhere.
     expect(visibleText(container)).not.toMatch(/T[−+]/);
   });

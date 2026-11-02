@@ -1,9 +1,11 @@
+import type { ActionDefinition } from "@ksp-gonogo/core";
+
 export type DockingHudMode = "hud" | "hud-with-camera";
 
 export interface RendezvousConfig {
-  /** Auto-switch to the docking HUD when a vessel or port target closes under the approach threshold. Default true. */
+  /** Step through the levels on its own as the target's range and kind change. Default true. */
   autoSwitch?: boolean;
-  /** Which HUD variant auto-switch promotes to. Default "hud-with-camera". */
+  /** Which docking view the Docking level shows: the reticle alone, or over a camera picture. Default "hud-with-camera". */
   hudMode?: DockingHudMode;
   /**
    * Camera id pinning the video backdrop, unset to let the filling augment
@@ -12,10 +14,19 @@ export interface RendezvousConfig {
   cameraFlightId?: number | null;
 }
 
-export type ViewMode = "tracking" | "approach" | "docking-hud";
+export const rendezvousActions = [
+  {
+    id: "level-in",
+    label: "Level in",
+    accepts: ["button"],
+    description: "Step the view in one level, toward the target.",
+  },
+  {
+    id: "level-out",
+    label: "Level out",
+    accepts: ["button"],
+    description: "Step the view out one level, away from the target.",
+  },
+] as const satisfies readonly ActionDefinition[];
 
-// Distances in metres; hysteresis prevents strobing at the thresholds.
-export const HUD_ENTER_M = 100;
-export const HUD_EXIT_M = 150;
-export const APPROACH_ENTER_M = 5_000;
-export const APPROACH_EXIT_M = 5_500;
+export type RendezvousActions = typeof rendezvousActions;

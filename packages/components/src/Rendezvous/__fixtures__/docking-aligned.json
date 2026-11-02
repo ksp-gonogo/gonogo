@@ -6,10 +6,26 @@
   },
   "tar.name": "Docking Port Mk2",
   "tar.type": "Vessel",
-  "tar.relativePosition": { "x": 0, "y": 0, "z": 62 },
-  "tar.relativeVelocityVec": { "x": 0, "y": 0, "z": -0.4 },
-  "dock.relativePosition": { "x": 0.12, "y": -0.07, "z": 62 },
-  "dock.relativeVelocityVec": { "x": 0, "y": 0, "z": -0.4 },
+  "tar.relativePosition": {
+    "x": 0,
+    "y": 0,
+    "z": 62
+  },
+  "tar.relativeVelocityVec": {
+    "x": 0,
+    "y": 0,
+    "z": -0.4
+  },
+  "dock.relativePosition": {
+    "x": 0.12,
+    "y": -0.07,
+    "z": 62
+  },
+  "dock.relativeVelocityVec": {
+    "x": 0,
+    "y": 0,
+    "z": -0.4
+  },
   "dock.distanceScalar": 62,
   "dock.forwardDot": -0.9999,
   "o.closestTgtApprUT": 0,
@@ -23,22 +39,123 @@
           "kind": 0,
           "vesselId": "target-vessel",
           "bodyIndex": null,
-          "relativePosition": { "x": 0, "y": 0, "z": 62 },
-          "relativeVelocity": { "x": 0, "y": 0, "z": -0.4 },
-          "closestApproach": { "time": 0, "distance": 0 }
+          "relativePosition": {
+            "x": 0,
+            "y": 0,
+            "z": 62
+          },
+          "relativeVelocity": {
+            "x": 0,
+            "y": 0,
+            "z": -0.4
+          },
+          "closestApproach": {
+            "time": 0,
+            "distance": 0
+          },
+          "orbit": {
+            "referenceBodyIndex": 1,
+            "sma": 700000.0,
+            "ecc": 0.0001,
+            "inc": 0,
+            "lan": 0,
+            "argPe": 0,
+            "meanAnomalyAtEpoch": 1.0000885714285714,
+            "epoch": 0,
+            "mu": 3531600000000.0,
+            "timeToAp": null,
+            "timeToPe": null,
+            "encounter": null,
+            "patches": [],
+            "horizon": {
+              "kind": 1,
+              "trajectoryKind": 1
+            },
+            "meta": {
+              "source": "vessel:chaser",
+              "quality": 0
+            }
+          }
         }
       },
       {
         "channel": "vessel.dock",
         "value": {
-          "relativePosition": { "x": 0.12, "y": -0.07, "z": 62 },
-          "relativeVelocity": { "x": 0, "y": 0, "z": -0.4 },
+          "relativePosition": {
+            "x": 0.12,
+            "y": -0.07,
+            "z": 62
+          },
+          "relativeVelocity": {
+            "x": 0,
+            "y": 0,
+            "z": -0.4
+          },
           "distance": 62,
           "forwardDot": -0.9999,
           "ownPortState": 0,
           "targetPortState": 0,
           "targetVesselPersistentId": 4000000001,
           "targetPortPersistentId": 1234
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 700000.0,
+          "ecc": 0.0001,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 1.0,
+          "epoch": 0,
+          "mu": 3531600000000.0,
+          "timeToAp": null,
+          "timeToPe": null,
+          "encounter": null,
+          "patches": [],
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          },
+          "meta": {
+            "source": "vessel:chaser",
+            "quality": 0
+          }
+        }
+      },
+      {
+        "channel": "trackingStation.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "sphereOfInfluence": 84159286,
+              "gravParameter": 3531600000000.0,
+              "orbit": null,
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              }
+            },
+            {
+              "name": "Mun",
+              "index": 2,
+              "parentIndex": 1,
+              "radius": 200000,
+              "sphereOfInfluence": 2429559,
+              "gravParameter": 65138398000.0,
+              "orbit": null,
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              }
+            }
+          ]
         }
       }
     ]

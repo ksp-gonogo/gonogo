@@ -331,8 +331,10 @@ export {
   Textarea,
 } from "./Form";
 export {
+  type EdgeCue,
   FramedDisplay,
   type FramedDisplayProps,
+  type FramedDisplayShape,
 } from "./FramedDisplay";
 export type { FillQuantity } from "./fillQuantity";
 // `formatDuration` is deliberately not exported: durations leave this package only through `<Unit>`, `<Countdown>` and `<MissionDate>`.
