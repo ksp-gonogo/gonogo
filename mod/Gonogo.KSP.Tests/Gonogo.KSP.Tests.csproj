@@ -116,6 +116,7 @@
          above and by four command bodies that are not compiled here at all, so
          it has to be here. Sitrep.Contract only, no KSP type. -->
     <Compile Include="..\Gonogo.KSP\EvaCommandRule.cs" />
+    <Compile Include="..\Gonogo.KSP\PartTargetRule.cs" />
     <!-- Whether KSP will propagate control input to this craft at all. The same
          carve-out as the rule above and for the same reason, but a different
          question: that one asks which craft we are reporting, this one asks

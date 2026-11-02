@@ -840,9 +840,9 @@ namespace Gonogo.KSP
             {
                 // A docking port: find the owning vessel by guid, then the
                 // ModuleDockingNode whose part.flightID matches. NotFound when
-                // the vessel is unknown; NotClearToProceed when it's not loaded
-                // (a ModuleDockingNode only exists on a loaded part tree, and
-                // getting closer loads it, so this one does resolve by waiting);
+                // the vessel is unknown; NotClearToProceed when it's not loaded or is
+                // packed (a packed vessel counts as loaded, but KSP ignores a port
+                // target on it, and getting closer unpacks it);
                 // Range when the vessel has no port with that flightID.
                 if (string.IsNullOrEmpty(vesselId) || partId == null)
                 {
@@ -861,11 +861,10 @@ namespace Gonogo.KSP
                 {
                     return CommandResult.Fail(CommandErrorCode.NotFound);
                 }
-                if (!owner.loaded)
+                var rangeRefusal = PartTargetRule.RefusalFor(owner.loaded, owner.packed);
+                if (rangeRefusal != null)
                 {
-                    return CommandResult.Fail(
-                        CommandErrorCode.NotClearToProceed,
-                        "that vessel is out of physics range, so its ports are not there to target");
+                    return CommandResult.Fail(rangeRefusal.Value.Code, rangeRefusal.Value.Detail);
                 }
                 ModuleDockingNode? node = null;
                 foreach (var candidate in owner.FindPartModulesImplementing<ModuleDockingNode>())
