@@ -134,6 +134,8 @@ export interface PeerClientOptions {
    * localStorage-backed id from `getStationPeerId()`. Override for tests.
    */
   peerId?: string;
+  /** The seat this page sits at; each seat in one browser has its own station identity. */
+  seat?: string;
 }
 
 /**
@@ -327,11 +329,12 @@ export class PeerClientService {
     retryTimeoutMs = DEFAULT_RETRY_TIMEOUT_MS,
     attemptDeadlineMs = DEFAULT_ATTEMPT_DEADLINE_MS,
     peerId,
+    seat,
   }: PeerClientOptions = {}) {
     this.attemptDeadlineMs = attemptDeadlineMs;
     this.fixedPeerIdOverride = peerId ?? null;
-    this.stationPeerId = peerId ?? getStationPeerId();
-    this.stationKey = getStationKey();
+    this.stationPeerId = peerId ?? getStationPeerId(undefined, seat);
+    this.stationKey = getStationKey(undefined, seat);
     // Tag every log entry on this station with the persistent stationKey
     // and the per-session broker id so a remote query can filter all
     // logs from a single device or a single tab session.
