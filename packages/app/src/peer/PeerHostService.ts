@@ -50,7 +50,11 @@ import { traceBrokerSocket } from "./peerSocketTrace";
 import type { HostLayout, PeerMessage } from "./protocol";
 import { asPeerMessage, HOST_HEARTBEAT_MS } from "./protocol";
 import { RelayRegistration } from "./RelayRegistration";
-import { STUN_SERVERS, stationsSocketUrl } from "./relayAddress";
+import {
+  relayHasStationEndpoint,
+  STUN_SERVERS,
+  stationsSocketUrl,
+} from "./relayAddress";
 import { SentOnChange } from "./sentOnChange";
 import type { StationLink } from "./stationLink";
 import { StationPacer } from "./stationPace";
@@ -627,6 +631,8 @@ export class PeerHostService {
   readonly endpoint = new EndpointStations(
     stationsSocketUrl,
     HOST_RETRY_INTERVAL_MS,
+    undefined,
+    relayHasStationEndpoint,
   );
   private flightListChangeUnsub: (() => void) | null = null;
   /** True while we're retry-reclaiming the derived peer id after an

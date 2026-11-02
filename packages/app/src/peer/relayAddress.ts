@@ -37,3 +37,27 @@ export function relayBaseUrl(): string {
 export function stationsSocketUrl(): string {
   return `${relayBaseUrl().replace(/^http/, "ws")}/stations`;
 }
+
+/**
+ * Whether the relay runs the station endpoint behind `/stations`: true or
+ * false as the relay's `/bootstrap-config` reports it (a relay that predates
+ * the field is taken to run it), or null when the relay could not be asked.
+ * Asked over HTTP so a relay without the endpoint is never sent a WebSocket
+ * it can only refuse.
+ */
+export async function relayHasStationEndpoint(
+  fetchImpl: typeof fetch = fetch,
+): Promise<boolean | null> {
+  try {
+    const res = await fetchImpl(`${relayBaseUrl()}/bootstrap-config`);
+    if (!res.ok) return null;
+    const body: unknown = await res.json();
+    const declared: unknown =
+      typeof body === "object" && body !== null
+        ? Reflect.get(body, "stationEndpoint")
+        : undefined;
+    return declared !== false;
+  } catch {
+    return null;
+  }
+}

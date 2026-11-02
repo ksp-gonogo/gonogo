@@ -50,6 +50,9 @@ afterAll(() => server.close());
 /** A relay whose endpoint is running, reporting `portState` for its own attempt to open the router's port. */
 function relayRunning(portState: string | null) {
   server.use(
+    http.get("http://localhost:3002/bootstrap-config", () =>
+      HttpResponse.json({ kspHost: null, stationEndpoint: true }),
+    ),
     stationsSocket.addEventListener("connection", ({ client }) => {
       client.send(
         JSON.stringify({ type: "status", port: 47100, publicIp: null }),
@@ -93,6 +96,9 @@ describe("Add station relay line", () => {
 
   it("says another main screen is serving stations when the relay turns this one away", async () => {
     server.use(
+      http.get("http://localhost:3002/bootstrap-config", () =>
+        HttpResponse.json({ kspHost: null, stationEndpoint: true }),
+      ),
       stationsSocket.addEventListener("connection", ({ client }) => {
         client.send(JSON.stringify({ type: "busy" }));
       }),
