@@ -38,7 +38,12 @@ import { lastObserved, numericOrNull } from "./readings";
 import { badgeSasMode } from "./sasModes";
 import { ThrottleGauge } from "./ThrottleGauge";
 import { useTrimSender } from "./trimCoalescer";
-import { MIN_DIAL_PX, useDialFit } from "./useDialFit";
+import {
+  ATTITUDE_CHROME_PX,
+  CONTROL_DIAL_CAP_PX,
+  MIN_DIAL_PX,
+  useDialFit,
+} from "./useDialFit";
 import { useFlyByWire } from "./useFlyByWire";
 import { type TrimField, useNavballInputs } from "./useNavballInputs";
 import { useSasControls } from "./useSasControls";
@@ -345,7 +350,11 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
         <Section
           key="attitude"
           fill
-          {...(showDial ? {} : { style: READOUT_FLOOR })}
+          {...(showControlSurface
+            ? { style: CONTROL_ATTITUDE }
+            : showDial
+              ? {}
+              : { style: READOUT_FLOOR })}
         >
           <div ref={attachAttitude} style={ATTITUDE_COLUMN}>
             {showDial ? (
@@ -438,6 +447,9 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
             />
           </Section>
         ) : null,
+        showControlSurface ? (
+          <Section key="spare" fill style={SPARE_ROOM} />
+        ) : null,
       ]}
       /* The aside carries alerts only; control state lives in the body. */
       panelAside={
@@ -460,6 +472,21 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
  * tile past its body.
  */
 const READOUT_FLOOR: CSSProperties = { flexShrink: 0, minHeight: 0 };
+
+/*
+ * With the control surface out, the dial takes the room it can use (its capped
+ * size plus the readout under it) and no more, and a spare section after the
+ * surface takes what is left. The controls then sit from the top of the tile,
+ * so opening a folded section or arming fly-by-wire grows into spare room below
+ * them and moves nothing above; a tile too short to spare any room gives the
+ * room up from the dial.
+ */
+const CONTROL_ATTITUDE: CSSProperties = {
+  flex: `0 1 ${CONTROL_DIAL_CAP_PX + ATTITUDE_CHROME_PX}px`,
+};
+
+/** The room left under the control surface, which holds nothing and so has no floor of its own. */
+const SPARE_ROOM: CSSProperties = { minHeight: 0 };
 
 /** The shortest tile, in rows, that holds the readout and the SAS and RCS row together without scrolling. */
 const CONTROL_ROW_MIN_ROWS = 8;

@@ -234,8 +234,32 @@ const WIDGETS: WidgetRenderConfig[] = [
         forFixtures: ["control-delay"],
       },
       { name: "full-7x20", w: 7, h: 20, config: { controlMode: true } },
+      // The smallest tile that carries the control surface, folded and with both sections opened.
+      { name: "smallest-7x13", w: 7, h: 13, config: { controlMode: true } },
+      {
+        name: "smallest-7x13-open",
+        w: 7,
+        h: 13,
+        config: { controlMode: true },
+        clicks: [
+          { selector: 'button[aria-label="SAS Mode"]' },
+          { selector: 'button[aria-label="Throttle controls"]' },
+        ],
+        forFixtures: ["north-level"],
+      },
       // Generous control-mode size that lets every group breathe.
       { name: "xl-9x24", w: 9, h: 24, config: { controlMode: true } },
+      {
+        name: "xl-9x24-open",
+        w: 9,
+        h: 24,
+        config: { controlMode: true },
+        clicks: [
+          { selector: 'button[aria-label="SAS Mode"]' },
+          { selector: 'button[aria-label="Throttle controls"]' },
+        ],
+        forFixtures: ["north-level"],
+      },
       // Control mode on a fixture carrying a non-zero comms.delay.
       {
         name: "control-delay-7x20",

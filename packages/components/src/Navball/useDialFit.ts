@@ -6,7 +6,10 @@ import { READOUT_TRIPLE_PX } from "./AttitudeReadout";
  * strip, readout row and gaps). A column shorter than
  * `MIN_DIAL_PX + ATTITUDE_CHROME_PX` holds no dial at all.
  */
-const ATTITUDE_CHROME_PX = 74;
+export const ATTITUDE_CHROME_PX = 74;
+
+/** The largest dial drawn beside the control surface, so the surface keeps its room. */
+export const CONTROL_DIAL_CAP_PX = 200;
 
 /** The smallest dial worth drawing: a floor on whether to draw, never a size clamp. */
 export const MIN_DIAL_PX = 80;
@@ -78,7 +81,14 @@ export function useDialFit({
   const settleControlRow = useCallback(() => {
     const column = columnRef.current;
     const rowPx = controlRowPxRef.current;
-    if (!controlRowWantedRef.current || !dialPossibleRef.current) {
+    /*
+     * With the control surface out the attitude section is held to the dial's cap, so a yielded row would not hand its height to the dial and the projection below would over-promise. The row stays and the dial gives way instead.
+     */
+    if (
+      controlModeRef.current ||
+      !controlRowWantedRef.current ||
+      !dialPossibleRef.current
+    ) {
       if (yieldedRef.current) {
         yieldedRef.current = false;
         setControlRowYielded(false);
@@ -150,7 +160,7 @@ export function useDialFit({
           const throttleReserve = throttleReservedRef.current ? 42 : 0;
           const fit = Math.min(w - throttleReserve, h - ATTITUDE_CHROME_PX);
           // Capped in control mode so the control surface keeps its room; 600 is where tick text blurs.
-          const cap = controlModeRef.current ? 200 : 600;
+          const cap = controlModeRef.current ? CONTROL_DIAL_CAP_PX : 600;
           setDialFit(Math.min(cap, Math.floor(fit)));
           columnRef.current = { w, h };
           settleControlRow();
