@@ -71,7 +71,7 @@ function Lens({
     >
       <FramedDisplay
         shape="circle"
-        edgeCue={cue ?? undefined}
+        edgeCue={cue === undefined ? undefined : (cue ?? [])}
         style={{ width: diameter, height: diameter }}
         aria-label={`${LEVEL_NAMES[level]} level`}
         role="group"
