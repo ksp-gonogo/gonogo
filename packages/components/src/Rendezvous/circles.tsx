@@ -219,8 +219,12 @@ export function approachView(
             />
             {g.approach && !small && (
               <text
-                x={(missAt[0] + origin[0]) / 2 + 8}
-                y={(missAt[1] + origin[1]) / 2 - 8}
+                x={(missAt[0] + origin[0]) / 2}
+                y={
+                  Math.min(missAt[1], origin[1]) -
+                  (PX.ring + PX.ringStroke + 3) * unit
+                }
+                textAnchor="middle"
                 fill={LINE.approach}
                 fontSize={PX.text * unit}
                 fontWeight={600}
@@ -241,6 +245,50 @@ export function approachView(
   };
 }
 
+/**
+ * Where a caption goes beside a ring: the first of eight places round it
+ * (right, left, below and above, each way) whose box holds none of the
+ * `obstacles`, or none where every place is crossed. Text is drawn from its baseline,
+ * so the box runs from `size` above `y` to a quarter of `size` below it.
+ */
+function placeLabel(
+  ring: Point2,
+  ringR: number,
+  width: number,
+  size: number,
+  obstacles: readonly Point2[],
+  order: "below-first" | "above-first",
+): { x: number; y: number; anchor: "start" | "end" } | null {
+  const gap = 3;
+  const below = ring[1] + ringR + gap + size;
+  const above = ring[1] - ringR - gap - size * 0.25;
+  const rows = order === "below-first" ? [below, above] : [above, below];
+  const candidates: { x: number; y: number; anchor: "start" | "end" }[] = [];
+  for (const y of rows) {
+    candidates.push({ x: ring[0] + ringR * 0.5, y, anchor: "start" });
+    candidates.push({ x: ring[0] - ringR * 0.5, y, anchor: "end" });
+  }
+  for (const y of [ring[1] + size * 0.35]) {
+    candidates.push({ x: ring[0] + ringR + gap, y, anchor: "start" });
+    candidates.push({ x: ring[0] - ringR - gap, y, anchor: "end" });
+  }
+  let best = candidates[0];
+  let fewest = Number.POSITIVE_INFINITY;
+  for (const c of candidates) {
+    const left = c.anchor === "start" ? c.x : c.x - width;
+    const hits = obstacles.filter(
+      ([x, y]) =>
+        x > left && x < left + width && y > c.y - size && y < c.y + size * 0.25,
+    ).length;
+    if (hits < fewest) {
+      fewest = hits;
+      best = c;
+    }
+    if (hits === 0) break;
+  }
+  return fewest === 0 ? best : null;
+}
+
 /** Encounter: the body at its own scale, the path through its sphere of influence, periapsis, and the entry and exit. */
 export function encounterView(
   g: EncounterGeometry,
@@ -254,6 +302,52 @@ export function encounterView(
   const entry = g.entry ? at(g.entry) : null;
   const exit = g.exit ? at(g.exit) : null;
   const craft = g.craft ? at(g.craft) : null;
+  const peLabel = lengthLabel(Math.round(g.periapsis.altitude));
+  const fontSize = PX.text * unit;
+  const path = g.path.map(at);
+  // Everything the label must stay clear of: the path, the sphere's edge, the body, the dots and the craft.
+  const obstacles: Point2[] = [];
+  for (let i = 0; i + 1 < path.length; i++) {
+    const [a, b] = [path[i], path[i + 1]];
+    const n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 2));
+    for (let j = 0; j <= n; j++) {
+      obstacles.push([
+        a[0] + ((b[0] - a[0]) * j) / n,
+        a[1] + ((b[1] - a[1]) * j) / n,
+      ]);
+    }
+  }
+  for (let i = 0; i < 72; i++) {
+    const t = (i / 72) * Math.PI * 2;
+    obstacles.push([C + g.soi * k * Math.cos(t), C + g.soi * k * Math.sin(t)]);
+    for (let r = 0; r <= bodyPx; r += Math.max(2, bodyPx / 4)) {
+      obstacles.push([C + r * Math.cos(t), C + r * Math.sin(t)]);
+    }
+  }
+  for (const [m, radius] of [
+    [entry, PX.dot * unit],
+    [exit, PX.dot * unit],
+    [craft, PX.mark * unit],
+  ] as const) {
+    if (!m) continue;
+    for (let i = 0; i < 12; i++) {
+      const t = (i / 12) * Math.PI * 2;
+      obstacles.push([
+        m[0] + radius * Math.cos(t),
+        m[1] + radius * Math.sin(t),
+      ]);
+    }
+    obstacles.push(m);
+  }
+  const label = placeLabel(
+    pe,
+    PX.ring * unit,
+    peLabel.length * fontSize * 0.62,
+    fontSize,
+    obstacles,
+    // Below the ring first, then above, since the scale bar runs along the circle's foot.
+    pe[1] > C ? "above-first" : "below-first",
+  );
   return {
     pxPerMetre: k,
     svg: (
@@ -304,16 +398,18 @@ export function encounterView(
           stroke={LINE.approach}
           strokeWidth={PX.ringStroke * unit}
         />
-        <text
-          x={pe[0] + 9 * unit}
-          // Below the ring, or above it where the ring is in the lower half, clear of the scale bar along the circle's foot.
-          y={pe[1] + (pe[1] > C ? -8 : 15) * unit}
-          fill={LINE.approach}
-          fontSize={PX.text * unit}
-          fontWeight={600}
-        >
-          {lengthLabel(Math.round(g.periapsis.altitude))}
-        </text>
+        {label && (
+          <text
+            x={label.x}
+            y={label.y}
+            textAnchor={label.anchor}
+            fill={LINE.approach}
+            fontSize={PX.text * unit}
+            fontWeight={600}
+          >
+            {peLabel}
+          </text>
+        )}
         {craft && (
           <VesselMarkSvg x={craft[0]} y={craft[1]} r={PX.mark * unit} />
         )}

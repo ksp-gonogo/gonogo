@@ -258,8 +258,11 @@ describe("Rendezvous's time to closest approach under signal delay", () => {
     });
     await waitFor(() => expect(visibleText()).toMatch(/1min 40s/));
     expect(visibleText()).not.toMatch(/2min/);
-    const modelled = document.querySelector("[data-held]");
-    expect(modelled?.textContent).toMatch(/1min 40s/);
+    // The range carries a modelled figure of its own, so pick the one beside the countdown.
+    const modelled = [...document.querySelectorAll("[data-held]")].find((el) =>
+      /1min 40s/.test(el.textContent ?? ""),
+    );
+    expect(modelled).toBeDefined();
     expect(modelled?.querySelector("[data-held-mark]")).not.toBeNull();
   });
 });
