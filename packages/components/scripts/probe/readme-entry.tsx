@@ -19,6 +19,8 @@ export interface StageCell {
   x: number;
   y: number;
   config?: Record<string, unknown>;
+  /** Opens every folded section of the widget once it has mounted. */
+  open?: boolean;
   /** The playback track whose frames drive this widget. */
   track?: string;
 }
@@ -65,12 +67,14 @@ window.__stage = {
     root.style.height = `${spec.height}px`;
     tracks = spec.tracks;
     const pending: Promise<void>[] = [];
+    const opening: HTMLElement[] = [];
     for (const cell of spec.cells) {
       const host = document.createElement("div");
       host.style.position = "absolute";
       host.style.left = `${cell.x}px`;
       host.style.top = `${cell.y}px`;
       root.append(host);
+      if (cell.open) opening.push(host);
       const mount = mountProbe(
         host,
         probePayload({
@@ -83,6 +87,13 @@ window.__stage = {
       pending.push(mount.ready);
     }
     await Promise.all(pending);
+    await nextFrame();
+    for (const host of opening) {
+      for (const trigger of host.querySelectorAll<HTMLElement>(
+        'button[aria-expanded="false"]:not([aria-label="Signal-delay detail"])',
+      ))
+        trigger.click();
+    }
     await nextFrame();
     await nextFrame();
   },

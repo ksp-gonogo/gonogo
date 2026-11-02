@@ -6,6 +6,7 @@ import {
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import type { JSX, ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { openSections } from "../test/openSections";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { NavballComponent, sasModeOrdinal } from "./index";
 
@@ -93,6 +94,7 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
     fixture.transport.setCommandHandler(commandHandler);
 
     renderControlNavball("nav-cmd-mode", fixture.Provider);
+    openSections();
 
     const button = await screen.findByRole("button", { name: "PRO" });
     act(() => {
@@ -115,6 +117,7 @@ describe("Navball control surface: command bridges (M3 batch 4, Part B)", () => 
     fixture.transport.setCommandHandler(commandHandler);
 
     renderControlNavball("nav-cmd-thr", fixture.Provider);
+    openSections();
 
     // FULL first, so a 0 can only come from the ZERO click.
     const fullButton = await screen.findByRole("button", { name: "FULL" });

@@ -27,13 +27,15 @@ export const NAVBALL_SIZES: ReadonlyArray<{
   w: number;
   h: number;
   config?: Record<string, unknown>;
+  /** Opens every folded section of the widget, so the picture shows its whole surface. */
+  open?: boolean;
 }> = [
   { w: 3, h: 3 },
   { w: 4, h: 6 },
   { w: 4, h: 7 },
   { w: 5, h: 9 },
-  { w: 8, h: 11 },
-  { w: 7, h: 20, config: { controlMode: true } },
+  { w: 8, h: 15 },
+  { w: 7, h: 20, config: { controlMode: true }, open: true },
 ];
 
 export type NavballLayout = "row" | "stacked";
@@ -58,6 +60,7 @@ export function navballSizesStage(layout: NavballLayout = "row"): StageSpec {
     w: s.w,
     h: s.h,
     config: s.config,
+    open: s.open,
     x,
     y,
     track: "ascent",

@@ -1,8 +1,5 @@
 import { PerfBudget, useTelemetry } from "@ksp-gonogo/core";
-import {
-  type ControlStream,
-  useControlStream,
-} from "@ksp-gonogo/sitrep-client";
+import { useControlStream } from "@ksp-gonogo/sitrep-client";
 import { useEffect, useRef, useState } from "react";
 import { lastObserved } from "./readings";
 
@@ -31,7 +28,6 @@ export function useThrottleCommand(throttle: number | null): {
   setThrottleCmd: ThrottleSetter;
   /** With neither a readback nor a command, a 10% step would be a step from a guess. */
   throttleKnown: boolean;
-  throttleStream: ControlStream;
 } {
   const [throttleCmd, setThrottleCmdState] = useState(throttle ?? 0);
   const throttleTouchedRef = useRef(false);
@@ -58,7 +54,7 @@ export function useThrottleCommand(throttle: number | null): {
     // Re-seed here: the new vessel's throttle may have landed in the same frame, so the `throttle` effect may not fire again.
     setThrottleCmdState(throttle ?? 0);
   }, [activeVesselId, throttle]);
-  const throttleStream = useControlStream(
+  useControlStream(
     "vessel.control.throttle",
     throttleTouched ? throttleCmd : null,
     {
@@ -71,7 +67,6 @@ export function useThrottleCommand(throttle: number | null): {
     throttleCmd,
     setThrottleCmd,
     throttleKnown: throttleTouched || throttle !== null,
-    throttleStream,
   };
 }
 
@@ -93,62 +88,37 @@ const axisStreamOpts = (label: string) => ({
 });
 
 // KSP re-zeroes a raw axis every physics frame, so each fly-by-wire axis is a control stream, not a one-shot command.
-export function useAxisStreams(): {
-  axisStreams: ControlStream[];
-  setAxis: AxisSetters;
-} {
+export function useAxisSetters(): AxisSetters {
   const [pitchCmd, setPitchCmd] = useState<number | null>(null);
   const [yawCmd, setYawCmd] = useState<number | null>(null);
   const [rollCmd, setRollCmd] = useState<number | null>(null);
   const [translateXCmd, setTranslateXCmd] = useState<number | null>(null);
   const [translateYCmd, setTranslateYCmd] = useState<number | null>(null);
   const [translateZCmd, setTranslateZCmd] = useState<number | null>(null);
-  const pitchStream = useControlStream(
-    "vessel.control.pitch",
-    pitchCmd,
-    axisStreamOpts("Pitch"),
-  );
-  const yawStream = useControlStream(
-    "vessel.control.yaw",
-    yawCmd,
-    axisStreamOpts("Yaw"),
-  );
-  const rollStream = useControlStream(
-    "vessel.control.roll",
-    rollCmd,
-    axisStreamOpts("Roll"),
-  );
-  const translateXStream = useControlStream(
+  useControlStream("vessel.control.pitch", pitchCmd, axisStreamOpts("Pitch"));
+  useControlStream("vessel.control.yaw", yawCmd, axisStreamOpts("Yaw"));
+  useControlStream("vessel.control.roll", rollCmd, axisStreamOpts("Roll"));
+  useControlStream(
     "vessel.control.translationX",
     translateXCmd,
     axisStreamOpts("RCS X"),
   );
-  const translateYStream = useControlStream(
+  useControlStream(
     "vessel.control.translationY",
     translateYCmd,
     axisStreamOpts("RCS Y"),
   );
-  const translateZStream = useControlStream(
+  useControlStream(
     "vessel.control.translationZ",
     translateZCmd,
     axisStreamOpts("RCS Z"),
   );
   return {
-    axisStreams: [
-      pitchStream,
-      yawStream,
-      rollStream,
-      translateXStream,
-      translateYStream,
-      translateZStream,
-    ],
-    setAxis: {
-      setPitch: setPitchCmd,
-      setYaw: setYawCmd,
-      setRoll: setRollCmd,
-      setTranslateX: setTranslateXCmd,
-      setTranslateY: setTranslateYCmd,
-      setTranslateZ: setTranslateZCmd,
-    },
+    setPitch: setPitchCmd,
+    setYaw: setYawCmd,
+    setRoll: setRollCmd,
+    setTranslateX: setTranslateXCmd,
+    setTranslateY: setTranslateYCmd,
+    setTranslateZ: setTranslateZCmd,
   };
 }

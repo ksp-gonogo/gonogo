@@ -4,6 +4,7 @@ import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { isDisabled } from "../test/isDisabled";
+import { openSections } from "../test/openSections";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -131,6 +132,7 @@ describe("Navball display: what undefined means today", () => {
 describe("Navball control surface: what undefined means today", () => {
   it("leaves the whole control surface live and unbannered when nothing has arrived", () => {
     mount("nb-undef-controls", { w: 10, h: 20, controlMode: true });
+    openSections();
 
     // With no control level the widget fails open.
     expect(screen.queryByRole("note")).toBeNull();
@@ -179,6 +181,7 @@ describe("Navball control surface: what undefined means today", () => {
 
   it("refuses to dispatch a SAS or RCS toggle when vessel.control has never arrived", async () => {
     mount("nb-undef-toggle-refused", { w: 10, h: 20, controlMode: true });
+    openSections();
 
     act(() => {
       screen.getByRole("button", { name: `SAS ${NULL_DISPLAY}` }).click();
@@ -202,6 +205,7 @@ describe("Navball control surface: what undefined means today", () => {
 
   it("dispatches that same click once a real boolean has arrived", async () => {
     mount("nb-undef-toggle-allowed", { w: 10, h: 20, controlMode: true });
+    openSections();
 
     act(() => {
       fixture.emit("vessel.control", { sas: true, rcs: false, throttle: 0 });
@@ -219,6 +223,7 @@ describe("Navball control surface: what undefined means today", () => {
 
   it("treats a confirmed vessel.control tombstone exactly like nothing having arrived", async () => {
     mount("nb-undef-tombstone", { w: 10, h: 20, controlMode: true });
+    openSections();
 
     act(() => {
       // The store keeps null for a tombstone and undefined for never-arrived; the widget treats both alike.
@@ -243,6 +248,7 @@ describe("Navball control surface: what undefined means today", () => {
 
   it("arms fly-by-wire with no delay caveat at all when comms.delay has never arrived", async () => {
     mount("nb-undef-fbw-delay", { w: 10, h: 21, controlMode: true });
+    openSections();
 
     act(() => {
       screen.getByRole("button", { name: "Arm FBW" }).click();
@@ -260,6 +266,7 @@ describe("Navball control surface: what undefined means today", () => {
 
   it("warns about fly-by-wire delay only once comms.delay reports a real light-time", async () => {
     mount("nb-undef-fbw-delay-real", { w: 10, h: 21, controlMode: true });
+    openSections();
 
     act(() => {
       screen.getByRole("button", { name: "Arm FBW" }).click();
@@ -280,6 +287,7 @@ describe("Navball control surface: what undefined means today", () => {
   it("reads the first vessel.identity to arrive as a vessel CHANGE, discarding the operator's commanded throttle", async () => {
     // Absent to present trips the vessel-switch reset on a vessel that never changed.
     mount("nb-undef-vessel-switch", { w: 10, h: 20, controlMode: true });
+    openSections();
 
     act(() => {
       fixture.emit("vessel.control", { sas: false, rcs: false, throttle: 0.2 });

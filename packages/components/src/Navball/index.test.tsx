@@ -21,6 +21,7 @@ import {
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { isDisabled } from "../test/isDisabled";
+import { openSections } from "../test/openSections";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -172,6 +173,7 @@ describe("NavballComponent", () => {
   it("displays the control surface and dispatches vessel.control.setSasMode", async () => {
     const user = userEvent.setup();
     const { fixture } = renderNavball({ controlMode: true }, CONTROL_SIZE);
+    openSections();
     emitReads(fixture, { comms: { controlState: 4 } });
     await user.click(await screen.findByRole("button", { name: /^PRO$/ }));
     await waitFor(() => {
@@ -186,6 +188,7 @@ describe("NavballComponent", () => {
   it("holds a SAS mode button the craft cannot hold and sends nothing on a press", async () => {
     const user = userEvent.setup();
     const { fixture } = renderNavball({ controlMode: true }, CONTROL_SIZE);
+    openSections();
     // StabilityAssist, Prograde and Retrograde: a probe core with a low SAS tier.
     emitReads(fixture, {
       comms: { controlState: 4 },
@@ -206,6 +209,7 @@ describe("NavballComponent", () => {
 
   it("offers every SAS mode while the craft does not say which it can hold", async () => {
     const { fixture } = renderNavball({ controlMode: true }, CONTROL_SIZE);
+    openSections();
     emitReads(fixture, {
       comms: { controlState: 4 },
       control: { sas: true, sasMode: 0 },
@@ -217,6 +221,7 @@ describe("NavballComponent", () => {
 
   it("disables control buttons when isControllable is false", async () => {
     const { fixture } = renderNavball({ controlMode: true }, CONTROL_SIZE);
+    openSections();
     // ControlState.None (0) collapses to not-controllable.
     emitReads(fixture, { comms: { controlState: 0 } });
     expect(await screen.findByRole("note")).toHaveTextContent(
@@ -253,6 +258,7 @@ describe("NavballComponent", () => {
 
   it("drives vessel.control.setThrottle via the delayed control-stream when the throttle slider moves", async () => {
     const { fixture } = renderNavball({ controlMode: true }, CONTROL_SIZE);
+    openSections();
     emitReads(fixture, {
       comms: { controlState: 4 },
       control: { throttle: 0.25 },
@@ -273,6 +279,7 @@ describe("NavballComponent", () => {
   it("re-seeds the commanded throttle from the new vessel's readback on a vessel switch, even after the old vessel's throttle was touched", async () => {
     // Touching the slider latches off readback seeding; the latch must reset per vessel.
     const { fixture } = renderNavball({ controlMode: true }, CONTROL_SIZE);
+    openSections();
     emitReads(fixture, {
       comms: { controlState: 4 },
       control: { throttle: 0.25 },
@@ -318,6 +325,7 @@ describe("NavballComponent", () => {
     it("shows the warning badge and live-region caution when FBW is armed and delay is above threshold", async () => {
       const user = userEvent.setup();
       const { fixture } = renderNavball({ controlMode: true }, CONTROL_SIZE);
+      openSections();
       emitReads(fixture, { comms: { controlState: 4 }, delaySeconds: 2.5 });
       await armFbw(user, fixture);
 
@@ -331,6 +339,7 @@ describe("NavballComponent", () => {
 
     it("hides the warning when FBW is disarmed even if delay is high", async () => {
       const { fixture } = renderNavball({ controlMode: true }, CONTROL_SIZE);
+      openSections();
       emitReads(fixture, { comms: { controlState: 4 }, delaySeconds: 2.5 });
       await screen.findByRole("button", { name: /Arm FBW/ });
       expect(screen.queryByText(/FBW.*DELAY/)).not.toBeInTheDocument();
@@ -340,6 +349,7 @@ describe("NavballComponent", () => {
     it("hides the warning when FBW is armed but delay is at/below threshold", async () => {
       const user = userEvent.setup();
       const { fixture } = renderNavball({ controlMode: true }, CONTROL_SIZE);
+      openSections();
       emitReads(fixture, { comms: { controlState: 4 }, delaySeconds: 0.2 });
       await armFbw(user, fixture);
 

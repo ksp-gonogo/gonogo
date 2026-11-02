@@ -1,9 +1,8 @@
-import type { ControlStream } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
-  ControlDelayStream,
   Countdown,
+  Disclosure,
   MARKER_ICONS,
   NULL_DISPLAY,
   Slider,
@@ -29,9 +28,6 @@ interface ControlSurfaceProps {
   /** Commanded throttle (0..1), tracking the readback until touched; `null` while there is neither. */
   throttleCmd: number | null;
   onSetThrottleCmd: (next: number | ((v: number) => number)) => void;
-  throttleStream: ControlStream;
-  /** The fly-by-wire attitude and translation streams, drawn on the same delay graph as the throttle. */
-  axisStreams: ControlStream[];
   fbwState: FbwState;
   onArmFbw: () => void;
   onDisarmFbw: () => void;
@@ -74,8 +70,6 @@ export function ControlSurface({
   availableSasModes,
   throttleCmd,
   onSetThrottleCmd,
-  throttleStream,
-  axisStreams,
   fbwState,
   onArmFbw,
   onDisarmFbw,
@@ -91,8 +85,12 @@ export function ControlSurface({
     : "The throttle command is not reported";
   return (
     <div style={CONTROL_WRAP}>
-      <div style={GROUP}>
-        <div style={GROUP_LABEL}>SAS Mode</div>
+      <Disclosure
+        variant="inline"
+        panelHeight="auto"
+        label={<span style={GROUP_LABEL}>SAS Mode</span>}
+        aria-label="SAS Mode"
+      >
         <div style={BUTTON_GRID}>
           {SAS_MODES.map((mode) => {
             const unconfirmedId = unconfirmedSasModes.get(mode);
@@ -128,69 +126,70 @@ export function ControlSurface({
             );
           })}
         </div>
-      </div>
+      </Disclosure>
 
-      <div style={GROUP}>
-        <div style={GROUP_LABEL}>Throttle</div>
-        <div style={SLIDER_ROW}>
-          <Slider
-            min={0}
-            max={1}
-            step={0.01}
-            value={throttleCmd ?? 0}
-            onChange={(e) => onSetThrottleCmd(Number(e.target.value))}
-            disabled={disabled}
-            aria-label="Throttle"
-            style={SLIDER}
-          />
-          <span style={SLIDER_VAL}>
-            {throttleCmd === null ? (
-              NULL_DISPLAY
-            ) : (
-              <Unit value={value("%", throttleCmd * 100)} decimals={0} />
-            )}
-          </span>
+      <Disclosure
+        variant="inline"
+        panelHeight="auto"
+        label={<span style={GROUP_LABEL}>Throttle</span>}
+        aria-label="Throttle controls"
+      >
+        <div style={GROUP}>
+          <div style={SLIDER_ROW}>
+            <Slider
+              min={0}
+              max={1}
+              step={0.01}
+              value={throttleCmd ?? 0}
+              onChange={(e) => onSetThrottleCmd(Number(e.target.value))}
+              disabled={disabled}
+              aria-label="Throttle"
+              style={SLIDER}
+            />
+            <span style={SLIDER_VAL}>
+              {throttleCmd === null ? (
+                NULL_DISPLAY
+              ) : (
+                <Unit value={value("%", throttleCmd * 100)} decimals={0} />
+              )}
+            </span>
+          </div>
+          <div style={BUTTON_GRID}>
+            <Button
+              type="button"
+              onClick={() => onSetThrottleCmd(0)}
+              disabled={disabled}
+              disabledReason={NOT_CONTROLLABLE}
+            >
+              ZERO
+            </Button>
+            <Button
+              type="button"
+              onClick={() => onSetThrottleCmd((v) => clamp(v - 0.1, 0, 1))}
+              disabled={disabled || throttleCmd === null}
+              disabledReason={throttleBlockedBecause}
+            >
+              −10%
+            </Button>
+            <Button
+              type="button"
+              onClick={() => onSetThrottleCmd((v) => clamp(v + 0.1, 0, 1))}
+              disabled={disabled || throttleCmd === null}
+              disabledReason={throttleBlockedBecause}
+            >
+              +10%
+            </Button>
+            <Button
+              type="button"
+              onClick={() => onSetThrottleCmd(1)}
+              disabled={disabled}
+              disabledReason={NOT_CONTROLLABLE}
+            >
+              FULL
+            </Button>
+          </div>
         </div>
-        <div style={BUTTON_GRID}>
-          <Button
-            type="button"
-            onClick={() => onSetThrottleCmd(0)}
-            disabled={disabled}
-            disabledReason={NOT_CONTROLLABLE}
-          >
-            ZERO
-          </Button>
-          <Button
-            type="button"
-            onClick={() => onSetThrottleCmd((v) => clamp(v - 0.1, 0, 1))}
-            disabled={disabled || throttleCmd === null}
-            disabledReason={throttleBlockedBecause}
-          >
-            −10%
-          </Button>
-          <Button
-            type="button"
-            onClick={() => onSetThrottleCmd((v) => clamp(v + 0.1, 0, 1))}
-            disabled={disabled || throttleCmd === null}
-            disabledReason={throttleBlockedBecause}
-          >
-            +10%
-          </Button>
-          <Button
-            type="button"
-            onClick={() => onSetThrottleCmd(1)}
-            disabled={disabled}
-            disabledReason={NOT_CONTROLLABLE}
-          >
-            FULL
-          </Button>
-        </div>
-        {/* Renders nothing at near-zero delay, so it is always mounted. */}
-        <ControlDelayStream
-          streams={[throttleStream, ...axisStreams]}
-          aria-label="Navball: controls in flight"
-        />
-      </div>
+      </Disclosure>
 
       <div style={GROUP}>
         <div style={GROUP_LABEL}>Fly-by-wire</div>

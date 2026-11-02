@@ -171,17 +171,72 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "tiny-4x5", w: 4, h: 5 },
       { name: "medium-4x7", w: 4, h: 7 },
       { name: "wide-5x8", w: 5, h: 8 },
-      // 7×12 is below the control-surface threshold (rows≥18, cols≥7) so
-      // controlMode degrades to dial-only: same display as a wide-mode
-      // widget. Useful for catching regressions to the degrade path.
+      // Below the control-surface threshold (rows≥13, cols≥7) controlMode
+      // degrades to dial-only: same display as a wide-mode widget. Useful
+      // for catching regressions to the degrade path.
       { name: "degraded-7x12", w: 7, h: 12, config: { controlMode: true } },
-      // Minimum sensible control-mode size; everything above lights up the SAS / throttle / FBW surface. With a signal delay the surface needs one more row and this tile falls back to the dial.
+      // The registered default size: control mode with the SAS mode and throttle sections folded, with and without a signal delay.
+      {
+        name: "default-8x15-control",
+        w: 8,
+        h: 15,
+        config: { controlMode: true },
+        forFixtures: ["control-delay", "north-level"],
+      },
+      // The same tile with both sections opened, which scrolls inside the tile.
+      {
+        name: "default-8x15-control-open",
+        w: 8,
+        h: 15,
+        config: { controlMode: true },
+        clicks: [
+          { selector: 'button[aria-label="SAS Mode"]' },
+          { selector: 'button[aria-label="Throttle controls"]' },
+        ],
+        forFixtures: ["control-delay", "north-level"],
+      },
+      // Only the throttle section opened.
+      {
+        name: "default-8x15-throttle-open",
+        w: 8,
+        h: 15,
+        config: { controlMode: true },
+        clicks: [{ selector: 'button[aria-label="Throttle controls"]' }],
+        forFixtures: ["control-delay"],
+      },
+      // A short tile with one section opened, which scrolls rather than clips.
+      {
+        name: "short-8x13-sas-open",
+        w: 8,
+        h: 13,
+        config: { controlMode: true },
+        clicks: [{ selector: 'button[aria-label="SAS Mode"]' }],
+        forFixtures: ["north-level"],
+      },
+      // The Flight layout's tile in control mode: six columns are under the surface's seven, so it stays the dial.
+      {
+        name: "flight-6x14-control",
+        w: 6,
+        h: 14,
+        config: { controlMode: true },
+        forFixtures: ["control-delay"],
+      },
+      // A tall control-mode tile with both sections opened.
+      {
+        name: "full-7x20-open",
+        w: 7,
+        h: 20,
+        config: { controlMode: true },
+        clicks: [
+          { selector: 'button[aria-label="SAS Mode"]' },
+          { selector: 'button[aria-label="Throttle controls"]' },
+        ],
+        forFixtures: ["control-delay"],
+      },
       { name: "full-7x20", w: 7, h: 20, config: { controlMode: true } },
       // Generous control-mode size that lets every group breathe.
       { name: "xl-9x24", w: 9, h: 24, config: { controlMode: true } },
-      // Control-delay stream: control mode + a fixture carrying a non-zero
-      // comms.delay so ControlDelayStream renders (it self-hides at ~0 delay).
-      // Anchors the sparkline's chrome (dividers, ramp, fills) in the visual gate.
+      // Control mode on a fixture carrying a non-zero comms.delay.
       {
         name: "control-delay-7x20",
         w: 7,
@@ -189,7 +244,7 @@ const WIDGETS: WidgetRenderConfig[] = [
         config: { controlMode: true },
         forFixtures: ["control-delay"],
       },
-      // The smallest tile that carries the control surface with the delay strip, and the same under a fly-by-wire delay warning.
+      // A tile past the delay strip's row floor, and the same under a fly-by-wire delay warning.
       {
         name: "control-delay-7x21",
         w: 7,

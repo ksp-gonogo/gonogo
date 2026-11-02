@@ -8,7 +8,6 @@ import type { SasModeName } from "@ksp-gonogo/sitrep-client";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
 import {
   collapseControlStateLevel,
-  delayVisibility,
   enumNameOf,
   readingOf,
   SAS_MODE_NAMES,
@@ -31,7 +30,7 @@ import { AttitudeReadout } from "./AttitudeReadout";
 import { ControlSurface, FBW_VIEW } from "./ControlSurface";
 import { ControlToggles } from "./ControlToggles";
 import { type NavballConfig, navballActions } from "./config";
-import { useAxisStreams, useThrottleCommand } from "./controlStreams";
+import { useAxisSetters, useThrottleCommand } from "./controlStreams";
 import { FbwBanner } from "./FbwBanner";
 import { NavballConfigForm } from "./NavballConfigForm";
 import read from "./navball.declarations.g";
@@ -81,9 +80,8 @@ const topics = defineTopicManifest({
  */
 const FBW_DELAY_WARN_SECONDS = 1.0;
 
-/** Grid rows from which the control surface opens, and from which it opens when the delay strip is drawn under it. */
-const CONTROL_SURFACE_ROWS = 18;
-const CONTROL_SURFACE_ROWS_WITH_DELAY = 21;
+/** Grid rows from which the control surface opens, with its SAS mode and throttle sections folded. */
+const CONTROL_SURFACE_ROWS = 13;
 
 const TRIM_LABELS: Record<TrimField, string> = {
   pitchTrim: "Pitch trim",
@@ -134,9 +132,9 @@ function useNavball({
       : collapseControlStateLevel(comms.controlState);
   const isControllable = controlLevel === undefined || controlLevel > 0;
 
-  const { throttleCmd, setThrottleCmd, throttleKnown, throttleStream } =
+  const { throttleCmd, setThrottleCmd, throttleKnown } =
     useThrottleCommand(throttle);
-  const { axisStreams, setAxis } = useAxisStreams();
+  const setAxis = useAxisSetters();
 
   const {
     sasRaw,
@@ -213,8 +211,6 @@ function useNavball({
     throttleCmd,
     setThrottleCmd,
     throttleKnown,
-    throttleStream,
-    axisStreams,
     sasRaw,
     sasUnavailableReason,
     rcsRaw,
@@ -286,8 +282,6 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
     throttleCmd,
     setThrottleCmd,
     throttleKnown,
-    throttleStream,
-    axisStreams,
     sasRaw,
     sasUnavailableReason,
     rcsRaw,
@@ -309,15 +303,11 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
     oneWayDelay,
   } = useNavball(props);
 
-  // The control surface needs ~350px beyond the dial, so a smaller tile degrades control mode to a plain dial. The delay strip takes three rows more, and a tile that cannot hold it falls back rather than drawing the dial over the SAS row.
+  // The control surface needs ~350px beyond the dial, so a smaller tile degrades control mode to a plain dial.
   const cols = w ?? 8;
   const rows = h ?? 11;
-  const delayStripShown =
-    delaySeconds !== null && delayVisibility(delaySeconds) === "shown";
-  const surfaceRows = delayStripShown
-    ? CONTROL_SURFACE_ROWS_WITH_DELAY
-    : CONTROL_SURFACE_ROWS;
-  const showControlSurface = controlMode && rows >= surfaceRows && cols >= 7;
+  const showControlSurface =
+    controlMode && rows >= CONTROL_SURFACE_ROWS && cols >= 7;
   const gridWantsDial = rows >= 6 && cols >= 4;
   const {
     dialFit,
@@ -436,8 +426,6 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
               availableSasModes={availableSasModes}
               throttleCmd={throttleKnown ? throttleCmd : null}
               onSetThrottleCmd={setThrottleCmd}
-              throttleStream={throttleStream}
-              axisStreams={axisStreams}
               fbwState={fbwState}
               onArmFbw={armFbw}
               onDisarmFbw={disarmFbw}
@@ -513,9 +501,10 @@ registerComponent<NavballConfig>({
   id: "navball",
   name: "Navball",
   description:
-    "Your vessel's heading, pitch and roll, measured at the root part, or at the centre of mass if the widget's settings say so. The settings can also switch on controls for every SAS mode, throttle, pitch, yaw, roll, RCS translation and trim. Bind a joystick or keyboard key to them on the Inputs tab of the widget's settings to fly the vessel from it. Under signal delay, a strip for each control shows the commands still crossing to the craft and the values it has confirmed back.",
+    "Your vessel's heading, pitch and roll, measured at the root part, or at the centre of mass if the widget's settings say so. The settings can also switch on controls for every SAS mode, throttle, pitch, yaw, roll, RCS translation and trim. Bind a joystick or keyboard key to them on the Inputs tab of the widget's settings to fly the vessel from it.",
   tags: ["telemetry", "control"],
-  defaultSize: { w: 8, h: 11 },
+  // Fifteen rows hold the control surface with its sections folded beside a dial as large as the plain default gives.
+  defaultSize: { w: 8, h: 15 },
   // Below four columns the three figures are the tiny form's, with the title behind a hover.
   minSize: { w: 4, h: 3 },
   component: NavballComponent,
