@@ -1164,10 +1164,6 @@ namespace Sitrep.Host
                 RelativeVelocity = relativeVelocity,
                 Distance = distance.Value,
                 ForwardDot = GetDouble(dock, "forwardDot"),
-                OwnPortState = DockingModel.ParsePortState(GetString(dock, "ownPortState")),
-                TargetPortState = DockingModel.ParsePortState(GetString(dock, "targetPortState")),
-                TargetVesselPersistentId = (uint?)GetDouble(dock, "targetVesselPersistentId"),
-                TargetPortPersistentId = (uint?)GetDouble(dock, "targetPortPersistentId"),
                 Meta = BuildMeta(vesselId),
             };
         }
@@ -2087,10 +2083,6 @@ namespace Sitrep.Host
             ["relativeVelocity"] = ToWire(dock.RelativeVelocity),
             ["distance"] = dock.Distance,
             ["forwardDot"] = dock.ForwardDot,
-            ["ownPortState"] = dock.OwnPortState is { } ownState ? (int)ownState : (int?)null,
-            ["targetPortState"] = dock.TargetPortState is { } targetState ? (int)targetState : (int?)null,
-            ["targetVesselPersistentId"] = dock.TargetVesselPersistentId,
-            ["targetPortPersistentId"] = dock.TargetPortPersistentId,
             ["meta"] = ToWire(dock.Meta),
         };
 

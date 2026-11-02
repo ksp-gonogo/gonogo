@@ -40,8 +40,6 @@ function RendezvousComponent({
     dockingDistance,
     dockingFiguresReading,
     dockForwardDot,
-    dockTargetPort,
-    dockJoined,
     dockingAvailable,
     alignmentWithheld,
     modelledAlignment,
@@ -110,8 +108,6 @@ function RendezvousComponent({
           y={undefined}
           forwardDot={undefined}
           modelled={undefined}
-          docked={false}
-          targetPort={undefined}
           showCamera
           cleared
           cameraFlightId={config?.cameraFlightId}
@@ -140,8 +136,6 @@ function RendezvousComponent({
         x={dockX}
         y={dockY}
         forwardDot={dockForwardDot}
-        targetPort={dockTargetPort}
-        docked={dockJoined}
         modelled={modelledAlignment ? { basis: modelledAlignment } : undefined}
         showCamera={hudMode === "hud-with-camera"}
         cameraFlightId={config?.cameraFlightId}

@@ -696,9 +696,7 @@
       "relativePosition.z": "m",
       "relativeVelocity.x": "m/s",
       "relativeVelocity.y": "m/s",
-      "relativeVelocity.z": "m/s",
-      "targetPortPersistentId": "id",
-      "targetVesselPersistentId": "id"
+      "relativeVelocity.z": "m/s"
     },
     "ErrorMsg": {
       "code": "id",
@@ -2434,9 +2432,7 @@
       "relativePosition.z": "m",
       "relativeVelocity.x": "m/s",
       "relativeVelocity.y": "m/s",
-      "relativeVelocity.z": "m/s",
-      "targetPortPersistentId": "id",
-      "targetVesselPersistentId": "id"
+      "relativeVelocity.z": "m/s"
     },
     "vessel.flight": {
       "altitudeAsl": "m",

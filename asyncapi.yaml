@@ -3488,14 +3488,10 @@ channels:
     title: Active vessel docking
     description: |-
       The relative position, velocity and coarse orientation between the active
-      vessel's nearest docking port (one that is not shut off) and the targeted
-      docking port, for docking-alignment widgets, with each port's
-      `DockingPortState` so a widget can tell a free approach from a capture and a
-      dock. The whole payload is absent when docking is not relevant right now:
-      nothing is targeted, the target is not a docking port, or the active vessel
-      has no port that is not disabled. It stays through the capture, the join and
-      the release of the pair last targeted, after the game clears the target, and
-      is absent again once the own port is back at rest. It is never an old or
+      vessel's nearest free (undocked) docking port and the targeted docking port,
+      for docking-alignment widgets. The whole payload is absent when docking is
+      not relevant right now: nothing is targeted, the target is not a docking
+      port, or the active vessel has no free port. It is never an old or
       zero-distance placeholder record, the same convention as `VesselTarget`.
 
       `DockAlignment.forwardDot` is the dot product of the two ports' forward
@@ -15338,14 +15334,10 @@ components:
       type: object
       description: |-
         The relative position, velocity and coarse orientation between the active
-        vessel's nearest docking port (one that is not shut off) and the targeted
-        docking port, for docking-alignment widgets, with each port's
-        `DockingPortState` so a widget can tell a free approach from a capture and a
-        dock. The whole payload is absent when docking is not relevant right now:
-        nothing is targeted, the target is not a docking port, or the active vessel
-        has no port that is not disabled. It stays through the capture, the join and
-        the release of the pair last targeted, after the game clears the target, and
-        is absent again once the own port is back at rest. It is never an old or
+        vessel's nearest free (undocked) docking port and the targeted docking port,
+        for docking-alignment widgets. The whole payload is absent when docking is
+        not relevant right now: nothing is targeted, the target is not a docking
+        port, or the active vessel has no free port. It is never an old or
         zero-distance placeholder record, the same convention as `VesselTarget`.
 
         `DockAlignment.forwardDot` is the dot product of the two ports' forward
@@ -15363,9 +15355,7 @@ components:
           type: object
           description: |-
             The target port's position relative to the own port (target minus own),
-            metres, in the own port's axes: `z` is along the docking axis, `x` and `y`
-            are the sideways and vertical offsets, so the line-of-sight angles off the
-            port's boresight are `atan(x / z)` and `atan(y / z)`.
+            metres.
           required:
             - x
             - y
@@ -15378,9 +15368,7 @@ components:
             z: *a1
         relativeVelocity:
           type: object
-          description: |-
-            The target port's velocity relative to the own port, m/s, in the own port's
-            axes like `DockAlignment.relativePosition`.
+          description: The target port's velocity relative to the own port, m/s.
           required:
             - x
             - y
@@ -15406,72 +15394,10 @@ components:
             Dot product of the own port's and target port's forward vectors, -1..1: -1
             facing head-on, +1 pointing the same way. Null only when either port's
             transform was unavailable this tick.
-        ownPortState:
-          description: |-
-            The active vessel's own docking port the alignment is measured from: the one
-            nearest the target that is not `DockingPortState.Disabled`. Null only when
-            the game did not report its state this tick.
-          anyOf:
-            - $ref: "#/components/schemas/DockingPortState"
-            - type: "null"
-        targetPortState:
-          description: |-
-            The targeted port's state. Null only when the game did not report it this
-            tick.
-          anyOf:
-            - $ref: "#/components/schemas/DockingPortState"
-            - type: "null"
-        targetVesselPersistentId:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: id
-          description: |-
-            The targeted port's owning vessel's KSP `Vessel.persistentId`, the id a
-            camera marker names the vessel by. Null only when the game did not report it
-            this tick.
-        targetPortPersistentId:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: id
-          description: |-
-            The targeted port's KSP `Part.persistentId`, the id a camera marker names
-            the part by. Not `Part.flightID`, the id `vessel.target` carries. Null only
-            when the game did not report it this tick.
         meta:
           description: The payload's provenance (`"vessel:<guid>"`).
           allOf:
             - $ref: "#/components/schemas/PayloadMeta"
-    DockingPortState:
-      type: integer
-      description: |-
-        What a docking port is doing, in KSP's own stages of a dock, as
-        `DockAlignment.ownPortState` and `DockAlignment.targetPortState` report it.
-        The variants a docked port reports for which side it is, and the one for a
-        port docked to its own vessel, all read as `DockingPortState.Docked`.
-      x-sitrep-enum-kind: ordinal
-      oneOf:
-        - const: 0
-          title: Ready
-          description: Free and not yet drawn to another port.
-        - const: 1
-          title: Acquire
-          description: |-
-            The port's capture field has taken hold of another port and is pulling the
-            two together.
-        - const: 2
-          title: PreAttached
-          description: The ports are joined and the two craft are about to become one.
-        - const: 3
-          title: Docked
-          description: The ports are docked.
-        - const: 4
-          title: Disengage
-          description: The ports are letting go of each other after an undock.
-        - const: 5
-          title: Disabled
-          description: The port is shut off and will not dock.
     ErrorMsg:
       type: object
       description: |-

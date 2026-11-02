@@ -15,8 +15,8 @@ export interface GeneratedFrameDeclaration {
 
 export const GENERATED_TOPIC_FRAMES = {
   "vessel.dock": {
-    relativePosition: { frame: "port-relative" },
-    relativeVelocity: { frame: "port-relative" },
+    relativePosition: { frame: "subject-relative" },
+    relativeVelocity: { frame: "subject-relative" },
   },
   "vessel.orbit.truth": {
     position: { frame: "body-centred-inertial", whenSet: "body-centred-rotating", selectedBy: "frameRotating" },
@@ -30,8 +30,8 @@ export const GENERATED_TOPIC_FRAMES = {
 
 export const GENERATED_TYPE_FRAMES = {
   "DockAlignment": {
-    relativePosition: { frame: "port-relative" },
-    relativeVelocity: { frame: "port-relative" },
+    relativePosition: { frame: "subject-relative" },
+    relativeVelocity: { frame: "subject-relative" },
   },
   "FairingShell": {
     axis: { frame: "part-local" },

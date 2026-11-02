@@ -11122,40 +11122,11 @@ export interface VesselCrew
 	meta: PayloadMeta;
 }
 /**
-* What a docking port is doing, in KSP's own stages of a dock, as
-* `DockAlignment.ownPortState` and `DockAlignment.targetPortState` report it.
-* The variants a docked port reports for which side it is, and the one for a
-* port docked to its own vessel, all read as `DockingPortState.Docked`.
-*
-* @category Vessel
-*/
-export enum DockingPortState {
-	/** Free and not yet drawn to another port. */
-	Ready = 0,
-	/**
-	* The port's capture field has taken hold of another port and is pulling the
-	* two together.
-	*/
-	Acquire = 1,
-	/** The ports are joined and the two craft are about to become one. */
-	PreAttached = 2,
-	/** The ports are docked. */
-	Docked = 3,
-	/** The ports are letting go of each other after an undock. */
-	Disengage = 4,
-	/** The port is shut off and will not dock. */
-	Disabled = 5
-}
-/**
 * The relative position, velocity and coarse orientation between the active
-* vessel's nearest docking port (one that is not shut off) and the targeted
-* docking port, for docking-alignment widgets, with each port's
-* `DockingPortState` so a widget can tell a free approach from a capture and a
-* dock. The whole payload is absent when docking is not relevant right now:
-* nothing is targeted, the target is not a docking port, or the active vessel
-* has no port that is not disabled. It stays through the capture, the join and
-* the release of the pair last targeted, after the game clears the target, and
-* is absent again once the own port is back at rest. It is never an old or
+* vessel's nearest free (undocked) docking port and the targeted docking port,
+* for docking-alignment widgets. The whole payload is absent when docking is
+* not relevant right now: nothing is targeted, the target is not a docking
+* port, or the active vessel has no free port. It is never an old or
 * zero-distance placeholder record, the same convention as `VesselTarget`.
 *
 * `DockAlignment.forwardDot` is the dot product of the two ports' forward
@@ -11170,15 +11141,10 @@ export interface DockAlignment
 {
 	/**
 	* The target port's position relative to the own port (target minus own),
-	* metres, in the own port's axes: `z` is along the docking axis, `x` and `y`
-	* are the sideways and vertical offsets, so the line-of-sight angles off the
-	* port's boresight are `atan(x / z)` and `atan(y / z)`.
+	* metres.
 	*/
 	relativePosition: Vec3Of<"m">;
-	/**
-	* The target port's velocity relative to the own port, m/s, in the own port's
-	* axes like `DockAlignment.relativePosition`.
-	*/
+	/** The target port's velocity relative to the own port, m/s. */
 	relativeVelocity: Vec3Of<"m/s">;
 	/**
 	* Metres: `DockAlignment.relativePosition`'s magnitude, provided directly so a
@@ -11191,29 +11157,6 @@ export interface DockAlignment
 	* transform was unavailable this tick.
 	*/
 	forwardDot?: Value<"1"> | null;
-	/**
-	* The active vessel's own docking port the alignment is measured from: the one
-	* nearest the target that is not `DockingPortState.Disabled`. Null only when
-	* the game did not report its state this tick.
-	*/
-	ownPortState?: DockingPortState | null;
-	/**
-	* The targeted port's state. Null only when the game did not report it this
-	* tick.
-	*/
-	targetPortState?: DockingPortState | null;
-	/**
-	* The targeted port's owning vessel's KSP `Vessel.persistentId`, the id a
-	* camera marker names the vessel by. Null only when the game did not report it
-	* this tick.
-	*/
-	targetVesselPersistentId?: number | null;
-	/**
-	* The targeted port's KSP `Part.persistentId`, the id a camera marker names
-	* the part by. Not `Part.flightID`, the id `vessel.target` carries. Null only
-	* when the game did not report it this tick.
-	*/
-	targetPortPersistentId?: number | null;
 	/** The payload's provenance (`"vessel:<guid>"`). */
 	meta: PayloadMeta;
 }

@@ -5,7 +5,6 @@ import {
 } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
-import { useEffect } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   type StreamFixture,
@@ -461,92 +460,5 @@ describe("Rendezvous: augment slots", () => {
       );
       expect(screen.queryByTestId("cam")).toBeNull();
     });
-  });
-
-  it("reads a captured port as docked, the last state the dock channel delivers", async () => {
-    registerAugment<"rendezvous.camera">({
-      id: "test-camera-captured",
-      augments: "rendezvous.camera",
-      component: ({ docked }) => (
-        <div data-testid="cam">{docked ? "docked" : "free"}</div>
-      ),
-    });
-    const fixture = setupStreamFixture({ suspendFrames: true });
-    renderWidget(fixture, {}, { w: 12, h: 9 });
-    act(() => {
-      fixture.emit("vessel.target", {
-        name: "Test Station",
-        kind: KIND.Vessel,
-        relativePosition: atRange(0.5),
-        relativeVelocity: atRange(-0.3),
-      });
-      fixture.emit("vessel.dock", {
-        relativePosition: atRange(0.5),
-        relativeVelocity: atRange(-0.3),
-        distance: 0.5,
-        forwardDot: -1,
-        ownPortState: 1,
-      });
-    });
-    await waitFor(() =>
-      expect(screen.getByTestId("cam").textContent).toBe("docked"),
-    );
-  });
-
-  it("hands the camera the target port's ids and draws no ring, crosshair or ticks over a camera picture", async () => {
-    registerAugment<"rendezvous.camera">({
-      id: "test-camera-picture",
-      augments: "rendezvous.camera",
-      component: ({ targetPort, docked, reportPicture }) => {
-        useEffect(() => {
-          reportPicture({ frameWidth: 1024, frameHeight: 576, vfovDeg: 60 });
-          return () => reportPicture(null);
-        }, [reportPicture]);
-        return (
-          <div data-testid="cam">
-            {targetPort
-              ? `${targetPort.vesselPersistentId}/${targetPort.portPersistentId}`
-              : "no port"}
-            {docked ? " docked" : " free"}
-          </div>
-        );
-      },
-    });
-
-    const fixture = setupStreamFixture({
-      suspendFrames: true,
-    });
-    const { container } = renderWidget(fixture, {}, { w: 12, h: 9 });
-    act(() => {
-      fixture.emit("vessel.target", {
-        name: "Test Station",
-        kind: KIND.Vessel,
-        relativePosition: atRange(80),
-        relativeVelocity: atRange(-0.5),
-      });
-      fixture.emit("vessel.dock", {
-        relativePosition: atRange(80),
-        relativeVelocity: atRange(-0.5),
-        distance: 80,
-        forwardDot: -1,
-        targetVesselPersistentId: 4000000001,
-        targetPortPersistentId: 1234,
-        ownPortState: 2,
-      });
-    });
-
-    await waitFor(() =>
-      expect(screen.getByTestId("cam").textContent).toBe(
-        "4000000001/1234 docked",
-      ),
-    );
-    const ring = [...container.querySelectorAll<HTMLElement>("div")].find(
-      (el) => el.style.borderRadius === "var(--radius-circle)",
-    );
-    expect(ring).toBeUndefined();
-    const hudMarks = [...container.querySelectorAll<HTMLElement>("div")].filter(
-      (el) => el.style.background.startsWith("rgba(0, 255, 136"),
-    );
-    expect(hudMarks).toEqual([]);
   });
 });

@@ -262,7 +262,7 @@ export interface GeneratedTopicPayloadMap {
   "vessel.control": VesselControl;
   /** The `vessel.crew` payload: who is aboard the active vessel and how many seats it has. */
   "vessel.crew": VesselCrew;
-  /** The relative position, velocity and coarse orientation between the active vessel's nearest docking port (one that is not shut off) and the targeted docking port, for docking-alignment widgets, with each port's `DockingPortState` so a widget can tell a free approach from a capture and a dock. */
+  /** The relative position, velocity and coarse orientation between the active vessel's nearest free (undocked) docking port and the targeted docking port, for docking-alignment widgets. */
   "vessel.dock": DockAlignment;
   /** Quantities the game measures, either because they cannot be derived from orbital elements (terrain height, aerodynamic state) or because they are the measured value to check a prediction against (speeds). */
   "vessel.flight": VesselFlight;

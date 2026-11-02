@@ -737,8 +737,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     "relativeVelocity.x": "m/s",
     "relativeVelocity.y": "m/s",
     "relativeVelocity.z": "m/s",
-    targetPortPersistentId: "id",
-    targetVesselPersistentId: "id",
   },
   "ErrorMsg": {
     code: "id",
@@ -2480,8 +2478,6 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     "relativeVelocity.x": "m/s",
     "relativeVelocity.y": "m/s",
     "relativeVelocity.z": "m/s",
-    targetPortPersistentId: "id",
-    targetVesselPersistentId: "id",
   },
   "vessel.flight": {
     altitudeAsl: "m",

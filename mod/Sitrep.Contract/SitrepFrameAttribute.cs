@@ -44,22 +44,13 @@ namespace Sitrep.Contract
         public const string BodyCentredRotating = "body-centred-rotating";
 
         /// <summary>
-        /// Origin at the payload's own subject (the active vessel), axes KSP's scene axes. A displacement, never an
+        /// Origin at the payload's own subject (the active vessel, or the vessel's
+        /// own docking port), axes KSP's scene axes. A displacement, never an
         /// absolute position, and not vessel-fixed: the values are a
         /// difference of two world-space quantities, so the subject supplies the
         /// origin and nothing rotates the result into the subject's own axes.
         /// </summary>
         public const string SubjectRelative = "subject-relative";
-
-        /// <summary>
-        /// Origin at the active vessel's own docking port, axes that port's own:
-        /// <c>x</c> along the port's right, <c>y</c> along its up and <c>z</c>
-        /// along its forward (the docking axis). A
-        /// displacement or a velocity difference, rotated into the port's axes,
-        /// so a target dead ahead of the port reads as <c>x</c> and <c>y</c> near
-        /// zero and <c>z</c> large however the vessel is oriented.
-        /// </summary>
-        public const string PortRelative = "port-relative";
 
         /// <summary>
         /// Origin at the vessel's root part, axes the vessel's construction frame:
