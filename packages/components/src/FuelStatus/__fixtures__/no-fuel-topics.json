@@ -1,7 +1,0 @@
-{
-  "_meta": {
-    "shows": "A station whose stream carries no fuel, resource or ΔV topics: the body says so rather than standing empty.",
-    "scenario": "no-fuel-topics",
-    "notes": "Nothing is fed: no resources, no ΔV budget, no staging structure. This is absence, not a craft carrying nothing, so the widget draws its no-data line instead of figures."
-  }
-}

@@ -97,25 +97,6 @@ function makeStage(stage: number, fuelMass: number): Record<string, number> {
 }
 
 describe("FuelStatusComponent", () => {
-  it("says there is no fuel data when no fuel, resource or ΔV topic is fed", () => {
-    const fixture = makeFixture();
-    renderFuel(fixture);
-
-    expect(screen.getByText("No fuel data")).toBeInTheDocument();
-  });
-
-  it("drops the no-data line once the craft reports a stage", async () => {
-    const fixture = makeFixture();
-    renderFuel(fixture);
-
-    act(() => {
-      fixture.emit("vessel.structure", { currentStage: 2 });
-    });
-
-    await screen.findByText(/Stage 2/i);
-    expect(screen.queryByText("No fuel data")).toBeNull();
-  });
-
   it("renders a meter for each resource with a non-zero max", async () => {
     const fixture = makeFixture();
     renderFuel(fixture);

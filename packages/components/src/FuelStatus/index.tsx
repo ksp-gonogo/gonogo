@@ -9,7 +9,6 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
-  EmptyState,
   getWidgetShape,
   Panel,
   ReadoutCaption,
@@ -32,7 +31,7 @@ import {
 import { FuelStatusConfigForm } from "./FuelStatusConfigForm";
 import read from "./fuel-status.declarations.g";
 import { ResourceListSection } from "./ResourceListSection";
-import { carries, useResourceRows } from "./resources";
+import { useResourceRows } from "./resources";
 import { StageStackSection } from "./StageStackSection";
 import { TotalsSection } from "./TotalsSection";
 
@@ -136,23 +135,11 @@ function FuelStatusComponent({
     });
   }
 
-  // Nothing to put in the body: no stage, no totals, no tank and no stage list. Absent feeds read the same as a craft that carries nothing, so the body says so.
-  const hasFigures =
-    currentStage !== undefined ||
-    budgetReported ||
-    stages.length > 0 ||
-    readings.some(({ capacity }) => carries(capacity));
-
   return (
     <Panel
       panelTitle="FUEL · ΔV"
       compactTitle={["FUEL"]}
       sections={[
-        !hasFigures && (
-          <Section key="empty" full>
-            <EmptyState>No fuel data</EmptyState>
-          </Section>
-        ),
         /* The caption and the totals span the row: they describe the columns rather than sit beside them. */
         showSubtitle && currentStage !== undefined && (
           <Section key="stage" full>
