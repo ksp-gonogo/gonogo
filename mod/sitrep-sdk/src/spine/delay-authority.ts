@@ -221,6 +221,8 @@ export class DelayAuthority {
    * change of craft until the new craft's figure arrives.
    */
   private reportedSeconds: number | null = null;
+  /** The instant the held one-way figure was measured at, so an older figure replayed after a newer one cannot replace it. */
+  private heldFigureValidAt = Number.NEGATIVE_INFINITY;
   /** The craft the held delays were measured for, once a payload has named one. */
   private measuredCraft: string | undefined;
   /** The craft `vessel.identity` last named. */
@@ -285,6 +287,32 @@ export class DelayAuthority {
     this.oneWaySeconds = reported;
   }
 
+  /**
+   * Feed one `comms.delay` frame of the active craft's history, in whatever
+   * order it arrives, so the last measured one-way delay is held even when the
+   * newest frame reports none. Useful for a screen that joins during a
+   * blackout and is handed the delay's recent frames after the fact, where the
+   * newest only says there is no path home. Used by `TelemetryProvider`, for
+   * every `comms.delay` frame its client receives.
+   *
+   * A frame measured earlier than the figure already held is ignored, and a
+   * frame that reports no delay changes nothing.
+   */
+  observeFigure(payload: unknown, validAt: number): void {
+    const reported = readOneWaySeconds(payload);
+    if (reported === null || !(validAt >= this.heldFigureValidAt)) return;
+    const craft = readPayloadCraft(payload);
+    if (
+      craft !== null &&
+      this.measuredCraft !== undefined &&
+      craft !== this.measuredCraft
+    ) {
+      return;
+    }
+    this.heldFigureValidAt = validAt;
+    this.oneWaySeconds = reported;
+  }
+
   /*
    * A delay held through a blackout belongs to the craft that was measured. A
    * payload about a different craft starts from nothing, so a craft with no
@@ -302,6 +330,7 @@ export class DelayAuthority {
 
   private forgetCraft(): void {
     this.oneWaySeconds = UNKNOWN_DELAY;
+    this.heldFigureValidAt = Number.NEGATIVE_INFINITY;
     this.reportedSeconds = null;
     this.centreDelays = new Map();
     this.lastCentreDelays.clear();

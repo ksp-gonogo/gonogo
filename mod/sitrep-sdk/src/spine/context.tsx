@@ -274,7 +274,19 @@ export function TelemetryProvider({
     // answers settles instead of hanging. One wiring point, one number: the client
     // does not compute delay and the transport is not asked about it.
     const clearDelaySource = client.setDelaySource(delayAuthority.delaySeconds);
+    /*
+     * A subscriber hears only the newest frame of a topic, and a screen handed a
+     * topic's history after the fact (a station joining) is told the newest
+     * first. Through a blackout the newest says there is no path home, so the
+     * last measured delay has to be read off the frames that came before it.
+     */
+    const detachFigures = client.onRawMessage((message) => {
+      if (message.type === "stream-data" && message.topic === "comms.delay") {
+        delayAuthority.observeFigure(message.payload, message.meta.validAt);
+      }
+    });
     return () => {
+      detachFigures();
       clearDelaySource();
       detach();
     };

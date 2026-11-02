@@ -9551,6 +9551,10 @@
         "note": "New: the delay of a command to the active craft from a centre, null where none is known, never the craft before"
       },
       {
+        "key": "sitrep-sdk ./spine DelayAuthority#observeFigure",
+        "note": "New: a comms.delay frame from the history holds the last measured delay when the newest frame reports none"
+      },
+      {
         "key": "sitrep-sdk ./spine DelayAuthority#observeIdentity",
         "note": "New: a change of craft seen on vessel.identity forgets the delays held for the craft before it"
       },

@@ -498,6 +498,67 @@ describe("station Sitrep-stream forwarding: two-screen proof", () => {
     expect(stationText).toContain("100000");
   });
 
+  it("a station that joins during a blackout reads the same delayed game time as the main screen", async () => {
+    const { peerHost, hostTransport } = setupHost();
+    await peerHost.start();
+    await waitForHostPeerId(peerHost);
+
+    const station1 = await connectStation(peerHost);
+    stationServices.push(station1);
+
+    const oneWay = 27.4;
+    const nowUt = Date.now() / 1000;
+    /* The delay was last reported well before contact was lost, then the link went down and only readings made at the present kept arriving. */
+    act(() => {
+      hostTransport.emit(
+        "comms.delay",
+        { oneWaySeconds: oneWay },
+        { validAt: nowUt - 120, deliveredAt: nowUt - 120 },
+      );
+    });
+    await emitUntilArrived(
+      () =>
+        hostTransport.emit(
+          "comms.delay",
+          { oneWaySeconds: oneWay },
+          { validAt: nowUt - 120, deliveredAt: nowUt - 120 },
+        ),
+      () => expect([...liveStores][1].clock.delaySeconds()).toBeCloseTo(oneWay),
+      8000,
+    );
+    act(() => {
+      hostTransport.emitRaw({
+        type: "event",
+        topic: "comms.delay",
+        name: "subscribed",
+        keyframeIntervalUt: 5,
+      } as never);
+      hostTransport.emit(
+        "comms.delay",
+        { oneWaySeconds: null },
+        { validAt: nowUt - 30, deliveredAt: nowUt - 30 },
+      );
+      hostTransport.emit(
+        "vessel.orbit",
+        { apoapsis: 100_000, periapsis: 80_000 },
+        { validAt: nowUt, deliveredAt: nowUt },
+      );
+    });
+
+    const station2 = await connectStation(peerHost);
+    stationServices.push(station2);
+    await waitFor(() =>
+      expect([...liveStores][2].clock.delaySeconds()).toBeCloseTo(oneWay),
+    );
+
+    const [hostStore, , joinedStore] = [...liveStores];
+    const hostView = hostStore.clock.viewUt();
+    const joinedView = joinedStore.clock.viewUt();
+    expect(hostStore.clock.delaySeconds()).toBeCloseTo(oneWay);
+    expect(joinedStore.clock.delaySeconds()).toBeCloseTo(oneWay);
+    expect(Math.abs(joinedView - hostView)).toBeLessThan(1);
+  });
+
   it("backfills a late-connecting station immediately for a topic that stopped changing before it joined", async () => {
     const { peerHost, hostTransport } = setupHost();
     await peerHost.start();
