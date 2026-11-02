@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { deriveDockAngles } from "../shared/dockAngles";
-import replay from "./__fixtures__/reticle-replay.json";
+import replay from "./__replays__/reticle-replay.json";
 import { reticleOffset, reticleTravelPx } from "./reticleGeometry";
 
 const MAX_DEG = 8;
