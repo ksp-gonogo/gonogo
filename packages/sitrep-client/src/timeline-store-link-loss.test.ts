@@ -33,7 +33,7 @@ describe("readings of a craft whose link home is lost", () => {
     const s = store();
     s.ingest("vessel.crew", point(36909.1, CREW));
     s.ingest("vessel.parts", point(36909.1, { parts: [] }));
-    s.ingest("comms.connectivity", point(36910.1, LOST));
+    s.ingest("comms.link", point(36910.1, LOST));
     s.beginFrame();
 
     const crew = s.sampleReading("vessel.crew");
@@ -45,7 +45,7 @@ describe("readings of a craft whose link home is lost", () => {
 
   it("are current when frames taken after the loss still arrive", () => {
     const s = store();
-    s.ingest("comms.connectivity", point(36910.1, LOST));
+    s.ingest("comms.link", point(36910.1, LOST));
     s.ingest("vessel.crew", point(36911.2, CREW));
     s.beginFrame();
 
@@ -55,7 +55,7 @@ describe("readings of a craft whose link home is lost", () => {
   it("are current while the link stands", () => {
     const s = store();
     s.ingest("vessel.crew", point(36909.1, CREW));
-    s.ingest("comms.connectivity", point(36910.1, LINKED));
+    s.ingest("comms.link", point(36910.1, LINKED));
     s.beginFrame();
 
     expect(s.sampleReading("vessel.crew").state).toBe("observed");
@@ -64,10 +64,31 @@ describe("readings of a craft whose link home is lost", () => {
   it("do not hold what the ground knows without the craft", () => {
     const s = store();
     s.ingest("trackingStation.bodies", point(36909.1, { bodies: [] }));
-    s.ingest("comms.connectivity", point(36910.1, LOST));
+    s.ingest("comms.link", point(36910.1, LOST));
     s.beginFrame();
 
     expect(s.sampleReading("trackingStation.bodies").state).toBe("observed");
-    expect(s.sampleReading("comms.connectivity").state).toBe("observed");
+    expect(s.sampleReading("comms.link").state).toBe("observed");
+  });
+});
+
+describe("readings of a craft whose link is lost behind a signal delay", () => {
+  it("are held as soon as the loss is delivered, without waiting for the heartbeat", () => {
+    let wall = 0;
+    const s = new TimelineStore(
+      new ViewClock({
+        delaySeconds: () => 27,
+        warpRate: () => 1,
+        nowWall: () => wall,
+      }),
+    );
+    for (let t = 3300; t <= 3347; t += 1) {
+      s.ingest("vessel.crew", point(t, CREW));
+    }
+    s.ingest("comms.link", point(3347.6, LOST));
+    wall = 3375 - 3300;
+    s.beginFrame();
+
+    expect(s.sampleReading("vessel.crew").state).toBe("held");
   });
 });
