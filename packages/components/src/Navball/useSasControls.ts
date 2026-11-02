@@ -1,21 +1,38 @@
 import { useCommand } from "@ksp-gonogo/sitrep-client";
 import type { TopicPayload } from "@ksp-gonogo/sitrep-sdk";
 import { commandOutcomes } from "@ksp-gonogo/ui-kit";
+import {
+  showsToggle,
+  toggleConfirmationOf,
+} from "../shared/toggleConfirmation";
 import { SAS_MODES, type SasMode, sasModeOrdinal } from "./sasModes";
 
-/** The SAS, RCS and precision control toggles and the SAS mode command, off the last confirmed control state. */
+/**
+ * The SAS, RCS and precision control toggles and the SAS mode command, off the
+ * last confirmed control state. `controlHeld` says that state is the last one
+ * received while its reading is withheld, which confirms nothing a toggle sent.
+ */
 export function useSasControls(
   control: TopicPayload<"vessel.control"> | undefined,
+  controlHeld = false,
 ) {
-  const sasCmd = useCommand("vessel.control.setSas");
-  const rcsCmd = useCommand("vessel.control.setRcs");
-  const precisionCmd = useCommand("vessel.control.setPrecisionControl");
-  const sasModeCmd = useCommand("vessel.control.setSasMode");
-
   // Uncoerced: inverting an unread arm would be a blind guess, and an unread arm is not a confirmed OFF.
   const sasRaw = control?.sas;
   const rcsRaw = control?.rcs;
   const precisionRaw = control?.precisionControl;
+
+  const confirmedBy = (shown: boolean | null | undefined) => (args: unknown) =>
+    !controlHeld && showsToggle(args, shown);
+  const sasCmd = useCommand("vessel.control.setSas", {
+    confirmedBy: confirmedBy(sasRaw),
+  });
+  const rcsCmd = useCommand("vessel.control.setRcs", {
+    confirmedBy: confirmedBy(rcsRaw),
+  });
+  const precisionCmd = useCommand("vessel.control.setPrecisionControl", {
+    confirmedBy: confirmedBy(precisionRaw),
+  });
+  const sasModeCmd = useCommand("vessel.control.setSasMode");
 
   // Only turning SAS on is refused, so a SAS that is already on can still be switched off.
   const sasUnavailableReason =
@@ -71,6 +88,9 @@ export function useSasControls(
     toggleRcs,
     togglePrecision,
     setSasMode,
+    sasConfirmation: toggleConfirmationOf(sasCmd.inFlight),
+    rcsConfirmation: toggleConfirmationOf(rcsCmd.inFlight),
+    precisionConfirmation: toggleConfirmationOf(precisionCmd.inFlight),
     unconfirmedSasModes,
     dismissSasUnconfirmed: sasOutcomes.dismiss,
   };

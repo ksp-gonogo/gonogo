@@ -129,9 +129,10 @@ export function resolveTracked(
    * prediction alone would keep it in transit after its promise has rejected.
    */
   if (!acked && judgedLost(id) && classified.predictedPhase !== "lost") {
+    const { held: _held, ...settled } = classified;
     return {
       kind: "classified",
-      item: { ...classified, predictedPhase: "lost" },
+      item: { ...settled, predictedPhase: "lost" },
     };
   }
   /*

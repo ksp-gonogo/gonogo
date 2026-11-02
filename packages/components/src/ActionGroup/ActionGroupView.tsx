@@ -27,6 +27,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useRef, useState } from "react";
 import { useAlarmsLauncher } from "../shared/AlarmsLauncher";
+import { heldCommandMarking } from "../shared/toggleConfirmation";
 import type { ActionGroupConfig } from "./config";
 import { heldPressCaption } from "./groupState";
 import type { ActionGroupSlotContext } from "./slots";
@@ -69,6 +70,7 @@ export function ActionGroupView({
     press,
     buttonWord,
     buttonWords,
+    confirmation,
     confirmationSentence,
   } = useGroupToggle({
     group,
@@ -115,8 +117,11 @@ export function ActionGroupView({
         : "No toggle is configured for this group"));
 
   const heldCaption = heldPressCaption({ value, valueHeld, valueLate });
-  const heldPress: ReckoningMarking | null =
-    heldCaption === null ? null : { kind: "held", caption: heldCaption };
+  const heldPress = heldCommandMarking(
+    currentLabel,
+    confirmation,
+    heldCaption === null ? null : { kind: "held", caption: heldCaption },
+  );
 
   const cols = w ?? 6;
   const showOfficialName = cols >= 5;
@@ -231,7 +236,9 @@ export function ActionGroupView({
                 text={
                   streamDown
                     ? STREAM_DOWN_TIP
-                    : (confirmationSentence ??
+                    : ((confirmation === "held"
+                        ? null
+                        : confirmationSentence) ??
                       unavailableReason ??
                       `Toggle ${currentLabel}`)
                 }

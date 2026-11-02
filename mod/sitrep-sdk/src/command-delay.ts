@@ -80,6 +80,10 @@ export interface PendingEntry {
   predictedArrivalUt?: Value<"ut"> | null;
   /** For a held command, when its reply is predicted back, waits included; absent or null otherwise. */
   predictedReplyUt?: Value<"ut"> | null;
+  /** Where the sending centre predicts the command first waits for a window, as a node id; absent or null when it is predicted to go straight through. */
+  predictedHeldAt?: string | null;
+  /** When the command is predicted to leave `predictedHeldAt`; absent or null with it. */
+  predictedHeldUntilUt?: Value<"ut"> | null;
   /** For a held command, when it is deleted wherever it is if it has not run; absent or null otherwise. */
   expiresAtUt?: Value<"ut"> | null;
   /**
@@ -143,6 +147,8 @@ export interface InFlightCommand {
   replyEtaSeconds: number | null;
   /** Where it is expected to be now. */
   predictedPhase: PredictedPhase;
+  /** True while the sending centre's route puts the command waiting at a relay for a link to open, so it has not left the command centre's side of the break. Absent otherwise. */
+  held?: boolean;
 }
 
 /**
@@ -313,6 +319,30 @@ function ackedPhase(
 }
 
 /**
+ * The row marked held while the sending centre's route has the command waiting
+ * at a relay: a hold is predicted, its departure is still ahead, and the
+ * command has not reached the craft.
+ */
+function withHeld(
+  row: InFlightCommand,
+  entry: PendingEntry,
+  nowUt: number,
+): InFlightCommand {
+  if (entry.predictedHeldAt == null || row.predictedPhase !== "in-transit") {
+    return row;
+  }
+  const until = entry.predictedHeldUntilUt;
+  if (until != null && !until.greaterThan(value("ut", nowUt))) return row;
+  return { ...row, held: true };
+}
+
+/** The row moved to a settled phase, which a command is no longer held in. */
+function phased(row: InFlightCommand, phase: PredictedPhase): InFlightCommand {
+  const { held: _held, ...rest } = row;
+  return { ...rest, predictedPhase: phase };
+}
+
+/**
  * Returns a {@link PendingEntry} as a {@link RailCrossing}, sent when it was
  * dispatched. Useful for placing a pending command on the delay rail with
  * {@link deriveRailEntry}.
@@ -345,9 +375,10 @@ export function deriveInFlight(
   entries: PendingEntry[],
   nowUt: number,
 ): InFlightCommand[] {
-  return entries.flatMap(
-    (e) => deriveRailEntry(pendingCrossing(e), nowUt) ?? [],
-  );
+  return entries.flatMap((e) => {
+    const row = deriveRailEntry(pendingCrossing(e), nowUt);
+    return row === undefined ? [] : withHeld(row, e, nowUt);
+  });
 }
 
 /**
@@ -400,9 +431,10 @@ export function classifyRetained(args: {
     overdueMarginSeconds = LOSS_MARGIN,
     pathConnectedDuring = () => true,
   } = args;
-  const base = deriveRailEntry(pendingCrossing(entry), nowUt);
+  const row = deriveRailEntry(pendingCrossing(entry), nowUt);
   // A command nothing answers has nothing to be late for once it arrives.
-  if (base === undefined) return undefined;
+  if (row === undefined) return undefined;
+  const base = withHeld(row, entry, nowUt);
   // Out and back: the dispatch instant offset by two one-way legs. An instant
   // plus a duration, so the algebra does it rather than `+` on two bare
   // numbers that happen to be seconds apart in meaning.
@@ -421,7 +453,7 @@ export function classifyRetained(args: {
     centreOverdueUt != null &&
     !value("ut", nowUt).lessThan(centreOverdueUt)
   ) {
-    return { ...base, predictedPhase: "overdue" };
+    return phased(base, "overdue");
   }
   // No reply is predicted and nothing says when it expires: there is nothing to be late against yet.
   if (replyUt === null) return base;
@@ -433,12 +465,12 @@ export function classifyRetained(args: {
     args.acknowledged !== true &&
     !pathConnectedDuring(entry.dispatchedAt.magnitude, replyUt.magnitude)
   ) {
-    return { ...base, predictedPhase: "lost" };
+    return phased(base, "lost");
   }
   // 'overdue': past reply + margin and nothing has come back.
   const overdueAfter = replyUt.plus(value("s", overdueMarginSeconds));
   if (!acknowledged && value("ut", nowUt).greaterThan(overdueAfter)) {
-    return { ...base, predictedPhase: "overdue" };
+    return phased(base, "overdue");
   }
   return base;
 }

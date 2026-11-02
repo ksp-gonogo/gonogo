@@ -143,6 +143,9 @@ function useNavball({
     sasUnavailableReason,
     rcsRaw,
     precisionRaw,
+    sasConfirmation,
+    rcsConfirmation,
+    precisionConfirmation,
     toggleSas,
     engageSas,
     toggleRcs,
@@ -150,7 +153,7 @@ function useNavball({
     setSasMode,
     unconfirmedSasModes,
     dismissSasUnconfirmed,
-  } = useSasControls(control);
+  } = useSasControls(control, derivedMarking(controlReading) !== null);
   const identity = stillTrue(topics.useTelemetry("vessel.identity"), undefined);
   const { fbwState, armFbw, disarmFbw } = useFlyByWire(
     identity?.vesselId,
@@ -216,6 +219,9 @@ function useNavball({
     sasUnavailableReason,
     rcsRaw,
     precisionRaw,
+    sasConfirmation,
+    rcsConfirmation,
+    precisionConfirmation,
     toggleSas,
     toggleRcs,
     togglePrecision,
@@ -286,6 +292,9 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
     sasUnavailableReason,
     rcsRaw,
     precisionRaw,
+    sasConfirmation,
+    rcsConfirmation,
+    precisionConfirmation,
     toggleSas,
     toggleRcs,
     togglePrecision,
@@ -405,6 +414,11 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
                   sasUnavailableReason={sasUnavailableReason}
                   rcs={rcsRaw}
                   precision={precisionRaw}
+                  confirmations={{
+                    sas: sasConfirmation,
+                    rcs: rcsConfirmation,
+                    precision: precisionConfirmation,
+                  }}
                   marking={derivedMarking(controlReading)}
                   onToggleSas={toggleSas}
                   onToggleRcs={toggleRcs}

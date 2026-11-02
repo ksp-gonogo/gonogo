@@ -750,6 +750,102 @@ describe("useCommand inFlight under time warp", () => {
   });
 });
 
+describe("useCommand inFlight through a blackout", () => {
+  function HeldProbe() {
+    const cmd = useCommand("deploy");
+    return (
+      <div>
+        <button type="button" onClick={() => void cmd.send(1).catch(() => {})}>
+          go1
+        </button>
+        <span>count:{cmd.inFlight.length}</span>
+        <span>held:{cmd.inFlight.map((c) => String(c.held)).join(",")}</span>
+        <span>
+          phases:{cmd.inFlight.map((c) => c.predictedPhase).join(",")}
+        </span>
+      </div>
+    );
+  }
+
+  const queued = (id: string, over: Record<string, unknown> = {}) => ({
+    pending: [
+      {
+        id: "engine-id",
+        clientRequestId: id,
+        command: "deploy",
+        label: "",
+        topic: "t",
+        vantage: "ksc",
+        dispatchedAt: 10,
+        oneWaySeconds: 27,
+        laneSeq: 1,
+        craft: "vessel:abc",
+        expiresAtUt: 3610,
+        predictedHeldAt: "relay-1",
+        predictedHeldUntilUt: 500,
+        predictedArrivalUt: 527,
+        predictedReplyUt: 554,
+        ...over,
+      },
+    ],
+  });
+
+  it("keeps a command pressed in a blackout on the rail, held, until its reply arrives", async () => {
+    const fixture = setupFixture();
+    fixture.transport.holdCommands();
+    render(
+      <fixture.Provider>
+        <HeldProbe />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.transport.emit(
+        "comms.link",
+        { connected: false },
+        { validAt: 10, deliveredAt: 10 },
+      );
+    });
+    fireEvent.click(screen.getByText("go1"));
+    const [id] = fixture.transport.sentCommands.map((c) => c.requestId);
+
+    act(() => {
+      fixture.transport.emit("system.uplink.pending", queued(id), {
+        validAt: 11,
+        deliveredAt: 11,
+      });
+    });
+    await waitFor(() => expect(screen.getByText("count:1")).toBeTruthy());
+    expect(screen.getByText("held:true")).toBeTruthy();
+
+    // Contact returns and the centre re-predicts the route straight through.
+    act(() => {
+      fixture.transport.emit(
+        "comms.link",
+        { connected: true },
+        { validAt: 500, deliveredAt: 500 },
+      );
+      fixture.transport.emit(
+        "system.uplink.pending",
+        queued(id, {
+          predictedHeldAt: null,
+          predictedHeldUntilUt: null,
+          predictedArrivalUt: 527,
+          predictedReplyUt: 554,
+        }),
+        { validAt: 501, deliveredAt: 501 },
+      );
+    });
+    await act(async () => {});
+    expect(screen.getByText("count:1")).toBeTruthy();
+    expect(screen.getByText("held:undefined")).toBeTruthy();
+
+    await act(async () => {
+      fixture.transport.answerHeldCommands();
+    });
+    await waitFor(() => expect(screen.getByText("count:0")).toBeTruthy());
+  });
+});
+
 // ── losses: a dispatch nothing ever answered ─────────────────────────────
 
 /**

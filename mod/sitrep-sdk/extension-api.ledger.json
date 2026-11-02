@@ -12365,6 +12365,10 @@
         "note": "published because UplinkHealthStateName is keyed on it"
       },
       {
+        "key": "sitrep-sdk . InFlightCommand#held?",
+        "note": "New optional field: true while the route has the command waiting at a relay for a link to open"
+      },
+      {
         "key": "sitrep-sdk . KSP_CONTRACT_PRESTIGE_NAMES",
         "note": "New: a contract's prestige tier as a name table and its name type"
       },
@@ -12427,6 +12431,14 @@
       {
         "key": "sitrep-sdk . PendingEntry#members?",
         "note": "New optional field: the request ids a group's one entry stands for"
+      },
+      {
+        "key": "sitrep-sdk . PendingEntry#predictedHeldAt?",
+        "note": "New optional field: the relay where the centre predicts the command first waits, read to mark it held"
+      },
+      {
+        "key": "sitrep-sdk . PendingEntry#predictedHeldUntilUt?",
+        "note": "New optional field: when the command is predicted to leave that relay"
       },
       {
         "key": "sitrep-sdk . PendingEntry#replyOverdueUt?",
@@ -15809,6 +15821,10 @@
         "note": "The marked fields of each object Topic, which an Uplink augments with declare module for its own"
       },
       {
+        "key": "sitrep-sdk ./spine ~InFlightCommand#held?",
+        "note": "New optional field: true while the route has the command waiting at a relay for a link to open"
+      },
+      {
         "key": "sitrep-sdk ./spine ~MissionMeta#endReason?",
         "note": "New: why a recorded mission's flight ended, absent for one that stopped without an end notice"
       },
@@ -15863,6 +15879,14 @@
       {
         "key": "sitrep-sdk ./spine ~PendingEntry#members?",
         "note": "New optional field: the request ids a group's one entry stands for"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PendingEntry#predictedHeldAt?",
+        "note": "New optional field: the relay where the centre predicts the command first waits, read to mark it held"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PendingEntry#predictedHeldUntilUt?",
+        "note": "New optional field: when the command is predicted to leave that relay"
       },
       {
         "key": "sitrep-sdk ./spine ~PendingEntry#replyOverdueUt?",
@@ -16363,6 +16387,10 @@
       {
         "key": "sitrep-sdk ./testing ~GroupMember#topic?",
         "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~InFlightCommand#held?",
+        "note": "New optional field: true while the route has the command waiting at a relay for a link to open"
       },
       {
         "key": "sitrep-sdk ./testing ~ObjectiveSlotAwaitingHome",

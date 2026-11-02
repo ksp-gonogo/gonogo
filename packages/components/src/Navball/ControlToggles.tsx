@@ -2,10 +2,18 @@ import {
   Notice,
   NULL_DISPLAY,
   type ReckoningMarking,
+  ReservedText,
   ToggleButton,
   Tooltip,
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
+import {
+  ALL_CONFIRMATION_WORDS,
+  confirmationSentenceOf,
+  confirmationWordOf,
+  heldCommandMarking,
+  type ToggleConfirmation,
+} from "../shared/toggleConfirmation";
 
 interface ControlTogglesProps {
   disabled: boolean;
@@ -19,6 +27,12 @@ interface ControlTogglesProps {
   rcs: boolean | null | undefined;
   /** Precision control as read, uncoerced; the toggle is absent until a reading lands. */
   precision: boolean | null | undefined;
+  /** Where each toggle's latest press stands, or null when none is outstanding. */
+  confirmations: {
+    sas: ToggleConfirmation | null;
+    rcs: ToggleConfirmation | null;
+    precision: ToggleConfirmation | null;
+  };
   /** The control reading's mark when the states shown are held rather than current, so a toggle is never drawn as a live setting it no longer is. */
   marking: ReckoningMarking | null;
   onToggleSas: () => void;
@@ -41,6 +55,7 @@ export function ControlToggles({
   sasUnavailableReason,
   rcs,
   precision,
+  confirmations,
   marking,
   onToggleSas,
   onToggleRcs,
@@ -54,11 +69,20 @@ export function ControlToggles({
           ...marking,
           caption: `${marking.caption}. The press sends the opposite of the state shown`,
         };
+  const marksFor = (label: string, confirmation: ToggleConfirmation | null) =>
+    heldCommandMarking(label, confirmation, heldState);
+  // A held command's sentence rides the held mark's tip, so the tooltip beside it stays free.
+  const tipFor = (label: string, confirmation: ToggleConfirmation | null) =>
+    confirmation === "held"
+      ? undefined
+      : (confirmationSentenceOf(label, confirmation) ?? undefined);
   return (
     <>
       {disabled && <Notice>Vessel not controllable: buttons disabled.</Notice>}
       <div style={TOGGLE_ROW}>
-        <Tooltip text={sasUnavailableReason ?? undefined}>
+        <Tooltip
+          text={sasUnavailableReason ?? tipFor("SAS", confirmations.sas)}
+        >
           <ToggleButton
             type="button"
             size="sm"
@@ -67,42 +91,84 @@ export function ControlToggles({
             onClick={onToggleSas}
             disabled={disabled || sasUnavailableReason !== null}
             disabledReason={sasUnavailableReason ?? NOT_CONTROLLABLE}
-            marked={heldState}
+            marked={marksFor("SAS", confirmations.sas)}
           >
-            {armLabel("SAS", sas, sasBadgeMode)}
+            <ArmLabel
+              name="SAS"
+              on={sas}
+              mode={sasBadgeMode}
+              confirmation={confirmations.sas}
+            />
           </ToggleButton>
         </Tooltip>
-        <ToggleButton
-          type="button"
-          size="sm"
-          style={TOGGLE_CELL}
-          pressed={rcs === true}
-          onClick={onToggleRcs}
-          disabled={disabled}
-          disabledReason={NOT_CONTROLLABLE}
-          marked={heldState}
-        >
-          {armLabel("RCS", rcs)}
-        </ToggleButton>
-        {/* An unpressed toggle means off, so there is none until precision is read. */}
-        {typeof precision === "boolean" && (
+        <Tooltip text={tipFor("RCS", confirmations.rcs)}>
           <ToggleButton
             type="button"
             size="sm"
             style={TOGGLE_CELL}
-            pressed={precision}
-            onClick={onTogglePrecision}
+            pressed={rcs === true}
+            onClick={onToggleRcs}
             disabled={disabled}
             disabledReason={NOT_CONTROLLABLE}
-            marked={heldState}
+            marked={marksFor("RCS", confirmations.rcs)}
           >
-            PRECISION
+            <ArmLabel name="RCS" on={rcs} confirmation={confirmations.rcs} />
           </ToggleButton>
+        </Tooltip>
+        {/* An unpressed toggle means off, so there is none until precision is read. */}
+        {typeof precision === "boolean" && (
+          <Tooltip text={tipFor("Precision", confirmations.precision)}>
+            <ToggleButton
+              type="button"
+              size="sm"
+              style={TOGGLE_CELL}
+              pressed={precision}
+              onClick={onTogglePrecision}
+              disabled={disabled}
+              disabledReason={NOT_CONTROLLABLE}
+              marked={marksFor("Precision", confirmations.precision)}
+            >
+              <ReservedText
+                shown={
+                  confirmationWordOf(confirmations.precision) ?? "PRECISION"
+                }
+                reserve={["PRECISION", ...ALL_CONFIRMATION_WORDS]}
+              />
+            </ToggleButton>
+          </Tooltip>
         )}
       </div>
       {sasUnavailableReason && <Notice>{sasUnavailableReason}</Notice>}
     </>
   );
+}
+
+/**
+ * An arm's label, sized to the widest thing it can say so a press does not
+ * change its width: the state, or `SENT`, `HELD` or `LATE` in its place while a
+ * toggle is outstanding.
+ */
+function ArmLabel({
+  name,
+  on,
+  mode,
+  confirmation,
+}: {
+  name: string;
+  on: boolean | null | undefined;
+  mode?: string;
+  confirmation: ToggleConfirmation | null;
+}) {
+  const shown =
+    confirmationWordOf(confirmation) === null
+      ? armLabel(name, on, mode)
+      : `${name} ${confirmationWordOf(confirmation)}`;
+  const reserve = [
+    armLabel(name, on, mode),
+    armLabel(name, false),
+    ...ALL_CONFIRMATION_WORDS.map((word) => `${name} ${word}`),
+  ];
+  return <ReservedText shown={shown} reserve={reserve} />;
 }
 
 /**

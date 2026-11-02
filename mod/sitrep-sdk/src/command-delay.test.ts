@@ -354,3 +354,54 @@ describe("classifyRetained after an answer", () => {
     expect(row?.predictedPhase).toBe("due");
   });
 });
+
+describe("held commands", () => {
+  const blackout = {
+    laneSeq: value("count", 1),
+    predictedHeldAt: "relay-1",
+    predictedHeldUntilUt: value("ut", 300),
+    predictedArrivalUt: value("ut", 304),
+    predictedReplyUt: value("ut", 308),
+  };
+
+  it("marks a command held while its predicted hold has not yet ended", () => {
+    const [c] = deriveInFlight([entry(blackout)], 150);
+    expect(c?.held).toBe(true);
+    expect(c?.predictedPhase).toBe("in-transit");
+  });
+
+  it("is not held once the predicted departure has passed", () => {
+    const [c] = deriveInFlight([entry(blackout)], 301);
+    expect(c?.held).toBeUndefined();
+  });
+
+  it("is not held when no hold is predicted, however long the delay", () => {
+    const [c] = deriveInFlight(
+      [entry({ oneWaySeconds: value("s", 600) })],
+      150,
+    );
+    expect(c?.held).toBeUndefined();
+  });
+
+  it("is not held once it is overdue", () => {
+    const c = classifyRetained({
+      entry: entry({ ...blackout, replyOverdueUt: value("ut", 140) }),
+      nowUt: 150,
+      present: true,
+      acknowledged: false,
+      pathConnectedDuring: () => true,
+    });
+    expect(c?.predictedPhase).toBe("overdue");
+    expect(c?.held).toBeUndefined();
+  });
+
+  it("stays held through classifyRetained while the hold lasts", () => {
+    const c = classifyRetained({
+      entry: entry(blackout),
+      nowUt: 150,
+      present: true,
+      pathConnectedDuring: () => false,
+    });
+    expect(c?.held).toBe(true);
+  });
+});

@@ -11,6 +11,14 @@ import {
   type CapabilityWarning,
   useCommandCapabilityWarning,
 } from "../shared/commandCapability";
+import {
+  ALL_CONFIRMATION_WORDS,
+  confirmationSentenceOf,
+  confirmationWordOf,
+  showsToggle,
+  type ToggleConfirmation,
+  toggleConfirmationOf,
+} from "../shared/toggleConfirmation";
 import type { ActionGroupActions } from "./config";
 import {
   stateLabelOf,
@@ -42,27 +50,17 @@ export interface GroupToggle {
   press: () => void;
   /**
    * Where the latest toggle sent from here stands while the state shown is not
-   * yet the one it set: `sent` until the craft's telemetry shows it, and
-   * `unconfirmed` once that is overdue. Null when nothing sent is outstanding.
+   * yet the one it set: `held` while it waits at a relay, `sent` until the
+   * craft's telemetry shows it, and `unconfirmed` once that is overdue. Null
+   * when nothing sent is outstanding.
    */
-  confirmation: "sent" | "unconfirmed" | null;
-  /** The word the button shows: `SENT` while a toggle is outstanding, `LATE` once its confirmation is overdue, else the state. */
+  confirmation: ToggleConfirmation | null;
+  /** The word the button shows: `SENT` while it travels, `LATE` once its confirmation is overdue, else the state. */
   buttonWord: string;
   /** Every word the button can show, which it is sized to hold so it keeps its size as the word changes. */
   buttonWords: readonly string[];
   /** What the press is waiting on, as a sentence for the tooltip and for a screen reader; null when nothing is outstanding. */
   confirmationSentence: string | null;
-}
-
-const SENT_WORD = "SENT";
-const LATE_WORD = "LATE";
-
-/** Whether `value` is the state a toggle sent with `args` set; a toggle that sets no state, such as Stage, has nothing to wait for. */
-function showsToggle(args: unknown, value: unknown): boolean {
-  if (args === null || typeof args !== "object") return true;
-  if ("state" in args) return value === args.state;
-  if ("enabled" in args) return value === args.enabled;
-  return true;
 }
 
 /**
@@ -97,13 +95,7 @@ export function useGroupToggle({
   // A held reading with no value for this group has nothing to send the opposite of.
   const unreadable = stateUnreadable || (valueHeld && value == null);
 
-  const latest = toggleCmd.inFlight.at(-1)?.predictedPhase;
-  const confirmation =
-    latest === undefined || latest === "lost"
-      ? null
-      : latest === "overdue"
-        ? "unconfirmed"
-        : "sent";
+  const confirmation = toggleConfirmationOf(toggleCmd.inFlight);
 
   const press = () => {
     if (!group?.toggle || !toggleCommand || toggleCmd.streamDown) return;
@@ -123,25 +115,15 @@ export function useGroupToggle({
   });
 
   const stateLabel = stateLabelOf(value);
-  const buttonWord =
-    confirmation === "sent"
-      ? SENT_WORD
-      : confirmation === "unconfirmed"
-        ? LATE_WORD
-        : stateLabel;
-  const confirmationSentence =
-    confirmation === "sent"
-      ? `${label} sent, until the craft's readings show it`
-      : confirmation === "unconfirmed"
-        ? `${label} not yet shown in the craft's readings`
-        : null;
+  const buttonWord = confirmationWordOf(confirmation) ?? stateLabel;
+  const confirmationSentence = confirmationSentenceOf(label, confirmation);
 
   return {
     // Some groups, Stage among them, report a number rather than a boolean.
     isOn: typeof value === "number" ? value > 0 : value === true,
     stateLabel,
     buttonWord,
-    buttonWords: ["ON", "OFF", SENT_WORD, LATE_WORD, stateLabel],
+    buttonWords: ["ON", "OFF", ...ALL_CONFIRMATION_WORDS, stateLabel],
     confirmationSentence,
     // A press that `buildToggleArgs` would refuse is not offered: with no state to invert, an enabled button would do nothing. A held state is one to invert: the command sets the explicit opposite.
     canToggle:

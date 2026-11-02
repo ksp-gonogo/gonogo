@@ -182,6 +182,62 @@ describe("ActionGroup: a toggle the craft has answered", () => {
   });
 });
 
+describe("ActionGroup: a toggle held for a link", () => {
+  it("wears the held mark, keeping its state, while the route has the command waiting at a relay", async () => {
+    const fixture = setupStreamFixture({ pinnedUt: 1000, suspendFrames: true });
+    fixture.transport.holdCommands();
+    render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "ag-held" }}>
+          <ActionGroupComponent
+            config={{ actionGroupId: "Light" }}
+            id="ag-held"
+            w={6}
+            h={6}
+          />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.emit("comms.link", { connected: true });
+      fixture.emit("comms.delay", { oneWaySeconds: 27, source: 1 });
+      fixture.emit("vessel.control", control(true));
+    });
+    await screen.findByText("ON");
+
+    act(() => {
+      screen.getByRole("button", { name: "Toggle Light" }).click();
+    });
+    const [sent] = fixture.transport.sentCommands;
+    act(() => {
+      fixture.emit("system.uplink.pending", {
+        pending: [
+          {
+            id: "engine-1",
+            clientRequestId: sent.requestId,
+            command: "vessel.control.setLights",
+            label: "Toggle Light",
+            topic: "",
+            vantage: "ground:Kerbin: KSC",
+            dispatchedAt: 1000,
+            oneWaySeconds: 27,
+            laneSeq: 1,
+            craft: "vessel:abc",
+            predictedHeldAt: "relay-1",
+            predictedHeldUntilUt: 1500,
+            predictedArrivalUt: 1527,
+            predictedReplyUt: 1554,
+          },
+        ],
+      });
+    });
+
+    expect(toggleText()).toBe("ON, Light held until contact returns");
+    expect(toggleText()).not.toContain("HELD");
+    await act(async () => {});
+  });
+});
+
 describe("ActionGroup: telling a screen reader a toggle is outstanding", () => {
   it("says so in a live region mounted before the press", async () => {
     const fixture = setupStreamFixture({ pinnedUt: 1000, suspendFrames: true });
