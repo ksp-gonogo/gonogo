@@ -55,6 +55,9 @@ type StoreListener = () => void;
  */
 export const LOSS_MARGIN = 3;
 
+/** How long a command sent while the delay is unknown waits for any answer before it is called lost, in seconds on the client's clock. */
+const UNKNOWN_DELAY_LOSS_SECONDS = 120;
+
 /** The longest a deadline in game UT waits on the client's clock before it reads the game's UT again, in seconds. */
 const GAME_UT_RECHECK_SECONDS = 5;
 
@@ -194,6 +197,12 @@ interface PendingCommand {
   replyDueUt?: number;
   /** A deadline the game gave in UT, which the loss timer follows through time warp and a pause. Absent for a command timed on the client's clock alone. */
   gameDeadlineUt?: number;
+  /**
+   * Set while the command was dispatched with no known delay, so its loss
+   * deadline is only the fallback and is replaced from `dispatchedAt` when the
+   * delay figure arrives.
+   */
+  awaitingDelay?: { at: number; ut: number | undefined };
   /** True for a command read back from the outstanding store rather than dispatched by this client. */
   restored: boolean;
   /** The promise a restored command settles, handed to the first `useCommand` that adopts it. */
@@ -1118,6 +1127,7 @@ export class TelemetryClient {
   private delaySource: (() => number) | undefined;
 
   private warnedNoLossDeadline = false;
+  private awaitingDelayCount = 0;
   private warnedEmptyTopic = false;
 
   /**
@@ -1166,11 +1176,19 @@ export class TelemetryClient {
   private warnNoLossDeadlineOnce(): void {
     if (this.warnedNoLossDeadline) return;
     this.warnedNoLossDeadline = true;
+    if (this.delaySource === undefined) {
+      console.warn(
+        "[sitrep] no delay authority and no transport prediction: command promises " +
+          "cannot be settled on silence, so an unanswered dispatch will hang. " +
+          "Attach a DelayAuthority (TelemetryProvider does this) or implement " +
+          "Transport.predictConfirmEta.",
+      );
+      return;
+    }
     console.warn(
-      "[sitrep] no delay authority and no transport prediction: command promises " +
-        "cannot be settled on silence, so an unanswered dispatch will hang. " +
-        "Attach a DelayAuthority (TelemetryProvider does this) or implement " +
-        "Transport.predictConfirmEta.",
+      "[sitrep] the command delay is not yet known: a command sent now is timed " +
+        "from its dispatch once the figure arrives, and is called lost after " +
+        "a fixed wait if none does.",
     );
   }
 
@@ -1353,6 +1371,19 @@ export class TelemetryClient {
       }
     }
 
+    if (
+      predictedEta === undefined &&
+      pendingNow &&
+      this.delaySource !== undefined
+    ) {
+      pendingNow.awaitingDelay = { at: this.clock.now(), ut: dispatchUt };
+      pendingNow.cancelLossTimer = this.clock.schedule(
+        this.clock.now() + UNKNOWN_DELAY_LOSS_SECONDS,
+        () => this.handleLoss(requestId),
+      );
+      this.awaitingDelayCount += 1;
+    }
+
     this.notifyStore();
     return {
       requestId,
@@ -1516,6 +1547,7 @@ export class TelemetryClient {
   }
 
   private handleMessage(message: ServerMessage, replayed = false): void {
+    if (this.awaitingDelayCount > 0) this.timeCommandsAwaitingDelay();
     if (message.type === "command-response") {
       this.handleCommandResponse(message.requestId, message.result);
       return;
@@ -1742,6 +1774,12 @@ export class TelemetryClient {
     if (warning && pending.status.phase === "in-flight") {
       pending.status = { ...pending.status, warning };
     }
+    if (gameDeadlineUt !== undefined || roundTrip !== undefined) {
+      if (pending.awaitingDelay) {
+        pending.awaitingDelay = undefined;
+        this.awaitingDelayCount -= 1;
+      }
+    }
     if (gameDeadlineUt !== undefined) {
       pending.gameDeadlineUt = gameDeadlineUt;
       pending.replyDueUt = gameDeadlineUt;
@@ -1770,6 +1808,38 @@ export class TelemetryClient {
       this.handleLoss(requestId),
     );
     this.notifyStore();
+  }
+
+  /**
+   * Gives each command sent while the delay was unknown its loss deadline, worked
+   * from the moment it was dispatched, as soon as the delay source has a figure.
+   */
+  private timeCommandsAwaitingDelay(): void {
+    const sourceDelay = this.knownSourceDelay();
+    if (sourceDelay === undefined) return;
+    let changed = false;
+    for (const [requestId, pending] of this.commands) {
+      const waiting = pending.awaitingDelay;
+      if (!waiting) continue;
+      pending.awaitingDelay = undefined;
+      this.awaitingDelayCount -= 1;
+      if (!pending.resolve || pending.status.phase !== "in-flight") continue;
+      changed = true;
+      this.outstandingDirty = true;
+      if (waiting.ut !== undefined) {
+        pending.gameDeadlineUt = waiting.ut + 2 * sourceDelay;
+        pending.replyDueUt = pending.gameDeadlineUt;
+        if (this.placeGameDeadline(requestId, pending)) continue;
+      }
+      pending.cancelLossTimer?.();
+      const dueAt = waiting.at + 2 * sourceDelay;
+      pending.etaConfirm = dueAt;
+      pending.status = { ...pending.status, etaConfirm: dueAt };
+      pending.cancelLossTimer = this.clock.schedule(dueAt + LOSS_MARGIN, () =>
+        this.handleLoss(requestId),
+      );
+    }
+    if (changed) this.notifyStore();
   }
 
   /**

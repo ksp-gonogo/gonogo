@@ -15865,6 +15865,10 @@
         "note": "A reckonable row with the owner whose contract declared it"
       },
       {
+        "key": "sitrep-sdk ./spine ~PendingCommand#awaitingDelay?",
+        "note": "The dispatch time of a command sent while the delay was unknown, kept to time its loss deadline"
+      },
+      {
         "key": "sitrep-sdk ./spine ~PendingCommand#gameDeadlineUt?",
         "note": "A deadline the game gave in UT, followed through time warp and a pause"
       },
@@ -16455,6 +16459,10 @@
       {
         "key": "sitrep-sdk ./testing ~OwnedReckonableValue#owner",
         "note": "A reckonable row with the owner whose contract declared it"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PendingCommand#awaitingDelay?",
+        "note": "The dispatch time of a command sent while the delay was unknown, kept to time its loss deadline"
       },
       {
         "key": "sitrep-sdk ./testing ~PendingCommand#gameDeadlineUt?",
