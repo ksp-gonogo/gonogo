@@ -92,6 +92,8 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
   "field:vessel.maneuver.planner": "no reader found",
   "field:vessel.physics.mode.mode": "no reader found",
   "field:vessel.thermal.maxSkinTempRatio": "no reader found",
+  "field:comms.link.meta.source":
+    "kept: names the payload's subject (vessel or game) for API consumers; the mod copies it to comms.delay",
   "field:robotics.servos.traverseVelocity":
     "kept: unit follows the servo kind and is undeclared, so no widget can draw it honestly",
   "field:vessel.landing.outcome":

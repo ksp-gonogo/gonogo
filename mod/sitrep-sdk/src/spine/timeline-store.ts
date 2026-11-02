@@ -3456,9 +3456,9 @@ export class TimelineStore {
    * Whether `topic` is a reading of the active vessel that was taken before the
    * vessel's link home was lost. The ground's view of a craft freezes at the last
    * thing it heard, and a craft with no route is sent nothing at all, so nothing
-   * arrives to say the readings are old: the loss itself, on `comms.link`, which
-   * keeps arriving through a blackout, is the only word. A reading taken after
-   * the loss means frames are still reaching the ground and is current.
+   * arrives to say the readings are old: the loss itself, on `comms.connectivity`,
+   * is the only word. A reading taken after the loss means frames are still
+   * reaching the ground and is current.
    */
   private predatesLossOfLink(
     topic: string,
@@ -3472,7 +3472,7 @@ export class TimelineStore {
       return false;
     }
     const link = this.sample<{ connected?: boolean | null }>(
-      "comms.link",
+      "comms.connectivity",
       token,
     );
     return link?.payload?.connected === false && validAt < link.validAt;

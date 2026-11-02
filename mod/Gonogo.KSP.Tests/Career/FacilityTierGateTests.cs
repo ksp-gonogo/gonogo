@@ -113,21 +113,6 @@ namespace Gonogo.KSP.Tests.Career
                 $"flight planning in a {mode} save, where Mission Control is at its ceiling");
         }
 
-        /// <summary>
-        /// A sandbox save whose facilities scenario is present still has no tiers
-        /// to enforce, so flight planning stays unlocked and the maneuver
-        /// planner is not drawn as needing a Mission Control upgrade.
-        /// </summary>
-        [Theory]
-        [InlineData(Game.Modes.SANDBOX)]
-        [InlineData(Game.Modes.SCIENCE_SANDBOX)]
-        public void ASandboxSaveIsAtItsCeilingEvenWithTheScenarioLoaded(Game.Modes mode)
-        {
-            Assert.Equal(FacilityTierRead.AlwaysMax, FacilityGateHelp.ReadFacilityTiers(true, mode));
-            Assert.Equal(FacilityTierRead.Live, FacilityGateHelp.ReadFacilityTiers(true, Game.Modes.CAREER));
-            Assert.Equal(FacilityTierRead.Live, FacilityGateHelp.ReadFacilityTiers(true, null));
-        }
-
         [Theory]
         [InlineData(Game.Modes.SANDBOX)]
         [InlineData(Game.Modes.SCIENCE_SANDBOX)]
@@ -223,7 +208,7 @@ namespace Gonogo.KSP.Tests.Career
             // the live read past the tier decision reaches GameVariables and
             // finds nothing. Unknown for THAT reason, not for the scenario's.
             var verdict = new FacilityUnlockedGate(
-                    scenarioLoaded: () => true, gameMode: () => Game.Modes.CAREER)
+                    scenarioLoaded: () => true, gameMode: () => Game.Modes.SANDBOX)
                 .Evaluate(
                     CareerGates.FacilityUnlocked(
                         SpaceCenterFacility.MissionControl,
