@@ -1,0 +1,163 @@
+{
+  "_meta": {
+    "shows": "Two ports joined: the docking channel reports both ports docked, so the Docking view reads \"Docked\" with the four triangles green and no reticle.",
+    "scenario": "docking-docked",
+    "notes": "Docking-port target at 0.1 m with both port states 3 (docked). The legacy keys drive snapshots.test.tsx; the _stream block drives the probe render harness. Keep the two in sync."
+  },
+  "_stream": {
+    "pinnedUt": 0,
+    "emits": [
+      {
+        "channel": "vessel.target",
+        "value": {
+          "name": "Space Station Hub",
+          "kind": 0,
+          "vesselId": "target-vessel",
+          "bodyIndex": null,
+          "relativePosition": {
+            "x": 0,
+            "y": 0,
+            "z": 0.1
+          },
+          "relativeVelocity": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "closestApproach": {
+            "time": 0,
+            "distance": 0
+          },
+          "orbit": {
+            "referenceBodyIndex": 1,
+            "sma": 700000.0,
+            "ecc": 0.0001,
+            "inc": 0,
+            "lan": 0,
+            "argPe": 0,
+            "meanAnomalyAtEpoch": 1.00005,
+            "epoch": 0,
+            "mu": 3531600000000.0,
+            "timeToAp": null,
+            "timeToPe": null,
+            "encounter": null,
+            "patches": [],
+            "horizon": {
+              "kind": 1,
+              "trajectoryKind": 1
+            },
+            "meta": {
+              "source": "vessel:chaser",
+              "quality": 0
+            }
+          }
+        }
+      },
+      {
+        "channel": "vessel.dock",
+        "value": {
+          "relativePosition": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.1
+          },
+          "relativeVelocity": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "distance": 0.1,
+          "forwardDot": -1,
+          "ownPortState": 3,
+          "targetPortState": 3,
+          "targetVesselPersistentId": 4000000001,
+          "targetPortPersistentId": 1234
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 700000.0,
+          "ecc": 0.0001,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 1.0,
+          "epoch": 0,
+          "mu": 3531600000000.0,
+          "timeToAp": null,
+          "timeToPe": null,
+          "encounter": null,
+          "patches": [],
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          },
+          "meta": {
+            "source": "vessel:chaser",
+            "quality": 0
+          }
+        }
+      },
+      {
+        "channel": "trackingStation.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "sphereOfInfluence": 84159286,
+              "gravParameter": 3531600000000.0,
+              "orbit": null,
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              }
+            },
+            {
+              "name": "Mun",
+              "index": 2,
+              "parentIndex": 1,
+              "radius": 200000,
+              "sphereOfInfluence": 2429559,
+              "gravParameter": 65138398000.0,
+              "orbit": null,
+              "horizon": {
+                "kind": 1,
+                "trajectoryKind": 1
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "tar.name": "Space Station Hub",
+  "tar.type": "Vessel",
+  "tar.relativePosition": {
+    "x": 0,
+    "y": 0,
+    "z": 0.1
+  },
+  "tar.relativeVelocityVec": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  },
+  "dock.relativePosition": {
+    "x": 0.0,
+    "y": 0.0,
+    "z": 0.1
+  },
+  "dock.relativeVelocityVec": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  },
+  "dock.distanceScalar": 0.1,
+  "dock.forwardDot": -1,
+  "o.closestTgtApprUT": 0
+}

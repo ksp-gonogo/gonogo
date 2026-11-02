@@ -11103,6 +11103,10 @@
         "note": "removed with Fill"
       },
       {
+        "key": "ui-kit . FramedDisplay",
+        "note": "gains a circle shape through the new shape prop"
+      },
+      {
         "key": "ui-kit . GRID_MARGIN",
         "note": "Gap between dashboard tiles in px, now 20 on both axes so the tile grab bar fits in it (was 8)"
       },
@@ -12265,6 +12269,14 @@
         "note": "CrewRowToneEntry carries the reading it was drawn from, so the host widget draws a held value as held"
       },
       {
+        "key": "sitrep-sdk . DOCK_LINED_UP_DEG",
+        "note": "degrees off the port's line inside which a docking mark reads as lined up, shared by a camera picture's markers and the drawn view"
+      },
+      {
+        "key": "sitrep-sdk . DOCK_MARK_CAMERA_FLOORS",
+        "note": "the smallest box, triangle and stroke a camera picture's docking marks keep, in the picture's pixels"
+      },
+      {
         "key": "sitrep-sdk . DataRateTier",
         "note": "New: the rate tiers a widget can ask for"
       },
@@ -12291,6 +12303,74 @@
       {
         "key": "sitrep-sdk . Dep",
         "note": "Dep is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . DockMarkGeometry",
+        "note": "where the four triangles round a docking port sit and how large they are, pixels"
+      },
+      {
+        "key": "sitrep-sdk . DockMarkGeometry#arm",
+        "note": "the side of each triangle, pixels"
+      },
+      {
+        "key": "sitrep-sdk . DockMarkGeometry#cx",
+        "note": "the port's centre across, pixels"
+      },
+      {
+        "key": "sitrep-sdk . DockMarkGeometry#cy",
+        "note": "the port's centre down, pixels"
+      },
+      {
+        "key": "sitrep-sdk . DockMarkGeometry#half",
+        "note": "half the side of the box the triangles surround, pixels"
+      },
+      {
+        "key": "sitrep-sdk . DockMarkGeometry#stroke",
+        "note": "the stroke width, pixels"
+      },
+      {
+        "key": "sitrep-sdk . DockMarkInput",
+        "note": "what the look of the four triangles round a docking port is worked out from"
+      },
+      {
+        "key": "sitrep-sdk . DockMarkInput#aligned",
+        "note": "true while the two ports face each other head-on"
+      },
+      {
+        "key": "sitrep-sdk . DockMarkInput#ax",
+        "note": "horizontal line-of-sight angle to the port, degrees"
+      },
+      {
+        "key": "sitrep-sdk . DockMarkInput#ay",
+        "note": "vertical line-of-sight angle to the port, degrees"
+      },
+      {
+        "key": "sitrep-sdk . DockMarkInput#docked",
+        "note": "true once the own port has captured or joined the target port"
+      },
+      {
+        "key": "sitrep-sdk . DockMarkInput#visible",
+        "note": "whether the port is in front of the lens, in frame and not hidden"
+      },
+      {
+        "key": "sitrep-sdk . DockMarkSide",
+        "note": "the four sides of a docking port the triangles sit on"
+      },
+      {
+        "key": "sitrep-sdk . DockMarkStyle",
+        "note": "how one triangle is drawn: colour, outlined or filled, or left out"
+      },
+      {
+        "key": "sitrep-sdk . DockMarkStyle#colour?",
+        "note": "the triangle's CSS colour"
+      },
+      {
+        "key": "sitrep-sdk . DockMarkStyle#dashed?",
+        "note": "whether the triangle is outlined and dashed rather than filled"
+      },
+      {
+        "key": "sitrep-sdk . DockMarkStyle#hidden?",
+        "note": "whether the triangle is left out"
       },
       {
         "key": "sitrep-sdk . ExperimentsInstrument#continuous?",
@@ -12603,6 +12683,10 @@
       {
         "key": "sitrep-sdk . RendezvousHudContext#maxDeg",
         "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk . RendezvousHudContext#pictureCircle?",
+        "note": "the circle the camera picture is cut to, for a slot that draws against it"
       },
       {
         "key": "sitrep-sdk . RendezvousHudContext#reportPicture",
@@ -13083,6 +13167,18 @@
       {
         "key": "sitrep-sdk . delayVisibility",
         "note": "Decides in one place whether a delay readout is shown, left out for a delay of zero, or replaced by the no-path state"
+      },
+      {
+        "key": "sitrep-sdk . dockMarkGeometry",
+        "note": "works out the triangles' box and size from the port's apparent radius, with floors a smaller drawing can pass"
+      },
+      {
+        "key": "sitrep-sdk . dockMarkPath",
+        "note": "the outline of one triangle outside the box on its side, pointing at the port"
+      },
+      {
+        "key": "sitrep-sdk . dockMarkStyles",
+        "note": "the colour, outline and visibility of the four triangles from the port's angles, alignment and docked state"
       },
       {
         "key": "sitrep-sdk . dynamicValue",
@@ -14347,6 +14443,10 @@
       {
         "key": "sitrep-sdk ./registry ~RendezvousHudContext#maxDeg",
         "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~RendezvousHudContext#pictureCircle?",
+        "note": "the circle the camera picture is cut to, for a slot that draws against it"
       },
       {
         "key": "sitrep-sdk ./registry ~RendezvousHudContext#reportPicture",
@@ -16593,6 +16693,10 @@
         "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
       },
       {
+        "key": "sitrep-sdk ./testing ~RendezvousHudContext#pictureCircle?",
+        "note": "the circle the camera picture is cut to, for a slot that draws against it"
+      },
+      {
         "key": "sitrep-sdk ./testing ~RendezvousHudContext#reportPicture",
         "note": "A camera augment reports the picture's size and the camera's vertical field of view, replacing the aspect-only report, so the docking reticle lands where the camera draws the target"
       },
@@ -17413,6 +17517,26 @@
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
       {
+        "key": "ui-kit . EdgeCue",
+        "note": "an arc of a circular frame's border lit in a colour, growing outward"
+      },
+      {
+        "key": "ui-kit . EdgeCue#angle",
+        "note": "the direction of the arc's middle"
+      },
+      {
+        "key": "ui-kit . EdgeCue#colour",
+        "note": "the arc's colour"
+      },
+      {
+        "key": "ui-kit . EdgeCue#grow",
+        "note": "how far the arc has grown outward from the border"
+      },
+      {
+        "key": "ui-kit . EdgeCue#span?",
+        "note": "the arc's length in degrees"
+      },
+      {
         "key": "ui-kit . FormatQuantityOptions",
         "note": "Exported from the kit's index because published signatures take it"
       },
@@ -17435,6 +17559,18 @@
       {
         "key": "ui-kit . FormatQuantityOptions#scale?",
         "note": "Exported from the kit's index because published signatures take it"
+      },
+      {
+        "key": "ui-kit . FramedDisplayProps#edgeCue?",
+        "note": "lights one or more arcs of a circle's border"
+      },
+      {
+        "key": "ui-kit . FramedDisplayProps#shape?",
+        "note": "chooses the rounded rectangle or a circle for the frame"
+      },
+      {
+        "key": "ui-kit . FramedDisplayShape",
+        "note": "names the two outlines a framed display can have"
       },
       {
         "key": "ui-kit . Graph",

@@ -6,7 +6,7 @@ import {
   framingFaults,
   paintChecker,
 } from "./checkerFraming";
-import { FramedDisplay } from "./FramedDisplay";
+import { edgeCuePath, FramedDisplay } from "./FramedDisplay";
 import { emittedRuleFor, emittedStateRuleFor } from "./test/emittedRule";
 
 describe("FramedDisplay", () => {
@@ -44,6 +44,96 @@ describe("FramedDisplay", () => {
     );
     const frame = screen.getByLabelText("diagram").closest("div");
     expect(frame).toHaveTextContent("axes needed");
+  });
+
+  it("is a disc when given the circle shape, and says so", () => {
+    render(
+      <FramedDisplay data-testid="frame" shape="circle" style={{ width: 200 }}>
+        <svg aria-label="lens" />
+      </FramedDisplay>,
+    );
+    const frame = screen.getByTestId("frame");
+    expect(frame).toHaveAttribute("data-shape", "circle");
+    expect(frame).toContainElement(screen.getByLabelText("lens"));
+    const rule = emittedRuleFor(frame);
+    expect(rule).toContain("border-radius:50%");
+    expect(rule).toContain("aspect-ratio:1/1");
+  });
+
+  it("draws no strip on a circle", () => {
+    render(
+      <FramedDisplay
+        data-testid="frame"
+        shape="circle"
+        strip={<svg aria-label="trend" />}
+      >
+        <svg aria-label="lens" />
+      </FramedDisplay>,
+    );
+    expect(screen.queryByLabelText("trend")).toBeNull();
+  });
+
+  it("lights an arc of a circle's border in the colour given, outside the clipped contents", () => {
+    render(
+      <FramedDisplay
+        data-testid="frame"
+        shape="circle"
+        edgeCue={{ angle: 0, colour: "var(--color-warn-mark)", grow: 0.5 }}
+      >
+        <svg aria-label="lens" />
+      </FramedDisplay>,
+    );
+    const frame = screen.getByTestId("frame");
+    const arc = frame.querySelector("[data-edge-cue]");
+    expect(arc).not.toBeNull();
+    expect(arc?.getAttribute("fill")).toBe("var(--color-warn-mark)");
+    // The contents are cut to the disc in a layer of their own, so the frame itself no longer clips the arc.
+    expect(emittedRuleFor(frame)).toContain("overflow:visible");
+    expect(frame.querySelector("[data-edge-cues]")).not.toBeNull();
+    expect(frame).toContainElement(screen.getByLabelText("lens"));
+  });
+
+  it("draws one arc for each cue given", () => {
+    render(
+      <FramedDisplay
+        data-testid="frame"
+        shape="circle"
+        edgeCue={[
+          { angle: 0, colour: "red", grow: 0.2 },
+          { angle: 180, colour: "green", grow: 1 },
+        ]}
+      />,
+    );
+    expect(
+      screen.getByTestId("frame").querySelectorAll("[data-edge-cue]"),
+    ).toHaveLength(2);
+  });
+
+  it("draws no cue on a rounded frame and leaves the frame clipping as before", () => {
+    render(
+      <FramedDisplay
+        data-testid="frame"
+        edgeCue={{ angle: 0, colour: "red", grow: 1 }}
+      />,
+    );
+    const frame = screen.getByTestId("frame");
+    expect(frame.querySelector("[data-edge-cue]")).toBeNull();
+    expect(emittedRuleFor(frame)).toContain("overflow:hidden");
+  });
+
+  it("draws no cue and changes nothing without one", () => {
+    render(<FramedDisplay data-testid="frame" shape="circle" />);
+    const frame = screen.getByTestId("frame");
+    expect(frame.querySelector("[data-edge-cues]")).toBeNull();
+    expect(emittedRuleFor(frame)).toContain("overflow:hidden");
+  });
+
+  it("is the rounded rectangle by default", () => {
+    render(<FramedDisplay data-testid="frame" />);
+    expect(screen.getByTestId("frame")).toHaveAttribute(
+      "data-shape",
+      "rounded",
+    );
   });
 
   it("holds a strip inside the same frame as the drawing above it", () => {
@@ -210,5 +300,49 @@ describe("FramedDisplay checkered flag", () => {
     expect(paint.cellWidth).toBeCloseTo(paint.cellHeight, 6);
     expect(paint.visible).toEqual(FEED);
     expect(framingFaults(paint, FEED)).toEqual([]);
+  });
+});
+
+describe("edgeCuePath", () => {
+  const nums = (d: string) => (d.match(/-?\d+(\.\d+)?/g) ?? []).map(Number);
+
+  it("starts on the border circle, at the angle a quarter either side of the middle", () => {
+    // Angle 0 with a 90 degree span: from 45 degrees below the right-hand point.
+    const [x, y] = nums(edgeCuePath({ angle: 0, colour: "red", grow: 0 }));
+    expect(x).toBeCloseTo(50 + 50 * Math.cos(Math.PI / 4), 2);
+    expect(y).toBeCloseTo(50 + 50 * Math.sin(Math.PI / 4), 2);
+  });
+
+  it("reaches further out as it grows, and a little way at none", () => {
+    const reach = (grow: number) => {
+      const d = edgeCuePath({ angle: 0, colour: "red", grow });
+      // The outer edge's start point is the second coordinate pair after the line command.
+      const [, , , , , , , , , lx, ly] = nums(d);
+      return Math.hypot(lx - 50, ly - 50);
+    };
+    expect(reach(0)).toBeGreaterThan(50);
+    expect(reach(1)).toBeGreaterThan(reach(0.5));
+    expect(reach(0.5)).toBeGreaterThan(reach(0));
+  });
+
+  it("holds grow to its range and treats a missing number as none", () => {
+    expect(edgeCuePath({ angle: 0, colour: "red", grow: 7 })).toBe(
+      edgeCuePath({ angle: 0, colour: "red", grow: 1 }),
+    );
+    expect(edgeCuePath({ angle: 0, colour: "red", grow: Number.NaN })).toBe(
+      edgeCuePath({ angle: 0, colour: "red", grow: 0 }),
+    );
+  });
+
+  it("is one border thick where it first lights and three at full reach", () => {
+    const thickness = (grow: number, borderUnits: number) => {
+      const d = edgeCuePath({ angle: 0, colour: "red", grow }, borderUnits);
+      const [, , , , , , , , , lx, ly] = nums(d);
+      return Math.hypot(lx - 50, ly - 50) - 50;
+    };
+    expect(thickness(0, 0.5)).toBeCloseTo(0.5, 2);
+    expect(thickness(1, 0.5)).toBeCloseTo(1.5, 2);
+    expect(thickness(0, 1.1)).toBeCloseTo(1.1, 2);
+    expect(thickness(1, 1.1)).toBeCloseTo(3.3, 2);
   });
 });

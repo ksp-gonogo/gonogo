@@ -34,6 +34,17 @@ export function radialSpeed(
   return dot / distance;
 }
 
+/** How fast the range is closing, positive while the two are approaching; `undefined` at zero separation. */
+export function closingSpeed(
+  position: Vec3,
+  velocity: Vec3,
+): number | undefined {
+  const rate = radialSpeed(position, velocity);
+  if (rate === undefined) return undefined;
+  // Negating zero would give minus zero, which prints a minus sign.
+  return rate === 0 ? 0 : -rate;
+}
+
 /** Range to a target as a Reading, carrying the separation vector's currency. */
 export function rangeReading(
   relativePosition: Reading<Vec3Of<"m">>,
@@ -43,7 +54,7 @@ export function rangeReading(
   );
 }
 
-/** {@link radialSpeed} as a Reading; coincident vectors carry no value, since the rate is unknown, not zero. */
+/** {@link closingSpeed} as a Reading, positive while approaching; coincident vectors carry no value, since the rate is unknown, not zero. */
 export function closingRateReading(
   relativePosition: Reading<Vec3Of<"m">>,
   relativeVelocity: Reading<Vec3Of<"m/s">>,
@@ -51,19 +62,26 @@ export function closingRateReading(
   return combineReadings(
     [relativePosition, relativeVelocity],
     (separation, motion) => {
-      const rate = radialSpeed(bare(separation), bare(motion));
+      const rate = closingSpeed(bare(separation), bare(motion));
       return rate === undefined ? undefined : value("m/s", rate);
     },
   );
 }
 
+/** Inside this separation along the approach axis, in metres, the angles are taken as if the port were that far: a few centimetres off at contact is not a large angle. */
+export const NEAR_AXIS_M = 3;
+
 /**
  * Line-of-sight alignment in degrees off boresight, taking the port frame's
- * `z` as the approach axis. There is no roll: the wire carries none.
+ * `z` as the approach axis. There is no roll: the wire carries none. Inside
+ * {@link NEAR_AXIS_M} along the axis the angle is that of the same offset at
+ * that separation, so it holds the offset in metres rather than growing as the
+ * ports touch.
  */
 export function deriveDockAngles(position: Vec3): { ax: number; ay: number } {
-  const ax = (Math.atan2(position.x, Math.abs(position.z)) * 180) / Math.PI;
-  const ay = (Math.atan2(position.y, Math.abs(position.z)) * 180) / Math.PI;
+  const along = Math.max(Math.abs(position.z), NEAR_AXIS_M);
+  const ax = (Math.atan2(position.x, along) * 180) / Math.PI;
+  const ay = (Math.atan2(position.y, along) * 180) / Math.PI;
   return { ax, ay };
 }
 
