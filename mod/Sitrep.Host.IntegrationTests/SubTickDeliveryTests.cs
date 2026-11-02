@@ -112,5 +112,36 @@ namespace Sitrep.Host.IntegrationTests
                 engine.Stop();
             }
         }
+
+        [Theory]
+        [InlineData(0.04)]
+        [InlineData(2.0)]
+        [InlineData(10.0)]
+        public async Task ATickBehindTheAdvancedClockButAheadOfThePreviousTickIsNotARewind(double step)
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new HomeLedgerTestUplink());
+            var resets = 0;
+            engine.OnTimelineReset(() => resets++);
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, HomeLedgerTestUplink.CraftTopic, Timeout);
+
+                Tick(engine, 2184.80, craft: 1.0, delay: SmallDelay);
+                engine.AdvanceDue(2184.80 + step + 0.04);
+                Assert.Single(await Delivered(client));
+                Tick(engine, 2184.80 + step, craft: 2.0, delay: SmallDelay);
+                Assert.Equal(0, resets);
+
+                Tick(engine, 2100.0, craft: 3.0, delay: SmallDelay);
+                Assert.Equal(1, resets);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
     }
 }

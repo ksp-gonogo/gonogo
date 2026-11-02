@@ -7657,6 +7657,9 @@ namespace Sitrep.Host
         /// <summary>The save the current timeline belongs to, as the last tick named it. Courier-thread-only.</summary>
         private string? _timelineSave;
 
+        /// <summary>The UT of the previous tick processed. Courier-thread-only.</summary>
+        private double _lastTickUt = double.NegativeInfinity;
+
         /// <summary>
         /// Runs every registered <see cref="AddSampledSource"/> capture on the
         /// current (main-loop) thread: this is called from <see cref="Tick"/>/
@@ -9999,7 +10002,15 @@ namespace Sitrep.Host
             {
                 _timelineSave = tick.Save;
             }
-            if (tick.Ut < _clock.Now() || saveChanged)
+            /*
+             * AdvanceDue moves the clock to the newest UT the main thread has offered,
+             * and a tick queued earlier can carry a slightly older one: the clock then
+             * sits ahead of a tick that is still forward of the previous tick. Only a
+             * tick behind the previous tick as well is the game's own clock going back.
+             */
+            var behindPreviousTick = tick.Ut < _lastTickUt;
+            _lastTickUt = tick.Ut;
+            if ((tick.Ut < _clock.Now() && behindPreviousTick) || saveChanged)
             {
                 if (saveChanged)
                 {
