@@ -745,12 +745,15 @@ namespace Gonogo.KSP.Gates
         /// </summary>
         public static FacilityTierRead ReadFacilityTiers(bool scenarioLoaded, Game.Modes? mode)
         {
-            if (scenarioLoaded) return FacilityTierRead.Live;
+            // The mode wins over a loaded scenario: a sandbox save can carry the
+            // scenario (a save that began life in another mode, or a mod that adds
+            // it) with its buildings recorded below the top tier, and the game
+            // lets a sandbox player plan regardless.
             if (mode == Game.Modes.SANDBOX || mode == Game.Modes.SCIENCE_SANDBOX)
             {
                 return FacilityTierRead.AlwaysMax;
             }
-            return FacilityTierRead.Unreadable;
+            return scenarioLoaded ? FacilityTierRead.Live : FacilityTierRead.Unreadable;
         }
 
         /// <summary>Whether the facilities scenario is in this game.</summary>
