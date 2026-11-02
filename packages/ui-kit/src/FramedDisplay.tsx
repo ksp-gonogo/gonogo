@@ -70,7 +70,8 @@ export interface FramedDisplayProps extends ComponentPropsWithoutRef<"div"> {
    * frame's own contents are still cut to the disc; the arcs are drawn outside
    * it, over the border and the room just beyond, so give the frame that room
    * in its layout. Omitted, nothing is drawn and the frame is laid out as it
-   * was.
+   * was. An empty list also draws nothing but keeps the contents cut to the
+   * disc, so a cue that comes and goes does not remount them.
    */
   edgeCue?: EdgeCue | readonly EdgeCue[];
   /**
@@ -143,7 +144,7 @@ export function FramedDisplay({
             {strip}
           </FramedDisplay__Strip>
         </>
-      ) : cues.length > 0 ? (
+      ) : circle && edgeCue !== undefined ? (
         <FramedDisplay__Clip>{children}</FramedDisplay__Clip>
       ) : (
         children

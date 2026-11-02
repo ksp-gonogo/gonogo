@@ -1,5 +1,6 @@
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
-import { describe, expect, it } from "vitest";
+import { useEffect } from "react";
+import { describe, expect, it, vi } from "vitest";
 import {
   type CheckerGrid,
   fitOf,
@@ -300,6 +301,32 @@ describe("FramedDisplay checkered flag", () => {
     expect(paint.cellWidth).toBeCloseTo(paint.cellHeight, 6);
     expect(paint.visible).toEqual(FEED);
     expect(framingFaults(paint, FEED)).toEqual([]);
+  });
+});
+
+describe("FramedDisplay's cue coming and going", () => {
+  it("keeps the contents mounted while a circle's cue appears and clears", () => {
+    const mounted = vi.fn();
+    function Probe() {
+      useEffect(() => {
+        mounted();
+      }, []);
+      return <svg aria-label="picture" />;
+    }
+    const cue = { angle: 0, colour: "red", grow: 0.5 };
+    const { rerender } = render(
+      <FramedDisplay shape="circle" edgeCue={[]}>
+        <Probe />
+      </FramedDisplay>,
+    );
+    for (const edgeCue of [cue, [], cue, []] as const) {
+      rerender(
+        <FramedDisplay shape="circle" edgeCue={edgeCue}>
+          <Probe />
+        </FramedDisplay>,
+      );
+    }
+    expect(mounted).toHaveBeenCalledTimes(1);
   });
 });
 
