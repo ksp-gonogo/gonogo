@@ -215,6 +215,9 @@ export class DelayAuthority {
    * the same standard every other readout on this wire is held to.
    */
   private oneWaySeconds = 0;
+  /** Whether {@link oneWaySeconds} is a stand-in for a delay nobody has measured yet, rather than a measurement. */
+  private standIn = true;
+  private figureGeneration = 0;
   /**
    * The figure the latest `comms.delay` reported for the active craft, with no
    * hold: `null` before any figure, after a report with none, and after a
@@ -281,10 +284,23 @@ export class DelayAuthority {
     if (reported === null) {
       if (this.oneWaySeconds === UNKNOWN_DELAY && reportsNoPathHome(payload)) {
         this.oneWaySeconds = 0;
+        this.standIn = true;
       }
       return;
     }
-    this.oneWaySeconds = reported;
+    this.takeFigure(reported);
+  }
+
+  /*
+   * A stand-in zero is a placeholder and not a delay the view was ever
+   * behind by, so the first measured figure after it starts the view
+   * afresh. Held to the monotonic cursor, the view would stand still for one
+   * whole delay while the game caught up with the figure.
+   */
+  private takeFigure(seconds: number): void {
+    if (this.standIn && seconds > 0) this.figureGeneration++;
+    this.standIn = false;
+    this.oneWaySeconds = seconds;
   }
 
   /**
@@ -310,7 +326,7 @@ export class DelayAuthority {
       return;
     }
     this.heldFigureValidAt = validAt;
-    this.oneWaySeconds = reported;
+    this.takeFigure(reported);
   }
 
   /*
@@ -330,6 +346,7 @@ export class DelayAuthority {
 
   private forgetCraft(): void {
     this.oneWaySeconds = UNKNOWN_DELAY;
+    this.standIn = false;
     this.heldFigureValidAt = Number.NEGATIVE_INFINITY;
     this.reportedSeconds = null;
     this.centreDelays = new Map();
@@ -461,6 +478,14 @@ export class DelayAuthority {
       this.oneWaySeconds
     );
   };
+
+  /**
+   * A count that rises each time the first measured delay replaces a stand-in
+   * zero, as when a page opens while the craft is out of contact. Pass
+   * `authority.delayEpoch` as `ViewClockOptions.delayEpoch` so the view clock
+   * starts afresh at that figure and does not hold for one delay.
+   */
+  delayEpoch = (): number => this.figureGeneration;
 
   /**
    * The one-way delay a command to the active craft takes from `vantage`, or

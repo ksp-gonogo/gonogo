@@ -158,6 +158,7 @@ export function TelemetryProvider({
       new ViewClock({
         ...viewClockOptions,
         delaySeconds: viewClockOptions?.delaySeconds ?? authority.delaySeconds,
+        delayEpoch: viewClockOptions?.delayEpoch ?? authority.delayEpoch,
         warpRate:
           viewClockOptions?.warpRate ??
           (() => (warpSlope.paused ? 0 : warpSlope.rate)),

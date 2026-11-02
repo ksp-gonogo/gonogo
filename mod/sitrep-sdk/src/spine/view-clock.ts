@@ -48,6 +48,8 @@ export type ViewClockConfidence = "locked" | "coasting" | "degraded";
 export interface ViewClockOptions {
   /** One delay authority: the default is a fixed/zero delay; a real `DelayAuthority` can be swapped in. */
   delaySeconds?: () => number;
+  /** A count that rises when the delay was a stand-in and a measured figure has replaced it: the view then starts afresh at that figure instead of holding for one delay. Default none. */
+  delayEpoch?: () => number;
   /** UT-per-wall-second slope. Default 1 (real-time, no warp modelling yet, a later task feeds the real `time.warp` channel). */
   warpRate?: () => number;
   /** Injectable wall clock (seconds), defaulting to `performance.now() / 1000`. Tests inject a controllable one. */
@@ -282,12 +284,31 @@ export class ViewClock {
    * while scrubbed, where a scrub target is a past instant both lanes agree on.
    */
   viewUt(lane: DelayLane = "delayed"): number {
+    this.rebaseOnDelayEpoch();
     const live = Math.max(
       this.lastConfirmedViewUt[lane],
       this.confirmedEdgeUt(lane),
     );
     this.lastConfirmedViewUt[lane] = live;
     return this.scrubTarget !== null ? this.scrubTarget : live;
+  }
+
+  private seenDelayEpoch: number | undefined;
+
+  /*
+   * The monotonic cursor never lets the view fall back, so a delay that grows
+   * from a stand-in zero to its measured size would hold the view for the whole
+   * of that size. The stand-in was never a lag the view had, so the cursors
+   * start again when the figure replaces it.
+   */
+  private rebaseOnDelayEpoch(): void {
+    const epoch = this.options.delayEpoch?.();
+    if (epoch === undefined) return;
+    if (this.seenDelayEpoch !== undefined && epoch !== this.seenDelayEpoch) {
+      this.lastConfirmedViewUt.delayed = Number.NEGATIVE_INFINITY;
+      this.lastConfirmedViewUt["true-now"] = Number.NEGATIVE_INFINITY;
+    }
+    this.seenDelayEpoch = epoch;
   }
 
   /**

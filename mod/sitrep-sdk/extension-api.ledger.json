@@ -9551,6 +9551,10 @@
         "note": "New: the delay of a command to the active craft from a centre, null where none is known, never the craft before"
       },
       {
+        "key": "sitrep-sdk ./spine DelayAuthority#delayEpoch",
+        "note": "New: counts each time a measured delay replaces a stand-in zero, so a view clock can start afresh instead of holding for one delay"
+      },
+      {
         "key": "sitrep-sdk ./spine DelayAuthority#observeFigure",
         "note": "New: a comms.delay frame from the history holds the last measured delay when the newest frame reports none"
       },
@@ -15537,6 +15541,10 @@
         "note": "The bare [x, y, z] tuple type the frame arithmetic takes and returns, under a name the unit system's Vector3 does not share"
       },
       {
+        "key": "sitrep-sdk ./spine ViewClockOptions#delayEpoch?",
+        "note": "New: the count a view clock reads to start afresh when a measured delay replaces a stand-in zero"
+      },
+      {
         "key": "sitrep-sdk ./spine arcInOrbitPlane",
         "note": "New: an inertial arc put back in its orbit plane, for a diagram that draws the plane flat"
       },
@@ -16919,6 +16927,10 @@
       {
         "key": "sitrep-sdk ./testing ~ViewClockLike#utNowEstimate",
         "note": "A test host that supplies a view clock gives it the game's present too"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ViewClockOptions#delayEpoch?",
+        "note": "New: the count a view clock reads to start afresh when a measured delay replaces a stand-in zero"
       },
       {
         "key": "sitrep-sdk ./uplink-load AppCompatIdentity",
