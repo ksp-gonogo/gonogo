@@ -286,7 +286,11 @@ function clipToOutgoing(
  */
 const OUTGOING_TAIL = 0.25;
 
-/** Commanded value interpolated at `age` (local copy; ui-kit imports no model). */
+/**
+ * Commanded value interpolated at `age` (local copy; ui-kit imports no model).
+ * `null` past the oldest sample: nothing had been commanded that long ago, so a
+ * readback at that age has no command to differ from.
+ */
 function commandedAt(
   inTransit: ControlStreamSample[],
   age: number,
@@ -295,7 +299,8 @@ function commandedAt(
   const first = inTransit[0];
   const last = inTransit[inTransit.length - 1];
   if (age <= first.age) return first.value;
-  if (age >= last.age) return last.value;
+  if (age > last.age) return null;
+  if (age === last.age) return last.value;
   for (let i = 1; i < inTransit.length; i++) {
     const b = inTransit[i];
     if (age <= b.age) {

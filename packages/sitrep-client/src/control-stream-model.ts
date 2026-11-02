@@ -139,7 +139,8 @@ export function deriveStrip({
 /**
  * Commanded value linearly interpolated at `age` from the (age-ascending)
  * inTransit samples, for deviation comparison in the confirmed zone. `null` when
- * there is no commanded path to read.
+ * there is no commanded path to read, and past the oldest sample, where nothing
+ * had been commanded yet.
  */
 export function commandedAt(
   inTransit: readonly ControlSample[],
@@ -149,7 +150,8 @@ export function commandedAt(
   const first = inTransit[0];
   const last = inTransit[inTransit.length - 1];
   if (age <= first.age) return first.value;
-  if (age >= last.age) return last.value;
+  if (age > last.age) return null;
+  if (age === last.age) return last.value;
   for (let i = 1; i < inTransit.length; i++) {
     const b = inTransit[i];
     if (age <= b.age) {

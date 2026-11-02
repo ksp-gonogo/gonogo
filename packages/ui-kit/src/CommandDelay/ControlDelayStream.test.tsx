@@ -129,6 +129,28 @@ describe("ControlDelayStream", () => {
     ).not.toBeNull();
   });
 
+  it("draws no deviation for a readback older than the command's own history", () => {
+    // The command is one second old; the confirmed zone shows the readback a round trip behind, which no command existed for yet.
+    const young = stream({
+      inTransit: [
+        { age: 0, value: 0.6 },
+        { age: 1, value: 0.6 },
+      ],
+      echo: [
+        { age: 3.2, value: 0 },
+        { age: 3.3, value: 0 },
+      ],
+      current: 0.6,
+    });
+    const { container } = render(<ControlDelayStream streams={[young]} />);
+    expect(
+      container.querySelector('[data-role="deviation-actual"]'),
+    ).toBeNull();
+    expect(
+      container.querySelector('[data-role="deviation-expected"]'),
+    ).toBeNull();
+  });
+
   it("colours only the echo path from the first diverging sample onward, not the whole path", () => {
     // The first sample matches, the next two diverge: the warning treatment starts at the divergence, not the whole path.
     const partiallyDiverged = stream({

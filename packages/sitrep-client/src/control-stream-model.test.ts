@@ -128,6 +128,11 @@ describe("commandedAt / hasDeviation", () => {
     expect(commandedAt([], 1)).toBeNull();
   });
 
+  it("has no commanded value older than the oldest sample, so the readback there is not compared with one", () => {
+    expect(commandedAt(inTransit, 2.5)).toBeNull();
+    expect(hasDeviation(inTransit, [{ age: 2.5, value: 0.95 }])).toBe(false);
+  });
+
   it("flags a confirmed-zone divergence past the epsilon, ignores tiny ones", () => {
     expect(
       hasDeviation(inTransit, [{ age: 2, value: 0.6 + DEVIATION_EPSILON / 2 }]),
