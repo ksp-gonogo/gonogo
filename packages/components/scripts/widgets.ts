@@ -695,8 +695,9 @@ const WIDGETS: WidgetRenderConfig[] = [
       // minSize 4×4, below the full-ladder threshold (cols*rows=16 < 20):
       // stepper only (cols≥3, rows≥3). Mode caption visible (rows=4≥4).
       { name: "minimal-4x4", w: 4, h: 4 },
-      // Default registered size: full 8-button ladder, mode caption, the alarm button and delay line under a delay, and the warp-to row.
-      { name: "default-6x9", w: 6, h: 9 },
+      // Default registered size: full 8-button ladder (cols*rows=36≥20,
+      // cols=6≥4, rows=6≥3). Mode caption visible (rows=6≥4); no warp-to row (needs rows≥7).
+      { name: "default-6x6", w: 6, h: 6 },
       // Wide short: ladder reflows to 8×1 single row; mode caption visible.
       { name: "wide-10x4", w: 10, h: 4 },
       // Tall narrow: cols=4, rows=8 → cols*rows=32≥20 → full ladder; auto-fit wraps buttons; mode caption visible.
@@ -705,8 +706,6 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "large-8x7", w: 8, h: 7 },
       // The phone list's half-width and full-width tiles at the default height, in the grid units it hands the widget.
       { name: "phone-half-4x6", w: 4, h: 6 },
-      // The Flight layout's tile, under a delay with no alarm set.
-      { name: "flight-5x14", w: 5, h: 14, forFixtures: ["delayed-no-alarm"] },
       { name: "phone-full-8x6", w: 8, h: 6 },
       // The alarm requirement switched off: a delayed craft with no alarm set warps freely, exactly as it did before the requirement existed.
       {

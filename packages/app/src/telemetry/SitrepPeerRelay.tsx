@@ -64,17 +64,6 @@ const SITREP_PEER_SUB_BUDGET = new PerfBudget({
  */
 const HISTORY_PER_TOPIC = 1500;
 
-/** Whether a frame's payload reports a measured one-way delay, rather than none. */
-function reportsOneWayDelay(message: ServerMessage): boolean {
-  if (message.type !== "stream-data") return false;
-  const payload = message.payload;
-  const seconds =
-    typeof payload === "object" && payload !== null
-      ? Reflect.get(payload, "oneWaySeconds")
-      : undefined;
-  return typeof seconds === "number" && Number.isFinite(seconds) && seconds > 0;
-}
-
 /**
  * Drop the fields only the sample on screen is read for from every frame of
  * `run` older than the one on screen at `edgeUt`, starting at `from`, the
@@ -238,21 +227,6 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
       for (const run of cacheRef.current.values()) {
         const newest = run[run.length - 1];
         if (!newest) continue;
-        /*
-         * Through a blackout the newest `comms.delay` reports no delay, and the
-         * station reads a clock before the replay it asks for has arrived. The
-         * last measured figure goes first, so that first reading is already
-         * the delayed one.
-         */
-        if (newest.type === "stream-data" && newest.topic === "comms.delay") {
-          const figure = [...run].reverse().find(reportsOneWayDelay);
-          if (figure && figure !== newest) {
-            peerHost.sendToPeer(peerId, {
-              type: "sitrep-frame",
-              message: figure,
-            } satisfies PeerMessage);
-          }
-        }
         peerHost.sendToPeer(peerId, {
           type: "sitrep-frame",
           message: newest,

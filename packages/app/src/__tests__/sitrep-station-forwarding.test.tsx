@@ -27,8 +27,6 @@
 // `"data"` listener: close enough to real PeerJS to exercise the real
 // `PeerHostService`/`PeerClientService` classes without any WebRTC.
 // ---------------------------------------------------------------------------
-const peerLatency = vi.hoisted(() => ({ ms: 0 }));
-
 const peerRegistry = vi.hoisted(
   () =>
     new Map<
@@ -79,10 +77,6 @@ vi.mock("peerjs", () => {
     send(data: unknown) {
       if (!this.remote) return;
       const copy = structuredClone(data);
-      if (peerLatency.ms > 0) {
-        setTimeout(() => this.remote?.emit("data", copy), peerLatency.ms);
-        return;
-      }
       queueMicrotask(() => this.remote?.emit("data", copy));
     }
 
@@ -440,7 +434,6 @@ describe("station Sitrep-stream forwarding: two-screen proof", () => {
     hostServices.length = 0;
     localStorage.clear();
     peerRegistry.clear();
-    peerLatency.ms = 0;
   });
 
   function setupHost(): {
@@ -564,72 +557,6 @@ describe("station Sitrep-stream forwarding: two-screen proof", () => {
     expect(hostStore.clock.delaySeconds()).toBeCloseTo(oneWay);
     expect(joinedStore.clock.delaySeconds()).toBeCloseTo(oneWay);
     expect(Math.abs(joinedView - hostView)).toBeLessThan(1);
-  });
-
-  it("a station that joins during a blackout reads the delayed game time from its first finite reading", async () => {
-    const { peerHost, hostTransport } = setupHost();
-    await peerHost.start();
-    await waitForHostPeerId(peerHost);
-
-    const station1 = await connectStation(peerHost);
-    stationServices.push(station1);
-
-    const oneWay = 27.4;
-    const nowUt = Date.now() / 1000;
-    const emitDelay = () =>
-      hostTransport.emit(
-        "comms.delay",
-        { oneWaySeconds: oneWay },
-        { validAt: nowUt - 120, deliveredAt: nowUt - 120 },
-      );
-    await emitUntilArrived(
-      emitDelay,
-      () => expect([...liveStores][1].clock.delaySeconds()).toBeCloseTo(oneWay),
-      8000,
-    );
-    act(() => {
-      hostTransport.emitRaw({
-        type: "event",
-        topic: "comms.delay",
-        name: "subscribed",
-        keyframeIntervalUt: 5,
-      } as never);
-      hostTransport.emit(
-        "comms.delay",
-        { oneWaySeconds: null },
-        { validAt: nowUt - 30, deliveredAt: nowUt - 30 },
-      );
-      hostTransport.emit(
-        "vessel.orbit",
-        { apoapsis: 100_000, periapsis: 80_000 },
-        { validAt: nowUt, deliveredAt: nowUt },
-      );
-    });
-
-    /* Over a real link the snapshot, the station's subscribes and the replays they ask for arrive apart, not in one task. */
-    peerLatency.ms = 15;
-    const station2 = new PeerClientService();
-    stationServices.push(station2);
-    render(<StationApp clientSvc={station2} />);
-    approveStation();
-    const joinedStore = [...liveStores][2];
-    let firstView = Number.NaN;
-    let firstDelay = Number.NaN;
-    const watch = setInterval(() => {
-      if (!Number.isNaN(firstView)) return;
-      const view = joinedStore.clock.viewUt();
-      if (Number.isFinite(view)) {
-        firstView = view;
-        firstDelay = joinedStore.clock.delaySeconds();
-      }
-    }, 0);
-    act(() => station2.connect(peerHost.shareCode));
-    await waitFor(() => expect(firstView).not.toBeNaN(), { timeout: 8000 });
-    clearInterval(watch);
-
-    const hostView = [...liveStores][0].clock.viewUt();
-    expect(firstDelay).toBeCloseTo(oneWay);
-    expect(Math.abs(firstView - hostView)).toBeLessThan(1);
   });
 
   it("backfills a late-connecting station immediately for a topic that stopped changing before it joined", async () => {
