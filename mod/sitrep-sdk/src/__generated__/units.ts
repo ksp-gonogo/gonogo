@@ -566,6 +566,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     basis: "enum",
     coveredToUt: "ut",
     lowConfidence: "flag",
+    nextAcquisitionUt: "ut",
     ut: "ut",
   },
   "CommsOcclusion": {
@@ -2063,6 +2064,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     basis: "enum",
     coveredToUt: "ut",
     lowConfidence: "flag",
+    nextAcquisitionUt: "ut",
     ut: "ut",
   },
   "comms.occlusion": {

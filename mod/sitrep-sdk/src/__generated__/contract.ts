@@ -3069,6 +3069,13 @@ export interface CommsNextLoss
 	*/
 	basis: string;
 	/**
+	* With `out-of-contact`, the universal time the plan next has an open route
+	* between the centre and the active craft: the instant the link closes up,
+	* before any signal delay. Null when the plan holds none, and always null for
+	* every other `CommsNextLoss.basis`.
+	*/
+	nextAcquisitionUt?: Value<"ut"> | null;
+	/**
 	* The last universal time the plan reaches. A null `CommsNextLoss.ut` with
 	* `no-loss-in-window` means no loss before it.
 	*/
