@@ -308,6 +308,7 @@ const WIDGETS: WidgetRenderConfig[] = [
   },
   {
     widgetId: "rendezvous",
+    captionsClearOfShapes: true,
     fixturesPath: "Rendezvous/__fixtures__",
     outPath: "renders/rendezvous-widget",
     modes: [
