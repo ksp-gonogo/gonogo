@@ -526,7 +526,6 @@
       "basis": "enum",
       "coveredToUt": "ut",
       "lowConfidence": "flag",
-      "nextAcquisitionUt": "ut",
       "ut": "ut"
     },
     "CommsOcclusion": {
@@ -2019,7 +2018,6 @@
       "basis": "enum",
       "coveredToUt": "ut",
       "lowConfidence": "flag",
-      "nextAcquisitionUt": "ut",
       "ut": "ut"
     },
     "comms.occlusion": {

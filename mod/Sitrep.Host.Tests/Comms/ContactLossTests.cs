@@ -43,27 +43,6 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         [Fact]
-        public void AnOutOfContactCraftCarriesTheNextWindowThatJoinsItToTheCentre()
-        {
-            var plan = PlanOf(Pair("ground:ksc", "vessel:probe", Horizon, new ContactWindow(2156.35, 3000.0)));
-
-            var loss = Next(plan, ut: 1497.0);
-
-            Assert.Equal(NextLossBasis.OutOfContact, loss.Basis);
-            Assert.Null(loss.Ut);
-            Assert.Equal(2156.35, loss.NextAcquisitionUt!.Value, 9);
-        }
-
-        [Fact]
-        public void ADownLiveLinkAlsoCarriesTheNextAcquisitionAndAnInContactCraftNone()
-        {
-            var plan = PlanOf(Pair("ground:ksc", "vessel:probe", Horizon, new ContactWindow(2156.35, 3000.0)));
-
-            Assert.Equal(2156.35, Next(plan, ut: 1497.0, live: false).NextAcquisitionUt!.Value, 9);
-            Assert.Null(Next(plan, ut: 2200.0).NextAcquisitionUt);
-        }
-
-        [Fact]
         public void ADownLiveLinkIsOutOfContactWhateverThePlanHoldsEvenOpenEnded()
         {
             var plan = PlanOf(Pair("ground:ksc", "vessel:probe", Horizon, new ContactWindow(null, null)));

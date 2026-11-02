@@ -14114,16 +14114,6 @@ components:
             now; the craft's `trackingStation.catalog` entry says when it is expected
             back), `not-planned` (the centre holds no plan that includes the craft) or
             `no-craft` (there is no active craft).
-        nextAcquisitionUt:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: ut
-          description: |-
-            With `out-of-contact`, the universal time the plan next has an open route
-            between the centre and the active craft: the instant the link closes up,
-            before any signal delay. Null when the plan holds none, and always null for
-            every other `CommsNextLoss.basis`.
         coveredToUt:
           type: number
           x-sitrep-unit: ut

@@ -47,8 +47,6 @@ export interface WarpEventReadings {
   loss: CommsNextLoss | undefined;
   /** The active craft's predicted sunrise and sunset. */
   light: VesselLight | undefined;
-  /** The one-way delay between the active craft and this centre, seconds, which a signal sent at an acquisition instant takes to arrive. */
-  oneWaySeconds: number | undefined;
   /** The clock the widget shows, UT seconds. */
   viewUt: number | undefined;
 }
@@ -81,30 +79,17 @@ function soiTarget({ orbit, viewUt }: WarpEventReadings): WarpEventTarget {
   };
 }
 
-/**
- * When the centre expects to hear the active craft again. The catalog's own
- * expectation exists while the craft is silent there; with none, the contact
- * plan's next acquisition on `comms.nextLoss` plus the one-way delay is the
- * instant the first signal from the craft arrives.
- */
+/** When the centre expects to hear the active craft again, which only exists while it is silent there. */
 function contactTarget({
   catalog,
   identity,
-  loss,
-  oneWaySeconds,
   viewUt,
 }: WarpEventReadings): WarpEventTarget {
   const entry = catalog?.entries.find(
     (v) =>
       v.vesselId === identity?.vesselId && v.contact === CatalogContact.Silent,
   );
-  const acquisition =
-    loss?.basis === "out-of-contact" ? finiteUt(loss.nextAcquisitionUt) : null;
-  const planned =
-    acquisition !== null && oneWaySeconds !== undefined
-      ? acquisition + oneWaySeconds
-      : null;
-  const ut = finiteUt(entry?.expectedReturnUt) ?? planned;
+  const ut = finiteUt(entry?.expectedReturnUt);
   const ahead = ut !== null && viewUt !== undefined && ut > viewUt;
   return {
     id: "contact",

@@ -20,13 +20,7 @@ const INSTANCE = "warp-events";
 interface Scenario {
   silent?: { predictedUt: number | null };
   soi?: { transition: TransitionType; endUt: number };
-  loss?: {
-    ut: number | null;
-    basis: string;
-    lowConfidence?: boolean;
-    nextAcquisitionUt?: number | null;
-  };
-  oneWaySeconds?: number;
+  loss?: { ut: number | null; basis: string; lowConfidence?: boolean };
   light?: {
     sunlit: boolean;
     sunriseUt: number | null;
@@ -84,11 +78,7 @@ async function mount(scenario: Scenario) {
         basis: scenario.loss.basis,
         coveredToUt: VIEW_UT + 21_600,
         lowConfidence: scenario.loss.lowConfidence ?? false,
-        nextAcquisitionUt: scenario.loss.nextAcquisitionUt ?? null,
       });
-    }
-    if (scenario.oneWaySeconds !== undefined) {
-      fixture.emit("comms.delay", { oneWaySeconds: scenario.oneWaySeconds });
     }
     if (scenario.light) {
       fixture.emit("vessel.light", {
@@ -159,27 +149,6 @@ describe("WarpControl: event targets", () => {
     expect(screen.getByText("No prediction")).toBeTruthy();
     expect(isDisabled(armButton())).toBe(true);
     expect(creator).not.toHaveBeenCalled();
-  });
-
-  it("arms the signal return at the plan's next acquisition plus the one-way delay when the catalog has none", async () => {
-    const user = userEvent.setup();
-    const { creator } = await mount({
-      silent: { predictedUt: null },
-      loss: {
-        ut: null,
-        basis: "out-of-contact",
-        nextAcquisitionUt: VIEW_UT + 659,
-      },
-      oneWaySeconds: 27.43,
-    });
-
-    await open(user);
-    await user.click(screen.getByRole("button", { name: "Signal back" }));
-    await user.click(armButton());
-
-    expect(creator.mock.calls[0][0]).toMatchObject({
-      trigger: { kind: "time", ut: VIEW_UT + 659 + 27.43 },
-    });
   });
 
   it("shows no prediction when the craft is silent and none was made", async () => {

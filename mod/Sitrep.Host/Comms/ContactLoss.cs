@@ -76,13 +76,7 @@ namespace Sitrep.Host.Comms
             }
             if (liveLink == false)
             {
-                var down = new CommsNextLoss { Basis = NextLossBasis.OutOfContact, CoveredToUt = plan?.HorizonUt ?? ut };
-                if (plan != null && ut >= plan.FromUt && Includes(plan, craft))
-                {
-                    down.NextAcquisitionUt = NextConnected(
-                        plan, GroundNetwork.EndsOf(craft, home, antennas), GroundNetwork.EndsOf(centre, home, antennas), ut, HorizonFor(plan, ut));
-                }
-                return down;
+                return new CommsNextLoss { Basis = NextLossBasis.OutOfContact, CoveredToUt = plan?.HorizonUt ?? ut };
             }
             if (plan == null || ut < plan.FromUt || !Includes(plan, craft))
             {
@@ -97,7 +91,6 @@ namespace Sitrep.Host.Comms
             if (!Connected(plan, sources, destinations, ut))
             {
                 result.Basis = NextLossBasis.OutOfContact;
-                result.NextAcquisitionUt = NextConnected(plan, sources, destinations, ut, horizon);
                 return result;
             }
 
@@ -134,36 +127,6 @@ namespace Sitrep.Host.Comms
             result.Basis = NextLossBasis.NoLossInWindow;
             result.LowConfidence = rough != null && (rough.Contains(craft) || rough.Contains(centre));
             return result;
-        }
-
-        /// <summary>The first window opening before <paramref name="horizon"/> after which the route is joined, or null when the plan holds none.</summary>
-        private static double? NextConnected(
-            ContactPlan plan, IReadOnlyCollection<string> sources, IReadOnlyCollection<string> destinations, double ut, double horizon)
-        {
-            var opens = new SortedSet<double>();
-            foreach (var pair in plan.Pairs)
-            {
-                foreach (var window in pair.Windows)
-                {
-                    if (window.OpenUt is double open && open > ut && open < horizon)
-                    {
-                        opens.Add(open);
-                    }
-                }
-            }
-            var searched = 0;
-            foreach (var open in opens)
-            {
-                if (++searched > MaxBoundaries)
-                {
-                    break;
-                }
-                if (Connected(plan, sources, destinations, open + JustAfterSeconds))
-                {
-                    return open;
-                }
-            }
-            return null;
         }
 
         private static bool Includes(ContactPlan plan, string craft)

@@ -745,17 +745,6 @@ const WIDGETS: WidgetRenderConfig[] = [
         ],
         forFixtures: ["signal-lost-soi-ahead"],
       },
-      // The signal-return target when the catalog has no expectation: the contact plan's next acquisition plus the one-way delay.
-      {
-        name: "warp-to-contact-plan-open-8x7",
-        w: 8,
-        h: 7,
-        clicks: [
-          { selector: "button[aria-expanded]" },
-          { selector: '[aria-label="Warp target"] button:nth-child(4)' },
-        ],
-        forFixtures: ["signal-lost-plan-acquisition"],
-      },
       // The SOI-change target, from the end of the first patch of the solved trajectory.
       {
         name: "warp-to-soi-open-8x7",
