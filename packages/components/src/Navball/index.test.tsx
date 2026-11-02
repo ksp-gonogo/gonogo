@@ -183,6 +183,38 @@ describe("NavballComponent", () => {
     });
   });
 
+  it("holds a SAS mode button the craft cannot hold and sends nothing on a press", async () => {
+    const user = userEvent.setup();
+    const { fixture } = renderNavball({ controlMode: true }, CONTROL_SIZE);
+    // StabilityAssist, Prograde and Retrograde: a probe core with a low SAS tier.
+    emitReads(fixture, {
+      comms: { controlState: 4 },
+      control: { sas: true, sasMode: 0, sasModesAvailable: [0, 1, 2] },
+    });
+    const maneuver = await screen.findByRole("button", { name: /^MNV$/ });
+    expect(isDisabled(maneuver)).toBe(true);
+    expect(isDisabled(screen.getByRole("button", { name: /^PRO$/ }))).toBe(
+      false,
+    );
+    await user.click(maneuver);
+    expect(
+      fixture.transport.sentCommands.find(
+        (c) => c.command === "vessel.control.setSasMode",
+      ),
+    ).toBeUndefined();
+  });
+
+  it("offers every SAS mode while the craft does not say which it can hold", async () => {
+    const { fixture } = renderNavball({ controlMode: true }, CONTROL_SIZE);
+    emitReads(fixture, {
+      comms: { controlState: 4 },
+      control: { sas: true, sasMode: 0 },
+    });
+    expect(
+      isDisabled(await screen.findByRole("button", { name: /^MNV$/ })),
+    ).toBe(false);
+  });
+
   it("disables control buttons when isControllable is false", async () => {
     const { fixture } = renderNavball({ controlMode: true }, CONTROL_SIZE);
     // ControlState.None (0) collapses to not-controllable.

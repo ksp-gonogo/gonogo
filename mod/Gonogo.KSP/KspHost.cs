@@ -1485,6 +1485,23 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
+        /// The names of the autopilot modes KSP's own per-mode check allows right
+        /// now, the same check <c>vessel.control.setSasMode</c> is refused by.
+        /// </summary>
+        private static List<object?> SasModesAvailable(VesselAutopilot autopilot)
+        {
+            var modes = new List<object?>();
+            foreach (VesselAutopilot.AutopilotMode mode in System.Enum.GetValues(typeof(VesselAutopilot.AutopilotMode)))
+            {
+                if (autopilot.CanSetMode(mode))
+                {
+                    modes.Add(mode.ToString());
+                }
+            }
+            return modes;
+        }
+
+        /// <summary>
         /// <paramref name="actionGroupsBackend"/> is the elected action-groups
         /// backend (stock, or AGX once that phase lands), resolved by
         /// <see cref="GonogoAddon"/> and threaded down here rather than read
@@ -1514,6 +1531,7 @@ namespace Gonogo.KSP
                 ["sasAvailable"] = canEngageSas,
                 ["sasUnavailableReason"] = canEngageSas.HasValue ? ActionGroupWrite.SasUnavailableReason(canEngageSas.Value) : null,
                 ["sasMode"] = autopilot != null ? autopilot.Mode.ToString() : null,
+                ["sasModesAvailable"] = autopilot != null ? SasModesAvailable(autopilot) : null,
                 ["rcs"] = actionGroups != null ? (bool?)actionGroups[KSPActionGroup.RCS] : null,
                 ["gear"] = actionGroups != null ? (bool?)actionGroups[KSPActionGroup.Gear] : null,
                 ["brakes"] = actionGroups != null ? (bool?)actionGroups[KSPActionGroup.Brakes] : null,

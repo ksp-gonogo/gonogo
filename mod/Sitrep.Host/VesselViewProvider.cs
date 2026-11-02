@@ -847,6 +847,7 @@ namespace Sitrep.Host
                 SasAvailable = GetBool(control, "sasAvailable"),
                 SasUnavailableReason = GetString(control, "sasUnavailableReason"),
                 SasMode = ParseSasMode(GetString(control, "sasMode")),
+                SasModesAvailable = ParseSasModes(control, "sasModesAvailable"),
                 Rcs = GetBool(control, "rcs"),
                 Gear = GetBool(control, "gear"),
                 Brakes = GetBool(control, "brakes"),
@@ -1973,6 +1974,7 @@ namespace Sitrep.Host
             ["sasAvailable"] = control.SasAvailable,
             ["sasUnavailableReason"] = control.SasUnavailableReason,
             ["sasMode"] = control.SasMode.HasValue ? (int)control.SasMode.Value : null,
+            ["sasModesAvailable"] = control.SasModesAvailable?.Select(m => (object?)(int)m).ToList(),
             ["rcs"] = control.Rcs,
             ["gear"] = control.Gear,
             ["brakes"] = control.Brakes,
@@ -2403,6 +2405,19 @@ namespace Sitrep.Host
                 "radialnormalprograde" => ManeuverFrame.RadialNormalPrograde,
                 _ => ManeuverFrame.Unknown,
             };
+        }
+
+        private static SasMode[]? ParseSasModes(IDictionary<string, object?> raw, string key)
+        {
+            if (!raw.TryGetValue(key, out var v) || v is not IEnumerable<object?> list)
+            {
+                return null;
+            }
+            return list
+                .Select(item => ParseSasMode(item as string))
+                .Where(m => m.HasValue && m.Value != SasMode.Unknown)
+                .Select(m => m!.Value)
+                .ToArray();
         }
 
         private static SasMode? ParseSasMode(string? raw)

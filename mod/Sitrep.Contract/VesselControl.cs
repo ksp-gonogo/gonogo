@@ -160,6 +160,18 @@ public class VesselControl
     [SitrepUnit(Units.Enumeration)]
     public SasMode? SasMode { get; set; }
 
+    /// <summary>
+    /// The SAS hold modes the vessel can be put in right now, by KSP's own
+    /// per-mode check: the Pilot's skill or the probe core's SAS tier, a target
+    /// for the target modes, a maneuver node for <c>Maneuver</c>. A mode left out
+    /// is refused by <c>vessel.control.setSasMode</c> as a capability mismatch,
+    /// so a client can show it unavailable before it is pressed. Null when the
+    /// vessel has no autopilot to ask, in which case no mode is known to be
+    /// unavailable.
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public SasMode[]? SasModesAvailable { get; set; }
+
     /// <summary>Whether RCS is on. Changed with <c>vessel.control.setRcs</c>.</summary>
     [SitrepControlChannel("vessel.control.rcs", "vessel.control.setRcs", typeof(SetEnabledArgs), nameof(SetEnabledArgs.Enabled))]
     [SitrepUnit(Units.Flag)]
