@@ -215,6 +215,12 @@ describe("useModelledPosition", () => {
       frame();
       await scheduledFrame();
     });
+    // The solve is held for a fraction of a second between turnovers, so the settled frame comes a little later.
+    act(() => wall.advanceBy(0.5));
+    await act(async () => {
+      frame();
+      await scheduledFrame();
+    });
 
     const spread = drawn.spread ?? [];
     expect(drawn.modelled).toBeDefined();

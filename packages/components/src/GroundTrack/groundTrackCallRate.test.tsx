@@ -99,6 +99,7 @@ function scheduledFrame(): Promise<void> {
 async function predictionsOverIdleFrames(
   scene: Scene,
   frames: number,
+  warp = 1,
 ): Promise<number> {
   const budget = PerfBudget.getAll().find((b) =>
     b.name.startsWith("predictGroundTrack"),
@@ -110,7 +111,7 @@ async function predictionsOverIdleFrames(
   const client = new TelemetryClient(transport);
   const clock = new ViewClock({
     nowWall: wall.now,
-    warpRate: () => 1,
+    warpRate: () => warp,
     delaySeconds: () => DELAY,
   });
   const store = new TimelineStore(clock, {
@@ -146,6 +147,17 @@ async function predictionsOverIdleFrames(
   for (let i = 0; i < frames; i++) {
     await act(async () => {
       wall.advanceBy(1 / 60);
+      // Under warp the mod keeps sampling at 4 Hz, each sample further along universal time.
+      if (warp > 1 && i % 15 === 0) {
+        const validAt = taken + ((i + 1) / 60) * warp;
+        for (const emit of scene._stream.emits) {
+          if (emit.channel !== "vessel.flight") continue;
+          transport.emit(emit.channel, emit.value, {
+            validAt,
+            deliveredAt: validAt + DELAY,
+          });
+        }
+      }
       await frame();
     });
   }
@@ -158,6 +170,15 @@ describe("GroundTrack's ground track prediction", () => {
     const calls = await predictionsOverIdleFrames(orbiting, 30);
     expect(segments).toBeGreaterThan(0);
     expect(calls).toBeLessThanOrEqual(2);
+  });
+
+  it("is solved well inside the budget of thirty a second at 100x warp", async () => {
+    // One second of frames with universal time running a hundred times faster: a one-second bucket would turn over every frame or two.
+    const calls = await predictionsOverIdleFrames(orbiting, 60, 100);
+    expect(segments).toBeGreaterThan(0);
+    expect(calls).toBeGreaterThan(0);
+    // The track and the modelled position each solve on a held bucket, and again on each of the four samples a second.
+    expect(calls).toBeLessThanOrEqual(15);
   });
 
   it("is not asked for at all while the craft is on the ground, where there is no track to lay", async () => {

@@ -1,7 +1,8 @@
 import { PerfBudget } from "@ksp-gonogo/core";
+import { renderHook } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 
-import { quantiseUt } from "./predictionThrottle";
+import { quantiseUt, useThrottledBucket } from "./predictionThrottle";
 
 describe("GroundTrack prediction throttle", () => {
   it("quantiseUt buckets the time so 4 Hz ticks collapse to 1 Hz invalidations", () => {
@@ -54,5 +55,38 @@ describe("GroundTrack prediction throttle", () => {
     const t0 = 2_000_000;
     for (let i = 0; i < 4; i++) budget.record(1, t0 + i * 250); // 1 sec of 4 Hz
     expect(budget.windowTotal(t0 + 999)).toBe(4);
+  });
+});
+
+describe("GroundTrack prediction at time warp", () => {
+  it("useThrottledBucket turns over at most five times a second at 100x while still following the clock", () => {
+    let wallMs = 0;
+    const seen: number[] = [];
+    const { result, rerender } = renderHook(
+      ({ ut }) => useThrottledBucket(ut, 1, () => wallMs),
+      { initialProps: { ut: 1_000_000 } },
+    );
+    seen.push(result.current);
+    // Three seconds of 60 fps frames, universal time running at 100x.
+    for (let frame = 1; frame <= 180; frame++) {
+      wallMs = frame * (1000 / 60);
+      rerender({ ut: 1_000_000 + (wallMs / 1000) * 100 });
+      seen.push(result.current);
+    }
+    const turnovers = new Set(seen).size - 1;
+    expect(turnovers).toBeLessThanOrEqual(15);
+    const trailUt = 1_000_000 + 300 - seen.at(-1)!;
+    expect(trailUt).toBeLessThanOrEqual(0.25 * 100 + 1);
+  });
+
+  it("takes a bucket that moves backward at once", () => {
+    let wallMs = 0;
+    const { result, rerender } = renderHook(
+      ({ ut }) => useThrottledBucket(ut, 1, () => wallMs),
+      { initialProps: { ut: 5000 } },
+    );
+    wallMs = 10;
+    rerender({ ut: 4000 });
+    expect(result.current).toBe(4000);
   });
 });

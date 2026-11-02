@@ -13,7 +13,7 @@ import {
 import { kspCalendar, splitAtPoleCrossings } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import type { bodyNamed } from "../shared/streamBody";
-import { quantiseUt } from "./predictionThrottle";
+import { useThrottledBucket } from "./predictionThrottle";
 
 interface GroundTrackInputs {
   enabled: boolean;
@@ -70,8 +70,8 @@ export function useGroundTrackPrediction({
   predictionSegments: TrackSample[][];
   maneuverSegments: TrackSample[][][];
 } {
-  // Throttled to once a second via `quantiseUt`: body-rotation drift over a second is about 0.1 degree of longitude.
-  const utBucket = quantiseUt(universalTime, 1);
+  // One-second buckets, solved at most five times a second at any warp: body-rotation drift over a second is about 0.1 degree of longitude.
+  const utBucket = useThrottledBucket(universalTime, 1);
   // The shape and nothing else of the trajectory: the object is built afresh on every render, and as a dependency it solved the track again on every frame.
   const conic = trajectory?.shape === "conic";
   // biome-ignore lint/correctness/useExhaustiveDependencies: lat/lon/universalTime read inside, but invalidation gated on utBucket; see comment above

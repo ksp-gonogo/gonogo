@@ -3,7 +3,7 @@ import { deriveReading, type Value } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
 import type { bodyNamed } from "../shared/streamBody";
 import { type GroundPoint, groundSpread } from "./modelledSpread";
-import { quantiseUt } from "./predictionThrottle";
+import { useThrottledBuckets } from "./predictionThrottle";
 
 interface ModelledPositionInputs {
   /** False while the craft is on the ground, where no conic carries its position. */
@@ -58,11 +58,14 @@ export function useModelledPosition({
     reckoning.beyondReceived
       ? reckoning.atUt
       : undefined;
-  // Throttled like the ground track it continues: a second of body rotation is about 0.1 degree of longitude.
-  const bucket =
-    carriedTo === undefined ? undefined : quantiseUt(carriedTo.magnitude, 1);
+  // Throttled like the ground track it continues: a second of body rotation is about 0.1 degree of longitude, and at warp the buckets are held between solves.
   // The bucket only decides when to solve again. The solve itself takes the received edge as it is: see `REACHED_SECONDS`.
-  const from = receivedUt === undefined ? undefined : quantiseUt(receivedUt, 1);
+  const [carriedBucket, receivedBucket] = useThrottledBuckets(
+    [carriedTo?.magnitude, receivedUt],
+    1,
+  );
+  const bucket = carriedTo === undefined ? undefined : carriedBucket;
+  const from = receivedUt === undefined ? undefined : receivedBucket;
   // biome-ignore lint/correctness/useExhaustiveDependencies: the reading changes every frame; invalidation is gated on the two instants' buckets
   return useMemo(() => {
     if (!enabled) return null;
