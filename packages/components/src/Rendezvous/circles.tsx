@@ -56,7 +56,7 @@ function Drawing({
       viewBox={`0 0 ${DRAW} ${DRAW}`}
       role="img"
       aria-label={label}
-      fontFamily="var(--font-mono)"
+      fontFamily="var(--font-family-mono)"
     >
       {children}
     </svg>

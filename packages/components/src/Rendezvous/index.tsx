@@ -80,8 +80,11 @@ function RendezvousComponent({
   const lastName = useRef("");
   if (tarName !== undefined) lastName.current = tarName;
   useEffect(() => {
-    if (joined) wasJoined.current = true;
-    else if (targetState !== "absent") wasJoined.current = false;
+    if (joined) {
+      wasJoined.current = true;
+      return;
+    }
+    if (targetState !== "absent") wasJoined.current = false;
   }, [joined, targetState]);
   const docked = joined || (targetState === "absent" && wasJoined.current);
   // Short of a dock, a target cleared at the Docking level keeps the camera up behind a notice, so the picture is not cut off.

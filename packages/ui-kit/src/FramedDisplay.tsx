@@ -3,7 +3,21 @@ import styled from "styled-components";
 import { useElementSize } from "./useElementSize";
 
 /**
- * An arc of a circular frame's border lit in a colour, growing outward from
+ * The tone of an {@link EdgeCue}: `accent` for a port or mark that is lined up,
+ * `warn` for one that is not. Useful for telling the operator, by colour alone,
+ * whether what left the frame is where it should be. Used by {@link EdgeCue}.
+ *
+ * @category Layout
+ */
+export type EdgeCueTone = "accent" | "warn";
+
+const EDGE_CUE_FILL: Readonly<Record<EdgeCueTone, string>> = {
+  accent: "var(--color-accent-fg)",
+  warn: "var(--color-warn-mark)",
+};
+
+/**
+ * An arc of a circular frame's border lit in a tone, growing outward from
  * the border by a share of its full reach. Useful for telling the operator
  * that something drawn inside the frame has gone past its edge, and which way:
  * the lit arc sits at the direction it left by and thickens as it goes further.
@@ -15,8 +29,8 @@ import { useElementSize } from "./useElementSize";
 export interface EdgeCue {
   /** The direction of the arc's middle, in degrees turning counter-clockwise from the frame's right-hand point, so 90 is straight up. */
   angle: number;
-  /** The arc's colour, as any CSS colour or a `var()` of a theme token. */
-  colour: string;
+  /** The arc's tone: `accent` lights it in the app's accent, `warn` in the warning mark. */
+  tone: EdgeCueTone;
   /** How far the arc has grown outward from the border, from 0 (a lit border) to 1 (its full reach). Outside that range it is held to it. */
   grow: number;
   /** The arc's length in degrees. Defaults to 90. */
@@ -65,7 +79,7 @@ export interface FramedDisplayProps extends ComponentPropsWithoutRef<"div"> {
    */
   shape?: FramedDisplayShape;
   /**
-   * Lights an arc of the border, or several, in a colour, each growing outward
+   * Lights an arc of the border, or several, in a tone, each growing outward
    * from the border; see {@link EdgeCue}. Drawn only on `shape="circle"`. The
    * frame's own contents are still cut to the disc; the arcs are drawn outside
    * it, over the border and the room just beyond, so give the frame that room
@@ -136,7 +150,6 @@ export function FramedDisplay({
       data-shape={shape}
       {...rest}
     >
-      {cues.length > 0 && <FramedDisplay__Cues cues={cues} />}
       {hasStrip ? (
         <>
           <FramedDisplay__Main $padded={padded}>{children}</FramedDisplay__Main>
@@ -149,6 +162,8 @@ export function FramedDisplay({
       ) : (
         children
       )}
+      {/* After the contents, so the arcs paint over them without a z-index. */}
+      {cues.length > 0 && <FramedDisplay__Cues cues={cues} />}
       {caption !== undefined && caption !== null && (
         <FramedDisplay__Caption>{caption}</FramedDisplay__Caption>
       )}
@@ -198,7 +213,7 @@ const FramedDisplay__Clip = styled.div`
   display: flex;
   min-height: 0;
   min-width: 0;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   overflow: hidden;
 
   & > svg,
@@ -266,7 +281,6 @@ function FramedDisplay__Cues({ cues }: { cues: readonly EdgeCue[] }) {
         width: `${100 + 2 * CUE_ROOM}%`,
         height: `${100 + 2 * CUE_ROOM}%`,
         pointerEvents: "none",
-        zIndex: 2,
       }}
     >
       <svg
@@ -282,10 +296,10 @@ function FramedDisplay__Cues({ cues }: { cues: readonly EdgeCue[] }) {
       >
         {cues.map((cue) => (
           <path
-            key={`${cue.angle}-${cue.colour}`}
+            key={`${cue.angle}-${cue.tone}`}
             data-edge-cue=""
             d={edgeCuePath(cue, borderUnits)}
-            fill={cue.colour}
+            fill={EDGE_CUE_FILL[cue.tone]}
           />
         ))}
       </svg>

@@ -135,7 +135,7 @@ function degrees(v: number | null | undefined, decimals: number): ReactNode {
 }
 
 /** The faint letters before a figure that its unit alone does not name. */
-function Tag({ children }: { children: string }) {
+function FigureTag({ children }: { children: string }) {
   return (
     <ReadoutCaption style={{ marginRight: 4, letterSpacing: "0.08em" }}>
       {children}
@@ -192,7 +192,7 @@ function bottomFigures(props: ReadoutFiguresProps): {
           NULL_DISPLAY
         ) : (
           <>
-            <Tag>PE</Tag>
+            <FigureTag>PE</FigureTag>
             <Unit value={value("m", periapsis.altitude)} />
           </>
         ),
@@ -207,7 +207,7 @@ function bottomFigures(props: ReadoutFiguresProps): {
     left: degrees(craft?.phase, 1),
     right: (
       <>
-        <Tag>CA</Tag>
+        <FigureTag>CA</FigureTag>
         {miss.value === undefined ? (
           NULL_DISPLAY
         ) : (
@@ -265,7 +265,7 @@ function RangeRateArrow({
       width={9}
       height={11}
       viewBox="0 0 9 11"
-      style={{ marginLeft: 4, verticalAlign: "-1px" }}
+      style={{ marginLeft: 4, verticalAlign: "-0.1em" }}
     >
       <path
         d={closes ? "M4.5 10L0.5 4.5H8.5Z" : "M4.5 1L0.5 6.5H8.5Z"}
@@ -347,7 +347,7 @@ function OverlayRows({
           : {
               background: "var(--color-surface-sunken)",
               borderRadius: 3,
-              padding: "0 3px",
+              padding: "var(--inset-figure-backing)",
               boxSizing: "border-box",
             }),
       }}
@@ -357,7 +357,7 @@ function OverlayRows({
           style={{
             background: "var(--color-surface-sunken)",
             borderRadius: 3,
-            padding: "0 3px",
+            padding: "var(--inset-figure-backing)",
             boxDecorationBreak: "clone",
             WebkitBoxDecorationBreak: "clone",
           }}
@@ -504,7 +504,7 @@ export function ReadoutFigures(props: Readonly<ReadoutFiguresProps>) {
               style={{
                 background: "var(--color-surface-sunken)",
                 borderRadius: 3,
-                padding: "1px 6px",
+                padding: "var(--inset-chip)",
               }}
             >
               {notice}

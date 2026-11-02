@@ -9,10 +9,9 @@ import type { PatchNumbers } from "./encounter";
 import type { Elements } from "./kepler";
 
 /** A unit-carrying wire number as a plain finite number; undefined where it is absent or not finite. */
-function num(v: { magnitude: number } | null | undefined): number | undefined {
-  return v !== null && v !== undefined && Number.isFinite(v.magnitude)
-    ? v.magnitude
-    : undefined;
+function num(v: { valueOf(): number } | null | undefined): number | undefined {
+  const n = v?.valueOf();
+  return n !== undefined && Number.isFinite(n) ? n : undefined;
 }
 
 /** The elements of the craft's current conic, or null where one is missing. A missing node or periapsis is zero. */

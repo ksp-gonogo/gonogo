@@ -3,8 +3,8 @@ import {
   type Elements,
   isClosed,
   norm,
+  orbitalPeriod,
   orbitPoints,
-  period,
   phaseAngle,
   planeBasis,
   relativeInclination,
@@ -47,7 +47,7 @@ describe("stateAt", () => {
       inc: 20,
       lan: 70,
     };
-    const p = period(o) ?? 0;
+    const p = orbitalPeriod(o) ?? 0;
     const a = stateAt(o, 10);
     const b = stateAt(o, 10 + p);
     for (let i = 0; i < 3; i++) {

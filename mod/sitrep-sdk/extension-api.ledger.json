@@ -17525,16 +17525,20 @@
         "note": "the direction of the arc's middle"
       },
       {
-        "key": "ui-kit . EdgeCue#colour",
-        "note": "the arc's colour"
-      },
-      {
         "key": "ui-kit . EdgeCue#grow",
         "note": "how far the arc has grown outward from the border"
       },
       {
         "key": "ui-kit . EdgeCue#span?",
         "note": "the arc's length in degrees"
+      },
+      {
+        "key": "ui-kit . EdgeCue#tone",
+        "note": "the arc's tone, which the frame maps to the accent or warning colour"
+      },
+      {
+        "key": "ui-kit . EdgeCueTone",
+        "note": "the two tones an edge cue's arc can take, accent or warn"
       },
       {
         "key": "ui-kit . FormatQuantityOptions",

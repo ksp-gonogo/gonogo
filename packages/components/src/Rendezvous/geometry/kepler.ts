@@ -29,7 +29,7 @@ export type Vec3 = readonly [number, number, number];
 
 export const dot = (a: Vec3, b: Vec3): number =>
   a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-export const cross = (a: Vec3, b: Vec3): Vec3 => [
+export const crossProduct = (a: Vec3, b: Vec3): Vec3 => [
   a[1] * b[2] - a[2] * b[1],
   a[2] * b[0] - a[0] * b[2],
   a[0] * b[1] - a[1] * b[0],
@@ -40,7 +40,7 @@ export const sub = (a: Vec3, b: Vec3): Vec3 => [
   a[2] - b[2],
 ];
 export const norm = (a: Vec3): number => Math.hypot(a[0], a[1], a[2]);
-export const unit = (a: Vec3): Vec3 => {
+export const unitVector = (a: Vec3): Vec3 => {
   const n = norm(a);
   return n === 0 ? [0, 0, 0] : [a[0] / n, a[1] / n, a[2] / n];
 };
@@ -116,7 +116,7 @@ export function orbitPoints(o: Elements, count = 180): Vec3[] {
 }
 
 /** The orbit's period, seconds; null for an open conic. */
-export function period(o: Elements): number | null {
+export function orbitalPeriod(o: Elements): number | null {
   return isClosed(o) ? 2 * Math.PI * Math.sqrt(o.sma ** 3 / o.mu) : null;
 }
 
@@ -133,9 +133,9 @@ export function relativeInTargetFrame(
   const c = stateAt(chaser, ut);
   const t = stateAt(target, ut);
   if (c === null || t === null) return null;
-  const radial = unit(t.r);
-  const normal = unit(cross(t.r, t.v));
-  const along = cross(normal, radial);
+  const radial = unitVector(t.r);
+  const normal = unitVector(crossProduct(t.r, t.v));
+  const along = crossProduct(normal, radial);
   const d = sub(c.r, t.r);
   return [dot(d, radial), dot(d, along), dot(d, normal)];
 }
@@ -149,8 +149,8 @@ export function phaseAngle(
   const c = stateAt(chaser, ut);
   const t = stateAt(target, ut);
   if (c === null || t === null) return null;
-  const normal = unit(cross(c.r, c.v));
-  const angle = Math.atan2(dot(cross(c.r, t.r), normal), dot(c.r, t.r));
+  const normal = unitVector(crossProduct(c.r, c.v));
+  const angle = Math.atan2(dot(crossProduct(c.r, t.r), normal), dot(c.r, t.r));
   return angle / RAD;
 }
 
@@ -163,9 +163,9 @@ export function relativeInclination(
   const c = stateAt(chaser, ut);
   const t = stateAt(target, ut);
   if (c === null || t === null) return null;
-  const a = unit(cross(c.r, c.v));
-  const b = unit(cross(t.r, t.v));
-  return Math.atan2(norm(cross(a, b)), dot(a, b)) / RAD;
+  const a = unitVector(crossProduct(c.r, c.v));
+  const b = unitVector(crossProduct(t.r, t.v));
+  return Math.atan2(norm(crossProduct(a, b)), dot(a, b)) / RAD;
 }
 
 /**
@@ -196,7 +196,7 @@ export function relativeTrack(
  */
 export function planeBasis(target: Elements): { e1: Vec3; e2: Vec3 } {
   const m = rotation({ ...target, argPe: 0 });
-  const e1 = m[0].map((_, i) => m[i][0]) as unknown as Vec3;
-  const e2 = m[0].map((_, i) => m[i][1]) as unknown as Vec3;
-  return { e1: unit(e1), e2: unit(e2) };
+  const e1: Vec3 = [m[0][0], m[1][0], m[2][0]];
+  const e2: Vec3 = [m[0][1], m[1][1], m[2][1]];
+  return { e1: unitVector(e1), e2: unitVector(e2) };
 }
