@@ -1,6 +1,5 @@
 import { getComponent } from "@ksp-gonogo/core";
 import type { InputMappings } from "@ksp-gonogo/serial";
-import { Tooltip } from "@ksp-gonogo/ui-kit";
 import { memo, useCallback, useRef, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import {
@@ -186,11 +185,7 @@ const MobileItemContent = memo(function MobileItemContent({
         data-mobile-height={height}
       >
         <MobileCellHeader>
-          <MobileCellHeaderLeft>
-            <Tooltip text={def.name} announce={false}>
-              <MobileCellName>{def.name}</MobileCellName>
-            </Tooltip>
-          </MobileCellHeaderLeft>
+          <MobileCellHeaderLeft />
           <MobileCellHeaderRight>
             {(hasConfig || hasActions) && (
               <GearButton
@@ -299,10 +294,8 @@ const MobileCellHeader = styled.div`
   }
 `;
 
+/* Empty: the widget's own panel title names the tile, and this keeps the controls right-aligned. */
 const MobileCellHeaderLeft = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--gap-related);
   min-width: 0;
   flex: 1;
 `;
@@ -315,17 +308,6 @@ const MobileCellHeaderRight = styled.div`
   align-items: center;
   gap: var(--gap-glyph-tray);
   flex-shrink: 0;
-`;
-
-const MobileCellName = styled.span`
-  font-size: var(--font-size-caption);
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
 `;
 
 /* Same sub-floor glyph chrome as the remove and push buttons it sits beside;
