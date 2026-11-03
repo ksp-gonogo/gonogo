@@ -535,8 +535,11 @@ export class AlarmHostService {
 
   /**
    * A station's rate press, heard over the peer link. Ends a running warp-to and
-   * nothing else: the command centre's unscheduled-warp banner still flags the
-   * warp, since the ground is meant to see one it did not ask for.
+   * stamps nothing, so it adds no banner suppression of its own. The
+   * unscheduled-warp banner can still stay quiet: if the warp-to's own last
+   * command went out less than two seconds before the press, that stamp's
+   * window is still open and attributes the new rate to it, and the banner then
+   * stays quiet for as long as that rung holds.
    */
   registerStationWarpIntent(): void {
     this.endWarpToForManualRate();
