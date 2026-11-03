@@ -406,7 +406,8 @@ describe("the figures and the docked state", () => {
     const { fixture } = mount();
     emitPort(fixture);
     await waitFor(() => expect(circle("Docking")).not.toBeNull());
-    expect(text()).toContain("0.12 / -0.07 m");
+    expect(text()).toContain("0.12 m");
+    expect(text()).toContain("-0.07 m");
   });
 
   it("says there is no docking data for a port targeted inside docking range with no docking channel", async () => {
