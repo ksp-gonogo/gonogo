@@ -132,11 +132,19 @@ const BOX_COLOR: Record<BoxState, string> = {
   none: "var(--color-text-muted)",
 };
 
+/*
+ * A box with no vote has one row the height of a name and a vote line together,
+ * so the name sits in the middle of a box the same size as one with a vote.
+ */
 const StationBox = styled.div<{ $state: BoxState }>`
-  display: inline-flex;
-  flex-direction: column;
+  display: inline-grid;
+  grid-template-rows: ${({ $state }) =>
+    $state === "none"
+      ? "calc(var(--font-size-caption) + var(--font-size-value))"
+      : "auto auto"};
+  justify-items: center;
   align-items: center;
-  justify-content: center;
+  align-content: center;
   min-width: 6rem;
   max-width: 14rem;
   padding: var(--inset-control-compact);
@@ -148,6 +156,8 @@ const StationBox = styled.div<{ $state: BoxState }>`
 `;
 
 const BoxName = styled.span`
+  grid-column: 1;
+  grid-row: 1;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -157,6 +167,10 @@ const BoxName = styled.span`
 `;
 
 const BoxVote = styled.span`
+  &[aria-hidden="true"] {
+    grid-area: 1 / 1;
+    visibility: hidden;
+  }
   font-size: var(--font-size-value);
   font-weight: 700;
   letter-spacing: 0.12em;
