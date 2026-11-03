@@ -17,7 +17,6 @@ import {
   compose,
   OWNED_PATHS,
   redirectPage,
-  SPACEDOCK_SLOT,
 } from "../../../scripts/pages-compose.mjs";
 
 /**
@@ -131,23 +130,6 @@ describe("the rc channel before the first release", () => {
     );
   });
 
-  it("links SpaceDock on the landing page only when given Gonogo's mod id", () => {
-    compose("release", dist, api, site);
-    const unlisted = read("index.html");
-    expect(unlisted).not.toContain(SPACEDOCK_SLOT);
-    expect(unlisted).not.toContain("spacedock.info");
-    expect(unlisted).toContain("install manually from the");
-
-    compose("release", dist, api, site, "4321");
-    expect(read("index.html")).toContain(
-      'install manually from <a href="https://spacedock.info/mod/4321">SpaceDock</a> or the',
-    );
-
-    expect(() => compose("release", dist, api, site, "gonogo")).toThrow(
-      /not a number/,
-    );
-  });
-
   it("puts the API page at /gonogo/api/ beside the redirects it writes", () => {
     compose("rc", dist, api, site);
 
@@ -191,20 +173,6 @@ describe("the release channel", () => {
     expect(read("README.md")).toBe(
       "[ksp-gonogo/gonogo](https://github.com/ksp-gonogo/gonogo)\n",
     );
-  });
-
-  it("writes every picture the landing page names beside it, and nothing stale", () => {
-    mkdirSync(join(site, "img"));
-    writeFileSync(join(site, "img", "stale.webp"), "OLD");
-    compose("release", dist, api, site);
-
-    const named = [...read("index.html").matchAll(/src="img\/([^"]+)"/g)].map(
-      (m) => m[1],
-    );
-    expect(named.length).toBeGreaterThan(0);
-    for (const file of named)
-      expect(existsSync(join(site, "img", file)), file).toBe(true);
-    expect(existsSync(join(site, "img", "stale.webp"))).toBe(false);
   });
 
   it("puts the API page at /gonogo/api/ beside the redirects, which still answer the old app routes", () => {

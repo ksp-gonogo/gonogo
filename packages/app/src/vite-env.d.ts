@@ -14,8 +14,6 @@ interface ImportMetaEnv {
   /** Set to "true" by the Playwright dev servers to log each host broker socket's state. */
   readonly VITE_E2E_SOCKET_TRACE?: string;
   readonly VITE_AXIOM_TOKEN?: string;
-  /** Gonogo's mod id on SpaceDock; the landing page links its SpaceDock page when set. */
-  readonly VITE_SPACEDOCK_MOD_ID?: string;
   /**
    * Set to "true" to show the developer-only settings (verbose logging, the
    * log buffer, the mod's recording and timing rows) in

@@ -111,8 +111,6 @@ const DOCS = "https://github.com/ksp-gonogo/gonogo/blob/staging/docs";
 
 export const SETUP_LINKS = {
   docker: "https://docs.docker.com/get-started/get-docker/",
-  dockerSite: "https://www.docker.com/",
-  podmanSite: "https://podman.io/",
   ckanInstall: "https://github.com/KSP-CKAN/CKAN/wiki/Installing-CKAN",
   kspSetup: `${DOCS}/KSP-SETUP.md`,
   networking: `${DOCS}/NETWORKING.md`,
@@ -122,15 +120,7 @@ export const SETUP_LINKS = {
   upgrading:
     "https://github.com/ksp-gonogo/gonogo#upgrading-from-an-earlier-version",
   uplinkDocs: "https://ksp-gonogo.github.io/uplink-dev-docs/",
-  apiDocs: "https://ksp-gonogo.github.io/uplink-dev-docs/reference/client/",
 } as const;
-
-/** Gonogo's SpaceDock page for the mod id the build was given, or null when it was given none, which is the case until the listing exists. */
-export function spacedockPage(modId: string | undefined): string | null {
-  return modId && /^\d+$/.test(modId)
-    ? `https://spacedock.info/mod/${modId}`
-    : null;
-}
 
 /** True on a Windows browser, where the log check is `findstr` rather than `grep` and a command is written for PowerShell. */
 export function isWindows(): boolean {

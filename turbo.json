@@ -7,7 +7,6 @@
       "env": [
         "VITE_BASE_PATH",
         "VITE_AXIOM_TOKEN",
-        "VITE_SPACEDOCK_MOD_ID",
         "VITE_RELAY_URL",
         "GONOGO_VERSION",
         "GONOGO_CHANNEL"

@@ -182,7 +182,6 @@ jobs:
         run: pnpm turbo build --filter=@ksp-gonogo/app...
         env:
           VITE_BASE_PATH: /app/
-          VITE_SPACEDOCK_MOD_ID: ${{ vars.SPACEDOCK_MOD_ID_GONOGO }}
           GONOGO_CHANNEL: app
           VITE_AXIOM_TOKEN: ${{ secrets.VITE_AXIOM_TOKEN }}
 

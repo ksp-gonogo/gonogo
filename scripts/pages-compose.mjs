@@ -14,7 +14,7 @@
  *   rc       /rc/                              the RC app
  *            /rc/api/                          the API page of the RC's contract
  *   release  /app/                             the release app
- *            /index.html /404.html /img/       the landing page and its pictures
+ *            /index.html /404.html             the landing page
  *            /README.md                        one link to this repository, written once
  *            /gonogo/                          redirects from the old URLs
  *            /gonogo/api/                      the API page, written with the redirects
@@ -52,12 +52,11 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 /** The paths each channel owns in the site checkout, relative to its root. */
 export const OWNED_PATHS = {
-  rc: ["rc", "gonogo", "index.html", "img", "404.html", ".nojekyll"],
+  rc: ["rc", "gonogo", "index.html", "404.html", ".nojekyll"],
   release: [
     "app",
     "gonogo",
     "index.html",
-    "img",
     "404.html",
     "README.md",
     ".nojekyll",
@@ -167,17 +166,6 @@ function writeRedirects(site, redirects) {
 
 const LANDING_APP_LINK = "https://ksp-gonogo.github.io/app/";
 
-/** Where the landing page names SpaceDock beside the GitHub Releases page, once Gonogo is listed there. */
-export const SPACEDOCK_SLOT = "<!-- spacedock -->";
-
-/** The landing page's SpaceDock link for a mod id, or nothing when there is no listing yet. */
-export function spacedockLink(modId) {
-  if (!modId) return "";
-  if (!/^\d+$/.test(modId))
-    throw new Error(`SpaceDock mod id "${modId}" is not a number`);
-  return `<a href="https://spacedock.info/mod/${modId}">SpaceDock</a> or `;
-}
-
 function writeApiPage(apiPage, to) {
   if (!existsSync(join(apiPage, "index.html")))
     throw new Error(
@@ -186,18 +174,18 @@ function writeApiPage(apiPage, to) {
   replaceDir(apiPage, to);
 }
 
-/** The landing page and its pictures, its app links pointing at `appBase`, with the redirects and the API page beside them. */
-function writeRoot(site, appBase, apiPage, spacedockModId) {
+/** The landing page, its app links pointing at `appBase`, with the redirects and the API page beside them. */
+function writeRoot(site, appBase, apiPage) {
   const landing = readFileSync(
     join(REPO_ROOT, "docs/homepage/index.html"),
     "utf8",
   );
-  replaceDir(join(REPO_ROOT, "docs/homepage/img"), join(site, "img"));
   writeFileSync(
     join(site, "index.html"),
-    landing
-      .replaceAll(LANDING_APP_LINK, `https://ksp-gonogo.github.io${appBase}`)
-      .replaceAll(SPACEDOCK_SLOT, spacedockLink(spacedockModId)),
+    landing.replaceAll(
+      LANDING_APP_LINK,
+      `https://ksp-gonogo.github.io${appBase}`,
+    ),
   );
   // An old deep link that is not one of the written routes still lands here, so the root fallback is the redirect page too.
   writeFileSync(
@@ -208,7 +196,7 @@ function writeRoot(site, appBase, apiPage, spacedockModId) {
   writeApiPage(apiPage, join(site, API_PAGE_PATHS.root));
 }
 
-export function compose(channel, dist, apiPage, site, spacedockModId) {
+export function compose(channel, dist, apiPage, site) {
   if (channel !== "rc" && channel !== "release")
     throw new Error(`unknown channel "${channel}"`);
   writeFileSync(join(site, ".nojekyll"), "");
@@ -216,12 +204,12 @@ export function compose(channel, dist, apiPage, site, spacedockModId) {
     writeApp(dist, join(site, "rc"));
     writeApiPage(apiPage, join(site, API_PAGE_PATHS.rc));
     if (!existsSync(join(site, "app", "index.html")))
-      writeRoot(site, "/rc/", apiPage, spacedockModId);
+      writeRoot(site, "/rc/", apiPage);
     return;
   }
 
   writeApp(dist, join(site, "app"));
-  writeRoot(site, "/app/", apiPage, spacedockModId);
+  writeRoot(site, "/app/", apiPage);
   // Written once and then kept: a release never rewrites or removes it.
   if (!existsSync(join(site, "README.md")))
     writeFileSync(join(site, "README.md"), README);
@@ -235,13 +223,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     );
     process.exit(2);
   }
-  compose(
-    channel,
-    resolve(dist),
-    resolve(apiPage),
-    resolve(site),
-    process.env.SPACEDOCK_MOD_ID_GONOGO,
-  );
+  compose(channel, resolve(dist), resolve(apiPage), resolve(site));
   console.log(
     `${channel}: wrote ${OWNED_PATHS[channel].join(", ")} in ${resolve(site)}`,
   );

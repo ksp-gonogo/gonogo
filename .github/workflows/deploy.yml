@@ -165,7 +165,6 @@ jobs:
         run: pnpm turbo build --filter=@ksp-gonogo/app...
         env:
           VITE_BASE_PATH: /rc/
-          VITE_SPACEDOCK_MOD_ID: ${{ vars.SPACEDOCK_MOD_ID_GONOGO }}
           GONOGO_VERSION: ${{ inputs.label }}
           GONOGO_CHANNEL: rc
           # Axiom ingest. If the secret isn't set the logger silently
@@ -202,9 +201,6 @@ jobs:
       - name: Compose this channel's paths
         env:
           CHANNEL: ${{ inputs.channel }}
-          # Gonogo's SpaceDock listing, the same variable publish-mods.yml
-          # reads. Unset, the landing page names only the GitHub Releases page.
-          SPACEDOCK_MOD_ID_GONOGO: ${{ vars.SPACEDOCK_MOD_ID_GONOGO }}
         run: node scripts/pages-compose.mjs "$CHANNEL" packages/app/dist "$RUNNER_TEMP/api-page" _site
 
       - name: Commit and push this channel's paths only

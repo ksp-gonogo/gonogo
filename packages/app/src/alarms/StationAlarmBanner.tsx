@@ -56,7 +56,6 @@ export function StationAlarmBanner({
               <ScreenFiredFacts
                 alarm={individuals[0]}
                 warpRate={snap.warp.rate}
-                viewUt={snap.ut}
               />
               {individuals.length > 1 && (
                 <FiredHint>

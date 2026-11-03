@@ -20,7 +20,6 @@
     "render-ship-map": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-fixtures.ts",
     "render-navball": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-navball.ts",
     "readme-images": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/readme-images.ts",
-    "homepage-images": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/homepage-images.ts",
     "render-widget": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-widget.ts",
     "render-absence": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-absence.ts",
     "render-alarm-banner": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-alarm-banner.ts",
