@@ -139,16 +139,27 @@ export function SignalLossIndicator() {
     edge !== undefined && Number.isFinite(edge) ? value("ut", edge) : undefined;
   const lostSinceRef = useRef<Value<"ut"> | null>(null);
 
-  // Reset the "since" instant whenever we cross in/out of "connected".
-  if (state === "connected" || state === "awaiting") {
+  /*
+   * The loss start survives a rejoin: after a station reconnects, `comms.link`
+   * is pending until the first report lands, and that wait reads as "connected"
+   * and then "awaiting" without the link ever having been seen up. Only a
+   * link report that says the link is up ends the loss, and so does a change of
+   * active craft, which is a different loss.
+   */
+  const identityReading = useTelemetry("vessel.identity");
+  const craftId =
+    identityReading.state === "observed" || identityReading.state === "held"
+      ? identityReading.value.vesselId
+      : undefined;
+  const craftRef = useRef<string | undefined>(undefined);
+  if (craftId !== undefined && craftId !== craftRef.current) {
+    if (craftRef.current !== undefined) lostSinceRef.current = null;
+    craftRef.current = craftId;
+  }
+  if (state === "connected" && !linkPending) {
     lostSinceRef.current = null;
   }
-  if (
-    state !== "connected" &&
-    state !== "awaiting" &&
-    lostSinceRef.current === null &&
-    viewUt !== undefined
-  ) {
+  if (banner && lostSinceRef.current === null && viewUt !== undefined) {
     lostSinceRef.current = viewUt;
   }
 

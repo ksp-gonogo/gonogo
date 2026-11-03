@@ -11809,6 +11809,7 @@ namespace Sitrep.Host
             };
             session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteEventMsg(ack)));
             SendKeptOnSubscribe(session, topic);
+            SendHeldDelayOnSubscribe(session, topic);
         }
 
         /*

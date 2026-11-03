@@ -122,7 +122,7 @@ namespace Sitrep.Host
          * The reliable lane, so a kept value sent after a timeline reset reaches
          * the wire after the reset event queued on the same lane, never before it.
          */
-        private void SendKept(ClientSession session, string topic, object value)
+        private void SendKept(ClientSession session, string topic, object value, Staleness staleness = Staleness.Fresh)
         {
             var now = _clock.Now();
             var frame = new StreamData
@@ -137,7 +137,7 @@ namespace Sitrep.Host
                     DeliveredAt = now,
                     Seq = ++_ackSeq,
                     Active = true,
-                    Staleness = Staleness.Fresh,
+                    Staleness = staleness,
                     TimelineEpoch = _courier.CurrentEpoch,
                 },
             };
