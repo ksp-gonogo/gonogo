@@ -2,7 +2,7 @@ import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { installRendezvousBox } from "../test/rendezvousBox";
+import { installRendezvousBox, settleRendezvous } from "../test/rendezvousBox";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { RendezvousComponent } from "./index";
 
@@ -56,6 +56,7 @@ describe("Rendezvous: genuinely runs off the stream", () => {
 
     await waitFor(() => expect(visibleText()).toContain("10.0 km"));
     expect(screen.getByText("FAR")).toBeTruthy();
+    await settleRendezvous();
   });
 
   it("derives docking-HUD alignment angles + forwardDot from vessel.dock", async () => {
@@ -101,6 +102,7 @@ describe("Rendezvous: genuinely runs off the stream", () => {
     expect(visibleText()).toContain("2.00 / -1.50 m");
     // The dock distance headlines the HUD, on the `length` ladder.
     expect(visibleText()).toContain("62.0 m");
+    await settleRendezvous();
   });
 
   it("degrades correctly (not stale) when the target is cleared, vessel.target present -> null tombstone", async () => {
@@ -145,6 +147,7 @@ describe("Rendezvous: genuinely runs off the stream", () => {
     // The stale distance and name must not survive the clear.
     expect(screen.queryByText("10.0 km")).toBeNull();
     expect(screen.queryByText("Rendezvous Target")).toBeNull();
+    await settleRendezvous();
   });
 
   it("renders approach-mode TCA from vessel.target.closestApproach and the SDK view-UT", async () => {
@@ -177,5 +180,6 @@ describe("Rendezvous: genuinely runs off the stream", () => {
 
     await waitFor(() => expect(screen.getByText("APPROACH")).toBeTruthy());
     await waitFor(() => expect(visibleText()).toMatch(/T−2min 5s/));
+    await settleRendezvous();
   });
 });

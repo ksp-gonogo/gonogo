@@ -1,4 +1,8 @@
-import { installSizedResizeObserver } from "./widgetDomSnapshot";
+import { act } from "@ksp-gonogo/test-utils";
+import {
+  flushResizeObservers,
+  installSizedResizeObserver,
+} from "./widgetDomSnapshot";
 
 /** The measured box of the default 6x9 Rendezvous tile, so its circles have room to draw. */
 export const RENDEZVOUS_BOX = { w: 926, h: 772 } as const;
@@ -28,4 +32,16 @@ export function installRendezvousBox(
     restoreObserver();
     window.matchMedia = before;
   };
+}
+
+/**
+ * Lets everything a test's last emit scheduled land inside `act`: the size
+ * observers, and the frame the stream minted for that emit, which arrives on
+ * an animation frame after the test body would otherwise have returned.
+ */
+export async function settleRendezvous(): Promise<void> {
+  await flushResizeObservers();
+  await act(async () => {
+    await new Promise<void>((resolve) => setTimeout(resolve, 50));
+  });
 }

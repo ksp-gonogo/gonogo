@@ -3,7 +3,7 @@ import { Staleness } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { installRendezvousBox } from "../test/rendezvousBox";
+import { installRendezvousBox, settleRendezvous } from "../test/rendezvousBox";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { RendezvousComponent } from "./index";
 
@@ -115,6 +115,7 @@ describe("Rendezvous: the dock channel alone stops being current", () => {
     // A modelled reticle is not a withheld one: two opposite captions on one instrument is worse than either.
     expect(visibleText()).not.toMatch(/withheld/i);
     expect(visibleText()).toContain("2.00 / -1.50 m");
+    await settleRendezvous();
   });
 
   it("withholds the reticle, and says why, once the model declines too", async () => {
@@ -152,6 +153,7 @@ describe("Rendezvous: the dock channel alone stops being current", () => {
     // The target-derived figures keep being drawn: one instrument withheld, not the widget giving up.
     expect(screen.getByText("APPROACH")).toBeTruthy();
     expect(visibleText()).toContain("62.0 m");
+    await settleRendezvous();
   });
 
   it("blames nothing when the pairing is genuinely gone rather than held", async () => {
@@ -168,6 +170,7 @@ describe("Rendezvous: the dock channel alone stops being current", () => {
 
     await waitFor(() => expect(screen.getByText("APPROACH")).toBeTruthy());
     expect(visibleText()).not.toMatch(/withheld/i);
+    await settleRendezvous();
   });
 });
 
@@ -217,6 +220,7 @@ describe("Rendezvous under signal delay", () => {
       expect(screen.getByRole("group", { name: "Docking level" })).toBeTruthy(),
     );
     expect(screen.queryByText(/Alignment reckoned/)).toBeNull();
+    await settleRendezvous();
   });
 
   it("captions nothing when there is no light-time to carry it across", async () => {
@@ -225,6 +229,7 @@ describe("Rendezvous under signal delay", () => {
       expect(screen.getByRole("group", { name: "Docking level" })).toBeTruthy(),
     );
     expect(screen.queryByText(/Alignment reckoned/)).toBeNull();
+    await settleRendezvous();
   });
 });
 
@@ -264,5 +269,6 @@ describe("Rendezvous's time to closest approach under signal delay", () => {
     );
     expect(modelled).toBeDefined();
     expect(modelled?.querySelector("[data-held-mark]")).not.toBeNull();
+    await settleRendezvous();
   });
 });

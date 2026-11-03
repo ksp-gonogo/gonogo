@@ -182,7 +182,7 @@ describe("RendezvousComponent", () => {
     // yet received" is pending, and "No target set in KSP" is a claim about the
     // GAME that only a tombstone can support. `TopicReading<T>` splits the two, and
     // no provider is mounted here at all, so this is the pending branch.
-    render(<RendezvousComponent config={{}} id="tar" />);
+    renderWidget(<RendezvousComponent config={{}} id="tar" />, "tar");
     expect(
       screen.getByText("Waiting for target telemetry"),
     ).toBeInTheDocument();
@@ -197,7 +197,7 @@ describe("RendezvousComponent", () => {
     // same carried record, so it rides the stream too, no legacy "data"
     // WS emission needed for this case.
     const stream = setupTelemetryStream();
-    const { container } = render(
+    const { container } = renderWidget(
       <stream.Provider>
         <RendezvousComponent config={{}} id="tar" />
       </stream.Provider>,
@@ -226,7 +226,7 @@ describe("RendezvousComponent", () => {
     // with no `relativePosition`, so `tarDistance` stays undefined and the
     // distance readout falls back to the dash.
     const stream = setupTelemetryStream();
-    render(
+    renderWidget(
       <stream.Provider>
         <RendezvousComponent config={{}} id="tar" />
       </stream.Provider>,
@@ -240,7 +240,8 @@ describe("RendezvousComponent", () => {
       });
     });
     await waitFor(() => expect(screen.getByText("Duna")).toBeInTheDocument());
-    expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
+    // The range, the closing rate and the offsets each print their own dash.
+    expect(screen.getAllByText(NULL_DISPLAY).length).toBeGreaterThan(0);
   });
 });
 
