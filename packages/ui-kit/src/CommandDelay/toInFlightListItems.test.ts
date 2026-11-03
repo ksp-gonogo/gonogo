@@ -3,6 +3,7 @@ import {
   deriveGlyph,
   type InFlightCommandLike,
   journeyProgress,
+  secondsToRailEnd,
   toInFlightListItems,
 } from "./toInFlightListItems";
 
@@ -86,7 +87,70 @@ describe("toInFlightListItems", () => {
           predictedPhase: "lost",
         }),
       );
-      expect(lost).toBeGreaterThan(0.9);
+      expect(lost).toBeCloseTo(2 / 3, 5);
+    });
+
+    it("reaches the craft at a third, and waits at two thirds for a reply that is due or late", () => {
+      // Sent with T = 6: at the craft 6 s after sending, the reply due at 12 s.
+      expect(
+        journeyProgress(cmd({ reachEtaSeconds: 0, replyEtaSeconds: 6 })),
+      ).toBeCloseTo(1 / 3, 5);
+      expect(
+        journeyProgress(cmd({ reachEtaSeconds: -6, replyEtaSeconds: 0 })),
+      ).toBeCloseTo(2 / 3, 5);
+      expect(
+        journeyProgress(
+          cmd({
+            reachEtaSeconds: -20,
+            replyEtaSeconds: -14,
+            predictedPhase: "overdue",
+          }),
+        ),
+      ).toBeCloseTo(2 / 3, 5);
+    });
+
+    it("sends an answered command on to the end over the time the last third takes", () => {
+      const answered = cmd({ reachEtaSeconds: -6, replyEtaSeconds: 0 });
+      expect(secondsToRailEnd(answered)).toBeCloseTo(6, 5);
+      const [item] = toInFlightListItems([
+        { ...answered, settling: "confirmed", settleSeconds: 6 },
+      ]);
+      expect(item).toMatchObject({
+        settling: "confirmed",
+        settleSeconds: 6,
+        progress: 1,
+      });
+    });
+
+    it("keeps a refused command where it was", () => {
+      const [item] = toInFlightListItems([
+        {
+          ...cmd({ reachEtaSeconds: -6, replyEtaSeconds: 0 }),
+          settling: "failed",
+        },
+      ]);
+      expect(item.settling).toBe("failed");
+      expect(item.progress).toBeCloseTo(2 / 3, 5);
+    });
+
+    it("places a held command where its hold says it is on the way out", () => {
+      const at = (outbound: number, reachCraft: number) =>
+        journeyProgress({
+          ...cmd({
+            reachEtaSeconds: reachCraft,
+            replyEtaSeconds: reachCraft + 12,
+          }),
+          hold: { outbound },
+        });
+      // Waiting at a relay a third of the way out: a ninth of the rail, however long it waits.
+      expect(at(1 / 3, 40)).toBeCloseTo(1 / 9, 5);
+      expect(at(1 / 3, 20)).toBeCloseTo(1 / 9, 5);
+      expect(at(2 / 3, 4)).toBeCloseTo(2 / 9, 5);
+    });
+
+    it("marks a command held at a relay", () => {
+      const [item] = toInFlightListItems([{ ...cmd({}), held: true }]);
+      expect(item.held).toBe(true);
     });
 
     it("is stamped onto the mapped item", () => {
@@ -94,6 +158,17 @@ describe("toInFlightListItems", () => {
         cmd({ reachEtaSeconds: -2, replyEtaSeconds: 4 }),
       ]);
       expect(item.progress).toBeCloseTo(8 / 18, 5);
+    });
+  });
+
+  describe("a queue merged from several handles", () => {
+    it("is in the order the commands were sent", () => {
+      const items = toInFlightListItems([
+        { ...cmd({ label: "SAS" }), id: "b", dispatchedAt: 1002 },
+        { ...cmd({ label: "RCS" }), id: "a", dispatchedAt: 1000 },
+        { ...cmd({ label: "Precision" }), id: "c", dispatchedAt: 1001 },
+      ]);
+      expect(items.map((i) => i.id)).toEqual(["a", "c", "b"]);
     });
   });
 

@@ -242,7 +242,7 @@ namespace Sitrep.Host
         {
             for (var i = 0; i < jobs.Count; i++)
             {
-                Deliver(jobs[i], result is GroupExecution execution ? execution.Results[i] : result);
+                Answer(jobs[i], result is GroupExecution execution ? execution.Results[i] : result);
             }
         }
 

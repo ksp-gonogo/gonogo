@@ -358,6 +358,7 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
             effectiveDelaySeconds: delaySeconds,
             delayReading: oneWayDelay,
             streams: railStreams,
+            warnings: railStreams.flatMap((s) => s.warnings),
             "aria-label": "Navball: controls in flight",
           }
         : null,

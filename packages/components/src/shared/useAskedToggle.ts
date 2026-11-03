@@ -1,8 +1,5 @@
 import { useRef } from "react";
-import {
-  askedToggleValue,
-  type ToggleConfirmation,
-} from "./toggleConfirmation";
+import { askedToggleValue } from "./toggleConfirmation";
 
 /**
  * The state a toggle's next press inverts. While the latest press is
@@ -11,12 +8,11 @@ import {
  * `asked` records the args of each press as it is sent.
  */
 export function useAskedToggle(
-  confirmation: ToggleConfirmation | null,
+  outstanding: boolean,
   shown: unknown,
 ): { base: unknown; asked: (args: unknown) => void } {
   const last = useRef<boolean | undefined>(undefined);
-  const base =
-    confirmation !== null && last.current !== undefined ? last.current : shown;
+  const base = outstanding && last.current !== undefined ? last.current : shown;
   return {
     base,
     asked: (args) => {

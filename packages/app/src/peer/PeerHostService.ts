@@ -3094,6 +3094,19 @@ export class PeerHostService {
       } satisfies PeerMessage);
       return;
     }
+    // The mod's acceptance reaches only the connection that sent the command, which for a station is this host.
+    const stopRelayingAcceptance = client.onRawMessage((message) => {
+      if (message.type !== "command-accepted") return;
+      if (message.requestId !== msg.requestId) return;
+      conn.send({
+        type: "sitrep-command-accepted",
+        requestId: msg.requestId,
+        oneWaySeconds: message.oneWaySeconds,
+        predictedReplyUt: message.predictedReplyUt,
+        expiresAtUt: message.expiresAtUt,
+        warning: message.warning,
+      } satisfies PeerMessage);
+    });
     try {
       const value = await start(client);
       conn.send({
@@ -3157,6 +3170,8 @@ export class PeerHostService {
         code: code ?? FaultCode.Unclassified,
         message: message ?? String(err),
       } satisfies PeerMessage);
+    } finally {
+      stopRelayingAcceptance();
     }
   }
 

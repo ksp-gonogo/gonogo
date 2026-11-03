@@ -154,9 +154,34 @@ public class PendingUplink
     [SitrepUnit(Units.Id)]
     public string? PredictedHeldAt { get; set; }
 
+    /// <summary>
+    /// What the centre told the sender when it accepted this command, as a
+    /// sentence to show the operator: a continuous input that its plan says
+    /// would have to wait at <see cref="PredictedHeldAt"/>, where it is lost.
+    /// The same text the sender's <c>command-accepted</c> carries, here so every
+    /// screen at the centre can show it. Null when the centre had nothing to
+    /// say.
+    /// <internal>
+    /// A dispatch-time prediction from the sending centre's own plan, like the
+    /// other predictions on this entry, so it reads no vessel state.
+    /// </internal>
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? Warning { get; set; }
+
     /// <summary>When it is predicted to leave <see cref="PredictedHeldAt"/>. Null with it.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? PredictedHeldUntilUt { get; set; }
+
+    /// <summary>
+    /// When it is predicted to reach <see cref="PredictedHeldAt"/>, where it
+    /// waits until <see cref="PredictedHeldUntilUt"/>. With
+    /// <see cref="DispatchedAt"/> and <see cref="PredictedArrivalUt"/> it places
+    /// the wait along the way to the craft. Null with <see cref="PredictedHeldAt"/>,
+    /// and when the prediction was not read from a plan.
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? PredictedHeldFromUt { get; set; }
 
     /// <summary>The last moment a cancel sent from this centre is predicted to stop it: at a node holding it or at the craft before it runs. Null when nothing is predicted to stop it.</summary>
     [SitrepUnit(Units.UniversalTime)]
@@ -167,8 +192,9 @@ public class PendingUplink
     /// be home by now, no wait for a window was predicted, and nothing has come.
     /// The command may have run and its answer be unable to come home, so this is
     /// news of silence, not of failure, and the entry stays until its reply, a
-    /// report or its expiry settles it. Null while the reply is not yet due, or
-    /// is predicted to wait.
+    /// report or its expiry settles it; one sent straight to the craft stays
+    /// until its reply lands or the link to the craft is down. Null while the
+    /// reply is not yet due, or is predicted to wait.
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? ReplyOverdueUt { get; set; }
@@ -189,6 +215,87 @@ public class PendingUplink
     public List<string> Members { get; set; } = new List<string>();
 }
 
+/// <summary>
+/// One command that was on <c>system.uplink.pending</c> and came back refused
+/// by the game, failed, or answered after the centre had found its reply
+/// overdue, an entry of <see cref="PendingUplinkQueue.Settled"/>. Every screen
+/// at the sending command centre reads it, so each can say what became of a
+/// command another screen sent. A command answered on time leaves no entry
+/// here: its leaving the queue says so, and its effect shows in the readings.
+/// <internal>
+/// Kept by ChannelEngine for a while after the reply reaches the centre, so a
+/// screen that samples the queue now and then still sees it. A client takes
+/// its own dispatch's outcome from its own reply and skips its own entries here.
+/// </internal>
+/// </summary>
+/// <category>Comms</category>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class SettledUplink
+{
+    /// <summary>Gonogo's own id for the dispatch, the <see cref="PendingUplink.Id"/> it had on the queue.</summary>
+    [SitrepUnit(Units.Id)]
+    public string Id { get; set; } = "";
+
+    /// <summary>
+    /// The <c>requestId</c> the dispatching client put on its
+    /// <c>command-request</c>, as on <see cref="PendingUplink.ClientRequestId"/>.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string ClientRequestId { get; set; } = "";
+
+    /// <summary>Wire command name (e.g. <c>vessel.control.setRcs</c>).</summary>
+    [SitrepUnit(Units.Id)]
+    public string Command { get; set; } = "";
+
+    /// <summary>Caller-supplied envelope label, carried verbatim; empty when none was given.</summary>
+    [SitrepUnit(Units.Text)]
+    public string Label { get; set; } = "";
+
+    /// <summary>The part or terminal the command was addressed to, as on <see cref="PendingUplink.Topic"/>; empty when none.</summary>
+    [SitrepUnit(Units.Id)]
+    public string Topic { get; set; } = "";
+
+    /// <summary>The id of the command centre that sent the command, as on <c>commandCentre.roster</c>.</summary>
+    [SitrepUnit(Units.Id)]
+    public string Vantage { get; set; } = "";
+
+    /// <summary>When the outcome reached the sending command centre.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double SettledAt { get; set; }
+
+    /// <summary>
+    /// What became of the command: <c>refused</c> when the game refused it,
+    /// with <see cref="Code"/> a refusal code; <c>failed</c> when the mod
+    /// answered with a fault, with <see cref="Code"/> a fault code; or
+    /// <c>answered</c> when it ran and its reply came after the centre had found
+    /// it overdue, with <see cref="Code"/> empty.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string Outcome { get; set; } = "";
+
+    /// <summary>
+    /// The refusal's root code, or the fault's code, as the command's own
+    /// reply carries it; empty for <c>answered</c>.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string Code { get; set; } = "";
+
+    /// <summary>The refinement's id when a refusal was more specific than <see cref="Code"/>; null otherwise.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? Reason { get; set; }
+
+    /// <summary>A refusal in the game's own words, when the game gave any; null otherwise.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? Detail { get; set; }
+
+    /// <summary>What the mod said of a fault, as a sentence to show; null otherwise.</summary>
+    [SitrepUnit(Units.Text)]
+    public string? Message { get; set; }
+}
+
 /// <summary>The <c>system.uplink.pending</c> payload: the whole queue, sent in full each time.</summary>
 /// <category>Comms</category>
 [SitrepContract]
@@ -204,4 +311,12 @@ public class PendingUplinkQueue
     /// pending.
     /// </summary>
     public List<PendingUplink> Pending { get; set; } = new List<PendingUplink>();
+
+    /// <summary>
+    /// The commands this session may know of that left <see cref="Pending"/>
+    /// refused, failed or answered late lately, oldest first, by the same rule as
+    /// <see cref="Pending"/>. Each stays for a few minutes of game time, and
+    /// only the latest few are kept. Empty, never null, when there are none.
+    /// </summary>
+    public List<SettledUplink> Settled { get; set; } = new List<SettledUplink>();
 }

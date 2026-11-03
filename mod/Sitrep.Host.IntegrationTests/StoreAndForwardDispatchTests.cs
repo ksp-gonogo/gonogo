@@ -210,6 +210,49 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// A held command's refusal is listed for every screen at its centre
+        /// only once the report of it has reached the centre, never before.
+        /// </summary>
+        [Fact]
+        public void AHeldCommandsRefusalIsSettledOnlyOnceItsReportHasReachedTheCentre()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new HeldCommandTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                CutRoute(engine);
+                Tick(engine, 0.0);
+
+                FaultCode? refused = null;
+                engine.DispatchCommandAndWait(HeldCommandTestUplink.Command, "x", Centre, _ => { }, TestBudgets.Op, onRefused: (code, _) => refused = code, clientRequestId: "held-1");
+                Tick(engine, 10.0);
+                var entry = Assert.Single(Pending(engine));
+                var expires = entry.ExpiresAtUt ?? 0.0;
+
+                Tick(engine, expires - 1.0);
+                Assert.Null(refused);
+                Assert.Empty(Settled(engine));
+
+                Tick(engine, expires + 1.0);
+                Assert.Equal(FaultCode.CommandExpired, refused);
+                var settled = Assert.Single(Settled(engine));
+                Assert.Equal("held-1", settled.ClientRequestId);
+                Assert.Equal("failed", settled.Outcome);
+                Assert.Equal(FaultCode.CommandExpired.Id, settled.Code);
+                Assert.True(settled.SettledAt >= expires, "settled at " + settled.SettledAt + ", before the command expired at " + expires);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        private static List<SettledUplink> Settled(ChannelEngine engine) =>
+            Assert.IsType<PendingUplinkQueue>(engine.PayloadOf(ChannelEngine.UplinkPendingTopic)).Settled;
+
         [Fact]
         public void AReplyThatCannotComeHomeIsMarkedOverdueThenRefusedAsNotReceivedRatherThanExpired()
         {

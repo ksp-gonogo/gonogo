@@ -78,7 +78,9 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // so the instants shed their type where they leave for someone else's code.
   // The rest are the rail row itself: `InFlightCommand` is a display shape of
   // plain seconds, and `liveOneWaySeconds` answers a bare number for the same row.
-  "mod/sitrep-sdk/src/command-delay.ts": 7,
+  // That includes its hold: how far along the way out a held command is, worked
+  // in the algebra and unwrapped once, where it lands on the row.
+  "mod/sitrep-sdk/src/command-delay.ts": 8,
   // 1, in `degradeRatingOf`, and this file exists so that number stays 1. The
   // link grading has to reach a consumer as a raw number, because what a
   // consumer DOES with it is arithmetic on a quality ladder (a bitrate rung, how
@@ -335,7 +337,12 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    * file rather than unwrapping on their own.
    */
   "mod/sitrep-sdk/src/spine/orbit-patches.ts": 5,
-  "packages/sitrep-client/src/use-control-stream.tsx": 2,
+  /*
+   * 3: the graph's samples are plain UT numbers, its ring's own shape, and one
+   * of them is another screen's input, whose queue entry's send time becomes
+   * the sample's time.
+   */
+  "packages/sitrep-client/src/use-control-stream.tsx": 3,
   "packages/ui-kit/src/Countdown.tsx": 1,
   /*
    * The four instrument primitives. Each one unwraps its axis ONCE per

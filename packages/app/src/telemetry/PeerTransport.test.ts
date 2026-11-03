@@ -15,6 +15,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it, vi } from "vitest";
 import type { ConnStatus, PeerClientService } from "../peer/PeerClientService";
+import type { PeerMessage } from "../peer/protocol";
 import { asClientService } from "../test/peerFakes";
 import { PeerTransport } from "./PeerTransport";
 
@@ -59,6 +60,11 @@ class FakeClock implements Clock {
  * scoped to `PeerTransport`'s narrow needs rather than pulling in real
  * PeerJS.
  */
+type AcceptedMessage = Extract<
+  PeerMessage,
+  { type: "sitrep-command-accepted" }
+>;
+
 function makeFakeClient(initialStatus: ConnStatus = "connected") {
   let status = initialStatus;
   const frameListeners = new Set<(message: ServerMessage) => void>();
@@ -68,6 +74,7 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
   const errorListeners = new Set<
     (requestId: string, code: string, message: string) => void
   >();
+  const acceptedListeners = new Set<(message: AcceptedMessage) => void>();
   const statusListeners = new Set<(status: ConnStatus) => void>();
   const resetListeners = new Set<() => void>();
   const linkListeners = new Set<(connected: boolean) => void>();
@@ -120,6 +127,10 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
     ) => {
       responseListeners.add(cb);
       return () => responseListeners.delete(cb);
+    },
+    onSitrepCommandAccepted: (cb: (message: AcceptedMessage) => void) => {
+      acceptedListeners.add(cb);
+      return () => acceptedListeners.delete(cb);
     },
     onSitrepCommandError: (
       cb: (requestId: string, code: string, message: string) => void,
@@ -176,6 +187,9 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
     },
     emitCommandResponse(requestId: string, result: unknown, meta: Meta) {
       for (const cb of responseListeners) cb(requestId, result, meta);
+    },
+    emitCommandAccepted(message: AcceptedMessage) {
+      for (const cb of acceptedListeners) cb(message);
     },
     emitCommandError(requestId: string, code: string, message: string) {
       for (const cb of errorListeners) cb(requestId, code, message);
@@ -402,6 +416,29 @@ describe("PeerTransport", () => {
         requestId: "c0",
         code: "noClient",
         message: "host has no live client",
+      },
+    ]);
+  });
+
+  it("hands the station's client a relayed acceptance as the mod's own command-accepted frame", () => {
+    const client = makeFakeClient();
+    const transport = new PeerTransport(asService(client));
+    const received: ServerMessage[] = [];
+    transport.onMessage((m) => received.push(m));
+
+    client.emitCommandAccepted({
+      type: "sitrep-command-accepted",
+      requestId: "c0",
+      oneWaySeconds: 20,
+      warning: "lost if it has to wait at Duna Relay",
+    });
+
+    expect(received).toEqual([
+      {
+        type: "command-accepted",
+        requestId: "c0",
+        oneWaySeconds: 20,
+        warning: "lost if it has to wait at Duna Relay",
       },
     ]);
   });

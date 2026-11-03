@@ -42,6 +42,8 @@ namespace Sitrep.Host.IntegrationTests
         {
             PredictedHeldAt = entry.PredictedHeldAt,
             PredictedHeldUntilUt = entry.PredictedHeldUntilUt,
+            PredictedHeldFromUt = entry.PredictedHeldFromUt,
+            DispatchedAt = entry.DispatchedAt,
             PredictedArrivalUt = entry.PredictedArrivalUt,
             PredictedReplyUt = entry.PredictedReplyUt,
             CancelDeadlineUt = entry.CancelDeadlineUt,
@@ -62,7 +64,7 @@ namespace Sitrep.Host.IntegrationTests
             // Planned again with the burn, the relay passes the command on without waiting.
             var now = Pending(world).Single();
             Reckoned.True(
-                now.PredictedHeldAt == null && now.PredictedHeldUntilUt == null,
+                now.PredictedHeldAt == null && now.PredictedHeldUntilUt == null && now.PredictedHeldFromUt == null,
                 "the command is still predicted to wait at " + now.PredictedHeldAt + " until " + now.PredictedHeldUntilUt + ", by the plan from before the relay's burn was heard");
             Reckoned.True(
                 now.PredictedArrivalUt != null && Math.Abs(now.PredictedArrivalUt.Value - sent.PredictedArrivalUt!.Value) > 1.0,
@@ -70,6 +72,18 @@ namespace Sitrep.Host.IntegrationTests
             Reckoned.True(
                 now.PredictedReplyUt != null && now.PredictedReplyUt > now.PredictedArrivalUt,
                 "the reply is not predicted after the arrival planned again: " + now.PredictedReplyUt);
+        }
+
+        [Fact]
+        public async Task AHeldCommandIsPredictedToReachTheRelayAfterItIsSentAndBeforeItLeaves()
+        {
+            var (world, sent) = await HeldAtTheRelayAsync();
+            await using var _ = world;
+
+            var from = Assert.NotNull(sent.PredictedHeldFromUt);
+            // The relay is a light-time out from home, so the command is on its way before it waits.
+            Assert.True(from > sent.DispatchedAt, "reaches the relay at " + from + ", no later than it was sent at " + sent.DispatchedAt);
+            Assert.True(from < sent.PredictedHeldUntilUt!.Value, "reaches the relay at " + from + ", not before it leaves at " + sent.PredictedHeldUntilUt);
         }
 
         [Fact]
@@ -86,6 +100,7 @@ namespace Sitrep.Host.IntegrationTests
             var now = Pending(world).Single();
             Assert.Equal(sent.PredictedHeldAt, now.PredictedHeldAt);
             Assert.Equal(sent.PredictedHeldUntilUt!.Value, now.PredictedHeldUntilUt!.Value, 6);
+            Assert.Equal(sent.PredictedHeldFromUt!.Value, now.PredictedHeldFromUt!.Value, 6);
             Assert.Equal(sent.PredictedArrivalUt!.Value, now.PredictedArrivalUt!.Value, 6);
             Assert.Equal(sent.PredictedReplyUt!.Value, now.PredictedReplyUt!.Value, 6);
             Assert.Equal(sent.CancelDeadlineUt!.Value, now.CancelDeadlineUt!.Value, 6);

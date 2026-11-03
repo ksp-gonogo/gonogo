@@ -121,6 +121,26 @@ export interface CommandFailure extends CommandLoss {
 }
 
 /**
+ * One command the mod accepted with a warning, as a widget renders it: a
+ * continuous input the sending centre's plan says will be dropped where it
+ * would have to wait at a relay. Useful for telling the operator that an input
+ * is likely to be lost while it is still on its way. Listed in the `warnings`
+ * that {@link useCommand} returns while the command is in flight.
+ *
+ * @category Commands
+ */
+export interface CommandWarning {
+  /** The dispatch's request id. */
+  id: string;
+  /** The command id that was dispatched. */
+  command: string;
+  /** The dispatch's own operator-facing description; `""` when it carried none. */
+  label: string;
+  /** What the mod said, as a sentence to show. */
+  warning: string;
+}
+
+/**
  * One command that was reported lost and then replied to after all, as a widget
  * renders it. Useful for telling the operator what a command reported lost
  * actually did. Listed in the `founds` that {@link useCommand} returns.
@@ -212,6 +232,8 @@ export type CommandStatus =
       requestId: string;
       /** When the reply is due, in seconds on the clock the client was built with. In the running app that clock counts from the page's start, so this is not a game UT. */
       etaConfirm: number;
+      /** The mod has answered the send by accepting it for its flight to the target; absent until it does, and for a command that never waits on a delay, which is answered by its reply alone. */
+      accepted?: true;
       /** What the mod said of a command it accepted against the odds, as a sentence to show: a continuous input that its centre's plan says will be dropped on the way. Absent for an ordinary command. */
       warning?: string;
     }

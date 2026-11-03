@@ -236,7 +236,7 @@ export function ActionGroupView({
                 text={
                   streamDown
                     ? STREAM_DOWN_TIP
-                    : ((confirmation === "held"
+                    : ((confirmation === "held" || confirmation === "modelled"
                         ? null
                         : confirmationSentence) ??
                       unavailableReason ??

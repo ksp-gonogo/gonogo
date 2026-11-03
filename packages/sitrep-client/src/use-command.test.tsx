@@ -275,6 +275,7 @@ function DeployWithInFlight() {
       <span>
         phases:{cmd.inFlight.map((item) => item.predictedPhase).join(",")}
       </span>
+      <span>ids:{cmd.inFlight.map((item) => item.id).join(",")}</span>
       <CommandDelay handle={cmd} />
     </div>
   );
@@ -616,7 +617,7 @@ describe("useCommand inFlight", () => {
       oneWaySeconds: 2,
     };
 
-    /* Another client's dispatch whose engine counter happens to read like this client's requestId: not ours. */
+    /* Another client's dispatch whose engine counter happens to read like this client's requestId: drawn as theirs, never as ours. */
     act(() => {
       fixture.transport.emit(
         "system.uplink.pending",
@@ -624,7 +625,7 @@ describe("useCommand inFlight", () => {
         { validAt: 0, deliveredAt: 0 },
       );
     });
-    expect(screen.queryByText("phases:in-transit")).toBeNull();
+    expect(screen.getByText("ids:other-client")).toBeTruthy();
 
     act(() => {
       fixture.transport.emit(
@@ -633,9 +634,110 @@ describe("useCommand inFlight", () => {
         { validAt: 0, deliveredAt: 0 },
       );
     });
-    await waitFor(() =>
-      expect(screen.getByText("phases:in-transit")).toBeTruthy(),
+    await waitFor(() => expect(screen.getByText(`ids:${id}`)).toBeTruthy());
+    expect(screen.getByText("phases:in-transit")).toBeTruthy();
+  });
+
+  it("draws a command another screen of the centre sent, until its entry leaves the queue", async () => {
+    const fixture = setupFixture();
+    render(
+      <fixture.Provider>
+        <DeployWithInFlight />
+      </fixture.Provider>,
     );
+    act(() => {
+      fixture.transport.emit(
+        "comms.link",
+        { connected: true },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+    const entry = {
+      id: "engine-3",
+      clientRequestId: "station-ab12:c1",
+      command: "deploy",
+      label: "Deploy",
+      topic: "",
+      vantage: "ksc",
+      dispatchedAt: 0,
+      oneWaySeconds: 20,
+    };
+    act(() => {
+      fixture.transport.emit(
+        "system.uplink.pending",
+        { pending: [entry, { ...entry, id: "engine-4", command: "other" }] },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+    expect(screen.getByText("ids:station-ab12:c1")).toBeTruthy();
+    expect(screen.getByText("phases:in-transit")).toBeTruthy();
+
+    act(() => {
+      fixture.transport.emit(
+        "system.uplink.pending",
+        { pending: [] },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+    expect(screen.getByText("count:0")).toBeTruthy();
+  });
+
+  it("keeps another screen's command the queue shows overdue, until dismissed", async () => {
+    const fixture = setupFixture();
+    function Dismissing() {
+      const cmd = useCommand("deploy");
+      return (
+        <div>
+          <span>ids:{cmd.inFlight.map((item) => item.id).join(",")}</span>
+          <span>
+            phases:{cmd.inFlight.map((item) => item.predictedPhase).join(",")}
+          </span>
+          <button type="button" onClick={() => cmd.dismiss("station-ab12:c1")}>
+            dismiss
+          </button>
+        </div>
+      );
+    }
+    render(
+      <fixture.Provider>
+        <Dismissing />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.transport.emit(
+        "system.uplink.pending",
+        {
+          pending: [
+            {
+              id: "engine-3",
+              clientRequestId: "station-ab12:c1",
+              command: "deploy",
+              label: "Deploy",
+              topic: "",
+              vantage: "ksc",
+              dispatchedAt: 0,
+              oneWaySeconds: 20,
+              laneSeq: 1,
+              replyOverdueUt: -1,
+            },
+          ],
+        },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+    expect(screen.getByText("phases:overdue")).toBeTruthy();
+
+    act(() => {
+      fixture.transport.emit(
+        "system.uplink.pending",
+        { pending: [] },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+    expect(screen.getByText("phases:overdue")).toBeTruthy();
+
+    fireEvent.click(screen.getByText("dismiss"));
+    await waitFor(() => expect(screen.getByText("ids:")).toBeTruthy());
   });
 
   it("stops tracking a dispatch that never gets a queue entry after five real seconds, with the game paused", async () => {
@@ -2313,5 +2415,131 @@ describe("useCommand: a refusal the mod's check returned, then the state it was 
     await waitFor(() => {
       expect(captured.handle?.gateFor(args)?.blocked).toBe(false);
     });
+  });
+});
+
+describe("useCommand acceptance and warnings", () => {
+  function Throttle() {
+    const cmd = useCommand("deploy");
+    const accepted =
+      cmd.status.phase === "in-flight" ? String(cmd.status.accepted) : "-";
+    return (
+      <div>
+        <button type="button" onClick={() => void cmd.send(1).catch(() => {})}>
+          go
+        </button>
+        <span>accepted:{accepted}</span>
+        <span>warnings:{cmd.warnings.map((w) => w.warning).join("|")}</span>
+      </div>
+    );
+  }
+
+  it("marks a send accepted when the mod accepts it, and lists its warning while it is in flight", async () => {
+    const fixture = setupFixture();
+    render(
+      <fixture.Provider>
+        <Throttle />
+      </fixture.Provider>,
+    );
+    fixture.transport.holdCommands();
+    fireEvent.click(screen.getByText("go"));
+    const [id] = fixture.transport.sentCommands.map((c) => c.requestId);
+    expect(screen.getByText("accepted:undefined")).toBeTruthy();
+    expect(screen.getByText("warnings:")).toBeTruthy();
+
+    act(() => {
+      fixture.transport.emitRaw({
+        type: "command-accepted",
+        requestId: id,
+        oneWaySeconds: 20,
+        warning: "lost if it has to wait at Duna Relay",
+      });
+    });
+    await waitFor(() => expect(screen.getByText("accepted:true")).toBeTruthy());
+    expect(
+      screen.getByText("warnings:lost if it has to wait at Duna Relay"),
+    ).toBeTruthy();
+
+    act(() => fixture.transport.answerHeldCommands());
+    await waitFor(() => expect(screen.getByText("warnings:")).toBeTruthy());
+  });
+
+  const queued = (clientRequestId: string, warning?: string) => ({
+    id: `engine-${clientRequestId}`,
+    clientRequestId,
+    command: "deploy",
+    label: "Throttle",
+    topic: "",
+    vantage: "ground:Kerbin: KSC",
+    dispatchedAt: 1000,
+    oneWaySeconds: null,
+    predictedHeldAt: "relay-1",
+    predictedReplyUt: 1100,
+    ...(warning ? { warning } : {}),
+  });
+
+  it("lists the warning on a command another screen of the centre sent, while it is on the queue", async () => {
+    const fixture = setupFixture();
+    render(
+      <fixture.Provider>
+        <Throttle />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.transport.emit(
+        "system.uplink.pending",
+        {
+          pending: [
+            queued("station-ab12:c1", "lost if it has to wait at Duna Relay"),
+          ],
+        },
+        { validAt: 1000, deliveredAt: 1000 },
+      );
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByText("warnings:lost if it has to wait at Duna Relay"),
+      ).toBeTruthy(),
+    );
+
+    act(() => {
+      fixture.transport.emit(
+        "system.uplink.pending",
+        { pending: [] },
+        { validAt: 1000, deliveredAt: 1000 },
+      );
+    });
+    await waitFor(() => expect(screen.getByText("warnings:")).toBeTruthy());
+  });
+
+  it("lists its own warning once when the mod says it both in the acceptance and on the queue", async () => {
+    const fixture = setupFixture();
+    render(
+      <fixture.Provider>
+        <Throttle />
+      </fixture.Provider>,
+    );
+    fixture.transport.holdCommands();
+    fireEvent.click(screen.getByText("go"));
+    const [id] = fixture.transport.sentCommands.map((c) => c.requestId);
+    act(() => {
+      fixture.transport.emitRaw({
+        type: "command-accepted",
+        requestId: id,
+        warning: "lost if it has to wait at Duna Relay",
+      });
+      fixture.transport.emit(
+        "system.uplink.pending",
+        {
+          pending: [queued(id, "lost if it has to wait at Duna Relay")],
+        },
+        { validAt: 1000, deliveredAt: 1000 },
+      );
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByText("warnings:lost if it has to wait at Duna Relay"),
+      ).toBeTruthy(),
+    );
   });
 });
