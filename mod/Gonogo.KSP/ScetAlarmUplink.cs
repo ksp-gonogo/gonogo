@@ -551,15 +551,6 @@ namespace Gonogo.KSP
 
             lock (_gate)
             {
-                if (_roster.BelongsToAnotherSave(args.Save))
-                {
-                    // The client keeps its alarms across saves; one made in
-                    // another save must not enter this game or its save file.
-                    return CommandResult.Fail(
-                        CommandErrorCode.WrongState,
-                        "this alarm was made in save '" + args.Save + "' and the loaded save is '" + _roster.Save + "'");
-                }
-
                 var subject = ScetAlarmVantage.SubjectOf(args);
                 if (_roster.NamesAnotherCraft(subject))
                 {
@@ -720,7 +711,6 @@ namespace Gonogo.KSP
                 lock (_gate)
                 {
                     _roster.ObserveGame(game);
-                    _roster.ObserveSave(HighLogic.SaveFolder);
                     _roster.ObserveFlownCraft(flown != null ? "vessel:" + flown.id : null);
                     tick = _roster.BeginTick(ut);
                     // After the tick has opened: a rewind clears the roster there,

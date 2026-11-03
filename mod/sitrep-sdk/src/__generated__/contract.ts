@@ -7366,13 +7366,6 @@ export interface ScetAlarm
 	* player's edit in the game, replace what the save held.
 	*/
 	restored: boolean;
-	/**
-	* The save the alarm was armed in, as the game names its folder. Empty when
-	* the game had not named a save yet. A client keeps it with the alarm and
-	* sends it back in `ScetAlarmArmArgs.save`, so an alarm made in one save is
-	* never armed into another.
-	*/
-	save: string;
 }
 /**
 * The notice that an alarm judged on the craft's own clock (a SCET alarm, for
@@ -7447,14 +7440,6 @@ export interface ScetAlarmArmArgs
 	vantage: string;
 	/** See `ScetAlarm.subject`. Empty is read as `"game"`. */
 	subject: string;
-	/**
-	* The save the client made the alarm in, as read off `ScetAlarm.save`. Empty
-	* for an alarm whose save the client has not been told yet, which is accepted
-	* and stamped with the loaded save. An arm naming a save other than the loaded
-	* one is refused with `CommandErrorCode.WrongState`, and the detail names the
-	* loaded save.
-	*/
-	save: string;
 	/** What the alarm watches for. See `ScetAlarmCondition`. */
 	condition: ScetAlarmCondition;
 	/**

@@ -181,8 +181,6 @@ namespace Sitrep.Host.Alarms
 
         private string? _game;
 
-        private string? _save;
-
         /// <summary>
         /// Whether an <see cref="Arm"/> or a <see cref="Disarm"/> has moved the
         /// roster since the last <see cref="Evaluate"/> reported on it.
@@ -238,32 +236,6 @@ namespace Sitrep.Host.Alarms
             _pendingChange |= cleared;
             return cleared;
         }
-
-        /// <summary>The save folder of the loaded game, or null before the game has named one.</summary>
-        public string? Save => _save;
-
-        /// <summary>
-        /// Tell the roster which save is loaded. Every alarm armed from now on is
-        /// stamped with it, and one restored without a stamp takes it.
-        /// </summary>
-        public void ObserveSave(string? save)
-        {
-            if (string.IsNullOrEmpty(save))
-            {
-                return;
-            }
-            _save = save;
-        }
-
-        /// <summary>
-        /// Whether an arm naming <paramref name="save"/> was made in a save other
-        /// than the loaded one. An arm naming none, or a roster that has not been
-        /// told its save, is not.
-        /// </summary>
-        public bool BelongsToAnotherSave(string? save) =>
-            !string.IsNullOrEmpty(save)
-            && !string.IsNullOrEmpty(_save)
-            && !string.Equals(save, _save, StringComparison.Ordinal);
 
         /// <summary>
         /// Tell the roster which craft is being flown, <paramref name="craft"/>
@@ -351,7 +323,6 @@ namespace Sitrep.Host.Alarms
                 State = ScetAlarmState.Armed,
                 FiredAtUt = null,
                 OnFire = Copy(args.OnFire),
-                Save = string.IsNullOrEmpty(args.Save) ? _save ?? "" : args.Save,
                 ActsOn = args.OnFire != null && args.OnFire.Count > 0
                     ? ScetAlarmActions.ActsOnOf(args)
                     : "",
@@ -499,12 +470,7 @@ namespace Sitrep.Host.Alarms
                     {
                         continue;
                     }
-                    var kept = Duplicate(alarm, restored: true);
-                    if (string.IsNullOrEmpty(kept.Save))
-                    {
-                        kept.Save = _save ?? "";
-                    }
-                    _entries.Add(new Entry { Alarm = kept });
+                    _entries.Add(new Entry { Alarm = Duplicate(alarm, restored: true) });
                     changed = true;
                 }
             }
@@ -1032,7 +998,6 @@ namespace Sitrep.Host.Alarms
             GameAlarmId = a.GameAlarmId,
             GameEdits = a.GameEdits,
             Restored = restored || a.Restored,
-            Save = a.Save,
         };
 
         private static List<ScetAlarmAction> Copy(List<ScetAlarmAction>? actions)

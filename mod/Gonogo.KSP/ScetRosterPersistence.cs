@@ -43,7 +43,6 @@ namespace Gonogo.KSP
                 row.AddValue("vantage", alarm.Vantage ?? "");
                 row.AddValue("subject", alarm.Subject ?? "");
                 row.AddValue("actsOn", alarm.ActsOn ?? "");
-                row.AddValue("save", alarm.Save ?? "");
                 row.AddValue("gameEdits", alarm.GameEdits.ToString(CultureInfo.InvariantCulture));
                 if (alarm.GameAlarmId.HasValue)
                 {
@@ -122,7 +121,6 @@ namespace Gonogo.KSP
                 Vantage = row.GetValue("vantage") ?? "",
                 Subject = row.GetValue("subject") ?? "game",
                 ActsOn = row.GetValue("actsOn") ?? "",
-                Save = row.GetValue("save") ?? "",
                 State = ScetAlarmState.Armed,
                 Condition = new ScetAlarmCondition
                 {

@@ -1351,7 +1351,6 @@
       "id": "id",
       "name": "text",
       "restored": "flag",
-      "save": "id",
       "state": "enum",
       "subject": "id",
       "vantage": "id",
@@ -1365,7 +1364,6 @@
       "actsOn": "id",
       "id": "id",
       "name": "text",
-      "save": "id",
       "subject": "id",
       "vantage": "id"
     },
@@ -1918,7 +1916,6 @@
       "id": "id",
       "name": "text",
       "restored": "flag",
-      "save": "id",
       "state": "enum",
       "subject": "id",
       "vantage": "id",

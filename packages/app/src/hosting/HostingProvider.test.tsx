@@ -102,8 +102,6 @@ describe("the hosting piece's connection", () => {
       onForeignFired: () => {},
       onArmRefused: () => {},
       onArmAccepted: () => {},
-      onOtherSave: () => {},
-      onSaveLearned: () => {},
       armedIds: new LocalStorageStore<readonly string[]>({
         key: "armed",
         defaults: [],

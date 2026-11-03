@@ -187,12 +187,6 @@ export interface Alarm {
   name: string;
   /** How many of the player's edits to this alarm's copy in the game's alarm clock this list has taken. */
   gameEditsSeen?: number;
-  /**
-   * The save the alarm was armed in, as the game names its folder, read off the
-   * roster row the first time the simulation holds it. Absent until then. An
-   * alarm is only ever armed in the save it names.
-   */
-  save?: string;
   notes?: string;
   trigger: AlarmTrigger;
   state: AlarmState;

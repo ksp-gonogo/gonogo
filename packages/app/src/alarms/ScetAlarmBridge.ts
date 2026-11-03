@@ -118,15 +118,6 @@ export interface ScetAlarmBridgeContext {
   onArmRefused(id: string, reason: string): void;
   /** Wall clock, injected so the retry interval is drivable from a test. */
   nowMs(): number;
-  /**
-   * Whether the loaded save is one this alarm was not made in: the simulation
-   * refused its arm on those grounds (`true`), or has since accepted or holds
-   * it (`false`). An alarm of another save is neither listed nor planned
-   * against.
-   */
-  onOtherSave(id: string, otherSave: boolean): void;
-  /** The roster row for this alarm names the save it was armed in, and the alarm did not yet. */
-  onSaveLearned(id: string, save: string): void;
   /** The arm went through, so any refusal recorded against this id is stale. */
   onArmAccepted(id: string): void;
   /**
@@ -440,10 +431,7 @@ export class ScetAlarmBridge {
       this.askAgainLater(alarm.id);
       return;
     }
-    const outcome = this.dispatch(SCET_ARM_COMMAND, {
-      ...armed,
-      save: alarm.save ?? "",
-    });
+    const outcome = this.dispatch(SCET_ARM_COMMAND, armed);
     if (!outcome.routed) {
       logger.warn("alarm-host: SCET arm not routed", { id: alarm.id });
       this.askAgainLater(alarm.id);
@@ -460,7 +448,6 @@ export class ScetAlarmBridge {
       if (refusal === undefined) {
         this.owed.delete(alarm.id);
         this.unanswered.delete(alarm.id);
-        this.ctx.onOtherSave(alarm.id, false);
         this.ctx.onArmAccepted(alarm.id);
         return;
       }
@@ -480,19 +467,6 @@ export class ScetAlarmBridge {
          names only the command, so it reads identically for every refusal of
          the arm and tells an operator nothing about their alarm. */
       const reason = refusal.detail ?? refusal.message;
-      if (refusal.errorCode === CommandErrorCode.WrongState) {
-        /* The loaded save is not the one this alarm was made in. Nothing about
-           the alarm is wrong, so it is kept and not shown as refused; it is
-           asked again on the slow cadence, which is how it comes back live
-           when its own save is loaded again. */
-        this.ctx.onOtherSave(alarm.id, true);
-        this.askAgainLater(alarm.id);
-        logger.debug("alarm-host: alarm belongs to another save", {
-          id: alarm.id,
-          reason,
-        });
-        return;
-      }
       if (refusal.errorCode === CommandErrorCode.NotClearToProceed) {
         /* Nothing about the alarm is wrong: the simulation has not been told
            what places exist yet, which is the main menu and the ticks before
@@ -740,8 +714,6 @@ export class ScetAlarmBridge {
       this.rosterEdits = readRosterEdits(payload);
       this.rosterSeen = true;
       this.commandedSinceRoster.clear();
-      for (const row of this.rosterAlarms) this.ctx.onOtherSave(row.id, false);
-      this.learnSaves(payload);
       const cancelled = readIdsInState(payload, ScetAlarmState.Cancelled);
       if (cancelled.length > 0) this.ctx.onCancelled(cancelled);
       const deleted = readIdsInState(payload, ScetAlarmState.DeletedInGame);
@@ -780,21 +752,6 @@ export class ScetAlarmBridge {
       if (row.state !== "fired" || row.firedAtUt == null) continue;
       if (!ours.has(row.id) || this.owed.has(row.id)) continue;
       this.ctx.onFired(row.id, row.firedAtUt, false);
-    }
-  }
-
-  /** Give each alarm of this list that has no save the one its roster row names. */
-  private learnSaves(payload: unknown): void {
-    if (!Array.isArray(payload)) return;
-    const ours = new Map(this.ctx.getAlarms().map((a) => [a.id, a]));
-    for (const row of payload) {
-      const id = readId(row);
-      if (id === null || typeof row !== "object" || row === null) continue;
-      const save: unknown = Reflect.get(row, "save");
-      const alarm = ours.get(id);
-      if (alarm && !alarm.save && typeof save === "string" && save !== "") {
-        this.ctx.onSaveLearned(id, save);
-      }
     }
   }
 

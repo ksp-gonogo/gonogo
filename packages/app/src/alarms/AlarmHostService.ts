@@ -152,14 +152,6 @@ export class AlarmHostService {
    */
   private unevaluated = new Set<string>();
 
-  /**
-   * Ids of alarms made in a save other than the loaded one, as the simulation
-   * said when it refused their arm. They stay in the stored list so that
-   * loading their own save brings them back, and are left out of every list
-   * this screen shows and plans against meanwhile.
-   */
-  private otherSave = new Set<string>();
-
   constructor(host: PeerHostService | null, opts: AlarmHostOptions = {}) {
     this.opts = {
       nowMs: opts.nowMs ?? (() => Date.now()),
@@ -237,17 +229,6 @@ export class AlarmHostService {
         this.scetArmRefusals.set(id, reason);
         this.emit();
       },
-      onOtherSave: (id, other) => {
-        if (other ? this.otherSave.has(id) : !this.otherSave.delete(id)) return;
-        if (other) this.otherSave.add(id);
-        this.emit();
-      },
-      onSaveLearned: (id, save) => {
-        const idx = this.alarms.findIndex((a) => a.id === id);
-        if (idx < 0 || this.alarms[idx].save) return;
-        this.alarms[idx] = { ...this.alarms[idx], save };
-        this.persist();
-      },
       onArmAccepted: (id) => {
         if (this.scetArmRefusals.delete(id)) this.emit();
       },
@@ -278,10 +259,9 @@ export class AlarmHostService {
    * last read for it, which is what the warp ladder and the rows plan against.
    */
   private alarmsWithFollowedInstants(): Alarm[] {
-    const here = this.alarms.filter((a) => !this.otherSave.has(a.id));
     const followed = this.scetBridge?.followedInstants();
-    if (!followed || followed.size === 0) return here;
-    return here.map((alarm) => {
+    if (!followed || followed.size === 0) return [...this.alarms];
+    return this.alarms.map((alarm) => {
       const ut = followed.get(alarm.id);
       return ut === undefined ? alarm : { ...alarm, followedUT: ut };
     });
