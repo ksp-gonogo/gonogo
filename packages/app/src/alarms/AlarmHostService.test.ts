@@ -420,13 +420,14 @@ describe("AlarmHostService", () => {
     expect(svc.snapshot().unscheduledWarp).toBeNull();
   });
 
-  it("suppresses the unscheduled-warp flag when a station just announced a warp intent", async () => {
+  it("still flags the unscheduled warp when a station just announced a warp intent", async () => {
     const { svc, telemetry } = makeService();
+    telemetry.set("t.universalTime", 1200);
     svc.registerStationWarpIntent();
     telemetry.set("t.currentRateIndex", 3);
     telemetry.set("t.currentRate", 10);
     await vi.advanceTimersByTimeAsync(1100);
-    expect(svc.snapshot().unscheduledWarp).toBeNull();
+    expect(svc.snapshot().unscheduledWarp).not.toBeNull();
   });
 
   it("keeps an announced warp unflagged for as long as that rate holds", async () => {
@@ -990,6 +991,32 @@ describe("AlarmHostService", () => {
       return { svc, telemetry, captured };
     }
 
+    it("sends no rate command after a station's press lands over the peer link mid warp-to", async () => {
+      const { svc, telemetry, captured } = makeServiceWithHost();
+      svc.addAlarm({
+        name: "Far",
+        trigger: { kind: "time", ut: 100_000, leadSeconds: 10 },
+      });
+      svc.beginWarpTo();
+      await Promise.resolve();
+      await Promise.resolve();
+      telemetry.set("t.currentRateIndex", 2);
+      telemetry.set("t.currentRate", 10);
+      await vi.advanceTimersByTimeAsync(1100);
+      telemetry.calls.length = 0;
+
+      captured.warpIntentCb?.("peer-1");
+      telemetry.set("t.currentRateIndex", 1);
+      telemetry.set("t.currentRate", 5);
+      await vi.advanceTimersByTimeAsync(5000);
+      await Promise.resolve();
+
+      expect(svc.snapshot().warpTo).toBeNull();
+      expect(
+        telemetry.calls.filter((c) => c.startsWith("time.setWarpIndex")),
+      ).toEqual([]);
+    });
+
     it("creates an alarm when a peer broadcasts alarm-add (with peerId as createdBy)", async () => {
       const { svc, captured } = makeServiceWithHost();
       expect(captured.addCb).not.toBeNull();
@@ -1038,13 +1065,14 @@ describe("AlarmHostService", () => {
       expect(svc.snapshot().unscheduledWarp).toBeNull();
     });
 
-    it("suppresses unscheduled-warp detection after a peer warp-intent event", async () => {
+    it("does not suppress unscheduled-warp detection after a peer warp-intent event", async () => {
       const { svc, telemetry, captured } = makeServiceWithHost();
+      telemetry.set("t.universalTime", 1200);
       captured.warpIntentCb?.("peer-1");
       telemetry.set("t.currentRateIndex", 3);
       telemetry.set("t.currentRate", 10);
       await vi.advanceTimersByTimeAsync(1100);
-      expect(svc.snapshot().unscheduledWarp).toBeNull();
+      expect(svc.snapshot().unscheduledWarp).not.toBeNull();
     });
 
     it("broadcasts alarm-snapshot on every emit and alarm-fired when an alarm fires", async () => {

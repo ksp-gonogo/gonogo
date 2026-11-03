@@ -533,9 +533,13 @@ export class AlarmHostService {
     if (this.warp.endOnExternalStop()) this.emit();
   }
 
-  /** The peer-mesh entry point for the same announcement. */
+  /**
+   * A station's rate press, heard over the peer link. Ends a running warp-to and
+   * nothing else: the command centre's unscheduled-warp banner still flags the
+   * warp, since the ground is meant to see one it did not ask for.
+   */
   registerStationWarpIntent(): void {
-    this.announceWarpIntent();
+    this.endWarpToForManualRate();
   }
 
   /**
