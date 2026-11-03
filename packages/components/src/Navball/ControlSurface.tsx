@@ -10,7 +10,14 @@ import {
   ToggleButton,
   Unit,
 } from "@ksp-gonogo/ui-kit";
-import type { ComponentProps, CSSProperties } from "react";
+import {
+  type ComponentProps,
+  type CSSProperties,
+  type MouseEvent,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
 import { clamp } from "./input";
 import {
   modeShort,
@@ -39,6 +46,8 @@ interface ControlSurfaceProps {
   delaySeconds: number | null;
   /** The one-way delay as read, so a held figure is marked. */
   oneWayDelay: ComponentProps<typeof Countdown>["value"];
+  /** Called with whether any section is open, each time that changes. */
+  onSectionsOpenChange?: (anyOpen: boolean) => void;
 }
 
 /** A press disarms whenever the craft may be holding the stick, so the one safe action is always a click away. */
@@ -79,12 +88,53 @@ export function ControlSurface({
   showFbwDelayWarning,
   delaySeconds,
   oneWayDelay,
+  onSectionsOpenChange,
 }: ControlSurfaceProps) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const onChangeRef = useRef(onSectionsOpenChange);
+  onChangeRef.current = onSectionsOpenChange;
+  const anyOpenRef = useRef(false);
+  const reportOpen = useCallback((anyOpen: boolean) => {
+    if (anyOpen === anyOpenRef.current) return;
+    anyOpenRef.current = anyOpen;
+    onChangeRef.current?.(anyOpen);
+  }, []);
+  /*
+   * The press is reported in the click's own capture phase, so the layout that
+   * holds what sits above the sections is committed together with the section
+   * opening. Watching the attribute afterwards lands a frame late, and the
+   * column would shrink first.
+   */
+  const reportPress = (e: MouseEvent<HTMLDivElement>) => {
+    const el = wrapRef.current;
+    const header = (e.target as Element).closest("button[aria-expanded]");
+    if (!el || !header || !el.contains(header)) return;
+    const opening = header.getAttribute("aria-expanded") === "false";
+    const open = el.querySelectorAll('button[aria-expanded="true"]').length;
+    reportOpen(opening || open > 1);
+  };
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el || typeof MutationObserver === "undefined") return;
+    const mo = new MutationObserver(() =>
+      reportOpen(el.querySelector('button[aria-expanded="true"]') !== null),
+    );
+    mo.observe(el, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["aria-expanded"],
+    });
+    return () => {
+      mo.disconnect();
+      reportOpen(false);
+    };
+  }, [reportOpen]);
   const throttleBlockedBecause = disabled
     ? NOT_CONTROLLABLE
     : "The throttle command is not reported";
   return (
-    <div style={CONTROL_WRAP}>
+    <div ref={wrapRef} style={CONTROL_WRAP} onClickCapture={reportPress}>
       <Disclosure
         variant="inline"
         panelHeight="auto"

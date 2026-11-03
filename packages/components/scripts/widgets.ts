@@ -220,6 +220,15 @@ const WIDGETS: WidgetRenderConfig[] = [
         ],
         forFixtures: ["control-delay"],
       },
+      // Only the SAS mode section opened.
+      {
+        name: "default-8x15-sas-open",
+        w: 8,
+        h: 15,
+        config: { controlMode: true },
+        clicks: [{ selector: 'button[aria-label="SAS Mode"]' }],
+        forFixtures: ["north-level"],
+      },
       // Only the throttle section opened.
       {
         name: "default-8x15-throttle-open",
@@ -261,6 +270,14 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "full-7x20", w: 7, h: 20, config: { controlMode: true } },
       // The smallest tile that carries the control surface, folded and with both sections opened.
       { name: "smallest-7x13", w: 7, h: 13, config: { controlMode: true } },
+      {
+        name: "smallest-7x13-sas-open",
+        w: 7,
+        h: 13,
+        config: { controlMode: true },
+        clicks: [{ selector: 'button[aria-label="SAS Mode"]' }],
+        forFixtures: ["north-level"],
+      },
       {
         name: "smallest-7x13-open",
         w: 7,

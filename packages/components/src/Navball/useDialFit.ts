@@ -31,11 +31,14 @@ export function useDialFit({
   controlSurface,
   controlRowWanted,
   dialPossible,
+  held,
 }: {
   reserveThrottle: boolean;
   controlSurface: boolean;
   controlRowWanted: boolean;
   dialPossible: boolean;
+  /** Keeps the last fit while true, so opening a section below the attitude column leaves its dial where it was. */
+  held: boolean;
 }): {
   /**
    * The largest square dial the attitude column fits on both axes: the fit
@@ -43,6 +46,8 @@ export function useDialFit({
    * so. 180 until a ResizeObserver reports.
    */
   dialFit: number;
+  /** The attitude column's measured height; 0 until a ResizeObserver reports. */
+  columnHeight: number;
   /** Whether the readout's three cells fit on one line; true until a ResizeObserver reports. */
   readoutAcross: boolean;
   /** The attitude column's measured width, which the numeric readout scales its figures against; 0 until a ResizeObserver reports. */
@@ -55,6 +60,8 @@ export function useDialFit({
   const [dialFit, setDialFit] = useState(180);
   const [readoutAcross, setReadoutAcross] = useState(true);
   const [columnWidth, setColumnWidth] = useState(0);
+  const [columnHeight, setColumnHeight] = useState(0);
+  const heldRef = useRef(false);
   const throttleReservedRef = useRef(false);
   const controlModeRef = useRef(false);
   const [controlRowYielded, setControlRowYielded] = useState(false);
@@ -69,6 +76,7 @@ export function useDialFit({
   const dialObserverRef = useRef<ResizeObserver | null>(null);
   // The ResizeObserver closure reads these refs.
   controlModeRef.current = controlSurface;
+  heldRef.current = held;
   throttleReservedRef.current = reserveThrottle;
   controlRowWantedRef.current = controlRowWanted;
   dialPossibleRef.current = dialPossible;
@@ -155,7 +163,7 @@ export function useDialFit({
         for (const e of entries) {
           const w = e.contentRect.width;
           const h = e.contentRect.height;
-          if (w <= 0 || h <= 0) continue;
+          if (w <= 0 || h <= 0 || heldRef.current) continue;
           // Reserved by tile width, not by the column's visibility, which rides `showDial` and would make the fit oscillate.
           const throttleReserve = throttleReservedRef.current ? 42 : 0;
           const fit = Math.min(w - throttleReserve, h - ATTITUDE_CHROME_PX);
@@ -167,6 +175,7 @@ export function useDialFit({
           // The readout carries no throttle bar, so it gets the full width.
           setReadoutAcross(w >= READOUT_TRIPLE_PX);
           setColumnWidth(Math.floor(w));
+          setColumnHeight(Math.floor(h));
         }
       });
       ro.observe(el);
@@ -197,6 +206,7 @@ export function useDialFit({
     dialFit,
     readoutAcross,
     columnWidth,
+    columnHeight,
     showControlRow: controlRowWanted && !controlRowYielded,
     attachAttitude,
     attachControlRow,

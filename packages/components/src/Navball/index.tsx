@@ -23,7 +23,7 @@ import {
   Section,
   useRailEntry,
 } from "@ksp-gonogo/ui-kit";
-import { type CSSProperties, useMemo } from "react";
+import { type CSSProperties, useMemo, useState } from "react";
 import { magnitudeOf } from "../shared/magnitude";
 import { AppliedInput } from "./AppliedInput";
 import { AttitudeIndicator } from "./AttitudeIndicator";
@@ -348,10 +348,12 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
   const showControlSurface =
     controlMode && rows >= CONTROL_SURFACE_ROWS && cols >= 7;
   const gridWantsDial = rows >= 6 && cols >= 4;
+  const [sectionsOpen, setSectionsOpen] = useState(false);
   const {
     dialFit,
     readoutAcross,
     columnWidth,
+    columnHeight,
     showControlRow,
     attachAttitude,
     attachControlRow,
@@ -360,6 +362,7 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
     controlSurface: showControlSurface,
     controlRowWanted: cols >= 5 && rows >= CONTROL_ROW_MIN_ROWS,
     dialPossible: gridWantsDial && attitudeObserved,
+    held: sectionsOpen && showControlSurface,
   });
   /*
    * Grid units say whether a dial is wanted; the measured fit says whether one
@@ -385,12 +388,24 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
           key="attitude"
           fill
           {...(showControlSurface
-            ? { style: CONTROL_ATTITUDE }
+            ? {
+                style:
+                  sectionsOpen && columnHeight > 0
+                    ? HELD_ATTITUDE
+                    : CONTROL_ATTITUDE,
+              }
             : showDial
               ? {}
               : { style: READOUT_FLOOR })}
         >
-          <div ref={attachAttitude} style={ATTITUDE_COLUMN}>
+          <div
+            ref={attachAttitude}
+            style={
+              showControlSurface && sectionsOpen && columnHeight > 0
+                ? { ...ATTITUDE_COLUMN, flex: "none", height: columnHeight }
+                : ATTITUDE_COLUMN
+            }
+          >
             {showDial ? (
               <div style={DIAL_WRAP}>
                 <AttitudeIndicator
@@ -478,6 +493,7 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
               showFbwDelayWarning={showFbwDelayWarning}
               delaySeconds={delaySeconds}
               oneWayDelay={oneWayDelay}
+              onSectionsOpenChange={setSectionsOpen}
             />
           </Section>
         ) : null,
@@ -518,6 +534,13 @@ const READOUT_FLOOR: CSSProperties = { flexShrink: 0, minHeight: 0 };
 const CONTROL_ATTITUDE: CSSProperties = {
   flex: `0 1 ${CONTROL_DIAL_CAP_PX + ATTITUDE_CHROME_PX}px`,
 };
+
+/**
+ * The attitude section while a section below it is open: it keeps the height
+ * it had folded, so the dial, the figures and the rows above the open section
+ * stay put and the panel body scrolls to the rest.
+ */
+const HELD_ATTITUDE: CSSProperties = { flex: "0 0 auto", minHeight: 0 };
 
 /** The room left under the control surface, which holds nothing and so has no floor of its own. */
 const SPARE_ROOM: CSSProperties = { minHeight: 0 };
