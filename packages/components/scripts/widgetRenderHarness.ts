@@ -226,12 +226,6 @@ export interface WidgetRenderConfig {
   slug?: string;
   /** Fixtures directory path relative to `packages/components/src/`. */
   fixturesPath: string;
-  /**
-   * Also fail a chart caption that a line, polyline or small mark of its own
-   * drawing runs through. Off by default: charts with gridlines or discs
-   * behind their labels draw them there on purpose.
-   */
-  captionsClearOfShapes?: boolean;
   /** Output directory path relative to `local_docs/`. */
   outPath: string;
   /** Grid-size variants to render every fixture at. */
@@ -1158,22 +1152,12 @@ async function findOverlappingSections(page: Page): Promise<string[]> {
  * the slanted rectangle it is drawn as, and an overlap must exceed the same
  * tolerance, so lines set tight against each other do not report.
  */
-async function findOverlappingSvgText(
-  page: Page,
-  shapes = false,
-): Promise<string[]> {
-  // The transpiler wraps a named helper in `__name`, which the page does not have.
-  await page.evaluate("window.__name = window.__name || ((f) => f)");
+async function findOverlappingSvgText(page: Page): Promise<string[]> {
   return page.evaluate(
-    ([tolerance, withShapes]) => {
+    ([tolerance]) => {
       const host = document.getElementById("root");
       if (!host) return [] as string[];
-      type Item = {
-        text: string;
-        id: string;
-        quad: number[][];
-        svg: Element | null;
-      };
+      type Item = { text: string; id: string; quad: number[][] };
       const items: Item[] = [];
       for (const el of Array.from(host.querySelectorAll("svg text"))) {
         const text = (el.textContent ?? "").replace(/\s+/g, " ").trim();
@@ -1207,12 +1191,7 @@ async function findOverlappingSvgText(
             toScreen.b * cx + toScreen.d * cy + toScreen.f,
           ]);
         }
-        items.push({
-          text,
-          id: el.id ? `#${el.id}` : "",
-          quad,
-          svg: el.closest("svg"),
-        });
+        items.push({ text, id: el.id ? `#${el.id}` : "", quad });
       }
       const out: string[] = [];
       for (let i = 0; i < items.length; i++) {
@@ -1255,102 +1234,9 @@ async function findOverlappingSvgText(
           );
         }
       }
-      // A caption against the chart's own lines and marks: sample each line, polyline and circle of the same drawing and report one that runs through the caption's box.
-      const inside = (item: Item, x: number, y: number): boolean => {
-        const [q0, q1, , q3] = item.quad;
-        const e1x = q1[0] - q0[0];
-        const e1y = q1[1] - q0[1];
-        const e2x = q3[0] - q0[0];
-        const e2y = q3[1] - q0[1];
-        const w = Math.hypot(e1x, e1y);
-        const h = Math.hypot(e2x, e2y);
-        if (w === 0 || h === 0) return false;
-        const u = ((x - q0[0]) * e1x + (y - q0[1]) * e1y) / w;
-        const v = ((x - q0[0]) * e2x + (y - q0[1]) * e2y) / h;
-        return (
-          u > tolerance &&
-          u < w - tolerance &&
-          v > tolerance &&
-          v < h - tolerance
-        );
-      };
-      const shapePoints = (shape: Element): number[][] => {
-        const toScreen = (shape as SVGGraphicsElement).getScreenCTM();
-        if (!toScreen) return [];
-        const map = (x: number, y: number): number[] => [
-          toScreen.a * x + toScreen.c * y + toScreen.e,
-          toScreen.b * x + toScreen.d * y + toScreen.f,
-        ];
-        const along = (a: number[], b: number[]): number[][] => {
-          const pts: number[][] = [];
-          const n = Math.max(
-            2,
-            Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 1.5),
-          );
-          for (let i = 0; i <= n; i++) {
-            pts.push([
-              a[0] + ((b[0] - a[0]) * i) / n,
-              a[1] + ((b[1] - a[1]) * i) / n,
-            ]);
-          }
-          return pts;
-        };
-        const tag = shape.tagName.toLowerCase();
-        if (tag === "line") {
-          const num = (k: string) => Number(shape.getAttribute(k) ?? 0);
-          return along(map(num("x1"), num("y1")), map(num("x2"), num("y2")));
-        }
-        if (tag === "polyline") {
-          const raw = (shape.getAttribute("points") ?? "")
-            .trim()
-            .split(/[\s,]+/)
-            .map(Number);
-          const pts: number[][] = [];
-          for (let i = 0; i + 3 < raw.length; i += 2) {
-            pts.push(
-              ...along(map(raw[i], raw[i + 1]), map(raw[i + 2], raw[i + 3])),
-            );
-          }
-          return pts;
-        }
-        if (tag === "circle") {
-          const cx = Number(shape.getAttribute("cx") ?? 0);
-          const cy = Number(shape.getAttribute("cy") ?? 0);
-          const r = Number(shape.getAttribute("r") ?? 0);
-          const pts: number[][] = [];
-          for (let i = 0; i < 48; i++) {
-            const t = (i / 48) * Math.PI * 2;
-            pts.push(map(cx + r * Math.cos(t), cy + r * Math.sin(t)));
-          }
-          pts.push(map(cx, cy));
-          return pts;
-        }
-        return [];
-      };
-      for (const item of items) {
-        if (!withShapes || !item.svg) continue;
-        for (const shape of Array.from(
-          item.svg.querySelectorAll("line, polyline, circle"),
-        )) {
-          if (shape.closest("text") || shape.closest("[aria-hidden='true']"))
-            continue;
-          const stroke = shape.getAttribute("stroke");
-          const fill = shape.getAttribute("fill");
-          if (
-            (stroke === null || stroke === "none") &&
-            (fill === null || fill === "none")
-          )
-            continue;
-          if (shapePoints(shape).some(([x, y]) => inside(item, x, y))) {
-            out.push(
-              `<text${item.id}> "${item.text.slice(0, 32)}" ⨯ <${shape.tagName.toLowerCase()}${shape.id ? `#${shape.id}` : ""}> drawn through the caption`,
-            );
-          }
-        }
-      }
       return out;
     },
-    [OVERLAP_TOLERANCE_PX, shapes] as const,
+    [OVERLAP_TOLERANCE_PX] as const,
   );
 }
 
@@ -1586,7 +1472,6 @@ async function proveOverlapDetectorWorks(page: Page): Promise<void> {
       </div>
       <div style="position:absolute;top:900px;left:0;display:flex">
         <svg width="240" height="64" aria-label="captions">
-          <line id="fires-line" x1="0" y1="10" x2="240" y2="10" stroke="#888" stroke-width="1"></line>
           <text id="fires-text-a" x="4" y="14" font-size="10">Pressure (Duna)</text>
           <text id="fires-text-b" x="40" y="14" font-size="10">At 1 km: 4.66 kPa</text>
           <text id="quiet-text-a" x="4" y="40" font-size="10">Pressure (Duna)</text>
@@ -1598,7 +1483,7 @@ async function proveOverlapDetectorWorks(page: Page): Promise<void> {
     host.appendChild(box);
   });
   const found = await findOverlappingSections(page);
-  const foundText = await findOverlappingSvgText(page, true);
+  const foundText = await findOverlappingSvgText(page);
   await page.evaluate(() =>
     document.getElementById("overlap-detector-selfcheck")?.remove(),
   );
@@ -1615,16 +1500,6 @@ async function proveOverlapDetectorWorks(page: Page): Promise<void> {
     throw new Error(
       "The SVG text-overlap detector is BLIND: two captions drawn over each " +
         "other were not reported, so a clean run proves nothing about the charts.\n" +
-        `What it did report: ${foundText.length === 0 ? "nothing" : foundText.join("; ")}`,
-    );
-  }
-  if (
-    !foundText.some(
-      (f) => f.includes("fires-text-a") && f.includes("fires-line"),
-    )
-  ) {
-    throw new Error(
-      "The caption-against-line detector is BLIND: a line drawn through a caption was not reported, so a clean run proves nothing about the charts.\n" +
         `What it did report: ${foundText.length === 0 ? "nothing" : foundText.join("; ")}`,
     );
   }
@@ -2822,10 +2697,7 @@ async function renderOneWidget(
       }
       for (const overlap of [
         ...(await findOverlappingSections(page)),
-        ...(await findOverlappingSvgText(
-          page,
-          config.captionsClearOfShapes === true,
-        )),
+        ...(await findOverlappingSvgText(page)),
       ]) {
         findings.overlaps.push(
           `${config.widgetId} @ ${mode.name} (${sceneLabel}): ${overlap}`,

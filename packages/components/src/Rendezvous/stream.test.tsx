@@ -1,8 +1,8 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { installRendezvousBox } from "../test/rendezvousBox";
+import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { RendezvousComponent } from "./index";
 
@@ -12,19 +12,12 @@ import { RendezvousComponent } from "./index";
  * `vessel.dock` Vec3 fields; docking roll is not on the wire and renders the
  * null placeholder.
  */
-let restoreBox: (() => void) | undefined;
-
-beforeEach(() => {
-  restoreBox = installRendezvousBox();
-});
-
 afterEach(() => {
-  restoreBox?.();
   clearActionHandlers();
 });
 
 describe("Rendezvous: genuinely runs off the stream", () => {
-  it("renders the far-level distance derived from vessel.target's Vec3 fields", async () => {
+  it("renders tracking-mode distance/closing-rate derived from vessel.target's Vec3 fields", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
       suspendFrames: true,
@@ -55,7 +48,7 @@ describe("Rendezvous: genuinely runs off the stream", () => {
     });
 
     await waitFor(() => expect(visibleText()).toContain("10.0 km"));
-    expect(screen.getByText("FAR")).toBeTruthy();
+    expect(visibleText()).toContain("Closing 50.00 m/s");
   });
 
   it("derives docking-HUD alignment angles + forwardDot from vessel.dock", async () => {
@@ -82,23 +75,23 @@ describe("Rendezvous: genuinely runs off the stream", () => {
         relativePosition: { x: 0, y: 0, z: 62 },
         relativeVelocity: { x: 0, y: 0, z: -0.4 },
       });
-      fixture.emit(
-        "vessel.dock",
-        {
-          relativePosition: { x: 2, y: -1.5, z: 40 },
-          relativeVelocity: { x: 0, y: 0, z: -0.40078 },
-          distance: 62,
-          forwardDot: 0.9999,
-        },
-        { validAt: 10, deliveredAt: 10 },
-      );
+      fixture.emit("vessel.dock", {
+        relativePosition: { x: 2, y: -1.5, z: 40 },
+        relativeVelocity: { x: 0, y: 0, z: -0.40078 },
+        distance: 62,
+        forwardDot: 0.9999,
+      });
     });
 
     await waitFor(() =>
-      expect(screen.getByRole("group", { name: "Docking level" })).toBeTruthy(),
+      expect(
+        screen.getByRole("region", {
+          name: "Docking HUD for Docking Port Mk2",
+        }),
+      ).toBeTruthy(),
     );
-    // The port's offset across and up, in metres, as one figure.
-    expect(visibleText()).toContain("2.00 / -1.50 m");
+    // atan2(2, 40) ≈ 2.9° and atan2(-1.5, 40) ≈ -2.1°, each through `<Unit>`; no roll field exists.
+    expect(visibleText()).toContain(`2.9° · -2.1° · ${NULL_DISPLAY}`);
     // The dock distance headlines the HUD, on the `length` ladder.
     expect(visibleText()).toContain("62.0 m");
   });
@@ -176,6 +169,6 @@ describe("Rendezvous: genuinely runs off the stream", () => {
     });
 
     await waitFor(() => expect(screen.getByText("APPROACH")).toBeTruthy());
-    await waitFor(() => expect(visibleText()).toMatch(/T−2min 5s/));
+    expect(visibleText()).toMatch(/T−2min 5s/);
   });
 });

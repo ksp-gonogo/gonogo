@@ -934,8 +934,6 @@ textarea {
   --offset-pad-mark: var(--space-4);
   /* An inline code run in a banner. */
   --inset-code-inline: 0 var(--space-2);
-  /* The sunken backing behind a figure laid over a drawing, so its text reads over the lines under it. */
-  --inset-figure-backing: 0 var(--space-2);
   /* A free-standing sheet of cards, and a card on it. */
   --inset-sheet: var(--space-12);
   --inset-sheet-card: var(--space-8) var(--space-12);

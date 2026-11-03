@@ -74,8 +74,8 @@ export interface RendezvousPicture {
 /**
  * Props passed to every `rendezvous.overlay` and `rendezvous.camera` augment.
  *
- * Both slots are drawn only at the Docking level, which the Rendezvous widget
- * moves to while docking alignment is reported and the target is close. The
+ * Both slots are drawn only in the docking HUD view, which the Rendezvous widget
+ * switches to while docking alignment is reported and the target is close. The
  * overlay sits over the reticle box and the camera slot behind it, as the video
  * backdrop. Positions are measured in pixels from the centre of the HUD's
  * frame.
@@ -146,12 +146,6 @@ export interface RendezvousHudContext {
    * so the augment picks its own. The widget passes it through unread.
    */
   cameraFlightId: number | null | undefined;
-  /**
-   * The circle the camera picture is cut to, in pixels within the camera slot's own box, which the picture fills with `object-fit: cover`: its centre, its radius to the border's inner edge and the border's width. `undefined` while the frame is the rectangle, so an augment draws against the whole box. The widget clips the picture and everything the slot draws to the circle, so a mark drawn outside it is not seen.
-   */
-  pictureCircle?:
-    | { cx: number; cy: number; radius: number; borderWidth: number }
-    | undefined;
 }
 
 // "comm-signal.sections" / ".badges" carry no props today.

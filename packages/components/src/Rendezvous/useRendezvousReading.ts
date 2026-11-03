@@ -1,24 +1,16 @@
 import { defineTopicManifest } from "@ksp-gonogo/core";
-import {
-  useViewClockOptional,
-  useViewUt,
-  withoutReckoning,
-} from "@ksp-gonogo/sitrep-client";
+import { useViewUt, withoutReckoning } from "@ksp-gonogo/sitrep-client";
 import {
   DockingPortState,
   deriveReading,
-  type Reading,
   stillTrue,
   TargetKind,
-  type Value,
 } from "@ksp-gonogo/sitrep-sdk";
-import { useEffect, useReducer } from "react";
 import {
   bare,
-  carryForward,
   closingRateReading,
-  closingSpeed,
   deriveDockAngles,
+  radialSpeed,
   rangeReading,
   vecMagnitude,
 } from "../shared/dockAngles";
@@ -27,7 +19,6 @@ import {
 
 export const rendezvousTopics = defineTopicManifest({
   channels: ["vessel.target", "vessel.dock"],
-  optionalChannels: ["vessel.orbit", "trackingStation.bodies"],
 });
 
 /**
@@ -80,41 +71,12 @@ export function useRendezvousReading() {
         : undefined,
   );
 
-  // The miss distance at that closest approach, read the same way.
-  const closestApproachDistance: Reading<Value<"m">> = deriveReading(
-    targetReading,
-    (t) => t.closestApproach?.distance ?? undefined,
-    (t) => t.closestApproach?.distance ?? undefined,
-  );
-
   const tarRelPos = target?.relativePosition && bare(target.relativePosition);
   const tarRelVelVec =
     target?.relativeVelocity && bare(target.relativeVelocity);
   // Undefined when there is no docking scenario OR the geometry is held; `alignmentWithheld` tells those apart.
+  const dockRelPos = dock?.relativePosition && bare(dock.relativePosition);
   const dockRelVelVec = dock?.relativeVelocity && bare(dock.relativeVelocity);
-  // The position arrives about once a second and the view clock never runs past the newest sample, so between samples it is carried forward on the velocity by the sample's age (the craft's present less the signal delay, past the sample's instant), up to a limit, so the reticle and the camera marks move steadily.
-  const dockSampleBare = dock?.relativePosition && bare(dock.relativePosition);
-  // Only the observation is carried: where the delay model has already reckoned the position on, it is not moved twice.
-  const dockSampleUt =
-    dockReading.state === "observed" && dock === dockReading.value
-      ? dockReading.atUt.valueOf()
-      : undefined;
-  const viewClock = useViewClockOptional();
-  const [, redraw] = useReducer((n: number) => n + 1, 0);
-  const carrying = dockSampleUt !== undefined && dockRelVelVec !== undefined;
-  // The view time stands still between samples, so nothing else draws a frame in that gap: while a position is being carried, each frame of the clock does.
-  useEffect(() => {
-    if (!carrying || viewClock === undefined) return;
-    return viewClock.onFrame(() => redraw());
-  }, [carrying, viewClock]);
-  const dockSampleAge =
-    dockSampleUt !== undefined && viewClock !== undefined
-      ? viewClock.utNowEstimate() - viewClock.delaySeconds() - dockSampleUt
-      : undefined;
-  const dockRelPos =
-    dockSampleBare && dockRelVelVec && dockSampleAge !== undefined
-      ? carryForward(dockSampleBare, dockRelVelVec, dockSampleAge)
-      : dockSampleBare;
   const dockDistanceStream = dock?.distance?.magnitude;
   const dockForwardDot = dock?.forwardDot?.magnitude;
   // Either port reading joined counts: the craft's own port and the target's port move together at a dock, and the target's can be the only one delivered while the own side is between states. Capture is the last state `vessel.dock` delivers before the target clears at the dock, so a captured port counts as joined along with pre-attached and docked.
@@ -136,7 +98,7 @@ export function useRendezvousReading() {
   const tarDistance = tarRelPos ? vecMagnitude(tarRelPos) : undefined;
   const relVel =
     tarRelPos && tarRelVelVec
-      ? closingSpeed(tarRelPos, tarRelVelVec)
+      ? radialSpeed(tarRelPos, tarRelVelVec)
       : undefined;
   // The plain numbers drive the mode machine and guards; these are what the readouts draw, so a held range is marked.
   const rangeR = rangeReading(targetReading.relativePosition);
@@ -153,31 +115,18 @@ export function useRendezvousReading() {
   const dockAz: number | undefined = undefined;
   const dockX = dockRelPos?.x;
   const dockY = dockRelPos?.y;
-  const derivedDockClosing =
+  const derivedDockRelVel =
     dockRelPos && dockRelVelVec
-      ? closingSpeed(dockRelPos, dockRelVelVec)
+      ? radialSpeed(dockRelPos, dockRelVelVec)
       : undefined;
-  // The docking readout prefers the port-to-port closing rate.
-  const dockingClosing = derivedDockClosing ?? relVel;
-  // The range moves on by as much as the carried position's length did, so it keeps pace with the reticle.
-  const carriedBy =
-    dockRelPos !== undefined &&
-    dockSampleBare !== undefined &&
-    dockRelPos !== dockSampleBare
-      ? vecMagnitude(dockRelPos) - vecMagnitude(dockSampleBare)
-      : 0;
-  const dockingDistance =
-    dockDistanceStream !== undefined
-      ? dockDistanceStream + carriedBy
-      : tarDistance;
+  // The docking HUD's Δv row prefers the port-to-port closing rate.
+  const dockingRelVel = derivedDockRelVel ?? relVel;
+  const dockingDistance = dockDistanceStream ?? tarDistance;
   // What dates the docking HUD's figures for an augment drawn over them: the dock reading, unless the distance fell back to a held target range.
   const dockingFiguresReading =
     dockDistanceStream === undefined && targetReading.state === "held"
       ? withoutReckoning(targetReading)
       : dockReading;
-
-  // A docking port is the target: the docking channel is expected to report it once close.
-  const portTargeted = tarKind === TargetKind.Part;
 
   // A real non-body target, read off the ORDINAL: drives the APPROACH view.
   const dockable =
@@ -223,7 +172,6 @@ export function useRendezvousReading() {
     tarName,
     dockable,
     timeToClosestApproach,
-    closestApproachDistance,
     tarDistance,
     relVel,
     rangeR,
@@ -233,14 +181,13 @@ export function useRendezvousReading() {
     dockAz,
     dockX,
     dockY,
-    dockingClosing,
+    dockingRelVel,
     dockingDistance,
     dockingFiguresReading,
     dockForwardDot,
     dockTargetPort,
     dockJoined,
     dockingAvailable,
-    portTargeted,
     alignmentWithheld,
     modelledAlignment,
     outOfContact,

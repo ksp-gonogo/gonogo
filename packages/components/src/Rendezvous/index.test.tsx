@@ -6,8 +6,7 @@ import {
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { useEffect } from "react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { installRendezvousBox } from "../test/rendezvousBox";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -31,22 +30,6 @@ const KIND: Record<string, number> = { Vessel: 0, CelestialBody: 1 };
 
 // Unmounted before clearAugments(), whose notification on a mounted AugmentSlot lands outside act().
 const renderedTrees: Array<() => void> = [];
-
-let restoreBox: (() => void) | undefined;
-
-beforeEach(() => {
-  restoreBox = installRendezvousBox();
-});
-
-afterEach(() => {
-  restoreBox?.();
-});
-
-/** The Docking level's circle, as the circle group named for it. */
-const dockingCircle = () =>
-  screen.getByRole("group", { name: "Docking level" });
-const queryDockingCircle = () =>
-  screen.queryByRole("group", { name: "Docking level" });
 
 function renderWidget(
   fixture: StreamFixture,
@@ -125,7 +108,11 @@ describe("RendezvousComponent", () => {
         forwardDot: 0.99,
       });
     });
-    await waitFor(() => expect(dockingCircle()).toBeInTheDocument());
+    await waitFor(() =>
+      expect(
+        screen.getByRole("region", { name: /Docking HUD for Test Station/ }),
+      ).toBeInTheDocument(),
+    );
   });
 
   it("does NOT enter the docking HUD for a Vessel target with no vessel.dock", async () => {
@@ -145,7 +132,7 @@ describe("RendezvousComponent", () => {
     await waitFor(() =>
       expect(screen.getByText("Free Flyer")).toBeInTheDocument(),
     );
-    expect(queryDockingCircle()).toBeNull();
+    expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull();
     // An eligible rendezvous target lands in the approach view.
     expect(screen.getByText("APPROACH")).toBeInTheDocument();
   });
@@ -164,7 +151,7 @@ describe("RendezvousComponent", () => {
       });
     });
     await waitFor(() => expect(screen.getByText("Mun")).toBeInTheDocument());
-    expect(queryDockingCircle()).toBeNull();
+    expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull();
   });
 
   it("honours autoSwitch=false", async () => {
@@ -183,7 +170,7 @@ describe("RendezvousComponent", () => {
     await waitFor(() =>
       expect(visibleText(container)).toContain("Test Station"),
     );
-    expect(queryDockingCircle()).toBeNull();
+    expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull();
   });
 
   it("applies hysteresis; stays in HUD until distance rises past 150 m", async () => {
@@ -206,7 +193,11 @@ describe("RendezvousComponent", () => {
         forwardDot: 0.99,
       });
     });
-    await waitFor(() => expect(dockingCircle()).toBeInTheDocument());
+    await waitFor(() =>
+      expect(
+        screen.getByRole("region", { name: /Docking HUD/ }),
+      ).toBeInTheDocument(),
+    );
 
     act(() => {
       fixture.emit("vessel.target", {
@@ -217,7 +208,11 @@ describe("RendezvousComponent", () => {
       });
     });
     // 130 m is between the 100 m enter and 150 m exit thresholds; with no settle signal, give the frame a chance to run.
-    await waitFor(() => expect(dockingCircle()).toBeInTheDocument());
+    await waitFor(() =>
+      expect(
+        screen.getByRole("region", { name: /Docking HUD/ }),
+      ).toBeInTheDocument(),
+    );
 
     act(() => {
       fixture.emit("vessel.target", {
@@ -227,7 +222,9 @@ describe("RendezvousComponent", () => {
         relativeVelocity: null,
       });
     });
-    await waitFor(() => expect(queryDockingCircle()).toBeNull());
+    await waitFor(() =>
+      expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull(),
+    );
   });
 
   it("switches to approach mode for Vessel targets between 100 m and 5 km", async () => {
@@ -247,18 +244,12 @@ describe("RendezvousComponent", () => {
       expect(screen.getByText("APPROACH")).toBeInTheDocument(),
     );
     expect(screen.getByText("Test Station")).toBeInTheDocument();
-    // The Approach level's circle is the large one, and its dot is the current one.
-    await waitFor(() =>
-      expect(
-        screen.getByRole("group", { name: "Approach level" }),
-      ).toBeInTheDocument(),
-    );
-    expect(
-      screen.getByRole("button", { name: "Approach level" }),
-    ).toHaveAttribute("aria-current", "step");
+    expect(screen.getByText("Closing rate")).toBeInTheDocument();
+    // Closing: a negative radial rate renders with a minus sign.
+    expect(visibleText()).toMatch(/−3\.4 m\/s/);
   });
 
-  it("never enters the Approach level for CelestialBody targets even at close range", async () => {
+  it("never enters approach mode for CelestialBody targets even at close range", async () => {
     fixture = setupStreamFixture({
       suspendFrames: true,
     });
@@ -295,7 +286,7 @@ describe("RendezvousComponent", () => {
         forwardDot: 0.99,
       });
     });
-    await waitFor(() => expect(screen.getByText("FAR")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("TARGET")).toBeInTheDocument());
 
     act(() => {
       fixture.emit("vessel.target", {
@@ -317,7 +308,11 @@ describe("RendezvousComponent", () => {
         relativeVelocity: null,
       });
     });
-    await waitFor(() => expect(dockingCircle()).toBeInTheDocument());
+    await waitFor(() =>
+      expect(
+        screen.getByRole("region", { name: /Docking HUD/ }),
+      ).toBeInTheDocument(),
+    );
   });
 });
 
@@ -368,7 +363,11 @@ describe("Rendezvous: augment slots", () => {
     });
 
     // Both overlay slots are composed with the passed coordinate frame.
-    await waitFor(() => expect(dockingCircle()).toBeInTheDocument());
+    await waitFor(() =>
+      expect(
+        screen.getByRole("region", { name: /Docking HUD for Test Station/ }),
+      ).toBeInTheDocument(),
+    );
     // jsdom lays nothing out, so the travel is only checked to arrive as pixels; its scale is tested with the geometry.
     expect(screen.getByTestId("ovl").textContent).toMatch(
       /^maxDeg=8\/travel=\d+(\.\d+)?$/,
@@ -417,8 +416,7 @@ describe("Rendezvous: augment slots", () => {
         expect(screen.getByText("No target set in KSP")).toBeInTheDocument(),
       );
       expect(screen.getByTestId("cam")).toBeInTheDocument();
-      // The Docking circle stays up, without its reticle, so the picture is not cut off mid-dock.
-      expect(queryDockingCircle()).toBeInTheDocument();
+      expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull();
       expect(cam.isConnected).toBe(true);
     });
 
@@ -450,7 +448,11 @@ describe("Rendezvous: augment slots", () => {
 
     it("shows no camera in the HUD-only variant", async () => {
       const fixture = openDockingHud({ hudMode: "hud" });
-      await waitFor(() => expect(dockingCircle()).toBeInTheDocument());
+      await waitFor(() =>
+        expect(
+          screen.getByRole("region", { name: /Docking HUD/ }),
+        ).toBeInTheDocument(),
+      );
       act(() => {
         fixture.emit("vessel.target", null);
       });

@@ -57,7 +57,7 @@ interface Mode {
 /**
  * The three shapes the HUD composes differently: the default tile, a tall one
  * where the reticle frame gets most of the height, and the wide-short tile
- * that flips the readouts to a column beside the frame (the wide, short tile, cols >= 12
+ * that flips the readouts to a column beside the frame (`wideShort`, cols >= 12
  * and rows < 6).
  */
 const MODES: Mode[] = [

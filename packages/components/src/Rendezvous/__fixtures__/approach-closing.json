@@ -6,16 +6,8 @@
   },
   "tar.name": "Test Station",
   "tar.type": "Vessel",
-  "tar.relativePosition": {
-    "x": 0,
-    "y": 0,
-    "z": 1800
-  },
-  "tar.relativeVelocityVec": {
-    "x": 0,
-    "y": 0,
-    "z": -4.7
-  },
+  "tar.relativePosition": { "x": 0, "y": 0, "z": 1800 },
+  "tar.relativeVelocityVec": { "x": 0, "y": 0, "z": -4.7 },
   "o.closestTgtApprUT": 5125,
   "_stream": {
     "pinnedUt": 0,
@@ -27,105 +19,11 @@
           "kind": 0,
           "vesselId": "target-vessel",
           "bodyIndex": null,
-          "relativePosition": {
-            "x": 0,
-            "y": 0,
-            "z": 1800
-          },
-          "relativeVelocity": {
-            "x": 0,
-            "y": 0,
-            "z": -4.7
-          },
-          "closestApproach": {
-            "time": 125,
-            "distance": 31.5
-          },
-          "orbit": {
-            "referenceBodyIndex": 1,
-            "sma": 700000.0,
-            "ecc": 0.0001,
-            "inc": 0,
-            "lan": 0,
-            "argPe": 0,
-            "meanAnomalyAtEpoch": 1.0025714285714287,
-            "epoch": 0,
-            "mu": 3531600000000.0,
-            "timeToAp": null,
-            "timeToPe": null,
-            "encounter": null,
-            "patches": [],
-            "horizon": {
-              "kind": 1,
-              "trajectoryKind": 1
-            },
-            "meta": {
-              "source": "vessel:chaser",
-              "quality": 0
-            }
-          }
-        }
-      },
-      {
-        "channel": "vessel.orbit",
-        "value": {
-          "referenceBodyIndex": 1,
-          "sma": 700000.0,
-          "ecc": 0.0001,
-          "inc": 0,
-          "lan": 0,
-          "argPe": 0,
-          "meanAnomalyAtEpoch": 1.0,
-          "epoch": 0,
-          "mu": 3531600000000.0,
-          "timeToAp": null,
-          "timeToPe": null,
-          "encounter": null,
-          "patches": [],
-          "horizon": {
-            "kind": 1,
-            "trajectoryKind": 1
-          },
-          "meta": {
-            "source": "vessel:chaser",
-            "quality": 0
-          }
-        }
-      },
-      {
-        "channel": "trackingStation.bodies",
-        "value": {
-          "bodies": [
-            {
-              "name": "Kerbin",
-              "index": 1,
-              "parentIndex": 0,
-              "radius": 600000,
-              "sphereOfInfluence": 84159286,
-              "gravParameter": 3531600000000.0,
-              "orbit": null,
-              "horizon": {
-                "kind": 1,
-                "trajectoryKind": 1
-              }
-            },
-            {
-              "name": "Mun",
-              "index": 2,
-              "parentIndex": 1,
-              "radius": 200000,
-              "sphereOfInfluence": 2429559,
-              "gravParameter": 65138398000.0,
-              "orbit": null,
-              "horizon": {
-                "kind": 1,
-                "trajectoryKind": 1
-              }
-            }
-          ]
+          "relativePosition": { "x": 0, "y": 0, "z": 1800 },
+          "relativeVelocity": { "x": 0, "y": 0, "z": -4.7 },
+          "closestApproach": { "time": 5125, "distance": 0 }
         }
       }
     ]
-  },
-  "tar.closestApproachDistance": 31.5
+  }
 }

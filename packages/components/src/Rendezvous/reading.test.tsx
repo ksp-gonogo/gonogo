@@ -6,7 +6,6 @@ import { declareTestReckonable } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { installRendezvousBox } from "../test/rendezvousBox";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { RendezvousComponent } from "./index";
 
@@ -19,16 +18,12 @@ import { RendezvousComponent } from "./index";
  * The reckoner registry is module-level, so each test starts from core's own
  * models alone rather than inheriting one an earlier test registered.
  */
-let restoreBox: (() => void) | undefined;
-
 beforeEach(() => {
-  restoreBox = installRendezvousBox();
   clearReckoners();
   registerCoreReckoners();
 });
 
 afterEach(() => {
-  restoreBox?.();
   clearActionHandlers();
 });
 
@@ -116,6 +111,7 @@ describe("Rendezvous: stale renders the last observation as an observation", () 
       (el) => (el.textContent ?? "").replace(/\s+/g, " "),
     );
     expect(marked.some((text) => text.includes("10.0 km"))).toBe(true);
+    expect(marked.some((text) => text.includes("50.00 m/s"))).toBe(true);
     // And it is not passed off as current.
     expect(screen.queryByText("No target set in KSP")).toBeNull();
     expect(screen.queryByText("Waiting for target telemetry")).toBeNull();
@@ -217,7 +213,11 @@ describe("Rendezvous: stale renders the last observation as an observation", () 
       });
     });
     await waitFor(() =>
-      expect(screen.getByRole("group", { name: "Docking level" })).toBeTruthy(),
+      expect(
+        screen.getByRole("region", {
+          name: "Docking HUD for Docking Port Mk2",
+        }),
+      ).toBeTruthy(),
     );
 
     act(() => {
@@ -227,7 +227,11 @@ describe("Rendezvous: stale renders the last observation as an observation", () 
 
     // An alignment reticle from data known to be missing updates asserts something about NOW it cannot know.
     await waitFor(() =>
-      expect(screen.queryByRole("group", { name: "Docking level" })).toBeNull(),
+      expect(
+        screen.queryByRole("region", {
+          name: "Docking HUD for Docking Port Mk2",
+        }),
+      ).toBeNull(),
     );
     expect(document.querySelector("[data-held]")).not.toBeNull();
   });

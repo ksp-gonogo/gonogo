@@ -2,8 +2,6 @@ import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { snapshotWidgetMode } from "../test/widgetDomSnapshot";
 import approach from "./__fixtures__/approach-closing.json";
-import opening from "./__fixtures__/approach-opening.json";
-import encounter from "./__fixtures__/body-encounter.json";
 import body from "./__fixtures__/celestial-body-tracking.json";
 import aligned from "./__fixtures__/docking-aligned.json";
 import misaligned from "./__fixtures__/docking-misaligned.json";
@@ -17,9 +15,7 @@ const FIXTURES: Record<string, Record<string, unknown>> = {
   "no-target": noTarget,
   "far-approach-vessel": far,
   "celestial-body-tracking": body,
-  "body-encounter": encounter,
   "approach-closing": approach,
-  "approach-opening": opening,
   "docking-aligned": aligned,
   "docking-misaligned": misaligned,
 };

@@ -2,8 +2,7 @@ import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { Staleness } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { installRendezvousBox } from "../test/rendezvousBox";
+import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { RendezvousComponent } from "./index";
 
@@ -15,14 +14,7 @@ import { RendezvousComponent } from "./index";
  * `Staleness.Held` on the dock point, the wire shape for one channel not
  * being current.
  */
-let restoreBox: (() => void) | undefined;
-
-beforeEach(() => {
-  restoreBox = installRendezvousBox();
-});
-
 afterEach(() => {
-  restoreBox?.();
   clearActionHandlers();
 });
 
@@ -83,7 +75,9 @@ describe("Rendezvous: the dock channel alone stops being current", () => {
     const { fixture, emitTarget } = mountAtDockingRange();
 
     await waitFor(() =>
-      expect(screen.getByRole("group", { name: "Docking level" })).toBeTruthy(),
+      expect(
+        screen.getByRole("region", { name: "Docking HUD for Port Mk2" }),
+      ).toBeTruthy(),
     );
     // The notice cannot be on screen while the alignment is current.
     expect(visibleText()).not.toMatch(/withheld/i);
@@ -114,7 +108,7 @@ describe("Rendezvous: the dock channel alone stops being current", () => {
     expect(visibleText()).not.toMatch(/last seen|\bago\b/i);
     // A modelled reticle is not a withheld one: two opposite captions on one instrument is worse than either.
     expect(visibleText()).not.toMatch(/withheld/i);
-    expect(visibleText()).toContain("2.00 / -1.50 m");
+    expect(visibleText()).toContain("α/β/γ");
   });
 
   it("withholds the reticle, and says why, once the model declines too", async () => {
@@ -122,7 +116,9 @@ describe("Rendezvous: the dock channel alone stops being current", () => {
     const { fixture, emitTarget } = mountAtDockingRange();
 
     await waitFor(() =>
-      expect(screen.getByRole("group", { name: "Docking level" })).toBeTruthy(),
+      expect(
+        screen.getByRole("region", { name: "Docking HUD for Port Mk2" }),
+      ).toBeTruthy(),
     );
 
     act(() => {
@@ -141,7 +137,7 @@ describe("Rendezvous: the dock channel alone stops being current", () => {
 
     // Withheld, not frozen.
     await waitFor(() =>
-      expect(screen.queryByRole("group", { name: "Docking level" })).toBeNull(),
+      expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull(),
     );
     // The reason is named, so withheld reads differently from broken, and time is left to Unit.
     expect(screen.getByText("Docking alignment withheld")).toBeTruthy();
@@ -152,13 +148,16 @@ describe("Rendezvous: the dock channel alone stops being current", () => {
     // The target-derived figures keep being drawn: one instrument withheld, not the widget giving up.
     expect(screen.getByText("APPROACH")).toBeTruthy();
     expect(visibleText()).toContain("62.0 m");
+    expect(visibleText()).toMatch(/−0\.4 m\/s/);
   });
 
   it("blames nothing when the pairing is genuinely gone rather than held", async () => {
     // A tombstone means the pairing is genuinely gone, with nothing to caption; staleness is about the link.
     const { fixture, emitTarget } = mountAtDockingRange();
     await waitFor(() =>
-      expect(screen.getByRole("group", { name: "Docking level" })).toBeTruthy(),
+      expect(
+        screen.getByRole("region", { name: "Docking HUD for Port Mk2" }),
+      ).toBeTruthy(),
     );
 
     act(() => {
@@ -214,7 +213,9 @@ describe("Rendezvous under signal delay", () => {
   it("draws a current alignment as observed across the light-time, never as the model's", async () => {
     mountDelayed(20);
     await waitFor(() =>
-      expect(screen.getByRole("group", { name: "Docking level" })).toBeTruthy(),
+      expect(
+        screen.getByRole("region", { name: "Docking HUD for Port Mk2" }),
+      ).toBeTruthy(),
     );
     expect(screen.queryByText(/Alignment reckoned/)).toBeNull();
   });
@@ -222,7 +223,9 @@ describe("Rendezvous under signal delay", () => {
   it("captions nothing when there is no light-time to carry it across", async () => {
     mountDelayed(0);
     await waitFor(() =>
-      expect(screen.getByRole("group", { name: "Docking level" })).toBeTruthy(),
+      expect(
+        screen.getByRole("region", { name: "Docking HUD for Port Mk2" }),
+      ).toBeTruthy(),
     );
     expect(screen.queryByText(/Alignment reckoned/)).toBeNull();
   });
@@ -258,11 +261,8 @@ describe("Rendezvous's time to closest approach under signal delay", () => {
     });
     await waitFor(() => expect(visibleText()).toMatch(/1min 40s/));
     expect(visibleText()).not.toMatch(/2min/);
-    // The range carries a modelled figure of its own, so pick the one beside the countdown.
-    const modelled = [...document.querySelectorAll("[data-held]")].find((el) =>
-      /1min 40s/.test(el.textContent ?? ""),
-    );
-    expect(modelled).toBeDefined();
+    const modelled = document.querySelector("[data-held]");
+    expect(modelled?.textContent).toMatch(/1min 40s/);
     expect(modelled?.querySelector("[data-held-mark]")).not.toBeNull();
   });
 });

@@ -18,33 +18,6 @@ export function bare<Unit extends string>(v: Vec3Of<Unit>): Vec3 {
   return { x: v.x.magnitude, y: v.y.magnitude, z: v.z.magnitude };
 }
 
-/** The longest a port's last position is carried forward on its velocity, seconds: past it the figure is held rather than run on. */
-export const CARRY_FORWARD_MAX_S = 2;
-
-/**
- * Where the target port is `seconds` after the sample that gave `position` and
- * `velocity`, both in the own port's frame: the position moved on at the
- * velocity, so a figure that arrives once a second moves smoothly between
- * samples. The time is held to {@link CARRY_FORWARD_MAX_S}, and the axial
- * distance never carried across zero, which is contact.
- */
-export function carryForward(
-  position: Vec3,
-  velocity: Vec3,
-  seconds: number,
-): Vec3 {
-  const dt = Number.isFinite(seconds)
-    ? Math.min(Math.max(seconds, 0), CARRY_FORWARD_MAX_S)
-    : 0;
-  if (dt === 0) return position;
-  const z = position.z + velocity.z * dt;
-  return {
-    x: position.x + velocity.x * dt,
-    y: position.y + velocity.y * dt,
-    z: position.z * z < 0 ? 0 : z,
-  };
-}
-
 export function vecMagnitude(v: Vec3): number {
   return Math.hypot(v.x, v.y, v.z);
 }
@@ -61,17 +34,6 @@ export function radialSpeed(
   return dot / distance;
 }
 
-/** How fast the range is closing, positive while the two are approaching; `undefined` at zero separation. */
-export function closingSpeed(
-  position: Vec3,
-  velocity: Vec3,
-): number | undefined {
-  const rate = radialSpeed(position, velocity);
-  if (rate === undefined) return undefined;
-  // Negating zero would give minus zero, which prints a minus sign.
-  return rate === 0 ? 0 : -rate;
-}
-
 /** Range to a target as a Reading, carrying the separation vector's currency. */
 export function rangeReading(
   relativePosition: Reading<Vec3Of<"m">>,
@@ -81,7 +43,7 @@ export function rangeReading(
   );
 }
 
-/** {@link closingSpeed} as a Reading, positive while approaching; coincident vectors carry no value, since the rate is unknown, not zero. */
+/** {@link radialSpeed} as a Reading; coincident vectors carry no value, since the rate is unknown, not zero. */
 export function closingRateReading(
   relativePosition: Reading<Vec3Of<"m">>,
   relativeVelocity: Reading<Vec3Of<"m/s">>,
@@ -89,26 +51,19 @@ export function closingRateReading(
   return combineReadings(
     [relativePosition, relativeVelocity],
     (separation, motion) => {
-      const rate = closingSpeed(bare(separation), bare(motion));
+      const rate = radialSpeed(bare(separation), bare(motion));
       return rate === undefined ? undefined : value("m/s", rate);
     },
   );
 }
 
-/** Inside this separation along the approach axis, in metres, the angles are taken as if the port were that far: a few centimetres off at contact is not a large angle. */
-export const NEAR_AXIS_M = 3;
-
 /**
  * Line-of-sight alignment in degrees off boresight, taking the port frame's
- * `z` as the approach axis. There is no roll: the wire carries none. Inside
- * {@link NEAR_AXIS_M} along the axis the angle is that of the same offset at
- * that separation, so it holds the offset in metres rather than growing as the
- * ports touch.
+ * `z` as the approach axis. There is no roll: the wire carries none.
  */
 export function deriveDockAngles(position: Vec3): { ax: number; ay: number } {
-  const along = Math.max(Math.abs(position.z), NEAR_AXIS_M);
-  const ax = (Math.atan2(position.x, along) * 180) / Math.PI;
-  const ay = (Math.atan2(position.y, along) * 180) / Math.PI;
+  const ax = (Math.atan2(position.x, Math.abs(position.z)) * 180) / Math.PI;
+  const ay = (Math.atan2(position.y, Math.abs(position.z)) * 180) / Math.PI;
   return { ax, ay };
 }
 

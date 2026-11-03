@@ -600,7 +600,7 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
     const user = userEvent.setup();
     renderPicker(fixture);
     act(() => {
-      // kind 0 is "Vessel"; |relativePosition| 1500 is the distance; the negated dot(relPos, relVel)/|relPos|, 2.5, is closing.
+      // kind 0 is "Vessel"; |relativePosition| 1500 is the distance; dot(relPos, relVel)/|relPos| of -2.5 is closing.
       fixture.emit("vessel.target", {
         name: "Test Station",
         kind: 0,
@@ -613,7 +613,7 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
       expect(screen.getAllByText("Test Station").length).toBeGreaterThan(0);
       expect(screen.getByText("Vessel")).toBeInTheDocument();
       expect(visibleText()).toContain("1.5 km");
-      expect(visibleText()).toContain("Closing 2.50 m/s");
+      expect(visibleText()).toContain("Closing -2.50 m/s");
     });
 
     await user.click(screen.getByRole("button", { name: "Clear target" }));
