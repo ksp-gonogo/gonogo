@@ -98,7 +98,7 @@ import { usePanZoom } from "./usePanZoom";
 import { VesselInfoPanel } from "./VesselInfoPanel";
 import { vesselPlotStateFromStatus } from "./VesselMarker";
 // Registers the built-in vessel-orbits contribution.
-import { flownCraftEntity } from "./vesselOrbitsContribution";
+import { flownCraftEntity, restsOnBody } from "./vesselOrbitsContribution";
 // Registers the built-in `tracking-station.vessel-status` contribution.
 import "./vesselStatusContribution";
 import "./slots";
@@ -202,23 +202,28 @@ function TrackingStationComponent({
   const controlFrameChoice = useHeldChoice(
     controlFrameToReadFrameChoice(controlFrame, facts),
   );
-  // The dot and orbit are markers, claims about now, so the elements come from a current reading or a model, and otherwise nothing is drawn.
-  const orbitReading = topics.useTelemetry("vessel.orbit");
-  // The observation overlaid by what the conic moved (the phase); `reckoning.value` alone is not an orbit.
-  const orbitObserved =
-    orbitReading.state === "observed" || orbitReading.state === "held"
-      ? orbitReading.value
-      : undefined;
-  const orbit =
-    orbitObserved !== undefined && orbitReading.reckoning.status === "available"
-      ? { ...orbitObserved, ...orbitReading.reckoning.value }
-      : orbitObserved;
   // An identity does not decay: a held SOI index is still which body this craft is around, and it only decides which FRAME the dot belongs in.
   const identityReading = topics.useTelemetry("vessel.identity");
   const identity =
     identityReading.state === "observed" || identityReading.state === "held"
       ? identityReading.value
       : undefined;
+
+  // The dot and orbit are markers, claims about now, so the elements come from a current reading or a model, and otherwise nothing is drawn.
+  const orbitReading = topics.useTelemetry("vessel.orbit");
+  /*
+   * The observation overlaid by what the conic moved (the phase); `reckoning.value` alone is not an orbit.
+   * A craft at rest has none: the game still reports an ellipse for it, one that runs through the planet, so it is a dot at its body.
+   */
+  const orbitObserved =
+    !restsOnBody(identity?.situation) &&
+    (orbitReading.state === "observed" || orbitReading.state === "held")
+      ? orbitReading.value
+      : undefined;
+  const orbit =
+    orbitObserved !== undefined && orbitReading.reckoning.status === "available"
+      ? { ...orbitObserved, ...orbitReading.reckoning.value }
+      : orbitObserved;
 
   // Reckoned contact states arrive as `tracking-station.vessel-status` contributions.
   const vesselGuid =

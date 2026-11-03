@@ -1,6 +1,10 @@
 import { deriveTrueAnomalyDeg } from "@ksp-gonogo/sitrep-client";
 import type { CatalogEntry, Value } from "@ksp-gonogo/sitrep-sdk";
-import { conicElements, ringPlace } from "./vesselOrbitsContribution";
+import {
+  conicElements,
+  restsOnBody,
+  ringPlace,
+} from "./vesselOrbitsContribution";
 
 /** The flown craft as its command centre's record draws it: the conic the record gives, and where on it the craft is at the instant on screen. */
 export interface RecordedCraft {
@@ -45,6 +49,7 @@ export function recordedFlownCraft({
 }): RecordedCraft | null {
   const placedAt = entry?.placeAsOfUt;
   if (entry == null || placedAt == null || ut === undefined) return null;
+  if (restsOnBody(entry.situation)) return null;
   if (!placedAt.isFinite()) return null;
   if (reportEpoch !== undefined && !placedAt.greaterThan(reportEpoch)) {
     return null;

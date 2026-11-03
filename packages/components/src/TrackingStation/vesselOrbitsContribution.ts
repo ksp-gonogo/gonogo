@@ -67,13 +67,17 @@ function crewLabel(v: CatalogEntry): string {
   return capacity != null ? `${count}/${capacity}` : String(count);
 }
 
-/** Whether the craft rests on its body: landed, splashed or pre-launch, the situations that have a place on the surface and no orbit worth drawing. */
-function isOnGround(v: CatalogEntry): boolean {
+/** Whether a situation rests on its body: landed, splashed or pre-launch, the situations that have a place on the surface and no orbit worth drawing. */
+export function restsOnBody(situation: Situation | null | undefined): boolean {
   return (
-    v.situation === Situation.Landed ||
-    v.situation === Situation.Splashed ||
-    v.situation === Situation.PreLaunch
+    situation === Situation.Landed ||
+    situation === Situation.Splashed ||
+    situation === Situation.PreLaunch
   );
+}
+
+function isOnGround(v: CatalogEntry): boolean {
+  return restsOnBody(v.situation);
 }
 
 /** A surface position as signed degrees, such as `-0.05° -74.72°`; null unless both coordinates were read. */
