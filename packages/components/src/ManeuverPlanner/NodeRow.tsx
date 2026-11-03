@@ -1,6 +1,7 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
 import {
   type CarriedCurrency,
+  classifyCommandRejection,
   datedFrom,
   type Value,
   value,
@@ -14,7 +15,7 @@ import {
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { BurnInstants } from "./burnFlown";
 import type { ThrustObservation } from "./conformance";
 import { NodeEditor } from "./NodeEditor";
@@ -64,6 +65,21 @@ export function NodeRow({
 }: NodeRowProps) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  /*
+   * The node's figures when an edit was sent. The editor stays open until the
+   * listed node differs from them, so it closes on the picture the view clock
+   * shows and not on the reply, which arrives before the plan does, and an
+   * edit whose reply was lost still closes when its result turns up.
+   */
+  const [sent, setSent] = useState<{ from: string; replied: boolean } | null>(
+    null,
+  );
+  const figures = figuresOf(node);
+  useEffect(() => {
+    if (sent === null || figures === sent.from) return;
+    setSent(null);
+    setEditing(false);
+  }, [sent, figures]);
   const timeTo = currentUT && value("ut", node.UT).minus(currentUT);
   const dated = <UnitSymbol extends string>(
     figure: ReturnType<typeof value<UnitSymbol>>,
@@ -76,6 +92,7 @@ export function NodeRow({
     thrust?.thrusting ? thrust.startedUt : null,
   );
   const phase = completed ? "ahead" : phaseOf(node, currentUT, lit);
+  const editable = onEdit !== undefined && !completed && phase !== "passed";
   // A burn already flown or in progress has no shortfall to report: the figure is its planned size, and the available total is already being drawn down by the burn.
   const feasible =
     completed ||
@@ -148,7 +165,7 @@ export function NodeRow({
         </div>
       </div>
       <div style={ROW_ACTIONS_STYLE}>
-        {onEdit && !completed && (
+        {editable && (
           <StepButton
             type="button"
             $active={editing}
@@ -170,22 +187,32 @@ export function NodeRow({
           </Button>
         )}
       </div>
-      {editing && onEdit && (
+      {editing && editable && onEdit && (
         <div style={EDIT_PANEL_STYLE}>
           <NodeEditor
             node={node}
             currentUT={currentUT}
             saving={saving}
+            landing={sent?.replied === true}
             onSave={async (patch) => {
               setSaving(true);
               try {
                 await onEdit(patch);
-                setEditing(false);
+                setSent({ from: figures, replied: true });
+              } catch (err) {
+                // A lost reply may still have run, so its landing closes the editor too.
+                if (classifyCommandRejection(err).kind === "lost") {
+                  setSent({ from: figures, replied: false });
+                }
+                throw err;
               } finally {
                 setSaving(false);
               }
             }}
-            onCancel={() => setEditing(false)}
+            onCancel={() => {
+              setSent(null);
+              setEditing(false);
+            }}
           />
         </div>
       )}
@@ -218,6 +245,10 @@ function pastCutoff(
     currentUT !== undefined &&
     currentUT.greaterThan(value("ut", node.cutoffUt ?? node.UT))
   );
+}
+
+function figuresOf(node: ParsedManeuverNode): string {
+  return `${node.UT}|${node.deltaV.join(",")}`;
 }
 
 function instantsOf(node: ParsedManeuverNode): BurnInstants {

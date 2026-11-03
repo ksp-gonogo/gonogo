@@ -176,8 +176,15 @@ export function useNodeCommands(
       prograde: patch.prograde,
     };
     const label = "Update maneuver node";
+    // Outcomes of earlier edits that a confirmed one supersedes.
+    const earlier = [
+      ...updateNodeCmd.refusals,
+      ...updateNodeCmd.failures,
+      ...updateNodeCmd.undelivered,
+    ];
     try {
       await updateNodeCmd.send(args, { label });
+      for (const entry of earlier) updateNodeCmd.dismiss(entry.id);
       setError(null);
     } catch (err) {
       setError(

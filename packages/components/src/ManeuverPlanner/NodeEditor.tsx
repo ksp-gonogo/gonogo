@@ -14,7 +14,10 @@ import {
 interface NodeEditorProps {
   node: ParsedManeuverNode;
   currentUT: Value<"ut"> | undefined;
+  /** True while the edit is on its way to the game. */
   saving: boolean;
+  /** True once the edit was sent and the node still lists its old figures. */
+  landing?: boolean;
   onSave: (patch: NodeEditPatch) => Promise<void>;
   onCancel: () => void;
 }
@@ -23,6 +26,7 @@ export function NodeEditor({
   node,
   currentUT,
   saving,
+  landing = false,
   onSave,
   onCancel,
 }: NodeEditorProps) {
@@ -46,7 +50,15 @@ export function NodeEditor({
         onChange={(next) => setUt(next.magnitude)}
       />
       <EditHint>
-        burn in <Countdown value={timeTo} />
+        {timeTo?.isNegative() ? (
+          <>
+            burn was <Countdown value={timeTo.abs()} /> ago
+          </>
+        ) : (
+          <>
+            burn in <Countdown value={timeTo} />
+          </>
+        )}
       </EditHint>
       {/* Labelled from the burn's own basis, so an unstated one is not given stock's names. */}
       <UnitInput
@@ -78,13 +90,18 @@ export function NodeEditor({
         </SecondaryButton>
         <CompactPrimaryButton
           type="button"
-          onClick={() => void onSave({ ut, radial, normal, prograde })}
-          disabled={saving || !dirty}
+          onClick={() =>
+            // The rejection is drawn by the planner's error line and the delay rail.
+            onSave({ ut, radial, normal, prograde }).catch(() => undefined)
+          }
+          disabled={saving || landing || !dirty}
           disabledReason={
-            saving ? "The node is being saved" : "Nothing has changed"
+            saving || landing
+              ? "The node is being saved"
+              : "Nothing has changed"
           }
         >
-          {saving ? "Saving..." : "Save"}
+          {saving || landing ? "Saving..." : "Save"}
         </CompactPrimaryButton>
       </EditActions>
     </EditGrid>
