@@ -431,8 +431,17 @@ namespace Sitrep.Host.IntegrationTests
         public async Task TheDelayExemptionCannotSpeak()
         {
             await using var scene = await Scene.StartAsync();
-            var refused = await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, Open("g1", B), vantage: ChannelEngine.MetaVantage);
-            Assert.False(refused.Success);
+            await scene.A.SendAsync(EnvelopeCodec.WriteCommandRequest(new CommandRequest<object?>
+            {
+                Type = "command-request",
+                RequestId = "meta-open",
+                Command = CommcastUplink.OpenCommand,
+                Vantage = ChannelEngine.MetaVantage,
+                Args = Open("g1", B),
+                SentAt = 0.0,
+            }));
+            var refused = await ReceiveTypedAsync<ErrorMsg>(scene.A, Timeout);
+            Assert.Equal("meta-open", refused.RequestId);
         }
 
         /// <summary>

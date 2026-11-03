@@ -12173,6 +12173,22 @@ namespace Sitrep.Host
                 return null;
             }
 
+            if (req.Vantage == MetaVantage && !MetaVantageCommands.IsApproved(req.Command))
+            {
+                // The meta vantage skips every delay, so it is open to a declared list
+                // of program commands only. Refused with the reason for the same cause
+                // as above: a demotion to the session vantage would run it somewhere
+                // the client did not ask for.
+                var metaError = new ErrorMsg
+                {
+                    RequestId = req.RequestId,
+                    Code = FaultCode.UnknownVantage,
+                    Message = MetaVantageCommands.RefusalFor(req.Command),
+                };
+                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(metaError)));
+                return null;
+            }
+
             RegisterRoute(session, req.RequestId);
             var home = VantageOf(session);
             var job = MakeDispatchJob(

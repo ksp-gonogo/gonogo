@@ -269,6 +269,47 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// The meta vantage skips every delay, so a command off the declared list is
+        /// refused with its reason and never reaches a handler, even one registered
+        /// for it. The same command from a centre, and an approved command from meta,
+        /// are unaffected.
+        /// </summary>
+        [Fact]
+        public async Task MetaVantage_RefusesACommandThatIsNotOnTheDeclaredList()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterCommandCentreSource(
+                new StaticSource("ground:gs1", CommandCentreKind.GroundStation));
+            var uplink = new RecordVantageTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            engine.TickAndWait(0.0, null, Timeout);
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+
+                await SendCommandAsync(client, "r1", vantage: "meta", command: "not.approved");
+                var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
+                Assert.Equal(FaultCode.UnknownVantage, error.Code);
+                Assert.Equal("r1", error.RequestId);
+                Assert.Equal(MetaVantageCommands.RefusalFor("not.approved"), error.Message);
+                Assert.Contains("meta vantage", error.Message);
+
+                await SendCommandAsync(client, "r2", vantage: "ground:gs1");
+                await ReceiveTypedAsync<CommandResponse<object?>>(client, Timeout);
+
+                await SendCommandAsync(client, "r3", vantage: "meta");
+                await ReceiveTypedAsync<CommandResponse<object?>>(client, Timeout);
+
+                Assert.Equal(new[] { "ground:gs1", "meta" }, uplink.SeenVantages);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// A set-vantage request arrives on a socket thread, and the production
         /// home-node source answers through <c>FindObjectsOfType</c>, which Unity
         /// refuses off its main thread. <see cref="StaticSource"/> never objects to
@@ -414,12 +455,12 @@ namespace Sitrep.Host.IntegrationTests
             Assert.True(violations.Count == 0, "no reply arrived, and a command-centre source was " + string.Join("; ", violations));
         }
 
-        private static Task SendCommandAsync(TestClient client, string requestId, string? vantage) =>
+        private static Task SendCommandAsync(TestClient client, string requestId, string? vantage, string command = RecordVantageTestUplink.Command) =>
             client.SendAsync(EnvelopeCodec.WriteCommandRequest(new CommandRequest<object?>
             {
                 Type = "command-request",
                 RequestId = requestId,
-                Command = RecordVantageTestUplink.Command,
+                Command = command,
                 Vantage = vantage,
                 Args = null,
                 SentAt = 0.0,
@@ -434,7 +475,7 @@ namespace Sitrep.Host.IntegrationTests
             public UplinkHealth Health() => UplinkHealth.Healthy;
 
             public const string UplinkId = "test-record-vantage";
-            public const string Command = "record.vantage";
+            public const string Command = "time.setPaused";
 
             private readonly List<string> _seen = new List<string>();
 
