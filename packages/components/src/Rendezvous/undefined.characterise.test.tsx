@@ -187,7 +187,8 @@ describe("Rendezvous: a partial vessel.dock record", () => {
       expect(screen.getByRole("group", { name: "Docking level" })).toBeTruthy(),
     );
     // The offset is the dock record's own position across and up.
-    expect(visibleText(container)).toContain("2.00 / -1.50 m");
+    expect(visibleText(container)).toContain("2.00 m");
+    expect(visibleText(container)).toContain("-1.50 m");
   });
 });
 

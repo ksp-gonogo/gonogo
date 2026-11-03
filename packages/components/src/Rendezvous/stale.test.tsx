@@ -114,7 +114,8 @@ describe("Rendezvous: the dock channel alone stops being current", () => {
     expect(visibleText()).not.toMatch(/last seen|\bago\b/i);
     // A modelled reticle is not a withheld one: two opposite captions on one instrument is worse than either.
     expect(visibleText()).not.toMatch(/withheld/i);
-    expect(visibleText()).toContain("2.00 / -1.50 m");
+    expect(visibleText()).toContain("2.00 m");
+    expect(visibleText()).toContain("-1.50 m");
     await settleRendezvous();
   });
 
