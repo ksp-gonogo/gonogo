@@ -195,6 +195,31 @@ const WIDGETS: WidgetRenderConfig[] = [
         ],
         forFixtures: ["control-delay", "north-level"],
       },
+      // The panel's delay rail as the strip along the top edge after a throttle command on a delayed stream.
+      {
+        name: "default-8x15-control-rail-strip",
+        w: 8,
+        h: 15,
+        config: { controlMode: true },
+        clicks: [
+          { selector: 'button[aria-label="Throttle controls"]' },
+          { selector: '[role="group"] button', awaitMs: 800 },
+        ],
+        forFixtures: ["control-delay"],
+      },
+      // The panel's delay rail pinned open after a throttle command on a delayed stream, drawing the commanded axes as one graph.
+      {
+        name: "default-8x15-control-rail-pinned",
+        w: 8,
+        h: 15,
+        config: { controlMode: true },
+        clicks: [
+          { selector: 'button[aria-label="Throttle controls"]' },
+          { selector: '[role="group"] button', awaitMs: 800 },
+          { selector: 'button[aria-label="Signal-delay detail"]' },
+        ],
+        forFixtures: ["control-delay"],
+      },
       // Only the throttle section opened.
       {
         name: "default-8x15-throttle-open",

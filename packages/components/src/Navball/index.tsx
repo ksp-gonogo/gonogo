@@ -21,8 +21,9 @@ import {
   derivedMarking,
   Panel,
   Section,
+  useRailEntry,
 } from "@ksp-gonogo/ui-kit";
-import type { CSSProperties } from "react";
+import { type CSSProperties, useMemo } from "react";
 import { magnitudeOf } from "../shared/magnitude";
 import { AppliedInput } from "./AppliedInput";
 import { AttitudeIndicator } from "./AttitudeIndicator";
@@ -30,7 +31,7 @@ import { AttitudeReadout } from "./AttitudeReadout";
 import { ControlSurface, FBW_VIEW } from "./ControlSurface";
 import { ControlToggles } from "./ControlToggles";
 import { type NavballConfig, navballActions } from "./config";
-import { useAxisSetters, useThrottleCommand } from "./controlStreams";
+import { useAxisStreams, useThrottleCommand } from "./controlStreams";
 import { FbwBanner } from "./FbwBanner";
 import { NavballConfigForm } from "./NavballConfigForm";
 import read from "./navball.declarations.g";
@@ -137,9 +138,9 @@ function useNavball({
       : collapseControlStateLevel(comms.controlState);
   const isControllable = controlLevel === undefined || controlLevel > 0;
 
-  const { throttleCmd, setThrottleCmd, throttleKnown } =
+  const { throttleCmd, setThrottleCmd, throttleKnown, throttleStream } =
     useThrottleCommand(throttle);
-  const setAxis = useAxisSetters();
+  const { axisStreams, setAxis } = useAxisStreams();
 
   const {
     sasRaw,
@@ -216,6 +217,8 @@ function useNavball({
     throttleCmd,
     setThrottleCmd,
     throttleKnown,
+    throttleStream,
+    axisStreams,
     sasRaw,
     sasUnavailableReason,
     rcsRaw,
@@ -287,6 +290,8 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
     throttleCmd,
     setThrottleCmd,
     throttleKnown,
+    throttleStream,
+    axisStreams,
     sasRaw,
     sasUnavailableReason,
     rcsRaw,
@@ -307,6 +312,35 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
     delaySeconds,
     oneWayDelay,
   } = useNavball(props);
+
+  /*
+   * The throttle and the fly-by-wire axes are held controls, so the panel's
+   * delay rail draws them as one graph. An axis is on the rail from the moment
+   * it is first commanded, and the rail has no entry at all while none has been.
+   */
+  const railStreams = useMemo(
+    () =>
+      [throttleStream, ...axisStreams].filter(
+        (s) =>
+          s.current !== null || s.inTransit.length > 0 || s.echo.length > 0,
+      ),
+    [throttleStream, axisStreams],
+  );
+  const railEntry = useMemo(
+    () =>
+      controlMode && railStreams.length > 0
+        ? {
+            inFlight: [],
+            tags: throttleStream.tags,
+            effectiveDelaySeconds: delaySeconds,
+            delayReading: oneWayDelay,
+            streams: railStreams,
+            "aria-label": "Navball: controls in flight",
+          }
+        : null,
+    [controlMode, throttleStream.tags, delaySeconds, oneWayDelay, railStreams],
+  );
+  useRailEntry(railEntry);
 
   // The control surface needs ~350px beyond the dial, so a smaller tile degrades control mode to a plain dial.
   const cols = w ?? 8;
@@ -528,7 +562,7 @@ registerComponent<NavballConfig>({
   id: "navball",
   name: "Navball",
   description:
-    "Your vessel's heading, pitch and roll, measured at the root part, or at the centre of mass if the widget's settings say so. The settings can also switch on controls for every SAS mode, throttle, pitch, yaw, roll, RCS translation and trim. Bind a joystick or keyboard key to them on the Inputs tab of the widget's settings to fly the vessel from it.",
+    "Your vessel's heading, pitch and roll, measured at the root part, or at the centre of mass if the widget's settings say so. The settings can also switch on controls for every SAS mode, throttle, pitch, yaw, roll, RCS translation and trim. Bind a joystick or keyboard key to them on the Inputs tab of the widget's settings to fly the vessel from it. Under signal delay, a strip for each control shows the commands still crossing to the craft and the values it has confirmed back.",
   tags: ["telemetry", "control"],
   // Fifteen rows hold the control surface with its sections folded beside a dial as large as the plain default gives.
   defaultSize: { w: 8, h: 15 },

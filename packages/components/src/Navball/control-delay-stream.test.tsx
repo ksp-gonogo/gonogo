@@ -1,12 +1,14 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
+import { openSections } from "../test/openSections";
 import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
 import { NavballComponent } from "./index";
 
+/** Proves the throttle-fed control-delay graph renders once a one-way delay is known, and not at zero delay. */
 const CONTROL_MODE_CONFIG = { controlMode: true };
 // Large enough to clear the control surface's size gate.
 const CONTROL_SIZE = { w: 10, h: 21 };
@@ -29,6 +31,61 @@ function renderControlNavball(instanceId: string, fixture: StreamFixture) {
     </fixture.Provider>,
   );
 }
+
+describe("Navball controls on the panel's delay rail", () => {
+  it("draws nothing on the rail until a control has been commanded, then the throttle", async () => {
+    const fixture = setupStreamFixture({
+      pinnedUt: 0,
+      suspendFrames: true,
+    });
+    renderControlNavball("nav-cds-throttle", fixture);
+    openSections();
+
+    act(() => {
+      fixture.emit("comms.delay", { oneWaySeconds: 1.6 });
+      fixture.emit("vessel.control", { throttle: 0.4 });
+    });
+    await act(async () => {});
+    expect(
+      screen.queryByRole("img", { name: /controls in flight/i }),
+    ).toBeNull();
+
+    act(() => {
+      screen.getByRole("button", { name: "FULL" }).click();
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByRole("img", { name: /controls in flight/i }),
+      ).toBeInTheDocument(),
+    );
+  });
+
+  it("renders nothing at (near) zero one-way delay", async () => {
+    const fixture = setupStreamFixture({
+      pinnedUt: 0,
+      suspendFrames: true,
+    });
+    renderControlNavball("nav-cds-throttle-nodelay", fixture);
+    openSections();
+
+    act(() => {
+      fixture.emit("comms.delay", { oneWaySeconds: 0 });
+      fixture.emit("vessel.control", { throttle: 0.4 });
+    });
+    act(() => {
+      screen.getByRole("button", { name: "FULL" }).click();
+    });
+
+    // Waits past the coalesce interval, inside act() since it keeps updating, so this is a steady state and not "not yet".
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+    });
+
+    expect(
+      screen.queryByRole("img", { name: /controls in flight/i }),
+    ).toBeNull();
+  });
+});
 
 describe("Navball fly-by-wire delay warning", () => {
   it("marks both delay countdowns as held once the delay reading stops arriving", async () => {
