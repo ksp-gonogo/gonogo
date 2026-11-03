@@ -386,6 +386,14 @@ export interface TinyMode<Config = Record<string, unknown>> {
    */
   bindsActions?: boolean;
   /**
+   * Keeps the widget's own component mounted at the tiny size, so the hook
+   * state it holds (commands still in flight, for one) survives a resize in
+   * either direction. The component then draws the tiny form itself, with
+   * `TinyEssentials` from `@ksp-gonogo/ui-kit`, whenever `showsTiny` says so,
+   * and `useEssentials` is not called.
+   */
+  staysMounted?: boolean;
+  /**
    * Draws every essential as a row of equal weight, its label on the left and
    * its figure right-aligned in a column shared by every row, with no large
    * first figure. For a widget whose figures are peers, such as an attitude's

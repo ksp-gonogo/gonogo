@@ -156,6 +156,20 @@ describe("WarpControl: an alarm is required to warp under delay", () => {
     expect(launcher).toHaveBeenCalledTimes(1);
   });
 
+  it("shows the Warp up reason when a mapped warp-up input is refused", async () => {
+    await mount({ oneWaySeconds: 742, pending: [] });
+
+    act(() => {
+      dispatchAction(INSTANCE, "step-up", { kind: "button", value: true });
+    });
+
+    await waitFor(() =>
+      expect(
+        document.querySelector("[data-tooltip-tip]")?.textContent,
+      ).toContain("warping faster needs an alarm set first"),
+    );
+  });
+
   it("sends nothing for a mapped warp-up input while held", async () => {
     const { commandHandler } = await mount({ oneWaySeconds: 742, pending: [] });
 

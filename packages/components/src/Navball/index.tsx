@@ -21,6 +21,7 @@ import {
   derivedMarking,
   Panel,
   Section,
+  TinyEssentials,
   useRailEntry,
 } from "@ksp-gonogo/ui-kit";
 import { type CSSProperties, useMemo, useState } from "react";
@@ -119,7 +120,11 @@ function useNavball({
   // Buttons show the last confirmed control state; in-flight commands are shown by the failure echo and the delay strip.
   const controlReading = topics.useTelemetry("vessel.control");
   const control = lastObserved(controlReading);
-  const sasMode = enumNameOf<SasModeName>(SAS_MODE_NAMES, control?.sasMode);
+  // The game keeps reporting the last mode while SAS is off, and a pressed mode beside SAS OFF reads as a contradiction.
+  const sasMode =
+    control?.sas === false
+      ? undefined
+      : enumNameOf<SasModeName>(SAS_MODE_NAMES, control?.sasMode);
   const availableSasModes = control?.sasModesAvailable
     ? new Set(
         control.sasModesAvailable.flatMap((m) => {
@@ -245,8 +250,20 @@ function useNavball({
 function useNavballEssentials(
   props: Readonly<ComponentProps<NavballConfig>>,
 ): readonly TinyEssential[] {
-  const { heading, pitch, roll, attitudeReading, fbwState, disarmFbw } =
-    useNavball(props);
+  return navballEssentials(useNavball(props));
+}
+
+function navballEssentials({
+  heading,
+  pitch,
+  roll,
+  attitudeReading,
+  fbwState,
+  disarmFbw,
+}: Pick<
+  ReturnType<typeof useNavball>,
+  "heading" | "pitch" | "roll" | "attitudeReading" | "fbwState" | "disarmFbw"
+>): readonly TinyEssential[] {
   const degrees = (angle: number | null) =>
     angle === null ? null : readingOf(attitudeReading, () => value("°", angle));
   const fbw = FBW_VIEW[fbwState];
@@ -273,6 +290,12 @@ function useNavballEssentials(
 
 function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
   const { w, h } = props;
+  const navball = useNavball(props);
+  // The component stays mounted at the tiny size so commands in flight survive a resize.
+  const tiny =
+    w !== undefined &&
+    h !== undefined &&
+    (w < NAVBALL_MIN_SIZE.w || h < NAVBALL_MIN_SIZE.h);
   const {
     controlMode,
     heading,
@@ -311,7 +334,7 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
     showFbwDelayWarning,
     delaySeconds,
     oneWayDelay,
-  } = useNavball(props);
+  } = navball;
 
   /*
    * The throttle and the fly-by-wire axes are held controls, so the panel's
@@ -328,7 +351,7 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
   );
   const railEntry = useMemo(
     () =>
-      controlMode && railStreams.length > 0
+      controlMode && !tiny && railStreams.length > 0
         ? {
             inFlight: [],
             tags: throttleStream.tags,
@@ -338,7 +361,14 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
             "aria-label": "Navball: controls in flight",
           }
         : null,
-    [controlMode, throttleStream.tags, delaySeconds, oneWayDelay, railStreams],
+    [
+      controlMode,
+      tiny,
+      throttleStream.tags,
+      delaySeconds,
+      oneWayDelay,
+      railStreams,
+    ],
   );
   useRailEntry(railEntry);
 
@@ -377,6 +407,16 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
   const fbwOutsideSurface = fbwState !== "off" && !showControlSurface;
   // Under the stacked readout's own floor the figures take one fixed-width line each. A column too narrow for three across stacks them, and five rows cannot hold that stack under the title.
   const compactReadout = rows < 5 || (rows < 6 && !readoutAcross);
+
+  if (tiny) {
+    return (
+      <TinyEssentials
+        title={NAVBALL_TINY.title}
+        essentials={navballEssentials(navball)}
+        equalRows={NAVBALL_TINY.equalRows}
+      />
+    );
+  }
 
   return (
     <Panel
@@ -581,6 +621,17 @@ const NUMERIC_READOUT: CSSProperties = {
   justifyContent: "center",
 };
 
+const NAVBALL_TINY = {
+  title: "NAVBALL",
+  bindsActions: true,
+  staysMounted: true,
+  equalRows: true,
+  useEssentials: useNavballEssentials,
+} as const;
+
+// Below four columns or three rows the tile shows the tiny form.
+const NAVBALL_MIN_SIZE = { w: 4, h: 3 } as const;
+
 registerComponent<NavballConfig>({
   id: "navball",
   name: "Navball",
@@ -590,14 +641,9 @@ registerComponent<NavballConfig>({
   // Fifteen rows hold the control surface with its sections folded beside a dial as large as the plain default gives.
   defaultSize: { w: 8, h: 15 },
   // Below four columns the three figures are the tiny form's, with the title behind a hover.
-  minSize: { w: 4, h: 3 },
+  minSize: NAVBALL_MIN_SIZE,
   component: NavballComponent,
-  tiny: {
-    title: "NAVBALL",
-    bindsActions: true,
-    equalRows: true,
-    useEssentials: useNavballEssentials,
-  },
+  tiny: NAVBALL_TINY,
   configComponent: NavballConfigForm,
   channels: topics.channels,
   ...read,

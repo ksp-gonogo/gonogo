@@ -127,6 +127,7 @@ function useWarpControl(config: WarpControlConfig | undefined) {
   });
 
   const mode = normalizeWarpMode(warp?.warpMode);
+  const [refusedPresses, setRefusedPresses] = useState(0);
   const setWarp = (idx: number) => {
     // Announced before the command, so this screen alone skips its unscheduled-warp alert for it.
     announceWarpIntent?.();
@@ -159,7 +160,11 @@ function useWarpControl(config: WarpControlConfig | undefined) {
   useActionInput<WarpControlActions>({
     "step-up": (payload) => {
       if (payload.kind === "button" && payload.value !== true) return undefined;
-      if (alarmRequired || currentIndex === null) return undefined;
+      if (currentIndex === null) return undefined;
+      if (alarmRequired) {
+        setRefusedPresses((n) => n + 1);
+        return undefined;
+      }
       const next = Math.min(topWarpIndex(mode), currentIndex + 1);
       setWarp(next);
       return { Warp: warpLabel(next, mode) };
@@ -198,6 +203,7 @@ function useWarpControl(config: WarpControlConfig | undefined) {
     effectivePaused,
     alarmRequired,
     blockingDelay,
+    refusedPresses,
     delayReading,
     pending,
     createAlarm,
@@ -258,6 +264,7 @@ function WarpControlComponent({
     effectivePaused,
     alarmRequired,
     blockingDelay,
+    refusedPresses,
     delayReading,
     pending,
     createAlarm,
@@ -284,6 +291,7 @@ function WarpControlComponent({
       paused={effectivePaused}
       alarmRequired={alarmRequired}
       blockingDelay={blockingDelay}
+      refusedPresses={refusedPresses}
       oneWayDelay={delayReading.oneWaySeconds}
       nextAlarm={pending?.[0] ?? null}
       createAlarm={createAlarm}

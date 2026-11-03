@@ -25,6 +25,8 @@ function control(rcs: boolean) {
   };
 }
 
+let view: ReturnType<typeof render>;
+
 async function mount() {
   const fixture = setupStreamFixture({
     pinnedUt: SENT_UT,
@@ -32,7 +34,7 @@ async function mount() {
   });
   fixture.transport.holdCommands();
   fixture.transport.setCommandHandler(() => ({ ok: true }));
-  render(
+  view = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "nav-toggle" }}>
         <NavballComponent config={{}} id="nav-toggle" w={10} h={21} />
@@ -75,6 +77,25 @@ function pressRcs(fixture: StreamFixture, over: Record<string, unknown> = {}) {
 const rcsText = () => screen.getByRole("button", { name: /^RCS/ }).textContent;
 
 describe("Navball toggles over a delayed link", () => {
+  it("keeps an RCS toggle's sent mark through a resize to the tiny size and back", async () => {
+    const fixture = await mount();
+    pressRcs(fixture);
+    expect(rcsText()).toBe("RCS SENT");
+
+    const tile = (w: number, h: number) => (
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "nav-toggle" }}>
+          <NavballComponent config={{}} id="nav-toggle" w={w} h={h} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>
+    );
+    view.rerender(tile(3, 3));
+    expect(screen.queryByRole("button", { name: /^RCS/ })).toBeNull();
+    view.rerender(tile(10, 21));
+    expect(rcsText()).toBe("RCS SENT");
+    await act(async () => {});
+  });
+
   it("says an RCS toggle is sent while the shown state is still the old one", async () => {
     const fixture = await mount();
     expect(rcsText()).toBe("RCS OFF");

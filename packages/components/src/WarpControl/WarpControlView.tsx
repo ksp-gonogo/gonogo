@@ -12,6 +12,7 @@ import {
   Unit,
   type UnitValue,
 } from "@ksp-gonogo/ui-kit";
+import { useEffect, useRef } from "react";
 import type {
   AlarmCreator,
   PendingAlarmSummary,
@@ -50,6 +51,8 @@ export interface WarpControlViewProps {
   paused: boolean | undefined;
   alarmRequired: boolean;
   blockingDelay: "delay" | "no-path" | null;
+  /** Counts the warp-up key presses refused for want of an alarm; each one shows the Warp up button's reason. */
+  refusedPresses: number;
   oneWayDelay: UnitValue<"s"> | null | undefined;
   nextAlarm: PendingAlarmSummary | null;
   /** Absent when no alarm pipeline is mounted, which hides the warp-to targets. */
@@ -73,6 +76,7 @@ export function WarpControlView({
   paused,
   alarmRequired,
   blockingDelay,
+  refusedPresses,
   oneWayDelay,
   nextAlarm,
   createAlarm,
@@ -112,6 +116,20 @@ export function WarpControlView({
     maxIndex < topIdx
       ? `CAP ${warpLabel(maxIndex, mode)}`
       : null;
+  const controlsRef = useRef<HTMLDivElement>(null);
+  const upRung = useRef(0);
+  upRung.current = ladderFor(mode).findIndex((lvl) => lvl.index === upIdx);
+  // Focusing the button a refused key press stood for opens its reason tip, the same one a pointer over it shows.
+  useEffect(() => {
+    if (refusedPresses === 0) return;
+    const root = controlsRef.current;
+    const target =
+      root?.querySelector<HTMLElement>('[aria-label="Warp up"]') ??
+      (root?.querySelector('[role="group"]')?.children[upRung.current] as
+        | HTMLElement
+        | undefined);
+    target?.focus({ preventScroll: true });
+  }, [refusedPresses]);
   const upBlockedBecause = !indexKnown
     ? "The warp level is not reported"
     : alarmRequired
@@ -170,7 +188,7 @@ export function WarpControlView({
               </div>
 
               {/* The alarm row is centred under the buttons it governs, not across the rate readout too. */}
-              <div style={CONTROLS_STYLE}>
+              <div style={CONTROLS_STYLE} ref={controlsRef}>
                 <div style={CONTROL_ROW_STYLE}>
                   {showFullLadder && (
                     // biome-ignore lint/a11y/useSemanticElements: <fieldset> names itself from <legend> and groups form controls; these are grid buttons and it would need UA resets

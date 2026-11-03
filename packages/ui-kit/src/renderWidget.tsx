@@ -186,7 +186,11 @@ function TileContent({
   def,
   ...props
 }: ComponentProps & { def: ComponentDefinition }) {
-  if (def.tiny !== undefined && showsTiny(def, props.w, props.h)) {
+  if (
+    def.tiny !== undefined &&
+    def.tiny.staysMounted !== true &&
+    showsTiny(def, props.w, props.h)
+  ) {
     return <TinyForm tiny={def.tiny} props={props} />;
   }
   const Widget = def.component;

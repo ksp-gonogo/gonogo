@@ -15,6 +15,7 @@ const base: WarpControlViewProps = {
   paused: false,
   alarmRequired: false,
   blockingDelay: null,
+  refusedPresses: 0,
   oneWayDelay: null,
   nextAlarm: null,
   createAlarm: null,

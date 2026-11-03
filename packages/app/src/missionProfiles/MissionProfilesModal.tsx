@@ -23,6 +23,7 @@ import {
 } from "./MissionProfilesService";
 import type { ProfileDashboard } from "./ProfileDashboard";
 import { ProfileInputSlot } from "./ProfileInputSlot";
+import { pulledLayoutContent, pulledLayoutName } from "./pullHostLayout";
 import { useHistoryState } from "./useProfileDashboard";
 
 interface MissionProfilesModalProps {
@@ -215,10 +216,20 @@ export function MissionProfilesModal({
           <HostLayoutsSection
             client={hostLink}
             onUse={(layout) => {
-              dashboard.createLayout(layout.name, {
-                items: layout.items,
-                layout: layout.layout,
-              });
+              dashboard.flush();
+              const own = svc.list();
+              const stationItems = [
+                ...(own.find((p) => p.name.trim() === layout.name.trim())
+                  ?.items ?? []),
+                ...(own.find((p) => p.id === currentId)?.items ?? []),
+              ];
+              dashboard.createLayout(
+                pulledLayoutName(
+                  layout.name,
+                  own.map((p) => p.name),
+                ),
+                pulledLayoutContent(layout, stationItems),
+              );
               onClose?.();
             }}
           />

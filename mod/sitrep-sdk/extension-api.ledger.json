@@ -12949,6 +12949,10 @@
         "note": "Draws every essential as an equal row in shared columns with no large first figure, for a widget whose figures are peers. Optional, so a tiny mode without it is drawn as before"
       },
       {
+        "key": "sitrep-sdk . TinyMode#staysMounted?",
+        "note": "Keeps the widget component mounted at the tiny size so its hook state survives a resize. Optional, so a tiny mode without it is drawn as before"
+      },
+      {
         "key": "sitrep-sdk . TopicClock",
         "note": "A clock that follows one Topic's own arrivals, with whether they are arriving"
       },
@@ -14979,6 +14983,10 @@
       {
         "key": "sitrep-sdk ./registry ~TinyMode#equalRows?",
         "note": "Draws every essential as an equal row in shared columns with no large first figure, for a widget whose figures are peers. Optional, so a tiny mode without it is drawn as before"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TinyMode#staysMounted?",
+        "note": "Keeps the widget component mounted at the tiny size so its hook state survives a resize. Optional, so a tiny mode without it is drawn as before"
       },
       {
         "key": "sitrep-sdk ./registry ~TrackingStationProjection",

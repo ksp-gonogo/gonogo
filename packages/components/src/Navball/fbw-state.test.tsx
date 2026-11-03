@@ -230,12 +230,16 @@ describe("Navball says fly-by-wire is armed when the control surface is out of s
     });
 
     press("fbw-micro", "arm-fbw");
-    const armed = await fbwButton("FBW ARMED");
-    expect(document.querySelectorAll("[data-attitude-line]")).toHaveLength(3);
+    const armed = await screen.findByRole("button", {
+      name: /Disarm fly-by-wire/,
+    });
+    expect(screen.getByText("HDG")).toBeInTheDocument();
 
     act(() => armed.click());
     await waitFor(() =>
-      expect(screen.queryByRole("button", { name: "FBW ARMED" })).toBeNull(),
+      expect(
+        screen.queryByRole("button", { name: /Disarm fly-by-wire/ }),
+      ).toBeNull(),
     );
   });
 });
