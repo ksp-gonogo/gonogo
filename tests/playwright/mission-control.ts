@@ -8,7 +8,12 @@
  * `replay.advanceTo`, so between two calls every screen has been sent the same
  * frames and a reading taken then is a reading of one instant.
  */
-import type { Browser, BrowserContext, Page } from "@playwright/test";
+import {
+  type Browser,
+  type BrowserContext,
+  expect,
+  type Page,
+} from "@playwright/test";
 import { PORTS } from "../../playwright.config";
 import { getHostPeerId, seedApprovedStation } from "./helpers";
 
@@ -27,6 +32,8 @@ export interface ReplayState {
   cursorMs: number;
   durationMs: number;
   clients: number;
+  /** Every topic some connection to the replay holds a subscription on. */
+  subscribed: string[];
 }
 
 /** Steps the recording the main screen reads. */
@@ -34,6 +41,14 @@ export interface ReplayControl {
   /** Sends every frame up to `ms` after the recording's first frame. */
   advanceTo(ms: number): Promise<ReplayState>;
   state(): Promise<ReplayState>;
+  /**
+   * Resolves once a screen holds a subscription on every one of `topics`. A
+   * topic is delivered only to a connection subscribed to it when its frame is
+   * sent, and a later subscriber is given the latest frame alone, so a spec
+   * that reads what a screen did with a topic's whole history advances only
+   * after this.
+   */
+  untilSubscribed(...topics: string[]): Promise<void>;
 }
 
 export interface Screen {
@@ -68,6 +83,14 @@ const replay: ReplayControl = {
   advanceTo: (ms) => postReplay("/replay/advance", { toMs: ms }),
   state: async () =>
     (await (await fetch(`${REPLAY_URL}/replay/state`)).json()) as ReplayState,
+  untilSubscribed: async (...topics) => {
+    await expect
+      .poll(async () => (await replay.state()).subscribed, {
+        message: `a screen subscribed to ${topics.join(", ")}`,
+        timeout: 30_000,
+      })
+      .toEqual(expect.arrayContaining(topics));
+  },
 };
 
 export function dashboardOf(widgets: readonly ReplayWidget[]) {

@@ -27,6 +27,16 @@ for (const { name, fixture, vessel } of CASES) {
       stations: 0,
       widgets: [{ componentId: "semi-major-axis" }],
     });
+    /*
+     * The recording is made from the flight's own events as they arrive, and a
+     * topic subscribed after its frames were sent is given only the latest of
+     * them, which for this flight is the end alone.
+     */
+    await mc.replay.untilSubscribed(
+      "flight.started",
+      "flight.current",
+      "flight.ended",
+    );
     const { durationMs } = await mc.replay.state();
     for (let ms = 0; ms < durationMs; ms += 5_000) {
       await mc.replay.advanceTo(ms);

@@ -29,7 +29,8 @@
  *                                      and rewinds to before the first frame
  *   POST /replay/advance  { toMs }     sends every frame up to `toMs` after
  *                                      the recording's first frame
- *   GET  /replay/state                 { fixture, cursorMs, durationMs, clients }
+ *   GET  /replay/state                 { fixture, cursorMs, durationMs, clients, subscribed }
+ *                                      (subscribed: every topic some connection holds)
  */
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
@@ -168,7 +169,17 @@ export function startWireReplayServer({ port = PORT } = {}) {
 
   function state() {
     const durationMs = rows.length > 0 ? rows.at(-1).t - rows[0].t : 0;
-    return { fixture, cursorMs, durationMs, clients: clients.size };
+    const subscribed = new Set();
+    for (const topics of clients.values()) {
+      for (const topic of topics) subscribed.add(topic);
+    }
+    return {
+      fixture,
+      cursorMs,
+      durationMs,
+      clients: clients.size,
+      subscribed: [...subscribed].sort(),
+    };
   }
 
   const http = createServer(async (req, res) => {
