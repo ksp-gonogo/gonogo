@@ -99,8 +99,7 @@ describe("Rendezvous: genuinely runs off the stream", () => {
       expect(screen.getByRole("group", { name: "Docking level" })).toBeTruthy(),
     );
     // The port's offset across and up, in metres, as one figure.
-    expect(visibleText()).toContain("2.00 m");
-    expect(visibleText()).toContain("-1.50 m");
+    expect(visibleText()).toContain("2.00 / -1.50 m");
     // The dock distance headlines the HUD, on the `length` ladder.
     expect(visibleText()).toContain("62.0 m");
     await settleRendezvous();

@@ -8,6 +8,7 @@ import {
   reckoningBasisPhrase,
   Text,
   Unit,
+  UnitSharedFormat,
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode } from "react";
 import type { CraftGeometry } from "./geometry/craft";
@@ -172,14 +173,15 @@ function bottomFigures(props: ReadoutFiguresProps): {
         reading.dockX === undefined || reading.dockY === undefined ? (
           NULL_DISPLAY
         ) : (
-          <>
-            <AxisArrow direction="right" />
-            <Unit value={value("m", reading.dockX)} decimals={2} />
-            <span style={{ marginLeft: "1.1em" }}>
-              <AxisArrow direction="up" />
-              <Unit value={value("m", reading.dockY)} decimals={2} />
-            </span>
-          </>
+          <UnitSharedFormat>
+            <Unit
+              value={value("m", reading.dockX)}
+              decimals={2}
+              hideUnitInGroup
+            />
+            {" / "}
+            <Unit value={value("m", reading.dockY)} decimals={2} />
+          </UnitSharedFormat>
         ),
     };
   }
@@ -270,46 +272,6 @@ function RangeRateArrow({
         fill={closes ? "var(--color-accent-fg)" : "var(--color-warn-mark)"}
       />
     </svg>
-  );
-}
-
-/**
- * A small arrow before a docking offset, pointing the way that offset counts as
- * positive: across to the right, or up. It takes no width of its own, so the
- * figure keeps the room it already fits in: it sits in the space just before
- * the number.
- */
-function AxisArrow({ direction }: Readonly<{ direction: "right" | "up" }>) {
-  const right = direction === "right";
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        position: "relative",
-        width: 0,
-        height: "1em",
-      }}
-    >
-      <svg
-        data-axis-arrow={direction}
-        role="img"
-        aria-label={right ? "Positive to the right" : "Positive upward"}
-        width={right ? 7 : 5}
-        height={right ? 6 : 7}
-        viewBox={right ? "0 0 7 6" : "0 0 5 7"}
-        style={{
-          position: "absolute",
-          right: 2,
-          top: "64%",
-          marginTop: right ? -3 : -4,
-        }}
-      >
-        <path
-          d={right ? "M6.5 3L0.5 0.5V5.5Z" : "M2.5 0.5L0.5 6.5H4.5Z"}
-          fill="currentColor"
-        />
-      </svg>
-    </span>
   );
 }
 
