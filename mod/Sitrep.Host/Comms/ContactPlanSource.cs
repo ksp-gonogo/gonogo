@@ -784,7 +784,7 @@ namespace Sitrep.Host.Comms
             {
                 _routedAt = wall;
             }
-            var active = VesselViewProvider.TryGetActiveVesselId(snapshot);
+            var active = VesselViewProvider.TryGetLinkedVesselId(snapshot);
             var readStarted = System.Diagnostics.Stopwatch.GetTimestamp();
             var batch = _craft.Capture(look, snapshot.Ut, _host.Kernel, RosterOf(snapshot));
             Sitrep.Host.SampleTiming.Add("cp.craft", System.Diagnostics.Stopwatch.GetTimestamp() - readStarted);

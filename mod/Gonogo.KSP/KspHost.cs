@@ -375,6 +375,12 @@ namespace Gonogo.KSP
                     // the main menu / between-flights rather than a null
                     // sentinel, matching the "bodies" convention above.
                     var activeVessel = SystemCapture.ReadsTheActiveVessel(globals, FlightGlobals.ready) ? ActiveVesselScope.Current : null;
+                    if (activeVessel == null
+                        && SystemCapture.ReadsTheActiveVessel(globals, FlightGlobals.ready)
+                        && ActiveVesselScope.DestroyedActiveId is string destroyedActive)
+                    {
+                        values[VesselViewProvider.DestroyedActiveVesselKey] = destroyedActive;
+                    }
                     if (activeVessel != null)
                     {
                         // Closest approach comes from the elected propagation

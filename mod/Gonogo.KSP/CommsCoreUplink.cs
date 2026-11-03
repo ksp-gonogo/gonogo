@@ -362,9 +362,21 @@ namespace Gonogo.KSP
         // at all, and without the seam no path through here could be driven.
         private static Func<Vessel?> _activeVesselProbe = () => ActiveVesselScope.Current;
 
-        /// <summary>Point the active-craft read at a different answer; pass null to put the live read back.</summary>
-        internal static void ConfigureActiveVesselProbe(Func<Vessel?>? probe) =>
+        // Whether the game still holds a destroyed craft as its active vessel. A
+        // probe of its own so that a test that replaces the active-craft read never
+        // reaches FlightGlobals through this one.
+        private static Func<bool> _activeDestroyedProbe = () => ActiveVesselScope.DestroyedActiveId != null;
+
+        /// <summary>
+        /// Point the active-craft read at a different answer; pass null to put the live read back.
+        /// A replaced read reports no destroyed craft unless <paramref name="destroyed"/> says so.
+        /// </summary>
+        internal static void ConfigureActiveVesselProbe(Func<Vessel?>? probe, Func<bool>? destroyed = null)
+        {
             _activeVesselProbe = probe ?? (() => ActiveVesselScope.Current);
+            _activeDestroyedProbe = destroyed
+                ?? (probe == null ? (() => ActiveVesselScope.DestroyedActiveId != null) : (() => false));
+        }
 
         private static bool? CommsModelPresent
         {
@@ -759,6 +771,12 @@ namespace Gonogo.KSP
             // tick: the correct "never reveal earlier than the known horizon"
             // behaviour, symmetric with ComputeConnectedOnMain above.
             var active = _activeVesselProbe();
+            if (active == null && _activeDestroyedProbe())
+            {
+                // A craft the game has destroyed is not a delay of zero or an unknown one: the
+                // centre learns of it by light, so the delay it was under stands.
+                return null;
+            }
             var path = backend.Path(active);
             // The EFFECTIVE config, not the authored one: the reveal gate and
             // comms.delay itself must see every modifier the currency deadline
@@ -878,6 +896,12 @@ namespace Gonogo.KSP
             try
             {
                 var active = _activeVesselProbe();
+                if (active == null && _activeDestroyedProbe())
+                {
+                    // The game has destroyed the craft, which no signal has yet carried to the
+                    // centre: no tick reports anything, so the last link report stands.
+                    return null;
+                }
                 if (active == null)
                 {
                     // No craft is on screen (an editor, the space centre, the
