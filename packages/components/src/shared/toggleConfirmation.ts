@@ -87,3 +87,11 @@ export function showsToggle(args: unknown, value: unknown): boolean {
   if ("enabled" in args) return value === args.enabled;
   return true;
 }
+
+/** The state a toggle's args ask for, or undefined for args that set no state. */
+export function askedToggleValue(args: unknown): boolean | undefined {
+  if (args === null || typeof args !== "object") return undefined;
+  const asked =
+    "state" in args ? args.state : "enabled" in args ? args.enabled : undefined;
+  return typeof asked === "boolean" ? asked : undefined;
+}

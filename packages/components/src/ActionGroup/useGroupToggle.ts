@@ -19,6 +19,7 @@ import {
   type ToggleConfirmation,
   toggleConfirmationOf,
 } from "../shared/toggleConfirmation";
+import { useAskedToggle } from "../shared/useAskedToggle";
 import type { ActionGroupActions } from "./config";
 import {
   stateLabelOf,
@@ -96,11 +97,13 @@ export function useGroupToggle({
   const unreadable = stateUnreadable || (valueHeld && value == null);
 
   const confirmation = toggleConfirmationOf(toggleCmd.inFlight);
+  const ask = useAskedToggle(confirmation, value);
 
   const press = () => {
     if (!group?.toggle || !toggleCommand || toggleCmd.streamDown) return;
-    const args = buildToggleArgs(group, value);
+    const args = buildToggleArgs(group, ask.base);
     if (args === TOGGLE_INVALID) return;
+    ask.asked(args);
     void toggleCmd.send(args, { label: `Toggle ${label}` });
   };
 

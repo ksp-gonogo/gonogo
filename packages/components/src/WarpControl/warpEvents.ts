@@ -84,8 +84,8 @@ function soiTarget({ orbit, viewUt }: WarpEventReadings): WarpEventTarget {
 /**
  * When the centre expects to hear the active craft again. The catalog's own
  * expectation exists while the craft is silent there; with none, the contact
- * plan's next acquisition on `comms.nextLoss` plus the one-way delay is the
- * instant the first signal from the craft arrives.
+ * plan's next acquisition on `comms.nextLoss` plus the one-way delay, when one
+ * is known, is the instant the first signal from the craft arrives.
  */
 function contactTarget({
   catalog,
@@ -100,10 +100,9 @@ function contactTarget({
   );
   const acquisition =
     loss?.basis === "out-of-contact" ? finiteUt(loss.nextAcquisitionUt) : null;
+  // While no route is open the centre has no delay to the craft, and the instant the link closes up is the best figure there is.
   const planned =
-    acquisition !== null && oneWaySeconds !== undefined
-      ? acquisition + oneWaySeconds
-      : null;
+    acquisition !== null ? acquisition + (oneWaySeconds ?? 0) : null;
   const ut = finiteUt(entry?.expectedReturnUt) ?? planned;
   const ahead = ut !== null && viewUt !== undefined && ut > viewUt;
   return {

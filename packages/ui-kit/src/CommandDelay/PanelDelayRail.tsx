@@ -191,21 +191,21 @@ export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
       {handles.length > 0 && (
         <LiveRegion visuallyHidden additionsOnly>
           {refusals.map((r) => (
-            <span key={`refusal:${r.id}`}>{commandRefusalSentence(r)}</span>
+            <span key={`refusal:${r.id}`}>{commandRefusalSentence(r)} </span>
           ))}
           {losses.map((l) => (
-            <span key={`loss:${l.id}`}>{commandLossSentence(l)}</span>
+            <span key={`loss:${l.id}`}>{commandLossSentence(l)} </span>
           ))}
           {undelivered.map((u) => (
             <span key={`undelivered:${u.id}`}>
-              {commandUndeliveredSentence(u)}
+              {commandUndeliveredSentence(u)}{" "}
             </span>
           ))}
           {failures.map((f) => (
-            <span key={`failure:${f.id}`}>{commandFailedSentence(f)}</span>
+            <span key={`failure:${f.id}`}>{commandFailedSentence(f)} </span>
           ))}
           {founds.map((f) => (
-            <span key={`found:${f.id}`}>{commandFoundSentence(f)}</span>
+            <span key={`found:${f.id}`}>{commandFoundSentence(f)} </span>
           ))}
         </LiveRegion>
       )}

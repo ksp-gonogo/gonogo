@@ -763,6 +763,15 @@ describe("PanelDelayRail", () => {
       expect(announcer).toHaveAttribute("aria-live", "polite");
     });
 
+    it("keeps a space between the announced sentences of two answered commands", () => {
+      const store = createDelayRailStore();
+      store.register(foundHandle("first", "ran"));
+      store.register(foundHandle("second", "ran"));
+      inPanel(<PanelDelayRail />, store);
+      expect(railAnnouncer()?.textContent).toMatch(/ran\. \S.* ran\./);
+      expect(railAnnouncer()?.textContent).not.toMatch(/ran\.\S/);
+    });
+
     it("says it was called lost and that it RAN, and never says confirmed", async () => {
       const user = userEvent.setup();
       const store = createDelayRailStore();

@@ -182,6 +182,26 @@ describe("WarpControl: event targets", () => {
     });
   });
 
+  it("arms the signal return at the plan's next acquisition when no one-way delay is known", async () => {
+    const user = userEvent.setup();
+    const { creator } = await mount({
+      loss: {
+        ut: null,
+        basis: "out-of-contact",
+        nextAcquisitionUt: VIEW_UT + 659.36,
+      },
+    });
+
+    await open(user);
+    await user.click(screen.getByRole("button", { name: "Signal back" }));
+    expect(screen.queryByText("No prediction")).toBeNull();
+    await user.click(armButton());
+
+    expect(creator.mock.calls[0][0]).toMatchObject({
+      trigger: { kind: "time", ut: VIEW_UT + 659.36 },
+    });
+  });
+
   it("shows no prediction when the craft is silent and none was made", async () => {
     const user = userEvent.setup();
     await mount({ silent: { predictedUt: null } });

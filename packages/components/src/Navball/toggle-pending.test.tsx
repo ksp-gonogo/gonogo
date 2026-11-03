@@ -91,6 +91,24 @@ describe("Navball toggles over a delayed link", () => {
     await act(async () => {});
   });
 
+  it("sends the opposite of the first press, not of the stale reading, on a second press before the first is confirmed", async () => {
+    const fixture = await mount();
+    expect(rcsText()).toBe("RCS OFF");
+
+    pressRcs(fixture);
+    act(() => {
+      screen.getByRole("button", { name: /^RCS/ }).click();
+    });
+
+    expect(
+      fixture.transport.sentCommands.map((c) => [c.command, c.args]),
+    ).toEqual([
+      ["vessel.control.setRcs", { enabled: true }],
+      ["vessel.control.setRcs", { enabled: false }],
+    ]);
+    await act(async () => {});
+  });
+
   it("wears the held mark on an RCS toggle, keeping its state, while the route has it waiting for a link", async () => {
     const fixture = await mount();
 

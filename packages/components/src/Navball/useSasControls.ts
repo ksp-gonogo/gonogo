@@ -5,6 +5,7 @@ import {
   showsToggle,
   toggleConfirmationOf,
 } from "../shared/toggleConfirmation";
+import { useAskedToggle } from "../shared/useAskedToggle";
 import { SAS_MODES, type SasMode, sasModeOrdinal } from "./sasModes";
 
 /**
@@ -33,6 +34,12 @@ export function useSasControls(
     confirmedBy: confirmedBy(precisionRaw),
   });
   const sasModeCmd = useCommand("vessel.control.setSasMode");
+  const sasAsk = useAskedToggle(toggleConfirmationOf(sasCmd.inFlight), sasRaw);
+  const rcsAsk = useAskedToggle(toggleConfirmationOf(rcsCmd.inFlight), rcsRaw);
+  const precisionAsk = useAskedToggle(
+    toggleConfirmationOf(precisionCmd.inFlight),
+    precisionRaw,
+  );
 
   // Only turning SAS on is refused, so a SAS that is already on can still be switched off.
   const sasUnavailableReason =
@@ -41,23 +48,28 @@ export function useSasControls(
       : null;
 
   const toggleSas = () => {
-    if (typeof sasRaw !== "boolean" || sasUnavailableReason) return;
-    void sasCmd.send({ enabled: !sasRaw }, { label: "Toggle SAS" });
+    if (typeof sasAsk.base !== "boolean" || sasUnavailableReason) return;
+    const args = { enabled: !sasAsk.base };
+    sasAsk.asked(args);
+    void sasCmd.send(args, { label: "Toggle SAS" });
   };
   const engageSas = () => {
     if (sasUnavailableReason) return;
-    void sasCmd.send({ enabled: true }, { label: "SAS on" });
+    const args = { enabled: true };
+    sasAsk.asked(args);
+    void sasCmd.send(args, { label: "SAS on" });
   };
   const toggleRcs = () => {
-    if (typeof rcsRaw !== "boolean") return;
-    void rcsCmd.send({ enabled: !rcsRaw }, { label: "Toggle RCS" });
+    if (typeof rcsAsk.base !== "boolean") return;
+    const args = { enabled: !rcsAsk.base };
+    rcsAsk.asked(args);
+    void rcsCmd.send(args, { label: "Toggle RCS" });
   };
   const togglePrecision = () => {
-    if (typeof precisionRaw !== "boolean") return;
-    void precisionCmd.send(
-      { enabled: !precisionRaw },
-      { label: "Toggle precision control" },
-    );
+    if (typeof precisionAsk.base !== "boolean") return;
+    const args = { enabled: !precisionAsk.base };
+    precisionAsk.asked(args);
+    void precisionCmd.send(args, { label: "Toggle precision control" });
   };
   const setSasMode = (mode: SasMode) => {
     void sasModeCmd.send(
