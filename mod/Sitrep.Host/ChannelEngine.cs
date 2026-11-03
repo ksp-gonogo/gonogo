@@ -1240,13 +1240,13 @@ namespace Sitrep.Host
         /// <summary>
         /// Samples released per second, across every topic and craft. Held under
         /// <see cref="BlackoutReplayBudget"/> with room to spare, because that
-        /// budget counts per UT second and a UT second is never shorter than a
-        /// real one at the 1x where it is tightest.
+        /// budget counts per second of the same clock the pacing earns on.
         /// </summary>
         internal const int ReleaseSamplesPerSecond = 2000;
 
         /// <summary>
-        /// Soft cap on samples a release hands the Courier per second of UT,
+        /// Soft cap on samples a release hands the Courier per second of the
+        /// release clock (the same real-time axis the pacing earns credit on),
         /// across every topic and subject.
         ///
         /// <para>A release is paced (see <see cref="ReleaseSamplesPerSecond"/>),
@@ -9587,7 +9587,7 @@ namespace Sitrep.Host
             }
             if (releasedSamples > 0)
             {
-                _blackoutReplayBudget?.Record(releasedSamples, ut);
+                _blackoutReplayBudget?.Record(releasedSamples, _nowReleaseSec());
             }
 
             var remaining = 0;
@@ -9811,6 +9811,8 @@ namespace Sitrep.Host
         internal void SetReleaseClockForTests(Func<double> nowSec) => _releaseClock = nowSec;
 
         /// <summary>Test hook: replace the recorder's budget, in bytes.</summary>
+        internal int BlackoutReplayExceedancesForTests => _blackoutReplayBudget?.ExceedanceCount ?? 0;
+
         internal void SetRecorderBudgetForTests(long bytes) => _recorderBudgetBytes = bytes;
 
         /// <summary>Test hook: the heap the recorder holds now, as <see cref="HeldSampleSize"/> counts it.</summary>

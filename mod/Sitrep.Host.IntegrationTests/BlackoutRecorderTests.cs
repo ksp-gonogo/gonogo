@@ -350,6 +350,51 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// A long outage released across slow ticks (a real tick far longer than the
+        /// UT it advances) stays inside the blackout-replay budget.
+        /// </summary>
+        [Fact]
+        public async Task AReleaseAcrossSlowTicksStaysInsideTheReplayBudget()
+        {
+            var wall = 0.0;
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.SetReleaseClockForTests(() => wall);
+            engine.RegisterUplink(new BlackoutRecorderTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, BlackoutRecorderTestUplink.OnboardTopic, Timeout);
+                await SubscribeAsync(client, BlackoutRecorderTestUplink.LinkTopic, Timeout);
+
+                Tick(engine, Snap(0.0, connected: true, delay: 0.0));
+                Tick(engine, Snap(1.0, connected: true, delay: 0.0, onboard: 1.0));
+
+                var outage = ChannelEngine.ReleaseSamplesPerSecond * 4;
+                var ut = 2.0;
+                for (var i = 0; i < outage; i++, ut += 1.0)
+                {
+                    Tick(engine, Snap(ut, connected: false, delay: 0.0, onboard: ut));
+                }
+
+                for (var i = 0; i < 200; i++)
+                {
+                    wall += 0.15;
+                    ut += 0.02;
+                    Tick(engine, Snap(ut, connected: true, delay: 0.0, onboard: ut));
+                }
+                await DrainAllStreamDataAsync(client, Quiet);
+
+                Assert.Equal(0, engine.RecordedBytes);
+                Assert.Equal(0, engine.BlackoutReplayExceedancesForTests);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// A link lost again part way through a release stops it where it is: what
         /// was not yet sent stays held, ahead of what the new outage records, and
         /// the next reacquisition sends all of it in order.
