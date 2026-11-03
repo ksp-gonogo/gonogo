@@ -415,6 +415,8 @@ export interface ControlPlace {
   key: string;
   x: number;
   y: number;
+  /** The control's `aria-expanded` state, when it has one: a section header. */
+  expanded?: boolean;
 }
 
 /** Pixels a control may move between two states before it counts as having moved. */
@@ -429,10 +431,11 @@ export async function measureControls(page: Page): Promise<ControlPlace[]> {
   return page.evaluate(
     ([controlSelector]) => {
       const host = document.getElementById("root");
-      if (!host) return [] as { key: string; x: number; y: number }[];
+      type Place = { key: string; x: number; y: number; expanded?: boolean };
+      if (!host) return [] as Place[];
       const origin = host.getBoundingClientRect();
       const counts: Record<string, number> = {};
-      const out: { key: string; x: number; y: number }[] = [];
+      const out: Place[] = [];
       for (const el of Array.from(host.querySelectorAll(controlSelector))) {
         const r = el.getBoundingClientRect();
         if (r.width <= 0 || r.height <= 0) continue;
@@ -444,10 +447,12 @@ export async function measureControls(page: Page): Promise<ControlPlace[]> {
           .slice(0, 40);
         const base = `${el.tagName.toLowerCase()} "${name}"`;
         counts[base] = (counts[base] ?? 0) + 1;
+        const expanded = el.getAttribute("aria-expanded");
         out.push({
           key: `${base} #${counts[base]}`,
           x: r.left - origin.left,
           y: r.top - origin.top,
+          ...(expanded === null ? {} : { expanded: expanded === "true" }),
         });
       }
       return out;
@@ -460,6 +465,8 @@ export async function measureControls(page: Page): Promise<ControlPlace[]> {
  * The controls present in both states that moved by themselves. A scroll or a
  * resize moves nearly everything by the same amount, which is not one control
  * being pushed by another, so a move shared by most of the controls is dropped.
+ * A section the press opened or closed makes room by moving what sits below its
+ * header, which is how a section works, so those controls may move.
  */
 export function shiftedControls(
   before: readonly ControlPlace[],
@@ -493,9 +500,22 @@ export function shiftedControls(
       return [];
     }
   }
-  return moved.map(
-    (m) => `${m.key} moved ${m.dx.toFixed(1)}, ${m.dy.toFixed(1)}px`,
-  );
+  const toggledHeaderTops = before
+    .filter((c) => {
+      const n = later.get(c.key);
+      return (
+        n !== undefined && c.expanded !== undefined && n.expanded !== c.expanded
+      );
+    })
+    .map((c) => c.y);
+  const before_ = new Map(before.map((c) => [c.key, c]));
+  return moved
+    .filter((m) => {
+      const from = before_.get(m.key);
+      if (!from) return true;
+      return !toggledHeaderTops.some((top) => from.y > top);
+    })
+    .map((m) => `${m.key} moved ${m.dx.toFixed(1)}, ${m.dy.toFixed(1)}px`);
 }
 
 /** Lets a state change reach the DOM and the layout that follows it settle. */
@@ -608,12 +628,20 @@ export async function proveActionShiftCheckWorks(page: Page): Promise<void> {
     box.id = "action-shift-selfcheck";
     box.innerHTML = `
       <div id="shift-fires" style="position:absolute;top:10px;left:10px;width:200px"><div id="shift-fires-slot"></div><button type="button">fires-turn</button></div>
-      <div id="shift-quiet" style="position:absolute;top:110px;left:10px;width:200px"><button type="button">quiet-turn</button><div id="shift-quiet-slot"></div></div>`;
+      <div id="shift-quiet" style="position:absolute;top:110px;left:10px;width:200px"><button type="button">quiet-turn</button><div id="shift-quiet-slot"></div></div>
+      <div id="shift-section" style="position:absolute;top:210px;left:10px;width:200px"><button type="button" id="shift-section-head" aria-expanded="false">section-head</button><div id="shift-section-slot"></div><button type="button">section-below</button></div>`;
     host.appendChild(box);
   });
   const before = await measureControls(page);
   await page.evaluate(() => {
-    for (const id of ["shift-fires-slot", "shift-quiet-slot"]) {
+    document
+      .getElementById("shift-section-head")
+      ?.setAttribute("aria-expanded", "true");
+    for (const id of [
+      "shift-fires-slot",
+      "shift-quiet-slot",
+      "shift-section-slot",
+    ]) {
       const line = document.createElement("div");
       line.style.height = "20px";
       line.textContent = "added";
@@ -631,10 +659,12 @@ export async function proveActionShiftCheckWorks(page: Page): Promise<void> {
         `What it did report: ${found.length === 0 ? "nothing" : found.join("; ")}`,
     );
   }
-  const misfired = found.filter((f) => f.includes("quiet-turn"));
+  const misfired = found.filter(
+    (f) => f.includes("quiet-turn") || f.includes("section-below"),
+  );
   if (misfired.length > 0) {
     throw new Error(
-      "The action-shift check reported a control that did not move:\n  " +
+      "The action-shift check reported a control that did not move, or one below a section the press opened:\n  " +
         misfired.join("\n  "),
     );
   }

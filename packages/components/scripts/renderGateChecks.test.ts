@@ -26,6 +26,38 @@ describe("shiftedControls", () => {
     const after = [at("a", 0, -30), at("b", 0, 10), at("c", 0, 50)];
     expect(shiftedControls(before, after)).toEqual([]);
   });
+
+  it("lets controls below a section the press opened move, and still reports the ones above", () => {
+    const before = [
+      at("top", 0, 0),
+      { ...at("section", 0, 40), expanded: false },
+      at("below", 0, 80),
+      at("last", 0, 120),
+    ];
+    const after = [
+      at("top", 0, 10),
+      { ...at("section", 0, 40), expanded: true },
+      at("below", 0, 160),
+      at("last", 0, 200),
+    ];
+    expect(shiftedControls(before, after)).toEqual(["top moved 0.0, 10.0px"]);
+  });
+});
+
+describe("shiftedControls on a press that opens nothing", () => {
+  it("reports a control that moved while no section changed", () => {
+    const before = [
+      { ...at("section", 0, 40), expanded: false },
+      at("below", 0, 80),
+      at("last", 0, 120),
+    ];
+    const after = [
+      { ...at("section", 0, 40), expanded: false },
+      at("below", 0, 160),
+      at("last", 0, 120),
+    ];
+    expect(shiftedControls(before, after)).toEqual(["below moved 0.0, 80.0px"]);
+  });
 });
 
 describe("settleDebt", () => {
