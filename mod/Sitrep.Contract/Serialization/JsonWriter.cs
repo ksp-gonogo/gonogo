@@ -1766,7 +1766,7 @@ namespace Sitrep.Contract.Serialization
 
         /// <summary>
         /// Flattens a <see cref="Sitrep.Contract.PendingUplinkQueue"/> to the
-        /// wire object <c>{ pending: [...], settled: [...] }</c>. See the <c>case</c> in
+        /// wire object <c>{ pending: [...] }</c>. See the <c>case</c> in
         /// <see cref="AppendValue"/>.
         /// </summary>
         private static void AppendPendingUplinkQueue(StringBuilder sb, Sitrep.Contract.PendingUplinkQueue queue)
@@ -1784,61 +1784,7 @@ namespace Sitrep.Contract.Serialization
                 AppendPendingUplink(sb, queue.Pending[i]);
             }
             sb.Append(']');
-            sb.Append(',');
-            AppendString(sb, "settled");
-            sb.Append(':');
-            sb.Append('[');
-            for (var i = 0; i < queue.Settled.Count; i++)
-            {
-                if (i > 0)
-                {
-                    sb.Append(',');
-                }
-                AppendSettledUplink(sb, queue.Settled[i]);
-            }
-            sb.Append(']');
             sb.Append('}');
-        }
-
-        /// <summary>
-        /// Flattens one <see cref="Sitrep.Contract.SettledUplink"/> to its wire
-        /// object, <c>reason</c>, <c>detail</c> and <c>message</c> written as
-        /// null where there is none. Hand-enumerated like <see cref="AppendPendingUplink"/>.
-        /// </summary>
-        private static void AppendSettledUplink(StringBuilder sb, Sitrep.Contract.SettledUplink entry)
-        {
-            sb.Append('{');
-            AppendString(sb, "id");
-            sb.Append(':');
-            AppendString(sb, entry.Id);
-            AppendStringField(sb, "clientRequestId", entry.ClientRequestId);
-            AppendStringField(sb, "command", entry.Command);
-            AppendStringField(sb, "label", entry.Label);
-            AppendStringField(sb, "topic", entry.Topic);
-            AppendStringField(sb, "vantage", entry.Vantage);
-            sb.Append(',');
-            AppendString(sb, "settledAt");
-            sb.Append(':');
-            AppendNumber(sb, entry.SettledAt);
-            AppendStringField(sb, "outcome", entry.Outcome);
-            AppendStringField(sb, "code", entry.Code);
-            foreach (var (name, text) in new[] { ("reason", entry.Reason), ("detail", entry.Detail), ("message", entry.Message) })
-            {
-                sb.Append(',');
-                AppendString(sb, name);
-                sb.Append(':');
-                AppendNullableString(sb, text);
-            }
-            sb.Append('}');
-        }
-
-        /// <summary>Writes <c>,"name":"value"</c>.</summary>
-        private static void AppendStringField(StringBuilder sb, string name, string value)
-        {
-            sb.Append(',');
-            AppendString(sb, name);
-            sb.Append(':');
-            AppendString(sb, value);
         }
 
         /// <summary>
@@ -1958,17 +1904,9 @@ namespace Sitrep.Contract.Serialization
                 AppendNull(sb);
             }
             sb.Append(',');
-            AppendString(sb, "warning");
-            sb.Append(':');
-            AppendNullableString(sb, entry.Warning);
-            sb.Append(',');
             AppendString(sb, "predictedHeldUntilUt");
             sb.Append(':');
             AppendNullableNumber(sb, entry.PredictedHeldUntilUt);
-            sb.Append(',');
-            AppendString(sb, "predictedHeldFromUt");
-            sb.Append(':');
-            AppendNullableNumber(sb, entry.PredictedHeldFromUt);
             sb.Append(',');
             AppendString(sb, "cancelDeadlineUt");
             sb.Append(':');

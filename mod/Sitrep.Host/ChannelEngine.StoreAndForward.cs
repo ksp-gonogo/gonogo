@@ -514,7 +514,6 @@ namespace Sitrep.Host
                 PredictedReplyUt = prediction.ReplyUt,
                 PredictedHeldAt = prediction.HeldAt,
                 PredictedHeldUntilUt = prediction.HeldUntilUt,
-                PredictedHeldFromUt = prediction.HeldFromUt,
                 CancelDeadlineUt = prediction.CancelDeadlineUt,
                 // What a switch on a control channel asked for, as the live path carries it for a throttle.
                 CommandedValue = CommandedScalar(job),
@@ -601,8 +600,6 @@ namespace Sitrep.Host
             {
                 _pendingDispatcher[requestId] = job.SessionId;
             }
-            var warning = "A continuous input is lost if it has to wait, and this centre's plan says it would wait at "
-                + NameOfNode(job.Vantage, at) + ". Fly this from a pilot aboard or leave it to automation on the craft.";
             job.PendingId = requestId;
             _pending.Add(new PendingUplink
             {
@@ -618,12 +615,13 @@ namespace Sitrep.Host
                 Craft = craft,
                 PredictedReplyUt = knownUt,
                 PredictedHeldAt = at,
-                Warning = warning,
                 CommandedValue = CommandedScalar(job),
                 Attempts = 1,
                 Members = new List<string> { requestId },
             });
 
+            var warning = "A continuous input is lost if it has to wait, and this centre's plan says it would wait at "
+                + NameOfNode(job.Vantage, at) + ". Fly this from a pilot aboard or leave it to automation on the craft.";
             if (job.OnAcceptedHeld != null)
             {
                 job.OnAcceptedHeld(null, knownUt, null, warning);
@@ -728,10 +726,9 @@ namespace Sitrep.Host
 
         private readonly struct DeliveryPrediction
         {
-            public DeliveryPrediction(double? arrivalUt, double? replyUt, string? heldAt, double? heldUntilUt, double? cancelDeadlineUt, IReadOnlyList<PlannedHop>? route = null, double? heldFromUt = null)
+            public DeliveryPrediction(double? arrivalUt, double? replyUt, string? heldAt, double? heldUntilUt, double? cancelDeadlineUt, IReadOnlyList<PlannedHop>? route = null)
             {
                 Route = route;
-                HeldFromUt = heldFromUt;
                 ArrivalUt = arrivalUt;
                 ReplyUt = replyUt;
                 HeldAt = heldAt;
@@ -746,9 +743,6 @@ namespace Sitrep.Host
             public string? HeldAt { get; }
 
             public double? HeldUntilUt { get; }
-
-            /// <summary>When it reaches <see cref="HeldAt"/>, where it waits until <see cref="HeldUntilUt"/>.</summary>
-            public double? HeldFromUt { get; }
 
             public double? CancelDeadlineUt { get; }
 
@@ -842,7 +836,6 @@ namespace Sitrep.Host
             var arrivalUt = route[route.Count - 1].ArriveUt;
             string? heldAt = null;
             double? heldUntil = null;
-            double? heldFrom = null;
             var at = readyUt;
             for (var i = 0; i < route.Count; i++)
             {
@@ -850,14 +843,13 @@ namespace Sitrep.Host
                 {
                     heldAt = i == 0 ? start : route[i - 1].To;
                     heldUntil = route[i].DepartUt;
-                    heldFrom = at;
                     break;
                 }
                 at = route[i].ArriveUt;
             }
             var replyRoute = routes.Route(lane.Craft, lane.Vantage, arrivalUt, double.PositiveInfinity);
             var reply = replyRoute != null && replyRoute.Count > 0 ? replyRoute[replyRoute.Count - 1].ArriveUt : (double?)null;
-            return new DeliveryPrediction(arrivalUt, reply, heldAt, heldUntil, CancelDeadline(lane, start, readyUt, now, route, routes), route, heldFrom);
+            return new DeliveryPrediction(arrivalUt, reply, heldAt, heldUntil, CancelDeadline(lane, start, readyUt, now, route, routes), route);
         }
 
         /// <summary>The planned hops a held command's pending prediction was last read from, by its pending id. Courier-thread-only.</summary>
@@ -919,7 +911,6 @@ namespace Sitrep.Host
                 var next = OnTheLedgerFlight(journey.Lane, start, journey.SentUt, ForecastFrom(journey.Lane, start, readyUt, now, journey.DeleteAt, routes));
                 entry.PredictedHeldAt = next.HeldAt;
                 entry.PredictedHeldUntilUt = next.HeldUntilUt;
-                entry.PredictedHeldFromUt = next.HeldFromUt;
                 entry.PredictedArrivalUt = next.ArrivalUt;
                 entry.PredictedReplyUt = next.ReplyUt;
                 entry.CancelDeadlineUt = next.CancelDeadlineUt;
@@ -1202,15 +1193,13 @@ namespace Sitrep.Host
             }
             if (report.Kind == JourneyKind.Reply)
             {
-                // Listed before Settle takes the entry, which says whether it was late.
-                Deliver(job, report.Result, report.About);
                 Settle(report.About);
+                Deliver(job, report.Result);
                 return;
             }
             if (RefusalOf(report) is { } refusal)
             {
                 Settle(report.About);
-                NoteFailed(job, refusal.Code, refusal.Reason, report.About);
                 job.OnRefused?.Invoke(refusal.Code, refusal.Reason);
             }
         }

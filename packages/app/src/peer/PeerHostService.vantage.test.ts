@@ -408,7 +408,6 @@ describe("a station that chose no centre, on a pilot's host", () => {
         vantages.push(vantage);
         return { requestId: "c1", result: Promise.resolve(null) };
       },
-      onRawMessage: () => () => {},
     } as never);
     const conn = await connectStation(host, "station-a");
 
@@ -447,7 +446,6 @@ describe("a peer's command address", () => {
         vantages.push(vantage);
         return { requestId: "c1", result: Promise.resolve(null) };
       },
-      onRawMessage: () => () => {},
     };
     setActiveTelemetryClientForTests(client as never);
     return vantages;
@@ -591,7 +589,6 @@ describe("a peer's command address", () => {
           vantages.push(vantage);
           return { requestId: "j1", result: Promise.resolve(null) };
         },
-        onRawMessage: () => () => {},
       };
       const jobs = new HostJobs();
       jobs.setClient(client as never);

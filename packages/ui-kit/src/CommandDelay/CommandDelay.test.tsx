@@ -143,8 +143,8 @@ describe("CommandDelay", () => {
         aria-label="Launch: in flight"
       />,
     );
-    // The rail strip is a band of dots, not the monospace list.
-    expect(container.querySelector('[role="img"]')).not.toBeNull();
+    // The rail strip is an <svg role="img"> glow band, not the monospace list.
+    expect(container.querySelector("svg")).not.toBeNull();
     expect(container.querySelector('[data-role="glow"]')).not.toBeNull();
   });
 

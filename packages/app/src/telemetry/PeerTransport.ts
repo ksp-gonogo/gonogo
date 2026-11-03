@@ -249,9 +249,6 @@ export class PeerTransport implements Transport {
           meta,
         });
       }),
-      client.onSitrepCommandAccepted(({ type: _type, ...accepted }) => {
-        this.deliver({ type: "command-accepted", ...accepted });
-      }),
       client.onSitrepCommandError((requestId, code, message) => {
         this.pendingCommandIds.delete(requestId);
         /*

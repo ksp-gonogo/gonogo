@@ -1225,13 +1225,11 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     oneWaySeconds: "s",
     predictedArrivalUt: "ut",
     predictedHeldAt: "id",
-    predictedHeldFromUt: "ut",
     predictedHeldUntilUt: "ut",
     predictedReplyUt: "ut",
     replyOverdueUt: "ut",
     topic: "id",
     vantage: "id",
-    warning: "text",
   },
   "Ping": {
     nonce: "id",
@@ -1579,20 +1577,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     path: "id",
     tags: "id",
     value: "text",
-  },
-  "SettledUplink": {
-    clientRequestId: "id",
-    code: "id",
-    command: "id",
-    detail: "text",
-    id: "id",
-    label: "text",
-    message: "text",
-    outcome: "id",
-    reason: "id",
-    settledAt: "ut",
-    topic: "id",
-    vantage: "id",
   },
   "SpaceCenterPartsAvailable": {
     count: "count",
@@ -2954,7 +2938,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "PendingUplinkQueue": {
     pending: "PendingUplink[]",
-    settled: "SettledUplink[]",
   },
   "PropagationHorizon": {
     departure: "PropagationDepartureKnot[]",

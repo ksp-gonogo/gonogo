@@ -44,43 +44,6 @@ export type PredictedPhase =
 export type DelayMode = "live" | "staged" | "no-path";
 
 /**
- * One command a command centre's queue reports refused by the game, failed,
- * or answered after its reply was overdue, an entry of
- * `system.uplink.pending`'s `settled` list. Useful for telling the
- * operator what became of a command another screen at the centre sent. Read by
- * {@link useCommand}, which lists another screen's outcome in its `refusals` or
- * `failures` as it lists its own.
- *
- * @category Delay and vantage
- */
-export interface SettledEntry {
-  /** The mod's id for the dispatch, as its queue entry had it. */
-  id: string;
-  /** The request id of the dispatch, as the sending client gave it. */
-  clientRequestId: string;
-  /** The command id. */
-  command: string;
-  /** The dispatch's description for the operator; empty when it carried none. */
-  label: string;
-  /** The part or route the command was addressed to. */
-  topic: string;
-  /** The command centre it was sent from. */
-  vantage: string;
-  /** When the outcome reached the command centre. */
-  settledAt: Value<"ut">;
-  /** `refused` when the game refused it, `failed` when the mod answered with a fault, `answered` when it ran with its reply late. */
-  outcome: "refused" | "failed" | "answered";
-  /** The refusal's root code, a `CommandErrorCode`, or the fault's code, a `FaultCode`; empty for `answered`. */
-  code: string;
-  /** The refinement's id, when a refusal was more specific than `code`; absent or null otherwise. */
-  reason?: string | null;
-  /** A refusal in the game's own words, when it gave any; absent or null otherwise. */
-  detail?: string | null;
-  /** What the mod said of a fault; absent or null otherwise. */
-  message?: string | null;
-}
-
-/**
  * One command travelling from the command centre to a vessel, as the
  * `system.uplink.pending` Topic lists it. Useful for showing the operator which
  * of their commands have not yet reached the vessel. Taken by
@@ -119,16 +82,8 @@ export interface PendingEntry {
   predictedReplyUt?: Value<"ut"> | null;
   /** Where the sending centre predicts the command first waits for a window, as a node id; absent or null when it is predicted to go straight through. */
   predictedHeldAt?: string | null;
-  /**
-   * What the sending centre told the sender when it accepted the command, as a
-   * sentence to show the operator, such as a continuous input it will drop
-   * where it would have to wait; absent when it said nothing.
-   */
-  warning?: string | null;
   /** When the command is predicted to leave `predictedHeldAt`; absent or null with it. */
   predictedHeldUntilUt?: Value<"ut"> | null;
-  /** When the command is predicted to reach `predictedHeldAt`, where it waits; absent or null with it. */
-  predictedHeldFromUt?: Value<"ut"> | null;
   /** For a held command, when it is deleted wherever it is if it has not run; absent or null otherwise. */
   expiresAtUt?: Value<"ut"> | null;
   /**
@@ -194,24 +149,6 @@ export interface InFlightCommand {
   predictedPhase: PredictedPhase;
   /** True while the sending centre's route puts the command waiting at a relay for a link to open, so it has not left the command centre's side of the break. Absent otherwise. */
   held?: boolean;
-  /** Where a command held on its way out is: present while it is on its way out with a wait known, absent otherwise. */
-  hold?: CommandHold;
-}
-
-/**
- * The wait a command is predicted to make at a relay on its way out, as
- * {@link InFlightCommand} carries it. Useful for placing the command on the
- * delay rail at the relay it waits at, so the operator sees it stopped there.
- *
- * @category Delay and vantage
- */
-export interface CommandHold {
-  /**
-   * How far along the way out to the vessel the command is, from 0 at the
-   * command centre to 1 at the vessel, by light-time: the relay's share of
-   * the way while it waits there, and more as it goes on.
-   */
-  outbound: number;
 }
 
 /**
@@ -394,40 +331,14 @@ function withHeld(
   if (entry.predictedHeldAt == null || row.predictedPhase !== "in-transit") {
     return row;
   }
-  const placed = withHold(row, entry, nowUt);
   const until = entry.predictedHeldUntilUt;
-  if (until != null && !until.greaterThan(value("ut", nowUt))) return placed;
-  return { ...placed, held: true };
-}
-
-/** The row with how far out its wait is, when the entry has every time that places it. */
-function withHold(
-  row: InFlightCommand,
-  entry: PendingEntry,
-  nowUt: number,
-): InFlightCommand {
-  const from = entry.predictedHeldFromUt;
-  const until = entry.predictedHeldUntilUt;
-  const arrival = entry.predictedArrivalUt;
-  if (from == null || until == null || arrival == null) return row;
-  const now = value("ut", nowUt);
-  const toRelay = from.minus(entry.dispatchedAt).max(0);
-  const onward = arrival.minus(until).max(0);
-  const way = toRelay.plus(onward);
-  // The relay's share of the way out, by light-time; then, once it has left, how much of the rest is behind it.
-  const share = way.isPositive() ? toRelay.per(way) : value("1", 0);
-  const left = !now.lessThan(until) && onward.isPositive();
-  const outbound = left
-    ? share.plus(
-        value("1", 1).minus(share).times(now.minus(until).per(onward).min(1)),
-      )
-    : share;
-  return { ...row, hold: { outbound: outbound.min(1).magnitude } };
+  if (until != null && !until.greaterThan(value("ut", nowUt))) return row;
+  return { ...row, held: true };
 }
 
 /** The row moved to a settled phase, which a command is no longer held in. */
 function phased(row: InFlightCommand, phase: PredictedPhase): InFlightCommand {
-  const { held: _held, hold: _hold, ...rest } = row;
+  const { held: _held, ...rest } = row;
   return { ...rest, predictedPhase: phase };
 }
 

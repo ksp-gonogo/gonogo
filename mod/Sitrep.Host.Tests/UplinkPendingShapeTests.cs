@@ -63,15 +63,7 @@ namespace Sitrep.Host.Tests
                 "PredictedArrivalUt:System.Nullable`1[System.Double]",
                 "PredictedReplyUt:System.Nullable`1[System.Double]",
                 "PredictedHeldAt:System.String",
-                // The centre's own words on accepting it (a continuous input its
-                // plan says would wait, and be lost), so every screen at the
-                // centre shows what the sender was told. A prediction made at
-                // dispatch, not anything the craft did.
-                "Warning:System.String",
                 "PredictedHeldUntilUt:System.Nullable`1[System.Double]",
-                // When the plan has the command reach the node it waits at: the
-                // same prediction as the wait's end, read from the same hops.
-                "PredictedHeldFromUt:System.Nullable`1[System.Double]",
                 "CancelDeadlineUt:System.Nullable`1[System.Double]",
                 // The centre's own news of silence: its prediction said the reply
                 // would be home and nothing has come. It reads no execution or

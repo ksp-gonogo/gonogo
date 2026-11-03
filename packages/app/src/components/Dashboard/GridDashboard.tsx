@@ -176,11 +176,6 @@ const GridCell = styled.div`
   overflow: visible;
   ${highlightStyle}
 
-  /* The panel's delay rail runs along the tile's top edge, under the top resize handles' hit zones, which the grid library places at z-index 5. Lifted above them, so a pointer reaches it: local ordering inside this cell, not app-global chrome, so no named z rung. */
-  [data-panel-rail] {
-    z-index: 6;
-  }
-
   /* The grab bar and the resize marks show only while the tile is hovered or has focus inside it. */
   .drag-handle,
   && .react-resizable-handle::after {

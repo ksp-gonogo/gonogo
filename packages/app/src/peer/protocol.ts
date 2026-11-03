@@ -548,20 +548,6 @@ export type PeerMessage =
     }
   | {
       /**
-       * The mod accepted a station's command for its flight to the craft: the
-       * mod's own `command-accepted` frame, relayed under the station's request
-       * id, so the station times its loss deadline from the mod's figures and
-       * hears any warning the mod accepted it with.
-       */
-      type: "sitrep-command-accepted";
-      requestId: string;
-      oneWaySeconds?: number;
-      predictedReplyUt?: number;
-      expiresAtUt?: number;
-      warning?: string;
-    }
-  | {
-      /**
        * The host could not get an answer: no live client, the dispatch machinery
        * broke, the host's own transport gave up. Never a refusal, which is an
        * answer and travels above.

@@ -2038,7 +2038,6 @@ import type {
   CommandRefusal,
   CommandStatus,
   CommandUndelivered,
-  CommandWarning,
 } from "../spine/lifecycle";
 import type { SendStatus } from "../spine/send-status";
 
@@ -2052,7 +2051,6 @@ export type {
   CommandRefusalDetail,
   CommandStatus,
   CommandUndelivered,
-  CommandWarning,
 } from "../spine/lifecycle";
 export type {
   Arrival,
@@ -2130,18 +2128,10 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
   /** The state of the latest dispatch. See {@link CommandStatus}. */
   status: CommandStatus;
   /**
-   * Every dispatch of this command still travelling or awaiting its reply,
-   * from this handle and from any other screen or widget at the same command
-   * centre. An entry that is overdue or lost stays until dismissed.
+   * Every dispatch from this handle still travelling or awaiting its reply. An
+   * entry that is overdue or lost stays until dismissed.
    */
   inFlight: InFlightCommand[];
-  /**
-   * What the mod said of each dispatch of this command that it accepted with a
-   * warning, such as a continuous input it will drop where it would have to
-   * wait: from this handle while it is in flight, and from any other screen or
-   * widget at the same command centre while it is on the centre's queue.
-   */
-  warnings: CommandWarning[];
   /**
    * How the command travels, as its Uplink declared it. {@link CommandDelay}
    * chooses how to draw the command from these.

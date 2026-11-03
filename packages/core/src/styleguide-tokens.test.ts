@@ -222,10 +222,6 @@ const BASELINES: Record<Family, Record<string, number>> = {
    * it.
    */
   zIndex: {
-    // The panel's delay rail over the grid's own top resize handles, which the
-    // grid library places at z-index 5: local sibling ordering inside one grid
-    // cell. Not app-global chrome, so no named z rung.
-    "packages/app/src/components/Dashboard/GridDashboard.tsx": 1,
     "packages/app/src/components/Dashboard/GridItemContent.tsx": 1,
     "packages/components/src/ShipMap/ShipDiagram.tsx": 1,
     "packages/components/src/ShipMap/ShipMapBody.tsx": 2,

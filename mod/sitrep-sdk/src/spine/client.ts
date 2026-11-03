@@ -1791,10 +1791,8 @@ export class TelemetryClient {
             knownOneWay !== undefined && nowUt !== undefined
             ? nowUt + 2 * knownOneWay
             : undefined;
-    if (pending.status.phase === "in-flight") {
-      pending.status = warning
-        ? { ...pending.status, accepted: true, warning }
-        : { ...pending.status, accepted: true };
+    if (warning && pending.status.phase === "in-flight") {
+      pending.status = { ...pending.status, warning };
     }
     if (gameDeadlineUt !== undefined || roundTrip !== undefined) {
       if (pending.awaitingDelay) {

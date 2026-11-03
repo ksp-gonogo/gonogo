@@ -1,4 +1,4 @@
-import type { CommandWarning, RailTags, Value } from "@ksp-gonogo/sitrep-sdk";
+import type { RailTags, Value } from "@ksp-gonogo/sitrep-sdk";
 import {
   classifyCommandRejection,
   FaultCode,
@@ -101,44 +101,10 @@ export interface ControlStream {
    * anything having claimed it was one.
    */
   tags: RailTags;
-  /** What the mod said of this axis's inputs still on their way, one per distinct sentence. */
-  warnings: CommandWarning[];
 }
 
 interface CommsDelayLike {
   oneWaySeconds: Value<"s"> | null;
-}
-
-interface QueuedInput {
-  command: string;
-  dispatchedAt: Value<"ut">;
-  commandedValue?: number;
-}
-
-interface PendingQueueLike {
-  pending: QueuedInput[];
-}
-
-const NO_WARNINGS: CommandWarning[] = [];
-
-/**
- * The newest input queued for `command` by anyone at this command centre, this
- * screen included, as the value it set and when it was sent.
- */
-function latestQueuedInput(
-  queue: PendingQueueLike | undefined,
-  command: string,
-): LoggedSample | null {
-  let latest: LoggedSample | null = null;
-  for (const entry of queue?.pending ?? []) {
-    if (entry.command !== command) continue;
-    if (typeof entry.commandedValue !== "number") continue;
-    const atUt = entry.dispatchedAt.magnitude;
-    if (latest === null || atUt > latest.atUt) {
-      latest = { atUt, value: entry.commandedValue };
-    }
-  }
-  return latest;
 }
 
 /**
@@ -191,7 +157,6 @@ export function useControlStream(
    * refused, so each is dismissed as it arrives.
    */
   const { dismiss, losses, founds, undelivered, failures, refusals } = command;
-  const warnings = useDistinctWarnings(command.warnings);
   useEffect(() => {
     for (const outcome of [
       ...losses,
@@ -225,9 +190,6 @@ export function useControlStream(
   // is the same "not synced yet" seed `useCommand` falls back to for the
   // same reason.
   const nowUt = useUtNow() ?? 0;
-  const queue = useLatestValue<PendingQueueLike>("system.uplink.pending");
-  const queuedRef = useRef<LoggedSample | null>(null);
-  queuedRef.current = latestQueuedInput(queue, channel?.writeCommand ?? "");
 
   // `.magnitude`: the delay arrives wrapped from the decode, and every use
   // below is arithmetic on a span of seconds. Reading the object itself left
@@ -254,11 +216,6 @@ export function useControlStream(
   valueRef.current = value;
   const nowUtRef = useRef(nowUt);
   nowUtRef.current = nowUt;
-  // When this screen last moved the value, so an input queued from elsewhere after it wins the strip.
-  const changedAtUtRef = useRef<number | null>(null);
-  useEffect(() => {
-    changedAtUtRef.current = value === null ? null : nowUtRef.current;
-  }, [value]);
   const lastSentRef = useRef<number | null>(null);
   /*
    * The latch compares against what the craft was last told, so it only holds
@@ -318,22 +275,10 @@ export function useControlStream(
       const dispatch = toArgsRef.current;
       if (!dispatch) return;
       const raw = valueRef.current;
-      /*
-       * The strip shows what the craft was last told by anyone at this
-       * centre: this screen's value until an input queued from another screen
-       * is newer, then that one.
-       */
-      const queued = queuedRef.current;
-      const changedAt = changedAtUtRef.current;
-      const commanded =
-        queued !== null &&
-        (raw === null || changedAt === null || queued.atUt > changedAt)
-          ? queued.value
-          : raw;
-      if (commanded !== null) {
+      if (raw !== null) {
         recordSample(commandRing.current, {
           atUt: nowUtRef.current,
-          value: normalize01(commanded, range),
+          value: normalize01(raw, range),
         });
       }
       const echo = echoRawRef.current;
@@ -369,7 +314,6 @@ export function useControlStream(
         echo: [],
         current: value === null ? null : normalize01(value, range),
         tags,
-        warnings,
       };
     }
     const span = 3 * oneWaySeconds;
@@ -389,26 +333,6 @@ export function useControlStream(
       echo,
       current: value === null ? null : normalize01(value, range),
       tags,
-      warnings,
     };
-  }, [channelId, label, oneWaySeconds, nowUt, value, range, tags, warnings]);
-}
-
-/** One warning per distinct sentence, the same array while the set is unchanged. */
-function useDistinctWarnings(
-  warnings: readonly CommandWarning[],
-): CommandWarning[] {
-  const ref = useRef<CommandWarning[]>(NO_WARNINGS);
-  const distinct: CommandWarning[] = [];
-  for (const warned of warnings) {
-    if (!distinct.some((d) => d.warning === warned.warning)) {
-      distinct.push(warned);
-    }
-  }
-  const prev = ref.current;
-  const same =
-    prev.length === distinct.length &&
-    prev.every((p, i) => p.warning === distinct[i].warning);
-  if (!same) ref.current = distinct.length === 0 ? NO_WARNINGS : distinct;
-  return ref.current;
+  }, [channelId, label, oneWaySeconds, nowUt, value, range, tags]);
 }

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Sitrep.Contract;
@@ -16,17 +15,19 @@ namespace Sitrep.Host.IntegrationTests
     /// <summary>
     /// <c>system.uplink.pending</c>: the ground-side pending-uplink queue,
     /// populated from <c>ChannelEngine.ProcessDispatchCommand</c>'s delayed
-    /// branch. An entry carries only dispatch-time facts and predictions (see
-    /// <see cref="PendingUplink"/>'s doc comment). A command on the live path
-    /// leaves when its reply lands at the centre, which is never sooner than
-    /// light could carry it, or once it is late with the link down.
+    /// branch and pruned on Tick. Prediction-only, hard invariant (see
+    /// <see cref="PendingUplink"/>'s doc comment): an entry carries only
+    /// dispatch-time facts and ages out on the predicted round trip
+    /// (<c>DispatchedAt + 2*OneWaySeconds</c>), never on real completion,
+    /// this suite never asserts on <c>uplink.HandledCount</c> or any other
+    /// execution-side signal, only on the queue's own delivered shape.
     /// </summary>
     public class UplinkPendingQueueTests
     {
         private static readonly TimeSpan Timeout = TestBudgets.Op;
 
         [Fact]
-        public async Task DelayedCommandDispatchIsEnqueuedThenLeavesTheQueueWhenItsReplyLands()
+        public async Task DelayedCommandDispatchIsEnqueuedThenPrunedAfterThePredictedRoundTrip()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             var uplink = new PendingQueueTestUplink();
@@ -83,16 +84,12 @@ namespace Sitrep.Host.IntegrationTests
                 Assert.Equal(0.0, entry["dispatchedAt"]);
                 Assert.Equal(signalDelay, entry["oneWaySeconds"]);
 
-                // The reply lands at the centre on the round trip (2 * 5s = 10s), in
-                // the clock advance after the tick at 11 s has listed the queue, so
-                // the next tick lists it gone.
+                // Tick past the PREDICTED round trip (2 * 5s = 10s) -- the entry
+                // must age out on the prediction, regardless of whether the
+                // command actually reached/ran on the craft.
                 engine.TickAndWait(
                     11.0,
                     FreezeGateTestUplink.Snapshot(11.0, connected: true, delay: signalDelay),
-                    Timeout);
-                engine.TickAndWait(
-                    12.0,
-                    FreezeGateTestUplink.Snapshot(12.0, connected: true, delay: signalDelay),
                     Timeout);
 
                 var prunedFrame = await ReceiveStreamDataAsync(client, Timeout);
@@ -754,203 +751,6 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// A queued command the game refuses is listed under <c>settled</c> for
-        /// every connection at its command centre once its reply is home, with
-        /// the refusal's code and the game's words, so a screen that did not
-        /// send it can say what became of it.
-        /// </summary>
-        [Fact]
-        public async Task ARefusedCommandIsSettledForEveryScreenAtItsCentre()
-        {
-            const double signalDelay = 5.0;
-            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterCommandCentreSource(new StaticSource("ground:gs1"));
-            engine.RegisterCommandCentreSource(new StaticSource("ground:gs2"));
-            engine.RegisterUplink(new PendingQueueTestUplink());
-            engine.Start();
-            try
-            {
-                engine.TickAndWait(0.0, FreezeGateTestUplink.Snapshot(0.0, connected: true, delay: signalDelay), Timeout);
-
-                await using var sender = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await using var watcher = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await using var elsewhere = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await sender.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "ground:gs1" }));
-                await watcher.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "ground:gs1" }));
-                await elsewhere.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "ground:gs2" }));
-                await SubscribeAsync(watcher, ChannelEngine.UplinkPendingTopic, Timeout);
-                await SubscribeAsync(elsewhere, ChannelEngine.UplinkPendingTopic, Timeout);
-
-                await sender.SendAsync(EnvelopeCodec.WriteCommandRequest(new CommandRequest<object?>
-                {
-                    RequestId = "rcs-1",
-                    Command = PendingQueueTestUplink.RefusedCommand,
-                    Args = "x",
-                    Label = "Toggle RCS",
-                }));
-                await ReceiveTypedAsync<CommandAccepted>(sender, Timeout);
-                engine.TickAndWait(1.0, FreezeGateTestUplink.Snapshot(1.0, connected: true, delay: signalDelay), Timeout);
-                // At the craft and refused there, but the reply is still on its way home: nobody at the centre can know yet.
-                engine.TickAndWait(9.5, FreezeGateTestUplink.Snapshot(9.5, connected: true, delay: signalDelay), Timeout);
-                Assert.Empty(await LatestSettledAsync(watcher));
-                engine.TickAndWait(11.0, FreezeGateTestUplink.Snapshot(11.0, connected: true, delay: signalDelay), Timeout);
-                engine.TickAndWait(12.0, FreezeGateTestUplink.Snapshot(12.0, connected: true, delay: signalDelay), Timeout);
-
-                var settled = Assert.Single(await LatestSettledAsync(watcher));
-                Assert.Equal("rcs-1", settled.GetProperty("clientRequestId").GetString());
-                Assert.Equal(PendingQueueTestUplink.RefusedCommand, settled.GetProperty("command").GetString());
-                Assert.Equal("Toggle RCS", settled.GetProperty("label").GetString());
-                Assert.Equal("ground:gs1", settled.GetProperty("vantage").GetString());
-                Assert.Equal("refused", settled.GetProperty("outcome").GetString());
-                Assert.Equal("modeUnavailable", settled.GetProperty("code").GetString());
-                Assert.Equal("No RCS thrusters aboard", settled.GetProperty("detail").GetString());
-                Assert.Equal(System.Text.Json.JsonValueKind.Null, settled.GetProperty("message").ValueKind);
-
-                Assert.Empty(await LatestSettledAsync(elsewhere));
-            }
-            finally
-            {
-                engine.Stop();
-            }
-        }
-
-        /// <summary>
-        /// A live-path command whose reply has not landed by its predicted time
-        /// stays on the queue past it, marked overdue, rather than leaving on the
-        /// prediction. When its reply does land it leaves, listed as answered for
-        /// every screen at the centre. One long tick that jumps past the reply
-        /// time is how a live reply comes in late.
-        /// </summary>
-        [Fact]
-        public async Task ALiveCommandWhoseReplyIsLateStaysOnTheQueueUntilItLandsAndIsListedAnswered()
-        {
-            const double signalDelay = 5.0;
-            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterCommandCentreSource(new StaticSource("ground:gs1"));
-            engine.RegisterUplink(new PendingQueueTestUplink());
-            engine.Start();
-            try
-            {
-                engine.TickAndWait(0.0, FreezeGateTestUplink.Snapshot(0.0, connected: true, delay: signalDelay), Timeout);
-
-                await using var sender = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await using var watcher = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await sender.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "ground:gs1" }));
-                await watcher.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = "ground:gs1" }));
-                await SubscribeAsync(watcher, ChannelEngine.UplinkPendingTopic, Timeout);
-                await SendCommandAsync(sender, "late-1", vantage: "");
-                await ReceiveTypedAsync<CommandAccepted>(sender, Timeout);
-                engine.TickAndWait(1.0, FreezeGateTestUplink.Snapshot(1.0, connected: true, delay: signalDelay), Timeout);
-
-                // Predicted home at 10 s; the centre is at 20 s before the reply has been carried in.
-                engine.TickAndWait(20.0, FreezeGateTestUplink.Snapshot(20.0, connected: true, delay: signalDelay), Timeout);
-                var (pending, settled) = await LatestQueueAsync(watcher);
-                var entry = Assert.Single(pending);
-                Assert.Equal("late-1", entry.GetProperty("clientRequestId").GetString());
-                Assert.Equal(20.0, entry.GetProperty("replyOverdueUt").GetDouble());
-                Assert.Empty(settled);
-
-                engine.TickAndWait(21.0, FreezeGateTestUplink.Snapshot(21.0, connected: true, delay: signalDelay), Timeout);
-                (pending, settled) = await LatestQueueAsync(watcher);
-                Assert.Empty(pending);
-                var answered = Assert.Single(settled);
-                Assert.Equal("late-1", answered.GetProperty("clientRequestId").GetString());
-                Assert.Equal("answered", answered.GetProperty("outcome").GetString());
-            }
-            finally
-            {
-                engine.Stop();
-            }
-        }
-
-        /// <summary>
-        /// A live-path command that is late with the link to the craft down, so no
-        /// reply can come, leaves the queue then and is listed as nothing.
-        /// </summary>
-        [Fact]
-        public async Task ALiveCommandLateWithTheLinkDownLeavesTheQueue()
-        {
-            const double signalDelay = 5.0;
-            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterCommandCentreSource(new StaticSource("ground:gs1"));
-            engine.RegisterUplink(new PendingQueueTestUplink());
-            engine.Start();
-            try
-            {
-                engine.TickAndWait(0.0, FreezeGateTestUplink.Snapshot(0.0, connected: true, delay: signalDelay), Timeout);
-                engine.DispatchCommandAndWait(PendingQueueTestUplink.Command, "x", "ground:gs1", _ => { }, TestBudgets.Op, clientRequestId: "down-1");
-                engine.TickAndWait(1.0, FreezeGateTestUplink.Snapshot(1.0, connected: true, delay: signalDelay), Timeout);
-                Assert.Single(Queue(engine).Pending);
-
-                engine.TickAndWait(5.0, FreezeGateTestUplink.Snapshot(5.0, connected: false, delay: signalDelay), Timeout);
-                Assert.Single(Queue(engine).Pending);
-                engine.TickAndWait(14.0, FreezeGateTestUplink.Snapshot(14.0, connected: false, delay: signalDelay), Timeout);
-                Assert.Empty(Queue(engine).Pending);
-                Assert.Empty(Queue(engine).Settled);
-            }
-            finally
-            {
-                engine.Stop();
-            }
-        }
-
-        private static PendingUplinkQueue Queue(ChannelEngine engine) =>
-            Assert.IsType<PendingUplinkQueue>(engine.PayloadOf(ChannelEngine.UplinkPendingTopic));
-
-        /// <summary>The <c>pending</c> and <c>settled</c> entries on the last pending frame to arrive.</summary>
-        private static async Task<(List<System.Text.Json.JsonElement> Pending, List<System.Text.Json.JsonElement> Settled)> LatestQueueAsync(TestClient client)
-        {
-            var pending = new List<System.Text.Json.JsonElement>();
-            var settled = new List<System.Text.Json.JsonElement>();
-            while (true)
-            {
-                string raw;
-                try
-                {
-                    raw = await client.ReceiveAsync(TestBudgets.Quiet);
-                }
-                catch (OperationCanceledException)
-                {
-                    return (pending, settled);
-                }
-                if (EnvelopeCodec.ParseServerMessage(raw) is StreamData data && data.Topic == ChannelEngine.UplinkPendingTopic)
-                {
-                    using var doc = System.Text.Json.JsonDocument.Parse(raw);
-                    var payload = doc.RootElement.GetProperty("payload");
-                    pending = payload.GetProperty("pending").EnumerateArray().Select(e => e.Clone()).ToList();
-                    settled = payload.GetProperty("settled").EnumerateArray().Select(e => e.Clone()).ToList();
-                }
-            }
-        }
-
-        /// <summary>The <c>settled</c> entries on the last pending frame to arrive.</summary>
-        private static async Task<List<System.Text.Json.JsonElement>> LatestSettledAsync(TestClient client)
-        {
-            var settled = new List<System.Text.Json.JsonElement>();
-            while (true)
-            {
-                string raw;
-                try
-                {
-                    raw = await client.ReceiveAsync(TestBudgets.Quiet);
-                }
-                catch (OperationCanceledException)
-                {
-                    return settled;
-                }
-                if (EnvelopeCodec.ParseServerMessage(raw) is StreamData data && data.Topic == ChannelEngine.UplinkPendingTopic)
-                {
-                    using var doc = System.Text.Json.JsonDocument.Parse(raw);
-                    settled = new List<System.Text.Json.JsonElement>();
-                    foreach (var entry in doc.RootElement.GetProperty("payload").GetProperty("settled").EnumerateArray())
-                    {
-                        settled.Add(entry.Clone());
-                    }
-                }
-            }
-        }
-
-        /// <summary>
         /// Loading another save is a new timeline even when its UT is later, so
         /// nothing dispatched in the old game is still shown as on its way.
         /// </summary>
@@ -1086,9 +886,6 @@ namespace Sitrep.Host.IntegrationTests
             public const string ThrottleCommand = "vessel.control.setThrottle";
             public const string GearCommand = "vessel.control.setGear";
 
-            /// <summary>A command the game always refuses, with its own words.</summary>
-            public const string RefusedCommand = "pending-queue-test.refuse";
-
             private int _handled;
 
             public int HandledCount => Volatile.Read(ref _handled);
@@ -1129,7 +926,6 @@ namespace Sitrep.Host.IntegrationTests
                     new CommandDeclaration { Command = Command, Delay = DelayRole.Delayed, Subject = VesselViewProvider.ControlTopic },
                     new CommandDeclaration { Command = ThrottleCommand, Delay = DelayRole.Delayed, Subject = VesselViewProvider.ControlTopic },
                     new CommandDeclaration { Command = GearCommand, Delay = DelayRole.Delayed, Subject = VesselViewProvider.ControlTopic },
-                    new CommandDeclaration { Command = RefusedCommand, Delay = DelayRole.Delayed, Subject = VesselViewProvider.ControlTopic },
                 },
             };
 
@@ -1150,9 +946,6 @@ namespace Sitrep.Host.IntegrationTests
                 host.AddCommandHandler<Dictionary<string, object>, string>(
                     GearCommand,
                     _ => "ok");
-                host.AddCommandHandler<string, CommandResult>(
-                    RefusedCommand,
-                    _ => CommandResult.Fail(CommandErrorCode.ModeUnavailable, "No RCS thrusters aboard"));
                 host.SetConnectivitySource(ComputeConnected);
                 host.SetSignalDelaySource(ComputeDelay);
             }
