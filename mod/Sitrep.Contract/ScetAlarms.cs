@@ -574,6 +574,15 @@ public class ScetAlarm
     /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool Restored { get; set; }
+
+    /// <summary>
+    /// The save the alarm was armed in, as the game names its folder. Empty
+    /// when the game had not named a save yet. A client keeps it with the alarm
+    /// and sends it back in <see cref="ScetAlarmArmArgs.Save"/>, so an alarm
+    /// made in one save is never armed into another.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string Save { get; set; } = "";
 }
 
 /// <summary>
@@ -684,6 +693,17 @@ public class ScetAlarmArmArgs
     /// <summary>See <see cref="ScetAlarm.Subject"/>. Empty is read as <c>"game"</c>.</summary>
     [SitrepUnit(Units.Id)]
     public string Subject { get; set; } = "game";
+
+    /// <summary>
+    /// The save the client made the alarm in, as read off
+    /// <see cref="ScetAlarm.Save"/>. Empty for an alarm whose save the client
+    /// has not been told yet, which is accepted and stamped with the loaded
+    /// save. An arm naming a save other than the loaded one is refused with
+    /// <see cref="CommandErrorCode.WrongState"/>, and the detail names the
+    /// loaded save.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string Save { get; set; } = "";
 
     /// <summary>What the alarm watches for. See <see cref="ScetAlarmCondition"/>.</summary>
     public ScetAlarmCondition Condition { get; set; } = new ScetAlarmCondition();

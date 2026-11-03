@@ -80,6 +80,8 @@ interface ArmedAlarm {
   actsOn: string;
   /** Where the mod reads it. Resolved from the arm, so it is never empty. */
   vantage: string;
+  /** The save the mod stamped on the row: the arm's, or the loaded save when the arm named none. */
+  save: string;
 }
 
 /**
@@ -168,6 +170,8 @@ interface ModStandIn {
   deleteInGame(id: string): void;
   /** The player editing the alarm's copy in the game's alarm clock: the mod takes the new name and time. */
   editInGame(id: string, name: string, ut: number): void;
+  /** Another save is loaded: the mod's roster starts empty and its arms are stamped with this save. */
+  loadSave(save: string): void;
   /** A quickload puts the alarm back on the roster as the save held it, until a client arms it again. */
   restoreFromSave(
     id: string,
@@ -207,6 +211,7 @@ function startSession(owlt: number): ModStandIn {
   const cancelled = new Set<string>();
   const deletedInGame = new Set<string>();
   const inGame = new Map<string, number>();
+  let loadedSave = "career-a";
   const matchedSince = new Map<string, number>();
   let reading = 0;
   let lastRoster: unknown[] = [];
@@ -257,6 +262,13 @@ function startSession(owlt: number): ModStandIn {
           };
         }
       }
+      if (String(bag.save ?? "") !== "" && bag.save !== loadedSave) {
+        return {
+          success: false,
+          errorCode: "wrongState",
+          detail: `this alarm was made in save '${String(bag.save)}' and the loaded save is '${loadedSave}'`,
+        };
+      }
       const condition = (bag.condition ?? {}) as Record<string, unknown>;
       const threshold = Number(condition.kind ?? 0) === 1;
       const contractParameter = Number(condition.kind ?? 0) === 2;
@@ -300,6 +312,7 @@ function startSession(owlt: number): ModStandIn {
            read at its own subject, which is where every alarm was read before
            the field existed. */
         vantage: String(bag.vantage ?? "") || subject,
+        save: String(bag.save ?? "") || loadedSave,
         condition: instant
           ? {
               kind: "instant",
@@ -416,6 +429,7 @@ function startSession(owlt: number): ModStandIn {
       gameAlarmId: inGame.get(id) ?? null,
       gameEdits: arm.gameEdits,
       restored: arm.restored,
+      save: arm.save,
     }));
     /* Gated as `ScetRosterAudience` gates it on the mod: nothing while nobody
        is subscribed, one frame to an audience that has not been answered (the
@@ -453,6 +467,7 @@ function startSession(owlt: number): ModStandIn {
         gameEdits: 0,
         subject: "game",
         vantage: "game",
+        save: loadedSave,
         onFire: [],
         actsOn: "",
         condition: {
@@ -506,6 +521,15 @@ function startSession(owlt: number): ModStandIn {
     },
     markUnreachable(id) {
       unreachable.add(id);
+    },
+    loadSave(save) {
+      loadedSave = save;
+      conditions.clear();
+      fired.clear();
+      cancelled.clear();
+      unreachable.clear();
+      deletedInGame.clear();
+      inGame.clear();
     },
     switchCraft() {
       for (const id of conditions.keys()) {
@@ -733,6 +757,56 @@ describe("SCET alarms", () => {
       await vi.advanceTimersByTimeAsync(DT * 1000);
     }
   }
+
+  it("never arms an alarm into a save it was not made in, and arms it again when its own save returns", async () => {
+    const session = startSession(OWLT);
+    session.emitAt(UT_START);
+    const svc = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage: memoryStorage(),
+      getOwltSeconds: () => OWLT,
+    });
+    const alarm = svc.addAlarm({
+      name: "Apoapsis",
+      trigger: { kind: "time", ut: 90_000, leadSeconds: 10 },
+    });
+    await run(session, UT_START + 4 * DT);
+    expect(session.armed()).toEqual([alarm.id]);
+    expect(session.armOf(alarm.id)?.save).toBe("career-a");
+
+    session.loadSave("career-b");
+    await runFrom(session, UT_START + 4 * DT, UT_START + 12 * DT);
+    expect(session.armed()).toEqual([]);
+    expect(svc.snapshot().alarms).toEqual([]);
+    expect(svc.snapshot().scetArmRefusals).toBeUndefined();
+
+    session.loadSave("career-a");
+    await runFrom(session, UT_START + 12 * DT, UT_START + 20 * DT);
+    expect(session.armed()).toEqual([alarm.id]);
+    expect(svc.snapshot().alarms.map((a) => a.id)).toEqual([alarm.id]);
+    svc.dispose();
+  });
+
+  it("stamps an alarm made in a later save with that save", async () => {
+    const session = startSession(OWLT);
+    session.emitAt(UT_START);
+    const svc = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage: memoryStorage(),
+      getOwltSeconds: () => OWLT,
+    });
+    session.loadSave("career-b");
+    const alarm = svc.addAlarm({
+      name: "Burn",
+      trigger: { kind: "time", ut: 90_000, leadSeconds: 10 },
+    });
+    await run(session, UT_START + 4 * DT);
+    expect(session.armOf(alarm.id)?.save).toBe("career-b");
+    expect(svc.snapshot().alarms[0]?.save).toBe("career-b");
+    svc.dispose();
+  });
 
   it("arms on the mod, and disarms an entry the mod holds that we do not", async () => {
     const session = startSession(OWLT);

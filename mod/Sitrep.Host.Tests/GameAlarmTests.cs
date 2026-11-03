@@ -198,7 +198,7 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void a_cancelled_or_fired_alarm_takes_its_copy_with_it()
+        public void a_cancelled_alarm_takes_its_copy_with_it()
         {
             var (roster, mirror, clock, _) = World();
             roster.Arm(TimeAlarm("a", 5000), "KSC");
@@ -209,14 +209,22 @@ namespace Sitrep.Host.Tests
             roster.ObserveFlownCraft("vessel:two");
             Sync(roster, mirror, clock, 101);
             Assert.Empty(clock.Held);
+        }
 
+        [Fact]
+        public void a_copy_that_is_due_is_left_for_the_game_to_remove()
+        {
+            var (roster, mirror, clock, links) = World();
             roster.Arm(TimeAlarm("b", 200), "KSC");
             Sync(roster, mirror, clock, 102);
-            Assert.Single(clock.Held);
+            var copy = Assert.Single(clock.Held.Values);
             roster.Evaluate(200);
-            Assert.Equal(ScetAlarmState.Fired, roster.Snapshot().Single(a => a.Id == "b").State);
+            clock.Deleted.Clear();
+
             Sync(roster, mirror, clock, 200);
-            Assert.Empty(clock.Held);
+
+            Assert.Empty(clock.Deleted);
+            Assert.Empty(links);
         }
 
         [Fact]

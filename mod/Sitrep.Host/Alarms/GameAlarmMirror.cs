@@ -105,7 +105,7 @@ namespace Sitrep.Host.Alarms
             {
                 if (_links.TryGetValue(id, out var gameId))
                 {
-                    if (held.ContainsKey(gameId))
+                    if (held.TryGetValue(gameId, out var copy) && !RemovesItself(copy, nowUt))
                     {
                         clock.Delete(gameId);
                     }
@@ -126,7 +126,7 @@ namespace Sitrep.Host.Alarms
 
                 if (!Wanted(alarm))
                 {
-                    if (present)
+                    if (present && !RemovesItself(held[gameId], nowUt))
                     {
                         clock.Delete(gameId);
                     }
@@ -192,6 +192,14 @@ namespace Sitrep.Host.Alarms
             }
             return outcome;
         }
+
+        /*
+         * A copy is made to delete itself once due, so one that is due or has
+         * triggered is already on its way out and a delete of ours would only
+         * make the game log an id that does not exist.
+         */
+        private static bool RemovesItself(GameAlarmRecord copy, double nowUt) =>
+            copy.Triggered || nowUt >= copy.Ut;
 
         private static bool Wanted(ScetAlarm alarm) =>
             alarm.State == ScetAlarmState.Armed

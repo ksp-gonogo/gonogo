@@ -40,6 +40,7 @@ namespace Gonogo.KSP.Tests
                 Name = "Burn",
                 State = ScetAlarmState.Armed,
                 GameAlarmId = 1584055298,
+                Save = "career-a",
                 Condition = new ScetAlarmCondition { Kind = ScetAlarmConditionKind.Time, Ut = 38256.47, LeadSeconds = 10 },
             };
             var node = new ConfigNode();
@@ -51,6 +52,7 @@ namespace Gonogo.KSP.Tests
             var a = restored.Single(r => r.Id == "a");
             Assert.Equal("Burn", a.Name);
             Assert.Equal(1584055298, a.GameAlarmId);
+            Assert.Equal("career-a", a.Save);
             Assert.Equal(38256.47, a.Condition!.Ut);
             Assert.Equal(10, a.Condition.LeadSeconds);
             var t = restored.Single(r => r.Id == "t");

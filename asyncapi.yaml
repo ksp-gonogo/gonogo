@@ -20467,6 +20467,7 @@ components:
         - actsOn
         - gameEdits
         - restored
+        - save
       properties:
         id:
           type: string
@@ -20616,6 +20617,14 @@ components:
             Whether this alarm came back from a save and no client has armed it since. A
             client that holds the alarm arms it again, so its own name and time, or the
             player's edit in the game, replace what the save held.
+        save:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            The save the alarm was armed in, as the game names its folder. Empty when
+            the game had not named a save yet. A client keeps it with the alarm and
+            sends it back in `ScetAlarmArmArgs.save`, so an alarm made in one save is
+            never armed into another.
     ScetAlarmAction:
       type: object
       description: |-
@@ -20699,6 +20708,7 @@ components:
         - name
         - vantage
         - subject
+        - save
         - condition
         - onFire
         - actsOn
@@ -20724,6 +20734,15 @@ components:
           type: string
           x-sitrep-unit: id
           description: See `ScetAlarm.subject`. Empty is read as `"game"`.
+        save:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            The save the client made the alarm in, as read off `ScetAlarm.save`. Empty
+            for an alarm whose save the client has not been told yet, which is accepted
+            and stamped with the loaded save. An arm naming a save other than the loaded
+            one is refused with `CommandErrorCode.WrongState`, and the detail names the
+            loaded save.
         condition:
           description: What the alarm watches for. See `ScetAlarmCondition`.
           allOf:
