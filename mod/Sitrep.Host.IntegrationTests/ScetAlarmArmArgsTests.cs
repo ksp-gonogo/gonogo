@@ -96,6 +96,7 @@ namespace Sitrep.Host.IntegrationTests
                         ["condition"] = condition,
                         ["onFire"] = new List<object?>(),
                         ["actsOn"] = "",
+                        ["save"] = "",
                     },
                     SentAt = 0.0,
                 }));

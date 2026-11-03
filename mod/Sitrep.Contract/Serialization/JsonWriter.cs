@@ -2661,6 +2661,10 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "restored");
             sb.Append(':');
             AppendBool(sb, a.Restored);
+            sb.Append(',');
+            AppendString(sb, "save");
+            sb.Append(':');
+            AppendString(sb, a.Save ?? "");
             sb.Append('}');
         }
 

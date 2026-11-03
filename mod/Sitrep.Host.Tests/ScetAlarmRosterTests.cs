@@ -322,6 +322,34 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void AnAlarmArmedWithNoSaveTakesTheLoadedOneAndAnotherSavesAlarmIsForeign()
+        {
+            var roster = new ScetAlarmRoster();
+            Assert.False(roster.BelongsToAnotherSave("career-b"));
+
+            roster.ObserveSave("career-a");
+            roster.Arm(TimeAlarm("a", 5000), "KSC");
+
+            Assert.Equal("career-a", roster.Snapshot().Single().Save);
+            Assert.False(roster.BelongsToAnotherSave("career-a"));
+            Assert.False(roster.BelongsToAnotherSave(""));
+            Assert.True(roster.BelongsToAnotherSave("career-b"));
+        }
+
+        [Fact]
+        public void ARestoredAlarmFromBeforeSavesWereStampedTakesTheLoadedSave()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.ObserveSave("career-a");
+            roster.Restore(new[]
+            {
+                new ScetAlarm { Id = "old", State = ScetAlarmState.Armed, Condition = new ScetAlarmCondition { Ut = 10 } },
+            });
+
+            Assert.Equal("career-a", roster.Snapshot().Single().Save);
+        }
+
+        [Fact]
         public void OnlyASubjectNamingAnotherCraftIsAnotherCraft()
         {
             var roster = new ScetAlarmRoster();
