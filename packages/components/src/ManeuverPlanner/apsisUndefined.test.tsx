@@ -47,6 +47,7 @@ function preview(over: Partial<ManeuverPreviewProps>) {
       currentUT={NOW}
       error={null}
       committing={false}
+      triggersAccepted
       sendDelay={{ kind: "none" } as never}
       triggerEditorOpen={false}
       setTriggerEditorOpen={() => {}}

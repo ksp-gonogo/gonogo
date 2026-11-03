@@ -72,6 +72,8 @@ export interface ManeuverPreviewProps {
   numericKeys: DataKey[];
   onCommit: () => void | Promise<void>;
   onArm: (input: { dataKey: string; op: ThresholdOp; value: number }) => void;
+  triggersAccepted: boolean;
+  triggersBlockedReason?: string;
 }
 
 export function ManeuverPreview(props: ManeuverPreviewProps) {
@@ -118,7 +120,7 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
       <TriggerEditor
         open={props.triggerEditorOpen}
         numericKeys={props.numericKeys}
-        externallyDisabled={!plan}
+        externallyDisabled={!plan || !props.triggersAccepted}
         onClose={() => props.setTriggerEditorOpen(false)}
         onArm={props.onArm}
       />
@@ -127,11 +129,13 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
           variant="ghost"
           type="button"
           onClick={() => props.setTriggerEditorOpen((o) => !o)}
-          disabled={props.committing || !plan}
+          disabled={props.committing || !plan || !props.triggersAccepted}
           disabledReason={
             props.committing
               ? "The node is being added"
-              : "There is no plan yet"
+              : plan
+                ? props.triggersBlockedReason
+                : "There is no plan yet"
           }
           aria-expanded={props.triggerEditorOpen}
         >

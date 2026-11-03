@@ -2,6 +2,7 @@ import { CloseIcon, PushUpIcon, RecallIcon } from "@ksp-gonogo/ui";
 import { Tooltip } from "@ksp-gonogo/ui-kit";
 import styled, { css, keyframes } from "styled-components";
 import { usePushClient } from "../../pushToMain/PushClientContext";
+import { useStationApproved } from "../../stationApproval/useStationApproved";
 import type { DashboardItem } from "./index";
 import { handleMouseDown } from "./mouseHandlers";
 import { touchTarget } from "./touchTarget";
@@ -48,6 +49,7 @@ export function PushButton({
   h: number;
 }>) {
   const client = usePushClient();
+  const approved = useStationApproved();
   if (!pushable || !client) return null;
   const pushed = client.isPushed(item.i);
   const handleClick = (e: React.MouseEvent) => {
@@ -71,6 +73,7 @@ export function PushButton({
         onMouseDown={handleMouseDown}
         onClick={handleClick}
         aria-label={pushed ? "Recall from main" : "Push to main"}
+        disabled={!approved}
         $pushed={pushed}
       >
         {pushed ? (
@@ -192,7 +195,12 @@ const PushBtn = styled.button<{ $pushed: boolean }>`
   margin-left: var(--gap-glyph-tray);
   ${touchTarget}
 
-  &:hover {
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &:hover:not(:disabled) {
     color: var(--color-info-text);
   }
 `;

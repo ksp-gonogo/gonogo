@@ -31,6 +31,10 @@ export const DangerButton = styled.button`
   border-radius: var(--radius-regular);
   font-size: var(--font-size-compact);
   cursor: pointer;
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
   &:hover {
     background: var(--color-nogo-muted);
   }

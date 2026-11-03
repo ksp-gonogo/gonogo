@@ -27,7 +27,7 @@ import {
   usesTarget,
 } from "./presets";
 import { TransferCheck } from "./TransferCheck";
-import { useTriggerSnapshot } from "./triggerService";
+import { useTriggerSnapshot, useTriggersAccepted } from "./triggerService";
 import type { FrozenPlanInputs, ThresholdOp } from "./triggerTypes";
 import { useNodeCommands } from "./useNodeCommands";
 import { usePlan } from "./usePlan";
@@ -97,6 +97,10 @@ export function ManeuverPlannerComponent({
 
   const triggerService = usePlannerTriggerService();
   const armedTriggers = useTriggerSnapshot(triggerService).triggers;
+  const triggersAccepted = useTriggersAccepted(triggerService);
+  const triggersBlockedReason = triggersAccepted
+    ? undefined
+    : triggerService.blockedReason;
   const [triggerEditorOpen, setTriggerEditorOpen] = useState(false);
   // A trigger compares a number, so only numeric fields are offered.
   const numericKeys = useNumericFields();
@@ -163,6 +167,7 @@ export function ManeuverPlannerComponent({
             <ArmedTriggersList
               triggers={armedTriggers}
               onCancel={(id) => triggerService.cancel(id)}
+              disabledReason={triggersBlockedReason}
             />
           </Section>
         )}
@@ -223,6 +228,8 @@ export function ManeuverPlannerComponent({
       numericKeys={numericKeys}
       onCommit={handleCommit}
       onArm={handleArmTrigger}
+      triggersAccepted={triggersAccepted}
+      triggersBlockedReason={triggersBlockedReason}
     />
   ) : (
     <Section key="preview">

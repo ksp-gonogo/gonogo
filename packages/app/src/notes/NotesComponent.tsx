@@ -2,6 +2,8 @@ import type { ComponentProps, DataKey } from "@ksp-gonogo/core";
 import { registerComponent, useScreen } from "@ksp-gonogo/core";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { usePeerClient } from "../peer/PeerClientContext";
+import { AWAITING_APPROVAL } from "../peer/PeerHostService";
+import { useStationApproved } from "../stationApproval/useStationApproved";
 import { NotesClientService } from "./NotesClientService";
 import {
   useNotesCentre,
@@ -77,6 +79,7 @@ function StationView() {
     (notify) => client?.onConnectionStatus(notify) ?? (() => {}),
     () => client?.getConnStatus() === "connected",
   );
+  const approved = useStationApproved();
   if (!client || !service) return <Empty>Waiting for host connection...</Empty>;
   const actions: NotesActions = {
     addNote: (body) => service.addNote(body),
@@ -88,16 +91,18 @@ function StationView() {
     <NotesView
       snap={snap}
       actions={actions}
-      blockedReason={stationBlockedReason(connected, snap)}
+      blockedReason={stationBlockedReason(connected, approved, snap)}
     />
   );
 }
 
 function stationBlockedReason(
   connected: boolean,
+  approved: boolean,
   snap: NotesSnapshot,
 ): string | null {
   if (!connected) return NOT_CONNECTED;
+  if (!approved) return AWAITING_APPROVAL;
   if (snap.centreId === null) return NO_CENTRE;
   return null;
 }

@@ -40,6 +40,17 @@ export interface ManeuverTriggerService {
   subscribe(cb: (snap: TriggerSnapshot) => void): () => void;
   arm(input: ArmTriggerInput): void;
   cancel(id: string): void;
+  /**
+   * Whether arming and cancelling are accepted at present. Absent on a service
+   * that always accepts them; a station's service reports false while the main
+   * screen has not approved the station. `blockedReason` is the tip its
+   * controls show while it does not.
+   */
+  blockedReason?: string;
+  accepting?: {
+    get(): boolean;
+    subscribe(cb: (accepting: boolean) => void): () => void;
+  };
 }
 
 const ManeuverTriggerContext = createContext<ManeuverTriggerService | null>(
@@ -63,6 +74,19 @@ export function ManeuverTriggerProvider({
 /** The provided trigger service, or null outside any provider, where widgets fall back to local state. */
 export function useManeuverTriggerService(): ManeuverTriggerService | null {
   return useContext(ManeuverTriggerContext);
+}
+
+/** Whether the service accepts arming and cancelling now; true for a service that does not say otherwise. */
+export function useTriggersAccepted(service: ManeuverTriggerService): boolean {
+  const [accepting, setAccepting] = useState(
+    () => service.accepting?.get() ?? true,
+  );
+  useEffect(() => {
+    if (!service.accepting) return;
+    setAccepting(service.accepting.get());
+    return service.accepting.subscribe(setAccepting);
+  }, [service]);
+  return accepting;
 }
 
 /** Reactive snapshot for React consumers. Updates on every service emit. */

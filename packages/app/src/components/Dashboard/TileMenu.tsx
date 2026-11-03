@@ -7,6 +7,7 @@ import {
 import { useCallback, useRef, useState } from "react";
 import styled from "styled-components";
 import { usePushClient } from "../../pushToMain/PushClientContext";
+import { useStationApproved } from "../../stationApproval/useStationApproved";
 import type { DashboardItem } from "./index";
 import { touchTarget } from "./touchTarget";
 
@@ -53,6 +54,7 @@ export function TileMenu({
   const [open, setOpen] = useState(false);
   const pushClient = usePushClient();
   const pushed = pushClient?.isPushed(item.i) ?? false;
+  const approved = useStationApproved();
 
   const dismiss = useCallback(() => {
     setOpen(false);
@@ -80,6 +82,7 @@ export function TileMenu({
           {
             key: "push",
             label: pushed ? "Recall from main" : "Push to main",
+            disabled: !approved,
           },
         ]
       : []),

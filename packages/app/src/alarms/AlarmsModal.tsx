@@ -38,6 +38,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
+import { useStationApproved } from "../stationApproval/useStationApproved";
 import { DangerButton, List, RowActions, RowMeta } from "./alarmRowStyles";
 import { useVantageName } from "./foreignAlarm";
 import {
@@ -143,6 +144,7 @@ export function AlarmsModal({
   prefill,
 }: AlarmsModalProps) {
   const snapshot = useSnapshot();
+  const approved = useStationApproved();
   // Which clock the instants in this modal are on. Undefined qualifiers on a
   // LAN session, where there is only one clock to be on.
   const timeContexts = useTimeContexts();
@@ -292,6 +294,7 @@ export function AlarmsModal({
         ...address,
       }));
   const addDisabled =
+    !approved ||
     trimmedName === "" ||
     (kind === "time" &&
       (!Number.isFinite(offsetN) || offsetN <= 0 || snapshot.ut === null)) ||
@@ -752,6 +755,7 @@ export function AlarmsModal({
                         </Button>
                         <DangerButton
                           type="button"
+                          disabled={!approved}
                           onClick={() => {
                             onDelete(a.id);
                             setPendingDeleteId(null);
@@ -765,6 +769,7 @@ export function AlarmsModal({
                         <Button
                           variant="ghost"
                           type="button"
+                          disabled={!approved}
                           onClick={() => {
                             setRenamingId(a.id);
                             setRenameDraft(a.name);
@@ -775,6 +780,7 @@ export function AlarmsModal({
                         <Button
                           variant="ghost"
                           type="button"
+                          disabled={!approved}
                           onClick={() => setPendingDeleteId(a.id)}
                         >
                           Delete
@@ -896,6 +902,7 @@ function ForeignAlarmRow({
   onDisarm: () => void;
 }) {
   const [confirming, setConfirming] = useState(false);
+  const approved = useStationApproved();
   const nameOf = useVantageName();
   const armedBy = alarm.armedBy ? nameOf(alarm.armedBy) : "an unnamed vantage";
   const label = withheld ? `Armed at ${armedBy}` : alarm.name || alarm.id;
@@ -937,6 +944,7 @@ function ForeignAlarmRow({
               </Button>
               <DangerButton
                 type="button"
+                disabled={!approved}
                 onClick={() => {
                   onDisarm();
                   setConfirming(false);
@@ -950,6 +958,7 @@ function ForeignAlarmRow({
               variant="ghost"
               type="button"
               aria-label={`Disarm ${label}`}
+              disabled={!approved}
               onClick={() => setConfirming(true)}
             >
               Disarm
@@ -1033,6 +1042,7 @@ function RecommendedPresets({
   snapshotRef: React.MutableRefObject<AlarmSnapshot>;
   onAdd: AlarmsModalProps["onAdd"];
 }) {
+  const approved = useStationApproved();
   // `timeToAp` / `timeToPe` are seconds-from-now; the maneuver node UT
   // is absolute. We read them live so a preset reflects the current orbit at
   // the moment of the click. Both are solved from `vessel.orbit`'s elements,
@@ -1164,6 +1174,7 @@ function RecommendedPresets({
             <PresetButton
               key={preset.id}
               type="button"
+              disabled={!approved}
               onClick={() => createPreset(preset)}
             >
               <PresetButtonLabel>{preset.label}</PresetButtonLabel>
@@ -1635,7 +1646,11 @@ const PresetButton = styled.button`
   border: 1px solid var(--color-surface-raised);
   border-radius: var(--radius-regular);
   cursor: pointer;
-  &:hover {
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  &:hover:not(:disabled) {
     border-color: var(--color-go-status);
   }
   &:focus-visible {

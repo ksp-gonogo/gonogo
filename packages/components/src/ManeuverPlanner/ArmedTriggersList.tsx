@@ -18,11 +18,14 @@ import type {
 interface ArmedTriggersListProps {
   triggers: readonly ArmedTrigger[];
   onCancel: (id: string) => void;
+  /** Why cancelling is unavailable; the buttons are disabled while it is set. */
+  disabledReason?: string;
 }
 
 export function ArmedTriggersList({
   triggers,
   onCancel,
+  disabledReason,
 }: ArmedTriggersListProps) {
   if (triggers.length === 0) return null;
   return (
@@ -44,6 +47,8 @@ export function ArmedTriggersList({
             </div>
             <Button
               type="button"
+              disabled={disabledReason !== undefined}
+              disabledReason={disabledReason}
               onClick={() => onCancel(t.id)}
               aria-label={
                 t.failure ? "Dismiss fired trigger" : "Cancel armed trigger"

@@ -174,6 +174,22 @@ describe("NotesComponent on a station", () => {
     expect(link.sent).toEqual([]);
   });
 
+  it("darkens the composer and the row controls while the main screen has not approved the station", () => {
+    const link = stationLink("connected");
+    link.client.getApproval = () => "pending";
+    station(link);
+    act(() => link.hear({ centreId: HOME, notes: [note("check fuel")] }));
+
+    expect(
+      screen.getByLabelText(/New note body/).hasAttribute("readonly"),
+    ).toBe(true);
+    expect(
+      screen.getByRole("button", { name: "Add" }).getAttribute("aria-disabled"),
+    ).toBe("true");
+    fireEvent.click(screen.getByLabelText("Delete note"));
+    expect(link.sent).toEqual([]);
+  });
+
   it("has nothing to edit until the host has told it a centre", () => {
     const link = stationLink("connected");
     station(link);

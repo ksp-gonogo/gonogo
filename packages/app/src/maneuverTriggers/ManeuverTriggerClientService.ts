@@ -4,7 +4,15 @@ import {
   type ManeuverTriggerService,
   type TriggerSnapshot,
 } from "@ksp-gonogo/components";
-import type { PeerClientService } from "../peer/PeerClientService";
+import type {
+  PeerClientService,
+  StationApproval,
+} from "../peer/PeerClientService";
+import { AWAITING_APPROVAL } from "../peer/PeerHostService";
+
+function isApproved(approval: StationApproval): boolean {
+  return approval !== "pending" && approval !== "refused";
+}
 
 /**
  * Station-side mirror of ManeuverTriggerHostService. Receives the
@@ -17,6 +25,14 @@ export class ManeuverTriggerClientService implements ManeuverTriggerService {
   private current: TriggerSnapshot = EMPTY_TRIGGER_SNAPSHOT;
   private listeners = new Set<(snap: TriggerSnapshot) => void>();
   private client: PeerClientService;
+
+  readonly blockedReason = AWAITING_APPROVAL;
+
+  readonly accepting = {
+    get: () => isApproved(this.client.getApproval()),
+    subscribe: (cb: (accepting: boolean) => void) =>
+      this.client.onApprovalChange((approval) => cb(isApproved(approval))),
+  };
 
   constructor(client: PeerClientService) {
     this.client = client;
