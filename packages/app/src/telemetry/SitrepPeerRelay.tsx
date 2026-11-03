@@ -1,5 +1,6 @@
 import { PerfBudget } from "@ksp-gonogo/core";
 import {
+  readOneWaySeconds,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
 } from "@ksp-gonogo/sitrep-client";
@@ -63,6 +64,14 @@ const SITREP_PEER_SUB_BUDGET = new PerfBudget({
  * trace.
  */
 const HISTORY_PER_TOPIC = 1500;
+
+/** Whether a frame's payload reports a measured one-way delay, rather than none. */
+function reportsOneWayDelay(message: ServerMessage | undefined): boolean {
+  return (
+    message?.type === "stream-data" &&
+    (readOneWaySeconds(message.payload) ?? 0) > 0
+  );
+}
 
 /**
  * Drop the fields only the sample on screen is read for from every frame of
@@ -224,9 +233,27 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
           message: ack,
         } satisfies PeerMessage);
       }
-      for (const run of cacheRef.current.values()) {
+      /*
+       * Through a blackout the newest `comms.delay` reports no delay, and the
+       * station reads a clock before the replay it asks for has arrived. The
+       * last measured figure goes first, and `comms.delay` goes ahead of every
+       * other topic, so that first reading is already the delayed one.
+       */
+      const runs = [...cacheRef.current.entries()].sort(
+        ([a], [b]) => Number(b === "comms.delay") - Number(a === "comms.delay"),
+      );
+      for (const [, run] of runs) {
         const newest = run[run.length - 1];
         if (!newest) continue;
+        if (newest.type === "stream-data" && newest.topic === "comms.delay") {
+          const figure = [...run].reverse().find(reportsOneWayDelay);
+          if (figure && figure !== newest) {
+            peerHost.sendToPeer(peerId, {
+              type: "sitrep-frame",
+              message: figure,
+            } satisfies PeerMessage);
+          }
+        }
         peerHost.sendToPeer(peerId, {
           type: "sitrep-frame",
           message: newest,
@@ -320,9 +347,20 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
       dataRates: () => client.getValue("system.dataRates"),
       cachedFrames: (topic) => {
         const ack = acksRef.current.get(topic);
+        const run = cacheRef.current.get(topic) ?? [];
+        /*
+         * A replay sends its first frame and its newest at once and the rest
+         * later. Through a blackout the newest `comms.delay` reports no delay,
+         * so the last frame that did leads the replay and is read with it.
+         */
+        const figure =
+          topic === "comms.delay" && !reportsOneWayDelay(run[run.length - 1])
+            ? [...run].reverse().find(reportsOneWayDelay)
+            : undefined;
         const frames: ServerMessage[] = [
+          ...(figure ? [figure] : []),
           ...(ack ? [ack] : []),
-          ...(cacheRef.current.get(topic) ?? []),
+          ...run,
         ];
         return frames.map(
           (message) =>
