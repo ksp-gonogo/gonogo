@@ -196,7 +196,7 @@ registerComponent<ScienceDataConfig>({
   tags: ["telemetry", "science"],
   defaultSize: { w: 8, h: 10 },
   // Below five columns the Archive tab falls off the end of the strip.
-  minSize: { w: 5, h: 4 },
+  minSize: { w: 6, h: 4 },
   component: ScienceDataComponent,
   channels: topics.channels,
   ...read,

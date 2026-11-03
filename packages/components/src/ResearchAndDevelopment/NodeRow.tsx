@@ -31,6 +31,14 @@ interface NodeRowProps {
   chargesScience: boolean;
 }
 
+/* The name breaks onto further lines rather than ending in an ellipsis. */
+const WRAPPED_NAME = {
+  whiteSpace: "normal",
+  overflow: "visible",
+  textOverflow: "clip",
+  overflowWrap: "anywhere",
+} as const;
+
 const STATE_LABEL: Record<DisplayState, string> = {
   researched: "Researched",
   researchable: "Researchable",
@@ -73,7 +81,7 @@ export function NodeRow({
         onClick={onToggleExpand}
         aria-expanded={expanded}
       >
-        <RowName>
+        <RowName style={WRAPPED_NAME}>
           <Text weight="semibold">{node.title}</Text>{" "}
           <Text level="faint" size="xs">
             ({node.id})

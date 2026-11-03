@@ -91,6 +91,8 @@ const ACTION_SLOT = {
   minWidth: 0,
 } as const;
 
+const PAIRED_ACTION = { flexGrow: 1 } as const;
+
 /**
  * A single science-instrument card: the part's name, its state badges when it
  * has any, a data line (the experiment and whether it holds data) and the
@@ -142,6 +144,18 @@ export function ScienceExperimentRow({
           whileRunning: started,
         });
     };
+  const showsDeploy =
+    !continuous &&
+    !instrument.inoperable &&
+    (!instrument.deployed || instrument.rerunnable) &&
+    Boolean(deployHandle);
+  const showsTransmit =
+    !continuous &&
+    !instrument.inoperable &&
+    instrument.hasData &&
+    Boolean(transmitCmd);
+  /* Deploy and Transmit grow to share the slot, so when the row is too narrow for both on one line they stack as two equal bars rather than two different widths offset from each other. */
+  const pairStyle = showsDeploy && showsTransmit ? PAIRED_ACTION : undefined;
   const actions = (
     <Inline wrap style={ACTION_SLOT}>
       {continuous &&
@@ -182,6 +196,7 @@ export function ScienceExperimentRow({
             args={{ partId: instrument.partId, experimentId: instrument.expId }}
             commandLabel={`Deploy ${experimentOnPart(instrument)}`}
             label="Deploy"
+            style={pairStyle}
             pendingLabel="Deploying..."
           />
         )}
@@ -195,6 +210,7 @@ export function ScienceExperimentRow({
             args={{ partId: instrument.partId, experimentId: instrument.expId }}
             commandLabel={`Transmit ${experimentOnPart(instrument)}`}
             label="Transmit"
+            style={pairStyle}
             confirmLabel="Confirm transmit"
             pendingLabel="Transmitting..."
             onConfirmed={(reply) => {

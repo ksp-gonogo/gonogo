@@ -1256,11 +1256,13 @@ const WIDGETS: WidgetRenderConfig[] = [
     outPath: "renders/objectives-widget",
     modes: [
       // Minimum registered width: tight list, source tags wrap.
-      { name: "min-4x4", w: 4, h: 4 },
+      { name: "min-6x4", w: 6, h: 4 },
       // Default registered size: unified contract-parameter list.
-      { name: "default-5x8", w: 5, h: 8 },
+      { name: "default-6x8", w: 6, h: 8 },
       // Tall: several active contracts.
-      { name: "tall-5x16", w: 5, h: 16 },
+      { name: "tall-6x16", w: 6, h: 16 },
+      // The narrow extreme at this widget's minSize, where the shared 5x18 falls below it.
+      { name: "portrait-6x18", w: 6, h: 18 },
     ],
   },
   /*
@@ -1395,8 +1397,10 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "Experiments/__fixtures__",
     outPath: "renders/experiments-widget",
     modes: [
-      // minSize 3×4: instrument list, tight.
-      { name: "min-3x4", w: 3, h: 4 },
+      // minSize 6×4: instrument list, tight.
+      { name: "min-6x4", w: 6, h: 4 },
+      // The narrow extreme at this widget's minSize, where the shared 5x18 falls below it.
+      { name: "portrait-6x18", w: 6, h: 18 },
       // defaultSize 6×7: the common view.
       { name: "default-6x7", w: 6, h: 7 },
       // wide: instrument rows + status have room.
@@ -1437,8 +1441,8 @@ const WIDGETS: WidgetRenderConfig[] = [
       },
       // the smallest list tile with a node opened.
       {
-        name: "list-open-5x4",
-        w: 5,
+        name: "list-open-6x4",
+        w: 6,
         h: 4,
         clicks: [{ selector: 'button[aria-expanded="false"]', awaitMs: 200 }],
       },
@@ -2231,19 +2235,21 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "ScienceData/__fixtures__",
     outPath: "renders/science-data-widget",
     modes: [
-      // minSize 5×4: Aboard tab, tight.
+      // minSize 6×4: Aboard tab, tight.
       {
-        name: "min-5x4",
-        w: 5,
+        name: "min-6x4",
+        w: 6,
         h: 4,
         forFixtures: ["kerbin-flight-partial-science"],
       },
       {
-        name: "compact-5x7",
-        w: 5,
+        name: "compact-6x7",
+        w: 6,
         h: 7,
         forFixtures: ["kerbin-flight-partial-science"],
       },
+      // The narrow extreme at this widget's minSize, where the shared 5x18 falls below it.
+      { name: "portrait-6x18", w: 6, h: 18 },
       // defaultSize 8×10: the common operator view, Aboard tab (default-active).
       {
         name: "aboard-8x10",
@@ -2294,7 +2300,10 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "ScienceData/__render_blackout__",
     outPath: "renders/blackout/status-badge",
     // Wider than the base set's 8x10 so the aside has room for the badge and the science figure side by side, which is the whole comparison.
-    modes: [{ name: "aboard-10x10", w: 10, h: 10 }],
+    modes: [
+      { name: "aboard-10x10", w: 10, h: 10 },
+      { name: "portrait-6x18", w: 6, h: 18 },
+    ],
   },
   {
     // Target Picker. Fixtures are SYNTHETIC (no live capture). Reads only the
