@@ -432,6 +432,8 @@ export class TelemetryClient {
   private readonly idPrefix: string;
   private selectedVantageId: string | undefined;
   private observedVantageId: string | undefined;
+  /** The epoch and `deliveredAt` of the frame that last moved the observed vantage. */
+  private observedStampedAt: { epoch: number; deliveredAt: number } | undefined;
   /** Whether the mod was asked to keep this connection at the active craft: see {@link followActiveCraft}. */
   private followingActiveCraft = false;
   /** Raw-frame tap listeners: see `onRawMessage`. */
@@ -1504,15 +1506,33 @@ export class TelemetryClient {
    * no stamp at all (a transport with nothing to say about vantage) changes
    * nothing, and the mod's empty stamp clears it: no centre is active yet.
    */
-  private noteObservedVantage(vantage: string | undefined): void {
+  private noteObservedVantage(meta: Meta): void {
+    const vantage = meta.vantage;
     if (vantage === undefined || vantage === META_VANTAGE) return;
+    /*
+     * A host replays a quiet Topic's older frames after its newest, to a
+     * station that has just joined, so a frame can arrive stamped from a
+     * centre the session has since left. Only a frame delivered no earlier than
+     * the one that set the vantage may change it.
+     */
+    const prior = this.observedStampedAt;
+    if (
+      prior !== undefined &&
+      prior.epoch === meta.timelineEpoch &&
+      meta.deliveredAt < prior.deliveredAt
+    ) {
+      return;
+    }
+    const stamp = { epoch: meta.timelineEpoch, deliveredAt: meta.deliveredAt };
     // The mod's empty stamp says no command centre is active, so the earlier centre no longer describes what arrives.
     if (vantage === "") {
+      this.observedStampedAt = stamp;
       if (this.observedVantageId === undefined) return;
       this.observedVantageId = undefined;
       this.notifyObservedVantage();
       return;
     }
+    this.observedStampedAt = stamp;
     if (vantage === this.observedVantageId) return;
     this.observedVantageId = vantage;
     this.notifyObservedVantage();
@@ -1683,7 +1703,7 @@ export class TelemetryClient {
     meta: Meta,
     replayed: boolean,
   ): void {
-    this.noteObservedVantage(meta.vantage);
+    this.noteObservedVantage(meta);
     this.noteGameUt(meta, replayed);
     const newest = this.isNewestRaw(topic, meta);
     /* A replay included: whether the game is paused is a state, and a station's link back to the main screen hands over the current one as replayed history. */

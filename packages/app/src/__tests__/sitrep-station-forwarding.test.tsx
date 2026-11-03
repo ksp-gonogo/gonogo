@@ -170,6 +170,7 @@ import {
   TelemetryProvider,
   type TimelineStore,
   useCertainty,
+  useObservedVantage,
   useStream,
   useStreamEvent,
   useTelemetryClientOptional,
@@ -243,6 +244,11 @@ function Probe({ testId, topic }: { testId: string; topic: string }) {
   );
 }
 
+/** The command centre the frames in front of this screen were delayed from. */
+function VantageProbe({ testId }: { testId: string }) {
+  return <div data-testid={testId}>{useObservedVantage() ?? "none"}</div>;
+}
+
 function HostApp({
   client,
   peerHost,
@@ -283,6 +289,7 @@ function StationApp({
       <FrameSink />
       <Probe testId="station-orbit" topic="vessel.orbit" />
       <Probe testId="station-identity" topic="vessel.identity" />
+      <VantageProbe testId="station-vantage" />
       {extraTopic ? <Probe testId="station-extra" topic={extraTopic} /> : null}
     </TelemetryProvider>
   );
@@ -670,6 +677,52 @@ describe("station Sitrep-stream forwarding: two-screen proof", () => {
       expect(probes[1].textContent).not.toBe("blank");
       expect(probes[1].textContent).toBe(probes[0].textContent);
     });
+  });
+
+  it("a station that reloads reads the same command centre as the main screen and another station", async () => {
+    const { peerHost, hostTransport } = setupHost();
+    await peerHost.start();
+    await waitForHostPeerId(peerHost);
+
+    const station1 = await connectStation(peerHost);
+    stationServices.push(station1);
+
+    const pastUt = Date.now() / 1000 - 10_000;
+    const previous = "ground:Duna: Relay";
+    const centre = "ground:Kerbin: KSC";
+    const emitOrbit = (n: number, vantage: string) =>
+      hostTransport.emit(
+        "vessel.orbit",
+        { apoapsis: 100_000 + n, periapsis: 80_000 },
+        { validAt: pastUt + n, deliveredAt: pastUt + n, vantage },
+      );
+    await emitUntilArrived(
+      () => emitOrbit(0, previous),
+      () =>
+        expect(screen.getAllByTestId("station-vantage")[0].textContent).toBe(
+          previous,
+        ),
+      8000,
+    );
+    act(() => emitOrbit(1, previous));
+    act(() => emitOrbit(2, centre));
+    await waitFor(() =>
+      expect(screen.getAllByTestId("station-vantage")[0].textContent).toBe(
+        centre,
+      ),
+    );
+
+    act(() => station1.disconnect());
+    const reloaded = await connectStation(peerHost);
+    stationServices.push(reloaded);
+
+    await waitFor(() => {
+      const probes = screen.getAllByTestId("station-orbit");
+      expect(probes[probes.length - 1].textContent).not.toBe("blank");
+    });
+    await act(async () => {});
+    const probes = screen.getAllByTestId("station-vantage");
+    expect(probes[probes.length - 1].textContent).toBe(centre);
   });
 
   it("a station's TelemetryClient.dispatch(): the exact call useCommand's carried branch makes, reaches the host over the command RPC", async () => {
