@@ -147,7 +147,7 @@ export function FramedDisplay({
       $stacked={hasStrip}
       $circle={circle}
       $cued={cues.length > 0}
-      data-shape={shape}
+      data-shape={circle ? "circle" : undefined}
       {...rest}
     >
       {hasStrip ? (

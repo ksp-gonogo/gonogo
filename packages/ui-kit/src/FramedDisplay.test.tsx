@@ -129,12 +129,9 @@ describe("FramedDisplay", () => {
     expect(emittedRuleFor(frame)).toContain("overflow:hidden");
   });
 
-  it("is the rounded rectangle by default", () => {
+  it("is the rounded rectangle by default, with no shape marker", () => {
     render(<FramedDisplay data-testid="frame" />);
-    expect(screen.getByTestId("frame")).toHaveAttribute(
-      "data-shape",
-      "rounded",
-    );
+    expect(screen.getByTestId("frame")).not.toHaveAttribute("data-shape");
   });
 
   it("holds a strip inside the same frame as the drawing above it", () => {
