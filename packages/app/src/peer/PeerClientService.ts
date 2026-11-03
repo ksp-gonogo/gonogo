@@ -317,6 +317,8 @@ export class PeerClientService {
   // only T-0 is reporting. Replayed to late subscribers while t0 is still in
   // the future; cleared on cancel.
   private lastCountdownT0Ms: number | null = null;
+  private lastNotesSnapshot: import("../notes/types").NotesSnapshot | null =
+    null;
 
   // Whether the host has reopened the poll after launch, kept so a widget that mounts after the message landed (a reloaded station) still offers its vote beside ABORT.
   private lastPollReopened = false;
@@ -1850,7 +1852,9 @@ export class PeerClientService {
     return this.events.on("alarmSnapshot", cb);
   }
 
+  /** Subscribes to the notes list for this station's centre, and hands the newest one already received to `cb` at once. */
   onNotesSnapshot(cb: (snap: import("../notes/types").NotesSnapshot) => void) {
+    if (this.lastNotesSnapshot) cb(this.lastNotesSnapshot);
     return this.events.on("notesSnapshot", cb);
   }
 
@@ -2036,6 +2040,7 @@ export class PeerClientService {
       this.events.emit("alarmSnapshot", msg.snapshot);
     },
     "notes-snapshot": (msg) => {
+      this.lastNotesSnapshot = msg.snapshot;
       this.events.emit("notesSnapshot", msg.snapshot);
     },
     "note-result": (msg) => {

@@ -165,7 +165,8 @@ export class GoNoGoHostService {
         this.peerIdToName.delete(peerId);
         this.peerIdToSeat.delete(peerId);
         this.peerIdToCentre.delete(peerId);
-        const hadVote = (this.peerIdToVote.get(peerId) ?? null) !== null;
+        const leftVote = this.peerIdToVote.get(peerId) ?? null;
+        const hadVote = leftVote !== null;
         this.peerIdToVote.delete(peerId);
         // A screen with no vote was not in the poll, so its leaving changes nothing for a countdown.
         if (centre !== null && (hadVote || !this.pollIsGo(centre))) {
@@ -173,6 +174,10 @@ export class GoNoGoHostService {
             cause: "dropped",
             station: stationName,
           });
+        }
+        // The only NO-GO leaving can leave the standing GO votes passing.
+        if (centre !== null && leftVote === "no-go") {
+          this.maybeStartCountdown(centre);
         }
         this.emit();
       }),
@@ -329,7 +334,10 @@ export class GoNoGoHostService {
     if (wasLaunched && !this.launched) {
       // Revert to pad: clear abort so the operator can try again.
       this.abort = null;
-      for (const poll of this.polls.values()) poll.committed = false;
+      for (const poll of this.polls.values()) {
+        poll.committed = false;
+        if (poll.notice?.kind === "outcome") poll.notice = null;
+      }
       if (this.reopened) {
         this.reopened = false;
         this.host.broadcast({ type: "gonogo-reset", reopened: false });
