@@ -207,10 +207,58 @@ export function patchHolds(patch: PatchSpan, ut: number): boolean {
 }
 
 /**
- * `samples + 1` evenly spaced states across a patch's window, beginning no
- * earlier than `notBeforeUt`. Useful for drawing the part of a predicted patch
- * still ahead of the vessel. Used by the system diagram's predicted trajectory.
- * The result is empty when nothing of the window is left.
+ * The instants of `samples + 1` points from `from` to `end`, spaced evenly in
+ * eccentric anomaly on a closed patch and in hyperbolic anomaly on an open one.
+ * Even steps in time leave a high-eccentricity patch a few points across its
+ * whole periapsis pass and draw that pass as a corner.
+ */
+function instantsEvenInAnomaly(
+  patch: PropagablePatch,
+  from: number,
+  end: number,
+  samples: number,
+): number[] {
+  const ecc = patch.ecc.valueOf();
+  const open = ecc > 1;
+  const rate = patchMeanMotion(patch);
+  const rateValue = rate.valueOf();
+  const at = (ut: number) => solveConic(patch, rate, value("ut", ut));
+  // The mean anomaly of an anomaly, which is how far along the orbit in time it is.
+  const meanOf = (anomaly: number) =>
+    open
+      ? ecc * Math.sinh(anomaly) - anomaly
+      : anomaly - ecc * Math.sin(anomaly);
+  const first = at(from).eccentricAnomaly;
+  const meanFrom = meanOf(first);
+  /*
+   * A closed patch's solve wraps into one turn, so the far end is lifted by the whole turns the window spans.
+   * An open patch's anomaly is already continuous.
+   */
+  const last = at(end).eccentricAnomaly;
+  const turns = open
+    ? 0
+    : Math.round(
+        (meanFrom + rateValue * (end - from) - meanOf(last)) / (2 * Math.PI),
+      );
+  const far = last + 2 * Math.PI * turns;
+  const meanSpan = meanOf(far) - meanFrom;
+  const instants = [from];
+  for (let s = 1; s < samples; s++) {
+    const anomaly = first + ((far - first) * s) / samples;
+    const share = (meanOf(anomaly) - meanFrom) / meanSpan;
+    instants.push(from + (end - from) * share);
+  }
+  instants.push(end);
+  return instants;
+}
+
+/**
+ * `samples + 1` states across a patch's window, beginning no earlier than
+ * `notBeforeUt`, spaced evenly in the patch's own anomaly so a path that swings
+ * close to its body is drawn smooth through the swing. Useful for drawing the
+ * part of a predicted patch still ahead of the vessel. Used by the system
+ * diagram's predicted trajectory. The result is empty when nothing of the
+ * window is left.
  */
 export function patchArc(
   patch: PatchSpan & PropagablePatch,
@@ -220,12 +268,8 @@ export function patchArc(
   const { start, end } = windowOf(patch);
   const from = notBeforeUt === undefined ? start : Math.max(start, notBeforeUt);
   if (!(end > from)) return [];
-  const arc: { ut: number; state: InertialState }[] = [];
-  for (let s = 0; s <= samples; s++) {
-    const ut = from + ((end - from) * s) / samples;
-    arc.push({ ut, state: patchStateAt(patch, ut) });
-  }
-  return arc;
+  const instants = instantsEvenInAnomaly(patch, from, end, samples);
+  return instants.map((ut) => ({ ut, state: patchStateAt(patch, ut) }));
 }
 
 /**

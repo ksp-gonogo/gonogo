@@ -255,7 +255,11 @@ describe("patchChain", () => {
         return { x: 12_000_000, y: 500 * ut, z: 0 };
       },
     });
-    expect(asked).toEqual([100, 1100, 2100, 3100, 4100]);
+    expect(asked).toHaveLength(5);
+    expect(asked[0]).toBe(100);
+    expect(asked[4]).toBe(4100);
+    expect(asked).toEqual([...asked].sort((a, b) => a - b));
+    expect(new Set(asked).size).toBe(5);
     expect(projected[0].points).toHaveLength(5);
   });
 
@@ -329,5 +333,36 @@ describe("where a patch about a child is drawn", () => {
       offsetAt: NO_BODIES,
     });
     expect(projected.map((p) => p.patchIndex)).toEqual([1]);
+  });
+});
+
+describe("patchChain on a high-eccentricity patch", () => {
+  /** A craft on the pad: apoapsis at the surface, periapsis inside the planet, one revolution of 551.6 s. */
+  const suborbital = () =>
+    patch({
+      startUt: 0,
+      endUt: 551.6385635955696,
+      period: 551.6385635955696,
+      ecc: 0.9947984393487722,
+      sma: 300_820.20515658095,
+      argPe: 90,
+      meanAnomalyAtEpoch: Math.PI,
+      mu: 3.5316e12,
+    });
+
+  it("keeps every step short, so the periapsis pass is not drawn as a corner", () => {
+    const { arcs } = patchChain({
+      patches: [suborbital()],
+      frameBodyName: "Kerbin",
+      ut: 0,
+      offsetAt: NO_BODIES,
+    });
+    const pts = arcs[0].points;
+    const steps = pts
+      .slice(1)
+      .map((p, i) => Math.hypot(p.x - pts[i].x, p.y - pts[i].y));
+    const length = steps.reduce((a, b) => a + b, 0);
+    // Evenly spaced in time, the step through periapsis was a twelfth of the whole path.
+    expect(Math.max(...steps)).toBeLessThan(length / 20);
   });
 });
