@@ -1,4 +1,4 @@
-import { type EdgeCue, FramedDisplay, Text } from "@ksp-gonogo/ui-kit";
+import { type EdgeCue, FramedDisplay, Text, Tooltip } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { type CircleView, DRAW } from "./circles";
 
@@ -110,27 +110,28 @@ function ScaleBar({
   const length = px === null ? null : niceLength(px, diameter * 0.26);
   if (px === null || length === null) return null;
   return (
-    <div
-      data-scale-bar=""
-      style={{
-        position: "absolute",
-        left: at.x,
-        // Above the circle's lower edge by the height of the label and the line, so neither is cut off.
-        top: at.y + diameter / 2 - diameter * 0.05 - SCALE_BAR_HEIGHT_PX,
-        transform: "translateX(-50%)",
-        width: length * px,
-        height: SCALE_BAR_HEIGHT_PX,
-        opacity,
-        pointerEvents: "none",
-        textAlign: "center",
-        whiteSpace: "nowrap",
-      }}
-    >
-      <Text size="xs" level="muted">
-        {lengthLabel(length)}
-      </Text>
-      <div style={{ borderTop: "2px solid var(--color-text-muted)" }} />
-    </div>
+    <Tooltip text={`Scale bar: ${lengthLabel(length)}`}>
+      <div
+        data-scale-bar=""
+        style={{
+          position: "absolute",
+          left: at.x,
+          // Above the circle's lower edge by the height of the label and the line, so neither is cut off.
+          top: at.y + diameter / 2 - diameter * 0.05 - SCALE_BAR_HEIGHT_PX,
+          transform: "translateX(-50%)",
+          width: length * px,
+          height: SCALE_BAR_HEIGHT_PX,
+          opacity,
+          textAlign: "center",
+          whiteSpace: "nowrap",
+        }}
+      >
+        <Text size="xs" level="muted">
+          {lengthLabel(length)}
+        </Text>
+        <div style={{ borderTop: "2px solid var(--color-text-muted)" }} />
+      </div>
+    </Tooltip>
   );
 }
 

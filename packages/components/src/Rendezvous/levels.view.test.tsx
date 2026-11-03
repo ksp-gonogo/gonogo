@@ -234,6 +234,14 @@ describe("the scale bar", () => {
     await waitFor(() => expect(circle("Docking")).not.toBeNull());
     expect(document.querySelector("[data-scale-bar]")).toBeNull();
   });
+
+  it("names its length in a tip, so the label can be hovered", async () => {
+    const { fixture } = mount();
+    emitCraft(fixture, 3_000);
+    await waitFor(() => expect(circle("Approach")).not.toBeNull());
+    const bar = document.querySelector("[data-scale-bar]");
+    expect(bar?.getAttribute("data-tooltip")).toMatch(/^Scale bar: .+ m$/);
+  });
 });
 
 describe("the Docking circle", () => {
