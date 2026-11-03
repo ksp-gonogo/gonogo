@@ -16,6 +16,8 @@ type bridgeCounts struct {
 	stationWriteErr atomic.Int64
 	upstreamRTCP    atomic.Int64
 	stationRTCP     atomic.Int64
+	// keyframeRequests counts the picture loss indications sent upstream, the station's and the one made when its leg connected.
+	keyframeRequests atomic.Int64
 }
 
 // selectedPair names the candidate pair a connection is sending on, or "none" before one is chosen.
@@ -46,19 +48,19 @@ func (b *bridge) logLegState(name string, state webrtc.PeerConnectionState, pc *
 func (b *bridge) heartbeat() {
 	ticker := time.NewTicker(b.beat)
 	defer ticker.Stop()
-	var last [5]int64
+	var last [6]int64
 	for {
 		select {
 		case <-b.done:
 			return
 		case <-ticker.C:
 		}
-		now := [5]int64{
+		now := [6]int64{
 			b.counts.upstreamRead.Load(), b.counts.stationWritten.Load(), b.counts.stationWriteErr.Load(),
-			b.counts.upstreamRTCP.Load(), b.counts.stationRTCP.Load(),
+			b.counts.upstreamRTCP.Load(), b.counts.stationRTCP.Load(), b.counts.keyframeRequests.Load(),
 		}
-		log.Printf("bridge %d heartbeat: upstream read %d packets, station wrote %d (%d failed), upstream rtcp %d, station rtcp %d, upstream %s ice %s, station %s ice %s",
-			b.serial, now[0]-last[0], now[1]-last[1], now[2]-last[2], now[3]-last[3], now[4]-last[4],
+		log.Printf("bridge %d heartbeat: upstream read %d packets, station wrote %d (%d failed), upstream rtcp %d, station rtcp %d, keyframe requests %d, upstream %s ice %s, station %s ice %s",
+			b.serial, now[0]-last[0], now[1]-last[1], now[2]-last[2], now[3]-last[3], now[4]-last[4], now[5]-last[5],
 			b.upstream.ConnectionState(), b.upstream.ICEConnectionState(),
 			b.station.ConnectionState(), b.station.ICEConnectionState())
 		last = now

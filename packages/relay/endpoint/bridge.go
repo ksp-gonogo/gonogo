@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/pion/rtcp"
@@ -46,6 +47,10 @@ type bridge struct {
 	local map[string]*webrtc.TrackLocalStaticRTP
 	// remote is the track the upstream server sends for each mid, once it arrives.
 	remote map[string]*webrtc.TrackRemote
+	// asked is the video mids already sent the keyframe request made when the station's leg connected.
+	asked map[string]bool
+	// stationUp is set once the station's leg is connected, so a track that arrives later is asked for a keyframe at once.
+	stationUp atomic.Bool
 }
 
 type section struct {
@@ -88,7 +93,7 @@ func (e *Endpoint) bridgeOffer(f controlFrame) {
 	}
 	b := &bridge{
 		id: f.Bid, sid: f.Sid, offer: f.SDP, sections: sections, upstream: upstream,
-		local: map[string]*webrtc.TrackLocalStaticRTP{}, remote: map[string]*webrtc.TrackRemote{},
+		local: map[string]*webrtc.TrackLocalStaticRTP{}, remote: map[string]*webrtc.TrackRemote{}, asked: map[string]bool{},
 		done: make(chan struct{}), beat: e.cfg.HeartbeatInterval,
 	}
 	b.watchLeg("upstream", upstream)
@@ -133,6 +138,9 @@ func (e *Endpoint) bridgeOffer(f controlFrame) {
 		b.remote[mid] = track
 		local := b.local[mid]
 		b.mu.Unlock()
+		if b.stationUp.Load() {
+			b.askForKeyframe(mid, track)
+		}
 		if local == nil {
 			return
 		}
@@ -238,12 +246,16 @@ func (e *Endpoint) bridgeAnswer(f controlFrame) {
 	b.watchLeg("station", station)
 	station.OnConnectionStateChange(func(state webrtc.PeerConnectionState) {
 		b.logLegState("station", state, station)
+		if state == webrtc.PeerConnectionStateConnected {
+			b.stationUp.Store(true)
+			b.askForKeyframes()
+		}
 		if state == webrtc.PeerConnectionStateFailed || state == webrtc.PeerConnectionStateClosed {
 			e.dropBridge(b.id, "station "+state.String())
 		}
 	})
-	station.OnDataChannel(func(dc *webrtc.DataChannel) { pipeChannel(dc, b.upstream) })
-	b.upstream.OnDataChannel(func(dc *webrtc.DataChannel) { pipeChannel(dc, station) })
+	station.OnDataChannel(func(dc *webrtc.DataChannel) { b.pipeChannel(dc, b.upstream, "station", "upstream") })
+	b.upstream.OnDataChannel(func(dc *webrtc.DataChannel) { b.pipeChannel(dc, station, "upstream", "station") })
 
 	if err := station.SetRemoteDescription(webrtc.SessionDescription{Type: webrtc.SDPTypeOffer, SDP: b.offer}); err != nil {
 		e.dropBridge(b.id, "bad offer")
@@ -324,17 +336,57 @@ func (b *bridge) relayKeyframeRequests(sender *webrtc.RTPSender, mid string) {
 			b.mu.Unlock()
 			if remote != nil {
 				_ = b.upstream.WriteRTCP([]rtcp.Packet{&rtcp.PictureLossIndication{MediaSSRC: uint32(remote.SSRC())}})
+				b.counts.keyframeRequests.Add(1)
 			}
 		}
 	}
 }
 
 /*
+askForKeyframes asks the upstream server for a keyframe on every video section it already
+sends, once each, when the station's leg connects. A camera named in the offer starts sending
+before any viewer asks and its next keyframe can be a full group of pictures away, so a
+station that connects mid-group would otherwise see nothing until then.
+*/
+func (b *bridge) askForKeyframes() {
+	b.mu.Lock()
+	tracks := make(map[string]*webrtc.TrackRemote, len(b.remote))
+	for mid, track := range b.remote {
+		tracks[mid] = track
+	}
+	b.mu.Unlock()
+	for mid, track := range tracks {
+		b.askForKeyframe(mid, track)
+	}
+}
+
+// askForKeyframe sends one picture loss indication for a video section, the first time it is called for that mid.
+func (b *bridge) askForKeyframe(mid string, track *webrtc.TrackRemote) {
+	if track.Kind() != webrtc.RTPCodecTypeVideo {
+		return
+	}
+	b.mu.Lock()
+	again := b.asked[mid]
+	b.asked[mid] = true
+	b.mu.Unlock()
+	if again {
+		return
+	}
+	if err := b.upstream.WriteRTCP([]rtcp.Packet{&rtcp.PictureLossIndication{MediaSSRC: uint32(track.SSRC())}}); err != nil {
+		return
+	}
+	b.counts.keyframeRequests.Add(1)
+	log.Printf("bridge %d section %s asked the upstream for a keyframe", b.serial, mid)
+}
+
+/*
 pipeChannel mirrors a data channel one side opened onto the other connection, under the same
 label and ordering, and copies messages both ways. What arrives before the mirror opens is
-held and sent once it does.
+held and sent once it does. `from` and `to` name the two legs in the log, which records each
+channel opening and closing and which leg closed first, because closing one closes the other.
 */
-func pipeChannel(dc *webrtc.DataChannel, other *webrtc.PeerConnection) {
+func (b *bridge) pipeChannel(dc *webrtc.DataChannel, other *webrtc.PeerConnection, from, to string) {
+	log.Printf("bridge %d %s opened data channel %q", b.serial, from, dc.Label())
 	ordered := dc.Ordered()
 	init := &webrtc.DataChannelInit{Ordered: &ordered}
 	if p := dc.MaxRetransmits(); p != nil {
@@ -379,8 +431,14 @@ func pipeChannel(dc *webrtc.DataChannel, other *webrtc.PeerConnection) {
 		send(mirror, m)
 	})
 	mirror.OnMessage(func(m webrtc.DataChannelMessage) { send(dc, m) })
-	dc.OnClose(func() { mirror.Close() })
-	mirror.OnClose(func() { dc.Close() })
+	dc.OnClose(func() {
+		log.Printf("bridge %d %s leg closed data channel %q, closing its copy on the %s leg", b.serial, from, dc.Label(), to)
+		mirror.Close()
+	})
+	mirror.OnClose(func() {
+		log.Printf("bridge %d %s leg closed data channel %q, closing its copy on the %s leg", b.serial, to, dc.Label(), from)
+		dc.Close()
+	})
 }
 
 // dropBridge closes one bridge and both its connections, and tells the tab unless the tab asked for it (reason empty).

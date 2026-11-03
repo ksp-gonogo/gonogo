@@ -263,6 +263,11 @@ func TestAKeyframeRequestFromTheStationReachesTheSidecar(t *testing.T) {
 	m.mu.Lock()
 	track := m.tracks[mid]
 	m.mu.Unlock()
+	select {
+	case <-side.plis:
+	case <-time.After(wait):
+		t.Fatal("the bridge never asked for the connect-time keyframe")
+	}
 	if err := m.pc.WriteRTCP([]rtcp.Packet{&rtcp.PictureLossIndication{MediaSSRC: uint32(track.SSRC())}}); err != nil {
 		t.Fatal(err)
 	}
@@ -271,6 +276,44 @@ func TestAKeyframeRequestFromTheStationReachesTheSidecar(t *testing.T) {
 	case <-time.After(wait):
 		t.Fatal("the keyframe request never reached the sidecar")
 	}
+}
+
+func TestABridgeAsksForOneKeyframePerVideoSectionWhenTheStationConnects(t *testing.T) {
+	logs := captureLog(t)
+	tb, _ := joinedStation(t)
+	side := newSidecar(t, 2)
+	m := newMediaStation(t, 2)
+	bridgeThrough(t, tb, 1, 1, m, side)
+	for i := 0; i < 2; i++ {
+		select {
+		case <-side.plis:
+		case <-time.After(wait):
+			t.Fatalf("only %d of 2 sections were asked for a keyframe", i)
+		}
+	}
+	select {
+	case <-side.plis:
+		t.Fatal("a section was asked for more than one connect-time keyframe")
+	case <-time.After(500 * time.Millisecond):
+	}
+	for _, mid := range []string{"0", "1"} {
+		waitForLog(t, logs, "bridge 1 section "+mid+" asked the upstream for a keyframe")
+	}
+}
+
+func TestABridgeLogsWhichLegClosedAControlChannelFirst(t *testing.T) {
+	logs := captureLog(t)
+	tb, _ := joinedStation(t)
+	side := newSidecar(t, 1)
+	m := newMediaStation(t, 1)
+	opened := make(chan struct{})
+	m.dc.OnOpen(func() { close(opened) })
+	bridgeThrough(t, tb, 1, 1, m, side)
+	waitFor(t, opened, "the station's control channel opening")
+	waitForLog(t, logs, `bridge 1 station opened data channel "control"`)
+
+	m.dc.Close()
+	waitForLog(t, logs, `bridge 1 station leg closed data channel "control", closing its copy on the upstream leg`)
 }
 
 func TestABridgeIsRefusedForAStationThatHasNotJoined(t *testing.T) {
