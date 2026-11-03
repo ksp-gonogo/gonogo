@@ -154,6 +154,7 @@ function LocalAlarmStrip() {
                 noPath={noPath}
                 scet={timeContexts.scet}
                 received={timeContexts.received}
+                viewUt={snap.ut}
               />
             )}
             {(nextAlarm.state === "fired" || nextAlarm.state === "firing") && (

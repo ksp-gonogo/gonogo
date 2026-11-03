@@ -41,6 +41,7 @@ function textOf(overrides: Partial<FiredFactsProps>): string {
       noPath={false}
       scet={{ frame: "scet" }}
       received={{ frame: "received", vantage: "Kerbal Space Center" }}
+      viewUt={3900}
       {...overrides}
     />,
   );
@@ -76,6 +77,11 @@ describe("FiredFacts", () => {
 
     expect(text).not.toContain("behind the craft");
     expect(text).not.toContain("No signal");
+  });
+
+  it("drops the readings note once the readings have reached the alarm's instant", () => {
+    expect(textOf({ viewUt: 4000 })).not.toContain("behind the craft");
+    expect(textOf({ viewUt: 4300 })).not.toContain("behind the craft");
   });
 
   it("says nothing about a gap under a second of light time", () => {
