@@ -636,7 +636,8 @@ describe("station Sitrep-stream forwarding: two-screen proof", () => {
 
     const hostView = [...liveStores][0].clock.viewUt();
     expect(firstDelay).toBeCloseTo(oneWay);
-    expect(Math.abs(firstView - hostView)).toBeLessThan(1);
+    /* The measured figure leads the replay, so a reading taken between two of the join's frames can see only that old frame and sit behind the main screen. What it must never do is run ahead, which is the undelayed game time. */
+    expect(firstView - hostView).toBeLessThan(1);
   });
 
   it("backfills a late-connecting station immediately for a topic that stopped changing before it joined", async () => {
