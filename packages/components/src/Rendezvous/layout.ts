@@ -37,7 +37,20 @@ export interface Layout {
   overlay: boolean;
   /** The height of the box above the dots. */
   lane: number;
+  /** The height of the band the name and the range take above the circle, zero where they sit in corners or over the circle. */
+  topBand: number;
+  /** The height of the band the bottom figures take below the circle, zero where they sit in corners or are left out. */
+  bottomBand: number;
 }
+
+/** The heights the figures ask for above and below the circle, from what they measured. */
+export interface BandsWanted {
+  top: number;
+  bottom: number;
+}
+
+/** No band at all: the figures sit in the circle's corners. */
+export const NO_BANDS: BandsWanted = { top: 0, bottom: 0 };
 
 export const DOTS_HEIGHT = 22;
 /** The height of one row of figures. */
@@ -62,18 +75,36 @@ export const OVERLAY_FROM_W = 100;
 /**
  * Sizes the circles from the measured box, never from a fixed number: the
  * large circle takes the box's shorter side, centred, and the figures take
- * the corners the circle leaves.
+ * the corners the circle leaves. Where the figures asked for a band above or
+ * below the circle (`wanted`), the circle takes the room left between them,
+ * and the bottom band is the first thing given up when that leaves too little
+ * for a circle.
  */
-export function layoutFor(box: Box): Layout {
+export function layoutFor(box: Box, wanted: BandsWanted = NO_BANDS): Layout {
   const dots = box.w >= MIN_BOX_FOR_DOTS.w && box.h >= MIN_BOX_FOR_DOTS.h;
   const dotsHeight = dots ? DOTS_HEIGHT : 0;
   const lane = box.h - dotsHeight;
   const compact = box.w < COMPACT_BELOW_W;
-  const overlay = compact && box.w >= OVERLAY_FROM_W;
-  const bands = compact && !overlay ? ROW_HEIGHT : 0;
-  const fitted = Math.floor(Math.min(box.w, lane - bands) - 2 * CUE_PAD);
+  // Laid over the circle only where the box is too short to give them a band.
+  const overlay =
+    compact && box.w >= OVERLAY_FROM_W && lane < box.w + 2 * ROW_HEIGHT;
+  const topBand = overlay
+    ? 0
+    : wanted.top > 0
+      ? wanted.top
+      : compact
+        ? ROW_HEIGHT
+        : 0;
+  const circleFor = (top: number, bottom: number) =>
+    Math.floor(Math.min(box.w, lane - top - bottom) - 2 * CUE_PAD);
+  let bottomBand = overlay ? 0 : wanted.bottom;
+  if (circleFor(topBand, bottomBand) < MIN_DIAMETER) bottomBand = 0;
+  const fitted = circleFor(topBand, bottomBand);
   const diameter = fitted >= MIN_DIAMETER ? fitted : 0;
-  const large = { x: box.w / 2, y: bands + (lane - bands) / 2 };
+  const large = {
+    x: box.w / 2,
+    y: topBand + (lane - topBand - bottomBand) / 2,
+  };
   const smallDiameter = Math.floor(diameter * SMALL_RATIO);
   return {
     diameter,
@@ -88,6 +119,8 @@ export function layoutFor(box: Box): Layout {
     compact,
     overlay,
     lane,
+    topBand,
+    bottomBand,
   };
 }
 

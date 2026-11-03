@@ -181,8 +181,10 @@ describe("Rendezvous: stale renders the last observation as an observation", () 
     // Both, side by side: the observation, and the model named so trust can be calibrated.
     expect(visibleText()).toContain("10.0 km");
     expect(visibleText()).toContain("12.0 km");
-    expect(visibleText()).toContain(
-      "carried forward at the last observed velocity",
+    // The caption is a short tag; the words of the basis are in its hover.
+    expect(screen.getByText("Modelled")).toHaveAttribute(
+      "data-tooltip",
+      "Modelled, carried forward at the last observed velocity",
     );
     expect(document.querySelector("[data-held]")).not.toBeNull();
   });

@@ -61,6 +61,35 @@ describe("layoutFor", () => {
   });
 });
 
+describe("layoutFor with bands", () => {
+  it("gives the circle the room left between a band above and a band below", () => {
+    const flat = layoutFor({ w: 300, h: 300 });
+    const banded = layoutFor({ w: 300, h: 300 }, { top: 36, bottom: 18 });
+    expect(banded.topBand).toBe(36);
+    expect(banded.bottomBand).toBe(18);
+    expect(banded.diameter).toBeLessThan(flat.diameter);
+    expect(banded.large.y - banded.diameter / 2).toBeGreaterThanOrEqual(36);
+    expect(banded.large.y + banded.diameter / 2).toBeLessThanOrEqual(300 - 18);
+  });
+
+  it("costs a tall narrow box nothing, since its circle is as wide as it can be", () => {
+    const flat = layoutFor({ w: 110, h: 500 });
+    const banded = layoutFor({ w: 110, h: 500 }, { top: 36, bottom: 36 });
+    expect(banded.diameter).toBe(flat.diameter);
+  });
+
+  it("gives up the bottom band before the circle where the two cannot both fit", () => {
+    const l = layoutFor({ w: 150, h: 150 }, { top: 36, bottom: 40 });
+    expect(l.bottomBand).toBe(0);
+    expect(l.diameter).toBeGreaterThanOrEqual(MIN_DIAMETER);
+  });
+
+  it("keeps the name and range over the circle only where the box is too short for a band", () => {
+    expect(layoutFor({ w: 110, h: 104 }).overlay).toBe(true);
+    expect(layoutFor({ w: 110, h: 500 }).overlay).toBe(false);
+  });
+});
+
 describe("figureRooms", () => {
   const box = { w: 192, h: 244 };
 

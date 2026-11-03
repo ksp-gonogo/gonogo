@@ -104,11 +104,10 @@ describe("Rendezvous: the dock channel alone stops being current", () => {
     });
 
     // The reticle stays, drawn from the reckoned separation, and the caption says it is modelled.
-    await waitFor(() =>
-      expect(screen.getByText(/Alignment reckoned/)).toBeTruthy(),
-    );
-    expect(visibleText()).toContain(
-      "carried forward at the last observed velocity",
+    await waitFor(() => expect(screen.getByText("Reckoned")).toBeTruthy());
+    expect(screen.getByText("Reckoned")).toHaveAttribute(
+      "data-tooltip",
+      "Alignment reckoned, carried forward at the last observed velocity",
     );
     // The basis is named; time is left to Unit.
     expect(visibleText()).not.toMatch(/last seen|\bago\b/i);
@@ -146,7 +145,7 @@ describe("Rendezvous: the dock channel alone stops being current", () => {
       expect(screen.queryByRole("group", { name: "Docking level" })).toBeNull(),
     );
     // The reason is named, so withheld reads differently from broken, and time is left to Unit.
-    expect(screen.getByText("Docking alignment withheld")).toBeTruthy();
+    expect(screen.getByText("Alignment withheld")).toBeTruthy();
     expect(visibleText()).not.toMatch(/last seen|\bago\b/i);
     // The alignment row goes with the HUD rather than lingering as placeholders.
     expect(visibleText()).not.toContain("α/β/γ");

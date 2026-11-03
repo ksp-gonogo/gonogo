@@ -178,7 +178,7 @@ function RendezvousComponent({
                 cleared={cleared}
               />
             )}
-            figures={(layout, box) => (
+            figures={(layout, box, ask) => (
               <ReadoutFigures
                 level={shownLevel}
                 name={tarName ?? lastName.current}
@@ -187,6 +187,7 @@ function RendezvousComponent({
                 periapsis={geometry.periapsis}
                 layout={layout}
                 box={box}
+                ask={ask}
                 docked={docked}
                 noTarget={cleared && !docked}
                 noDockingData={noDockingData}
@@ -226,8 +227,8 @@ registerComponent<RendezvousConfig>({
     "Your target's name, range and closing rate, whether it is a vessel, a docking port or a body, drawn as circles that zoom in a level at a time: both paths, the approach, then a docking port over a camera picture when an Uplink supplies one, or a body's sphere of influence.",
   tags: ["telemetry", "rendezvous"],
   defaultSize: { w: 6, h: 9 },
-  // Five rows: at four the overflow glow painted out the waiting hint's last word.
-  minSize: { w: 3, h: 5 },
+  // Four columns and six rows: below that the circle, the name and the range cannot all be drawn, and the body scrolls.
+  minSize: { w: 4, h: 6 },
   component: RendezvousComponent,
   tiny: {
     title: "TARGET",

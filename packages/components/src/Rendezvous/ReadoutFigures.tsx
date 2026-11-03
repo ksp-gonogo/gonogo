@@ -7,15 +7,24 @@ import {
   ReadoutCaption,
   reckoningBasisPhrase,
   Text,
+  Tooltip,
   Unit,
 } from "@ksp-gonogo/ui-kit";
-import type { CSSProperties, ReactNode } from "react";
+import {
+  type CSSProperties,
+  type ReactNode,
+  useCallback,
+  useLayoutEffect,
+  useState,
+} from "react";
 import type { CraftGeometry } from "./geometry/craft";
 import {
+  type BandsWanted,
   type Box,
   type FigureRoom,
   figureRooms,
   type Layout,
+  NO_BANDS,
   ROW_HEIGHT,
   rowTop,
 } from "./layout";
@@ -34,6 +43,8 @@ export interface ReadoutFiguresProps {
   periapsis: { inSeconds: number | null; altitude: number } | null;
   layout: Layout;
   box: Box;
+  /** Asks for a band above and below the circle, from what the figures measured. */
+  ask: (wanted: BandsWanted) => void;
   /** The two ports are joined, or the target was cleared as they joined. */
   docked: boolean;
   /** The target was cleared without the ports having joined. */
@@ -56,36 +67,42 @@ const FIGURE_STYLE: CSSProperties = {
 };
 
 /**
- * One figure in a corner of the box. It is left out, not cut short, where its
- * own width does not fit the room it has; the name alone is ellipsised.
+ * One figure in a corner of the box. A figure whose own width does not fit the
+ * room it has is held back and reported through `onMisfit`, so the figures can
+ * move to bands instead of one being cut short or left out.
  */
 function Figure({
   row,
   side,
   room,
   layout,
-  ellipsis = false,
   tail,
+  tailGap = TAIL_GAP,
+  onMisfit,
   children,
 }: {
   row: "top" | "bottom";
   side: "left" | "right";
   room: FigureRoom;
   layout: Layout;
-  ellipsis?: boolean;
   /** More of the figure, shown after it only where it fits as well. */
   tail?: ReactNode;
+  tailGap?: number;
+  onMisfit: () => void;
   children: ReactNode;
 }) {
   const { ref, size } = useOwnSize<HTMLSpanElement>();
   const { ref: tailRef, size: tailSize } = useOwnSize<HTMLSpanElement>();
   const measured = size.w > 1;
-  const fits = ellipsis || !measured || size.w <= room.width;
+  const fits = !measured || size.w <= room.width;
   const tailFits =
     tail !== undefined &&
     tail !== null &&
     measured &&
-    size.w + TAIL_GAP + tailSize.w <= room.width;
+    size.w + tailGap + tailSize.w <= room.width;
+  useLayoutEffect(() => {
+    if (!fits) onMisfit();
+  }, [fits, onMisfit]);
   return (
     <div
       data-figure={`${row}-${side}`}
@@ -93,20 +110,10 @@ function Figure({
         ...FIGURE_STYLE,
         top: rowTop(layout, row),
         [side]: room.inset,
-        maxWidth: room.width,
-        overflow: ellipsis ? "hidden" : undefined,
-        textOverflow: ellipsis ? "ellipsis" : undefined,
         visibility: fits ? "visible" : "hidden",
       }}
     >
-      <span
-        ref={ref}
-        style={
-          ellipsis
-            ? { display: "block", overflow: "hidden", textOverflow: "ellipsis" }
-            : { display: "inline-block" }
-        }
-      >
+      <span ref={ref} style={{ display: "inline-block" }}>
         {children}
       </span>
       {tail !== undefined && tail !== null && (
@@ -114,7 +121,7 @@ function Figure({
           ref={tailRef}
           style={{
             display: "inline-block",
-            marginLeft: TAIL_GAP,
+            marginLeft: tailGap,
             ...(tailFits ? {} : { position: "absolute", visibility: "hidden" }),
           }}
         >
@@ -220,19 +227,30 @@ function bottomFigures(props: ReadoutFiguresProps): {
   };
 }
 
-/** The one line the readout may say about the figures' standing, or null. */
-function noticeFor(props: ReadoutFiguresProps): string | null {
+/** A short tag the readout may show about the figures' standing, and the words a hover gives it in full. */
+interface Notice {
+  tag: string;
+  detail?: string;
+}
+
+function noticeFor(props: ReadoutFiguresProps): Notice | null {
   const { level, reading, layout, docked, noDockingData } = props;
-  if (docked) return "Docked";
-  if (props.noTarget) return "No target set in KSP";
-  if (noDockingData) return "No docking data";
+  if (docked) return { tag: "Docked" };
+  if (props.noTarget) return { tag: "No target set in KSP" };
+  if (noDockingData) return { tag: "No docking data" };
   if (layout.compact) return null;
-  if (reading.alignmentWithheld) return "Docking alignment withheld";
+  if (reading.alignmentWithheld) return { tag: "Alignment withheld" };
   if (level === "docking" && reading.modelledAlignment) {
-    return `Alignment reckoned, ${reckoningBasisPhrase(reading.modelledAlignment)}`;
+    return {
+      tag: "Reckoned",
+      detail: `Alignment reckoned, ${reckoningBasisPhrase(reading.modelledAlignment)}`,
+    };
   }
   if (reading.reckoned !== undefined && level !== "docking") {
-    return `Modelled, ${reckoningBasisPhrase(reading.reckoned.basis)}`;
+    return {
+      tag: "Modelled",
+      detail: `Modelled, ${reckoningBasisPhrase(reading.reckoned.basis)}`,
+    };
   }
   return null;
 }
@@ -313,14 +331,29 @@ function AxisArrow({ direction }: Readonly<{ direction: "right" | "up" }>) {
   );
 }
 
-/** The name and the range on one row across the top of the box, the name wrapping to a second line where it does not fit. */
+/**
+ * The name and the range across the top of the box: on one row where both fit,
+ * the range on a row of its own where they do not, and the name wrapping rather
+ * than being cut. Reports its height, which the circle gives up.
+ */
 function TopRow({
   width,
   name,
   range,
-}: Readonly<{ width: number; name: ReactNode; range: ReactNode }>) {
+  onHeight,
+}: Readonly<{
+  width: number;
+  name: ReactNode;
+  range: ReactNode;
+  onHeight?: (height: number) => void;
+}>) {
+  const { ref, size } = useOwnSize<HTMLDivElement>();
+  useLayoutEffect(() => {
+    onHeight?.(size.h > 1 ? size.h : ROW_HEIGHT);
+  }, [size.h, onHeight]);
   return (
     <div
+      ref={ref}
       data-figure="top"
       style={{
         ...FIGURE_STYLE,
@@ -328,16 +361,95 @@ function TopRow({
         left: 0,
         width,
         display: "flex",
-        gap: 8,
+        flexWrap: "wrap",
+        columnGap: 8,
         whiteSpace: "normal",
         height: "auto",
         alignItems: "flex-start",
       }}
     >
-      <div style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>
+      <div style={{ flex: "1 1 auto", minWidth: 0, overflowWrap: "anywhere" }}>
         {name}
       </div>
-      <div style={{ flex: "none", whiteSpace: "nowrap" }}>{range}</div>
+      <div style={{ flex: "none", whiteSpace: "nowrap", marginLeft: "auto" }}>
+        {range}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The bottom figures along the foot of the box, the second wrapping under the
+ * first where the two do not fit one row. Reports its height, which the circle
+ * gives up.
+ */
+function BottomRow({
+  layout,
+  width,
+  left,
+  right,
+  tail,
+  onHeight,
+}: Readonly<{
+  layout: Layout;
+  width: number;
+  left: ReactNode;
+  right: ReactNode;
+  tail: ReactNode;
+  onHeight: (height: number) => void;
+}>) {
+  const { ref, size } = useOwnSize<HTMLDivElement>();
+  const { ref: leftRef, size: leftSize } = useOwnSize<HTMLSpanElement>();
+  const { ref: rightRef, size: rightSize } = useOwnSize<HTMLSpanElement>();
+  const { ref: tailRef, size: tailSize } = useOwnSize<HTMLSpanElement>();
+  useLayoutEffect(() => {
+    onHeight(size.h > 1 ? size.h : ROW_HEIGHT);
+  }, [size.h, onHeight]);
+  const hasTail = tail !== undefined && tail !== null;
+  const tailFits =
+    hasTail &&
+    rightSize.w > 1 &&
+    leftSize.w + TAIL_GAP + rightSize.w + TAIL_GAP + tailSize.w <= width;
+  return (
+    <div
+      ref={ref}
+      data-figure="bottom"
+      style={{
+        ...FIGURE_STYLE,
+        left: 0,
+        top: "auto",
+        bottom: layout.dotsHeight,
+        width,
+        display: "flex",
+        flexWrap: "wrap",
+        justifyContent: "space-between",
+        columnGap: 8,
+        whiteSpace: "normal",
+        height: "auto",
+      }}
+    >
+      <span ref={leftRef} style={{ whiteSpace: "nowrap" }}>
+        {left}
+      </span>
+      <span style={{ whiteSpace: "nowrap" }}>
+        <span ref={rightRef} style={{ display: "inline-block" }}>
+          {right}
+        </span>
+        {hasTail && (
+          <span
+            ref={tailRef}
+            style={{
+              display: "inline-block",
+              marginLeft: TAIL_GAP,
+              ...(tailFits
+                ? {}
+                : { position: "absolute", visibility: "hidden" }),
+            }}
+          >
+            {tail}
+          </span>
+        )}
+      </span>
     </div>
   );
 }
@@ -424,7 +536,7 @@ function OverlayRows({
  * circle is large. Used by the Rendezvous widget.
  */
 export function ReadoutFigures(props: Readonly<ReadoutFiguresProps>) {
-  const { level, name, reading, layout, box } = props;
+  const { level, name, reading, layout, box, ask } = props;
   const docking = level === "docking";
   const distance = docking ? reading.dockingDistance : reading.tarDistance;
   const rangeR: Reading<Value<"m">> = reading.rangeR;
@@ -433,8 +545,49 @@ export function ReadoutFigures(props: Readonly<ReadoutFiguresProps>) {
   const top = figureRooms(layout, box, "top", smallShown);
   const bottom = figureRooms(layout, box, "bottom", smallShown);
   const notice = noticeFor(props);
-  const bottoms = layout.compact ? null : bottomFigures(props);
-  const range =
+  const bottoms = bottomFigures(props);
+
+  /*
+   * Figures sit in the circle's corners while each fits the room it has there.
+   * Once one does not, all of them move to a band above and below the circle,
+   * and stay there until the box, the name or the level changes, which is when
+   * the corners are tried again: the choice is read off the corner's own room,
+   * which does not depend on the bands, so it cannot flip back and forth.
+   */
+  const choiceKey = `${box.w}x${box.h}|${name}|${level}`;
+  const [chosen, setChosen] = useState({ key: choiceKey, bands: false });
+  const misfit = useCallback(
+    () => setChosen({ key: choiceKey, bands: true }),
+    [choiceKey],
+  );
+  const named = name !== "";
+  const banded =
+    named &&
+    !layout.overlay &&
+    (layout.compact || (chosen.key === choiceKey && chosen.bands));
+  const [heights, setHeights] = useState({ top: 0, bottom: 0 });
+  const topHeight = useCallback(
+    (h: number) =>
+      setHeights((was) => (was.top === h ? was : { ...was, top: h })),
+    [],
+  );
+  const bottomHeight = useCallback(
+    (h: number) =>
+      setHeights((was) => (was.bottom === h ? was : { ...was, bottom: h })),
+    [],
+  );
+  useLayoutEffect(() => {
+    ask(
+      banded
+        ? {
+            top: heights.top || ROW_HEIGHT,
+            bottom: heights.bottom || ROW_HEIGHT,
+          }
+        : NO_BANDS,
+    );
+  }, [ask, banded, heights.top, heights.bottom]);
+
+  const rangeMain =
     distance === undefined ? (
       <DisplayDash />
     ) : (
@@ -455,19 +608,29 @@ export function ReadoutFigures(props: Readonly<ReadoutFiguresProps>) {
         {!docking && RANGE_RATE_ARROW && (
           <RangeRateArrow closing={reading.relVel} />
         )}
-        {!docking && (
-          <ModelledAlongside
-            observed={rangeR.value}
-            modelled={
-              reading.reckonedDistance === undefined
-                ? undefined
-                : value("m", reading.reckonedDistance)
-            }
-          />
-        )}
       </Text>
     );
-  // A narrow box has one figure to a row, the width of the box where the circle leaves it clear.
+  // The modelled figure is more of the range, drawn only where there is room beside it, so it never hides the range itself.
+  const rangeTail =
+    distance === undefined || docking ? null : (
+      <Text size="sm" style={{ fontWeight: 600 }}>
+        <ModelledAlongside
+          observed={rangeR.value}
+          modelled={
+            reading.reckonedDistance === undefined
+              ? undefined
+              : value("m", reading.reckonedDistance)
+          }
+        />
+      </Text>
+    );
+  const range = (
+    <>
+      {rangeMain}
+      {rangeTail}
+    </>
+  );
+  // A tall box leaves the top clear of the circle: the name and range sit in a row there, wrapping rather than reserving a band.
   const clearTop =
     layout.diameter === 0 || layout.large.y - layout.diameter / 2 >= ROW_HEIGHT;
   const nameSmall = <Text size="xs">{name}</Text>;
@@ -476,9 +639,10 @@ export function ReadoutFigures(props: Readonly<ReadoutFiguresProps>) {
       {name}
     </Text>
   );
+  const bottomRowShown = banded && layout.bottomBand > 0;
   return (
     <>
-      {name !== "" ? (
+      {named ? (
         layout.overlay ? (
           <OverlayRows
             layout={layout}
@@ -486,8 +650,25 @@ export function ReadoutFigures(props: Readonly<ReadoutFiguresProps>) {
             name={nameSmall}
             range={range}
           />
-        ) : layout.compact ? (
-          <TopRow width={box.w} name={nameText} range={range} />
+        ) : banded ? (
+          <>
+            <TopRow
+              width={box.w}
+              name={nameText}
+              range={range}
+              onHeight={topHeight}
+            />
+            {bottomRowShown && (
+              <BottomRow
+                layout={layout}
+                width={box.w}
+                left={bottoms.left}
+                right={bottoms.right}
+                tail={bottoms.rightTail}
+                onHeight={bottomHeight}
+              />
+            )}
+          </>
         ) : (
           <>
             {clearTop ? (
@@ -499,26 +680,41 @@ export function ReadoutFigures(props: Readonly<ReadoutFiguresProps>) {
                   side="left"
                   room={top.left}
                   layout={layout}
-                  ellipsis
+                  onMisfit={misfit}
                 >
                   {nameText}
                 </Figure>
-                <Figure row="top" side="right" room={top.right} layout={layout}>
-                  {range}
+                <Figure
+                  row="top"
+                  side="right"
+                  room={top.right}
+                  layout={layout}
+                  tail={rangeTail}
+                  tailGap={0}
+                  onMisfit={misfit}
+                >
+                  {rangeMain}
                 </Figure>
               </>
             )}
-            <Figure row="bottom" side="left" room={bottom.left} layout={layout}>
-              {bottoms?.left}
+            <Figure
+              row="bottom"
+              side="left"
+              room={bottom.left}
+              layout={layout}
+              onMisfit={misfit}
+            >
+              {bottoms.left}
             </Figure>
             <Figure
               row="bottom"
               side="right"
               room={bottom.right}
               layout={layout}
-              tail={bottoms?.rightTail}
+              tail={bottoms.rightTail}
+              onMisfit={misfit}
             >
-              {bottoms?.right}
+              {bottoms.right}
             </Figure>
           </>
         )
@@ -532,24 +728,34 @@ export function ReadoutFigures(props: Readonly<ReadoutFiguresProps>) {
           transform: "translateX(-50%)",
           maxWidth: Math.max(layout.diameter * 0.9, 0),
           textAlign: "center",
-          whiteSpace: layout.diameter >= 140 ? "nowrap" : "normal",
           pointerEvents: "none",
         }}
       >
         <LiveRegion>
-          {notice !== null && (
-            <ReadoutCaption
-              style={{
-                background: "var(--color-surface-sunken)",
-                borderRadius: 3,
-                padding: "var(--inset-chip)",
-              }}
-            >
-              {notice}
-            </ReadoutCaption>
-          )}
+          {notice !== null && <NoticeTag notice={notice} />}
         </LiveRegion>
       </div>
     </>
+  );
+}
+
+/** The tag, with its fuller words on hover where it has them. */
+function NoticeTag({ notice }: Readonly<{ notice: Notice }>) {
+  const tag = (
+    <ReadoutCaption
+      style={{
+        background: "var(--color-surface-sunken)",
+        borderRadius: 3,
+        padding: "var(--inset-chip)",
+        pointerEvents: "auto",
+      }}
+    >
+      {notice.tag}
+    </ReadoutCaption>
+  );
+  return notice.detail === undefined ? (
+    tag
+  ) : (
+    <Tooltip text={notice.detail}>{tag}</Tooltip>
   );
 }

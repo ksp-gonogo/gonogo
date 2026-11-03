@@ -45,3 +45,38 @@ export async function settleRendezvous(): Promise<void> {
     await new Promise<void>((resolve) => setTimeout(resolve, 50));
   });
 }
+
+/**
+ * Gives every element a width of `charWidth` pixels a character and a height of
+ * one row where it has text, for the length of a test, so the figures' fit
+ * against the room they have can be exercised where jsdom lays nothing out.
+ * Returns what undoes it.
+ */
+export function installTextWidths(charWidth = 7, rowHeight = 18): () => void {
+  const width = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    "offsetWidth",
+  );
+  const height = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    "offsetHeight",
+  );
+  Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
+    configurable: true,
+    get() {
+      return (this.textContent ?? "").length * charWidth;
+    },
+  });
+  Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
+    configurable: true,
+    get() {
+      return (this.textContent ?? "").length > 0 ? rowHeight : 0;
+    },
+  });
+  return () => {
+    if (width)
+      Object.defineProperty(HTMLElement.prototype, "offsetWidth", width);
+    if (height)
+      Object.defineProperty(HTMLElement.prototype, "offsetHeight", height);
+  };
+}

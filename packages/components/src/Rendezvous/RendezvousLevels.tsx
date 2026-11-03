@@ -1,8 +1,15 @@
 import { type EdgeCue, useElementSize } from "@ksp-gonogo/ui-kit";
-import type { ReactNode } from "react";
+import { type ReactNode, useCallback, useState } from "react";
 import { LensStack, type ViewOf } from "./LensStack";
 import { LevelDots } from "./LevelDots";
-import { type Box, DOTS_HEIGHT, type Layout, layoutFor } from "./layout";
+import {
+  type BandsWanted,
+  type Box,
+  DOTS_HEIGHT,
+  type Layout,
+  layoutFor,
+  NO_BANDS,
+} from "./layout";
 import type { RendezvousLevel, TargetClass } from "./levels";
 
 export interface RendezvousLevelsProps {
@@ -16,8 +23,16 @@ export interface RendezvousLevelsProps {
   docking: (diameter: number) => ReactNode;
   /** A lit arc on a level's border, for the levels that have one. */
   cues?: Partial<Record<RendezvousLevel, EdgeCue | null>>;
-  /** Builds the figures in the box's corners from where the circles sit. */
-  figures: (layout: Layout, box: Box) => ReactNode;
+  /**
+   * Builds the figures from where the circles sit. The figures call `ask`
+   * with the bands they want above and below the circle once they have
+   * measured themselves; the circles then take the room that leaves.
+   */
+  figures: (
+    layout: Layout,
+    box: Box,
+    ask: (wanted: BandsWanted) => void,
+  ) => ReactNode;
 }
 
 /**
@@ -39,7 +54,13 @@ export function RendezvousLevels({
 }: Readonly<RendezvousLevelsProps>) {
   const { ref, size } = useElementSize<HTMLDivElement>({ w: 1, h: 1 });
   const box: Box = { w: size.w, h: size.h };
-  const layout = layoutFor(box);
+  const [wanted, setWanted] = useState<BandsWanted>(NO_BANDS);
+  const ask = useCallback((next: BandsWanted) => {
+    setWanted((was) =>
+      was.top === next.top && was.bottom === next.bottom ? was : next,
+    );
+  }, []);
+  const layout = layoutFor(box, wanted);
   return (
     <div
       ref={ref}
@@ -62,7 +83,7 @@ export function RendezvousLevels({
           pointerEvents: "none",
         }}
       >
-        {figures(layout, box)}
+        {figures(layout, box, ask)}
       </div>
       {layout.dots && (
         <div
