@@ -9,6 +9,7 @@ import {
   LOCAL_APP_URL,
   runCommandFor,
   SETUP_LINKS,
+  spacedockPage,
   UPDATE_REMOVE_COMMAND,
 } from "../firstRun/setupGuide";
 import { VERSION } from "../version";
@@ -31,96 +32,126 @@ import { VERSION } from "../version";
 export function HostedLanding() {
   const stationHref = `${import.meta.env.BASE_URL}station`;
   const shell = browserShell();
+  const spacedock = spacedockPage(import.meta.env.VITE_SPACEDOCK_MOD_ID);
   return (
     <Wrap>
       <Hero>
         <Header>
           <Title>gonogo</Title>
-          <Tagline>A mission control room for Kerbal Space Program.</Tagline>
+          <Tagline>Mission control for Kerbal Space Program.</Tagline>
           <Lede>
-            Run your whole save from the browser: contracts, science, the
-            administration building, launches, and live telemetry. Lay the
-            widgets out the way you want, across as many screens as you want.
+            Get rich telemetry from the API, or use the mission control app that
+            supports multiplayer-focused station screens. Expansive mod support
+            provided through the Uplink framework.
           </Lede>
         </Header>
 
+        <Join>
+          <a href={stationHref}>Join someone else&apos;s game</a>
+        </Join>
+
         <SetupTitle>Set it up</SetupTitle>
-        <Intro>
-          Gonogo runs on your own computer, not on this website, because it
-          talks to your copy of KSP over your own network. Three steps get it
-          going. The main screen runs in a container, so you need Docker or
-          Podman; with Podman, type <code>podman</code> where the steps say{" "}
-          <code>docker</code>.
-        </Intro>
 
         <Steps>
           <Step>
-            <StepTitle>Start Gonogo on your computer</StepTitle>
-            <StepText>
-              Gonogo comes as a container. If you do not have Docker yet,{" "}
-              <a href={SETUP_LINKS.docker}>install Docker</a> and start it. Then
-              run this in a terminal:
-            </StepText>
-            <CommandBlock
-              command={runCommandFor(shell, imageTagOf(VERSION))}
-              label="run command"
-            />
-            <StepText>
-              If Docker says the name <code>{CONTAINER_NAME}</code> is already
-              in use, a container from an earlier install exists. Run{" "}
-              <code>{UPDATE_REMOVE_COMMAND}</code>, then the command above
-              again. Once it is running, the app is at{" "}
-              <code>{LOCAL_APP_URL}</code>, not on this website.
-            </StepText>
-            <StepText>
-              {shell === "powershell" && `${say("container.powershellNote")} `}
-              With Podman, type <code>podman</code> in place of{" "}
-              <code>docker</code>.
-            </StepText>
+            <details>
+              <Summary>
+                <Num>1</Num>
+                <What>Install the Gonogo mod in KSP</What>
+              </Summary>
+              <StepBody>
+                <StepText>
+                  Search for Gonogo in{" "}
+                  <a href={SETUP_LINKS.ckanInstall}>CKAN</a>, or download and
+                  install manually from{" "}
+                  {spacedock && (
+                    <>
+                      <a href={spacedock}>SpaceDock</a> or{" "}
+                    </>
+                  )}
+                  the{" "}
+                  <a href={`${SETUP_LINKS.source}/releases`}>
+                    GitHub Releases page
+                  </a>{" "}
+                  (<a href={SETUP_LINKS.kspSetup}>setup guide</a>).
+                </StepText>
+                <StepText>
+                  Optionally, install Uplinks. Uplinks are mods in their own
+                  right. They extend Gonogo, typically to support other mods. In
+                  CKAN you can discover them by searching &quot;
+                  {CKAN_UPLINK_FILTER}&quot;.
+                </StepText>
+                <CommandBlock
+                  command={CKAN_UPLINK_FILTER}
+                  label="CKAN search"
+                />
+              </StepBody>
+            </details>
           </Step>
           <Step>
-            <StepTitle>Install the Gonogo mod in KSP</StepTitle>
-            <StepText>
-              Gonogo reads the game through a mod. The easiest way to install
-              mods is CKAN, a mod manager for KSP:{" "}
-              <a href={SETUP_LINKS.ckanInstall}>install CKAN</a> by following
-              its own guide, then search it for <code>Gonogo</code> and install
-              it.
-            </StepText>
-            <StepText>
-              Uplinks are optional add-ons that connect Gonogo to other mods,
-              adding things like camera feeds, a scripting terminal or surface
-              maps. Gonogo works without any. To list them, type this into the
-              search box in CKAN:
-            </StepText>
-            <CommandBlock command={CKAN_UPLINK_FILTER} label="CKAN search" />
-            <StepText>
-              If CKAN does not list Gonogo, download the zip from the{" "}
-              <a href={`${SETUP_LINKS.source}/releases`}>releases page</a>; the{" "}
-              <a href={SETUP_LINKS.kspSetup}>KSP setup guide</a> shows where it
-              goes.
-            </StepText>
+            <details>
+              <Summary>
+                <Num>2</Num>
+                <What>Start Gonogo on your computer</What>
+              </Summary>
+              <StepBody>
+                <StepText>
+                  Use <a href={SETUP_LINKS.dockerSite}>Docker</a> or another
+                  container runtime, like{" "}
+                  <a href={SETUP_LINKS.podmanSite}>Podman</a>. It&apos;s easiest
+                  to do this on a different computer to the one running KSP. If
+                  you&apos;re using the same computer, ensure KSP&apos;s
+                  background simulation setting is on.
+                </StepText>
+                <StepText>In a terminal, run:</StepText>
+                <CommandBlock
+                  command={runCommandFor(shell, imageTagOf(VERSION))}
+                  label="run command"
+                />
+                <Notes>
+                  <li>
+                    Name <code>{CONTAINER_NAME}</code> already in use? Run{" "}
+                    <code>{UPDATE_REMOVE_COMMAND}</code>, then the command
+                    again.
+                  </li>
+                  {shell === "powershell" && (
+                    <li>{say("container.powershellNote")}</li>
+                  )}
+                  <li>
+                    If playing with friends on the Internet, see the{" "}
+                    <a href={SETUP_LINKS.relayPorts}>networking guide</a>.
+                  </li>
+                </Notes>
+              </StepBody>
+            </details>
           </Step>
           <Step>
-            <StepTitle>Open the app and follow the setup</StepTitle>
-            <StepText>
-              Start KSP, then open <a href={LOCAL_APP_URL}>{LOCAL_APP_URL}</a>{" "}
-              on the computer you ran the command on. A short setup opens by
-              itself and checks each part for you: the app, the connection to
-              KSP, and any Uplinks. If KSP is on a different computer, it asks
-              for that computer's address. The rest of the instructions are
-              there.
-            </StepText>
+            <details>
+              <Summary>
+                <Num>3</Num>
+                <What>Open the app and follow the setup</What>
+              </Summary>
+              <StepBody>
+                <StepText>
+                  Start KSP, then open{" "}
+                  <a href={LOCAL_APP_URL}>{LOCAL_APP_URL}</a> on the computer
+                  Gonogo is running on.
+                </StepText>
+                <Notes>
+                  <li>
+                    Keep the Gonogo tab open. Other screens get their data
+                    through it.
+                  </li>
+                </Notes>
+              </StepBody>
+            </details>
           </Step>
         </Steps>
 
         <Fine>
-          Joining a game someone else is running? You need none of the above:{" "}
-          <a href={stationHref}>open a station screen</a> and enter their share
-          code. Source and releases are on{" "}
-          <a href={SETUP_LINKS.source}>GitHub</a>, and the{" "}
-          <a href={SETUP_LINKS.uplinkDocs}>Uplink developer docs</a> cover
-          building an Uplink of your own.
+          <a href={SETUP_LINKS.source}>GitHub</a> ·{" "}
+          <a href={SETUP_LINKS.uplinkDocs}>Uplink developer docs</a> ·{" "}
+          <a href={SETUP_LINKS.apiDocs}>API docs</a>
         </Fine>
       </Hero>
     </Wrap>
@@ -185,15 +216,24 @@ const Lede = styled.p`
 `;
 
 const SetupTitle = styled.h2`
-  margin: 2.75rem 0 0;
+  margin: 2.5rem 0 0.8rem;
   font-size: 1.25rem;
   font-weight: 700;
 `;
 
-const Intro = styled.p`
-  margin: 0.5rem 0 0;
-  line-height: var(--line-height-prose);
-  color: var(--color-text-muted);
+const Steps = styled.ol`
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+`;
+
+const Step = styled.li`
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-floating);
 
   code {
     font-family: var(--font-family-mono);
@@ -201,51 +241,95 @@ const Intro = styled.p`
   }
 `;
 
-const Steps = styled.ol`
+const Summary = styled.summary`
   list-style: none;
-  margin: 1.25rem 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  counter-reset: step;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  column-gap: 0.8rem;
+  padding: 0.8rem 1rem;
+  border-radius: var(--radius-floating);
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  &::after {
+    content: "";
+    grid-column: 3;
+    width: 0.55rem;
+    height: 0.55rem;
+    border-right: 2px solid var(--color-text-muted);
+    border-bottom: 2px solid var(--color-text-muted);
+    transform: rotate(45deg) translate(-2px, -2px);
+  }
+
+  details[open] > &::after {
+    transform: rotate(225deg) translate(-2px, -2px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: 2px;
+  }
 `;
 
-const Step = styled.li`
-  counter-increment: step;
+const Num = styled.span`
+  display: grid;
+  place-items: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: var(--radius-circle);
+  border: 1px solid var(--color-accent-fg);
+  color: var(--color-accent-fg);
+  font-weight: 700;
+  font-size: 0.9rem;
+`;
+
+const What = styled.span`
+  grid-column: 2;
+  font-size: 1.05rem;
+  font-weight: 700;
+`;
+
+const StepBody = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  padding: 1.1rem 1.2rem;
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-floating);
-`;
+  padding: 0 1rem 1rem 3.6rem;
 
-const StepTitle = styled.h3`
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 700;
-
-  &::before {
-    content: counter(step) ". ";
-    color: var(--color-accent-fg);
+  @media (max-width: 520px) {
+    padding-left: 1rem;
   }
 `;
 
 const StepText = styled.p`
   margin: 0;
-  font-size: 0.97rem;
+  font-size: 0.95rem;
+  line-height: var(--line-height-prose);
+  color: var(--color-text-muted);
+`;
+
+const Notes = styled.ul`
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.9rem;
   line-height: var(--line-height-prose);
   color: var(--color-text-muted);
 
-  code {
-    font-family: var(--font-family-mono);
-    color: var(--color-text-primary);
+  li + li {
+    margin-top: 0.25rem;
   }
 `;
 
-const Fine = styled.p`
+const Join = styled.p`
+  margin: 1.5rem 0 0;
+  font-size: 1rem;
+  font-weight: 700;
+`;
+
+const Fine = styled.footer`
   margin: 2rem 0 0;
   font-size: 0.9rem;
   line-height: var(--line-height-prose);

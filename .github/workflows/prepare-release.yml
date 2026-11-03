@@ -143,6 +143,18 @@ jobs:
         if: ${{ !inputs.dry_run }}
         run: pnpm uplink-pages
 
+      # The home page shows pictures of the widgets, so each release draws them
+      # again from the widgets it ships. A failed render keeps the pictures
+      # already committed and warns, rather than stopping the release over them.
+      - name: Redraw the home page pictures from the widgets being released
+        if: ${{ !inputs.dry_run }}
+        run: |
+          if pnpm exec playwright install --with-deps chromium && pnpm --filter @ksp-gonogo/components homepage-images; then
+            exit 0
+          fi
+          git checkout -- docs/homepage
+          echo "::warning::The home page pictures could not be redrawn; the release keeps the ones already committed."
+
       - name: Show what the cut changes
         run: git status --short
 

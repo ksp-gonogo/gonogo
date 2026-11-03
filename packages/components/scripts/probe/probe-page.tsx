@@ -28,6 +28,8 @@ declare global {
     ) => { id: string; label: string; kind: "button" | "analog" }[];
     /** Fires one declared action on the mounted widget, a press then a release for a button. */
     __dispatchProbeAction: (id: string, kind: "button" | "analog") => void;
+    /** The tile size a registered widget is placed at when first added, in grid units. */
+    __probeDefaultSize: (widgetId: string) => { w: number; h: number } | null;
   }
 }
 
@@ -51,6 +53,9 @@ window.__probeActions = (widgetId) =>
     label: a.label,
     kind: a.accepts.includes("button") ? "button" : "analog",
   }));
+
+window.__probeDefaultSize = (widgetId) =>
+  getComponent(widgetId)?.defaultSize ?? null;
 
 window.__dispatchProbeAction = (id, kind) => {
   const pressed = kind === "button" ? true : 1;
