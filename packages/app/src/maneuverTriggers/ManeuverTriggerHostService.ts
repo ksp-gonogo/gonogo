@@ -124,7 +124,8 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
    */
   private holds = new Map<string, () => void>();
   private vesselUnsub: (() => void) | null = null;
-  private peerConnectUnsub: (() => void) | null = null;
+  /** Every peer subscription this service holds, released on dispose so a replaced service stops hearing stations. */
+  private peerUnsubs: Array<() => void> = [];
   /** The snapshot last handed to listeners and peers, serialised, so an unchanged one is not sent again. */
   private lastEmitted: string | null = null;
   private host: ManeuverTriggerPeerHost | null;
@@ -154,8 +155,8 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
   dispose(): void {
     this.vesselUnsub?.();
     this.vesselUnsub = null;
-    this.peerConnectUnsub?.();
-    this.peerConnectUnsub = null;
+    for (const release of this.peerUnsubs) release();
+    this.peerUnsubs = [];
     for (const release of this.holds.values()) release();
     this.holds.clear();
     this.listeners.clear();
@@ -180,6 +181,8 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
   }
 
   cancel(id: string): void {
+    // A trigger whose nodes are already sent has nothing left to cancel.
+    if (this.triggers.some((t) => t.id === id && t.sent)) return;
     const before = this.triggers.length;
     this.triggers = this.triggers.filter((t) => t.id !== id);
     this.fired.delete(id);
@@ -211,27 +214,29 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
 
   private bindPeerListeners(): void {
     if (!this.host) return;
-    this.host.onTriggerArm((peerId, msg) => {
-      this.armFor(
-        {
-          dataKey: msg.dataKey,
-          op: msg.op as ThresholdOp,
-          value: msg.value,
-          inputs: msg.inputs as FrozenPlanInputs,
-        },
-        peerId,
-      );
-    });
-    this.host.onTriggerCancel((_peerId, id) => {
-      this.cancel(id);
-    });
-    // A change-only broadcast never reaches a station that joins between changes.
-    this.peerConnectUnsub = this.host.onPeerConnect((peerId) => {
-      this.host?.sendToPeer(peerId, {
-        type: "trigger-snapshot",
-        snapshot: this.snapshot(),
-      });
-    });
+    this.peerUnsubs.push(
+      this.host.onTriggerArm((peerId, msg) => {
+        this.armFor(
+          {
+            dataKey: msg.dataKey,
+            op: msg.op as ThresholdOp,
+            value: msg.value,
+            inputs: msg.inputs as FrozenPlanInputs,
+          },
+          peerId,
+        );
+      }),
+      this.host.onTriggerCancel((_peerId, id) => {
+        this.cancel(id);
+      }),
+      // A change-only broadcast never reaches a station that joins between changes.
+      this.host.onPeerConnect((peerId) => {
+        this.host?.sendToPeer(peerId, {
+          type: "trigger-snapshot",
+          snapshot: this.snapshot(),
+        });
+      }),
+    );
   }
 
   private bindVesselWatcher(): void {
@@ -277,7 +282,7 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
   /** Hold the Topic of every trigger still waiting on its condition, and let go of the rest. */
   private syncHolds(): void {
     const waiting = new Map(
-      this.triggers.filter((t) => !t.failure).map((t) => [t.id, t]),
+      this.triggers.filter((t) => !t.failure && !t.sent).map((t) => [t.id, t]),
     );
     for (const [id, release] of this.holds) {
       if (waiting.has(id)) continue;
@@ -323,13 +328,15 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
         mutated = true;
         continue;
       }
-      if (this.fired.has(t.id) || t.failure) continue;
+      if (this.fired.has(t.id) || t.failure || t.sent) continue;
       const value = this.readCondition(t.dataKey);
       if (value === undefined) continue;
       if (!compareThreshold(value, t.op, t.value)) continue;
       this.fired.add(t.id);
-      // Off the list before firing, since a plan that cannot be computed lists it again at once.
-      this.triggers = this.triggers.filter((x) => x.id !== t.id);
+      // Listed as sent until its burns settle, so the operator sees a fired trigger while its nodes travel.
+      this.triggers = this.triggers.map((x) =>
+        x.id === t.id ? { ...x, sent: true } : x,
+      );
       this.fire(t);
       mutated = true;
     }
@@ -344,13 +351,22 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
   private fire(trigger: ArmedTrigger): void {
     const live = this.readLiveOrbit();
     fireTriggerPlan(trigger.id, { ...trigger.inputs, ...live }, (failure) =>
-      this.recordFailure(trigger, failure),
+      this.settle(trigger, failure),
     );
   }
 
-  /** Lists a fired trigger again, carrying what went wrong, so every screen shows it until it is dismissed. */
-  private recordFailure(trigger: ArmedTrigger, failure: TriggerFailure): void {
-    this.triggers.push({ ...trigger, failure });
+  /** Drops a sent trigger once its burns settle, or keeps it carrying what went wrong so every screen shows it until it is dismissed. */
+  private settle(
+    trigger: ArmedTrigger,
+    failure: TriggerFailure | undefined,
+  ): void {
+    // Cancelled-by-vessel-change or disposed meanwhile: nothing is listed to settle.
+    if (!this.triggers.some((t) => t.id === trigger.id)) return;
+    this.triggers = this.triggers.flatMap((t) => {
+      if (t.id !== trigger.id) return [t];
+      return failure ? [{ ...trigger, sent: undefined, failure }] : [];
+    });
+    this.pruneFired();
     this.persist();
     this.emit();
   }
@@ -442,7 +458,7 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
     if (Array.isArray(parsed)) {
       this.triggers = parsed
         .map(migrateTrigger)
-        .filter((t): t is ArmedTrigger => t !== null);
+        .filter((t): t is ArmedTrigger => t !== null && !t.sent);
     }
   }
 }

@@ -14,6 +14,7 @@ export interface TimeTrigger {
   kind: "time";
   ut: number;
   leadSeconds: number;
+  node?: { id: string; beforeSeconds: number };
 }
 
 export const transferWindowActions = [

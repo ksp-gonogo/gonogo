@@ -24,7 +24,7 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { PropagationHorizonKind, TrajectoryKind } from "@ksp-gonogo/sitrep-sdk";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ManeuverTriggerClientService } from "../maneuverTriggers/ManeuverTriggerClientService";
 import { ManeuverTriggerHostService } from "../maneuverTriggers/ManeuverTriggerHostService";
 import type { PeerMessage } from "../peer/protocol";
@@ -283,9 +283,14 @@ describe("Maneuver trigger peer roundtrip", () => {
     expect(orbitStore.calls.length).toBe(1);
     expect(orbitStore.calls[0].command).toBe("vessel.maneuver.add");
 
-    // Client snapshot reflects the removal.
-    expect(hostSvc.snapshot().triggers).toHaveLength(0);
-    expect(clientSvc.snapshot().triggers).toHaveLength(0);
+    // Until its node is taken the trigger stays listed on both, as sent.
+    expect(clientSvc.snapshot().triggers[0].sent).toBe(true);
+
+    // Client snapshot reflects the removal once the node is taken.
+    await vi.waitFor(() => {
+      expect(hostSvc.snapshot().triggers).toHaveLength(0);
+      expect(clientSvc.snapshot().triggers).toHaveLength(0);
+    });
 
     hostSvc.dispose();
   });

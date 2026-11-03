@@ -65,6 +65,12 @@ export interface ArmedTrigger {
    * and stays listed until the operator dismisses it.
    */
   failure?: TriggerFailure;
+  /**
+   * Set from the moment a trigger fires until every burn it sent has settled.
+   * Such a trigger no longer watches its condition and cannot be cancelled,
+   * since its nodes are already on their way to the vessel.
+   */
+  sent?: true;
 }
 
 /** Why a fired trigger's plan could not be computed. */

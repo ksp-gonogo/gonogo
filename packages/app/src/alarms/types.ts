@@ -39,6 +39,13 @@ export interface TimeTrigger {
    * waste when timing isn't critical.
    */
   leadSeconds: number;
+  /**
+   * The maneuver node this alarm counts down to, and how many seconds before
+   * the node's burn it fires. While it is set, `ut` follows the node's burn
+   * time less `beforeSeconds` whenever the node is edited, and the alarm is
+   * removed when the node is.
+   */
+  node?: { id: string; beforeSeconds: number };
 }
 
 /**

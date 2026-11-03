@@ -350,6 +350,51 @@ describe("AlarmHostService", () => {
     expect(snap.alarms[0].state).toBe("pending");
   });
 
+  describe("an alarm bound to a maneuver node", () => {
+    const BOUND = {
+      kind: "time",
+      ut: 2940,
+      leadSeconds: 10,
+      node: { id: "node-1", beforeSeconds: 60 },
+    } as const;
+
+    function plan(
+      telemetry: FakeTelemetry,
+      nodes: Array<{ id: string; ut: number }>,
+    ) {
+      telemetry.publishTopic("vessel.maneuver", { nodes });
+    }
+
+    it("moves with the node when its burn time is edited", () => {
+      const { svc, telemetry } = makeService();
+      plan(telemetry, [{ id: "node-1", ut: 3000 }]);
+      svc.addAlarm({ name: "1min before node", trigger: BOUND });
+      vi.advanceTimersByTime(1000);
+      plan(telemetry, [{ id: "node-1", ut: 3500 }]);
+      vi.advanceTimersByTime(1000);
+      const [alarm] = svc.snapshot().alarms;
+      expect(alarm.trigger).toMatchObject({ kind: "time", ut: 3440 });
+    });
+
+    it("is deleted when the plan no longer holds the node", () => {
+      const { svc, telemetry } = makeService();
+      plan(telemetry, [{ id: "node-1", ut: 3000 }]);
+      svc.addAlarm({ name: "1min before node", trigger: BOUND });
+      vi.advanceTimersByTime(1000);
+      expect(svc.snapshot().alarms).toHaveLength(1);
+      plan(telemetry, []);
+      vi.advanceTimersByTime(1000);
+      expect(svc.snapshot().alarms).toHaveLength(0);
+    });
+
+    it("is kept while no plan has been reported", () => {
+      const { svc } = makeService();
+      svc.addAlarm({ name: "1min before node", trigger: BOUND });
+      vi.advanceTimersByTime(2000);
+      expect(svc.snapshot().alarms).toHaveLength(1);
+    });
+  });
+
   /**
    * The simulation stops the warp in the frame an alarm fires, so the fire
    * reaching this side is news of a stop already made. A command from here

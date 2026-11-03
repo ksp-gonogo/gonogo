@@ -89,7 +89,6 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
   "field:vessel.control.translationZ": "no reader found",
   "field:vessel.control.yaw": "no reader found",
   "field:vessel.inventory.stores": "no reader found",
-  "field:vessel.maneuver.planner": "no reader found",
   "field:vessel.physics.mode.mode": "no reader found",
   "field:vessel.thermal.maxSkinTempRatio": "no reader found",
   "field:robotics.servos.traverseVelocity":

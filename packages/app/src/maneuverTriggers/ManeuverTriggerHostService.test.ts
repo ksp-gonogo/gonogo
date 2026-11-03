@@ -15,7 +15,10 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ManeuverTriggerHostService } from "./ManeuverTriggerHostService";
+import {
+  ManeuverTriggerHostService,
+  type ManeuverTriggerPeerHost,
+} from "./ManeuverTriggerHostService";
 
 function memoryStorage(): Storage {
   const map = new Map<string, string>();
@@ -341,7 +344,7 @@ describe("ManeuverTriggerHostService", () => {
     expect(snap.triggers[0].vesselName).toBe("Test Vessel");
   });
 
-  it("fires immediately when the condition is already true at arm time", () => {
+  it("fires immediately when the condition is already true at arm time, and lists it as sent until its node settles", async () => {
     const svc = makeService();
     seedKerbinOrbit();
     // 700_000 (baseline sma) already meets >= 700_000.
@@ -351,6 +354,8 @@ describe("ManeuverTriggerHostService", () => {
       value: 700_000,
       inputs: FROZEN,
     });
+    expect(svc.snapshot().triggers.map((t) => t.sent)).toEqual([true]);
+    await vi.advanceTimersByTimeAsync(0);
     expect(svc.snapshot().triggers).toHaveLength(0);
   });
 
@@ -592,8 +597,7 @@ describe("ManeuverTriggerHostService", () => {
     // Bump sma so it clears 750_000.
     storeFixture.emitOrbit(kerbinOrbitPayload(1_000_000, 800_000));
     // The command dispatch settles on a microtask (StubTransport answers `command-request` via `queueMicrotask`): drain it before asserting.
-    await Promise.resolve();
-    await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(0);
     expect(storeFixture.calls.length).toBe(1);
     expect(storeFixture.calls[0].command).toBe("vessel.maneuver.add");
     expect(svc.snapshot().triggers).toHaveLength(0);
@@ -610,8 +614,7 @@ describe("ManeuverTriggerHostService", () => {
     });
     storeFixture.dropOrbitReader();
     storeFixture.emitOrbit(kerbinOrbitPayload(1_000_000, 800_000));
-    await Promise.resolve();
-    await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(0);
     expect(storeFixture.calls.map((c) => c.command)).toEqual([
       "vessel.maneuver.add",
     ]);
@@ -635,8 +638,7 @@ describe("ManeuverTriggerHostService", () => {
 
     // 700_000 -> 800_000, clearing the 750_000 threshold.
     storeFixture.emitOrbit(kerbinOrbitPayload(1_000_000, 800_000));
-    await Promise.resolve();
-    await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(0);
 
     expect(storeFixture.calls.length).toBe(1);
     expect(storeFixture.calls[0].command).toBe("vessel.maneuver.add");
@@ -668,7 +670,7 @@ describe("ManeuverTriggerHostService", () => {
    * has gone cannot suppress anything, ids being minted per arm and never
    * reused, but it is held for the service's lifetime, which is the app's.
    */
-  it("holds no fired id for a trigger that is no longer listed", () => {
+  it("holds no fired id for a trigger that is no longer listed", async () => {
     const svc = makeService();
     const storeFixture = seedKerbinOrbit();
 
@@ -686,6 +688,7 @@ describe("ManeuverTriggerHostService", () => {
       value: 700_000,
       inputs: FROZEN,
     });
+    await vi.advanceTimersByTimeAsync(0);
     expect(svc.snapshot().triggers).toHaveLength(1);
     expect(strandedFiredIds(svc)).toEqual([]);
 
@@ -766,5 +769,91 @@ describe("ManeuverTriggerHostService", () => {
     expect(svc.snapshot().triggers).toHaveLength(0);
     expect(lastSize).toBe(0);
     expect(storeFixture.calls).toEqual([]);
+  });
+
+  describe("with a peer host", () => {
+    /** A peer host whose arm and cancel listeners can be fired by hand, and whose released listeners stop hearing. */
+    function fakePeerHost() {
+      type ArmListener = Parameters<ManeuverTriggerPeerHost["onTriggerArm"]>[0];
+      type CancelListener = Parameters<
+        ManeuverTriggerPeerHost["onTriggerCancel"]
+      >[0];
+      const arms = new Set<ArmListener>();
+      const cancels = new Set<CancelListener>();
+      return {
+        host: {
+          broadcast: vi.fn(),
+          sendToPeer: vi.fn(),
+          onTriggerArm: (cb: ArmListener) => {
+            arms.add(cb);
+            return () => arms.delete(cb);
+          },
+          onTriggerCancel: (cb: CancelListener) => {
+            cancels.add(cb);
+            return () => cancels.delete(cb);
+          },
+          onPeerConnect: () => () => {},
+        } satisfies ManeuverTriggerPeerHost,
+        arm: (msg: Parameters<ArmListener>[1]) => {
+          for (const cb of [...arms]) cb("station-A", msg);
+        },
+        cancel: (id: string) => {
+          for (const cb of [...cancels]) cb("station-A", id);
+        },
+        listeners: () => arms.size + cancels.size,
+      };
+    }
+
+    it("stops hearing stations once disposed, so a replaced service arms and fires nothing", async () => {
+      const peer = fakePeerHost();
+      const storeFixture = seedKerbinOrbit();
+      const old = new ManeuverTriggerHostService(peer.host, {
+        storage: memoryStorage(),
+      });
+      // A trigger already true, left in the old service.
+      old.arm({
+        dataKey: "vessel.orbit.sma",
+        op: ">=",
+        value: 800_000,
+        inputs: FROZEN,
+      });
+      old.dispose();
+      expect(peer.listeners()).toBe(0);
+      const current = new ManeuverTriggerHostService(peer.host, { storage });
+      built.push(current);
+      storeFixture.emitOrbit(kerbinOrbitPayload(1_000_000, 900_000));
+      peer.arm({
+        type: "trigger-arm",
+        dataKey: "vessel.orbit.sma",
+        op: "<=",
+        value: 1,
+        inputs: FROZEN,
+      });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(storeFixture.calls).toEqual([]);
+      expect(current.snapshot().triggers).toHaveLength(1);
+      expect(old.snapshot().triggers).toHaveLength(1);
+      expect(old.snapshot().triggers[0].sent).toBeUndefined();
+    });
+
+    it("lists a fired trigger as sent, refuses to cancel it, and drops it when its node is taken", async () => {
+      const peer = fakePeerHost();
+      seedKerbinOrbit();
+      const svc = new ManeuverTriggerHostService(peer.host, { storage });
+      built.push(svc);
+      peer.arm({
+        type: "trigger-arm",
+        dataKey: "vessel.orbit.sma",
+        op: ">=",
+        value: 700_000,
+        inputs: FROZEN,
+      });
+      const [sent] = svc.snapshot().triggers;
+      expect(sent.sent).toBe(true);
+      peer.cancel(sent.id);
+      expect(svc.snapshot().triggers).toHaveLength(1);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(svc.snapshot().triggers).toHaveLength(0);
+    });
   });
 });

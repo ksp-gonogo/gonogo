@@ -111,7 +111,14 @@ export function WarpToRow({
           : target === "ut"
             ? "Warp to UT"
             : `${writeQuantity(value("s", leadSeconds))} before node`,
-      trigger: { kind: "time", ut: instant, leadSeconds: STEP_DOWN_SECONDS },
+      trigger: {
+        kind: "time",
+        ut: instant,
+        leadSeconds: STEP_DOWN_SECONDS,
+        ...(target === "node" && node !== null
+          ? { node: { id: node.id, beforeSeconds: leadSeconds } }
+          : {}),
+      },
     });
   };
 

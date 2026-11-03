@@ -43,19 +43,26 @@ export function ArmedTriggersList({
               <div style={META_STYLE}>
                 <ArrowRightIcon size={11} /> {presetLabel}
               </div>
+              {t.sent && (
+                <Text tone="warn" size="xs">
+                  Adding maneuver node
+                </Text>
+              )}
               {t.failure && <FiredTriggerFailure failure={t.failure} />}
             </div>
-            <Button
-              type="button"
-              disabled={disabledReason !== undefined}
-              disabledReason={disabledReason}
-              onClick={() => onCancel(t.id)}
-              aria-label={
-                t.failure ? "Dismiss fired trigger" : "Cancel armed trigger"
-              }
-            >
-              <CloseIcon size={12} />
-            </Button>
+            {!t.sent && (
+              <Button
+                type="button"
+                disabled={disabledReason !== undefined}
+                disabledReason={disabledReason}
+                onClick={() => onCancel(t.id)}
+                aria-label={
+                  t.failure ? "Dismiss fired trigger" : "Cancel armed trigger"
+                }
+              >
+                <CloseIcon size={12} />
+              </Button>
+            )}
           </Row>
         );
       })}

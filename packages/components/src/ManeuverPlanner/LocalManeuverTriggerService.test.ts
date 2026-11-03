@@ -398,7 +398,7 @@ describe("LocalManeuverTriggerService", () => {
     }
   });
 
-  it("holds no fired id for a trigger that is no longer listed", () => {
+  it("holds no fired id for a trigger that is no longer listed", async () => {
     fixture();
     const svc = new LocalManeuverTriggerService();
     try {
@@ -416,6 +416,7 @@ describe("LocalManeuverTriggerService", () => {
         value: 6_000_000,
         inputs: FROZEN,
       });
+      await new Promise((resolve) => setTimeout(resolve, 0));
       expect(svc.snapshot().triggers).toHaveLength(1);
       expect(strandedFiredIds(svc)).toEqual([]);
     } finally {

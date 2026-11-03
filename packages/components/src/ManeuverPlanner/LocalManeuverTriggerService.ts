@@ -79,6 +79,8 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
   }
 
   cancel(id: string): void {
+    // A trigger whose nodes are already sent has nothing left to cancel.
+    if (this.triggers.some((t) => t.id === id && t.sent)) return;
     const before = this.triggers.length;
     this.triggers = this.triggers.filter((t) => t.id !== id);
     this.fired.delete(id);
@@ -112,13 +114,15 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
         mutated = true;
         continue;
       }
-      if (this.fired.has(t.id) || t.failure) continue;
+      if (this.fired.has(t.id) || t.failure || t.sent) continue;
       const value = getValue(t.dataKey);
       if (value === undefined) continue;
       if (!compareThreshold(value, t.op, t.value)) continue;
       this.fired.add(t.id);
-      // Off the list before firing, since a plan that cannot be computed lists it again at once.
-      this.triggers = this.triggers.filter((x) => x.id !== t.id);
+      // Listed as sent until its burns settle, so the operator sees a fired trigger while its nodes travel.
+      this.triggers = this.triggers.map((x) =>
+        x.id === t.id ? { ...x, sent: true } : x,
+      );
       this.fire(t);
       mutated = true;
     }
@@ -129,13 +133,21 @@ export class LocalManeuverTriggerService implements ManeuverTriggerService {
   private fire(trigger: ArmedTrigger): void {
     const live = this.readLiveOrbit();
     fireTriggerPlan(trigger.id, { ...trigger.inputs, ...live }, (failure) =>
-      this.recordFailure(trigger, failure),
+      this.settle(trigger, failure),
     );
   }
 
-  /** Lists a fired trigger again, carrying what went wrong, so it stays in front of the operator until it is dismissed. */
-  private recordFailure(trigger: ArmedTrigger, failure: TriggerFailure): void {
-    this.triggers.push({ ...trigger, failure });
+  /** Drops a sent trigger once its burns settle, or keeps it carrying what went wrong so it stays in front of the operator until it is dismissed. */
+  private settle(
+    trigger: ArmedTrigger,
+    failure: TriggerFailure | undefined,
+  ): void {
+    if (!this.triggers.some((t) => t.id === trigger.id)) return;
+    this.triggers = this.triggers.flatMap((t) => {
+      if (t.id !== trigger.id) return [t];
+      return failure ? [{ ...trigger, sent: undefined, failure }] : [];
+    });
+    this.pruneFired();
     this.emit();
   }
 

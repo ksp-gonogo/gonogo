@@ -32,21 +32,21 @@ const TARGET_PRESETS: ReadonlySet<PresetId> = new Set([
 
 /**
  * Computes a fired trigger's plan against the live orbit and sends each burn
- * as its own node. `onFailure` is called once: at once when no plan could be
- * computed, since nothing was sent, or when every burn has settled and any of
- * them was not taken. It is not called when every burn was taken.
+ * as its own node. `onSettled` is called once: at once when no plan could be
+ * computed, since nothing was sent, or when every burn has settled. It carries
+ * the failure when any burn was not taken and nothing when every burn was.
  */
 export function fireTriggerPlan(
   triggerId: string,
   inputs: PlanInputs,
-  onFailure: (failure: TriggerFailure) => void,
+  onSettled: (failure: TriggerFailure | undefined) => void,
 ): void {
   const planned = planFor(inputs);
   if ("reason" in planned) {
-    onFailure({ kind: "no-plan", reason: planned.reason });
+    onSettled({ kind: "no-plan", reason: planned.reason });
     return;
   }
-  dispatchPlan(triggerId, planned.plan, onFailure);
+  dispatchPlan(triggerId, planned.plan, onSettled);
 }
 
 function planFor(
@@ -75,7 +75,7 @@ function noPlanReason(i: PlanInputs): NoPlanReason {
 function dispatchPlan(
   triggerId: string,
   plan: PlanResult,
-  onFailure: (failure: TriggerFailure) => void,
+  onSettled: (failure: TriggerFailure | undefined) => void,
 ): void {
   const burns = isSequence(plan) ? plan.burns : [plan];
   const refused: CommandRefusalEntry[] = [];
@@ -126,7 +126,10 @@ function dispatchPlan(
   void Promise.all(settled).then(() => {
     const missed =
       refused.length + lost.length + undelivered.length + failed.length;
-    if (missed === 0) return;
-    onFailure({ kind: "dispatch", refused, lost, undelivered, failed });
+    onSettled(
+      missed === 0
+        ? undefined
+        : { kind: "dispatch", refused, lost, undelivered, failed },
+    );
   });
 }

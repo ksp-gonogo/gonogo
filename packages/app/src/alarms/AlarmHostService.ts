@@ -2,7 +2,12 @@ import { safeRandomUuid } from "@ksp-gonogo/core";
 import { LocalStorageStore } from "@ksp-gonogo/data";
 import { logger } from "@ksp-gonogo/logger";
 import { getViewUt, sampleActiveTopic } from "@ksp-gonogo/sitrep-client";
-import { type CommsDelay, magnitudeOf } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type CommsDelay,
+  type ManeuverNode,
+  magnitudeOf,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { dispatchActionGroup } from "../dispatchActionGroup";
 import type { HostJobs } from "../hosting/HostJobs";
 import type { PeerHostService } from "../peer/PeerHostService";
@@ -741,6 +746,7 @@ export class AlarmHostService {
     const ut = viewUtSeconds() ?? null;
     this.observedUT = ut ?? this.observedUT;
     this.warpObserver.observeWarp();
+    this.followManeuverNodes();
 
     if (ut !== null) {
       let changed = false;
@@ -761,6 +767,39 @@ export class AlarmHostService {
     // quickload clears it, a fire retires a row).
     this.scetBridge.reconcile();
     this.emit();
+  }
+
+  /**
+   * Keeps every pending alarm bound to a maneuver node on that node: its
+   * instant follows the node's burn time, and the alarm is deleted when the
+   * plan no longer holds the node. Nothing is done until a plan has been
+   * reported, so a screen that has not heard one yet deletes nothing.
+   */
+  private followManeuverNodes(): void {
+    const bound = this.alarms.filter(
+      (a) =>
+        a.state === "pending" && a.trigger.kind === "time" && a.trigger.node,
+    );
+    if (bound.length === 0) return;
+    const plan = sampleActiveTopic<{ nodes?: readonly ManeuverNode[] }>(
+      "vessel.maneuver",
+    );
+    if (!plan || !Array.isArray(plan.nodes)) return;
+    for (const alarm of bound) {
+      const trigger = alarm.trigger;
+      if (trigger.kind !== "time" || !trigger.node) continue;
+      const node = plan.nodes.find((n) => n.id === trigger.node?.id);
+      if (!node) {
+        this.deleteAlarm(alarm.id);
+        continue;
+      }
+      if (!node.ut) continue;
+      const ut = node.ut
+        .minus(value("s", trigger.node.beforeSeconds))
+        .valueOf();
+      if (ut !== trigger.ut)
+        this.updateAlarm(alarm.id, { trigger: { ...trigger, ut } });
+    }
   }
 
   /**
