@@ -20,7 +20,7 @@ namespace Gonogo.KSP.Tests
 
             Assert.Contains("GameEvents.onCrewKilled.Add(OnCrewKilled);", source, StringComparison.Ordinal);
             var body = CurrencyDelaySourceText.MethodBody(source, "private void OnCrewKilled(EventReport report)");
-            Assert.Contains("_tracker.RecordKerbalsKilled(", body, StringComparison.Ordinal);
+            Assert.Contains("_tracker.RecordKerbalKilled(", body, StringComparison.Ordinal);
         }
     }
 }

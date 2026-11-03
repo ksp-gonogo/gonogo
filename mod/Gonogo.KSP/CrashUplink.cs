@@ -111,6 +111,7 @@ namespace Gonogo.KSP
                     return null;
                 }
 
+                _tracker.ObserveRoster(vessel.id.ToString(), ReadRemainingParts(vessel), ReadCrew(vessel));
                 var splashed = vessel.situation == Vessel.Situations.SPLASHED;
                 _tracker.Sample(
                     vessel.id.ToString(),
@@ -191,7 +192,7 @@ namespace Gonogo.KSP
             {
                 return;
             }
-            _tracker.RecordKerbalsKilled(vessel.id.ToString());
+            _tracker.RecordKerbalKilled(vessel.id.ToString(), GameWords.Text(report!.sender));
         }
 
         private void OnCrash(EventReport report) => NoteImpact(report, "Crash");
@@ -215,7 +216,7 @@ namespace Gonogo.KSP
                 }
                 _deaths.Impact(
                     vessel.id.ToString(),
-                    new CrashImpact(eventKind, GameWords.Text(report!.other), report.msg ?? "", FromPart(origin, report.msg ?? "")),
+                    new CrashImpact(eventKind, CrashPayload.CollidedWith(GameWords.Text(report!.other)), report.msg ?? "", FromPart(origin, report.msg ?? "")),
                     Planetarium.GetUniversalTime());
             }
             catch (Exception ex)
@@ -339,6 +340,8 @@ namespace Gonogo.KSP
                 Altitude = vessel.altitude,
                 Ut = ut,
             };
+
+            capture.Reconcile(_tracker.ObservedParts(vesselId), _tracker.ObservedCrew(vesselId), _tracker.KilledNames(vesselId));
 
             // The flight is over; drop the tracker state so a re-used id
             // (revert / new craft) starts clean.

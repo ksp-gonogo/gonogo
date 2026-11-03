@@ -47,6 +47,9 @@ namespace Sitrep.Host.Crash
             public int PartsLost;
             public int KerbalsKilled;
             public double? LastSampleUt;
+            public List<LostPart> Parts = new List<LostPart>();
+            public List<string> Crew = new List<string>();
+            public readonly List<string> KilledNames = new List<string>();
             public readonly List<string> Events = new List<string>();
         }
 
@@ -98,6 +101,49 @@ namespace Sitrep.Host.Crash
                 }
             }
             s.LastSampleUt = ut;
+        }
+
+        /// <summary>
+        /// Notes which parts and which kerbals the vessel had at its latest sample. A craft
+        /// that breaks apart on impact has lost its parts and its crew from the game's own
+        /// lists by the time it is reported destroyed, so this is the last whole view of it.
+        /// </summary>
+        public void ObserveRoster(string vesselId, IReadOnlyList<LostPart> parts, IReadOnlyList<string> crew)
+        {
+            if (string.IsNullOrEmpty(vesselId))
+            {
+                return;
+            }
+            var s = GetOrCreate(vesselId);
+            s.Parts = new List<LostPart>(parts);
+            s.Crew = new List<string>(crew);
+        }
+
+        /// <summary>The parts the vessel had at its latest roster sample, empty when it never had one.</summary>
+        public IReadOnlyList<LostPart> ObservedParts(string vesselId) =>
+            _byVessel.TryGetValue(vesselId, out var s) ? s.Parts : Array.Empty<LostPart>();
+
+        /// <summary>The kerbals aboard at the vessel's latest roster sample, empty when it never had one.</summary>
+        public IReadOnlyList<string> ObservedCrew(string vesselId) =>
+            _byVessel.TryGetValue(vesselId, out var s) ? s.Crew : Array.Empty<string>();
+
+        /// <summary>Names of the kerbals the game reported killed on the vessel.</summary>
+        public IReadOnlyList<string> KilledNames(string vesselId) =>
+            _byVessel.TryGetValue(vesselId, out var s) ? s.KilledNames : Array.Empty<string>();
+
+        /// <summary>Records that the named kerbal was killed on <paramref name="vesselId"/>.</summary>
+        public void RecordKerbalKilled(string vesselId, string name)
+        {
+            if (string.IsNullOrEmpty(vesselId))
+            {
+                return;
+            }
+            var s = GetOrCreate(vesselId);
+            s.KerbalsKilled++;
+            if (!string.IsNullOrEmpty(name) && !s.KilledNames.Contains(name))
+            {
+                s.KilledNames.Add(name);
+            }
         }
 
         /// <summary>Records that <paramref name="count"/> parts died on <paramref name="vesselId"/>.</summary>

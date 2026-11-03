@@ -81,6 +81,39 @@ namespace Sitrep.Host.Crash
         public double Ut;
 
         /// <summary>
+        /// Folds in what the vessel was last seen carrying. Whatever the game no longer lists
+        /// when it reports the vessel destroyed (parts already broken off, crew already killed)
+        /// is still part of what the crash cost.
+        /// </summary>
+        public void Reconcile(IReadOnlyList<LostPart> lastSeenParts, IReadOnlyList<string> lastSeenCrew, IReadOnlyList<string> killedNames)
+        {
+            foreach (var part in lastSeenParts)
+            {
+                if (!PartsLost.Exists(p => p.PartId == part.PartId))
+                {
+                    PartsLost.Add(part);
+                }
+            }
+            foreach (var name in lastSeenCrew)
+            {
+                AddAboard(name);
+            }
+            foreach (var name in killedNames)
+            {
+                AddAboard(name);
+            }
+            KerbalsKilled = new List<string>(CrewAboard);
+        }
+
+        private void AddAboard(string name)
+        {
+            if (!string.IsNullOrEmpty(name) && !CrewAboard.Contains(name))
+            {
+                CrewAboard.Add(name);
+            }
+        }
+
+        /// <summary>
         /// Names the impact that caused the death as its cause. The part that broke is put first in
         /// <see cref="PartsLost"/>, and every part the craft still had when it died stays on the list: the
         /// craft was lost whole, not the one part that hit first.
@@ -116,6 +149,19 @@ namespace Sitrep.Host.Crash
         public static bool ShouldPublish(string? vesselType) =>
             vesselType != "Debris" && vesselType != "Flag" && vesselType != "Unknown";
 
+        /// <summary>
+        /// What the vessel hit, as the impact event names it. Stock fills the name with
+        /// "an unidentified object" when the event carries none, which is no name, so it reads
+        /// as empty.
+        /// </summary>
+        public static string CollidedWith(string? name) =>
+            string.Equals(name, "an unidentified object", System.StringComparison.OrdinalIgnoreCase) ? "" : name ?? "";
+
+        // A count the tracker did not observe is null, but a list this very record carries
+        // is a floor: it cannot have lost fewer than it names.
+        private static int? AtLeast(int? counted, int listed) =>
+            listed > 0 ? System.Math.Max(counted ?? 0, listed) : counted;
+
         /// <summary>Flattens the <c>crash.hasRecent</c> payload to the dictionary <see cref="Sitrep.Contract.Serialization.JsonWriter"/> serializes.</summary>
         public static Dictionary<string, object?> ToWire(CrashRecent recent) =>
             new Dictionary<string, object?> { ["recent"] = recent.Recent };
@@ -144,8 +190,8 @@ namespace Sitrep.Host.Crash
             var stats = c.FlightStats;
             var flightStats = new Dictionary<string, object?>
             {
-                ["kerbalsKilled"] = stats.KerbalsKilled,
-                ["partsLost"] = stats.PartsLost,
+                ["kerbalsKilled"] = AtLeast(stats.KerbalsKilled, c.KerbalsKilled.Count),
+                ["partsLost"] = AtLeast(stats.PartsLost, c.PartsLost.Count),
                 ["flightEndMode"] = stats.FlightEndMode ?? "",
                 ["highestSpeedOverLand"] = stats.HighestSpeedOverLand,
                 ["missionEnd"] = stats.MissionEnd,

@@ -183,7 +183,100 @@ namespace Sitrep.Host.Tests
             Assert.Null(stats["highestAltitude"]);
             Assert.Null(stats["highestSpeed"]);
             Assert.Null(stats["totalDistance"]);
+            Assert.Equal(3, stats["partsLost"]);
+            Assert.Equal(2, stats["kerbalsKilled"]);
+        }
+
+        private static LostPart Part(long id, string name) => new LostPart { PartId = id, PartName = name, PartTitle = name };
+
+        [Fact]
+        public void Build_ASampledCraftThatTheTrackerSawLoseNothingStillCountsWhatTheRecordNames()
+        {
+            var tracker = new FlightStatsTracker();
+            tracker.Sample("v", ut: 1, altitude: 10, srfSpeed: 5, horizontalSrfSpeed: 5, missionTime: 3, geeForce: 1, splashed: false);
+            var capture = new CrashCapture
+            {
+                VesselId = "v",
+                PartsLost = new List<LostPart> { Part(1, "pod"), Part(2, "tank") },
+                CrewAboard = new List<string> { "Camvis Kerman" },
+                KerbalsKilled = new List<string> { "Camvis Kerman" },
+                FlightStats = tracker.Snapshot("v", 3),
+            };
+
+            var stats = (Dictionary<string, object?>)CrashPayload.Build(capture)["flightStats"]!;
+
+            Assert.Equal(2, stats["partsLost"]);
+            Assert.Equal(1, stats["kerbalsKilled"]);
+        }
+
+        [Fact]
+        public void Build_ACountNobodyObservedAndNoListBacksStaysNull()
+        {
+            var capture = new CrashCapture { VesselId = "v", FlightStats = new FlightStatsTracker().Snapshot("v") };
+
+            var stats = (Dictionary<string, object?>)CrashPayload.Build(capture)["flightStats"]!;
+
             Assert.Null(stats["partsLost"]);
+            Assert.Null(stats["kerbalsKilled"]);
+        }
+
+        [Fact]
+        public void Reconcile_APadCraftWhosePartsAndCrewWereGoneWhenItDiedStillReportsBoth()
+        {
+            var tracker = new FlightStatsTracker();
+            tracker.Sample("pad", ut: 1, altitude: 0, srfSpeed: 0, horizontalSrfSpeed: 0, missionTime: 1, geeForce: 1, splashed: true);
+            var whole = new List<LostPart> { Part(1, "pod"), Part(2, "tank"), Part(3, "engine"), Part(4, "chute"), Part(5, "leg"), Part(6, "leg") };
+            tracker.ObserveRoster("pad", whole, new[] { "Valentina Kerman" });
+            var capture = new CrashCapture
+            {
+                VesselId = "pad",
+                PartsLost = new List<LostPart> { Part(1, "pod") },
+                FlightStats = tracker.Snapshot("pad", 1),
+            };
+
+            capture.Reconcile(tracker.ObservedParts("pad"), tracker.ObservedCrew("pad"), tracker.KilledNames("pad"));
+            var wire = CrashPayload.Build(capture);
+
+            Assert.Equal(6, ((List<object?>)wire["partsLost"]!).Count);
+            Assert.Equal("Valentina Kerman", Assert.Single((List<object?>)wire["crewAboard"]!));
+            Assert.Equal("Valentina Kerman", Assert.Single((List<object?>)wire["kerbalsKilled"]!));
+            var stats = (Dictionary<string, object?>)wire["flightStats"]!;
+            Assert.Equal(6, stats["partsLost"]);
+            Assert.Equal(1, stats["kerbalsKilled"]);
+        }
+
+        [Fact]
+        public void Reconcile_AKerbalTheGameReportedKilledIsAboardEvenWhenNoRosterWasSeen()
+        {
+            var tracker = new FlightStatsTracker();
+            tracker.RecordKerbalKilled("v", "Bob Kerman");
+            var capture = new CrashCapture { VesselId = "v", FlightStats = tracker.Snapshot("v") };
+
+            capture.Reconcile(tracker.ObservedParts("v"), tracker.ObservedCrew("v"), tracker.KilledNames("v"));
+
+            Assert.Equal("Bob Kerman", Assert.Single(capture.CrewAboard));
+            Assert.Equal("Bob Kerman", Assert.Single(capture.KerbalsKilled));
+        }
+
+        [Fact]
+        public void Reconcile_NeverListsAPartTwice()
+        {
+            var capture = new CrashCapture { PartsLost = new List<LostPart> { Part(1, "pod") } };
+
+            capture.Reconcile(new[] { Part(1, "pod"), Part(2, "tank") }, new string[0], new string[0]);
+
+            Assert.Equal(2, capture.PartsLost.Count);
+        }
+
+        [Theory]
+        [InlineData("an unidentified object", "")]
+        [InlineData("An Unidentified Object", "")]
+        [InlineData("", "")]
+        [InlineData(null, "")]
+        [InlineData("Duna", "Duna")]
+        public void CollidedWith_TheStockPlaceholderIsNoName(string? name, string expected)
+        {
+            Assert.Equal(expected, CrashPayload.CollidedWith(name));
         }
 
         [Fact]
