@@ -1683,25 +1683,6 @@ namespace Sitrep.Host
             return vessel != null && TryGetSubjectId(vessel, out var vesselId) ? vesselId : null;
         }
 
-        /// <summary>The snapshot key naming the active craft the game has destroyed, which is not read as a vessel.</summary>
-        public const string DestroyedActiveVesselKey = "destroyedActiveVessel";
-
-        /// <summary>
-        /// The active craft's id for what the command centre knows of its link:
-        /// the live active vessel, or the craft the game has just destroyed.
-        /// Whether a destroyed craft is gone is news that travels at the speed
-        /// of light, so a comms reader keeps the craft it was reporting rather
-        /// than reading the destruction as there being no craft.
-        /// </summary>
-        public static string? TryGetLinkedVesselId(KspSnapshot? snapshot) =>
-            TryGetActiveVesselId(snapshot)
-                ?? (snapshot?.Values != null
-                    && snapshot.Values.TryGetValue(DestroyedActiveVesselKey, out var raw)
-                    && raw is string destroyed
-                    && destroyed.Length > 0
-                    ? destroyed
-                    : null);
-
         /// <summary>
         /// True when the snapshot carries the vessel's readings but not its identity,
         /// so a craft is present and which one is not known. Distinct from a snapshot

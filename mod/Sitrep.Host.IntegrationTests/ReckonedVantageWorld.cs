@@ -432,19 +432,15 @@ namespace Sitrep.Host.IntegrationTests
             return new Dictionary<string, object?> { ["entries"] = entries };
         }
 
-        /// <summary>Whether the game has destroyed the active craft and still holds it as the active vessel: it is gone from the list and the snapshot names it as destroyed.</summary>
-        public bool ActiveDestroyed { get; set; }
-
         /// <summary>Whether the game is in a scene other than flight, where it lists no craft at all.</summary>
         public bool OutOfFlight { get; set; }
 
         public List<object?> RosterSnapshot()
         {
-            var roster = new List<object?>();
-            if (!ActiveDestroyed)
+            var roster = new List<object?>
             {
-                roster.Add(new Dictionary<string, object?> { ["id"] = ActiveGuid, ["name"] = "Lander", ["vesselType"] = "Lander", ["situation"] = "LANDED", ["commsConnected"] = ActiveListedLink });
-            }
+                new Dictionary<string, object?> { ["id"] = ActiveGuid, ["name"] = "Lander", ["vesselType"] = "Lander", ["situation"] = "LANDED", ["commsConnected"] = ActiveListedLink },
+            };
             lock (_gate)
             {
                 if (_relayExists)
@@ -503,13 +499,10 @@ namespace Sitrep.Host.IntegrationTests
             CommsNodeHandle? Antenna(string id) => LinkStrengths == null ? null : CommsNodeHandle.Of(id);
             var nodes = new List<ContactGameNode>
             {
+                ContactGameNode.LandedCraft(Active, Kerbin, Surface(120.0), Antenna(Active), "Lander"),
                 ContactGameNode.GroundStation(Home, Kerbin, Surface(0.0), Antenna(Home), HomeName),
                 ContactGameNode.GroundStation(Far, Kerbin, Surface(20.0), Antenna(Far)),
             };
-            if (!ActiveDestroyed)
-            {
-                nodes.Insert(0, ContactGameNode.LandedCraft(Active, Kerbin, Surface(120.0), Antenna(Active), "Lander"));
-            }
             var roster = new List<CommandCentreEntry> { Station(Home), Station(Far) };
             lock (_gate)
             {
@@ -524,11 +517,7 @@ namespace Sitrep.Host.IntegrationTests
                     nodes.Insert(0, relay);
                 }
             }
-            var vessels = new List<string>();
-            if (!ActiveDestroyed)
-            {
-                vessels.Add(ActiveGuid);
-            }
+            var vessels = new List<string> { ActiveGuid };
             lock (_gate)
             {
                 if (_relayExists)
@@ -1264,20 +1253,13 @@ namespace Sitrep.Host.IntegrationTests
         {
             var values = new Dictionary<string, object?>
             {
+                ["vessel"] = new Dictionary<string, object?>
+                {
+                    ["identity"] = new Dictionary<string, object?> { ["id"] = Game.ActiveNow },
+                },
                 ["targetAvailable"] = Game.TargetsSnapshot(),
                 ["activeValue"] = Game.ActiveValue,
             };
-            if (Game.ActiveDestroyed)
-            {
-                values[VesselViewProvider.DestroyedActiveVesselKey] = Game.ActiveNow;
-            }
-            else
-            {
-                values["vessel"] = new Dictionary<string, object?>
-                {
-                    ["identity"] = new Dictionary<string, object?> { ["id"] = Game.ActiveNow },
-                };
-            }
             if (!Game.OutOfFlight)
             {
                 values["vessels"] = Game.RosterSnapshot();

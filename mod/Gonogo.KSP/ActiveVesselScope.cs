@@ -122,22 +122,6 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// The id of the craft KSP still holds as its active vessel after destroying
-        /// it, or null when the active vessel is alive or there is none. The game
-        /// keeps it until the player leaves the scene or flies another craft.
-        /// </summary>
-        internal static string? DestroyedActiveId
-        {
-            get
-            {
-                Resolve(out var kspActive);
-                return !ReferenceEquals(kspActive, null) && Living(kspActive) == null
-                    ? kspActive!.id.ToString()
-                    : null;
-            }
-        }
-
-        /// <summary>
         /// True while KSP is flying a kerbal on EVA and that kerbal is the craft being
         /// reported: the craft they left is out of physics range, or there is none on
         /// record. A kerbal has none of a craft's controls, parts or maneuver plan, so
