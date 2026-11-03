@@ -292,14 +292,12 @@ export class DelayAuthority {
   }
 
   /*
-   * A stand-in zero is a placeholder and not a delay the view was ever
-   * behind by, so the first measured figure after it starts the view
-   * afresh. Held to the monotonic cursor, the view would stand still for one
-   * whole delay while the game caught up with the figure.
+   * A real zero is a measurement. Any other figure only counts once it
+   * reaches the delay the view is held back by, which {@link delayEpoch}
+   * watches.
    */
   private takeFigure(seconds: number): void {
-    if (this.standIn && seconds > 0) this.figureGeneration++;
-    this.standIn = false;
+    if (seconds === 0) this.standIn = false;
     this.oneWaySeconds = seconds;
   }
 
@@ -481,11 +479,27 @@ export class DelayAuthority {
 
   /**
    * A count that rises each time the first measured delay replaces a stand-in
-   * zero, as when a page opens while the craft is out of contact. Pass
+   * zero, as when a page opens while the craft is out of contact, whichever
+   * Topic carries that delay. Pass
    * `authority.delayEpoch` as `ViewClockOptions.delayEpoch` so the view clock
    * starts afresh at that figure and does not hold for one delay.
    */
-  delayEpoch = (): number => this.figureGeneration;
+  delayEpoch = (): number => {
+    /*
+     * A stand-in zero is a placeholder and not a delay the view was ever behind
+     * by, so the first measured delay that reaches it starts the view afresh,
+     * whichever Topic carried that delay. Held to the monotonic cursor, the
+     * view would stand still for one whole delay while the game caught up.
+     */
+    if (this.standIn) {
+      const seconds = this.delaySeconds();
+      if (Number.isFinite(seconds) && seconds > 0) {
+        this.standIn = false;
+        this.figureGeneration++;
+      }
+    }
+    return this.figureGeneration;
+  };
 
   /**
    * The one-way delay a command to the active craft takes from `vantage`, or

@@ -39,7 +39,13 @@ function rig() {
   const client = new TelemetryClient(transport);
   client.attachStore(store);
   authority.attach(client);
-  for (const topic of ["comms.delay", "comms.route", "vessel.flight"]) {
+  for (const topic of [
+    "comms.delay",
+    "comms.route",
+    "vessel.flight",
+    "commandCentre.roster",
+    "commandCentre.activeVesselDelay",
+  ]) {
     client.subscribe(topic, () => {});
   }
   let seq = 0;
@@ -62,6 +68,7 @@ function rig() {
     } as ServerMessage);
   };
   return {
+    client,
     clock,
     send,
     gameUt: () => START_UT + wall,
@@ -108,5 +115,44 @@ describe("a page opened inside a blackout", () => {
       expect(views[i] - views[i - 1]).toBeGreaterThan(0.5);
     }
     expect(gameUt() - DELAY - views[views.length - 1]).toBeLessThan(2);
+  });
+
+  it("keeps the view clock running when a non-home centre's first figure comes from the active-vessel delays", () => {
+    const { client, clock, send, gameUt, tick } = rig();
+    const OTHER = "ground:Other";
+    const OTHER_DELAY = 12;
+    client.setVantage(OTHER);
+
+    send("commandCentre.roster", [{ id: "ground:KSC", isHome: true }], 0, 0);
+    for (let i = 0; i < 60; i++) {
+      send(
+        "comms.delay",
+        { oneWaySeconds: null, source: 0, meta: { source: CRAFT } },
+        gameUt(),
+        gameUt(),
+      );
+      send("comms.route", { routes: [] }, gameUt(), gameUt());
+      clock.viewUt();
+      tick();
+    }
+
+    const views: number[] = [];
+    for (let i = 0; i < 30; i++) {
+      send(
+        "commandCentre.activeVesselDelay",
+        { centres: [{ id: OTHER, oneWaySeconds: OTHER_DELAY }] },
+        gameUt(),
+        gameUt(),
+      );
+      send("vessel.flight", {}, gameUt() - OTHER_DELAY, gameUt());
+      send("comms.route", { routes: [] }, gameUt(), gameUt());
+      views.push(clock.viewUt());
+      tick();
+    }
+
+    expect(clock.delaySeconds()).toBe(OTHER_DELAY);
+    for (let i = 1; i < views.length; i++) {
+      expect(views[i] - views[i - 1]).toBeGreaterThan(0.5);
+    }
   });
 });
