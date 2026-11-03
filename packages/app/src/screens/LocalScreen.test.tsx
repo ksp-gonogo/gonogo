@@ -350,7 +350,7 @@ describe("a local screen", () => {
     await untilHostingUnder(mod.code);
     expect(
       screen.getByText(
-        "This screen is now the host. It does not have the previous host's notes, alarms that are not on the game's clock and GO/NO-GO votes.",
+        "This screen is now the host. It does not have the previous host's notes, the thread, alarms that are not on the game's clock and GO/NO-GO votes.",
       ),
     ).toBeVisible();
   });

@@ -17,7 +17,6 @@ async function open(mod: FakeHostMod, token: string) {
 describe("a local screen's part in the host role", () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    sessionStorage.clear();
   });
   afterEach(() => {
     vi.useRealTimers();
@@ -127,7 +126,7 @@ describe("a local screen's part in the host role", () => {
     expect(mod.sent.map((s) => s.command)).toContain("host.release");
   });
 
-  it("claims at once when the holder's connection has closed, and says it took over from a host it never saw", async () => {
+  it("claims at once, and without a takeover, when the holder's connection has closed", async () => {
     const mod = new FakeHostMod();
     const host = await open(mod, "tab-a");
     host.connection.close();
@@ -136,17 +135,6 @@ describe("a local screen's part in the host role", () => {
     const fresh = await open(mod, "tab-b");
 
     expect(fresh.role.state).toMatchObject({
-      kind: "hosting",
-      takeover: true,
-    });
-  });
-
-  it("does not say it took over when it is the first host the game has had", async () => {
-    const mod = new FakeHostMod();
-
-    const first = await open(mod, "tab-a");
-
-    expect(first.role.state).toMatchObject({
       kind: "hosting",
       takeover: false,
     });

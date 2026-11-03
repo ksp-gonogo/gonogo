@@ -1208,13 +1208,6 @@ namespace Sitrep.Host.IntegrationTests
             {
                 new ChannelDeclaration
                 { Kind = SampleKind.Continuous,
-                    Topic = ChannelEngine.CommsDelayTopic,
-                    Delivery = Delivery.LossyLatest,
-                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
-                    Delay = DelayRole.Delayed,
-                },
-                new ChannelDeclaration
-                { Kind = SampleKind.Continuous,
                     Topic = DelayedTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
