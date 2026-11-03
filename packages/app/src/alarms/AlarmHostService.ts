@@ -518,6 +518,19 @@ export class AlarmHostService {
    */
   announceWarpIntent(): void {
     this.warpObserver.registerIntent();
+    this.endWarpToForManualRate();
+  }
+
+  /**
+   * A rate chosen by hand on any screen of the command centre ends a running
+   * warp-to. The controller's own commands stamp the observer directly and
+   * never come through here, so this only ever hears someone else.
+   *
+   * No warp command on the way out: the press is already on its way to the
+   * game, and a second command would race it.
+   */
+  private endWarpToForManualRate(): void {
+    if (this.warp.endOnExternalStop()) this.emit();
   }
 
   /** The peer-mesh entry point for the same announcement. */

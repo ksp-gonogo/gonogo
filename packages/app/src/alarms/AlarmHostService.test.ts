@@ -872,6 +872,29 @@ describe("AlarmHostService", () => {
       expect(svc.snapshot().warpTo).toBeNull();
     });
 
+    it.each([
+      ["a station", (svc: AlarmHostService) => svc.registerStationWarpIntent()],
+      ["this screen", (svc: AlarmHostService) => svc.announceWarpIntent()],
+    ])("ends the warp-to without a re-send when %s presses a rate", async (_who, press) => {
+      const { svc, telemetry } = makeService();
+      svc.addAlarm({
+        name: "Far",
+        trigger: { kind: "time", ut: 100_000, leadSeconds: 10 },
+      });
+      svc.beginWarpTo();
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(svc.snapshot().warpTo).not.toBeNull();
+      telemetry.calls.length = 0;
+      press(svc);
+      expect(svc.snapshot().warpTo).toBeNull();
+      await vi.advanceTimersByTimeAsync(3000);
+      await Promise.resolve();
+      expect(
+        telemetry.calls.filter((c) => c.startsWith("time.setWarpIndex")),
+      ).toEqual([]);
+    });
+
     it("respects a larger custom safety margin", async () => {
       const { svc } = makeService();
       svc.setWarpSafetyMargin(100); // 10× the default
