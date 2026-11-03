@@ -759,6 +759,12 @@ namespace Gonogo.KSP
             // tick: the correct "never reveal earlier than the known horizon"
             // behaviour, symmetric with ComputeConnectedOnMain above.
             var active = _activeVesselProbe();
+            if (active == null && ActiveVesselScope.DestroyedActiveId != null)
+            {
+                // A craft the game has destroyed is not a delay of zero or an unknown one: the
+                // centre learns of it by light, so the delay it was under stands.
+                return null;
+            }
             var path = backend.Path(active);
             // The EFFECTIVE config, not the authored one: the reveal gate and
             // comms.delay itself must see every modifier the currency deadline
@@ -878,6 +884,12 @@ namespace Gonogo.KSP
             try
             {
                 var active = _activeVesselProbe();
+                if (active == null && ActiveVesselScope.DestroyedActiveId != null)
+                {
+                    // The game has destroyed the craft, which no signal has yet carried to the
+                    // centre: no tick reports anything, so the last link report stands.
+                    return null;
+                }
                 if (active == null)
                 {
                     // No craft is on screen (an editor, the space centre, the

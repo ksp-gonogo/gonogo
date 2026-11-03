@@ -331,7 +331,7 @@ namespace Gonogo.KSP.CommandCentres
         /// </summary>
         private static string? ActiveVesselGuid(KspSnapshot? snapshot) =>
             snapshot != null
-                ? VesselViewProvider.TryGetActiveVesselId(snapshot)
+                ? VesselViewProvider.TryGetLinkedVesselId(snapshot)
                 : ActiveVesselScope.Current?.id.ToString();
 
         /// <summary>Main thread: every active centre as a roster entry, home marked. What the contact plan source makes each centre's own roster from.</summary>
