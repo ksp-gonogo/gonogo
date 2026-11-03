@@ -83,95 +83,121 @@ export interface AlarmPeerBridgeHandlers {
  * changes. No alarm state lives here.
  */
 export class AlarmPeerBridge {
+  private unsubs: Array<() => void> = [];
+
   constructor(
     private readonly host: AlarmPeerHost | null,
     handlers: AlarmPeerBridgeHandlers,
   ) {
     if (!host) return;
-    host.onAlarmAdd((peerId, msg) => {
-      // A station's trigger is checked here, where it enters: one the simulation could never watch is not an alarm, so no row is made.
-      const trigger = parseTrigger(msg.trigger);
-      if (trigger === null) {
-        logger.warn(
-          "alarm-host: a station's alarm names nothing the simulation can watch",
-          {
-            peerId,
-            name: msg.name,
-          },
-        );
-        return;
-      }
-      handlers.addAlarm({
-        name: msg.name,
-        notes: msg.notes,
-        trigger,
-        createdBy: peerId,
-        // Two different questions, so both are carried: `createdBy` is which
-        // screen the request came from, `requestedBy` is which Uplink asked
-        // for it. An Uplink widget on a station answers both at once.
-        requestedBy: msg.requestedBy,
-        onFire: msg.onFire,
-      });
-    });
-    host.onAlarmUpdate((peerId, msg) => {
-      const { trigger: raw, ...rest } = msg.patch;
-      if (raw === undefined) {
-        handlers.updateAlarm(msg.id, rest);
-        return;
-      }
-      const trigger = parseTrigger(raw);
-      if (trigger === null) {
-        logger.warn(
-          "alarm-host: a station's edit names nothing the simulation can watch",
-          {
-            peerId,
-            id: msg.id,
-          },
-        );
-        return;
-      }
-      handlers.updateAlarm(msg.id, { ...rest, trigger });
-    });
-    host.onAlarmDelete((_peerId, id) => {
-      handlers.deleteAlarm(id);
-    });
-    host.onAlarmAcknowledge((_peerId, id) => {
-      handlers.acknowledgeAlarm(id);
-    });
-    host.onAlarmAckUnscheduledWarp(() => {
-      handlers.acknowledgeUnscheduledWarp();
-    });
-    host.onAlarmWarpIntent(() => {
-      handlers.registerStationWarpIntent();
-    });
-    host.onAlarmControl((_peerId, msg) => {
-      switch (msg.action) {
-        case "acknowledge-cancelled":
-          handlers.acknowledgeAlarmsCancelled();
-          break;
-        case "warp-to-begin":
-          handlers.beginWarpTo();
-          break;
-        case "warp-to-cancel":
-          handlers.cancelWarpTo();
-          break;
-        case "warp-margin":
-          if (typeof msg.seconds === "number") {
-            handlers.setWarpSafetyMargin(msg.seconds);
-          }
-          break;
-      }
-    });
+    const track = (unsubscribe: () => void) => {
+      this.unsubs.push(unsubscribe);
+    };
+    track(
+      host.onAlarmAdd((peerId, msg) => {
+        // A station's trigger is checked here, where it enters: one the simulation could never watch is not an alarm, so no row is made.
+        const trigger = parseTrigger(msg.trigger);
+        if (trigger === null) {
+          logger.warn(
+            "alarm-host: a station's alarm names nothing the simulation can watch",
+            {
+              peerId,
+              name: msg.name,
+            },
+          );
+          return;
+        }
+        handlers.addAlarm({
+          name: msg.name,
+          notes: msg.notes,
+          trigger,
+          createdBy: peerId,
+          // Two different questions, so both are carried: `createdBy` is which
+          // screen the request came from, `requestedBy` is which Uplink asked
+          // for it. An Uplink widget on a station answers both at once.
+          requestedBy: msg.requestedBy,
+          onFire: msg.onFire,
+        });
+      }),
+    );
+    track(
+      host.onAlarmUpdate((peerId, msg) => {
+        const { trigger: raw, ...rest } = msg.patch;
+        if (raw === undefined) {
+          handlers.updateAlarm(msg.id, rest);
+          return;
+        }
+        const trigger = parseTrigger(raw);
+        if (trigger === null) {
+          logger.warn(
+            "alarm-host: a station's edit names nothing the simulation can watch",
+            {
+              peerId,
+              id: msg.id,
+            },
+          );
+          return;
+        }
+        handlers.updateAlarm(msg.id, { ...rest, trigger });
+      }),
+    );
+    track(
+      host.onAlarmDelete((_peerId, id) => {
+        handlers.deleteAlarm(id);
+      }),
+    );
+    track(
+      host.onAlarmAcknowledge((_peerId, id) => {
+        handlers.acknowledgeAlarm(id);
+      }),
+    );
+    track(
+      host.onAlarmAckUnscheduledWarp(() => {
+        handlers.acknowledgeUnscheduledWarp();
+      }),
+    );
+    track(
+      host.onAlarmWarpIntent(() => {
+        handlers.registerStationWarpIntent();
+      }),
+    );
+    track(
+      host.onAlarmControl((_peerId, msg) => {
+        switch (msg.action) {
+          case "acknowledge-cancelled":
+            handlers.acknowledgeAlarmsCancelled();
+            break;
+          case "warp-to-begin":
+            handlers.beginWarpTo();
+            break;
+          case "warp-to-cancel":
+            handlers.cancelWarpTo();
+            break;
+          case "warp-margin":
+            if (typeof msg.seconds === "number") {
+              handlers.setWarpSafetyMargin(msg.seconds);
+            }
+            break;
+        }
+      }),
+    );
     // Latecomer's initial snapshot: fire the host's current alarms at
     // every new peer immediately so the station doesn't wait for the
     // next tick to learn what alarms exist. Matches the
     // GoNoGoHostService / Notes pattern.
-    host.onPeerConnect((peerId) => {
-      host.sendToPeer(peerId, {
-        type: "alarm-snapshot",
-        snapshot: handlers.getSnapshot(),
-      });
-    });
+    track(
+      host.onPeerConnect((peerId) => {
+        host.sendToPeer(peerId, {
+          type: "alarm-snapshot",
+          snapshot: handlers.getSnapshot(),
+        });
+      }),
+    );
+  }
+
+  dispose(): void {
+    for (const unsubscribe of this.unsubs) unsubscribe();
+    this.unsubs = [];
   }
 
   broadcastSnapshot(snapshot: AlarmSnapshot): void {

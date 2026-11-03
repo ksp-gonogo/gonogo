@@ -595,6 +595,7 @@ export class AlarmHostService {
       clearInterval(this.tickHandle);
       this.tickHandle = null;
     }
+    this.peerBridge.dispose();
     this.scetBridge.dispose();
   }
 
