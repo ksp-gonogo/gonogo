@@ -8,7 +8,7 @@ import {
   type RecoveryReport,
   type Value,
 } from "@ksp-gonogo/sitrep-sdk";
-import { useModal } from "@ksp-gonogo/ui";
+import { BannerRow, useModal } from "@ksp-gonogo/ui";
 import {
   magnitudeOf,
   SectionTitle,
@@ -323,13 +323,15 @@ export function ContactLossBanner() {
       </VisuallyHidden>
       {shown && (
         <ContactLossBox $lost={shown.phase === "lost"}>
-          <BannerLabel
-            $variant={shown.phase === "lost" ? "crashed" : "overdue"}
-          >
-            {label}
-          </BannerLabel>
-          <BannerVessel>{name}</BannerVessel>
-          <BannerStat>{since}</BannerStat>
+          <BannerRow>
+            <BannerLabel
+              $variant={shown.phase === "lost" ? "crashed" : "overdue"}
+            >
+              {label}
+            </BannerLabel>
+            <BannerVessel>{name}</BannerVessel>
+            <BannerStat>{since}</BannerStat>
+          </BannerRow>
         </ContactLossBox>
       )}
     </>
@@ -359,28 +361,30 @@ function OutcomeBanner({
         aria-label={`${announcement(outcome)}. Open breakdown`}
         onClick={onOpen}
       >
-        <BannerLabel $variant="recovered">VESSEL RECOVERED</BannerLabel>
-        <BannerVessel>{name}</BannerVessel>
-        <BannerStats>
-          {awardsNothing(summary) ? (
-            <BannerStat>{AWARDS_NOTHING}</BannerStat>
-          ) : (
-            <>
+        <BannerRow>
+          <BannerLabel $variant="recovered">VESSEL RECOVERED</BannerLabel>
+          <BannerVessel>{name}</BannerVessel>
+          <BannerStats>
+            {awardsNothing(summary) ? (
+              <BannerStat>{AWARDS_NOTHING}</BannerStat>
+            ) : (
+              <>
+                <BannerStat>
+                  <Gain value={q(summary.fundsEarned)} />
+                </BannerStat>
+                <BannerStat>
+                  <Gain value={q(summary.scienceEarned)} />
+                </BannerStat>
+              </>
+            )}
+            {summary.displayReputation === true && (
               <BannerStat>
-                <Gain value={q(summary.fundsEarned)} />
+                <Gain value={q(summary.reputationEarned)} />
               </BannerStat>
-              <BannerStat>
-                <Gain value={q(summary.scienceEarned)} />
-              </BannerStat>
-            </>
-          )}
-          {summary.displayReputation === true && (
-            <BannerStat>
-              <Gain value={q(summary.reputationEarned)} />
-            </BannerStat>
-          )}
-        </BannerStats>
-        <BannerHint>Tap for breakdown</BannerHint>
+            )}
+          </BannerStats>
+          <BannerHint>Tap for breakdown</BannerHint>
+        </BannerRow>
       </RecoveryBanner>
     );
   }
@@ -394,19 +398,21 @@ function OutcomeBanner({
       aria-label={`${announcement(outcome)}. Open breakdown`}
       onClick={onOpen}
     >
-      <BannerLabel $variant="crashed">VESSEL DESTROYED</BannerLabel>
-      <BannerVessel>{name}</BannerVessel>
-      <BannerStats>
-        {partsLostCount > 0 && (
-          <BannerStat>
-            {partsLostCount} {partsLostCount === 1 ? "part" : "parts"} lost
-          </BannerStat>
-        )}
-        {kerbalsKilled.length > 0 && (
-          <BannerStat>{kerbalsKilled.length} KIA</BannerStat>
-        )}
-      </BannerStats>
-      <BannerHint>Tap for breakdown</BannerHint>
+      <BannerRow>
+        <BannerLabel $variant="crashed">VESSEL DESTROYED</BannerLabel>
+        <BannerVessel>{name}</BannerVessel>
+        <BannerStats>
+          {partsLostCount > 0 && (
+            <BannerStat>
+              {partsLostCount} {partsLostCount === 1 ? "part" : "parts"} lost
+            </BannerStat>
+          )}
+          {kerbalsKilled.length > 0 && (
+            <BannerStat>{kerbalsKilled.length} KIA</BannerStat>
+          )}
+        </BannerStats>
+        <BannerHint>Tap for breakdown</BannerHint>
+      </BannerRow>
     </CrashBanner>
   );
 }
@@ -731,7 +737,8 @@ const bannerBase = `
     forwards;
   transform-origin: right center;
   will-change: transform, opacity;
-  white-space: nowrap;
+  max-width: 100%;
+  text-align: start;
 
   &:hover {
     background: rgba(20, 22, 26, 0.95);
@@ -801,10 +808,6 @@ const BannerLabel = styled.span<{
 const BannerVessel = styled.span`
   color: var(--color-text-primary);
   font-weight: 600;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 `;
 
 const BannerStats = styled.span`

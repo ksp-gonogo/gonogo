@@ -1,4 +1,5 @@
-import { Cluster, Stack } from "@ksp-gonogo/ui-kit";
+import { BannerRow } from "@ksp-gonogo/ui";
+import { Stack } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import { useVantageName } from "./foreignAlarm";
 import type { AlarmSnapshot } from "./types";
@@ -32,13 +33,17 @@ export function ForeignFireNotice({
               : "An alarm armed elsewhere"
             : row?.name || fire.id;
           return (
-            <Cluster justify="start" align="baseline" wrap key={fire.id}>
+            <BannerRow
+              key={fire.id}
+              actions={
+                <AckButton type="button" onClick={() => onAcknowledge(fire.id)}>
+                  Acknowledge
+                </AckButton>
+              }
+            >
               <Label>Fired</Label>
               <AlarmName>{title}</AlarmName>
-              <AckButton type="button" onClick={() => onAcknowledge(fire.id)}>
-                Acknowledge
-              </AckButton>
-            </Cluster>
+            </BannerRow>
           );
         })}
       </Stack>

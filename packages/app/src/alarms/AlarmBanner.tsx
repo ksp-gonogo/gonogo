@@ -1,6 +1,6 @@
 import { useTelemetry, useTimeContexts } from "@ksp-gonogo/core";
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { ArrowRightIcon, PlayIcon, StopIcon } from "@ksp-gonogo/ui";
+import { ArrowRightIcon, BannerRow, PlayIcon, StopIcon } from "@ksp-gonogo/ui";
 import {
   Cluster,
   NULL_DISPLAY,
@@ -118,7 +118,48 @@ function LocalAlarmStrip() {
 
   return (
     <Wrap $tone={tone} role={tone === "fire" ? "alert" : "status"}>
-      <Cluster justify="start" align="baseline" wrap>
+      <BannerRow
+        actions={
+          nextAlarm ? (
+            <>
+              {(nextAlarm.state === "fired" ||
+                nextAlarm.state === "firing") && (
+                <AckButton
+                  type="button"
+                  onClick={() => host.acknowledgeAlarm(nextAlarm.id)}
+                >
+                  Acknowledge
+                </AckButton>
+              )}
+              {snap.warpTo !== null ? (
+                <Tooltip text="Stop the managed warp and drop to 1×">
+                  <StopWarpButton
+                    type="button"
+                    onClick={() => host.cancelWarpTo()}
+                  >
+                    <StopIcon size={12} /> Stop warp
+                  </StopWarpButton>
+                </Tooltip>
+              ) : (
+                warpToCandidate && (
+                  <Tooltip text="Warp toward the next alarm at the highest safe rate">
+                    <WarpToButton
+                      type="button"
+                      onClick={() => host.beginWarpTo()}
+                    >
+                      <PlayIcon size={12} /> Warp to alarm
+                    </WarpToButton>
+                  </Tooltip>
+                )
+              )}
+            </>
+          ) : cpCollapse ? (
+            <AckButton type="button" onClick={ackAllCollapsed}>
+              Ack all
+            </AckButton>
+          ) : null
+        }
+      >
         <Label>Warp</Label>
         <BannerValue>{formatWarp(snap.warp.index, snap.warp.rate)}</BannerValue>
         {warpToTargetRate !== null && (
@@ -154,47 +195,16 @@ function LocalAlarmStrip() {
                 noPath={noPath}
                 scet={timeContexts.scet}
                 received={timeContexts.received}
+                viewUt={snap.ut}
               />
-            )}
-            {(nextAlarm.state === "fired" || nextAlarm.state === "firing") && (
-              <AckButton
-                type="button"
-                onClick={() => host.acknowledgeAlarm(nextAlarm.id)}
-              >
-                Acknowledge
-              </AckButton>
-            )}
-            {snap.warpTo !== null ? (
-              <Tooltip text="Stop the managed warp and drop to 1×">
-                <StopWarpButton
-                  type="button"
-                  onClick={() => host.cancelWarpTo()}
-                >
-                  <StopIcon size={12} /> Stop warp
-                </StopWarpButton>
-              </Tooltip>
-            ) : (
-              warpToCandidate && (
-                <Tooltip text="Warp toward the next alarm at the highest safe rate">
-                  <WarpToButton
-                    type="button"
-                    onClick={() => host.beginWarpTo()}
-                  >
-                    <PlayIcon size={12} /> Warp to alarm
-                  </WarpToButton>
-                </Tooltip>
-              )
             )}
           </>
         ) : cpCollapse ? (
-          <CollapsedCPInline
-            count={cpCollapse.count}
-            onAckAll={ackAllCollapsed}
-          />
+          <CollapsedCPInline count={cpCollapse.count} />
         ) : (
           <Quiet>No alarms set</Quiet>
         )}
-      </Cluster>
+      </BannerRow>
       {refused.map((a) => (
         <Cluster key={a.id} justify="start" align="baseline" wrap>
           <Label>Not armed</Label>
@@ -297,26 +307,32 @@ export function FiredAlarmPills() {
     <>
       {extras.length > 0 && (
         <Wrap $tone="fire" role="alert">
-          <Cluster justify="start" align="baseline" wrap>
+          <BannerRow
+            actions={
+              <AckButton type="button" onClick={ackEveryFired}>
+                Acknowledge all
+              </AckButton>
+            }
+          >
             <Label>Also fired</Label>
             <AlarmName>{extras.map((a) => a.name).join(", ")}</AlarmName>
-            <AckButton type="button" onClick={ackEveryFired}>
-              Acknowledge all
-            </AckButton>
-          </Cluster>
+          </BannerRow>
         </Wrap>
       )}
       {cpCollapse && headline !== null && (
         <Wrap $tone="fire" role="alert">
-          <Cluster justify="start" align="baseline" wrap>
+          <BannerRow
+            actions={
+              <AckButton type="button" onClick={ackAllCollapsed}>
+                Ack all
+              </AckButton>
+            }
+          >
             <Label>Fired</Label>
             <AlarmName>
               {cpCollapse.count} contract objectives completed
             </AlarmName>
-            <AckButton type="button" onClick={ackAllCollapsed}>
-              Ack all
-            </AckButton>
-          </Cluster>
+          </BannerRow>
         </Wrap>
       )}
     </>
@@ -335,16 +351,19 @@ export function UnscheduledWarpPill() {
   if (!snap.unscheduledWarp) return null;
   return (
     <Wrap $tone="arm" role="alert">
-      <Cluster justify="start" align="baseline" wrap>
+      <BannerRow
+        actions={
+          <AckButton
+            type="button"
+            onClick={() => host.acknowledgeUnscheduledWarp()}
+          >
+            Ack
+          </AckButton>
+        }
+      >
         <Label>Unscheduled warp</Label>
         <BannerValue>{formatRate(snap.warp.rate)}</BannerValue>
-        <AckButton
-          type="button"
-          onClick={() => host.acknowledgeUnscheduledWarp()}
-        >
-          Ack
-        </AckButton>
-      </Cluster>
+      </BannerRow>
     </Wrap>
   );
 }
@@ -361,35 +380,29 @@ export function AlarmsCancelledPill() {
   const { count } = snap.alarmsCancelled;
   return (
     <Wrap $tone="arm" role="status">
-      <Cluster justify="start" align="baseline" wrap>
+      <BannerRow
+        actions={
+          <AckButton
+            type="button"
+            onClick={() => host.acknowledgeAlarmsCancelled()}
+          >
+            Ack
+          </AckButton>
+        }
+      >
         <Label>{count === 1 ? "Alarm cancelled" : "Alarms cancelled"}</Label>
         <BannerValue>{count}</BannerValue>
         <Quiet>active vessel changed</Quiet>
-        <AckButton
-          type="button"
-          onClick={() => host.acknowledgeAlarmsCancelled()}
-        >
-          Ack
-        </AckButton>
-      </Cluster>
+      </BannerRow>
     </Wrap>
   );
 }
 
-function CollapsedCPInline({
-  count,
-  onAckAll,
-}: {
-  count: number;
-  onAckAll: () => void;
-}) {
+function CollapsedCPInline({ count }: { count: number }) {
   return (
     <>
       <Label>Fired</Label>
       <AlarmName>{count} contract objectives completed</AlarmName>
-      <AckButton type="button" onClick={onAckAll}>
-        Ack all
-      </AckButton>
     </>
   );
 }
@@ -560,7 +573,8 @@ const TONE_COUNT: Record<Tone, string> = {
 const Wrap = styled.div<{ $tone: Tone }>`
   background: ${({ $tone }) => TONE_BG[$tone]};
   border: 1px solid ${({ $tone }) => TONE_BORDER[$tone]};
-  border-radius: var(--radius-pill);
+  /* Half the strip's single-row height, so one row is still a pill and a wrapped line keeps square-ish corners clear of its text. */
+  border-radius: min(var(--radius-pill), 1.5rem);
   color: var(--color-text-primary);
   font-size: var(--font-size-compact);
   padding: var(--inset-banner);

@@ -24,9 +24,13 @@ export function StationSupersededNotice({ client }: { client: Client }) {
   if (!superseded) return null;
 
   return (
-    <BannerPill accent="var(--color-warn-mark)" anchor="top" interactive>
+    <BannerPill
+      accent="var(--color-warn-mark)"
+      anchor="top"
+      interactive
+      actions={<Button onClick={() => client.takeBack()}>Use this tab</Button>}
+    >
       <span>This station is open in another tab</span>
-      <Button onClick={() => client.takeBack()}>Use this tab</Button>
     </BannerPill>
   );
 }

@@ -61,7 +61,7 @@ const Wrap = styled.div<{ $bottom: number | undefined }>`
           z-index: var(--z-fab);
         `
       : ""}
-  height: 40px;
+  min-height: 40px;
   display: inline-flex;
   align-items: stretch;
   background: var(--color-surface-raised);
@@ -86,7 +86,7 @@ const Wrap = styled.div<{ $bottom: number | undefined }>`
   }
 
   @media (pointer: coarse) {
-    height: 48px;
+    min-height: 48px;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -107,6 +107,7 @@ const Accept = styled.button`
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  text-align: start;
 
   &:hover {
     background: var(--color-border-subtle);

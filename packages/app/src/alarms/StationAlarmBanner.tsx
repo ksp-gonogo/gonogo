@@ -1,4 +1,5 @@
-import { Cluster, Stack } from "@ksp-gonogo/ui-kit";
+import { BannerRow } from "@ksp-gonogo/ui";
+import { Stack } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import { ScreenFiredFacts } from "./FiredFacts";
 import { ForeignFireNotice } from "./ForeignFireNotice";
@@ -49,13 +50,25 @@ export function StationAlarmBanner({
       <Wrap role="alert">
         <Stack gap="related-dense">
           {individuals.length > 0 && (
-            <Cluster justify="start" align="baseline" wrap>
+            <BannerRow
+              actions={
+                <AckButton
+                  type="button"
+                  onClick={() => {
+                    for (const a of individuals) onAcknowledge(a.id);
+                  }}
+                >
+                  {individuals.length > 1 ? "Acknowledge all" : "Acknowledge"}
+                </AckButton>
+              }
+            >
               <Label>Fired</Label>
               <AlarmName>{individuals[0].name}</AlarmName>
               <FiredHint>{describe(individuals[0])}</FiredHint>
               <ScreenFiredFacts
                 alarm={individuals[0]}
                 warpRate={snap.warp.rate}
+                viewUt={snap.ut}
               />
               {individuals.length > 1 && (
                 <FiredHint>
@@ -66,31 +79,26 @@ export function StationAlarmBanner({
                     .join(", ")}
                 </FiredHint>
               )}
-              <AckButton
-                type="button"
-                onClick={() => {
-                  for (const a of individuals) onAcknowledge(a.id);
-                }}
-              >
-                {individuals.length > 1 ? "Acknowledge all" : "Acknowledge"}
-              </AckButton>
-            </Cluster>
+            </BannerRow>
           )}
           {cpCollapse && (
-            <Cluster justify="start" align="baseline" wrap>
+            <BannerRow
+              actions={
+                <AckButton
+                  type="button"
+                  onClick={() => {
+                    for (const id of cpCollapse.ids) onAcknowledge(id);
+                  }}
+                >
+                  Acknowledge all
+                </AckButton>
+              }
+            >
               <Label>Fired</Label>
               <AlarmName>
                 {cpCollapse.count} contract objectives completed
               </AlarmName>
-              <AckButton
-                type="button"
-                onClick={() => {
-                  for (const id of cpCollapse.ids) onAcknowledge(id);
-                }}
-              >
-                Acknowledge all
-              </AckButton>
-            </Cluster>
+            </BannerRow>
           )}
         </Stack>
       </Wrap>
@@ -113,7 +121,8 @@ function describe(alarm: Alarm): string {
 const Wrap = styled.div`
   background: rgba(90, 15, 15, 0.95);
   border: 1px solid var(--color-nogo-mark);
-  border-radius: var(--radius-pill);
+  /* Half the strip's single-row height, so one row is still a pill and a wrapped line keeps square-ish corners clear of its text. */
+  border-radius: min(var(--radius-pill), 1.5rem);
   color: var(--color-text-primary);
   font-size: var(--font-size-compact);
   padding: var(--inset-banner);

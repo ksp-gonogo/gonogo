@@ -68,9 +68,9 @@ export function StationApprovalNotice({ client }: { client: Client }) {
         anchor="top"
         interactive
         role="status"
+        actions={<Button onClick={() => client.askAgain()}>Ask again</Button>}
       >
         <span>The main screen refused this station</span>
-        <Button onClick={() => client.askAgain()}>Ask again</Button>
       </BannerPill>
     );
   }

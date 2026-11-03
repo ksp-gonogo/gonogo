@@ -93,25 +93,29 @@ export function StationBuildMismatchNotice({
           accent={ACCENT[s.kind]}
           interactive
           role={s.kind === "major" ? "alert" : "status"}
+          actions={
+            <>
+              {s.older === "main" && (
+                <Link href={UPGRADE_URL} target="_blank" rel="noreferrer">
+                  Upgrade
+                </Link>
+              )}
+              <Dismiss
+                type="button"
+                aria-label={`Dismiss the build notice for ${s.name}`}
+                onClick={() =>
+                  setSkews((now) => now.filter((o) => o.peerId !== s.peerId))
+                }
+              >
+                ×
+              </Dismiss>
+            </>
+          }
         >
           <span>
             {s.older === "station" ? "Station" : "Main screen"} older: {s.name}{" "}
             {s.version ? `v${s.version}` : "no version"}, main v{localVersion}
           </span>
-          {s.older === "main" && (
-            <Link href={UPGRADE_URL} target="_blank" rel="noreferrer">
-              Upgrade
-            </Link>
-          )}
-          <Dismiss
-            type="button"
-            aria-label={`Dismiss the build notice for ${s.name}`}
-            onClick={() =>
-              setSkews((now) => now.filter((o) => o.peerId !== s.peerId))
-            }
-          >
-            ×
-          </Dismiss>
         </BannerPill>
       ))}
     </>

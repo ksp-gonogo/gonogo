@@ -1,4 +1,5 @@
 import { useTelemetry } from "@ksp-gonogo/core";
+import { BannerRow } from "@ksp-gonogo/ui";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 
@@ -114,13 +115,15 @@ export function SceneChangeBanner() {
 
   return (
     <Banner role="status" aria-live="polite">
-      {announcement.from && (
-        <>
-          <BannerScene>{labelForScene(announcement.from)}</BannerScene>
-          <Arrow aria-hidden="true">→</Arrow>
-        </>
-      )}
-      <BannerScene $emphasis>{labelForScene(announcement.to)}</BannerScene>
+      <BannerRow>
+        {announcement.from && (
+          <>
+            <BannerScene>{labelForScene(announcement.from)}</BannerScene>
+            <Arrow aria-hidden="true">→</Arrow>
+          </>
+        )}
+        <BannerScene $emphasis>{labelForScene(announcement.to)}</BannerScene>
+      </BannerRow>
     </Banner>
   );
 }
@@ -137,7 +140,7 @@ const Banner = styled.div`
   letter-spacing: 0.06em;
   color: var(--color-text-primary);
   pointer-events: none;
-  white-space: nowrap;
+  max-width: 100%;
   /* FADE_MS stays a JS literal (it is interpolated, so no CSS pass reaches
      it anyway); only the curve is tokenised. --ease-entrance is the same
      overshoot the other three banners use, tuned to a 40px slide with

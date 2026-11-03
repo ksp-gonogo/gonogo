@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import styled, { css } from "styled-components";
+import { BannerRow } from "./BannerRow";
 
 export interface BannerPillProps {
   /** CSS color (or var) driving border, text, and dot color. */
@@ -22,6 +23,8 @@ export interface BannerPillProps {
   onClick?: () => void;
   /** The pill holds its own controls (a link, a dismiss button), so it takes the pointer without being one button itself. */
   interactive?: boolean;
+  /** Controls that act on what the pill says, held at its far right edge while the text beside them wraps on its own. */
+  actions?: ReactNode;
   children: ReactNode;
 }
 
@@ -37,8 +40,15 @@ export function BannerPill({
   ariaLive,
   onClick,
   interactive = false,
+  actions,
   children,
 }: BannerPillProps) {
+  const body =
+    actions === undefined ? (
+      children
+    ) : (
+      <BannerRow actions={actions}>{children}</BannerRow>
+    );
   const liveValue = ariaLive ?? (role === "alert" ? "assertive" : "polite");
   if (anchor === "top") {
     return (
@@ -52,7 +62,7 @@ export function BannerPill({
         aria-live={liveValue}
       >
         <Dot $accent={accent} $pulse={pulse} />
-        {children}
+        {body}
       </FixedPill>
     );
   }
@@ -69,7 +79,7 @@ export function BannerPill({
       onClick={onClick}
     >
       <Dot $accent={accent} $pulse={pulse} />
-      {children}
+      {body}
     </InlinePill>
   );
 }
@@ -122,7 +132,7 @@ const InlinePill = styled.div<{
   font-size: var(--font-size-compact);
   letter-spacing: 0.08em;
   font-family: inherit;
-  white-space: nowrap;
+  max-width: 100%;
   cursor: ${(p) => (p.$clickable ? "pointer" : "default")};
   pointer-events: ${(p) => (p.$clickable || p.$interactive ? "auto" : "none")};
   animation: bannerSlideIn var(--duration-entrance) var(--ease-entrance) forwards;

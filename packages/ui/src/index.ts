@@ -11,6 +11,7 @@ export {
 export { axisTitle } from "./axisTitle";
 export * from "./Badge";
 export * from "./BannerPill";
+export * from "./BannerRow";
 export * from "./BannerStack";
 export * from "./Button";
 export * from "./CommandBlock";

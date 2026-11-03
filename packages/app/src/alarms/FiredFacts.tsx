@@ -21,6 +21,8 @@ export interface FiredFactsProps {
   scet: TimeContext | undefined;
   /** Qualifier for an instant on this screen's arrival clock. */
   received: TimeContext | undefined;
+  /** The instant this screen's readings have reached, or null when unknown. */
+  viewUt: number | null;
 }
 
 /**
@@ -30,9 +32,11 @@ export interface FiredFactsProps {
 export function ScreenFiredFacts({
   alarm,
   warpRate,
+  viewUt,
 }: {
   alarm: Alarm;
   warpRate: number;
+  viewUt: number | null;
 }) {
   const timeContexts = useTimeContexts();
   const delay = useTelemetry("comms.delay");
@@ -47,6 +51,7 @@ export function ScreenFiredFacts({
       noPath={noPath}
       scet={timeContexts.scet}
       received={timeContexts.received}
+      viewUt={viewUt}
     />
   );
 }
@@ -66,8 +71,11 @@ export function FiredFacts({
   noPath,
   scet,
   received,
+  viewUt,
 }: FiredFactsProps) {
   const aboard = isAtSubjectVantage(alarm.trigger);
+  const readingsBehind =
+    viewUt === null || alarm.eventUT === undefined || viewUt < alarm.eventUT;
   const at = firedAt(alarm);
   return (
     <>
@@ -83,7 +91,7 @@ export function FiredFacts({
           moment this fired.
         </Fact>
       )}
-      {aboard && !noPath && owltSeconds >= 1 && (
+      {aboard && !noPath && owltSeconds >= 1 && readingsBehind && (
         <Fact>
           Your readings are {writeQuantity(value("s", owltSeconds))} behind the
           craft and do not show this yet.

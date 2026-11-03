@@ -126,20 +126,24 @@ export function StationApprovalPrompt({
           accent="var(--color-warn-mark)"
           interactive
           role="status"
+          actions={
+            <>
+              <Button
+                onClick={() => host.approveStation(station.peerId)}
+                aria-label={`Approve ${stationLabel(station).replace(/^Station/, "station")}`}
+              >
+                Approve
+              </Button>
+              <Button
+                onClick={() => host.refuseStation(station.peerId)}
+                aria-label={`Refuse ${stationLabel(station).replace(/^Station/, "station")}`}
+              >
+                Refuse
+              </Button>
+            </>
+          }
         >
           <span>{stationLabel(station)} wants to join</span>
-          <Button
-            onClick={() => host.approveStation(station.peerId)}
-            aria-label={`Approve ${stationLabel(station).replace(/^Station/, "station")}`}
-          >
-            Approve
-          </Button>
-          <Button
-            onClick={() => host.refuseStation(station.peerId)}
-            aria-label={`Refuse ${stationLabel(station).replace(/^Station/, "station")}`}
-          >
-            Refuse
-          </Button>
         </BannerPill>
       ))}
     </>

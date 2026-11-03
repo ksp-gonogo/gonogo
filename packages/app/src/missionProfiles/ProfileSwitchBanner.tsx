@@ -1,3 +1,4 @@
+import { BannerRow } from "@ksp-gonogo/ui";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import type { ProfileDashboard } from "./ProfileDashboard";
@@ -38,7 +39,7 @@ export function ProfileSwitchBanner({
 
   return (
     <Banner role="status" aria-live="polite">
-      {message}
+      <BannerRow>{message}</BannerRow>
     </Banner>
   );
 }
@@ -54,5 +55,5 @@ const Banner = styled.div`
   letter-spacing: 0.06em;
   color: var(--color-text-primary);
   pointer-events: none;
-  white-space: nowrap;
+  max-width: 100%;
 `;

@@ -19,19 +19,21 @@ const ToastStack = styled.div`
   z-index: 90;
   display: flex;
   flex-direction: row-reverse;
-  align-items: center;
+  /* Banners that do not fit on one line start another line above it, so none is pushed off the left edge. */
+  flex-wrap: wrap-reverse;
+  align-content: flex-end;
+  align-items: flex-end;
   gap: var(--gap-related);
-  height: 48px;
+  min-height: 48px;
   max-width: calc(100vw - 112px - env(safe-area-inset-right, 0px));
-  overflow-x: auto;
-  overflow-y: hidden;
   pointer-events: none;
 
-  /* The strip passes clicks through; each banner fills its height and does not shrink. */
+  /* The strip passes clicks through; each banner is at least the strip's height, grows with its own wrapped text, and does not shrink. */
   > * {
     pointer-events: auto;
     flex-shrink: 0;
-    height: 100%;
+    max-width: 100%;
+    min-height: 48px;
     display: inline-flex;
     align-items: center;
   }
@@ -41,6 +43,7 @@ const ToastStack = styled.div`
     right: calc(16px + env(safe-area-inset-right, 0px));
     bottom: calc(88px + env(safe-area-inset-bottom, 0px));
     flex-direction: column-reverse;
+    flex-wrap: nowrap;
     align-items: flex-end;
     height: auto;
     max-width: calc(100vw - 32px - env(safe-area-inset-right, 0px));

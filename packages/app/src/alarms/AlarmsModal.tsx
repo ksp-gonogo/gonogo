@@ -1221,12 +1221,9 @@ function describeTrigger(
   contexts: TimeContexts,
 ): React.ReactNode {
   if (a.trigger.kind === "time") {
-    /* The instant is the game's own universal time and `utNow` is the view
-       clock, one light-time behind, so the countdown crosses the gap or it
-       reads a whole light-time long. The qualifier beside it says which clock
-       the INSTANT is on; this is the same fact applied to the interval. */
-    const triggerOnViewClock = a.trigger.ut - contexts.owltSeconds;
-    const delta = utNow !== null ? triggerOnViewClock - utNow : null;
+    /* The countdown is on the view clock, the same one every other strip
+       counts on: the alarm is announced when the view clock reaches its UT. */
+    const delta = utNow !== null ? a.trigger.ut - utNow : null;
     return (
       <>
         <MissionDate value={a.trigger.ut} context={contexts.scet} />

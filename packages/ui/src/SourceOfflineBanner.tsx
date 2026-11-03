@@ -1,6 +1,7 @@
 import { value as quantity } from "@ksp-gonogo/sitrep-sdk";
 import { Button, writeQuantity } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
+import { BannerRow } from "./BannerRow";
 
 export interface SourceOfflineEntry {
   id: string;
@@ -21,28 +22,38 @@ export interface SourceOfflineBannerProps {
 export function SourceOfflineBanner({ entries }: SourceOfflineBannerProps) {
   if (entries.length === 0) return null;
 
+  const retries = entries.filter((e) => e.onRetry);
+
   return (
     <Wrap role="status" aria-live="polite">
       <Pulse />
-      <Label>SOURCE OFFLINE</Label>
-      <List>
-        {entries.map((e) => (
-          <Entry key={e.id}>
-            <EntryName>{e.name}</EntryName>
-            <EntryStatus>{e.status}</EntryStatus>
-            <EntryTime>{formatElapsed(e.elapsedMs)}</EntryTime>
-            {e.onRetry && (
-              <Button
-                size="sm"
-                onClick={e.onRetry}
-                aria-label={`Retry ${e.name} now`}
-              >
-                Retry now
-              </Button>
-            )}
-          </Entry>
-        ))}
-      </List>
+      <BannerRow
+        actions={
+          retries.length > 0
+            ? retries.map((e) => (
+                <Button
+                  key={e.id}
+                  size="sm"
+                  onClick={e.onRetry}
+                  aria-label={`Retry ${e.name} now`}
+                >
+                  Retry now
+                </Button>
+              ))
+            : undefined
+        }
+      >
+        <Label>SOURCE OFFLINE</Label>
+        <List>
+          {entries.map((e) => (
+            <Entry key={e.id}>
+              <EntryName>{e.name}</EntryName>
+              <EntryStatus>{e.status}</EntryStatus>
+              <EntryTime>{formatElapsed(e.elapsedMs)}</EntryTime>
+            </Entry>
+          ))}
+        </List>
+      </BannerRow>
     </Wrap>
   );
 }
@@ -63,10 +74,7 @@ const Wrap = styled.div`
   color: var(--color-nogo-text);
   font-size: var(--font-size-compact);
   letter-spacing: 0.08em;
-  white-space: nowrap;
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
   animation: bannerSlideIn var(--duration-entrance) var(--ease-entrance) forwards;
   transform-origin: right center;
 
@@ -120,7 +128,7 @@ const Label = styled.span`
 const List = styled.div`
   display: flex;
   gap: var(--gap-related);
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 `;
 
 const Entry = styled.div`
