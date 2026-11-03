@@ -20,7 +20,7 @@ export interface RoleConnection {
  *
  * `waiting` until the mod has published the record and answered the first
  * claim. `hosting` while this screen holds the role; `takeover` is true when it
- * took the role over from a host it had joined, and `generation` is the mod's
+ * took the role over from a host it had joined or from an earlier host it never saw, and `generation` is the mod's
  * grant count at its latest claim. `joined` while another screen
  * holds it, or nobody does and the mod has not yet let this one claim.
  */
@@ -35,6 +35,16 @@ export type HostRoleState =
   | { kind: "joined"; record: HostRecordView };
 
 const WAITING: HostRoleState = { kind: "waiting" };
+
+const HELD_KEY_PREFIX = "gonogo.host.held.";
+
+function tabMemory(): Storage | undefined {
+  try {
+    return globalThis.sessionStorage;
+  } catch {
+    return undefined;
+  }
+}
 
 /** How often to claim again before the mod has said how often to heartbeat. */
 const DEFAULT_HEARTBEAT_MS = 5_000;
@@ -67,7 +77,10 @@ export class HostRole {
   private disposed = false;
   private released = false;
 
-  constructor(readonly token: string) {}
+  constructor(
+    readonly token: string,
+    private readonly memory: Storage | undefined = tabMemory(),
+  ) {}
 
   /**
    * Claim and keep the role over `connection`, the screen's own connection to
@@ -215,12 +228,37 @@ export class HostRole {
   }
 
   private takeRole(holderId: string, generation: number): void {
-    if (!this.holds) this.takeover = this.current.kind === "joined";
+    if (!this.holds) {
+      this.takeover =
+        this.current.kind === "joined" ||
+        (generation > 1 && !this.heldBefore());
+    }
+    this.markHeld();
     this.holds = true;
     this.ownId = holderId;
     this.generation = generation;
     this.stopHeartbeat();
     this.heartbeatTimer = setInterval(() => this.heartbeat(), this.heartbeatMs);
+  }
+
+  /* The mod raises the generation on every grant, a reload's included, so a
+     screen that has never held the role under this token and meets a
+     generation above one is replacing a host that was there before it. A
+     reload keeps the tab's token and its mark. */
+  private heldBefore(): boolean {
+    try {
+      return this.memory?.getItem(HELD_KEY_PREFIX + this.token) === "1";
+    } catch {
+      return false;
+    }
+  }
+
+  private markHeld(): void {
+    try {
+      this.memory?.setItem(HELD_KEY_PREFIX + this.token, "1");
+    } catch {
+      /* private mode: a reload there is told it took over */
+    }
   }
 
   private heartbeat(): void {

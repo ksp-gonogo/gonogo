@@ -56,6 +56,14 @@ test.describe("dashboard scrolling", () => {
       timeout: 30_000,
     });
 
+    // A screen that takes over from an earlier host shows a banner along the bottom of the viewport, which would sit on the empty point looked for below.
+    const takeover = page
+      .getByRole("status")
+      .filter({ hasText: "This screen is now the host" });
+    if ((await takeover.count()) > 0) {
+      await takeover.getByRole("button", { name: "Dismiss" }).click();
+    }
+
     // What the page sees of each wheel event over the map, after the map has had its turn.
     await page.evaluate(() => {
       const taken = { over: 0, swallowed: 0 };
