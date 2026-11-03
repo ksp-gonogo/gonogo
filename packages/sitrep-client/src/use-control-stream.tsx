@@ -1,5 +1,7 @@
 import type { RailTags, Value } from "@ksp-gonogo/sitrep-sdk";
 import {
+  classifyCommandRejection,
+  FaultCode,
   getControlChannel,
   railTagsForControlAxis,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -30,6 +32,21 @@ function magnitudeOfMaybe(v: unknown): unknown {
     return (v as { magnitude: unknown }).magnitude;
   }
   return v;
+}
+
+/*
+ * Only a send the mod never answered is worth repeating. An answer from the
+ * mod (a refusal, or a drop at a relay) is the outcome of that value: sending
+ * it again earns the same answer, ten times a second, and floods the wire.
+ */
+function neverReachedMod(err: unknown): boolean {
+  const rejection = classifyCommandRejection(err);
+  if (rejection.kind === "lost") return true;
+  return (
+    rejection.kind === "failed" &&
+    (rejection.code === FaultCode.Unclassified ||
+      rejection.code === FaultCode.NoClient)
+  );
 }
 
 /** Coalescing cadence: record one command + readback sample and (past the deadband) dispatch, at 10 Hz. */
@@ -278,7 +295,8 @@ export function useControlStream(
       ) {
         lastSentRef.current = raw;
         onDispatchRef.current?.();
-        sendRef.current(dispatch(raw), { label }).catch(() => {
+        sendRef.current(dispatch(raw), { label }).catch((err) => {
+          if (!neverReachedMod(err)) return;
           if (lastSentRef.current === raw) lastSentRef.current = null;
         });
       }

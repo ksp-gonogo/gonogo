@@ -141,26 +141,24 @@ describe("useControlStream", () => {
     expect(fixture.transport.sentCommands).toHaveLength(2);
   });
 
-  it("sends the same value again after a send that was refused", async () => {
+  it.each([
+    ["dropped at a relay", "continuousInputWouldWait"],
+    ["refused by the mod", "commandUnavailable"],
+  ])("sends once when the mod answers a send as %s", async (_name, code) => {
     vi.useFakeTimers();
     const fixture = setupFixture();
-    let refused = false;
     fixture.transport.setCommandHandler(() => {
-      if (!refused) {
-        refused = true;
-        throw new Error("no path");
-      }
-      return {};
+      throw Object.assign(new Error("answered"), { code });
     });
     render(
       <fixture.Provider>
-        <Probe value={0.5} />
+        <Probe value={0} />
       </fixture.Provider>,
     );
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(500);
+      await vi.advanceTimersByTimeAsync(1000);
     });
-    expect(fixture.transport.sentCommands).toHaveLength(2);
+    expect(fixture.transport.sentCommands).toHaveLength(1);
   });
 
   it("surfaces the channel label and the one-way delay from comms.delay", async () => {
