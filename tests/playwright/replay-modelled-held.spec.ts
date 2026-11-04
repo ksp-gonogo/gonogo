@@ -20,6 +20,20 @@ async function textOf(page: Page, i: string): Promise<string> {
     );
 }
 
+/*
+ * Pan and zoom belong to the screen, not to the replay: a screen that saw an
+ * orbit for one frame opens its picture framed on it and offers "Reset view",
+ * while a screen that never saw that frame stays on the whole system. Putting
+ * every picture back on the whole system leaves what the replay decides.
+ */
+async function resetView(page: Page, i: string): Promise<void> {
+  const reset = page
+    .locator(`[data-i="${i}"]`)
+    .getByRole("button", { name: "Reset view" });
+  if (await reset.count())
+    await reset.click({ timeout: 1_000 }).catch(() => {});
+}
+
 async function expectSameText(
   pages: { name: string; page: Page }[],
   i: string,
@@ -27,6 +41,7 @@ async function expectSameText(
 ): Promise<string> {
   const deadline = Date.now() + timeout;
   for (;;) {
+    await Promise.all(pages.map(({ page }) => resetView(page, i)));
     const shown = await Promise.all(pages.map(({ page }) => textOf(page, i)));
     if (shown.every((text) => text === shown[0])) return shown[0];
     if (Date.now() > deadline) {
