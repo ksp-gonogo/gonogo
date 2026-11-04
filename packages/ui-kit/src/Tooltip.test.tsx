@@ -356,3 +356,107 @@ describe("Tooltip", () => {
     expect(onClick).toHaveBeenCalledOnce();
   });
 });
+
+describe("Tooltip on a touch screen", () => {
+  const touch = (user: ReturnType<typeof userEvent.setup>, el: Element) =>
+    user.pointer({ keys: "[TouchA]", target: el });
+
+  it("opens on a tap and stays open until a tap elsewhere", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <Tooltip text="Needs a vessel on the pad">
+          <button type="button" aria-disabled="true">
+            Launch
+          </button>
+        </Tooltip>
+        <p data-testid="elsewhere">Elsewhere</p>
+      </>,
+    );
+    await touch(user, screen.getByRole("button", { name: "Launch" }));
+    expect(tipIn(document.body)).toHaveTextContent("Needs a vessel on the pad");
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    });
+    expect(tipIn(document.body)).not.toBeNull();
+
+    await touch(user, screen.getByTestId("elsewhere"));
+    expect(tipIn(document.body)).toBeNull();
+  });
+
+  it("opens on a tap of an anchor that takes no focus, as a button does in Safari", async () => {
+    const user = userEvent.setup();
+    render(<Anchored text="Held since Y1 D12" />);
+    const anchor = screen.getByTestId("anchor");
+    await touch(user, anchor);
+    expect(tipIn(document.body)).toHaveTextContent("Held since Y1 D12");
+    expect(anchor).not.toHaveFocus();
+    await touch(user, anchor);
+    expect(tipIn(document.body)).toBeNull();
+  });
+
+  it("closes on a second tap of the anchor, on Escape and on scroll", async () => {
+    const user = userEvent.setup();
+    render(
+      <Tooltip text="Why">
+        <button type="button">Go</button>
+      </Tooltip>,
+    );
+    const button = screen.getByRole("button", { name: "Go" });
+    await touch(user, button);
+    expect(tipIn(document.body)).not.toBeNull();
+    await touch(user, button);
+    expect(tipIn(document.body)).toBeNull();
+
+    await touch(user, button);
+    await user.keyboard("{Escape}");
+    expect(tipIn(document.body)).toBeNull();
+
+    await touch(user, button);
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    expect(tipIn(document.body)).toBeNull();
+  });
+
+  it("keeps the tip open while the tip itself is tapped", async () => {
+    const user = userEvent.setup();
+    render(
+      <Tooltip text="Copy me">
+        <button type="button">Go</button>
+      </Tooltip>,
+    );
+    await touch(user, screen.getByRole("button", { name: "Go" }));
+    await touch(user, tipIn(document.body) as HTMLElement);
+    expect(tipIn(document.body)).not.toBeNull();
+  });
+
+  it("still runs an enabled button's action when it is tapped", async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+    render(
+      <Tooltip text="Settings">
+        <button type="button" onClick={onClick}>
+          ⚙
+        </button>
+      </Tooltip>,
+    );
+    await touch(user, screen.getByRole("button", { name: "⚙" }));
+    expect(onClick).toHaveBeenCalledOnce();
+  });
+
+  it("leaves a mouse press closing the tip as before", async () => {
+    const user = userEvent.setup();
+    render(
+      <Tooltip text="Why">
+        <button type="button">Go</button>
+      </Tooltip>,
+    );
+    const button = screen.getByRole("button", { name: "Go" });
+    await user.hover(button);
+    expect(tipIn(document.body)).not.toBeNull();
+    await user.click(button);
+    expect(tipIn(document.body)).toBeNull();
+  });
+});
