@@ -7,7 +7,7 @@ import {
 import { act, fireEvent, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { emittedRuleFor } from "../test/emittedRule";
 import {
   type CommandHandle,
@@ -15,6 +15,7 @@ import {
   DelayRailContext,
 } from "./DelayRailContext";
 import { PanelDelayRail } from "./PanelDelayRail";
+import { SETTLE_FADE_MS } from "./settle";
 import type { InFlightCommandLike } from "./toInFlightListItems";
 
 // The rail axes come from the production derivations, so the fixtures follow them rather than asserting stale literals.
@@ -272,8 +273,8 @@ describe("PanelDelayRail", () => {
 
       await user.click(btn);
       expect(btn).toHaveAttribute("aria-expanded", "true");
-      // Grown: the queue square replaces the glow in place.
-      expect(container.querySelector('[data-role="glow"]')).toBeNull();
+      // Grown: the queue square opens below, and the mark stays on the top edge.
+      expect(container.querySelectorAll('[data-role="glow"]')).toHaveLength(1);
       // The command's label rides the queue square's accessible name.
       expect(container.querySelector('[aria-label*="Launch"]')).not.toBeNull();
       expect(container.querySelector("[data-delay-float]")).toBeNull();
@@ -282,6 +283,21 @@ describe("PanelDelayRail", () => {
       expect(btn).toHaveAttribute("aria-expanded", "false");
       expect(container.querySelector('[data-role="glow"]')).not.toBeNull();
       expect(btn).toHaveFocus();
+    });
+
+    it("names the commands in flight on the closed rail's button, and on each mark once opened", async () => {
+      const user = userEvent.setup();
+      const store = createDelayRailStore();
+      store.register(handle("cmd"));
+      const { container } = inPanel(<PanelDelayRail />, store);
+      const btn = railButton();
+      expect(btn).toHaveAttribute("data-tooltip", "In flight: Launch");
+
+      await user.click(btn);
+      const mark = screen.getByRole("img", { name: "Launch, in transit" });
+      expect(mark).toHaveAttribute("tabindex", "0");
+      expect(mark).toHaveAttribute("data-tooltip", "Launch, in transit");
+      expect(container.querySelectorAll("[data-command-list]")).toHaveLength(1);
     });
 
     it("re-activating collapses it again (toggle)", async () => {
@@ -543,6 +559,29 @@ describe("PanelDelayRail", () => {
       await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
       expect(screen.getByText(sentence, drawn)).toBeTruthy();
       expect(screen.queryByText("1 command failed")).toBeNull();
+    });
+
+    it("counts once, and clears through every handle, a refusal two handles of one command both hold", async () => {
+      const user = userEvent.setup();
+      const dismissed: string[] = [];
+      const store = createDelayRailStore();
+      const sent = refusedHandle("cmd", 1, (id) =>
+        dismissed.push(`sent:${id}`),
+      );
+      store.register(sent);
+      // The other handle heard of it from the centre, under the same id.
+      store.register({
+        ...refusedHandle("other", 0, (id) => dismissed.push(`other:${id}`)),
+        refusals: sent.refusals,
+      });
+      inPanel(<PanelDelayRail />, store);
+      expect(screen.getByText("1 command failed")).toBeTruthy();
+
+      await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
+      await user.click(
+        screen.getByRole("button", { name: "Dismiss Upgrade Launch Pad" }),
+      );
+      expect(dismissed).toEqual(["sent:cmd-r0", "other:cmd-r0"]);
     });
 
     it("clears a refusal through the handle that owns it", async () => {
@@ -996,5 +1035,108 @@ describe("PanelDelayRail", () => {
     act(() => deregister());
     expect(container.querySelector("[data-panel-rail]")).toBeNull();
     expect(container.querySelector("[data-panel-rail-frame]")).not.toBeNull();
+  });
+});
+
+describe("PanelDelayRail across senders", () => {
+  it("draws a command found by two handles of one panel once", () => {
+    const store = createDelayRailStore();
+    store.register(handle("first"));
+    store.register(handle("second"));
+    const { container } = inPanel(<PanelDelayRail />, store);
+    expect(container.querySelectorAll('[data-role="glow"]')).toHaveLength(1);
+  });
+
+  it("counts a warning in the strip, says it, and lists it once when grown", async () => {
+    const store = createDelayRailStore();
+    const warned = {
+      command: "vessel.control.setThrottle",
+      label: "Throttle",
+      warning: "lost if it has to wait at Duna Relay",
+    };
+    store.register({
+      id: "throttle",
+      inFlight: [],
+      tags: RAIL_CONTINUOUS,
+      effectiveDelaySeconds: 20,
+      warnings: [
+        { ...warned, id: "c1" },
+        { ...warned, id: "c2" },
+      ],
+    });
+    const { container } = inPanel(<PanelDelayRail />, store);
+    expect(screen.getByText("1 warning")).toBeTruthy();
+    expect(railAnnouncer()?.textContent).toContain(
+      "lost if it has to wait at Duna Relay",
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Signal-delay detail" }),
+    );
+    const list = screen.getByRole("list", {
+      name: "Commands likely to be lost",
+    });
+    expect(list.querySelectorAll('[role="listitem"]')).toHaveLength(1);
+    expect(list.textContent).toContain("lost if it has to wait at Duna Relay");
+    await expectNoA11yViolations(container);
+  });
+});
+
+describe("PanelDelayRail when a command leaves", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("answered, carries it on to the end at its own pace, then lets it go", () => {
+    vi.useFakeTimers();
+    const store = createDelayRailStore();
+    store.register(handle("cmd"));
+    const { container } = inPanel(<PanelDelayRail />, store);
+    expect(container.querySelectorAll('[data-role="glow"]')).toHaveLength(1);
+
+    act(() => store.update("cmd", { ...handle("cmd"), inFlight: [] }));
+    expect(container.querySelector('[data-role="glow"]')).toBeNull();
+    const settling = container.querySelector('[data-role="settling"]');
+    expect(settling?.getAttribute("data-settling")).toBe("confirmed");
+
+    // Sent 0 s ago with a 4 s leg: the whole rail is 12 s, then the fade.
+    act(() => {
+      vi.advanceTimersByTime(12_000);
+    });
+    expect(container.querySelector('[data-role="settling"]')).not.toBeNull();
+    act(() => {
+      vi.advanceTimersByTime(SETTLE_FADE_MS);
+    });
+    expect(container.querySelector('[data-role="settling"]')).toBeNull();
+    expect(container.querySelector("[data-panel-rail]")).toBeNull();
+  });
+
+  it("refused, fades it where it was", () => {
+    vi.useFakeTimers();
+    const store = createDelayRailStore();
+    store.register(handle("cmd"));
+    const { container } = inPanel(<PanelDelayRail />, store);
+
+    act(() =>
+      store.update("cmd", {
+        ...handle("cmd"),
+        inFlight: [],
+        refusals: [
+          {
+            id: "a",
+            command: "ksp.launch",
+            args: undefined,
+            label: "Launch",
+            errorCode: "modeUnavailable",
+          },
+        ],
+      }),
+    );
+    const settling = container.querySelector('[data-role="settling"]');
+    expect(settling?.getAttribute("data-settling")).toBe("failed");
+    act(() => {
+      vi.advanceTimersByTime(SETTLE_FADE_MS);
+    });
+    expect(container.querySelector('[data-role="settling"]')).toBeNull();
   });
 });

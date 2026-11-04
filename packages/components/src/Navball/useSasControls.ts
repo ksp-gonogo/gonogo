@@ -2,8 +2,10 @@ import { useCommand } from "@ksp-gonogo/sitrep-client";
 import type { TopicPayload } from "@ksp-gonogo/sitrep-sdk";
 import { commandOutcomes } from "@ksp-gonogo/ui-kit";
 import {
+  pressOutstanding,
+  shownToggleState,
   showsToggle,
-  toggleConfirmationOf,
+  useToggleConfirmation,
 } from "../shared/toggleConfirmation";
 import { useAskedToggle } from "../shared/useAskedToggle";
 import { SAS_MODES, type SasMode, sasModeOrdinal } from "./sasModes";
@@ -34,11 +36,21 @@ export function useSasControls(
     confirmedBy: confirmedBy(precisionRaw),
   });
   const sasModeCmd = useCommand("vessel.control.setSasMode");
-  const sasAsk = useAskedToggle(toggleConfirmationOf(sasCmd.inFlight), sasRaw);
-  const rcsAsk = useAskedToggle(toggleConfirmationOf(rcsCmd.inFlight), rcsRaw);
+  const sasConfirmation = useToggleConfirmation(sasCmd);
+  const rcsConfirmation = useToggleConfirmation(rcsCmd);
+  const precisionConfirmation = useToggleConfirmation(precisionCmd);
+  // A press inverts the state the button shows, a predicted one included.
+  const sasAsk = useAskedToggle(
+    pressOutstanding(sasCmd),
+    shownToggleState(sasRaw, sasConfirmation),
+  );
+  const rcsAsk = useAskedToggle(
+    pressOutstanding(rcsCmd),
+    shownToggleState(rcsRaw, rcsConfirmation),
+  );
   const precisionAsk = useAskedToggle(
-    toggleConfirmationOf(precisionCmd.inFlight),
-    precisionRaw,
+    pressOutstanding(precisionCmd),
+    shownToggleState(precisionRaw, precisionConfirmation),
   );
 
   // Only turning SAS on is refused, so a SAS that is already on can still be switched off.
@@ -100,9 +112,9 @@ export function useSasControls(
     toggleRcs,
     togglePrecision,
     setSasMode,
-    sasConfirmation: toggleConfirmationOf(sasCmd.inFlight),
-    rcsConfirmation: toggleConfirmationOf(rcsCmd.inFlight),
-    precisionConfirmation: toggleConfirmationOf(precisionCmd.inFlight),
+    sasConfirmation,
+    rcsConfirmation,
+    precisionConfirmation,
     unconfirmedSasModes,
     dismissSasUnconfirmed: sasOutcomes.dismiss,
   };

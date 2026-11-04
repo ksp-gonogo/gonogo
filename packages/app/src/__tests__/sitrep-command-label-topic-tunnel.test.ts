@@ -231,3 +231,58 @@ describe("sitrep-command-request label/topic tunnel (station → host)", () => {
     ]);
   });
 });
+
+describe("command-accepted tunnel (host → station)", () => {
+  afterEach(() => {
+    FakeHub.reset();
+    localStorageMock.clear();
+    setActiveTelemetryClientForTests(undefined);
+    vi.unstubAllGlobals();
+    vi.stubGlobal("localStorage", localStorageMock);
+  });
+
+  it("relays the mod's acceptance of a station's command, warning included, under the station's id", async () => {
+    const transport = new StubTransport();
+    const hostClient = new TelemetryClient(transport);
+    transport.holdCommands();
+    setActiveTelemetryClientForTests(hostClient);
+
+    const host = new PeerHostService();
+    await host.start();
+    await Promise.resolve();
+
+    const client = new PeerClientService();
+    client.connect(host.shareCode);
+    for (let i = 0; i < 6; i++) await Promise.resolve();
+    approveStation();
+
+    const accepted: unknown[] = [];
+    client.onSitrepCommandAccepted((message) => accepted.push(message));
+    client.sendSitrepCommand(
+      "station-ab12:c0",
+      "vessel.control.setThrottle",
+      { throttle: 1 },
+      "Throttle",
+      "",
+    );
+    for (let i = 0; i < 6; i++) await Promise.resolve();
+    const [sent] = transport.sentCommands;
+
+    transport.emitRaw({
+      type: "command-accepted",
+      requestId: sent.requestId,
+      oneWaySeconds: 20,
+      warning: "lost if it has to wait at Duna Relay",
+    });
+    for (let i = 0; i < 6; i++) await Promise.resolve();
+
+    expect(accepted).toEqual([
+      expect.objectContaining({
+        type: "sitrep-command-accepted",
+        requestId: "station-ab12:c0",
+        oneWaySeconds: 20,
+        warning: "lost if it has to wait at Duna Relay",
+      }),
+    ]);
+  });
+});

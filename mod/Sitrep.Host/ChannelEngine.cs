@@ -1351,6 +1351,22 @@ namespace Sitrep.Host
         /// <summary>Which connection dispatched each <see cref="_pending"/> entry, by its id, for <see cref="FilterPendingForViewer"/>. Courier-thread-only.</summary>
         private readonly Dictionary<string, string> _pendingDispatcher = new Dictionary<string, string>();
 
+        /// <summary>
+        /// The queued commands that came back refused or failed lately, oldest
+        /// first, backing <see cref="PendingUplinkQueue.Settled"/>. Courier-thread-only,
+        /// like <see cref="_pending"/>.
+        /// </summary>
+        private readonly List<SettledUplink> _settled = new List<SettledUplink>();
+
+        /// <summary>Which connection dispatched each <see cref="_settled"/> entry, by its id. Courier-thread-only.</summary>
+        private readonly Dictionary<string, string> _settledDispatcher = new Dictionary<string, string>();
+
+        /// <summary>How long a settled outcome stays on the queue, in game seconds.</summary>
+        private const double SettledKeepSeconds = 300.0;
+
+        /// <summary>How many settled outcomes the queue keeps at most.</summary>
+        private const int SettledKeepCount = 16;
+
         private readonly Dictionary<string, ChannelDeclaration> _channelDeclarations = new Dictionary<string, ChannelDeclaration>();
 
         /// <summary>The declaration <paramref name="topic"/> was registered with, or null when it was not.</summary>
@@ -1892,7 +1908,7 @@ namespace Sitrep.Host
             // _pending's doc comment) -- same thread that
             // ProcessDispatchCommand appends on, so no synchronization is
             // needed here either.
-            _channelSources[UplinkPendingTopic] = _ => new PendingUplinkQueue { Pending = _pending.ToList() };
+            _channelSources[UplinkPendingTopic] = _ => new PendingUplinkQueue { Pending = _pending.Select(SnapshotOf).ToList(), Settled = _settled.ToList() };
             _engineStateTopics.Add(UplinkPendingTopic);
 
             // Built-in system.uplink.gates declaration + source: see
@@ -6310,7 +6326,72 @@ namespace Sitrep.Host
         /// used to reach the client as a null result, which the client reads as
         /// success: the command that broke reported that it had worked.
         /// </summary>
-        private static void Deliver(DispatchCommandJob job, object? result)
+        private void Deliver(DispatchCommandJob job, object? result, string? pendingId = null)
+        {
+            switch (result)
+            {
+                case HandlerFault fault:
+                    NoteFailed(job, fault.Code, fault.Reason, pendingId);
+                    break;
+                case CommandResult { Success: false } refusal:
+                    NoteRefused(job, refusal, pendingId);
+                    break;
+                default:
+                    NoteLateAnswer(job, pendingId);
+                    break;
+            }
+            Answer(job, result);
+        }
+
+        /*
+         * A reply that lands after the centre found it overdue is listed, so a
+         * screen that was showing the command late hears it was answered. One
+         * that lands on time is not: its entry leaving the queue says so.
+         */
+        private void NoteLateAnswer(DispatchCommandJob job, string? pendingId)
+        {
+            var id = pendingId ?? job.PendingId;
+            if (id == null || _pending.Find(p => string.Equals(p.Id, id, StringComparison.Ordinal))?.ReplyOverdueUt == null)
+            {
+                return;
+            }
+            ListOutcome(job, pendingId, new SettledUplink { Outcome = "answered" });
+        }
+
+        /*
+         * The queue publishes copies of its entries. An entry is changed in place
+         * as its command goes (found overdue, planned again), and a published
+         * entry that changed with it would leave the channel nothing to compare
+         * the new list against, so the change would never be sent.
+         */
+        private static PendingUplink SnapshotOf(PendingUplink entry) => new PendingUplink
+        {
+            Id = entry.Id,
+            ClientRequestId = entry.ClientRequestId,
+            Command = entry.Command,
+            Label = entry.Label,
+            Topic = entry.Topic,
+            Vantage = entry.Vantage,
+            DispatchedAt = entry.DispatchedAt,
+            OneWaySeconds = entry.OneWaySeconds,
+            CommandedValue = entry.CommandedValue,
+            LaneSeq = entry.LaneSeq,
+            Craft = entry.Craft,
+            ExpiresAtUt = entry.ExpiresAtUt,
+            PredictedArrivalUt = entry.PredictedArrivalUt,
+            PredictedReplyUt = entry.PredictedReplyUt,
+            PredictedHeldAt = entry.PredictedHeldAt,
+            Warning = entry.Warning,
+            PredictedHeldUntilUt = entry.PredictedHeldUntilUt,
+            PredictedHeldFromUt = entry.PredictedHeldFromUt,
+            CancelDeadlineUt = entry.CancelDeadlineUt,
+            ReplyOverdueUt = entry.ReplyOverdueUt,
+            Attempts = entry.Attempts,
+            Members = entry.Members.ToList(),
+        };
+
+        /// <summary>Answers the caller alone, as <see cref="Deliver"/> does, for a job that is not on the queue itself, such as a group's member.</summary>
+        private static void Answer(DispatchCommandJob job, object? result)
         {
             if (result is HandlerFault fault)
             {
@@ -6319,6 +6400,72 @@ namespace Sitrep.Host
             else
             {
                 job.OnResult(result);
+            }
+        }
+
+        /// <summary>Puts a queued command the game refused on <see cref="_settled"/>, for every screen at its centre.</summary>
+        private void NoteRefused(DispatchCommandJob job, CommandResult refusal, string? pendingId = null)
+        {
+            var code = refusal.ErrorCode;
+            ListOutcome(job, pendingId, new SettledUplink
+            {
+                Outcome = "refused",
+                Code = code?.Root.Id ?? "",
+                Reason = refusal.Reason,
+                Detail = refusal.Detail,
+            });
+        }
+
+        /// <summary>Puts a queued command the mod answered with a fault on <see cref="_settled"/>, for every screen at its centre.</summary>
+        private void NoteFailed(DispatchCommandJob job, FaultCode code, string reason, string? pendingId = null)
+        {
+            ListOutcome(job, pendingId, new SettledUplink
+            {
+                Outcome = "failed",
+                Code = code.Id,
+                Message = reason,
+            });
+        }
+
+        /// <summary>
+        /// Lists an outcome for the queue entry <paramref name="pendingId"/>, or the
+        /// job's own when none is named. Called only as the answer reaches the
+        /// centre, so nobody hears of it sooner than light could carry it.
+        /// </summary>
+        private void ListOutcome(DispatchCommandJob job, string? pendingId, SettledUplink entry)
+        {
+            var id = pendingId ?? job.PendingId;
+            // Only a command other screens saw on the queue has an outcome for them to hear.
+            if (id == null)
+            {
+                return;
+            }
+            entry.Id = id;
+            entry.ClientRequestId = job.ClientRequestId;
+            entry.Command = job.Command;
+            entry.Label = job.Label ?? "";
+            entry.Topic = job.Topic ?? "";
+            entry.Vantage = job.Vantage;
+            entry.SettledAt = _tickUt;
+            _settled.RemoveAll(e => string.Equals(e.Id, entry.Id, StringComparison.Ordinal));
+            _settled.Add(entry);
+            if (job.SessionId != null)
+            {
+                _settledDispatcher[entry.Id] = job.SessionId;
+            }
+            while (_settled.Count > SettledKeepCount)
+            {
+                _settledDispatcher.Remove(_settled[0].Id);
+                _settled.RemoveAt(0);
+            }
+        }
+
+        private void PruneSettledUplinks(double ut)
+        {
+            foreach (var gone in _settled.FindAll(e => ut > e.SettledAt + SettledKeepSeconds))
+            {
+                _settled.Remove(gone);
+                _settledDispatcher.Remove(gone.Id);
             }
         }
 
@@ -11250,6 +11397,7 @@ namespace Sitrep.Host
 
         private void PrunePendingUplinks(double ut)
         {
+            PruneSettledUplinks(ut);
             if (_pending.Count == 0)
             {
                 return;
@@ -11260,13 +11408,24 @@ namespace Sitrep.Host
                 // A held command's entry goes when its settling report reaches this
                 // centre; this is only the backstop, past both its predicted reply
                 // and its expiry, after which no copy of it can still run.
+                if (entry.LaneSeq != null)
+                {
+                    return ut > Math.Max(entry.PredictedReplyUt ?? entry.DispatchedAt + (2 * (entry.OneWaySeconds ?? 0.0)), (entry.ExpiresAtUt ?? 0.0) + ReportHomeSeconds(entry)) + PendingSettleMarginSeconds;
+                }
+                var due = entry.PredictedReplyUt ?? entry.DispatchedAt + (2 * (entry.OneWaySeconds ?? 0.0));
+                // A command on the live path goes when its reply lands (AnswerLivePath),
+                // or once it is late with the link to the craft down, when no reply can
+                // come; the command lifetime is the backstop.
+                if (_courierJobs.ContainsKey(entry.Id))
+                {
+                    return ut > due + PendingSettleMarginSeconds
+                        && (!SubjectConnected(NodeId) || ut > due + Sitrep.Core.StoreAndForward.DeliveryNetwork.CommandLifetimeSeconds);
+                }
                 // An entry off the lanes that predicts its own answer, a continuous
                 // input dropped on its way, goes when that answer is overdue.
-                return entry.LaneSeq == null
-                    ? ut > (entry.PredictedReplyUt != null
-                        ? entry.PredictedReplyUt.Value + PendingSettleMarginSeconds
-                        : entry.DispatchedAt + (2 * (entry.OneWaySeconds ?? 0.0)))
-                    : ut > Math.Max(entry.PredictedReplyUt ?? entry.DispatchedAt + (2 * (entry.OneWaySeconds ?? 0.0)), (entry.ExpiresAtUt ?? 0.0) + ReportHomeSeconds(entry)) + PendingSettleMarginSeconds;
+                return entry.PredictedReplyUt != null
+                    ? ut > entry.PredictedReplyUt.Value + PendingSettleMarginSeconds
+                    : ut > due;
             });
             foreach (var entry in overdue)
             {
@@ -11284,23 +11443,27 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Sets <see cref="PendingUplink.ReplyOverdueUt"/> on every entry on a lane
-        /// whose reply was predicted home, with no wait for a window, and has not
-        /// come a margin after that. A later prediction that puts the reply in the
-        /// future or behind a wait clears it, so the field only ever says what the
-        /// current prediction says.
+        /// Sets <see cref="PendingUplink.ReplyOverdueUt"/> on every entry whose reply
+        /// was predicted home, with no wait for a window, and has not come a margin
+        /// after that: on a lane, or on the live path. A later prediction that puts
+        /// the reply in the future or behind a wait clears it, so the field only
+        /// ever says what the current prediction says.
         /// </summary>
         private void MarkOverdueReplies(double ut)
         {
             foreach (var entry in _pending)
             {
-                if (entry.LaneSeq == null)
+                var live = entry.LaneSeq == null && _courierJobs.ContainsKey(entry.Id);
+                if (entry.LaneSeq == null && !live)
                 {
                     continue;
                 }
+                var due = live
+                    ? entry.PredictedReplyUt ?? entry.DispatchedAt + (2 * (entry.OneWaySeconds ?? 0.0))
+                    : entry.PredictedReplyUt;
                 var overdue = entry.PredictedHeldAt == null
-                    && entry.PredictedReplyUt != null
-                    && ut > entry.PredictedReplyUt.Value + PendingSettleMarginSeconds;
+                    && due != null
+                    && ut > due.Value + PendingSettleMarginSeconds;
                 if (!overdue)
                 {
                     entry.ReplyOverdueUt = null;
@@ -11329,6 +11492,9 @@ namespace Sitrep.Host
                 Pending = queue.Pending.FindAll(entry =>
                     entry.Vantage == viewer.Vantage
                     || (_pendingDispatcher.TryGetValue(entry.Id, out var dispatcher) && dispatcher == viewer.SessionId)),
+                Settled = queue.Settled.FindAll(entry =>
+                    entry.Vantage == viewer.Vantage
+                    || (_settledDispatcher.TryGetValue(entry.Id, out var dispatcher) && dispatcher == viewer.SessionId)),
             };
         }
 

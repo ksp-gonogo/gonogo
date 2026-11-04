@@ -10476,8 +10476,25 @@ export interface PendingUplink
 	* null when it is predicted to go straight through, or no route was predicted.
 	*/
 	predictedHeldAt?: string | null;
+	/**
+	* What the centre told the sender when it accepted this command, as a sentence
+	* to show the operator: a continuous input that its plan says would have to
+	* wait at `PendingUplink.predictedHeldAt`, where it is lost. The same text the
+	* sender's `command-accepted` carries, here so every screen at the centre can
+	* show it. Null when the centre had nothing to say.
+	*/
+	warning?: string | null;
 	/** When it is predicted to leave `PendingUplink.predictedHeldAt`. Null with it. */
 	predictedHeldUntilUt?: Value<"ut"> | null;
+	/**
+	* When it is predicted to reach `PendingUplink.predictedHeldAt`, where it
+	* waits until `PendingUplink.predictedHeldUntilUt`. With
+	* `PendingUplink.dispatchedAt` and `PendingUplink.predictedArrivalUt` it
+	* places the wait along the way to the craft. Null with
+	* `PendingUplink.predictedHeldAt`, and when the prediction was not read from a
+	* plan.
+	*/
+	predictedHeldFromUt?: Value<"ut"> | null;
 	/**
 	* The last moment a cancel sent from this centre is predicted to stop it: at a
 	* node holding it or at the craft before it runs. Null when nothing is
@@ -10489,8 +10506,9 @@ export interface PendingUplink
 	* home by now, no wait for a window was predicted, and nothing has come. The
 	* command may have run and its answer be unable to come home, so this is news
 	* of silence, not of failure, and the entry stays until its reply, a report or
-	* its expiry settles it. Null while the reply is not yet due, or is predicted
-	* to wait.
+	* its expiry settles it; one sent straight to the craft stays until its reply
+	* lands or the link to the craft is down. Null while the reply is not yet due,
+	* or is predicted to wait.
 	*/
 	replyOverdueUt?: Value<"ut"> | null;
 	/**
@@ -10509,6 +10527,67 @@ export interface PendingUplink
 	members: string[];
 }
 /**
+* One command that was on `system.uplink.pending` and came back refused by the
+* game, failed, or answered after the centre had found its reply overdue, an
+* entry of `PendingUplinkQueue.settled`. Every screen at the sending command
+* centre reads it, so each can say what became of a command another screen
+* sent. A command answered on time leaves no entry here: its leaving the queue
+* says so, and its effect shows in the readings.
+*
+* @category Comms
+*/
+export interface SettledUplink
+{
+	/**
+	* Gonogo's own id for the dispatch, the `PendingUplink.id` it had on the
+	* queue.
+	*/
+	id: string;
+	/**
+	* The `requestId` the dispatching client put on its `command-request`, as on
+	* `PendingUplink.clientRequestId`.
+	*/
+	clientRequestId: string;
+	/** Wire command name (e.g. `vessel.control.setRcs`). */
+	command: string;
+	/** Caller-supplied envelope label, carried verbatim; empty when none was given. */
+	label: string;
+	/**
+	* The part or terminal the command was addressed to, as on
+	* `PendingUplink.topic`; empty when none.
+	*/
+	topic: string;
+	/**
+	* The id of the command centre that sent the command, as on
+	* `commandCentre.roster`.
+	*/
+	vantage: string;
+	/** When the outcome reached the sending command centre. */
+	settledAt: Value<"ut">;
+	/**
+	* What became of the command: `refused` when the game refused it, with
+	* `SettledUplink.code` a refusal code; `failed` when the mod answered with a
+	* fault, with `SettledUplink.code` a fault code; or `answered` when it ran and
+	* its reply came after the centre had found it overdue, with
+	* `SettledUplink.code` empty.
+	*/
+	outcome: string;
+	/**
+	* The refusal's root code, or the fault's code, as the command's own reply
+	* carries it; empty for `answered`.
+	*/
+	code: string;
+	/**
+	* The refinement's id when a refusal was more specific than
+	* `SettledUplink.code`; null otherwise.
+	*/
+	reason?: string | null;
+	/** A refusal in the game's own words, when the game gave any; null otherwise. */
+	detail?: string | null;
+	/** What the mod said of a fault, as a sentence to show; null otherwise. */
+	message?: string | null;
+}
+/**
 * The `system.uplink.pending` payload: the whole queue, sent in full each
 * time.
 *
@@ -10523,6 +10602,13 @@ export interface PendingUplinkQueue
 	* is pending.
 	*/
 	pending: PendingUplink[];
+	/**
+	* The commands this session may know of that left `PendingUplinkQueue.pending`
+	* refused, failed or answered late lately, oldest first, by the same rule as
+	* `PendingUplinkQueue.pending`. Each stays for a few minutes of game time, and
+	* only the latest few are kept. Empty, never null, when there are none.
+	*/
+	settled: SettledUplink[];
 }
 /**
 * What a setting may hold, the mod's own or an Uplink's.

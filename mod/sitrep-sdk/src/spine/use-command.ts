@@ -21,6 +21,7 @@ import type {
   CommandRefusal,
   CommandStatus,
   CommandUndelivered,
+  CommandWarning,
   UseCommandOptions,
 } from "../api/types";
 import {
@@ -51,12 +52,20 @@ import {
   LATE_ARRIVAL_ERROR_CODE,
 } from "./arrival-deadline";
 import {
+  centreCommandOutcomes,
+  centreCommandRows,
+  centreRowId,
+  createCentreCommandMemory,
+  dismissCentreOutcome,
+} from "./centre-commands";
+import {
   type CommandGateStatus,
   hasItemVerdict,
   selectCommandGate,
   toGateStatus,
 } from "./command-gate";
 import { openCommandGroup } from "./command-group";
+import { JOURNEY_TOPIC, readJourney } from "./comms-journey";
 import { ROUTE_TOPIC, readRouteRows } from "./comms-route";
 import {
   type CommsLinkLike,
@@ -74,6 +83,7 @@ import {
   gateCheckKey,
   readGateCheckReply,
 } from "./gate-check";
+import { queueAsKnown } from "./known-holds";
 import { CommandError } from "./lifecycle";
 import { useClaimCapability } from "./lock-scope";
 import { commandDelayed } from "./map-command";
@@ -129,6 +139,9 @@ const NO_UNDELIVERED: CommandUndelivered[] = [];
 /** Same reason as `NO_REFUSALS`. Empty unless the mod answered a dispatch with a fault. */
 const NO_FAILURES: CommandFailure[] = [];
 
+/** Same reason as `NO_REFUSALS`. Empty unless the mod accepted a dispatch with a warning. */
+const NO_WARNINGS: CommandWarning[] = [];
+
 const MOD_FAULTS: ReadonlySet<string> = new Set(
   CORE_ERROR_CODES.filter((d) => d.kind === "fault" && d.origin === "mod").map(
     (d) => d.id,
@@ -173,11 +186,19 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
   /** The state of the latest dispatch. See {@link CommandStatus}. */
   status: CommandStatus;
   /**
-   * Every dispatch from this handle still travelling or awaiting its reply. An
-   * entry that is overdue or lost stays until dismissed; one that has arrived
-   * on a connected path is dropped.
+   * Every dispatch of this command still travelling or awaiting its reply,
+   * from this handle and from anyone else at the same command centre: another
+   * screen, or another widget on this one. An entry that is overdue or lost
+   * stays until dismissed; one that has arrived on a connected path is dropped.
    */
   inFlight: InFlightCommand[];
+  /**
+   * What the mod said of each dispatch of this command that it accepted with a
+   * warning, such as a continuous input it will drop where it would have to
+   * wait: from this handle while it is in flight, and from any other screen or
+   * widget at the same command centre while it is on the centre's queue.
+   */
+  warnings: CommandWarning[];
   /**
    * How the command travels, as its Uplink declared it. {@link CommandDelay}
    * chooses how to draw the command from these.
@@ -452,6 +473,10 @@ export function useCommand(
   const firstSeenAtRef = useRef<Map<string, number>>(new Map());
   // Each tracked dispatch's args, for the caller's check of whether the telemetry shows them.
   const argsRef = useRef<Map<string, unknown>>(new Map());
+  const labelsRef = useRef<Map<string, string>>(new Map());
+  // Every request id this hook sent whose entry may still be queued, so its own entry never reads as someone else's.
+  const ownIdsRef = useRef<Set<string>>(new Set());
+  const centreMemoryRef = useRef(createCentreCommandMemory());
   // When this client first saw each ran dispatch's reply, as a UT.
   const answeredAtRef = useRef<Map<string, number>>(new Map());
   // Dispatches whose promise resolved, which still says they ran once the client has dropped the record.
@@ -460,7 +485,15 @@ export function useCommand(
     new ConnectivityHistory(),
   );
 
-  const queue = useLatestValue<PendingUplinkQueueLike>("system.uplink.pending");
+  const sentQueue = useLatestValue<PendingUplinkQueueLike>(
+    "system.uplink.pending",
+  );
+  const journeyPayload = useLatestValue<unknown>(JOURNEY_TOPIC);
+  // The queue as the centre knows it: a hold only once the relay's report of it has come home.
+  const queue = useMemo(
+    () => queueAsKnown(sentQueue, readJourney(journeyPayload)),
+    [sentQueue, journeyPayload],
+  );
   // Memoised on the report identity so a control does not re-render on every
   // unrelated render of its widget. The report is republished whole at the
   // engine's gate cadence, and every `useCommand` in the tree reads the same one.
@@ -614,7 +647,11 @@ export function useCommand(
     useCallback(
       () =>
         dispatchedIds
-          .map((id) => client?.getCommand(id).phase ?? "idle")
+          .map((id) => {
+            const status = client?.getCommand(id);
+            if (status?.phase !== "in-flight") return status?.phase ?? "idle";
+            return `${status.phase}${status.accepted ? "+" : ""}${status.warning ? "!" : ""}`;
+          })
           .join(","),
       [client, dispatchedIds],
     ),
@@ -801,6 +838,72 @@ export function useCommand(
         : computed;
     if (visible.length > 0) inFlight = visible;
   }
+  const centreRows = isInstant
+    ? NO_IN_FLIGHT
+    : centreCommandRows({
+        command,
+        queue,
+        own: ownIdsRef.current,
+        memory: centreMemoryRef.current,
+        nowUt,
+        pathConnectedDuring,
+        statusOf: (id) => client?.getCommand(id),
+      });
+  if (centreRows.length > 0) {
+    inFlight = [...inFlight, ...centreRows].sort(
+      (a, b) => a.dispatchedAt - b.dispatchedAt,
+    );
+  }
+
+  let warnings = NO_WARNINGS;
+  for (const id of dispatchedIds) {
+    const status = client?.getCommand(id);
+    if (status?.phase !== "in-flight" || !status.warning) continue;
+    if (warnings === NO_WARNINGS) warnings = [];
+    warnings.push({
+      id,
+      command,
+      label: labelsRef.current.get(id) ?? "",
+      warning: status.warning,
+    });
+  }
+  /*
+   * The centre writes the same warning on the command's queue entry, so every
+   * screen at the centre shows it, and the sender keeps one copy of its own.
+   */
+  for (const entry of queue?.pending ?? []) {
+    if (entry.command !== command || !entry.warning) continue;
+    const id = centreRowId(entry);
+    if (warnings.some((w) => w.id === id)) continue;
+    if (warnings === NO_WARNINGS) warnings = [];
+    warnings.push({ id, command, label: entry.label, warning: entry.warning });
+  }
+
+  /*
+   * What became of another screen's command, as the centre reports it, listed
+   * with this hook's own refusals and failures so every screen says the same.
+   */
+  const centreOutcomes = isInstant
+    ? null
+    : centreCommandOutcomes({
+        command,
+        queue,
+        own: ownIdsRef.current,
+        memory: centreMemoryRef.current,
+        nowUt,
+      });
+  const allRefusals =
+    centreOutcomes && centreOutcomes.refusals.length > 0
+      ? [...refusals, ...centreOutcomes.refusals]
+      : refusals;
+  const allFailures =
+    centreOutcomes && centreOutcomes.failures.length > 0
+      ? [...failures, ...centreOutcomes.failures]
+      : failures;
+  const allFounds =
+    centreOutcomes && centreOutcomes.founds.length > 0
+      ? [...founds, ...centreOutcomes.founds]
+      : founds;
 
   // Prune tracked ids once resolved/expired, so `dispatchedIds` (and the
   // caches it drives) don't grow forever over a long session. Separate from
@@ -874,6 +977,19 @@ export function useCommand(
    * first-seen time before its id reaches `dispatchedIds`, so an id that has
    * never been in the list is one that is about to be.
    */
+  useEffect(() => {
+    const own = ownIdsRef.current;
+    if (own.size === 0) return;
+    const queued = new Set<string>();
+    for (const entry of queue?.pending ?? []) {
+      queued.add(entry.clientRequestId);
+      for (const member of entry.members ?? []) queued.add(member);
+    }
+    for (const id of own) {
+      if (!queued.has(id) && !dispatchedIds.includes(id)) own.delete(id);
+    }
+  }, [queue, dispatchedIds]);
+
   const trackedBeforeRef = useRef<readonly string[]>(dispatchedIds);
   useEffect(() => {
     for (const id of trackedBeforeRef.current) {
@@ -881,6 +997,7 @@ export function useCommand(
       entryCacheRef.current.delete(id);
       firstSeenAtRef.current.delete(id);
       argsRef.current.delete(id);
+      labelsRef.current.delete(id);
       answeredAtRef.current.delete(id);
       ranRef.current.delete(id);
     }
@@ -964,6 +1081,8 @@ export function useCommand(
   }, [client, losses]);
 
   const dismiss = useCallback((id: string) => {
+    centreMemoryRef.current.dismissed.add(id);
+    dismissCentreOutcome(centreMemoryRef.current, id);
     setDismissedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
     // A refusal is dropped outright rather than hidden behind `dismissedIds`.
     // That set is pruned once an id leaves the underlying in-flight set, which a
@@ -1021,6 +1140,8 @@ export function useCommand(
         storeRef.current?.clock.wallNow() ?? performance.now() / 1000,
       );
       argsRef.current.set(newRequestId, args);
+      labelsRef.current.set(newRequestId, label);
+      ownIdsRef.current.add(newRequestId);
       result.then(
         () => ranRef.current.add(newRequestId),
         () => undefined,
@@ -1248,12 +1369,13 @@ export function useCommand(
   const outcome = {
     status,
     inFlight,
-    refusals,
+    warnings,
+    refusals: allRefusals,
     losses,
-    founds,
+    founds: allFounds,
     undelivered,
     streamDown,
-    failures,
+    failures: allFailures,
     tags,
     effectiveDelaySeconds,
     delayReading,
