@@ -26,13 +26,6 @@ describe("layoutFor", () => {
     expect(dotted.large.y).toBe((400 - DOTS_HEIGHT) / 2);
   });
 
-  it("sits the small circle in the bottom left corner of the large circle's square", () => {
-    const l = layoutFor({ w: 192, h: 244 });
-    const half = l.diameter / 2;
-    expect(l.small.x - l.small.diameter / 2).toBeCloseTo(l.large.x - half);
-    expect(l.small.y + l.small.diameter / 2).toBeCloseTo(l.large.y + half);
-  });
-
   it("keeps the circle at the box's shorter side in a narrow box, the figures laid over it", () => {
     const l = layoutFor({ w: 110, h: 104 });
     expect(l.overlay).toBe(true);
@@ -110,12 +103,36 @@ describe("figureRooms", () => {
     expect(top.left.width).toBeLessThan(100 - 6);
     expect(top.left.width).toBeGreaterThan(0);
   });
+});
 
-  it("starts the bottom left figure past the small circle where that circle rises into the row", () => {
-    const square = { w: 200, h: 200 };
-    const l = layoutFor(square);
-    const bottom = figureRooms(l, square, "bottom");
-    expect(bottom.left.inset).toBeGreaterThan(l.small.diameter);
-    expect(rowTop(l, "bottom") + ROW_HEIGHT).toBe(l.lane);
+describe("layoutFor small circle placement", () => {
+  it("never covers the large circle or the bottom row, at any box size", () => {
+    for (const w of [120, 300, 600, 926, 1240, 1800]) {
+      for (const h of [150, 400, 774, 838]) {
+        const l = layoutFor({ w, h }, { top: 48, bottom: 48 });
+        if (l.small.diameter === 0) continue;
+        expect(l.small.x + l.small.diameter / 2).toBeLessThanOrEqual(
+          l.large.x - l.diameter / 2,
+        );
+        expect(l.small.y + l.small.diameter / 2).toBeLessThanOrEqual(
+          rowTop(l, "bottom"),
+        );
+      }
+    }
+  });
+
+  it("keeps its usual size in a wide box", () => {
+    const l = layoutFor({ w: 1240, h: 838 }, { top: 48, bottom: 48 });
+    expect(l.small.diameter).toBe(Math.floor(l.diameter * 0.3));
+  });
+
+  it("shrinks to the margin in a tile whose picture is limited by its height", () => {
+    const l = layoutFor({ w: 926, h: 774 }, { top: 46, bottom: 46 });
+    expect(l.small.diameter).toBeGreaterThanOrEqual(72);
+    expect(l.small.diameter).toBeLessThan(Math.floor(l.diameter * 0.3));
+  });
+
+  it("is left out where the margin cannot hold a readable circle", () => {
+    expect(layoutFor({ w: 300, h: 300 }).small.diameter).toBe(0);
   });
 });

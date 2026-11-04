@@ -25,7 +25,7 @@ export interface Layout {
   diameter: number;
   /** The large circle's centre. */
   large: { x: number; y: number };
-  /** The small circle's diameter and centre. */
+  /** The small circle's diameter and centre, in the margin beside the large circle; a diameter of zero where the margin is too narrow for it. */
   small: { diameter: number; x: number; y: number };
   /** Whether the row of dots is drawn. */
   dots: boolean;
@@ -63,6 +63,8 @@ export const MIN_BOX_FOR_DOTS = { w: 360, h: 300 } as const;
  * cue at its full reach and the border itself.
  */
 export const CUE_PAD = 5;
+/** The smallest the small circle is drawn at; where the margin beside the large circle is narrower it is left out. */
+export const MIN_SMALL_DIAMETER = 72;
 /** The small circle's share of the large one. */
 export const SMALL_RATIO = 0.3;
 /** The gap between a figure and a circle. */
@@ -105,15 +107,28 @@ export function layoutFor(box: Box, wanted: BandsWanted = NO_BANDS): Layout {
     x: box.w / 2,
     y: topBand + (lane - topBand - bottomBand) / 2,
   };
-  const smallDiameter = Math.floor(diameter * SMALL_RATIO);
+  const margin = box.w / 2 - diameter / 2;
+  const wantedSmall = Math.floor(diameter * SMALL_RATIO);
+  /*
+   * The small circle never covers the large one or its lit border. It takes
+   * the margin beside the large circle, above the bottom row, shrunk to the
+   * margin where that is narrower than its usual size, and is left out
+   * (diameter zero) where the margin is too narrow to read it at.
+   */
+  const room = margin - 2 * FIGURE_GAP;
+  const smallDiameter =
+    diameter > 0 && room >= MIN_SMALL_DIAMETER
+      ? Math.min(wantedSmall, Math.floor(room))
+      : 0;
+  const small = {
+    diameter: smallDiameter,
+    x: margin / 2,
+    y: lane - ROW_HEIGHT - FIGURE_GAP - smallDiameter / 2,
+  };
   return {
     diameter,
     large,
-    small: {
-      diameter: smallDiameter,
-      x: large.x - diameter / 2 + smallDiameter / 2,
-      y: large.y + diameter / 2 - smallDiameter / 2,
-    },
+    small,
     dots,
     dotsHeight,
     compact,
@@ -139,35 +154,20 @@ function chord(layout: Layout, y: number): number {
 /**
  * The room the left and the right figure of a row have: from each side of the
  * box to the large circle's edge, at the edge of the row nearer the circle's
- * middle, less the gap; and on the left of the bottom row, from the small
- * circle's right edge where that circle is drawn and rises into the row. Zero
- * width where there is none.
+ * middle, less the gap. Zero width where there is none.
  */
 export function figureRooms(
   layout: Layout,
   box: Box,
   row: FigureRow,
-  smallShown = true,
 ): { left: FigureRoom; right: FigureRoom } {
   const top = rowTop(layout, row);
   const nearer = row === "top" ? top + ROW_HEIGHT : top;
   const reach = layout.diameter === 0 ? 0 : chord(layout, nearer);
   const half = layout.diameter === 0 ? box.w / 2 : reach;
   const side = Math.max(0, box.w / 2 - half - FIGURE_GAP);
-  let leftInset = 0;
-  const smallTop = layout.small.y - layout.small.diameter / 2;
-  const smallBottom = layout.small.y + layout.small.diameter / 2;
-  if (
-    row === "bottom" &&
-    smallShown &&
-    layout.diameter > 0 &&
-    smallBottom > top &&
-    smallTop < top + ROW_HEIGHT
-  ) {
-    leftInset = layout.small.x + layout.small.diameter / 2 + FIGURE_GAP;
-  }
   return {
-    left: { inset: leftInset, width: Math.max(0, side - leftInset) },
+    left: { inset: 0, width: side },
     right: { inset: 0, width: side },
   };
 }

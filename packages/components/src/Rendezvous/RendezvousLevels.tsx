@@ -22,7 +22,7 @@ export interface RendezvousLevelsProps {
   views: Partial<Record<RendezvousLevel, ViewOf | null>>;
   docking: (diameter: number) => ReactNode;
   /** A lit arc on a level's border, for the levels that have one. */
-  cues?: Partial<Record<RendezvousLevel, EdgeCue | null>>;
+  cues?: Partial<Record<RendezvousLevel, EdgeCue | readonly EdgeCue[] | null>>;
   /**
    * Builds the figures from where the circles sit. The figures call `ask`
    * with the bands they want above and below the circle once they have

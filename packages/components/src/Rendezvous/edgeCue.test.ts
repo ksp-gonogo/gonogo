@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   dockEdgeCue,
+  dockMarkCues,
   edgeTangent,
   FULL_GROW_OVER,
   type Picture,
@@ -90,5 +91,50 @@ describe("dockEdgeCue", () => {
       dockEdgeCue({ ax: 40, ay: 0, picture: { ...WIDE, vfovDeg: 0 } }),
     ).toBeNull();
     expect(dockEdgeCue({ ax: 120, ay: 0, picture: WIDE })).toBeNull();
+  });
+});
+
+describe("dockMarkCues", () => {
+  const centred = (distance: number) =>
+    dockMarkCues({ ax: 0, ay: 0, distance, picture: WIDE });
+
+  it("lights nothing while the triangles are inside the picture", () => {
+    expect(centred(10)).toEqual([]);
+    expect(centred(2)).toEqual([]);
+  });
+
+  it("lights all four sides, green, once a centred port's triangles have grown past the rim", () => {
+    const cues = centred(1);
+    expect(cues.map((c) => c.angle).sort((a, b) => a - b)).toEqual([
+      0, 90, 180, 270,
+    ]);
+    expect(cues.every((c) => c.tone === "accent")).toBe(true);
+  });
+
+  it("grows the arcs as the range closes", () => {
+    expect(centred(0.5)[0]?.grow).toBeGreaterThan(centred(1.5)[0]?.grow ?? 1);
+  });
+
+  it("lights only the side that has gone out for a port off to one side, in that side's tone", () => {
+    const cues = dockMarkCues({
+      ax: 5,
+      ay: 0,
+      distance: 2.2,
+      picture: WIDE,
+    });
+    expect(cues.map((c) => c.angle)).toEqual([0]);
+    expect(cues[0]?.tone).toBe("warn");
+  });
+
+  it("is empty with no picture, no range or no angle", () => {
+    expect(dockMarkCues({ ax: 0, ay: 0, distance: 1, picture: null })).toEqual(
+      [],
+    );
+    expect(dockMarkCues({ ax: 0, ay: 0, distance: 0, picture: WIDE })).toEqual(
+      [],
+    );
+    expect(
+      dockMarkCues({ ax: undefined, ay: 0, distance: 1, picture: WIDE }),
+    ).toEqual([]);
   });
 });

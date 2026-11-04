@@ -34,7 +34,7 @@ export interface LensStackProps {
   /** The contents of the Docking circle, given its diameter in pixels. */
   docking: (diameter: number) => ReactNode;
   /** A lit arc on a level's border, for the levels that have one. */
-  cues?: Partial<Record<RendezvousLevel, EdgeCue | null>>;
+  cues?: Partial<Record<RendezvousLevel, EdgeCue | readonly EdgeCue[] | null>>;
 }
 
 /** Drawn units one screen pixel takes for a circle of `diameter` pixels drawn at `scale`. */
@@ -54,7 +54,7 @@ function Lens({
   diameter: number;
   view: ViewOf | null | undefined;
   docking: (diameter: number) => ReactNode;
-  cue: EdgeCue | null | undefined;
+  cue: EdgeCue | readonly EdgeCue[] | null | undefined;
 }) {
   return (
     <div

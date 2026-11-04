@@ -76,3 +76,56 @@ export function dockEdgeCue(input: {
     grow: Math.min(1, over / FULL_GROW_OVER),
   };
 }
+
+/**
+ * The range, metres, at which the four triangles round a port reach the rim
+ * of a camera's picture when the port is centred. The triangles grow as one
+ * over the range, so their tips sit at the rim's tangent times this over the
+ * port's range, whatever the camera's field.
+ */
+export const MARKS_AT_RIM_M = 2;
+
+const MARK_DIRECTIONS = [
+  { side: "right", angle: 0, across: 1, up: 0 },
+  { side: "top", angle: 90, across: 0, up: 1 },
+  { side: "left", angle: 180, across: -1, up: 0 },
+  { side: "bottom", angle: 270, across: 0, up: -1 },
+] as const;
+
+/**
+ * The border cues for the triangles round a docking port once they have grown
+ * past the camera's picture: one arc at each triangle's side, lit in that
+ * triangle's own tone (green while its angle is within a degree of the port's
+ * line, amber outside it) and growing as its tip goes further past the rim.
+ * Empty while every tip is in the picture or nothing is known. With all four
+ * out, the whole border is lit.
+ */
+export function dockMarkCues(input: {
+  ax: number | undefined;
+  ay: number | undefined;
+  distance: number | undefined;
+  picture: Picture | null;
+}): EdgeCue[] {
+  const { ax, ay, distance, picture } = input;
+  if (picture === null || ax === undefined || ay === undefined) return [];
+  if (distance === undefined || !(distance > 0)) return [];
+  if (!Number.isFinite(ax) || !Number.isFinite(ay)) return [];
+  if (Math.abs(ax) >= 90 || Math.abs(ay) >= 90) return [];
+  const edge = edgeTangent(picture);
+  if (edge === null) return [];
+  const tip = (edge * MARKS_AT_RIM_M) / distance;
+  const across = Math.tan(ax * RAD);
+  const up = Math.tan(ay * RAD);
+  const cues: EdgeCue[] = [];
+  for (const m of MARK_DIRECTIONS) {
+    const reach = Math.hypot(across + m.across * tip, up + m.up * tip);
+    if (reach <= edge) continue;
+    const lined = Math.abs(m.across !== 0 ? ax : ay) <= LINED_UP_DEG;
+    cues.push({
+      angle: m.angle,
+      tone: lined ? "accent" : "warn",
+      grow: Math.min(1, (reach / edge - 1) / FULL_GROW_OVER),
+    });
+  }
+  return cues;
+}

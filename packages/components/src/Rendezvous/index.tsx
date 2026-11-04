@@ -12,7 +12,7 @@ import {
   rendezvousActions,
 } from "./config";
 import { DockingCircle } from "./DockingCircle";
-import { DRAWN_PICTURE, dockEdgeCue } from "./edgeCue";
+import { DRAWN_PICTURE, dockEdgeCue, dockMarkCues } from "./edgeCue";
 import { LEVEL_NAMES } from "./LensStack";
 import { DOCKING_ENTER_M } from "./levels";
 import { ReadoutFigures } from "./ReadoutFigures";
@@ -156,11 +156,20 @@ function RendezvousComponent({
             cues={{
               docking: docked
                 ? null
-                : dockEdgeCue({
-                    ax: reading.dockAx,
-                    ay: reading.dockAy,
-                    picture: picture ?? DRAWN_PICTURE,
-                  }),
+                : (() => {
+                    const portLeft = dockEdgeCue({
+                      ax: reading.dockAx,
+                      ay: reading.dockAy,
+                      picture: picture ?? DRAWN_PICTURE,
+                    });
+                    if (portLeft !== null) return portLeft;
+                    return dockMarkCues({
+                      ax: reading.dockAx,
+                      ay: reading.dockAy,
+                      distance: reading.dockingDistance,
+                      picture: hudMode === "hud-with-camera" ? picture : null,
+                    });
+                  })(),
             }}
             docking={() => (
               <DockingCircle

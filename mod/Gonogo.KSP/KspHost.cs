@@ -4046,6 +4046,8 @@ namespace Gonogo.KSP
         /// (rendezvous range), which is the only time a target's relative
         /// state matters.
         /// </summary>
+        private static readonly ApproachTrack ApproachHistory = new ApproachTrack();
+
         private static Dictionary<string, object?>? BuildTarget(Vessel vessel, ClosestApproach? closestApproach)
         {
             var fetch = FlightGlobals.fetch;
@@ -4099,6 +4101,11 @@ namespace Gonogo.KSP
             // Mod-side closest approach from the elected solver (computed in
             // Sample at the current UT). Omit the key entirely when there's no
             // encounter -- the parser leaves VesselTarget.ClosestApproach null.
+            // Inside physics range the figure comes from the two ports' real relative state: the
+            // orbit model cannot resolve a pair this close.
+            var approachUt = Planetarium.GetUniversalTime();
+            ApproachHistory.Add(targetVesselId + ":" + partId, approachUt, relativePosition);
+            closestApproach = LoadedApproach.Combine(relativePosition, ApproachHistory.Velocity() ?? new[] { relVel.x, relVel.y, relVel.z }, approachUt, closestApproach);
             if (closestApproach != null)
             {
                 result["closestApproach"] = new Dictionary<string, object?>

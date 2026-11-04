@@ -551,10 +551,8 @@ export function ReadoutFigures(props: Readonly<ReadoutFiguresProps>) {
   const docking = level === "docking";
   const distance = docking ? reading.dockingDistance : reading.tarDistance;
   const rangeR: Reading<Value<"m">> = reading.rangeR;
-  // Every level but the first has the level before it as a small circle in the corner.
-  const smallShown = level !== "far";
-  const top = figureRooms(layout, box, "top", smallShown);
-  const bottom = figureRooms(layout, box, "bottom", smallShown);
+  const top = figureRooms(layout, box, "top");
+  const bottom = figureRooms(layout, box, "bottom");
   const notice = noticeFor(props);
   const bottoms = bottomFigures(props);
 
