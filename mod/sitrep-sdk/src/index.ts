@@ -289,12 +289,6 @@ export type {
   UnitHint,
 } from "./flight/types";
 export { seriesKeyOf } from "./flight/types";
-export type {
-  GoNoGoCountdown,
-  GoNoGoCountdownEnd,
-  LiftoffCountdown,
-} from "./go-no-go-countdown";
-export { useGoNoGoCountdown, useLiftoffCountdown } from "./go-no-go-countdown";
 export * from "./ksp-enum-names";
 export { isLocked, unlessLocked } from "./locked";
 // The magnitude unwrap, beside `Value` because that is what it unwraps. ui-kit re-exports these three, so no call site moved.

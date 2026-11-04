@@ -126,11 +126,6 @@ export const DEFAULT_GONOGO_CONFIG: GoNoGoConfig = {
 
 type Listener = () => void;
 
-/** A countdown at the host screen's own centre starting, or finishing as go or as aborted. */
-export type CountdownEvent =
-  | { type: "start"; lengthMs: number }
-  | { type: "end"; how: "go" | "aborted" };
-
 export class GoNoGoHostService {
   private peerIdToName = new Map<string, string>();
   private peerIdToVote = new Map<string, Vote>();
@@ -146,7 +141,6 @@ export class GoNoGoHostService {
     null;
   private config: GoNoGoConfig = { ...DEFAULT_GONOGO_CONFIG };
   private listeners = new Set<Listener>();
-  private countdownListeners = new Set<(event: CountdownEvent) => void>();
   private unsubs: Array<() => void> = [];
 
   constructor(
@@ -420,19 +414,6 @@ export class GoNoGoHostService {
     return refusal?.message;
   }
 
-  /** Calls `listener` as a countdown at the host screen's own centre starts or finishes. */
-  onCountdown(listener: (event: CountdownEvent) => void): () => void {
-    this.countdownListeners.add(listener);
-    return () => {
-      this.countdownListeners.delete(listener);
-    };
-  }
-
-  private announceCountdown(centre: string, event: CountdownEvent): void {
-    if (centre !== this.places.hostCentre()) return;
-    for (const listener of [...this.countdownListeners]) listener(event);
-  }
-
   /** The poll at the host screen's own centre, which is the one its header shows. */
   getSnapshot(): GoNoGoSnapshot {
     const centre = this.places.hostCentre();
@@ -539,10 +520,6 @@ export class GoNoGoHostService {
     }, this.config.countdownLengthMs);
     poll.countdown = { t0Ms, timer };
     poll.notice = null;
-    this.announceCountdown(centre, {
-      type: "start",
-      lengthMs: this.config.countdownLengthMs,
-    });
     this.tellCentre(centre, {
       type: "gonogo-countdown-start",
       remainingMs: this.config.countdownLengthMs,
@@ -560,7 +537,6 @@ export class GoNoGoHostService {
     poll.countdown = null;
     poll.notice = { kind: "held", ...hold };
     this.tellCentre(centre, { type: "gonogo-countdown-cancel", reason, hold });
-    this.announceCountdown(centre, { type: "end", how: "aborted" });
   }
 
   private onCountdownReached(centre: string): void {
@@ -568,7 +544,6 @@ export class GoNoGoHostService {
     if (!poll?.countdown) return;
     poll.countdown = null;
     poll.committed = true;
-    this.announceCountdown(centre, { type: "end", how: "go" });
     // The countdown is spent: clear the votes and tell the centre's screens, so none keeps a chip at T-0 or a vote for a poll that has finished.
     for (const peerId of this.votersAt(centre))
       this.peerIdToVote.delete(peerId);

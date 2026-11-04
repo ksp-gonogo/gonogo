@@ -73,7 +73,6 @@ import {
   GoNoGoHostProvider,
   MainPollHeader,
   PollSettingsControl,
-  StageCountdownBridge,
   StationPollControl,
   voteInputSource,
 } from "../goNoGo";
@@ -431,7 +430,6 @@ function MainScreenDisplay({
                         <RootProviders screen={screen}>
                           <MissionProfilesProvider service={missionProfiles}>
                             <GoNoGoHostProvider service={goNoGoHost}>
-                              <StageCountdownBridge />
                               <PushHostProvider service={pushHost}>
                                 <CoverageMaskCacheProvider>
                                   <SerialDeviceProvider service={serialService}>
