@@ -1,4 +1,5 @@
 import {
+  type CommandStatus,
   classifyCommandRejection,
   type SendStatus,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -21,10 +22,21 @@ import {
 import { useRailAnnounces } from "../CommandDelay/railAnnouncer";
 import { FitLabel } from "../FitLabelButton";
 import { LiveRegion } from "../LiveRegion";
+import { ReservedText } from "../ReservedText";
+import type { ReckoningMarking } from "../readingCurrency";
 import { describeSendStatus } from "../SendStatus/describeSendStatus";
 import { predictedOutcomeOf } from "../SendStatus/predictedOutcome";
+import { ToggleButton } from "../ToggleButton";
 import { Tooltip } from "../Tooltip";
-import { InFlightFace } from "./InFlightFace";
+import {
+  askedToggleValue,
+  type CommandToggle,
+  confirmationSentenceOf,
+  pressOutstanding,
+  shownToggleState,
+  toggleConfirmationOf,
+  toggleMarking,
+} from "./toggle";
 
 /** The dispatch's args as text, for telling whether an armed control is still pointed at what was armed; `null` for args that cannot be written. */
 function argsKey(args: unknown): string | null {
@@ -64,15 +76,21 @@ export const ARM_TIMEOUT_MS = 4000;
 export const REFUSAL_TIMEOUT_MS = 8000;
 
 /**
- * The longest, in milliseconds, a command control stays pending when the handle
- * it was given never settles. Used by {@link useCommandButton}. A `send()`
- * promise from {@link useCommand} always settles, so this matters only for a
- * handle from another source.
+ * The fewest milliseconds a {@link CommandButton} reads "SENT" after a press,
+ * so the press is seen to have gone however soon the mod answers it. Used by
+ * {@link CommandButton}, {@link useCommandButton} and the toggles of the
+ * Navball and Action Group widgets.
  *
- * @intent Published so a control built on useCommandButton can show the same longest wait as CommandButton does.
  * @category CommandButton
  */
-export const PENDING_BACKSTOP_MS = 30_000;
+export const SENT_FLASH_MS = 500;
+export type {
+  CommandToggle,
+  ToggleState,
+} from "./toggle";
+
+/** The word a command control shows while the mod has not answered the press. */
+const SENT_WORD = "SENT";
 
 /**
  * What the mod says about a command before it is pressed: whether the game would
@@ -126,7 +144,7 @@ export interface CommandButtonHandle<Result = CommandReplyLike, Args = unknown>
   /**
    * Dispatch. The promise resolves when the command is confirmed and rejects
    * when it is refused, lost, or the machinery failed, so the control clears its
-   * own pending state with no per-command telemetry predicate. A refusal
+   * own state with no per-command telemetry predicate. A refusal
    * rejects with an error carrying its `CommandErrorCode`: read it with
    * `classifyCommandRejection` from `@ksp-gonogo/sitrep-sdk`.
    *
@@ -135,6 +153,13 @@ export interface CommandButtonHandle<Result = CommandReplyLike, Args = unknown>
    * supplies it from the generated command map.
    */
   send(args?: Args, opts?: { label?: string; topic?: string }): Promise<Result>;
+  /**
+   * Where the handle's latest dispatch stands, as `useCommand` reports it. The
+   * control reads "SENT" until the mod answers the press (`accepted`, or the
+   * reply for a command with no delay). Absent for a handle that cannot say,
+   * which then shows "SENT" for {@link SENT_FLASH_MS} only.
+   */
+  status?: CommandStatus;
   /**
    * The standing gate verdict, when the mod publishes one for this command.
    * Absent means nothing is known in advance.
@@ -189,7 +214,9 @@ function standingGate<Args>(
  * - `idle`: at rest
  * - `armed`: the operator has asked, and is being asked to mean it. Only
  *   reachable when the caller supplied a `confirmLabel`
- * - `pending`: dispatched, nothing back yet (the signal-delay window)
+ * - `sent`: pressed and not yet answered by the mod, for at least
+ *   {@link SENT_FLASH_MS}. The command's journey to the vessel and back is the
+ *   delay rail's to show, so the control is live again once the mod answers
  * - `refused`: the game evaluated it and said no. A retry changes nothing until
  *   the situation does
  * - `lost`: nothing came back. Not `idle`, which would look like a confirmed
@@ -208,7 +235,7 @@ function standingGate<Args>(
 export type CommandButtonPhase =
   | "idle"
   | "armed"
-  | "pending"
+  | "sent"
   | "refused"
   | "lost"
   | "found"
@@ -254,6 +281,8 @@ export interface UseCommandButtonOptions<
   commandLabel?: string;
   /** Receives the dispatch's resolved result. See {@link CommandButtonProps.onConfirmed}. */
   onConfirmed?: (result: Result) => void;
+  /** Makes the control a state toggle. See {@link CommandButtonProps.toggle}. */
+  toggle?: CommandToggle<Args>;
 }
 
 /**
@@ -263,11 +292,11 @@ export interface UseCommandButtonOptions<
  *
  * @category CommandButton
  */
-export interface CommandButtonState {
+export interface CommandButtonState<Args = unknown> {
   /** The current phase. `blocked` whenever the gate refuses and no outcome or dispatch is standing. */
   phase: CommandButtonPhase;
-  /** Dispatched, nothing back. */
-  isPending: boolean;
+  /** Pressed, and the mod has not yet answered the press. */
+  isSent: boolean;
   /** Asking the operator to mean it. */
   isArmed: boolean;
   /** The game said no, and `refusalText` says what it said. */
@@ -309,13 +338,38 @@ export interface CommandButtonState {
    * nothing. The control is drawn unavailable, whichever phase it is in.
    */
   isOffline: boolean;
+  /**
+   * What a state toggle shows: the state (the predicted opposite while the
+   * command is modelled), the word to draw, the held or modelled mark, and the
+   * sentence for what it is waiting on. Null for a control with no `toggle`.
+   */
+  toggleView: {
+    shown: boolean | number | null | undefined;
+    on: boolean;
+    word: string;
+    /** Every word the control can show, which it is sized to hold. */
+    reserve: readonly string[];
+    /** Why the control cannot be pressed now, or null when it can. */
+    unavailable: string | null;
+    /** What the press is waiting on: `sent`, `held`, `modelled`, or null once nothing is outstanding. */
+    confirmation: "sent" | "held" | "modelled" | null;
+    marking: ReckoningMarking | null;
+    sentence: string | null;
+  } | null;
+  /**
+   * Sends `args` as this control's own press, under `label` when given: for a
+   * toggle that a bound input drives to a state, such as "SAS on", which a
+   * later press then inverts. Does nothing while the stream to the mod is down.
+   */
+  // A method rather than a function-valued property, so a control typed for one command's args still takes another's state.
+  sendAs(args: Args, label?: string): void;
   /** This handle has a dispatch with no reply (overdue or lost), for the `data-unconfirmed` tint. */
   hasUnconfirmed: boolean;
   /** This handle has a dispatch that never left, for the `data-failed` tint. */
   hasFailure: boolean;
   /**
    * The control was pressed. Advances the machine: arm, then dispatch; a press
-   * while pending is ignored; a press while refused, lost or found clears that
+   * is always sent, however many are outstanding; a press while refused, lost or found clears that
    * outcome; a press while blocked dispatches nothing and shows the reason
    * instead. `armable` says whether there is a confirm step, which only the
    * caller knows.
@@ -338,10 +392,10 @@ export interface CommandButtonState {
  *
  * function RecoverButton() {
  *   const recover = useCommand("ksp.recover");
- *   const { isArmed, isPending, isRefused, refusalText, press } =
+ *   const { isArmed, isSent, isRefused, refusalText, press } =
  *     useCommandButton({ handle: recover, commandLabel: "Recover" });
- *   const word = isPending
- *     ? "Recovering..."
+ *   const word = isSent
+ *     ? "SENT"
  *     : isRefused
  *       ? "Refused"
  *       : isArmed
@@ -350,7 +404,6 @@ export interface CommandButtonState {
  *   return (
  *     <button
  *       type="button"
- *       aria-busy={isPending || undefined}
  *       title={refusalText ?? undefined}
  *       // `true` asks for a confirm step: the first press arms, the second sends.
  *       onClick={() => press(true)}
@@ -368,19 +421,25 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
   args,
   commandLabel,
   onConfirmed,
-}: UseCommandButtonOptions<Result, Args>): CommandButtonState {
+  toggle,
+}: UseCommandButtonOptions<Result, Args>): CommandButtonState<Args> {
   const [phase, setPhase] = useState<CommandButtonPhase>("idle");
   const [refusal, setRefusal] = useState<CommandRefusalLike | null>(null);
   const [found, setFound] = useState<CommandFoundLike | null>(null);
   // A press on a blocked control shows its reason, cleared on the refusal window.
   const [reasonShown, setReasonShown] = useState(false);
+  // Each dispatch restarts the flash; `awaiting` holds from the press until the control's own dispatch settles.
+  const [flashing, setFlashing] = useState(false);
+  const [flashSeq, setFlashSeq] = useState(0);
+  const [awaiting, setAwaiting] = useState(false);
 
   const streamDown = handle.streamDown === true;
   const gate = standingGate(handle, args);
   // An undetermined gate is NOT a refusal and must not darken anything.
-  const gateBlocks = gate?.blocked === true;
+  const toggleBlocked = toggle?.unavailable ?? null;
+  const gateBlocks = gate?.blocked === true || toggleBlocked !== null;
 
-  // A late reply must not set state after unmount or overwrite a newer dispatch's pending.
+  // A late reply must not set state after unmount or overwrite a newer dispatch's outcome.
   const mountedRef = useRef(true);
   const dispatchSeqRef = useRef(0);
   useEffect(() => {
@@ -458,68 +517,112 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
     if (!gateBlocks) setReasonShown(false);
   }, [gateBlocks]);
 
+  // The press stays visible as SENT for at least the flash, however soon the mod answers.
   useEffect(() => {
-    if (phase !== "pending") return;
-    const id = setTimeout(() => setPhase("idle"), PENDING_BACKSTOP_MS);
+    if (flashSeq === 0) return;
+    const id = setTimeout(() => setFlashing(false), SENT_FLASH_MS);
     return () => clearTimeout(id);
-  }, [phase]);
+  }, [flashSeq]);
 
-  const dispatch = useCallback(() => {
-    const seq = dispatchSeqRef.current + 1;
-    dispatchSeqRef.current = seq;
-    awaitingFoundRef.current = null;
-    setPhase("pending");
-    setRefusal(null);
-    const settle = (
-      next: CommandButtonPhase,
-      reason: CommandRefusalLike | null,
+  const dispatch = useCallback(
+    (
+      sendArgs: Args | undefined = args,
+      label: string | undefined = commandLabel,
     ) => {
-      if (!mountedRef.current || dispatchSeqRef.current !== seq) return;
-      setRefusal(reason);
-      setPhase(next);
-    };
-    handle.send(args, commandLabel ? { label: commandLabel } : undefined).then(
-      (result: Result) => {
-        settle("idle", null);
-        onConfirmed?.(result);
-      },
-      (err: unknown) => {
-        const rejection = classifyCommandRejection(err);
-        if (rejection.kind === "lost") {
-          // From here on, a found landing on the handle is this control's.
-          awaitingFoundRef.current = { args, label: commandLabel };
-          settle("lost", null);
-          return;
-        }
-        if (rejection.kind !== "refused") {
-          // A machinery failure is the rail's to report, not this control's.
+      const seq = dispatchSeqRef.current + 1;
+      dispatchSeqRef.current = seq;
+      awaitingFoundRef.current = null;
+      setPhase("idle");
+      setRefusal(null);
+      setFlashing(true);
+      setFlashSeq((n) => n + 1);
+      setAwaiting(true);
+      const settle = (
+        next: CommandButtonPhase,
+        reason: CommandRefusalLike | null,
+      ) => {
+        if (!mountedRef.current || dispatchSeqRef.current !== seq) return;
+        setRefusal(reason);
+        setPhase(next);
+        setAwaiting(false);
+        // An outcome is shown at once, not after the flash.
+        if (next !== "idle") setFlashing(false);
+      };
+      handle.send(sendArgs, label ? { label } : undefined).then(
+        (result: Result) => {
           settle("idle", null);
-          return;
-        }
-        settle("refused", {
-          errorCode: rejection.errorCode,
-          reason: rejection.reason,
-          command: rejection.command,
-          args: rejection.args,
-          label: rejection.label ?? commandLabel,
-          breach: rejection.breach,
-          // The game's own words, which `commandRefusalSentence` prefers over its general clause.
-          detail: rejection.detail,
-        });
-      },
-    );
-  }, [handle, args, commandLabel, onConfirmed]);
+          onConfirmed?.(result);
+        },
+        (err: unknown) => {
+          const rejection = classifyCommandRejection(err);
+          if (rejection.kind === "lost") {
+            // From here on, a found landing on the handle is this control's.
+            awaitingFoundRef.current = { args: sendArgs, label };
+            settle("lost", null);
+            return;
+          }
+          if (rejection.kind !== "refused") {
+            // A machinery failure is the rail's to report, not this control's.
+            settle("idle", null);
+            return;
+          }
+          settle("refused", {
+            errorCode: rejection.errorCode,
+            reason: rejection.reason,
+            command: rejection.command,
+            args: rejection.args,
+            label: rejection.label ?? commandLabel,
+            breach: rejection.breach,
+            // The game's own words, which `commandRefusalSentence` prefers over its general clause.
+            detail: rejection.detail,
+          });
+        },
+      );
+    },
+    [handle, args, commandLabel, onConfirmed],
+  );
 
   // The rail is the primary outcome surface; these tints only say WHICH control issued the command.
   const { hasUnconfirmed, hasFailure } = commandOutcomes(handle);
 
+  /*
+   * The mod answers a press with an acceptance (or its reply, for a command
+   * with no delay). A handle with no status can only say it was just pressed.
+   */
+  const status: CommandStatus | undefined = handle.status;
+  const unanswered =
+    awaiting && status?.phase === "in-flight" && status.accepted !== true;
+  const sent = flashing || unanswered;
+
+  const toggleRows = toggle
+    ? handle.inFlight.filter(toggle.rows ?? (() => true))
+    : [];
+  const confirmation = toggle
+    ? toggleConfirmationOf(sent, status, toggleRows)
+    : null;
+  const shown = toggle
+    ? shownToggleState(toggle.state, confirmation)
+    : undefined;
+  // While the latest press is outstanding the shown reading is still the old state, so the next press inverts the state that press asked for.
+  const askedRef = useRef<boolean | undefined>(undefined);
+  const outstanding = pressOutstanding(status, handle.inFlight);
+  const toggleBase =
+    outstanding && askedRef.current !== undefined ? askedRef.current : shown;
+
   const press = useCallback(
     (armable: boolean) => {
-      if (phase === "pending") return;
       if (streamDown) return;
       // The game already said it will refuse this, so the press shows why instead of spending a round trip.
       if (gateBlocks) {
         setReasonShown(true);
+        return;
+      }
+      // A state toggle sends the opposite of the state it shows, however many presses are outstanding and whatever became of an earlier one.
+      if (toggle) {
+        const sendArgs = toggle.args(toggleBase);
+        if (sendArgs === undefined) return;
+        askedRef.current = askedToggleValue(sendArgs);
+        dispatch(sendArgs);
         return;
       }
       // A press on an outcome clears it and starts the handshake over, rather than dispatching straight back.
@@ -537,7 +640,7 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
       }
       dispatch();
     },
-    [phase, streamDown, gateBlocks, dispatch, args],
+    [phase, streamDown, gateBlocks, dispatch, args, toggle, toggleBase],
   );
 
   // One handle serves many rows, and a row keyed by position can be handed another item while armed; the confirming press must not send to it.
@@ -550,40 +653,65 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
 
   // A real outcome outranks a standing gate, and a command already travelling is not stopped by a gate that shut behind it.
   const effectivePhase: CommandButtonPhase =
-    phase === "pending" ||
-    phase === "refused" ||
-    phase === "lost" ||
-    phase === "found"
+    phase === "refused" || phase === "lost" || phase === "found"
       ? phase
-      : gateBlocks
-        ? "blocked"
-        : phase;
+      : sent
+        ? "sent"
+        : gateBlocks
+          ? "blocked"
+          : phase;
 
   return {
     phase: effectivePhase,
-    isPending: effectivePhase === "pending",
+    isSent: effectivePhase === "sent",
     isArmed: effectivePhase === "armed",
     isRefused: effectivePhase === "refused",
     isLost: effectivePhase === "lost",
     isFound: effectivePhase === "found",
     isBlocked: effectivePhase === "blocked",
-    isOffline: streamDown && effectivePhase !== "pending",
+    isOffline: streamDown && effectivePhase !== "sent",
     isShowingReason: effectivePhase === "blocked" && reasonShown,
     refusalText: refusal
       ? commandRefusalSentence(refusal)
-      : effectivePhase === "blocked" && gate
-        ? // The mod's gate is per command, so the caller's label says which row went dark.
-          commandGateSentence({
-            ...gate,
-            label: gate.label ?? commandLabel,
-            args: gate.args ?? args,
-          })
-        : null,
+      : toggleBlocked !== null
+        ? toggleBlocked
+        : effectivePhase === "blocked" && gate
+          ? // The mod's gate is per command, so the caller's label says which row went dark.
+            commandGateSentence({
+              ...gate,
+              label: gate.label ?? commandLabel,
+              args: gate.args ?? args,
+            })
+          : null,
     foundText: found ? commandFoundSentence(found) : null,
     lossText:
       effectivePhase === "lost"
         ? commandLossSentence({ args, label: commandLabel })
         : null,
+    sendAs: (sendArgs, label) => {
+      if (streamDown) return;
+      askedRef.current = askedToggleValue(sendArgs);
+      dispatch(sendArgs, label);
+    },
+    toggleView: toggle
+      ? {
+          shown,
+          on: typeof shown === "number" ? shown > 0 : shown === true,
+          word:
+            confirmation === "sent"
+              ? (toggle.sentWord ?? SENT_WORD)
+              : toggle.word(shown),
+          reserve: [...toggle.words, toggle.sentWord ?? SENT_WORD],
+          confirmation,
+          unavailable: toggleBlocked,
+          marking: toggleMarking(
+            toggle.name,
+            confirmation,
+            toggle.marking ?? null,
+          ),
+          sentence: confirmationSentenceOf(toggle.name, confirmation),
+        }
+      : null,
     hasUnconfirmed,
     hasFailure,
     press,
@@ -592,7 +720,7 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
 
 type NativeButtonProps = Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
-  "onClick" | "type" | "children" | "aria-pressed" | "aria-busy" | "title"
+  "onClick" | "type" | "children" | "aria-pressed" | "title"
 >;
 
 /**
@@ -638,12 +766,6 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
    * Arm anything irreversible, and anything that spends career funds.
    */
   confirmLabel?: ReactNode;
-  /**
-   * The in-flight wording, spoken and shown on hover. The control itself draws
-   * only a spinner while in flight, at its resting width. Defaults to
-   * "Working...".
-   */
-  pendingLabel?: string;
   /** The refused label. Defaults to "Refused". */
   refusedLabel?: ReactNode;
   /**
@@ -671,8 +793,8 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
    * different.
    */
   confirmAriaLabel?: string;
-  /** The in-flight phase's accessible name, for a control whose resting name says more than `pendingLabel`. Defaults to `pendingLabel`. */
-  pendingAriaLabel?: string;
+  /** The sent phase's accessible name, for a control whose resting name says more than its visible word. Defaults to the command's label followed by "sent, not yet received". */
+  sentAriaLabel?: string;
   /**
    * Whether this control's command is currently in effect, for a control that
    * represents state as well as acting on it: a SAS toggle, an action group, an
@@ -711,13 +833,30 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
    * at once.
    */
   onPressReady?: (press: (() => void) | null) => void;
+  /**
+   * Makes the control a state toggle: it shows the state the vessel reports,
+   * a press sends the command that sets the opposite, and while that press is
+   * unanswered it shows "SENT", then the state again, marked held while the
+   * command waits at a relay and marked modelled while it is predicted to have
+   * arrived. A second press is always sent. The control draws as a pressed or
+   * unpressed button in the word `toggle.word` gives; `label`, `confirmLabel`
+   * and the arm step do not apply.
+   */
+  toggle?: CommandToggle<Args>;
+  /**
+   * The state of a {@link useCommandButton} the caller already runs, so a press
+   * that comes from elsewhere (a bound key, a serial input) and a click on this
+   * control are one press of one control, whether or not it is on screen. The
+   * control draws from it instead of its own.
+   */
+  controller?: CommandButtonState<Args>;
   /** Defaults to `md`. */
   size?: CommandButtonSize;
   /** Tone for the armed phase. Defaults to `go`: confirm reads as commit. */
   confirmTone?: CommandButtonTone;
   /**
    * Called once a dispatch is confirmed, for a caller with local state to
-   * settle. The pending state itself needs nothing from you.
+   * settle.
    *
    * Receives what the dispatch resolved with, typed off the handle. A confirmed
    * command did not necessarily run again: the plugin may answer a repeat of
@@ -729,7 +868,7 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
 
 /**
  * A button that dispatches a command and shows what became of it: at rest,
- * armed (with a `confirmLabel`), in flight, refused, lost (no reply came in
+ * armed (with a `confirmLabel`), sent, refused, lost (no reply came in
  * time), found (a lost command has since replied), or blocked. Useful for
  * letting the operator send a command and see which control sent it and how it
  * ended. Used by the upgrade button of the space centre status widget and the
@@ -738,10 +877,12 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
  * afford, and the button then says why. The panel's delay rail shows that a
  * command is in flight; this shows which control sent it.
  *
- * Pending ends when the promise `send()` returned settles, whether or not any
- * telemetry changes as a result. Pending is per rendered control, not
- * per handle, so one handle serving a list gives each row its own pending
- * state. Outcomes are announced through a polite live region.
+ * After a press the control reads "SENT" for at least {@link SENT_FLASH_MS},
+ * and for as long after as the mod has not answered the press, then it is live
+ * again: a second press is always sent. Where the command is on its way to the
+ * vessel and back is the panel's delay rail's to show. The sent state is per
+ * rendered control, not per handle, so one handle serving a list gives each
+ * row its own. Outcomes are announced through a polite live region.
  *
  * @example
  * ```tsx
@@ -754,7 +895,6 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
  *   commandLabel="Transmit experiment"
  *   label="Transmit"
  *   confirmLabel="Confirm transmit"
- *   pendingLabel="Transmitting..."
  * />
  * ```
  *
@@ -770,12 +910,11 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
   commandLabel,
   label,
   confirmLabel,
-  pendingLabel = "Working...",
   refusedLabel = "Refused",
   lostLabel = "No reply",
   foundLabel = "Found",
   confirmAriaLabel,
-  pendingAriaLabel,
+  sentAriaLabel,
   blockedAriaLabel,
   pressed,
   variant = "ghost",
@@ -786,14 +925,23 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
   size = "md",
   confirmTone = "go",
   onConfirmed,
+  toggle,
+  controller,
   disabled,
   title,
   "aria-label": ariaLabel,
   ...rest
 }: Readonly<CommandButtonProps<Result, Args>>) {
+  const own = useCommandButton({
+    handle,
+    args,
+    commandLabel,
+    onConfirmed,
+    toggle,
+  });
   const {
     phase,
-    isPending,
+    isSent,
     isArmed,
     isRefused,
     isLost,
@@ -804,27 +952,24 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
     refusalText,
     foundText,
     lossText,
+    toggleView,
     hasUnconfirmed,
     hasFailure,
     press,
-  } = useCommandButton({ handle, args, commandLabel, onConfirmed });
+  } = controller ?? own;
 
   const hasConfirmStep = confirmLabel !== undefined;
+  const sentSentence = commandLabel
+    ? `${commandLabel} sent, not yet received`
+    : "Sent, not yet received";
   useEffect(() => {
-    if (!onPressReady || isPending || disabled) return;
+    if (!onPressReady || disabled) return;
     onPressReady(() => press(hasConfirmStep));
     return () => onPressReady(null);
-  }, [onPressReady, isPending, disabled, press, hasConfirmStep]);
+  }, [onPressReady, disabled, press, hasConfirmStep]);
 
   const resolveBody = (): ReactNode => {
-    if (isPending)
-      return (
-        <InFlightFace
-          holds={label}
-          label={pendingLabel}
-          spinnerSize={size === "sm" ? 10 : 12}
-        />
-      );
+    if (isSent) return SENT_WORD;
     if (isRefused) return refusedLabel;
     if (isLost) return lostLabel;
     if (isFound) return foundLabel;
@@ -841,14 +986,14 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
     resolved
   );
   /*
-   * An arm-then-confirm control keeps the width of its wider word in both
-   * states, so arming it never reflows the row it sits in. Only plain-text
+   * A control keeps the width of its widest word (resting, confirm or SENT) in
+   * every state, so pressing it never reflows the row it sits in. Only plain-text
    * labels can be measured this way; a node label sizes itself as before.
    */
   const reserve =
     icon === undefined &&
     typeof label === "string" &&
-    typeof confirmLabel === "string" &&
+    (confirmLabel === undefined || typeof confirmLabel === "string") &&
     !isRefused &&
     !isLost &&
     !isFound &&
@@ -877,6 +1022,47 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
     tone,
   });
 
+  if (toggleView) {
+    const { marking, sentence } = toggleView;
+    // A held or modelled command's mark carries its own sentence, so the tip beside it stays free.
+    const markCarriesIt =
+      toggleView.confirmation === "held" ||
+      toggleView.confirmation === "modelled";
+    const toggleTip = isOffline
+      ? STREAM_DOWN_TIP
+      : ((markCarriesIt ? null : sentence) ?? title);
+    return (
+      <>
+        <Tooltip text={toggleTip}>
+          <ToggleButton
+            type="button"
+            size={size}
+            pressed={toggleView.on}
+            disabled={disabled || toggleView.unavailable !== null}
+            disabledReason={toggleView.unavailable ?? undefined}
+            marked={marking}
+            aria-label={ariaLabel}
+            data-command-phase={phase}
+            data-stream={isOffline ? "down" : undefined}
+            data-unconfirmed={hasUnconfirmed ? "true" : undefined}
+            data-failed={hasFailure ? "true" : undefined}
+            onClick={() => press(false)}
+            {...rest}
+          >
+            <ReservedText
+              shown={toggleView.word}
+              reserve={toggleView.reserve}
+            />
+          </ToggleButton>
+        </Tooltip>
+        {/* A held or modelled mark is spoken with the label, so only a press the mod has not answered is announced. */}
+        <LiveRegion visuallyHidden>
+          {markCarriesIt ? "" : (sentence ?? "")}
+        </LiveRegion>
+      </>
+    );
+  }
+
   const sendStatus = handle.sendStatus;
   const restTip =
     sendStatus === undefined
@@ -889,7 +1075,7 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
   return (
     <>
       <Tooltip
-        text={foundText ?? refusalText ?? (isPending ? pendingLabel : tipText)}
+        text={foundText ?? refusalText ?? (isSent ? sentSentence : tipText)}
       >
         <CommandButton__Body
           type="button"
@@ -901,9 +1087,8 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
           $armed={isArmed}
           $blocked={isBlocked}
           aria-pressed={pressed}
-          aria-busy={isPending || undefined}
           // aria-disabled, not disabled, so the control keeps focus while the outcome lands on it.
-          aria-disabled={isBlocked || isPending || isOffline || undefined}
+          aria-disabled={isBlocked || isOffline || undefined}
           disabled={disabled}
           data-unconfirmed={hasUnconfirmed ? "true" : undefined}
           data-failed={hasFailure ? "true" : undefined}
@@ -922,7 +1107,7 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
           }
           /*
            * The accessible name tracks the phase: an outcome's full sentence while
-           * it stands, and for armed and pending the visible wording rather than
+           * it stands, and for armed and sent the visible wording rather than
            * the resting label, which describes a state the control has left.
            */
           aria-label={
@@ -934,15 +1119,22 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
                   ? (foundText ?? ariaLabel)
                   : isBlocked
                     ? (blockedAriaLabel ?? refusalText ?? ariaLabel)
-                    : isPending
-                      ? (pendingAriaLabel ?? pendingLabel)
+                    : isSent
+                      ? (sentAriaLabel ?? sentSentence)
                       : isArmed
                         ? confirmAriaLabel
                         : ariaLabel) ?? (fitWord ? resolved : undefined)
           }
           onClick={() => press(confirmLabel !== undefined)}
           data-rest-label={reserve ? label : undefined}
-          data-armed-label={reserve ? confirmLabel : undefined}
+          data-armed-label={
+            reserve
+              ? typeof confirmLabel === "string" &&
+                confirmLabel.length > SENT_WORD.length
+                ? confirmLabel
+                : SENT_WORD
+              : undefined
+          }
           {...rest}
         >
           {reserve ? <CommandButton__Face>{body}</CommandButton__Face> : body}
@@ -1044,11 +1236,5 @@ const CommandButton__Body = styled(Button__Body)<{
   }
   &[data-rest-label]::after {
     content: attr(data-armed-label);
-  }
-
-  /* In flight, not unavailable: full strength with a spinner. */
-  &[aria-busy="true"] {
-    opacity: 1;
-    cursor: progress;
   }
 `;

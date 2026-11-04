@@ -87,7 +87,6 @@ export function InFlightPanel({
             commandLabel="Recover"
             label="Recover"
             confirmLabel="Confirm recover"
-            pendingLabel="Recovering..."
           />
         )}
         <ArmedButton
@@ -97,7 +96,6 @@ export function InFlightPanel({
           commandLabel="Revert to launch"
           label="Revert to launch"
           confirmLabel="Confirm revert to launch"
-          pendingLabel="Reverting..."
         />
         <ArmedButton
           bindAs="revert-to-editor"
@@ -107,7 +105,6 @@ export function InFlightPanel({
           commandLabel="Revert to VAB"
           label="Revert to VAB"
           confirmLabel="Confirm revert to VAB"
-          pendingLabel="Reverting..."
         />
         <TrackingStationControl handle={toTrackingCmd} />
         <TrackingStationControl

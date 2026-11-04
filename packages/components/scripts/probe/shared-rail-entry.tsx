@@ -5,7 +5,6 @@
  * sends it to every screen at that centre. The driver is `render-shared-rail`.
  */
 import type { Meta } from "@ksp-gonogo/sitrep-sdk";
-import * as toggleConfirmation from "../../src/shared/toggleConfirmation";
 import { probePayload } from "./payload";
 import { mountProbe, type ProbeMount } from "./probe-entry";
 
@@ -32,7 +31,29 @@ const CONTROL = {
   actionGroups: GROUPS,
 };
 
-export type SharedWidget = "navball" | "action-group";
+function instruments(state: "unused" | "holding" | "sent") {
+  return [
+    {
+      partId: "77",
+      partName: "Mystery Goo Containment Unit",
+      experimentId: "mysteryGoo",
+      title: "Mystery Goo Observation",
+      deployed: state !== "unused",
+      inoperable: false,
+      rerunnable: false,
+      resettable: false,
+      dataIsCollectable: state === "holding",
+      holdsData: state === "holding",
+      subjectId: state === "holding" ? "mysteryGoo@KerbinInSpaceLow" : null,
+      science: state === "holding" ? 10 : null,
+      scienceCap: 10,
+    },
+  ];
+}
+
+export type SharedWidget = "navball" | "action-group" | "experiments";
+/** What the Experiments card starts with: an unused Mystery Goo, or one holding data to transmit. */
+export type ExperimentsScenario = "deploy" | "transmit";
 export type SharedScreen = "main" | "station";
 export type SharedStep =
   | "press"
@@ -52,8 +73,7 @@ export interface SharedScene {
     h: number;
     pxW: number;
     delaySeconds?: number;
-    /** Toggles show the state a command is predicted to have set, marked modelled. */
-    predicted?: boolean;
+    scenario?: ExperimentsScenario;
   }): Promise<void>;
   /** Plays `step` with `from` as the screen the operator pressed on. */
   step(step: SharedStep, from: SharedScreen): Promise<void>;
@@ -119,10 +139,23 @@ function advance(seconds: number): void {
 /** The Navball toggles a scene can press, by the word their label starts with. */
 export type SharedToggle = "RCS" | "SAS" | "PRECISION";
 
+let scenario: ExperimentsScenario = "deploy";
+
 function toggleOn(
   screen: SharedScreen,
   name: SharedToggle = "RCS",
 ): HTMLButtonElement | null {
+  if (widget === "experiments") {
+    const word = scenario === "deploy" ? "Deploy" : "Transmit";
+    const found = Array.from(host(screen).querySelectorAll("button")).find(
+      (b) =>
+        b.textContent?.trim() === word ||
+        b.textContent?.trim() === `Confirm ${word.toLowerCase()}` ||
+        b.getAttribute("aria-label") ===
+          `${word === "Deploy" ? "Deploying..." : "Transmitting..."}`,
+    );
+    return (found as HTMLButtonElement | undefined) ?? null;
+  }
   const found = Array.from(host(screen).querySelectorAll("button")).find((b) =>
     widget === "navball"
       ? new RegExp(`^${name}`).test(b.textContent ?? "")
@@ -221,13 +254,7 @@ const scene: SharedScene = {
     linkUp = true;
     delay = opts.delaySeconds ?? 27.4;
     widget = opts.widget;
-    // Looked up rather than imported by name, so the scene still builds on a tree from before the switch.
-    const setPredicted: unknown = Reflect.get(
-      toggleConfirmation,
-      "setPredictedToggleStates",
-    );
-    if (typeof setPredicted === "function")
-      setPredicted(opts.predicted === true);
+    scenario = opts.scenario ?? "deploy";
     const root = document.getElementById("root");
     if (!root) throw new Error("shared-rail: #root missing");
     root.style.background = "#0b0d0f";
@@ -253,6 +280,18 @@ const scene: SharedScene = {
                 meta,
               },
               { channel: "vessel.control", value: CONTROL, meta },
+              ...(opts.widget === "experiments"
+                ? [
+                    { channel: "science.experiments", value: [], meta },
+                    {
+                      channel: "science.instruments",
+                      value: instruments(
+                        scenario === "deploy" ? "unused" : "holding",
+                      ),
+                      meta,
+                    },
+                  ]
+                : []),
             ],
           },
         },
@@ -262,7 +301,9 @@ const scene: SharedScene = {
           config:
             opts.widget === "action-group"
               ? { actionGroupId: "Light" }
-              : { controlMode: true },
+              : opts.widget === "experiments"
+                ? {}
+                : { controlMode: true },
         },
       });
       const mounted = mountProbe(host(screen), payload);
@@ -281,6 +322,11 @@ const scene: SharedScene = {
         press("RCS");
         toggleOn(from)?.click();
         await frames();
+        // Transmit asks for a confirming press.
+        if (widget === "experiments" && scenario === "transmit") {
+          toggleOn(from)?.click();
+          await frames();
+        }
         break;
       case "accept": {
         const sent = s.transport.sentCommands.at(-1);
@@ -419,6 +465,15 @@ const scene: SharedScene = {
       }
     }
     pressed.clear();
+    if (widget === "experiments") {
+      if (outcome === "done") {
+        emitBoth(
+          "science.instruments",
+          instruments(scenario === "deploy" ? "holding" : "sent"),
+        );
+      }
+      return;
+    }
     emitBoth(
       "vessel.control",
       widget === "navball"

@@ -367,7 +367,7 @@ describe("AdministrationBuildingComponent", () => {
     });
   });
 
-  it("keeps the activate button pending across a sample that has not flipped isActive", async () => {
+  it("keeps saying SENT across a sample that has not flipped isActive, until the mod answers", async () => {
     const user = userEvent.setup();
     const inactive = { ...SAMPLE_BLOCKED, canActivate: true };
     renderWidget();
@@ -379,7 +379,7 @@ describe("AdministrationBuildingComponent", () => {
       });
     });
 
-    // Held, so the pending state has something to mean.
+    // Held, so the mod has not answered the press.
     stream.transport.holdCommands();
 
     await user.click(
@@ -388,7 +388,7 @@ describe("AdministrationBuildingComponent", () => {
     await user.click(screen.getByRole("button", { name: /Confirm activate/i }));
 
     expect(
-      await screen.findByRole("button", { name: /Activating/i }),
+      await screen.findByRole("button", { name: /sent, not yet received/i }),
     ).toBeInTheDocument();
 
     // A fresh sample with the same strategy still inactive: the command has not landed, so the control must not say it has.
@@ -401,7 +401,7 @@ describe("AdministrationBuildingComponent", () => {
     });
 
     expect(
-      screen.getByRole("button", { name: /Activating/i }),
+      screen.getByRole("button", { name: /sent, not yet received/i }),
     ).toBeInTheDocument();
 
     await act(async () => {

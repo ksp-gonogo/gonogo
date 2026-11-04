@@ -30,10 +30,8 @@ export function HireButton({
       size="sm"
       label="Hire"
       confirmLabel="Confirm"
-      pendingLabel="Hiring..."
       aria-label={`Hire ${who}${costText}`}
       confirmAriaLabel={`Confirm hire of ${who}${costText}`}
-      pendingAriaLabel={`Hiring ${who}`}
     />
   );
 }
@@ -60,10 +58,8 @@ export function FireButton({
       label="Fire"
       confirmLabel="Confirm"
       confirmTone="nogo"
-      pendingLabel="Firing..."
       aria-label={`Fire ${who}`}
       confirmAriaLabel={`Confirm fire of ${who}`}
-      pendingAriaLabel={`Firing ${who}`}
     />
   );
 }

@@ -206,7 +206,6 @@ function OpenPad({
             commandLabel="Recover"
             label="Recover"
             confirmLabel="Confirm recover"
-            pendingLabel="Recovering..."
           />
         )}
         <ArmedButton
@@ -217,7 +216,6 @@ function OpenPad({
           commandLabel={`Revert to ${editor}`}
           label={`Revert to ${editor}`}
           confirmLabel="Confirm revert"
-          pendingLabel="Reverting..."
         />
         <LaunchControls>
           <BlockedLaunch
@@ -435,7 +433,6 @@ function LaunchAction({
           : `Launch ${shipName} unmanned`
       }
       confirmLabel="Confirm launch"
-      pendingLabel="Launching..."
     />
   );
 }

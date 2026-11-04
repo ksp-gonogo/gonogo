@@ -21,7 +21,6 @@ export function ArmedButton({
   label,
   confirmLabel,
   kind,
-  pendingLabel,
   bindAs,
 }: {
   handle: CommandButtonHandle;
@@ -30,7 +29,6 @@ export function ArmedButton({
   label: string;
   confirmLabel: string;
   kind: "launch" | "recover" | "revert";
-  pendingLabel?: string;
   /** The action that presses this control from a bound input. */
   bindAs?: LaunchDirectorActionId;
 }) {
@@ -60,7 +58,6 @@ export function ArmedButton({
         commandLabel={commandLabel}
         label={label}
         confirmLabel={confirmLabel}
-        pendingLabel={pendingLabel}
         variant={kind === "launch" ? "primary" : "ghost"}
         tone={kind === "launch" ? "go" : "neutral"}
         confirmTone={kind === "launch" ? "go" : "nogo"}

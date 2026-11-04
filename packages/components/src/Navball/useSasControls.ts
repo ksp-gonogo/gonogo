@@ -1,13 +1,13 @@
 import { useCommand } from "@ksp-gonogo/sitrep-client";
 import type { TopicPayload } from "@ksp-gonogo/sitrep-sdk";
-import { commandOutcomes } from "@ksp-gonogo/ui-kit";
 import {
-  pressOutstanding,
-  shownToggleState,
-  showsToggle,
-  useToggleConfirmation,
-} from "../shared/toggleConfirmation";
-import { useAskedToggle } from "../shared/useAskedToggle";
+  commandOutcomes,
+  NULL_DISPLAY,
+  type ReckoningMarking,
+  type ToggleState,
+  useCommandButton,
+} from "@ksp-gonogo/ui-kit";
+import { showsToggle } from "../shared/showsToggle";
 import { SAS_MODES, type SasMode, sasModeOrdinal } from "./sasModes";
 
 /**
@@ -18,6 +18,12 @@ import { SAS_MODES, type SasMode, sasModeOrdinal } from "./sasModes";
 export function useSasControls(
   control: TopicPayload<"vessel.control"> | undefined,
   controlHeld = false,
+  /** The SAS mode's three-letter token the SAS toggle carries, or `""` when no mode is on the wire. */
+  sasBadgeMode = "",
+  /** The control reading's mark when the states shown are held rather than current. */
+  readingMarking: ReckoningMarking | null = null,
+  /** False while the vessel cannot be flown, which darkens every control. */
+  controllable = true,
 ) {
   // Uncoerced: inverting an unread arm would be a blind guess, and an unread arm is not a confirmed OFF.
   const sasRaw = control?.sas;
@@ -36,22 +42,14 @@ export function useSasControls(
     confirmedBy: confirmedBy(precisionRaw),
   });
   const sasModeCmd = useCommand("vessel.control.setSasMode");
-  const sasConfirmation = useToggleConfirmation(sasCmd);
-  const rcsConfirmation = useToggleConfirmation(rcsCmd);
-  const precisionConfirmation = useToggleConfirmation(precisionCmd);
-  // A press inverts the state the button shows, a predicted one included.
-  const sasAsk = useAskedToggle(
-    pressOutstanding(sasCmd),
-    shownToggleState(sasRaw, sasConfirmation),
-  );
-  const rcsAsk = useAskedToggle(
-    pressOutstanding(rcsCmd),
-    shownToggleState(rcsRaw, rcsConfirmation),
-  );
-  const precisionAsk = useAskedToggle(
-    pressOutstanding(precisionCmd),
-    shownToggleState(precisionRaw, precisionConfirmation),
-  );
+  // A held state stays pressable; the tip says what the press does with it.
+  const marking: ReckoningMarking | null =
+    readingMarking === null
+      ? null
+      : {
+          ...readingMarking,
+          caption: `${readingMarking.caption}. The press sends the opposite of the state shown`,
+        };
 
   // Only turning SAS on is refused, so a SAS that is already on can still be switched off.
   const sasUnavailableReason =
@@ -59,30 +57,68 @@ export function useSasControls(
       ? (control.sasUnavailableReason ?? "No SAS available")
       : null;
 
-  const toggleSas = () => {
-    if (typeof sasAsk.base !== "boolean" || sasUnavailableReason) return;
-    const args = { enabled: !sasAsk.base };
-    sasAsk.asked(args);
-    void sasCmd.send(args, { label: "Toggle SAS" });
-  };
+  const notControllable = controllable ? null : NOT_CONTROLLABLE;
+  const invert = (base: ToggleState) =>
+    typeof base === "boolean" ? { enabled: !base } : undefined;
+  const sasButton = useCommandButton({
+    handle: sasCmd,
+    commandLabel: "Toggle SAS",
+    toggle: {
+      state: sasRaw,
+      name: "SAS",
+      word: (shown) => armLabel("SAS", shown, sasBadgeMode),
+      words: [
+        armLabel("SAS", true, sasBadgeMode),
+        armLabel("SAS", false),
+        armLabel("SAS", null),
+      ],
+      sentWord: "SAS SENT",
+      unavailable: sasUnavailableReason ?? notControllable,
+      // Only turning SAS on is refused, so a SAS that is already on can still be switched off.
+      args: (base) =>
+        base !== true && sasUnavailableReason ? undefined : invert(base),
+      marking,
+    },
+  });
+  const rcsButton = useCommandButton({
+    handle: rcsCmd,
+    commandLabel: "Toggle RCS",
+    toggle: {
+      state: rcsRaw,
+      name: "RCS",
+      word: (shown) => armLabel("RCS", shown),
+      words: [
+        armLabel("RCS", true),
+        armLabel("RCS", false),
+        armLabel("RCS", null),
+      ],
+      sentWord: "RCS SENT",
+      unavailable: notControllable,
+      args: invert,
+      marking,
+    },
+  });
+  const precisionButton = useCommandButton({
+    handle: precisionCmd,
+    commandLabel: "Toggle precision control",
+    toggle: {
+      state: precisionRaw,
+      name: "Precision",
+      word: () => "PRECISION",
+      words: ["PRECISION"],
+      sentWord: "SENT",
+      unavailable: notControllable,
+      args: invert,
+      marking,
+    },
+  });
+  const toggleSas = () => sasButton.press(false);
   const engageSas = () => {
-    if (sasUnavailableReason) return;
-    const args = { enabled: true };
-    sasAsk.asked(args);
-    void sasCmd.send(args, { label: "SAS on" });
+    if (sasButton.isBlocked) return;
+    sasButton.sendAs({ enabled: true }, "SAS on");
   };
-  const toggleRcs = () => {
-    if (typeof rcsAsk.base !== "boolean") return;
-    const args = { enabled: !rcsAsk.base };
-    rcsAsk.asked(args);
-    void rcsCmd.send(args, { label: "Toggle RCS" });
-  };
-  const togglePrecision = () => {
-    if (typeof precisionAsk.base !== "boolean") return;
-    const args = { enabled: !precisionAsk.base };
-    precisionAsk.asked(args);
-    void precisionCmd.send(args, { label: "Toggle precision control" });
-  };
+  const toggleRcs = () => rcsButton.press(false);
+  const togglePrecision = () => precisionButton.press(false);
   const setSasMode = (mode: SasMode) => {
     void sasModeCmd.send(
       { mode: sasModeOrdinal(mode) },
@@ -112,10 +148,27 @@ export function useSasControls(
     toggleRcs,
     togglePrecision,
     setSasMode,
-    sasConfirmation,
-    rcsConfirmation,
-    precisionConfirmation,
+    sasButton,
+    rcsButton,
+    precisionButton,
+    sasCmd,
+    rcsCmd,
+    precisionCmd,
     unconfirmedSasModes,
     dismissSasUnconfirmed: sasOutcomes.dismiss,
   };
+}
+
+/** Why every control of the toggle row is dark while the vessel cannot be flown. */
+const NOT_CONTROLLABLE = "The vessel is not controllable";
+
+/**
+ * One arm's toggle label: `SAS: PRO` / `RCS ON` when on, `SAS OFF` when
+ * confirmed off, and the name plus `NULL_DISPLAY` when unread. Not the bare
+ * name, which would collide with the mode grid's "SAS" stability-assist button.
+ */
+function armLabel(name: string, on: ToggleState, mode?: string): string {
+  if (on !== true && on !== false) return `${name} ${NULL_DISPLAY}`;
+  if (!on) return `${name} OFF`;
+  return mode ? `${name}: ${mode}` : `${name} ON`;
 }

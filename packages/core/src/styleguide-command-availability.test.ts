@@ -28,7 +28,7 @@ import { styleguideScanRoots } from "./styleguideScanRoots";
  *    `*Cmd` or `*Command`, or an `onClick` that calls `.send(`) takes no
  *    `disabled`, `enabled` or `aria-disabled` prop.
  * 2. A file that calls `useCommandButton` sets `disabled` / `aria-disabled`
- *    only from the hook's own phases (`isPending`, `isBlocked`) or as a bare
+ *    only from the hook's own phases (`isSent`, `isBlocked`) or as a bare
  *    literal, never from a condition of its own.
  *
  * ## What it cannot see
@@ -47,7 +47,7 @@ const EXCLUDED = /\/dist\/|\.test\.|\.spec\.|test-d|__fixtures__|__generated__/;
 const AVAILABILITY_PROPS = new Set(["disabled", "enabled", "aria-disabled"]);
 
 /** The hook's own phases, the only sources rule 2 accepts. */
-const HOOK_PHASES = /\b(isPending|isBlocked)\b/;
+const HOOK_PHASES = /\b(isSent|isBlocked)\b/;
 
 /**
  * Widget-side availability decisions that remain, each with why it has not
@@ -264,7 +264,7 @@ describe("a widget does not decide whether a command is available", () => {
   it("does not flag what it should not (planted)", () => {
     const clean: Record<string, string> = {
       commandButton: `export const W = () => <CommandButton handle={cmd} label="Go" />;`,
-      pendingChrome: `export function W() {\n  const { isPending, isBlocked } = useCommandButton({ handle });\n  return <><S disabled aria-busy="true" /><S aria-disabled={isBlocked || undefined} /><S disabled={isPending} /></>;\n}`,
+      pendingChrome: `export function W() {\n  const { isSent, isBlocked } = useCommandButton({ handle });\n  return <><S disabled aria-busy="true" /><S aria-disabled={isBlocked || undefined} /><S disabled={isSent} /></>;\n}`,
       formControl: `export const W = () => <input disabled={saving} onChange={f} />;`,
       prose: `// <CommandButton handle={cmd} disabled={x} />\nexport const W = () => null;`,
     };

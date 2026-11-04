@@ -168,7 +168,6 @@ export function ContractManagerComponent({
           /* Cancel forfeits work in progress and spent funds, so its confirm is stronger than Decline's. */
           confirmLabel="Forfeit contract"
           confirmTone="nogo"
-          pendingLabel="Cancelling..."
           title="Cancel this contract: forfeits all progress"
         />
       </div>
@@ -202,7 +201,6 @@ export function ContractManagerComponent({
           size="sm"
           tone="go"
           label="Accept"
-          pendingLabel="Accepting..."
         />
         <CommandButton
           handle={declineCmd}
@@ -212,7 +210,6 @@ export function ContractManagerComponent({
           label="Decline"
           confirmLabel="Confirm decline"
           confirmTone="nogo"
-          pendingLabel="Declining..."
         />
       </ButtonGroup>
     </Card>

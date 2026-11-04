@@ -1,22 +1,15 @@
 import type { ActionGroup, ComponentProps } from "@ksp-gonogo/core";
 import { AugmentSlot, actionGroupIdOf } from "@ksp-gonogo/core";
-import {
-  BellIcon,
-  Input,
-  Panel,
-  Placeholder,
-  ToggleButton,
-} from "@ksp-gonogo/ui";
+import { BellIcon, Input, Panel, Placeholder } from "@ksp-gonogo/ui";
 import {
   Button,
   Cluster,
+  CommandButton,
   getSizeBucket,
   IconButton,
   Inline,
-  LiveRegion,
   Notice,
   type ReckoningMarking,
-  ReservedText,
   Section,
   STREAM_DOWN_TIP,
   Stack,
@@ -27,7 +20,6 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useRef, useState } from "react";
 import { useAlarmsLauncher } from "../shared/AlarmsLauncher";
-import { heldCommandMarking } from "../shared/toggleConfirmation";
 import type { ActionGroupConfig } from "./config";
 import { heldPressCaption } from "./groupState";
 import type { ActionGroupSlotContext } from "./slots";
@@ -60,24 +52,22 @@ export function ActionGroupView({
   const currentLabel = config?.label ?? group?.name ?? "";
 
   const openAlarms = useAlarmsLauncher();
+  const heldCaption = heldPressCaption({ value, valueHeld, valueLate });
   const {
-    isOn,
     stateLabel,
-    canToggle,
     unavailableReason,
     capabilityWarning,
     streamDown,
-    press,
-    buttonWord,
-    buttonWords,
-    confirmation,
-    confirmationSentence,
+    button,
+    handle,
   } = useGroupToggle({
     group,
     value,
     valueHeld,
     stateUnreadable,
     label: currentLabel,
+    marking:
+      heldCaption === null ? null : { kind: "held", caption: heldCaption },
   });
 
   const [editing, setEditing] = useState(false);
@@ -108,21 +98,6 @@ export function ActionGroupView({
   const unavailableTitle = unavailableReason
     ? UNAVAILABLE_TITLES[unavailableReason]
     : undefined;
-  // A group nothing can press names why: the known reason, else that it has no action to invert.
-  const cannotToggleBecause = streamDown
-    ? STREAM_DOWN_TIP
-    : (unavailableTitle ??
-      (group?.toggle
-        ? "The group's state cannot be inverted"
-        : "No toggle is configured for this group"));
-
-  const heldCaption = heldPressCaption({ value, valueHeld, valueLate });
-  const heldPress = heldCommandMarking(
-    currentLabel,
-    confirmation,
-    heldCaption === null ? null : { kind: "held", caption: heldCaption },
-  );
-
   const cols = w ?? 6;
   const showOfficialName = cols >= 5;
   // At tiny size the bell crowds the pill; it stays reachable from the alarms menu.
@@ -232,32 +207,14 @@ export function ActionGroupView({
                   </IconButton>
                 </Tooltip>
               )}
-              <Tooltip
-                text={
-                  streamDown
-                    ? STREAM_DOWN_TIP
-                    : ((confirmation === "held" || confirmation === "modelled"
-                        ? null
-                        : confirmationSentence) ??
-                      unavailableReason ??
-                      `Toggle ${currentLabel}`)
-                }
-              >
-                <ToggleButton
-                  pressed={isOn}
-                  size="sm"
-                  disabled={!canToggle}
-                  disabledReason={cannotToggleBecause}
-                  marked={heldPress}
-                  onClick={press}
-                  aria-label={`Toggle ${currentLabel}`}
-                >
-                  <ReservedText shown={buttonWord} reserve={buttonWords} />
-                </ToggleButton>
-              </Tooltip>
-              <LiveRegion visuallyHidden>
-                {confirmationSentence ?? ""}
-              </LiveRegion>
+              <CommandButton
+                size="sm"
+                handle={handle}
+                controller={button}
+                label={currentLabel}
+                title={unavailableReason ?? `Toggle ${currentLabel}`}
+                aria-label={`Toggle ${currentLabel}`}
+              />
             </Inline>
           </Cluster>
           {capabilityWarning && getSizeBucket(w, h) !== "tiny" && (

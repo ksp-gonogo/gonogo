@@ -168,7 +168,6 @@ export function ScienceExperimentRow({
             args={{ partId: instrument.partId, experimentId: instrument.expId }}
             commandLabel={`Start ${experimentName(instrument)}`}
             label="Start"
-            pendingLabel="Starting..."
             onConfirmed={noteIfUnchanged(true)}
           />
         )}
@@ -182,7 +181,6 @@ export function ScienceExperimentRow({
             args={{ partId: instrument.partId, experimentId: instrument.expId }}
             commandLabel={`Stop ${experimentName(instrument)}`}
             label="Stop"
-            pendingLabel="Stopping..."
             onConfirmed={noteIfUnchanged(false)}
           />
         )}
@@ -197,7 +195,6 @@ export function ScienceExperimentRow({
             commandLabel={`Deploy ${experimentOnPart(instrument)}`}
             label="Deploy"
             style={pairStyle}
-            pendingLabel="Deploying..."
           />
         )}
       {!continuous &&
@@ -212,7 +209,6 @@ export function ScienceExperimentRow({
             label="Transmit"
             style={pairStyle}
             confirmLabel="Confirm transmit"
-            pendingLabel="Transmitting..."
             onConfirmed={(reply) => {
               if (reply?.payload) onTransmitted?.(reply.payload);
             }}

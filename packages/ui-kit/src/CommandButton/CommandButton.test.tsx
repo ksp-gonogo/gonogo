@@ -22,6 +22,7 @@ import {
   type CommandButtonHandle,
   type CommandReplyLike,
   REFUSAL_TIMEOUT_MS,
+  SENT_FLASH_MS,
   STREAM_DOWN_TIP,
   useCommandButton,
 } from "./CommandButton";
@@ -97,7 +98,7 @@ describe("CommandButton: single-click dispatch", () => {
   });
 
   it("settles a dispatch under StrictMode's mount, unmount, mount", async () => {
-    const user = userEvent.setup();
+    const user = useArmClock();
     const reply = deferred();
     render(
       <StrictMode>
@@ -106,10 +107,19 @@ describe("CommandButton: single-click dispatch", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Go" }));
-    expect(screen.getByRole("button")).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("button")).toHaveAttribute(
+      "data-command-phase",
+      "sent",
+    );
     await act(async () => reply.resolve(OK));
+    act(() => {
+      vi.advanceTimersByTime(SENT_FLASH_MS + 1);
+    });
 
-    expect(screen.getByRole("button")).not.toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("button")).toHaveAttribute(
+      "data-command-phase",
+      "idle",
+    );
   });
 
   it("disarms when its args change under it, so the confirm never sends to another item", async () => {
@@ -214,18 +224,6 @@ describe("CommandButton: arm then confirm", () => {
     expect(armed.dataset.armedLabel).toBe("Confirm");
   });
 
-  it("reserves no width for a one-press control", () => {
-    render(
-      <CommandButton
-        handle={makeHandle(vi.fn(() => Promise.resolve(OK)))}
-        label="Stage"
-      />,
-    );
-    expect(
-      screen.getByRole("button", { name: "Stage" }).dataset.restLabel,
-    ).toBeUndefined();
-  });
-
   it("arms on the first click and dispatches nothing", async () => {
     const user = userEvent.setup();
     const send = vi.fn(() => Promise.resolve(OK));
@@ -285,75 +283,120 @@ describe("CommandButton: arm then confirm", () => {
   });
 });
 
-describe("CommandButton: the in-flight window", () => {
-  it("stays pending for as long as the dispatch is unanswered", async () => {
-    const user = userEvent.setup();
+/** A handle's status for a dispatch the mod has or has not yet answered. */
+function inFlightStatus(accepted: boolean): CommandButtonHandle["status"] {
+  return accepted
+    ? { phase: "in-flight", requestId: "r1", etaConfirm: 60, accepted: true }
+    : { phase: "in-flight", requestId: "r1", etaConfirm: 60 };
+}
+
+describe("CommandButton: the sent window", () => {
+  it("reads SENT for the flash, then is live again while the reply is outstanding", async () => {
+    const user = useArmClock();
     const d = deferred();
     render(
       <CommandButton
-        handle={makeHandle(() => d.promise)}
+        handle={makeHandle(() => d.promise, { status: inFlightStatus(true) })}
         label="Go"
-        pendingLabel="Going..."
       />,
     );
 
     await user.click(screen.getByRole("button", { name: "Go" }));
 
-    const pending = await screen.findByRole("button", { name: /Going/ });
-    expect(pending).toHaveAttribute("aria-busy", "true");
-    expect(pending).toHaveAttribute("aria-disabled", "true");
-    expect(pending).toHaveAttribute("data-command-phase", "pending");
+    const sent = screen.getByRole("button");
+    expect(sent).toHaveAttribute("data-command-phase", "sent");
+    expect(sent).toHaveTextContent("SENT");
+    expect(sent).not.toHaveAttribute("aria-busy");
 
-    // Nothing has come back, and the control must not pretend otherwise.
-    await act(async () => {});
-    expect(screen.getByRole("button", { name: /Going/ })).toBeInTheDocument();
+    act(() => {
+      vi.advanceTimersByTime(SENT_FLASH_MS + 1);
+    });
+    const live = screen.getByRole("button", { name: "Go" });
+    expect(live).toHaveAttribute("data-command-phase", "idle");
+    expect(live).not.toHaveAttribute("aria-disabled");
 
     await act(async () => {
       d.resolve(OK);
     });
-    expect(screen.getByRole("button", { name: "Go" })).toBeInTheDocument();
   });
 
-  it("draws only a spinner in flight, over the resting label held invisible for its width", async () => {
-    const user = userEvent.setup();
+  it("keeps reading SENT while the mod has not answered the press", async () => {
+    const user = useArmClock();
     const d = deferred();
+    const draw = (accepted: boolean) => (
+      <CommandButton
+        handle={makeHandle(() => d.promise, {
+          status: inFlightStatus(accepted),
+        })}
+        label="Go"
+      />
+    );
+    const { rerender } = render(draw(false));
+
+    await user.click(screen.getByRole("button", { name: "Go" }));
+    act(() => {
+      vi.advanceTimersByTime(10_000);
+    });
+    expect(screen.getByRole("button")).toHaveAttribute(
+      "data-command-phase",
+      "sent",
+    );
+
+    rerender(draw(true));
+    expect(screen.getByRole("button")).toHaveAttribute(
+      "data-command-phase",
+      "idle",
+    );
+    await act(async () => {
+      d.resolve(OK);
+    });
+  });
+
+  it("sends again on a second press while the first is outstanding", async () => {
+    const user = useArmClock();
+    const send = vi.fn(() => deferred().promise);
     render(
       <CommandButton
-        handle={makeHandle(() => d.promise)}
-        label="Launch vessel"
-        pendingLabel="Launching..."
+        handle={makeHandle(send, { status: inFlightStatus(true) })}
+        label="Go"
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Launch vessel" }));
+    await user.click(screen.getByRole("button", { name: "Go" }));
+    await user.click(screen.getByRole("button"));
 
-    const pending = await screen.findByRole("button", { name: "Launching..." });
-    expect(pending).toHaveAttribute("data-tooltip", "Launching...");
-    expect(pending).not.toHaveTextContent("Launching...");
-    const hold = [...pending.querySelectorAll("[aria-hidden='true']")].find(
-      (el) => el.textContent === "Launch vessel",
-    );
-    expect(hold).toBeDefined();
-    expect(getComputedStyle(hold as Element).visibility).toBe("hidden");
-    await act(async () => {
-      d.resolve(OK);
-    });
+    expect(send).toHaveBeenCalledTimes(2);
   });
 
-  it("refuses a second dispatch while one is in flight", async () => {
-    const user = userEvent.setup();
-    const d = deferred();
-    const send = vi.fn(() => d.promise);
-    render(<CommandButton handle={makeHandle(send)} label="Go" />);
+  it("holds the width of its resting word, so SENT never reflows the row", () => {
+    render(
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(OK))}
+        label="Launch vessel"
+      />,
+    );
 
-    await user.click(screen.getByRole("button", { name: "Go" }));
-    await screen.findByRole("button", { name: /Working/ });
-    await user.click(screen.getByRole("button", { name: /Working/ }));
+    const button = screen.getByRole("button");
+    expect(button).toHaveAttribute("data-rest-label", "Launch vessel");
+    expect(button).toHaveAttribute("data-armed-label", "SENT");
+  });
 
-    expect(send).toHaveBeenCalledTimes(1);
-    await act(async () => {
-      d.resolve(OK);
-    });
+  it("says in words that the press has gone and not been received", async () => {
+    const user = useArmClock();
+    render(
+      <CommandButton
+        handle={makeHandle(() => deferred().promise)}
+        commandLabel="Launch vessel"
+        label="Launch"
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Launch" }));
+
+    expect(screen.getByRole("button")).toHaveAttribute(
+      "aria-label",
+      "Launch vessel sent, not yet received",
+    );
   });
 
   it("calls onConfirmed once the dispatch is confirmed, and not before", async () => {
@@ -646,7 +689,8 @@ describe("CommandButton: the refused phase", () => {
   // A dropped command must not settle to `idle`, where it would look exactly like one that ran.
   it("does not settle a dropped command the way it settles a confirmed one", async () => {
     async function settledPhase(settle: (d: Deferred) => void) {
-      const user = userEvent.setup();
+      // biome-ignore lint/correctness/useHookAtTopLevel: a test helper named like a hook, not a React hook
+      const user = useArmClock();
       const d = deferred();
       const { unmount } = render(
         <CommandButton handle={makeHandle(() => d.promise)} label="Go" />,
@@ -654,6 +698,9 @@ describe("CommandButton: the refused phase", () => {
       await user.click(screen.getByRole("button", { name: "Go" }));
       await act(async () => {
         settle(d);
+      });
+      act(() => {
+        vi.advanceTimersByTime(SENT_FLASH_MS + 1);
       });
       const button = screen.getByRole("button");
       const state = {
@@ -695,13 +742,16 @@ describe("CommandButton: the refused phase", () => {
   });
 
   it("does not call a machinery failure refused either", async () => {
-    const user = userEvent.setup();
+    const user = useArmClock();
     const d = deferred();
     render(<CommandButton handle={makeHandle(() => d.promise)} label="Go" />);
 
     await user.click(screen.getByRole("button", { name: "Go" }));
     await act(async () => {
       d.reject(new Error("socket died"));
+    });
+    act(() => {
+      vi.advanceTimersByTime(SENT_FLASH_MS + 1);
     });
 
     expect(screen.getByRole("button", { name: "Go" })).toHaveAttribute(
@@ -810,15 +860,14 @@ describe("CommandButton: representing state as well as acting", () => {
     );
   });
 
-  it("arms and goes pending exactly the same when it is a toggle", async () => {
-    const user = userEvent.setup();
+  it("arms and reads SENT exactly the same when it is a toggle", async () => {
+    const user = useArmClock();
     const d = deferred();
     render(
       <CommandButton
         handle={makeHandle(() => d.promise)}
         label="SAS"
         confirmLabel="Confirm SAS"
-        pendingLabel="Setting..."
         pressed={false}
       />,
     );
@@ -826,16 +875,15 @@ describe("CommandButton: representing state as well as acting", () => {
     await user.click(screen.getByRole("button", { name: "SAS" }));
     await user.click(screen.getByRole("button", { name: "Confirm SAS" }));
 
-    expect(
-      await screen.findByRole("button", { name: /Setting/ }),
-    ).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("button")).toHaveAttribute(
+      "data-command-phase",
+      "sent",
+    );
     await act(async () => {
       d.resolve(OK);
     });
   });
-});
 
-describe("CommandButton: an unanswered or unsent command echoes on the control that issued it", () => {
   it("carries data-unconfirmed, never data-failed, while the handle holds an overdue dispatch", () => {
     render(
       <CommandButton
@@ -1091,17 +1139,20 @@ describe("CommandButton: the blocked phase", () => {
     expect(send).toHaveBeenCalledOnce();
   });
 
-  it("lets an in-flight dispatch finish rather than reading as blocked behind it", async () => {
-    const user = userEvent.setup();
+  it("lets a sent command show rather than reading as blocked behind it", async () => {
+    const user = useArmClock();
     const d = deferred();
     const { rerender } = render(
       <CommandButton handle={makeHandle(() => d.promise)} label="Launch" />,
     );
 
     await user.click(screen.getByRole("button"));
-    expect(screen.getByRole("button")).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("button")).toHaveAttribute(
+      "data-command-phase",
+      "sent",
+    );
 
-    // The gate shuts behind the command that is already travelling.
+    // The gate shuts behind the command that is already sent.
     rerender(
       <CommandButton
         handle={makeHandle(() => d.promise, { gate: blockedGate() })}
@@ -1109,10 +1160,9 @@ describe("CommandButton: the blocked phase", () => {
       />,
     );
 
-    expect(screen.getByRole("button")).toHaveAttribute("aria-busy", "true");
     expect(screen.getByRole("button")).toHaveAttribute(
       "data-command-phase",
-      "pending",
+      "sent",
     );
 
     await act(async () => {
@@ -1425,21 +1475,16 @@ describe("CommandButton warning text", () => {
 });
 
 describe("CommandButton keeps keyboard focus through a dispatch", () => {
-  it("stays focused while pending, so the outcome lands on the control the operator is on", async () => {
-    const user = userEvent.setup();
+  it("stays focused while sent, so the outcome lands on the control the operator is on", async () => {
+    const user = useArmClock();
     const d = deferred();
-    render(
-      <CommandButton
-        handle={makeHandle(() => d.promise)}
-        label="Go"
-        pendingLabel="Going..."
-      />,
-    );
+    render(<CommandButton handle={makeHandle(() => d.promise)} label="Go" />);
     await user.tab();
     await user.keyboard("{Enter}");
-    const pending = await screen.findByRole("button", { name: /Going/ });
-    expect(pending).not.toBeDisabled();
-    expect(pending).toHaveFocus();
+    const sent = screen.getByRole("button");
+    expect(sent).toHaveAttribute("data-command-phase", "sent");
+    expect(sent).not.toBeDisabled();
+    expect(sent).toHaveFocus();
     await act(async () => {
       d.resolve(OK);
     });
@@ -1477,7 +1522,7 @@ describe("useCommandButton's loss sentence", () => {
 type PressReady = (press: (() => void) | null) => void;
 
 describe("CommandButton onPressReady", () => {
-  it("lists a press while a click would act and withdraws it while the command is in flight", async () => {
+  it("keeps a press listed after a dispatch, since a second press is always sent", async () => {
     const user = userEvent.setup();
     const d = deferred();
     const send = vi.fn(() => d.promise);
@@ -1493,8 +1538,11 @@ describe("CommandButton onPressReady", () => {
 
     await user.click(screen.getByRole("button", { name: "Stage" }));
     expect(send).toHaveBeenCalledOnce();
-    expect(onPressReady.mock.calls.at(-1)?.[0]).toBeNull();
+    expect(onPressReady.mock.calls.at(-1)?.[0]).toBeTypeOf("function");
 
+    await act(async () => {
+      d.resolve(OK);
+    });
     await act(async () => {
       d.resolve(OK);
     });
@@ -1729,5 +1777,142 @@ describe("CommandButton: the stream to the mod is down", () => {
       );
     expect(down).toContain(STREAM_DOWN_TIP);
     expect(strip(down)).toBe(strip(up));
+  });
+});
+
+describe("CommandButton: the toggle variant", () => {
+  const WORDS = ["RCS ON", "RCS OFF", "RCS UNREAD"];
+  const word = (shown: boolean | number | null | undefined) =>
+    shown === true ? "RCS ON" : shown === false ? "RCS OFF" : "RCS UNREAD";
+
+  /** A toggle on a handle whose rows and status the test sets. */
+  function draw(
+    state: boolean | null,
+    send: CommandButtonHandle["send"],
+    over: Partial<CommandButtonHandle> = {},
+  ) {
+    return (
+      <CommandButton
+        handle={makeHandle(send, over)}
+        commandLabel="Toggle RCS"
+        label="RCS"
+        toggle={{
+          state,
+          name: "RCS",
+          word,
+          words: WORDS,
+          sentWord: "RCS SENT",
+          args: (base) =>
+            typeof base === "boolean" ? { enabled: !base } : undefined,
+        }}
+      />
+    );
+  }
+
+  const row = (over: Record<string, unknown> = {}) =>
+    ({
+      id: "r1",
+      label: "Toggle RCS",
+      command: "vessel.control.setRcs",
+      predictedPhase: "in-transit",
+      ...over,
+    }) as never;
+
+  it("sends the opposite of the state it shows and reads SENT until the mod answers", async () => {
+    const user = useArmClock();
+    const send = vi.fn(() => deferred().promise);
+    render(draw(false, send, { status: inFlightStatus(false) }));
+
+    await user.click(screen.getByRole("button", { name: /RCS OFF/ }));
+
+    expect(send).toHaveBeenCalledWith(
+      { enabled: true },
+      { label: "Toggle RCS" },
+    );
+    expect(screen.getByRole("button")).toHaveTextContent("RCS SENT");
+    expect(screen.getByRole("button")).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("shows the state again once the mod answers, and sends again on a second press", async () => {
+    const user = useArmClock();
+    const send = vi.fn(() => deferred().promise);
+    const { rerender } = render(
+      draw(false, send, { status: inFlightStatus(false) }),
+    );
+
+    await user.click(screen.getByRole("button"));
+    rerender(draw(false, send, { status: inFlightStatus(true) }));
+    act(() => {
+      vi.advanceTimersByTime(SENT_FLASH_MS + 1);
+    });
+    expect(screen.getByRole("button")).toHaveTextContent("RCS OFF");
+
+    // The first press is outstanding and asked for ON, so a second asks for OFF.
+    await user.click(screen.getByRole("button"));
+    expect(send).toHaveBeenLastCalledWith(
+      { enabled: false },
+      { label: "Toggle RCS" },
+    );
+  });
+
+  it("shows the state a command is predicted to set while its reply is on the way, marked modelled", () => {
+    render(
+      draw(false, () => Promise.resolve(OK), {
+        inFlight: [row({ predictedPhase: "awaiting-reply" })],
+      }),
+    );
+
+    const button = screen.getByRole("button");
+    expect(button).toHaveTextContent("RCS ON");
+    expect(button).toHaveAttribute("aria-pressed", "true");
+    expect(button).toHaveAttribute("data-held-button");
+  });
+
+  it("marks a command waiting at a relay as held and keeps the state", () => {
+    render(
+      draw(false, () => Promise.resolve(OK), {
+        inFlight: [row({ held: true })],
+      }),
+    );
+
+    const button = screen.getByRole("button");
+    expect(button).toHaveTextContent("RCS OFF");
+    expect(button).toHaveAttribute("data-held-button");
+  });
+
+  it("is drawn dark with its reason and sends nothing while it is unavailable", async () => {
+    const user = userEvent.setup();
+    const send = vi.fn(() => Promise.resolve(OK));
+    render(
+      <CommandButton
+        handle={makeHandle(send)}
+        label="RCS"
+        toggle={{
+          state: false,
+          name: "RCS",
+          word,
+          words: WORDS,
+          unavailable: "The vessel is not controllable",
+          args: (base) =>
+            typeof base === "boolean" ? { enabled: !base } : undefined,
+        }}
+      />,
+    );
+
+    const button = screen.getByRole("button");
+    expect(button).toHaveAttribute("aria-disabled", "true");
+    await user.click(button);
+
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("sends nothing from an unread state", async () => {
+    const user = userEvent.setup();
+    const send = vi.fn(() => Promise.resolve(OK));
+    render(draw(null, send));
+
+    await user.click(screen.getByRole("button"));
+
+    expect(send).not.toHaveBeenCalled();
   });
 });

@@ -92,7 +92,6 @@ export function LabSection({
                     args={{ partId: lab.partId }}
                     commandLabel={`Start research on ${lab.partName}`}
                     label="Start research"
-                    pendingLabel="Starting..."
                   />
                 )}
                 {lab.partId !== null && lab.running === true && stopCmd && (
@@ -102,7 +101,6 @@ export function LabSection({
                     args={{ partId: lab.partId }}
                     commandLabel={`Stop research on ${lab.partName}`}
                     label="Stop research"
-                    pendingLabel="Stopping..."
                   />
                 )}
                 {lab.scientistCount !== null && (

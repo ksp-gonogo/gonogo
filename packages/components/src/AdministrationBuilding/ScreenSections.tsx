@@ -294,7 +294,6 @@ export function ScreenSections({
                         label="Deactivate"
                         confirmLabel="Confirm deactivate"
                         confirmTone="nogo"
-                        pendingLabel="Deactivating..."
                         title="Deactivate this strategy"
                       />
                     )}

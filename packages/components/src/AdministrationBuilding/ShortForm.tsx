@@ -126,7 +126,6 @@ export function ShortRow({
           commandLabel={`Activate ${s.title}`}
           label="Activate"
           confirmLabel="Confirm activate"
-          pendingLabel="Activating..."
         />
       )}
       {!drawsOwnActions && state.kind === "active" && (
@@ -138,7 +137,6 @@ export function ShortRow({
           label="Deactivate"
           confirmLabel="Confirm deactivate"
           confirmTone="nogo"
-          pendingLabel="Deactivating..."
           title="Deactivate this strategy"
         />
       )}

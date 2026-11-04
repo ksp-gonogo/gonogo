@@ -11023,6 +11023,10 @@
         "note": "its active prop is now pressed, the name Button and ToggleButton use"
       },
       {
+        "key": "ui-kit . CommandButtonPhase",
+        "note": "The in-flight phase `pending` is now `sent`: SENT until the mod answers the press, then live again; the delay rail shows the journey"
+      },
+      {
         "key": "ui-kit . CommandButtonProps#active?",
         "note": "renamed pressed, the name Button and ToggleButton use"
       },
@@ -11031,8 +11035,36 @@
         "note": "the listed press takes no argument and binds the control's own confirm step, so an input cannot skip the confirm"
       },
       {
+        "key": "ui-kit . CommandButtonProps#pendingAriaLabel?",
+        "note": "Removed with the spinner; the sent phase names itself from the command label, and `sentAriaLabel` overrides it"
+      },
+      {
+        "key": "ui-kit . CommandButtonProps#pendingLabel?",
+        "note": "Removed with the spinner: a pressed control reads SENT, and the delay rail shows the command in flight"
+      },
+      {
+        "key": "ui-kit . CommandButtonState",
+        "note": "Takes the args type of its command, which sendAs needs"
+      },
+      {
         "key": "ui-kit . CommandButtonState#isOffline",
         "note": "The stream to the mod is down and nothing is in flight, so the control is drawn unavailable and a press sends nothing"
+      },
+      {
+        "key": "ui-kit . CommandButtonState#isPending",
+        "note": "Removed: a control is never locked behind its own press. `isSent` says the mod has not yet answered"
+      },
+      {
+        "key": "ui-kit . CommandButtonState#isSent",
+        "note": "Pressed and the mod has not yet answered the press, for at least SENT_FLASH_MS"
+      },
+      {
+        "key": "ui-kit . CommandButtonState#sendAs",
+        "note": "Sends args as the control own press under a label, for a bound input that sets a toggle to a state"
+      },
+      {
+        "key": "ui-kit . CommandButtonState#toggleView",
+        "note": "What a state toggle shows: the state, its word, the held or modelled mark and the sentence for what it waits on"
       },
       {
         "key": "ui-kit . CommandDelay",
@@ -11213,6 +11245,26 @@
       {
         "key": "ui-kit . IconButton",
         "note": "IconButton is a component taking pressed, which sets aria-pressed"
+      },
+      {
+        "key": "ui-kit . InFlightFace",
+        "note": "Removed with the spinner an in-flight command control drew"
+      },
+      {
+        "key": "ui-kit . InFlightFaceProps",
+        "note": "Removed with InFlightFace"
+      },
+      {
+        "key": "ui-kit . InFlightFaceProps#holds",
+        "note": "Removed with InFlightFace"
+      },
+      {
+        "key": "ui-kit . InFlightFaceProps#label",
+        "note": "Removed with InFlightFace"
+      },
+      {
+        "key": "ui-kit . InFlightFaceProps#spinnerSize?",
+        "note": "Removed with InFlightFace"
       },
       {
         "key": "ui-kit . InFlightList",
@@ -11619,6 +11671,10 @@
         "note": "Removed: useOrbitTrajectory's withheld answer carries its own sentence in `declined.note`, shown with DeclinedEmptyState"
       },
       {
+        "key": "ui-kit . useCommandButton",
+        "note": "Takes an optional toggle, and returns isSent, sendAs and toggleView in place of isPending"
+      },
+      {
         "key": "ui-kit . widgetDeclaredTopics",
         "note": "Takes the tile's config as an optional second argument so the Topics channelsFromConfig names join the list"
       },
@@ -11813,6 +11869,10 @@
       {
         "key": "ui-kit . ~ModalOpenOptions#width?",
         "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . ~NativeButtonProps",
+        "note": "Its aria-busy omission is gone, since a command control no longer draws a busy state"
       },
       {
         "key": "ui-kit . ~RailTagKey",
@@ -17729,12 +17789,28 @@
         "note": "optional send status a control writes in its tooltip and outlines its edge for"
       },
       {
+        "key": "ui-kit . CommandButtonHandle#status?",
+        "note": "Where the handle latest dispatch stands, so the control reads SENT until the mod answers the press; optional, so a hand-built handle is unchanged"
+      },
+      {
         "key": "ui-kit . CommandButtonHandle#streamDown?",
         "note": "Lets a command control draw itself unavailable while the stream to the mod is down; optional, so a hand-built handle is unchanged"
       },
       {
+        "key": "ui-kit . CommandButtonProps#controller?",
+        "note": "Lets a control draw from a useCommandButton the caller already runs, so a bound input and a click press one control"
+      },
+      {
         "key": "ui-kit . CommandButtonProps#pressed?",
         "note": "renamed from active, the name Button and ToggleButton use"
+      },
+      {
+        "key": "ui-kit . CommandButtonProps#sentAriaLabel?",
+        "note": "The sent phase accessible name, in place of pendingAriaLabel"
+      },
+      {
+        "key": "ui-kit . CommandButtonProps#toggle?",
+        "note": "Makes the control a state toggle that shows SENT, then the state, marked held or modelled while the command waits or is predicted"
       },
       {
         "key": "ui-kit . CommandDelayHandle#\"aria-label\"?",
@@ -17755,6 +17831,46 @@
       {
         "key": "ui-kit . CommandFailedLike#code?",
         "note": "the fault code, which commandFailedSentence says in the code's own words"
+      },
+      {
+        "key": "ui-kit . CommandToggle",
+        "note": "The state variant of CommandButton: a state, its words and the args that set the opposite"
+      },
+      {
+        "key": "ui-kit . CommandToggle#args",
+        "note": "The args for a press that moves the control away from the state it shows; undefined means nothing to send"
+      },
+      {
+        "key": "ui-kit . CommandToggle#marking?",
+        "note": "The mark the state own reading wears, shown beside the held or modelled mark"
+      },
+      {
+        "key": "ui-kit . CommandToggle#name",
+        "note": "What the control is called in the sentences it speaks"
+      },
+      {
+        "key": "ui-kit . CommandToggle#rows?",
+        "note": "Which in-flight rows are this control own, where one command serves several controls"
+      },
+      {
+        "key": "ui-kit . CommandToggle#sentWord?",
+        "note": "The word shown in place of the state until the mod answers the press"
+      },
+      {
+        "key": "ui-kit . CommandToggle#state",
+        "note": "The state as the vessel last reported it, uncoerced"
+      },
+      {
+        "key": "ui-kit . CommandToggle#unavailable?",
+        "note": "Why the control cannot be pressed now; it is drawn dark with this as its tip and a press sends nothing"
+      },
+      {
+        "key": "ui-kit . CommandToggle#word",
+        "note": "The word the control shows for a state"
+      },
+      {
+        "key": "ui-kit . CommandToggle#words",
+        "note": "Every word the control can show, so it keeps its size"
       },
       {
         "key": "ui-kit . CommandWarningEntry",
@@ -18321,10 +18437,6 @@
         "note": "exported, since a published component's props or return type already names it"
       },
       {
-        "key": "ui-kit . PENDING_BACKSTOP_MS",
-        "note": "exported, since the published docs of useCommandButton link it"
-      },
-      {
         "key": "ui-kit . PanZoomCamera",
         "note": "where a diagram is looking: the diagram point at the middle of the view and the zoom, shared by every pannable diagram"
       },
@@ -18637,6 +18749,10 @@
         "note": "a circular arrow running clockwise, for a control that turns a view a step"
       },
       {
+        "key": "ui-kit . SENT_FLASH_MS",
+        "note": "The fewest milliseconds a command control reads SENT after a press"
+      },
+      {
         "key": "ui-kit . STREAM_DOWN_TIP",
         "note": "The words a command control shows while the stream to the mod is down, for a control of an author's own that follows the same state"
       },
@@ -18761,6 +18877,10 @@
         "note": "toggle state is pressed on Button, ToggleButton and IconButton"
       },
       {
+        "key": "ui-kit . ToggleState",
+        "note": "The state a toggle control reads: a flag, a count or nothing yet"
+      },
+      {
         "key": "ui-kit . TooltipProps#placement?",
         "note": "New: which side of its child the tip stands on, below by default"
       },
@@ -18783,6 +18903,10 @@
       {
         "key": "ui-kit . UnitProps#elsewhere?",
         "note": "Says in words that the figure is of something other than what its label names. The figure's mark is then drawn hollow, a ring where it is a reading of now, and the words follow what the figure already says about how current it is"
+      },
+      {
+        "key": "ui-kit . UseCommandButtonOptions#toggle?",
+        "note": "Makes the control a state toggle that shows SENT, then the state, marked held or modelled while the command waits or is predicted"
       },
       {
         "key": "ui-kit . UsePanZoomOptions",

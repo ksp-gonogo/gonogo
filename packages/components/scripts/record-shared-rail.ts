@@ -73,8 +73,6 @@ async function run(
 
 interface Clip {
   name: string;
-  /** Toggles show predicted states, marked modelled. */
-  predicted?: boolean;
   /** Moments, in seconds of video, to pull a captioned still at, filled in as the clip plays. */
   stills?: { at: number; name: string }[];
   /** The file written, in place of `<label>--<name>.mp4`. */
@@ -658,7 +656,6 @@ async function main(): Promise<void> {
         h: clip.h,
         pxW: px.pxW,
         delaySeconds: clip.delaySeconds,
-        predicted: clip.predicted,
       });
       await pause(800);
       await clip.play(page);

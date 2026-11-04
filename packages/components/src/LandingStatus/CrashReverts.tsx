@@ -20,7 +20,6 @@ export function CrashReverts() {
         label="Revert to launch"
         confirmLabel="Confirm revert to launch"
         confirmTone="nogo"
-        pendingLabel="Reverting..."
       />
       <CommandButton
         handle={revertEditorCmd}
@@ -30,7 +29,6 @@ export function CrashReverts() {
         label="Revert to VAB"
         confirmLabel="Confirm revert to VAB"
         confirmTone="nogo"
-        pendingLabel="Reverting..."
       />
     </ButtonGroup>
   );

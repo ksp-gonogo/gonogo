@@ -1,8 +1,8 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
+import { SENT_FLASH_MS } from "@ksp-gonogo/ui-kit";
 import { expectLiveRegionPrimed } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
-import { SENT_FLASH_MS } from "../shared/toggleConfirmation";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ActionGroupComponent } from "./index";
 

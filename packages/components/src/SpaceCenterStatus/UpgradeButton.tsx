@@ -29,7 +29,6 @@ export function UpgradeButton({
       commandLabel={`Upgrade ${facilityLabel}`}
       label="Upgrade"
       confirmLabel="Confirm"
-      pendingLabel="Upgrading"
       icon={<ChevronUpIcon size={12} />}
       confirmIcon={<CheckIcon size={12} />}
       title={titleOverride}

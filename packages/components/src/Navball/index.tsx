@@ -152,9 +152,12 @@ function useNavball({
     sasUnavailableReason,
     rcsRaw,
     precisionRaw,
-    sasConfirmation,
-    rcsConfirmation,
-    precisionConfirmation,
+    sasButton,
+    rcsButton,
+    precisionButton,
+    sasCmd,
+    rcsCmd,
+    precisionCmd,
     toggleSas,
     engageSas,
     toggleRcs,
@@ -162,7 +165,13 @@ function useNavball({
     setSasMode,
     unconfirmedSasModes,
     dismissSasUnconfirmed,
-  } = useSasControls(control, derivedMarking(controlReading) !== null);
+  } = useSasControls(
+    control,
+    derivedMarking(controlReading) !== null,
+    sasBadgeMode,
+    derivedMarking(controlReading),
+    isControllable,
+  );
   const identity = stillTrue(topics.useTelemetry("vessel.identity"), undefined);
   const { fbwState, armFbw, disarmFbw } = useFlyByWire(
     identity?.vesselId,
@@ -228,9 +237,12 @@ function useNavball({
     sasUnavailableReason,
     rcsRaw,
     precisionRaw,
-    sasConfirmation,
-    rcsConfirmation,
-    precisionConfirmation,
+    sasButton,
+    rcsButton,
+    precisionButton,
+    sasCmd,
+    rcsCmd,
+    precisionCmd,
     toggleSas,
     toggleRcs,
     togglePrecision,
@@ -319,12 +331,12 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
     sasUnavailableReason,
     rcsRaw,
     precisionRaw,
-    sasConfirmation,
-    rcsConfirmation,
-    precisionConfirmation,
-    toggleSas,
-    toggleRcs,
-    togglePrecision,
+    sasButton,
+    rcsButton,
+    precisionButton,
+    sasCmd,
+    rcsCmd,
+    precisionCmd,
     setSasMode,
     unconfirmedSasModes,
     dismissSasUnconfirmed,
@@ -498,20 +510,14 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
                 />
                 <ControlToggles
                   disabled={!isControllable}
-                  sas={sasRaw}
-                  sasBadgeMode={sasBadgeMode}
+                  sas={{ control: sasButton, handle: sasCmd }}
+                  rcs={{ control: rcsButton, handle: rcsCmd }}
+                  precision={
+                    typeof precisionRaw === "boolean"
+                      ? { control: precisionButton, handle: precisionCmd }
+                      : null
+                  }
                   sasUnavailableReason={sasUnavailableReason}
-                  rcs={rcsRaw}
-                  precision={precisionRaw}
-                  confirmations={{
-                    sas: sasConfirmation,
-                    rcs: rcsConfirmation,
-                    precision: precisionConfirmation,
-                  }}
-                  marking={derivedMarking(controlReading)}
-                  onToggleSas={toggleSas}
-                  onToggleRcs={toggleRcs}
-                  onTogglePrecision={togglePrecision}
                 />
               </div>
             )}

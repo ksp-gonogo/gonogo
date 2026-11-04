@@ -24,7 +24,6 @@ export function TrackingStationControl({
       commandLabel={commandLabel}
       label={label}
       confirmLabel="Confirm: save and leave"
-      pendingLabel="Leaving..."
       confirmTone="warn"
       onPressReady={onPressReady}
       title={`${label}: saves the game first, and refuses if KSP will not save here`}

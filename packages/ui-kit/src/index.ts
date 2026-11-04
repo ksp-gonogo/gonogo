@@ -137,16 +137,14 @@ export {
   type CommandButtonTone,
   type CommandGateLike,
   type CommandReplyLike,
-  PENDING_BACKSTOP_MS,
+  type CommandToggle,
   REFUSAL_TIMEOUT_MS,
+  SENT_FLASH_MS,
   STREAM_DOWN_TIP,
+  type ToggleState,
   type UseCommandButtonOptions,
   useCommandButton,
 } from "./CommandButton/CommandButton";
-export {
-  InFlightFace,
-  type InFlightFaceProps,
-} from "./CommandButton/InFlightFace";
 export {
   CommandDelay,
   type CommandDelayHandle,

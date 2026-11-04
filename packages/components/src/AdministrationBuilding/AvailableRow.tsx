@@ -211,7 +211,6 @@ export function AvailableRow({
             commandLabel={`Activate ${s.title}`}
             label="Activate"
             confirmLabel="Confirm activate"
-            pendingLabel="Activating..."
           />
         )
       }

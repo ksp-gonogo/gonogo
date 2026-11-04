@@ -60,7 +60,6 @@ export function UnlockControl({
               <Unit>science</Unit>
             </>
           }
-          pendingLabel="Unlocking..."
         />
       </Cluster>
     </Stack>
