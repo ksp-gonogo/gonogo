@@ -514,8 +514,8 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
 
   // The gate reopening takes the reason down with it.
   useEffect(() => {
-    if (!gateBlocks && reasonShown) setReasonShown(false);
-  }, [gateBlocks, reasonShown]);
+    if (!gateBlocks) setReasonShown(false);
+  }, [gateBlocks]);
 
   // The press stays visible as SENT for at least the flash, however soon the mod answers.
   useEffect(() => {
