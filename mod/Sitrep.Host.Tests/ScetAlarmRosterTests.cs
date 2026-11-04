@@ -852,5 +852,34 @@ namespace Sitrep.Host.Tests
             Assert.False(roster.ObserveGame(null));
             Assert.Equal(1, roster.Count);
         }
+
+        [Fact]
+        public void ARecordedDeleteIsPublishedOnceThenDropped()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.RecordDeletedInGame("gone");
+
+            var first = roster.Evaluate(100);
+            Assert.True(first.RosterChanged);
+            Assert.Equal(ScetAlarmState.DeletedInGame, roster.Snapshot().Single().State);
+
+            var second = roster.Evaluate(101);
+            Assert.True(second.RosterChanged);
+            Assert.Empty(roster.Snapshot());
+            Assert.False(roster.Evaluate(102).RosterChanged);
+        }
+
+        [Fact]
+        public void ADeleteMarkedOnAHeldAlarmStays()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(TimeAlarm("a", 5000), "ksc");
+            roster.MarkDeletedInGame("a");
+
+            roster.Evaluate(100);
+            roster.Evaluate(101);
+
+            Assert.True(roster.IsDeletedInGame("a"));
+        }
     }
 }

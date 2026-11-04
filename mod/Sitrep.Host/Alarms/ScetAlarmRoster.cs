@@ -172,6 +172,16 @@ namespace Sitrep.Host.Alarms
             /// found after the game renames it.
             /// </summary>
             public int? ParameterPosition;
+
+            /// <summary>
+            /// A row made by <see cref="RecordDeletedInGame"/> for an alarm the
+            /// roster no longer held, so there is no client-armed alarm behind it
+            /// for a disarm to remove.
+            /// </summary>
+            public bool Recorded;
+
+            /// <summary>A recorded row that a tick has already published, so the next tick drops it.</summary>
+            public bool Announced;
         }
 
         /// <summary>Insertion-ordered so the roster, and the notices off it, keep the order the operator armed things in.</summary>
@@ -463,6 +473,7 @@ namespace Sitrep.Host.Alarms
             _entries.Add(new Entry
             {
                 Alarm = new ScetAlarm { Id = id, State = ScetAlarmState.DeletedInGame, Condition = null },
+                Recorded = true,
             });
             _pendingChange = true;
             return true;
@@ -586,6 +597,7 @@ namespace Sitrep.Host.Alarms
         {
             var tick = new ScetAlarmTick { RosterChanged = _pendingChange };
             _pendingChange = false;
+            tick.RosterChanged |= _entries.RemoveAll(e => e.Announced) > 0;
 
             if (double.IsNaN(nowUt) || double.IsInfinity(nowUt))
             {
@@ -687,7 +699,20 @@ namespace Sitrep.Host.Alarms
                 && e.Alarm.Condition?.Kind == ScetAlarmConditionKind.ContractParameter);
 
         /// <summary>Close the tick and answer what it decided, over every pass.</summary>
-        public ScetAlarmTick EndTick(ScetAlarmTickState state) => state.Tick;
+        public ScetAlarmTick EndTick(ScetAlarmTickState state)
+        {
+            if (state.Tick.RosterChanged)
+            {
+                foreach (var entry in _entries)
+                {
+                    if (entry.Recorded && entry.Alarm.State == ScetAlarmState.DeletedInGame)
+                    {
+                        entry.Announced = true;
+                    }
+                }
+            }
+            return state.Tick;
+        }
 
         private static void EvaluateTime(
             Entry entry, ScetAlarmCondition condition, double nowUt, ScetAlarmTick tick)
