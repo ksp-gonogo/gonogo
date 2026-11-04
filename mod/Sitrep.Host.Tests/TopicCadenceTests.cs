@@ -207,6 +207,61 @@ namespace Sitrep.Host.Tests
             Assert.Equal(10.0, SampleCadence.IntervalUtAt(100.0, 0.1), 9);
             Assert.Equal(SampleCadence.IntervalUtAt(50.0), SampleCadence.IntervalUtAt(50.0, SampleCadence.IntervalUt));
         }
+
+        [Fact]
+        public void AHoldSpeedsUpOnlyItsTopicAndTheGateFollowsIt()
+        {
+            var cadence = new TopicCadence();
+            using (cadence.Hold("vessel.orbit", 4.0))
+            {
+                var counts = Run(cadence, new[] { "vessel.orbit", "vessel.flight" }, 10.0);
+
+                Assert.InRange(counts["vessel.orbit"], 38, 42);
+                Assert.InRange(counts["vessel.flight"], 9, 11);
+                Assert.True(cadence.IsHeld("vessel.orbit"));
+                Assert.False(cadence.IsHeld("vessel.flight"));
+            }
+        }
+
+        [Fact]
+        public void ReleasingTheLastHoldReturnsTheTopicToTheBaseRate()
+        {
+            var cadence = new TopicCadence();
+            var first = cadence.Hold("vessel.orbit", 4.0);
+            var second = cadence.Hold("vessel.orbit", 2.0);
+
+            Assert.Equal(0.25, cadence.FastestIntervalUt, 6);
+            first.Dispose();
+            Assert.Equal(0.5, cadence.FastestIntervalUt, 6);
+            second.Dispose();
+            second.Dispose();
+
+            Assert.Equal(SampleCadence.IntervalUt, cadence.FastestIntervalUt);
+            Assert.False(cadence.IsHeld("vessel.orbit"));
+            Assert.Empty(cadence.HeldReport());
+        }
+
+        [Fact]
+        public void AHoldDoesNotSlowATopicAConnectionAskedToSpeedUp()
+        {
+            var cadence = new TopicCadence();
+            cadence.SetDemand("vessel.orbit", DataRateTierNames.Fast);
+            using (cadence.Hold("vessel.orbit", 4.0))
+            {
+                Assert.Equal(0.1, cadence.IntervalUtFor("vessel.orbit"), 6);
+            }
+            Assert.Equal(0.1, cadence.IntervalUtFor("vessel.orbit"), 6);
+        }
+
+        [Theory]
+        [InlineData(0.0)]
+        [InlineData(-1.0)]
+        [InlineData(51.0)]
+        [InlineData(double.NaN)]
+        public void AHoldRefusesARateOutsideTheCadenceRange(double rate)
+        {
+            Assert.Throws<System.ArgumentOutOfRangeException>(() => new TopicCadence().Hold("vessel.orbit", rate));
+        }
     }
 
     /// <summary>The cost lines carry one prefix, account each topic on its own, and the window restarts after a report.</summary>

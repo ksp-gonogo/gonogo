@@ -56,6 +56,16 @@ namespace Sitrep.Contract.TestSupport
         /// </summary>
         public bool IsAnyTopicSubscribed(string topicPrefix) => true;
 
+        public IDisposable HoldRate(string topic, double samplesPerSecond) => new Release();
+
+        private sealed class Release : IDisposable
+        {
+            public void Dispose()
+            {
+            }
+        }
+
+
         public void AddCommandHandler<TArgs, TResult>(string command, Func<TArgs, TResult> handler) { }
 
         public void AddVantageCommandHandler<TArgs, TResult>(

@@ -69,6 +69,16 @@ namespace Sitrep.Contract.TestSupport
 
         public bool IsAnyTopicSubscribed(string topicPrefix) => true;
 
+        public IDisposable HoldRate(string topic, double samplesPerSecond) => new Release();
+
+        private sealed class Release : IDisposable
+        {
+            public void Dispose()
+            {
+            }
+        }
+
+
         public IDynamicChannelSource RegisterDynamicNamespace(string prefix, ChannelDeclaration template) =>
             new NullDynamicSource();
 

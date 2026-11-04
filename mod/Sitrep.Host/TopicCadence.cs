@@ -40,6 +40,12 @@ namespace Sitrep.Host
 
         private volatile IReadOnlyDictionary<string, double> _overrides = NoOverrides;
         private volatile IReadOnlyDictionary<string, string> _demand = NoDemand;
+        private static readonly IReadOnlyDictionary<string, double> NoHolds =
+            new Dictionary<string, double>(StringComparer.Ordinal);
+
+        private readonly List<(long Id, string Topic, double IntervalUt)> _holds = new List<(long, string, double)>();
+        private volatile IReadOnlyDictionary<string, double> _held = NoHolds;
+        private long _nextHold;
 
         /// <param name="tiers">What each rate tier stands for; a fresh default table when null.</param>
         public TopicCadence(DataRateTiers? tiers = null)
@@ -69,6 +75,10 @@ namespace Sitrep.Host
                 {
                     fastest = Math.Min(fastest, Tiers.IntervalUt(tier));
                 }
+                foreach (var interval in _held.Values)
+                {
+                    fastest = Math.Min(fastest, interval);
+                }
                 return fastest;
             }
         }
@@ -88,9 +98,10 @@ namespace Sitrep.Host
             {
                 return own;
             }
-            return demand.TryGetValue(topic, out var tier)
+            var interval = demand.TryGetValue(topic, out var tier)
                 ? Math.Min(SampleCadence.IntervalUt, Tiers.IntervalUt(tier))
                 : SampleCadence.IntervalUt;
+            return _held.TryGetValue(topic, out var held) ? Math.Min(interval, held) : interval;
         }
 
         /// <summary>
@@ -122,6 +133,80 @@ namespace Sitrep.Host
                 }
                 _demand = next;
             }
+        }
+
+        /// <summary>
+        /// Evaluate <paramref name="topic"/> at least <paramref name="samplesPerSecond"/> times per UT
+        /// second until the returned release is disposed. Holds on one topic stack: the fastest
+        /// stands, and the topic drops back when the last is released. Disposing twice is harmless.
+        /// A rate that is not a finite number in (0, <see cref="MaxRateHz"/>] throws.
+        /// </summary>
+        public IDisposable Hold(string topic, double samplesPerSecond)
+        {
+            if (string.IsNullOrEmpty(topic))
+            {
+                throw new ArgumentException("no topic named", nameof(topic));
+            }
+            if (double.IsNaN(samplesPerSecond) || double.IsInfinity(samplesPerSecond) || samplesPerSecond <= 0 || samplesPerSecond > MaxRateHz)
+            {
+                throw new ArgumentOutOfRangeException(nameof(samplesPerSecond));
+            }
+
+            long id;
+            lock (_writeGate)
+            {
+                id = ++_nextHold;
+                _holds.Add((id, topic, 1.0 / samplesPerSecond));
+                RebuildHeld();
+            }
+            return new HoldRelease(this, id);
+        }
+
+        /// <summary>True while an Uplink holds <paramref name="topic"/> above the base rate.</summary>
+        public bool IsHeld(string topic) => _held.ContainsKey(topic);
+
+        /// <summary>The topics held above the base rate through <see cref="Hold"/>, with the fastest rate each stands at, sorted by topic.</summary>
+        public List<KeyValuePair<string, double>> HeldReport()
+        {
+            return _held
+                .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                .Select(pair => new KeyValuePair<string, double>(pair.Key, 1.0 / pair.Value))
+                .ToList();
+        }
+
+        private void ReleaseHold(long id)
+        {
+            lock (_writeGate)
+            {
+                if (_holds.RemoveAll(hold => hold.Id == id) > 0)
+                {
+                    RebuildHeld();
+                }
+            }
+        }
+
+        private void RebuildHeld()
+        {
+            var next = new Dictionary<string, double>(StringComparer.Ordinal);
+            foreach (var hold in _holds)
+            {
+                next[hold.Topic] = next.TryGetValue(hold.Topic, out var interval) ? Math.Min(interval, hold.IntervalUt) : hold.IntervalUt;
+            }
+            _held = next;
+        }
+
+        private sealed class HoldRelease : IDisposable
+        {
+            private readonly TopicCadence _owner;
+            private readonly long _id;
+
+            public HoldRelease(TopicCadence owner, long id)
+            {
+                _owner = owner;
+                _id = id;
+            }
+
+            public void Dispose() => _owner.ReleaseHold(_id);
         }
 
         /// <summary>Every topic some connection asks to have above the base tier, sorted by topic.</summary>
@@ -213,7 +298,7 @@ namespace Sitrep.Host
         {
             var overrides = _overrides;
             var demand = _demand;
-            if (overrides.Count == 0 && demand.Count == 0)
+            if (overrides.Count == 0 && demand.Count == 0 && _held.Count == 0)
             {
                 return true;
             }
@@ -240,7 +325,7 @@ namespace Sitrep.Host
         {
             var overrides = _overrides;
             var demand = _demand;
-            if ((overrides.Count == 0 && demand.Count == 0) || !_lastEvaluatedUt.TryGetValue(topic, out var last))
+            if ((overrides.Count == 0 && demand.Count == 0 && _held.Count == 0) || !_lastEvaluatedUt.TryGetValue(topic, out var last))
             {
                 return double.NegativeInfinity;
             }

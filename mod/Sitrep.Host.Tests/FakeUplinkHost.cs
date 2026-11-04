@@ -64,6 +64,16 @@ namespace Sitrep.Host.Tests
 
         public bool IsAnyTopicSubscribed(string topicPrefix) => false;
 
+        public IDisposable HoldRate(string topic, double samplesPerSecond) => new Release();
+
+        private sealed class Release : IDisposable
+        {
+            public void Dispose()
+            {
+            }
+        }
+
+
         public IChannelPublisher Publisher(string topic) => throw new NotSupportedException();
 
         public IDynamicChannelSource RegisterDynamicNamespace(string prefix, ChannelDeclaration template) => throw new NotSupportedException();

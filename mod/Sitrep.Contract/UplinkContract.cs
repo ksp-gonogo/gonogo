@@ -1419,6 +1419,26 @@ namespace Sitrep.Contract
         /// <param name="subscriptionTopicPrefixes">The topic prefixes this source produces.</param>
         void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOffMainThread, params string[] subscriptionTopicPrefixes);
 
+        /// <summary>
+        /// Has Gonogo sample the game, and evaluate <paramref name="topic"/>, at least
+        /// <paramref name="samplesPerSecond"/> times per game second until the returned
+        /// release is disposed. Useful for an Uplink that points something at a moving
+        /// craft, such as a ground camera, and needs the craft's place fresher than the
+        /// base rate gives while it does. Used by a camera Uplink while one of its
+        /// cameras follows a craft.
+        ///
+        /// <para>The faster rate costs every Uplink's capture a run on each extra tick, so
+        /// hold it only while it is needed and dispose the release the moment it is not.
+        /// Holds on one Topic stack and the fastest stands. A Topic the operator has asked
+        /// to see at a faster rate is not slowed by a hold. <paramref name="topic"/> must be
+        /// a Topic the Uplink's manifest declares, and <paramref name="samplesPerSecond"/> a
+        /// finite number above zero and at most 50, or this throws.</para>
+        /// </summary>
+        /// <param name="topic">A Topic this Uplink declares; it is evaluated at the held rate.</param>
+        /// <param name="samplesPerSecond">The least rate, in samples per game second.</param>
+        /// <returns>The release; disposing it twice is harmless.</returns>
+        IDisposable HoldRate(string topic, double samplesPerSecond);
+
         /// <summary> Whether at least one subscribed topic starts with
         /// <paramref name="topicPrefix"/> (ordinal comparison), right now. The
         /// same check the gated <see cref="AddSampledSource(Func{KspSnapshot?,

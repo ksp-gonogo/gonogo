@@ -227,6 +227,15 @@ namespace Sitrep.Contract.TestSupport
             return false;
         }
 
+        public IDisposable HoldRate(string topic, double samplesPerSecond) => new Release();
+
+        private sealed class Release : IDisposable
+        {
+            public void Dispose()
+            {
+            }
+        }
+
         public double NowUt() => 0.0;
 
         public void Log(UplinkLogLevel level, string tag, string message) { }

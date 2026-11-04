@@ -248,6 +248,7 @@ namespace Gonogo.KSP.Tests.CommandCentres
             public void AddSampler(ISnapshotSampler sampler) => throw new NotSupportedException();
             public void AddChannelSource(string topic, Func<KspSnapshot?, object?> map) => throw new NotSupportedException();
             public bool IsAnyTopicSubscribed(string topicPrefix) => throw new NotSupportedException();
+            public IDisposable HoldRate(string topic, double samplesPerSecond) => throw new NotSupportedException();
             public IDynamicChannelSource RegisterDynamicNamespace(string prefix, ChannelDeclaration template) => throw new NotSupportedException();
             public void AddCommandHandler<TArgs, TResult>(string command, Func<TArgs, TResult> handler) => throw new NotSupportedException();
             public void AddVantageCommandHandler<TArgs, TResult>(string command, Func<TArgs, string, TResult> handler) => throw new NotSupportedException();

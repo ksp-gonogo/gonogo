@@ -1298,6 +1298,18 @@ namespace Sitrep.Host
 
         private PerfBudget? _warmSampleBudget;
 
+        /// <summary>Evaluations per UT second of a topic an Uplink holds above the base rate, above which <see cref="_heldRateBudget"/> warns: the fastest rate a hold may ask for, several times over.</summary>
+        internal const double HeldRateBudget = 200;
+
+        private PerfBudget? _heldRateBudget;
+
+        /// <inheritdoc />
+        public IDisposable HoldRate(string topic, double samplesPerSecond)
+        {
+            RequireChannelDeclared(topic, nameof(HoldRate));
+            return Cadence.Hold(topic, samplesPerSecond);
+        }
+
         /// <summary>Courier-thread-only: the UT each unsubscribed Delayed topic was last built at.</summary>
         private readonly Dictionary<string, double> _lastWarmUt = new Dictionary<string, double>(StringComparer.Ordinal);
 
@@ -2044,6 +2056,13 @@ namespace Sitrep.Host
                 threshold: WarmSampleBudget,
                 windowSec: 1.0,
                 unit: "builds",
+                warn: LogHost);
+
+            _heldRateBudget = new PerfBudget(
+                "ChannelEngine held-rate topic evaluations/sec",
+                threshold: HeldRateBudget,
+                windowSec: 1.0,
+                unit: "evaluations",
                 warn: LogHost);
         }
 
@@ -10426,6 +10445,10 @@ namespace Sitrep.Host
                 if (warm ? !WarmSampleDue(topic, tick.Ut) : !Cadence.IsDue(topic, tick.Ut))
                 {
                     continue;
+                }
+                if (Cadence.IsHeld(topic))
+                {
+                    _heldRateBudget?.Record(1, tick.Ut);
                 }
 
                 object? value;
