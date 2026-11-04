@@ -1559,14 +1559,16 @@ export class TelemetryClient {
     /*
      * A host replays a quiet Topic's older frames after its newest, to a
      * station that has just joined, so a frame can arrive stamped from a
-     * centre the session has since left. Only a frame delivered no earlier than
-     * the one that set the vantage may change it.
+     * centre the session has since left. Only a frame from the same or a later
+     * timeline epoch, and delivered no earlier than the one that set the
+     * vantage within an epoch, may change it.
      */
     const prior = this.observedStampedAt;
     if (
       prior !== undefined &&
-      prior.epoch === meta.timelineEpoch &&
-      meta.deliveredAt < prior.deliveredAt
+      (meta.timelineEpoch < prior.epoch ||
+        (prior.epoch === meta.timelineEpoch &&
+          meta.deliveredAt < prior.deliveredAt))
     ) {
       return;
     }
