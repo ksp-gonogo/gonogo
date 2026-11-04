@@ -431,6 +431,13 @@ function startSession(owlt: number): ModStandIn {
       restored: arm.restored,
       save: arm.save,
     }));
+    /* The mod keeps a row for a copy deleted in the game even when the alarm
+       itself has left the roster, which is what lets a screen still showing it
+       as fired drop it. */
+    for (const id of deletedInGame) {
+      if (conditions.has(id)) continue;
+      lastRoster.push({ id, state: 4, condition: null });
+    }
     /* Gated as `ScetRosterAudience` gates it on the mod: nothing while nobody
        is subscribed, one frame to an audience that has not been answered (the
        keyframe-on-subscribe a real client gets), and after that only when the
@@ -895,6 +902,72 @@ describe("SCET alarms", () => {
       expect(svc.snapshot().alarmsCancelled).toBeUndefined();
       expect(svc.snapshot().scetForeign).toBeUndefined();
       svc.dispose();
+    });
+
+    it("clears a fired alarm for every screen when its copy is deleted in the game, with no acknowledgement", async () => {
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      const storage = memoryStorage();
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage,
+        getOwltSeconds: () => OWLT,
+      });
+      const broadcast: number[] = [];
+      const unsubscribe = svc.subscribe((snap) => {
+        broadcast.push(snap.alarms.length);
+      });
+      try {
+        svc.addAlarm({
+          name: "Burn",
+          trigger: { kind: "time", ut: UT_START + 3 * DT, leadSeconds: 0 },
+        });
+        await run(session, UT_START + 8 * DT);
+        expect(svc.snapshot().alarms.map((a) => a.state)).toEqual(["fired"]);
+
+        const fired = session.firedAtTrueUt[0];
+        expect(fired).toBeDefined();
+        session.deleteInGame(fired.id);
+        await runFrom(session, UT_START + 8 * DT, UT_START + 12 * DT);
+
+        expect(svc.snapshot().alarms).toEqual([]);
+        expect(broadcast.at(-1)).toBe(0);
+        expect(storage.getItem("gonogo.alarms.list")).toBe("[]");
+        expect(svc.snapshot().alarmsCancelled).toBeUndefined();
+        expect(svc.snapshot().scetForeignFired).toBeUndefined();
+
+        session.reconnect();
+        await runFrom(session, UT_START + 12 * DT, UT_START + 16 * DT);
+        expect(svc.snapshot().alarms).toEqual([]);
+        expect(svc.snapshot().scetForeignFired).toBeUndefined();
+      } finally {
+        unsubscribe();
+        svc.dispose();
+      }
+    });
+
+    it("keeps a fired alarm fired while its copy stays in the game", async () => {
+      const session = startSession(OWLT);
+      session.emitAt(UT_START);
+      const svc = new AlarmHostService(null, {
+        nowMs: () => nowMs,
+        tickIntervalMs: DT * 1000,
+        storage: memoryStorage(),
+        getOwltSeconds: () => OWLT,
+      });
+      try {
+        svc.addAlarm({
+          name: "Burn",
+          trigger: { kind: "time", ut: UT_START + 3 * DT, leadSeconds: 0 },
+        });
+        await run(session, UT_START + 8 * DT);
+        await runFrom(session, UT_START + 8 * DT, UT_START + 14 * DT);
+
+        expect(svc.snapshot().alarms.map((a) => a.state)).toEqual(["fired"]);
+      } finally {
+        svc.dispose();
+      }
     });
 
     it("takes the new name and time when the copy is edited in the game, and does not arm it again", async () => {

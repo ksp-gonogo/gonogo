@@ -445,6 +445,30 @@ namespace Sitrep.Host.Alarms
         }
 
         /// <summary>
+        /// The copy of an alarm the roster no longer holds was deleted in the
+        /// game's clock. A row in <see cref="ScetAlarmState.DeletedInGame"/> is
+        /// added when none is held, so a client that still shows the alarm as
+        /// fired learns to drop it.
+        /// </summary>
+        public bool RecordDeletedInGame(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+            {
+                return false;
+            }
+            if (IndexOf(id) >= 0)
+            {
+                return MarkDeletedInGame(id);
+            }
+            _entries.Add(new Entry
+            {
+                Alarm = new ScetAlarm { Id = id, State = ScetAlarmState.DeletedInGame, Condition = null },
+            });
+            _pendingChange = true;
+            return true;
+        }
+
+        /// <summary>
         /// The player edited the alarm's copy in the game's clock: the alarm takes
         /// the copy's title and time. An empty title leaves the name as it is.
         /// </summary>

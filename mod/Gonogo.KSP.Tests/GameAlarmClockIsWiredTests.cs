@@ -91,6 +91,15 @@ namespace Gonogo.KSP.Tests
         }
 
         [Fact]
+        public void a_fired_alarm_whose_copy_the_player_deleted_reaches_the_roster_after_the_client_took_it_off()
+        {
+            var sync = CurrencyDelaySourceText.MethodBody(Uplink(), "private GameAlarmPublishes? SyncGameClock(double ut)");
+
+            Assert.Contains("outcome.DeletedAfterRelease", sync, StringComparison.Ordinal);
+            Assert.Contains("_roster.RecordDeletedInGame(id)", sync, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void the_copy_leaves_time_warp_to_gonogo()
         {
             var backend = CurrencyDelaySourceText.ReadRelative("StockAlarmClockBackend.cs");

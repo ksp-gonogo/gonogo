@@ -668,6 +668,10 @@ namespace Gonogo.KSP
             {
                 _roster.MarkDeletedInGame(id);
             }
+            foreach (var id in outcome.DeletedAfterRelease)
+            {
+                _roster.RecordDeletedInGame(id);
+            }
             foreach (var edit in outcome.EditedInGame)
             {
                 _roster.EditFromGame(edit.Key, edit.Value.Title, edit.Value.Ut);

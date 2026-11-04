@@ -21,6 +21,14 @@ namespace Sitrep.Host.Alarms
     /// is not armed again is left alone: the copy stays in the game as an
     /// ordinary alarm the player can see and delete.</para>
     ///
+    /// <para>A fired alarm keeps its link while its copy is in the game, which
+    /// holds a due copy until the player closes its message. A fired alarm whose
+    /// copy is gone was deleted by the player, and is reported like any other
+    /// delete. A client takes a fired alarm off the roster as soon as it has
+    /// latched it, so the copy of a removed alarm that is due is watched on its
+    /// own and reported through <see cref="GameAlarmMirrorOutcome.DeletedAfterRelease"/>
+    /// when it goes.</para>
+    ///
     /// <para>An edit made to a copy in the game moves the Gonogo alarm to match,
     /// as long as the Gonogo alarm has not itself moved since the copy last
     /// matched it. When both moved, Gonogo's values win and the copy is made
@@ -30,6 +38,7 @@ namespace Sitrep.Host.Alarms
     {
         private readonly IDictionary<string, long> _links;
         private readonly List<string> _disarmed = new List<string>();
+        private readonly Dictionary<string, long> _released = new Dictionary<string, long>(StringComparer.Ordinal);
         private readonly Dictionary<string, (string Title, double Ut)> _matched =
             new Dictionary<string, (string Title, double Ut)>(StringComparer.Ordinal);
 
@@ -105,15 +114,31 @@ namespace Sitrep.Host.Alarms
             {
                 if (_links.TryGetValue(id, out var gameId))
                 {
-                    if (held.TryGetValue(gameId, out var copy) && !RemovesItself(copy, nowUt))
+                    if (held.TryGetValue(gameId, out var copy))
                     {
-                        clock.Delete(gameId);
+                        if (RemovesItself(copy, nowUt))
+                        {
+                            _released[id] = gameId;
+                        }
+                        else
+                        {
+                            clock.Delete(gameId);
+                        }
                     }
                     _links.Remove(id);
                 }
                 _matched.Remove(id);
             }
             _disarmed.Clear();
+
+            foreach (var release in new List<KeyValuePair<string, long>>(_released))
+            {
+                if (!held.ContainsKey(release.Value))
+                {
+                    _released.Remove(release.Key);
+                    outcome.DeletedAfterRelease.Add(release.Key);
+                }
+            }
 
             foreach (var alarm in roster)
             {
@@ -123,6 +148,25 @@ namespace Sitrep.Host.Alarms
                 }
                 var linked = _links.TryGetValue(alarm.Id, out var gameId);
                 var present = linked && held.ContainsKey(gameId);
+
+                if (linked && IsFiredTimeAlarm(alarm))
+                {
+                    // The game holds a due copy until the player closes its
+                    // message, and only then removes it, so a copy that is gone
+                    // after the alarm fired was deleted by the player.
+                    if (present)
+                    {
+                        outcome.Links[alarm.Id] = gameId;
+                    }
+                    else
+                    {
+                        _links.Remove(alarm.Id);
+                        _matched.Remove(alarm.Id);
+                        outcome.DeletedInGame.Add(alarm.Id);
+                        outcome.Links[alarm.Id] = null;
+                    }
+                    continue;
+                }
 
                 if (!Wanted(alarm))
                 {
@@ -201,6 +245,11 @@ namespace Sitrep.Host.Alarms
         private static bool RemovesItself(GameAlarmRecord copy, double nowUt) =>
             copy.Triggered || nowUt >= copy.Ut;
 
+        private static bool IsFiredTimeAlarm(ScetAlarm alarm) =>
+            alarm.State == ScetAlarmState.Fired
+            && alarm.Condition != null
+            && alarm.Condition.Kind == ScetAlarmConditionKind.Time;
+
         private static bool Wanted(ScetAlarm alarm) =>
             alarm.State == ScetAlarmState.Armed
             && alarm.Condition != null
@@ -231,6 +280,12 @@ namespace Sitrep.Host.Alarms
     {
         /// <summary>Gonogo alarms whose copy the player deleted in the game.</summary>
         public List<string> DeletedInGame { get; } = new List<string>();
+
+        /// <summary>
+        /// Gonogo alarms already removed from the roster, whose due copy was left
+        /// in the game for the player to close and has now gone from it.
+        /// </summary>
+        public List<string> DeletedAfterRelease { get; } = new List<string>();
 
         /// <summary>
         /// Gonogo alarms whose copy the player edited in the game, with the title
