@@ -253,8 +253,7 @@ function noticeFor(props: ReadoutFiguresProps): Notice | null {
   if (twoBody) {
     return {
       tag: "Two-body",
-      detail:
-        "Two-body projection. The flown trajectory accounts for other bodies, so the craft will drift from these figures.",
+      detail: "Two-body projection",
     };
   }
   if (reading.reckoned !== undefined && level !== "docking") {
