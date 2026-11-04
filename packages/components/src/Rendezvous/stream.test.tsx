@@ -106,6 +106,47 @@ describe("Rendezvous: genuinely runs off the stream", () => {
     await settleRendezvous();
   });
 
+  it("draws both docking offsets in metres with two decimals, never in an exponent or a smaller unit", async () => {
+    const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
+
+    render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "dtt-dock-xy" }}>
+          <RendezvousComponent id="dtt-dock-xy" w={12} h={10} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.emit("vessel.target", {
+        name: "Docking Port Mk2",
+        kind: 0,
+        vesselId: "target-vessel",
+        bodyIndex: null,
+        relativePosition: { x: 0, y: 0, z: 30 },
+        relativeVelocity: { x: 0, y: 0, z: -0.4 },
+      });
+      fixture.emit(
+        "vessel.dock",
+        {
+          relativePosition: { x: 0.00012, y: 0.4, z: 20 },
+          relativeVelocity: { x: 0, y: 0, z: -0.4 },
+          distance: 20,
+          forwardDot: 0.9999,
+        },
+        { validAt: 10, deliveredAt: 10 },
+      );
+    });
+
+    await waitFor(() =>
+      expect(screen.getByRole("group", { name: "Docking level" })).toBeTruthy(),
+    );
+    expect(visibleText()).toContain("0.00 m");
+    expect(visibleText()).toContain("0.40 m");
+    expect(visibleText()).not.toMatch(/×10|e-\d/);
+    await settleRendezvous();
+  });
+
   it("degrades correctly (not stale) when the target is cleared, vessel.target present -> null tombstone", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,

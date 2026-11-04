@@ -181,10 +181,10 @@ function bottomFigures(props: ReadoutFiguresProps): {
         ) : (
           <>
             <AxisArrow direction="right" />
-            <Unit value={value("m", reading.dockX)} decimals={2} />
+            <Unit value={value("m", reading.dockX)} format="m" decimals={2} />
             <span style={{ marginLeft: "1.1em" }}>
               <AxisArrow direction="up" />
-              <Unit value={value("m", reading.dockY)} decimals={2} />
+              <Unit value={value("m", reading.dockY)} format="m" decimals={2} />
             </span>
           </>
         ),
