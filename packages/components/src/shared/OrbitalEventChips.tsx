@@ -4,13 +4,7 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { isLocked, unlessLocked } from "@ksp-gonogo/sitrep-sdk";
-import {
-  Badge,
-  Cluster,
-  Countdown,
-  LockMark,
-  Tooltip,
-} from "@ksp-gonogo/ui-kit";
+import { Box, Cluster, Countdown, LockMark, Tooltip } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { countdownOf } from "./countdownOf";
 import { encounterKindOf } from "./encounterKind";
@@ -117,7 +111,28 @@ export function OrbitalEventChips() {
 
 type ChipVariant = "go" | "warn" | "neutral";
 
-/** A compact badge: label + value on one centred line, in the tone of its variant. */
+const CHIP_TONE: Record<
+  ChipVariant,
+  { border: string; background: string; color: string }
+> = {
+  go: {
+    border: "var(--color-go-status)",
+    background: "var(--color-go-status)",
+    color: "var(--color-go-on-status)",
+  },
+  warn: {
+    border: "var(--color-warn-mark)",
+    background: "var(--color-warn-status)",
+    color: "var(--color-warn-on-status)",
+  },
+  neutral: {
+    border: "var(--color-border-subtle)",
+    background: "transparent",
+    color: "var(--color-text-primary)",
+  },
+};
+
+/** A compact bordered pill: label + value, tone-coloured per variant. */
 function Chip({
   variant,
   tip,
@@ -128,20 +143,25 @@ function Chip({
   tip: string;
   children: ReactNode;
 }) {
+  const tone = CHIP_TONE[variant];
   return (
     <Tooltip text={tip} focusable>
-      <Badge size="sm" tone={variant}>
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "var(--gap-related)",
-            lineHeight: "var(--line-height-flush)",
-          }}
-        >
-          {children}
-        </span>
-      </Badge>
+      <Box
+        pad="chip-readout"
+        radius="regular"
+        style={{
+          display: "inline-flex",
+          alignItems: "baseline",
+          gap: "var(--gap-related)",
+          border: `1px solid ${tone.border}`,
+          background: tone.background,
+          color: tone.color,
+          fontSize: "10px",
+          letterSpacing: "0.04em",
+        }}
+      >
+        {children}
+      </Box>
     </Tooltip>
   );
 }

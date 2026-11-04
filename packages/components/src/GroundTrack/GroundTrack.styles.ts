@@ -126,3 +126,30 @@ export const NoSignal = styled.div`
   text-transform: uppercase;
   pointer-events: none;
 `;
+
+export const ImagingChip = styled.span<{ $variant: "on" | "off" | "warn" }>`
+  padding: var(--inset-chip);
+  font-size: var(--font-size-caption);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-radius: var(--radius-regular);
+  border: 1px solid
+    ${({ $variant }) =>
+      $variant === "on"
+        ? "var(--color-go-mark)"
+        : $variant === "warn"
+          ? "var(--color-tag-yellow-border)"
+          : "var(--color-border-subtle)"};
+  background: ${({ $variant }) =>
+    $variant === "on"
+      ? "rgba(40, 120, 60, 0.3)"
+      : $variant === "warn"
+        ? "rgba(120, 100, 40, 0.3)"
+        : "rgba(40, 40, 40, 0.3)"};
+  color: ${({ $variant }) =>
+    $variant === "on"
+      ? "var(--color-go-text)"
+      : $variant === "warn"
+        ? "var(--color-tag-yellow-fg)"
+        : "var(--color-text-muted)"};
+`;
