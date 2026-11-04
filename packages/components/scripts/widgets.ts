@@ -536,11 +536,11 @@ const WIDGETS: WidgetRenderConfig[] = [
       // Default registered size, Applicants tab (the initial tab).
       { name: "default-6x8", w: 6, h: 8 },
       // Narrow: rows compress; confirms the Hire button doesn't clip.
-      { name: "narrow-4x8", w: 4, h: 8 },
+      { name: "narrow-5x8", w: 5, h: 8 },
       // Tall: full pool with room to breathe.
       { name: "tall-6x12", w: 6, h: 12 },
       // The registered minimum, where the sandbox state has the least room.
-      { name: "min-3x4", w: 3, h: 4, forFixtures: ["sandbox"] },
+      { name: "min-5x4", w: 5, h: 4, forFixtures: ["sandbox"] },
       /*
        * Switch to the Active tab: default fixtures carry no crewRoster
        * sample, so this captures the empty state; the multi-situation
