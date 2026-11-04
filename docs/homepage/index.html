@@ -8,6 +8,10 @@
       name="description"
       content="A mission control room for Kerbal Space Program. Run your whole save from the browser, contracts, science, launches, and live telemetry, across as many screens as you want."
     />
+    <link rel="icon" type="image/svg+xml" sizes="any" href="img/icon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png" />
     <style>
       :root {
         --bg: #0b0f14;
@@ -152,7 +156,8 @@
         gap: 4rem;
         align-items: start;
       }
-      h1 { font-size: clamp(2.75rem, 7vw, 4rem); }
+      h1 { font-size: clamp(2.75rem, 7vw, 4rem); display: flex; align-items: center; gap: 0.3em; line-height: 1; }
+      h1 .logo { width: 1.1em; height: 1.1em; flex: none; transform: translateY(0.1em); }
       .tagline { margin-top: 0.25rem; font-size: 1.3rem; }
       .sub { margin-top: 0.75rem; }
       .setup { margin-top: 2rem; }
@@ -224,9 +229,10 @@
   <body>
     <main class="wrap">
       <div>
-        <h1>gonogo</h1>
+        <h1><img class="logo" src="img/icon.svg" width="180" height="180" alt="" />gonogo</h1>
         <p class="tagline">Mission control for Kerbal Space Program.</p>
         <p class="sub">Get rich telemetry from the API, or use the mission control app that supports multiplayer-focused station screens. Expansive mod support provided through the Uplink framework.</p>
+        <p class="sub">By default, Gonogo implements an optional signal delay system. All telemetry is modelled as travelling at light speed through the relay network.</p>
         <div class="shot still still-narrow"><img src="img/ground-track.webp" width="1000" height="432" loading="lazy" alt="Ground track of a craft heading for a Mun encounter" /></div>
         <p class="join"><a href="https://ksp-gonogo.github.io/app/station">Join someone else's game</a></p>
         <section class="setup" aria-labelledby="setup">

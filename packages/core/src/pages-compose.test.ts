@@ -207,6 +207,27 @@ describe("the release channel", () => {
     expect(existsSync(join(site, "img", "stale.webp"))).toBe(false);
   });
 
+  it("ships the app's own tab icons, byte for byte, and links each from the landing page", () => {
+    compose("release", dist, api, site);
+
+    const appPublic = join(
+      dirname(fileURLToPath(import.meta.url)),
+      "../../app/public",
+    );
+    const html = read("index.html");
+    for (const file of [
+      "icon.svg",
+      "favicon-16.png",
+      "favicon-32.png",
+      "apple-touch-icon.png",
+    ]) {
+      expect(html, file).toContain(`href="img/${file}"`);
+      expect(readFileSync(join(site, "img", file)), file).toEqual(
+        readFileSync(join(appPublic, file)),
+      );
+    }
+  });
+
   it("puts the API page at /gonogo/api/ beside the redirects, which still answer the old app routes", () => {
     compose("release", dist, api, site);
 
