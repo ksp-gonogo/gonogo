@@ -32,13 +32,19 @@ describe("placePlotReadouts", () => {
     ).toBe("overlay");
   });
 
-  it("leaves the plot its width at the narrowest chart that takes a column", () => {
+  it("takes a column only from the width where the plot can spare it", () => {
+    const content = { height: 260, contentWidth: 150 };
+    expect(placePlotReadouts({ width: 720, ...content }).placement).toBe(
+      "beside",
+    );
+    expect(placePlotReadouts({ width: 719, ...content }).placement).toBe(
+      "below",
+    );
+  });
+
+  it("keeps a chart too short for a strip under the plot over it", () => {
     expect(
-      placePlotReadouts({ width: 480, height: 200, contentWidth: 150 })
-        .placement,
-    ).toBe("beside");
-    expect(
-      placePlotReadouts({ width: 480, height: 200, contentWidth: 190 })
+      placePlotReadouts({ width: 600, height: 180, contentWidth: 150 })
         .placement,
     ).toBe("overlay");
   });

@@ -49,8 +49,8 @@ export type PlotReadoutPlacement =
       legendBelow: boolean;
     };
 
-/** Narrowest chart that still leaves the plot a usable width beside a column. */
-const BESIDE_MIN_WIDTH = 480;
+/** Narrowest chart that gives up a column's width to its readouts; below it the legend goes under the plot. */
+const BESIDE_MIN_WIDTH = 720;
 
 /** Shortest chart whose column can hold a card of a few rows. */
 const BESIDE_MIN_HEIGHT = 110;

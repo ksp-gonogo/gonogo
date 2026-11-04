@@ -8,7 +8,7 @@ const X = [0, 1, 2, 3];
 describe("a graph with a legend column beside the plot", () => {
   it("draws the right axis title left of the legend chips, at any chart width", () => {
     const overlaps: string[] = [];
-    for (const width of [640, 760, 880, 1100]) {
+    for (const width of [760, 880, 1100]) {
       const uninstall = installFixedSizeResizeObserver({ width, height: 180 });
       const { container, unmount } = render(
         <Graph

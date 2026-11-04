@@ -165,7 +165,7 @@ describe("LineChart crosshair", () => {
   });
 
   it("gives a roomy chart a column past the plot for its legend, and the card stays over the plot", () => {
-    const { container } = render(chart({ width: 700, height: 260 }));
+    const { container } = render(chart({ width: 760, height: 260 }));
     const svg = container.querySelector("svg") as SVGSVGElement;
     const plotRight = () => {
       const plot = container.querySelector("svg rect") as SVGRectElement;
