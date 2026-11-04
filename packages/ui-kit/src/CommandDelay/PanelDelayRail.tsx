@@ -1,8 +1,7 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import styled, { css } from "styled-components";
 import { focusRingInset } from "../focusRing";
 import { LiveRegion } from "../LiveRegion";
-import { Tooltip } from "../Tooltip";
 import { TONE_TEXT } from "../tone";
 import { CommandDelay } from "./CommandDelay";
 import { CommandList } from "./CommandList";
@@ -22,23 +21,12 @@ import {
   type RailUndelivered,
 } from "./commandUndeliveredSentence";
 import {
-  commandWarningSentence,
-  type RailWarning,
-} from "./commandWarningSentence";
-import {
   type CommandHandle,
   useActiveHandles,
   useDelayRailStore,
 } from "./DelayRailContext";
-import { InFlightLanes } from "./InFlightList";
 import { claimRailAnnouncer } from "./railAnnouncer";
 import { railMark } from "./railTags";
-import { SETTLE_FADE_MS } from "./settle";
-import {
-  type InFlightCommandLike,
-  secondsToRailEnd,
-  toInFlightListItems,
-} from "./toInFlightListItems";
 
 /**
  * Whether a handle's `CommandDelay` would draw anything, mirroring its own
@@ -46,178 +34,6 @@ import {
  * one needs in-flight rows. An idle handle stays registered but draws no rail
  * chrome.
  */
-/*
- * One row per command across the panel's handles: a command another screen
- * sent is found by every handle of its command, and one handle's own dispatch
- * by every other handle of the same command, all under the same id.
- */
-function withoutRepeatedRows(
-  handles: readonly CommandHandle[],
-): CommandHandle[] {
-  const seen = new Set<string>();
-  return handles.map((handle) => {
-    const rows = handle.inFlight.filter((row) => {
-      if (seen.has(row.id)) return false;
-      seen.add(row.id);
-      return true;
-    });
-    return rows.length === handle.inFlight.length
-      ? handle
-      : { ...handle, inFlight: rows };
-  });
-}
-
-/*
- * One command's outcome reaches every handle of its command on the panel: the
- * one that sent it from its own reply, and the others from the centre's
- * report. It is drawn once.
- */
-function firstOfEachId<Item extends { id: string }>(list: Item[]): Item[] {
-  const seen = new Set<string>();
-  return list.filter((item) => {
-    if (seen.has(item.id)) return false;
-    seen.add(item.id);
-    return true;
-  });
-}
-
-/*
- * A warning names its command and says one thing, and a continuous input
- * carries the same one on every dispatch, so each is drawn once.
- */
-function distinctWarnings(handles: readonly CommandHandle[]): RailWarning[] {
-  const byText = new Map<string, RailWarning>();
-  for (const handle of handles) {
-    for (const warned of handle.warnings ?? []) {
-      const key = `${warned.command}\u0000${warned.label}\u0000${warned.warning}`;
-      if (!byText.has(key)) {
-        byText.set(key, { ...warned, id: key, tags: handle.tags });
-      }
-    }
-  }
-  return [...byText.values()];
-}
-
-interface DepartedRow {
-  handleId: string;
-  row: InFlightCommandLike;
-}
-
-const NO_DEPARTED: ReadonlyMap<string, DepartedRow> = new Map();
-
-const UNANSWERED_PHASES = new Set(["overdue", "lost"]);
-
-/** The ids of every command a handle reports refused, failed or never sent, and of every late one that ran. */
-function outcomeIds(handles: readonly CommandHandle[]): {
-  failed: Set<string>;
-  ran: Set<string>;
-} {
-  const failed = new Set<string>();
-  const ran = new Set<string>();
-  for (const h of handles) {
-    for (const r of h.refusals ?? []) failed.add(r.id);
-    for (const f of h.failures ?? []) failed.add(f.id);
-    for (const u of h.undelivered ?? []) failed.add(u.id);
-    for (const f of h.founds ?? [])
-      (f.outcome === "ran" ? ran : failed).add(f.id);
-  }
-  return { failed, ran };
-}
-
-/*
- * A command that leaves the rail is drawn a while longer so its mark never just
- * vanishes. Answered, it carries on through the confirmed stage to the end of
- * the rail at the pace it travelled, then fades. Refused, failed, or dismissed
- * while unanswered, it fades where it was. Kept here rather than in the strip
- * because a handle with no rows left is not drawn at all.
- */
-function useSettlingRows(handles: readonly CommandHandle[]): CommandHandle[] {
-  const current = new Map<string, DepartedRow>();
-  for (const handle of handles) {
-    for (const row of handle.inFlight) {
-      if (!row.settling) current.set(row.id, { handleId: handle.id, row });
-    }
-  }
-  const { failed, ran } = outcomeIds(handles);
-  const [state, setState] = useState<{
-    last: ReadonlyMap<string, DepartedRow>;
-    settling: ReadonlyMap<string, DepartedRow>;
-  }>({ last: NO_DEPARTED, settling: NO_DEPARTED });
-  /*
-   * Worked out while rendering, not after: a row that left and came back a
-   * render later would be a new mark, which starts where it ends up rather
-   * than moving there.
-   */
-  const gone = [...state.last].filter(([id]) => !current.has(id));
-  const rowsChanged =
-    gone.length > 0 ||
-    current.size !== state.last.size ||
-    [...current].some(([id, d]) => state.last.get(id)?.row !== d.row);
-  if (rowsChanged) {
-    const departed = gone.map(([id, d]): [string, DepartedRow] => {
-      const kind =
-        failed.has(id) ||
-        (UNANSWERED_PHASES.has(d.row.predictedPhase) && !ran.has(id))
-          ? ("failed" as const)
-          : ("confirmed" as const);
-      const settleSeconds = kind === "confirmed" ? secondsToRailEnd(d.row) : 0;
-      return [id, { ...d, row: { ...d.row, settling: kind, settleSeconds } }];
-    });
-    setState({
-      last: current,
-      settling:
-        departed.length === 0
-          ? state.settling
-          : new Map([...state.settling, ...departed]),
-    });
-  }
-  const timersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
-  useEffect(() => {
-    const timers = timersRef.current;
-    for (const [id, d] of state.settling) {
-      if (timers.has(id)) continue;
-      const timer = setTimeout(
-        () => {
-          timers.delete(id);
-          setState((prev) => {
-            const next = new Map(prev.settling);
-            next.delete(id);
-            return { ...prev, settling: next };
-          });
-        },
-        (d.row.settleSeconds ?? 0) * 1000 + SETTLE_FADE_MS,
-      );
-      timers.set(id, timer);
-    }
-  }, [state.settling]);
-  useEffect(() => {
-    const timers = timersRef.current;
-    return () => {
-      for (const timer of timers.values()) clearTimeout(timer);
-    };
-  }, []);
-  if (state.settling.size === 0) return handles as CommandHandle[];
-  return handles.map((handle) => {
-    const departed = [...state.settling.values()]
-      .filter((d) => d.handleId === handle.id && !current.has(d.row.id))
-      // An outcome can land a render after its row left, and turns the row it answers.
-      .map((d) =>
-        d.row.settling === "confirmed" && failed.has(d.row.id)
-          ? { ...d.row, settling: "failed" as const, settleSeconds: 0 }
-          : d.row.settling === "failed" && ran.has(d.row.id)
-            ? {
-                ...d.row,
-                settling: "confirmed" as const,
-                settleSeconds: secondsToRailEnd(d.row),
-              }
-            : d.row,
-      );
-    return departed.length === 0
-      ? handle
-      : { ...handle, inFlight: [...handle.inFlight, ...departed] };
-  });
-}
-
 function handleHasContent(handle: CommandHandle): boolean {
   if (railMark(handle.tags) === "ribbon") {
     const delay = handle.effectiveDelaySeconds;
@@ -252,8 +68,7 @@ function handleHasContent(handle: CommandHandle): boolean {
  * toggles.
  *
  * The strip is empty unless a command is in flight, refused, unanswered,
- * found, never sent, answered with a fault, or accepted with a warning. A
- * command in flight is drawn whichever screen of the command centre sent it.
+ * found, never sent, or answered with a fault.
  *
  * `tiny` is for a tiny panel with no header: the empty strip draws no
  * background, so it does not cover the panel's focus ring.
@@ -262,34 +77,25 @@ export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
   const handles = useActiveHandles();
   const store = useDelayRailStore();
   useEffect(() => (store ? claimRailAnnouncer(store) : undefined), [store]);
-  const visible = withoutRepeatedRows(useSettlingRows(handles)).filter(
-    handleHasContent,
-  );
-  const warnings = distinctWarnings(handles);
+  const visible = handles.filter(handleHasContent);
   // Outcomes come from EVERY registered handle: a settled command has nothing in flight, so `handleHasContent` would hide it.
-  const refusals: RailRefusal[] = firstOfEachId(
-    handles.flatMap((h) =>
-      (h.refusals ?? []).map((r) => ({ ...r, tags: h.tags })),
-    ),
+  const refusals: RailRefusal[] = handles.flatMap((h) =>
+    (h.refusals ?? []).map((r) => ({ ...r, tags: h.tags })),
   );
   const losses: RailLoss[] = handles.flatMap((h) =>
     (h.losses ?? []).map((l) => ({ ...l, tags: h.tags })),
   );
   // A found answers an unconfirmed command, so it is never counted with the failures.
-  const founds: RailFound[] = firstOfEachId(
-    handles.flatMap((h) =>
-      (h.founds ?? []).map((f) => ({ ...f, tags: h.tags })),
-    ),
+  const founds: RailFound[] = handles.flatMap((h) =>
+    (h.founds ?? []).map((f) => ({ ...f, tags: h.tags })),
   );
   // An undelivered command provably did not run, so it counts with the failures.
   const undelivered: RailUndelivered[] = handles.flatMap((h) =>
     (h.undelivered ?? []).map((u) => ({ ...u, tags: h.tags })),
   );
   // The mod said what became of each of these, and none of them ran.
-  const failures: RailFailed[] = firstOfEachId(
-    handles.flatMap((h) =>
-      (h.failures ?? []).map((f) => ({ ...f, tags: h.tags })),
-    ),
+  const failures: RailFailed[] = handles.flatMap((h) =>
+    (h.failures ?? []).map((f) => ({ ...f, tags: h.tags })),
   );
   // A loss may still have run, so it is counted as unconfirmed and never as failed.
   const failedCount = refusals.length + undelivered.length + failures.length;
@@ -297,8 +103,7 @@ export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
     visible.length > 0 ||
     failedCount > 0 ||
     losses.length > 0 ||
-    founds.length > 0 ||
-    warnings.length > 0;
+    founds.length > 0;
   const [pinned, setPinned] = useState(false);
   // Hover preview is React state, not CSS `:hover`, so one flag decides both the height and which view each command draws.
   const [previewing, setPreviewing] = useState(false);
@@ -325,25 +130,14 @@ export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
     ...visible.filter((h) => railMark(h.tags) === "ribbon"),
     ...visible.filter((h) => railMark(h.tags) !== "ribbon"),
   ];
-  const hasGraph = visible.some((h) => railMark(h.tags) === "ribbon");
-  const discrete = ordered.filter((h) => railMark(h.tags) !== "ribbon");
-  const strip = toInFlightListItems(
-    visible
-      .filter((h) => railMark(h.tags) !== "ribbon")
-      .flatMap((h) => h.inFlight),
-  );
 
   // Each dismiss routes to the handle that owns the outcome; absent when no handle can dismiss.
   const canDismissRefusal = handles.some(
     (h) => h.dismiss && (h.refusals?.length ?? 0) > 0,
   );
   const dismissRefusal = canDismissRefusal
-    ? (id: string) => {
-        // Every handle holding it, since each draws the same command.
-        for (const h of handles) {
-          if (h.refusals?.some((r) => r.id === id)) h.dismiss?.(id);
-        }
-      }
+    ? (id: string) =>
+        handles.find((h) => h.refusals?.some((r) => r.id === id))?.dismiss?.(id)
     : undefined;
   const canDismissLoss = handles.some(
     (h) => h.dismiss && (h.losses?.length ?? 0) > 0,
@@ -365,21 +159,15 @@ export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
     (h) => h.dismiss && (h.failures?.length ?? 0) > 0,
   );
   const dismissFailure = canDismissFailure
-    ? (id: string) => {
-        for (const h of handles) {
-          if (h.failures?.some((f) => f.id === id)) h.dismiss?.(id);
-        }
-      }
+    ? (id: string) =>
+        handles.find((h) => h.failures?.some((f) => f.id === id))?.dismiss?.(id)
     : undefined;
   const canDismissFound = handles.some(
     (h) => h.dismiss && (h.founds?.length ?? 0) > 0,
   );
   const dismissFound = canDismissFound
-    ? (id: string) => {
-        for (const h of handles) {
-          if (h.founds?.some((f) => f.id === id)) h.dismiss?.(id);
-        }
-      }
+    ? (id: string) =>
+        handles.find((h) => h.founds?.some((f) => f.id === id))?.dismiss?.(id)
     : undefined;
 
   return (
@@ -419,9 +207,6 @@ export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
           {founds.map((f) => (
             <span key={`found:${f.id}`}>{commandFoundSentence(f)} </span>
           ))}
-          {warnings.map((w) => (
-            <span key={`warning:${w.id}`}>{commandWarningSentence(w)}</span>
-          ))}
         </LiveRegion>
       )}
       {/* Nothing to draw leaves the band standing EMPTY: the strip is the panel's, not the traffic's. */}
@@ -440,70 +225,38 @@ export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
             }
           }}
         >
-          {/* Opened with no graph to share, the marks come down into a band of their own, first in the rail. Each names its command on hover and on focus. */}
-          {grown && strip.length > 0 && !hasGraph && (
-            <PanelDelayRail__GrownStrip>
-              <InFlightLanes items={strip} height={LANES_HEIGHT_PX} />
-            </PanelDelayRail__GrownStrip>
-          )}
-          {/* Closed, the marks are tips too small to point at, so the rail's button names the commands in flight; hovering opens the rail, where each mark names its own. */}
-          <Tooltip
-            text={
-              !grown && strip.length > 0
-                ? `In flight: ${strip
-                    .filter((i) => !i.settling)
-                    .map((i) => i.label)
-                    .join(", ")}`
-                : null
-            }
+          <PanelDelayRail__Toggle
+            type="button"
+            aria-expanded={pinned}
+            aria-controls={detailId}
+            aria-label="Signal-delay detail"
+            onClick={() => {
+              setPinned((p) => {
+                const next = !p;
+                if (!next) setSuppressHoverPreview(true);
+                return next;
+              });
+            }}
           >
-            <PanelDelayRail__Toggle
-              type="button"
-              aria-expanded={pinned}
-              aria-controls={detailId}
-              aria-label="Signal-delay detail"
-              onClick={() => {
-                setPinned((p) => {
-                  const next = !p;
-                  if (!next) setSuppressHoverPreview(true);
-                  return next;
-                });
-              }}
-            >
-              {/* Hidden rather than unmounted: a node leaving from under a resting pointer reads to React as the pointer entering the rail. */}
-              <PanelDelayRail__CollapseHint aria-hidden="true" hidden={!grown}>
-                ▲
-              </PanelDelayRail__CollapseHint>
-            </PanelDelayRail__Toggle>
-          </Tooltip>
+            {/* Hidden rather than unmounted: a node leaving from under a resting pointer reads to React as the pointer entering the rail. */}
+            <PanelDelayRail__CollapseHint aria-hidden="true" hidden={!grown}>
+              ▲
+            </PanelDelayRail__CollapseHint>
+          </PanelDelayRail__Toggle>
           <PanelDelayRail__Detail id={detailId} data-panel-rail-detail="">
-            {ordered
-              .filter((h) => !grown || railMark(h.tags) === "ribbon")
-              .map((h) => (
-                <CommandDelay
-                  key={h.id}
-                  handle={h}
-                  variant={grown ? "expanded" : "rail"}
-                  // A handle that names its own graph keeps that name at both heights.
-                  aria-label={
-                    h["aria-label"] ?? (grown ? "Delay detail" : undefined)
-                  }
-                />
-              ))}
-            {/* Opened, every command of every handle is one queue, one box. */}
-            {grown && discrete.length > 0 && (
+            {ordered.map((h) => (
               <CommandDelay
-                key="queue"
-                handles={discrete}
-                variant="expanded"
-                aria-label="Commands in flight"
+                key={h.id}
+                handle={h}
+                variant={grown ? "expanded" : "rail"}
+                // A handle that names its own graph keeps that name at both heights.
+                aria-label={
+                  h["aria-label"] ?? (grown ? "Delay detail" : undefined)
+                }
               />
-            )}
+            ))}
             {!grown &&
-              (failedCount > 0 ||
-                losses.length > 0 ||
-                founds.length > 0 ||
-                warnings.length > 0) && (
+              (failedCount > 0 || losses.length > 0 || founds.length > 0) && (
                 // One run for every count, since they share the band's single grid cell.
                 <PanelDelayRail__Summaries>
                   {failedCount > 0 && (
@@ -520,13 +273,6 @@ export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
                         : `${losses.length} commands unconfirmed`}
                     </PanelDelayRail__WarnSummary>
                   )}
-                  {warnings.length > 0 && (
-                    <PanelDelayRail__WarnSummary>
-                      {warnings.length === 1
-                        ? "1 warning"
-                        : `${warnings.length} warnings`}
-                    </PanelDelayRail__WarnSummary>
-                  )}
                   {founds.length > 0 && (
                     <PanelDelayRail__FoundSummary>
                       {founds.length === 1
@@ -537,18 +283,9 @@ export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
                 </PanelDelayRail__Summaries>
               )}
           </PanelDelayRail__Detail>
-          {/* Opened over a graph, the marks lie on it; last in the rail, so they paint over the graph and the rail's button. */}
-          {grown && strip.length > 0 && hasGraph && (
-            <PanelDelayRail__GrownStrip data-over-graph="true">
-              <InFlightLanes items={strip} height={GRAPH_HEIGHT_PX} />
-            </PanelDelayRail__GrownStrip>
-          )}
         </PanelDelayRail__Rail>
       )}
       {/* Outside the rail, so the grown lists push the panel down rather than share the rail's grid cell. */}
-      {grown && warnings.length > 0 && (
-        <CommandList kind="warned" entries={warnings} live={false} />
-      )}
       {grown && refusals.length > 0 && (
         <CommandList
           kind="refused"
@@ -692,23 +429,6 @@ const PanelDelayRail__Toggle = styled.button`
     pointer-events: none;
   }
 
-`;
-
-/** The opened graph's height, which the lanes share. */
-const GRAPH_HEIGHT_PX = 86;
-/** The lanes' own band, where there is no graph to share. */
-const LANES_HEIGHT_PX = 40;
-
-/** The opened rail's command marks: over the graph at the top of the rail, or a band of their own in flow. */
-const PanelDelayRail__GrownStrip = styled.div`
-  pointer-events: none;
-
-  &[data-over-graph="true"] {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-  }
 `;
 
 /**

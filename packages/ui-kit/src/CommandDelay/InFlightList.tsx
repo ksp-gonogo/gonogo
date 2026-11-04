@@ -9,19 +9,17 @@ import {
   type MouseEvent,
   type RefObject,
   useEffect,
+  useId,
   useRef,
   useState,
 } from "react";
-import styled, { css, keyframes } from "styled-components";
+import styled, { css } from "styled-components";
 import { Countdown } from "../Countdown";
-import { focusRingInset } from "../focusRing";
-import { InlineOverflowGlow, useInlineOverflow } from "../inlineOverflow";
 import { Tooltip } from "../Tooltip";
 import { TONE_MARK, TONE_TEXT } from "../tone";
 import { writeQuantity } from "../units";
 import { useElementSize } from "../useElementSize";
 import { focusBesideDismissed } from "./focusBesideDismissed";
-import { SETTLE_FADE_MS } from "./settle";
 import { deriveGlyph, PHASE_PROGRESS } from "./toInFlightListItems";
 
 /**
@@ -96,10 +94,9 @@ export interface InFlightListItem {
   /** Where the command is on its way. */
   phase: "in-transit" | "awaiting-reply" | "due" | "overdue" | "lost";
   /**
-   * How far the command is along the rail's three equal stages: 1/3 when it
-   * reaches the craft, 2/3 when its reply is due, and 1 at the end of the
-   * confirmed stage. The `variant="rail"` mark and the `variant="expanded"`
-   * bar read it; without it they place the command by phase.
+   * True position along the 3-stage delay axis, 0 (just sent) to 1 (end of the
+   * 3T span). Only the `variant="rail"` glow reads it; without it the glow
+   * anchors by phase.
    */
   progress?: number;
   /**
@@ -110,17 +107,6 @@ export interface InFlightListItem {
   glyph?: string;
   /** Which way the entry crosses: `outbound` to the craft (the default), `inbound` home from it. */
   flow?: "outbound" | "inbound";
-  /** True while the route holds the command at a relay: drawn still, in the held colour. */
-  held?: true;
-  /**
-   * Set on a command that has just left. The `rail` and `expanded` variants
-   * draw a `confirmed` one moving on to `progress` over `settleSeconds`, then
-   * fading, and a `failed` one fading where it was, in the warning colour.
-   * Every other variant leaves it out.
-   */
-  settling?: "confirmed" | "failed";
-  /** How long a `confirmed` command takes to reach `progress`, in seconds. */
-  settleSeconds?: number;
 }
 
 /**
@@ -326,7 +312,7 @@ function gameNow(
  * @category CommandDelay
  */
 export function InFlightList({
-  items: allItems,
+  items,
   mode,
   density = "auto",
   orientation = "column",
@@ -336,11 +322,6 @@ export function InFlightList({
 }: InFlightListProps) {
   // Seeded wide so `auto` only ever shrinks from the full form, never flashing a badge on mount.
   const { ref, size } = useElementSize({ w: 320, h: 0 });
-  // Only the rail and the queue draw a command fading out; a list row or a count would read it as still out.
-  const items =
-    variant === "rail" || variant === "expanded"
-      ? allItems
-      : allItems.filter((item) => !item.settling);
 
   // The rail and expanded renderings bypass density entirely.
   if (variant === "rail") {
@@ -402,14 +383,15 @@ export function InFlightList({
 }
 
 /*
- * Rail strip: each command is a bright dot with a soft halo, at x by how far
- * it is through its trip. It crosses the whole strip and sits at the right end
- * once its reply is due. A command that has just left fades where it last was
- * rather than vanishing. The dot rides the strip's top edge with its top two
- * thirds above it, so only its lower tip and halo show under the panel edge.
+ * Rail strip geometry: each command is a glow centred ABOVE the top edge, so
+ * only its blur grazes the strip, with x tracking true journey progress. No
+ * baseline or dividers.
  */
-const RAIL_DOT_PX = 8;
-const RAIL_DOT_SHOWN = 1 / 3;
+const RAIL_VB_W = 100;
+const RAIL_VB_H = 16;
+const GLOW_CY = -4;
+const GLOW_R = 9;
+const GLOW_PEAK_ALPHA = 0.22;
 
 function InFlightRailStrip({
   items,
@@ -418,39 +400,58 @@ function InFlightRailStrip({
   items: InFlightListItem[];
   "aria-label": string;
 }) {
-  const live = items.filter((item) => !item.settling);
+  const gradBase = useId();
+  const summary = `${items.length} in flight`;
   return (
-    <InFlightRailStrip__Track
+    <InFlightRailStrip__Svg
       role="img"
-      aria-label={`${ariaLabel}: ${live.length} in flight`}
+      aria-label={`${ariaLabel}: ${summary}`}
+      viewBox={`0 0 ${RAIL_VB_W} ${RAIL_VB_H}`}
+      preserveAspectRatio="none"
     >
-      {items.map((item) => {
-        const progress = Math.max(
-          0,
-          Math.min(1, item.progress ?? PHASE_PROGRESS[item.phase]),
-        );
-        return (
-          <InFlightRailStrip__Dot
-            key={item.id}
-            {...(item.settling
-              ? { "data-role": "settling", "data-settling": item.settling }
-              : {
-                  "data-role": "glow",
-                  "data-phase": item.phase,
-                  ...(item.held ? { "data-held": "" } : {}),
-                })}
-            $settling={item.settling}
-            style={
-              {
-                "--dot-colour": markColour(item),
-                "--dot-progress": progress,
-                "--settle-seconds": item.settleSeconds ?? 0,
-              } as CSSProperties
-            }
-          />
-        );
-      })}
-    </InFlightRailStrip__Track>
+      <defs>
+        {items.map((item, i) => {
+          // An unanswered command's glow goes to the warning tone, so it is never invisible here.
+          const colour = ERROR_PHASES.has(item.phase)
+            ? TONE_MARK.warn
+            : "var(--color-accent-fg)";
+          const progress = Math.max(
+            0,
+            Math.min(1, item.progress ?? PHASE_PROGRESS[item.phase]),
+          );
+          const cx = progress * RAIL_VB_W;
+          return (
+            <radialGradient
+              key={item.id}
+              id={`${gradBase}-${i}`}
+              gradientUnits="userSpaceOnUse"
+              cx={cx}
+              cy={GLOW_CY}
+              r={GLOW_R}
+            >
+              <stop
+                offset="0"
+                stopColor={colour}
+                stopOpacity={GLOW_PEAK_ALPHA}
+              />
+              <stop offset="1" stopColor={colour} stopOpacity="0" />
+            </radialGradient>
+          );
+        })}
+      </defs>
+      {items.map((item, i) => (
+        <rect
+          key={item.id}
+          data-role="glow"
+          data-phase={item.phase}
+          x="0"
+          y="0"
+          width={RAIL_VB_W}
+          height={RAIL_VB_H}
+          fill={`url(#${gradBase}-${i})`}
+        />
+      ))}
+    </InFlightRailStrip__Svg>
   );
 }
 
@@ -540,188 +541,18 @@ function InFlightRow({
   );
 }
 
-const settleOut = keyframes`
-  from { opacity: 1; }
-  to { opacity: 0; }
-`;
-
-const InFlightRailStrip__Track = styled.div`
-  position: relative;
+const InFlightRailStrip__Svg = styled.svg`
   display: block;
   width: 100%;
   height: 16px;
-  /* Clips the part of each dot above the strip, whatever box holds it. */
-  overflow: hidden;
-`;
-
-/*
- * The opened rail's marks: whole dots, one lane per command, the first at the
- * middle of the height and each next one a lane below, then above, and so on.
- * Each drops in from the top edge, where the closed rail drew its tip.
- */
-const LANE_GAP_PX = 14;
-
-function laneTop(index: number, count: number, height: number): number {
-  const gap = Math.min(
-    LANE_GAP_PX,
-    (height - RAIL_DOT_PX) / Math.max(1, count),
-  );
-  const step = Math.ceil(index / 2) * (index % 2 === 1 ? 1 : -1);
-  const centre = height / 2 + step * gap;
-  return Math.max(0, Math.min(height - RAIL_DOT_PX, centre - RAIL_DOT_PX / 2));
-}
-
-/**
- * The commands on the opened delay rail, as whole dots in lanes down a box of
- * `height` pixels, placed along it as the closed rail's marks are. Used by the
- * panel delay rail.
- */
-export function InFlightLanes({
-  items,
-  height,
-}: {
-  items: InFlightListItem[];
-  height: number;
-}) {
-  return (
-    <InFlightLanes__Box
-      role="group"
-      aria-label="Commands on the rail"
-      style={{ height }}
-    >
-      {items.map((item, index) => {
-        const progress = Math.max(
-          0,
-          Math.min(1, item.progress ?? PHASE_PROGRESS[item.phase]),
-        );
-        // A dot names its command on hover, in the words its queue square uses.
-        return (
-          <Tooltip
-            key={item.id}
-            text={
-              item.settling ? null : `${item.label}, ${PHASE_WORD[item.phase]}`
-            }
-            announce={false}
-            focusable={!item.settling}
-          >
-            <InFlightRailStrip__Dot
-              {...(item.settling
-                ? {
-                    "data-role": "settling",
-                    "data-settling": item.settling,
-                    "aria-hidden": true,
-                  }
-                : {
-                    role: "img",
-                    "aria-label": `${item.label}, ${PHASE_WORD[item.phase]}`,
-                    "data-role": "glow",
-                    "data-phase": item.phase,
-                    ...(item.held ? { "data-held": "" } : {}),
-                  })}
-              data-lane={index}
-              $settling={item.settling}
-              $lane
-              style={
-                {
-                  "--dot-colour": markColour(item),
-                  "--dot-progress": progress,
-                  "--settle-seconds": item.settleSeconds ?? 0,
-                  "--lane-top": `${laneTop(index, items.length, height)}px`,
-                } as CSSProperties
-              }
-            />
-          </Tooltip>
-        );
-      })}
-    </InFlightLanes__Box>
-  );
-}
-
-/** A command's colour: the warning tone when held, unanswered or failed, so it is never invisible, the accent otherwise. */
-function markColour(item: InFlightListItem): string {
-  // An answered command is confirmed, however late its reply came.
-  if (item.settling === "confirmed") return "var(--color-accent-fg)";
-  return item.held || item.settling === "failed" || ERROR_PHASES.has(item.phase)
-    ? TONE_MARK.warn
-    : "var(--color-accent-fg)";
-}
-
-/*
- * A confirmed command glides on to the end over its settle time, then fades; a
- * failed one fades where it is.
- */
-const settleMotion = (settling: InFlightListItem["settling"]) =>
-  settling === "confirmed"
-    ? css`
-        transition: left var(--settle-time) var(--ease-linear);
-        animation: ${settleOut} ${SETTLE_FADE_MS}ms var(--ease-standard) var(--settle-time) forwards;
-      `
-    : settling === "failed"
-      ? css`
-          animation: ${settleOut} ${SETTLE_FADE_MS}ms var(--ease-standard) forwards;
-        `
-      : null;
-
-const dropIn = keyframes`
-  from { top: ${-RAIL_DOT_PX * (1 - RAIL_DOT_SHOWN)}px; }
-  to { top: var(--lane-top); }
-`;
-
-const InFlightLanes__Box = styled.div`
-  position: relative;
-  width: 100%;
-  overflow: hidden;
-`;
-
-const InFlightRailStrip__Dot = styled.span<{
-  $settling: InFlightListItem["settling"];
-  $lane?: boolean;
-}>`
-  position: absolute;
-  /* The settle time arrives as a bare count of seconds. */
-  --settle-time: calc(var(--settle-seconds, 0) * 1000ms);
-  top: ${-RAIL_DOT_PX * (1 - RAIL_DOT_SHOWN)}px;
-  /* The dot's own width is kept inside the strip, so it is whole at both ends. */
-  left: calc((100% - ${RAIL_DOT_PX}px) * var(--dot-progress));
-  width: ${RAIL_DOT_PX}px;
-  height: ${RAIL_DOT_PX}px;
-  border-radius: var(--radius-circle);
-  background: var(--dot-colour);
-  box-shadow:
-    0 0 6px 2px color-mix(in srgb, var(--dot-colour) 60%, transparent),
-    0 0 14px 4px color-mix(in srgb, var(--dot-colour) 25%, transparent);
-
-  ${({ $lane, $settling }) =>
-    $lane &&
-    css`
-      top: var(--lane-top);
-      /* A hover target a little larger than the dot, so its name is easy to find. */
-      pointer-events: ${$settling ? "none" : "auto"};
-      &::before {
-        content: "";
-        position: absolute;
-        inset: -4px;
-      }
-    `}
-
-  @media (prefers-reduced-motion: no-preference) {
-    transition: left var(--duration-slow) var(--ease-linear);
-    ${({ $settling }) => settleMotion($settling)}
-    ${({ $lane, $settling }) =>
-      $lane &&
-      !$settling &&
-      css`
-        animation: ${dropIn} var(--duration-base) var(--ease-entrance);
-      `}
-  }
 `;
 
 /*
  * The expanded command queue: a SQUARE per command showing its own glyph,
- * never a status icon. Phase is colour, progress a thin bar, full when the
- * reply lands. One box for every command on the panel, which never grows the
- * widget: a queue longer than the box scrolls. A row in a wide box, a column
- * in a narrow one. An unanswered (lost or overdue) square is a clear button.
+ * never a status icon. Phase is colour, progress a thin bar. A fixed box that
+ * never grows the widget: overflow becomes a `+N` count, never a scroll. A row
+ * in a wide box, a column in a narrow one. An unanswered (lost or overdue)
+ * square is a clear button.
  */
 const QUEUE_THICK = 54; // px
 const QUEUE_BAR = 5;
@@ -746,24 +577,32 @@ function InFlightQueue({
   "aria-label": string;
   onDismiss?: (id: string) => void;
 }) {
-  const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
-  const overflow = useInlineOverflow(scroller);
-  // A row longer than its box scrolls sideways, and only then takes keyboard focus to be scrolled.
-  const scrolls = overflow.left || overflow.right;
+  const { ref, size } = useElementSize({ w: 320, h: QUEUE_THICK });
+  // Capacity is measured on the main axis, so a full queue caps at `+N` rather than scrolling.
+  const row = size.w >= QUEUE_ROW_MIN;
+  const main = row ? size.w : size.h;
+  const capacity = Math.max(
+    1,
+    Math.floor((main - 6) / (QUEUE_SQUARE + QUEUE_GAP)),
+  );
+  const willOverflow = items.length > capacity;
+  const shown = willOverflow ? items.slice(0, capacity - 1) : items;
+  const hidden = items.length - shown.length;
   return (
-    <InFlightQueue__Box data-command-list="">
-      <InFlightQueue__Inner
-        ref={setScroller}
-        role="list"
-        aria-label={ariaLabel}
-        {...(scrolls ? { tabIndex: 0, "data-scrolls": "" } : {})}
-      >
-        {items.map((item) => (
+    <InFlightQueue__Box ref={ref} data-command-list="">
+      <InFlightQueue__Inner role="list" aria-label={ariaLabel}>
+        {shown.map((item) => (
           <InFlightQueueCmd key={item.id} item={item} onDismiss={onDismiss} />
         ))}
+        {hidden > 0 && (
+          <InFlightQueue__Overflow
+            role="listitem"
+            aria-label={`${hidden} more in flight`}
+          >
+            +{hidden}
+          </InFlightQueue__Overflow>
+        )}
       </InFlightQueue__Inner>
-      <InlineOverflowGlow $position="left" $visible={overflow.left} />
-      <InlineOverflowGlow $position="right" $visible={overflow.right} />
     </InFlightQueue__Box>
   );
 }
@@ -776,37 +615,19 @@ function InFlightQueueCmd({
   onDismiss?: (id: string) => void;
 }) {
   const glyph = item.glyph ?? deriveGlyph(item.label);
-  const colour =
-    item.settling === "confirmed"
-      ? QUEUE_COLOUR["awaiting-reply"]
-      : item.held || item.settling === "failed"
-        ? TONE_MARK.warn
-        : QUEUE_COLOUR[item.phase];
-  // The bar is full when the reply lands, at two thirds; the last third is the rail's confirmed stage.
+  const colour = QUEUE_COLOUR[item.phase];
   const progress = Math.max(
     0,
-    Math.min(1, (item.progress ?? PHASE_PROGRESS[item.phase]) * 1.5),
+    Math.min(1, item.progress ?? PHASE_PROGRESS[item.phase]),
   );
-  const dismissable =
-    ERROR_PHASES.has(item.phase) && !!onDismiss && !item.settling;
+  const dismissable = ERROR_PHASES.has(item.phase) && !!onDismiss;
   const spoken = `${item.label}, ${PHASE_WORD[item.phase]}`;
   return (
     <InFlightQueue__Cmd
       role="listitem"
       aria-label={spoken}
-      {...(item.settling
-        ? { "data-settling": item.settling, "aria-hidden": true }
-        : {
-            "data-phase": item.phase,
-            ...(item.held ? { "data-held": "" } : {}),
-          })}
-      $settling={item.settling}
-      style={
-        {
-          color: colour,
-          "--settle-seconds": item.settleSeconds ?? 0,
-        } as CSSProperties
-      }
+      data-phase={item.phase}
+      style={{ color: colour }}
     >
       <Tooltip
         text={dismissable ? `Dismiss ${item.label}` : spoken}
@@ -863,60 +684,29 @@ const InFlightQueue__Box = styled.div.attrs({ role: "group" })`
   background: color-mix(in srgb, var(--color-surface-raised) 68%, transparent);
   backdrop-filter: blur(6px);
   overflow: hidden;
-  /* Holds the overflow glows over the row's edges. */
-  position: relative;
 `;
 
-/* One row, one row high however many commands are in it; it scrolls sideways, its edge glows showing there is more. */
 const InFlightQueue__Inner = styled.div`
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   /* Centred on the cross axis so both margins match; the main axis fills from the start, so a short queue reads as started. */
   align-items: center;
   justify-content: flex-start;
   gap: ${QUEUE_GAP}px;
   width: 100%;
   height: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  /* Native scrollbar hidden: the edge glows show scroll state. */
-  scrollbar-width: none;
-  &::-webkit-scrollbar {
-    display: none;
-  }
 
-  ${focusRingInset}
+  @container (min-width: ${QUEUE_ROW_MIN}px) {
+    flex-direction: row;
+  }
 `;
 
-const InFlightQueue__Cmd = styled.div<{
-  $settling: InFlightListItem["settling"];
-}>`
-  /* The settle time arrives as a bare count of seconds. */
-  --settle-time: calc(var(--settle-seconds, 0) * 1000ms);
+const InFlightQueue__Cmd = styled.div`
   display: flex;
   flex: 0 0 auto;
   flex-direction: row;
   min-width: 0;
   min-height: 0;
-
-  @media (prefers-reduced-motion: no-preference) {
-    ${({ $settling }) =>
-      $settling === "confirmed"
-        ? css`
-            animation: ${settleOut} ${SETTLE_FADE_MS}ms var(--ease-standard)
-              var(--settle-time) forwards;
-            .fill {
-              transition:
-                height var(--settle-time) var(--ease-linear),
-                width var(--settle-time) var(--ease-linear);
-            }
-          `
-        : $settling === "failed"
-          ? css`
-              animation: ${settleOut} ${SETTLE_FADE_MS}ms var(--ease-standard) forwards;
-            `
-          : null}
-  }
 
   @container (min-width: ${QUEUE_ROW_MIN}px) {
     flex-direction: column;
@@ -1020,6 +810,15 @@ const InFlightQueue__Bar = styled.div`
       height: auto;
     }
   }
+`;
+
+const InFlightQueue__Overflow = styled.span`
+  align-self: center;
+  flex: 0 0 auto;
+  padding: 0 ${QUEUE_GAP}px;
+  font-size: var(--font-size-compact);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
 `;
 
 const InFlightList__Root = styled.div<{ $row: boolean }>`

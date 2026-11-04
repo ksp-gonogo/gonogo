@@ -211,7 +211,6 @@ export type {
   CommandRefusalDetail,
   CommandStatus,
   CommandUndelivered,
-  CommandWarning,
   ComponentDefinition,
   ComponentHeldOpen,
   ComponentProps,

@@ -17,10 +17,6 @@ import {
   commandUndeliveredSentence,
   type RailUndelivered,
 } from "./commandUndeliveredSentence";
-import {
-  commandWarningSentence,
-  type RailWarning,
-} from "./commandWarningSentence";
 import { focusBesideDismissed } from "./focusBesideDismissed";
 import { railMark } from "./railTags";
 import { deriveGlyph } from "./toInFlightListItems";
@@ -33,7 +29,6 @@ import { deriveGlyph } from "./toInFlightListItems";
  * - `undelivered`: it never left this machine, so a re-send repeats nothing
  * - `found`: a lost dispatch replied after all
  * - `failed`: the machinery broke, so there is no verdict either way
- * - `warned`: still on its way, and the mod said it is likely to be lost
  *
  * Useful for telling the operator which kind of outcome a box reports. Used by
  * {@link CommandList} to choose a box's tone and wording.
@@ -45,8 +40,7 @@ export type CommandListKind =
   | "lost"
   | "undelivered"
   | "found"
-  | "failed"
-  | "warned";
+  | "failed";
 
 interface CommandListCommonProps {
   /** Clear one entry by its `id`. Omit it and the boxes carry no clear control rather than an inert one. */
@@ -104,12 +98,6 @@ export type CommandListProps = CommandListCommonProps &
         /** The failed commands, one box each. */
         entries: readonly RailFailed[];
       }
-    | {
-        /** The commands in flight the mod warned about. */
-        kind: "warned";
-        /** The warned commands, one box each. */
-        entries: readonly RailWarning[];
-      }
   );
 
 /** One box as drawn: the kind's sentence and gesture already composed. */
@@ -127,7 +115,6 @@ const DEFAULT_LABEL: Record<CommandListKind, string> = {
   undelivered: "Commands that were never sent",
   found: "Unconfirmed commands that answered",
   failed: "Commands that failed",
-  warned: "Commands likely to be lost",
 };
 
 /** What the clear control names when a dispatch has no subject to name. */
@@ -137,7 +124,6 @@ const FALLBACK_DISMISS: Record<CommandListKind, string> = {
   undelivered: "unsent command",
   found: "found command",
   failed: "failed command",
-  warned: "warned command",
 };
 
 function sentenceOf(props: CommandListProps, index: number): string {
@@ -146,9 +132,6 @@ function sentenceOf(props: CommandListProps, index: number): string {
   if (props.kind === "found") return commandFoundSentence(props.entries[index]);
   if (props.kind === "failed") {
     return commandFailedSentence(props.entries[index]);
-  }
-  if (props.kind === "warned") {
-    return commandWarningSentence(props.entries[index]);
   }
   if (props.kind === "undelivered") {
     return commandUndeliveredSentence(props.entries[index]);
@@ -173,8 +156,7 @@ function boxesOf(props: CommandListProps): CommandListBox[] {
  * Outcome boxes for dispatches of one {@link CommandListKind}: one box per
  * dispatch, with the command's identity and the whole sentence of what became
  * of it. Useful for telling the operator which commands were refused, lost,
- * found again or failed, and why, and which still on their way the mod warned
- * about. Used by the panel delay rail, under its
+ * found again or failed, and why. Used by the panel delay rail, under its
  * queues, and by the maneuver planner's armed triggers list. The sentence wraps
  * and is never truncated, since names are unbounded and the numbers sit at the
  * end. A `found` is drawn in the notice tone, every other kind in the warning
@@ -182,8 +164,7 @@ function boxesOf(props: CommandListProps): CommandListBox[] {
  *
  * The sentences are {@link commandRefusalSentence},
  * {@link commandLossSentence}, {@link commandUndeliveredSentence},
- * {@link commandFoundSentence}, {@link commandFailedSentence} and
- * {@link commandWarningSentence}, so a surface
+ * {@link commandFoundSentence} and {@link commandFailedSentence}, so a surface
  * that states the same outcome elsewhere can say it in the same words.
  *
  * @example

@@ -82,62 +82,6 @@ namespace Sitrep.Core.Tests
             Assert.Equal("KSC", entry.GetProperty("vantage").GetString());
             Assert.Equal(0, entry.GetProperty("dispatchedAt").GetDouble());
             Assert.Equal(5, entry.GetProperty("oneWaySeconds").GetDouble());
-            Assert.Equal(System.Text.Json.JsonValueKind.Null, entry.GetProperty("warning").ValueKind);
-        }
-
-        [Fact]
-        public void AWarningTheCentreGaveIsWrittenOnItsEntry()
-        {
-            var el = Write(new PendingUplinkQueue
-            {
-                Pending = new List<PendingUplink>
-                {
-                    new PendingUplink
-                    {
-                        Id = "c1",
-                        Command = "vessel.control.setThrottle",
-                        Vantage = "KSC",
-                        PredictedHeldAt = "relay-1",
-                        Warning = "A continuous input is lost if it has to wait.",
-                    },
-                },
-            });
-
-            var entry = el.GetProperty("pending")[0];
-            Assert.Equal("A continuous input is lost if it has to wait.", entry.GetProperty("warning").GetString());
-        }
-
-        [Fact]
-        public void ASettledOutcomeIsWrittenWithOnlyTheWordsItHas()
-        {
-            var el = Write(new PendingUplinkQueue
-            {
-                Settled = new List<SettledUplink>
-                {
-                    new SettledUplink
-                    {
-                        Id = "c1",
-                        ClientRequestId = "station:c1",
-                        Command = "vessel.control.setRcs",
-                        Label = "Toggle RCS",
-                        Vantage = "KSC",
-                        SettledAt = 120.5,
-                        Outcome = "failed",
-                        Code = "commandExpired",
-                        Message = "It expired at a relay.",
-                    },
-                },
-            });
-
-            Assert.Empty(el.GetProperty("pending").EnumerateArray());
-            var entry = el.GetProperty("settled")[0];
-            Assert.Equal("station:c1", entry.GetProperty("clientRequestId").GetString());
-            Assert.Equal(120.5, entry.GetProperty("settledAt").GetDouble());
-            Assert.Equal("failed", entry.GetProperty("outcome").GetString());
-            Assert.Equal("commandExpired", entry.GetProperty("code").GetString());
-            Assert.Equal("It expired at a relay.", entry.GetProperty("message").GetString());
-            Assert.Equal(System.Text.Json.JsonValueKind.Null, entry.GetProperty("reason").ValueKind);
-            Assert.Equal(System.Text.Json.JsonValueKind.Null, entry.GetProperty("detail").ValueKind);
         }
     }
 }

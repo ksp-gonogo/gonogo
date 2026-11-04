@@ -482,24 +482,15 @@ namespace Sitrep.Host
             if (_courierJobs.TryGetValue(requestId, out var job))
             {
                 _courierJobs.Remove(requestId);
-                Deliver(job, response.Result, job.PendingId);
-                LeaveQueue(requestId);
+                Deliver(job, response.Result);
                 return;
             }
-            LeaveQueue(requestId);
             if (string.IsNullOrEmpty(clientRequestId))
             {
                 return;
             }
             var vantage = response.Meta.Vantage ?? "";
             Reply(clientRequestId, null, vantage, ResponseFrame(clientRequestId, command, vantage, response.Meta.ValidAt, response.Result), terminal: true);
-        }
-
-        /// <summary>The live-path command <paramref name="requestId"/>'s queue entry goes as its reply lands at the centre.</summary>
-        private void LeaveQueue(string requestId)
-        {
-            _pending.RemoveAll(p => string.Equals(p.Id, requestId, StringComparison.Ordinal));
-            _pendingDispatcher.Remove(requestId);
         }
 
         /// <summary>

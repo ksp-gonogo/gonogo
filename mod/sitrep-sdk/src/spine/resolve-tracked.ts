@@ -3,7 +3,6 @@ import {
   type InFlightCommand,
   type PathConnectedDuring,
   type PendingEntry,
-  type SettledEntry,
 } from "../command-delay";
 
 /**
@@ -37,8 +36,6 @@ export interface TrackedConfirmation {
 
 export interface PendingUplinkQueueLike {
   pending: PendingEntry[];
-  /** Absent from a mod that reports no outcomes. */
-  settled?: SettledEntry[];
 }
 
 export type TrackedResolution =
@@ -132,7 +129,7 @@ export function resolveTracked(
    * prediction alone would keep it in transit after its promise has rejected.
    */
   if (!acked && judgedLost(id) && classified.predictedPhase !== "lost") {
-    const { held: _held, hold: _hold, ...settled } = classified;
+    const { held: _held, ...settled } = classified;
     return {
       kind: "classified",
       item: { ...settled, predictedPhase: "lost" },

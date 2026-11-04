@@ -13,7 +13,6 @@ import type { CommandFoundEntry } from "./commandFoundSentence";
 import type { CommandLossEntry } from "./commandLossSentence";
 import type { CommandRefusalEntry } from "./commandRefusalSentence";
 import type { CommandUndeliveredEntry } from "./commandUndeliveredSentence";
-import type { CommandWarningEntry } from "./commandWarningSentence";
 import {
   InFlightList,
   type InFlightListDensity,
@@ -119,12 +118,6 @@ export interface CommandDelayHandle {
    * load undid it. Each carries the fault's code, which says which.
    */
   failures?: CommandFailedEntry[];
-  /**
-   * Dispatches from this command the mod accepted with a warning, while they
-   * are on their way, such as a continuous input it will drop where it would
-   * have to wait.
-   */
-  warnings?: CommandWarningEntry[];
   /**
    * Clear a dead command (`overdue`/`lost`) from this handle's shared delay
    * queue, both in the widget-top queue and on the issuing control. When

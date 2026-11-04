@@ -55,7 +55,6 @@ export * from "./combine-readings";
 // Uplink rendering its own command surface needs the same mode/phase vocabulary
 // the app's rail uses, and there is nothing app-specific in deriving it.
 export type {
-  CommandHold,
   CommsDelayLike,
   DelayMode,
   InFlightCommand,
@@ -63,7 +62,6 @@ export type {
   PendingEntry,
   PredictedPhase,
   RailCrossing,
-  SettledEntry,
 } from "./command-delay";
 export {
   classifyRetained,

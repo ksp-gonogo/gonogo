@@ -12,7 +12,6 @@ import {
   confirmationSentenceOf,
   confirmationWordOf,
   heldCommandMarking,
-  shownToggleState,
   type ToggleConfirmation,
 } from "../shared/toggleConfirmation";
 
@@ -51,20 +50,17 @@ const NOT_CONTROLLABLE = "The vessel is not controllable";
 
 export function ControlToggles({
   disabled,
-  sas: sasReading,
+  sas,
   sasBadgeMode,
   sasUnavailableReason,
-  rcs: rcsReading,
-  precision: precisionReading,
+  rcs,
+  precision,
   confirmations,
   marking,
   onToggleSas,
   onToggleRcs,
   onTogglePrecision,
 }: ControlTogglesProps) {
-  const sas = shownToggleState(sasReading, confirmations.sas);
-  const rcs = shownToggleState(rcsReading, confirmations.rcs);
-  const precision = shownToggleState(precisionReading, confirmations.precision);
   // A held state stays pressable; the tip says what the press does with it.
   const heldState =
     marking === null
@@ -77,7 +73,7 @@ export function ControlToggles({
     heldCommandMarking(label, confirmation, heldState);
   // A held command's sentence rides the held mark's tip, so the tooltip beside it stays free.
   const tipFor = (label: string, confirmation: ToggleConfirmation | null) =>
-    confirmation === "held" || confirmation === "modelled"
+    confirmation === "held"
       ? undefined
       : (confirmationSentenceOf(label, confirmation) ?? undefined);
   return (
@@ -149,8 +145,8 @@ export function ControlToggles({
 
 /**
  * An arm's label, sized to the widest thing it can say so a press does not
- * change its width: the state, or `SENT` in its place until the mod answers
- * the press.
+ * change its width: the state, or `SENT`, `HELD` or `LATE` in its place while a
+ * toggle is outstanding.
  */
 function ArmLabel({
   name,

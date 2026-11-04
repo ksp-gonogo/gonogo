@@ -192,9 +192,8 @@ function useTooltipAt(
    * listens in the capture phase on the document and stops the key there, so an
    * enclosing dialog's own Escape handler does not also close the dialog.
    */
-  // Only while a tip is showing: an anchor whose text has gone has nothing to dismiss, and must not take the key from its own handler.
   useEffect(() => {
-    if (!open || shown === null) return;
+    if (!open) return;
     const onKey = (event: globalThis.KeyboardEvent) => {
       if (event.key !== "Escape") return;
       event.stopPropagation();
@@ -202,7 +201,7 @@ function useTooltipAt(
     };
     document.addEventListener("keydown", onKey, true);
     return () => document.removeEventListener("keydown", onKey, true);
-  }, [open, shown, close]);
+  }, [open, close]);
 
   if (shown === null) return { anchor: {}, tip: null };
 
@@ -386,8 +385,7 @@ export function Tooltip({
   placement = "below",
 }: TooltipProps) {
   const { anchor, tip } = useTooltipAt(text, placement);
-  // A fragment either way, so the child keeps its place in the tree, and its focus, when the text comes and goes.
-  if (text == null || text === "") return <>{children}</>;
+  if (text == null || text === "") return children;
 
   const own = children.props;
   const label = own["aria-label"];

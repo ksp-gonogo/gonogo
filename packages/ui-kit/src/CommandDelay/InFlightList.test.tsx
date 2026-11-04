@@ -7,7 +7,6 @@ import { describe, expect, it } from "vitest";
 import { emittedRuleFor } from "../test/emittedRule";
 import { installTestGameClock } from "../test/gameClock";
 import {
-  InFlightLanes,
   InFlightList,
   type InFlightListItem,
   signalDelayPresentation,
@@ -73,11 +72,14 @@ describe("InFlightList", () => {
   });
 
   describe('variant="rail" (v3 glow band)', () => {
-    it("renders a strip with one dot per item, not the monospace list", () => {
+    it("renders an svg strip with one glow per item, not the monospace list", () => {
       const { container } = render(
         <InFlightList items={ITEMS} variant="rail" />,
       );
-      expect(container.querySelector('[role="img"]')).not.toBeNull();
+      // The strip is an <svg role="img">, no monospace row list.
+      const svg = container.querySelector("svg");
+      expect(svg).not.toBeNull();
+      expect(svg).toHaveAttribute("role", "img");
       expect(container.querySelectorAll('[data-role="glow"]')).toHaveLength(
         ITEMS.length,
       );
@@ -85,7 +87,7 @@ describe("InFlightList", () => {
       expect(container.textContent).not.toContain("run boot.ks");
     });
 
-    it("draws no axis dividers or baseline", () => {
+    it("draws no axis dividers or baseline (a grazing glow, not markers on a line)", () => {
       const { container } = render(
         <InFlightList items={ITEMS} variant="rail" />,
       );
@@ -93,10 +95,7 @@ describe("InFlightList", () => {
       expect(container.querySelector('[data-role="baseline"]')).toBeNull();
     });
 
-    const dotProgress = (el: Element) =>
-      Number((el as HTMLElement).style.getPropertyValue("--dot-progress"));
-
-    it("places each dot by how far the command is along the rail, an unanswered one by its phase", () => {
+    it("centres each glow ABOVE the top edge and positions its x by journey progress", () => {
       const items: InFlightListItem[] = [
         {
           id: "early",
@@ -112,88 +111,19 @@ describe("InFlightList", () => {
           phase: "awaiting-reply",
           progress: 0.8,
         },
-        { id: "due", label: "c", etaSeconds: null, phase: "overdue" },
       ];
       const { container } = render(
         <InFlightList items={items} variant="rail" />,
       );
-      const dots = Array.from(container.querySelectorAll('[data-role="glow"]'));
-      expect(dots.map(dotProgress)).toEqual([0.1, 0.8, 2 / 3]);
-    });
-
-    it("draws an answered command heading for the end, and does not count it", () => {
-      const items: InFlightListItem[] = [
-        {
-          id: "out",
-          label: "a",
-          etaSeconds: 5,
-          phase: "in-transit",
-          progress: 0.3,
-        },
-        {
-          id: "gone",
-          label: "b",
-          etaSeconds: 0,
-          phase: "awaiting-reply",
-          progress: 1,
-          settling: "confirmed",
-          settleSeconds: 6,
-        },
-      ];
-      const { container } = render(
-        <InFlightList items={items} variant="rail" />,
-      );
-      const settling = container.querySelector('[data-role="settling"]');
-      expect(settling).not.toBeNull();
-      expect(settling?.getAttribute("data-settling")).toBe("confirmed");
-      expect(dotProgress(settling as Element)).toBe(1);
-      expect(container.querySelectorAll('[data-role="glow"]')).toHaveLength(1);
-      expect(
-        screen.getByRole("img", { name: /1 in flight/ }),
-      ).toBeInTheDocument();
-    });
-
-    it("draws a command answered late in the accent colour as it carries on, not the overdue one", () => {
-      const { container } = render(
-        <InFlightList
-          items={[
-            {
-              id: "late",
-              label: "a",
-              etaSeconds: null,
-              phase: "overdue",
-              progress: 1,
-              settling: "confirmed",
-              settleSeconds: 10,
-            },
-          ]}
-          variant="rail"
-        />,
-      );
-      const dot = container.querySelector(
-        '[data-role="settling"]',
-      ) as HTMLElement;
-      expect(dot.style.getPropertyValue("--dot-colour")).toBe(
-        "var(--color-accent-fg)",
-      );
-    });
-
-    it("leaves a command that has just left out of every other variant", () => {
-      render(
-        <InFlightList
-          items={[
-            {
-              id: "gone",
-              label: "run gone.ks",
-              etaSeconds: 0,
-              phase: "awaiting-reply",
-              settling: "failed",
-            },
-          ]}
-          density="full"
-        />,
-      );
-      expect(screen.queryByText("run gone.ks")).toBeNull();
+      const grads = Array.from(container.querySelectorAll("radialGradient"));
+      expect(grads).toHaveLength(2);
+      const cxs = grads.map((g) => Number(g.getAttribute("cx")));
+      // The lower-progress command sits left of the higher-progress one.
+      expect(cxs[0]).toBeLessThan(cxs[1]);
+      // Every glow centres above the strip, so only the blur grazes the top edge.
+      for (const g of grads) {
+        expect(Number(g.getAttribute("cy"))).toBeLessThan(0);
+      }
     });
 
     it("carries an in-flight count in its accessible name", () => {
@@ -526,85 +456,5 @@ describe("InFlightList: focus after a dismiss", () => {
     const { container } = render(<Lone />);
     await user.click(screen.getByRole("button", { name: "Dismiss run a.ks" }));
     expect(container.querySelector("[data-panel-body]")).toHaveFocus();
-  });
-});
-
-describe("InFlightLanes, the opened rail's marks", () => {
-  it("puts one command per lane, the first at the middle, the next below, then above", () => {
-    const item = (id: string): InFlightListItem => ({
-      id,
-      label: id,
-      etaSeconds: 5,
-      phase: "in-transit",
-      progress: 0.2,
-    });
-    const { container } = render(
-      <InFlightLanes items={[item("a"), item("b"), item("c")]} height={86} />,
-    );
-    const tops = Array.from(
-      container.querySelectorAll<HTMLElement>('[data-role="glow"]'),
-    ).map((el) => Number.parseFloat(el.style.getPropertyValue("--lane-top")));
-    // 8 px dots on an 86 px box: the middle is 39, and lanes are 14 px apart.
-    expect(tops).toEqual([39, 53, 25]);
-  });
-});
-
-describe("the opened rail's queue", () => {
-  it("fills a command's bar by the time its reply lands, at two thirds", () => {
-    const { container } = render(
-      <InFlightList
-        items={[
-          {
-            id: "a",
-            label: "a",
-            etaSeconds: 1,
-            phase: "awaiting-reply",
-            progress: 1 / 3,
-          },
-          { id: "b", label: "b", etaSeconds: 0, phase: "due", progress: 2 / 3 },
-        ]}
-        variant="expanded"
-      />,
-    );
-    const fills = Array.from(
-      container.querySelectorAll<HTMLElement>(".fill"),
-    ).map((el) => Number(el.style.getPropertyValue("--fill-ratio")));
-    expect(fills[0]).toBeCloseTo(0.5, 5);
-    expect(fills[1]).toBeCloseTo(1, 5);
-  });
-
-  it("keeps every command in one list, with no count standing in for the rest", () => {
-    const items = Array.from({ length: 12 }, (_, i) => ({
-      id: `c${i}`,
-      label: `cmd ${i}`,
-      etaSeconds: 5,
-      phase: "in-transit" as const,
-    }));
-    render(<InFlightList items={items} variant="expanded" />);
-    expect(screen.getAllByRole("listitem")).toHaveLength(12);
-  });
-});
-
-describe("InFlightLanes tooltips", () => {
-  it("names each dot's command, as its queue square does", () => {
-    const { container } = render(
-      <InFlightLanes
-        items={[
-          {
-            id: "a",
-            label: "Toggle RCS",
-            etaSeconds: 5,
-            phase: "in-transit",
-            progress: 0.1,
-          },
-        ]}
-        height={86}
-      />,
-    );
-    expect(
-      container
-        .querySelector('[data-role="glow"]')
-        ?.getAttribute("data-tooltip"),
-    ).toBe("Toggle RCS, in transit");
   });
 });
