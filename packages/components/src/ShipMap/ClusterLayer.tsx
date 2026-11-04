@@ -148,18 +148,18 @@ export function ClusterLayer({
     iconRefs.current.get(id)?.focus();
     quietFocusRef.current = false;
   }, []);
-  /* A finger's tap toggles on pointer-up; the click that follows it must not toggle again. */
+  /* A finger's tap toggles on pointer-up; the click that follows it must not toggle again. The flag lasts until that click or the next pointer-down, so a late click is still matched to its own tap. */
   const tappedRef = useRef(false);
   const shownId = openId ?? hoverId;
   const shown = clusters.find((c) => c.id === shownId);
   useEffect(() => {
     if (!shown) return;
-    /* Captured and stopped, so an enclosing dialog does not also close on the same Escape. */
+    /* Captured and stopped only while pinned open, so an enclosing dialog does not also close on the Escape that closes the popover; a popover shown on hover alone leaves Escape to the dialog. */
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      e.stopPropagation();
       setHoverId(null);
       if (openId !== null) {
+        e.stopPropagation();
         onToggle(null);
         focusIcon(openId);
       }
@@ -225,12 +225,15 @@ export function ClusterLayer({
               }
               activate();
             }}
+            onPointerDown={() => {
+              tappedRef.current = false;
+            }}
+            onPointerCancel={() => {
+              tappedRef.current = false;
+            }}
             onPointerUp={(e: React.PointerEvent) => {
               if (e.pointerType !== "touch") return;
               tappedRef.current = true;
-              setTimeout(() => {
-                tappedRef.current = false;
-              }, 400);
               activate();
             }}
             onPointerEnter={(e: React.PointerEvent) => {

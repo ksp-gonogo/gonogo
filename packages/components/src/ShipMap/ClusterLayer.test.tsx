@@ -180,6 +180,70 @@ describe("the expand icon on a dense cluster", () => {
     expect(outer).not.toHaveBeenCalled();
   });
 
+  it("lets Escape reach an enclosing handler while the popover shows on hover only", async () => {
+    const user = userEvent.setup();
+    const outer = vi.fn();
+    document.addEventListener("keydown", outer);
+    render(
+      <ShipDiagram
+        parts={partsOf(lfv2WaveProbe as Fixture)}
+        width={600}
+        height={700}
+      />,
+    );
+    await user.hover(
+      screen.getByRole("button", { name: /Expand the 9 parts/ }),
+    );
+    expect(
+      document.body.querySelector('[data-role="cluster-box"]'),
+    ).not.toBeNull();
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    document.removeEventListener("keydown", outer);
+    expect(outer).toHaveBeenCalled();
+  });
+
+  it("does not toggle a second time when the click after a touch tap arrives late", () => {
+    vi.useFakeTimers();
+    try {
+      render(
+        <ShipDiagram
+          parts={partsOf(lfv2WaveProbe as Fixture)}
+          width={600}
+          height={700}
+        />,
+      );
+      const icon = screen.getByRole("button", { name: /Expand the 9 parts/ });
+      fireEvent.pointerDown(icon, { pointerType: "touch" });
+      fireEvent.pointerUp(icon, { pointerType: "touch" });
+      expect(icon.getAttribute("aria-expanded")).toBe("true");
+      act(() => {
+        vi.advanceTimersByTime(2000);
+      });
+      fireEvent.click(icon);
+      expect(icon.getAttribute("aria-expanded")).toBe("true");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("toggles on a mouse click that follows an earlier touch tap", () => {
+    render(
+      <ShipDiagram
+        parts={partsOf(lfv2WaveProbe as Fixture)}
+        width={600}
+        height={700}
+      />,
+    );
+    const icon = screen.getByRole("button", { name: /Expand the 9 parts/ });
+    fireEvent.pointerDown(icon, { pointerType: "touch" });
+    fireEvent.pointerUp(icon, { pointerType: "touch" });
+    fireEvent.click(icon);
+    fireEvent.pointerDown(icon, { pointerType: "mouse" });
+    fireEvent.pointerUp(icon, { pointerType: "mouse" });
+    fireEvent.click(icon);
+    expect(icon.getAttribute("aria-expanded")).toBe("false");
+  });
+
   it("lays the box out inside a phone-width viewport", () => {
     const wide = window.innerWidth;
     window.innerWidth = 360;
