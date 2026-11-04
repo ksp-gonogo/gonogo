@@ -150,7 +150,7 @@ export function toInFlightListItems(
   }));
 }
 
-/** The entries in the order they were sent, an entry with no send time keeping its place. */
+/** The entries in the order they were sent, an entry with no send time sorting ahead of every one that has one. */
 function inSendOrder(
   items: readonly InFlightCommandLike[],
 ): readonly InFlightCommandLike[] {
