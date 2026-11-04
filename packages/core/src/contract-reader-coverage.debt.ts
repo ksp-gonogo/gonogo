@@ -67,7 +67,6 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
   "field:comms.occlusion.bodies": "no reader found",
   "field:comms.occlusion.modelId": "no reader found",
   "field:comms.occlusion.modelName": "no reader found",
-  "field:flight.current.phase": "no reader found",
   "field:flight.current.vesselId": "no reader found",
   "field:flight.ended.vesselId": "no reader found",
   "field:flight.vesselChanged.previousVesselId": "no reader found",

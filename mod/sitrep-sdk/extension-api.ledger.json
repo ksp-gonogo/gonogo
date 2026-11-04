@@ -12509,6 +12509,30 @@
         "note": "New: the name a vessel launched with, absent unless it was renamed"
       },
       {
+        "key": "sitrep-sdk . GoNoGoCountdown",
+        "note": "New: the countdown of a GO/NO-GO poll"
+      },
+      {
+        "key": "sitrep-sdk . GoNoGoCountdown#ended",
+        "note": "New: how the countdown finished, null while it runs"
+      },
+      {
+        "key": "sitrep-sdk . GoNoGoCountdown#lengthSeconds",
+        "note": "New: the whole length of the countdown"
+      },
+      {
+        "key": "sitrep-sdk . GoNoGoCountdown#remainingSeconds",
+        "note": "New: seconds left until T-0"
+      },
+      {
+        "key": "sitrep-sdk . GoNoGoCountdown#running",
+        "note": "New: whether the countdown is running"
+      },
+      {
+        "key": "sitrep-sdk . GoNoGoCountdownEnd",
+        "note": "New: how a GO/NO-GO countdown finished, as a name type"
+      },
+      {
         "key": "sitrep-sdk . GroundTrackScope",
         "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
       },
@@ -12535,6 +12559,22 @@
       {
         "key": "sitrep-sdk . KspContractPrestigeName",
         "note": "New: a contract's prestige tier as a name table and its name type"
+      },
+      {
+        "key": "sitrep-sdk . LiftoffCountdown",
+        "note": "New: the countdown to the liftoff of the active craft from the launch pad"
+      },
+      {
+        "key": "sitrep-sdk . LiftoffCountdown#lengthSeconds",
+        "note": "New: the whole length of the countdown"
+      },
+      {
+        "key": "sitrep-sdk . LiftoffCountdown#liftedOff",
+        "note": "New: whether the craft has lifted off"
+      },
+      {
+        "key": "sitrep-sdk . LiftoffCountdown#remainingSeconds",
+        "note": "New: seconds left until T-0"
       },
       {
         "key": "sitrep-sdk . MissionMeta#endReason?",
@@ -13411,6 +13451,14 @@
       {
         "key": "sitrep-sdk . trueAnomalyFromHyperbolic",
         "note": "New: converts a hyperbolic anomaly to a true one, the open-orbit twin of trueAnomalyFromEccentric"
+      },
+      {
+        "key": "sitrep-sdk . useGoNoGoCountdown",
+        "note": "New: read the countdown of the GO/NO-GO poll"
+      },
+      {
+        "key": "sitrep-sdk . useLiftoffCountdown",
+        "note": "New: read the countdown to the liftoff of the active craft"
       },
       {
         "key": "sitrep-sdk . useSystemInstant",
@@ -15701,6 +15749,34 @@
         "note": "New: encounter or escape, the two ways a patch transition crosses a sphere of influence"
       },
       {
+        "key": "sitrep-sdk ./spine StageCountdownEnd",
+        "note": "New: how the app's poll countdown finished, for the app to write"
+      },
+      {
+        "key": "sitrep-sdk ./spine StageCountdownRecord",
+        "note": "New: what the app's poll last did with its countdown"
+      },
+      {
+        "key": "sitrep-sdk ./spine StageCountdownRecord#ended",
+        "note": "New: how the countdown finished, null while it runs"
+      },
+      {
+        "key": "sitrep-sdk ./spine StageCountdownRecord#lengthSeconds",
+        "note": "New: the whole length of the countdown"
+      },
+      {
+        "key": "sitrep-sdk ./spine StageCountdownRecord#liftedOff",
+        "note": "New: whether the mission clock has started after a liftoff countdown"
+      },
+      {
+        "key": "sitrep-sdk ./spine StageCountdownRecord#liftsOff",
+        "note": "New: whether the GO fires Stage with the craft on the launch pad"
+      },
+      {
+        "key": "sitrep-sdk ./spine StageCountdownRecord#t0",
+        "note": "New: the instant the countdown reaches T-0 on the page clock"
+      },
+      {
         "key": "sitrep-sdk ./spine SystemPoses",
         "note": "The poses of every body at one instant, by body index"
       },
@@ -15899,6 +15975,14 @@
       {
         "key": "sitrep-sdk ./spine solveHyperbolicAnomaly",
         "note": "New: solves the hyperbolic form of Kepler's equation, so an open orbit (a flyby or an escape) can be carried to an instant"
+      },
+      {
+        "key": "sitrep-sdk ./spine stageCountdownNow",
+        "note": "New: the page clock a countdown record is on"
+      },
+      {
+        "key": "sitrep-sdk ./spine stageCountdownStore",
+        "note": "New: the store the app writes the poll countdown into"
       },
       {
         "key": "sitrep-sdk ./spine systemPosesAt",

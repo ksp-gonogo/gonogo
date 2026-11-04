@@ -15,5 +15,6 @@ export {
 } from "./GoNoGoHostService";
 export { MainPollHeader } from "./MainPollHeader";
 export { PollSettingsControl } from "./PollSettingsControl";
+export { StageCountdownBridge } from "./StageCountdownBridge";
 export { StationPollControl } from "./StationPollControl";
 export { voteInputSource } from "./voteInput";
