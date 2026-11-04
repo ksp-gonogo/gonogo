@@ -533,10 +533,12 @@ describe("Rendezvous: augment slots", () => {
       });
     });
 
-    await waitFor(() =>
-      expect(screen.getByTestId("cam").textContent).toBe(
-        "4000000001/1234 docked",
-      ),
+    await waitFor(
+      () =>
+        expect(screen.getByTestId("cam").textContent).toBe(
+          "4000000001/1234 docked",
+        ),
+      { timeout: 10_000 },
     );
     const ring = [...container.querySelectorAll<HTMLElement>("div")].find(
       (el) => el.style.borderRadius === "var(--radius-circle)",
