@@ -5,12 +5,9 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useViewUt } from "@ksp-gonogo/sitrep-client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PeerClient } from "../peer/PeerClientContext";
 import type { GoNoGoNotice } from "./notice";
-import { DEFAULT_ON_GO, useOnGoOptions } from "./onGo";
-import { useStageCountdownFeed } from "./stageCountdownFeed";
-import { stationCountdownEvents } from "./stationCountdownEvents";
 import { VOTE_INSTANCE_ID } from "./voteInput";
 
 /** One station's part in the poll, as its header draws it. */
@@ -63,19 +60,6 @@ export function useStationPoll(client: PeerClient | null): StationPoll {
   const viewUt = useViewUt();
   const launched =
     launchUt != null && viewUt?.minus(launchUt).greaterThan(0) === true;
-  const stageLabel = useOnGoOptions().find(
-    (o) => o.id === DEFAULT_ON_GO,
-  )?.label;
-  const subscribeCountdown = useCallback(
-    (listener: Parameters<typeof stationCountdownEvents>[1]) =>
-      client ? stationCountdownEvents(client, listener) : () => {},
-    [client],
-  );
-  useStageCountdownFeed({
-    subscribe: client ? subscribeCountdown : null,
-    stagesAtGo: onGoLabel != null && onGoLabel === stageLabel,
-    launched,
-  });
   const [vote, setVote] = useState<"go" | "no-go">("no-go");
   const [approval, setApproval] = useState(() => client?.getApproval());
   // The host refuses a vote or an abort from a station it has not approved, so nothing is sent until this link's host has said so.
