@@ -13,11 +13,12 @@ export function projectionDiffersFromTrajectory(
   return trajectory?.shape === "arc";
 }
 
-/** A small notice that the figures beside it are a two-body projection, for a provider that integrates. */
+/** The one sentence every widget puts beside two-body figures when the provider integrates. */
 export function TwoBodyProjectionNote() {
   return (
     <Text level="muted" size="xs" role="status">
-      Two-body projection
+      Two-body projection. The flown trajectory accounts for other bodies, so
+      the craft will drift from these figures.
     </Text>
   );
 }
