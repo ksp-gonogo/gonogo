@@ -10595,6 +10595,9 @@ namespace Sitrep.Host
             }
             ReportSlowTick(tick, timing);
             ReportPublishStats();
+            // Before the barrier opens: a caller released by it offers the game's UT
+            // next, and a stale due time would make that offer queue nothing.
+            Volatile.Write(ref _nextDueUt, _clock.NextDueUt);
             tick.Done?.Set();
         }
 
