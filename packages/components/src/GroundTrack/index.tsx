@@ -9,6 +9,7 @@ import {
 } from "@ksp-gonogo/core";
 import { Switch } from "@ksp-gonogo/ui";
 import {
+  Badge,
   declinedState,
   derivedMarking,
   Panel,
@@ -34,7 +35,6 @@ import {
   BodyLabel,
   CANVAS_CONTAINER,
   DataCanvas,
-  ImagingChip,
   MapBody,
   MapFrame,
   MapOuter,
@@ -347,9 +347,18 @@ function GroundTrackComponent({
           </BodyLabel>
         )}
         {showImagingChip && vesselOnThisBody && imagingStatus && (
-          <ImagingChip $variant={imagingStatus.variant}>
+          <Badge
+            size="sm"
+            tone={
+              imagingStatus.variant === "on"
+                ? "go"
+                : imagingStatus.variant === "warn"
+                  ? "caution"
+                  : "neutral"
+            }
+          >
             {imagingStatus.label}
-          </ImagingChip>
+          </Badge>
         )}
         {showFollowToggle && vesselOnThisBody && (
           <Switch
