@@ -46,20 +46,14 @@ const words = (text: string): string =>
  * @category Floating
  */
 export interface TooltipAnchorProps {
-  /** Opens the tip against the element the pointer entered; a finger touching down does not open it. */
-  onPointerEnter?: (event: {
-    currentTarget: Element;
-    pointerType?: string;
-  }) => void;
+  /** Opens the tip against the element the pointer entered. */
+  onPointerEnter?: (event: { currentTarget: Element }) => void;
   /** Closes the tip shortly after the pointer leaves, unless it moves onto the tip. */
   onPointerLeave?: () => void;
-  /** Closes the tip on a mouse or pen press, so it never covers what is being pressed. A finger's press leaves it as it is. */
-  onPointerDown?: (event: { pointerType?: string }) => void;
-  /** Ends the press, so the next keyboard focus can open the tip again. A finger lifting off the anchor opens the tip, or closes it when it is already open. */
-  onPointerUp?: (event: {
-    currentTarget: Element;
-    pointerType?: string;
-  }) => void;
+  /** Closes the tip on a press, so it never covers what is being pressed. */
+  onPointerDown?: () => void;
+  /** Ends the press, so the next keyboard focus can open the tip again. */
+  onPointerUp?: () => void;
   /** Opens the tip on keyboard focus; the focus a press gives does not. */
   onFocus?: (event: FocusEvent<Element>) => void;
   /** Closes the tip when focus leaves, unless the pointer still holds it open. */
@@ -88,7 +82,7 @@ export interface UseTooltipResult {
  * ancestor never cuts it off. Useful for giving the operator the words behind
  * an icon or abbreviation when the tip needs its own placement. Used by the
  * communications addressee control. It opens while the pointer is over the anchor or
- * the anchor has keyboard focus, and closes on a press of the anchor, on Escape (from anywhere on the page), scroll or resize. On a touch screen a tap on the anchor opens it and a second tap on the anchor, a tap anywhere else, Escape or scroll closes it. The pointer can move onto the tip, which stays open while it is hovered and while its text is held or selected, so the operator can copy it.
+ * the anchor has keyboard focus, and closes on a press of the anchor, on Escape (from anywhere on the page), scroll or resize. The pointer can move onto the tip, which stays open while it is hovered and while its text is held or selected, so the operator can copy it.
  *
  * The tip is hidden from the accessibility tree, so the anchor must already
  * say the same thing to a screen reader (in its text, an `aria-label` or a
@@ -127,16 +121,12 @@ function useTooltipAt(
   const [tipHovered, setTipHovered] = useState(false);
   // Set while the operator holds a press inside the tip or has text of it selected, so the tip stays to be read and copied.
   const [pinned, setPinned] = useState(false);
-  // Set by a finger's tap on the anchor, which holds the tip open until a tap elsewhere.
-  const [tapped, setTapped] = useState(false);
-  const anchorRef = useRef<Element | null>(null);
   const tipRef = useRef<HTMLDivElement | null>(null);
   const holding = useRef(false);
   const pressed = useRef(false);
   const leaving = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shown = text != null && text !== "" ? text : null;
-  const open =
-    at !== null && (hovered || focused || tipHovered || pinned || tapped);
+  const open = at !== null && (hovered || focused || tipHovered || pinned);
   const cancelLeave = useCallback(() => {
     if (leaving.current !== null) clearTimeout(leaving.current);
     leaving.current = null;
@@ -148,7 +138,6 @@ function useTooltipAt(
     setFocused(false);
     setTipHovered(false);
     setPinned(false);
-    setTapped(false);
     holding.current = false;
   }, [cancelLeave]);
 
@@ -174,20 +163,6 @@ function useTooltipAt(
       document.removeEventListener("selectionchange", settle);
     };
   }, [pinned]);
-
-  // A finger's tap outside both the anchor and the tip dismisses a tapped tip.
-  useEffect(() => {
-    if (!tapped) return;
-    const away = (event: PointerEvent) => {
-      const target = event.target;
-      if (!(target instanceof Node)) return;
-      if (anchorRef.current?.contains(target)) return;
-      if (tipRef.current?.contains(target)) return;
-      close();
-    };
-    document.addEventListener("pointerdown", away, true);
-    return () => document.removeEventListener("pointerdown", away, true);
-  }, [tapped, close]);
 
   // The pointer gets a moment to cross onto the tip before the anchor's leave closes it.
   const leaveSoon = useCallback(() => {
@@ -247,27 +222,17 @@ function useTooltipAt(
     anchor: {
       "data-tooltip": shown,
       onPointerEnter: (event) => {
-        if (event.pointerType === "touch") return;
         cancelLeave();
         place(event.currentTarget);
         setHovered(true);
       },
       onPointerLeave: leaveSoon,
-      onPointerDown: (event) => {
+      onPointerDown: () => {
         pressed.current = true;
-        if (event.pointerType === "touch") return;
         close();
       },
-      onPointerUp: (event) => {
+      onPointerUp: () => {
         pressed.current = false;
-        if (event.pointerType !== "touch") return;
-        if (tapped) {
-          close();
-          return;
-        }
-        anchorRef.current = event.currentTarget;
-        place(event.currentTarget);
-        setTapped(true);
       },
       onFocus: (event) => {
         // A pointer press focuses its target too; only keyboard focus opens the tip on its own.
@@ -279,7 +244,7 @@ function useTooltipAt(
       },
       onBlur: () => {
         setFocused(false);
-        if (!hovered && !tipHovered && !tapped) setAt(null);
+        if (!hovered && !tipHovered) setAt(null);
       },
     },
     tip: open
