@@ -17717,6 +17717,10 @@
         "note": "Exported from the kit's index because published signatures take it"
       },
       {
+        "key": "ui-kit . DataLineGroup",
+        "note": "Stack whose aligned DataLines share a label column as wide as the longest label"
+      },
+      {
         "key": "ui-kit . DataTableColumnBase",
         "note": "exported, since a published component's props or return type already names it"
       },

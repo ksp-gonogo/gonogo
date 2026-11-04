@@ -3,7 +3,7 @@ import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { Badge } from "./Badge";
-import { DataLine } from "./DataLine";
+import { DataLine, DataLineGroup } from "./DataLine";
 import { MissionDate } from "./MissionDate";
 import { Unit } from "./Unit";
 
@@ -41,5 +41,22 @@ describe("DataLine", () => {
     );
 
     await expectNoA11yViolations(container);
+  });
+
+  it("keeps every aligned label and reading in a group", () => {
+    render(
+      <DataLineGroup data-testid="group">
+        <DataLine aligned label="Course">
+          Titan II
+        </DataLine>
+        <DataLine aligned label="Finishes">
+          12 Mar 1957
+        </DataLine>
+      </DataLineGroup>,
+    );
+
+    expect(screen.getByTestId("group").children).toHaveLength(2);
+    expect(screen.getByText("Finishes")).toBeInTheDocument();
+    expect(screen.getByText("12 Mar 1957")).toBeInTheDocument();
   });
 });

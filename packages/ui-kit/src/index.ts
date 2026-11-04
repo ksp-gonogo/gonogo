@@ -276,7 +276,7 @@ export {
   type DataKeyPickerProps,
   type KeyOption,
 } from "./DataKeyPicker";
-export { DataLine, type DataLineProps } from "./DataLine";
+export { DataLine, DataLineGroup, type DataLineProps } from "./DataLine";
 export {
   DataTable,
   type DataTableColumn,
