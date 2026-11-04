@@ -2094,6 +2094,7 @@ namespace Sitrep.Host
         {
             ["time"] = ca.Time,
             ["distance"] = ca.Distance,
+            ["trajectoryKind"] = (int)ca.TrajectoryKind,
         };
 
         private static Dictionary<string, object?> ToWire(VesselLight light) => new Dictionary<string, object?>
