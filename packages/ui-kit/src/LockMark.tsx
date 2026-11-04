@@ -35,7 +35,7 @@ export function LockMark({ lock: given }: LockMarkProps) {
   return (
     <Tooltip text={sentence} focusable>
       <LockMark__Body role="status" aria-label={sentence}>
-        <LockIcon />
+        <LockIcon size="1.2em" />
         <LockMark__Name>{missingNames(lock)}</LockMark__Name>
       </LockMark__Body>
     </Tooltip>
@@ -66,6 +66,7 @@ const LockMark__Body = styled.span`
   min-width: 0;
   color: var(--color-text-muted);
   font-size: var(--font-size-caption);
+  line-height: var(--line-height-flush);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;

@@ -180,7 +180,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/Navball/AttitudeIndicator.tsx": 3,
     "packages/components/src/PowerSystems/styles.ts": 1,
     "packages/components/src/SemiMajorAxis/index.tsx": 1,
-    "packages/components/src/shared/OrbitalEventChips.tsx": 2,
+    "packages/components/src/shared/OrbitalEventChips.tsx": 1,
     "packages/ui/src/StationConnectView/StationConnectView.styles.ts": 7,
     "packages/components/src/TrackingStation/index.tsx": 1,
     "packages/components/src/ResearchAndDevelopment/styles.ts": 3,
