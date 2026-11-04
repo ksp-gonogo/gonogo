@@ -76,6 +76,40 @@ describe("useControlStream", () => {
     vi.restoreAllMocks();
   });
 
+  it("draws an input queued from another screen of the centre on a strip this screen never touched", async () => {
+    vi.useFakeTimers();
+    const { transport, wall } = mountProbe(null);
+    act(() => {
+      transport.emit("comms.delay", { oneWaySeconds: 20 });
+      transport.emit("system.uplink.pending", {
+        pending: [
+          {
+            id: "engine-1",
+            clientRequestId: "station-ab12:c9",
+            command: "vessel.control.setThrottle",
+            label: "Throttle",
+            topic: "",
+            vantage: "ground:Kerbin: KSC",
+            dispatchedAt: 0,
+            oneWaySeconds: 20,
+            commandedValue: 0.8,
+          },
+        ],
+      });
+    });
+    for (let i = 0; i < 5; i++) {
+      wall.advanceBy(0.1);
+      // eslint-disable-next-line no-await-in-loop
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(100);
+      });
+    }
+    expect(transport.sentCommands).toEqual([]);
+    expect(
+      Number(screen.getByTestId("in-transit-count").textContent),
+    ).toBeGreaterThan(0);
+  });
+
   it("sends nothing and logs no command while the value is null, even with a readback arriving", async () => {
     vi.useFakeTimers();
     const { transport, wall } = mountProbe(null);

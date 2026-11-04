@@ -15,9 +15,11 @@ import {
   ALL_CONFIRMATION_WORDS,
   confirmationSentenceOf,
   confirmationWordOf,
+  pressOutstanding,
+  shownToggleState,
   showsToggle,
   type ToggleConfirmation,
-  toggleConfirmationOf,
+  useToggleConfirmation,
 } from "../shared/toggleConfirmation";
 import { useAskedToggle } from "../shared/useAskedToggle";
 import type { ActionGroupActions } from "./config";
@@ -50,13 +52,13 @@ export interface GroupToggle {
   streamDown: boolean;
   press: () => void;
   /**
-   * Where the latest toggle sent from here stands while the state shown is not
-   * yet the one it set: `held` while it waits at a relay, `sent` until the
-   * craft's telemetry shows it, and `unconfirmed` once that is overdue. Null
-   * when nothing sent is outstanding.
+   * `sent` while the mod has not yet answered the latest press from here,
+   * `held` while a command for this group from anyone at the command centre
+   * waits at a relay, `modelled` while one is predicted to have reached the
+   * craft and its reply is on its way back, else null.
    */
   confirmation: ToggleConfirmation | null;
-  /** The word the button shows: `SENT` while it travels, `LATE` once its confirmation is overdue, else the state. */
+  /** The word the button shows: `SENT` until the mod answers the press, else the state. */
   buttonWord: string;
   /** Every word the button can show, which it is sized to hold so it keeps its size as the word changes. */
   buttonWords: readonly string[];
@@ -96,15 +98,23 @@ export function useGroupToggle({
   // A held reading with no value for this group has nothing to send the opposite of.
   const unreadable = stateUnreadable || (valueHeld && value == null);
 
-  const confirmation = toggleConfirmationOf(toggleCmd.inFlight);
-  const ask = useAskedToggle(confirmation, value);
+  const sendLabel = `Toggle ${label}`;
+  // Every action group shares one command, so a row is this group's by the label it was sent under.
+  const confirmation = useToggleConfirmation(toggleCmd, (row) =>
+    toggleCommand === "vessel.control.setActionGroup"
+      ? row.label === sendLabel
+      : true,
+  );
+  // The state the button shows: a predicted one while the command is modelled to have arrived.
+  const shown = shownToggleState(value, confirmation);
+  const ask = useAskedToggle(pressOutstanding(toggleCmd), shown);
 
   const press = () => {
     if (!group?.toggle || !toggleCommand || toggleCmd.streamDown) return;
     const args = buildToggleArgs(group, ask.base);
     if (args === TOGGLE_INVALID) return;
     ask.asked(args);
-    void toggleCmd.send(args, { label: `Toggle ${label}` });
+    void toggleCmd.send(args, { label: sendLabel });
   };
 
   useActionInput<ActionGroupActions>({
@@ -117,13 +127,13 @@ export function useGroupToggle({
     },
   });
 
-  const stateLabel = stateLabelOf(value);
+  const stateLabel = stateLabelOf(shown);
   const buttonWord = confirmationWordOf(confirmation) ?? stateLabel;
   const confirmationSentence = confirmationSentenceOf(label, confirmation);
 
   return {
     // Some groups, Stage among them, report a number rather than a boolean.
-    isOn: typeof value === "number" ? value > 0 : value === true,
+    isOn: typeof shown === "number" ? shown > 0 : shown === true,
     stateLabel,
     buttonWord,
     buttonWords: ["ON", "OFF", ...ALL_CONFIRMATION_WORDS, stateLabel],

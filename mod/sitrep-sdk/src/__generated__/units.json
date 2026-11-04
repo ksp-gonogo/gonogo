@@ -1185,11 +1185,13 @@
       "oneWaySeconds": "s",
       "predictedArrivalUt": "ut",
       "predictedHeldAt": "id",
+      "predictedHeldFromUt": "ut",
       "predictedHeldUntilUt": "ut",
       "predictedReplyUt": "ut",
       "replyOverdueUt": "ut",
       "topic": "id",
-      "vantage": "id"
+      "vantage": "id",
+      "warning": "text"
     },
     "Ping": {
       "nonce": "id",
@@ -1537,6 +1539,20 @@
       "path": "id",
       "tags": "id",
       "value": "text"
+    },
+    "SettledUplink": {
+      "clientRequestId": "id",
+      "code": "id",
+      "command": "id",
+      "detail": "text",
+      "id": "id",
+      "label": "text",
+      "message": "text",
+      "outcome": "id",
+      "reason": "id",
+      "settledAt": "ut",
+      "topic": "id",
+      "vantage": "id"
     },
     "SpaceCenterPartsAvailable": {
       "count": "count"
@@ -2863,7 +2879,8 @@
       "meshes": "PartShapeMesh[]"
     },
     "PendingUplinkQueue": {
-      "pending": "PendingUplink[]"
+      "pending": "PendingUplink[]",
+      "settled": "SettledUplink[]"
     },
     "PropagationHorizon": {
       "departure": "PropagationDepartureKnot[]"

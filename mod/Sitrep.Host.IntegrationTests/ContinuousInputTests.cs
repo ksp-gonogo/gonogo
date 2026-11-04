@@ -138,6 +138,8 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Empty(world.Engine.JourneyAt(Home).Events);
             var entry = Assert.Single(Assert.IsType<PendingUplinkQueue>(world.Engine.PayloadOf(ChannelEngine.UplinkPendingTopic)).Pending);
             Assert.Equal(Relay, entry.PredictedHeldAt);
+            // Every screen at the centre reads the queue, so the entry carries what the sender was told.
+            Assert.Equal(warning, entry.Warning);
             Assert.Null(entry.OneWaySeconds);
             var known = entry.PredictedReplyUt!.Value;
             var light = (known - 1000.0) / 2.0;

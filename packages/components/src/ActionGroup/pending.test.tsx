@@ -2,10 +2,17 @@ import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { expectLiveRegionPrimed } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
+import { SENT_FLASH_MS } from "../shared/toggleConfirmation";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ActionGroupComponent } from "./index";
 
 afterEach(() => clearActionHandlers());
+
+/** Waits out the moment a toggle reads "SENT" after a press, however soon the mod answers it. */
+const afterSentFlash = () =>
+  act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, SENT_FLASH_MS + 20));
+  });
 
 const GROUPS = Array.from({ length: 10 }, (_, i) => ({
   index: i + 1,
@@ -14,7 +21,7 @@ const GROUPS = Array.from({ length: 10 }, (_, i) => ({
 }));
 
 describe("ActionGroup: a toggle sent over a delayed link", () => {
-  it("shows the command as pending on the rail while the shown state is still the old one", async () => {
+  it("reads SENT until the mod accepts the press, then its state while the rail carries the command", async () => {
     const fixture = setupStreamFixture({ pinnedUt: 1000, suspendFrames: true });
     fixture.transport.holdCommands();
     render(
@@ -69,6 +76,22 @@ describe("ActionGroup: a toggle sent over a delayed link", () => {
     expect(
       screen.getByRole("button", { name: "Toggle Light" }).textContent,
     ).toBe("SENT");
+
+    act(() => {
+      fixture.transport.emitRaw({
+        type: "command-accepted",
+        requestId: sent.requestId,
+        oneWaySeconds: 286,
+      });
+    });
+    // Answered at once, the press still reads SENT for a moment, then the button shows its state again.
+    expect(
+      screen.getByRole("button", { name: "Toggle Light" }).textContent,
+    ).toBe("SENT");
+    await afterSentFlash();
+    expect(
+      screen.getByRole("button", { name: "Toggle Light" }).textContent,
+    ).toBe("ON");
   });
 });
 
@@ -145,6 +168,7 @@ async function pressAndAnswer() {
     at(REPLY_DUE_UT + 0.3, "vessel.control", control(true));
     fixture.transport.answerHeldCommands();
   });
+  await afterSentFlash();
   return at;
 }
 
@@ -160,9 +184,9 @@ const toggleText = () =>
   screen.getByRole("button", { name: "Toggle Light" }).textContent;
 
 describe("ActionGroup: a toggle the craft has answered", () => {
-  it("reads as sent until the craft's telemetry shows the new state", async () => {
+  it("shows the state its readings show, from the reply on", async () => {
     const at = await pressAndAnswer();
-    expect(toggleText()).toBe("SENT");
+    expect(toggleText()).toBe("ON");
 
     act(() => {
       at(350297068.3, "vessel.control", control(false));
@@ -171,13 +195,13 @@ describe("ActionGroup: a toggle the craft has answered", () => {
     await act(async () => {});
   });
 
-  it("says the toggle is unconfirmed when the telemetry has not shown it a minute after the reply", async () => {
+  it("puts no word on the button when the readings have not shown it a minute after the reply", async () => {
     const at = await pressAndAnswer();
 
     act(() => {
       at(REPLY_DUE_UT + 61, "vessel.control", control(true));
     });
-    expect(toggleText()).toBe("LATE");
+    expect(toggleText()).toBe("ON");
     await act(async () => {});
   });
 });
@@ -210,6 +234,12 @@ describe("ActionGroup: a toggle held for a link", () => {
     });
     const [sent] = fixture.transport.sentCommands;
     act(() => {
+      fixture.transport.emitRaw({
+        type: "command-accepted",
+        requestId: sent.requestId,
+        oneWaySeconds: 527,
+        predictedReplyUt: 1554,
+      });
       fixture.emit("system.uplink.pending", {
         pending: [
           {
@@ -232,8 +262,57 @@ describe("ActionGroup: a toggle held for a link", () => {
       });
     });
 
+    await afterSentFlash();
     expect(toggleText()).toBe("ON, Light held until contact returns");
     expect(toggleText()).not.toContain("HELD");
+    await act(async () => {});
+  });
+
+  it("wears the held mark for a command another screen of the centre sent", async () => {
+    const fixture = setupStreamFixture({ pinnedUt: 1000, suspendFrames: true });
+    render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "ag-held-other" }}>
+          <ActionGroupComponent
+            config={{ actionGroupId: "Light" }}
+            id="ag-held-other"
+            w={6}
+            h={6}
+          />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.emit("comms.link", { connected: true });
+      fixture.emit("comms.delay", { oneWaySeconds: 27, source: 1 });
+      fixture.emit("vessel.control", control(true));
+    });
+    await screen.findByText("ON");
+
+    act(() => {
+      fixture.emit("system.uplink.pending", {
+        pending: [
+          {
+            id: "engine-9",
+            clientRequestId: "station-ab12:c4",
+            command: "vessel.control.setLights",
+            label: "Toggle Light",
+            topic: "",
+            vantage: "ground:Kerbin: KSC",
+            dispatchedAt: 1000,
+            oneWaySeconds: 27,
+            laneSeq: 1,
+            craft: "vessel:abc",
+            predictedHeldAt: "relay-1",
+            predictedHeldUntilUt: 1500,
+            predictedArrivalUt: 1527,
+            predictedReplyUt: 1554,
+          },
+        ],
+      });
+    });
+
+    expect(toggleText()).toBe("ON, Light held until contact returns");
     await act(async () => {});
   });
 });
@@ -280,8 +359,66 @@ describe("ActionGroup: telling a screen reader a toggle is outstanding", () => {
       });
     });
     expect(regions.map((r) => r.textContent)).toContain(
-      "Light sent, until the craft's readings show it",
+      "Light sent, not yet received",
     );
+    await act(async () => {});
+  });
+});
+
+describe("ActionGroup: a command predicted to have reached the craft", () => {
+  it("shows the state it sets, marked modelled, until its reply, then the reading", async () => {
+    const fixture = setupStreamFixture({ pinnedUt: 1000, suspendFrames: true });
+    render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "ag-modelled" }}>
+          <ActionGroupComponent
+            config={{ actionGroupId: "Light" }}
+            id="ag-modelled"
+            w={6}
+            h={6}
+          />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+    const meta = (ut: number) => ({ validAt: ut - 27, deliveredAt: ut });
+    act(() => {
+      fixture.emit("comms.link", { connected: true }, meta(1000));
+      fixture.emit("comms.delay", { oneWaySeconds: 27, source: 1 }, meta(1000));
+      fixture.emit("vessel.control", control(true), meta(1000));
+      // Another screen of the centre sent it.
+      fixture.emit(
+        "system.uplink.pending",
+        {
+          pending: [
+            {
+              id: "engine-1",
+              clientRequestId: "station-ab12:c1",
+              command: "vessel.control.setLights",
+              label: "Toggle Light",
+              topic: "",
+              vantage: "ground:Kerbin: KSC",
+              dispatchedAt: 1000,
+              oneWaySeconds: 27,
+            },
+          ],
+        },
+        meta(1000),
+      );
+    });
+    await screen.findByText("ON");
+
+    act(() => {
+      fixture.scrubTo(1028);
+      fixture.emit("comms.link", { connected: true }, meta(1028));
+    });
+    expect(toggleText()).toMatch(/^OFF, Light shown as predicted/);
+
+    act(() => {
+      fixture.scrubTo(1055);
+      fixture.emit("system.uplink.pending", { pending: [] }, meta(1055));
+      fixture.emit("vessel.control", control(false), meta(1055));
+    });
+    expect(toggleText()).toBe("OFF");
     await act(async () => {});
   });
 });

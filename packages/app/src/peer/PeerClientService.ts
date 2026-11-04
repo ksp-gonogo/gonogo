@@ -199,6 +199,9 @@ type ClientEventMap = {
     meta: import("@ksp-gonogo/sitrep-sdk").Meta,
   ];
   sitrepCommandError: [requestId: string, code: string, message: string];
+  sitrepCommandAccepted: [
+    accepted: Extract<PeerMessage, { type: "sitrep-command-accepted" }>,
+  ];
 };
 
 export class PeerClientService {
@@ -1409,6 +1412,15 @@ export class PeerClientService {
     return this.events.on("sitrepCommandResponse", cb);
   }
 
+  /** A `sitrep-command-accepted` for a command this station dispatched. */
+  onSitrepCommandAccepted(
+    cb: (
+      accepted: Extract<PeerMessage, { type: "sitrep-command-accepted" }>,
+    ) => void,
+  ): () => void {
+    return this.events.on("sitrepCommandAccepted", cb);
+  }
+
   /** A `sitrep-command-error` for a command this station dispatched. */
   onSitrepCommandError(
     cb: (requestId: string, code: string, message: string) => void,
@@ -2099,6 +2111,9 @@ export class PeerClientService {
         msg.result,
         msg.meta,
       );
+    },
+    "sitrep-command-accepted": (msg) => {
+      this.events.emit("sitrepCommandAccepted", msg);
     },
     "sitrep-command-error": (msg) => {
       this.events.emit(

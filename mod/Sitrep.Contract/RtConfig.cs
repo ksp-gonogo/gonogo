@@ -303,6 +303,8 @@ public static class RtConfig
                 // interfaces stay I-prefix-free like every other payload.
                 typeof(PendingUplink),
                 typeof(PendingUplinkQueue),
+                // Its settled outcomes, on the same payload.
+                typeof(SettledUplink),
                 // A declared command gate's verdict: the refusal payload and the
                 // per-command entry of the addressability set. Registered here
                 // for AutoI(false) so the generated interfaces stay I-prefix-free

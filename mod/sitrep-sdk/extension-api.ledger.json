@@ -8155,6 +8155,10 @@
         "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
       },
       {
+        "key": "sitrep-sdk . CommandStatus",
+        "note": "The in-flight phase gains accepted, set once the mod accepts the send for its flight"
+      },
+      {
         "key": "sitrep-sdk . ComponentBehavior",
         "note": "the inert behaviors field and its one value are removed"
       },
@@ -8793,6 +8797,10 @@
       {
         "key": "sitrep-sdk . UseCommandResult#streamDown",
         "note": "The stream to the mod is down, so a press sends nothing; a control reads it to draw itself unavailable"
+      },
+      {
+        "key": "sitrep-sdk . UseCommandResult#warnings",
+        "note": "Each dispatch from the handle that the mod accepted with a warning, while it is in flight"
       },
       {
         "key": "sitrep-sdk . WidgetScopeRegistry#\"ground-track\"",
@@ -9535,6 +9543,10 @@
         "note": "New: replaces the payload of every point older than the one on screen, so a long history can drop fields only the newest sample is read for"
       },
       {
+        "key": "sitrep-sdk ./spine CommandStatus",
+        "note": "The in-flight phase gains accepted, set once the mod accepts the send for its flight"
+      },
+      {
         "key": "sitrep-sdk ./spine CommsLinkLike#connected",
         "note": "connected is optional and may be null, as comms.link now says when nothing is reported yet"
       },
@@ -9853,6 +9865,10 @@
       {
         "key": "sitrep-sdk ./spine UseCommandResult#streamDown",
         "note": "The stream to the mod is down, so a press sends nothing; a control reads it to draw itself unavailable"
+      },
+      {
+        "key": "sitrep-sdk ./spine UseCommandResult#warnings",
+        "note": "Each dispatch from the handle that the mod accepted with a warning, while it is in flight"
       },
       {
         "key": "sitrep-sdk ./spine Vector3",
@@ -10289,6 +10305,10 @@
       {
         "key": "sitrep-sdk ./testing ~ClientTimeline#supersedeBefore",
         "note": "New: replaces the payload of every point older than the one on screen, so a long history can drop fields only the newest sample is read for"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandStatus",
+        "note": "The in-flight phase gains accepted, set once the mod accepts the send for its flight"
       },
       {
         "key": "sitrep-sdk ./testing ~ContributionDep",
@@ -10919,6 +10939,10 @@
         "note": "The stream to the mod is down, so a press sends nothing; a control reads it to draw itself unavailable"
       },
       {
+        "key": "sitrep-sdk ./testing ~UseCommandResult#warnings",
+        "note": "Each dispatch from the handle that the mod accepted with a warning, while it is in flight"
+      },
+      {
         "key": "sitrep-sdk ./uplink-externals UPLINK_EXTERNAL_ENTRIES",
         "note": "one entry added for the ui-kit grid subpath, so a loaded client that imports it resolves it through the app's import map"
       },
@@ -11009,6 +11033,14 @@
       {
         "key": "ui-kit . CommandFailedLike",
         "note": "now an interface extending CommandLossLike with an optional fault code, where it was an alias of CommandLossLike"
+      },
+      {
+        "key": "ui-kit . CommandListKind",
+        "note": "Gains warned, for commands in flight the mod accepted with a warning"
+      },
+      {
+        "key": "ui-kit . CommandListProps",
+        "note": "Gains the warned kind and its entries"
       },
       {
         "key": "ui-kit . ContainerBreak",
@@ -12017,6 +12049,14 @@
         "note": "New with command groups"
       },
       {
+        "key": "sitrep-sdk . CommandHold",
+        "note": "Added. Where a command held at a relay on its way out is, once the relay has reported the hold, so the rail can stop its mark there"
+      },
+      {
+        "key": "sitrep-sdk . CommandHold#outbound",
+        "note": "Added with CommandHold: how far along the way out a held command is, which places its rail mark"
+      },
+      {
         "key": "sitrep-sdk . CommandLoss",
         "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
       },
@@ -12083,6 +12123,26 @@
       {
         "key": "sitrep-sdk . CommandUndelivered#reason",
         "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandWarning",
+        "note": "A dispatch the mod accepted with a warning, as useCommand lists it"
+      },
+      {
+        "key": "sitrep-sdk . CommandWarning#command",
+        "note": "A dispatch the mod accepted with a warning, as useCommand lists it"
+      },
+      {
+        "key": "sitrep-sdk . CommandWarning#id",
+        "note": "A dispatch the mod accepted with a warning, as useCommand lists it"
+      },
+      {
+        "key": "sitrep-sdk . CommandWarning#label",
+        "note": "A dispatch the mod accepted with a warning, as useCommand lists it"
+      },
+      {
+        "key": "sitrep-sdk . CommandWarning#warning",
+        "note": "A dispatch the mod accepted with a warning, as useCommand lists it"
       },
       {
         "key": "sitrep-sdk . ComponentDefinition#awaitsFirstSignal?",
@@ -12453,6 +12513,10 @@
         "note": "New optional field: true while the route has the command waiting at a relay for a link to open"
       },
       {
+        "key": "sitrep-sdk . InFlightCommand#hold?",
+        "note": "Added. Where a command held on its way out waits, which places its rail mark at the relay"
+      },
+      {
         "key": "sitrep-sdk . KSP_CONTRACT_PRESTIGE_NAMES",
         "note": "New: a contract's prestige tier as a name table and its name type"
       },
@@ -12521,12 +12585,20 @@
         "note": "New optional field: the relay where the centre predicts the command first waits, read to mark it held"
       },
       {
+        "key": "sitrep-sdk . PendingEntry#predictedHeldFromUt?",
+        "note": "Added. When a held command is predicted to reach the relay it waits at, as the queue now carries it"
+      },
+      {
         "key": "sitrep-sdk . PendingEntry#predictedHeldUntilUt?",
         "note": "New optional field: when the command is predicted to leave that relay"
       },
       {
         "key": "sitrep-sdk . PendingEntry#replyOverdueUt?",
         "note": "New optional field: when the centre first found the reply overdue, read where the client used to recompute it"
+      },
+      {
+        "key": "sitrep-sdk . PendingEntry#warning?",
+        "note": "What the sending centre told the sender on accepting the command, so every screen at the centre shows it"
       },
       {
         "key": "sitrep-sdk . PlotEntry#held?",
@@ -12771,6 +12843,58 @@
       {
         "key": "sitrep-sdk . SettingDefinitionBase#validate?",
         "note": "Added. A text setting can refuse typed text with a sentence of its own, which Settings shows under the field"
+      },
+      {
+        "key": "sitrep-sdk . SettledEntry",
+        "note": "Added. A command the centre's queue reports refused or failed, so every screen at the centre can say what became of another screen's command"
+      },
+      {
+        "key": "sitrep-sdk . SettledEntry#clientRequestId",
+        "note": "Added with SettledEntry: clientRequestId, as the queue's settled entry carries it"
+      },
+      {
+        "key": "sitrep-sdk . SettledEntry#code",
+        "note": "Added with SettledEntry: code, as the queue's settled entry carries it"
+      },
+      {
+        "key": "sitrep-sdk . SettledEntry#command",
+        "note": "Added with SettledEntry: command, as the queue's settled entry carries it"
+      },
+      {
+        "key": "sitrep-sdk . SettledEntry#detail?",
+        "note": "Added with SettledEntry: detail, as the queue's settled entry carries it"
+      },
+      {
+        "key": "sitrep-sdk . SettledEntry#id",
+        "note": "Added with SettledEntry: id, as the queue's settled entry carries it"
+      },
+      {
+        "key": "sitrep-sdk . SettledEntry#label",
+        "note": "Added with SettledEntry: label, as the queue's settled entry carries it"
+      },
+      {
+        "key": "sitrep-sdk . SettledEntry#message?",
+        "note": "Added with SettledEntry: message, as the queue's settled entry carries it"
+      },
+      {
+        "key": "sitrep-sdk . SettledEntry#outcome",
+        "note": "Added with SettledEntry: outcome, as the queue's settled entry carries it"
+      },
+      {
+        "key": "sitrep-sdk . SettledEntry#reason?",
+        "note": "Added with SettledEntry: reason, as the queue's settled entry carries it"
+      },
+      {
+        "key": "sitrep-sdk . SettledEntry#settledAt",
+        "note": "Added with SettledEntry: settledAt, as the queue's settled entry carries it"
+      },
+      {
+        "key": "sitrep-sdk . SettledEntry#topic",
+        "note": "Added with SettledEntry: topic, as the queue's settled entry carries it"
+      },
+      {
+        "key": "sitrep-sdk . SettledEntry#vantage",
+        "note": "Added with SettledEntry: vantage, as the queue's settled entry carries it"
       },
       {
         "key": "sitrep-sdk . SizeDelta",
@@ -15201,6 +15325,26 @@
         "note": "New with command groups"
       },
       {
+        "key": "sitrep-sdk ./spine CommandWarning",
+        "note": "A dispatch the mod accepted with a warning, as useCommand lists it"
+      },
+      {
+        "key": "sitrep-sdk ./spine CommandWarning#command",
+        "note": "A dispatch the mod accepted with a warning, as useCommand lists it"
+      },
+      {
+        "key": "sitrep-sdk ./spine CommandWarning#id",
+        "note": "A dispatch the mod accepted with a warning, as useCommand lists it"
+      },
+      {
+        "key": "sitrep-sdk ./spine CommandWarning#label",
+        "note": "A dispatch the mod accepted with a warning, as useCommand lists it"
+      },
+      {
+        "key": "sitrep-sdk ./spine CommandWarning#warning",
+        "note": "A dispatch the mod accepted with a warning, as useCommand lists it"
+      },
+      {
         "key": "sitrep-sdk ./spine CommsLinkLike#connected?",
         "note": "connected is optional and may be null, as comms.link now says when nothing is reported yet"
       },
@@ -15837,6 +15981,14 @@
         "note": "CommNet Signal's target row takes what the first hop ends at, when the mod names it"
       },
       {
+        "key": "sitrep-sdk ./spine ~CommandHold",
+        "note": "Added. Where a command held at a relay on its way out is, once the relay has reported the hold, so the rail can stop its mark there"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~CommandHold#outbound",
+        "note": "Added with CommandHold: how far along the way out a held command is, which places its rail mark"
+      },
+      {
         "key": "sitrep-sdk ./spine ~ContractReckonableRow",
         "note": "One value a contract declares a model carries forward, as an Uplink's codegen writes it"
       },
@@ -15941,6 +16093,10 @@
         "note": "New optional field: true while the route has the command waiting at a relay for a link to open"
       },
       {
+        "key": "sitrep-sdk ./spine ~InFlightCommand#hold?",
+        "note": "Added. Where a command held on its way out waits, which places its rail mark at the relay"
+      },
+      {
         "key": "sitrep-sdk ./spine ~MissionMeta#endReason?",
         "note": "New: why a recorded mission's flight ended, absent for one that stopped without an end notice"
       },
@@ -16005,12 +16161,20 @@
         "note": "New optional field: the relay where the centre predicts the command first waits, read to mark it held"
       },
       {
+        "key": "sitrep-sdk ./spine ~PendingEntry#predictedHeldFromUt?",
+        "note": "Added. When a held command is predicted to reach the relay it waits at, as the queue now carries it"
+      },
+      {
         "key": "sitrep-sdk ./spine ~PendingEntry#predictedHeldUntilUt?",
         "note": "New optional field: when the command is predicted to leave that relay"
       },
       {
         "key": "sitrep-sdk ./spine ~PendingEntry#replyOverdueUt?",
         "note": "New optional field: when the centre first found the reply overdue, read where the client used to recompute it"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PendingEntry#warning?",
+        "note": "What the sending centre told the sender on accepting the command, so every screen at the centre shows it"
       },
       {
         "key": "sitrep-sdk ./spine ~PlotEntry#held?",
@@ -16329,6 +16493,34 @@
         "note": "New with command groups"
       },
       {
+        "key": "sitrep-sdk ./testing ~CommandHold",
+        "note": "Added. Where a command held at a relay on its way out is, once the relay has reported the hold, so the rail can stop its mark there"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandHold#outbound",
+        "note": "Added with CommandHold: how far along the way out a held command is, which places its rail mark"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandWarning",
+        "note": "A dispatch the mod accepted with a warning, as useCommand lists it"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandWarning#command",
+        "note": "A dispatch the mod accepted with a warning, as useCommand lists it"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandWarning#id",
+        "note": "A dispatch the mod accepted with a warning, as useCommand lists it"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandWarning#label",
+        "note": "A dispatch the mod accepted with a warning, as useCommand lists it"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandWarning#warning",
+        "note": "A dispatch the mod accepted with a warning, as useCommand lists it"
+      },
+      {
         "key": "sitrep-sdk ./testing ~ContactStatus",
         "note": "New: whether the addressee can be reached now, and when that changes"
       },
@@ -16511,6 +16703,10 @@
       {
         "key": "sitrep-sdk ./testing ~InFlightCommand#held?",
         "note": "New optional field: true while the route has the command waiting at a relay for a link to open"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~InFlightCommand#hold?",
+        "note": "Added. Where a command held on its way out waits, which places its rail mark at the relay"
       },
       {
         "key": "sitrep-sdk ./testing ~ObjectiveSlotAwaitingHome",
@@ -17429,12 +17625,32 @@
         "note": "a handle's mod-answered failures, which the panel rail counts and lists"
       },
       {
+        "key": "ui-kit . CommandDelayHandle#warnings?",
+        "note": "Dispatches the mod accepted with a warning, which the panel delay rail counts and lists"
+      },
+      {
         "key": "ui-kit . CommandDelayProps#\"aria-label\"?",
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
       {
         "key": "ui-kit . CommandFailedLike#code?",
         "note": "the fault code, which commandFailedSentence says in the code's own words"
+      },
+      {
+        "key": "ui-kit . CommandWarningEntry",
+        "note": "A warned dispatch as the panel delay rail and CommandList draw it"
+      },
+      {
+        "key": "ui-kit . CommandWarningEntry#id",
+        "note": "A warned dispatch as the panel delay rail and CommandList draw it"
+      },
+      {
+        "key": "ui-kit . CommandWarningLike",
+        "note": "A warned dispatch as the panel delay rail and CommandList draw it"
+      },
+      {
+        "key": "ui-kit . CommandWarningLike#warning",
+        "note": "A warned dispatch as the panel delay rail and CommandList draw it"
       },
       {
         "key": "ui-kit . ContainerBreakProps#at?",
@@ -17801,8 +18017,20 @@
         "note": "Exported from the kit's index because published signatures take it"
       },
       {
+        "key": "ui-kit . InFlightCommandLike#dispatchedAt?",
+        "note": "Added. When a command was sent, which orders the opened rail's one queue of every handle's commands"
+      },
+      {
         "key": "ui-kit . InFlightCommandLike#glyph?",
         "note": "Exported from the kit's index because published signatures take it"
+      },
+      {
+        "key": "ui-kit . InFlightCommandLike#held?",
+        "note": "Added. Draws a command the route holds at a relay still, in the held colour"
+      },
+      {
+        "key": "ui-kit . InFlightCommandLike#hold?",
+        "note": "Added. Where a command held on its way out waits, which places its rail mark at the relay"
       },
       {
         "key": "ui-kit . InFlightCommandLike#id",
@@ -17827,6 +18055,26 @@
       {
         "key": "ui-kit . InFlightCommandLike#replyEtaSeconds",
         "note": "Exported from the kit's index because published signatures take it"
+      },
+      {
+        "key": "ui-kit . InFlightCommandLike#settleSeconds?",
+        "note": "Added. How long an answered command takes to cross the rail's confirmed stage before it fades"
+      },
+      {
+        "key": "ui-kit . InFlightCommandLike#settling?",
+        "note": "A command that has just left the rail: confirmed, drawn on through the confirmed stage then fading; failed, fading where it was"
+      },
+      {
+        "key": "ui-kit . InFlightListItem#held?",
+        "note": "Added. Draws a command the route holds at a relay still, in the held colour"
+      },
+      {
+        "key": "ui-kit . InFlightListItem#settleSeconds?",
+        "note": "Added. How long an answered command takes to cross the rail's confirmed stage before it fades"
+      },
+      {
+        "key": "ui-kit . InFlightListItem#settling?",
+        "note": "A command that has just left the rail: confirmed, drawn on through the confirmed stage then fading; failed, fading where it was"
       },
       {
         "key": "ui-kit . InFlightListProps#\"aria-label\"?",
@@ -18167,6 +18415,14 @@
       {
         "key": "ui-kit . REFUSAL_TIMEOUT_MS",
         "note": "exported, since the published docs of useCommandButton link it"
+      },
+      {
+        "key": "ui-kit . RailWarning",
+        "note": "A warned dispatch as the panel delay rail and CommandList draw it"
+      },
+      {
+        "key": "ui-kit . RailWarning#tags",
+        "note": "A warned dispatch as the panel delay rail and CommandList draw it"
       },
       {
         "key": "ui-kit . ReadoutProps",
@@ -18531,6 +18787,10 @@
       {
         "key": "ui-kit . WidgetTopicDeclaration#optionalChannelFamilies?",
         "note": "Reads the optional families off a widget definition"
+      },
+      {
+        "key": "ui-kit . commandWarningSentence",
+        "note": "The sentence for a command the mod accepted with a warning"
       },
       {
         "key": "ui-kit . createWheelGesture",
