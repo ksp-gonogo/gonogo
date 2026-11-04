@@ -11467,6 +11467,18 @@
         "note": "takes an optional placement, so a tip can stand above an anchor that sits over the content it would cover"
       },
       {
+        "key": "ui-kit . TooltipAnchorProps#onPointerDown?",
+        "note": "now receives the event, so a touch press can be told from a mouse press"
+      },
+      {
+        "key": "ui-kit . TooltipAnchorProps#onPointerEnter?",
+        "note": "its event may carry the pointer type, so a finger touching down does not open the tip"
+      },
+      {
+        "key": "ui-kit . TooltipAnchorProps#onPointerUp?",
+        "note": "now receives the event, so a finger lifting off the anchor opens or closes the tip"
+      },
+      {
         "key": "ui-kit . TrajectoryWithheldNote",
         "note": "Removed. A withheld orbit path is a ReckoningDecline, shown with DeclinedEmptyState like any declined model"
       },
