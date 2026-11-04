@@ -8,7 +8,7 @@ import {
 } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import fuellinePostStage2 from "./__fixtures__/fuelline-tester-poststage2.json";
 import lfv2WaveProbe from "./__fixtures__/lfv2-wave-probe-14parts.json";
 import { ShipDiagram } from "./ShipDiagram";
@@ -145,6 +145,60 @@ describe("the expand icon on a dense cluster", () => {
     expect(document.activeElement?.getAttribute("data-role")).toBe(
       "cluster-expand",
     );
+  });
+
+  it("closes a pinned popover on a press outside it, and keeps it for a press on the icon or inside the box", () => {
+    render(
+      <ShipDiagram
+        parts={partsOf(lfv2WaveProbe as Fixture)}
+        width={600}
+        height={700}
+      />,
+    );
+    const icon = screen.getByRole("button", { name: /Expand the 9 parts/ });
+    fireEvent.click(icon);
+    const box = () => document.body.querySelector('[data-role="cluster-box"]');
+    fireEvent.pointerDown(box() as Element);
+    expect(box()).not.toBeNull();
+    fireEvent.pointerDown(document.body);
+    expect(box()).toBeNull();
+  });
+
+  it("stops Escape before an enclosing handler sees it", () => {
+    const outer = vi.fn();
+    document.addEventListener("keydown", outer);
+    render(
+      <ShipDiagram
+        parts={partsOf(lfv2WaveProbe as Fixture)}
+        width={600}
+        height={700}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Expand the 9 parts/ }));
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    document.removeEventListener("keydown", outer);
+    expect(outer).not.toHaveBeenCalled();
+  });
+
+  it("lays the box out inside a phone-width viewport", () => {
+    const wide = window.innerWidth;
+    window.innerWidth = 360;
+    try {
+      render(
+        <ShipDiagram
+          parts={partsOf(lfv2WaveProbe as Fixture)}
+          width={300}
+          height={500}
+        />,
+      );
+      fireEvent.click(
+        screen.getByRole("button", { name: /Expand the 9 parts/ }),
+      );
+      const box = document.body.querySelector('[data-role="cluster-box"]');
+      expect(Number(box?.getAttribute("width"))).toBeLessThanOrEqual(360 - 16);
+    } finally {
+      window.innerWidth = wide;
+    }
   });
 
   it("has no accessibility violations with the box open", async () => {

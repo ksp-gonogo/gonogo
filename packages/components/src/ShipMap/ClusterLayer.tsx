@@ -61,15 +61,50 @@ const HOVER_LINGER_MS = 150;
 /** The gap between an icon and the popover beside it. */
 const ICON_GAP = 8;
 
-/** The room the popover's layout is sized for, independent of the widget it opens from. */
+/** The room the popover's layout is sized for at most, independent of the widget it opens from. */
 const POPOVER_ROOM = { w: 640, h: 360 };
+
+/** Floating's distance from the viewport edge, which the popover must leave on both sides. */
+const VIEWPORT_EDGE = 8;
+
+/** The radius of the invisible disc around an icon that takes a press, so a finger lands on it. */
+const HIT_RADIUS = 20;
+
+/**
+ * The room the popover is laid out in: the fixed room, or the viewport less its
+ * edges where that is smaller, so the box fits a phone.
+ */
+function popoverRoom(viewport: { w: number; h: number }) {
+  const maxBoxW = Math.min(
+    POPOVER_ROOM.w * BOX_MAX_SHARE,
+    viewport.w - 2 * VIEWPORT_EDGE,
+  );
+  return {
+    w: (maxBoxW + 12) / BOX_MAX_SHARE,
+    h: Math.min(POPOVER_ROOM.h, viewport.h - 2 * VIEWPORT_EDGE + 12),
+  };
+}
+
+const readViewport = () => ({ w: window.innerWidth, h: window.innerHeight });
+
+function useViewport() {
+  const [viewport, setViewport] = useState(readViewport);
+  useEffect(() => {
+    const onResize = () => setViewport(readViewport());
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return viewport;
+}
 
 /**
  * The expand icons beside each dense cluster of radial parts and a popover
  * laying every part of the cluster out at its own proportions. Hovering or
- * focusing an icon shows the popover; pressing the icon pins it open until the
- * icon is pressed again or Escape is pressed. The popover is drawn over the
- * page beside the icon, so the widget's edge does not clip it. The icons are
+ * focusing an icon shows the popover (a finger touching down does not); pressing the icon pins it open until the
+ * icon is pressed again, a press lands outside both, or Escape is pressed; a
+ * tap on a touch screen pins it the same way. The popover is drawn over the
+ * page beside the icon, so the widget's edge does not clip it, and is sized to
+ * stay inside the viewport. The icons are
  * drawn in screen space so they stay one size however far the view is zoomed.
  * Used by the Ship Map for rings of parts too crowded to tell apart in place.
  */
@@ -113,21 +148,40 @@ export function ClusterLayer({
     iconRefs.current.get(id)?.focus();
     quietFocusRef.current = false;
   }, []);
+  /* A finger's tap toggles on pointer-up; the click that follows it must not toggle again. */
+  const tappedRef = useRef(false);
   const shownId = openId ?? hoverId;
   const shown = clusters.find((c) => c.id === shownId);
   useEffect(() => {
     if (!shown) return;
+    /* Captured and stopped, so an enclosing dialog does not also close on the same Escape. */
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
+      e.stopPropagation();
       setHoverId(null);
       if (openId !== null) {
         onToggle(null);
         focusIcon(openId);
       }
     };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    document.addEventListener("keydown", onKey, true);
+    return () => document.removeEventListener("keydown", onKey, true);
   }, [shown, openId, onToggle, focusIcon]);
+
+  useEffect(() => {
+    if (openId === null) return;
+    const away = (e: PointerEvent) => {
+      const target = e.target;
+      if (!(target instanceof Element)) return;
+      if (
+        target.closest("[data-role='cluster-expand'], [data-cluster-popover]")
+      )
+        return;
+      onToggle(null);
+    };
+    document.addEventListener("pointerdown", away, true);
+    return () => document.removeEventListener("pointerdown", away, true);
+  }, [openId, onToggle]);
   return (
     <g data-role="cluster-layer">
       {shown && (
@@ -164,8 +218,24 @@ export function ClusterLayer({
             aria-expanded={isOpen}
             aria-label={`${isOpen ? "Close" : "Expand"} the ${c.members.length} parts clustered here`}
             style={{ cursor: "pointer" }}
-            onClick={activate}
-            onPointerEnter={() => holdHover(c.id)}
+            onClick={() => {
+              if (tappedRef.current) {
+                tappedRef.current = false;
+                return;
+              }
+              activate();
+            }}
+            onPointerUp={(e: React.PointerEvent) => {
+              if (e.pointerType !== "touch") return;
+              tappedRef.current = true;
+              setTimeout(() => {
+                tappedRef.current = false;
+              }, 400);
+              activate();
+            }}
+            onPointerEnter={(e: React.PointerEvent) => {
+              if (e.pointerType !== "touch") holdHover(c.id);
+            }}
             onPointerLeave={releaseHover}
             onFocus={() => {
               if (!quietFocusRef.current) holdHover(c.id);
@@ -177,6 +247,7 @@ export function ClusterLayer({
               activate();
             }}
           >
+            <circle cx={cx} cy={cy} r={HIT_RADIUS} fill="transparent" />
             <circle
               cx={cx}
               cy={cy}
@@ -245,15 +316,17 @@ function ClusterPopover({
   onLeave: () => void;
   onClose: () => void;
 }) {
+  const viewport = useViewport();
   const members = [...cluster.members].sort(
     (a, b) => a.lat - b.lat || b.axial - a.axial,
   );
+  const room = popoverRoom(viewport);
   const {
     columns,
     scale: k,
     boxW,
     boxH,
-  } = boxLayoutFor(members.length, POPOVER_ROOM.w, POPOVER_ROOM.h);
+  } = boxLayoutFor(members.length, room.w, room.h);
   const tileW = TILE_W * k;
   const tileH = TILE_H * k;
   const gap = TILE_GAP * k;
@@ -272,6 +345,7 @@ function ClusterPopover({
         };
       }}
       role="group"
+      data-cluster-popover=""
       aria-label={`The ${members.length} clustered parts, laid out`}
       style={{ pointerEvents: "auto" }}
       onPointerEnter={onEnter}
