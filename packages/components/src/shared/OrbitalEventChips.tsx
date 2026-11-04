@@ -136,7 +136,7 @@ function Chip({
             display: "inline-flex",
             alignItems: "center",
             gap: "var(--gap-related)",
-            lineHeight: 1,
+            lineHeight: "var(--line-height-flush)",
           }}
         >
           {children}
