@@ -8,6 +8,12 @@ export const FRAME_CAPTION: CSSProperties = {
   flex: "0 0 auto",
 };
 
+/** One caption line tall, so the held-route line appearing or going does not move what is below it. */
+export const HELD_PLAN_SLOT: CSSProperties = {
+  ...FRAME_CAPTION,
+  minHeight: "1lh",
+};
+
 /**
  * Renders the contributed `tracking-station.vessel-status` entry; TrackingStation only decides which severities are announced.
  * `nogo` is assertive, `warn` polite, and `info` (often a countdown) is announced by neither, since a live region would read a ticking clock aloud forever.

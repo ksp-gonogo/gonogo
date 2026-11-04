@@ -53,7 +53,11 @@ import { orbitSpread } from "../shared/orbitSpread";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { useEncounterIn } from "../shared/useEncounterIn";
 import { AlmanacPanel } from "./AlmanacPanel";
-import { ContactCaption, FRAME_CAPTION } from "./ContactCaption";
+import {
+  ContactCaption,
+  FRAME_CAPTION,
+  HELD_PLAN_SLOT,
+} from "./ContactCaption";
 import type { TrackingStationConfig } from "./config";
 import { nameMatches } from "./diagramGeometry";
 import { encounterDirectionOf } from "./encounter";
@@ -392,6 +396,13 @@ function TrackingStationComponent({
     recorded !== null && viewUt !== undefined && orbitObserved?.epoch != null
       ? viewUt.minus(orbitObserved.epoch).max(0)
       : undefined;
+  // The record can place the craft newer than its report on one update and not the next, so the line's row stays once the craft has a record that could.
+  const flownEntry =
+    vesselGuid === null
+      ? undefined
+      : catalog?.entries?.find((e) => e.vesselId === vesselGuid);
+  const heldLineReserved =
+    flownEntry !== undefined && !restsOnBody(flownEntry.situation);
   const targetThen = targetAtReport(
     targetOrbit ?? undefined,
     orbitObserved?.epoch ?? undefined,
@@ -901,18 +912,22 @@ function TrackingStationComponent({
             {trajectoryWithheld && (
               <DeclinedEmptyState declined={trajectoryWithheld.declined} />
             )}
-            {reportAge !== undefined && (
-              <HeldPlanCaption
-                reportAge={reportAge}
-                encountersHidden={
-                  recorded !== null && targetThen.reportOutlastsOrbit
-                }
-                targetName={
-                  drawnTarget !== null && typeof targetName === "string"
-                    ? targetName
-                    : null
-                }
-              />
+            {heldLineReserved && (
+              <div style={HELD_PLAN_SLOT} data-held-plan-slot="">
+                {reportAge !== undefined && (
+                  <HeldPlanCaption
+                    reportAge={reportAge}
+                    encountersHidden={
+                      recorded !== null && targetThen.reportOutlastsOrbit
+                    }
+                    targetName={
+                      drawnTarget !== null && typeof targetName === "string"
+                        ? targetName
+                        : null
+                    }
+                  />
+                )}
+              </div>
             )}
             {drawnTarget !== null &&
               targetHorizon !== null &&
