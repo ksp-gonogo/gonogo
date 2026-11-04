@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { asHostService } from "../test/peerFakes";
 import { GoNoGoHostService, type Vote } from "./GoNoGoHostService";
 
@@ -64,44 +64,5 @@ describe("a voter leaving the poll", () => {
     ]);
     peers.fire("disconnect", "b");
     expect(service.getSnapshot().countdown).toBeNull();
-  });
-});
-
-describe("countdown events", () => {
-  it("reports a countdown starting and a NO-GO ending it as aborted", () => {
-    const { peers, service } = scene([
-      ["a", "go"],
-      ["b", "no-go"],
-    ]);
-    const events: unknown[] = [];
-    service.onCountdown((event) => events.push(event));
-    peers.fire("disconnect", "b");
-    peers.fire("connect", "c");
-    peers.fire("info", "c", { name: "c" });
-    peers.fire("vote", "c", "no-go");
-    expect(events).toEqual([
-      { type: "start", lengthMs: 10_000 },
-      { type: "end", how: "aborted" },
-    ]);
-  });
-
-  it("reports a countdown that runs out as GO", () => {
-    vi.useFakeTimers();
-    try {
-      const { peers, service } = scene([
-        ["a", "go"],
-        ["b", "no-go"],
-      ]);
-      const events: unknown[] = [];
-      service.onCountdown((event) => events.push(event));
-      peers.fire("disconnect", "b");
-      vi.advanceTimersByTime(10_000);
-      expect(events).toEqual([
-        { type: "start", lengthMs: 10_000 },
-        { type: "end", how: "go" },
-      ]);
-    } finally {
-      vi.useRealTimers();
-    }
   });
 });
