@@ -2198,6 +2198,7 @@ namespace Sitrep.Host.Tests
                     {
                         ["time"] = 123456.0,
                         ["distance"] = 8420.0,
+                        ["trajectoryKind"] = (int)TrajectoryKind.Analytic,
                     },
                 });
 
@@ -2206,6 +2207,7 @@ namespace Sitrep.Host.Tests
             Assert.NotNull(target.ClosestApproach);
             Assert.Equal(123456.0, target.ClosestApproach!.Time);
             Assert.Equal(8420.0, target.ClosestApproach.Distance);
+            Assert.Equal(TrajectoryKind.Analytic, target.ClosestApproach.TrajectoryKind);
         }
 
         [Fact]

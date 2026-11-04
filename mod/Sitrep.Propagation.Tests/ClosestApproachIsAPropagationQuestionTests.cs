@@ -60,6 +60,19 @@ namespace Sitrep.Propagation.Tests
         }
 
         [Fact]
+        public void TheTwoBodySolverSaysItsAnswerIsAnalytic()
+        {
+            IPropagationProvider provider = new KeplerProvider();
+            var inner = Craft("inner", 700_000.0, 0.0);
+            var outer = Craft("outer", 900_000.0, 1.0);
+
+            var approach = provider.SolveClosestApproach(
+                inner, outer, Frame, 0.0, 20.0 * PeriodOf(900_000.0));
+
+            Assert.Equal(TrajectoryKind.Analytic, approach!.TrajectoryKind);
+        }
+
+        [Fact]
         public void TheAnswerDoesNotDependOnWhichCraftIsNamedFirst()
         {
             IPropagationProvider provider = new KeplerProvider();

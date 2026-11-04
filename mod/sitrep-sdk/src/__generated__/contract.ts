@@ -13117,6 +13117,15 @@ export interface ClosestApproach
 	time: Value<"ut">;
 	/** Separation (metres) at `ClosestApproach.time`. */
 	distance: Value<"m">;
+	/**
+	* What computed this approach: `TrajectoryKind.Analytic` for a two-body
+	* solution of both objects' conics, or `TrajectoryKind.Integrated` for one
+	* taken from integrated trajectories. `TrajectoryKind.Unspecified` when the
+	* provider did not say. Read it beside the vessel orbit's own
+	* `PropagationHorizon.trajectoryKind`: an analytic approach on an integrated
+	* trajectory is a two-body estimate the craft will drift from.
+	*/
+	trajectoryKind: TrajectoryKind;
 }
 /**
 * The active vessel's current target only.

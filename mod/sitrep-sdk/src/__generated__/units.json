@@ -318,7 +318,8 @@
     },
     "ClosestApproach": {
       "distance": "m",
-      "time": "ut"
+      "time": "ut",
+      "trajectoryKind": "enum"
     },
     "CommandAccepted": {
       "expiresAtUt": "ut",
@@ -3255,6 +3256,9 @@
       "placeSource": "RosterPlaceSource",
       "situation": "Situation",
       "vesselType": "VesselType"
+    },
+    "ClosestApproach": {
+      "trajectoryKind": "TrajectoryKind"
     },
     "CommcastTraffic": {
       "kind": null

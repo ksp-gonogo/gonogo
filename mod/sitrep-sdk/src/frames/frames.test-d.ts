@@ -58,7 +58,6 @@ import {
   type LibrationPair,
   type LibrationPoint,
   type LibrationRefusal,
-  type LibrationStationKeeping,
   lagrangePointsAt,
   librationOffsetOf,
   librationPairLabel,
@@ -242,8 +241,8 @@ export function _placesTheLibrationPoints(
     answer,
     vesselInertial,
   );
-  const keeping: LibrationStationKeeping | undefined = offset?.keeping;
-  return `${label} ${name ?? ""} ${keeping ?? ""}`;
+  const distance: number | undefined = offset?.distanceMetres;
+  return `${label} ${name ?? ""} ${distance ?? ""}`;
 }
 
 /** A craft's path drawn in that pair's frame says which frame it arrived in, so a curve in another cannot pass as this one. */

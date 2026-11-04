@@ -1084,6 +1084,7 @@ namespace Sitrep.Host
                 {
                     Time = GetDouble(rawCa, "time") ?? 0.0,
                     Distance = GetDouble(rawCa, "distance") ?? 0.0,
+                    TrajectoryKind = (TrajectoryKind)(GetInt(rawCa, "trajectoryKind") ?? 0),
                 };
             }
 

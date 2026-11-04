@@ -41,7 +41,7 @@
  * equilibria slightly and are not solved for here; they do enter through the
  * frame, whose angular velocity is summed over the whole catalogue as point
  * masses. A craft is never at a mathematical equilibrium anyway, which is what
- * the station-keeping offset below is for.
+ * the offset below is for.
  */
 
 import { PerfBudget } from "../perf/PerfBudget";
@@ -205,39 +205,13 @@ const LIBRATION_BUDGET = new PerfBudget({
 });
 
 /**
- * How close to a point counts as holding station, as a multiple of the pair's
- * separation (0.02). Useful for telling the operator whether a vessel is
- * station-keeping on a libration point. Used by {@link librationOffsetOf}.
- */
-export const LIBRATION_ON_STATION_UNITS = 0.02;
-
-/**
- * The distance, as a multiple of the pair's separation (0.15), beyond which a
- * vessel is not station-keeping on the point at all. Useful for telling the
- * operator whether a vessel is drifting from a libration point. Used by
- * {@link librationOffsetOf}.
- */
-export const LIBRATION_DRIFTING_UNITS = 0.15;
-
-/**
- * What a vessel's offset from the nearest point means: holding station on it,
- * drifting off it, or not station-keeping on it at all. Useful for showing the
- * operator how well a vessel holds its libration point, with the widget picking
- * the colour. Held in a {@link LibrationOffset}.
+ * Where a vessel sits against an answered pair's points: which one it is nearest
+ * and how far off it. Useful for showing the operator how far a vessel is from a
+ * libration point. Returned by {@link librationOffsetOf}.
  *
- * `elsewhere` is not a fault. A vessel in low orbit is nearest to some
- * libration point in the arithmetic sense and is not station-keeping on it, so
- * draw it as neutral and not as an alarm.
- *
- * @category Frames of reference
- */
-export type LibrationStationKeeping = "on-station" | "drifting" | "elsewhere";
-
-/**
- * Where a vessel sits against an answered pair's points: which one it is nearest,
- * how far off it, and what that distance means. Useful for showing the operator
- * how far a vessel is from a libration point. Returned by
- * {@link librationOffsetOf}.
+ * Distance alone does not say whether a vessel is station-keeping on the point:
+ * that also needs its velocity relative to the point in the pair's rotating
+ * frame, which {@link toFrame} gives.
  *
  * @category Frames of reference
  */
@@ -250,8 +224,6 @@ export interface LibrationOffset {
   distanceMetres: number;
   /** The same distance as a multiple of the pair's separation. */
   distanceUnits: number;
-  /** Whether the craft is holding station at that point. */
-  keeping: LibrationStationKeeping;
 }
 
 const NO_PAIR_CHOICE = (
@@ -512,8 +484,8 @@ export function lagrangePointsAt(
 }
 
 /**
- * Which point a vessel is nearest, how far off it is, and what that means.
- * Useful for showing the operator how close a vessel is to a libration point.
+ * Which point a vessel is nearest, and how far off it is. Useful for showing
+ * the operator how close a vessel is to a libration point.
  *
  * Pass the vessel's root-centred inertial position, in metres, at the answer's
  * own instant. `null` when the answer is a refusal or the position is not
@@ -547,19 +519,11 @@ export function librationOffsetOf(
   }
   if (nearest === null || !Number.isFinite(best)) return null;
 
-  const distanceUnits = best / unitLength;
-  const keeping: LibrationStationKeeping =
-    distanceUnits <= LIBRATION_ON_STATION_UNITS
-      ? "on-station"
-      : distanceUnits <= LIBRATION_DRIFTING_UNITS
-        ? "drifting"
-        : "elsewhere";
   return {
     nearest: nearest.name,
     vesselFrame: toFrame(answer.frame, vesselInertial).position,
     distanceMetres: best,
-    distanceUnits,
-    keeping,
+    distanceUnits: best / unitLength,
   };
 }
 

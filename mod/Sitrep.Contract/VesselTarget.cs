@@ -79,6 +79,18 @@ public class ClosestApproach
     /// <summary>Separation (metres) at <see cref="Time"/>.</summary>
     [SitrepUnit(Units.Metres)]
     public double Distance { get; set; }
+
+    /// <summary>
+    /// What computed this approach: <see cref="Sitrep.Contract.TrajectoryKind.Analytic"/>
+    /// for a two-body solution of both objects' conics, or
+    /// <see cref="Sitrep.Contract.TrajectoryKind.Integrated"/> for one taken from
+    /// integrated trajectories. <see cref="Sitrep.Contract.TrajectoryKind.Unspecified"/>
+    /// when the provider did not say. Read it beside the vessel orbit's own
+    /// <see cref="PropagationHorizon.TrajectoryKind"/>: an analytic approach on an
+    /// integrated trajectory is a two-body estimate the craft will drift from.
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public TrajectoryKind TrajectoryKind { get; set; }
 }
 
 /// <summary>

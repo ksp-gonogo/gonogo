@@ -305,7 +305,12 @@ namespace Sitrep.Propagation
                     {
                         return null;
                     }
-                    return new ClosestApproach { Time = turn, Distance = separation };
+                    return new ClosestApproach
+                    {
+                        Time = turn,
+                        Distance = separation,
+                        TrajectoryKind = TrajectoryKind.Analytic,
+                    };
                 }
 
                 if (ut >= toUt)

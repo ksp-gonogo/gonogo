@@ -10,6 +10,7 @@ import {
   type Reading,
   stillTrue,
   TargetKind,
+  TrajectoryKind,
   type Value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useReducer } from "react";
@@ -79,6 +80,21 @@ export function useRendezvousReading() {
         ? t.closestApproach.time.minus(atUt)
         : undefined,
   );
+
+  /*
+   * The craft flies an integrated trajectory, so figures solved from its conic
+   * are two-body estimates it will drift from. The closest approach says what
+   * computed it; a body encounter's periapsis is always the game's conic.
+   */
+  const orbit = stillTrue(
+    withoutReckoning(rendezvousTopics.useTelemetry("vessel.orbit")),
+    undefined,
+  );
+  const flownIntegrated =
+    orbit?.horizon?.trajectoryKind === TrajectoryKind.Integrated;
+  const closestApproachTwoBody =
+    flownIntegrated &&
+    target?.closestApproach?.trajectoryKind === TrajectoryKind.Analytic;
 
   // The miss distance at that closest approach, read the same way.
   const closestApproachDistance: Reading<Value<"m">> = deriveReading(
@@ -224,6 +240,8 @@ export function useRendezvousReading() {
     dockable,
     timeToClosestApproach,
     closestApproachDistance,
+    closestApproachTwoBody,
+    encounterTwoBody: flownIntegrated,
     tarDistance,
     relVel,
     rangeR,

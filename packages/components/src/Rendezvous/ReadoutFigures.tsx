@@ -246,6 +246,17 @@ function noticeFor(props: ReadoutFiguresProps): Notice | null {
       detail: `Alignment reckoned, ${reckoningBasisPhrase(reading.modelledAlignment)}`,
     };
   }
+  const twoBody =
+    level === "encounter" || props.periapsis !== null
+      ? reading.encounterTwoBody
+      : level !== "docking" && reading.closestApproachTwoBody;
+  if (twoBody) {
+    return {
+      tag: "Two-body",
+      detail:
+        "Two-body projection. The flown trajectory accounts for other bodies, so the craft will drift from these figures.",
+    };
+  }
   if (reading.reckoned !== undefined && level !== "docking") {
     return {
       tag: "Modelled",

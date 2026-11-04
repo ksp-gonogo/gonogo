@@ -101,9 +101,6 @@
  * - `frameSides` and `FrameSides`, which replicate the in-game frame selector's
  *   own notion of which bodies sit on each side, and so track something outside
  *   this repo
- * - the two station-keeping thresholds behind `LibrationStationKeeping`, which
- *   are tuning rather than physics: read the meaning, not the distance it was
- *   cut at
  * - `CelestialFacts` and `CelestialBody`, the catalogue every function below
  *   takes. Already on the root barrel, which is where the catalogue is produced,
  *   and a type reachable through two paths raises a canonicality question for no
@@ -130,7 +127,6 @@ export {
   type LibrationPair,
   type LibrationPoint,
   type LibrationRefusal,
-  type LibrationStationKeeping,
   lagrangePointsAt,
   librationOffsetOf,
   librationPairLabel,

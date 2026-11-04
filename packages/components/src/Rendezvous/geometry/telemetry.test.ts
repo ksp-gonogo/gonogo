@@ -1,4 +1,4 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { TrajectoryKind, value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
   approachOf,
@@ -79,7 +79,11 @@ describe("bodyNumbers and approachOf", () => {
   it("reads the closest approach, null without one", () => {
     expect(
       approachOf({
-        closestApproach: { time: value("ut", 900), distance: value("m", 31) },
+        closestApproach: {
+          time: value("ut", 900),
+          distance: value("m", 31),
+          trajectoryKind: TrajectoryKind.Analytic,
+        },
       }),
     ).toEqual({ time: 900, distance: 31 });
     expect(approachOf({ closestApproach: null })).toBeNull();

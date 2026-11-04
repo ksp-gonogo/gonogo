@@ -9171,6 +9171,10 @@
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
       },
       {
+        "key": "sitrep-sdk ./frames LibrationOffset#keeping",
+        "note": "Removed: distance alone cannot say whether a craft is station-keeping. Judge it from the craft's velocity relative to the point in the pair's frame, which toFrame gives"
+      },
+      {
         "key": "sitrep-sdk ./frames LibrationOffset#vesselFrame",
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
       },
@@ -9181,6 +9185,10 @@
       {
         "key": "sitrep-sdk ./frames LibrationPoint#inertial",
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./frames LibrationStationKeeping",
+        "note": "Removed with LibrationOffset#keeping"
       },
       {
         "key": "sitrep-sdk ./frames OrbitTrajectory",
@@ -9611,6 +9619,18 @@
         "note": "May be null, for a command that never took a place on a lane: a continuous input dropped where it would have waited. It used to read as lane 0, which a caller could pair with a real command"
       },
       {
+        "key": "sitrep-sdk ./spine LIBRATION_DRIFTING_UNITS",
+        "note": "Removed with LibrationOffset#keeping"
+      },
+      {
+        "key": "sitrep-sdk ./spine LIBRATION_ON_STATION_UNITS",
+        "note": "Removed with LibrationOffset#keeping"
+      },
+      {
+        "key": "sitrep-sdk ./spine LibrationOffset#keeping",
+        "note": "Removed: distance alone cannot say whether a craft is station-keeping. Judge it from the craft's velocity relative to the point in the pair's frame, which toFrame gives"
+      },
+      {
         "key": "sitrep-sdk ./spine LibrationOffset#vesselFrame",
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
       },
@@ -9621,6 +9641,10 @@
       {
         "key": "sitrep-sdk ./spine LibrationPoint#inertial",
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./spine LibrationStationKeeping",
+        "note": "Removed with LibrationOffset#keeping"
       },
       {
         "key": "sitrep-sdk ./spine NEVER_RECKONABLE",

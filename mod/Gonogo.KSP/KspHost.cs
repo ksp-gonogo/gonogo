@@ -4105,6 +4105,7 @@ namespace Gonogo.KSP
                 {
                     ["time"] = closestApproach.Time,
                     ["distance"] = closestApproach.Distance,
+                    ["trajectoryKind"] = (int)closestApproach.TrajectoryKind,
                 };
             }
 

@@ -12048,6 +12048,7 @@ components:
       required:
         - time
         - distance
+        - trajectoryKind
       properties:
         time:
           type: number
@@ -12059,6 +12060,17 @@ components:
           type: number
           x-sitrep-unit: m
           description: Separation (metres) at `ClosestApproach.time`.
+        trajectoryKind:
+          description: |-
+            What computed this approach: `TrajectoryKind.Analytic` for a two-body
+            solution of both objects' conics, or `TrajectoryKind.Integrated` for one
+            taken from integrated trajectories. `TrajectoryKind.Unspecified` when the
+            provider did not say. Read it beside the vessel orbit's own
+            `PropagationHorizon.trajectoryKind`: an analytic approach on an integrated
+            trajectory is a two-body estimate the craft will drift from.
+          allOf:
+            - $ref: "#/components/schemas/TrajectoryKind"
+              x-sitrep-unit: enum
     CommandAccepted:
       type: object
       description: |-

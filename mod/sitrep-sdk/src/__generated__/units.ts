@@ -359,6 +359,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "ClosestApproach": {
     distance: "m",
     time: "ut",
+    trajectoryKind: "enum",
   },
   "CommandAccepted": {
     expiresAtUt: "ut",
@@ -3340,6 +3341,9 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
     placeSource: "RosterPlaceSource",
     situation: "Situation",
     vesselType: "VesselType",
+  },
+  "ClosestApproach": {
+    trajectoryKind: "TrajectoryKind",
   },
   "CommcastTraffic": {
     kind: null,

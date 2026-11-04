@@ -406,7 +406,7 @@ describe("lagrangePointsAt", () => {
 });
 
 describe("librationOffsetOf", () => {
-  it("names the nearest point and calls a craft sitting on it on-station", () => {
+  it("names the nearest point a craft sits on, at no distance", () => {
     const facts = kerbinSystem(0.2);
     const answer = lagrangePointsAt(facts, 2, 0);
     const l1 = answer.points.find((p) => p.name === "L1");
@@ -414,36 +414,25 @@ describe("librationOffsetOf", () => {
     const offset = librationOffsetOf(answer, l1.inertial);
     expect(offset?.nearest).toBe("L1");
     expect(offset?.distanceMetres).toBeCloseTo(0, 6);
-    expect(offset?.keeping).toBe("on-station");
   });
 
-  it("calls a craft a few hundred kilometres off L2 drifting, and one in low orbit elsewhere", () => {
+  it("measures a craft off L2 in metres and in multiples of the separation", () => {
     const facts = kerbinSystem(0.2);
     const system = systemInstantAt(facts, 0);
     const answer = lagrangePointsAt(facts, 2, 0, system);
     const l2 = answer.points.find((p) => p.name === "L2");
-    const kerbin = system.positionByIndex.get(1);
-    if (l2 === undefined || kerbin === undefined) throw new Error("no state");
+    if (l2 === undefined) throw new Error("no L2");
 
     const separation = answer.frame?.unitLength ?? Number.NaN;
     const nudge = separation * 0.05;
-    const drifting = librationOffsetOf(answer, [
+    const offL2 = librationOffsetOf(answer, [
       l2.inertial[0] + nudge,
       l2.inertial[1],
       l2.inertial[2],
     ]);
-    expect(drifting?.nearest).toBe("L2");
-    expect(drifting?.keeping).toBe("drifting");
-    expect(drifting?.distanceUnits).toBeCloseTo(0.05, 6);
-    expect(drifting?.distanceMetres).toBeCloseTo(nudge, 3);
-
-    // A craft 700 km above Kerbin is nearest to whichever point the arithmetic says, and is not stationkeeping on any of them.
-    const lowOrbit = librationOffsetOf(answer, [
-      kerbin[0] + 1_300_000,
-      kerbin[1],
-      kerbin[2],
-    ]);
-    expect(lowOrbit?.keeping).toBe("elsewhere");
+    expect(offL2?.nearest).toBe("L2");
+    expect(offL2?.distanceUnits).toBeCloseTo(0.05, 6);
+    expect(offL2?.distanceMetres).toBeCloseTo(nudge, 3);
   });
 
   it("has nothing to say when the answer was refused", () => {
