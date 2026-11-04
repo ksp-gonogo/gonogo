@@ -44,6 +44,24 @@ describe("shiftedControls", () => {
   });
 });
 
+describe("shiftedControls beside a section the press opened", () => {
+  it("still reports a control in another column that moved", () => {
+    const before = [
+      { ...at("section", 0, 40), w: 100, expanded: false },
+      { ...at("below", 0, 80), w: 100 },
+      { ...at("beside", 200, 80), w: 100 },
+    ];
+    const after = [
+      { ...at("section", 0, 40), w: 100, expanded: true },
+      { ...at("below", 0, 160), w: 100 },
+      { ...at("beside", 200, 160), w: 100 },
+    ];
+    expect(shiftedControls(before, after)).toEqual([
+      "beside moved 0.0, 80.0px",
+    ]);
+  });
+});
+
 describe("shiftedControls on a press that opens nothing", () => {
   it("reports a control that moved while no section changed", () => {
     const before = [
