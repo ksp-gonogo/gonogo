@@ -67,6 +67,9 @@ const POPOVER_ROOM = { w: 640, h: 360 };
 /** Floating's distance from the viewport edge, which the popover must leave on both sides. */
 const VIEWPORT_EDGE = 8;
 
+/** How long after a touch tap its click may still arrive and be taken as the same tap. */
+const TAP_CLICK_BACKSTOP_MS = 3000;
+
 /** The radius of the invisible disc around an icon that takes a press, so a finger lands on it. */
 const HIT_RADIUS = 20;
 
@@ -148,8 +151,30 @@ export function ClusterLayer({
     iconRefs.current.get(id)?.focus();
     quietFocusRef.current = false;
   }, []);
-  /* A finger's tap toggles on pointer-up; the click that follows it must not toggle again. The flag lasts until that click or the next pointer-down, so a late click is still matched to its own tap. */
+  /*
+   * A finger's tap toggles on pointer-up; the click that follows it must not
+   * toggle again. The flag lasts until that click or the next pointer-down, so a
+   * slow click is still matched to its own tap. The backstop only frees a flag
+   * whose click never came, so a later click with no pointer-down (a screen
+   * reader activating the icon) is not swallowed.
+   */
   const tappedRef = useRef(false);
+  const tapBackstopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const setTapped = (tapped: boolean) => {
+    tappedRef.current = tapped;
+    if (tapBackstopRef.current) clearTimeout(tapBackstopRef.current);
+    tapBackstopRef.current = tapped
+      ? setTimeout(() => {
+          tappedRef.current = false;
+        }, TAP_CLICK_BACKSTOP_MS)
+      : null;
+  };
+  useEffect(
+    () => () => {
+      if (tapBackstopRef.current) clearTimeout(tapBackstopRef.current);
+    },
+    [],
+  );
   const shownId = openId ?? hoverId;
   const shown = clusters.find((c) => c.id === shownId);
   useEffect(() => {
@@ -220,20 +245,16 @@ export function ClusterLayer({
             style={{ cursor: "pointer" }}
             onClick={() => {
               if (tappedRef.current) {
-                tappedRef.current = false;
+                setTapped(false);
                 return;
               }
               activate();
             }}
-            onPointerDown={() => {
-              tappedRef.current = false;
-            }}
-            onPointerCancel={() => {
-              tappedRef.current = false;
-            }}
+            onPointerDown={() => setTapped(false)}
+            onPointerCancel={() => setTapped(false)}
             onPointerUp={(e: React.PointerEvent) => {
               if (e.pointerType !== "touch") return;
-              tappedRef.current = true;
+              setTapped(true);
               activate();
             }}
             onPointerEnter={(e: React.PointerEvent) => {

@@ -217,10 +217,34 @@ describe("the expand icon on a dense cluster", () => {
       fireEvent.pointerUp(icon, { pointerType: "touch" });
       expect(icon.getAttribute("aria-expanded")).toBe("true");
       act(() => {
-        vi.advanceTimersByTime(2000);
+        vi.advanceTimersByTime(1500);
       });
       fireEvent.click(icon);
       expect(icon.getAttribute("aria-expanded")).toBe("true");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("toggles on a click with no pointerdown long after a touch tap whose click never came", () => {
+    vi.useFakeTimers();
+    try {
+      render(
+        <ShipDiagram
+          parts={partsOf(lfv2WaveProbe as Fixture)}
+          width={600}
+          height={700}
+        />,
+      );
+      const icon = screen.getByRole("button", { name: /Expand the 9 parts/ });
+      fireEvent.pointerDown(icon, { pointerType: "touch" });
+      fireEvent.pointerUp(icon, { pointerType: "touch" });
+      expect(icon.getAttribute("aria-expanded")).toBe("true");
+      act(() => {
+        vi.advanceTimersByTime(10_000);
+      });
+      fireEvent.click(icon);
+      expect(icon.getAttribute("aria-expanded")).toBe("false");
     } finally {
       vi.useRealTimers();
     }
