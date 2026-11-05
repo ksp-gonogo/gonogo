@@ -4104,7 +4104,7 @@ namespace Gonogo.KSP
             // Inside physics range the figure comes from the two ports' real relative state: the
             // orbit model cannot resolve a pair this close.
             var approachUt = Planetarium.GetUniversalTime();
-            ApproachHistory.Add(LoadedApproach.TrackKey(vessel.id.ToString(), vesselTransform != null ? vesselTransform.GetInstanceID() : 0, targetVesselId, partId), approachUt, relativePosition);
+            ApproachHistory.Add(targetVesselId + ":" + partId, approachUt, relativePosition);
             closestApproach = LoadedApproach.Combine(relativePosition, ApproachHistory.Velocity() ?? new[] { relVel.x, relVel.y, relVel.z }, approachUt, closestApproach);
             if (closestApproach != null)
             {
