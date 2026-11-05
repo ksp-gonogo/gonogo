@@ -60,6 +60,15 @@ function Probe({ value }: { value: number | null }) {
   );
 }
 
+/** The newest commanded sample on the strip, the one drawn at the left edge. */
+function NewestProbe({ value }: { value: number | null }) {
+  const s = useControlStream("vessel.control.throttle", value, {
+    label: "Throttle",
+    range: "unit",
+  });
+  return <span data-testid="newest">{String(s.inTransit[0]?.value)}</span>;
+}
+
 function mountProbe(value: number | null) {
   const fixture = setupFixture();
   render(
@@ -108,6 +117,60 @@ describe("useControlStream", () => {
     expect(
       Number(screen.getByTestId("in-transit-count").textContent),
     ).toBeGreaterThan(0);
+  });
+
+  it("keeps drawing another screen's newer input once it has left the queue, rather than this screen's older one", async () => {
+    vi.useFakeTimers();
+    const fixture = setupFixture();
+    render(
+      <fixture.Provider>
+        <NewestProbe value={1} />
+      </fixture.Provider>,
+    );
+    const { transport, wall } = fixture;
+    const zero = {
+      id: "engine-2",
+      clientRequestId: "main-cd34:c1",
+      command: "vessel.control.setThrottle",
+      label: "Throttle",
+      topic: "",
+      vantage: "ground:Kerbin: KSC",
+      dispatchedAt: 5,
+      oneWaySeconds: 20,
+      commandedValue: 0,
+    };
+    let ut = 0;
+    const tick = async (n: number) => {
+      for (let i = 0; i < n; i++) {
+        ut += 0.1;
+        wall.advanceBy(0.1);
+        // eslint-disable-next-line no-await-in-loop
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(100);
+        });
+      }
+    };
+    const at = () => ({ validAt: ut, deliveredAt: ut });
+    act(() => {
+      transport.emit("comms.delay", { oneWaySeconds: 20 }, at());
+    });
+    await tick(5);
+    // The main screen's ZERO, sent after this screen's FULL.
+    act(() => {
+      transport.emit(
+        "system.uplink.pending",
+        { pending: [{ ...zero, dispatchedAt: ut }] },
+        at(),
+      );
+    });
+    await tick(5);
+    expect(screen.getByTestId("newest").textContent).toBe("0");
+    // Answered: the ZERO leaves the queue, and the craft was last told 0.
+    act(() => {
+      transport.emit("system.uplink.pending", { pending: [] }, at());
+    });
+    await tick(5);
+    expect(screen.getByTestId("newest").textContent).toBe("0");
   });
 
   it("sends nothing and logs no command while the value is null, even with a readback arriving", async () => {
@@ -171,6 +234,33 @@ describe("useControlStream", () => {
     );
     await act(async () => {
       await vi.advanceTimersByTimeAsync(300);
+    });
+    expect(fixture.transport.sentCommands).toHaveLength(2);
+  });
+
+  it.each([
+    ["a station's link to the main screen dropped", "peerDisconnected"],
+    ["the transport gave up on it", "undelivered"],
+    ["the transport's queue was full", "sendQueueFull"],
+    ["the client was shut down", "disposed"],
+  ])("sends the same value again when a send never reached the mod because %s", async (_name, code) => {
+    vi.useFakeTimers();
+    const fixture = setupFixture();
+    let answered = 0;
+    fixture.transport.setCommandHandler(() => {
+      answered += 1;
+      if (answered === 1) {
+        throw Object.assign(new Error("never reached the mod"), { code });
+      }
+      return { success: true };
+    });
+    render(
+      <fixture.Provider>
+        <Probe value={0} />
+      </fixture.Provider>,
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
     });
     expect(fixture.transport.sentCommands).toHaveLength(2);
   });

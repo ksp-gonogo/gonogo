@@ -944,6 +944,38 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// A quickload abandons the timeline a refusal happened in, so the
+        /// centre stops listing it at once rather than showing it as news on
+        /// the timeline the game went back to.
+        /// </summary>
+        [Fact]
+        public void ATimelineResetForgetsTheOutcomesOfTheAbandonedTimeline()
+        {
+            const double signalDelay = 5.0;
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterCommandCentreSource(new StaticSource("ground:gs1"));
+            engine.RegisterUplink(new PendingQueueTestUplink());
+            engine.Start();
+            try
+            {
+                engine.TickAndWait(100.0, FreezeGateTestUplink.Snapshot(100.0, connected: true, delay: signalDelay), Timeout);
+                engine.DispatchCommandAndWait(PendingQueueTestUplink.RefusedCommand, "x", "ground:gs1", _ => { }, TestBudgets.Op, clientRequestId: "rcs-1");
+                engine.TickAndWait(101.0, FreezeGateTestUplink.Snapshot(101.0, connected: true, delay: signalDelay), Timeout);
+                engine.TickAndWait(111.0, FreezeGateTestUplink.Snapshot(111.0, connected: true, delay: signalDelay), Timeout);
+                engine.TickAndWait(112.0, FreezeGateTestUplink.Snapshot(112.0, connected: true, delay: signalDelay), Timeout);
+                Assert.Single(Queue(engine).Settled);
+
+                // Quickloaded back to before the command was sent.
+                engine.TickAndWait(90.0, FreezeGateTestUplink.Snapshot(90.0, connected: true, delay: signalDelay), Timeout);
+                Assert.Empty(Queue(engine).Settled);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         private static PendingUplinkQueue Queue(ChannelEngine engine) =>
             Assert.IsType<PendingUplinkQueue>(engine.PayloadOf(ChannelEngine.UplinkPendingTopic));
 

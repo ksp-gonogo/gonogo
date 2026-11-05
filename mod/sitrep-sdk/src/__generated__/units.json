@@ -1182,6 +1182,7 @@
       "id": "id",
       "label": "text",
       "laneSeq": "count",
+      "memberCommands": "id",
       "members": "id",
       "oneWaySeconds": "s",
       "predictedArrivalUt": "ut",

@@ -20,6 +20,13 @@ export function centreRowId(entry: PendingEntry): string {
   return entry.clientRequestId || `uplink:${entry.id}`;
 }
 
+/** Whether the queue entry carries `command`, alone or as one member of a group. */
+export function carriesCommand(entry: PendingEntry, command: string): boolean {
+  return entry.memberCommands && entry.memberCommands.length > 0
+    ? entry.memberCommands.includes(command)
+    : entry.command === command;
+}
+
 function sentBy(entry: PendingEntry, own: ReadonlySet<string>): boolean {
   if (own.has(entry.clientRequestId)) return true;
   return entry.members?.some((member) => own.has(member)) ?? false;
@@ -82,7 +89,8 @@ export function centreCommandOutcomes(args: {
   queue: PendingUplinkQueueLike | undefined;
   own: ReadonlySet<string>;
   memory: CentreCommandMemory;
-  nowUt: number;
+  /** The game's present, or `null` while this screen has heard no sample to place it by; nothing is news until it has. */
+  nowUt: number | null;
   /** The timeline epoch the view clock is in; a UT from an earlier epoch says nothing about this one. */
   epoch?: number;
 }): {
@@ -91,16 +99,21 @@ export function centreCommandOutcomes(args: {
   founds: CommandFound[];
 } {
   const { command, queue, own, memory, nowUt, epoch = 0 } = args;
-  if (memory.since === null || memory.sinceEpoch !== epoch) {
-    memory.since = value("ut", nowUt);
+  if (memory.sinceEpoch !== epoch) {
+    memory.since = null;
     memory.sinceEpoch = epoch;
+  }
+  if (nowUt !== null) memory.since ??= value("ut", nowUt);
+  const since = memory.since;
+  if (since === null) {
+    return { refusals: NO_REFUSALS, failures: NO_FAILURES, founds: NO_FOUNDS };
   }
   const listed = new Set<string>();
   for (const entry of queue?.settled ?? []) {
     if (entry.command !== command || own.has(entry.clientRequestId)) continue;
     const id = settledId(entry);
     listed.add(id);
-    if (memory.outcomes.has(id) || entry.settledAt.lessThan(memory.since)) {
+    if (memory.outcomes.has(id) || entry.settledAt.lessThan(since)) {
       continue;
     }
     const found = memory.unanswered.delete(id);
@@ -210,7 +223,7 @@ export function centreCommandRows(args: {
   // A command the centre reports settled is over, however late it was.
   const settled = new Set((queue?.settled ?? []).map(settledId));
   for (const entry of queue?.pending ?? []) {
-    if (entry.command !== command || sentBy(entry, own)) continue;
+    if (!carriesCommand(entry, command) || sentBy(entry, own)) continue;
     const id = centreRowId(entry);
     present.add(id);
     memory.entries.set(id, { ...entry, id, label: rowLabel(entry) });
