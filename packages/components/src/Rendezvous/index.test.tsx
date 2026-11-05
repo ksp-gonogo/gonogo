@@ -461,9 +461,16 @@ describe("Rendezvous: augment slots", () => {
     });
   });
 
-  it("reads a captured port as docked, the last state the dock channel delivers", async () => {
+  it.each([
+    { name: "capturing", ownPortState: 1, expected: "free" },
+    { name: "pre-attached", ownPortState: 2, expected: "docked" },
+    { name: "docked", ownPortState: 3, expected: "docked" },
+  ])("reads a port that is $name as $expected", async ({
+    ownPortState,
+    expected,
+  }) => {
     registerAugment<"rendezvous.camera">({
-      id: "test-camera-captured",
+      id: `test-camera-${ownPortState}`,
       augments: "rendezvous.camera",
       component: ({ docked }) => (
         <div data-testid="cam">{docked ? "docked" : "free"}</div>
@@ -483,11 +490,11 @@ describe("Rendezvous: augment slots", () => {
         relativeVelocity: atRange(-0.3),
         distance: 0.5,
         forwardDot: -1,
-        ownPortState: 1,
+        ownPortState,
       });
     });
     await waitFor(() =>
-      expect(screen.getByTestId("cam").textContent).toBe("docked"),
+      expect(screen.getByTestId("cam").textContent).toBe(expected),
     );
   });
 

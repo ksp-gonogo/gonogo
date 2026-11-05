@@ -54,6 +54,18 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void ForgettingTheMemoryEndsTheRecallEvenInADockStage()
+        {
+            var memory = new DockPairMemory<Port>();
+            memory.Seen(new Port { State = "Docked (docker)" }, new Port { State = "Docked (dockee)" });
+            Assert.NotNull(Recall(memory));
+
+            memory.Forget();
+
+            Assert.Null(Recall(memory));
+        }
+
+        [Fact]
         public void WithNoPairSeenNothingIsReportedNotADefaultState()
         {
             Assert.Null(Recall(new DockPairMemory<Port>()));
