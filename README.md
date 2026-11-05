@@ -25,7 +25,7 @@ Uplinks are the name for Gonogo's own mod support. They can extend and modify co
 _You can search for Uplinks in CKAN by filtering for `dep:GonogoCore`._
 
 <p align="center">
-  <img src="docs/assets/uplinks-showcase.gif" alt="Uplink widgets in turn, in two columns: the kOS terminal running a descent script, Kerbalism Crew Status with a crew member past the radiation limit and the RP-1 Programme Manager's funding curve, beside Kerbalism Space Weather during a storm, the Kerbcast camera feed and the RP-1 Space Center's site construction queue" />
+  <img src="docs/assets/uplinks-showcase.gif" alt="Uplink widgets in turn, in two columns: the kOS terminal running a descent script, Kerbalism Crew Status with a crew member past the radiation limit, the RP-1 Programme Manager's funding curve and the Rendezvous docking camera closing on a target port, beside Kerbalism Space Weather during a storm, the Kerbcast camera feed, the RP-1 Space Center's site construction queue and the Principia burn editor's ignition time being dialled in" />
 </p>
 
 ## Recommended Ways to Play
