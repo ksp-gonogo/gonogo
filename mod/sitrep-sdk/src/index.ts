@@ -75,6 +75,15 @@ export {
   pendingCrossing,
   ZERO_DELAY_DEAD_ZONE_SECONDS,
 } from "./command-delay";
+export {
+  expectedAtCraft,
+  useValueCommand,
+  type ValueCommandInFlight,
+  type ValueCommandOptions,
+  type ValueCommandQueueLike,
+  type ValueCommandState,
+  valueCommandState,
+} from "./command-value";
 /*
  * The typed command vocabulary: the write-side twin of the Topic registry below.
  * `useCommand` is keyed on `CommandId`, and an Uplink declaring its own commands

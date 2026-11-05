@@ -245,6 +245,12 @@ export {
   WAVE_MID_Y,
   waveformPath,
 } from "./CommandDelay/waveformPath";
+export {
+  CommandSlider,
+  CommandStepper,
+  type CommandValueProps,
+  commandValueMarks,
+} from "./CommandValue/CommandValue";
 export { ComposerBar, type ComposerBarProps } from "./ComposerBar";
 // The only door to the console's parts; `ComposerBar` stays public because what goes on the row is the widget's.
 export { Console, type ConsoleProps, type ConsoleTone } from "./Console";

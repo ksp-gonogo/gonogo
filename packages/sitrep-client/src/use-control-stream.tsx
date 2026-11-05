@@ -5,7 +5,7 @@ import {
   getControlChannel,
   railTagsForControlAxis,
 } from "@ksp-gonogo/sitrep-sdk";
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useUtNow } from "./context";
 import {
   type ControlRange,
@@ -103,6 +103,14 @@ export interface ControlStream {
   tags: RailTags;
   /** What the mod said of this axis's inputs still on their way, one per distinct sentence. */
   warnings: CommandWarning[];
+  /**
+   * The newest input still queued for this axis by anyone at this command
+   * centre, this screen included, as the raw value it set and the UT it was
+   * sent at; `null` while nothing is queued.
+   */
+  queued: { atUt: number; value: number } | null;
+  /** Sends the commanded value again on the next tick, even when it equals the value this screen last sent. */
+  resend: () => void;
 }
 
 interface CommsDelayLike {
@@ -227,7 +235,17 @@ export function useControlStream(
   const nowUt = useUtNow() ?? 0;
   const queue = useLatestValue<PendingQueueLike>("system.uplink.pending");
   const queuedRef = useRef<LoggedSample | null>(null);
-  queuedRef.current = latestQueuedInput(queue, channel?.writeCommand ?? "");
+  const queued = latestQueuedInput(queue, channel?.writeCommand ?? "");
+  queuedRef.current = queued;
+  const queuedAtUt = queued?.atUt ?? null;
+  const queuedValue = queued?.value ?? null;
+  const queuedSample = useMemo(
+    () =>
+      queuedAtUt === null || queuedValue === null
+        ? null
+        : { atUt: queuedAtUt, value: queuedValue },
+    [queuedAtUt, queuedValue],
+  );
 
   // `.magnitude`: the delay arrives wrapped from the decode, and every use
   // below is arithmetic on a span of seconds. Reading the object itself left
@@ -269,6 +287,14 @@ export function useControlStream(
   useEffect(() => {
     if (value === null) lastSentRef.current = null;
   }, [value]);
+  /*
+   * The latch above only knows what this screen sent. Once another screen has
+   * moved the craft, the same value pressed again here is a new command, and
+   * the caller says so.
+   */
+  const resend = useCallback(() => {
+    lastSentRef.current = null;
+  }, []);
   const sendRef = useRef(command.send);
   sendRef.current = command.send;
   const onDispatchRef = useRef(options?.onDispatch);
@@ -370,6 +396,8 @@ export function useControlStream(
         current: value === null ? null : normalize01(value, range),
         tags,
         warnings,
+        queued: queuedSample,
+        resend,
       };
     }
     const span = 3 * oneWaySeconds;
@@ -390,8 +418,21 @@ export function useControlStream(
       current: value === null ? null : normalize01(value, range),
       tags,
       warnings,
+      queued: queuedSample,
+      resend,
     };
-  }, [channelId, label, oneWaySeconds, nowUt, value, range, tags, warnings]);
+  }, [
+    channelId,
+    label,
+    oneWaySeconds,
+    nowUt,
+    value,
+    range,
+    tags,
+    warnings,
+    queuedSample,
+    resend,
+  ]);
 }
 
 /** One warning per distinct sentence, the same array while the set is unchanged. */

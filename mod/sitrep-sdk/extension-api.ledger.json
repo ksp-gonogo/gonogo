@@ -13389,6 +13389,62 @@
         "note": "a check of the telemetry for what one dispatch set; with it a ran dispatch stays in inFlight until the telemetry shows it, due then overdue a minute of game time after its reply"
       },
       {
+        "key": "sitrep-sdk . ValueCommandInFlight",
+        "note": "one value command still on its way: the value it sets, when it was sent, when it reaches the craft"
+      },
+      {
+        "key": "sitrep-sdk . ValueCommandInFlight#arrivesAt",
+        "note": "member of ValueCommandInFlight: arrivesAt"
+      },
+      {
+        "key": "sitrep-sdk . ValueCommandInFlight#sentAt",
+        "note": "member of ValueCommandInFlight: sentAt"
+      },
+      {
+        "key": "sitrep-sdk . ValueCommandInFlight#value",
+        "note": "member of ValueCommandInFlight: value"
+      },
+      {
+        "key": "sitrep-sdk . ValueCommandOptions",
+        "note": "the options the value-command model takes"
+      },
+      {
+        "key": "sitrep-sdk . ValueCommandOptions#matches?",
+        "note": "member of ValueCommandOptions: matches"
+      },
+      {
+        "key": "sitrep-sdk . ValueCommandOptions#own?",
+        "note": "member of ValueCommandOptions: own"
+      },
+      {
+        "key": "sitrep-sdk . ValueCommandOptions#received",
+        "note": "member of ValueCommandOptions: received"
+      },
+      {
+        "key": "sitrep-sdk . ValueCommandQueueLike",
+        "note": "the centre's pending queue, as far as the value-command model reads it"
+      },
+      {
+        "key": "sitrep-sdk . ValueCommandQueueLike#pending",
+        "note": "member of ValueCommandQueueLike: pending"
+      },
+      {
+        "key": "sitrep-sdk . ValueCommandState",
+        "note": "what a value control shows: the command, the craft's expected value, the commands in flight"
+      },
+      {
+        "key": "sitrep-sdk . ValueCommandState#commanded",
+        "note": "member of ValueCommandState: commanded"
+      },
+      {
+        "key": "sitrep-sdk . ValueCommandState#expected",
+        "note": "member of ValueCommandState: expected"
+      },
+      {
+        "key": "sitrep-sdk . ValueCommandState#inFlight",
+        "note": "member of ValueCommandState: inFlight"
+      },
+      {
         "key": "sitrep-sdk . ValueTags",
         "note": "The tags a contract declares on one value: its own sample kind and whether it keys its list entry"
       },
@@ -13475,6 +13531,10 @@
       {
         "key": "sitrep-sdk . eccentricFromTrueAnomaly",
         "note": "Converts a true anomaly to an eccentric one, now reachable from the root barrel"
+      },
+      {
+        "key": "sitrep-sdk . expectedAtCraft",
+        "note": "the value the craft is expected to hold now, from the commands that have reached it in arrival order"
       },
       {
         "key": "sitrep-sdk . familyPrefix",
@@ -13575,6 +13635,14 @@
       {
         "key": "sitrep-sdk . useTopicClock",
         "note": "A clock and link state that follow one Topic's own arrivals, so a feed is released at the delay of the site it stands at"
+      },
+      {
+        "key": "sitrep-sdk . useValueCommand",
+        "note": "what a value control shows on every screen: the command and the craft's expected value"
+      },
+      {
+        "key": "sitrep-sdk . valueCommandState",
+        "note": "the pure half of useValueCommand, for a host that reads the queue itself"
       },
       {
         "key": "sitrep-sdk . ~GeneratedReckonableFieldMap",
@@ -17857,6 +17925,14 @@
         "note": "the fault code, which commandFailedSentence says in the code's own words"
       },
       {
+        "key": "ui-kit . CommandSlider",
+        "note": "a slider for a value a craft holds, the command on the thumb with modelled and held marks on the track"
+      },
+      {
+        "key": "ui-kit . CommandStepper",
+        "note": "a stepper for a value a craft holds, the command as its figure with modelled and held figures beside it"
+      },
+      {
         "key": "ui-kit . CommandToggle",
         "note": "The state variant of CommandButton: a state, its words and the args that set the opposite"
       },
@@ -17895,6 +17971,58 @@
       {
         "key": "ui-kit . CommandToggle#words",
         "note": "Every word the control can show, so it keeps its size"
+      },
+      {
+        "key": "ui-kit . CommandValueProps",
+        "note": "the props both command controls take"
+      },
+      {
+        "key": "ui-kit . CommandValueProps#commanded",
+        "note": "member of CommandValueProps: commanded"
+      },
+      {
+        "key": "ui-kit . CommandValueProps#disabled?",
+        "note": "member of CommandValueProps: disabled"
+      },
+      {
+        "key": "ui-kit . CommandValueProps#disabledReason?",
+        "note": "member of CommandValueProps: disabledReason"
+      },
+      {
+        "key": "ui-kit . CommandValueProps#expected?",
+        "note": "member of CommandValueProps: expected"
+      },
+      {
+        "key": "ui-kit . CommandValueProps#expectedCaption?",
+        "note": "member of CommandValueProps: expectedCaption"
+      },
+      {
+        "key": "ui-kit . CommandValueProps#figure",
+        "note": "member of CommandValueProps: figure"
+      },
+      {
+        "key": "ui-kit . CommandValueProps#lastSeen?",
+        "note": "member of CommandValueProps: lastSeen"
+      },
+      {
+        "key": "ui-kit . CommandValueProps#lastSeenCaption?",
+        "note": "member of CommandValueProps: lastSeenCaption"
+      },
+      {
+        "key": "ui-kit . CommandValueProps#max",
+        "note": "member of CommandValueProps: max"
+      },
+      {
+        "key": "ui-kit . CommandValueProps#min",
+        "note": "member of CommandValueProps: min"
+      },
+      {
+        "key": "ui-kit . CommandValueProps#onChange",
+        "note": "member of CommandValueProps: onChange"
+      },
+      {
+        "key": "ui-kit . CommandValueProps#step",
+        "note": "member of CommandValueProps: step"
       },
       {
         "key": "ui-kit . CommandWarningEntry",
@@ -19059,6 +19187,10 @@
       {
         "key": "ui-kit . WidgetTopicDeclaration#optionalChannelFamilies?",
         "note": "Reads the optional families off a widget definition"
+      },
+      {
+        "key": "ui-kit . commandValueMarks",
+        "note": "which expected and last-seen values a command control draws"
       },
       {
         "key": "ui-kit . commandWarningSentence",
