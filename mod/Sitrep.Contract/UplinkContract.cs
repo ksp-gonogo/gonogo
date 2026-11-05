@@ -502,6 +502,24 @@ namespace Sitrep.Contract
         /// </internal>
         /// </summary>
         public string Subject { get; set; } = "";
+
+        /// <summary>
+        /// Whether a client may send this command from the meta vantage, which
+        /// runs it at once with no signal delay instead of from a command centre.
+        /// <c>false</c> by default, and a command sent from the meta vantage that
+        /// does not set it is refused with <c>unknownVantage</c>.
+        ///
+        /// <para>Set it only on a command that asks a question of the career or the
+        /// game and changes nothing on a craft, such as the price and build time of
+        /// a craft that has not been started. A command that reaches a craft,
+        /// spends from the career or needs a place to speak from must leave it
+        /// unset, so the signal delay applies to it.</para>
+        ///
+        /// <para>Only the Uplink that owns the command can set it: an Uplink whose
+        /// manifest declares a command another Uplink owns is refused at
+        /// registration.</para>
+        /// </summary>
+        public bool AllowMetaVantage { get; set; } = false;
     }
 
     /// <summary>
