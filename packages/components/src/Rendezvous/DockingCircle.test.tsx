@@ -75,6 +75,14 @@ describe("DockingCircle reticle", () => {
     expect(offsetPx(ring.style.left)).toBeCloseTo(88, 0);
   });
 
+  it("draws no ring while there is no alignment data, rather than one dead centre that reads as aligned", async () => {
+    const { container } = await drawn({});
+    const ring = [...container.querySelectorAll<HTMLElement>("div")].find(
+      (el) => el.style.borderRadius === "var(--radius-circle)",
+    );
+    expect(ring).toBeUndefined();
+  });
+
   it("sits dead centre when aligned", async () => {
     const ring = await reticle({ ax: 0, ay: 0 });
     expect(offsetPx(ring.style.left)).toBe(0);
@@ -84,7 +92,9 @@ describe("DockingCircle reticle", () => {
 
 describe("DockingCircle aligned tint", () => {
   const tinted = async (forwardDot: number) =>
-    (await reticle({ forwardDot })).style.border.includes("accent-fg");
+    (await reticle({ ax: 0, ay: 0, forwardDot })).style.border.includes(
+      "accent-fg",
+    );
 
   it("is aligned for ports facing head-on, whose forward vectors are opposed", async () => {
     expect(await tinted(-1)).toBe(true);
