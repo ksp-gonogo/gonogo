@@ -67,6 +67,7 @@ export function FacilityGridItem({
   // An absent balance must NOT satisfy this check: not knowing the balance is not knowing it is affordable.
   const canAfford =
     !!f &&
+    f.upgradeFunds !== null &&
     f.upgradeFunds > 0 &&
     careerFunds !== null &&
     careerFunds >= f.upgradeFunds;
@@ -109,7 +110,7 @@ export function FacilityGridItem({
             <Muted>{NULL_DISPLAY}</Muted>
           )}
         </FacilityValue>
-        {f && f.upgradeFunds > 0 && !atMax && (
+        {f && (f.upgradeFunds === null || f.upgradeFunds > 0) && !atMax && (
           <UpgradeRow>
             <UpgradeCost
               $verdict={verdict}
@@ -117,13 +118,17 @@ export function FacilityGridItem({
               data-afford={verdict}
             >
               {/* The price comes off the same entry as the tiers, so it is held whenever they are. */}
-              <Unit
-                value={heldFigure(
-                  value("funds", f.upgradeFunds),
-                  tiersHeldSince,
-                )}
-                scale="compact"
-              />
+              {f.upgradeFunds === null ? (
+                NULL_DISPLAY
+              ) : (
+                <Unit
+                  value={heldFigure(
+                    value("funds", f.upgradeFunds),
+                    tiersHeldSince,
+                  )}
+                  scale="compact"
+                />
+              )}
             </UpgradeCost>
             <UpgradeButton
               upgradeCmd={upgradeCmd}

@@ -125,10 +125,11 @@ export function LaunchDirectorComponent({
   const selectedSite = activePad?.name ?? "";
   const scene = sceneRecord?.scene;
 
-  // Absent funds are insufficient funds; sandbox and science charge nothing.
-  const fundsAvailable = chargesFunds
-    ? (careerFunds ?? 0)
-    : Number.POSITIVE_INFINITY;
+  // A craft is judged against the last balance received, held or live. A balance that never arrived judges nothing: not knowing it is not knowing a craft is unaffordable. Sandbox and science charge nothing.
+  const fundsAvailable =
+    chargesFunds && heldOrCurrentFunds !== null
+      ? heldOrCurrentFunds
+      : Number.POSITIVE_INFINITY;
 
   const rows = h ?? 9;
   const cols = w ?? 7;
@@ -197,9 +198,7 @@ export function LaunchDirectorComponent({
                 {hasFunds && (
                   <Tooltip
                     text={
-                      fundsHeld
-                        ? "Affordability is not judged against a held balance"
-                        : "Available funds"
+                      fundsHeld ? "Last balance received" : "Available funds"
                     }
                     focusable
                   >
