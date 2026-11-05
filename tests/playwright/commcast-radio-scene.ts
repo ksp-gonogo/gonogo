@@ -737,15 +737,17 @@ export async function openScreen(
  * mid-transmission, and it hears that keying only from the point it joined,
  * which a scene asserting a whole utterance must not be measuring.
  *
- * Read off the host's own connection list, matched on the peer's station key,
+ * Read off the host's own connection list, matched on the peer's station key (a pilot keeps its own, apart from mission control's),
  * because its peer id adds a per-session token the peer's page never shows.
  */
 async function joinedMesh(host: Page, peer: Page): Promise<void> {
   await expect
     .poll(
       async () => {
-        const key = await peer.evaluate(() =>
-          localStorage.getItem("gonogo.station.key"),
+        const key = await peer.evaluate(
+          () =>
+            localStorage.getItem("gonogo.station.key.pilot") ??
+            localStorage.getItem("gonogo.station.key"),
         );
         if (!key) return false;
         return await host.evaluate(

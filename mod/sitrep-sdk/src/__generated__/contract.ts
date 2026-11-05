@@ -4442,7 +4442,7 @@ export interface EvaCrewMember
 	* of the vessel in focus. A kerbal that is not loaded is orbiting or standing
 	* elsewhere and has no suit state of its own to read.
 	*/
-	loaded?: boolean | null;
+	loaded: boolean;
 }
 /**
 * The roster of kerbals currently outside a craft, loaded or not, so a client

@@ -134,3 +134,32 @@ describe("resolveTracked for a command its caller confirms from the telemetry", 
     expect(resolveToggle({ nowUt: REPLY_DUE_UT + 2 }).kind).toBe("resolved");
   });
 });
+
+describe("resolveTracked for a held command whose reply already came", () => {
+  it("no longer reads held while the telemetry has yet to show its effect", () => {
+    const heldToggle: PendingEntry = {
+      ...lightToggle(),
+      predictedHeldAt: "relay",
+      predictedHeldFromUt: value("ut", SENT_UT + 50),
+      predictedHeldUntilUt: value("ut", SENT_UT + 500),
+      predictedArrivalUt: value("ut", SENT_UT + 600),
+      predictedReplyUt: value("ut", SENT_UT + 900),
+    };
+    const r = resolveTracked(
+      "c1",
+      { pending: [] },
+      new Map([["c1", heldToggle]]),
+      new Map(),
+      SENT_UT + 100,
+      0,
+      () => true,
+      () => true,
+      () => false,
+      () => ({ confirmed: false, answeredAtUt: SENT_UT + 90 }),
+    );
+    expect(r.kind).toBe("classified");
+    if (r.kind !== "classified") return;
+    expect(r.item.held).toBeUndefined();
+    expect(r.item.hold).toBeUndefined();
+  });
+});
