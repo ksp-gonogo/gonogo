@@ -14,12 +14,7 @@ import { deriveHostPeerIds } from "./hostPeerId";
 import { attachIceDiagnostics } from "./iceDiagnostics";
 import { MessageDispatcher } from "./MessageDispatcher";
 import { peerBrokerOptions } from "./peerOptions";
-import type {
-  FlightRpcOp,
-  HostLayout,
-  PeerMessage,
-  PeerSchemaSource,
-} from "./protocol";
+import type { FlightRpcOp, PeerMessage, PeerSchemaSource } from "./protocol";
 import { asPeerMessage, HOST_SILENCE_MS } from "./protocol";
 import { RequestTracker } from "./RequestTracker";
 import { RetryPolicy } from "./RetryPolicy";
@@ -304,7 +299,6 @@ export class PeerClientService {
     received: number;
   } | null = null;
   private pendingManifestFetch = new RequestTracker<unknown>();
-  private pendingHostLayouts = new RequestTracker<HostLayout[]>();
 
   // Cached current flight pushed by the host. Updated on every `flight-change`
   // message, including the initial snapshot the host sends on connect open.
@@ -1349,28 +1343,6 @@ export class PeerClientService {
     return pending;
   }
 
-  /**
-   * Ask the main screen which dashboard layouts it has saved. Rejects when the
-   * link is down, when the main screen has not approved this station, and
-   * after the timeout.
-   */
-  requestHostLayouts(timeoutMs = 10_000): Promise<HostLayout[]> {
-    if (!this.conn) {
-      return Promise.reject(new Error("not connected"));
-    }
-    const requestId = safeRandomUuid();
-    const pending = this.pendingHostLayouts.track(
-      requestId,
-      timeoutMs,
-      "host layouts timeout",
-    );
-    this.conn.send({
-      type: "host-layouts-request",
-      requestId,
-    } satisfies PeerMessage);
-    return pending;
-  }
-
   // ── Sitrep telemetry-stream forwarding ───────────────────────────────────
   //
   // `PeerTransport` (packages/app/src/telemetry/PeerTransport.ts) is the sole
@@ -1527,7 +1499,6 @@ export class PeerClientService {
     this.pendingFlightRpc.rejectAll(reason);
     this.pendingUplinkRelay.rejectAll(reason);
     this.pendingBundleFetch.rejectAll(reason);
-    this.pendingHostLayouts.rejectAll(reason);
   }
 
   /**
@@ -1972,9 +1943,6 @@ export class PeerClientService {
         return;
       }
       this.pendingManifestFetch.resolve(msg.requestId, msg.manifest);
-    },
-    "host-layouts-response": (msg) => {
-      this.pendingHostLayouts.resolve(msg.requestId, msg.layouts);
     },
     "flight-rpc-response": (msg) => {
       if (msg.error) {

@@ -47,7 +47,7 @@ import { attachIceDiagnostics } from "./iceDiagnostics";
 import { MessageDispatcher } from "./MessageDispatcher";
 import { peerBrokerOptions } from "./peerOptions";
 import { traceBrokerSocket } from "./peerSocketTrace";
-import type { HostLayout, PeerMessage } from "./protocol";
+import type { PeerMessage } from "./protocol";
 import { asPeerMessage, HOST_HEARTBEAT_MS } from "./protocol";
 import { RelayRegistration } from "./RelayRegistration";
 import {
@@ -514,7 +514,6 @@ export class PeerHostService {
   private readonly connCredential = new Map<StationLink, string>();
   /** Stations waiting on the main screen, in the order they asked. */
   private pending: readonly PendingStation[] = [];
-  private hostLayouts: (() => HostLayout[]) | null = null;
 
   // Download-once cache for Uplink bundle bytes, keyed by bundleUrl.
   // See handleUplinkBundleRequest and BundleFetchCache's own doc comment.
@@ -2134,13 +2133,6 @@ export class PeerHostService {
     "uplink-bundle-request": (msg, conn) => {
       void this.handleUplinkBundleRequest(msg, conn);
     },
-    "host-layouts-request": (msg, conn) => {
-      conn.send({
-        type: "host-layouts-response",
-        requestId: msg.requestId,
-        layouts: this.hostLayouts?.() ?? [],
-      } satisfies PeerMessage);
-    },
     "uplink-manifest-request": (msg, conn) => {
       void this.handleUplinkManifestRequest(msg, conn);
     },
@@ -2483,17 +2475,6 @@ export class PeerHostService {
     }
     this.pending = next;
     this.events.emit("pendingStations", next);
-  }
-
-  /**
-   * Where the layouts offered to an approved station come from. Returns the
-   * function that withdraws the source.
-   */
-  setHostLayoutsSource(source: () => HostLayout[]): () => void {
-    this.hostLayouts = source;
-    return () => {
-      if (this.hostLayouts === source) this.hostLayouts = null;
-    };
   }
 
   /** Stations waiting for the main screen to approve them, in the order they asked. */
