@@ -133,7 +133,7 @@ describe("TrackingStationComponent", () => {
     });
   }
 
-  /** What each contact state may announce: a running countdown must not sit in a live region, overdue is polite, lost is assertive. */
+  /** What each contact state may announce: a running countdown must not sit in a live region, overdue and lost are polite. */
   describe("contact state", () => {
     const SILENT = {
       contact: CatalogContact.Silent,
@@ -175,7 +175,7 @@ describe("TrackingStationComponent", () => {
       expect(caption).toBeInTheDocument();
       // A per-tick clock inside a live region would be read aloud forever.
       expect(caption.closest("[role='status']")).toBeNull();
-      expect(caption.closest("[role='alert']")).toBeNull();
+      expect(caption.closest("[role='status']")).toBeNull();
     });
 
     it("announces overdue politely, and does not call it lost", async () => {
@@ -191,11 +191,11 @@ describe("TrackingStationComponent", () => {
       expect(screen.queryByText(/officially lost/i)).toBeNull();
     });
 
-    it("announces an official loss assertively", async () => {
+    it("announces an official loss politely", async () => {
       await renderWithContact({ ...SILENT, contact: CatalogContact.Lost });
 
       const caption = await screen.findByText(/officially lost/i);
-      expect(caption.closest("[role='alert']")).not.toBeNull();
+      expect(caption.closest("[role='status']")).not.toBeNull();
     });
 
     it("shows no countdown for a craft with no expected return", async () => {

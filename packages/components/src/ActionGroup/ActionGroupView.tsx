@@ -154,6 +154,7 @@ export function ActionGroupView({
               <Stack style={{ flex: 1, minWidth: 0 }}>
                 <Input
                   ref={inputRef}
+                  aria-label="Action group name"
                   value={draft}
                   autoFocus
                   onChange={(e) => setDraft(e.target.value)}

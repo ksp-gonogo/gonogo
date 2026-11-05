@@ -171,9 +171,7 @@ describe("Panel hoverTitle: the tiny tile's header out of flow", () => {
         sections={<Section full>93 %</Section>}
       />,
     );
-    expect(container.querySelector("[aria-live=assertive]")?.textContent).toBe(
-      "",
-    );
+    expect(container.querySelector("[aria-live=polite]")?.textContent).toBe("");
     rerender(
       <Panel
         panelTitle="THERMAL"
@@ -183,7 +181,7 @@ describe("Panel hoverTitle: the tiny tile's header out of flow", () => {
         sections={<Section full>98 %</Section>}
       />,
     );
-    expect(container.querySelector("[aria-live=assertive]")?.textContent).toBe(
+    expect(container.querySelector("[aria-live=polite]")?.textContent).toBe(
       "THERMAL: critical",
     );
   });

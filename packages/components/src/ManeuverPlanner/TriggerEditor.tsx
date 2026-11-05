@@ -44,8 +44,9 @@ export function TriggerEditor({
     <Stack style={EDITOR_STYLE}>
       <div style={EDITOR_TITLE_STYLE}>When this condition holds</div>
       <Field style={EDITOR_FIELD_STYLE}>
-        <FieldLabel>Telemetry key</FieldLabel>
+        <FieldLabel htmlFor="mnv-trigger-key">Telemetry key</FieldLabel>
         <DataKeyPicker
+          id="mnv-trigger-key"
           subjectNoun="trigger subject"
           keys={numericKeys}
           value={triggerKey}

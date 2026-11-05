@@ -309,9 +309,9 @@ describe("TrackingStation: what undefined means today", () => {
       });
     });
 
-    // A placeholder name inside an assertive live region: "Vessel officially lost" for a craft whose name has not arrived.
+    // A placeholder name inside a live region: "Vessel officially lost" for a craft whose name has not arrived.
     const caption = await screen.findByText(/officially lost/i);
-    expect(caption.closest("[role='alert']")).not.toBeNull();
+    expect(caption.closest("[role='status']")).not.toBeNull();
     expect(visibleText(caption)).toContain("Vessel");
   });
 

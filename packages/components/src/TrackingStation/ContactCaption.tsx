@@ -29,7 +29,7 @@ export function ContactCaption({
 
   if (status.tone === "nogo") {
     return (
-      <div style={FRAME_CAPTION} role="alert" aria-live="assertive">
+      <div style={FRAME_CAPTION} role="status" aria-live="polite">
         <span style={{ textDecoration: "line-through" }}>{vesselName}</span>{" "}
         {status.label.toLowerCase()}
       </div>

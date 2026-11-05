@@ -1818,7 +1818,7 @@ function PanelHoverStatus({
   announcement,
 }: {
   summary: { severity: Severity; label: string };
-  /** Interrupts to say a no-go state, empty otherwise: a dot says nothing the ear can catch. */
+  /** Announces a no-go state, empty otherwise: a dot says nothing the ear can catch. */
   announcement: string | undefined;
 }) {
   return (
@@ -1829,9 +1829,7 @@ function PanelHoverStatus({
         </PanelHoverStatus__Hit>
       </Tooltip>
       {/* Mounted with the dot, whatever the state, so the first no-go is a change to a region already watched. */}
-      <LiveRegion visuallyHidden assertive>
-        {announcement}
-      </LiveRegion>
+      <LiveRegion visuallyHidden>{announcement}</LiveRegion>
     </>
   );
 }
