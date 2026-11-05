@@ -319,6 +319,19 @@ export const AWAITING_APPROVAL =
  * screen has not approved has each of these refused, on the reply channel the
  * message has where it has one.
  */
+/** The most answered station commands the host keeps for a station to claim. */
+const STATION_RELAY_SETTLED_CAP = 512;
+
+/** What the host holds of one station command dispatched on its behalf. */
+interface StationRelay {
+  /** The approved station that sent it, the only one that may claim it. */
+  readonly stationId: string | undefined;
+  /** The station's link now, moved to the claiming connection. */
+  link: StationLink;
+  accepted: PeerMessage | undefined;
+  final: PeerMessage | undefined;
+}
+
 const STATION_WRITES: ReadonlySet<PeerMessage["type"]> = new Set([
   "sitrep-command-request",
   "sitrep-command-group",
@@ -454,6 +467,13 @@ export class PeerHostService {
   private approvalsUnsub: (() => void) | null = null;
   /** Each connection's approved station id, once its credential was found approved. */
   private readonly connStationId = new Map<StationLink, string>();
+  /**
+   * Each station command this host dispatched, by the station's request id, with
+   * the link its answer goes to and the frames it has produced. A station that
+   * lost its link or reloaded claims an answer by id on its new link, so the
+   * record outlives the connection it was sent on.
+   */
+  private readonly stationRelays = new Map<string, StationRelay>();
   /** Single typed event registry replacing the former ~22 hand-rolled
    *  `ListenerSet` fields. The `onX` methods are thin wrappers over
    *  `events.on("x", cb)` and the dispatcher fires via `events.emit("x", ...)`,
@@ -2096,6 +2116,9 @@ export class PeerHostService {
     "sitrep-command-group": (msg, conn) => {
       void this.handleSitrepCommandGroup(msg, conn);
     },
+    "sitrep-claim": (msg, conn) => {
+      this.handleSitrepClaim(msg, conn);
+    },
     "sitrep-subscribe": (msg, conn) => {
       this.retainSitrepSub(conn, msg.topic);
     },
@@ -3059,6 +3082,64 @@ export class PeerHostService {
     );
   }
 
+  /** Starts the record a later claim for `requestId` is answered from. */
+  private recordStationRelay(requestId: string, conn: StationLink): void {
+    this.stationRelays.set(requestId, {
+      stationId: this.connStationId.get(conn),
+      link: conn,
+      accepted: undefined,
+      final: undefined,
+    });
+    let settled = 0;
+    for (const relay of this.stationRelays.values()) {
+      if (relay.final) settled += 1;
+    }
+    for (const [id, relay] of this.stationRelays) {
+      if (settled <= STATION_RELAY_SETTLED_CAP) break;
+      if (!relay.final) continue;
+      this.stationRelays.delete(id);
+      settled -= 1;
+    }
+  }
+
+  /** Sends a relayed frame on the link the command's station is on now, and keeps the answering ones for a claim. */
+  private sendRelayed(requestId: string, frame: PeerMessage): void {
+    const relay = this.stationRelays.get(requestId);
+    if (!relay) return;
+    if (frame.type === "sitrep-command-accepted") relay.accepted = frame;
+    else relay.final = frame;
+    if (relay.link.open) relay.link.send(frame);
+  }
+
+  /**
+   * Answers a station's claim for the commands it sent before its link dropped
+   * or its page reloaded. An answer the host holds is sent now, one still
+   * coming is sent when it arrives, and an id the host holds nothing for (never
+   * seen, from another station, or past what it keeps) is answered as one the
+   * game holds nothing for.
+   */
+  private handleSitrepClaim(
+    msg: Extract<PeerMessage, { type: "sitrep-claim" }>,
+    conn: StationLink,
+  ): void {
+    const stationId = this.connStationId.get(conn);
+    for (const requestId of msg.requestIds) {
+      const relay = this.stationRelays.get(requestId);
+      if (!relay || stationId === undefined || relay.stationId !== stationId) {
+        conn.send({
+          type: "sitrep-command-error",
+          requestId,
+          code: FaultCode.ReplyNotReceived,
+          message: "the main screen holds no answer for this command",
+        } satisfies PeerMessage);
+        continue;
+      }
+      relay.link = conn;
+      const held = relay.final ?? relay.accepted;
+      if (held) conn.send(held);
+    }
+  }
+
   /** Answers a station's command on `conn` with whatever `start` dispatches settles to. */
   private async relaySitrepCommand(
     msg: { requestId: string; command: string },
@@ -3075,11 +3156,12 @@ export class PeerHostService {
       } satisfies PeerMessage);
       return;
     }
+    this.recordStationRelay(msg.requestId, conn);
     // The mod's acceptance reaches only the connection that sent the command, which for a station is this host.
     const stopRelayingAcceptance = client.onRawMessage((message) => {
       if (message.type !== "command-accepted") return;
       if (message.requestId !== msg.requestId) return;
-      conn.send({
+      this.sendRelayed(msg.requestId, {
         type: "sitrep-command-accepted",
         requestId: msg.requestId,
         oneWaySeconds: message.oneWaySeconds,
@@ -3090,7 +3172,7 @@ export class PeerHostService {
     });
     try {
       const value = await start(client);
-      conn.send({
+      this.sendRelayed(msg.requestId, {
         type: "sitrep-command-response",
         requestId: msg.requestId,
         result: value,
@@ -3119,7 +3201,7 @@ export class PeerHostService {
        * declined. The station's command status carries the outcome.
        */
       if (rejection.kind === "refused") {
-        conn.send({
+        this.sendRelayed(msg.requestId, {
           type: "sitrep-command-response",
           requestId: msg.requestId,
           result: {
@@ -3145,7 +3227,7 @@ export class PeerHostService {
       logger.warn(
         `[PeerHost] sitrep command RPC failed (${msg.command}): ${message ?? String(err)}`,
       );
-      conn.send({
+      this.sendRelayed(msg.requestId, {
         type: "sitrep-command-error",
         requestId: msg.requestId,
         code: code ?? FaultCode.Unclassified,
@@ -3231,6 +3313,7 @@ export class PeerHostService {
     this.peerId = null;
     this.connections.clear();
     this.waiting.clear();
+    this.stationRelays.clear();
     this.approvalsUnsub?.();
     this.approvalsUnsub = null;
     // Clearing the set is not the same as each connection closing, so nothing

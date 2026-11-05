@@ -270,6 +270,27 @@ export function PlainStationFeed({
     return jobs.attachPlainStationSession(client);
   }, [jobs, client, servesPlainStations]);
 
+  /*
+   * A station's command is dispatched on the jobs connection, so its answer
+   * and its loss are recorded there; the screen's own client is told where to
+   * read them for the rows it draws.
+   */
+  useEffect(() => {
+    if (!jobs || !client || !ownsMesh) return;
+    let release: (() => void) | undefined;
+    const carry = () => {
+      release?.();
+      const carrier = jobs.client;
+      release = carrier ? client.carryCommandsFrom(carrier) : undefined;
+    };
+    carry();
+    const stop = jobs.onClientChange(carry);
+    return () => {
+      stop();
+      release?.();
+    };
+  }, [jobs, client, ownsMesh]);
+
   return (
     <>
       <SitrepPeerRelay peerHost={peerHostService} />

@@ -530,6 +530,13 @@ export type PeerMessage =
         args: unknown;
       }[];
     }
+  // Station -> host: the station's commands still waiting on an answer after
+  // its link dropped or its page reloaded. The host answers each id under the
+  // frames above, once, on the connection that sent this.
+  | {
+      type: "sitrep-claim";
+      requestIds: string[];
+    }
   | {
       /**
        * Carries a refusal as well as a success, in the mod's own shape
