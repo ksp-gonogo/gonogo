@@ -33,12 +33,12 @@
       "text": "f93a7788"
     },
     "rotors--default.png": {
-      "hash": "c64029e9c7232947",
+      "hash": "a6fbcc4a6774ae6a",
       "elements": 65,
       "text": "f14fa8db"
     },
     "rotors--min.png": {
-      "hash": "60b0bab2dcb1038e",
+      "hash": "51dc44b03bd68f4e",
       "elements": 53,
       "text": "482ff170"
     },
@@ -48,24 +48,24 @@
       "text": "f903d91f"
     },
     "rotors-link-lost--default.png": {
-      "hash": "dafdbe5beef72b15",
-      "elements": 80,
+      "hash": "2e54cf59481acf28",
+      "elements": 82,
       "text": "27596147"
     },
     "servos--default.png": {
-      "hash": "3e54d094c12da06e",
-      "elements": 61,
-      "text": "a0a99c43"
+      "hash": "2cd5e4378cc0c128",
+      "elements": 60,
+      "text": "2ecd0a0f"
     },
     "servos--min.png": {
-      "hash": "c88613143518a81f",
-      "elements": 37,
-      "text": "417b1e7c"
+      "hash": "0187ca0db8930a08",
+      "elements": 36,
+      "text": "220c5a23"
     },
     "servos-link-lost--default.png": {
-      "hash": "39a1a5e01228b84f",
+      "hash": "a6f295e0ec9899ab",
       "elements": 70,
-      "text": "c4fb6c62"
+      "text": "08e4ea00"
     },
     "station-out-of-contact--default.png": {
       "hash": "92cce72684c7c406",
