@@ -10,6 +10,7 @@ import {
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useAlarmHost, useAlarmSnapshot } from "./AlarmHostContext";
+import { orderAlarms } from "./alarmOrder";
 import { useFireBeep } from "./alarmTone";
 import { FiredFacts } from "./FiredFacts";
 import { ForeignFireNotice } from "./ForeignFireNotice";
@@ -286,7 +287,9 @@ export function SafetyMarginPill() {
 export function FiredAlarmPills() {
   const snap = useAlarmSnapshot();
   const host = useAlarmHost();
-  const firedAlarms = snap.alarms.filter((a) => a.state === "fired");
+  const firedAlarms = orderAlarms(
+    snap.alarms.filter((a) => a.state === "fired"),
+  );
   const cpCollapse = collapseFiredContractParam(firedAlarms);
   const collapsedIds = cpCollapse ? new Set(cpCollapse.ids) : null;
   // Skip the alarm the headline AlarmBanner is already rendering so we don't duplicate it as a sibling pill.
@@ -441,32 +444,10 @@ function isRefused(
 }
 
 function pickNext(snap: AlarmSnapshot): Alarm | null {
-  // Prefer firing > fired > arming > pending. Fired alarms now stay in
-  // the list until the user acks, so they need to outrank pending, a
-  // pending time alarm in the future shouldn't hide a just-fired
-  // telemetry alarm waiting for acknowledgement.
-  const priority: Record<Alarm["state"], number> = {
-    firing: 0,
-    fired: 1,
-    arming: 2,
-    pending: 3,
-  };
-  const sortKey = (a: Alarm): number =>
-    a.trigger.kind === "time"
-      ? a.trigger.ut
-      : (a.followedUT ?? Number.POSITIVE_INFINITY);
   const refusals = snap.scetArmRefusals ?? {};
-  const sorted = snap.alarms
-    .filter((a) => !isRefused(a, refusals))
-    .sort((a, b) => {
-      const p = priority[a.state] - priority[b.state];
-      if (p !== 0) return p;
-      // Time alarms sort by UT (earliest first); threshold alarms have no
-      // single firing UT, so they fall to the end of the same-priority
-      // group: surfaced only when there's nothing else competing.
-      return sortKey(a) - sortKey(b);
-    });
-  return sorted[0] ?? null;
+  return (
+    orderAlarms(snap.alarms.filter((a) => !isRefused(a, refusals)))[0] ?? null
+  );
 }
 
 /** Headline label per alarm state. "Firing" / "Fired" carry the urgency

@@ -559,7 +559,7 @@ export class AlarmHostService {
   }
 
   /**
-   * Dismiss a fired alarm. Threshold and time alarms both stay in the
+   * Dismiss a firing or fired alarm. Threshold and time alarms both stay in the
    * `fired` state until the user (or a peer) acks, the original "auto
    * purge after 5s" behaviour silently swallowed alarms before the
    * operator noticed them.

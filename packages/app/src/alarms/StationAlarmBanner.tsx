@@ -1,6 +1,7 @@
 import { BannerRow } from "@ksp-gonogo/ui";
 import { Stack } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
+import { orderAlarms } from "./alarmOrder";
 import { ScreenFiredFacts } from "./FiredFacts";
 import { ForeignFireNotice } from "./ForeignFireNotice";
 import { collapseFiredContractParam } from "./firedCollapse";
@@ -32,7 +33,9 @@ export function StationAlarmBanner({
   onAcknowledge,
 }: StationAlarmBannerProps) {
   const snap = useSnapshot();
-  const fired = snap.alarms.filter((a) => a.state === "fired");
+  const fired = orderAlarms(
+    snap.alarms.filter((a) => a.state === "fired" || a.state === "firing"),
+  );
   const foreign = (
     <ForeignFireNotice snap={snap} onAcknowledge={onAcknowledge} />
   );
@@ -62,7 +65,9 @@ export function StationAlarmBanner({
                 </AckButton>
               }
             >
-              <Label>Fired</Label>
+              <Label>
+                {individuals[0].state === "firing" ? "Firing" : "Fired"}
+              </Label>
               <AlarmName>{individuals[0].name}</AlarmName>
               <FiredHint>{describe(individuals[0])}</FiredHint>
               <ScreenFiredFacts

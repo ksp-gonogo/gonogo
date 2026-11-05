@@ -54,4 +54,35 @@ describe("StationAlarmBanner", () => {
     );
     expect(onAcknowledge.mock.calls.map((c) => c[0])).toEqual(["a", "b", "c"]);
   });
+
+  it("leads with the earliest fired alarm, whatever order the snapshot lists them", () => {
+    const early = {
+      ...fired("early"),
+      trigger: { kind: "time" as const, ut: 3000, leadSeconds: 0 },
+    };
+    const late = {
+      ...fired("late"),
+      trigger: { kind: "time" as const, ut: 3500, leadSeconds: 0 },
+    };
+    const { container } = render(
+      <StationAlarmBanner
+        useSnapshot={() => snapshotOf([late, early])}
+        onAcknowledge={() => {}}
+      />,
+    );
+    const text = container.textContent ?? "";
+    expect(text.indexOf("early")).toBeLessThan(text.indexOf("late"));
+    expect(text).toContain("also fired: late");
+  });
+
+  it("leads with a firing alarm over a fired one, as the main screen does", () => {
+    const firing = { ...fired("firing-one"), state: "firing" as const };
+    const { container } = render(
+      <StationAlarmBanner
+        useSnapshot={() => snapshotOf([fired("done"), firing])}
+        onAcknowledge={() => {}}
+      />,
+    );
+    expect(container.textContent).toMatch(/Firing\s*firing-one/);
+  });
 });
