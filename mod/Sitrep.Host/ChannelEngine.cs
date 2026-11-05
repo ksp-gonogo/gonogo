@@ -2351,6 +2351,20 @@ namespace Sitrep.Host
         }
 
         /// <summary>
+        /// The declaration of <paramref name="command"/> from the Uplink that owns it, or
+        /// <c>null</c> when no Uplink does. Ownership is settled at registration, where a
+        /// manifest declaring another Uplink's command is refused whole.
+        /// </summary>
+        private CommandDeclaration? MetaDeclarationOf(string? command)
+        {
+            if (command == null || !_commandOwner.ContainsKey(command))
+            {
+                return null;
+            }
+            return _commandDeclarations.TryGetValue(command, out var declaration) ? declaration : null;
+        }
+
+        /// <summary>
         /// The first topic or command <paramref name="manifest"/> declares that another
         /// Uplink, or core, already owns, as a refusal reason; null when none is taken.
         /// Owners are decided by registration, never replaced by it: a second claim on a
@@ -12365,10 +12379,10 @@ namespace Sitrep.Host
                 return null;
             }
 
-            if (req.Vantage == MetaVantage && !MetaVantageCommands.IsApproved(req.Command))
+            if (req.Vantage == MetaVantage && !MetaVantageCommands.IsApproved(req.Command, MetaDeclarationOf(req.Command)))
             {
-                // The meta vantage skips every delay, so it is open to a declared list
-                // of program commands only. Refused with the reason for the same cause
+                // The meta vantage skips every delay, so it is open only to the program
+                // commands on that list and the commands an Uplink opens to it. Refused with the reason for the same cause
                 // as above: a demotion to the session vantage would run it somewhere
                 // the client did not ask for.
                 var metaError = new ErrorMsg
