@@ -432,6 +432,8 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
   const [flashing, setFlashing] = useState(false);
   const [flashSeq, setFlashSeq] = useState(0);
   const [awaiting, setAwaiting] = useState(false);
+  // The send this control's own dispatch became, so another control's press on a shared handle is not read as this one's.
+  const ownRequestRef = useRef<string | null>(null);
 
   const streamDown = handle.streamDown === true;
   const gate = standingGate(handle, args);
@@ -532,6 +534,7 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
       const seq = dispatchSeqRef.current + 1;
       dispatchSeqRef.current = seq;
       awaitingFoundRef.current = null;
+      ownRequestRef.current = null;
       setPhase("idle");
       setRefusal(null);
       setFlashing(true);
@@ -591,8 +594,21 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
    */
   const status: CommandStatus | undefined = handle.status;
   const unanswered =
-    awaiting && status?.phase === "in-flight" && status.accepted !== true;
+    awaiting &&
+    status?.phase === "in-flight" &&
+    status.accepted !== true &&
+    (ownRequestRef.current === null ||
+      ownRequestRef.current === status.requestId);
   const sent = flashing || unanswered;
+  useEffect(() => {
+    if (
+      awaiting &&
+      ownRequestRef.current === null &&
+      status?.phase === "in-flight"
+    ) {
+      ownRequestRef.current = status.requestId;
+    }
+  }, [awaiting, status]);
 
   const toggleRows = toggle
     ? handle.inFlight.filter(toggle.rows ?? (() => true))
@@ -633,14 +649,18 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
         setPhase("idle");
         return;
       }
-      if (armable && phase !== "armed") {
-        armedForRef.current = argsKey(args);
-        setPhase("armed");
-        return;
+      if (armable) {
+        // The confirm already went, so a press now would arm a second spend behind a face that reads SENT.
+        if (sent) return;
+        if (phase !== "armed") {
+          armedForRef.current = argsKey(args);
+          setPhase("armed");
+          return;
+        }
       }
       dispatch();
     },
-    [phase, streamDown, gateBlocks, dispatch, args, toggle, toggleBase],
+    [phase, sent, streamDown, gateBlocks, dispatch, args, toggle, toggleBase],
   );
 
   // One handle serves many rows, and a row keyed by position can be handed another item while armed; the confirming press must not send to it.

@@ -98,7 +98,9 @@ export function shownToggleState(
 
 /**
  * Whether the latest press of a toggle is still outstanding: not yet answered
- * by the craft, or answered and not yet shown by the readings.
+ * by the craft, or answered and not yet shown by the readings. A press that was
+ * refused, failed, lost or never left asked for nothing the control should
+ * count on, even while its row waits to be dismissed.
  */
 export function pressOutstanding(
   status: CommandStatus | undefined,
@@ -106,6 +108,7 @@ export function pressOutstanding(
 ): boolean {
   if (status === undefined || status.phase === "idle") return false;
   if (status.phase === "in-flight") return true;
+  if (status.phase !== "confirmed" && status.phase !== "found") return false;
   return rows.some((row) => row.id === status.requestId);
 }
 

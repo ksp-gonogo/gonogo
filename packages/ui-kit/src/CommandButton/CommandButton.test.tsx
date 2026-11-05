@@ -1916,3 +1916,144 @@ describe("CommandButton: the toggle variant", () => {
     expect(send).not.toHaveBeenCalled();
   });
 });
+
+describe("CommandButton: a press while SENT", () => {
+  it("neither arms nor sends again on an arm-then-confirm control, so a triple click spends once", async () => {
+    const user = useArmClock();
+    const send = vi.fn(() => deferred().promise);
+    render(
+      <CommandButton
+        handle={makeHandle(send, { status: inFlightStatus(false) })}
+        label="Upgrade"
+        confirmLabel="Confirm upgrade"
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Upgrade" }));
+    await user.click(screen.getByRole("button", { name: "Confirm upgrade" }));
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button")).toHaveTextContent("SENT");
+
+    await user.click(screen.getByRole("button"));
+    act(() => {
+      vi.advanceTimersByTime(SENT_FLASH_MS + 1);
+    });
+    await user.click(screen.getByRole("button"));
+
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button")).toHaveTextContent("SENT");
+    expect(screen.queryByText("Confirm upgrade")).toBeNull();
+  });
+});
+
+describe("CommandButton: a toggle press that was lost", () => {
+  const word = (shown: boolean | number | null | undefined) =>
+    shown === true ? "SAS ON" : "SAS OFF";
+  const draw = (
+    over: Partial<CommandButtonHandle>,
+    send: CommandButtonHandle["send"],
+  ) => (
+    <CommandButton
+      handle={makeHandle(send, over)}
+      commandLabel="Toggle SAS"
+      label="SAS"
+      toggle={{
+        state: false,
+        name: "SAS",
+        word,
+        words: ["SAS ON", "SAS OFF"],
+        args: (base) =>
+          typeof base === "boolean" ? { enabled: !base } : undefined,
+      }}
+    />
+  );
+
+  it.each([
+    ["lost", { phase: "lost", requestId: "r1", reason: "no reply" }],
+    [
+      "failed",
+      { phase: "failed", requestId: "r1", error: { code: "E", message: "x" } },
+    ],
+    ["undelivered", { phase: "undelivered", requestId: "r1", reason: "down" }],
+  ] as const)("asks for the opposite of the state shown again after a %s ask", async (_name, status) => {
+    const user = useArmClock();
+    const send = vi.fn(() => deferred().promise);
+    const { rerender } = render(draw({ status: inFlightStatus(false) }, send));
+
+    await user.click(screen.getByRole("button"));
+    expect(send).toHaveBeenLastCalledWith(
+      { enabled: true },
+      { label: "Toggle SAS" },
+    );
+
+    rerender(
+      draw(
+        {
+          status: status as never,
+          inFlight: [
+            {
+              id: "r1",
+              label: "Toggle SAS",
+              command: "vessel.control.setSas",
+              predictedPhase: "lost",
+            },
+          ] as never,
+        },
+        send,
+      ),
+    );
+    act(() => {
+      vi.advanceTimersByTime(SENT_FLASH_MS + 1);
+    });
+    expect(screen.getByRole("button")).toHaveTextContent("SAS OFF");
+
+    await user.click(screen.getByRole("button"));
+    expect(send).toHaveBeenLastCalledWith(
+      { enabled: true },
+      { label: "Toggle SAS" },
+    );
+  });
+});
+
+describe("CommandButton: SENT belongs to the button's own dispatch", () => {
+  it("does not return to SENT when another button on the same handle is pressed", async () => {
+    const user = useArmClock();
+    const send = vi.fn(() => deferred().promise);
+    const draw = (status: CommandButtonHandle["status"]) => {
+      const handle = makeHandle(send, { status });
+      return (
+        <>
+          <CommandButton handle={handle} args="a" label="Row A" />
+          <CommandButton handle={handle} args="b" label="Row B" />
+        </>
+      );
+    };
+    const { rerender } = render(draw({ phase: "idle" }));
+
+    await user.click(screen.getByRole("button", { name: "Row A" }));
+    rerender(draw(inFlightStatus(false)));
+    rerender(
+      draw({
+        phase: "in-flight",
+        requestId: "r1",
+        etaConfirm: 60,
+        accepted: true,
+      }),
+    );
+    act(() => {
+      vi.advanceTimersByTime(SENT_FLASH_MS + 1);
+    });
+    expect(screen.getByRole("button", { name: "Row A" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Row B" }));
+    rerender(draw({ phase: "in-flight", requestId: "r2", etaConfirm: 60 }));
+    act(() => {
+      vi.advanceTimersByTime(SENT_FLASH_MS + 1);
+    });
+
+    expect(screen.getByRole("button", { name: "Row A" })).toHaveAttribute(
+      "data-command-phase",
+      "idle",
+    );
+  });
+});
