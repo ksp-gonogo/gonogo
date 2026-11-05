@@ -2520,6 +2520,7 @@ public static class RtConfig
                     if (description == null) undescribed.Add(attr.CommandId);
                     else descriptions[attr.CommandId] = description;
                 }
+                CheckSetsValueField(attr, type);
                 rows.Add((attr.CommandId, type.Name, reply, reply != null, attr.Delay == DelayRole.Delayed, ArriveBeforeField(attr, type)));
                 argsNames.Add(type.Name);
             }
@@ -2737,6 +2738,25 @@ public static class RtConfig
 
         File.WriteAllText(outPath, sb.ToString());
         Console.WriteLine("codegen (command-map) -> " + outPath + " (" + rows.Count + " commands)");
+    }
+
+    /// <summary>
+    /// Stops the build when <see cref="SitrepCommandAttribute.SetsValue"/>
+    /// names anything but a numeric property of the args class, since a value
+    /// read off a field that is not there would never reach the queue.
+    /// </summary>
+    private static void CheckSetsValueField(SitrepCommandAttribute attr, Type argsType)
+    {
+        if (attr.SetsValue == null) return;
+        var type = argsType.GetProperty(attr.SetsValue)?.PropertyType;
+        type = type == null ? null : Nullable.GetUnderlyingType(type) ?? type;
+        if (type != typeof(double) && type != typeof(float) && type != typeof(int) && type != typeof(long))
+        {
+            throw new InvalidOperationException(
+                "[SitrepCommand(\"" + attr.CommandId + "\")] on " + argsType.Name +
+                " sets SetsValue = \"" + attr.SetsValue + "\", which is not a numeric property of " +
+                argsType.Name + ".");
+        }
     }
 
     /// <summary> The wire name of the args field <see

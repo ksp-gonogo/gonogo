@@ -711,13 +711,7 @@ namespace Sitrep.Host
                 // A deadline on one member binds the whole group.
                 return job.GroupMembers.Select(ArriveBeforeUt).Where(ut => ut != null).Min();
             }
-            if (!_commandArgTypes.TryGetValue(job.Command, out var argsType))
-            {
-                return null;
-            }
-            var attribute = argsType.GetCustomAttributes(typeof(SitrepCommandAttribute), false)
-                .OfType<SitrepCommandAttribute>()
-                .FirstOrDefault(a => string.Equals(a.CommandId, job.Command, StringComparison.Ordinal));
+            var attribute = CommandAttribute(job.Command);
             if (string.IsNullOrEmpty(attribute?.ArriveBefore) || !(job.Args is IDictionary<string, object?> args))
             {
                 return null;

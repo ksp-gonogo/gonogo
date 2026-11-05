@@ -98,11 +98,11 @@ public class PendingUplink
 
     /// <summary>
     /// The scalar this command asked for, when its command is one half of a
-    /// declared <see cref="SitrepControlChannelAttribute"/> channel: a throttle
-    /// setting, a switch as 1 or 0, an SAS mode as its ordinal. Absent (the key
-    /// is left out, never written as null) for every other command, and for a
-    /// channel command whose args did not carry the value, so a zero throttle
-    /// and an unknown value never look the same.
+    /// declared <see cref="SitrepControlChannelAttribute"/> channel (a throttle
+    /// setting, a switch as 1 or 0, an SAS mode as its ordinal), or is a
+    /// command that sets one value, such as a rotor's RPM cap. Absent (the key is left out, never written as null)
+    /// for every other command, and for a command whose args did not carry the
+    /// value, so a zero throttle and an unknown value never look the same.
     ///
     /// <para>It is what the centre sent, not anything the craft did. Use it to
     /// show which SAS mode is in flight rather than only that something is, or

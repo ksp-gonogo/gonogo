@@ -523,6 +523,56 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// A command whose args declare the value it sets carries that value,
+        /// with no control channel behind it, so a stepper pressed on one screen
+        /// moves every screen's figure before the reading comes home.
+        /// </summary>
+        [Fact]
+        public async Task ACommandDeclaringTheValueItSetsCarriesIt()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new PendingQueueTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.RegisterCommandCentreSource(new StaticSource("KSC"));
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, ChannelEngine.UplinkPendingTopic, Timeout);
+
+                const double signalDelay = 5.0;
+                engine.TickAndWait(
+                    0.0,
+                    FreezeGateTestUplink.Snapshot(0.0, connected: true, delay: signalDelay),
+                    Timeout);
+                await ReceiveStreamDataAsync(client, Timeout);
+
+                engine.DispatchCommandAndWait(
+                    PendingQueueTestUplink.RpmCapCommand,
+                    new Dictionary<string, object> { ["partId"] = "101", ["rpm"] = 350.0 },
+                    "KSC",
+                    _ => { },
+                    TestBudgets.Op);
+
+                engine.TickAndWait(
+                    1.0,
+                    FreezeGateTestUplink.Snapshot(1.0, connected: true, delay: signalDelay),
+                    Timeout);
+
+                var frame = await ReceiveStreamDataAsync(client, Timeout);
+                var payload = Assert.IsType<Dictionary<string, object?>>(frame.Payload);
+                var pending = Assert.IsType<List<object?>>(payload["pending"]);
+                var entry = Assert.IsType<Dictionary<string, object?>>(Assert.Single(pending));
+
+                Assert.Equal(350.0, Assert.IsType<double>(entry["commandedValue"]));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// A command that is not a declared control channel carries no value,
         /// and the field is omitted rather than sent as a zero: a zero throttle
         /// and an unknown value must never render the same.
@@ -1086,6 +1136,9 @@ namespace Sitrep.Host.IntegrationTests
             public const string ThrottleCommand = "vessel.control.setThrottle";
             public const string GearCommand = "vessel.control.setGear";
 
+            /// <summary>A command whose args declare the value it sets, as a stepper's does, with no control channel behind it.</summary>
+            public const string RpmCapCommand = "robotics.rotor.setRpmLimit";
+
             /// <summary>A command the game always refuses, with its own words.</summary>
             public const string RefusedCommand = "pending-queue-test.refuse";
 
@@ -1129,6 +1182,7 @@ namespace Sitrep.Host.IntegrationTests
                     new CommandDeclaration { Command = Command, Delay = DelayRole.Delayed, Subject = VesselViewProvider.ControlTopic },
                     new CommandDeclaration { Command = ThrottleCommand, Delay = DelayRole.Delayed, Subject = VesselViewProvider.ControlTopic },
                     new CommandDeclaration { Command = GearCommand, Delay = DelayRole.Delayed, Subject = VesselViewProvider.ControlTopic },
+                    new CommandDeclaration { Command = RpmCapCommand, Delay = DelayRole.Delayed, Subject = VesselViewProvider.ControlTopic },
                     new CommandDeclaration { Command = RefusedCommand, Delay = DelayRole.Delayed, Subject = VesselViewProvider.ControlTopic },
                 },
             };
@@ -1150,6 +1204,9 @@ namespace Sitrep.Host.IntegrationTests
                 host.AddCommandHandler<Dictionary<string, object>, string>(
                     GearCommand,
                     _ => "ok");
+                host.AddCommandHandler<RotorSetRpmLimitArgs, CommandResult>(
+                    RpmCapCommand,
+                    _ => CommandResult.Ok());
                 host.AddCommandHandler<string, CommandResult>(
                     RefusedCommand,
                     _ => CommandResult.Fail(CommandErrorCode.ModeUnavailable, "No RCS thrusters aboard"));

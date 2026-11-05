@@ -122,6 +122,22 @@ namespace Sitrep.Contract
         /// </summary>
         public string? ArriveBefore { get; set; }
 
+        /// <summary>
+        /// The args property holding the value this command sets on the craft,
+        /// for a command a slider or stepper sends, such as a rotor's RPM cap.
+        ///
+        /// <para>The mod writes that value on the command's entry in the
+        /// command centre's pending queue as <c>commandedValue</c>, so every
+        /// screen at the centre draws the value commanded before the craft's
+        /// reading of it comes home. A control channel's write command needs
+        /// none: its channel already names its value field. Null for every
+        /// other command.</para>
+        ///
+        /// <para>Must name a numeric property of the args class, which the
+        /// build checks. Write it with <c>nameof</c>.</para>
+        /// </summary>
+        public string? SetsValue { get; set; }
+
         /// <summary>Declares the args class as the args of one command.</summary>
         /// <param name="commandId">The command id as dispatched, e.g. <c>"vessel.control.setThrottle"</c>. Unique across all declared commands.</param>
         public SitrepCommandAttribute(string commandId)

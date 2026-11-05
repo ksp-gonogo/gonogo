@@ -110,7 +110,8 @@ export interface PendingEntry {
   oneWaySeconds?: Value<"s"> | null;
   /**
    * The value the command sets, when it sets a control channel such as the
-   * throttle. Absent otherwise, and absent rather than zero when unknown.
+   * throttle or declares the value it sets, such as a rotor's RPM cap. Absent
+   * otherwise, and absent rather than zero when unknown.
    */
   commandedValue?: number;
   /** For a command held at a relay (a node on the route that stores it until a link opens), when it is predicted to reach the craft; absent or null otherwise. */

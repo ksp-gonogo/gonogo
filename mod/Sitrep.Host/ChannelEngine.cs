@@ -11330,9 +11330,31 @@ namespace Sitrep.Host
         private double? CommandedScalar(DispatchCommandJob job)
         {
             _controlChannelValueKeys ??= ControlChannelDescriptor.ValueKeyByCommand();
-            return _controlChannelValueKeys.TryGetValue(job.Command, out var key)
-                ? ControlChannelDescriptor.ScalarFrom(job.Args, key)
-                : null;
+            if (_controlChannelValueKeys.TryGetValue(job.Command, out var key))
+            {
+                return ControlChannelDescriptor.ScalarFrom(job.Args, key);
+            }
+            var setsValue = CommandAttribute(job.Command)?.SetsValue;
+            return string.IsNullOrEmpty(setsValue)
+                ? null
+                : ControlChannelDescriptor.ScalarFrom(job.Args, char.ToLowerInvariant(setsValue![0]) + setsValue.Substring(1));
+        }
+
+        /// <summary>
+        /// The <see cref="SitrepCommandAttribute"/> declaring <paramref name="command"/>
+        /// on its args type, or null when the command has no typed args. One args
+        /// type can declare several commands, so the declaration read is the one
+        /// naming this command.
+        /// </summary>
+        private SitrepCommandAttribute? CommandAttribute(string command)
+        {
+            if (!_commandArgTypes.TryGetValue(command, out var argsType))
+            {
+                return null;
+            }
+            return argsType.GetCustomAttributes(typeof(SitrepCommandAttribute), false)
+                .OfType<SitrepCommandAttribute>()
+                .FirstOrDefault(a => string.Equals(a.CommandId, command, StringComparison.Ordinal));
         }
 
         private IReadOnlyDictionary<string, string> _controlChannelValueKeys;

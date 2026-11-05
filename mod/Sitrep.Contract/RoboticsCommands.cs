@@ -18,7 +18,7 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("robotics.servo.setAngle")]
+[SitrepCommand("robotics.servo.setAngle", SetsValue = nameof(ServoSetAngleArgs.Degrees))]
 public class ServoSetAngleArgs
 {
     /// <summary>The part's flight id, as a string: the id each <c>parts.robotics</c> entry carries.</summary>
@@ -42,7 +42,7 @@ public class ServoSetAngleArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("robotics.servo.setExtension")]
+[SitrepCommand("robotics.servo.setExtension", SetsValue = nameof(ServoSetExtensionArgs.Metres))]
 public class ServoSetExtensionArgs
 {
     /// <summary>The part's flight id, as a string: the id each <c>parts.robotics</c> entry carries.</summary>
@@ -91,7 +91,7 @@ public class ServoSetEnabledArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("robotics.rotor.setRpmLimit")]
+[SitrepCommand("robotics.rotor.setRpmLimit", SetsValue = nameof(RotorSetRpmLimitArgs.Rpm))]
 public class RotorSetRpmLimitArgs
 {
     /// <summary>The part's flight id, as a string: the id each <c>parts.robotics</c> entry carries.</summary>
@@ -113,7 +113,7 @@ public class RotorSetRpmLimitArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("robotics.rotor.setTorqueLimit")]
+[SitrepCommand("robotics.rotor.setTorqueLimit", SetsValue = nameof(RotorSetTorqueLimitArgs.Percent))]
 public class RotorSetTorqueLimitArgs
 {
     /// <summary>The part's flight id, as a string: the id each <c>parts.robotics</c> entry carries.</summary>
