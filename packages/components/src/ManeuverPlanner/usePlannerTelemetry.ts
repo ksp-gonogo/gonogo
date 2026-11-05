@@ -16,6 +16,7 @@ import {
 import { stillTrue, type Value } from "@ksp-gonogo/sitrep-sdk";
 import { derivedMarking } from "@ksp-gonogo/ui-kit";
 import { useMemo, useRef } from "react";
+import { currencyOf } from "../shared/currencyOf";
 import { magnitudeOf } from "../shared/magnitude";
 import { bodyFromStream } from "../shared/streamBody";
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
@@ -229,10 +230,13 @@ export function usePlannerTelemetry() {
     craftElements,
     celestialBodies,
     craftBody,
-    orbitObserved: orbitReading.state === "observed",
+    orbitPresent:
+      orbitReading.state === "observed" || orbitReading.state === "held",
     elementsNeedDating,
     orbitMarking,
     targetMarking,
+    orbitCurrency: currencyOf(orbitReading),
+    targetCurrency: currencyOf(targetReading),
     thrustLatch,
     burnContext,
     currentTrajectory,
