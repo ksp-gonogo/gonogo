@@ -1,0 +1,3446 @@
+{
+  "_meta": {
+    "shows": "A climb from the pad to 8 km, an ordinary wide range.",
+    "scenario": "axis-units",
+    "synthetic": true,
+    "notes": "SYNTHETIC. Altitude sampled every three UT seconds over 600 s."
+  },
+  "_stream": {
+    "pinnedUt": 600,
+    "emits": [
+      {
+        "channel": "time.warp",
+        "value": {
+          "warpRate": 1,
+          "warpRateIndex": 0,
+          "warpMode": 0,
+          "paused": false,
+          "keyframeFloorSec": 1,
+          "observationQuantumUt": 1.0,
+          "sampleIntervalUt": 1
+        },
+        "meta": {
+          "validAt": 0,
+          "deliveredAt": 0
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 0.0,
+          "altitudeTerrain": 0.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 0,
+          "deliveredAt": 0
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 40.0,
+          "altitudeTerrain": 40.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 3,
+          "deliveredAt": 3
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 80.0,
+          "altitudeTerrain": 80.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 6,
+          "deliveredAt": 6
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 120.0,
+          "altitudeTerrain": 120.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 9,
+          "deliveredAt": 9
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 160.0,
+          "altitudeTerrain": 160.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 12,
+          "deliveredAt": 12
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 200.0,
+          "altitudeTerrain": 200.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 15,
+          "deliveredAt": 15
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 240.0,
+          "altitudeTerrain": 240.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 18,
+          "deliveredAt": 18
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 280.0,
+          "altitudeTerrain": 280.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 21,
+          "deliveredAt": 21
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 320.0,
+          "altitudeTerrain": 320.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 24,
+          "deliveredAt": 24
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 360.0,
+          "altitudeTerrain": 360.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 27,
+          "deliveredAt": 27
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 400.0,
+          "altitudeTerrain": 400.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 30,
+          "deliveredAt": 30
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 440.0,
+          "altitudeTerrain": 440.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 33,
+          "deliveredAt": 33
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 480.0,
+          "altitudeTerrain": 480.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 36,
+          "deliveredAt": 36
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 520.0,
+          "altitudeTerrain": 520.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 39,
+          "deliveredAt": 39
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 560.0,
+          "altitudeTerrain": 560.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 42,
+          "deliveredAt": 42
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 600.0,
+          "altitudeTerrain": 600.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 45,
+          "deliveredAt": 45
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 640.0,
+          "altitudeTerrain": 640.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 48,
+          "deliveredAt": 48
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 680.0,
+          "altitudeTerrain": 680.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 51,
+          "deliveredAt": 51
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 720.0,
+          "altitudeTerrain": 720.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 54,
+          "deliveredAt": 54
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 760.0,
+          "altitudeTerrain": 760.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 57,
+          "deliveredAt": 57
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 800.0,
+          "altitudeTerrain": 800.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 60,
+          "deliveredAt": 60
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 840.0,
+          "altitudeTerrain": 840.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 63,
+          "deliveredAt": 63
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 880.0,
+          "altitudeTerrain": 880.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 66,
+          "deliveredAt": 66
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 920.0,
+          "altitudeTerrain": 920.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 69,
+          "deliveredAt": 69
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 960.0,
+          "altitudeTerrain": 960.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 72,
+          "deliveredAt": 72
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 1000.0,
+          "altitudeTerrain": 1000.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 75,
+          "deliveredAt": 75
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 1040.0,
+          "altitudeTerrain": 1040.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 78,
+          "deliveredAt": 78
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 1080.0,
+          "altitudeTerrain": 1080.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 81,
+          "deliveredAt": 81
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 1120.0,
+          "altitudeTerrain": 1120.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 84,
+          "deliveredAt": 84
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 1160.0,
+          "altitudeTerrain": 1160.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 87,
+          "deliveredAt": 87
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 1200.0,
+          "altitudeTerrain": 1200.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 90,
+          "deliveredAt": 90
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 1240.0,
+          "altitudeTerrain": 1240.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 93,
+          "deliveredAt": 93
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 1280.0,
+          "altitudeTerrain": 1280.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 96,
+          "deliveredAt": 96
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 1320.0,
+          "altitudeTerrain": 1320.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 99,
+          "deliveredAt": 99
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 1360.0,
+          "altitudeTerrain": 1360.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 102,
+          "deliveredAt": 102
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 1400.0,
+          "altitudeTerrain": 1400.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 105,
+          "deliveredAt": 105
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 1440.0,
+          "altitudeTerrain": 1440.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 108,
+          "deliveredAt": 108
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 1480.0,
+          "altitudeTerrain": 1480.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 111,
+          "deliveredAt": 111
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 1520.0,
+          "altitudeTerrain": 1520.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 114,
+          "deliveredAt": 114
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 1560.0,
+          "altitudeTerrain": 1560.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 117,
+          "deliveredAt": 117
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 1600.0,
+          "altitudeTerrain": 1600.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 120,
+          "deliveredAt": 120
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 1640.0,
+          "altitudeTerrain": 1640.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 123,
+          "deliveredAt": 123
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 1680.0,
+          "altitudeTerrain": 1680.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 126,
+          "deliveredAt": 126
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 1720.0,
+          "altitudeTerrain": 1720.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 129,
+          "deliveredAt": 129
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 1760.0,
+          "altitudeTerrain": 1760.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 132,
+          "deliveredAt": 132
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 1800.0,
+          "altitudeTerrain": 1800.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 135,
+          "deliveredAt": 135
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 1840.0,
+          "altitudeTerrain": 1840.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 138,
+          "deliveredAt": 138
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 1880.0,
+          "altitudeTerrain": 1880.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 141,
+          "deliveredAt": 141
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 1920.0,
+          "altitudeTerrain": 1920.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 144,
+          "deliveredAt": 144
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 1960.0,
+          "altitudeTerrain": 1960.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 147,
+          "deliveredAt": 147
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 2000.0,
+          "altitudeTerrain": 2000.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 150,
+          "deliveredAt": 150
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 2040.0,
+          "altitudeTerrain": 2040.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 153,
+          "deliveredAt": 153
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 2080.0,
+          "altitudeTerrain": 2080.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 156,
+          "deliveredAt": 156
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 2120.0,
+          "altitudeTerrain": 2120.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 159,
+          "deliveredAt": 159
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 2160.0,
+          "altitudeTerrain": 2160.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 162,
+          "deliveredAt": 162
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 2200.0,
+          "altitudeTerrain": 2200.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 165,
+          "deliveredAt": 165
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 2240.0,
+          "altitudeTerrain": 2240.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 168,
+          "deliveredAt": 168
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 2280.0,
+          "altitudeTerrain": 2280.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 171,
+          "deliveredAt": 171
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 2320.0,
+          "altitudeTerrain": 2320.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 174,
+          "deliveredAt": 174
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 2360.0,
+          "altitudeTerrain": 2360.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 177,
+          "deliveredAt": 177
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 2400.0,
+          "altitudeTerrain": 2400.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 180,
+          "deliveredAt": 180
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 2440.0,
+          "altitudeTerrain": 2440.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 183,
+          "deliveredAt": 183
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 2480.0,
+          "altitudeTerrain": 2480.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 186,
+          "deliveredAt": 186
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 2520.0,
+          "altitudeTerrain": 2520.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 189,
+          "deliveredAt": 189
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 2560.0,
+          "altitudeTerrain": 2560.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 192,
+          "deliveredAt": 192
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 2600.0,
+          "altitudeTerrain": 2600.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 195,
+          "deliveredAt": 195
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 2640.0,
+          "altitudeTerrain": 2640.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 198,
+          "deliveredAt": 198
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 2680.0,
+          "altitudeTerrain": 2680.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 201,
+          "deliveredAt": 201
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 2720.0,
+          "altitudeTerrain": 2720.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 204,
+          "deliveredAt": 204
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 2760.0,
+          "altitudeTerrain": 2760.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 207,
+          "deliveredAt": 207
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 2800.0,
+          "altitudeTerrain": 2800.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 210,
+          "deliveredAt": 210
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 2840.0,
+          "altitudeTerrain": 2840.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 213,
+          "deliveredAt": 213
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 2880.0,
+          "altitudeTerrain": 2880.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 216,
+          "deliveredAt": 216
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 2920.0,
+          "altitudeTerrain": 2920.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 219,
+          "deliveredAt": 219
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 2960.0,
+          "altitudeTerrain": 2960.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 222,
+          "deliveredAt": 222
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 3000.0,
+          "altitudeTerrain": 3000.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 225,
+          "deliveredAt": 225
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 3040.0,
+          "altitudeTerrain": 3040.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 228,
+          "deliveredAt": 228
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 3080.0,
+          "altitudeTerrain": 3080.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 231,
+          "deliveredAt": 231
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 3120.0,
+          "altitudeTerrain": 3120.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 234,
+          "deliveredAt": 234
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 3160.0,
+          "altitudeTerrain": 3160.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 237,
+          "deliveredAt": 237
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 3200.0,
+          "altitudeTerrain": 3200.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 240,
+          "deliveredAt": 240
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 3240.0,
+          "altitudeTerrain": 3240.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 243,
+          "deliveredAt": 243
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 3280.0,
+          "altitudeTerrain": 3280.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 246,
+          "deliveredAt": 246
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 3320.0,
+          "altitudeTerrain": 3320.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 249,
+          "deliveredAt": 249
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 3360.0,
+          "altitudeTerrain": 3360.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 252,
+          "deliveredAt": 252
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 3400.0,
+          "altitudeTerrain": 3400.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 255,
+          "deliveredAt": 255
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 3440.0,
+          "altitudeTerrain": 3440.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 258,
+          "deliveredAt": 258
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 3480.0,
+          "altitudeTerrain": 3480.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 261,
+          "deliveredAt": 261
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 3520.0,
+          "altitudeTerrain": 3520.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 264,
+          "deliveredAt": 264
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 3560.0,
+          "altitudeTerrain": 3560.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 267,
+          "deliveredAt": 267
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 3600.0,
+          "altitudeTerrain": 3600.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 270,
+          "deliveredAt": 270
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 3640.0,
+          "altitudeTerrain": 3640.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 273,
+          "deliveredAt": 273
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 3680.0,
+          "altitudeTerrain": 3680.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 276,
+          "deliveredAt": 276
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 3720.0,
+          "altitudeTerrain": 3720.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 279,
+          "deliveredAt": 279
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 3760.0,
+          "altitudeTerrain": 3760.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 282,
+          "deliveredAt": 282
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 3800.0,
+          "altitudeTerrain": 3800.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 285,
+          "deliveredAt": 285
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 3840.0,
+          "altitudeTerrain": 3840.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 288,
+          "deliveredAt": 288
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 3880.0,
+          "altitudeTerrain": 3880.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 291,
+          "deliveredAt": 291
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 3920.0,
+          "altitudeTerrain": 3920.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 294,
+          "deliveredAt": 294
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 3960.0,
+          "altitudeTerrain": 3960.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 297,
+          "deliveredAt": 297
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 4000.0,
+          "altitudeTerrain": 4000.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 300,
+          "deliveredAt": 300
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 4040.0,
+          "altitudeTerrain": 4040.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 303,
+          "deliveredAt": 303
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 4080.0,
+          "altitudeTerrain": 4080.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 306,
+          "deliveredAt": 306
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 4120.0,
+          "altitudeTerrain": 4120.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 309,
+          "deliveredAt": 309
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 4160.0,
+          "altitudeTerrain": 4160.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 312,
+          "deliveredAt": 312
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 4200.0,
+          "altitudeTerrain": 4200.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 315,
+          "deliveredAt": 315
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 4240.0,
+          "altitudeTerrain": 4240.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 318,
+          "deliveredAt": 318
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 4280.0,
+          "altitudeTerrain": 4280.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 321,
+          "deliveredAt": 321
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 4320.0,
+          "altitudeTerrain": 4320.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 324,
+          "deliveredAt": 324
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 4360.0,
+          "altitudeTerrain": 4360.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 327,
+          "deliveredAt": 327
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 4400.0,
+          "altitudeTerrain": 4400.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 330,
+          "deliveredAt": 330
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 4440.0,
+          "altitudeTerrain": 4440.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 333,
+          "deliveredAt": 333
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 4480.0,
+          "altitudeTerrain": 4480.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 336,
+          "deliveredAt": 336
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 4520.0,
+          "altitudeTerrain": 4520.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 339,
+          "deliveredAt": 339
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 4560.0,
+          "altitudeTerrain": 4560.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 342,
+          "deliveredAt": 342
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 4600.0,
+          "altitudeTerrain": 4600.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 345,
+          "deliveredAt": 345
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 4640.0,
+          "altitudeTerrain": 4640.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 348,
+          "deliveredAt": 348
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 4680.0,
+          "altitudeTerrain": 4680.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 351,
+          "deliveredAt": 351
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 4720.0,
+          "altitudeTerrain": 4720.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 354,
+          "deliveredAt": 354
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 4760.0,
+          "altitudeTerrain": 4760.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 357,
+          "deliveredAt": 357
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 4800.0,
+          "altitudeTerrain": 4800.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 360,
+          "deliveredAt": 360
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 4840.0,
+          "altitudeTerrain": 4840.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 363,
+          "deliveredAt": 363
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 4880.0,
+          "altitudeTerrain": 4880.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 366,
+          "deliveredAt": 366
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 4920.0,
+          "altitudeTerrain": 4920.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 369,
+          "deliveredAt": 369
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 4960.0,
+          "altitudeTerrain": 4960.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 372,
+          "deliveredAt": 372
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 5000.0,
+          "altitudeTerrain": 5000.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 375,
+          "deliveredAt": 375
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 5040.0,
+          "altitudeTerrain": 5040.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 378,
+          "deliveredAt": 378
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 5080.0,
+          "altitudeTerrain": 5080.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 381,
+          "deliveredAt": 381
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 5120.0,
+          "altitudeTerrain": 5120.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 384,
+          "deliveredAt": 384
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 5160.0,
+          "altitudeTerrain": 5160.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 387,
+          "deliveredAt": 387
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 5200.0,
+          "altitudeTerrain": 5200.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 390,
+          "deliveredAt": 390
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 5240.0,
+          "altitudeTerrain": 5240.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 393,
+          "deliveredAt": 393
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 5280.0,
+          "altitudeTerrain": 5280.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 396,
+          "deliveredAt": 396
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 5320.0,
+          "altitudeTerrain": 5320.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 399,
+          "deliveredAt": 399
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 5360.0,
+          "altitudeTerrain": 5360.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 402,
+          "deliveredAt": 402
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 5400.0,
+          "altitudeTerrain": 5400.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 405,
+          "deliveredAt": 405
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 5440.0,
+          "altitudeTerrain": 5440.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 408,
+          "deliveredAt": 408
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 5480.0,
+          "altitudeTerrain": 5480.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 411,
+          "deliveredAt": 411
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 5520.0,
+          "altitudeTerrain": 5520.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 414,
+          "deliveredAt": 414
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 5560.0,
+          "altitudeTerrain": 5560.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 417,
+          "deliveredAt": 417
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 5600.0,
+          "altitudeTerrain": 5600.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 420,
+          "deliveredAt": 420
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 5640.0,
+          "altitudeTerrain": 5640.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 423,
+          "deliveredAt": 423
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 5680.0,
+          "altitudeTerrain": 5680.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 426,
+          "deliveredAt": 426
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 5720.0,
+          "altitudeTerrain": 5720.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 429,
+          "deliveredAt": 429
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 5760.0,
+          "altitudeTerrain": 5760.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 432,
+          "deliveredAt": 432
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 5800.0,
+          "altitudeTerrain": 5800.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 435,
+          "deliveredAt": 435
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 5840.0,
+          "altitudeTerrain": 5840.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 438,
+          "deliveredAt": 438
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 5880.0,
+          "altitudeTerrain": 5880.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 441,
+          "deliveredAt": 441
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 5920.0,
+          "altitudeTerrain": 5920.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 444,
+          "deliveredAt": 444
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 5960.0,
+          "altitudeTerrain": 5960.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 447,
+          "deliveredAt": 447
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 6000.0,
+          "altitudeTerrain": 6000.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 450,
+          "deliveredAt": 450
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 6040.0,
+          "altitudeTerrain": 6040.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 453,
+          "deliveredAt": 453
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 6080.0,
+          "altitudeTerrain": 6080.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 456,
+          "deliveredAt": 456
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 6120.0,
+          "altitudeTerrain": 6120.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 459,
+          "deliveredAt": 459
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 6160.0,
+          "altitudeTerrain": 6160.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 462,
+          "deliveredAt": 462
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 6200.0,
+          "altitudeTerrain": 6200.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 465,
+          "deliveredAt": 465
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 6240.0,
+          "altitudeTerrain": 6240.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 468,
+          "deliveredAt": 468
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 6280.0,
+          "altitudeTerrain": 6280.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 471,
+          "deliveredAt": 471
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 6320.0,
+          "altitudeTerrain": 6320.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 474,
+          "deliveredAt": 474
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 6360.0,
+          "altitudeTerrain": 6360.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 477,
+          "deliveredAt": 477
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 6400.0,
+          "altitudeTerrain": 6400.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 480,
+          "deliveredAt": 480
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 6440.0,
+          "altitudeTerrain": 6440.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 483,
+          "deliveredAt": 483
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 6480.0,
+          "altitudeTerrain": 6480.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 486,
+          "deliveredAt": 486
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 6520.0,
+          "altitudeTerrain": 6520.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 489,
+          "deliveredAt": 489
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 6560.0,
+          "altitudeTerrain": 6560.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 492,
+          "deliveredAt": 492
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 6600.0,
+          "altitudeTerrain": 6600.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 495,
+          "deliveredAt": 495
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 6640.0,
+          "altitudeTerrain": 6640.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 498,
+          "deliveredAt": 498
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 6680.0,
+          "altitudeTerrain": 6680.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 501,
+          "deliveredAt": 501
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 6720.0,
+          "altitudeTerrain": 6720.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 504,
+          "deliveredAt": 504
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 6760.0,
+          "altitudeTerrain": 6760.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 507,
+          "deliveredAt": 507
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 6800.0,
+          "altitudeTerrain": 6800.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 510,
+          "deliveredAt": 510
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 6840.0,
+          "altitudeTerrain": 6840.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 513,
+          "deliveredAt": 513
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 6880.0,
+          "altitudeTerrain": 6880.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 516,
+          "deliveredAt": 516
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 6920.0,
+          "altitudeTerrain": 6920.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 519,
+          "deliveredAt": 519
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 6960.0,
+          "altitudeTerrain": 6960.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 522,
+          "deliveredAt": 522
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 7000.0,
+          "altitudeTerrain": 7000.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 525,
+          "deliveredAt": 525
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 7040.0,
+          "altitudeTerrain": 7040.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 528,
+          "deliveredAt": 528
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 7080.0,
+          "altitudeTerrain": 7080.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 531,
+          "deliveredAt": 531
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 7120.0,
+          "altitudeTerrain": 7120.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 534,
+          "deliveredAt": 534
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 7160.0,
+          "altitudeTerrain": 7160.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 537,
+          "deliveredAt": 537
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 7200.0,
+          "altitudeTerrain": 7200.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 540,
+          "deliveredAt": 540
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 7240.0,
+          "altitudeTerrain": 7240.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 543,
+          "deliveredAt": 543
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 7280.0,
+          "altitudeTerrain": 7280.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 546,
+          "deliveredAt": 546
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 7320.0,
+          "altitudeTerrain": 7320.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 549,
+          "deliveredAt": 549
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 7360.0,
+          "altitudeTerrain": 7360.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 552,
+          "deliveredAt": 552
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 7400.0,
+          "altitudeTerrain": 7400.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 555,
+          "deliveredAt": 555
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 7440.0,
+          "altitudeTerrain": 7440.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 558,
+          "deliveredAt": 558
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 7480.0,
+          "altitudeTerrain": 7480.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 561,
+          "deliveredAt": 561
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 7520.0,
+          "altitudeTerrain": 7520.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 564,
+          "deliveredAt": 564
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 7560.0,
+          "altitudeTerrain": 7560.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 567,
+          "deliveredAt": 567
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 7600.0,
+          "altitudeTerrain": 7600.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 570,
+          "deliveredAt": 570
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 7640.0,
+          "altitudeTerrain": 7640.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 573,
+          "deliveredAt": 573
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 7680.0,
+          "altitudeTerrain": 7680.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 576,
+          "deliveredAt": 576
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 7720.0,
+          "altitudeTerrain": 7720.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 579,
+          "deliveredAt": 579
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 7760.0,
+          "altitudeTerrain": 7760.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 582,
+          "deliveredAt": 582
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 7800.0,
+          "altitudeTerrain": 7800.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 585,
+          "deliveredAt": 585
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 7840.0,
+          "altitudeTerrain": 7840.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 588,
+          "deliveredAt": 588
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 7880.0,
+          "altitudeTerrain": 7880.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 591,
+          "deliveredAt": 591
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 7920.0,
+          "altitudeTerrain": 7920.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 594,
+          "deliveredAt": 594
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 7960.0,
+          "altitudeTerrain": 7960.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 597,
+          "deliveredAt": 597
+        }
+      },
+      {
+        "channel": "vessel.flight",
+        "value": {
+          "latitude": 0.0,
+          "longitude": -74.5,
+          "altitudeAsl": 8000.0,
+          "altitudeTerrain": 8000.0,
+          "verticalSpeed": 0,
+          "surfaceSpeed": 0,
+          "orbitalSpeed": 0,
+          "atmDensity": 0
+        },
+        "meta": {
+          "validAt": 600,
+          "deliveredAt": 600
+        }
+      }
+    ]
+  }
+}
