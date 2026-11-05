@@ -24,6 +24,13 @@ const STAGES = buildStageStack(
 );
 
 describe("StageColumn", () => {
+  it("scrolls inside the kit's scroll area, which carries the focus ring, not a tab stop of its own", () => {
+    const { container } = render(<StageColumn stages={STAGES} />);
+    const region = screen.getByRole("region", { name: "Staging" });
+    expect(region).not.toHaveAttribute("tabindex");
+    expect(container.querySelector("[data-scroll-area-inner]")).not.toBeNull();
+  });
+
   it("lists each stage with its parts and counts as real lists", async () => {
     const { container } = render(<StageColumn stages={STAGES} />);
     const rows = within(screen.getByRole("region", { name: "Staging" }))

@@ -74,6 +74,10 @@ export const MapSvg = styled.svg`
   width: 100%;
   height: 100%;
   display: block;
+  &:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
 `;
 
 export const PhaseDialSvg = styled.svg`
@@ -107,6 +111,13 @@ export const NowValue = styled.span`
 export const Muted = styled.span`
   color: var(--color-text-dim);
   font-size: var(--font-size-compact);
+`;
+
+export const FocusableMuted = styled(Muted)`
+  &:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
 `;
 
 export const ListWrap = styled.div`

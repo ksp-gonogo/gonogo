@@ -17,6 +17,7 @@ import {
 } from "./labels";
 import {
   BudgetReadout,
+  FocusableMuted,
   ListTitle,
   ListWrap,
   Muted,
@@ -84,7 +85,7 @@ export function ReachList({
           <BudgetReadout>
             <Muted>Budget</Muted>{" "}
             <Tooltip text={BUDGET_GAP_TIP[budgetGap]}>
-              <Muted tabIndex={0}>{NULL_DISPLAY}</Muted>
+              <FocusableMuted tabIndex={0}>{NULL_DISPLAY}</FocusableMuted>
             </Tooltip>
           </BudgetReadout>
         )}

@@ -1,4 +1,4 @@
-import { Badge } from "@ksp-gonogo/ui-kit";
+import { Badge, ScrollArea } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import type { StageEntry } from "./stageStack";
 
@@ -26,14 +26,9 @@ export function StageColumn({
   fill?: boolean;
 }) {
   return (
-    // The column scrolls when stages outgrow the tile, and a scrolling region has to take keyboard focus to be operable.
-    <section
-      aria-label="Staging"
-      style={fill ? COLUMN_ALONE : COLUMN}
-      // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable region must be focusable
-      tabIndex={0}
-    >
-      <div>
+    // The scroll area takes keyboard focus, with its ring, only when the stages outgrow the tile.
+    <section aria-label="Staging" style={fill ? COLUMN_ALONE : COLUMN}>
+      <ScrollArea>
         <div style={CONTENT}>
           <h3 style={HEADING}>Stages</h3>
           <ol style={LIST}>
@@ -68,14 +63,15 @@ export function StageColumn({
             ))}
           </ol>
         </div>
-      </div>
+      </ScrollArea>
     </section>
   );
 }
 
 const COLUMN: CSSProperties = {
   minHeight: 0,
-  overflowY: "auto",
+  display: "flex",
+  flexDirection: "column",
   fontSize: "var(--font-size-compact)",
 };
 

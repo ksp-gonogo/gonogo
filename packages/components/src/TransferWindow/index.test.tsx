@@ -16,6 +16,7 @@ import {
   expectNoA11yViolations,
   visibleText,
 } from "@ksp-gonogo/ui-kit/testing";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TransferWindowComponent } from "./index";
@@ -148,6 +149,19 @@ afterEach(() => {
   clearRegistry();
 });
 
+function emittedFocusVisibleRule(el: Element): string {
+  const sheet = Array.from(document.querySelectorAll("style"))
+    .map((style) => style.textContent ?? "")
+    .join("");
+  for (const name of Array.from(el.classList).filter(
+    (n) => !n.startsWith("sc-"),
+  )) {
+    const at = sheet.indexOf(`.${name}:focus-visible{`);
+    if (at !== -1) return sheet.slice(at, sheet.indexOf("}", at) + 1);
+  }
+  return "";
+}
+
 describe("TransferWindow widget", () => {
   it("shows the live current-phase dial readout + status badge", async () => {
     setup();
@@ -223,7 +237,7 @@ describe("TransferWindow widget", () => {
     setup();
     await waitFor(() =>
       expect(
-        screen.getByRole("img", { name: /Δv contour/i }),
+        screen.getByRole("grid", { name: /Δv contour/i }),
       ).toBeInTheDocument(),
     );
   });
@@ -232,7 +246,7 @@ describe("TransferWindow widget", () => {
     const { view } = setup();
     await waitFor(() =>
       expect(
-        screen.getByRole("img", { name: /Δv contour/i }),
+        screen.getByRole("grid", { name: /Δv contour/i }),
       ).toBeInTheDocument(),
     );
     const rect = view.container.querySelector(".porkchop-cell");
@@ -246,6 +260,89 @@ describe("TransferWindow widget", () => {
     const { view } = setup();
     await waitFor(() => expect(screen.getByText("IDEAL")).toBeInTheDocument());
     await expectNoA11yViolations(view.container);
+  });
+
+  describe("keyboard route through the Δv grid", () => {
+    it("draws the project focus ring on the grid itself", async () => {
+      setup();
+      const grid = await screen.findByRole("grid", { name: /Δv contour/i });
+      expect(emittedFocusVisibleRule(grid)).toContain(
+        "outline:2px solid var(--color-focus)",
+      );
+    });
+
+    const inspector = () =>
+      screen.getByText(/hover a cell|Departs \+|No transfer/);
+
+    async function focusGrid() {
+      const { view } = setup();
+      const grid = await screen.findByRole("grid", { name: /Δv contour/i });
+      const user = userEvent.setup();
+      return { view, grid, user };
+    }
+
+    it("is a single tab stop that lands on a current cell and opens the inspector", async () => {
+      const { grid, user } = await focusGrid();
+      expect(grid).toHaveAttribute("tabindex", "0");
+      expect(grid.querySelector("[tabindex]")).toBeNull();
+
+      await user.tab();
+      // Tab from the top reaches the grid only after the controls before it; walk until it has focus.
+      for (let n = 0; n < 20 && document.activeElement !== grid; n++) {
+        await user.tab();
+      }
+      expect(grid).toHaveFocus();
+      const active = grid.getAttribute("aria-activedescendant");
+      expect(active).toBeTruthy();
+      expect(document.getElementById(active ?? "")).toHaveAttribute(
+        "role",
+        "gridcell",
+      );
+      expect(inspector().textContent).toMatch(/Departs \+/);
+    });
+
+    it("moves between cells with the arrow keys and updates the inspector", async () => {
+      const { grid, user } = await focusGrid();
+      act(() => grid.focus());
+      const first = grid.getAttribute("aria-activedescendant");
+      const firstText = inspector().textContent;
+      await user.keyboard("{ArrowRight}");
+      expect(grid.getAttribute("aria-activedescendant")).not.toBe(first);
+      expect(inspector().textContent).not.toBe(firstText);
+      await user.keyboard("{ArrowLeft}");
+      expect(grid.getAttribute("aria-activedescendant")).toBe(first);
+      await user.keyboard("{ArrowUp}");
+      expect(grid.getAttribute("aria-activedescendant")).not.toBe(first);
+      await user.keyboard("{ArrowDown}");
+      expect(grid.getAttribute("aria-activedescendant")).toBe(first);
+    });
+
+    it("Home and End jump along the row, and the focus mark follows the active cell", async () => {
+      const { view, grid, user } = await focusGrid();
+      act(() => grid.focus());
+      await user.keyboard("{Home}");
+      const left = grid.getAttribute("aria-activedescendant");
+      await user.keyboard("{End}");
+      expect(grid.getAttribute("aria-activedescendant")).not.toBe(left);
+      const mark = view.container.querySelector("[data-porkchop-focus]");
+      expect(mark).not.toBeNull();
+      const cell = document.getElementById(
+        grid.getAttribute("aria-activedescendant") ?? "",
+      );
+      expect(mark?.getAttribute("x")).toBe(cell?.getAttribute("x"));
+      expect(mark?.getAttribute("y")).toBe(cell?.getAttribute("y"));
+    });
+
+    it("draws no focus mark while the grid is not focused", async () => {
+      const { view, grid } = await focusGrid();
+      expect(view.container.querySelector("[data-porkchop-focus]")).toBeNull();
+      act(() => grid.focus());
+      expect(
+        view.container.querySelector("[data-porkchop-focus]"),
+      ).not.toBeNull();
+      act(() => grid.blur());
+      expect(view.container.querySelector("[data-porkchop-focus]")).toBeNull();
+    });
   });
 });
 
