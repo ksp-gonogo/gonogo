@@ -266,6 +266,14 @@ export class HostRole {
       const answer = readRoleAnswer(result);
       // No answer at all is a link that is down, which the grace exists to ride out.
       if (!answer || answer.holds || !this.holds) return;
+      /* Nobody holds the role: the game restarted and forgot the holder, so
+         this screen asks again with its own token, which the mod grants to the
+         last holder alone inside its restart window. Only a heartbeat that
+         names another holder means this screen was replaced. */
+      if (answer.holderId === "") {
+        this.claim();
+        return;
+      }
       logger.warn(
         "[HostRole] another screen holds the role now, stepping down",
       );

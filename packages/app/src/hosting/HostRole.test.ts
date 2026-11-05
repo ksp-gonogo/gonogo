@@ -112,6 +112,18 @@ describe("a local screen's part in the host role", () => {
     expect(host.role.state.kind).toBe("joined");
   });
 
+  it("keeps the role when the game restarts and the next heartbeat finds nobody holding it", async () => {
+    const mod = new FakeHostMod();
+    const host = await open(mod, "tab-a");
+
+    mod.restart();
+    await vi.advanceTimersByTimeAsync(5_000);
+    await settle();
+
+    expect(host.role.state.kind).toBe("hosting");
+    expect(mod.sent.at(-1)?.command).toBe("host.claim");
+  });
+
   it("frees the role at once on release, so the next screen claims without waiting out the grace", async () => {
     const mod = new FakeHostMod();
     const host = await open(mod, "tab-a");

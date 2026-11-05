@@ -51,6 +51,16 @@ export class FakeHostMod {
     this.publish();
   }
 
+  /**
+   * The game restarts under screens that stay connected: nobody holds the
+   * role any more and the record is not republished, and the grant count and the saved code and stations carry on.
+   */
+  restart(): void {
+    this.holderToken = undefined;
+    this.holderConnection = undefined;
+    this.holderAway = false;
+  }
+
   /** Approve a credential without a holder, as a save that already had it. */
   seedStation(credential: string, name: string): void {
     this.stations.set(credential, {
