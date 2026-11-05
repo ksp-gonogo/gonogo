@@ -25,8 +25,9 @@ export function blockedFromSecurePage(host: string): boolean {
 
 /**
  * What a local screen shows until the game answers: no code entry, since a
- * local screen hosts or joins by itself once the game is there. After a long
- * wait it says why it may never answer, and offers the address it is trying.
+ * local screen hosts or joins by itself once the game is there. It offers the
+ * address it is trying from the first moment, and after a long wait it says
+ * the game has not answered.
  */
 export function WaitingForGame({
   longWaitMs = LONG_WAIT_MS,
@@ -53,13 +54,21 @@ export function WaitingForGame({
         <Text level="muted">
           Looking for the Gonogo mod at {config.host}:{config.port}
         </Text>
-        {long && <LongWait host={config.host} port={config.port} />}
+        <GameAddress host={config.host} port={config.port} long={long} />
       </Stack>
     </WaitingForGame__Root>
   );
 }
 
-function LongWait({ host, port }: { host: string; port: number }) {
+function GameAddress({
+  host,
+  port,
+  long,
+}: {
+  host: string;
+  port: number;
+  long: boolean;
+}) {
   if (blockedFromSecurePage(host)) {
     return (
       <Text tone="warn">
@@ -68,11 +77,19 @@ function LongWait({ host, port }: { host: string; port: number }) {
       </Text>
     );
   }
-  return <AddressForm host={host} port={port} />;
+  return <AddressForm host={host} port={port} long={long} />;
 }
 
 /** The game's address, to correct when the screen is looking in the wrong place. */
-function AddressForm({ host, port }: { host: string; port: number }) {
+function AddressForm({
+  host,
+  port,
+  long,
+}: {
+  host: string;
+  port: number;
+  long: boolean;
+}) {
   const [hostText, setHostText] = useState(host);
   const [portText, setPortText] = useState(String(port));
   const portNumber = Number(portText);
@@ -89,7 +106,7 @@ function AddressForm({ host, port }: { host: string; port: number }) {
         setSitrepHostConfig({ host: hostText.trim(), port: portNumber });
       }}
     >
-      <Text tone="warn">No answer from the game yet.</Text>
+      {long && <Text tone="warn">No answer from the game yet.</Text>}
       <TextField label="Game host" value={hostText} onChange={setHostText} />
       <TextField
         label="Port"
