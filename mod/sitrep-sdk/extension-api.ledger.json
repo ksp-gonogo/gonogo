@@ -12737,10 +12737,6 @@
         "note": "A reckonable row with the owner whose contract declared it"
       },
       {
-        "key": "sitrep-sdk . PendingEntry#memberCommands?",
-        "note": "New optional field: the command of each member a group's one entry carries"
-      },
-      {
         "key": "sitrep-sdk . PendingEntry#members?",
         "note": "New optional field: the request ids a group's one entry stands for"
       },
@@ -16359,10 +16355,6 @@
       {
         "key": "sitrep-sdk ./spine ~PendingCommand#restoredResult?",
         "note": "Marks a command read back from the outstanding store"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~PendingEntry#memberCommands?",
-        "note": "New optional field: the command of each member a group's one entry carries"
       },
       {
         "key": "sitrep-sdk ./spine ~PendingEntry#members?",

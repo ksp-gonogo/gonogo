@@ -79,9 +79,6 @@ namespace Sitrep.Host.Tests
                 "ReplyOverdueUt:System.Nullable`1[System.Double]",
                 "Attempts:System.Int32",
                 "Members:System.Collections.Generic.List`1[System.String]",
-                // The commands the centre sent, by name: as much a dispatch-time
-                // fact as Command itself, which for a group names only the group.
-                "MemberCommands:System.Collections.Generic.List`1[System.String]",
             };
 
             var actual = typeof(PendingUplink)

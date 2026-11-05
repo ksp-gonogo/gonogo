@@ -45,14 +45,7 @@ describe("Navball controls on the panel's delay rail", () => {
       fixture.emit("comms.delay", { oneWaySeconds: 1.6 });
       fixture.emit("vessel.control", { throttle: 0.4 });
     });
-    // Past a tick of the stream's 10 Hz sampling, which records the readback whether or not anything was commanded.
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 350));
-    });
-    act(() => {
-      fixture.wall.advanceBy(0.5);
-      fixture.emitFrame();
-    });
+    await act(async () => {});
     expect(
       screen.queryByRole("img", { name: /controls in flight/i }),
     ).toBeNull();

@@ -149,7 +149,7 @@ describe("TransferWindow: nothing has arrived at all", () => {
     expect(screen.queryByText("Current phase")).not.toBeInTheDocument();
     expect(screen.queryByText(/^Windows to /)).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("grid", { name: /Δv contour/i }),
+      screen.queryByRole("img", { name: /Δv contour/i }),
     ).not.toBeInTheDocument();
     // The destination picker in the header goes too, so there is no control at all.
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();

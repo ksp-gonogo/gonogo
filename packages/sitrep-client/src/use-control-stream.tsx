@@ -1,7 +1,7 @@
 import type { CommandWarning, RailTags, Value } from "@ksp-gonogo/sitrep-sdk";
 import {
-  CORE_ERROR_CODES,
   classifyCommandRejection,
+  FaultCode,
   getControlChannel,
   railTagsForControlAxis,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -42,15 +42,12 @@ function magnitudeOfMaybe(v: unknown): unknown {
 function neverReachedMod(err: unknown): boolean {
   const rejection = classifyCommandRejection(err);
   if (rejection.kind === "lost") return true;
-  return rejection.kind === "failed" && CLIENT_FAULTS.has(rejection.code);
+  return (
+    rejection.kind === "failed" &&
+    (rejection.code === FaultCode.Unclassified ||
+      rejection.code === FaultCode.NoClient)
+  );
 }
-
-/** The faults this client mints about its own link, every one a send the mod never heard. */
-const CLIENT_FAULTS: ReadonlySet<string> = new Set(
-  CORE_ERROR_CODES.filter(
-    (d) => d.kind === "fault" && d.origin === "client",
-  ).map((d) => d.id),
-);
 
 /** Coalescing cadence: record one command + readback sample and (past the deadband) dispatch, at 10 Hz. */
 const COALESCE_MS = 100;
@@ -262,17 +259,6 @@ export function useControlStream(
   useEffect(() => {
     changedAtUtRef.current = value === null ? null : nowUtRef.current;
   }, [value]);
-  /*
-   * The newest input seen queued by anyone at this centre, kept after it
-   * leaves the queue: an answered input is still what the craft was last told.
-   * A withdrawn value (a vessel switch re-arms the caller) withdraws it too.
-   */
-  const lastQueuedRef = useRef<LoggedSample | null>(null);
-  const hadValueRef = useRef(false);
-  useEffect(() => {
-    if (value === null && hadValueRef.current) lastQueuedRef.current = null;
-    hadValueRef.current = value !== null;
-  }, [value]);
   const lastSentRef = useRef<number | null>(null);
   /*
    * The latch compares against what the craft was last told, so it only holds
@@ -337,15 +323,7 @@ export function useControlStream(
        * centre: this screen's value until an input queued from another screen
        * is newer, then that one.
        */
-      const live = queuedRef.current;
-      if (
-        live !== null &&
-        (lastQueuedRef.current === null ||
-          live.atUt > lastQueuedRef.current.atUt)
-      ) {
-        lastQueuedRef.current = live;
-      }
-      const queued = lastQueuedRef.current;
+      const queued = queuedRef.current;
       const changedAt = changedAtUtRef.current;
       const commanded =
         queued !== null &&

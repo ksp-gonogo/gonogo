@@ -145,13 +145,6 @@ export interface PendingEntry {
    * first also in `clientRequestId`.
    */
   members?: readonly string[];
-  /**
-   * Every command the entry carries: its own `command` for a command sent
-   * alone, and each member's command, in `members`' order, for a group, whose
-   * `command` is the group's own. Absent from an entry that only gives
-   * `command`.
-   */
-  memberCommands?: readonly string[];
 }
 
 /**

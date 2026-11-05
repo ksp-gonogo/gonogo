@@ -52,7 +52,6 @@ import {
   LATE_ARRIVAL_ERROR_CODE,
 } from "./arrival-deadline";
 import {
-  carriesCommand,
   centreCommandOutcomes,
   centreCommandRows,
   centreRowId,
@@ -755,9 +754,6 @@ export function useCommand(
   // whether the test ever touches `inFlight`.
   const store = useTelemetryStoreOptional();
   const nowUt = store?.clock.utNowEstimate() ?? 0;
-  // Before any sample the estimate is a stand-in 0, which is no time to date an outcome against.
-  const clockSampled =
-    store !== undefined && Number.isFinite(store.clock.confirmedEdgeUt());
   const routePayload = useLatestValue<unknown>(ROUTE_TOPIC);
   const nextLossPayload = useLatestValue<unknown>("comms.nextLoss");
   const sendStatus = isInstant
@@ -878,7 +874,7 @@ export function useCommand(
    * screen at the centre shows it, and the sender keeps one copy of its own.
    */
   for (const entry of queue?.pending ?? []) {
-    if (!carriesCommand(entry, command) || !entry.warning) continue;
+    if (entry.command !== command || !entry.warning) continue;
     const id = centreRowId(entry);
     if (warnings.some((w) => w.id === id)) continue;
     if (warnings === NO_WARNINGS) warnings = [];
@@ -896,7 +892,7 @@ export function useCommand(
         queue,
         own: ownIdsRef.current,
         memory: centreMemoryRef.current,
-        nowUt: clockSampled ? nowUt : null,
+        nowUt,
         epoch: store?.clock.getEpoch() ?? 0,
       });
   const allRefusals =
@@ -992,8 +988,6 @@ export function useCommand(
       queued.add(entry.clientRequestId);
       for (const member of entry.members ?? []) queued.add(member);
     }
-    // A settled entry is still this hook's own while the centre lists it.
-    for (const entry of queue?.settled ?? []) queued.add(entry.clientRequestId);
     for (const id of own) {
       if (!queued.has(id) && !dispatchedIds.includes(id)) own.delete(id);
     }

@@ -106,87 +106,6 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        /// <summary>
-        /// A group's queue entry travels under the group's own command, so it
-        /// names each member's command beside its request id, for a screen
-        /// that sent none of them to know which controls it touches.
-        /// </summary>
-        [Fact]
-        public void AGroupEntryNamesTheCommandOfEachMember()
-        {
-            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new GroupTestUplink());
-            engine.Start();
-            try
-            {
-                CutRoute(engine);
-                Tick(engine, 0.0);
-                engine.DispatchGroupAndWait(
-                    Centre,
-                    new[]
-                    {
-                        Send(GroupTestUplink.SetGroup, Args("Custom01", true), "m1", new Member()),
-                        Send(GroupTestUplink.Fails, "x", "m2", new Member()),
-                    },
-                    Op);
-                Tick(engine, 1.0);
-
-                var entry = Assert.Single(Pending(engine));
-                Assert.Equal(new[] { "m1", "m2" }, entry.Members);
-                Assert.Equal(new[] { GroupTestUplink.SetGroup, GroupTestUplink.Fails }, entry.MemberCommands);
-            }
-            finally
-            {
-                engine.Stop();
-            }
-        }
-
-        /// <summary>
-        /// A member the craft refused, and a member stopped because of it, are
-        /// each listed for every screen at the centre under its own command and
-        /// request id, never under the group's.
-        /// </summary>
-        [Fact]
-        public void EachMemberThatDidNotRunIsListedUnderItsOwnCommand()
-        {
-            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new GroupTestUplink());
-            engine.Start();
-            try
-            {
-                OpenRoute(engine);
-                Tick(engine, 0.0);
-                engine.DispatchGroupAndWait(
-                    Centre,
-                    new[]
-                    {
-                        Send(GroupTestUplink.SetGroup, Args("Custom01", true), "m1", new Member()),
-                        Send(GroupTestUplink.Fails, "x", "m2", new Member()),
-                        Send(GroupTestUplink.SetGroup, Args("Custom03", true), "m3", new Member()),
-                    },
-                    Op);
-                Tick(engine, 1.0);
-                Tick(engine, 1.0 + OneWaySeconds + 1.0);
-                Tick(engine, 1.0 + 2 * OneWaySeconds + 2.0);
-
-                var settled = Settled(engine);
-                Assert.DoesNotContain(settled, e => e.Command == "system.uplink.group");
-                var refused = Assert.Single(settled, e => e.ClientRequestId == "m2");
-                Assert.Equal(GroupTestUplink.Fails, refused.Command);
-                Assert.Equal("refused", refused.Outcome);
-                Assert.Equal("m2", refused.Label);
-                var stopped = Assert.Single(settled, e => e.ClientRequestId == "m3");
-                Assert.Equal(GroupTestUplink.SetGroup, stopped.Command);
-                Assert.Equal("failed", stopped.Outcome);
-                Assert.Equal(FaultCode.GroupStopped.Id, stopped.Code);
-                Assert.DoesNotContain(settled, e => e.ClientRequestId == "m1");
-            }
-            finally
-            {
-                engine.Stop();
-            }
-        }
-
         [Fact]
         public void AGroupTakesOneLaneNumberAndTheNextCommandTakesTheNext()
         {
@@ -709,9 +628,6 @@ namespace Sitrep.Host.IntegrationTests
 
         private static List<PendingUplink> Pending(ChannelEngine engine) =>
             Assert.IsType<PendingUplinkQueue>(engine.PayloadOf(ChannelEngine.UplinkPendingTopic)).Pending;
-
-        private static List<SettledUplink> Settled(ChannelEngine engine) =>
-            Assert.IsType<PendingUplinkQueue>(engine.PayloadOf(ChannelEngine.UplinkPendingTopic)).Settled;
 
         private static CommsJourney Journey(ChannelEngine engine) => engine.JourneyAt(Centre);
 

@@ -1,6 +1,6 @@
 import type { PorkchopCell } from "@ksp-gonogo/core";
 import { kspCalendar, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
-import { type KeyboardEvent, useId, useState } from "react";
+import { useId, useState } from "react";
 import {
   Inspector,
   MapBox,
@@ -38,8 +38,6 @@ export function Porkchop({
   nowUt: number;
 }) {
   const [hover, setHover] = useState<PorkchopCell | null>(null);
-  const [active, setActive] = useState<{ i: number; j: number } | null>(null);
-  const [focused, setFocused] = useState(false);
   const gradientId = useId();
   const cols = grid.cells.length; // departure axis (x), cells[i]
   const rows = grid.cells[0]?.length ?? 0; // arrival axis (y), cells[i][j]
@@ -62,67 +60,20 @@ export function Porkchop({
 
   const best = grid.best;
 
-  const cellId = (i: number, j: number) => `${gradientId}-cell-${i}-${j}`;
-  const current = active ?? (best ? { i: best.i, j: best.j } : { i: 0, j: 0 });
-  const currentCell = grid.cells[current.i]?.[current.j] ?? null;
-  const shown = hover ?? (focused ? currentCell : null);
-  const describe = (c: PorkchopCell) =>
-    c.deltaV != null
-      ? `Departs +${dayOffset(c.depUt)}d · Arrives +${dayOffset(c.arrUt)}d · Transfer ${days(c.tofSec)}d · Δv ${kms(c.deltaV)} km/s`
-      : `No transfer solution · Departs +${dayOffset(c.depUt)}d · Arrives +${dayOffset(c.arrUt)}d`;
-
-  const clampTo = (n: number, hi: number) => Math.max(0, Math.min(hi, n));
-  const onKeyDown = (e: KeyboardEvent<SVGSVGElement>) => {
-    if (e.altKey || e.metaKey) return;
-    let { i, j } = current;
-    switch (e.key) {
-      case "ArrowRight":
-        i += 1;
-        break;
-      case "ArrowLeft":
-        i -= 1;
-        break;
-      case "ArrowUp":
-        j += 1;
-        break;
-      case "ArrowDown":
-        j -= 1;
-        break;
-      case "Home":
-        if (e.ctrlKey) j = rows - 1;
-        i = 0;
-        break;
-      case "End":
-        if (e.ctrlKey) j = 0;
-        i = cols - 1;
-        break;
-      default:
-        return;
-    }
-    e.preventDefault();
-    setHover(null);
-    setActive({ i: clampTo(i, cols - 1), j: clampTo(j, rows - 1) });
-  };
-
   return (
     <PorkchopWrap>
       <PorkchopTitle>Transfer Δv: departure vs arrival</PorkchopTitle>
       <Inspector aria-live="polite">
-        {shown && (hover == null || hover.deltaV != null)
-          ? describe(shown)
-          : `Best ${best ? `${kms(best.deltaV)} km/s, depart +${dayOffset(best.depUt)}d` : NULL_DISPLAY} · hover a cell or use the arrow keys for its numbers.`}
+        {hover && hover.deltaV != null
+          ? `Departs +${dayOffset(hover.depUt)}d · Arrives +${dayOffset(hover.arrUt)}d · Transfer ${days(hover.tofSec)}d · Δv ${kms(hover.deltaV)} km/s`
+          : `Best ${best ? `${kms(best.deltaV)} km/s, depart +${dayOffset(best.depUt)}d` : NULL_DISPLAY} · hover a cell for its numbers.`}
       </Inspector>
       <MapBox>
         <MapSvg
           viewBox={`0 0 ${VB_W} ${VB_H}`}
           preserveAspectRatio="xMidYMid meet"
-          role="grid"
-          tabIndex={0}
-          aria-activedescendant={cellId(current.i, current.j)}
-          onKeyDown={onKeyDown}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          aria-label={`Transfer Δv contour plot, departure against arrival date. Arrow keys move between cells. Best transfer ${best ? `${Math.round(best.deltaV)} metres per second departing ${dayOffset(best.depUt)} days from now` : "none"}.`}
+          role="img"
+          aria-label={`Transfer Δv contour plot, departure against arrival date. Best transfer ${best ? `${Math.round(best.deltaV)} metres per second departing ${dayOffset(best.depUt)} days from now` : "none"}.`}
         >
           <defs>
             {/* Legend ramp: worst at top, cheap at bottom, matching the plot's scale. */}
@@ -143,54 +94,25 @@ export function Porkchop({
             fill={rampColor(1)}
             pointerEvents="none"
           />
-          {Array.from({ length: rows }, (_, r) => {
-            const j = rows - 1 - r;
-            return (
-              // biome-ignore lint/a11y/useSemanticElements: an SVG group cannot be a tr
-              <g role="row" key={`row-${j}`} aria-rowindex={r + 1}>
-                {grid.cells.map((col, i) => {
-                  const c = col[j];
-                  const painted =
-                    c.deltaV != null && (c.deltaV - min) / scaleSpan < 1;
-                  return (
-                    // biome-ignore lint/a11y/useSemanticElements: an SVG rect cannot be a td
-                    <rect
-                      role="gridcell"
-                      id={cellId(i, j)}
-                      aria-colindex={i + 1}
-                      aria-label={describe(c)}
-                      className={painted ? "porkchop-cell" : undefined}
-                      key={`${c.depUt.toFixed(0)}-${c.arrUt.toFixed(0)}`}
-                      x={cellX(i)}
-                      y={cellY(j)}
-                      width={cellW + 0.6}
-                      height={cellH + 0.6}
-                      fill={
-                        painted && c.deltaV != null
-                          ? rampColor((c.deltaV - min) / scaleSpan)
-                          : "none"
-                      }
-                      pointerEvents={painted ? undefined : "none"}
-                      onMouseEnter={painted ? () => setHover(c) : undefined}
-                    />
-                  );
-                })}
-              </g>
-            );
-          })}
-
-          {focused && (
-            <rect
-              data-porkchop-focus=""
-              x={cellX(current.i)}
-              y={cellY(current.j)}
-              width={cellW + 0.6}
-              height={cellH + 0.6}
-              fill="none"
-              stroke="var(--color-focus)"
-              strokeWidth={3.5}
-              pointerEvents="none"
-            />
+          {grid.cells.map((col, i) =>
+            col.map((c, j) => {
+              if (c.deltaV == null) return null;
+              const t = (c.deltaV - min) / scaleSpan; // 0 cheap → 1 dear
+              if (t >= 1) return null; // at/above the cap → background
+              return (
+                // biome-ignore lint/a11y/noStaticElementInteractions: decorative plot cell (svg is role=img); hover is a pointer-only enhancement, the windows list is the accessible interactive surface.
+                <rect
+                  className="porkchop-cell"
+                  key={`${c.depUt.toFixed(0)}-${c.arrUt.toFixed(0)}`}
+                  x={cellX(i)}
+                  y={cellY(j)}
+                  width={cellW + 0.6}
+                  height={cellH + 0.6}
+                  fill={rampColor(t)}
+                  onMouseEnter={() => setHover(c)}
+                />
+              );
+            }),
           )}
 
           {best && (

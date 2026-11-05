@@ -10531,13 +10531,6 @@ export interface PendingUplink
 	* members' labels.
 	*/
 	members: string[];
-	/**
-	* Every command this entry carries, by wire command name. A command sent alone
-	* lists its own `PendingUplink.command`. A group, whose
-	* `PendingUplink.command` is the group's own, lists each member's command in
-	* the order they run, the same order as `PendingUplink.members`.
-	*/
-	memberCommands: string[];
 }
 /**
 * One command that was on `system.uplink.pending` and came back refused by the

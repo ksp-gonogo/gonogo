@@ -528,9 +528,4 @@ const Status = styled.span<{ $status: string }>`
         : $status === "unavailable"
           ? "var(--color-warn-text)"
           : "var(--color-text-faint)"};
-
-  &:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
 `;

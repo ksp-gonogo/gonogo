@@ -352,13 +352,12 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
    * The throttle and the fly-by-wire axes are held controls, so the panel's
    * delay rail draws them as one graph. An axis is on the rail from the moment
    * it is first commanded, and the rail has no entry at all while none has been.
-   * The readback is sampled whether or not anything was commanded, so it says
-   * nothing here.
    */
   const railStreams = useMemo(
     () =>
       [throttleStream, ...axisStreams].filter(
-        (s) => s.current !== null || s.inTransit.length > 0,
+        (s) =>
+          s.current !== null || s.inTransit.length > 0 || s.echo.length > 0,
       ),
     [throttleStream, axisStreams],
   );

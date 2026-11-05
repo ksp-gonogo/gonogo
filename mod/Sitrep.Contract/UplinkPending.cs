@@ -213,15 +213,6 @@ public class PendingUplink
     /// </summary>
     [SitrepUnit(Units.Id)]
     public List<string> Members { get; set; } = new List<string>();
-
-    /// <summary>
-    /// Every command this entry carries, by wire command name. A command sent
-    /// alone lists its own <see cref="Command"/>. A group, whose
-    /// <see cref="Command"/> is the group's own, lists each member's command in
-    /// the order they run, the same order as <see cref="Members"/>.
-    /// </summary>
-    [SitrepUnit(Units.Id)]
-    public List<string> MemberCommands { get; set; } = new List<string>();
 }
 
 /// <summary>

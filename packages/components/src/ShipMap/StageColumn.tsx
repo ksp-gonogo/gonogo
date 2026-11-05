@@ -1,4 +1,4 @@
-import { Badge, ScrollArea } from "@ksp-gonogo/ui-kit";
+import { Badge } from "@ksp-gonogo/ui-kit";
 import { type CSSProperties, useEffect, useState } from "react";
 import { ROTATE_MIN_WIDTH } from "./ShipDiagram";
 import type { StageEntry } from "./stageStack";
@@ -61,44 +61,45 @@ export function StageColumn({
   fill?: boolean;
 }) {
   return (
-    // The scroll area takes keyboard focus, with its ring, only when the stages outgrow the tile.
-    <section aria-label="Staging" style={fill ? COLUMN_ALONE : COLUMN}>
-      <ScrollArea>
-        <div style={CONTENT}>
-          <h3 style={HEADING}>Stages</h3>
-          <ol style={LIST}>
-            {stages.map((s) => (
-              <li
-                key={s.stage}
-                aria-current={s.current ? "step" : undefined}
-                style={s.current ? ROW_CURRENT : ROW}
-              >
-                <div style={ROW_HEAD}>
-                  <span style={STAGE_NUMBER}>Stage {s.stage}</span>
-                  {s.current && (
-                    <Badge tone="info" size="sm">
-                      Next
-                    </Badge>
+    // The column scrolls when stages outgrow the tile, and a scrolling region has to take keyboard focus to be operable.
+    <section
+      aria-label="Staging"
+      style={fill ? COLUMN_ALONE : COLUMN}
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable region must be focusable
+      tabIndex={0}
+    >
+      <h3 style={HEADING}>Stages</h3>
+      <ol style={LIST}>
+        {stages.map((s) => (
+          <li
+            key={s.stage}
+            aria-current={s.current ? "step" : undefined}
+            style={s.current ? ROW_CURRENT : ROW}
+          >
+            <div style={ROW_HEAD}>
+              <span style={STAGE_NUMBER}>Stage {s.stage}</span>
+              {s.current && (
+                <Badge tone="info" size="sm">
+                  Next
+                </Badge>
+              )}
+            </div>
+            <ul style={PARTS}>
+              {s.parts.map((p) => (
+                <li key={p.title} style={PART}>
+                  {p.title}
+                  {p.count > 1 && (
+                    <span style={COUNT}>
+                      <span aria-hidden="true"> ×{p.count}</span>
+                      <span style={SR_ONLY}> times {p.count}</span>
+                    </span>
                   )}
-                </div>
-                <ul style={PARTS}>
-                  {s.parts.map((p) => (
-                    <li key={p.title} style={PART}>
-                      {p.title}
-                      {p.count > 1 && (
-                        <span style={COUNT}>
-                          <span aria-hidden="true"> ×{p.count}</span>
-                          <span style={SR_ONLY}> times {p.count}</span>
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </ScrollArea>
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ol>
     </section>
   );
 }
@@ -106,15 +107,13 @@ export function StageColumn({
 const COLUMN: CSSProperties = {
   flex: `0 0 ${STAGE_COLUMN_WIDTH}px`,
   minHeight: 0,
-  display: "flex",
-  flexDirection: "column",
+  overflowY: "auto",
   boxSizing: "border-box",
+  padding: "var(--inset-surface)",
   background: "var(--color-surface-panel)",
   borderLeft: "1px solid var(--color-border-subtle)",
   fontSize: "var(--font-size-compact)",
 };
-
-const CONTENT: CSSProperties = { padding: "var(--inset-surface)" };
 
 const COLUMN_ALONE: CSSProperties = { ...COLUMN, flex: 1, borderLeft: "none" };
 

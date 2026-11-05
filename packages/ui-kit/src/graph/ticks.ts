@@ -1,5 +1,5 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { quantityScale, writeQuantity } from "../units";
+import { writeQuantity } from "../units";
 
 /** An axis tick on a known unit, written by the unit registry: the k/M suffixer would turn 2000 m/s into "2.0km/s", a different quantity. A string because SVG `<text>` cannot hold a `<Unit>` span. */
 export function unitTick(
@@ -15,65 +15,12 @@ export function unitTick(
    * digits it needs: "10 mPa" beside "0.1 mPa", not "10.0 mPa" padded to the
    * finest tick's decimals.
    */
-  if (ticks && scale === "log") {
-    return writeQuantity(value(unit as never, at), {
-      decimals: decimalsFor(unit, at).decimals,
-    });
-  }
-  if (!ticks) return writeQuantity(value(unit as never, at), { decimals: 0 });
-  const format = collides(unit, ticks) ? unit : undefined;
-  return writeQuantity(value(unit as never, at), {
-    decimals: exactDecimals(unit, at, ticks, format),
-    ...(format ? { format } : {}),
-  });
-}
-
-/**
- * Whether two neighbouring ticks would still read the same after the most
- * decimals a tick is written with: the axis then spans too little for the unit
- * the kit climbed to (4152 to 4153 m written in km), so every tick is written
- * in the axis's own unit instead.
- */
-function collides(unit: string, ticks: readonly number[]): boolean {
-  const labels = ticks.map((t) =>
-    writeQuantity(value(unit as never, t), { decimals: MAX_TICK_DECIMALS }),
-  );
-  return labels.some((l, i) => i > 0 && l === labels[i - 1]);
-}
-
-/**
- * The unit symbol every tick of a linear axis is written in, or undefined where
- * the ticks climb to different units ("500 m", "1.0 km"). An axis title takes
- * this symbol so it names the unit its ticks are read in.
- */
-export function tickUnitSymbol(
-  unit: string,
-  ticks: readonly number[],
-): string | undefined {
-  const symbols = new Set(
-    ticks.map((t) => unitTick(unit, t, ticks).replace(/^[\d.,\s-]+/, "")),
-  );
-  return symbols.size === 1 ? [...symbols][0] : undefined;
-}
-
-/**
- * An axis title with its trailing unit in parentheses restated in the unit the
- * ticks are written in: "Altitude (m)" over ticks in km reads "Altitude (km)".
- * A title that does not end in the axis unit's own symbol, or ticks in mixed
- * units, leave it as given.
- */
-export function titleInTickUnit(
-  title: string,
-  unit: string,
-  ticks: readonly number[],
-): string {
-  const symbol = tickUnitSymbol(unit, ticks);
-  if (symbol === undefined) return title;
-  const own = quantityScale({ magnitude: 0, unit }, { format: unit }).symbol;
-  const tail = ` (${own})`;
-  return own !== "" && title.endsWith(tail)
-    ? `${title.slice(0, -tail.length)} (${symbol})`
-    : title;
+  const decimals = !ticks
+    ? 0
+    : scale === "log"
+      ? decimalsFor(unit, at).decimals
+      : exactDecimals(unit, at, ticks);
+  return writeQuantity(value(unit as never, at), { decimals });
 }
 
 /** Whether a tick is zero, but for the rounding that put it there: far closer to zero than to its neighbours. */
@@ -97,15 +44,9 @@ function partsOf(label: string): { figure: number; unit: string } {
 function decimalsFor(
   unit: string,
   tick: number,
-  format?: string,
 ): { decimals: number; unit: string } {
   const at = (decimals: number) =>
-    partsOf(
-      writeQuantity(value(unit as never, tick), {
-        decimals,
-        ...(format ? { format } : {}),
-      }),
-    );
+    partsOf(writeQuantity(value(unit as never, tick), { decimals }));
   const exact = at(MAX_TICK_DECIMALS);
   for (let decimals = 0; decimals < MAX_TICK_DECIMALS; decimals++) {
     if (at(decimals).figure === exact.figure)
@@ -121,12 +62,11 @@ function exactDecimals(
   unit: string,
   magnitude: number,
   ticks: readonly number[],
-  format?: string,
 ): number {
-  const own = decimalsFor(unit, magnitude, format);
+  const own = decimalsFor(unit, magnitude);
   let decimals = own.decimals;
   for (const tick of ticks) {
-    const other = decimalsFor(unit, tick, format);
+    const other = decimalsFor(unit, tick);
     if (other.unit === own.unit) decimals = Math.max(decimals, other.decimals);
   }
   return decimals;

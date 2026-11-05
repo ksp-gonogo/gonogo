@@ -1222,7 +1222,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     id: "id",
     label: "text",
     laneSeq: "count",
-    memberCommands: "id",
     members: "id",
     oneWaySeconds: "s",
     predictedArrivalUt: "ut",
