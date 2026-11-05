@@ -4,6 +4,7 @@ import {
   Quality,
   Staleness,
 } from "../__generated__/contract";
+import { GENERATED_TOPIC_IDS } from "../__generated__/topic-map";
 import type { Transport } from "../api/transport";
 import {
   channelKindOf,
@@ -373,6 +374,15 @@ const ACTIVE_CRAFT_TOPIC = "comms.delay";
 const DATA_RATES_TOPIC = "system.dataRates";
 
 const CRAFT_SOURCE_PREFIX = "vessel:";
+
+const CORE_TOPIC_IDS: ReadonlySet<string> = new Set(GENERATED_TOPIC_IDS);
+
+/** The reports of the active craft's link, which the mod sends through a blackout. */
+const LINK_REPORT_TOPICS: ReadonlySet<string> = new Set([
+  "comms.link",
+  "comms.connectivity",
+  "comms.control",
+]);
 
 /** The `meta.source` a payload carries, when it names a craft. */
 function craftSourceOf(payload: unknown): string | undefined {
@@ -3466,6 +3476,22 @@ export class TimelineStore {
   }
 
   /**
+   * Whether the mod withholds `topic` while the active craft has no link home:
+   * a delayed Topic the core declares, or any `vessel.*` Topic. The three link
+   * reports are exempt because they are how the loss is told. A runtime-built
+   * namespace other than `vessel.*` is keyed by a craft of its own and freezes on
+   * that craft's link, so it is not judged here.
+   */
+  private freezesWithActiveCraftLink(topic: string): boolean {
+    const wireTopic = this.resolveRawFieldSubtopic(topic)?.rawTopic ?? topic;
+    if (LINK_REPORT_TOPICS.has(wireTopic)) return false;
+    if (!wireTopic.startsWith("vessel.") && !CORE_TOPIC_IDS.has(wireTopic)) {
+      return false;
+    }
+    return this.laneForTopic(topic) === "delayed";
+  }
+
+  /**
    * Whether `topic` is a reading of the active vessel that was taken before the
    * vessel's link home was lost. The ground's view of a craft freezes at the last
    * thing it heard, and a craft with no route is sent nothing at all, so nothing
@@ -3478,12 +3504,7 @@ export class TimelineStore {
     validAt: number,
     token: FrameToken,
   ): boolean {
-    if (
-      !topic.startsWith("vessel.") ||
-      this.laneForTopic(topic) !== "delayed"
-    ) {
-      return false;
-    }
+    if (!this.freezesWithActiveCraftLink(topic)) return false;
     const link = this.sample<{ connected?: boolean | null }>(
       "comms.link",
       token,
