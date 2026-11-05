@@ -631,16 +631,24 @@ function manifestWidgets(): ManifestWidget[] {
   return listed.map(manifestWidgetOf);
 }
 
-/** Each manifest widget with a scene, as the slot stories place its stubs. */
+/** Each manifest widget as a host, as the slot stories place its stubs; a widget with no scene or render config throws. */
 function slotHosts(
   configs: readonly WidgetRenderConfig[],
   widgets: readonly ManifestWidget[],
 ): SlotHost[] {
   const hosts: SlotHost[] = [];
   for (const widget of widgets) {
-    if (!widget.scene) continue;
+    if (!widget.scene) {
+      throw new Error(
+        `${widget.id} has no opening scene, so its extension points have nowhere to show their stubs: give it a render config with a fixture`,
+      );
+    }
     const config = primaryConfig(configs, widget.id);
-    if (!config) continue;
+    if (!config) {
+      throw new Error(
+        `${widget.id} has a scene but no render config, so its extension points have nowhere to show their stubs`,
+      );
+    }
     hosts.push({
       widgetId: widget.id,
       augmentSlots: widget.augmentSlots,
