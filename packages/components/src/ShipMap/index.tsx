@@ -1,22 +1,24 @@
-import type { ComponentProps } from "@ksp-gonogo/core";
+import type { ComponentProps, VesselTopology } from "@ksp-gonogo/core";
 import {
   defineTopicManifest,
   registerComponent,
   useContributions,
+  useCrashEnding,
 } from "@ksp-gonogo/core";
 import { usePartsLive, useTopology } from "@ksp-gonogo/data";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
 import { withoutReckoning } from "@ksp-gonogo/sitrep-sdk";
-import { Box } from "@ksp-gonogo/ui-kit";
+import { Panel } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 // Side-effect import: registers the built-in `ship-map.part-meters` contribution.
 import "./partMetersContribution";
 import { magnitudeOf, magnitudeOr } from "../shared/magnitude";
 import { externalTempTint } from "./ambientTint";
 import { groupByPart } from "./groupByPart";
 import { INVOKE_PART_ACTION_COMMAND } from "./PartActionMenu";
-import { ShipMapBody } from "./ShipMapBody";
+import { shipMapSections } from "./ShipMapBody";
+import { StageColumn, showsStagesOnly } from "./StageColumn";
 import read from "./ship-map.declarations.g";
 import { computeShipLayout } from "./shipLayout";
 import {
@@ -38,16 +40,17 @@ const topics = defineTopicManifest({
     "vessel.flight",
     "vessel.control",
     "vessel.structure",
+    "crash.hasRecent",
+    "crash.lastCrash",
   ],
   // Only what the diagram draws: ThermalStatus draws the rest of `vessel.thermal`, and its alarms do not belong here.
   fields: [
     "vessel.parts",
-    "vessel.thermal.hottestPart.name",
     "vessel.thermal.hottestPart.id",
-    "vessel.thermal.hottestPart.internalTemp",
     "vessel.flight.externalTemperature",
     "vessel.control.throttle",
     "vessel.structure.currentStage",
+    "crash.lastCrash",
   ],
 });
 
@@ -73,17 +76,53 @@ function ShipMapComponent({
     [config, onConfigChange],
   );
   // The mod's channel engine is change-gated, so no seq-driven refetch is needed.
-  const topology = useTopology();
-  /**
-   * "Hottest part" is a verdict about now, so only a current reading rings the
-   * part; the header keeps the last one, its temperature marked held by Unit.
+  const liveTopology = useTopology();
+  const crash = useCrashEnding();
+  /*
+   * The game drops a destroyed craft's parts, so the last topology is kept to
+   * go on drawing it. It is used only where the crash report names parts of it:
+   * a topology that shares none with the report belongs to another craft.
    */
+  const lastTopology = useRef<VesselTopology | undefined>(undefined);
+  if (liveTopology) lastTopology.current = liveTopology;
+  const lostIds = useMemo(
+    () =>
+      new Set(
+        Array.isArray(crash?.partsLost)
+          ? crash.partsLost.map((p) => String(p.partId))
+          : [],
+      ),
+    [crash],
+  );
+  /*
+   * The report lists the part that broke first at its head when an impact
+   * caused the death. A burn-up names no such part, and its list is in no
+   * order a reader could use.
+   */
+  const impactId =
+    crash &&
+    (crash.eventKind === "Crash" || crash.eventKind === "CrashSplashdown") &&
+    Array.isArray(crash.partsLost) &&
+    crash.partsLost.length > 0
+      ? String(crash.partsLost[0].partId)
+      : undefined;
+  const topology =
+    liveTopology ??
+    (lastTopology.current?.parts.some((p) => lostIds.has(String(p.flightId)))
+      ? lastTopology.current
+      : undefined);
+  const destroyed =
+    crash && topology?.parts.some((p) => lostIds.has(String(p.flightId)))
+      ? crash
+      : liveTopology
+        ? undefined
+        : crash;
+  // "Hottest part" is a verdict about now, so only a current reading rings the part.
   const thermalReading = topics.useTelemetry("vessel.thermal");
   const hottestPart =
     thermalReading.state === "observed" || thermalReading.state === "held"
       ? thermalReading.value.hottestPart
       : undefined;
-  const hottestTemp = thermalReading.hottestPart.internalTemp;
   // Ambient skin temperature tints the diagram background; a dated number, so the last observation is used.
   const flightReading = topics.useTelemetry("vessel.flight");
   const externalTemperature = magnitudeOf(
@@ -136,7 +175,7 @@ function ShipMapComponent({
     const view = turnedView(baseView, turn);
     return topology.parts.map((p) => {
       const live = liveByFlightId.get(p.flightId);
-      return buildShipMapPart(
+      const part = buildShipMapPart(
         p,
         live?.thermal,
         live?.resources,
@@ -144,8 +183,9 @@ function ShipMapComponent({
         live?.partState,
         p.shape ? shapes.get(p.shape) : undefined,
       );
+      return impactId === String(p.flightId) ? { ...part, impact: true } : part;
     });
-  }, [topology, liveByFlightId, baseView, turn, shapes]);
+  }, [topology, liveByFlightId, baseView, turn, shapes, impactId]);
 
   // Stages already fired are left out, as the in-game stack drops them.
   const stages = useMemo(
@@ -193,8 +233,6 @@ function ShipMapComponent({
     [invokePartAction],
   );
 
-  const hottestName =
-    typeof hottestPart?.name === "string" ? hottestPart.name : null;
   const hottestPartId =
     thermalReading.state === "observed" && typeof hottestPart?.id === "string"
       ? hottestPart.id
@@ -225,28 +263,49 @@ function ShipMapComponent({
   }, [parts, size, partsReading]);
 
   return (
-    <Box surface="app" style={MAP_SURFACE}>
+    <>
       {shapeSources}
-      <ShipMapBody
-        columns={w}
-        topology={topology}
-        parts={parts}
-        hottestName={hottestName}
-        hottestPartId={hottestPartId}
-        hottestTemp={hottestTemp}
-        size={size}
-        setWrapEl={setWrapEl}
-        ambientTint={ambientTint}
-        throttle={throttle}
-        overlayContext={overlayContext}
-        partMeters={partMeters}
-        partMeta={partMeta}
-        onInvokePartAction={onInvokePartAction}
-        turn={turn}
-        onTurn={setTurn}
-        stages={stages}
+      <Panel
+        panelTitle="VESSEL SCHEMATIC"
+        panelSidebar={
+          stages.length > 0 && !showsStagesOnly(w) ? (
+            <StageColumn stages={stages} />
+          ) : undefined
+        }
+        sidebarSize="9rem"
+        sidebarPlacement="beside"
+        panelBadges={
+          destroyed
+            ? [
+                {
+                  id: "destroyed",
+                  label: "Destroyed",
+                  tone: "nogo",
+                  title: "The crash report names this craft as destroyed",
+                },
+              ]
+            : []
+        }
+        sections={shipMapSections({
+          stagesOnly: showsStagesOnly(w),
+          destroyed,
+          topology,
+          parts,
+          hottestPartId,
+          size,
+          setWrapEl,
+          ambientTint,
+          throttle,
+          overlayContext,
+          partMeters,
+          partMeta,
+          onInvokePartAction,
+          turn,
+          onTurn: setTurn,
+          stages,
+        })}
       />
-    </Box>
+    </>
   );
 }
 
@@ -258,17 +317,9 @@ function normaliseTurn(turn: number | undefined): number {
   );
 }
 
-// A full-height app-surface column, not a widget Panel.
-const MAP_SURFACE: CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  height: "100%",
-  boxSizing: "border-box",
-};
-
 registerComponent<ShipMapConfig>({
   id: "ship-map",
-  name: "Ship Map",
+  name: "Vessel Schematic",
   description:
     "A view of your vessel part by part, side-on for a rocket and from above for a plane, turnable in steps, each part tinted by its heat, with fill bars on tanks and boosters and the hottest part picked out.",
   tags: ["telemetry", "ship", "staging", "stages"],

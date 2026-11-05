@@ -73,7 +73,7 @@ describe("ShipMap on a symmetric craft", () => {
         },
       });
     });
-    await waitFor(() => expect(screen.getByText(/hot: LV-909/)).toBeTruthy());
+    await waitFor(() => expect(rings(container)).toHaveLength(1));
 
     const drawn = rings(container);
     expect(drawn).toHaveLength(1);
@@ -83,7 +83,7 @@ describe("ShipMap on a symmetric craft", () => {
   });
 
   it("rings nothing when the reading names no part id", async () => {
-    // A name alone cannot say which of the two it means, so neither is ringed; the header still names the part.
+    // A name alone cannot say which of the two it means, so neither is ringed.
     const { fixture, container } = mount();
     act(() => {
       fixture.emit("vessel.parts", VESSEL_PARTS_WIRE);
@@ -91,7 +91,9 @@ describe("ShipMap on a symmetric craft", () => {
         hottestPart: { name: TERRIER_TITLE, id: null, temperature: 900 },
       });
     });
-    await waitFor(() => expect(screen.getByText(/hot: LV-909/)).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByLabelText("Ship diagram")).toBeTruthy(),
+    );
     expect(rings(container)).toHaveLength(0);
   });
 });

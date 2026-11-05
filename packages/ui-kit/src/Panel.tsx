@@ -1044,6 +1044,18 @@ export const ScrollArea = forwardRef<
  */
 export type PanelSidebarSide = "start" | "end";
 
+/**
+ * Where a panel's sidebar sits relative to the body: `auto` puts it beside the
+ * body in a tile at least as wide as it is tall and under it otherwise, `beside`
+ * keeps it beside the body in a tile of any shape for as long as the body keeps
+ * at least the sidebar's width, and `below` always puts it under the body.
+ * Useful for a widget whose sidebar reads best as a column next to its drawing
+ * on a tall tile. The placement of {@link Panel} defaults to `auto`.
+ *
+ * @category Panel
+ */
+export type PanelSidebarPlacement = "auto" | "beside" | "below";
+
 /** Sidebar beside the body (inline) or under it (block). Derived, never passed. */
 type PanelSidebarAxis = "inline" | "block";
 
@@ -1145,6 +1157,8 @@ interface PanelSplitProps extends ComponentPropsWithoutRef<"div"> {
    * content never grows the sidebar. Overflow scrolls inside it.
    */
   size?: string;
+  /** Where the sidebar sits relative to the body. See {@link PanelSidebarPlacement}. Defaults to `auto`. */
+  placement?: PanelSidebarPlacement;
   /** Gives the sidebar a top inset matching the delay rail's band, which the body track holds inside its scroller. */
   railBand?: boolean;
 }
@@ -1159,6 +1173,7 @@ interface PanelSplitProps extends ComponentPropsWithoutRef<"div"> {
 export function PanelSplit({
   side = "end",
   size,
+  placement = "auto",
   railBand,
   children,
   ...rest
@@ -1184,7 +1199,11 @@ export function PanelSplit({
     sidebarInline === undefined ||
     measured.w >= sidebarInline * 2;
   const axis: PanelSidebarAxis =
-    measured.w >= measured.h && roomBeside ? "inline" : "block";
+    placement === "below"
+      ? "block"
+      : (placement === "beside" || measured.w >= measured.h) && roomBeside
+        ? "inline"
+        : "block";
 
   const resolvedSize =
     size ?? (axis === "inline" ? SIDEBAR_INLINE_SIZE : SIDEBAR_BLOCK_SIZE);
@@ -1464,6 +1483,11 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    * Defaults to `end`.
    */
   sidebarSide?: PanelSidebarSide;
+  /**
+   * Where the sidebar sits relative to the body. See {@link PanelSidebarPlacement}.
+   * Defaults to `auto`.
+   */
+  sidebarPlacement?: PanelSidebarPlacement;
   /**
    * Size of the sidebar track: a width when it sits beside the body, a height
    * when it sits under it. Defaults to `14rem`, and to a fixed five grid rows
@@ -1891,6 +1915,7 @@ function PanelRootImpl({
   panelSidebar,
   sidebarSide,
   sidebarSize,
+  sidebarPlacement,
   sections,
   sectionMinWidth = DEFAULT_SECTION_MIN_WIDTH,
   children,
@@ -2166,7 +2191,12 @@ function PanelRootImpl({
           {panelSidebar === undefined || isInactive ? (
             body
           ) : (
-            <PanelSplit side={sidebarSide} size={sidebarSize} railBand>
+            <PanelSplit
+              side={sidebarSide}
+              size={sidebarSize}
+              placement={sidebarPlacement}
+              railBand
+            >
               {body}
               {/* After the body in the DOM; `sidebarSide` moves it visually only. */}
               <PanelSidebar>{panelSidebar}</PanelSidebar>

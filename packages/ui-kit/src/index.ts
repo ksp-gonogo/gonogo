@@ -540,6 +540,7 @@ export {
   type PanelBadge,
   type PanelInactiveReason,
   type PanelProps,
+  type PanelSidebarPlacement,
   type PanelSidebarSide,
   type PanelTitleProps,
   ScrollArea,

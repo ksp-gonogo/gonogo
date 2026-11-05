@@ -33,14 +33,14 @@ import {
 // advances the pinned frame synchronously, so the fixture works under the fake
 // timers the auto-dismiss assertions need.
 
-function setupOutcomeStream() {
+function setupOutcomeStream(delaySeconds = 0) {
   const wall = createFakeWallClock();
   const transport = new StubTransport();
   const client = new TelemetryClient(transport);
   const clock = new ViewClock({
     nowWall: wall.now,
     warpRate: () => 1,
-    delaySeconds: () => 0,
+    delaySeconds: () => delaySeconds,
   });
   const store = new TimelineStore(clock);
   clock.scrubTo(10);
@@ -125,9 +125,69 @@ describe("FlightOutcomeBanner", () => {
     expect(screen.queryByText(/VESSEL DESTROYED/)).toBeNull();
   });
 
+  it("announces a crash after a revert even though an earlier recovery carries a later UT", () => {
+    const fixture = setupOutcomeStream();
+    fixture.clock.scrubTo(9005);
+
+    render(
+      <fixture.Provider>
+        <FlightOutcomeBanner />
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.emit("recovery.hasRecent", { recent: true });
+      fixture.emit("recovery.lastSummary", {
+        capturedAtUT: 9000,
+        vesselName: "Recovered Before The Revert",
+        recoveryLocation: "KSC",
+        recoveryFactor: "100 %",
+        scienceBreakdown: [],
+        partBreakdown: [],
+        resourceBreakdown: [],
+        crewBreakdown: [],
+      });
+      fixture.store.beginFrame();
+    });
+    expect(screen.getByText(/VESSEL RECOVERED/)).toBeInTheDocument();
+
+    // A revert puts the flight clock back before the recovery.
+    act(() => {
+      fixture.clock.scrubTo(4005);
+      fixture.emit("crash.hasRecent", { recent: true });
+      fixture.emit("crash.lastCrash", { ...SHIP_CRASH_SPLASHDOWN, ut: 4000 });
+      fixture.store.beginFrame();
+    });
+
+    expect(screen.getByText(/VESSEL DESTROYED/)).toBeInTheDocument();
+  });
+
   it("announces a crash that happened moments before the view's time", () => {
     const fixture = setupOutcomeStream();
     fixture.clock.scrubTo(SHIP_CRASH_SPLASHDOWN.ut + 5);
+
+    render(
+      <fixture.Provider>
+        <FlightOutcomeBanner />
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.emit("crash.hasRecent", { recent: true });
+      fixture.emit("crash.lastCrash", SHIP_CRASH_SPLASHDOWN);
+      fixture.store.beginFrame();
+    });
+
+    expect(screen.getByText(/VESSEL DESTROYED/)).toBeInTheDocument();
+  });
+
+  it("announces a crash that reaches the view moments after it happened under a long signal delay", () => {
+    const fixture = setupOutcomeStream(300);
+    fixture.clock.scrubTo(SHIP_CRASH_SPLASHDOWN.ut + 5);
+    // The craft's present runs one signal delay ahead of what the view shows.
+    vi.spyOn(fixture.clock, "utNowEstimate").mockReturnValue(
+      SHIP_CRASH_SPLASHDOWN.ut + 305,
+    );
 
     render(
       <fixture.Provider>

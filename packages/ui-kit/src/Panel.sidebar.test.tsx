@@ -176,6 +176,66 @@ describe("Panel sidebar, auto axis", () => {
   });
 });
 
+describe("Panel sidebar, sidebarPlacement", () => {
+  it('keeps the sidebar beside the body on a tall tile for sidebarPlacement="beside"', () => {
+    render(
+      <Panel
+        panelTitle="SYSTEM"
+        panelSidebar="almanac"
+        sidebarPlacement="beside"
+        sidebarSize="5rem"
+      >
+        diagram
+      </Panel>,
+    );
+    const box = split() as HTMLElement;
+    resizeTo(box, 300, 600);
+    expect(box.dataset.panelSplit).toBe("inline");
+  });
+
+  it('puts the sidebar under the body once the body would lose the sidebar\'s width, even for "beside"', () => {
+    render(
+      <Panel
+        panelTitle="SYSTEM"
+        panelSidebar="almanac"
+        sidebarPlacement="beside"
+        sidebarSize="10rem"
+      >
+        diagram
+      </Panel>,
+    );
+    const box = split() as HTMLElement;
+    resizeTo(box, 200, 600);
+    expect(box.dataset.panelSplit).toBe("block");
+  });
+
+  it('keeps the sidebar under the body on a wide tile for sidebarPlacement="below"', () => {
+    render(
+      <Panel
+        panelTitle="SYSTEM"
+        panelSidebar="almanac"
+        sidebarPlacement="below"
+      >
+        diagram
+      </Panel>,
+    );
+    const box = split() as HTMLElement;
+    resizeTo(box, 600, 300);
+    expect(box.dataset.panelSplit).toBe("block");
+  });
+
+  it('measures the tile as it always has for sidebarPlacement="auto"', () => {
+    render(
+      <Panel panelTitle="SYSTEM" panelSidebar="almanac" sidebarPlacement="auto">
+        diagram
+      </Panel>,
+    );
+    const box = split() as HTMLElement;
+    resizeTo(box, 300, 600);
+    expect(box.dataset.panelSplit).toBe("block");
+  });
+});
+
 describe("Panel sidebar, track sizing", () => {
   for (const [label, w, h] of [
     ["beside", 600, 300],

@@ -43,10 +43,6 @@ function heldMarks(): NodeListOf<Element> {
   return document.querySelectorAll("[data-held-mark]");
 }
 
-function hotTag(): HTMLElement {
-  return screen.getByText(new RegExp(`hot: ${HOTTEST_PART}`));
-}
-
 function ringCount(container: HTMLElement): number {
   return container.querySelectorAll('[data-role="highlight-ring"]').length;
 }
@@ -77,9 +73,7 @@ describe("ShipMap when the thermal reading is held", () => {
         },
       });
     });
-    await waitFor(() =>
-      expect(screen.getByText(new RegExp(`hot: ${HOTTEST_PART}`))).toBeTruthy(),
-    );
+    await waitFor(() => expect(ringCount(document.body)).toBe(1));
   }
 
   function loseTheLink(fixture: ReturnType<typeof setupStreamFixture>) {
@@ -95,38 +89,32 @@ describe("ShipMap when the thermal reading is held", () => {
     await emitHotCraft(fixture);
 
     expect(ringCount(container)).toBe(1);
-    expect(hotTag().textContent).toMatch(/900/);
     expect(heldMarks()).toHaveLength(0);
   });
 
-  it("drops the ring and marks the held hottest part's temperature", async () => {
+  it("drops the ring once the reading is held", async () => {
     const { fixture, container } = mount();
     await emitHotCraft(fixture);
 
     loseTheLink(fixture);
 
     await waitFor(() => expect(ringCount(container)).toBe(0));
-    // The tag keeps the last hottest part; Unit's held mark and spoken caption on its temperature say it is held.
-    expect(hotTag().textContent).toMatch(/900/);
-    expect(hotTag().querySelector("[data-held-mark]")).not.toBeNull();
-    expect(hotTag().querySelector("[data-unit-currency]")).not.toBeNull();
     expect(screen.queryByText(CAPTION)).toBeNull();
   });
 
-  it("keeps drawing the diagram, so the tag is the only cue", async () => {
-    // The part tree is a fact and stays, so nothing but the tag changes.
+  it("keeps drawing the diagram, so the ring is the only cue", async () => {
+    // The part tree is a fact and stays, so nothing but the ring changes.
     const { fixture } = mount();
     await emitHotCraft(fixture);
 
     loseTheLink(fixture);
 
-    await waitFor(() => expect(heldMarks().length).toBeGreaterThan(0));
+    await waitFor(() => expect(ringCount(document.body)).toBe(0));
     expect(screen.getByLabelText("Ship diagram")).toBeTruthy();
-    expect(screen.getByText(/22 parts/)).toBeTruthy();
   });
 
   it("writes no caption of its own when a craft with nothing hot goes held", async () => {
-    // No hottest part is a real answer with no tag, and holding it adds no widget-written wording.
+    // No hottest part is a real answer with no ring, and holding it adds no widget-written wording.
     const { fixture } = mount();
     act(() => {
       fixture.emit("vessel.parts", VESSEL_PARTS_WIRE);
@@ -135,14 +123,14 @@ describe("ShipMap when the thermal reading is held", () => {
     await waitFor(() =>
       expect(screen.getByLabelText("Ship diagram")).toBeTruthy(),
     );
-    expect(screen.queryByText(/hot:/)).toBeNull();
+    expect(ringCount(document.body)).toBe(0);
 
     loseTheLink(fixture);
 
     await waitFor(() =>
       expect(fixture.store.sampleReading("vessel.thermal").state).toBe("held"),
     );
-    expect(screen.queryByText(/hot:/)).toBeNull();
+    expect(ringCount(document.body)).toBe(0);
     expect(screen.queryByText(CAPTION)).toBeNull();
   });
 
@@ -156,6 +144,6 @@ describe("ShipMap when the thermal reading is held", () => {
       expect(screen.getByLabelText("Ship diagram")).toBeTruthy(),
     );
 
-    expect(screen.queryByText(/hot:/)).toBeNull();
+    expect(ringCount(document.body)).toBe(0);
   });
 });

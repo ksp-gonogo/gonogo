@@ -1,0 +1,374 @@
+{
+  "_meta": {
+    "shows": "The craft the map was showing, destroyed in a crash: the diagram stays and the part that broke first is marked.",
+    "scenario": "craft-destroyed",
+    "notes": "The full craft arrives, then the crash report, then the parts topic is cleared as the game drops the vessel."
+  },
+  "_stream": {
+    "emits": [
+      {
+        "channel": "vessel.parts",
+        "value": {
+          "parts": [
+            {
+              "id": "1",
+              "name": "mk1pod.v2",
+              "title": "Mk1 Command Pod",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 1.25,
+                  "y": 1.14,
+                  "z": 1.25
+                },
+                "center": {
+                  "x": 0,
+                  "y": 0.0915,
+                  "z": 0
+                }
+              },
+              "dryMass": 0.5,
+              "inverseStage": -1,
+              "maxTemp": 2000,
+              "category": "Pods",
+              "categoryOrdinal": 6,
+              "modules": ["ModuleCommand"],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {},
+              "moduleStates": []
+            },
+            {
+              "id": "2",
+              "parentId": "1",
+              "name": "parachuteSingle",
+              "title": "Mk16 Parachute",
+              "position": {
+                "x": 0,
+                "y": 0.8615,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 1.25,
+                  "y": 0.4,
+                  "z": 1.25
+                }
+              },
+              "dryMass": 0.5,
+              "inverseStage": 0,
+              "maxTemp": 2000,
+              "category": "Utility",
+              "categoryOrdinal": 9,
+              "modules": ["ModuleParachute"],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {},
+              "moduleStates": []
+            },
+            {
+              "id": "3",
+              "parentId": "1",
+              "name": "fuelTankSmallFlat",
+              "title": "FL-T400 Fuel Tank",
+              "position": {
+                "x": 0,
+                "y": -1.4035,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 1.25,
+                  "y": 1.85,
+                  "z": 1.25
+                }
+              },
+              "dryMass": 0.5,
+              "inverseStage": -1,
+              "maxTemp": 2000,
+              "category": "FuelTank",
+              "categoryOrdinal": 7,
+              "modules": [],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {
+                "LiquidFuel": {
+                  "amount": 180,
+                  "maxAmount": 180
+                },
+                "Oxidizer": {
+                  "amount": 198.00000000000003,
+                  "maxAmount": 220
+                }
+              },
+              "moduleStates": []
+            },
+            {
+              "id": "4",
+              "parentId": "3",
+              "name": "liquidEngine3.v2",
+              "title": "LV-909 Terrier",
+              "position": {
+                "x": 0,
+                "y": -2.9285,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 1.25,
+                  "y": 1.2,
+                  "z": 1.25
+                }
+              },
+              "dryMass": 0.5,
+              "inverseStage": 1,
+              "maxTemp": 2000,
+              "category": "Engine",
+              "categoryOrdinal": 3,
+              "modules": ["ModuleEngines"],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {},
+              "moduleStates": []
+            },
+            {
+              "id": "5",
+              "parentId": "4",
+              "name": "Decoupler_2",
+              "title": "TD-12 Decoupler",
+              "position": {
+                "x": 0,
+                "y": -3.7285,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 1.25,
+                  "y": 0.4,
+                  "z": 1.25
+                }
+              },
+              "dryMass": 0.5,
+              "inverseStage": 2,
+              "maxTemp": 2000,
+              "category": "Coupling",
+              "categoryOrdinal": 8,
+              "modules": [],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {},
+              "moduleStates": []
+            },
+            {
+              "id": "6",
+              "parentId": "5",
+              "name": "fuelTankSmallFlat",
+              "title": "FL-T400 Fuel Tank",
+              "position": {
+                "x": 0,
+                "y": -4.8535,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 1.25,
+                  "y": 1.85,
+                  "z": 1.25
+                }
+              },
+              "dryMass": 0.5,
+              "inverseStage": -1,
+              "maxTemp": 2000,
+              "category": "FuelTank",
+              "categoryOrdinal": 7,
+              "modules": [],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {
+                "LiquidFuel": {
+                  "amount": 180,
+                  "maxAmount": 180
+                },
+                "Oxidizer": {
+                  "amount": 198.00000000000003,
+                  "maxAmount": 220
+                }
+              },
+              "moduleStates": []
+            },
+            {
+              "id": "7",
+              "parentId": "2",
+              "name": "parachuteSingle",
+              "title": "Mk16 Parachute",
+              "position": {
+                "x": 0,
+                "y": 1.2615,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 1.25,
+                  "y": 0.4,
+                  "z": 1.25
+                }
+              },
+              "dryMass": 0.5,
+              "inverseStage": 0,
+              "maxTemp": 2000,
+              "category": "Utility",
+              "categoryOrdinal": 9,
+              "modules": ["ModuleParachute"],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {},
+              "moduleStates": []
+            },
+            {
+              "id": "9",
+              "parentId": "6",
+              "name": "liquidEngine1-2",
+              "title": "Reliant Engine",
+              "position": {
+                "x": 0,
+                "y": -6.3785,
+                "z": 0
+              },
+              "up": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+              },
+              "bounds": {
+                "size": {
+                  "x": 1.25,
+                  "y": 1.2,
+                  "z": 1.25
+                }
+              },
+              "dryMass": 0.5,
+              "inverseStage": 3,
+              "maxTemp": 2000,
+              "category": "Engine",
+              "categoryOrdinal": 3,
+              "modules": ["ModuleEngines"],
+              "isRobotics": false,
+              "isPowerRelated": false,
+              "resources": {},
+              "moduleStates": [
+                {
+                  "type": "engine",
+                  "state": "active",
+                  "tracking": null,
+                  "flameout": null
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "channel": "crash.hasRecent",
+        "value": {
+          "recent": true
+        }
+      },
+      {
+        "channel": "crash.lastCrash",
+        "value": {
+          "vesselName": "Kerbal X",
+          "ut": 0,
+          "eventKind": "Crash",
+          "partsLost": [
+            {
+              "partId": 9,
+              "partName": "liquidEngine1-2",
+              "partTitle": "Reliant Engine"
+            },
+            {
+              "partId": 1,
+              "partName": "mk1pod.v2",
+              "partTitle": "Mk1 Command Pod"
+            },
+            {
+              "partId": 2,
+              "partName": "parachuteSingle",
+              "partTitle": "Mk16 Parachute"
+            },
+            {
+              "partId": 3,
+              "partName": "fuelTankSmallFlat",
+              "partTitle": "FL-T400 Fuel Tank"
+            },
+            {
+              "partId": 4,
+              "partName": "liquidEngine3.v2",
+              "partTitle": "LV-909 Terrier"
+            },
+            {
+              "partId": 5,
+              "partName": "Decoupler_2",
+              "partTitle": "TD-12 Decoupler"
+            },
+            {
+              "partId": 6,
+              "partName": "fuelTankSmallFlat",
+              "partTitle": "FL-T400 Fuel Tank"
+            },
+            {
+              "partId": 7,
+              "partName": "parachuteSingle",
+              "partTitle": "Mk16 Parachute"
+            }
+          ],
+          "kerbalsKilled": ["Jebediah Kerman"],
+          "what": "",
+          "altitude": 412.6
+        }
+      },
+      {
+        "channel": "vessel.parts",
+        "value": null
+      }
+    ]
+  }
+}

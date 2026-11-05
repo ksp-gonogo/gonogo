@@ -47,6 +47,8 @@ export type PartType =
  */
 export interface ShipMapPart {
   flightId: number;
+  /** True for the part that broke first in the crash, where the crash report names one. */
+  impact?: boolean;
   parentFlightId: number | null;
   name: string;
   title: string;

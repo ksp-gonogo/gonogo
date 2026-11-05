@@ -1,8 +1,13 @@
-import { AugmentSlot, type VesselTopology } from "@ksp-gonogo/core";
-import { Unit } from "@ksp-gonogo/ui-kit";
-import { type ComponentProps, type CSSProperties, useState } from "react";
+import {
+  AugmentSlot,
+  type CrashReportOfEnding,
+  type VesselTopology,
+} from "@ksp-gonogo/core";
+import { FramedDisplay, Section } from "@ksp-gonogo/ui-kit";
+import type { CSSProperties, ReactNode } from "react";
+import { DestroyedCraft } from "./DestroyedCraft";
 import { ShipDiagram } from "./ShipDiagram";
-import { StageColumn, useShipMapLayout } from "./StageColumn";
+import { StageColumn } from "./StageColumn";
 import type {
   ShipMapPart,
   ShipMapPartMetaEntry,
@@ -18,13 +23,11 @@ export type InvokePartAction = (
   partTitle: string,
 ) => void;
 
-/** The header, the tinted diagram and its overlay slot, or a placeholder until there are parts to draw. */
-export function ShipMapBody({
+/** The Panel sections of the map: the tinted diagram in its frame with its overlay slot, or a placeholder until there are parts to draw. */
+export function shipMapSections({
   topology,
   parts,
-  hottestName,
   hottestPartId,
-  hottestTemp,
   size,
   setWrapEl,
   ambientTint,
@@ -36,14 +39,12 @@ export function ShipMapBody({
   turn,
   onTurn,
   stages,
-  columns,
+  stagesOnly,
+  destroyed,
 }: {
   topology: VesselTopology | undefined;
   parts: ShipMapPart[];
-  hottestName: string | null;
   hottestPartId: string | null;
-  /** The hottest part's internal temperature, as the reading it arrived in. */
-  hottestTemp: ComponentProps<typeof Unit>["value"];
   size: { w: number; h: number };
   setWrapEl: (el: HTMLDivElement | null) => void;
   ambientTint: string | null;
@@ -58,68 +59,72 @@ export function ShipMapBody({
   onTurn: (turn: number) => void;
   /** The staging stack still to fire; empty when no part carries a stage. */
   stages: StageEntry[];
-  /** How many grid columns the tile spans, when the dashboard says. */
-  columns: number | undefined;
-}) {
-  const [rowEl, setRowEl] = useState<HTMLDivElement | null>(null);
-  const layout = useShipMapLayout(rowEl, columns);
-  const listOnly = layout === "stages" && stages.length > 0;
+  /** True on a tile narrow enough that the stage list takes the whole body and the diagram is not drawn. */
+  stagesOnly: boolean;
+  /** The crash report of the craft this map showed, once that craft is destroyed. */
+  destroyed: CrashReportOfEnding | undefined;
+}): ReactNode[] {
+  const listOnly = stagesOnly && stages.length > 0;
   if (!topology) {
-    return (
-      <div style={PLACEHOLDER}>
-        Waiting for vessel topology. Check the data source status if this
-        persists.
-      </div>
-    );
-  }
-  if (parts.length === 0) {
-    return <div style={PLACEHOLDER}>Vessel has no parts.</div>;
-  }
-  return (
-    <>
-      <div style={META}>
-        {parts.length} part{parts.length === 1 ? "" : "s"}
-        {hottestName && (
-          <span style={META_TAG}>
-            · hot: {hottestName} <Unit value={hottestTemp} decimals={0} />
-          </span>
-        )}
-      </div>
-      <div ref={setRowEl} style={ROW}>
-        {!listOnly && (
-          <div ref={setWrapEl} style={DIAGRAM_WRAP}>
-            {/* Ambient external-temperature tint, behind the SVG. */}
-            <div
-              style={{
-                ...TINT_LAYER,
-                background: ambientTint ?? "transparent",
-              }}
-            />
-            <ShipDiagram
-              parts={parts}
-              highlightPartId={hottestPartId}
-              width={size.w}
-              height={size.h}
-              throttle={throttle}
-              partMeters={partMeters}
-              partMeta={partMeta}
-              onInvokePartAction={onInvokePartAction}
-              turn={turn}
-              onTurn={onTurn}
-            />
-            {overlayContext && (
-              <div style={OVERLAY_LAYER}>
-                <AugmentSlot name="ship-map.overlay" props={overlayContext} />
-              </div>
-            )}
+    return [
+      <Section key="message" full>
+        {destroyed ? (
+          <DestroyedCraft crash={destroyed} />
+        ) : (
+          <div style={PLACEHOLDER}>
+            Waiting for vessel topology. Check the data source status if this
+            persists.
           </div>
         )}
-        {stages.length > 0 && (layout === "both" || listOnly) && (
-          <StageColumn stages={stages} fill={listOnly} />
-        )}
-      </div>
-    </>
-  );
+      </Section>,
+    ];
+  }
+  if (parts.length === 0) {
+    return [
+      <Section key="message" full>
+        <div style={PLACEHOLDER}>Vessel has no parts.</div>
+      </Section>,
+    ];
+  }
+  if (listOnly) {
+    return [
+      <Section key="stages" fill>
+        <StageColumn stages={stages} fill />
+      </Section>,
+    ];
+  }
+  return [
+    <Section key="diagram" fill>
+      <FramedDisplay style={FRAME}>
+        <div ref={setWrapEl} style={DIAGRAM_WRAP}>
+          {/* Ambient external-temperature tint, behind the SVG. */}
+          <div
+            style={{
+              ...TINT_LAYER,
+              background: ambientTint ?? "transparent",
+            }}
+          />
+          <ShipDiagram
+            parts={parts}
+            highlightPartId={hottestPartId}
+            width={size.w}
+            height={size.h}
+            throttle={throttle}
+            partMeters={partMeters}
+            partMeta={partMeta}
+            onInvokePartAction={onInvokePartAction}
+            turn={turn}
+            onTurn={onTurn}
+          />
+          {overlayContext && (
+            <div style={OVERLAY_LAYER}>
+              <AugmentSlot name="ship-map.overlay" props={overlayContext} />
+            </div>
+          )}
+        </div>
+      </FramedDisplay>
+    </Section>,
+  ];
 }
 
 const PLACEHOLDER: CSSProperties = {
@@ -133,19 +138,6 @@ const PLACEHOLDER: CSSProperties = {
   textAlign: "center",
 };
 
-const META: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: "var(--gap-related)",
-  padding: "var(--inset-surface)",
-  background: "var(--color-surface-panel)",
-  borderBottom: "1px solid var(--color-border-subtle)",
-  fontSize: "var(--font-size-compact)",
-  color: "var(--color-text-muted)",
-};
-
-const META_TAG: CSSProperties = { color: "var(--color-text-faint)" };
-
 // Over the SVG (1) and tint (0): local sibling ordering inside DiagramWrap, so --z-overlay would wrongly lift it over app chrome. Pointer-inert so an empty slot is inert; an augment re-enables pointer events on its own elements.
 const OVERLAY_LAYER: CSSProperties = {
   position: "absolute",
@@ -154,21 +146,15 @@ const OVERLAY_LAYER: CSSProperties = {
   pointerEvents: "none",
 };
 
-// The diagram keeps the width the stage column leaves it and is never the one that collapses. Too narrow for both, the stage list takes the whole row and the diagram is not drawn.
-const ROW: CSSProperties = {
-  flex: 1,
-  minHeight: 0,
-  display: "flex",
-};
+// The frame takes the room the body has; the stage list is the panel sidebar, so the diagram never shares a row with it.
+const FRAME: CSSProperties = { flex: 1, minHeight: 0, position: "relative" };
 
 const DIAGRAM_WRAP: CSSProperties = {
-  flex: 1,
-  minWidth: 0,
-  minHeight: 0,
+  position: "absolute",
+  inset: 0,
   display: "flex",
   alignItems: "stretch",
   justifyContent: "stretch",
-  position: "relative",
   background: "var(--color-surface-app)",
 };
 

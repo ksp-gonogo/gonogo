@@ -11,7 +11,6 @@ import {
 } from "../test/widgetDomSnapshot";
 import fuellinePrelaunch from "./__fixtures__/fuelline-tester-22parts-prelaunch.json";
 import { ShipMapComponent } from "./index";
-import { STAGE_COLUMN_MIN_WIDGET_WIDTH } from "./StageColumn";
 
 const WIRE = topologyToVesselPartsWire(
   fuellinePrelaunch["v.topology"] as VesselTopology,
@@ -55,16 +54,16 @@ describe("Ship Map by tile size", () => {
     await expectNoA11yViolations(container);
   });
 
-  it("shows the diagram alone from six columns, however narrow the tile is", async () => {
+  it("shows the diagram and the stage list from six columns, however narrow the tile is", async () => {
     const container = await mountAtWidth(189, 6);
 
     expect(screen.getByLabelText("Ship diagram")).toBeTruthy();
-    expect(screen.queryByRole("region", { name: "Staging" })).toBeNull();
+    expect(screen.getByRole("region", { name: "Staging" })).toBeTruthy();
     await expectNoA11yViolations(container);
   });
 
-  it("shows the diagram and the stage list together once the tile is wide enough", async () => {
-    const container = await mountAtWidth(STAGE_COLUMN_MIN_WIDGET_WIDTH);
+  it("shows the diagram and the stage list together on a wide tile", async () => {
+    const container = await mountAtWidth(600, 12);
 
     expect(screen.getByLabelText("Ship diagram")).toBeTruthy();
     expect(screen.getByRole("region", { name: "Staging" })).toBeTruthy();

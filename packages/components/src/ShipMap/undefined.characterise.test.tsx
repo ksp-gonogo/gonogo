@@ -23,7 +23,7 @@ import { ShipMapComponent } from "./index";
  *     absence the operator sees
  *   - `vessel.control.throttle` absent: coerced to zero, so an active engine
  *     draws no flame, identical to a confirmed idle throttle
- *   - `vessel.thermal.hottestPart.name` absent: no "hot:" tag
+ *   - `vessel.thermal.hottestPart.id` absent: no ring on any part
  *   - `vessel.flight.externalTemperature` absent: no ambient tint, identical to
  *     a comfortable 300 K
  *
@@ -225,8 +225,10 @@ describe("ShipMap: the throttle behind the engine flame", () => {
 });
 
 describe("ShipMap: the silent absence gates", () => {
-  it("an absent hottestPart drops the 'hot:' tag with no trace", async () => {
-    const { fixture } = mount();
+  it("an absent hottestPart rings no part, with no trace", async () => {
+    const { fixture, container } = mount();
+    const rings = () =>
+      container.querySelectorAll('[data-role="highlight-ring"]').length;
 
     act(() => {
       fixture.emit("vessel.parts", VESSEL_PARTS_WIRE);
@@ -235,25 +237,27 @@ describe("ShipMap: the silent absence gates", () => {
       expect(screen.getByLabelText("Ship diagram")).toBeTruthy(),
     );
 
-    // Absence renders no tag: a diagram with no hottest part rather than an unknown one.
-    expect(screen.queryByText(/hot:/)).toBeNull();
+    // Absence rings nothing: a diagram with no hottest part rather than an unknown one.
+    expect(rings()).toBe(0);
 
     act(() => {
       fixture.emit("vessel.thermal", {
-        hottestPart: { name: "liquidEngine2.v2", temperature: 900 },
+        hottestPart: {
+          name: "liquidEngine2.v2",
+          id: "965970713",
+          temperature: 900,
+        },
       });
     });
 
-    await waitFor(() =>
-      expect(screen.getByText(/hot: liquidEngine2\.v2/)).toBeTruthy(),
-    );
+    await waitFor(() => expect(rings()).toBe(1));
 
     act(() => {
       // A record without the nested part: indistinguishable from the channel never speaking.
       fixture.emit("vessel.thermal", {});
     });
 
-    await waitFor(() => expect(screen.queryByText(/hot:/)).toBeNull());
+    await waitFor(() => expect(rings()).toBe(0));
   });
 
   it("an absent externalTemperature paints a transparent tint, and a confirmed 1000 K an amber one", async () => {

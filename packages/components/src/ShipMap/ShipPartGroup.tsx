@@ -191,6 +191,28 @@ export function ShipPartGroup({
           rx={2}
         />
       )}
+      {p.impact && (
+        <g data-role="impact-mark" pointerEvents="none">
+          <rect
+            x={box.x}
+            y={box.y}
+            width={box.w}
+            height={box.h}
+            fill="var(--color-nogo-mark)"
+            opacity={0.3}
+          />
+          <rect
+            x={box.x - 2}
+            y={box.y - 2}
+            width={box.w + 4}
+            height={box.h + 4}
+            fill="none"
+            stroke="var(--color-nogo-mark)"
+            strokeWidth={stroke(2.5)}
+            rx={3}
+          />
+        </g>
+      )}
       {isHot && (
         <rect
           data-role="highlight-ring"

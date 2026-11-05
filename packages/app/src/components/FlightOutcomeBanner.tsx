@@ -37,6 +37,9 @@ const VISIBLE_MS = 10_000;
 
 /**
  * How far behind the view clock an outcome may be and still count as news.
+ * It is measured against the view and not the craft's present, which runs one
+ * signal delay ahead: an outcome reaches the view when the view reaches it, so
+ * the delay would make every fresh one look old.
  * The mod replays the last crash and the last recovery to every new
  * connection, so an outcome older than this at the moment it first reaches the
  * view is a record being read back, not a flight that just ended.
@@ -175,28 +178,20 @@ export function FlightOutcomeBanner() {
     return { kind: "crashed", ut: magnitudeOf(crashRaw.ut), report: crashRaw };
   }, [crashHasRecent, crashRaw]);
 
-  // Pick the most recent outcome. Both UTs come off the same KSP clock, so
-  // where both arrived the later one is the flight that just ended.
-  //
-  // A UT that did not arrive cannot be ordered against one that did.
-  // The crash wins that case: announcing a recovery for a vessel that
-  // cratered is the worse of the two ways to be wrong.
-  const outcome: Outcome | null = useMemo(() => {
-    if (recovery && crash) {
-      if (crash.ut === null || recovery.ut === null) return crash;
-      return crash.ut > recovery.ut ? crash : recovery;
-    }
-    return recovery ?? crash ?? null;
-  }, [recovery, crash]);
-
-  // Banner state. lastAnnouncedRef is the (kind, ut) we last fired the
-  // banner for; on a new-flight transition we baseline it to the current
-  // sticky outcome so the previous flight's outcome doesn't re-fire.
-  const lastAnnouncedRef = useRef<{ kind: string; ut: number | null } | null>(
-    null,
+  /*
+   * Each kind is announced when its own outcome changes, never ranked against
+   * the other by UT: both topics hold their last report for the rest of the
+   * save, and a revert puts the flight clock back, so an older recovery can
+   * carry a later UT than the crash that follows it and would hide it.
+   * `lastAnnouncedRef` holds the UT each kind was last announced at, and
+   * `shownKind` the kind announced most recently.
+   */
+  const lastAnnouncedRef = useRef<Map<Outcome["kind"], number | null>>(
+    new Map(),
   );
   const flightIdRef = useRef<string | null>(null);
   const [bannerExpiresAt, setBannerExpiresAt] = useState<number | null>(null);
+  const [shownKind, setShownKind] = useState<Outcome["kind"] | null>(null);
   const modal = useModal();
   const clock = useViewClockOptional();
 
@@ -205,33 +200,48 @@ export function FlightOutcomeBanner() {
     const prevFlightId = flightIdRef.current;
     if (prevFlightId === nextFlightId) return;
     flightIdRef.current = nextFlightId;
-    // Baseline the announce key only on a true flight switch (one non-null
+    // Baseline the announce keys only on a true flight switch (one non-null
     // flight to another non-null flight). Transitions involving null,
     // mount-time bootstrap, or a flight ending into "no flight", must not
-    // baseline, because Effect 2 hasn't had a chance to fire the banner
-    // for the just-arrived outcome yet. Effect order is declaration order;
-    // this effect runs before Effect 2, so if we wrote
-    // `lastAnnouncedRef.current = outcome` here, Effect 2 would see
-    // `last === outcome` and silently swallow the banner.
+    // baseline, because the announce effect hasn't had a chance to fire the
+    // banner for the just-arrived outcome yet. Effect order is declaration
+    // order; this effect runs before it, so baselining here on those
+    // transitions would swallow the banner.
     if (prevFlightId !== null && nextFlightId !== null) {
-      lastAnnouncedRef.current = outcome
-        ? { kind: outcome.kind, ut: outcome.ut }
-        : null;
+      lastAnnouncedRef.current = new Map(
+        [recovery, crash].flatMap((o) =>
+          o ? [[o.kind, o.ut] as [Outcome["kind"], number | null]] : [],
+        ),
+      );
       setBannerExpiresAt(null);
     }
-  }, [currentFlight, outcome]);
+  }, [currentFlight, recovery, crash]);
 
   useEffect(() => {
-    if (!outcome) return;
-    const last = lastAnnouncedRef.current;
-    if (last && last.kind === outcome.kind && last.ut === outcome.ut) return;
-    lastAnnouncedRef.current = { kind: outcome.kind, ut: outcome.ut };
-    const nowUt = clock
-      ? Math.max(clock.viewUt(), clock.utNowEstimate())
-      : Number.NaN;
-    if (outcome.ut !== null && nowUt - outcome.ut > STALE_AFTER_UT) return;
+    const viewUt = clock ? clock.viewUt() : Number.NaN;
+    const announced: Outcome[] = [];
+    for (const o of [recovery, crash]) {
+      if (!o) continue;
+      const last = lastAnnouncedRef.current;
+      if (last.has(o.kind) && last.get(o.kind) === o.ut) continue;
+      last.set(o.kind, o.ut);
+      if (o.ut !== null && viewUt - o.ut > STALE_AFTER_UT) continue;
+      announced.push(o);
+    }
+    if (announced.length === 0) return;
+    // Both arriving together: the later flight ended last, and a crash wins a
+    // tie or a missing UT, since announcing a recovery for a vessel that
+    // cratered is the worse of the two ways to be wrong.
+    const [first, second] = announced;
+    const pick =
+      second === undefined
+        ? first
+        : second.ut === null || first.ut === null || second.ut >= first.ut
+          ? second
+          : first;
+    setShownKind(pick.kind);
     setBannerExpiresAt(Date.now() + VISIBLE_MS);
-  }, [outcome, clock]);
+  }, [recovery, crash, clock]);
 
   useEffect(() => {
     if (bannerExpiresAt === null) return;
@@ -248,7 +258,14 @@ export function FlightOutcomeBanner() {
    * The live region stays mounted while the banner comes and goes: a region
    * inserted together with its text is not reliably announced.
    */
-  const shown = outcome && bannerExpiresAt !== null ? outcome : null;
+  const shown =
+    bannerExpiresAt !== null
+      ? shownKind === "recovered"
+        ? recovery
+        : shownKind === "crashed"
+          ? crash
+          : null
+      : null;
   const openDetail = () => {
     if (!shown) return;
     setBannerExpiresAt(null);

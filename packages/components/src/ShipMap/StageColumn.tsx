@@ -1,48 +1,13 @@
 import { Badge } from "@ksp-gonogo/ui-kit";
-import { type CSSProperties, useEffect, useState } from "react";
-import { ROTATE_MIN_WIDTH } from "./ShipDiagram";
+import type { CSSProperties } from "react";
 import type { StageEntry } from "./stageStack";
-
-/** The width of the stage column, in pixels. */
-const STAGE_COLUMN_WIDTH = 136;
-
-/** The widget width, in pixels, below which the diagram and the stage column no longer fit side by side, so the diagram is drawn alone. */
-export const STAGE_COLUMN_MIN_WIDGET_WIDTH =
-  ROTATE_MIN_WIDTH + STAGE_COLUMN_WIDTH;
 
 /** The widest tile, in grid columns, that shows the stage list alone. */
 export const STAGE_LIST_ONLY_MAX_COLUMNS = 5;
 
-export type ShipMapLayout = "both" | "diagram" | "stages";
-
-/**
- * What a tile carries: the stage list alone when it spans at most
- * `STAGE_LIST_ONLY_MAX_COLUMNS` grid columns, otherwise the diagram and the stage
- * column side by side when the container is wide enough, or the diagram alone.
- * Reads as both until the container has been measured, so a first paint and an
- * environment with no resize observer both keep the column.
- */
-export function useShipMapLayout(
-  el: HTMLElement | null,
-  columns: number | undefined,
-): ShipMapLayout {
-  const [room, setRoom] = useState(true);
-  useEffect(() => {
-    if (!el || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver((entries) => {
-      for (const e of entries) {
-        if (e.contentRect.width > 0) {
-          setRoom(e.contentRect.width >= STAGE_COLUMN_MIN_WIDGET_WIDTH);
-        }
-      }
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [el]);
-  if (columns !== undefined && columns <= STAGE_LIST_ONLY_MAX_COLUMNS) {
-    return "stages";
-  }
-  return room ? "both" : "diagram";
+/** Whether a tile this many grid columns wide gives the whole body to the stage list. */
+export function showsStagesOnly(columns: number | undefined): boolean {
+  return columns !== undefined && columns <= STAGE_LIST_ONLY_MAX_COLUMNS;
 }
 
 /**
@@ -50,14 +15,14 @@ export function useShipMapLayout(
  * fire at the top, each with the titles of its parts and how many of each. The
  * stage the next press of the stage control fires carries a "Next" badge, and
  * only while the stage number is a current reading. Stages already fired are
- * not listed, as in game. Used beside the Ship Map diagram.
+ * not listed, as in game. Used as the Ship Map's sidebar, and alone in its body on a tile five columns wide or less.
  */
 export function StageColumn({
   stages,
   fill = false,
 }: {
   stages: StageEntry[];
-  /** Fills the whole width of its row, with no diagram beside it. */
+  /** Fills the whole body, with no diagram. */
   fill?: boolean;
 }) {
   return (
@@ -68,54 +33,62 @@ export function StageColumn({
       // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable region must be focusable
       tabIndex={0}
     >
-      <h3 style={HEADING}>Stages</h3>
-      <ol style={LIST}>
-        {stages.map((s) => (
-          <li
-            key={s.stage}
-            aria-current={s.current ? "step" : undefined}
-            style={s.current ? ROW_CURRENT : ROW}
-          >
-            <div style={ROW_HEAD}>
-              <span style={STAGE_NUMBER}>Stage {s.stage}</span>
-              {s.current && (
-                <Badge tone="info" size="sm">
-                  Next
-                </Badge>
-              )}
-            </div>
-            <ul style={PARTS}>
-              {s.parts.map((p) => (
-                <li key={p.title} style={PART}>
-                  {p.title}
-                  {p.count > 1 && (
-                    <span style={COUNT}>
-                      <span aria-hidden="true"> ×{p.count}</span>
-                      <span style={SR_ONLY}> times {p.count}</span>
-                    </span>
+      <div>
+        <div style={CONTENT}>
+          <h3 style={HEADING}>Stages</h3>
+          <ol style={LIST}>
+            {stages.map((s) => (
+              <li
+                key={s.stage}
+                aria-current={s.current ? "step" : undefined}
+                style={s.current ? ROW_CURRENT : ROW}
+              >
+                <div style={ROW_HEAD}>
+                  <span style={STAGE_NUMBER}>Stage {s.stage}</span>
+                  {s.current && (
+                    <Badge tone="info" size="sm">
+                      Next
+                    </Badge>
                   )}
-                </li>
-              ))}
-            </ul>
-          </li>
-        ))}
-      </ol>
+                </div>
+                <ul style={PARTS}>
+                  {s.parts.map((p) => (
+                    <li key={p.title} style={PART}>
+                      {p.title}
+                      {p.count > 1 && (
+                        <span style={COUNT}>
+                          <span aria-hidden="true"> ×{p.count}</span>
+                          <span style={SR_ONLY}> times {p.count}</span>
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
     </section>
   );
 }
 
 const COLUMN: CSSProperties = {
-  flex: `0 0 ${STAGE_COLUMN_WIDTH}px`,
   minHeight: 0,
   overflowY: "auto",
-  boxSizing: "border-box",
-  padding: "var(--inset-surface)",
-  background: "var(--color-surface-panel)",
-  borderLeft: "1px solid var(--color-border-subtle)",
   fontSize: "var(--font-size-compact)",
 };
 
-const COLUMN_ALONE: CSSProperties = { ...COLUMN, flex: 1, borderLeft: "none" };
+const COLUMN_ALONE: CSSProperties = {
+  ...COLUMN,
+  flex: 1,
+  minHeight: 0,
+  display: "flex",
+  flexDirection: "column",
+  boxSizing: "border-box",
+};
+
+const CONTENT: CSSProperties = { padding: "var(--inset-surface)" };
 
 const HEADING: CSSProperties = {
   margin: 0,

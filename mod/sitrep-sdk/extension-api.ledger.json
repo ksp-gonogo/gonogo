@@ -18657,6 +18657,14 @@
         "note": "focusable, so the keyboard can pan and zoom"
       },
       {
+        "key": "ui-kit . PanelSidebarPlacement",
+        "note": "where a panel's sidebar sits: auto, beside the body or below it"
+      },
+      {
+        "key": "ui-kit . PanelProps#sidebarPlacement?",
+        "note": "lets a widget keep its sidebar beside the body on a tall tile, or always under it"
+      },
+      {
         "key": "ui-kit . Pips",
         "note": "a row of round pips, some filled, for a small whole-number rating"
       },

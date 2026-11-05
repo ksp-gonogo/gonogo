@@ -2386,10 +2386,16 @@ const WIDGETS: WidgetRenderConfig[] = [
           "engine-burned-out",
           "chutes-packed",
           "chutes-deployed",
+          "craft-destroyed",
         ],
       },
       // Wide enough for the stage column beside a diagram that keeps its rotate controls.
-      { name: "wide-12x10", w: 12, h: 10, forFixtures: ["staged-rocket"] },
+      {
+        name: "wide-12x10",
+        w: 12,
+        h: 10,
+        forFixtures: ["staged-rocket", "engine-burning", "craft-destroyed"],
+      },
       // Wider/taller: the colour-spread fixture stacks four parts with several meters each, the default size crops it.
       {
         name: "colour-spread-10x16",
