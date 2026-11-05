@@ -248,7 +248,7 @@ function MarkedFigure({
     >
       <MarkShape kind={kind} />
       {children}
-      <VisuallyHidden>, {caption}</VisuallyHidden>
+      <VisuallyHidden data-unit-currency="">, {caption}</VisuallyHidden>
     </span>
   );
 }
