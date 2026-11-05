@@ -49,6 +49,15 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
+        /// The key a pair's relative-position window is kept under: the vessel the range is taken
+        /// from, the point on it, and the target, so a switch of any of the three starts a new window.
+        /// </summary>
+        public static string TrackKey(string? vesselId, int originId, string? targetVesselId, string? partId)
+        {
+            return vesselId + ":" + originId + ":" + targetVesselId + ":" + partId;
+        }
+
+        /// <summary>
         /// The minimum separation of a straight-line relative path from now, or null when the
         /// inputs are not finite. A pair that is not closing reports now as the closest it gets.
         /// </summary>
@@ -78,7 +87,7 @@ namespace Gonogo.KSP
                 var at = position[i] + velocity[i] * seconds;
                 missSquared += at * at;
             }
-            return new ClosestApproach { Time = ut + seconds, Distance = Math.Sqrt(missSquared), TrajectoryKind = TrajectoryKind.Analytic };
+            return new ClosestApproach { Time = ut + seconds, Distance = Math.Sqrt(missSquared), TrajectoryKind = TrajectoryKind.Unspecified };
         }
     }
 
