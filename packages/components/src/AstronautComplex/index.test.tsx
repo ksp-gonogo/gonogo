@@ -22,7 +22,6 @@ import {
   within,
 } from "@ksp-gonogo/test-utils";
 import {
-  ARM_TIMEOUT_MS,
   createDomainAvailabilityStore,
   DomainAvailabilityContext,
   WidgetMetaContext,
@@ -30,7 +29,7 @@ import {
 import { expectNoA11yViolations, getByTip } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -748,67 +747,6 @@ describe("AstronautComplexComponent", () => {
       expect(sent).toBeDefined();
       // The cycle stepped off Bill onto Val before firing.
       expect(sent?.args).toEqual({ kerbalName: "Val Kerman" });
-    });
-  });
-
-  describe("fire-highlighted through a bound input", () => {
-    const press = () =>
-      act(() => {
-        dispatchAction("astronaut-complex", "fire-highlighted", {
-          kind: "button",
-          value: true,
-        });
-      });
-    const fires = () =>
-      fixture.transport.sentCommands.filter(
-        (c) => c.command === "career.crew.fire",
-      );
-
-    async function mountWithOneKerbal(fake = false) {
-      const user = fake
-        ? userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-        : userEvent.setup();
-      renderWidget();
-      act(() => {
-        emitFunds(fixture, 500000);
-        emitComplex(fixture, {
-          applicants: [],
-          activeCrew: 1,
-          crewCapacity: 13,
-          nextHireCost: NEXT_HIRE_COST,
-        });
-        emitCrewRoster(fixture, [CREW_ROSTER[0]]);
-      });
-      await user.click(await screen.findByRole("tab", { name: "Active" }));
-      await screen.findByText("Bill Kerman");
-    }
-
-    it("lets an accidental arm lapse instead of firing on a press minutes later", async () => {
-      vi.useFakeTimers({ shouldAdvanceTime: true });
-      try {
-        await mountWithOneKerbal(true);
-        press();
-        expect(await screen.findByText("ARMED")).toBeInTheDocument();
-
-        act(() => {
-          vi.advanceTimersByTime(ARM_TIMEOUT_MS + 1);
-        });
-        expect(screen.queryByText("ARMED")).toBeNull();
-
-        press();
-        expect(fires()).toHaveLength(0);
-        expect(await screen.findByText("ARMED")).toBeInTheDocument();
-      } finally {
-        vi.useRealTimers();
-      }
-    });
-
-    it("sends one fire however many presses follow while the kerbal is still listed", async () => {
-      await mountWithOneKerbal();
-      for (let i = 0; i < 4; i++) press();
-      await waitFor(() => expect(fires()).toHaveLength(1));
-      await act(async () => {});
-      expect(fires()).toHaveLength(1);
     });
   });
 

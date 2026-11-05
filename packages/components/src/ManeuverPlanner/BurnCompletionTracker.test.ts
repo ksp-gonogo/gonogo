@@ -178,34 +178,3 @@ describe("computeCompletionUpdate", () => {
     expect(watches.size).toBe(0);
   });
 });
-
-describe("a node that outlives its hold", () => {
-  it("is not found flown again once its watch has been dropped, while the craft stays on the new orbit", () => {
-    const planned = node();
-    const watches = new Map<number, BurnWatch>();
-    let done: ReadonlyMap<number, CompletedEntry> = new Map();
-    done = computeCompletionUpdate(done, [planned], watches, ctx({}), 1000);
-    done = computeCompletionUpdate(
-      done,
-      [planned],
-      watches,
-      ctx({ nowUt: 995, thrust: { thrusting: true, lastThrustEndUt: null } }),
-      1500,
-    );
-    done = computeCompletionUpdate(done, [planned], watches, AFTER_BURN, 2000);
-    expect(done.size).toBe(1);
-
-    // What the hold timer does once it has asked for the removal, while the node is still listed.
-    done = new Map();
-    watches.delete(1000);
-    const again = computeCompletionUpdate(
-      done,
-      [planned],
-      watches,
-      AFTER_BURN,
-      13000,
-    );
-
-    expect(again.size).toBe(0);
-  });
-});

@@ -29,8 +29,6 @@ export interface InFlightCommandLike {
   oneWaySeconds?: number | null;
   /** When it was sent, as a UT, which orders a queue merged from several handles. */
   dispatchedAt?: number;
-  /** What the command was sent with, where this screen sent it; absent for a command another screen sent. */
-  args?: unknown;
   /** True while the route holds the command at a relay, waiting for a link. */
   held?: boolean;
   /** Where a command held on its way out waits, which places it at the relay on the rail. */

@@ -66,37 +66,16 @@ export function useNodeCommands(
 
   // Node commands actuate the flight plan, so each is subject to signal delay.
   const addNodeCmd = useCommand(ADD_NODE);
-  // A node on its way from any widget at this centre, so a widget mounted after the press is as busy as the one that sent it.
-  const addOnItsWay = addNodeCmd.inFlight.some(
-    (row) =>
-      row.predictedPhase === "in-transit" ||
-      row.predictedPhase === "awaiting-reply" ||
-      row.predictedPhase === "due",
-  );
-  // Read when the sends finish, so a node the plan lost in the meantime does not raise the count to reach.
-  const nodeCountRef = useRef(nodes.length);
-  nodeCountRef.current = nodes.length;
   const updateNodeCmd = useCommand(UPDATE_NODE);
   const removeNodeCmd = useCommand(REMOVE_NODE);
-
-  // Ids a removal was sent for that the plan still lists: under delay the node outlives the send, so a second removal of it, by the operator or the tracker, would address a node already on its way out.
-  const removalSentRef = useRef(new Set<string>());
-  useEffect(() => {
-    for (const id of removalSentRef.current) {
-      if (!nodes.some((n) => n.id === id)) removalSentRef.current.delete(id);
-    }
-  }, [nodes]);
 
   // Must stay referentially stable: the tracker's hold timers depend on it and would reset every sample.
   const removeNode = useCallback(
     (nodeId: string) => {
-      if (removalSentRef.current.has(nodeId)) return;
-      removalSentRef.current.add(nodeId);
-      removeNodeCmd
-        .send({ nodeId }, { label: "Auto-remove completed node" })
-        .catch(() => {
-          removalSentRef.current.delete(nodeId);
-        });
+      void removeNodeCmd.send(
+        { nodeId },
+        { label: "Auto-remove completed node" },
+      );
     },
     [removeNodeCmd.send],
   );
@@ -142,7 +121,7 @@ export function useNodeCommands(
     setError(null);
     try {
       const added = await dispatchPlanBurns(plan);
-      setExpectedNodes(nodeCountRef.current + added);
+      setExpectedNodes(nodes.length + added);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -169,13 +148,10 @@ export function useNodeCommands(
       return;
     }
     const label = "Remove maneuver node";
-    if (removalSentRef.current.has(nodeId)) return;
     await whileRemoving(async () => {
-      removalSentRef.current.add(nodeId);
       try {
         await removeNodeCmd.send({ nodeId }, { label });
       } catch (err) {
-        removalSentRef.current.delete(nodeId);
         setError(
           describeNodeRejection(err, {
             command: REMOVE_NODE,
@@ -252,7 +228,7 @@ export function useNodeCommands(
 
   return {
     sendDelay,
-    committing: committing || adding || addOnItsWay,
+    committing: committing || adding,
     adding,
     removing,
     error,

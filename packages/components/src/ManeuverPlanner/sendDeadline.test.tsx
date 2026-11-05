@@ -117,38 +117,4 @@ describe("sending a maneuver plan under signal delay", () => {
 
     await waitFor(() => expect(addedNodes(fixture)).toHaveLength(1));
   });
-
-  it("keeps Add busy in a widget mounted after the press, while the node is still on its way", async () => {
-    const { fixture, result } = mountPlanner(burnIn(1_000));
-    await waitFor(() => expect(result.current.plan).not.toBeNull());
-    // The reply is a delay away, so the press is still unanswered when the second widget mounts.
-    fixture.transport.holdCommands();
-    await act(async () => {
-      void result.current.commands.handleCommit();
-    });
-    await waitFor(() => expect(addedNodes(fixture)).toHaveLength(1));
-    const [sent] = addedNodes(fixture);
-    act(() => {
-      fixture.emit("system.uplink.pending", {
-        pending: [
-          {
-            id: "engine-1",
-            clientRequestId: sent.requestId,
-            command: "vessel.maneuver.add",
-            label: "Add maneuver node",
-            topic: "",
-            vantage: "ground:Kerbin: KSC",
-            dispatchedAt: UT_NOW,
-            oneWaySeconds: OWLT,
-          },
-        ],
-      });
-    });
-
-    const remounted = renderHook(
-      () => useNodeCommands([], null, usePlannerTelemetry().burnContext),
-      { wrapper: fixture.Provider },
-    );
-    await waitFor(() => expect(remounted.result.current.committing).toBe(true));
-  });
 });

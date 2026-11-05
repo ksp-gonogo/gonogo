@@ -14,32 +14,6 @@
           "currentThrust": 118.66046499999999,
           "availableThrust": 118.66046499999999
         }
-      },
-      {
-        "channel": "vessel.identity",
-        "value": {
-          "vesselId": "v1",
-          "name": "Active Vessel",
-          "vesselType": 0,
-          "situation": 1,
-          "parentBodyIndex": 1,
-          "launchUt": 0
-        }
-      },
-      {
-        "channel": "trackingStation.bodies",
-        "value": {
-          "bodies": [
-            {
-              "name": "Kerbin",
-              "index": 1,
-              "parentIndex": 0,
-              "radius": 600000,
-              "surfaceGravity": 1.0,
-              "orbit": null
-            }
-          ]
-        }
       }
     ],
     "pinnedUt": 0

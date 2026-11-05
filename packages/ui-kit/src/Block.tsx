@@ -1,7 +1,6 @@
 import type { ElementType, HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
 import { SubjectHeading } from "./SubjectHeading";
-import type { GapToken } from "./scales";
 import type { StaticElement } from "./staticElement";
 
 /**
@@ -31,12 +30,6 @@ export interface BlockAnatomyProps {
    * it. Distinct from `right`, which sits beside (or below) the whole body.
    */
   titleRight?: ReactNode;
-  /**
-   * The space between the title and `titleRight`, which is also the space
-   * between them when `titleRight` wraps under the title. Defaults to
-   * `related-packed`.
-   */
-  titleGap?: GapToken;
   /**
    * Content beside the title and body, on the left. Reflows to a full-width row
    * above the title when there is no room for both.
@@ -107,16 +100,14 @@ export interface BlockTitleRowProps {
   left?: ReactNode;
   /** Pushed to the end of the name's line, usually the subject's state. Absent, nothing follows the name. */
   right?: ReactNode;
-  /** The space between the name and `right`, also where `right` wraps under the name. Defaults to `related-packed`. */
-  gap?: GapToken;
   /** The name itself. */
   children?: ReactNode;
 }
 
 /** The name's line: an optional lead-in, the name, and the state pushed to the end, via `SubjectHeading`. */
-function Block__TitleRow({ left, right, gap, children }: BlockTitleRowProps) {
+function Block__TitleRow({ left, right, children }: BlockTitleRowProps) {
   return (
-    <SubjectHeading align="baseline" status={right} gap={gap}>
+    <SubjectHeading align="baseline" status={right}>
       {left == null ? (
         children
       ) : (
@@ -201,7 +192,6 @@ export function renderBlockAnatomy(
     titleAs,
     titleLeft,
     titleRight,
-    titleGap,
     left,
     right,
     top,
@@ -214,7 +204,7 @@ export function renderBlockAnatomy(
   const hasTitleRow = title != null || titleLeft != null || titleRight != null;
   const hasSideAside = left != null || right != null;
   const heading = hasTitleRow && (
-    <Block__TitleRow left={titleLeft} right={titleRight} gap={titleGap}>
+    <Block__TitleRow left={titleLeft} right={titleRight}>
       {title != null && <Block__Title as={titleAs}>{title}</Block__Title>}
     </Block__TitleRow>
   );

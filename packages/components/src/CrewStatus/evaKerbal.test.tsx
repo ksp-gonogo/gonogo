@@ -66,7 +66,7 @@ describe("Crew Status: a kerbal outside shows helmet, kit and lamp", () => {
     expect(
       screen.getByLabelText("Carrying Repair Kit, Parachute x2"),
     ).toBeInTheDocument();
-    const lamp = screen.getByRole("button", { name: "Bob Kerman lamp" });
+    const lamp = screen.getByRole("button", { name: "Lamp off" });
     expect(lamp).toHaveAttribute("aria-pressed", "false");
   });
 
@@ -104,9 +104,10 @@ describe("Crew Status: a kerbal outside shows helmet, kit and lamp", () => {
     await screen.findByText("Bob Kerman");
     expect(screen.queryByLabelText(/Helmet/)).toBeNull();
     expect(screen.queryByLabelText(/Carrying/)).toBeNull();
-    expect(
-      screen.getByRole("button", { name: "Bob Kerman lamp" }),
-    ).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("button", { name: "Lamp" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
   });
 
   it("sends the opposite of the lamp's state for that kerbal when pressed", async () => {
@@ -114,7 +115,7 @@ describe("Crew Status: a kerbal outside shows helmet, kit and lamp", () => {
     act(() => {
       fixture.emit(`eva.kerbal.${BOB}.state`, BOB_STATE);
     });
-    const lamp = await screen.findByRole("button", { name: "Bob Kerman lamp" });
+    const lamp = await screen.findByRole("button", { name: "Lamp off" });
 
     await userEvent.click(lamp);
 
@@ -129,62 +130,6 @@ describe("Crew Status: a kerbal outside shows helmet, kit and lamp", () => {
       (command) => command.command === "eva.kerbal.setLamp",
     );
     expect(sent?.args).toEqual({ kerbalVesselId: BOB, enabled: true });
-  });
-});
-
-describe("Crew Status: the lamp under signal delay", () => {
-  const meta = (ut: number) => ({ validAt: ut - 10, deliveredAt: ut });
-
-  it("reads sent after the press, then shows the state asked for once the command should have arrived, marked modelled", async () => {
-    const fixture = mount();
-    act(() => {
-      fixture.emit("comms.link", { connected: true }, meta(10));
-      fixture.emit("comms.delay", { oneWaySeconds: 10, source: 1 }, meta(10));
-      fixture.emit(`eva.kerbal.${BOB}.state`, BOB_STATE, meta(10));
-    });
-    await userEvent.click(
-      await screen.findByRole("button", { name: "Bob Kerman lamp" }),
-    );
-
-    const lamp = await screen.findByRole("button", { name: "Bob Kerman lamp" });
-    expect(lamp).toHaveAttribute("aria-pressed", "false");
-    const sent = fixture.transport.sentCommands.find(
-      (command) => command.command === "eva.kerbal.setLamp",
-    );
-    act(() => {
-      fixture.emit(
-        "system.uplink.pending",
-        {
-          pending: [
-            {
-              id: "lamp-1",
-              clientRequestId: "own",
-              command: "eva.kerbal.setLamp",
-              label: "Bob Kerman lamp",
-              topic: "",
-              vantage: "ground:Kerbin: KSC",
-              dispatchedAt: 10,
-              oneWaySeconds: 10,
-            },
-          ],
-        },
-        meta(10),
-      );
-    });
-    expect(sent?.args).toEqual({ kerbalVesselId: BOB, enabled: true });
-
-    act(() => {
-      fixture.scrubTo(21);
-      fixture.emit("comms.link", { connected: true }, meta(21));
-    });
-    const modelled = await screen.findByRole("button", {
-      name: "Bob Kerman lamp",
-    });
-    await waitFor(() =>
-      expect(modelled).toHaveAttribute("aria-pressed", "true"),
-    );
-    expect(modelled).toHaveAttribute("data-held-button");
-    await act(async () => {});
   });
 });
 

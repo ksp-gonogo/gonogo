@@ -115,27 +115,15 @@ export function useSasControls(
   const toggleSas = () => sasButton.press(false);
   const engageSas = () => {
     if (sasButton.isBlocked) return;
-    // SAS shown on, whether read or predicted, has nothing to engage.
-    if (sasButton.toggleView?.shown === true) return;
     sasButton.sendAs({ enabled: true }, "SAS on");
   };
   const toggleRcs = () => rcsButton.press(false);
   const togglePrecision = () => precisionButton.press(false);
   const setSasMode = (mode: SasMode) => {
-    const ordinal = sasModeOrdinal(mode);
-    // A mode this screen already has on its way is not sent again, and one that was lost or refused can be.
-    const onItsWay = sasModeCmd.inFlight.some(
-      (row) =>
-        typeof row.args === "object" &&
-        row.args !== null &&
-        "mode" in row.args &&
-        row.args.mode === ordinal &&
-        (row.predictedPhase === "in-transit" ||
-          row.predictedPhase === "awaiting-reply" ||
-          row.predictedPhase === "due"),
+    void sasModeCmd.send(
+      { mode: sasModeOrdinal(mode) },
+      { label: `SAS mode: ${mode}` },
     );
-    if (onItsWay) return;
-    void sasModeCmd.send({ mode: ordinal }, { label: `SAS mode: ${mode}` });
   };
 
   /*

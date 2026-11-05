@@ -1858,9 +1858,7 @@ describe("CommandButton: the toggle variant", () => {
   it("shows the state a command is predicted to set while its reply is on the way, marked modelled", () => {
     render(
       draw(false, () => Promise.resolve(OK), {
-        inFlight: [
-          row({ predictedPhase: "awaiting-reply", args: { enabled: true } }),
-        ],
+        inFlight: [row({ predictedPhase: "awaiting-reply" })],
       }),
     );
 

@@ -11031,16 +11031,8 @@
         "note": "Takes held, the reading behind the badge or its grade: a held badge keeps its words, reads caution where it was go or info, and carries the held square on its corner"
       },
       {
-        "key": "ui-kit . Block",
-        "note": "Takes titleGap, the spacing token between its title and what sits beside it"
-      },
-      {
         "key": "ui-kit . COL_WIDTH",
         "note": "Column width of the dashboard grid in px, now 21 beside a 20 px gap (was 32 beside 8)"
-      },
-      {
-        "key": "ui-kit . Card",
-        "note": "Takes titleGap, the spacing token between its title and what sits beside it"
       },
       {
         "key": "ui-kit . ComboboxListbox",
@@ -12659,10 +12651,6 @@
       {
         "key": "sitrep-sdk . HEALTH_STATE_NAMES",
         "note": "published because UplinkHealthStateName is keyed on it"
-      },
-      {
-        "key": "sitrep-sdk . InFlightCommand#args?",
-        "note": "New optional field: what this screen sent the command with, absent for another screen's command"
       },
       {
         "key": "sitrep-sdk . InFlightCommand#held?",
@@ -16377,10 +16365,6 @@
         "note": "The marked fields of each object Topic, which an Uplink augments with declare module for its own"
       },
       {
-        "key": "sitrep-sdk ./spine ~InFlightCommand#args?",
-        "note": "New optional field: what this screen sent the command with, absent for another screen's command"
-      },
-      {
         "key": "sitrep-sdk ./spine ~InFlightCommand#held?",
         "note": "New optional field: true while the route has the command waiting at a relay for a link to open"
       },
@@ -16995,10 +16979,6 @@
       {
         "key": "sitrep-sdk ./testing ~GroupMember#topic?",
         "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~InFlightCommand#args?",
-        "note": "New optional field: what this screen sent the command with, absent for another screen's command"
       },
       {
         "key": "sitrep-sdk ./testing ~InFlightCommand#held?",
@@ -17805,10 +17785,6 @@
         "note": "A badge drawn from a held reading keeps its words, takes its held tone and carries the held square on its corner"
       },
       {
-        "key": "ui-kit . BlockTitleRowProps#gap?",
-        "note": "New optional prop: the spacing token between the title and its right-hand content"
-      },
-      {
         "key": "ui-kit . ButtonProps#disabledReason?",
         "note": "New: the reason a disabled button is disabled, shown as its tip; the button becomes aria-disabled so it keeps focus"
       },
@@ -17975,10 +17951,6 @@
       {
         "key": "ui-kit . CommandToggle#marking?",
         "note": "The mark the state own reading wears, shown beside the held or modelled mark"
-      },
-      {
-        "key": "ui-kit . CommandToggle#modelled?",
-        "note": "New optional function: what an arrived command does to a state its args do not set outright"
       },
       {
         "key": "ui-kit . CommandToggle#name",
@@ -18435,10 +18407,6 @@
       {
         "key": "ui-kit . InFlightCommandLike",
         "note": "Exported from the kit's index because published signatures take it"
-      },
-      {
-        "key": "ui-kit . InFlightCommandLike#args?",
-        "note": "New optional field: what this screen sent the command with, absent for another screen's command"
       },
       {
         "key": "ui-kit . InFlightCommandLike#command",
@@ -19339,10 +19307,6 @@
       {
         "key": "ui-kit . wrapPath",
         "note": "Makes a projected path continuous across the seam and returns its copies in view, for a repeating map"
-      },
-      {
-        "key": "ui-kit . ~BlockAnatomyProps#titleGap?",
-        "note": "New optional prop: the spacing token between the title and its right-hand content"
       },
       {
         "key": "ui-kit . ~CommandListCommonProps#\"aria-label\"?",

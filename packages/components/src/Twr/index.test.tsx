@@ -1,12 +1,10 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import {
   installFixedSizeResizeObserver,
   visibleText,
 } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-import { emitAt, KERBIN, MUN } from "../test/bodyEmits";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TwrComponent } from "./index";
 
@@ -15,7 +13,6 @@ const STANDARD_GRAVITY = 9.80665;
 /** Emits a one-tonne `vessel.propulsion` payload whose TWR is exactly `twr`. */
 function emitTwr(fixture: ReturnType<typeof setupStreamFixture>, twr: number) {
   const thrust = twr * STANDARD_GRAVITY;
-  emitAt(fixture, KERBIN);
   fixture.emit("vessel.propulsion", {
     totalMass: 1,
     dryMass: 0,
@@ -129,9 +126,8 @@ describe("TwrComponent off the stream", () => {
 });
 
 describe("TwrComponent while nothing is firing", () => {
-  /** A coasting craft whose stage 1 makes 200 kN at 10 t: 2.04 at Kerbin's surface gravity, 12.3 at the Mun's, which is what the game's own ratio is there. */
+  /** A coasting craft whose stage 1 makes 200 kN at 10 t: 2.04 at standard gravity, 12.3 at the Mun's surface gravity, which is what the game's own ratio is. */
   function emitCoasting(fixture: ReturnType<typeof setupStreamFixture>) {
-    emitAt(fixture, KERBIN);
     fixture.emit("vessel.propulsion", {
       totalMass: 10,
       dryMass: 0,
@@ -154,7 +150,7 @@ describe("TwrComponent while nothing is firing", () => {
     );
   }
 
-  it("draws the next stage's ratio at the body's gravity, the basis the firing figure uses", async () => {
+  it("draws the next stage's ratio at standard gravity, the basis the firing figure uses", async () => {
     const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
     renderWide(fixture);
     act(() => {
@@ -207,7 +203,6 @@ describe("TwrComponent with thrust reported that no engine can make", () => {
     const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
     renderTwr(fixture);
     act(() => {
-      emitAt(fixture, KERBIN);
       fixture.emit("vessel.propulsion", {
         totalMass: 54,
         dryMass: 20,
@@ -217,90 +212,5 @@ describe("TwrComponent with thrust reported that no engine can make", () => {
     });
     await waitFor(() => expect(visibleText()).toContain("0.00"));
     expect(visibleText()).not.toContain("1.22");
-  });
-});
-
-describe("TwrComponent at the gravity of the body the craft is at", () => {
-  function emitLander(fixture: ReturnType<typeof setupStreamFixture>) {
-    fixture.emit("vessel.propulsion", {
-      totalMass: 4,
-      dryMass: 2,
-      currentThrust: 10,
-      availableThrust: 10,
-    });
-  }
-
-  it("reads the same craft about six times higher on the Mun than at Kerbin", async () => {
-    const kerbin = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
-    const first = renderTwr(kerbin);
-    act(() => {
-      emitAt(kerbin, KERBIN);
-      emitLander(kerbin);
-    });
-    await waitFor(() => expect(visibleText()).toContain("0.25"));
-    first.unmount();
-
-    const mun = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
-    renderTwr(mun);
-    act(() => {
-      emitAt(mun, MUN);
-      emitLander(mun);
-    });
-    await waitFor(() => expect(visibleText()).toContain("1.54"));
-  });
-
-  it("agrees with the game's own stage ratio at the Mun", async () => {
-    const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
-    renderTwr(fixture);
-    act(() => {
-      emitAt(fixture, MUN);
-      emitLander(fixture);
-      fixture.emit("vessel.structure", { currentStage: 1 });
-      // What KSP's stage simulation gives at the Mun for 10 kN over 4 t: 10 / (4 * 0.166 * 9.80665).
-      fixture.emit("dv.stages", [
-        { stage: 1, thrustActual: 10, startMass: 4, twrActual: 1.5357 },
-      ]);
-    });
-    await waitFor(() => expect(visibleText()).toContain("1.54"));
-  });
-
-  it("draws a dash, not a figure from Kerbin's gravity, when the catalogue has no entry for the body", async () => {
-    const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
-    renderTwr(fixture);
-    act(() => {
-      emitAt(fixture, MUN, [KERBIN]);
-      emitLander(fixture);
-    });
-    await waitFor(() => expect(visibleText()).toContain(NULL_DISPLAY));
-    expect(visibleText()).not.toContain("0.25");
-    expect(screen.queryByText(/no engine data/i)).toBeNull();
-  });
-
-  it("draws a dash when the craft's body is known but its gravity is not reported", async () => {
-    const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
-    renderTwr(fixture);
-    act(() => {
-      fixture.emit("vessel.identity", {
-        vesselId: "v1",
-        name: "Active Vessel",
-        vesselType: 0,
-        situation: 1,
-        parentBodyIndex: 2,
-        launchUt: 0,
-      });
-      fixture.emit("trackingStation.bodies", {
-        bodies: [
-          {
-            name: "Mun",
-            index: 2,
-            parentIndex: 1,
-            radius: 200000,
-            orbit: null,
-          },
-        ],
-      });
-      emitLander(fixture);
-    });
-    await waitFor(() => expect(visibleText()).toContain(NULL_DISPLAY));
   });
 });

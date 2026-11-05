@@ -5,34 +5,7 @@
     "notes": "No engine data available (NaN / undefined TWR). Widget should show the EmptyState panel, 'No engine data'."
   },
   "_stream": {
-    "emits": [
-      {
-        "channel": "vessel.identity",
-        "value": {
-          "vesselId": "v1",
-          "name": "Active Vessel",
-          "vesselType": 0,
-          "situation": 1,
-          "parentBodyIndex": 1,
-          "launchUt": 0
-        }
-      },
-      {
-        "channel": "trackingStation.bodies",
-        "value": {
-          "bodies": [
-            {
-              "name": "Kerbin",
-              "index": 1,
-              "parentIndex": 0,
-              "radius": 600000,
-              "surfaceGravity": 1.0,
-              "orbit": null
-            }
-          ]
-        }
-      }
-    ],
+    "emits": [],
     "pinnedUt": 0
   }
 }

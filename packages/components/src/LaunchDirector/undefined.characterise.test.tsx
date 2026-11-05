@@ -148,8 +148,8 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     expect(screen.getByRole("status").textContent).toContain("No pads");
   });
 
-  /** An absent balance does not refuse a priced craft, and says what it does not know. */
-  it("does not judge a priced craft against an absent balance, and shows that the balance is unknown", async () => {
+  /** An absent balance refuses a priced craft, and says what it does not know. */
+  it("treats absent funds as insufficient funds, and shows that the balance is unknown", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
       suspendFrames: true,
@@ -163,12 +163,13 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
       ]);
     });
 
+    // Tagged with the same "Insufficient funds" reason a real short balance produces.
     const row = await waitFor(() =>
       screen.getByRole("button", { name: /Kerbal X/ }),
     );
-    expect(row.getAttribute("aria-disabled")).not.toBe("true");
-    expect(queryByTip(document.body, "Insufficient funds")).toBeNull();
-    expect(screen.getByText(/Craft · 1\/1 ready/)).toBeTruthy();
+    expect(row.getAttribute("aria-disabled")).toBe("true");
+    expect(getByTip(document.body, "Insufficient funds")).toBeTruthy();
+    expect(screen.getByText(/Craft · 0\/1 ready/)).toBeTruthy();
     // The readout stays, saying the balance is the thing missing.
     expect(queryByTip(document.body, "Available funds")).toBeNull();
     expect(
@@ -176,7 +177,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
     ).toBeTruthy();
     expect(screen.getByRole("status").textContent).toContain("funds unknown");
 
-    // A balance that arrives short does refuse it.
+    // Absence and a short balance are both "cannot afford this".
     act(() => {
       fixture.emit("career.status", {
         balances: { funds: 100, reputation: 0, science: 0 },

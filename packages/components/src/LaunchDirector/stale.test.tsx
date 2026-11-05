@@ -16,7 +16,10 @@ import { LaunchDirectorComponent } from "./index";
 
 /** The funds readout's spoken staleness, which carries the grade and the instant it was read. */
 function heldFundsCaption(): string | null {
-  const readout = queryByTip(document.body, "Last balance received");
+  const readout = queryByTip(
+    document.body,
+    "Affordability is not judged against a held balance",
+  );
   return readout?.querySelector("[data-unit-currency]")?.textContent ?? null;
 }
 
@@ -149,7 +152,7 @@ describe("LaunchDirector when its telemetry is held", () => {
     ).toBe("false");
   });
 
-  it("keeps the held balance on screen, marked by its Unit, and names it the last balance received", async () => {
+  it("keeps the held balance on screen, marked by its Unit, and says affordability is not judged against it", async () => {
     renderWidget();
     emitPreLaunch();
     await waitFor(() =>
@@ -202,7 +205,8 @@ describe("LaunchDirector when its telemetry is held", () => {
     expect(heldFundsCaption()).toBeNull();
   });
 
-  it("judges craft against the last balance received once it is held", async () => {
+  it("suspends the affordability verdict with the balance, rather than spending against a held one", async () => {
+    // The withheld balance is a judgement input, so the craft it priced stops being offered.
     renderWidget();
     emitPreLaunch();
     await waitFor(() =>
@@ -214,27 +218,15 @@ describe("LaunchDirector when its telemetry is held", () => {
     );
 
     goStale();
-    await waitFor(() => expect(heldFundsCaption()).not.toBeNull());
-    act(() => {
-      stream.emit("spaceCenter.savedShips", [
-        KERBAL_X,
-        { ...KERBAL_X, name: "Grand Tour", requiresFunds: 999_999 },
-      ]);
-    });
 
     await waitFor(() =>
       expect(
         screen
-          .getByRole("button", { name: /Grand Tour/ })
+          .getByRole("button", { name: /Kerbal X/ })
           .getAttribute("aria-disabled"),
       ).toBe("true"),
     );
-    expect(
-      screen
-        .getByRole("button", { name: /Kerbal X/ })
-        .getAttribute("aria-disabled"),
-    ).toBe("false");
-    expect(screen.getByText(/Craft · 1\/2 ready/)).toBeTruthy();
+    expect(screen.getByText(/Craft · 0\/1 ready/)).toBeTruthy();
   });
 
   it("keeps the craft shelf and the crew roster, rather than falling back to a wait message", async () => {
