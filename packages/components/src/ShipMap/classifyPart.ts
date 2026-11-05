@@ -20,7 +20,10 @@ export function classifyPart(
   const hasRCSMod = modules.some((m) => m.includes("RCS"));
   const hasCommand = modules.some((m) => m.includes("Command"));
   const hasSolar = modules.some((m) => m.includes("SolarPanel"));
-  const hasParachute = modules.some((m) => m.includes("Parachute"));
+  // RealChute replaces a stock chute's ModuleParachute with RealChuteModule.
+  const hasParachute = modules.some(
+    (m) => m.includes("Parachute") || m === "RealChuteModule",
+  );
   const hasFin = modules.some(
     (m) =>
       m.includes("LiftingSurface") ||
