@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import { getWidget } from "../../scripts/widgets";
 import { snapshotWidgetMode } from "../test/widgetDomSnapshot";
 import atmosphereAscent from "./__fixtures__/atmosphere-ascent-ok.json";
+import bodyMissing from "./__fixtures__/body-gravity-missing.json";
 import engineOff from "./__fixtures__/engine-off-empty.json";
 import heavy from "./__fixtures__/heavy-lifter-warn.json";
+import munSurface from "./__fixtures__/mun-surface.json";
 import pinned from "./__fixtures__/pinned-high.json";
 import standard from "./__fixtures__/standard-launch-ok.json";
 import vacuumLow from "./__fixtures__/vacuum-stage-below-1-twr.json";
@@ -16,6 +18,8 @@ const FIXTURES: Record<string, Record<string, unknown>> = {
   "vacuum-stage-below-1-twr": vacuumLow,
   "pinned-high": pinned,
   "engine-off-empty": engineOff,
+  "mun-surface": munSurface,
+  "body-gravity-missing": bodyMissing,
 };
 
 const config = getWidget("twr");

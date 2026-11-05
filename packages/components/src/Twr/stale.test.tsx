@@ -1,6 +1,7 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
+import { emitAt, KERBIN } from "../test/bodyEmits";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TwrComponent } from "./index";
 
@@ -20,6 +21,7 @@ function mount() {
   );
   const thrust = 1.8 * STANDARD_GRAVITY;
   act(() => {
+    emitAt(fixture, KERBIN);
     fixture.emit("vessel.propulsion", {
       totalMass: 1,
       dryMass: 0,

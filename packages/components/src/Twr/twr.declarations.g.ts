@@ -3,7 +3,9 @@ export default {
   optionalChannels: [
     "dv.stages",
     "dv.summary",
+    "trackingStation.bodies",
     "vessel.flight",
+    "vessel.identity",
     "vessel.orbit",
     "vessel.structure",
   ],
