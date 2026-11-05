@@ -191,6 +191,51 @@ namespace Gonogo.KSP.Tests.Comms
         }
 
         /// <summary>
+        /// The ground stations are the elected backend's own list, sent whether
+        /// or not a craft is on screen, and a list that has not changed keeps the
+        /// instance already published so the emitter sends nothing for it.
+        /// </summary>
+        [Fact]
+        public void GroundStationsFollowTheElectedBackend_AndAnUnchangedListKeepsItsInstance()
+        {
+            var backend = new DeadGraphBackend();
+            backend.Stations.Add(new CommsGroundStation
+            {
+                Id = "Kerbal Space Center",
+                Name = "Kerbal Space Center",
+                BodyName = "Kerbin",
+                Latitude = -0.0972,
+                Longitude = -74.5577,
+            });
+            var uplink = RegisteredUplink(backend);
+
+            CommsCoreUplink.ConfigureCommsModelProbe(() => true);
+            try
+            {
+                var first = uplink.GroundStationsFor(backend);
+                Assert.Equal("Kerbin", Assert.Single(first.Stations).BodyName);
+
+                backend.Stations = new List<CommsGroundStation>
+                {
+                    new CommsGroundStation { Id = "Kerbal Space Center", Name = "Kerbal Space Center", BodyName = "Kerbin", Latitude = -0.0972, Longitude = -74.5577 },
+                };
+                Assert.Same(first, uplink.GroundStationsFor(backend));
+
+                backend.Stations = new List<CommsGroundStation>
+                {
+                    new CommsGroundStation { Id = "Kerbal Space Center", Name = "Kerbal Space Center", BodyName = "Kerbin", Latitude = -0.0972, Longitude = -74.0 },
+                };
+                var moved = uplink.GroundStationsFor(backend);
+                Assert.NotSame(first, moved);
+                Assert.Equal(-74.0, moved.Stations[0].Longitude);
+            }
+            finally
+            {
+                CommsCoreUplink.ConfigureCommsModelProbe(null);
+            }
+        }
+
+        /// <summary>
         /// A link report is about a craft. With none on screen (an editor)
         /// connectivity and the link say nothing is reported, rather than
         /// keeping the last craft's link or reporting one the no-comms-model
@@ -210,7 +255,7 @@ namespace Gonogo.KSP.Tests.Comms
                 uplink.HandleOnCourier(uplink.CaptureOnMain(new KspSnapshot { Ut = 100.0 }));
 
                 Assert.Equal(
-                    new[] { CommsCoreUplink.OcclusionTopic, CommsCoreUplink.ConnectivityTopic, CommsCoreUplink.ControlTopic, CommsCoreUplink.LinkTopic },
+                    new[] { CommsCoreUplink.OcclusionTopic, CommsCoreUplink.GroundStationsTopic, CommsCoreUplink.ConnectivityTopic, CommsCoreUplink.ControlTopic, CommsCoreUplink.LinkTopic },
                     host.Published);
                 AssertUnreported(host);
             }
@@ -509,8 +554,11 @@ namespace Gonogo.KSP.Tests.Comms
         /// is ever assigned, and every <c>ControlPath</c> stays empty for the
         /// whole session. Not a pessimistic stand-in, the actual readings.
         /// </summary>
-        private sealed class DeadGraphBackend : ICommsBackend
+        private sealed class DeadGraphBackend : ICommsBackend, ICommsGroundStations
         {
+            internal List<CommsGroundStation> Stations = new List<CommsGroundStation>();
+
+            public IReadOnlyList<CommsGroundStation> GroundStations() => Stations;
 
         public bool? StillCarriesTo(object? vessel, string nodeId) => null;
             public string ProviderId => "commnet";
