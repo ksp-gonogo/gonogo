@@ -50,7 +50,7 @@ export interface ViewClockOptions {
   delaySeconds?: () => number;
   /** A count that rises when the delay was a stand-in and a measured figure has replaced it: the view then starts afresh at that figure instead of holding for one delay. Default none. */
   delayEpoch?: () => number;
-  /** UT-per-wall-second slope. Default 1 (real-time, no warp modelling yet, a later task feeds the real `time.warp` channel). */
+  /** The game's nominal UT per wall second: its warp rate, 0 while paused. Default 1. The clock scales it by the pace it measures from live deliveries, so a game running slower than its warp rate is followed at the speed it really runs. */
   warpRate?: () => number;
   /** Injectable wall clock (seconds), defaulting to `performance.now() / 1000`. Tests inject a controllable one. */
   nowWall?: () => number;
@@ -59,6 +59,18 @@ export interface ViewClockOptions {
   /** Wall-seconds of silence (no `observeSample`) before `confidence()` reports `"coasting"`. Default 5. */
   coastingAfterSeconds?: number;
 }
+
+/** Shortest wall-clock span over which the game's own rate is measured, long enough that a physics tick's rounding of `deliveredAt` stays under half a percent. */
+const RATE_WINDOW_SECONDS = 10;
+
+/**
+ * The range of game-to-nominal rate a measurement may report and still be
+ * believed. Outside it the span held something other than a running game: a
+ * pause the warp state had not reported yet, or a burst of frames held up in
+ * transit.
+ */
+const MIN_RATE_RATIO = 0.25;
+const MAX_RATE_RATIO = 4;
 
 function defaultNowWall(): number {
   return performance.now() / 1000;
@@ -108,6 +120,16 @@ export class ViewClock {
   };
   /** Monotonic cursor for {@link scetUt}, reset with the others on an epoch bump. */
   private lastScetUt = Number.NEGATIVE_INFINITY;
+  /**
+   * The game's measured pace as a fraction of its nominal warp rate. A game
+   * the machine cannot keep up with runs slower than its warp rate says, and
+   * an estimate carried forward at the nominal rate through a silence (a loss
+   * of signal, where the craft's own readings stop) runs ahead of the game by
+   * the difference, so the view would show instants light has not yet carried.
+   */
+  private rateRatio = 1;
+  /** The live delivery the current rate measurement started from, with the nominal rate in force then. */
+  private rateFrom: { wall: number; ut: number; warp: number } | undefined;
   /** Manual history-scrub target, `null` = live. Set via `scrubTo`. */
   private scrubTarget: number | null = null;
 
@@ -142,6 +164,7 @@ export class ViewClock {
       this.lastScetUt = Number.NEGATIVE_INFINITY;
       this.anchorWall = undefined;
       this.anchorUt = undefined;
+      this.rateFrom = undefined;
       // A scrub target from the dead pre-rewind timeline must not survive, same per-epoch hygiene as every other reset here.
       this.scrubTarget = null;
     }
@@ -161,9 +184,37 @@ export class ViewClock {
       this.anchorWall = wallNow;
       this.anchorUt = deliveredAt;
     }
+    if (!replayed) this.measureRate(wallNow, deliveredAt);
     this.lastObservedWall = wallNow;
     if (validAt > this.maxSampleUt) this.maxSampleUt = validAt;
     this.sampleSteps.observe(this.maxSampleUt, wallNow);
+  }
+
+  /*
+   * One live delivery's contribution to the measured game rate: the UT the
+   * game advanced over at least RATE_WINDOW_SECONDS of wall time, against the
+   * nominal rate. A change of nominal rate (a warp step, a pause) starts the
+   * span again, since a span across it measures neither rate.
+   */
+  private measureRate(wallNow: number, deliveredAt: number): void {
+    const warp = this.nominalWarpRate();
+    const from = this.rateFrom;
+    if (
+      from === undefined ||
+      warp <= 0 ||
+      warp !== from.warp ||
+      deliveredAt < from.ut
+    ) {
+      this.rateFrom = { wall: wallNow, ut: deliveredAt, warp };
+      return;
+    }
+    const wallSpan = wallNow - from.wall;
+    if (wallSpan < RATE_WINDOW_SECONDS) return;
+    const ratio = (deliveredAt - from.ut) / wallSpan / warp;
+    if (ratio >= MIN_RATE_RATIO && ratio <= MAX_RATE_RATIO) {
+      this.rateRatio = ratio;
+    }
+    this.rateFrom = { wall: wallNow, ut: deliveredAt, warp };
   }
 
   /** How often the latest sample time advances, in wall-clock seconds, or `undefined` until two advances have been seen. */
@@ -181,8 +232,8 @@ export class ViewClock {
     return this.options.delaySeconds?.() ?? 0;
   }
 
-  /** Estimated "vessel now": a piecewise-linear UT(wall) fit, coasting on
-   *  the last observed slope between observations. Delegates to the shared
+  /** Estimated "vessel now": a piecewise-linear UT(wall) fit, coasting
+   *  between observations at the game's own measured rate. Delegates to the shared
    *  pure formula (`view-clock-formula.ts`) so a second context (the
    *  kerbcast per-frame video-delay worker) can mirror this exactly; see
    *  that module's doc. */
@@ -468,7 +519,12 @@ export class ViewClock {
     return this.wallNow();
   }
 
+  /** Game seconds per wall second as the game is actually running: the nominal rate scaled by the measured pace. */
   private warpRate(): number {
+    return this.nominalWarpRate() * this.rateRatio;
+  }
+
+  private nominalWarpRate(): number {
     return this.options.warpRate?.() ?? 1;
   }
 }
