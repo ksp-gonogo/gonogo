@@ -501,12 +501,20 @@ export function Graph({
                   : plotReadout
               }
               cardForms={typeof plotReadout === "function" ? 3 : 1}
+              plotNotice={
+                notices.length > 0 && noticePlacement === "center"
+                  ? noticeNode
+                  : undefined
+              }
               width={size.w}
               height={size.h}
             />
           )}
-          {/* Inside the frame, so a notice laid over an empty plot leaves the frame the body's only content. */}
-          {notices.length > 0 && noticePlacement === "center" && noticeNode}
+          {/* Before the chart has a size there is no plot rectangle to centre on, so the notice takes the whole frame until it does. */}
+          {!size &&
+            notices.length > 0 &&
+            noticePlacement === "center" &&
+            noticeNode}
         </div>
         {/* Draws nothing, so it rides inside the frame and leaves it the chart's only content when there's no notice beside it. */}
         {children}

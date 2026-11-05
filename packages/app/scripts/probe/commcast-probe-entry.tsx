@@ -116,6 +116,8 @@ export interface Pane {
   compose?: boolean;
   /** Names to select in the picker, in order. Only read with `compose`. */
   pick?: string[];
+  /** Text typed into the picker's filter after `pick`. Only read with `compose`. */
+  filter?: string;
   /** Press Open on what `pick` chose, landing in the conversation itself. */
   open?: boolean;
   /** From the open thread, press Add and choose these, stopping short of committing. */
@@ -374,6 +376,16 @@ async function driveOpen(el: Element, pane: Pane): Promise<boolean> {
     if (!(await clickWhenReady(el, "New message"))) return false;
     for (const name of pane.pick ?? []) {
       if (!(await clickWhenReady(el, name, ROW))) return false;
+    }
+    if (pane.filter !== undefined) {
+      const box = el.querySelector<HTMLInputElement>('input[type="search"]');
+      if (!box) return false;
+      const set = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )?.set;
+      set?.call(box, pane.filter);
+      box.dispatchEvent(new Event("input", { bubbles: true }));
     }
     if (pane.open === true && !(await clickWhenReady(el, "Open"))) return false;
     return true;
