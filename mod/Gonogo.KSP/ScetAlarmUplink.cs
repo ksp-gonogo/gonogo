@@ -847,6 +847,10 @@ namespace Gonogo.KSP
                             _subscriptions.Reconcile(rows);
                         }
                         roster = publishing ? rows : null;
+                        if (publishing)
+                        {
+                            _roster.MarkPublished();
+                        }
                     }
                 }
 

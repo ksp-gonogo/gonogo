@@ -180,7 +180,7 @@ namespace Sitrep.Host.Alarms
             /// </summary>
             public bool Recorded;
 
-            /// <summary>A recorded row that a tick has already published, so the next tick drops it.</summary>
+            /// <summary>A recorded row that has been published, so the next tick drops it.</summary>
             public bool Announced;
         }
 
@@ -699,19 +699,24 @@ namespace Sitrep.Host.Alarms
                 && e.Alarm.Condition?.Kind == ScetAlarmConditionKind.ContractParameter);
 
         /// <summary>Close the tick and answer what it decided, over every pass.</summary>
-        public ScetAlarmTick EndTick(ScetAlarmTickState state)
+        public ScetAlarmTick EndTick(ScetAlarmTickState state) => state.Tick;
+
+        /// <summary>
+        /// Tell the roster the current <see cref="Snapshot"/> went out to its
+        /// audience. A row made by <see cref="RecordDeletedInGame"/> is dropped on
+        /// the next tick after that, never before: a tick the audience gate held
+        /// back has not told anyone, and a client that subscribes later still has
+        /// to see the row.
+        /// </summary>
+        public void MarkPublished()
         {
-            if (state.Tick.RosterChanged)
+            foreach (var entry in _entries)
             {
-                foreach (var entry in _entries)
+                if (entry.Recorded && entry.Alarm.State == ScetAlarmState.DeletedInGame)
                 {
-                    if (entry.Recorded && entry.Alarm.State == ScetAlarmState.DeletedInGame)
-                    {
-                        entry.Announced = true;
-                    }
+                    entry.Announced = true;
                 }
             }
-            return state.Tick;
         }
 
         private static void EvaluateTime(
