@@ -12,6 +12,7 @@ import {
 import { createPortal } from "react-dom";
 import styled from "styled-components";
 import { Button } from "./Button";
+import { DelayRailProvider } from "./CommandDelay/DelayRailContext";
 import { FOCUS_RESTORE_ATTRIBUTE } from "./focusRestore";
 import { CloseIcon } from "./Icons";
 import { ModalChromeContext, type ModalChromeValue } from "./ModalSaveBar";
@@ -303,9 +304,12 @@ function ModalDialog({ entry, isTop, onClose }: Readonly<ModalDialogProps>) {
               </CloseButton>
             </DialogHeader>
             <DialogBody>
-              <ModalChromeContext.Provider value={chrome}>
-                {entry.content}
-              </ModalChromeContext.Provider>
+              {/* Content opened here sits outside every widget tile, so it needs its own command rail */}
+              <DelayRailProvider>
+                <ModalChromeContext.Provider value={chrome}>
+                  {entry.content}
+                </ModalChromeContext.Provider>
+              </DelayRailProvider>
             </DialogBody>
             {footer && !confirming && <DialogFooter>{footer}</DialogFooter>}
             {confirming && (
