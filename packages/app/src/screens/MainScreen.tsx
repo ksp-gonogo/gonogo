@@ -256,9 +256,11 @@ export function MainScreen({
     document.title = screen === "pilot" ? "gonogo - Pilot" : "gonogo - Main";
   }, [screen]);
   /*
-   * A pilot page holds its own telemetry session and is deliberately NOT a
-   * peer host: it joins the mesh as a client, so the canonical thread is
-   * somebody else's and this screen must not build one.
+   * Whether this screen builds the peer mesh and its canonical thread. A local
+   * screen (`LocalScreen`) says so itself: it hosts when the mod grants it the
+   * role, and otherwise joins the holder. A screen with no say defaults by
+   * seat: mission control hosts, and a pilot page joins the mesh as a client
+   * over `PilotScreen`'s link, so the canonical thread is somebody else's.
    */
   const hostsThePeerMesh = hosting ?? screen !== "pilot";
   return (

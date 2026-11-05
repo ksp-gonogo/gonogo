@@ -9,7 +9,7 @@
  * Which of the four addresses this page load is, from the URL alone. `main`
  * and `pilot` are local screens, which read the game directly and host or join
  * by themselves; `station` and `pilot-station` join a host with its code and
- * read through it.
+ * read through it, as does `pilot` on a page that cannot open the mod's socket.
  *
  * Base-path-relative: `BASE_URL` is `/` in dev and `/app/` or `/rc/` on GitHub
  * Pages, so the raw pathname is stripped of that prefix before matching,

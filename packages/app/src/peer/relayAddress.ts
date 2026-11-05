@@ -11,6 +11,8 @@ export const STUN_SERVERS: RTCIceServer[] = [
 
 const DEFAULT_RELAY_URL = "http://localhost:3002";
 
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
+
 declare global {
   interface Window {
     /** A relay address set before the app loads, which wins over the build's; a test points one main screen at its own relay this way. */
@@ -18,19 +20,32 @@ declare global {
   }
 }
 
+const RELAY_PORT = 3002;
+
 /**
- * Where the main screen looks for the relay. Defaults to the
- * dev-compose port on the same machine. Override via `VITE_RELAY_URL`
- * for setups where the relay is on a different host.
+ * Where this page looks for the relay. A page served over http from an address
+ * other than this machine's own (the bundle opened from another device) finds
+ * the relay on the same host, port 3002. Anything else, the dev server and the
+ * hosted site included, uses the dev-compose port on this machine. `VITE_RELAY_URL`
+ * overrides both, for a relay on a different host.
  */
 export function relayBaseUrl(): string {
   const env = import.meta.env as Record<string, string | undefined>;
   const override =
     typeof window !== "undefined" ? window.__GONOGO_RELAY_URL__ : undefined;
-  return (override ?? env.VITE_RELAY_URL ?? DEFAULT_RELAY_URL).replace(
+  return (override ?? env.VITE_RELAY_URL ?? servedFromRelayUrl()).replace(
     /\/$/,
     "",
   );
+}
+
+function servedFromRelayUrl(): string {
+  if (typeof location === "undefined") return DEFAULT_RELAY_URL;
+  const { protocol, hostname } = location;
+  if (protocol !== "http:" || LOOPBACK_HOSTS.has(hostname.toLowerCase())) {
+    return DEFAULT_RELAY_URL;
+  }
+  return `http://${hostname}:${RELAY_PORT}`;
 }
 
 /** The relay's socket to its station endpoint, which only the main screen opens. */

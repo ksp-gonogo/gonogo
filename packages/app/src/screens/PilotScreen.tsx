@@ -20,13 +20,19 @@ type ConnStatus = Parameters<
 >[0];
 
 /**
- * The pilot's page at `/pilot/station`: a human aboard the craft, on a device
- * that joins a host with its code and reads the game through it.
+ * A pilot that joins mission control with its host code and reads the game
+ * through it: the page at `/pilot/station`, and `/pilot` wherever the page
+ * cannot open the mod's socket (any https page, such as the hosted site).
  *
- * The host serves it from a mod session of its own that follows the active
- * craft (`SitrepVantageSessions`), carried over the peer link by
- * `PeerTransport`. The same link carries the shared thread and the roster.
+ * The page never needs the mod's address and never hosts. The host serves it
+ * from a mod session of its own that follows the active craft
+ * (`SitrepVantageSessions`), carried over the peer link by `PeerTransport`.
+ * The same link carries the shared thread and the roster. A pilot that can
+ * reach the mod itself is a local screen (`LocalScreen`) and may host.
  *
+ * The saved host code can be changed from the comms banner, which shows
+ * whenever the link is down.
+
  * The link is not a gate on the page once it has been set up: a pilot is
  * flying either way, and losing mission control is a thing that happens to a
  * spacecraft rather than a reason to stop rendering the instruments.
@@ -43,6 +49,7 @@ export function PilotScreen() {
     () => localStorage.getItem(HOST_ID_KEY) ?? "",
   );
   const [dismissed, setDismissed] = useState(false);
+  const [changingCode, setChangingCode] = useState(false);
   const unsubs = useRef<Array<() => void>>([]);
 
   useEffect(() => {
@@ -60,6 +67,8 @@ export function PilotScreen() {
     if (!trimmed) return;
     localStorage.setItem(HOST_ID_KEY, trimmed);
     setHostInput(trimmed);
+    setChangingCode(false);
+    setDismissed(false);
     for (const u of unsubs.current) u();
     unsubs.current = [];
     setHostNotFound(false);
@@ -108,10 +117,10 @@ export function PilotScreen() {
   const [relayedTransport] = useState(() => new PeerTransport(client));
 
   const connected = status === "connected";
-  // Nothing saved and nothing tried: the operator has to be asked once. This
-  // is setup, not a connection failure, and it is the only state that takes
-  // the whole screen.
-  const needsFirstSetup = !hostInput && !everConnected;
+  // Nothing saved and nothing tried, or a saved code being replaced: the
+  // operator is asked for a code. This is setup, not a connection failure, and
+  // it is the only state that takes the whole screen.
+  const needsFirstSetup = (!hostInput && !everConnected) || changingCode;
 
   if (needsFirstSetup) {
     return (
@@ -156,6 +165,7 @@ export function PilotScreen() {
                 : `Reaching mission control (${hostInput}): ${status}`}
             </Text>
             <Button onClick={() => connect(hostInput)}>Retry</Button>
+            <Button onClick={() => setChangingCode(true)}>Change code</Button>
             <Button onClick={() => setDismissed(true)}>Dismiss</Button>
           </PilotScreen__CommsBanner>
         )}
