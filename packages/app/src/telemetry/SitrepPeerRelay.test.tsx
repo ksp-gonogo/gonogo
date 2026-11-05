@@ -615,4 +615,32 @@ describe("SitrepPeerRelay tells stations whether the stream to the mod is open",
     expect(links().length).toBe(before + 2);
     view.unmount();
   });
+
+  it("tells stations the link is open again when a rebuilt client replaces one that lost it", async () => {
+    const peerHost = makeFakeHost();
+    let store: TimelineStore | undefined;
+    function Grab() {
+      store = useTelemetryStore();
+      return null;
+    }
+    const tree = (client: TelemetryClient) => (
+      <TelemetryProvider client={client}>
+        <Grab />
+        <SitrepPeerRelay peerHost={asHostService(peerHost)} />
+      </TelemetryProvider>
+    );
+    const view = render(tree(new TelemetryClient(new StubTransport())));
+    act(() => peerHost.connectPeer("station-a"));
+    act(() => store?.setTransportConnected(false));
+    expect(peerHost.broadcasts.at(-1)).toEqual({
+      type: "sitrep-link",
+      connected: false,
+    });
+
+    view.rerender(tree(new TelemetryClient(new StubTransport())));
+
+    const links = peerHost.broadcasts.filter((m) => m.type === "sitrep-link");
+    expect(links.at(-1)).toEqual({ type: "sitrep-link", connected: true });
+    view.unmount();
+  });
 });

@@ -278,6 +278,41 @@ describe("TimelineStore.gapModel", () => {
   });
 
   /**
+   * A craft sitting on the ground publishes fresh elements every sample, each
+   * one a free fall from where it stands. Asked about a span a minute back
+   * with the newest elements, the conic puts the craft a kilometre below where
+   * it was measured, a path it never took. A model whose inputs moved after
+   * the span makes no claim about it.
+   */
+  it("makes no claim about a past span from inputs published after it", () => {
+    const s = store();
+    const flight = (altitude: number) => ({
+      altitudeAsl: value("m", altitude),
+      atmDensity: 0,
+    });
+    const muMu = 6.5138398e10;
+    const fall = (epoch: number) =>
+      orbit({
+        sma: value("m", 177_076),
+        ecc: value("1", 0.1529),
+        meanAnomalyAtEpoch: value("rad", Math.PI),
+        epoch: value("ut", epoch),
+        mu: value("m³/s²", muMu),
+      });
+    s.ingest("time.warp", point(0, warp(1)));
+    s.ingest(
+      "trackingStation.bodies",
+      point(0, { bodies: [{ index: 1, radius: 200_000 }] }),
+    );
+    s.ingest("vessel.orbit", point(60, fall(60)));
+    s.ingest("vessel.flight", point(60, flight(4152)));
+    s.ingest("vessel.flight", point(61, flight(4152.1)));
+    s.ingest("vessel.orbit", point(120, fall(120)));
+
+    expect(gapAt(s, "vessel.flight.altitudeAsl")).toBeUndefined();
+  });
+
+  /**
    * The dock model carries `relativeVelocity` verbatim, which is no claim about
    * the gap, so a warped span across it is unclaimed like any other.
    */

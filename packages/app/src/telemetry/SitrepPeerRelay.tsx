@@ -188,6 +188,8 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
   const supersededRef = useRef(new Map<string, number>());
   // The newest word on what the game is doing. Held apart from the frame cache because it is keyed by no topic, and kept for the same reason: a station arriving mid-load must hold at once, and no later frame is coming to tell it.
   const gameStateRef = useRef<ServerMessage | undefined>(undefined);
+  // What stations were last told about the stream to the mod, so a replaced store can correct it.
+  const toldLinkRef = useRef<boolean | undefined>(undefined);
 
   useEffect(() => {
     const update = () =>
@@ -209,9 +211,20 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
         type: "sitrep-link",
         connected: store.streamConnected(),
       }) satisfies PeerMessage;
-    const offChange = store.subscribeStreamConnected(() =>
-      peerHost.broadcast(link()),
-    );
+    /*
+     * A rebuilt client brings a store that starts connected and never fires a
+     * change, so stations still holding the old store's "not connected" are
+     * told the current state as the new store arrives.
+     */
+    const told = toldLinkRef.current;
+    if (told !== undefined && told !== store.streamConnected()) {
+      peerHost.broadcast(link());
+    }
+    toldLinkRef.current = store.streamConnected();
+    const offChange = store.subscribeStreamConnected(() => {
+      toldLinkRef.current = store.streamConnected();
+      peerHost.broadcast(link());
+    });
     const offConnect = peerHost.onPeerConnect((peerId) =>
       peerHost.sendToPeer(peerId, link()),
     );

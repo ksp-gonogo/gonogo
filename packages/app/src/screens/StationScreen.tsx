@@ -2,7 +2,7 @@ import {
   ManeuverTriggerProvider,
   WarpIntentProvider,
 } from "@ksp-gonogo/components";
-import { registerDataSource, ScreenProvider } from "@ksp-gonogo/core";
+import { ScreenProvider } from "@ksp-gonogo/core";
 import { CoverageMaskCacheProvider, FlightsFab } from "@ksp-gonogo/data";
 import { debugPeer } from "@ksp-gonogo/logger";
 import {
@@ -63,9 +63,9 @@ import {
 import { HostDisconnectBanner } from "../peer/HostDisconnectBanner";
 import { HostVersionBanner } from "../peer/HostVersionBanner";
 import { PeerClientProvider } from "../peer/PeerClientContext";
-import { PeerClientDataSource } from "../peer/PeerClientDataSource";
 import type { ConnStatus } from "../peer/PeerClientService";
 import { PeerClientService } from "../peer/PeerClientService";
+import { registerHostSources } from "../peer/registerHostSources";
 import { StationInfoBroadcaster } from "../peer/StationInfoBroadcaster";
 import { getStationKey } from "../peer/stationPeerId";
 import { PushClientProvider } from "../pushToMain/PushClientContext";
@@ -275,12 +275,7 @@ export function StationScreen() {
       client.onSchema((sources) => {
         if (schemaHandledRef.current) return;
         schemaHandledRef.current = true;
-        for (const s of sources) {
-          const source = new PeerClientDataSource(s.id, s.name, client);
-          source.setSchema(s.keys);
-          registerDataSource(source);
-          void source.connect();
-        }
+        registerHostSources(sources, client);
 
         setConnected(true);
       }),

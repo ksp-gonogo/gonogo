@@ -36,6 +36,7 @@
     "render-graph-crosshair": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-graph-crosshair.ts",
     "render-chart-provenance": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-chart-provenance.ts",
     "render-reckoned-tail": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-reckoned-tail.ts",
+    "render-landed-altitude": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-landed-altitude.ts",
     "render-drag-horizon": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-drag-horizon.ts",
     "render-rendezvous-hud": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-rendezvous-hud.ts",
     "gen-eligibility-fixtures": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/gen-eligibility-fixtures.ts",

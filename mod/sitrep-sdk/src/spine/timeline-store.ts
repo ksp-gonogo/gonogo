@@ -1943,7 +1943,20 @@ export class TimelineStore {
     const rawTopic = parsed?.rawTopic ?? topic;
     const token = this.currentToken;
     if (!getReckoner(rawTopic)) return unclaimed;
-    const inputs = this.reckonerDepTopics(rawTopic)
+    const depTopics = this.reckonerDepTopics(rawTopic);
+    /*
+     * The model reads the newest inputs, so it can only speak for a span those
+     * inputs already described. An input published after the span opened (the
+     * elements of a craft on the ground, new every sample) would answer for
+     * the past with the present's state.
+     */
+    const inputMoved = depTopics.some(
+      (dep) =>
+        (this.sample<unknown>(dep, token)?.validAt ??
+          Number.NEGATIVE_INFINITY) > before.validAt,
+    );
+    if (inputMoved) return unclaimed;
+    const inputs = depTopics
       .map(
         (dep) => `${dep}@${this.sample<unknown>(dep, token)?.validAt ?? "-"}`,
       )
