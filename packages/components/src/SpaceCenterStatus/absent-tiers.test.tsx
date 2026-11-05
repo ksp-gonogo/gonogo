@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { registerAugment } from "@ksp-gonogo/ui-kit";
+import { NULL_DISPLAY, registerAugment } from "@ksp-gonogo/ui-kit";
 import { getByTip, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { ContributionHost } from "../test/contributionHost";
@@ -134,6 +134,24 @@ describe("SpaceCenterStatus: facilities that reported no tier", () => {
       expect(screen.getByLabelText("Tracking tier 3 of 3")).toBeTruthy(),
     );
     expect(screen.getByText("MAX")).toBeTruthy();
+  });
+
+  /** The price is one of the things the producer may not have sent; the control stays where it is and the price reads as unknown. */
+  it("keeps the upgrade row of a facility whose price was not sent", async () => {
+    const fixture = mount();
+
+    emitFacilities(fixture, {
+      ...NINE_SILENT,
+      Runway: { currentTier: 0, maxTier: 2, upgradeCost: null },
+    });
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Runway tier 1 of 3")).toBeTruthy(),
+    );
+    expect(document.querySelector("[data-afford]")?.textContent).toBe(
+      NULL_DISPLAY,
+    );
+    expect(screen.getByRole("button", { name: /Upgrade/ })).toBeTruthy();
   });
 
   /** The whole-grid silence is stated once, as a short absence marker. */

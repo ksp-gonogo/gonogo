@@ -340,7 +340,7 @@ describe("parseFacilityLevels", () => {
       launchPad: {
         level: 0,
         max: 3,
-        upgradeFunds: 0,
+        upgradeFunds: null,
         currentLevelText: "",
         nextLevelText: "",
       },
@@ -360,10 +360,10 @@ describe("parseFacilityLevels", () => {
     ).toEqual({});
   });
 
-  it("defaults upgradeFunds to 0 when missing", () => {
+  it("leaves upgradeFunds null when missing", () => {
     const parsed = parseFacilityLevels({
       SpaceplaneHangar: tier(0, 3),
     });
-    expect(parsed.sph?.upgradeFunds).toBe(0);
+    expect(parsed.sph?.upgradeFunds).toBeNull();
   });
 });
