@@ -44,6 +44,29 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
+        /// The canopy transform names of a RealChute part: each parachute block's
+        /// <c>parachuteName</c>, read through <paramref name="parachuteNameOf"/>
+        /// because RealChute is not referenced. The cap is not among them, since
+        /// it covers the packed chute and stays in the part's box.
+        /// </summary>
+        public static IEnumerable<string?> RealChuteCanopies(System.Collections.IEnumerable? parachutes, Func<object, string?> parachuteNameOf)
+        {
+            var names = new List<string?>();
+            if (parachutes == null)
+            {
+                return names;
+            }
+            foreach (var parachute in parachutes)
+            {
+                if (parachute != null)
+                {
+                    names.Add(parachuteNameOf(parachute));
+                }
+            }
+            return names;
+        }
+
+        /// <summary>
         /// <paramref name="hidden"/> and every non-blank name in
         /// <paramref name="canopies"/>: a parachute's canopy is scaled up by its
         /// deploy animation, so it stays out of the part's box or a deployed
