@@ -1556,3 +1556,64 @@ describe("AlarmsModal alarms other screens armed", () => {
     expect(onDelete).toHaveBeenCalledWith("pe");
   });
 });
+
+describe("AlarmsModal time alarm countdown under signal delay", () => {
+  beforeEach(registerStubDataSource);
+
+  const DELAY = 10;
+  const VIEW_UT = 1000;
+
+  function snapshotAt(ut: number, alarms: Alarm[] = []): AlarmSnapshot {
+    return { ...makeSnapshot(alarms), ut };
+  }
+
+  const FIRES_AT = VIEW_UT + DELAY + 60;
+  const alarm: Alarm = {
+    id: "a-1",
+    name: "In a minute",
+    trigger: { kind: "time", ut: FIRES_AT, leadSeconds: 10 },
+    state: "pending",
+    createdBy: "main",
+    createdAt: 1_700_000_000_000,
+  };
+
+  function renderListAt(viewUt: number) {
+    renderWithStream(
+      <AlarmsModal
+        useSnapshot={() => snapshotAt(viewUt, [alarm])}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+      ORBIT_EPOCH,
+      DELAY,
+    );
+    return screen.getByText(/T[−+]/).parentElement?.textContent ?? "";
+  }
+
+  it("makes an alarm for 60 s of game time from now", async () => {
+    const user = userEvent.setup();
+    const onAdd = vi.fn();
+    renderWithStream(
+      <AlarmsModal
+        useSnapshot={() => snapshotAt(VIEW_UT)}
+        onAdd={onAdd}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+      ORBIT_EPOCH,
+      DELAY,
+    );
+    await user.type(screen.getByLabelText(/^name$/i), "In a minute");
+    await user.click(screen.getByRole("button", { name: /^add alarm$/i }));
+    expect(onAdd.mock.calls[0][0].trigger.ut).toBe(FIRES_AT);
+  });
+
+  it("reads T-60 s when the alarm is made", () => {
+    expect(renderListAt(VIEW_UT)).toContain("T−1min · lead");
+  });
+
+  it("reads T-0 s at the UT the game fires it, when the view clock is a delay behind", () => {
+    expect(renderListAt(FIRES_AT - DELAY)).toMatch(/T[−+]0\s?s · lead/);
+  });
+});

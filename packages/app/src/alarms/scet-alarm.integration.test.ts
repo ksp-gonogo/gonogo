@@ -170,6 +170,10 @@ interface ModStandIn {
   deleteInGame(id: string): void;
   /** The player editing the alarm's copy in the game's alarm clock: the mod takes the new name and time. */
   editInGame(id: string, name: string, ut: number): void;
+  /** The game's clock goes back to `ut` on a new timeline, as a quickload or a load of another save does. */
+  revertTo(ut: number): void;
+  /** The active craft's maneuver plan, as the mod publishes it, stamped now. */
+  publishManeuver(nodes: ReadonlyArray<{ id: string; ut: number }>): void;
   /** Another save is loaded: the mod's roster starts empty and its arms are stamped with this save. */
   loadSave(save: string): void;
   /** A quickload puts the alarm back on the roster as the save held it, until a client arms it again. */
@@ -212,6 +216,7 @@ function startSession(owlt: number): ModStandIn {
   const deletedInGame = new Set<string>();
   const inGame = new Map<string, number>();
   let loadedSave = "career-a";
+  let epoch = 0;
   const matchedSince = new Map<string, number>();
   let reading = 0;
   let lastRoster: unknown[] = [];
@@ -371,6 +376,7 @@ function startSession(owlt: number): ModStandIn {
   function subscribe(): void {
     client.subscribe("vessel.identity", () => {});
     client.subscribe("time.warp", () => {});
+    client.subscribe("vessel.maneuver", () => {});
   }
 
   function publishRoster(): void {
@@ -458,6 +464,7 @@ function startSession(owlt: number): ModStandIn {
       validAt: trueUt,
       deliveredAt: trueUt,
       vantage: stampedVantage,
+      timelineEpoch: epoch,
     });
   }
 
@@ -528,6 +535,18 @@ function startSession(owlt: number): ModStandIn {
     },
     markUnreachable(id) {
       unreachable.add(id);
+    },
+    revertTo(ut) {
+      epoch += 1;
+      this.emitAt(ut);
+    },
+    publishManeuver(nodes) {
+      transport.emit(
+        "vessel.maneuver",
+        { nodes },
+        { validAt: trueUt, deliveredAt: trueUt, vantage: stampedVantage },
+      );
+      store.beginFrame();
     },
     loadSave(save) {
       loadedSave = save;
@@ -621,7 +640,12 @@ function startSession(owlt: number): ModStandIn {
       transport.emit(
         "vessel.identity",
         { name: "Probe", vesselId: VESSEL_ID },
-        { validAt: ut - owlt, deliveredAt: ut, vantage: stampedVantage },
+        {
+          validAt: ut - owlt,
+          deliveredAt: ut,
+          vantage: stampedVantage,
+          timelineEpoch: epoch,
+        },
       );
 
       // The mod's pass, on the game's OWN clock: this is the whole point of the arm, and it runs whatever the client can currently see.
@@ -699,7 +723,12 @@ function startSession(owlt: number): ModStandIn {
           paused: false,
         },
         // `time.warp` is TrueNow on the mod, so the frame is stamped at the instant it was captured rather than a light-time back.
-        { validAt: ut, deliveredAt: ut, vantage: stampedVantage },
+        {
+          validAt: ut,
+          deliveredAt: ut,
+          vantage: stampedVantage,
+          timelineEpoch: epoch,
+        },
       );
       /* Every tick, where the real channel change-gates and leans on
          keyframe-on-subscribe to catch a late subscriber up. A stub transport
@@ -792,6 +821,76 @@ describe("SCET alarms", () => {
     await runFrom(session, UT_START + 12 * DT, UT_START + 20 * DT);
     expect(session.armed()).toEqual([alarm.id]);
     expect(svc.snapshot().alarms.map((a) => a.id)).toEqual([alarm.id]);
+    svc.dispose();
+  });
+
+  it("keeps a maneuver-bound alarm of another save when the loaded save's craft has no such node", async () => {
+    const session = startSession(OWLT);
+    session.emitAt(UT_START);
+    const svc = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage: memoryStorage(),
+      getOwltSeconds: () => OWLT,
+    });
+    session.publishManeuver([{ id: "node-1", ut: 90_060 }]);
+    const alarm = svc.addAlarm({
+      name: "Before the burn",
+      trigger: {
+        kind: "time",
+        ut: 90_000,
+        leadSeconds: 10,
+        node: { id: "node-1", beforeSeconds: 60 },
+      },
+    });
+    await run(session, UT_START + 4 * DT);
+    expect(session.armed()).toEqual([alarm.id]);
+
+    session.loadSave("career-b");
+    session.publishManeuver([]);
+    await runFrom(session, UT_START + 4 * DT, UT_START + 12 * DT);
+    expect(svc.snapshot().alarms).toEqual([]);
+
+    session.loadSave("career-a");
+    session.publishManeuver([{ id: "node-1", ut: 90_060 }]);
+    await runFrom(session, UT_START + 12 * DT, UT_START + 20 * DT);
+    expect(svc.snapshot().alarms.map((a) => a.id)).toEqual([alarm.id]);
+    svc.dispose();
+  });
+
+  it("does not fire an alarm again when another save's earlier clock was loaded and its own save returns", async () => {
+    const session = startSession(OWLT);
+    session.emitAt(UT_START);
+    const svc = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage: memoryStorage(),
+      getOwltSeconds: () => OWLT,
+    });
+    const alarm = svc.addAlarm({
+      name: "Burn",
+      trigger: { kind: "time", ut: UT_START + 6 * DT, leadSeconds: 1 },
+    });
+    await run(session, UT_START + 10 * DT);
+    expect(svc.snapshot().alarms[0].state).toMatch(/firing|fired/);
+
+    session.loadSave("career-b");
+    session.revertTo(UT_START + 2 * DT);
+    for (let ut = UT_START + 3 * DT; ut <= UT_START + 12 * DT; ut += DT) {
+      session.emitAt(ut);
+      nowMs += DT * 1000;
+      await vi.advanceTimersByTimeAsync(DT * 1000);
+    }
+
+    session.loadSave("career-a");
+    session.revertTo(UT_START + 8 * DT);
+    await runFrom(session, UT_START + 8 * DT, UT_START + 20 * DT);
+    expect(session.firedAtTrueUt.filter((f) => f.id === alarm.id)).toHaveLength(
+      1,
+    );
+    expect(session.armed()).toEqual([]);
+    expect(svc.snapshot().alarms.map((a) => a.id)).toEqual([alarm.id]);
+    expect(svc.snapshot().alarms[0].state).toMatch(/firing|fired/);
     svc.dispose();
   });
 
