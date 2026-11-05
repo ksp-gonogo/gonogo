@@ -106,6 +106,49 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// A topic whose value stopped changing during the outage ends its
+        /// recording on a <see cref="Staleness.Recorded"/> sample. Reacquisition
+        /// sends it one <see cref="Staleness.Fresh"/> keyframe as well, so a
+        /// centre reads it as current at once and not at its next keyframe,
+        /// which this topic declares as far off as UT 1000.
+        /// </summary>
+        [Fact]
+        public async Task AQuietTopicIsKeyframedFreshWhenTheLinkReturns()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new BlackoutRecorderTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, BlackoutRecorderTestUplink.OnboardTopic, Timeout);
+                await SubscribeAsync(client, BlackoutRecorderTestUplink.LinkTopic, Timeout);
+
+                Tick(engine, Snap(0.0, connected: true, delay: 0.0));
+                Tick(engine, Snap(1.0, connected: true, delay: 0.0, onboard: 1.0));
+                foreach (var ut in new[] { 2.0, 3.0, 4.0 })
+                {
+                    Tick(engine, Snap(ut, connected: false, delay: 0.0, onboard: ut));
+                }
+
+                // The value holds at 4 from the reacquisition on, so no change
+                // emission can mark it current.
+                foreach (var ut in new[] { 5.0, 6.0, 7.0 })
+                {
+                    Tick(engine, Snap(ut, connected: true, delay: 0.0, onboard: 4.0));
+                }
+
+                var frames = On(await DrainAllStreamDataAsync(client, Quiet), BlackoutRecorderTestUplink.OnboardTopic);
+                Assert.Contains(frames, f => f.Meta.Staleness == Staleness.Recorded && Value(f) == 4.0);
+                Assert.Contains(frames, f => f.Meta.Staleness == Staleness.Fresh && f.Meta.ValidAt >= 5.0 && Value(f) == 4.0);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// A link report from inside an outage leaves under the signal delay the
         /// craft was last in contact at, and one from after reacquisition under
         /// the route it has now. When that route is shorter the live report

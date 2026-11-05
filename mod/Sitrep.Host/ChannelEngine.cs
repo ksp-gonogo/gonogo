@@ -9643,6 +9643,21 @@ namespace Sitrep.Host
         /// </summary>
         private void ReplayInBlackoutBacklog(string node, double reacquiredAtUt)
         {
+            /*
+             * A topic that stopped changing during the outage ends its recording
+             * on a Recorded sample, and would otherwise stay Recorded on every
+             * centre until its next keyframe, however long that is. One forced
+             * keyframe per recorded topic closes it: the next sample of each is
+             * Fresh, and says the value is current now the link is back.
+             */
+            foreach (var topic in _recordings.Keys)
+            {
+                if (NodeFor(topic) == node)
+                {
+                    _emitter.NotifySubscribed(topic);
+                }
+            }
+
             if (SpanRoutingOn)
             {
                 // The recording leaves as spans by the plan, and not as a dump
