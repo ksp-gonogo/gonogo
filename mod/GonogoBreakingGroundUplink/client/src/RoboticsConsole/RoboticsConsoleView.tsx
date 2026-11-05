@@ -1,7 +1,9 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Button,
   Cluster,
+  CommandStepper,
   Inline,
   Panel,
   ReadoutCaption,
@@ -14,7 +16,12 @@ import {
   type UnitValue,
 } from "@ksp-gonogo/ui-kit";
 import { lockStateText, motorStateText } from "../unreadLabels";
-import { positionDecimals, type ServoInfo, TARGET_STEP } from "./servos";
+import {
+  positionDecimals,
+  type ServoInfo,
+  TARGET_STEP,
+  unitFor,
+} from "./servos";
 
 type PositionReading = UnitValue<"°" | "m">;
 
@@ -26,6 +33,13 @@ export interface PositionReadings {
 export interface RoboticsConsoleViewProps {
   servos: ServoInfo[];
   selected: ServoInfo;
+  /** The selected joint's target as commanded, expected at the craft now, and last seen while the readings are held. */
+  targetCommand: {
+    commanded: number | null;
+    expected: number | null;
+    lastSeen: number | null;
+    lastSeenCaption?: string;
+  };
   /** The field readings a servo's drawn positions come from. */
   positionReadings: (s: ServoInfo) => PositionReadings;
   /** The held marking of the servo list while it has stopped arriving; the flags are the toggles' words, so the toggles carry it. */
@@ -72,6 +86,7 @@ export function RoboticsConsoleView({
   selected,
   positionReadings,
   flagsMarked,
+  targetCommand,
   rows,
   onSelect,
   setTarget,
@@ -119,56 +134,29 @@ export function RoboticsConsoleView({
         </Section>,
         <Section key="target" gap="related-dense">
           {/* Relative to the target, so an unread target disables it. */}
-          <Cluster justify="between" wrap>
-            <Inline>
-              <ReadoutCaption>Target</ReadoutCaption>
-              <Text size="sm">
-                {selected.target === null ? (
-                  "unknown"
-                ) : (
-                  <Unit value={readings.target} decimals={decimals} />
-                )}
-              </Text>
-            </Inline>
-            <Inline>
-              <Button
-                variant="ghost"
-                size="sm"
-                type="button"
-                aria-label="Decrease target"
-                disabled={selected.target === null}
-                disabledReason="The target is not reported"
-                onClick={() =>
-                  selected.target !== null &&
-                  setTarget(
-                    selected.partId,
-                    selected.type,
-                    selected.target - TARGET_STEP[selected.type],
-                  )
-                }
-              >
-                −
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                type="button"
-                aria-label="Increase target"
-                disabled={selected.target === null}
-                disabledReason="The target is not reported"
-                onClick={() =>
-                  selected.target !== null &&
-                  setTarget(
-                    selected.partId,
-                    selected.type,
-                    selected.target + TARGET_STEP[selected.type],
-                  )
-                }
-              >
-                +
-              </Button>
-            </Inline>
-          </Cluster>
+          <Inline>
+            <ReadoutCaption>Target</ReadoutCaption>
+            <CommandStepper
+              unknown="unknown"
+              lowerLabel="Decrease target"
+              raiseLabel="Increase target"
+              commanded={targetCommand.commanded}
+              expected={targetCommand.expected}
+              lastSeen={targetCommand.lastSeen}
+              lastSeenCaption={targetCommand.lastSeenCaption}
+              min={Number.NEGATIVE_INFINITY}
+              max={Number.POSITIVE_INFINITY}
+              step={TARGET_STEP[selected.type]}
+              figure={(v) => (
+                <Unit
+                  value={value(unitFor(selected.type), v)}
+                  decimals={decimals}
+                />
+              )}
+              disabledReason="The target is not reported"
+              onChange={(v) => setTarget(selected.partId, selected.type, v)}
+            />
+          </Inline>
 
           {/* An unread flag gets a third, disabled state rather than defaulting to off or unlocked. */}
           {showToggles && (

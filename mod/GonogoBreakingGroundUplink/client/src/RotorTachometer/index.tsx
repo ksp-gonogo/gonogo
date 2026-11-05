@@ -6,6 +6,8 @@ import {
   useActionInput,
   useCommand,
   useTelemetry,
+  useUtNow,
+  useValueCommand,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   EmptyState,
@@ -68,15 +70,51 @@ function RotorTachometerComponent({
   const selected =
     rotors.find((r) => r.partId === selectedId) ?? rotors[0] ?? null;
 
+  const nowUt = useUtNow() ?? 0;
+  // This screen's newest cap, so the stepper follows a press before the centre's queue lists it.
+  const [ownRpm, setOwnRpm] = useState<{
+    partId: string;
+    value: number;
+    atUt: number;
+  } | null>(null);
+  const selectedId0 = selected?.partId ?? null;
+  const rpm = useValueCommand("robotics.rotor.setRpmLimit", {
+    received: selected?.rpmLimit ?? null,
+    own:
+      ownRpm !== null && ownRpm.partId === selectedId0
+        ? { value: ownRpm.value, at: quantity("ut", ownRpm.atUt) }
+        : null,
+    matches: (entry) => entry.topic === selectedId0,
+  });
+
+  const [ownTorque, setOwnTorque] = useState<{
+    partId: string;
+    value: number;
+    atUt: number;
+  } | null>(null);
+  const torque = useValueCommand("robotics.rotor.setTorqueLimit", {
+    received: selected?.torqueLimit ?? null,
+    own:
+      ownTorque !== null && ownTorque.partId === selectedId0
+        ? { value: ownTorque.value, at: quantity("ut", ownTorque.atUt) }
+        : null,
+    matches: (entry) => entry.topic === selectedId0,
+  });
+
   const setRpmLimit = (id: string, rpm: number) => {
     const value = Math.round(clamp(rpm, 0, ROTOR_MAX_RPM));
-    void rpmCmd.send({ partId: id, rpm: value }, { label: `RPM cap ${value}` });
+    setOwnRpm({ partId: id, value, atUt: nowUt });
+    void rpmCmd.send(
+      { partId: id, rpm: value },
+      { label: `RPM cap ${value}`, topic: id },
+    );
   };
   const setTorqueLimit = (id: string, pct: number) => {
     const value = Math.round(clamp(pct, 0, 100));
+    setOwnTorque({ partId: id, value, atUt: nowUt });
     void torqueCmd.send(
       { partId: id, percent: value },
-      { label: `Torque ${writeQuantity(quantity("%", value))}` },
+      { label: `Torque ${writeQuantity(quantity("%", value))}`, topic: id },
     );
   };
   const setBrake = (id: string, pct: number) => {
@@ -103,15 +141,15 @@ function RotorTachometerComponent({
     // The steppers are relative, so they dispatch nothing while the cap is unread.
     "rpm-up": (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
-      if (!selected || selected.rpmLimit === null) return undefined;
-      const next = clamp(selected.rpmLimit + RPM_STEP, 0, ROTOR_MAX_RPM);
+      if (!selected || rpm.commanded === null) return undefined;
+      const next = clamp(rpm.commanded + RPM_STEP, 0, ROTOR_MAX_RPM);
       setRpmLimit(selected.partId, next);
       return { RPM: next };
     },
     "rpm-down": (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
-      if (!selected || selected.rpmLimit === null) return undefined;
-      const next = clamp(selected.rpmLimit - RPM_STEP, 0, ROTOR_MAX_RPM);
+      if (!selected || rpm.commanded === null) return undefined;
+      const next = clamp(rpm.commanded - RPM_STEP, 0, ROTOR_MAX_RPM);
       setRpmLimit(selected.partId, next);
       return { RPM: next };
     },
@@ -180,8 +218,22 @@ function RotorTachometerComponent({
         <RotorControls
           key="controls"
           selected={selected}
-          rpmLimitReading={readingsOf(selected).rpmLimit}
-          torqueReading={readingsOf(selected).servoMotorLimit}
+          rpmCommand={{
+            commanded: rpm.commanded,
+            expected: rpm.expected,
+            lastSeen:
+              roboticsReading.state === "observed" ? null : selected.rpmLimit,
+            lastSeenCaption: flagsMarked?.caption,
+          }}
+          torqueCommand={{
+            commanded: torque.commanded,
+            expected: torque.expected,
+            lastSeen:
+              roboticsReading.state === "observed"
+                ? null
+                : selected.torqueLimit,
+            lastSeenCaption: flagsMarked?.caption,
+          }}
           setRpmLimit={setRpmLimit}
           setTorqueLimit={setTorqueLimit}
           setBrake={setBrake}

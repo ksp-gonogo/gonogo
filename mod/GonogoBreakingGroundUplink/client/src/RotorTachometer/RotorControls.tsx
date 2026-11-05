@@ -1,7 +1,8 @@
-import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
+import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
   Cluster,
+  CommandStepper,
   Grid,
   ReadoutCaption,
   type ReckoningMarking,
@@ -11,7 +12,7 @@ import {
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import { lockStateText, motorStateText } from "../unreadLabels";
-import { type RotorInfo, RPM_STEP, TORQUE_STEP } from "./rotors";
+import { ROTOR_MAX_RPM, type RotorInfo, RPM_STEP, TORQUE_STEP } from "./rotors";
 
 /** A brake toggle's state word; an unread brake is "unknown", never off. */
 function brakeStateText(brakePercentage: number | null): string {
@@ -33,8 +34,20 @@ function reverseLabel(counterClockwise: boolean | null): string | undefined {
 
 export interface RotorControlsProps {
   selected: RotorInfo;
-  rpmLimitReading: Reading<Value<"rpm">>;
-  torqueReading: Reading<Value<"%">>;
+  /** The RPM cap as commanded, expected at the craft now, and last seen while the readings are held. */
+  rpmCommand: {
+    commanded: number | null;
+    expected: number | null;
+    lastSeen: number | null;
+    lastSeenCaption?: string;
+  };
+  /** The torque limit as commanded, expected at the craft now, and last seen while the readings are held. */
+  torqueCommand: {
+    commanded: number | null;
+    expected: number | null;
+    lastSeen: number | null;
+    lastSeenCaption?: string;
+  };
   setRpmLimit: (id: string, rpm: number) => void;
   setTorqueLimit: (id: string, pct: number) => void;
   setBrake: (id: string, pct: number) => void;
@@ -48,8 +61,8 @@ export interface RotorControlsProps {
 /** The selected rotor's steppers and toggles; each is relative to or inverted from a figure read back, so an unread one disables it. */
 export function RotorControls({
   selected,
-  rpmLimitReading,
-  torqueReading,
+  rpmCommand,
+  torqueCommand,
   setRpmLimit,
   setTorqueLimit,
   setBrake,
@@ -63,82 +76,37 @@ export function RotorControls({
       {/* Relative to the value beside them, so an unread figure disables them. One grid, so both rows' steppers share their columns. */}
       <Grid cols="1fr auto auto auto">
         <ReadoutCaption>RPM cap</ReadoutCaption>
-        <Button
-          variant="ghost"
-          size="sm"
-          type="button"
-          aria-label="Lower RPM cap"
-          disabled={selected.rpmLimit === null}
+        <CommandStepper
+          unknown="RPM cap unknown"
+          lowerLabel="Lower RPM cap"
+          raiseLabel="Raise RPM cap"
+          commanded={rpmCommand.commanded}
+          expected={rpmCommand.expected}
+          lastSeen={rpmCommand.lastSeen}
+          lastSeenCaption={rpmCommand.lastSeenCaption}
+          min={0}
+          max={ROTOR_MAX_RPM}
+          step={RPM_STEP}
+          figure={(v) => <Unit value={value("rpm", v)} decimals={0} />}
           disabledReason="The RPM cap is not reported"
-          onClick={() =>
-            selected.rpmLimit !== null &&
-            setRpmLimit(selected.partId, selected.rpmLimit - RPM_STEP)
-          }
-        >
-          −
-        </Button>
-        <Cluster justify="center">
-          <Text size="sm">
-            {selected.rpmLimit === null ? (
-              "RPM cap unknown"
-            ) : (
-              <Unit value={rpmLimitReading} decimals={0} />
-            )}
-          </Text>
-        </Cluster>
-        <Button
-          variant="ghost"
-          size="sm"
-          type="button"
-          aria-label="Raise RPM cap"
-          disabled={selected.rpmLimit === null}
-          disabledReason="The RPM cap is not reported"
-          onClick={() =>
-            selected.rpmLimit !== null &&
-            setRpmLimit(selected.partId, selected.rpmLimit + RPM_STEP)
-          }
-        >
-          +
-        </Button>
+          onChange={(v) => setRpmLimit(selected.partId, v)}
+        />
         <ReadoutCaption>Torque</ReadoutCaption>
-        <Button
-          variant="ghost"
-          size="sm"
-          type="button"
-          aria-label="Lower torque limit"
-          disabled={selected.torqueLimit === null}
+        <CommandStepper
+          unknown="Torque unknown"
+          lowerLabel="Lower torque limit"
+          raiseLabel="Raise torque limit"
+          commanded={torqueCommand.commanded}
+          expected={torqueCommand.expected}
+          lastSeen={torqueCommand.lastSeen}
+          lastSeenCaption={torqueCommand.lastSeenCaption}
+          min={0}
+          max={100}
+          step={TORQUE_STEP}
+          figure={(v) => <Unit value={value("%", v)} decimals={0} />}
           disabledReason="The torque limit is not reported"
-          onClick={() =>
-            selected.torqueLimit !== null &&
-            setTorqueLimit(selected.partId, selected.torqueLimit - TORQUE_STEP)
-          }
-        >
-          −
-        </Button>
-        <Cluster justify="center">
-          <Text size="sm">
-            {/* A worded absence, since a bare placeholder between two steppers reads as a render failure. */}
-            {selected.torqueLimit === null ? (
-              "Torque unknown"
-            ) : (
-              <Unit value={torqueReading} decimals={0} />
-            )}
-          </Text>
-        </Cluster>
-        <Button
-          variant="ghost"
-          size="sm"
-          type="button"
-          aria-label="Raise torque limit"
-          disabled={selected.torqueLimit === null}
-          disabledReason="The torque limit is not reported"
-          onClick={() =>
-            selected.torqueLimit !== null &&
-            setTorqueLimit(selected.partId, selected.torqueLimit + TORQUE_STEP)
-          }
-        >
-          +
-        </Button>
+          onChange={(v) => setTorqueLimit(selected.partId, v)}
+        />
       </Grid>
 
       <Cluster justify="start" wrap>

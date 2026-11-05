@@ -1,10 +1,13 @@
 import type { ComponentProps } from "@ksp-gonogo/sitrep-sdk";
 import {
+  value as quantity,
   registerComponent,
   stillTrue,
   useActionInput,
   useCommand,
   useTelemetry,
+  useUtNow,
+  useValueCommand,
 } from "@ksp-gonogo/sitrep-sdk";
 import { EmptyState, heldMarking, Panel, Section } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
@@ -67,15 +70,43 @@ function RoboticsConsoleComponent({
   const selected =
     servos.find((s) => s.partId === selectedId) ?? servos[0] ?? null;
 
+  const nowUt = useUtNow() ?? 0;
+  // This screen's newest target, so the stepper follows a press before the centre's queue lists it.
+  const [ownTarget, setOwnTarget] = useState<{
+    partId: string;
+    value: number;
+    atUt: number;
+  } | null>(null);
+  const selectedPart = selected?.partId ?? null;
+  const own =
+    ownTarget !== null && ownTarget.partId === selectedPart
+      ? { value: ownTarget.value, at: quantity("ut", ownTarget.atUt) }
+      : null;
+  const valueOpts = {
+    received: selected?.target ?? null,
+    own,
+    matches: (entry: { topic: string }) => entry.topic === selectedPart,
+  };
+  const angleTarget = useValueCommand("robotics.servo.setAngle", valueOpts);
+  const extensionTarget = useValueCommand(
+    "robotics.servo.setExtension",
+    valueOpts,
+  );
+  const target = selected?.type === "piston" ? extensionTarget : angleTarget;
+
   // Type-formatted, so a piston is not commanded to a whole metre.
   const setTarget = (id: string, type: ServoType, value: number) => {
     const target = Number(formatPos(type, value));
     const label = `Target ${formatPos(type, value)}${unitFor(type)}`;
+    setOwnTarget({ partId: id, value: target, atUt: nowUt });
     if (type === "piston") {
-      void extensionCmd.send({ partId: id, metres: target }, { label });
+      void extensionCmd.send(
+        { partId: id, metres: target },
+        { label, topic: id },
+      );
       return;
     }
-    void angleCmd.send({ partId: id, degrees: target }, { label });
+    void angleCmd.send({ partId: id, degrees: target }, { label, topic: id });
   };
   const setMotor = (id: string, engaged: boolean) =>
     void motorCmd.send(
@@ -92,15 +123,15 @@ function RoboticsConsoleComponent({
     // The nudges are relative, so they dispatch nothing while the target is unread.
     "target-up": (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
-      if (!selected || selected.target === null) return undefined;
-      const next = selected.target + TARGET_STEP[selected.type];
+      if (!selected || target.commanded === null) return undefined;
+      const next = target.commanded + TARGET_STEP[selected.type];
       setTarget(selected.partId, selected.type, next);
       return { Target: next };
     },
     "target-down": (p) => {
       if (p.kind === "button" && p.value !== true) return undefined;
-      if (!selected || selected.target === null) return undefined;
-      const next = selected.target - TARGET_STEP[selected.type];
+      if (!selected || target.commanded === null) return undefined;
+      const next = target.commanded - TARGET_STEP[selected.type];
       setTarget(selected.partId, selected.type, next);
       return { Target: next };
     },
@@ -146,6 +177,12 @@ function RoboticsConsoleComponent({
       selected={selected}
       positionReadings={positionReadings}
       flagsMarked={heldMarking(roboticsReading)}
+      targetCommand={{
+        commanded: target.commanded,
+        expected: target.expected,
+        lastSeen: roboticsReading.state === "observed" ? null : selected.target,
+        lastSeenCaption: heldMarking(roboticsReading)?.caption,
+      }}
       rows={h ?? 8}
       onSelect={setSelectedId}
       setTarget={setTarget}
