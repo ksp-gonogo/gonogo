@@ -3,7 +3,7 @@ import {
   Button,
   Cluster,
   CommandStepper,
-  Grid,
+  ContainerBreak,
   ReadoutCaption,
   type ReckoningMarking,
   Section,
@@ -11,8 +11,41 @@ import {
   ToggleButton,
   Unit,
 } from "@ksp-gonogo/ui-kit";
+import type { CSSProperties } from "react";
 import { lockStateText, motorStateText } from "../unreadLabels";
 import { ROTOR_MAX_RPM, type RotorInfo, RPM_STEP, TORQUE_STEP } from "./rotors";
+
+/**
+ * The container width in px below which a caption no longer fits beside its
+ * stepper, measured with the widest caption and the widest figure.
+ */
+const STEPPER_ROW_MIN_PX = 140;
+
+const STEPPER_ROWS_NARROW: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "auto auto auto",
+  justifyContent: "start",
+  alignItems: "center",
+  gap: "var(--gap-related-dense)",
+};
+
+const STEPPER_ROWS_WIDE: CSSProperties = {
+  gridTemplateColumns: "1fr auto auto auto",
+  justifyContent: "normal",
+};
+
+/** A stepper row's caption: beside its stepper in the shared columns, or on a line of its own above it. */
+function CaptionCell({ children }: { children: string }) {
+  return (
+    <ContainerBreak
+      at={STEPPER_ROW_MIN_PX}
+      narrow={{ gridColumn: "1 / -1" }}
+      wide={{ gridColumn: "auto" }}
+    >
+      <ReadoutCaption>{children}</ReadoutCaption>
+    </ContainerBreak>
+  );
+}
 
 /** A brake toggle's state word; an unread brake is "unknown", never off. */
 function brakeStateText(brakePercentage: number | null): string {
@@ -74,40 +107,46 @@ export function RotorControls({
   return (
     <Section gap="related-dense">
       {/* Relative to the value beside them, so an unread figure disables them. One grid, so both rows' steppers share their columns. */}
-      <Grid cols="1fr auto auto auto">
-        <ReadoutCaption>RPM cap</ReadoutCaption>
-        <CommandStepper
-          unknown="RPM cap unknown"
-          lowerLabel="Lower RPM cap"
-          raiseLabel="Raise RPM cap"
-          commanded={rpmCommand.commanded}
-          expected={rpmCommand.expected}
-          lastSeen={rpmCommand.lastSeen}
-          lastSeenCaption={rpmCommand.lastSeenCaption}
-          min={0}
-          max={ROTOR_MAX_RPM}
-          step={RPM_STEP}
-          figure={(v) => <Unit value={value("rpm", v)} decimals={0} />}
-          disabledReason="The RPM cap is not reported"
-          onChange={(v) => setRpmLimit(selected.partId, v)}
-        />
-        <ReadoutCaption>Torque</ReadoutCaption>
-        <CommandStepper
-          unknown="Torque unknown"
-          lowerLabel="Lower torque limit"
-          raiseLabel="Raise torque limit"
-          commanded={torqueCommand.commanded}
-          expected={torqueCommand.expected}
-          lastSeen={torqueCommand.lastSeen}
-          lastSeenCaption={torqueCommand.lastSeenCaption}
-          min={0}
-          max={100}
-          step={TORQUE_STEP}
-          figure={(v) => <Unit value={value("%", v)} decimals={0} />}
-          disabledReason="The torque limit is not reported"
-          onChange={(v) => setTorqueLimit(selected.partId, v)}
-        />
-      </Grid>
+      <div style={{ containerType: "inline-size", width: "100%" }}>
+        <ContainerBreak
+          at={STEPPER_ROW_MIN_PX}
+          narrow={STEPPER_ROWS_NARROW}
+          wide={STEPPER_ROWS_WIDE}
+        >
+          <CaptionCell>RPM cap</CaptionCell>
+          <CommandStepper
+            unknown="RPM cap unknown"
+            lowerLabel="Lower RPM cap"
+            raiseLabel="Raise RPM cap"
+            commanded={rpmCommand.commanded}
+            expected={rpmCommand.expected}
+            lastSeen={rpmCommand.lastSeen}
+            lastSeenCaption={rpmCommand.lastSeenCaption}
+            min={0}
+            max={ROTOR_MAX_RPM}
+            step={RPM_STEP}
+            figure={(v) => <Unit value={value("rpm", v)} decimals={0} />}
+            disabledReason="The RPM cap is not reported"
+            onChange={(v) => setRpmLimit(selected.partId, v)}
+          />
+          <CaptionCell>Torque</CaptionCell>
+          <CommandStepper
+            unknown="Torque unknown"
+            lowerLabel="Lower torque limit"
+            raiseLabel="Raise torque limit"
+            commanded={torqueCommand.commanded}
+            expected={torqueCommand.expected}
+            lastSeen={torqueCommand.lastSeen}
+            lastSeenCaption={torqueCommand.lastSeenCaption}
+            min={0}
+            max={100}
+            step={TORQUE_STEP}
+            figure={(v) => <Unit value={value("%", v)} decimals={0} />}
+            disabledReason="The torque limit is not reported"
+            onChange={(v) => setTorqueLimit(selected.partId, v)}
+          />
+        </ContainerBreak>
+      </div>
 
       <Cluster justify="start" wrap>
         {/* An unread flag gets a third, disabled state rather than defaulting to off or unlocked. */}

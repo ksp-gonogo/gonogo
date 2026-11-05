@@ -134,29 +134,31 @@ export function RoboticsConsoleView({
         </Section>,
         <Section key="target" gap="related-dense">
           {/* Relative to the target, so an unread target disables it. */}
-          <Inline>
+          <Cluster justify="start" wrap>
             <ReadoutCaption>Target</ReadoutCaption>
-            <CommandStepper
-              unknown="unknown"
-              lowerLabel="Decrease target"
-              raiseLabel="Increase target"
-              commanded={targetCommand.commanded}
-              expected={targetCommand.expected}
-              lastSeen={targetCommand.lastSeen}
-              lastSeenCaption={targetCommand.lastSeenCaption}
-              min={Number.NEGATIVE_INFINITY}
-              max={Number.POSITIVE_INFINITY}
-              step={TARGET_STEP[selected.type]}
-              figure={(v) => (
-                <Unit
-                  value={value(unitFor(selected.type), v)}
-                  decimals={decimals}
-                />
-              )}
-              disabledReason="The target is not reported"
-              onChange={(v) => setTarget(selected.partId, selected.type, v)}
-            />
-          </Inline>
+            <Cluster justify="start">
+              <CommandStepper
+                unknown="unknown"
+                lowerLabel="Decrease target"
+                raiseLabel="Increase target"
+                commanded={targetCommand.commanded}
+                expected={targetCommand.expected}
+                lastSeen={targetCommand.lastSeen}
+                lastSeenCaption={targetCommand.lastSeenCaption}
+                min={Number.NEGATIVE_INFINITY}
+                max={Number.POSITIVE_INFINITY}
+                step={TARGET_STEP[selected.type]}
+                figure={(v) => (
+                  <Unit
+                    value={value(unitFor(selected.type), v)}
+                    decimals={decimals}
+                  />
+                )}
+                disabledReason="The target is not reported"
+                onChange={(v) => setTarget(selected.partId, selected.type, v)}
+              />
+            </Cluster>
+          </Cluster>
 
           {/* An unread flag gets a third, disabled state rather than defaulting to off or unlocked. */}
           {showToggles && (
