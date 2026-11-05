@@ -296,6 +296,17 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
           run = [];
           cacheRef.current.set(message.topic, run);
         }
+        /*
+         * A quickload starts a new timeline epoch. What the run holds from the
+         * one before it describes a game that no longer exists, and a station
+         * that joins would take it as the topic's history.
+         */
+        const epoch = message.meta.timelineEpoch ?? 0;
+        const last = run[run.length - 1];
+        if (last && (last.meta.timelineEpoch ?? 0) < epoch) {
+          run.length = 0;
+          supersededRef.current.set(message.topic, 0);
+        }
         run.push(message);
         const kept = Math.round(
           HISTORY_PER_TOPIC *

@@ -1460,6 +1460,20 @@ export class PeerClientService {
   }
 
   /**
+   * Ask the host for the answer to each of these commands, which this station
+   * sent before its link dropped or its page reloaded. The host replays what it
+   * holds under each id and answers an id it holds nothing for with a
+   * `replyNotReceived` error. Silently does nothing with no live connection: the
+   * client claims again on every connect.
+   */
+  sendSitrepClaim(requestIds: string[]): void {
+    this.conn?.send({
+      type: "sitrep-claim",
+      requestIds,
+    } satisfies PeerMessage);
+  }
+
+  /**
    * Forward a `TelemetryClient.dispatchGroup()` frame to the host as one peer
    * message, so the host sends the members to the mod as one group. Each member
    * carries the station's own request id, as in {@link sendSitrepCommand}.

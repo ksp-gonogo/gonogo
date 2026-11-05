@@ -67,6 +67,7 @@ import { PeerClientDataSource } from "../peer/PeerClientDataSource";
 import type { ConnStatus } from "../peer/PeerClientService";
 import { PeerClientService } from "../peer/PeerClientService";
 import { StationInfoBroadcaster } from "../peer/StationInfoBroadcaster";
+import { getStationKey } from "../peer/stationPeerId";
 import { PushClientProvider } from "../pushToMain/PushClientContext";
 import {
   ConsoleSettingsFromHost,
@@ -389,7 +390,10 @@ export function StationScreen() {
               <WarpIntentProvider
                 announce={() => alarmClient.announceWarpIntent()}
               >
-                <SitrepTelemetryProvider transport={peerTransport}>
+                <SitrepTelemetryProvider
+                  transport={peerTransport}
+                  screenKey={`station-${getStationKey(undefined, "mission-control")}`}
+                >
                   <AugmentAvailabilityFeeder />
                   <ConsoleSettingsFromHost service={settingsService} />
                   <ManeuverTriggerProvider service={maneuverTriggerClient}>

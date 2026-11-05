@@ -175,6 +175,7 @@ function outcomes(
     memory?: ReturnType<typeof createCentreCommandMemory>;
     own?: string[];
     nowUt?: number;
+    epoch?: number;
   } = {},
 ) {
   return centreCommandOutcomes({
@@ -183,6 +184,7 @@ function outcomes(
     own: new Set(opts.own ?? []),
     memory: opts.memory ?? createCentreCommandMemory(),
     nowUt: opts.nowUt ?? 1041,
+    epoch: opts.epoch ?? 0,
   });
 }
 
@@ -300,5 +302,18 @@ describe("a late answer the centre reports", () => {
     const memory = createCentreCommandMemory();
     outcomes([], { memory, nowUt: 1000 });
     expect(outcomes([answered], { memory }).founds).toEqual([]);
+  });
+
+  it("reports a refusal settled after a quickload to a UT before the one this hook first looked at", () => {
+    const memory = createCentreCommandMemory();
+    outcomes([], { memory, nowUt: 5000, epoch: 0 });
+    // The operator quickloads to UT 4000, a new timeline, and another screen's command is refused at UT 4020.
+    outcomes([], { memory, nowUt: 4001, epoch: 1 });
+    const { refusals } = outcomes([settled({ settledAt: value("ut", 4020) })], {
+      memory,
+      nowUt: 4021,
+      epoch: 1,
+    });
+    expect(refusals.map((r) => r.id)).toEqual(["station-ab12:c1"]);
   });
 });

@@ -98,22 +98,15 @@ const NOT_APPROVED =
  * host's fresh per-connection claims are keyed to the right session from the
  * first subscribe rather than being made against its own and moved.
  *
- * Left unhandled, that gap means a command whose peer connection drops
- * mid-flight (or that is dispatched with no live `conn` at all:
- * `PeerClientService.sendSitrepCommand` silently no-ops when `conn` is null)
- * has no loss timer and hangs `TelemetryClient.dispatch()`'s promise forever,
- * until the connection resumes or `TelemetryClient` is disposed. Rather than
- * build the full round-trip timing model, this class settles pending commands
- * itself on the two events that actually make a command unanswerable:
- *   - `send()` is called for a `command-request` while not `"connected"`,
- *     synthesizes an `error` on the next microtask (never inline; see the
- *     `StubTransport`/`WebSocketTransport` convention every `Transport`
- *     follows: a real transport never resolves in the same tick as the
- *     send).
- *   - the connection status transitions away from `"connected"` while
- *     commands are still in flight, every tracked `requestId` gets an
- *     `error` immediately, since a dropped peer link can't be trusted to
- *     still deliver a response that was already in flight when it dropped.
+ * A command pressed with no live peer link is refused at the press, on the next
+ * microtask and never inline (the `StubTransport`/`WebSocketTransport`
+ * convention: a real transport never settles in the same tick as the send).
+ *
+ * A command whose link drops after it was sent is left in flight. The host has
+ * already dispatched it and the mod runs it whether or not this station is
+ * still listening, so calling it failed would be wrong. `TelemetryClient`
+ * claims its answer from the host on the next connect, and again after a page
+ * reload, which is why `claimsAnswers` is set.
  */
 export class PeerTransport implements Transport {
   /**
@@ -140,6 +133,12 @@ export class PeerTransport implements Transport {
    * over the peer wire would make them decidable and is separate work.
    */
   readonly decidesTopicOwnership = false;
+  /**
+   * The host holds the answer to each command this station sent, so a station
+   * that lost its link or reloaded asks the host for it, as a screen reading
+   * the mod directly asks the mod.
+   */
+  readonly claimsAnswers = true;
   private _status: TransportStatus;
   /**
    * Whether the host's own stream to the mod is open, as the host last said. A
@@ -167,8 +166,6 @@ export class PeerTransport implements Transport {
   >();
   private readonly lostListeners = new Set<(command: LostCommand) => void>();
   private readonly unsubs: Array<() => void>;
-  /** `requestId`s of sitrep commands sent but not yet settled (response/error/drop). */
-  private readonly pendingCommandIds = new Set<string>();
   /** Topics with a live `subscribe` and no matching `unsubscribe`, re-sent on every fresh connection. */
   private readonly subscribedTopics = new Set<string>();
   /** The latest `system.dataRates` through this transport, which sizes the seen-frame record per topic. */
@@ -233,7 +230,6 @@ export class PeerTransport implements Transport {
         this.deliver(message, replayed);
       }),
       client.onSitrepCommandResponse((requestId, result, meta) => {
-        this.pendingCommandIds.delete(requestId);
         /*
          * The same prototype loss the frame branch above repairs, on the other
          * channel that carries quantities. A refusal comes down here (the host
@@ -253,7 +249,6 @@ export class PeerTransport implements Transport {
         this.deliver({ type: "command-accepted", ...accepted });
       }),
       client.onSitrepCommandError((requestId, code, message) => {
-        this.pendingCommandIds.delete(requestId);
         /*
          * The host's own transport gave up while this station's command was
          * still in its queue, so the command never left the HOST either.
@@ -355,7 +350,6 @@ export class PeerTransport implements Transport {
         );
         return;
       }
-      this.pendingCommandIds.add(requestId);
       this.client.sendSitrepCommand(
         requestId,
         message.command,
@@ -407,9 +401,6 @@ export class PeerTransport implements Transport {
         }
         return;
       }
-      for (const { requestId } of message.members) {
-        this.pendingCommandIds.add(requestId);
-      }
       this.client.sendSitrepCommandGroup(
         message.groupId,
         message.members.map((member) => ({
@@ -421,6 +412,10 @@ export class PeerTransport implements Transport {
         })),
         message.members[0]?.vantage,
       );
+      return;
+    }
+    if (message.type === "claim") {
+      this.client.sendSitrepClaim(message.requestIds);
       return;
     }
     if (message.type === "subscribe") {
@@ -508,7 +503,6 @@ export class PeerTransport implements Transport {
     this.statusListeners.clear();
     this.undeliveredListeners.clear();
     this.lostListeners.clear();
-    this.pendingCommandIds.clear();
     this.subscribedTopics.clear();
     this.topicTiers.clear();
   }
@@ -536,28 +530,6 @@ export class PeerTransport implements Transport {
       }
       for (const [topic, tier] of this.topicTiers) {
         this.client.sendSitrepSetRate(topic, tier);
-      }
-    }
-
-    // The link just dropped (or started reconnecting) while commands were
-    // still in flight: none of them can be trusted to still arrive, and
-    // with no `predictConfirmEta` there is no loss timer to eventually catch
-    // this on its own. Settle every one of them now instead of leaving
-    // `TelemetryClient.dispatch()`'s promise pending forever.
-    if (
-      wasConnected &&
-      status !== "connected" &&
-      this.pendingCommandIds.size > 0
-    ) {
-      const dropped = [...this.pendingCommandIds];
-      this.pendingCommandIds.clear();
-      for (const requestId of dropped) {
-        this.deliver({
-          type: "error",
-          requestId,
-          code: FaultCode.PeerDisconnected,
-          message: "peer connection dropped mid-flight",
-        });
       }
     }
   }

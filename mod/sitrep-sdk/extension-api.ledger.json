@@ -9779,6 +9779,14 @@
         "note": "Asks the mod to send a rate tier no faster than a given rate while the connection is open, for a main screen that cannot keep up."
       },
       {
+        "key": "sitrep-sdk ./spine TelemetryClient#carriedCommandsRevision",
+        "note": "New: a counter that changes whenever a client this one carries commands from changes, so a reader of getCarriedCommand can re-read"
+      },
+      {
+        "key": "sitrep-sdk ./spine TelemetryClient#carryCommandsFrom",
+        "note": "New: lets a main screen follow the commands a second client dispatched, such as the host connection that carries its stations' commands"
+      },
+      {
         "key": "sitrep-sdk ./spine TelemetryClient#claimedTier",
         "note": "New: the rate tier the live claims on a Topic ask for"
       },
@@ -9789,6 +9797,10 @@
       {
         "key": "sitrep-sdk ./spine TelemetryClient#followActiveCraft",
         "note": "New: asks the mod to keep the connection at the active craft, moved by the mod when the craft changes"
+      },
+      {
+        "key": "sitrep-sdk ./spine TelemetryClient#getCarriedCommand",
+        "note": "New: the status of a command this client or a client it carries dispatched, for the rows a main screen draws for its stations' commands"
       },
       {
         "key": "sitrep-sdk ./spine TelemetryClient#holdCommands",
@@ -10895,6 +10907,14 @@
         "note": "The same capRate, reached through the testing entry point."
       },
       {
+        "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#carriedCommandsRevision",
+        "note": "New: a counter that changes whenever a client this one carries commands from changes, so a reader of getCarriedCommand can re-read"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#carryCommandsFrom",
+        "note": "New: lets a main screen follow the commands a second client dispatched, such as the host connection that carries its stations' commands"
+      },
+      {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#claimedTier",
         "note": "New: the rate tier the live claims on a Topic ask for"
       },
@@ -10905,6 +10925,10 @@
       {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#followActiveCraft",
         "note": "New: asks the mod to keep the connection at the active craft, moved by the mod when the craft changes"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#getCarriedCommand",
+        "note": "New: the status of a command this client or a client it carries dispatched, for the rows a main screen draws for its stations' commands"
       },
       {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#holdCommands",

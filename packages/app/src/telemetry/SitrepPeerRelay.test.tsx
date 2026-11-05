@@ -325,6 +325,40 @@ describe("SitrepPeerRelay", () => {
     view.unmount();
   });
 
+  it("keeps nothing in a topic's replay run from before a quickload", async () => {
+    const peerHost = makeFakeHost();
+    const { transport, view } = renderRelay(peerHost);
+
+    act(() => peerHost.connectPeer("station-a"));
+    act(() => peerHost.claim("vessel.flight"));
+    await waitFor(() =>
+      expect(transport.isSubscribed("vessel.flight")).toBe(true),
+    );
+    act(() => {
+      for (const validAt of [1, 2, 3]) {
+        transport.emit(
+          "vessel.flight",
+          { altitude: validAt },
+          { validAt, timelineEpoch: 1 },
+        );
+      }
+      transport.emit(
+        "vessel.flight",
+        { altitude: 99 },
+        { validAt: 0.5, timelineEpoch: 2 },
+      );
+    });
+
+    const replay = peerHost.cachedFrames("vessel.flight");
+    expect(
+      replay.map(
+        (m) => (m as { message: { meta: Meta } }).message.meta.timelineEpoch,
+      ),
+    ).toEqual([2]);
+
+    view.unmount();
+  });
+
   it("drops vessel.landing's terrain from frames older than the one on the main screen, and keeps every other field", async () => {
     const peerHost = makeFakeHost();
     const { transport, view } = renderRelay(peerHost);

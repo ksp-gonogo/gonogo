@@ -412,6 +412,10 @@ export class TelemetryClient {
     { epoch: number; vantage: string; validAt: number }
   >();
   private readonly storeListeners = new Set<StoreListener>();
+  /** Clients whose commands this one reads as its own screen's, as {@link carryCommandsFrom} lends them. */
+  private readonly carriers = new Set<TelemetryClient>();
+  private carriedRevision = 0;
+  private readonly carriedForOther = new Set<string>();
   /** Reactive-read listeners for the selected vantage: see `onSelectedVantageChange`. */
   private readonly vantageListeners = new Set<() => void>();
   /** Reactive-read listeners for the observed vantage: see `onObservedVantageChange`. */
@@ -674,7 +678,7 @@ export class TelemetryClient {
   private outstandingList(): OutstandingCommand[] {
     const list: OutstandingCommand[] = [];
     for (const [requestId, pending] of this.commands) {
-      if (pending.unclaimable) continue;
+      if (pending.unclaimable || this.carriedForOther.has(requestId)) continue;
       const phase = pending.status.phase;
       if (phase !== "in-flight" && phase !== "lost") continue;
       list.push({
@@ -1357,6 +1361,8 @@ export class TelemetryClient {
         unclaimable: false,
       });
     });
+    /* Another screen sent it under its own id, and only that screen reloads and claims it. */
+    if (requestIdOverride !== undefined) this.carriedForOther.add(requestId);
     this.outstandingDirty = true;
     this.dropOldestAnswered();
 
@@ -1446,6 +1452,45 @@ export class TelemetryClient {
         else this.heldCommands.delete(id);
       }
     };
+  }
+
+  /**
+   * Reads the commands `carrier` dispatched as ones this screen follows, through
+   * {@link getCarriedCommand}. Useful for a main screen whose stations' commands
+   * leave through a connection of their own. Returns the release.
+   */
+  carryCommandsFrom(carrier: TelemetryClient): () => void {
+    if (carrier === this) return () => undefined;
+    this.carriers.add(carrier);
+    const stop = carrier.subscribeStore(() => {
+      this.carriedRevision += 1;
+      this.notifyStore();
+    });
+    this.carriedRevision += 1;
+    this.notifyStore();
+    return () => {
+      stop();
+      this.carriers.delete(carrier);
+    };
+  }
+
+  /** Changes whenever a client this one carries commands from changes, so a reader of {@link getCarriedCommand} can tell. */
+  carriedCommandsRevision(): number {
+    return this.carriedRevision;
+  }
+
+  /**
+   * The status of a command this client or a client it carries dispatched,
+   * preferring this client's own record. `idle` when none holds it.
+   */
+  getCarriedCommand(requestId: string): CommandStatus {
+    const own = this.commands.get(requestId)?.status;
+    if (own) return own;
+    for (const carrier of this.carriers) {
+      const status = carrier.commands.get(requestId)?.status;
+      if (status) return status;
+    }
+    return UNKNOWN_COMMAND;
   }
 
   /** Current lifecycle status for a dispatched command, or `idle` if the client holds no record of it: it was never sent, or it was answered long enough ago to be dropped. */
@@ -1687,6 +1732,7 @@ export class TelemetryClient {
     const epoch = meta.timelineEpoch ?? 0;
     const vantage = meta.vantage ?? "";
     const prior = this.newestRaw.get(topic);
+    if (prior !== undefined && prior.epoch > epoch) return false;
     if (
       prior !== undefined &&
       prior.epoch === epoch &&
@@ -1952,6 +1998,8 @@ export class TelemetryClient {
     /* A new timeline has its own pause state, which its own `time.warp` will say. */
     if (prior && epoch > prior.epoch) this.gamePaused = false;
     this.gameClock = { ut, at: this.clock.now(), epoch };
+    /* The deadlines of commands in flight are in the old timeline's UT, so the mod is asked what became of them. */
+    if (prior && epoch > prior.epoch) this.scheduleClaim();
     if (prior) return;
     let placed = false;
     for (const [requestId, pending] of this.commands) {

@@ -437,6 +437,8 @@ export function useCommand(
   }, [client, requestId]);
 
   const status = useSyncExternalStore(subscribe, getSnapshot);
+  // Re-reads the rows of commands a carried client dispatched, which `status` does not follow.
+  useSyncExternalStore(subscribe, () => client?.carriedCommandsRevision() ?? 0);
 
   // --- inFlight bookkeeping: this hook's OWN dispatches, retained past a
   // queue age-out (Task 4 / Task 4a of the delayed-command-ux plan). ---
@@ -847,7 +849,7 @@ export function useCommand(
         memory: centreMemoryRef.current,
         nowUt,
         pathConnectedDuring,
-        statusOf: (id) => client?.getCommand(id),
+        statusOf: (id) => client?.getCarriedCommand(id),
       });
   if (centreRows.length > 0) {
     inFlight = [...inFlight, ...centreRows].sort(
@@ -891,6 +893,7 @@ export function useCommand(
         own: ownIdsRef.current,
         memory: centreMemoryRef.current,
         nowUt,
+        epoch: store?.clock.getEpoch() ?? 0,
       });
   const allRefusals =
     centreOutcomes && centreOutcomes.refusals.length > 0
