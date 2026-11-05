@@ -9,8 +9,6 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
-import type { PeerClient } from "../peer/PeerClientContext";
-import { HostLayoutsSection } from "./HostLayoutsSection";
 import {
   useMissionProfiles,
   useMissionProfilesService,
@@ -23,7 +21,6 @@ import {
 } from "./MissionProfilesService";
 import type { ProfileDashboard } from "./ProfileDashboard";
 import { ProfileInputSlot } from "./ProfileInputSlot";
-import { pulledLayoutContent, pulledLayoutName } from "./pullHostLayout";
 import { useHistoryState } from "./useProfileDashboard";
 
 interface MissionProfilesModalProps {
@@ -31,8 +28,6 @@ interface MissionProfilesModalProps {
   dashboard: ProfileDashboard;
   /** Closes the modal. */
   onClose?: () => void;
-  /** The link to the main screen, on a station that has one; its saved layouts are offered. */
-  hostLink?: Pick<PeerClient, "requestHostLayouts">;
 }
 
 /**
@@ -44,7 +39,6 @@ interface MissionProfilesModalProps {
 export function MissionProfilesModal({
   dashboard,
   onClose,
-  hostLink,
 }: Readonly<MissionProfilesModalProps>) {
   const svc = useMissionProfilesService();
   const profiles = useMissionProfiles();
@@ -212,28 +206,6 @@ export function MissionProfilesModal({
         <Hint>
           Every change to the dashboard saves into the current layout.
         </Hint>
-        {hostLink && (
-          <HostLayoutsSection
-            client={hostLink}
-            onUse={(layout) => {
-              dashboard.flush();
-              const own = svc.list();
-              const stationItems = [
-                ...(own.find((p) => p.name.trim() === layout.name.trim())
-                  ?.items ?? []),
-                ...(own.find((p) => p.id === currentId)?.items ?? []),
-              ];
-              dashboard.createLayout(
-                pulledLayoutName(
-                  layout.name,
-                  own.map((p) => p.name),
-                ),
-                pulledLayoutContent(layout, stationItems),
-              );
-              onClose?.();
-            }}
-          />
-        )}
         <SectionTitle as="h3" $rule>
           New layout
         </SectionTitle>

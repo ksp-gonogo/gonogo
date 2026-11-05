@@ -38,7 +38,6 @@ export type PeerClient = Pick<
   | "sendUplinkRelay"
   | "sendBundleFetch"
   | "sendManifestFetch"
-  | "requestHostLayouts"
 >;
 
 const PeerClientContext = createContext<PeerClient | null>(null);

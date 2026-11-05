@@ -307,15 +307,6 @@ function MainScreenDisplay({
   );
   const [settingsService] = useState(() => new SettingsService());
   const [missionProfiles] = useState(() => new MissionProfilesService(screen));
-  useEffect(() => {
-    if (!hostsThePeerMesh) return;
-    return peerHostService.setHostLayoutsSource(() =>
-      missionProfiles
-        .list()
-        .filter((p) => !p.draft)
-        .map(({ id, name, items, layout }) => ({ id, name, items, layout })),
-    );
-  }, [hostsThePeerMesh, missionProfiles]);
   const [commcastLog] = useState(() =>
     hostsThePeerMesh ? createCommcastLog() : null,
   );
