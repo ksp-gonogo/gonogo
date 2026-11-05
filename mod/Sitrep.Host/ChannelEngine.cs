@@ -6342,6 +6342,24 @@ namespace Sitrep.Host
         /// </summary>
         private void Deliver(DispatchCommandJob job, object? result, string? pendingId = null)
         {
+            if (job.GroupMembers != null)
+            {
+                // Each member is listed under its own command, which is what a screen at the centre looks for.
+                var id = pendingId ?? job.PendingId;
+                for (var i = 0; i < job.GroupMembers.Count; i++)
+                {
+                    NoteOutcome(job.GroupMembers[i], result is GroupExecution execution ? execution.Results[i] : result, id);
+                }
+            }
+            else
+            {
+                NoteOutcome(job, result, pendingId);
+            }
+            Answer(job, result);
+        }
+
+        private void NoteOutcome(DispatchCommandJob job, object? result, string? pendingId)
+        {
             switch (result)
             {
                 case HandlerFault fault:
@@ -6354,7 +6372,6 @@ namespace Sitrep.Host
                     NoteLateAnswer(job, pendingId);
                     break;
             }
-            Answer(job, result);
         }
 
         /*
@@ -6402,6 +6419,7 @@ namespace Sitrep.Host
             ReplyOverdueUt = entry.ReplyOverdueUt,
             Attempts = entry.Attempts,
             Members = entry.Members.ToList(),
+            MemberCommands = entry.MemberCommands.Count > 0 ? entry.MemberCommands.ToList() : new List<string> { entry.Command },
         };
 
         /// <summary>Answers the caller alone, as <see cref="Deliver"/> does, for a job that is not on the queue itself, such as a group's member.</summary>
@@ -6454,6 +6472,21 @@ namespace Sitrep.Host
             {
                 return;
             }
+            if (job.GroupMembers != null)
+            {
+                foreach (var member in job.GroupMembers)
+                {
+                    ListOutcome(member, id, new SettledUplink
+                    {
+                        Outcome = entry.Outcome,
+                        Code = entry.Code,
+                        Reason = entry.Reason,
+                        Detail = entry.Detail,
+                        Message = entry.Message,
+                    });
+                }
+                return;
+            }
             entry.Id = id;
             entry.ClientRequestId = job.ClientRequestId;
             entry.Command = job.Command;
@@ -6461,7 +6494,9 @@ namespace Sitrep.Host
             entry.Topic = job.Topic ?? "";
             entry.Vantage = job.Vantage;
             entry.SettledAt = _tickUt;
-            _settled.RemoveAll(e => string.Equals(e.Id, entry.Id, StringComparison.Ordinal));
+            // A group's members share its queue id, so each is told apart by its own request id.
+            _settled.RemoveAll(e => string.Equals(e.Id, entry.Id, StringComparison.Ordinal)
+                && string.Equals(e.ClientRequestId, entry.ClientRequestId, StringComparison.Ordinal));
             _settled.Add(entry);
             if (job.SessionId != null)
             {
@@ -6469,8 +6504,18 @@ namespace Sitrep.Host
             }
             while (_settled.Count > SettledKeepCount)
             {
-                _settledDispatcher.Remove(_settled[0].Id);
+                var oldest = _settled[0];
                 _settled.RemoveAt(0);
+                ForgetSettledDispatcher(oldest.Id);
+            }
+        }
+
+        /// <summary>Drops the dispatcher of a settled queue id once none of its entries, one per group member, is still listed.</summary>
+        private void ForgetSettledDispatcher(string id)
+        {
+            if (!_settled.Exists(e => string.Equals(e.Id, id, StringComparison.Ordinal)))
+            {
+                _settledDispatcher.Remove(id);
             }
         }
 
@@ -6479,7 +6524,7 @@ namespace Sitrep.Host
             foreach (var gone in _settled.FindAll(e => ut > e.SettledAt + SettledKeepSeconds))
             {
                 _settled.Remove(gone);
-                _settledDispatcher.Remove(gone.Id);
+                ForgetSettledDispatcher(gone.Id);
             }
         }
 
@@ -10263,6 +10308,9 @@ namespace Sitrep.Host
                 var dispatchersBefore = new Dictionary<string, string>(_pendingDispatcher, StringComparer.Ordinal);
                 _pending.Clear();
                 _pendingDispatcher.Clear();
+                // What became of a command on the abandoned timeline is no news on this one.
+                _settled.Clear();
+                _settledDispatcher.Clear();
                 LogHost("timeline reset at UT " + tick.Ut.ToString("F2", ic) + ", " + why + ": " + ResetDelivery(tick.Ut, tick.Save, pendingBefore, dispatchersBefore));
                 RecomputeChannelBirthFromArchive();
                 _failedCommands.Clear();

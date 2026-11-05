@@ -520,6 +520,7 @@ namespace Sitrep.Host
                 CommandedValue = CommandedScalar(job),
                 Attempts = 1,
                 Members = job.GroupMembers?.Select(member => member.ClientRequestId).ToList() ?? new List<string> { requestId },
+                MemberCommands = job.GroupMembers?.Select(member => member.Command).ToList() ?? new List<string> { job.Command },
             });
             // No arrival predicted: the centre's plan knows no route to the craft, whatever the live link says, so the command waits here with no release time.
             var noRoute = prediction.ArrivalUt == null

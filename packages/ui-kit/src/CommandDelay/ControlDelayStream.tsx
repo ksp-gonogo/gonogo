@@ -4,7 +4,7 @@ import {
   type Value,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
-import { useId } from "react";
+import { Fragment, useId } from "react";
 import styled from "styled-components";
 import {
   heldNameMarker,
@@ -160,6 +160,15 @@ export interface ControlDelayStreamProps {
  */
 export const STREAM_MIN_DELAY_SECONDS = 0.05;
 const DEVIATION_EPSILON = 0.02;
+/**
+ * How far either side of its predicted moment a reading may be matched to the
+ * command, in seconds: a reading comes home on the telemetry's own cadence, up
+ * to a report interval after the round trip, so across a change it can still
+ * show the value before it.
+ */
+const READING_LATENESS_SECONDS = 1.5;
+/** How close to the rail's far end the oldest command must be for the history to count as running past it: a little over one 10 Hz sample. */
+const HISTORY_EDGE_SECONDS = 0.25;
 
 /** Soft distinct hues, in axis order (throttle, pitch, yaw, roll, ...). Wraps past four. */
 const STREAM_TOKENS = [
@@ -312,6 +321,55 @@ function commandedAt(
   return last.value;
 }
 
+/**
+ * The confirmed readings split into runs that agree with the command and runs
+ * that do not, by index into `echo`. Neighbouring runs share their boundary
+ * reading, so the line is drawn unbroken. A reading agrees when it lies within
+ * the range the command took in the {@link READING_LATENESS_SECONDS} either
+ * side of its moment. One whose allowance reaches back before the first
+ * command on the rail always agrees, since what the craft was told then is
+ * unknown.
+ */
+function offCommandRuns(
+  echo: readonly ControlStreamSample[],
+  inTransit: ControlStreamSample[],
+  span: number,
+): { from: number; to: number; off: boolean }[] {
+  // History reaching the rail's far end was cut there, and its oldest value held before it.
+  const heldPastRail =
+    inTransit.length > 0 &&
+    inTransit[inTransit.length - 1].age >= span - HISTORY_EDGE_SECONDS;
+  const off = echo.map((s) => {
+    if (commandedAt(inTransit, s.age) === null) return false;
+    let lo = Number.POSITIVE_INFINITY;
+    let hi = Number.NEGATIVE_INFINITY;
+    const take = (v: number | null) => {
+      if (v === null) return;
+      lo = Math.min(lo, v);
+      hi = Math.max(hi, v);
+    };
+    const from = s.age - READING_LATENESS_SECONDS;
+    const to = s.age + READING_LATENESS_SECONDS;
+    let before = commandedAt(inTransit, to);
+    if (before === null) {
+      if (!heldPastRail) return false;
+      before = inTransit[inTransit.length - 1].value;
+    }
+    take(commandedAt(inTransit, from));
+    take(before);
+    for (const c of inTransit) if (c.age > from && c.age < to) take(c.value);
+    return s.value < lo - DEVIATION_EPSILON || s.value > hi + DEVIATION_EPSILON;
+  });
+  const runs: { from: number; to: number; off: boolean }[] = [];
+  let from = 0;
+  for (let i = 1; i <= off.length; i++) {
+    if (i < off.length && off[i] === off[from]) continue;
+    runs.push({ from, to: Math.min(i, off.length - 1), off: off[from] });
+    from = i;
+  }
+  return runs;
+}
+
 function StreamPaths({
   stream,
   span,
@@ -392,24 +450,41 @@ function StreamPaths({
     x: xAt(s.age, span, padX),
     y: yAt(commandedAt(stream.inTransit, s.age) ?? s.value),
   }));
-  // The deviation treatment starts at the first confirmed sample that diverges from the commanded path.
-  const divergeIndex = confirmedEcho.findIndex((s) => {
-    const c = commandedAt(stream.inTransit, s.age);
-    return c !== null && Math.abs(s.value - c) > DEVIATION_EPSILON;
-  });
-  const diverged = divergeIndex !== -1;
-  // The two segments share the diverging vertex, so the path reads as one line.
-  const confirmedPts = diverged ? echoPts.slice(0, divergeIndex + 1) : echoPts;
-  const deviationPts = diverged ? echoPts.slice(divergeIndex) : [];
-  const deviationExpectedPts = diverged ? expectedPts.slice(divergeIndex) : [];
-  // A divergence at the very first sample leaves no confirmed prefix to draw.
-  const hasConfirmedPrefix = !diverged || divergeIndex > 0;
-
+  const runs = offCommandRuns(confirmedEcho, stream.inTransit, span);
+  /*
+   * The readings older than anything this screen commanded have no commanded
+   * line above them to carry the glow, so they carry it themselves from where
+   * the commanded shading ends.
+   */
+  const shadeFrom = outgoing[outgoing.length - 1].age;
+  const shadeStart = commandedAt(confirmedEcho, shadeFrom);
+  const shade = confirmedEcho.filter((s) => s.age > shadeFrom);
+  const shadePts = (
+    shadeStart === null || shade.length === 0
+      ? shade
+      : [{ age: shadeFrom, value: shadeStart }, ...shade]
+  ).map((s) => ({ x: xAt(s.age, span, padX), y: yAt(s.value) }));
+  const shadePath =
+    shadePts.length > 1
+      ? `${polyline(shadePts)} L${shadePts[shadePts.length - 1].x.toFixed(2)},${(PAD_T + PLOT_H).toFixed(2)} L${shadePts[0].x.toFixed(2)},${(PAD_T + PLOT_H).toFixed(2)} Z`
+      : null;
   return (
     <g data-stream-group={stream.id} data-return-leg={returnLeg}>
       <defs>
-        {/* Confidence ramp: muted left (least known) to clear right, kept faint so the rail reads as texture. */}
-        <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="0">
+        {/*
+          Confidence ramp: muted left (least known) to clear right, kept faint
+          so the rail reads as texture. In user space over the line's own run,
+          because a flat line's box has no height and an objectBoundingBox ramp
+          would not paint it.
+        */}
+        <linearGradient
+          id={gradId}
+          gradientUnits="userSpaceOnUse"
+          x1={cmd[0].x}
+          y1="0"
+          x2={Math.max(cmd[cmd.length - 1].x, cmd[0].x + 1)}
+          y2="0"
+        >
           <stop offset="0" stopColor={colour} stopOpacity="0.10" />
           <stop offset="1" stopColor={colour} stopOpacity="0.40" />
         </linearGradient>
@@ -442,6 +517,14 @@ function StreamPaths({
         fill={`url(#${fillId})`}
         stroke="none"
       />
+      {shadePath && (
+        <path
+          data-role="echo-area"
+          d={shadePath}
+          fill={`url(#${fillId})`}
+          stroke="none"
+        />
+      )}
       <path
         data-role="commanded"
         data-stream={stream.id}
@@ -464,39 +547,43 @@ function StreamPaths({
           strokeLinecap="round"
         />
       )}
-      {confirmedPts.length > 0 && hasConfirmedPrefix && (
-        <path
-          data-role="echo"
-          data-stream={stream.id}
-          d={polyline(confirmedPts)}
-          fill="none"
-          stroke={colour}
-          strokeWidth="0.8"
-          strokeLinecap="round"
-        />
-      )}
-      {diverged && (
-        <path
-          data-role="deviation-actual"
-          data-stream={stream.id}
-          data-deviation="true"
-          d={polyline(deviationPts)}
-          fill="none"
-          stroke="var(--color-warn-mark)"
-          strokeWidth="1"
-          strokeLinecap="round"
-        />
-      )}
-      {diverged && (
-        <path
-          data-role="deviation-expected"
-          data-stream={stream.id}
-          d={polyline(deviationExpectedPts)}
-          fill="none"
-          stroke={colour}
-          strokeWidth="0.8"
-          strokeDasharray="2 1.5"
-        />
+      {runs.map((run) =>
+        run.off ? (
+          <Fragment key={run.from}>
+            <path
+              data-role="deviation-actual"
+              data-stream={stream.id}
+              data-deviation="true"
+              d={polyline(echoPts.slice(run.from, run.to + 1))}
+              fill="none"
+              stroke="var(--color-warn-mark)"
+              strokeWidth="1"
+              strokeLinecap="round"
+            />
+            <path
+              data-role="deviation-expected"
+              data-stream={stream.id}
+              d={polyline(expectedPts.slice(run.from, run.to + 1))}
+              fill="none"
+              stroke={colour}
+              strokeWidth="0.8"
+              strokeDasharray="2 1.5"
+            />
+          </Fragment>
+        ) : (
+          run.to > run.from && (
+            <path
+              key={run.from}
+              data-role="echo"
+              data-stream={stream.id}
+              d={polyline(echoPts.slice(run.from, run.to + 1))}
+              fill="none"
+              stroke={colour}
+              strokeWidth="0.8"
+              strokeLinecap="round"
+            />
+          )
+        ),
       )}
     </g>
   );
