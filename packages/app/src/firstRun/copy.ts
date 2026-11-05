@@ -154,7 +154,7 @@ export const WIZARD_COPY = {
   "done.heading": "Done",
   "done.advance": "Finish",
   "done.next":
-    "Load a save in KSP, then add widgets with the green menu button in the bottom-right corner.",
+    "Load your KSP save. Use the green menu button in the bottom right to add widgets, manage layouts, and invite friends to join.",
 
   "settings.heading": "Setup",
   "settings.label": "First-run setup",
