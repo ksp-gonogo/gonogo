@@ -13104,7 +13104,10 @@ export enum TargetKind {
 * Because it comes from the same provider as the trajectory, the encounter and
 * the trajectory it lies on are always the same physics. Null on
 * `VesselTarget` when there is no target, no frame the provider can reach both
-* objects in, or no encounter inside the window it was asked about.
+* objects in, no encounter inside the window it was asked about, or an
+* encounter later than the orbit model stands behind for either object. The
+* next encounter is the one reported: when the model cannot stand behind it,
+* the field is null and no later encounter is given in its place.
 *
 * @category Orbits and trajectories
 */

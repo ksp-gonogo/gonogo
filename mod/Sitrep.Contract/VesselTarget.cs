@@ -61,8 +61,17 @@ public enum TargetKind
 ///
 /// <para>Because it comes from the same provider as the trajectory, the
 /// encounter and the trajectory it lies on are always the same physics. Null on <see cref="VesselTarget"/> when there is no target, no
-/// frame the provider can reach both objects in, or no encounter inside the
-/// window it was asked about.</para>
+/// frame the provider can reach both objects in, no encounter inside the
+/// window it was asked about, or an encounter later than the orbit model
+/// stands behind for either object. The next encounter is the one reported:
+/// when the model cannot stand behind it, the field is null and no later
+/// encounter is given in its place.</para>
+/// <internal>
+/// The search window is set in orbital cycles and reaches far past the horizon
+/// of a model that integrates, so Gonogo.KSP passes every answer through
+/// Sitrep.Propagation.VouchedClosestApproach, which checks
+/// IPropagationProvider.CanPropagate for both targets up to the approach.
+/// </internal>
 /// </summary>
 /// <category>Orbits and trajectories</category>
 [SitrepContract]

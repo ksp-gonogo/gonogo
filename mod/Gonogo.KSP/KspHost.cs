@@ -15,6 +15,7 @@ using ModuleWheels;
 using Sitrep.Host;
 using Sitrep.Host.Maneuver;
 using Sitrep.Host.Propulsion;
+using Sitrep.Propagation;
 using Sitrep.Propagation.Visibility;
 using Strategies;
 using UnityEngine;
@@ -3746,7 +3747,8 @@ namespace Gonogo.KSP
         /// targets, a frame and a window, and never a KSP type.
         ///
         /// <para>Null whenever there is nothing honest to say: no provider yet, no
-        /// target, no orbit on either side, or no encounter inside the window. The
+        /// target, no orbit on either side, no encounter inside the window, or an
+        /// encounter past the span the provider vouches for either craft. The
         /// old solver additionally refused any target that did not share a
         /// reference body, because it was calling KSP's two-body helper directly.
         /// That gate is gone: a provider holding the body table reaches a common
@@ -3792,7 +3794,7 @@ namespace Gonogo.KSP
                 return null;
             }
 
-            return provider.SolveClosestApproach(subject, other.Value, frame, ut, ut + window.Value);
+            return VouchedClosestApproach.Solve(provider, subject, other.Value, frame, ut, ut + window.Value);
         }
 
         /// <summary>The prediction last made for the light on the active craft, and what it was made from.</summary>
