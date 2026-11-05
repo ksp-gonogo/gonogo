@@ -1,0 +1,111 @@
+{
+  "_meta": {
+    "scenario": "crash-separated-pod",
+    "shows": "A crewed Mk1 pod on a TD-12 decoupler above an FL-T400 tank and an LV-T45 engine, with the fuel tank as the root part. The pod is decoupled at 2.4 km and lands under its Mk16 chute while the lower stage falls away. No crash report is emitted on any channel.",
+    "notes": "Focus passed to the split-off pod (flight.vesselChanged); the lower stage kept the launch vessel id and was removed with no crash or flight.ended frame.",
+    "source": "Gonogo wire read from a running game, recorded over a WebSocket, every emit in arrival order, nothing collapsed, trimmed to the crash, flight.ended and eva.crew channels"
+  },
+  "emits": [
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 0,
+        "kerbals": []
+      },
+      "validAt": 77281.43999777005
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 0,
+        "kerbals": []
+      },
+      "validAt": 77310.43999777596
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 0,
+        "kerbals": []
+      },
+      "validAt": 77340.43999778207
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 0,
+        "kerbals": []
+      },
+      "validAt": 77370.75595359327
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 0,
+        "kerbals": []
+      },
+      "validAt": 77400.91595359393
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 0,
+        "kerbals": []
+      },
+      "validAt": 77431.07595359458
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 0,
+        "kerbals": []
+      },
+      "validAt": 77461.23595359524
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 0,
+        "kerbals": []
+      },
+      "validAt": 77491.3959535959
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 0,
+        "kerbals": []
+      },
+      "validAt": 77521.55595359656
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 0,
+        "kerbals": []
+      },
+      "validAt": 77551.71595359722
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 0,
+        "kerbals": []
+      },
+      "validAt": 77581.87595359788
+    },
+    {
+      "channel": "eva.crew",
+      "value": null,
+      "validAt": 77583.11595359808
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 0,
+        "kerbals": []
+      },
+      "validAt": 77610.87595360374
+    }
+  ]
+}

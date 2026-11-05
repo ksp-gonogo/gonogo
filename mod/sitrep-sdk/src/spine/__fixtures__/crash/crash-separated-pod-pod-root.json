@@ -1,0 +1,144 @@
+{
+  "_meta": {
+    "scenario": "crash-separated-pod-pod-root",
+    "shows": "The same craft with the pod as the root part: decoupled at 4.6 km, the pod keeps focus and lands under its chute, the lower stage is debris and crashes with no crew aboard.",
+    "notes": "The debris crash is in the KSP log only; no crash channel changes.",
+    "source": "Gonogo wire read from a running game, recorded over a WebSocket, every emit in arrival order, nothing collapsed, trimmed to the crash, flight.ended and eva.crew channels"
+  },
+  "emits": [
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 0,
+        "kerbals": []
+      },
+      "validAt": 77341.41999778227
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 0,
+        "kerbals": []
+      },
+      "validAt": 77345.09999778302
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 0,
+        "kerbals": []
+      },
+      "validAt": 77375.09999778913
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 0,
+        "kerbals": []
+      },
+      "validAt": 77405.09999779525
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 0,
+        "kerbals": []
+      },
+      "validAt": 77435.86535088523
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 0,
+        "kerbals": []
+      },
+      "validAt": 77466.46535088404
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 0,
+        "kerbals": []
+      },
+      "validAt": 77497.06535088285
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 0,
+        "kerbals": []
+      },
+      "validAt": 77527.66535088167
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 0,
+        "kerbals": []
+      },
+      "validAt": 77558.26535088048
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 0,
+        "kerbals": []
+      },
+      "validAt": 77588.86535087929
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 0,
+        "kerbals": []
+      },
+      "validAt": 77619.4653508781
+    },
+    {
+      "channel": "crash.hasRecent",
+      "value": null,
+      "validAt": 77279.91999776974
+    },
+    {
+      "channel": "crash.lastCrash",
+      "value": null,
+      "validAt": 77279.91999776974
+    },
+    {
+      "channel": "eva.crew",
+      "value": null,
+      "validAt": 77279.91999776974
+    },
+    {
+      "channel": "flight.ended",
+      "value": null,
+      "validAt": 77279.91999776974
+    },
+    {
+      "channel": "eva.crew",
+      "value": null,
+      "validAt": 77279.91999776974
+    },
+    {
+      "channel": "flight.ended",
+      "value": {
+        "flightId": "ecdb49a8-ef26-46e9-ac60-bc29981afda8",
+        "vesselId": "25f77d08-ddc8-4452-8948-74424b828991",
+        "vesselName": "CrashPod",
+        "reason": 2,
+        "ut": 77279.91999776974,
+        "joinedVesselId": null,
+        "joinedVesselName": null
+      },
+      "validAt": 77279.91999776974
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 0,
+        "kerbals": []
+      },
+      "validAt": 77280.91999776995
+    }
+  ]
+}
