@@ -61,35 +61,6 @@ describe("applyMinSizes", () => {
     expect(out[0]).toBe(entry);
   });
 
-  it("drops a stored min and max the widget no longer declares", () => {
-    registerWithMin("no-min");
-    const items: DashboardItem[] = [{ i: "a", componentId: "no-min" }];
-    const entry = {
-      i: "a",
-      x: 0,
-      y: 0,
-      w: 3,
-      h: 3,
-      minW: 6,
-      minH: 6,
-      maxW: 8,
-      maxH: 8,
-    };
-    const [out] = applyMinSizes([entry], items);
-    expect(out).toEqual({ i: "a", x: 0, y: 0, w: 3, h: 3 });
-    expect(out.minW).toBeUndefined();
-    expect(out.maxH).toBeUndefined();
-  });
-
-  it("drops a stored min and max when the widget is not registered", () => {
-    const items: DashboardItem[] = [{ i: "a", componentId: "absent" }];
-    const entry = { i: "a", x: 0, y: 0, w: 3, h: 3, minW: 6, minH: 6 };
-    const [out] = applyMinSizes([entry], items);
-    expect(out.minW).toBeUndefined();
-    expect(out.minH).toBeUndefined();
-    expect(out.w).toBe(3);
-  });
-
   it("leaves entries untouched when no item matches the layout id", () => {
     registerWithMin("with-min", { w: 6, h: 6 });
     const items: DashboardItem[] = [{ i: "other", componentId: "with-min" }];

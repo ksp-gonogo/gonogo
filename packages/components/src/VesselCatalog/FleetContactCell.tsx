@@ -50,7 +50,7 @@ export function useContactBadge(
 
   if (phase === "lost") {
     return (
-      <Badge size="sm" tone="nogo" role="status" aria-live="polite">
+      <Badge size="sm" tone="nogo" role="alert" aria-live="assertive">
         <span style={{ textDecoration: "line-through" }}>{vesselName}</span>{" "}
         lost
       </Badge>

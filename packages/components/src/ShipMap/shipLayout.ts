@@ -163,20 +163,15 @@ function withBody(p: ShipMapPart): ProjectedPart {
   };
 }
 
-/** How far in depth a parachute may sit from its mount and still be seated in its top, in metres. */
-const STACKED_DEPTH_M = 0.1;
-
 /**
  * The parts in the order they are painted, back to front by depth, quantised
  * to the mm so float noise does not disturb the tiebreak. Parts at the same
  * depth draw outermost first so the central column overlaps on top. A fairing
- * is a shell over the parts it covers, so it draws after all of them. A
- * parachute seated in the top of the part it is mounted on draws directly
- * before that part, and the part covers its base. Fuel lines are left
- * out: they render as arrows in a separate top layer.
+ * is a shell over the parts it covers, so it draws after all of them. Fuel
+ * lines are left out: they render as arrows in a separate top layer.
  */
 export function paintOrder(parts: readonly ProjectedPart[]): ProjectedPart[] {
-  const order = parts
+  return parts
     .filter((p) => p.type !== "fuel-line")
     .sort((a, b) => {
       if ((a.type === "fairing") !== (b.type === "fairing")) {
@@ -186,14 +181,4 @@ export function paintOrder(parts: readonly ProjectedPart[]): ProjectedPart[] {
         Math.round(a.depth * 1000) - Math.round(b.depth * 1000);
       return depthOrder !== 0 ? depthOrder : b.spineDist - a.spineDist;
     });
-  for (const chute of order.filter((p) => p.type === "parachute")) {
-    const parent = order.find((p) => p.flightId === chute.parentFlightId);
-    // A radial chute stands out from its mount's face, in front of it or behind it, and keeps the place its depth gives it.
-    if (!parent || Math.abs(chute.depth - parent.depth) > STACKED_DEPTH_M) {
-      continue;
-    }
-    order.splice(order.indexOf(chute), 1);
-    order.splice(order.indexOf(parent), 0, chute);
-  }
-  return order;
 }

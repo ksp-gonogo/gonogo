@@ -41,8 +41,6 @@ interface MapPaintingInputs {
   /** Whether the save has reached this body; `false` shows the sketch in place of the texture where no base layer is active. */
   bodyVisited: boolean | undefined;
   baseLayers: ReturnType<typeof useBaseLayers>;
-  /** Saved per-augment settings; a base layer whose `show` is false is switched off by the operator. */
-  augmentSettings: Record<string, Record<string, unknown>> | undefined;
   /** The flown trail's buffer, newest last, and a count that moves whenever its content does. */
   trajectoryRef: RefObject<TrajectoryPoint[]>;
   trajectoryCount: number;
@@ -117,7 +115,6 @@ export function useMapPainting({
   bodyDetail,
   bodyVisited,
   baseLayers,
-  augmentSettings,
   trajectoryRef,
   trajectoryCount,
   hasAtmosphere,
@@ -166,9 +163,6 @@ export function useMapPainting({
         suppressesVanillaBase: a.suppressesVanillaBase,
         available:
           baseLayers.suppressionAvailabilityRef.current.get(a.id) === true,
-        covering:
-          baseLayers.canvasesRef.current.has(a.id) ||
-          augmentSettings?.[a.id]?.show === false,
       })),
     );
     const layers: BaseSurfaceLayer[] = [];
@@ -201,7 +195,6 @@ export function useMapPainting({
     pencil,
     bodyVisited,
     bodyColor,
-    augmentSettings,
     baseLayers.version,
   ]);
 

@@ -383,70 +383,8 @@ describe("AlarmHostService", () => {
       vi.advanceTimersByTime(1000);
       expect(svc.snapshot().alarms).toHaveLength(1);
       plan(telemetry, []);
-      vi.advanceTimersByTime(3000);
+      vi.advanceTimersByTime(1000);
       expect(svc.snapshot().alarms).toHaveLength(0);
-    });
-
-    it("keeps its node binding when the list is read back from storage", () => {
-      const storage = memoryStorage();
-      const telemetry = fakeTelemetry();
-      telemetry.set("t.universalTime", 1000);
-      const make = () =>
-        new AlarmHostService(null, {
-          nowMs: () => nowMs,
-          tickIntervalMs: 1000,
-          storage,
-        });
-      const first = make();
-      first.addAlarm({ name: "1min before node", trigger: BOUND });
-      first.dispose();
-
-      const svc = make();
-      plan(telemetry, [{ id: "node-1", ut: 3500 }]);
-      vi.advanceTimersByTime(1000);
-      expect(svc.snapshot().alarms[0].trigger).toMatchObject({
-        ut: 3440,
-        node: { id: "node-1", beforeSeconds: 60 },
-      });
-      plan(telemetry, []);
-      vi.advanceTimersByTime(3000);
-      expect(svc.snapshot().alarms).toHaveLength(0);
-      svc.dispose();
-    });
-
-    it("is left alone while another craft is the active one and has no such node", () => {
-      const { svc, telemetry } = makeService();
-      telemetry.publishTopic("vessel.identity", { vesselId: "craft-a" });
-      plan(telemetry, [{ id: "node-1", ut: 3000 }]);
-      svc.addAlarm({ name: "1min before node", trigger: BOUND });
-      vi.advanceTimersByTime(1000);
-
-      telemetry.publishTopic("vessel.identity", { vesselId: "craft-b" });
-      plan(telemetry, []);
-      vi.advanceTimersByTime(2000);
-      expect(svc.snapshot().alarms).toHaveLength(1);
-
-      telemetry.publishTopic("vessel.identity", { vesselId: "craft-a" });
-      plan(telemetry, []);
-      vi.advanceTimersByTime(3000);
-      expect(svc.snapshot().alarms).toHaveLength(0);
-    });
-
-    it("follows its node to a new id when the game gives every node a new one", () => {
-      const { svc, telemetry } = makeService();
-      plan(telemetry, [{ id: "node-1", ut: 3000 }]);
-      svc.addAlarm({ name: "1min before node", trigger: BOUND });
-      vi.advanceTimersByTime(1000);
-
-      plan(telemetry, [{ id: "node-9", ut: 3000 }]);
-      vi.advanceTimersByTime(1000);
-      expect(svc.snapshot().alarms).toHaveLength(1);
-      expect(svc.snapshot().alarms[0].trigger).toMatchObject({
-        node: { id: "node-9" },
-      });
-      plan(telemetry, [{ id: "node-9", ut: 3500 }]);
-      vi.advanceTimersByTime(1000);
-      expect(svc.snapshot().alarms[0].trigger).toMatchObject({ ut: 3440 });
     });
 
     it("is kept while no plan has been reported", () => {
@@ -1230,22 +1168,6 @@ describe("AlarmHostService", () => {
       expect(telemetry.calls).toContain(
         "vessel.control.setActionGroup[1=true]",
       );
-    });
-
-    it("keeps the node binding of an alarm a station adds", async () => {
-      const { svc, captured } = makeServiceWithHost();
-      captured.addCb?.("station-1", {
-        name: "1min before node",
-        trigger: {
-          kind: "time",
-          ut: 2940,
-          leadSeconds: 10,
-          node: { id: "node-1", beforeSeconds: 60 },
-        },
-      });
-      expect(svc.snapshot().alarms[0].trigger).toMatchObject({
-        node: { id: "node-1", beforeSeconds: 60 },
-      });
     });
 
     it("refuses a station's alarm the simulation could never watch, and makes no row", async () => {

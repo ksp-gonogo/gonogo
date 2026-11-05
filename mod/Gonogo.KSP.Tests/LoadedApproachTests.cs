@@ -6,32 +6,13 @@ namespace Gonogo.KSP.Tests
     public class LoadedApproachTests
     {
         [Fact]
-        public void The_straight_line_figure_claims_no_two_body_solve_and_a_blend_keeps_the_orbit_models_kind()
+        public void The_straight_line_figure_is_analytic_and_a_blend_keeps_the_orbit_models_kind()
         {
             var line = LoadedApproach.Solve(new[] { 8.0, 0.0, 0.0 }, new[] { -0.2, 0.0, 0.0 }, 500.0);
-            Assert.Equal(Sitrep.Contract.TrajectoryKind.Unspecified, line!.TrajectoryKind);
-            Assert.Equal(Sitrep.Contract.TrajectoryKind.Unspecified, LoadedApproach.Combine(new[] { 8.0, 0.0, 0.0 }, new[] { -0.2, 0.0, 0.0 }, 500.0, null)!.TrajectoryKind);
+            Assert.Equal(Sitrep.Contract.TrajectoryKind.Analytic, line!.TrajectoryKind);
             var orbit = new Sitrep.Contract.ClosestApproach { Time = 900.0, Distance = 3.0, TrajectoryKind = Sitrep.Contract.TrajectoryKind.Integrated };
             var blend = LoadedApproach.Combine(new[] { 2250.0, 0.0, 0.0 }, new[] { -1.0, 0.0, 0.0 }, 500.0, orbit);
             Assert.Equal(Sitrep.Contract.TrajectoryKind.Integrated, blend!.TrajectoryKind);
-        }
-
-        [Fact]
-        public void A_change_of_vessel_range_origin_or_target_starts_a_new_window()
-        {
-            var key = LoadedApproach.TrackKey("v1", 10, "t1", 1u);
-            Assert.NotEqual(key, LoadedApproach.TrackKey("v2", 10, "t1", 1u));
-            Assert.NotEqual(key, LoadedApproach.TrackKey("v1", 11, "t1", 1u));
-            Assert.NotEqual(key, LoadedApproach.TrackKey("v1", 10, "t2", 1u));
-            Assert.NotEqual(key, LoadedApproach.TrackKey("v1", 10, "t1", 2u));
-            var track = new ApproachTrack();
-            for (var i = 0; i < 8; i++)
-            {
-                track.Add(key, i, new[] { 100.0 - i, 0.0, 0.0 });
-            }
-            Assert.NotNull(track.Velocity());
-            track.Add(LoadedApproach.TrackKey("v1", 11, "t1", 1u), 8, new[] { 40.0, 0.0, 0.0 });
-            Assert.Null(track.Velocity());
         }
 
         [Fact]

@@ -22,13 +22,6 @@ namespace Sitrep.Host
             _target = target;
         }
 
-        /// <summary>Drops the pair, as when a target that is not a docking port is set.</summary>
-        public void Forget()
-        {
-            _own = null;
-            _target = null;
-        }
-
         /// <summary>
         /// The remembered pair while the own port reads a stage of the dock,
         /// <paramref name="ownUsable"/> accepts the own port (still the active

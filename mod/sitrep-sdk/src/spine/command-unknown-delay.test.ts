@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Transport, TransportStatus } from "../api/transport";
 import type { ClientMessage, ServerMessage } from "../envelope";
-import { PerfBudget } from "../perf/PerfBudget";
 import { makeMeta } from "../testing/stub-transport";
 import { TelemetryClient } from "./client";
 import type { Clock } from "./clock";
@@ -111,29 +110,6 @@ describe("a command sent while the delay is unknown", () => {
     clock.advance(2);
     await Promise.resolve();
     expect(state.settled).toBe(true);
-    warn.mockRestore();
-  });
-
-  it("stops counting a command whose record was swept after it was answered with no figure known", () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const delay = { value: Number.POSITIVE_INFINITY };
-    const { transport, client } = setup(delay);
-    for (let i = 0; i < 600; i += 1) {
-      const { requestId, result } = client.dispatch("x.do");
-      result.catch(() => {});
-      transport.deliver({
-        type: "command-response",
-        requestId,
-        result: "ran",
-        meta,
-      });
-    }
-    client.dispatch("x.do").result.catch(() => {});
-    const stillTracked = [...client["commands"].values()].filter(
-      (c) => c.awaitingDelay,
-    ).length;
-    expect(client["awaitingDelayCount"]).toBe(stillTracked);
-    for (const budget of PerfBudget.getAll()) budget.reset();
     warn.mockRestore();
   });
 });

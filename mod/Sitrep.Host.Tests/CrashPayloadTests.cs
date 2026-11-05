@@ -221,7 +221,7 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void Reconcile_APadCraftWhosePartsAndCrewWereGoneWhenItDiedStillReportsThemAsLostAndAboard()
+        public void Reconcile_APadCraftWhosePartsAndCrewWereGoneWhenItDiedStillReportsBoth()
         {
             var tracker = new FlightStatsTracker();
             tracker.Sample("pad", ut: 1, altitude: 0, srfSpeed: 0, horizontalSrfSpeed: 0, missionTime: 1, geeForce: 1, splashed: true);
@@ -239,27 +239,10 @@ namespace Sitrep.Host.Tests
 
             Assert.Equal(6, ((List<object?>)wire["partsLost"]!).Count);
             Assert.Equal("Valentina Kerman", Assert.Single((List<object?>)wire["crewAboard"]!));
-            Assert.Empty((List<object?>)wire["kerbalsKilled"]!);
+            Assert.Equal("Valentina Kerman", Assert.Single((List<object?>)wire["kerbalsKilled"]!));
             var stats = (Dictionary<string, object?>)wire["flightStats"]!;
             Assert.Equal(6, stats["partsLost"]);
-            Assert.Equal(0, stats["kerbalsKilled"]);
-        }
-
-        [Fact]
-        public void Reconcile_AKerbalOnlyOnTheLastRosterIsNotReportedKilled()
-        {
-            var tracker = new FlightStatsTracker();
-            tracker.Sample("v", ut: 1, altitude: 0, srfSpeed: 0, horizontalSrfSpeed: 0, missionTime: 1, geeForce: 1, splashed: false);
-            tracker.ObserveRoster("v", new List<LostPart>(), new[] { "Eva Kerman", "Bob Kerman" });
-            tracker.RecordKerbalKilled("v", "Bob Kerman");
-            var capture = new CrashCapture { VesselId = "v", FlightStats = tracker.Snapshot("v", 1) };
-
-            capture.Reconcile(tracker.ObservedParts("v"), tracker.ObservedCrew("v"), tracker.KilledNames("v"));
-            var wire = CrashPayload.Build(capture);
-
-            Assert.Equal(2, ((List<object?>)wire["crewAboard"]!).Count);
-            Assert.Equal("Bob Kerman", Assert.Single((List<object?>)wire["kerbalsKilled"]!));
-            Assert.Equal(1, ((Dictionary<string, object?>)wire["flightStats"]!)["kerbalsKilled"]);
+            Assert.Equal(1, stats["kerbalsKilled"]);
         }
 
         [Fact]

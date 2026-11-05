@@ -32,9 +32,8 @@ export function NavballConfigForm({
   return (
     <ConfigForm>
       <Field>
-        <FieldLabel htmlFor="navball-control-mode">Display surface</FieldLabel>
+        <FieldLabel>Display surface</FieldLabel>
         <Select
-          id="navball-control-mode"
           value={controlMode ? "control" : "display"}
           onChange={(e) => setControlMode(e.target.value === "control")}
         >

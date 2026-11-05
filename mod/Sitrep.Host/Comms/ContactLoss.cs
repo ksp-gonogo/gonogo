@@ -197,7 +197,7 @@ namespace Sitrep.Host.Comms
                     return open;
                 }
             }
-            return plan.FromUt;
+            return ut;
         }
 
         private static bool Includes(ContactPlan plan, string craft)

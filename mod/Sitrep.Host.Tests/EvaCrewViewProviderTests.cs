@@ -225,12 +225,6 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void TheLoadedFlagIsRequiredSoNoReaderHasToGuessWhatAbsentMeans()
-        {
-            Assert.Equal(typeof(bool), typeof(EvaCrewMember).GetProperty(nameof(EvaCrewMember.Loaded))!.PropertyType);
-        }
-
-        [Fact]
         public void TheWireRosterCarriesWhetherEachKerbalIsLoaded()
         {
             var snapshot = SnapshotWithUnloaded(new object?[] { Kerbal("loaded-1") }, Unloaded("away-1"));

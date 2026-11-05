@@ -206,9 +206,8 @@ export function GraphConfigComponent({
           {variantHint && <FieldHint>{variantHint}</FieldHint>}
         </Field>
         <Field>
-          <FieldLabel htmlFor="graph-x-key">X axis</FieldLabel>
+          <FieldLabel>X axis</FieldLabel>
           <DataKeyPicker
-            id="graph-x-key"
             keys={xKeyOptions}
             value={xKey}
             onChange={(k) => setXKey(k ?? TIME_AXIS)}
@@ -221,19 +220,16 @@ export function GraphConfigComponent({
             <Input
               type="number"
               placeholder="min"
-              aria-label="Primary Y minimum"
               value={yMinPrimary}
               onChange={(e) => setYMinPrimary(e.target.value)}
             />
             <Input
               type="number"
               placeholder="max"
-              aria-label="Primary Y maximum"
               value={yMaxPrimary}
               onChange={(e) => setYMaxPrimary(e.target.value)}
             />
             <Select
-              aria-label="Primary Y scale"
               value={yScalePrimary}
               onChange={(e) =>
                 setYScalePrimary(e.target.value as "linear" | "log")
@@ -250,19 +246,16 @@ export function GraphConfigComponent({
             <Input
               type="number"
               placeholder="min"
-              aria-label="Secondary Y minimum"
               value={yMinSecondary}
               onChange={(e) => setYMinSecondary(e.target.value)}
             />
             <Input
               type="number"
               placeholder="max"
-              aria-label="Secondary Y maximum"
               value={yMaxSecondary}
               onChange={(e) => setYMaxSecondary(e.target.value)}
             />
             <Select
-              aria-label="Secondary Y scale"
               value={yScaleSecondary}
               onChange={(e) =>
                 setYScaleSecondary(e.target.value as "linear" | "log")

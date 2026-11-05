@@ -28,7 +28,6 @@ export function ThresholdRow({ threshold, onUpdate, onRemove }: Props) {
       <Input
         type="text"
         placeholder="Label"
-        aria-label="Label"
         value={threshold.label ?? ""}
         onChange={(e) => onUpdate(threshold.id, { label: e.target.value })}
       />
@@ -49,7 +48,6 @@ export function ThresholdRow({ threshold, onUpdate, onRemove }: Props) {
         }}
       />
       <Select
-        aria-label="Axis"
         value={threshold.axis}
         onChange={(e) =>
           onUpdate(threshold.id, {

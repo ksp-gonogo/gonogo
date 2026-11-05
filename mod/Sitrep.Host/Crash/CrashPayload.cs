@@ -83,9 +83,7 @@ namespace Sitrep.Host.Crash
         /// <summary>
         /// Folds in what the vessel was last seen carrying. Whatever the game no longer lists
         /// when it reports the vessel destroyed (parts already broken off, crew already killed)
-        /// is still part of what the crash cost. The last roster only widens who was aboard: a kerbal
-        /// counts as killed on the game's own death report, since a pod that separated or a kerbal on
-        /// EVA is on that roster and alive.
+        /// is still part of what the crash cost.
         /// </summary>
         public void Reconcile(IReadOnlyList<LostPart> lastSeenParts, IReadOnlyList<string> lastSeenCrew, IReadOnlyList<string> killedNames)
         {
@@ -103,11 +101,8 @@ namespace Sitrep.Host.Crash
             foreach (var name in killedNames)
             {
                 AddAboard(name);
-                if (!string.IsNullOrEmpty(name) && !KerbalsKilled.Contains(name))
-                {
-                    KerbalsKilled.Add(name);
-                }
             }
+            KerbalsKilled = new List<string>(CrewAboard);
         }
 
         private void AddAboard(string name)

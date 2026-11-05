@@ -46,8 +46,6 @@ export interface CentreCommandMemory {
   unanswered: Set<string>;
   /** When this hook first looked at the queue; an outcome reported before it is old news. */
   since: Value<"ut"> | null;
-  /** The timeline epoch `since` was taken in; a quickload starts a new one and `since` with it. */
-  sinceEpoch: number | null;
 }
 
 export function createCentreCommandMemory(): CentreCommandMemory {
@@ -57,7 +55,6 @@ export function createCentreCommandMemory(): CentreCommandMemory {
     outcomes: new Map(),
     unanswered: new Set(),
     since: null,
-    sinceEpoch: null,
   };
 }
 
@@ -83,18 +80,13 @@ export function centreCommandOutcomes(args: {
   own: ReadonlySet<string>;
   memory: CentreCommandMemory;
   nowUt: number;
-  /** The timeline epoch the view clock is in; a UT from an earlier epoch says nothing about this one. */
-  epoch?: number;
 }): {
   refusals: CommandRefusal[];
   failures: CommandFailure[];
   founds: CommandFound[];
 } {
-  const { command, queue, own, memory, nowUt, epoch = 0 } = args;
-  if (memory.since === null || memory.sinceEpoch !== epoch) {
-    memory.since = value("ut", nowUt);
-    memory.sinceEpoch = epoch;
-  }
+  const { command, queue, own, memory, nowUt } = args;
+  memory.since ??= value("ut", nowUt);
   const listed = new Set<string>();
   for (const entry of queue?.settled ?? []) {
     if (entry.command !== command || own.has(entry.clientRequestId)) continue;

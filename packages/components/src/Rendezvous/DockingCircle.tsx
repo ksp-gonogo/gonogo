@@ -106,8 +106,8 @@ export function DockingCircle({
   const tick = (units: number) => `calc(50% + ${units * travel}px)`;
   // Past the rim the target is off the picture: the border cue says so and the ring is not drawn.
   const inField =
-    ax !== undefined &&
-    ay !== undefined &&
+    ax === undefined ||
+    ay === undefined ||
     Math.hypot(Math.tan((ax * Math.PI) / 180), Math.tan((ay * Math.PI) / 180)) <
       Math.tan((MAX_DEG * Math.PI) / 180);
   // Head-on ports have antiparallel forward vectors, so aligned is a dot near -1; 0.9998 is within about 1 degree of dead-on.

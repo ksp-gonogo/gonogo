@@ -293,6 +293,29 @@ describe("a station the main screen has not approved", () => {
     host.stop();
   });
 
+  it("is offered the main screen's saved layouts once approved, and not before", async () => {
+    const host = await startedHost();
+    const layouts = [{ id: "l1", name: "Launch", items: [], layout: [] }];
+    host.setHostLayoutsSource(() => layouts);
+    const station = await join(host, "station-a", "cred-a", "Booster");
+    station.conn.emit("data", {
+      type: "host-layouts-request",
+      requestId: "r1",
+    });
+    expect(replyTo(station, "r1")).toBeUndefined();
+    host.approveStation("station-a");
+    station.conn.emit("data", {
+      type: "host-layouts-request",
+      requestId: "r2",
+    });
+    expect(replyTo(station, "r2")).toEqual({
+      type: "host-layouts-response",
+      requestId: "r2",
+      layouts,
+    });
+    host.stop();
+  });
+
   it("is raised on the main screen by name and told it is waiting", async () => {
     const host = await startedHost();
     const seen: Array<readonly PendingStation[]> = [];

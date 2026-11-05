@@ -1,4 +1,4 @@
-import { memo, useId } from "react";
+import { memo } from "react";
 import { type ShapeDrawing, TONE_STEPS } from "./meshShape";
 import type { ScreenBox } from "./partOverlays";
 import type { PartType } from "./shipTopology";
@@ -55,88 +55,15 @@ const FIN_TIP_TAPER = 0.2;
 
 /**
  * The part types still drawn by what they do once their 3D shape has
- * arrived: a strut is a link and a clamp a translucent overlay. A landing leg
- * is drawn from its shape, which its poses fold and unfold, and a parachute
- * from its shape with its outer half tinted by canopy state.
+ * arrived: a parachute splits by canopy state, a strut is a link and a clamp
+ * a translucent overlay. A landing leg is drawn from its shape, which its
+ * poses fold and unfold.
  */
 const SHAPE_STATE_SHAPES: ReadonlySet<PartType> = new Set<PartType>([
+  "parachute",
   "strut",
   "clamp",
 ]);
-
-/**
- * A parachute's lit 3D shape with the half away from the craft's centre line
- * drawn again in the canopy state's colour, clipped to the part's box so the
- * seam is a straight vertical line through its middle.
- */
-function ChuteShape({
-  drawing,
-  origin,
-  metre,
-  box,
-  fill,
-  stateColor,
-  state,
-  outerSign,
-  edge,
-  edgeWidth,
-  opacity,
-}: {
-  drawing: ShapeDrawing;
-  origin: { x: number; y: number };
-  metre: number;
-  box: ScreenBox;
-  fill: string;
-  stateColor: string | undefined;
-  state: string | undefined;
-  outerSign: number;
-  edge: string;
-  edgeWidth: number;
-  opacity: number;
-}) {
-  const clipId = useId();
-  const mid = box.x + box.w / 2;
-  const outerX = outerSign >= 0 ? mid : box.x - 1;
-  const common = { drawing, x: origin.x, y: origin.y, metre };
-  return (
-    <g>
-      <MeshShape
-        {...common}
-        fill={fill}
-        edge={edge}
-        edgeWidth={edgeWidth}
-        creaseWidth={edgeWidth}
-        opacity={opacity}
-      />
-      {stateColor && (
-        <g
-          data-role="parachute-state-half"
-          data-state={state}
-          fill={stateColor}
-        >
-          <clipPath id={clipId}>
-            <rect
-              x={outerX}
-              y={box.y - box.h}
-              width={box.w / 2 + 1}
-              height={box.h * 3}
-            />
-          </clipPath>
-          <g clipPath={`url(#${clipId})`}>
-            <MeshShape
-              {...common}
-              fill={stateColor}
-              edge={edge}
-              edgeWidth={edgeWidth}
-              creaseWidth={edgeWidth}
-              opacity={opacity}
-            />
-          </g>
-        </g>
-      )}
-    </g>
-  );
-}
 
 /** How much of a fairing's shell is laid over the payload it covers, which shows through the rest. */
 const SHELL_OPACITY = 0.32;
@@ -324,25 +251,6 @@ export function renderPartShape(
           />
         )}
       </g>
-    );
-  }
-
-  if (marks.shape && type === "parachute") {
-    const { drawing, center: origin, pxPerMetre } = marks.shape;
-    return (
-      <ChuteShape
-        drawing={drawing}
-        origin={origin}
-        metre={Math.max(pxPerMetre, 1e-6)}
-        box={box}
-        fill={fill}
-        stateColor={chuteStateColor(chuteState)}
-        state={chuteState}
-        outerSign={outerSign}
-        edge={stroke}
-        edgeWidth={strokeWidth}
-        opacity={opacity}
-      />
     );
   }
 

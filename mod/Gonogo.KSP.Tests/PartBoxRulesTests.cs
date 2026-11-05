@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using System.Collections.Generic;
 using Gonogo.KSP;
 using Xunit;
@@ -61,37 +59,6 @@ namespace Gonogo.KSP.Tests
             Assert.Contains("canopy", hidden!);
             Assert.Contains("tubeLong", hidden!);
             Assert.Equal(2, hidden!.Count);
-        }
-
-        private sealed class RealChuteBlock
-        {
-            public string? parachuteName;
-            public string? capName;
-        }
-
-        [Fact]
-        public void EveryRealChuteCanopyIsLeftOutOfThePartBoxButItsCapStays()
-        {
-            var blocks = new object?[]
-            {
-                new RealChuteBlock { parachuteName = "B_ParachuteLargeDrogueRotator", capName = "ChuteCap" },
-                null,
-                new RealChuteBlock { parachuteName = "canopy2", capName = "cap2" },
-            };
-
-            var hidden = VariantMeshRule.WithCanopies(
-                null,
-                VariantMeshRule.RealChuteCanopies(blocks, b => ((RealChuteBlock)b).parachuteName));
-
-            Assert.Equal(new[] { "B_ParachuteLargeDrogueRotator", "canopy2" }, hidden!.OrderBy(n => n, StringComparer.Ordinal).ToArray());
-            Assert.DoesNotContain("ChuteCap", hidden);
-        }
-
-        [Fact]
-        public void ARealChutePartWithNoParachuteBlocksLeavesNothingOut()
-        {
-            Assert.Empty(VariantMeshRule.RealChuteCanopies(null, _ => "x"));
-            Assert.Null(VariantMeshRule.WithCanopies(null, VariantMeshRule.RealChuteCanopies(new object[0], _ => "x")));
         }
 
         [Fact]

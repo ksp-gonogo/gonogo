@@ -44,12 +44,8 @@ export interface TimeTrigger {
    * the node's burn it fires. While it is set, `ut` follows the node's burn
    * time less `beforeSeconds` whenever the node is edited, and the alarm is
    * removed when the node is.
-   *
-   * `vesselId` names the craft the node belongs to, so the binding is only
-   * followed while that craft is the active one. It is learned from the active
-   * craft when the alarm is made, or on the first tick that can read it.
    */
-  node?: { id: string; beforeSeconds: number; vesselId?: string };
+  node?: { id: string; beforeSeconds: number };
 }
 
 /**
@@ -467,20 +463,6 @@ export function parseAlarm(raw: unknown): Alarm | null {
   };
 }
 
-function parseNodeBinding(raw: unknown): TimeTrigger["node"] | undefined {
-  if (!raw || typeof raw !== "object") return undefined;
-  const n = raw as Record<string, unknown>;
-  if (typeof n.id !== "string" || n.id === "") return undefined;
-  if (typeof n.beforeSeconds !== "number") return undefined;
-  return {
-    id: n.id,
-    beforeSeconds: n.beforeSeconds,
-    ...(typeof n.vesselId === "string" && n.vesselId !== ""
-      ? { vesselId: n.vesselId }
-      : {}),
-  };
-}
-
 /**
  * A trigger the simulation can be asked to watch, or null for one it cannot:
  * an unknown kind, a missing field, or a threshold with no Topic address.
@@ -495,13 +477,7 @@ export function parseTrigger(raw: unknown): AlarmTrigger | null {
     if (typeof t.ut !== "number" || typeof t.leadSeconds !== "number") {
       return null;
     }
-    const node = parseNodeBinding(t.node);
-    return {
-      kind: "time",
-      ut: t.ut,
-      leadSeconds: t.leadSeconds,
-      ...(node ? { node } : {}),
-    };
+    return { kind: "time", ut: t.ut, leadSeconds: t.leadSeconds };
   }
   if (t.kind === "threshold") {
     const op = THRESHOLD_OPS.find((known) => known === t.op);

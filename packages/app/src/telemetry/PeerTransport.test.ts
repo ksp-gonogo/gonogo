@@ -102,7 +102,6 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
   const sentVantages: Array<string | null> = [];
   /** Every message sent to the host in order, subscribes and rates together, so their order can be read. */
   const sentClaims: string[] = [];
-  const claimedIds: string[][] = [];
 
   const fake = {
     getConnStatus: () => status,
@@ -159,9 +158,6 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
     ) => {
       sentGroups.push({ groupId, members, vantage });
     },
-    sendSitrepClaim: (requestIds: string[]) => {
-      claimedIds.push(requestIds);
-    },
     sendSitrepSetRate: (topic: string, tier: string) => {
       sentClaims.push(`rate:${topic}:${tier}`);
     },
@@ -207,7 +203,6 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
     sentSubscribes,
     sentVantages,
     sentClaims,
-    claimedIds,
   };
   return fake;
 }
@@ -894,101 +889,19 @@ describe("PeerTransport", () => {
     ]);
   });
 
-  it("keeps a command in flight when the connection drops, and claims its answer from the host once the link is back", async () => {
+  it("fails a command still in flight when the connection drops mid-flight, instead of hanging forever", async () => {
     const client = makeFakeClient("connected");
     const transport = new PeerTransport(asService(client));
     const telemetryClient = new TelemetryClient(transport);
 
-    const { requestId, result } = telemetryClient.dispatch(
-      "vessel.control.setSas",
-      { enabled: true },
-    );
-    let settled = false;
-    result.then(
-      () => {
-        settled = true;
-      },
-      () => {
-        settled = true;
-      },
-    );
-
-    client.emitStatus("disconnected");
-    await Promise.resolve();
-    expect(settled).toBe(false);
-    expect(telemetryClient.getCommand(requestId)?.phase).toBe("in-flight");
-
-    client.emitStatus("connected");
-    await Promise.resolve();
-    await Promise.resolve();
-    expect(client.claimedIds).toEqual([[requestId]]);
-
-    // The host answers the claim with the result the command produced while the link was down.
-    client.emitCommandResponse(requestId, { applied: true }, makeMeta());
-    await expect(result).resolves.toEqual({ applied: true });
-  });
-
-  it("calls a claimed command lost when the host holds no record of it", async () => {
-    const client = makeFakeClient("connected");
-    const transport = new PeerTransport(asService(client));
-    const telemetryClient = new TelemetryClient(transport);
-
-    const { requestId, result } = telemetryClient.dispatch(
-      "vessel.control.setSas",
-      { enabled: true },
-    );
-    result.catch(() => undefined);
-    client.emitStatus("disconnected");
-    client.emitStatus("connected");
-    await Promise.resolve();
-    await Promise.resolve();
-
-    client.emitCommandError(
-      requestId,
-      FaultCode.ReplyNotReceived,
-      "the main screen holds no answer for this command",
-    );
-
-    await expect(result).rejects.toMatchObject({ code: COMMAND_LOST });
-  });
-
-  it("claims, on a fresh page, the command the station's last page left outstanding", async () => {
-    const store: {
-      held: Parameters<
-        NonNullable<
-          NonNullable<
-            ConstructorParameters<typeof TelemetryClient>[2]
-          >["outstanding"]
-        >["write"]
-      >[0];
-    } = { held: [] };
-    const outstanding = {
-      read: () => store.held,
-      write: (commands: typeof store.held) => {
-        store.held = commands;
-      },
-    };
-
-    const firstPage = makeFakeClient("connected");
-    const first = new TelemetryClient(
-      new PeerTransport(asService(firstPage)),
-      undefined,
-      { outstanding, idPrefix: "p1" },
-    );
-    const sent = first.dispatch("vessel.control.setSas", { enabled: true });
-    sent.result.catch(() => undefined);
-    await Promise.resolve();
-    expect(store.held.map((c) => c.requestId)).toEqual([sent.requestId]);
-
-    const secondPage = makeFakeClient("connected");
-    new TelemetryClient(new PeerTransport(asService(secondPage)), undefined, {
-      outstanding,
-      idPrefix: "p2",
+    const { result } = telemetryClient.dispatch("vessel.control.setSas", {
+      enabled: true,
     });
-    await Promise.resolve();
-    await Promise.resolve();
 
-    expect(secondPage.claimedIds).toEqual([[sent.requestId]]);
+    // The peer link drops before any command-response/error arrives.
+    client.emitStatus("disconnected");
+
+    await expect(result).rejects.toMatchObject({ code: "peerDisconnected" });
   });
 
   it("a dropped command that already settled via a real response is not double-settled by a later status drop", async () => {

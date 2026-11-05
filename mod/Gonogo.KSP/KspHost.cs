@@ -2688,7 +2688,7 @@ namespace Gonogo.KSP
         /// picking the one physically closest to the target is the port a
         /// player doing a real rendezvous is actually about to use.
         /// A port that is shut off (<c>ModuleDockingNode.state == "Disabled"</c>)
-        /// or docked to a craft other than the target is excluded; one already acquiring or docked to the target stays, so
+        /// is excluded; one already acquiring or docked to the target stays, so
         /// the channel keeps reporting through the dock and carries each port's
         /// state.</para>
         ///
@@ -2720,13 +2720,6 @@ namespace Gonogo.KSP
             }
             else
             {
-                if (target != null)
-                {
-                    // A target that is not a port replaces the pair last approached.
-                    DockPairs.Forget();
-                    return null;
-                }
-
                 // The game clears the target as the ports dock, so the pair last
                 // approached is recalled while the own port is in a stage of the
                 // dock. With no pair known nothing is reported.
@@ -2815,9 +2808,7 @@ namespace Gonogo.KSP
 
                 foreach (var candidate in candidates)
                 {
-                    if (candidate == null
-                        || candidate.state == "Disabled"
-                        || DockingModel.IsTiedToAnother(candidate.state, candidate.otherNode, targetPort))
+                    if (candidate == null || candidate.state == "Disabled")
                     {
                         continue;
                     }
@@ -4115,7 +4106,7 @@ namespace Gonogo.KSP
             // Inside physics range the figure comes from the two ports' real relative state: the
             // orbit model cannot resolve a pair this close.
             var approachUt = Planetarium.GetUniversalTime();
-            ApproachHistory.Add(LoadedApproach.TrackKey(vessel.id.ToString(), vesselTransform != null ? vesselTransform.GetInstanceID() : 0, targetVesselId, partId), approachUt, relativePosition);
+            ApproachHistory.Add(targetVesselId + ":" + partId, approachUt, relativePosition);
             closestApproach = LoadedApproach.Combine(relativePosition, ApproachHistory.Velocity() ?? new[] { relVel.x, relVel.y, relVel.z }, approachUt, closestApproach);
             if (closestApproach != null)
             {

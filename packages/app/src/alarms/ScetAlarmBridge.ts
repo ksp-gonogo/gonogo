@@ -290,12 +290,6 @@ export class ScetAlarmBridge {
     this.settled.delete(alarm.id);
   }
 
-  /** Drop any arm still owed for this alarm, for one that is not to be armed again. */
-  release(id: string): void {
-    this.owed.delete(id);
-    this.unanswered.delete(id);
-  }
-
   /**
    * Whether the mod holds this alarm, and therefore whether it will stop the
    * warp when the alarm comes due.
@@ -491,8 +485,8 @@ export class ScetAlarmBridge {
            the alarm is wrong, so it is kept and not shown as refused; it is
            asked again on the slow cadence, which is how it comes back live
            when its own save is loaded again. */
-        this.askAgainLater(alarm.id);
         this.ctx.onOtherSave(alarm.id, true);
+        this.askAgainLater(alarm.id);
         logger.debug("alarm-host: alarm belongs to another save", {
           id: alarm.id,
           reason,

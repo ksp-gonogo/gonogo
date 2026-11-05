@@ -41,9 +41,10 @@ COPY . .
 RUN pnpm install --frozen-lockfile
 
 # Build the app to a static dist. base must stay "/" (this is served at the
-# root, NOT GitHub Pages' /gonogo/). The app finds the in-container relay on
-# its own page's host at port 3002, so no relay URL is baked in. The PeerJS
-# broker stays at the app's public default. turbo builds upstream workspace packages
+# root, NOT GitHub Pages' /gonogo/). Point the in-app relay URL at the
+# in-container relay's published port: the browser runs on the host, so it
+# reaches the relay via the host's localhost:3002. The PeerJS broker stays
+# at the app's public default. turbo builds upstream workspace packages
 # first so the app's `tsc --noEmit` has their types/dist present.
 # Axiom log shipping is consent-gated at runtime, but the credential has to
 # be present at build time or the transport can never install (the same way
@@ -51,6 +52,7 @@ RUN pnpm install --frozen-lockfile
 # builds), which leaves the app tokenless and unable to ship, as before.
 ARG VITE_AXIOM_TOKEN
 ENV VITE_AXIOM_TOKEN=${VITE_AXIOM_TOKEN}
+ENV VITE_RELAY_URL=http://localhost:3002
 # The run's version label (e.g. "1.0.0-rc.41") so the bundled app announces it
 # in the peer hello handshake. Empty for release builds, which use package.json.
 ARG GONOGO_VERSION

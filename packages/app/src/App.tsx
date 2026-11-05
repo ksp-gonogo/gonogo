@@ -31,12 +31,12 @@ function AppRoute() {
   /*
    * A local screen reaches the Gonogo mod over insecure ws://, which a page
    * served over HTTPS cannot open to another machine. The hosted build's front
-   * door says so and points at local setup, and a pilot there joins mission
-   * control by its host code and is fed through the host instead.
+   * door says so and points at local setup; a pilot there waits for the game
+   * and says the same once it has waited long enough.
    */
-  const secure = globalThis.location.protocol === "https:";
-  if (route === "main" && secure) return <HostedLanding />;
-  if (route === "pilot" && secure) return <PilotScreen />;
+  if (route === "main" && globalThis.location.protocol === "https:") {
+    return <HostedLanding />;
+  }
 
   return <LocalScreen seat={route} />;
 }

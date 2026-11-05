@@ -49,18 +49,6 @@ describe("ActionGroupConfigForm before any craft has reported its groups", () =>
     for (let n = 1; n <= 10; n++) expect(values).toContain(`AG${n}`);
   });
 
-  it("keeps a saved id that is not an action group but does not offer it as a choice", () => {
-    render(
-      <ActionGroupConfigForm
-        config={{ actionGroupId: "rcs" }}
-        onSave={vi.fn()}
-      />,
-    );
-
-    expect(select().value).toBe("rcs");
-    expect(select().selectedOptions[0]).toBeDisabled();
-  });
-
   it("keeps a saved group the list does not otherwise hold", () => {
     render(
       <ActionGroupConfigForm

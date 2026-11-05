@@ -5,8 +5,7 @@ export type UnavailableReason =
   | "State unreadable"
   | "Paused"
   | "No signal"
-  | "Not reported"
-  | "Unknown group";
+  | "Not reported";
 
 export const UNAVAILABLE_TITLES: Record<UnavailableReason, string> = {
   "State unreadable":
@@ -15,11 +14,9 @@ export const UNAVAILABLE_TITLES: Record<UnavailableReason, string> = {
   "No signal": "The action group can't fire right now",
   "Not reported":
     "Configured, but no backend has reported this group, so its state is unknown",
-  "Unknown group":
-    "The configured id is not an action group the game has, so the button is disabled",
 };
 
-/** In precedence order, an unknown id first because no other reason applies to a group that does not exist; "Not reported" is last because it alone names a cause that is not about the press itself. */
+/** In precedence order; "Not reported" is last because it alone names a cause that is not about the press itself. */
 export function unavailableReasonOf({
   stateUnreadable,
   isPaused,
@@ -31,7 +28,6 @@ export function unavailableReasonOf({
   commConnected: boolean | undefined;
   provenance: ActionGroup["provenance"];
 }): UnavailableReason | null {
-  if (provenance === "unknown") return "Unknown group";
   if (stateUnreadable) return "State unreadable";
   if (isPaused === true) return "Paused";
   if (commConnected === false) return "No signal";

@@ -70,17 +70,6 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         [Fact]
-        public void ADownLiveLinkOverARouteOpenSinceThePlanStartedHoldsTheSameReturnOnEveryPass()
-        {
-            var plan = PlanOf(Pair("ground:ksc", "vessel:probe", Horizon, new ContactWindow(null, 3000.0)));
-
-            var first = Next(plan, ut: 2010.0, live: false);
-            var later = Next(plan, ut: 2030.0, live: false);
-
-            Assert.Equal(first.NextAcquisitionUt!.Value, later.NextAcquisitionUt!.Value, 9);
-        }
-
-        [Fact]
         public void ADownLiveLinkAlsoCarriesTheNextAcquisitionAndAnInContactCraftNone()
         {
             var plan = PlanOf(Pair("ground:ksc", "vessel:probe", Horizon, new ContactWindow(2156.35, 3000.0)));

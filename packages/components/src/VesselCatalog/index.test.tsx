@@ -487,11 +487,11 @@ describe("VesselCatalogComponent", () => {
     expect(screen.queryByText(/lost/i)).toBeNull();
   });
 
-  it("announces a declared loss politely", async () => {
+  it("announces a declared loss assertively", async () => {
     await renderWithContact({ ...SILENT, contact: CatalogContact.Lost });
 
     const lost = await screen.findByText(/lost/i);
-    expect(lost.closest("[role='status']")).not.toBeNull();
+    expect(lost.closest("[role='alert']")).not.toBeNull();
   });
 
   it("shows no countdown for a craft with no expected return", async () => {

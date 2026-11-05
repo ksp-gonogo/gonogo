@@ -210,39 +210,3 @@ describe("a client claims the answers to commands it still waits on", () => {
     expect(transport.claims).toEqual([]);
   });
 });
-
-describe("commands this client carries for another screen", () => {
-  it("are not stored as this screen's own for a reload to take back", () => {
-    const store = new MemoryStore();
-    const client = newClient(new FakeModTransport(), store);
-
-    send(client, "x.y", {}, "Toggle", "", "", "station-ab12-0");
-
-    expect(store.held).toEqual([]);
-  });
-});
-
-describe("a quickload under commands still waiting", () => {
-  it("asks the mod for their answers, since a deadline in the old timeline's UT no longer means anything", async () => {
-    const transport = new FakeModTransport();
-    const client = newClient(transport, undefined);
-    const frame = (deliveredAt: number, timelineEpoch: number): ServerMessage =>
-      ({
-        type: "stream-data",
-        topic: "time.warp",
-        payload: {},
-        meta: makeMeta({ deliveredAt, validAt: deliveredAt, timelineEpoch }),
-      }) as ServerMessage;
-    transport.deliver(frame(4990, 0));
-    const { requestId } = send(client, "x.y", {}, "Toggle");
-    await flush();
-    const before = transport.claims.length;
-
-    transport.deliver(frame(4000, 1));
-    await flush();
-
-    expect(transport.claims.slice(before)).toEqual([
-      { type: "claim", requestIds: [requestId] },
-    ]);
-  });
-});

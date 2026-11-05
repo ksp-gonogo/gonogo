@@ -283,23 +283,10 @@ namespace Gonogo.KSP
                 if (module is ModuleParachute chute)
                 {
                     canopies.Add(chute.canopyName);
-                    continue;
                 }
-
-                if (module == null || module.GetType().Name != "RealChuteModule")
-                {
-                    continue;
-                }
-
-                canopies.AddRange(VariantMeshRule.RealChuteCanopies(
-                    Member(module, "parachutes") as System.Collections.IEnumerable,
-                    parachute => Member(parachute, "parachuteName") as string));
             }
             return VariantMeshRule.WithCanopies(HiddenByVariant(part, variantName), canopies);
         }
-
-        private static object? Member(object instance, string name) =>
-            BreakingGroundReads.TryMember(instance.GetType(), instance, name, out var value, out _) ? value : null;
 
         /// <summary>
         /// The names of the transforms the selected variant switches off. A

@@ -6,6 +6,7 @@ import type {
   FlightRecord,
 } from "@ksp-gonogo/data";
 import type { AlarmSnapshot } from "../alarms/types";
+import type { MissionProfile } from "../missionProfiles/MissionProfilesService";
 import type { RunningUplink } from "../uplinks/loaderState";
 import type { HostUplinkFailure } from "../uplinks/loadFailures";
 
@@ -530,13 +531,6 @@ export type PeerMessage =
         args: unknown;
       }[];
     }
-  // Station -> host: the station's commands still waiting on an answer after
-  // its link dropped or its page reloaded. The host answers each id under the
-  // frames above, once, on the connection that sent this.
-  | {
-      type: "sitrep-claim";
-      requestIds: string[];
-    }
   | {
       /**
        * Carries a refusal as well as a success, in the mod's own shape
@@ -645,7 +639,20 @@ export type PeerMessage =
       requestId: string;
       manifest?: unknown;
       error?: string;
+    }
+  /* A station asks which dashboard layouts the main screen has saved, to offer them as its own. Answered only for an approved station. */
+  | { type: "host-layouts-request"; requestId: string }
+  | {
+      type: "host-layouts-response";
+      requestId: string;
+      layouts: HostLayout[];
     };
+
+/** A dashboard layout the main screen has saved, as it is offered to a station. */
+export type HostLayout = Pick<
+  MissionProfile,
+  "id" | "name" | "items" | "layout"
+>;
 
 /**
  * A frame off a peer data channel as a protocol message, and `null` for

@@ -415,8 +415,6 @@ export interface ControlPlace {
   key: string;
   x: number;
   y: number;
-  /** The control's width, which decides whether it shares a column with a section header. */
-  w?: number;
   /** The control's `aria-expanded` state, when it has one: a section header. */
   expanded?: boolean;
 }
@@ -433,13 +431,7 @@ export async function measureControls(page: Page): Promise<ControlPlace[]> {
   return page.evaluate(
     ([controlSelector]) => {
       const host = document.getElementById("root");
-      type Place = {
-        key: string;
-        x: number;
-        y: number;
-        w: number;
-        expanded?: boolean;
-      };
+      type Place = { key: string; x: number; y: number; expanded?: boolean };
       if (!host) return [] as Place[];
       const origin = host.getBoundingClientRect();
       const counts: Record<string, number> = {};
@@ -460,23 +452,12 @@ export async function measureControls(page: Page): Promise<ControlPlace[]> {
           key: `${base} #${counts[base]}`,
           x: r.left - origin.left,
           y: r.top - origin.top,
-          w: r.width,
           ...(expanded === null ? {} : { expanded: expanded === "true" }),
         });
       }
       return out;
     },
     [CONTROL_SELECTOR] as const,
-  );
-}
-
-/** Whether two controls overlap horizontally, so one sits in the other's column. */
-function sharesColumn(a: ControlPlace, b: ControlPlace): boolean {
-  const aw = a.w ?? 0;
-  const bw = b.w ?? 0;
-  return (
-    a.x < b.x + bw + CONTROL_MOVE_TOLERANCE_PX &&
-    b.x < a.x + aw + CONTROL_MOVE_TOLERANCE_PX
   );
 }
 
@@ -519,22 +500,20 @@ export function shiftedControls(
       return [];
     }
   }
-  const toggledHeaders = before
+  const toggledHeaderTops = before
     .filter((c) => {
       const n = later.get(c.key);
       return (
         n !== undefined && c.expanded !== undefined && n.expanded !== c.expanded
       );
     })
-    .map((c) => c);
+    .map((c) => c.y);
   const before_ = new Map(before.map((c) => [c.key, c]));
   return moved
     .filter((m) => {
       const from = before_.get(m.key);
       if (!from) return true;
-      return !toggledHeaders.some(
-        (header) => from.y > header.y && sharesColumn(header, from),
-      );
+      return !toggledHeaderTops.some((top) => from.y > top);
     })
     .map((m) => `${m.key} moved ${m.dx.toFixed(1)}, ${m.dy.toFixed(1)}px`);
 }

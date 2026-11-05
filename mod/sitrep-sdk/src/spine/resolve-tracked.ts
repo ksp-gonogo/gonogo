@@ -151,9 +151,7 @@ export function resolveTracked(
       classified.predictedPhase === "in-transit" ||
       classified.predictedPhase === "awaiting-reply"
     ) {
-      /* The reply is in, so the command ran: whatever wait the rail predicted is over. */
-      const { held: _held, hold: _hold, ...ran } = classified;
-      return { kind: "classified", item: ran };
+      return { kind: "classified", item: classified };
     }
     const replyUt =
       classified.replyEtaSeconds === null

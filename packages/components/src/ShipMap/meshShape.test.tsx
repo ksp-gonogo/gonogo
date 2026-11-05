@@ -643,42 +643,13 @@ describe("drawing a part from its shape", () => {
     expect(markup).toContain("scale(20 -20)");
   });
 
-  it("keeps a strut and a clamp drawn by what they do, and draws a landing leg and a parachute from their shape", () => {
-    for (const type of ["strut", "clamp"] as const) {
+  it("keeps a parachute, a strut and a clamp drawn by what they do, and draws a landing leg from its shape", () => {
+    for (const type of ["parachute", "strut", "clamp"] as const) {
       expect(renderToStaticMarkup(drawnWithShape(type))).not.toContain(
         "mesh-face",
       );
     }
     expect(renderToStaticMarkup(drawnWithShape("gear"))).toContain("mesh-face");
-    expect(renderToStaticMarkup(drawnWithShape("parachute"))).toContain(
-      "mesh-face",
-    );
-  });
-
-  it("tints only the outer half of a parachute's shape by its canopy state", () => {
-    const markup = renderToStaticMarkup(
-      renderPartShape(
-        "parachute",
-        { x: 10, y: 20, w: 40, h: 80 },
-        { x: 30, y: 60 },
-        "var(--color-info-mark)",
-        false,
-        1,
-        1,
-        "extended",
-        true,
-        {
-          shape: {
-            drawing: drawingOf(),
-            center: { x: 30, y: 60 },
-            pxPerMetre: 20,
-          },
-        },
-      ),
-    );
-    expect(markup).toContain('data-role="parachute-state-half"');
-    expect(markup).toContain("var(--color-go-mark)");
-    expect(markup).toMatch(/<clipPath[^>]*><rect x="30" /);
   });
 
   it("stays decorative inside a hidden diagram", async () => {

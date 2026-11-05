@@ -14,7 +14,12 @@ import { deriveHostPeerIds } from "./hostPeerId";
 import { attachIceDiagnostics } from "./iceDiagnostics";
 import { MessageDispatcher } from "./MessageDispatcher";
 import { peerBrokerOptions } from "./peerOptions";
-import type { FlightRpcOp, PeerMessage, PeerSchemaSource } from "./protocol";
+import type {
+  FlightRpcOp,
+  HostLayout,
+  PeerMessage,
+  PeerSchemaSource,
+} from "./protocol";
 import { asPeerMessage, HOST_SILENCE_MS } from "./protocol";
 import { RequestTracker } from "./RequestTracker";
 import { RetryPolicy } from "./RetryPolicy";
@@ -231,7 +236,6 @@ export class PeerClientService {
    *  drop. Regenerating dodges that entirely. */
   private stationPeerId: string;
   private readonly stationKey: string;
-  private readonly seat: string | undefined;
   /** Override id supplied via constructor opts, used by tests. When set,
    *  every `openPeer()` reuses it; when null we re-roll on each call. */
   private readonly fixedPeerIdOverride: string | null;
@@ -300,6 +304,7 @@ export class PeerClientService {
     received: number;
   } | null = null;
   private pendingManifestFetch = new RequestTracker<unknown>();
+  private pendingHostLayouts = new RequestTracker<HostLayout[]>();
 
   // Cached current flight pushed by the host. Updated on every `flight-change`
   // message, including the initial snapshot the host sends on connect open.
@@ -333,7 +338,6 @@ export class PeerClientService {
   }: PeerClientOptions = {}) {
     this.attemptDeadlineMs = attemptDeadlineMs;
     this.fixedPeerIdOverride = peerId ?? null;
-    this.seat = seat;
     this.stationPeerId = peerId ?? getStationPeerId(undefined, seat);
     this.stationKey = getStationKey(undefined, seat);
     // Tag every log entry on this station with the persistent stationKey
@@ -441,7 +445,7 @@ export class PeerClientService {
     // hold from a previous attempt that dropped without sending a
     // graceful leave (mid-session WS drop, screen lock, tab background).
     if (!this.fixedPeerIdOverride) {
-      this.stationPeerId = getStationPeerId(undefined, this.seat);
+      this.stationPeerId = getStationPeerId();
       logger.setIdentity({ peerId: this.stationPeerId });
     }
     logger.info(
@@ -1345,6 +1349,28 @@ export class PeerClientService {
     return pending;
   }
 
+  /**
+   * Ask the main screen which dashboard layouts it has saved. Rejects when the
+   * link is down, when the main screen has not approved this station, and
+   * after the timeout.
+   */
+  requestHostLayouts(timeoutMs = 10_000): Promise<HostLayout[]> {
+    if (!this.conn) {
+      return Promise.reject(new Error("not connected"));
+    }
+    const requestId = safeRandomUuid();
+    const pending = this.pendingHostLayouts.track(
+      requestId,
+      timeoutMs,
+      "host layouts timeout",
+    );
+    this.conn.send({
+      type: "host-layouts-request",
+      requestId,
+    } satisfies PeerMessage);
+    return pending;
+  }
+
   // ── Sitrep telemetry-stream forwarding ───────────────────────────────────
   //
   // `PeerTransport` (packages/app/src/telemetry/PeerTransport.ts) is the sole
@@ -1432,20 +1458,6 @@ export class PeerClientService {
   }
 
   /**
-   * Ask the host for the answer to each of these commands, which this station
-   * sent before its link dropped or its page reloaded. The host replays what it
-   * holds under each id and answers an id it holds nothing for with a
-   * `replyNotReceived` error. Silently does nothing with no live connection: the
-   * client claims again on every connect.
-   */
-  sendSitrepClaim(requestIds: string[]): void {
-    this.conn?.send({
-      type: "sitrep-claim",
-      requestIds,
-    } satisfies PeerMessage);
-  }
-
-  /**
    * Forward a `TelemetryClient.dispatchGroup()` frame to the host as one peer
    * message, so the host sends the members to the mod as one group. Each member
    * carries the station's own request id, as in {@link sendSitrepCommand}.
@@ -1515,6 +1527,7 @@ export class PeerClientService {
     this.pendingFlightRpc.rejectAll(reason);
     this.pendingUplinkRelay.rejectAll(reason);
     this.pendingBundleFetch.rejectAll(reason);
+    this.pendingHostLayouts.rejectAll(reason);
   }
 
   /**
@@ -1959,6 +1972,9 @@ export class PeerClientService {
         return;
       }
       this.pendingManifestFetch.resolve(msg.requestId, msg.manifest);
+    },
+    "host-layouts-response": (msg) => {
+      this.pendingHostLayouts.resolve(msg.requestId, msg.layouts);
     },
     "flight-rpc-response": (msg) => {
       if (msg.error) {

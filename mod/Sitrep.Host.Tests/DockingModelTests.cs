@@ -59,41 +59,5 @@ namespace Sitrep.Host.Tests
         {
             Assert.Null(DockingModel.ParsePortState(state));
         }
-    
-        private sealed class Port { }
-
-        [Theory]
-        [InlineData("Docked (docker)")]
-        [InlineData("Docked (dockee)")]
-        [InlineData("PreAttached")]
-        [InlineData("Acquire")]
-        [InlineData("Disengage")]
-        public void APortInTheDockWithAnotherPortIsTiedToAnother(string state)
-        {
-            Assert.True(DockingModel.IsTiedToAnother(state, new Port(), new Port()));
-        }
-
-        [Theory]
-        [InlineData("Docked (docker)")]
-        [InlineData("Acquire")]
-        public void APortInTheDockWithTheTargetPortIsNotTiedToAnother(string state)
-        {
-            var target = new Port();
-            Assert.False(DockingModel.IsTiedToAnother(state, target, target));
-        }
-
-        [Theory]
-        [InlineData("Ready")]
-        [InlineData("Disabled")]
-        public void APortAtRestIsNotTiedToAnother(string state)
-        {
-            Assert.False(DockingModel.IsTiedToAnother(state, new Port(), new Port()));
-        }
-
-        [Fact]
-        public void ADockStagePortWhosePartnerIsNotKnownIsNotCalledTiedToAnother()
-        {
-            Assert.False(DockingModel.IsTiedToAnother("PreAttached", (Port?)null, new Port()));
-        }
-}
+    }
 }

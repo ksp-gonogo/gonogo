@@ -209,7 +209,7 @@ public class EvaCrewMember
     /// the vessel in focus. A kerbal that is not loaded is orbiting or standing elsewhere and has
     /// no suit state of its own to read.</summary>
     [SitrepUnit(Units.Flag)]
-    public bool Loaded { get; set; }
+    public bool? Loaded { get; set; }
 }
 
 /// <summary>

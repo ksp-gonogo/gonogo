@@ -177,7 +177,7 @@ describe("ActionGroup when the backend could not read the group", () => {
 
   it("badges a group nobody reported with its own reason", async () => {
     // An `assumed` group also leaves the pill empty, so only the sentence separates the two.
-    const { fixture } = mount("AG5", "ag-unreadable-assumed");
+    const { fixture } = mount("Radiators", "ag-unreadable-assumed");
     act(() => {
       fixture.emit("vessel.control", {
         ...CONTROL_BASE,
@@ -187,21 +187,6 @@ describe("ActionGroup when the backend could not read the group", () => {
 
     await waitFor(() =>
       expect(screen.getByText("Not reported")).toBeInTheDocument(),
-    );
-  });
-
-  it("badges an id that is not an action group as unknown, never as not reported", async () => {
-    const { fixture } = mount("rcs", "ag-unknown-id");
-    act(() => {
-      fixture.emit("vessel.control", { ...CONTROL_BASE, actionGroups: [] });
-    });
-
-    await waitFor(() =>
-      expect(screen.getByText("Unknown group")).toBeInTheDocument(),
-    );
-    expect(screen.queryByText("Not reported")).toBeNull();
-    expect(isDisabled(screen.getByRole("button", { name: "Toggle rcs" }))).toBe(
-      true,
     );
   });
 });

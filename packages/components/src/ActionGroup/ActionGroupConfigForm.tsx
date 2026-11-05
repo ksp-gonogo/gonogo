@@ -53,11 +53,7 @@ export function ActionGroupConfigForm({
         >
           {/* Labelled by name, valued by identity, so a custom group named after a stock singleton keeps its own id. */}
           {groups.map((g) => (
-            <option
-              key={actionGroupIdOf(g)}
-              value={actionGroupIdOf(g)}
-              disabled={g.provenance === "unknown"}
-            >
+            <option key={actionGroupIdOf(g)} value={actionGroupIdOf(g)}>
               {g.name}
             </option>
           ))}

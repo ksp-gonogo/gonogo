@@ -1221,11 +1221,9 @@ function describeTrigger(
   contexts: TimeContexts,
 ): React.ReactNode {
   if (a.trigger.kind === "time") {
-    /* A time alarm's UT is the game's own, and it fires when the game reaches
-       it. The view clock is one signal delay behind the game, so the delay is
-       added back to count down to the instant the game fires it. */
-    const delta =
-      utNow !== null ? a.trigger.ut - (utNow + contexts.owltSeconds) : null;
+    /* The countdown is on the view clock, the same one every other strip
+       counts on: the alarm is announced when the view clock reaches its UT. */
+    const delta = utNow !== null ? a.trigger.ut - utNow : null;
     return (
       <>
         <MissionDate value={a.trigger.ut} context={contexts.scet} />

@@ -32,20 +32,6 @@ export function firstFreeSlot(
   return { x: 0, y: bottom, w, h };
 }
 
-/** The entry without the `minW`/`minH`/`maxW`/`maxH` an earlier pass stored. */
-function withoutBounds(entry: LayoutItem): LayoutItem {
-  if (
-    entry.minW === undefined &&
-    entry.minH === undefined &&
-    entry.maxW === undefined &&
-    entry.maxH === undefined
-  ) {
-    return entry;
-  }
-  const { minW, minH, maxW, maxH, ...rest } = entry;
-  return rest;
-}
-
 /**
  * Inject `minW`/`minH` from each item's registered component definition into
  * the layout entries (RGL uses these to gate resize/drag). Also injects `maxW`/`maxH`
@@ -54,8 +40,6 @@ function withoutBounds(entry: LayoutItem): LayoutItem {
  * minSize (or when a user shrank one below the new floor). The floor is the
  * widget's `minSize`, or the kit-wide tiny size for a widget with a tiny mode,
  * so a tile that now shows the tiny form where it showed the body is left alone.
- * A widget with neither bound, or one that is not registered, has the stored
- * bounds removed so a tile is never held to a size nothing asks for.
  * `sizeDeltaFor` adds the room the extensions rendering in a widget ask for to
  * its `minSize`.
  */
@@ -71,11 +55,11 @@ export function applyMinSizes(
     const componentId = idToComponentId.get(entry.i);
     if (!componentId) return entry;
     const def = getComponent(componentId);
-    const sized =
-      def && sizeDeltaFor ? withSizeDelta(def, sizeDeltaFor(def)) : def;
-    const min = sized ? gridFloor(sized) : undefined;
-    const max = sized?.maxSize;
-    if (!min && !max) return withoutBounds(entry);
+    if (!def) return entry;
+    const sized = sizeDeltaFor ? withSizeDelta(def, sizeDeltaFor(def)) : def;
+    const min = gridFloor(sized);
+    const max = sized.maxSize;
+    if (!min && !max) return entry;
     let w = min ? Math.max(entry.w, min.w) : entry.w;
     let h = min ? Math.max(entry.h, min.h) : entry.h;
     if (max) {

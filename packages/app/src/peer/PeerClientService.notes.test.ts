@@ -12,17 +12,3 @@ describe("a station's notes list", () => {
     expect(heard).toHaveBeenCalledWith(snapshot);
   });
 });
-
-describe("a seated station's broker id", () => {
-  it("names the seat's own station key when the peer is opened", async () => {
-    const { getStationKey } = await import("./stationPeerId");
-    const svc = new PeerClientService({ seat: "pilot" });
-    svc.connect("abcd");
-    const own = getStationKey(undefined, "pilot");
-    const main = getStationKey();
-    expect(own).not.toBe(main);
-    const id = svc["stationPeerId"];
-    expect(id.startsWith(`station-${own}-`)).toBe(true);
-    svc.disconnect();
-  });
-});

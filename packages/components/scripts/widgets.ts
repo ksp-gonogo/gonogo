@@ -2380,13 +2380,7 @@ const WIDGETS: WidgetRenderConfig[] = [
         name: "min-5x5",
         w: 5,
         h: 5,
-        forFixtures: [
-          "staged-rocket",
-          "engine-burning",
-          "engine-burned-out",
-          "chutes-packed",
-          "chutes-deployed",
-        ],
+        forFixtures: ["staged-rocket", "engine-burning", "engine-burned-out"],
       },
       // Wide enough for the stage column beside a diagram that keeps its rotate controls.
       { name: "wide-12x10", w: 12, h: 10, forFixtures: ["staged-rocket"] },
