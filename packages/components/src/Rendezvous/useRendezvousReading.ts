@@ -133,11 +133,9 @@ export function useRendezvousReading() {
       : dockSampleBare;
   const dockDistanceStream = dock?.distance?.magnitude;
   const dockForwardDot = dock?.forwardDot?.magnitude;
-  // Either port reading joined counts: the craft's own port and the target's port move together at a dock, and the target's can be the only one delivered while the own side is between states. Capture is the last state `vessel.dock` delivers before the target clears at the dock, so a captured port counts as joined along with pre-attached and docked.
+  // Either port reading joined counts: the craft's own port and the target's port move together at a dock, and the target's can be the only one delivered while the own side is between states. A port still capturing is not joined: the ports are being drawn together and the dock may not complete.
   const isJoined = (state: DockingPortState | null | undefined) =>
-    state === DockingPortState.Acquire ||
-    state === DockingPortState.PreAttached ||
-    state === DockingPortState.Docked;
+    state === DockingPortState.PreAttached || state === DockingPortState.Docked;
   const dockJoined =
     isJoined(dock?.ownPortState) || isJoined(dock?.targetPortState);
   // Ids are facts about the pairing: they stay while the geometry is held.

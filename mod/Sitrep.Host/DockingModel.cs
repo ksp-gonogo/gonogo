@@ -61,6 +61,14 @@ namespace Sitrep.Host
             || state == DockingPortState.Docked
             || state == DockingPortState.Disengage;
 
+        /// <summary>
+        /// Whether a port in a stage of the dock is paired with a port other than
+        /// <paramref name="target"/>, as one docked to a third craft is. A port
+        /// whose partner is not known is not counted.
+        /// </summary>
+        public static bool IsTiedToAnother<TPort>(string? state, TPort? partner, TPort target) where TPort : class =>
+            IsDockStage(ParsePortState(state)) && partner != null && !ReferenceEquals(partner, target);
+
         private static double Dot((double X, double Y, double Z) a, (double X, double Y, double Z) b) =>
             a.X * b.X + a.Y * b.Y + a.Z * b.Z;
     }

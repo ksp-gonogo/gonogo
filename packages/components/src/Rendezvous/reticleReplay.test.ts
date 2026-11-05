@@ -38,6 +38,42 @@ function pinholePx(
   return { x: s * f * (dir.x / dir.z), y: -s * f * (dir.y / dir.z) };
 }
 
+type Vec = { x: number; y: number; z: number };
+
+const dot = (a: Vec, b: Vec) => a.x * b.x + a.y * b.y + a.z * b.z;
+const cross = (a: Vec, b: Vec): Vec => ({
+  x: a.y * b.z - a.z * b.y,
+  y: a.z * b.x - a.x * b.z,
+  z: a.x * b.y - a.y * b.x,
+});
+const unit = (v: Vec): Vec => {
+  const m = Math.hypot(v.x, v.y, v.z);
+  return { x: v.x / m, y: v.y / m, z: v.z / m };
+};
+
+/** An own port's axes in scene space: forward along `world`, turned `yawDeg` about its up axis. */
+function aimedAt(world: Vec, yawDeg = 0) {
+  const f0 = unit(world);
+  const right0 = unit(cross({ x: 0, y: 1, z: 0 }, f0));
+  const up = cross(f0, right0);
+  const a = yawDeg * RAD;
+  const forward = {
+    x: f0.x * Math.cos(a) + right0.x * Math.sin(a),
+    y: f0.y * Math.cos(a) + right0.y * Math.sin(a),
+    z: f0.z * Math.cos(a) + right0.z * Math.sin(a),
+  };
+  return { right: unit(cross(up, forward)), up, forward };
+}
+
+/** A scene-space separation in a port's axes, as the mod reports it. */
+function inPortFrame(world: Vec, axes: ReturnType<typeof aimedAt>): Vec {
+  return {
+    x: dot(world, axes.right),
+    y: dot(world, axes.up),
+    z: dot(world, axes.forward),
+  };
+}
+
 describe("recorded run: the target port sits on the camera crosshair", () => {
   const { camera, frame, rows } = replay;
   const picture = {
@@ -48,11 +84,36 @@ describe("recorded run: the target port sits on the camera crosshair", () => {
   it.each(
     rows as Row[],
   )("lands the reticle on the crosshair at $distance m", (row) => {
-    // The craft were aimed at the target port, so in the own port's axes the separation is dead ahead.
-    const portFrame = { x: 0, y: 0, z: row.distance };
-    const at = reticleAt(portFrame, frame, picture);
+    // The craft were aimed at the target port, so the recorded separation in the own port's axes is dead ahead.
+    const at = reticleAt(
+      inPortFrame(
+        row.worldRelativePosition,
+        aimedAt(row.worldRelativePosition),
+      ),
+      frame,
+      picture,
+    );
     expect(Math.abs(at.x)).toBeLessThan(3);
     expect(Math.abs(at.y)).toBeLessThan(3);
+  });
+
+  it.each(
+    rows as Row[],
+  )("lands the reticle where the camera draws the recorded port when the craft is yawed 3 degrees off it, at $distance m", (row) => {
+    const separation = inPortFrame(
+      row.worldRelativePosition,
+      aimedAt(row.worldRelativePosition, 3),
+    );
+    const at = reticleAt(separation, frame, picture);
+    const drawn = pinholePx(
+      separation,
+      { w: camera.renderWidth, h: camera.renderHeight },
+      camera.verticalFovDeg,
+      { w: frame.width, h: frame.height },
+    );
+    expect(Math.abs(drawn.x)).toBeGreaterThan(20);
+    expect(at.x).toBeCloseTo(drawn.x, 6);
+    expect(at.y).toBeCloseTo(drawn.y, 6);
   });
 
   it("reads head-on ports as aligned, which the recorded dot product says they were", () => {
