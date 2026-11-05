@@ -27,11 +27,7 @@ export function ReadoutRows({
   stacked?: boolean;
 }) {
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      style={stacked ? STACKED_STYLE : SIDE_BY_SIDE_STYLE}
-    >
+    <div style={stacked ? STACKED_STYLE : SIDE_BY_SIDE_STYLE}>
       {rows.map((row) => (
         <div key={row.label} style={stacked ? STACKED_ROW : CONTENTS_ROW}>
           <span style={LABEL_STYLE}>{row.label}</span>

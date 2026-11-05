@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it, vi } from "vitest";
 import { SeriesRow } from "./SeriesRow";
 import { ThresholdRow } from "./ThresholdRow";
@@ -13,6 +14,13 @@ describe("ThresholdRow", () => {
     );
     fireEvent.change(screen.getByLabelText("Value"), { target: { value: "" } });
     expect(onUpdate).toHaveBeenCalledWith("t1", { value: undefined });
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = render(
+      <ThresholdRow threshold={line} onUpdate={vi.fn()} onRemove={vi.fn()} />,
+    );
+    await expectNoA11yViolations(container);
   });
 
   it("names its remove button after the line", () => {
