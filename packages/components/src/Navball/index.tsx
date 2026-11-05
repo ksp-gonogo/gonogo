@@ -143,8 +143,14 @@ function useNavball({
       : collapseControlStateLevel(comms.controlState);
   const isControllable = controlLevel === undefined || controlLevel > 0;
 
-  const { throttleCmd, setThrottleCmd, throttleKnown, throttleStream } =
-    useThrottleCommand(throttle);
+  const {
+    throttleCmd,
+    setThrottleCmd,
+    throttleBase,
+    throttleExpected,
+    throttleKnown,
+    throttleStream,
+  } = useThrottleCommand(throttle);
   const { axisStreams, setAxis } = useAxisStreams();
 
   const {
@@ -230,6 +236,8 @@ function useNavball({
     isControllable,
     throttleCmd,
     setThrottleCmd,
+    throttleBase,
+    throttleExpected,
     throttleKnown,
     throttleStream,
     axisStreams,
@@ -324,7 +332,8 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
     isControllable,
     throttleCmd,
     setThrottleCmd,
-    throttleKnown,
+    throttleBase,
+    throttleExpected,
     throttleStream,
     axisStreams,
     sasRaw,
@@ -529,7 +538,18 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
               disabled={!isControllable}
               sasMode={sasMode ?? null}
               availableSasModes={availableSasModes}
-              throttleCmd={throttleKnown ? throttleCmd : null}
+              throttleBase={throttleBase}
+              throttleExpected={throttleExpected}
+              throttleLastSeen={
+                throttle !== null && controlReading.state !== "observed"
+                  ? {
+                      value: throttle,
+                      caption:
+                        derivedMarking(controlReading)?.caption ??
+                        "last reported",
+                    }
+                  : null
+              }
               onSetThrottleCmd={setThrottleCmd}
               fbwState={fbwState}
               onArmFbw={armFbw}

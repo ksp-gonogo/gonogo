@@ -1,11 +1,10 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
+  CommandSlider,
   Countdown,
   Disclosure,
   MARKER_ICONS,
-  NULL_DISPLAY,
-  Slider,
   StatusIndicator,
   ToggleButton,
   Unit,
@@ -32,8 +31,12 @@ interface ControlSurfaceProps {
   sasMode: string | null;
   /** The SAS modes the craft can hold right now; `null` while it does not say, when every mode is offered. */
   availableSasModes: ReadonlySet<SasMode> | null;
-  /** Commanded throttle (0..1), tracking the readback until touched; `null` while there is neither. */
-  throttleCmd: number | null;
+  /** The throttle a step works from (0..1): the newest input in flight, else the craft's; `null` while there is neither. */
+  throttleBase: number | null;
+  /** The throttle the craft is expected to hold now (0..1), given every input that has reached it. */
+  throttleExpected: number | null;
+  /** The craft's last reported throttle (0..1) and its held caption, passed only while its readings are held. */
+  throttleLastSeen: { value: number; caption: string } | null;
   onSetThrottleCmd: (next: number | ((v: number) => number)) => void;
   fbwState: FbwState;
   onArmFbw: () => void;
@@ -77,7 +80,9 @@ export function ControlSurface({
   disabled,
   sasMode,
   availableSasModes,
-  throttleCmd,
+  throttleBase,
+  throttleExpected,
+  throttleLastSeen,
   onSetThrottleCmd,
   fbwState,
   onArmFbw,
@@ -185,25 +190,19 @@ export function ControlSurface({
         aria-label="Throttle controls"
       >
         <div style={GROUP}>
-          <div style={SLIDER_ROW}>
-            <Slider
-              min={0}
-              max={1}
-              step={0.01}
-              value={throttleCmd ?? 0}
-              onChange={(e) => onSetThrottleCmd(Number(e.target.value))}
-              disabled={disabled}
-              aria-label="Throttle"
-              style={SLIDER}
-            />
-            <span style={SLIDER_VAL}>
-              {throttleCmd === null ? (
-                NULL_DISPLAY
-              ) : (
-                <Unit value={value("%", throttleCmd * 100)} decimals={0} />
-              )}
-            </span>
-          </div>
+          <CommandSlider
+            min={0}
+            max={1}
+            step={0.01}
+            commanded={throttleBase}
+            expected={throttleExpected}
+            lastSeen={throttleLastSeen?.value ?? null}
+            lastSeenCaption={throttleLastSeen?.caption}
+            onChange={(v) => onSetThrottleCmd(v)}
+            figure={(v) => <Unit value={value("%", v * 100)} decimals={0} />}
+            disabled={disabled}
+            aria-label="Throttle"
+          />
           <div style={BUTTON_GRID}>
             <Button
               type="button"
@@ -216,7 +215,7 @@ export function ControlSurface({
             <Button
               type="button"
               onClick={() => onSetThrottleCmd((v) => clamp(v - 0.1, 0, 1))}
-              disabled={disabled || throttleCmd === null}
+              disabled={disabled || throttleBase === null}
               disabledReason={throttleBlockedBecause}
             >
               −10%
@@ -224,7 +223,7 @@ export function ControlSurface({
             <Button
               type="button"
               onClick={() => onSetThrottleCmd((v) => clamp(v + 0.1, 0, 1))}
-              disabled={disabled || throttleCmd === null}
+              disabled={disabled || throttleBase === null}
               disabledReason={throttleBlockedBecause}
             >
               +10%
@@ -300,22 +299,6 @@ const BUTTON_GRID: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(68px, 1fr))",
   gap: "var(--gap-related)",
-};
-
-const SLIDER_ROW: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: "var(--gap-related)",
-};
-
-const SLIDER: CSSProperties = { flex: 1 };
-
-const SLIDER_VAL: CSSProperties = {
-  fontSize: "var(--font-size-compact)",
-  color: "var(--color-text-primary)",
-  fontVariantNumeric: "tabular-nums",
-  minWidth: "36px",
-  textAlign: "right",
 };
 
 const FBW_ROW: CSSProperties = {

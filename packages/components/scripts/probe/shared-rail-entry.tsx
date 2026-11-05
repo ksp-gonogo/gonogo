@@ -51,7 +51,11 @@ function instruments(state: "unused" | "holding" | "sent") {
   ];
 }
 
-export type SharedWidget = "navball" | "action-group" | "experiments";
+export type SharedWidget =
+  | "navball"
+  | "action-group"
+  | "experiments"
+  | "rotor-tachometer";
 /** What the Experiments card starts with: an unused Mystery Goo, or one holding data to transmit. */
 export type ExperimentsScenario = "deploy" | "transmit";
 export type SharedScreen = "main" | "station";
@@ -95,6 +99,25 @@ export interface SharedScene {
   report(kind: "held" | "departed"): void;
   /** Writes `text` in the caption bar above both screens. */
   caption(text: string): void;
+  /**
+   * Opens the throttle section on both screens and starts the craft model:
+   * from then on each second of the clock brings home the throttle the craft
+   * took from the inputs sent a round trip before, and answers them.
+   */
+  openThrottle(): Promise<void>;
+  /** Puts the last throttle input `from` sent on the queue, and returns its value. */
+  queueThrottle(from: SharedScreen): number;
+  /**
+   * Sets the throttle on `from` to `value` (the "ZERO" or "FULL" button for
+   * the ends, the slider between), queues it and runs the clock on `seconds`.
+   */
+  throttleTo(from: SharedScreen, value: number, seconds: number): Promise<void>;
+  /** Puts the last RPM cap `from` sent on the queue, and returns its value. */
+  queueRotor(from: SharedScreen): number;
+  /** Moves the clock to `to` scene seconds every animation frame, one second each `msPerSecond` of wall time. */
+  glide(to: number, msPerSecond?: number): Promise<void>;
+  /** Runs the clock on `seconds`, one second each `msPerSecond` of wall time. */
+  run(seconds: number, msPerSecond?: number): Promise<void>;
 }
 
 const mounts: Partial<Record<SharedScreen, ProbeMount>> = {};
@@ -129,12 +152,85 @@ function emitBoth(topic: string, payload: unknown, ut = T0 + now): void {
 }
 
 /** Moves both screens' game clock to `T0 + seconds`, so a command sent at T0 is drawn partway along the rail. */
+/**
+ * Throttle inputs sent in a throttle scene, by scene second. The craft takes
+ * each one a one-way delay after it was sent, so the throttle it reports home
+ * at `now` is the newest input sent a round trip or more before.
+ */
+let throttleLog: Array<{ at: number; value: number }> | null = null;
+
+function craftThrottle(): number {
+  let value = 0;
+  for (const input of throttleLog ?? []) {
+    if (input.at <= now - 2 * delay) value = input.value;
+  }
+  return value;
+}
+
+/** The rotor's RPM cap the craft reports home at `now`, from the caps sent a round trip or more before. */
+function craftRpmCap(): number {
+  let value = ROTOR.rpmLimit;
+  for (const input of rpmLog) {
+    if (input.at <= now - 2 * delay) value = input.value;
+  }
+  return value;
+}
+
+let rpmLog: Array<{ at: number; value: number }> = [];
+
+const ROTOR = {
+  partName: "Main Rotor",
+  partId: "101",
+  type: "rotor",
+  servoIsLocked: false,
+  servoIsMotorized: true,
+  servoMotorIsEngaged: true,
+  servoMotorLimit: 80,
+  currentRPM: 240,
+  rpmLimit: 300,
+  normalizedOutput: 0.8,
+  brakePercentage: 0,
+  counterClockwise: false,
+  maxTorque: 400,
+};
+
+function report(ut: number): void {
+  if (widget === "rotor-tachometer") {
+    emitBoth("robotics.servos", [{ ...ROTOR, rpmLimit: craftRpmCap() }], ut);
+    return;
+  }
+  emitBoth("vessel.control", { ...CONTROL, throttle: craftThrottle() }, ut);
+}
+
 function advance(seconds: number): void {
   now = seconds;
   const ut = T0 + seconds;
   for (const screen of SCREENS) stream(screen).scrubTo(ut);
   emitBoth("comms.link", { connected: linkUp }, ut);
+  if (throttleLog === null) return;
+  // With the link down nothing comes home: no reading and no reply.
+  if (!linkUp) return;
+  // The reply to each input comes home with the readback that shows it.
+  const answered = pending.filter(
+    (e) => (e.dispatchedAt as number) <= ut - 2 * delay,
+  );
+  if (answered.length > 0) {
+    for (const screen of SCREENS) {
+      const t = stream(screen).transport;
+      t.answerHeldCommands();
+      t.holdCommands();
+    }
+    pending = pending.filter((e) => !answered.includes(e));
+    emitBoth("system.uplink.pending", { pending, settled }, ut);
+  }
+  // The craft reports once a second, however finely the clock moves.
+  if (Math.floor(seconds) === lastReportAt) return;
+  lastReportAt = Math.floor(seconds);
+  report(ut);
 }
+
+let lastReportAt = -1;
+let queuedThrottles = 0;
 
 /** The Navball toggles a scene can press, by the word their label starts with. */
 export type SharedToggle = "RCS" | "SAS" | "PRECISION";
@@ -236,6 +332,15 @@ function held() {
 const WARNING =
   "A continuous input is lost if it has to wait, and this centre's plan says it would wait at Duna Relay. Fly this from a pilot aboard or leave it to automation on the craft.";
 
+const ATTITUDE = {
+  heading: 90,
+  pitch: -24,
+  roll: 0,
+  headingRootFrame: 90,
+  pitchRootFrame: -24,
+  rollRootFrame: 0,
+};
+
 /** The toggle's state in the readings, flipped by each answered press. */
 let on = false;
 
@@ -250,6 +355,10 @@ const scene: SharedScene = {
     flipped.SAS = false;
     flipped.PRECISION = false;
     now = 0;
+    throttleLog = null;
+    rpmLog = [];
+    lastReportAt = -1;
+    queuedThrottles = 0;
     on = false;
     linkUp = true;
     delay = opts.delaySeconds ?? 27.4;
@@ -280,6 +389,21 @@ const scene: SharedScene = {
                 meta,
               },
               { channel: "vessel.control", value: CONTROL, meta },
+              ...(opts.widget === "rotor-tachometer"
+                ? [
+                    {
+                      channel: "robotics.available",
+                      value: { available: true },
+                      meta,
+                    },
+                    {
+                      channel: "game.dlc",
+                      value: { breakingGround: true },
+                      meta,
+                    },
+                    { channel: "robotics.servos", value: [ROTOR], meta },
+                  ]
+                : []),
               ...(opts.widget === "experiments"
                 ? [
                     { channel: "science.experiments", value: [], meta },
@@ -539,6 +663,115 @@ const scene: SharedScene = {
   link(up) {
     linkUp = up;
     advance(now);
+  },
+  async openThrottle() {
+    throttleLog = throttleLog ?? [];
+    // An attitude, so the dial and the THR gauge beside it are drawn.
+    emitBoth("vessel.attitude", ATTITUDE);
+    for (const screen of SCREENS) {
+      const header = host(screen).querySelector<HTMLButtonElement>(
+        'button[aria-label="Throttle controls"]',
+      );
+      if (header?.getAttribute("aria-expanded") === "false") header.click();
+    }
+    await frames();
+  },
+  queueThrottle(from) {
+    const sent = stream(from)
+      .transport.sentCommands.filter(
+        (c) => c.command === "vessel.control.setThrottle",
+      )
+      .at(-1);
+    if (!sent) throw new Error(`shared-rail: ${from} sent no throttle`);
+    const value = (sent.args as { value: number }).value;
+    if (pending.some((e) => e.clientRequestId === sent.requestId)) return value;
+    throttleLog = [...(throttleLog ?? []), { at: now, value }];
+    // The clock stands still during a drag, so each input is stamped a millisecond after the last, as the mod's own clock would part them.
+    queuedThrottles += 1;
+    pending = [
+      ...pending,
+      {
+        ...queueEntry(from, {}),
+        dispatchedAt: T0 + now + queuedThrottles / 1000,
+        commandedValue: value,
+      },
+    ];
+    emitBoth("system.uplink.pending", { pending, settled });
+    return value;
+  },
+  queueRotor(from) {
+    throttleLog = throttleLog ?? [];
+    const sent = stream(from)
+      .transport.sentCommands.filter(
+        (c) => c.command === "robotics.rotor.setRpmLimit",
+      )
+      .at(-1);
+    if (!sent) throw new Error(`shared-rail: ${from} sent no RPM cap`);
+    const value = (sent.args as { rpm: number }).rpm;
+    if (pending.some((e) => e.clientRequestId === sent.requestId)) return value;
+    rpmLog = [...rpmLog, { at: now, value }];
+    queuedThrottles += 1;
+    pending = [
+      ...pending,
+      {
+        ...queueEntry(from, {}),
+        topic: (sent.args as { partId: string }).partId,
+        dispatchedAt: T0 + now + queuedThrottles / 1000,
+        commandedValue: value,
+      },
+    ];
+    emitBoth("system.uplink.pending", { pending, settled });
+    return value;
+  },
+  glide(to, msPerSecond = 1000) {
+    // The clock moves every frame, as the app's own view clock does.
+    const from = now;
+    const start = performance.now();
+    return new Promise<void>((resolve) => {
+      const tick = () => {
+        const t = Math.min(
+          to,
+          from + (performance.now() - start) / msPerSecond,
+        );
+        advance(t);
+        if (t < to) requestAnimationFrame(tick);
+        else resolve();
+      };
+      requestAnimationFrame(tick);
+    });
+  },
+  async throttleTo(from, value, seconds) {
+    await scene.openThrottle();
+    if (value === 0 || value === 1) {
+      buttonByText(from, value === 0 ? "ZERO" : "FULL").click();
+      await new Promise((resolve) => setTimeout(resolve, 350));
+    } else {
+      const slider = host(from).querySelector<HTMLInputElement>(
+        'input[aria-label="Throttle"]',
+      );
+      if (!slider) {
+        throw new Error(`shared-rail: no throttle slider on ${from}`);
+      }
+      slider.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+      const setValue = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )?.set;
+      setValue?.call(slider, String(value));
+      slider.dispatchEvent(new Event("input", { bubbles: true }));
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      slider.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
+    }
+    scene.queueThrottle(from);
+    await scene.run(seconds);
+  },
+  async run(seconds, msPerSecond = 150) {
+    const from0 = now;
+    for (let s = 1; s <= seconds; s += 1) {
+      await new Promise((resolve) => setTimeout(resolve, msPerSecond));
+      advance(from0 + s);
+    }
+    await frames();
   },
   caption(text) {
     const el = document.getElementById("caption");

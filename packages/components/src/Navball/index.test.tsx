@@ -289,7 +289,6 @@ describe("NavballComponent", () => {
     await waitFor(() => expect(slider).toHaveValue("0.25"));
 
     fireEvent.change(slider, { target: { value: "0.75" } });
-    await waitFor(() => expect(slider).toHaveValue("0.75"));
 
     emitReads(fixture, {
       comms: { controlState: 4 },
@@ -297,6 +296,16 @@ describe("NavballComponent", () => {
       vesselId: "vessel-b",
     });
     await waitFor(() => expect(slider).toHaveValue("0.6"));
+    act(() => {
+      screen.getByRole("button", { name: "+10%" }).click();
+    });
+    await waitFor(() =>
+      expect(
+        fixture.transport.sentCommands
+          .filter((c) => c.command === "vessel.control.setThrottle")
+          .at(-1)?.args,
+      ).toEqual({ value: 0.7 }),
+    );
   });
 
   describe("FBW-under-delay warning", () => {

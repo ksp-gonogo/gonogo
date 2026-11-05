@@ -145,7 +145,7 @@ describe("Navball control surface: what undefined means today", () => {
     // A step from an unread throttle is refused; the absolute commands stay live.
     const group = screen.getByRole("slider", {
       name: "Throttle",
-    }).parentElement;
+    }).parentElement?.parentElement;
     expect(group?.textContent).toContain(NULL_DISPLAY);
     expect(isDisabled(screen.getByRole("button", { name: "+10%" }))).toBe(true);
     expect(isDisabled(screen.getByRole("button", { name: "−10%" }))).toBe(true);
@@ -298,7 +298,6 @@ describe("Navball control surface: what undefined means today", () => {
     act(() => {
       screen.getByRole("button", { name: "FULL" }).click();
     });
-    expect(slider).toHaveValue("1");
 
     act(() => {
       fixture.emit("vessel.identity", {
@@ -309,6 +308,16 @@ describe("Navball control surface: what undefined means today", () => {
       });
     });
 
-    await waitFor(() => expect(slider).toHaveValue("0.2"));
+    // The FULL is forgotten: a step works from the craft's 0.2, not from the input.
+    act(() => {
+      screen.getByRole("button", { name: "+10%" }).click();
+    });
+    await waitFor(() =>
+      expect(sentNamed("vessel.control.setThrottle").at(-1)).toEqual({
+        value: expect.closeTo(0.3),
+      }),
+    );
+    // The slider shows the command, now the step from the craft's 0.2.
+    await waitFor(() => expect(slider).toHaveValue("0.3"));
   });
 });
