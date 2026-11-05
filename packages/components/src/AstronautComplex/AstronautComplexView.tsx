@@ -9,6 +9,7 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
+  ARM_TIMEOUT_MS,
   Badge,
   Grid,
   NULL_DISPLAY,
@@ -23,7 +24,7 @@ import {
   useSlotBound,
   useSlotLabel,
 } from "@ksp-gonogo/ui-kit";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { magnitudeOf } from "../shared/magnitude";
 import { ActivePanel } from "./ActivePanel";
 import { ApplicantsPanel } from "./ApplicantsPanel";
@@ -137,6 +138,21 @@ export function AstronautComplexComponent(
   );
   const [highlightedName, setHighlightedName] = useState<string | null>(null);
   const [armedName, setArmedName] = useState<string | null>(null);
+  // Names a fire was sent for that the roster still lists, so a repeat press cannot send a second fire for the same kerbal.
+  const firedRef = useRef(new Set<string>());
+  useEffect(() => {
+    for (const name of firedRef.current) {
+      if (!sackableCrew.some((c) => c.name === name)) {
+        firedRef.current.delete(name);
+      }
+    }
+  }, [sackableCrew]);
+  // An arm from a bound input lapses as the click path's does, so a stray press cannot fire minutes later.
+  useEffect(() => {
+    if (armedName === null) return;
+    const id = setTimeout(() => setArmedName(null), ARM_TIMEOUT_MS);
+    return () => clearTimeout(id);
+  }, [armedName]);
   // By name, so the highlight follows its kerbal through a reorder and falls to the first fireable one when it leaves.
   const highlighted =
     sackableCrew.find((c) => c.name === highlightedName) ?? sackableCrew[0];
@@ -157,12 +173,17 @@ export function AstronautComplexComponent(
     "fire-highlighted": (payload) => {
       if (payload.kind === "button" && payload.value !== true) return undefined;
       if (!highlighted) return undefined;
+      if (firedRef.current.has(highlighted.name)) return undefined;
       if (armedName !== highlighted.name) {
         setArmedName(highlighted.name);
         return { armed: highlighted.name };
       }
       setArmedName(null);
-      void fireCmd.send({ kerbalName: highlighted.name });
+      const name = highlighted.name;
+      firedRef.current.add(name);
+      fireCmd.send({ kerbalName: name }).catch(() => {
+        firedRef.current.delete(name);
+      });
       return { fired: highlighted.name };
     },
   });

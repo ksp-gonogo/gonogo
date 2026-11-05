@@ -133,6 +133,30 @@ describe("ActionGroup tiny mode", () => {
     );
   });
 
+  it("tells a bound device the state its press asked for, not the inverse of the held reading", async () => {
+    const { fixture } = setup({ w: 3, h: 3 });
+    act(() => {
+      fixture.emit("comms.delay", { oneWaySeconds: 10, source: 1 });
+    });
+    await screen.findByRole("button", { name: "Toggle SAS" });
+    const press = () =>
+      dispatchAction("action-group-test", "toggle", {
+        kind: "button",
+        value: true,
+      });
+    let first: unknown;
+    let second: unknown;
+    await act(async () => {
+      first = press();
+    });
+    await act(async () => {
+      second = press();
+    });
+
+    expect(first).toEqual({ SAS: true });
+    expect(second).toEqual({ SAS: false });
+  });
+
   it("marks the toggle held when the group's reading is late, and the press still goes", async () => {
     const { fixture } = setup({ w: 4, h: 4 }, true);
     const toggle = await screen.findByRole("button", { name: "Toggle SAS" });

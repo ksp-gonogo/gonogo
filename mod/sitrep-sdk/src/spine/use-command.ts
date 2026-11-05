@@ -833,7 +833,14 @@ export function useCommand(
         judgedLost,
         confirmation,
       );
-      if (resolution.kind === "classified") computed.push(resolution.item);
+      if (resolution.kind === "classified") {
+        const sentWith = argsRef.current.get(id);
+        computed.push(
+          sentWith === undefined
+            ? resolution.item
+            : { ...resolution.item, args: sentWith },
+        );
+      }
     }
     // Hide dismissed commands. The underlying `computed` set still drives the
     // dismissed-id prune below, so a dismissed id is dropped from the set once

@@ -34,6 +34,7 @@ import {
   confirmationSentenceOf,
   pressOutstanding,
   shownToggleState,
+  type ToggleState,
   toggleConfirmationOf,
   toggleMarking,
 } from "./toggle";
@@ -614,16 +615,38 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
     ? handle.inFlight.filter(toggle.rows ?? (() => true))
     : [];
   const confirmation = toggle
-    ? toggleConfirmationOf(sent, status, toggleRows)
+    ? toggleConfirmationOf(
+        sent,
+        status,
+        toggleRows,
+        toggle.state,
+        toggle.modelled,
+      )
     : null;
   const shown = toggle
-    ? shownToggleState(toggle.state, confirmation)
+    ? shownToggleState(
+        toggle.state,
+        confirmation,
+        status,
+        toggleRows,
+        toggle.modelled,
+      )
     : undefined;
   // While the latest press is outstanding the shown reading is still the old state, so the next press inverts the state that press asked for.
   const askedRef = useRef<boolean | undefined>(undefined);
-  const outstanding = pressOutstanding(status, handle.inFlight);
+  // The reading a press was made against: while a confirmed press has not moved it, the press still stands as the state asked for.
+  const askedFromRef = useRef<ToggleState>(undefined);
+  const outstanding =
+    pressOutstanding(status, handle.inFlight) ||
+    (status?.phase === "confirmed" &&
+      askedRef.current !== undefined &&
+      toggle?.state === askedFromRef.current);
   const toggleBase =
     outstanding && askedRef.current !== undefined ? askedRef.current : shown;
+
+  // Read at press time, so a second press before the next render inverts the state the first one asked for.
+  const toggleBaseRef = useRef(toggleBase);
+  toggleBaseRef.current = toggleBase;
 
   const press = useCallback(
     (armable: boolean) => {
@@ -635,9 +658,13 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
       }
       // A state toggle sends the opposite of the state it shows, however many presses are outstanding and whatever became of an earlier one.
       if (toggle) {
-        const sendArgs = toggle.args(toggleBase);
+        const sendArgs = toggle.args(toggleBaseRef.current);
         if (sendArgs === undefined) return;
         askedRef.current = askedToggleValue(sendArgs);
+        askedFromRef.current = toggle.state;
+        if (askedRef.current !== undefined) {
+          toggleBaseRef.current = askedRef.current;
+        }
         dispatch(sendArgs);
         return;
       }
@@ -660,7 +687,7 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
       }
       dispatch();
     },
-    [phase, sent, streamDown, gateBlocks, dispatch, args, toggle, toggleBase],
+    [phase, sent, streamDown, gateBlocks, dispatch, args, toggle],
   );
 
   // One handle serves many rows, and a row keyed by position can be handed another item while armed; the confirming press must not send to it.
@@ -859,8 +886,9 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
    * unanswered it shows "SENT", then the state again, marked held while the
    * command waits at a relay and marked modelled while it is predicted to have
    * arrived. A second press is always sent. The control draws as a pressed or
-   * unpressed button in the word `toggle.word` gives; `label`, `confirmLabel`
-   * and the arm step do not apply.
+   * unpressed button in the word `toggle.word` gives, or in `icon` where one is
+   * passed, which stands in the word's place until the press is answered;
+   * `label`, `confirmLabel` and the arm step do not apply.
    */
   toggle?: CommandToggle<Args>;
   /**
@@ -1069,10 +1097,15 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
             onClick={() => press(false)}
             {...rest}
           >
-            <ReservedText
-              shown={toggleView.word}
-              reserve={toggleView.reserve}
-            />
+            {/* An icon stands where the word would; SENT is still a word, since no icon says it. */}
+            {icon !== undefined && toggleView.confirmation !== "sent" ? (
+              icon
+            ) : (
+              <ReservedText
+                shown={toggleView.word}
+                reserve={toggleView.reserve}
+              />
+            )}
           </ToggleButton>
         </Tooltip>
         {/* A held or modelled mark is spoken with the label, so only a press the mod has not answered is announced. */}

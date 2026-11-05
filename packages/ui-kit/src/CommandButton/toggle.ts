@@ -53,6 +53,12 @@ export interface CommandToggle<Args = unknown> {
    */
   args: (base: ToggleState) => Args | undefined;
   /**
+   * What an arrived command does to a state its args do not set outright, as a
+   * stage command lowers the stage count. Without it only args carrying a
+   * `state` or `enabled` flag are modelled.
+   */
+  modelled?: (state: ToggleState, args: unknown) => ToggleState;
+  /**
    * Why the control cannot be pressed now, such as a game that refuses it or a
    * vessel that cannot be flown. The control is drawn dark with this as its
    * tip, and a press sends nothing. Null or absent when it can be pressed.
@@ -62,15 +68,11 @@ export interface CommandToggle<Args = unknown> {
   marking?: ReckoningMarking | null;
 }
 
-/** The toggle's confirmation from its handle's status and in-flight rows. */
-export function toggleConfirmationOf(
-  sent: boolean,
+/** The rows of a toggle's command predicted to have reached the craft with their reply still on the way back, in the order they arrive. */
+function arrivedRows(
   status: CommandStatus | undefined,
   rows: readonly InFlightCommandLike[],
-): ToggleConfirmation | null {
-  if (sent) return "sent";
-  if (rows.some((row) => row.held === true)) return "held";
-  // Each press inverts the toggle, so an odd number arrived and unanswered predicts the opposite state.
+): InFlightCommandLike[] {
   // A press whose reply is back is no longer modelled, though its row stays until the readings show it.
   const answered =
     status === undefined ||
@@ -78,22 +80,76 @@ export function toggleConfirmationOf(
     status.phase === "idle"
       ? null
       : status.requestId;
-  const arrived = rows.filter(
-    (row) =>
-      row.id !== answered &&
-      (row.predictedPhase === "awaiting-reply" || row.predictedPhase === "due"),
-  ).length;
-  return arrived % 2 === 1 ? "modelled" : null;
+  const arrivalOf = (row: InFlightCommandLike) =>
+    (row.dispatchedAt ?? 0) + (row.oneWaySeconds ?? 0);
+  return rows
+    .filter(
+      (row) =>
+        row.id !== answered &&
+        (row.predictedPhase === "awaiting-reply" ||
+          row.predictedPhase === "due"),
+    )
+    .sort((a, b) => arrivalOf(a) - arrivalOf(b));
 }
 
-/** The state a toggle shows: the opposite of its reading while its confirmation is `modelled`. */
+/**
+ * The state the craft is expected to be in once every arrived command has run,
+ * applied in arrival order to the state last received, or undefined where no
+ * arrived command sets a state. A command carries its value in its args; one
+ * with none known (another screen's, whose args do not cross the wire) is read
+ * as a flip of the running state.
+ */
+export function modelledToggleState(
+  reading: ToggleState,
+  status: CommandStatus | undefined,
+  rows: readonly InFlightCommandLike[],
+  apply?: (state: ToggleState, args: unknown) => ToggleState,
+): ToggleState | undefined {
+  let state = reading;
+  let known = false;
+  for (const row of arrivedRows(status, rows)) {
+    // Another screen's args do not cross the wire, so its press can only be read as a flip of the running state.
+    if (row.args === undefined) {
+      if (typeof state === "boolean") {
+        state = !state;
+        known = true;
+      }
+      continue;
+    }
+    const asked = askedToggleValue(row.args);
+    const next = asked !== undefined ? asked : apply?.(state, row.args);
+    if (next === undefined) continue;
+    known = true;
+    state = next;
+  }
+  return known ? state : undefined;
+}
+
+/** The toggle's confirmation from its handle's status and in-flight rows. */
+export function toggleConfirmationOf(
+  sent: boolean,
+  status: CommandStatus | undefined,
+  rows: readonly InFlightCommandLike[],
+  reading: ToggleState = undefined,
+  apply?: (state: ToggleState, args: unknown) => ToggleState,
+): ToggleConfirmation | null {
+  if (sent) return "sent";
+  if (rows.some((row) => row.held === true)) return "held";
+  return modelledToggleState(reading, status, rows, apply) === undefined
+    ? null
+    : "modelled";
+}
+
+/** The state a toggle shows: the state its arrived commands set, in arrival order, while its confirmation is `modelled`. */
 export function shownToggleState(
   reading: ToggleState,
   confirmation: ToggleConfirmation | null,
+  status?: CommandStatus,
+  rows: readonly InFlightCommandLike[] = [],
+  apply?: (state: ToggleState, args: unknown) => ToggleState,
 ): ToggleState {
-  return confirmation === "modelled" && typeof reading === "boolean"
-    ? !reading
-    : reading;
+  if (confirmation !== "modelled") return reading;
+  return modelledToggleState(reading, status, rows, apply) ?? reading;
 }
 
 /**

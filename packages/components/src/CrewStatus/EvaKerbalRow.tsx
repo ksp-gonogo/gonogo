@@ -2,15 +2,15 @@ import { useCommand, useStream } from "@ksp-gonogo/sitrep-client";
 import { type EvaKerbal, stillTrue, type WireOf } from "@ksp-gonogo/sitrep-sdk";
 import {
   Card,
+  CommandButton,
   HelmetIcon,
   HelmetVisorUpIcon,
-  IconButton,
   KitIcon,
   LampIcon,
   LampOffIcon,
   ReadoutCaption,
   Tooltip,
-  Truncate,
+  useCommandButton,
 } from "@ksp-gonogo/ui-kit";
 import { evaKerbalTopic } from "../ScienceData/parsers";
 
@@ -50,23 +50,15 @@ export function kitLabel(
 
 /**
  * The icons and the EVA caption on one centre line with the name. The card's title line
- * aligns its children on a text baseline, so this group centres on the line instead, and it
- * has no height of its own: its contents are centred on that zero-height box, so the name's
- * line alone sets the row height and the group sits on the line's centre.
+ * aligns its children on a text baseline, so this group centres on the line instead. It keeps
+ * a height of its own, so on a line of its own (a narrow tile) it sits below the name rather
+ * than drawing over it.
  */
 const ICON_ROW = {
   display: "inline-flex",
   alignItems: "center",
   alignSelf: "center",
-  height: 0,
   gap: "var(--gap-related)",
-} as const;
-
-/** The lamp button centres its icon itself: left inline, the icon rides the text baseline and sits high in the button. */
-const LAMP_BUTTON = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
 } as const;
 
 /** One kerbal outside the craft: named and marked as out, with helmet, kit and lamp read off the kerbal's own Topic. */
@@ -85,20 +77,32 @@ export function EvaKerbalRow({
   const helmet = helmetFace(state);
   const kit = kitLabel(state?.carrying, state?.slotsUsed);
 
-  const pressLamp = () => {
-    if (!kerbalVesselId || lampOn === undefined) return;
-    void lamp
-      .send(
-        { kerbalVesselId, enabled: !lampOn },
-        { label: `${name} lamp ${lampOn ? "off" : "on"}` },
-      )
-      .catch(() => {});
-  };
-
+  const lampLabel = `${name} lamp`;
+  const lampButton = useCommandButton({
+    handle: lamp,
+    commandLabel: lampLabel,
+    toggle: {
+      state: lampOn,
+      name: lampLabel,
+      word: () => "Lamp",
+      words: ["Lamp"],
+      // Every kerbal shares one lamp command, so a row is this kerbal's by its label.
+      rows: (row) => row.label === lampLabel,
+      unavailable:
+        lampOn === undefined || !kerbalVesselId
+          ? "Lamp state not reported"
+          : null,
+      args: (base) =>
+        kerbalVesselId && typeof base === "boolean"
+          ? { kerbalVesselId, enabled: !base }
+          : undefined,
+    },
+  });
   return (
     <Card
       as="li"
-      title={<Truncate>{name}</Truncate>}
+      titleGap="related"
+      title={name}
       titleRight={
         <span style={ICON_ROW}>
           {helmet && (
@@ -126,25 +130,23 @@ export function EvaKerbalRow({
               </span>
             </Tooltip>
           )}
-          <IconButton
-            aria-label={
-              lampOn === undefined ? "Lamp" : lampOn ? "Lamp on" : "Lamp off"
+          <CommandButton
+            size="sm"
+            handle={lamp}
+            controller={lampButton}
+            label="Lamp"
+            icon={
+              lampButton.toggleView?.shown === false ? (
+                <LampOffIcon />
+              ) : (
+                <LampIcon
+                  fill={lampButton.toggleView?.shown ? "currentColor" : "none"}
+                />
+              )
             }
-            pressed={lampOn === true}
-            disabled={lampOn === undefined || !kerbalVesselId}
-            disabledReason={
-              lampOn === undefined ? "Lamp state not reported" : undefined
-            }
-            style={LAMP_BUTTON}
-            aria-busy={lamp.inFlight.length > 0}
-            onClick={pressLamp}
-          >
-            {lampOn === false ? (
-              <LampOffIcon />
-            ) : (
-              <LampIcon fill={lampOn ? "currentColor" : "none"} />
-            )}
-          </IconButton>
+            title={lampButton.isBlocked ? undefined : lampLabel}
+            aria-label={lampLabel}
+          />
           <ReadoutCaption>EVA</ReadoutCaption>
         </span>
       }

@@ -66,7 +66,7 @@ describe("a refused Navball command is shown on the panel's delay rail", () => {
     ["sas-prograde", PRESS, "SAS mode: Prograde"],
     ["arm-fbw", PRESS, "Arm FBW"],
     ["disarm-fbw", PRESS, "Disarm FBW"],
-    ["kill-rotation", PRESS, "SAS on"],
+    ["kill-rotation", PRESS, "SAS mode: StabilityAssist"],
     ["set-pitch-trim", { kind: "analog", value: 0.25 }, "Pitch trim"],
   ] as const)("%s", async (action, payload, label) => {
     const id = `nav-refused-${action}`;
