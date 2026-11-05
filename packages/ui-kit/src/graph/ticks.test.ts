@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { tickDecimals, unitTick } from "./ticks";
+import { tickDecimals, titleInTickUnit, unitTick } from "./ticks";
 
 describe("an axis tick in a unit", () => {
   it("writes every tick exactly, with the fewest decimals its unit's ticks need", () => {
@@ -57,5 +57,35 @@ describe("the decimals of a plain axis tick", () => {
 
   it("separates ticks a thousandth apart below a thousand", () => {
     expect(tickDecimals([1.001, 1.002, 1.003], 1, 2)).toBe(3);
+  });
+});
+
+describe("a narrow range in a unit that scales to km", () => {
+  it("never repeats a label across ticks 0.25 m apart", () => {
+    const ticks = [4152, 4152.25, 4152.5, 4152.75, 4153];
+    const labels = ticks.map((t) => unitTick("m", t, ticks));
+    expect(new Set(labels).size).toBe(labels.length);
+  });
+});
+
+describe("a narrow range", () => {
+  it("is written in the axis's own unit, not the unit the kit climbed to", () => {
+    const ticks = [4152, 4152.25, 4152.5, 4152.75, 4153];
+    expect(ticks.map((t) => unitTick("m", t, ticks))).toEqual([
+      "4152.00 m",
+      "4152.25 m",
+      "4152.50 m",
+      "4152.75 m",
+      "4153.00 m",
+    ]);
+  });
+
+  it("gives the axis title the unit its ticks are written in", () => {
+    const narrow = [4152, 4152.5, 4153];
+    expect(titleInTickUnit("Altitude (m)", "m", narrow)).toBe("Altitude (m)");
+    const wide = [2000, 4000, 6000];
+    expect(titleInTickUnit("Altitude (m)", "m", wide)).toBe("Altitude (km)");
+    const mixed = [0, 500, 1000, 1500];
+    expect(titleInTickUnit("Altitude (m)", "m", mixed)).toBe("Altitude (m)");
   });
 });

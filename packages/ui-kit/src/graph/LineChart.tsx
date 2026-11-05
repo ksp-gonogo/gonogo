@@ -52,7 +52,7 @@ import {
   solidRegionCover,
 } from "./plotLayers";
 import { placeThresholdLabels } from "./thresholdLabels";
-import { tickDecimals } from "./ticks";
+import { tickDecimals, titleInTickUnit } from "./ticks";
 
 /**
  * The samples of one line on a graph, as parallel `x` and `y` arrays; `x` is unix ms on a time chart
@@ -309,6 +309,8 @@ export interface LineChartProps {
   yAxisLabel?: string;
   /** Names the secondary y axis, with its unit, down the right edge. */
   ySecondaryAxisLabel?: string;
+  /** The unit token the primary y ticks are written in, such as "m". The primary axis title's trailing unit then names the unit those ticks are read in, "(km)" over ticks in kilometres. Useful for keeping a title and its ticks in one unit on a narrow range. Used by the graph panel when it formats ticks from its `yUnit`. */
+  yTickUnit?: string;
   /**
    * A fixed card drawn over the plot in a corner clear of every trace, line
    * and legend chip, at the size it measures. Drawn in no corner when none is
@@ -569,6 +571,7 @@ export function LineChart({
   xAxisLabel,
   yAxisLabel,
   ySecondaryAxisLabel,
+  yTickUnit,
   card,
   cardForms = 1,
   width,
@@ -1733,7 +1736,12 @@ export function LineChart({
           fontSize={10}
           data-axis-title="y"
         >
-          {fitTitle(yAxisLabel as string, plotH)}
+          {fitTitle(
+            yTickUnit && yScalePrimary !== "log"
+              ? titleInTickUnit(yAxisLabel as string, yTickUnit, yTicksPrimary)
+              : (yAxisLabel as string),
+            plotH,
+          )}
         </text>
       )}
       {titledSecondary && (

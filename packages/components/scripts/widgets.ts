@@ -1979,6 +1979,31 @@ const WIDGETS: WidgetRenderConfig[] = [
     })(),
   },
   {
+    // A y axis in metres over a one-metre span and over an ordinary 8 km climb.
+    widgetId: "graph",
+    label: "graph/axis-units",
+    fixturesPath: "Graph/__render_axis_units__",
+    outPath: "renders/axis-units",
+    modes: (() => {
+      const config = {
+        windowSec: 600,
+        variant: "chart",
+        yUnit: "m",
+        yLabel: "Altitude",
+        series: [
+          {
+            id: "s",
+            key: "vessel.flight.altitudeAsl",
+            label: "Altitude",
+            type: "line",
+            axis: "primary",
+          },
+        ],
+      };
+      return [{ name: "default-12x9", w: 12, h: 9, config }];
+    })(),
+  },
+  {
     // See graph/warp-dock-1x.
     widgetId: "graph",
     label: "graph/warp-dock-fast",

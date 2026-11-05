@@ -486,6 +486,7 @@ export function Graph({
               xKind={xKind}
               xAxisLabel={spatial ? undefined : xAxisLabel}
               yAxisLabel={spatial ? undefined : yAxisLabel}
+              yTickUnit={yTickFormat ? undefined : yUnit}
               ySecondaryAxisLabel={spatial ? undefined : ySecondaryAxisLabel}
               card={
                 typeof plotReadout === "function"
