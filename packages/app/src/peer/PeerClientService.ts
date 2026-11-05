@@ -231,6 +231,7 @@ export class PeerClientService {
    *  drop. Regenerating dodges that entirely. */
   private stationPeerId: string;
   private readonly stationKey: string;
+  private readonly seat: string | undefined;
   /** Override id supplied via constructor opts, used by tests. When set,
    *  every `openPeer()` reuses it; when null we re-roll on each call. */
   private readonly fixedPeerIdOverride: string | null;
@@ -332,6 +333,7 @@ export class PeerClientService {
   }: PeerClientOptions = {}) {
     this.attemptDeadlineMs = attemptDeadlineMs;
     this.fixedPeerIdOverride = peerId ?? null;
+    this.seat = seat;
     this.stationPeerId = peerId ?? getStationPeerId(undefined, seat);
     this.stationKey = getStationKey(undefined, seat);
     // Tag every log entry on this station with the persistent stationKey
@@ -439,7 +441,7 @@ export class PeerClientService {
     // hold from a previous attempt that dropped without sending a
     // graceful leave (mid-session WS drop, screen lock, tab background).
     if (!this.fixedPeerIdOverride) {
-      this.stationPeerId = getStationPeerId();
+      this.stationPeerId = getStationPeerId(undefined, this.seat);
       logger.setIdentity({ peerId: this.stationPeerId });
     }
     logger.info(

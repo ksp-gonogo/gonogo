@@ -1427,6 +1427,7 @@ export class TelemetryClient {
       if (excess <= 0) return;
       if (!FINAL_PHASES.has(pending.status.phase)) continue;
       if (this.heldCommands.has(requestId)) continue;
+      if (pending.awaitingDelay) this.awaitingDelayCount -= 1;
       this.commands.delete(requestId);
       excess -= 1;
     }
@@ -1542,6 +1543,7 @@ export class TelemetryClient {
     this.unownedListeners.clear();
     this.subscriberLabels.clear();
     this.commands.clear();
+    this.awaitingDelayCount = 0;
     this.stores.clear();
   }
 

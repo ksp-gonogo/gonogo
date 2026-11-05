@@ -15585,6 +15585,8 @@ components:
         One kerbal listed on `eva.crew`: who is outside, loaded or not, and which
         craft they left, enough to find the kerbal's own `eva.kerbal.<vessel
         id>.state` Topic.
+      required:
+        - loaded
       properties:
         kerbalVesselId:
           type:
@@ -15609,9 +15611,7 @@ components:
           x-sitrep-unit: text
           description: The kerbal's name, from the EVA vessel's `GetName()`.
         loaded:
-          type:
-            - boolean
-            - "null"
+          type: boolean
           x-sitrep-unit: flag
           description: |-
             Whether the game has this kerbal loaded, which is true within physics range

@@ -38,7 +38,7 @@ type ConnStatus = Parameters<
  * spacecraft rather than a reason to stop rendering the instruments.
  */
 export function PilotScreen() {
-  const [client] = useState(() => new PeerClientService());
+  const [client] = useState(() => new PeerClientService({ seat: "pilot" }));
   const [status, setStatus] = useState<ConnStatus>("idle");
   const [hostNotFound, setHostNotFound] = useState(false);
   const [brokerUnreachable, setBrokerUnreachable] = useState(false);
