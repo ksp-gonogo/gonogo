@@ -70,9 +70,9 @@ export const FLIGHT_TEMPLATE: LayoutTemplate = {
       h: 4,
       config: actionGroup("Stage"),
     },
-    { componentId: "warp-control", x: 26, y: 0, w: 5, h: 14 },
+    { componentId: "warp-control", x: 26, y: 0, w: 4, h: 14 },
     { componentId: "fuel-status", x: 0, y: 26, w: 6, h: 14 },
-    { componentId: "objectives", x: 31, y: 0, w: 5, h: 14, config: () => ({}) },
+    { componentId: "objectives", x: 30, y: 0, w: 6, h: 14, config: () => ({}) },
     {
       componentId: "ground-track",
       x: 3,

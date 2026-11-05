@@ -1,0 +1,224 @@
+{
+  "_meta": {
+    "scenario": "crash-eva",
+    "shows": "A two-seat Mk2 Lander Can on an FL-T400 and an LV-T45, crewed by Jebediah Kerman and Kathlas Kerman. Kathlas goes on EVA on the pad, focus returns to the craft, and the craft is flown to 2.1 km and splashes down with no chute.",
+    "notes": "Kathlas is on EVA beside the pad when the craft crashes.",
+    "source": "Gonogo wire read from a running game, recorded over a WebSocket, every emit in arrival order, nothing collapsed, trimmed to the crash, flight.ended and eva.crew channels"
+  },
+  "emits": [
+    {
+      "channel": "eva.crew",
+      "value": null,
+      "validAt": 77583.11595359808
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 0,
+        "kerbals": []
+      },
+      "validAt": 77610.87595360374
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 0,
+        "kerbals": []
+      },
+      "validAt": 77611.87595360394
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 0,
+        "kerbals": []
+      },
+      "validAt": 77641.87595361006
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 1,
+        "kerbals": [
+          {
+            "kerbalVesselId": "6330bc59-c4a7-4ad6-be7f-ac7db09bce15",
+            "parentVesselId": "3f9ef23e-b387-44dd-9949-e0d7f50e99f7",
+            "name": "Kathlas Kerman",
+            "loaded": true
+          }
+        ]
+      },
+      "validAt": 77643.87595361046
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 1,
+        "kerbals": [
+          {
+            "kerbalVesselId": "6330bc59-c4a7-4ad6-be7f-ac7db09bce15",
+            "parentVesselId": "3f9ef23e-b387-44dd-9949-e0d7f50e99f7",
+            "name": "Kathlas Kerman",
+            "loaded": true
+          }
+        ]
+      },
+      "validAt": 77671.87595361617
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 1,
+        "kerbals": [
+          {
+            "kerbalVesselId": "6330bc59-c4a7-4ad6-be7f-ac7db09bce15",
+            "parentVesselId": "3f9ef23e-b387-44dd-9949-e0d7f50e99f7",
+            "name": "Kathlas Kerman",
+            "loaded": true
+          }
+        ]
+      },
+      "validAt": 77701.87595362228
+    },
+    {
+      "channel": "crash.lastCrash",
+      "value": {
+        "vesselId": "3f9ef23e-b387-44dd-9949-e0d7f50e99f7",
+        "eventKind": "CrashSplashdown",
+        "what": "",
+        "vesselType": "Lander",
+        "msg": "",
+        "latitude": -0.10722453636303798,
+        "longitude": -74.34694897773848,
+        "partsLost": [
+          {
+            "partId": 4161503377,
+            "partName": "mk2LanderCabin.v2",
+            "partTitle": "Mk2 Lander Can",
+            "msg": ""
+          },
+          {
+            "partId": 3797657440,
+            "partName": "fuelTank",
+            "partTitle": "FL-T400 Fuel Tank",
+            "msg": ""
+          },
+          {
+            "partId": 3226367919,
+            "partName": "liquidEngine2.v2",
+            "partTitle": "LV-T45 \"Swivel\" Liquid Fuel Engine",
+            "msg": ""
+          }
+        ],
+        "body": "Kerbin",
+        "flightStats": {
+          "kerbalsKilled": 1,
+          "partsLost": 3,
+          "flightEndMode": "CATASTROPHIC_FAILURE",
+          "highestSpeedOverLand": 204.7251527256187,
+          "missionEnd": true,
+          "highestGee": 3.4524094328794495,
+          "highestAltitude": 2133.19387308578,
+          "totalDistance": 5115.209980094726,
+          "missionTime": 48.01745605970791,
+          "highestSpeed": 204.7251527256187,
+          "groundDistance": 2232.5817767201947,
+          "liftOff": true
+        },
+        "vesselName": "CrashEva",
+        "events": ["CrashEva splashed down hard and was destroyed."],
+        "kerbalsKilled": ["Jebediah Kerman"],
+        "situation": "SPLASHED",
+        "crewAboard": ["Jebediah Kerman"],
+        "altitude": -2.160598018206656,
+        "ut": 77718.07340967549
+      },
+      "validAt": 77717.95340967551
+    },
+    {
+      "channel": "crash.hasRecent",
+      "value": {
+        "recent": true
+      },
+      "validAt": 77717.95340967551
+    },
+    {
+      "channel": "flight.ended",
+      "value": {
+        "flightId": "0f776ade-5f4c-46db-9e7d-aede60f46292",
+        "vesselId": "3f9ef23e-b387-44dd-9949-e0d7f50e99f7",
+        "vesselName": "CrashEva",
+        "reason": 1,
+        "ut": 77718.07340967549,
+        "joinedVesselId": null,
+        "joinedVesselName": null
+      },
+      "validAt": 77718.07340967549
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 1,
+        "kerbals": [
+          {
+            "kerbalVesselId": "6330bc59-c4a7-4ad6-be7f-ac7db09bce15",
+            "parentVesselId": "3f9ef23e-b387-44dd-9949-e0d7f50e99f7",
+            "name": "Kathlas Kerman",
+            "loaded": true
+          }
+        ]
+      },
+      "validAt": 77731.91340967327
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 1,
+        "kerbals": [
+          {
+            "kerbalVesselId": "6330bc59-c4a7-4ad6-be7f-ac7db09bce15",
+            "parentVesselId": "3f9ef23e-b387-44dd-9949-e0d7f50e99f7",
+            "name": "Kathlas Kerman",
+            "loaded": true
+          }
+        ]
+      },
+      "validAt": 77762.91340966831
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 1,
+        "kerbals": [
+          {
+            "kerbalVesselId": "6330bc59-c4a7-4ad6-be7f-ac7db09bce15",
+            "parentVesselId": "3f9ef23e-b387-44dd-9949-e0d7f50e99f7",
+            "name": "Kathlas Kerman",
+            "loaded": true
+          }
+        ]
+      },
+      "validAt": 77793.91340966335
+    },
+    {
+      "channel": "eva.crew",
+      "value": {
+        "count": 1,
+        "kerbals": [
+          {
+            "kerbalVesselId": "6330bc59-c4a7-4ad6-be7f-ac7db09bce15",
+            "parentVesselId": "3f9ef23e-b387-44dd-9949-e0d7f50e99f7",
+            "name": "Kathlas Kerman",
+            "loaded": true
+          }
+        ]
+      },
+      "validAt": 77824.91340965839
+    },
+    {
+      "channel": "eva.crew",
+      "value": null,
+      "validAt": 77826.75340965846
+    }
+  ]
+}

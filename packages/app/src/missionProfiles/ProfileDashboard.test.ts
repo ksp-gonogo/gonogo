@@ -3,6 +3,7 @@ import { getComponent } from "@ksp-gonogo/core";
 import type { Layout } from "react-grid-layout";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DashboardItem } from "../components/Dashboard";
+import { applyMinSizes } from "../components/Dashboard/layoutNormalization";
 import {
   DEFAULT_TEMPLATES,
   FLIGHT_TEMPLATE,
@@ -358,9 +359,11 @@ describe("ProfileDashboard new layouts", () => {
     expect(new Set([...first, ...second]).size).toBe(4);
   });
 
-  it("places every starter widget on a registered component with unique ids and no overlap", () => {
+  it("places every starter widget on a registered component with unique ids and no overflow or overlap once minimum sizes apply", () => {
     for (const template of DEFAULT_TEMPLATES) {
-      const { items, layout } = snapshotOf(template);
+      const snapshot = snapshotOf(template);
+      const { items } = snapshot;
+      const layout = applyMinSizes(snapshot.layout, items);
       expect(new Set(items.map((it) => it.i)).size).toBe(items.length);
       for (const it of items) {
         expect(getComponent(it.componentId), it.componentId).toBeDefined();
