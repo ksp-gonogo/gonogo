@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/pion/rtcp"
+	"github.com/pion/rtp"
 	"github.com/pion/sdp/v3"
 	"github.com/pion/webrtc/v4"
 )
@@ -51,6 +52,10 @@ type bridge struct {
 	asked map[string]bool
 	// stationUp is set once the station's leg is connected, so a track that arrives later is asked for a keyframe at once.
 	stationUp atomic.Bool
+	// link is the station's pacer, shared with its data channel and its other bridges.
+	link *stationLink
+	// feeds is each section the link forwards, by mid, once its media arrives.
+	feeds map[string]*feed
 }
 
 type section struct {
@@ -94,7 +99,8 @@ func (e *Endpoint) bridgeOffer(f controlFrame) {
 	b := &bridge{
 		id: f.Bid, sid: f.Sid, offer: f.SDP, sections: sections, upstream: upstream,
 		local: map[string]*webrtc.TrackLocalStaticRTP{}, remote: map[string]*webrtc.TrackRemote{}, asked: map[string]bool{},
-		done: make(chan struct{}), beat: e.cfg.HeartbeatInterval,
+		feeds: map[string]*feed{},
+		done:  make(chan struct{}), beat: e.cfg.HeartbeatInterval,
 	}
 	b.watchLeg("upstream", upstream)
 
@@ -113,6 +119,7 @@ func (e *Endpoint) bridgeOffer(f controlFrame) {
 	}
 	e.bridgeSerial++
 	b.serial = e.bridgeSerial
+	b.link = s.link
 	e.bridges[f.Bid] = b
 	b.timer = time.AfterFunc(bridgeTimeout, func() { e.dropBridge(b.id, "timeout") })
 	e.mu.Unlock()
@@ -153,17 +160,36 @@ func (e *Endpoint) bridgeOffer(f controlFrame) {
 				b.counts.upstreamRTCP.Add(int64(len(pkts)))
 			}
 		}()
+		f := &feed{
+			name: fmt.Sprintf("bridge %d section %s", b.serial, mid),
+			kind: track.Kind(),
+			write: func(pkt *rtp.Packet) error {
+				err := local.WriteRTP(pkt)
+				if err != nil {
+					b.counts.stationWriteErr.Add(1)
+				} else {
+					b.counts.stationWritten.Add(1)
+				}
+				return err
+			},
+			askKeyframe: func() {
+				if b.upstream.WriteRTCP([]rtcp.Packet{&rtcp.PictureLossIndication{MediaSSRC: uint32(track.SSRC())}}) == nil {
+					b.counts.keyframeRequests.Add(1)
+				}
+			},
+		}
+		b.mu.Lock()
+		b.feeds[mid] = f
+		b.mu.Unlock()
+		b.link.addFeed(f)
+		defer b.link.removeFeed(f)
 		for {
 			pkt, _, err := track.ReadRTP()
 			if err != nil {
 				return
 			}
 			b.counts.upstreamRead.Add(1)
-			if err := local.WriteRTP(pkt); err != nil {
-				b.counts.stationWriteErr.Add(1)
-			} else {
-				b.counts.stationWritten.Add(1)
-			}
+			b.link.packet(f, pkt)
 		}
 	})
 	upstream.OnConnectionStateChange(func(state webrtc.PeerConnectionState) {
@@ -278,7 +304,7 @@ func (e *Endpoint) bridgeAnswer(f controlFrame) {
 		go b.relayKeyframeRequests(sender, senders[sender])
 		if tr.Kind() == webrtc.RTPCodecTypeVideo {
 			if codec, ok := codecs[senders[sender]]; ok {
-				if err := tr.SetCodecPreferences([]webrtc.RTPCodecParameters{{RTPCodecCapability: codec}}); err != nil {
+				if err := tr.SetCodecPreferences([]webrtc.RTPCodecParameters{{RTPCodecCapability: withREMB(codec)}}); err != nil {
 					e.dropBridge(b.id, "station offered no "+describeCodec(codec))
 					return
 				}
@@ -317,7 +343,35 @@ func (e *Endpoint) bridgeAnswer(f controlFrame) {
 	e.send(controlFrame{Type: "bridge-ready", Bid: b.id, SDP: sdpText})
 }
 
-// relayKeyframeRequests passes the station's picture loss and full intra requests for one mid upstream.
+// senderSends is whether ssrc is the stream a sender writes.
+func senderSends(sender *webrtc.RTPSender, ssrc uint32) bool {
+	for _, enc := range sender.GetParameters().Encodings {
+		if uint32(enc.SSRC) == ssrc {
+			return true
+		}
+	}
+	return false
+}
+
+/*
+withREMB adds the REMB feedback to a codec answered to a station, so a browser that estimates
+its own bandwidth reports it and the station's pacer can hold the media under it.
+*/
+func withREMB(c webrtc.RTPCodecCapability) webrtc.RTPCodecCapability {
+	for _, fb := range c.RTCPFeedback {
+		if fb.Type == webrtc.TypeRTCPFBGoogREMB {
+			return c
+		}
+	}
+	c.RTCPFeedback = append(append([]webrtc.RTCPFeedback{}, c.RTCPFeedback...), webrtc.RTCPFeedback{Type: webrtc.TypeRTCPFBGoogREMB})
+	return c
+}
+
+/*
+relayKeyframeRequests reads what the station reports for one mid: its loss and bitrate
+estimate go to the station's pacer, and its picture loss and full intra requests go upstream
+unless the pacer holds them back.
+*/
 func (b *bridge) relayKeyframeRequests(sender *webrtc.RTPSender, mid string) {
 	for {
 		pkts, _, err := sender.ReadRTCP()
@@ -325,16 +379,30 @@ func (b *bridge) relayKeyframeRequests(sender *webrtc.RTPSender, mid string) {
 			return
 		}
 		b.counts.stationRTCP.Add(int64(len(pkts)))
+		b.mu.Lock()
+		f := b.feeds[mid]
+		remote := b.remote[mid]
+		b.mu.Unlock()
 		for _, p := range pkts {
-			switch p.(type) {
+			switch p := p.(type) {
+			case *rtcp.ReceiverReport:
+				if f == nil {
+					continue
+				}
+				for _, block := range p.Reports {
+					if senderSends(sender, block.SSRC) {
+						b.link.report(f, float64(block.FractionLost)/256)
+					}
+				}
+				continue
+			case *rtcp.ReceiverEstimatedMaximumBitrate:
+				b.link.estimate(float64(p.Bitrate) / 8)
+				continue
 			case *rtcp.PictureLossIndication, *rtcp.FullIntraRequest:
 			default:
 				continue
 			}
-			b.mu.Lock()
-			remote := b.remote[mid]
-			b.mu.Unlock()
-			if remote != nil {
+			if remote != nil && b.link.keyframeRequest(f) {
 				_ = b.upstream.WriteRTCP([]rtcp.Packet{&rtcp.PictureLossIndication{MediaSSRC: uint32(remote.SSRC())}})
 				b.counts.keyframeRequests.Add(1)
 			}

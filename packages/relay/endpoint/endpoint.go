@@ -78,6 +78,8 @@ type session struct {
 	dc     *webrtc.DataChannel
 	open   bool
 	timer  *time.Timer
+	// link paces everything sent to the station, its data channel and its bridges' media.
+	link *stationLink
 	// announced tells the tab the station is open, once, before any of its messages.
 	announced sync.Once
 	// reported is the queue last reported to the tab, which starts at nothing.
@@ -314,7 +316,7 @@ func (e *Endpoint) reportQueues(stop <-chan struct{}) {
 			if !s.open || s.dc == nil {
 				continue
 			}
-			bytes := s.dc.BufferedAmount()
+			bytes := s.dc.BufferedAmount() + s.link.held()
 			if bytes == s.reported {
 				continue
 			}
@@ -358,7 +360,7 @@ func (e *Endpoint) offer(t *tab, f controlFrame) {
 		refuse(err.Error())
 		return
 	}
-	s := &session{sid: f.Sid, peerID: f.PeerID, pc: pc}
+	s := &session{sid: f.Sid, peerID: f.PeerID, pc: pc, link: newStationLink(f.Sid)}
 	e.sessions[f.Sid] = s
 	s.timer = time.AfterFunc(e.cfg.PendingTimeout, func() { e.drop(s.sid, "timeout") })
 	e.mu.Unlock()
@@ -376,6 +378,7 @@ func (e *Endpoint) offer(t *tab, f controlFrame) {
 		}
 		s.dc = dc
 		e.mu.Unlock()
+		s.link.attach(dc)
 		/* Pion runs the open handler on a goroutine of its own while the read
 		   loop is already delivering, so a station's first message can arrive
 		   before it. Whichever comes first announces the station, and the
@@ -437,18 +440,19 @@ func (e *Endpoint) forward(frame []byte) {
 	if s == nil || !s.open {
 		return
 	}
-	if s.dc.BufferedAmount() > e.cfg.MaxBuffered {
+	if s.dc.BufferedAmount()+s.link.held() > e.cfg.MaxBuffered {
 		e.drop(sid, "too far behind")
 		return
 	}
-	_ = s.dc.Send(frame[4:])
+	s.link.send(frame[4:])
 }
 
 // closeDrained gives what the station has already been sent a moment to go out before the connection closes.
-func closeDrained(pc *webrtc.PeerConnection, dc *webrtc.DataChannel) {
-	for i := 0; i < 100 && dc != nil && dc.BufferedAmount() > 0; i++ {
+func closeDrained(pc *webrtc.PeerConnection, dc *webrtc.DataChannel, link *stationLink) {
+	for i := 0; i < 100 && (link.held() > 0 || (dc != nil && dc.BufferedAmount() > 0)); i++ {
 		time.Sleep(10 * time.Millisecond)
 	}
+	link.close()
 	pc.Close()
 }
 
@@ -466,7 +470,7 @@ func (e *Endpoint) drop(sid uint32, reason string) {
 		return
 	}
 	s.timer.Stop()
-	go closeDrained(s.pc, dc)
+	go closeDrained(s.pc, dc, s.link)
 	if reason != "" {
 		e.send(controlFrame{Type: "close", Sid: sid, Reason: reason})
 	}
@@ -486,6 +490,7 @@ func (e *Endpoint) dropAll() {
 	}
 	for _, s := range all {
 		s.timer.Stop()
+		s.link.close()
 		go s.pc.Close()
 	}
 }

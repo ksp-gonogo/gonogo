@@ -225,6 +225,8 @@ func TestABridgeLogsItsLegsAndWhyItClosed(t *testing.T) {
 	waitFor("bridge 1 station leg connection connected")
 	waitFor("bridge 1 heartbeat: upstream read ")
 	waitFor("station wrote ")
+	waitFor("session pace: ceiling unknown, station estimate unknown, queue ")
+	waitFor("since the station joined: sheds 0, restores 0")
 
 	tb.send(map[string]any{"type": "bridge-close", "bid": 1})
 	waitFor("bridge 1 closed: the main screen asked")

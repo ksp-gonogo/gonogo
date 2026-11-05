@@ -59,10 +59,14 @@ func (b *bridge) heartbeat() {
 			b.counts.upstreamRead.Load(), b.counts.stationWritten.Load(), b.counts.stationWriteErr.Load(),
 			b.counts.upstreamRTCP.Load(), b.counts.stationRTCP.Load(), b.counts.keyframeRequests.Load(),
 		}
-		log.Printf("bridge %d heartbeat: upstream read %d packets, station wrote %d (%d failed), upstream rtcp %d, station rtcp %d, keyframe requests %d, upstream %s ice %s, station %s ice %s",
+		pace := b.link.snapshot()
+		log.Printf("bridge %d heartbeat: upstream read %d packets, station wrote %d (%d failed), upstream rtcp %d, station rtcp %d, keyframe requests %d, upstream %s ice %s, station %s ice %s, "+
+			"session pace: ceiling %s, station estimate %s, queue %d packets %d ms, data held %d bytes, feeds shed now %d; since the station joined: sheds %d, restores %d, packets shed %d, overflow %d, ceiling drops %d, keyframe requests held %d",
 			b.serial, now[0]-last[0], now[1]-last[1], now[2]-last[2], now[3]-last[3], now[4]-last[4], now[5]-last[5],
 			b.upstream.ConnectionState(), b.upstream.ICEConnectionState(),
-			b.station.ConnectionState(), b.station.ICEConnectionState())
+			b.station.ConnectionState(), b.station.ICEConnectionState(),
+			kbps(pace.limit), kbps(pace.remb), pace.queued, pace.delay.Milliseconds(), pace.held, pace.shedNow,
+			pace.counts.sheds, pace.counts.restores, pace.counts.shedPackets, pace.counts.overflow, pace.counts.ceilingDowns, pace.counts.heldKeyframeRequests)
 		last = now
 	}
 }
