@@ -131,6 +131,17 @@ describe("SerialDevicesMenu USB serial switch", () => {
     expect(screen.getByText("Throttle")).toBeTruthy();
     expect(screen.getByText("unavailable")).toBeTruthy();
     expect(screen.getByText("USB serial is off")).toBeTruthy();
+    const sheet = Array.from(document.querySelectorAll("style"))
+      .map((style) => style.textContent ?? "")
+      .join("");
+    const ring = Array.from(screen.getByText("unavailable").classList).some(
+      (n) =>
+        !n.startsWith("sc-") &&
+        sheet.includes(
+          `.${n}:focus-visible{outline:2px solid var(--color-focus)`,
+        ),
+    );
+    expect(ring).toBe(true);
     expect(svc.getDevice("usb1")).toBeUndefined();
 
     await act(async () => {
