@@ -17,6 +17,7 @@ afterEach(() => {
 });
 
 const ANALYTIC = 1;
+const UNSPECIFIED = 0;
 const INTEGRATED = 2;
 
 function orbit(trajectoryKind: number) {
@@ -72,6 +73,12 @@ describe("Rendezvous: a closest approach under integrated physics", () => {
 
   it("does not mark it where the craft flies its conic", async () => {
     await mountApproach(ANALYTIC, ANALYTIC);
+    expect(screen.queryByText("Two-body")).toBeNull();
+    await settleRendezvous();
+  });
+
+  it("does not mark the straight-line figure the mod gives under 2 km, which it labels unspecified", async () => {
+    await mountApproach(INTEGRATED, UNSPECIFIED);
     expect(screen.queryByText("Two-body")).toBeNull();
     await settleRendezvous();
   });
