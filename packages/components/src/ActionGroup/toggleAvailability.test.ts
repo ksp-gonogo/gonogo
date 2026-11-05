@@ -24,6 +24,12 @@ describe("unavailableReasonOf", () => {
     expect(unavailableReasonOf({ ...OPEN, provenance: "assumed" })).toBe(
       "Not reported",
     );
+    expect(unavailableReasonOf({ ...OPEN, provenance: "unknown" })).toBe(
+      "Unknown group",
+    );
+    expect(
+      unavailableReasonOf({ ...OPEN, provenance: "unknown", isPaused: true }),
+    ).toBe("Unknown group");
     expect(
       unavailableReasonOf({ ...OPEN, stateUnreadable: true, isPaused: true }),
     ).toBe("State unreadable");

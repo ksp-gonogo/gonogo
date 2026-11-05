@@ -46,6 +46,7 @@ export function groupStateOf(
     carried !== undefined &&
     group !== undefined &&
     group.provenance !== "assumed" &&
+    group.provenance !== "unknown" &&
     value == null;
   return { value, valueHeld, valueLate, stateUnreadable };
 }

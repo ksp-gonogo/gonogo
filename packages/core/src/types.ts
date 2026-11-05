@@ -69,8 +69,10 @@ export interface ActionGroup {
    * `useActionGroup`). The distinction has to live on the descriptor because
    * the resolving hooks hand back one group and no registry, so a consumer
    * has nothing else to read it off.
+   * `"unknown"` is a configured id that is neither a stock name nor `AG{n}`, so
+   * no backend can ever report it: a configuration error.
    */
-  provenance: "stock" | "reported" | "assumed";
+  provenance: "stock" | "reported" | "assumed" | "unknown";
 }
 
 /**
