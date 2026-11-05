@@ -257,6 +257,16 @@ export class ScetAlarmBridge {
    * an alarm this list acknowledged is a repeat, not another screen's alarm.
    */
   private readonly heldIds = new Set<string>();
+
+  /**
+   * Alarms the operator acknowledged after they fired. The mod can bring one
+   * back (a quickload restores its roster row), and a fire of it after that is
+   * news to announce, where a replay of the notice already read is not.
+   */
+  private readonly dismissed = new Set<string>();
+
+  /** The dismissed alarms a load has put back on the roster since. */
+  private readonly broughtBack = new Set<string>();
   private disposed = false;
 
   constructor(ctx: ScetAlarmBridgeContext) {
@@ -288,6 +298,17 @@ export class ScetAlarmBridge {
     this.commandedSinceRoster.delete(alarm.id);
     this.unanswered.delete(alarm.id);
     this.settled.delete(alarm.id);
+  }
+
+  /** The operator acknowledged this alarm after it fired. */
+  acknowledged(id: string): void {
+    this.dismissed.add(id);
+  }
+
+  /** Drop any arm still owed for this alarm, for one that is not to be armed again. */
+  release(id: string): void {
+    this.owed.delete(id);
+    this.unanswered.delete(id);
   }
 
   /**
@@ -485,8 +506,8 @@ export class ScetAlarmBridge {
            the alarm is wrong, so it is kept and not shown as refused; it is
            asked again on the slow cadence, which is how it comes back live
            when its own save is loaded again. */
-        this.ctx.onOtherSave(alarm.id, true);
         this.askAgainLater(alarm.id);
+        this.ctx.onOtherSave(alarm.id, true);
         logger.debug("alarm-host: alarm belongs to another save", {
           id: alarm.id,
           reason,
@@ -748,7 +769,11 @@ export class ScetAlarmBridge {
       if (deleted.length > 0) this.ctx.onDeletedInGame(deleted);
       const edited = this.editsMadeInGame();
       if (edited.length > 0) this.ctx.onEditedInGame(edited);
-      this.oweRestored(readRestoredIds(payload));
+      const restored = readRestoredIds(payload);
+      for (const id of restored) {
+        if (this.dismissed.has(id)) this.broughtBack.add(id);
+      }
+      this.oweRestored(restored);
       this.latchFiredRows();
       this.reconcile();
       this.ctx.onRoster();
@@ -760,7 +785,10 @@ export class ScetAlarmBridge {
         this.ctx.onFired(notice.id, notice.firedAtUt, notice.actionsWithheld);
         return;
       }
-      if (this.heldIds.has(notice.id) || this.armedIds.has(notice.id)) return;
+      const known = this.heldIds.has(notice.id) || this.armedIds.has(notice.id);
+      if (known && !this.broughtBack.has(notice.id)) return;
+      this.broughtBack.delete(notice.id);
+      this.dismissed.delete(notice.id);
       this.ctx.onForeignFired(notice.id, notice.firedAtUt);
     });
   }

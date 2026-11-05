@@ -44,8 +44,12 @@ export interface TimeTrigger {
    * the node's burn it fires. While it is set, `ut` follows the node's burn
    * time less `beforeSeconds` whenever the node is edited, and the alarm is
    * removed when the node is.
+   *
+   * `vesselId` names the craft the node belongs to, so the binding is only
+   * followed while that craft is the active one. It is learned from the active
+   * craft when the alarm is made, or on the first tick that can read it.
    */
-  node?: { id: string; beforeSeconds: number };
+  node?: { id: string; beforeSeconds: number; vesselId?: string };
 }
 
 /**
@@ -456,10 +460,27 @@ export function parseAlarm(raw: unknown): Alarm | null {
     createdBy: r.createdBy,
     requestedBy: parseRequestedBy(r.requestedBy),
     createdAt: r.createdAt,
+    save: typeof r.save === "string" && r.save !== "" ? r.save : undefined,
+    gameEditsSeen:
+      typeof r.gameEditsSeen === "number" ? r.gameEditsSeen : undefined,
     matchSinceUT: typeof r.matchSinceUT === "number" ? r.matchSinceUT : null,
     eventUT: typeof r.eventUT === "number" ? r.eventUT : undefined,
     onFire: parseOnFire(r.onFire),
     ...(r.actionsWithheld === true ? { actionsWithheld: true } : {}),
+  };
+}
+
+function parseNodeBinding(raw: unknown): TimeTrigger["node"] | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const n = raw as Record<string, unknown>;
+  if (typeof n.id !== "string" || n.id === "") return undefined;
+  if (typeof n.beforeSeconds !== "number") return undefined;
+  return {
+    id: n.id,
+    beforeSeconds: n.beforeSeconds,
+    ...(typeof n.vesselId === "string" && n.vesselId !== ""
+      ? { vesselId: n.vesselId }
+      : {}),
   };
 }
 
@@ -477,7 +498,13 @@ export function parseTrigger(raw: unknown): AlarmTrigger | null {
     if (typeof t.ut !== "number" || typeof t.leadSeconds !== "number") {
       return null;
     }
-    return { kind: "time", ut: t.ut, leadSeconds: t.leadSeconds };
+    const node = parseNodeBinding(t.node);
+    return {
+      kind: "time",
+      ut: t.ut,
+      leadSeconds: t.leadSeconds,
+      ...(node ? { node } : {}),
+    };
   }
   if (t.kind === "threshold") {
     const op = THRESHOLD_OPS.find((known) => known === t.op);

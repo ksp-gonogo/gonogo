@@ -503,14 +503,16 @@ export function AlarmsModal({
               {snapshot.ut !== null && (
                 <FieldHint>
                   UT at trigger:{" "}
-                  {/* An offset from the view clock lands on the view clock, and
-                      says so: the operator asked for "n seconds from now", and
-                      their now is the delayed one they are reading. */}
+                  {/* The alarm fires when the game reaches this UT, which is a
+                      signal delay ahead of the view clock the offset counts
+                      from. */}
                   <MissionDate
                     value={
-                      snapshot.ut + Number.parseFloat(offsetSeconds || "0")
+                      snapshot.ut +
+                      timeContexts.owltSeconds +
+                      Number.parseFloat(offsetSeconds || "0")
                     }
-                    context={timeContexts.received}
+                    context={timeContexts.scet}
                   />
                 </FieldHint>
               )}
@@ -1221,9 +1223,11 @@ function describeTrigger(
   contexts: TimeContexts,
 ): React.ReactNode {
   if (a.trigger.kind === "time") {
-    /* The countdown is on the view clock, the same one every other strip
-       counts on: the alarm is announced when the view clock reaches its UT. */
-    const delta = utNow !== null ? a.trigger.ut - utNow : null;
+    /* A time alarm's UT is the game's own, and it fires when the game reaches
+       it. The view clock is one signal delay behind the game, so the delay is
+       added back to count down to the instant the game fires it. */
+    const delta =
+      utNow !== null ? a.trigger.ut - (utNow + contexts.owltSeconds) : null;
     return (
       <>
         <MissionDate value={a.trigger.ut} context={contexts.scet} />

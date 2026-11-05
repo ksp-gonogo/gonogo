@@ -1,7 +1,12 @@
 import { safeRandomUuid } from "@ksp-gonogo/core";
 import { LocalStorageStore } from "@ksp-gonogo/data";
 import { logger } from "@ksp-gonogo/logger";
-import { getViewUt, sampleActiveTopic } from "@ksp-gonogo/sitrep-client";
+import {
+  getActiveTelemetryClient,
+  getVesselIdentity,
+  getViewUt,
+  sampleActiveTopic,
+} from "@ksp-gonogo/sitrep-client";
 import {
   type CommsDelay,
   type ManeuverNode,
@@ -78,6 +83,24 @@ export interface AlarmHostOptions {
 }
 
 /**
+ * The view instant in the plain UT seconds an alarm is stored in, persisted and
+ * sent to stations as, and settled against.
+ */
+function viewUtSeconds(): number | undefined {
+  return magnitudeOf(getViewUt()) ?? undefined;
+}
+
+/** A node-bound time trigger naming the active craft, when there is one to name. */
+function boundToActiveCraft(trigger: AlarmTrigger): AlarmTrigger {
+  if (trigger.kind !== "time" || !trigger.node || trigger.node.vesselId) {
+    return trigger;
+  }
+  const craft = getVesselIdentity()?.vesselId;
+  if (!craft) return trigger;
+  return { ...trigger, node: { ...trigger.node, vesselId: craft } };
+}
+
+/**
  * The current one-way delay off the wire, or 0 where there is none.
  *
  * Read through `sampleActiveTopic` because this is a headless service with no
@@ -87,14 +110,6 @@ export interface AlarmHostOptions {
  * a warp) an unmeasurable link and a LAN link both come back to the operator's
  * own configured margin, so both collapse to 0 here.
  */
-/**
- * The view instant in the plain UT seconds an alarm is stored in, persisted and
- * sent to stations as, and settled against.
- */
-function viewUtSeconds(): number | undefined {
-  return magnitudeOf(getViewUt()) ?? undefined;
-}
-
 function readOwltSeconds(): number {
   const seconds =
     sampleActiveTopic<CommsDelay>("comms.delay")?.oneWaySeconds?.magnitude;
@@ -165,6 +180,28 @@ export class AlarmHostService {
    */
   private otherSave = new Set<string>();
 
+  /**
+   * What a fired alarm held before a rewind put it back to pending, kept until
+   * the simulation says whether the rewind was a load of the same save. A load
+   * of another save looks the same from here until the arm is refused, and then
+   * the alarm has not un-fired: it is put back as it was.
+   */
+  private rewoundFrom = new Map<
+    string,
+    Pick<Alarm, "state" | "matchSinceUT" | "eventUT" | "actionsWithheld">
+  >();
+
+  /** The standing read of the maneuver plan, held while a node-bound alarm needs it. */
+  private unsubscribePlan: (() => void) | null = null;
+  private planClient: unknown = null;
+
+  /** The craft the last maneuver plan was read for, and the node ids it held. */
+  private planCraft: string | undefined;
+  private planNodeIds = new Set<string>();
+
+  /** How many consecutive ticks each node-bound alarm's node has been missing from the plan. */
+  private nodeMissingTicks = new Map<string, number>();
+
   constructor(host: PeerHostService | null, opts: AlarmHostOptions = {}) {
     this.opts = {
       nowMs: opts.nowMs ?? (() => Date.now()),
@@ -179,10 +216,14 @@ export class AlarmHostService {
     });
 
     this.warpPlanner = new AlarmWarpPlanner(
-      // An alarm the simulation refused can never fire, so a warp is never planned toward it.
+      /* An alarm the simulation refused can never fire, and neither can one it
+         does not hold yet (an arm still owed or in flight), so a warp is never
+         planned toward either. */
       () =>
         this.alarmsWithFollowedInstants().filter(
-          (alarm) => !this.scetArmRefusals.has(alarm.id),
+          (alarm) =>
+            !this.scetArmRefusals.has(alarm.id) &&
+            this.scetBridge.holdsAlarm(alarm.id) !== false,
         ),
       () => this.observedUT,
       () => this.opts.getOwltSeconds(),
@@ -243,6 +284,8 @@ export class AlarmHostService {
         this.emit();
       },
       onOtherSave: (id, other) => {
+        if (other) this.restoreFired(id);
+        else this.rewoundFrom.delete(id);
         if (other ? this.otherSave.has(id) : !this.otherSave.delete(id)) return;
         if (other) this.otherSave.add(id);
         this.emit();
@@ -384,18 +427,24 @@ export class AlarmHostService {
       // `onFire` is deliberately not in the patch. A request carries no side
       // effects, so anything attached to this row was attached by the operator,
       // and a retarget moves the condition without discarding their work.
-      this.updateAlarm(existing.id, {
-        name: input.name,
-        notes: input.notes,
-        trigger: input.trigger,
-      });
+      this.updateAlarm(
+        existing.id,
+        {
+          name: input.name,
+          notes: input.notes,
+          trigger: input.trigger,
+        },
+        /* A fired alarm asked for again is a new alarm under the same key: the
+           fire belonged to the instant it had. */
+        { rearm: hasFired(existing.state) },
+      );
       return this.alarms.find((a) => a.id === existing.id) ?? existing;
     }
     const alarm: Alarm = {
       id: generateId(),
       name: input.name.trim() || "Alarm",
       notes: input.notes?.trim() || undefined,
-      trigger: input.trigger,
+      trigger: boundToActiveCraft(input.trigger),
       state: "pending",
       createdBy: input.createdBy ?? "main",
       requestedBy: input.requestedBy,
@@ -429,6 +478,7 @@ export class AlarmHostService {
   updateAlarm(
     id: string,
     patch: Partial<Pick<Alarm, "name" | "notes" | "trigger" | "onFire">>,
+    opts: { rearm?: boolean } = {},
   ): void {
     const idx = this.alarms.findIndex((a) => a.id === id);
     if (idx < 0) return;
@@ -449,7 +499,9 @@ export class AlarmHostService {
         ? { onFire: patch.onFire.length > 0 ? patch.onFire : undefined }
         : {}),
     };
-    const reset = patch.trigger && patch.trigger.kind !== prev.trigger.kind;
+    const reset =
+      patch.trigger &&
+      (patch.trigger.kind !== prev.trigger.kind || opts.rearm === true);
     if (reset) {
       // The fire belonged to the trigger being replaced.
       next.matchSinceUT = null;
@@ -519,8 +571,9 @@ export class AlarmHostService {
     }
     const idx = this.alarms.findIndex((a) => a.id === id);
     if (idx < 0) return;
-    if (this.alarms[idx].state !== "fired") return;
+    if (!hasFired(this.alarms[idx].state)) return;
     this.alarms.splice(idx, 1);
+    this.scetBridge.acknowledged(id);
     this.forgetAlarm(id);
     this.persist();
     this.emit();
@@ -531,6 +584,8 @@ export class AlarmHostService {
     this.unevaluated.delete(id);
     this.scetArmRefusals.delete(id);
     this.onFireRefusals.delete(id);
+    this.nodeMissingTicks.delete(id);
+    this.rewoundFrom.delete(id);
   }
 
   /**
@@ -602,6 +657,8 @@ export class AlarmHostService {
     }
     this.peerBridge.dispose();
     this.scetBridge.dispose();
+    this.unsubscribePlan?.();
+    this.unsubscribePlan = null;
   }
 
   /**
@@ -622,6 +679,9 @@ export class AlarmHostService {
     const alarm = this.alarms.find((a) => a.id === id);
     if (!alarm) return;
     if (alarm.state !== "pending" || alarm.matchSinceUT != null) return;
+    /* Rewound and not armed again yet: the notice describes the fire it was
+       rewound from. */
+    if (this.rewoundFrom.has(id)) return;
     if (actionsWithheld) alarm.actionsWithheld = true;
     // The reveal UT, which is this client's own now: the banner window runs on
     // the clock the operator is watching, while the instant it NAMES is the
@@ -751,7 +811,18 @@ export class AlarmHostService {
     if (ut !== null) {
       let changed = false;
       for (const alarm of this.alarms) {
-        if (this.rearmIfRewound(alarm, ut)) changed = true;
+        if (!this.otherSave.has(alarm.id) && this.rearmIfRewound(alarm, ut)) {
+          changed = true;
+        }
+        if (this.otherSave.has(alarm.id) && this.rewoundFrom.has(alarm.id)) {
+          /* Its own save's clock is back past the fire: the alarm is listed
+             again, as the fired alarm it still is. */
+          if (ut >= (alarm.matchSinceUT ?? Infinity)) {
+            this.otherSave.delete(alarm.id);
+            this.rewoundFrom.delete(alarm.id);
+            changed = true;
+          }
+        }
         const late = this.unevaluated.delete(alarm.id);
         if (this.commitState(alarm, settleState(alarm, ut), late)) {
           changed = true;
@@ -774,31 +845,94 @@ export class AlarmHostService {
    * instant follows the node's burn time, and the alarm is deleted when the
    * plan no longer holds the node. Nothing is done until a plan has been
    * reported, so a screen that has not heard one yet deletes nothing.
+   *
+   * Only alarms of the loaded save and of the active craft are touched: the
+   * plan is the active craft's, so a node missing from it says nothing about an
+   * alarm bound to another craft or made in another save.
+   *
+   * A quickload or revert gives every node a new id, so a plan sharing no id
+   * with the one before it is the same nodes renamed, and an alarm whose node
+   * is not found follows the node at its burn time instead of being deleted.
+   * A node missing from the plan only deletes its alarm after the absence has
+   * outlasted the signal delay, and while the mod holds the alarm: after a load
+   * the plan moves before the roster does.
    */
   private followManeuverNodes(): void {
+    const craft = getVesselIdentity()?.vesselId;
+    if (craft !== this.planCraft) {
+      this.planCraft = craft;
+      this.planNodeIds = new Set();
+    }
     const bound = this.alarms.filter(
       (a) =>
-        a.state === "pending" && a.trigger.kind === "time" && a.trigger.node,
+        a.state === "pending" &&
+        a.trigger.kind === "time" &&
+        a.trigger.node &&
+        !this.otherSave.has(a.id) &&
+        (a.trigger.node.vesselId === undefined ||
+          a.trigger.node.vesselId === craft),
     );
     if (bound.length === 0) return;
+    /* The plan is read off the store without a subscription, which carries
+       nothing unless some widget happens to be reading the same Topic. */
+    const client = getActiveTelemetryClient();
+    if (client !== this.planClient) {
+      this.unsubscribePlan?.();
+      this.planClient = client;
+      this.unsubscribePlan =
+        client?.subscribe("vessel.maneuver", () => {}) ?? null;
+    }
     const plan = sampleActiveTopic<{ nodes?: readonly ManeuverNode[] }>(
       "vessel.maneuver",
     );
     if (!plan || !Array.isArray(plan.nodes)) return;
+    const ids = new Set(plan.nodes.map((n) => n.id));
+    const renamed =
+      this.planNodeIds.size > 0 &&
+      ids.size > 0 &&
+      ![...this.planNodeIds].some((id) => ids.has(id));
+    this.planNodeIds = ids;
     for (const alarm of bound) {
       const trigger = alarm.trigger;
       if (trigger.kind !== "time" || !trigger.node) continue;
-      const node = plan.nodes.find((n) => n.id === trigger.node?.id);
+      const boundNode = trigger.node;
+      let node = plan.nodes.find((n) => n.id === boundNode.id);
+      let binding = boundNode;
+      if (craft && !binding.vesselId) binding = { ...binding, vesselId: craft };
+      if (!node && renamed) {
+        const burnUt = trigger.ut + boundNode.beforeSeconds;
+        node = plan.nodes.find(
+          (n) => n.ut && Math.abs(n.ut.valueOf() - burnUt) < 1,
+        );
+        if (node) binding = { ...binding, id: node.id };
+      }
       if (!node) {
-        this.deleteAlarm(alarm.id);
+        /* A load moves the plan before the roster that says which save an alarm
+           belongs to, the roster arriving a signal delay behind. So an absence
+           only counts once it has outlasted that delay and the mod still holds
+           the alarm. */
+        const ticks = (this.nodeMissingTicks.get(alarm.id) ?? 0) + 1;
+        this.nodeMissingTicks.set(alarm.id, ticks);
+        const settled =
+          ticks >=
+          Math.ceil(
+            (this.opts.getOwltSeconds() * 1000) / this.opts.tickIntervalMs,
+          ) +
+            2;
+        if (settled && this.scetBridge.holdsAlarm(alarm.id) !== false) {
+          this.deleteAlarm(alarm.id);
+        }
         continue;
       }
-      if (!node.ut) continue;
+      this.nodeMissingTicks.delete(alarm.id);
       const ut = node.ut
-        .minus(value("s", trigger.node.beforeSeconds))
-        .valueOf();
-      if (ut !== trigger.ut)
-        this.updateAlarm(alarm.id, { trigger: { ...trigger, ut } });
+        ? node.ut.minus(value("s", binding.beforeSeconds)).valueOf()
+        : trigger.ut;
+      if (ut !== trigger.ut || binding !== boundNode) {
+        this.updateAlarm(alarm.id, {
+          trigger: { ...trigger, ut, node: binding },
+        });
+      }
     }
   }
 
@@ -811,13 +945,31 @@ export class AlarmHostService {
    */
   private rearmIfRewound(alarm: Alarm, ut: number): boolean {
     if (!hasFired(alarm.state) || alarm.matchSinceUT == null) return false;
-    if (ut >= alarm.matchSinceUT - REWIND_TOLERANCE_SECONDS) return false;
+    /* A measured signal delay replacing a stand-in moves the view clock back by
+       up to that delay, which is no timeline change. */
+    const slack = REWIND_TOLERANCE_SECONDS + this.opts.getOwltSeconds();
+    if (ut >= alarm.matchSinceUT - slack) return false;
+    this.rewoundFrom.set(alarm.id, {
+      state: alarm.state,
+      matchSinceUT: alarm.matchSinceUT,
+      eventUT: alarm.eventUT,
+      actionsWithheld: alarm.actionsWithheld,
+    });
     alarm.state = "pending";
     alarm.matchSinceUT = null;
     alarm.eventUT = undefined;
     alarm.actionsWithheld = undefined;
     this.scetBridge.owe(alarm);
     return true;
+  }
+
+  private restoreFired(id: string): void {
+    const before = this.rewoundFrom.get(id);
+    const alarm = this.alarms.find((a) => a.id === id);
+    if (!before || !alarm || alarm.state !== "pending") return;
+    Object.assign(alarm, before);
+    this.scetBridge.release(id);
+    this.persist();
   }
 
   /**

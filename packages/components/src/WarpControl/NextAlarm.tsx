@@ -1,3 +1,4 @@
+import { useTimeContexts } from "@ksp-gonogo/core";
 import { useViewUt } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -15,10 +16,13 @@ const BELL_STYLE = { flexShrink: 0 } as const;
 /** The soonest alarm yet to fire, the thing that ends a warp without anyone touching it. */
 export function NextAlarm({ alarm }: Readonly<{ alarm: PendingAlarmSummary }>) {
   const viewUt = useViewUt();
+  const { owltSeconds } = useTimeContexts();
+  /* The alarm's instant is the game's own, which the view clock reaches one
+     signal delay after the game does. */
   const remaining =
     alarm.ut === null || viewUt === undefined
       ? null
-      : value("ut", alarm.ut).minus(viewUt);
+      : value("ut", alarm.ut).minus(viewUt).minus(value("s", owltSeconds));
   return (
     <Cluster
       justify="center"

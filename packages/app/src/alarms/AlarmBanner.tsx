@@ -182,7 +182,12 @@ function LocalAlarmStrip() {
                 reads as "latlong v.lat >= 80  v.lat >= 80". Time alarms get
                 a T-minus, contract parameters the target-state label. */}
             {(() => {
-              const next = formatNextLine(nextAlarm, snap.ut);
+              /* A time alarm's UT is the game's, which is a signal delay ahead of the
+                 view clock the snapshot carries. */
+              const next = formatNextLine(
+                nextAlarm,
+                snap.ut === null ? null : snap.ut + timeContexts.owltSeconds,
+              );
               return next === null ? null : (
                 <CountdownText $tone={tone}>{next}</CountdownText>
               );

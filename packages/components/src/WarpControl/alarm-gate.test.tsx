@@ -28,6 +28,8 @@ const HIGHER_RUNGS = ["5×", "10×", "50×", "100×", "1k×", "10k×", "100k×"]
 
 interface MountOptions {
   oneWaySeconds?: number | null;
+  /** The delay the view clock itself runs behind the game by. */
+  clockDelaySeconds?: number;
   scene?: string;
   pending?: readonly PendingAlarmSummary[];
   config?: { requireAlarmUnderDelay?: boolean };
@@ -38,6 +40,7 @@ interface MountOptions {
 async function mount(opts: MountOptions) {
   const fixture = setupStreamFixture({
     pinnedUt: VIEW_UT,
+    delaySeconds: opts.clockDelaySeconds,
     suspendFrames: true,
   });
   const commandHandler = vi.fn(() => ({ ok: true }));
@@ -209,6 +212,7 @@ describe("WarpControl: an alarm is required to warp under delay", () => {
   it("frees the controls once any alarm is set, and shows the next one", async () => {
     await mount({
       oneWaySeconds: 742,
+      clockDelaySeconds: 742,
       pending: [
         { id: "pe", name: "Duna periapsis", ut: VIEW_UT + 5400 },
         { id: "soi", name: "Ike SOI exit", ut: VIEW_UT + 20_000 },
@@ -221,7 +225,10 @@ describe("WarpControl: an alarm is required to warp under delay", () => {
     ).toBeNull();
     const next = screen.getByLabelText("Next alarm");
     expect(next.textContent).toContain("Duna periapsis");
-    expect(next.textContent).toContain("1h 30min");
+    /* The alarm's instant is the game's own, and the view clock is one signal
+       delay (742 s) behind it, so the game reaches it 742 s sooner than the
+       view clock does. */
+    expect(next.textContent).toContain("1h 17min");
     expect(screen.queryByText("Ike SOI exit")).toBeNull();
   });
 

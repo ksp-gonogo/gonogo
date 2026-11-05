@@ -1,6 +1,7 @@
 import { render, screen } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
   AlarmBanner,
   AlarmsCancelledPill,
@@ -54,6 +55,36 @@ function renderBanner(snapshot: AlarmSnapshot) {
     </AlarmHostProvider>,
   );
 }
+
+describe("AlarmBanner T-minus under signal delay", () => {
+  it("counts down to the game's fire, which is a delay ahead of the view clock", () => {
+    const fixture = setupStreamFixture({ delaySeconds: 10 });
+    const { container } = render(
+      <fixture.Provider>
+        <AlarmHostProvider
+          service={fakeHost(snapshotOf([timeAlarm(1070)], 1000))}
+        >
+          <AlarmBanner />
+        </AlarmHostProvider>
+      </fixture.Provider>,
+    );
+    expect(container.textContent).toContain("T−1min");
+  });
+
+  it("reads T = 0 when the game reaches the alarm's UT", () => {
+    const fixture = setupStreamFixture({ delaySeconds: 10 });
+    const { container } = render(
+      <fixture.Provider>
+        <AlarmHostProvider
+          service={fakeHost(snapshotOf([timeAlarm(1070)], 1060))}
+        >
+          <AlarmBanner />
+        </AlarmHostProvider>
+      </fixture.Provider>,
+    );
+    expect(container.textContent).toContain("T = 0");
+  });
+});
 
 describe("AlarmBanner T-minus", () => {
   it("counts down to a future time alarm on the GAME clock", () => {

@@ -44,6 +44,8 @@ interface FakeTelemetry {
    */
   obeyWarpCommands(): void;
   calls: string[];
+  /** Whether anything has subscribed to this Topic. */
+  isSubscribed(topic: string): boolean;
 }
 
 /**
@@ -148,6 +150,7 @@ function fakeTelemetry(): FakeTelemetry {
 
   return {
     calls,
+    isSubscribed: (topic) => transport.isSubscribed(topic),
     publishTopic: publish,
     obeyWarpCommands() {
       onWarpCommand = (index) => {
@@ -383,8 +386,76 @@ describe("AlarmHostService", () => {
       vi.advanceTimersByTime(1000);
       expect(svc.snapshot().alarms).toHaveLength(1);
       plan(telemetry, []);
-      vi.advanceTimersByTime(1000);
+      vi.advanceTimersByTime(3000);
       expect(svc.snapshot().alarms).toHaveLength(0);
+    });
+
+    it("keeps its node binding when the list is read back from storage", () => {
+      const storage = memoryStorage();
+      const telemetry = fakeTelemetry();
+      telemetry.set("t.universalTime", 1000);
+      const make = () =>
+        new AlarmHostService(null, {
+          nowMs: () => nowMs,
+          tickIntervalMs: 1000,
+          storage,
+        });
+      const first = make();
+      first.addAlarm({ name: "1min before node", trigger: BOUND });
+      first.dispose();
+
+      const svc = make();
+      plan(telemetry, [{ id: "node-1", ut: 3500 }]);
+      vi.advanceTimersByTime(1000);
+      expect(svc.snapshot().alarms[0].trigger).toMatchObject({
+        ut: 3440,
+        node: { id: "node-1", beforeSeconds: 60 },
+      });
+      plan(telemetry, []);
+      vi.advanceTimersByTime(3000);
+      expect(svc.snapshot().alarms).toHaveLength(0);
+      svc.dispose();
+    });
+
+    it("is left alone while another craft is the active one and has no such node", () => {
+      const { svc, telemetry } = makeService();
+      telemetry.publishTopic("vessel.identity", { vesselId: "craft-a" });
+      plan(telemetry, [{ id: "node-1", ut: 3000 }]);
+      svc.addAlarm({ name: "1min before node", trigger: BOUND });
+      vi.advanceTimersByTime(1000);
+
+      telemetry.publishTopic("vessel.identity", { vesselId: "craft-b" });
+      plan(telemetry, []);
+      vi.advanceTimersByTime(2000);
+      expect(svc.snapshot().alarms).toHaveLength(1);
+
+      telemetry.publishTopic("vessel.identity", { vesselId: "craft-a" });
+      plan(telemetry, []);
+      vi.advanceTimersByTime(3000);
+      expect(svc.snapshot().alarms).toHaveLength(0);
+    });
+
+    it("follows its node to a new id when the game gives every node a new one", () => {
+      const { svc, telemetry } = makeService();
+      plan(telemetry, [{ id: "node-1", ut: 3000 }]);
+      svc.addAlarm({ name: "1min before node", trigger: BOUND });
+      vi.advanceTimersByTime(1000);
+
+      plan(telemetry, [{ id: "node-9", ut: 3000 }]);
+      vi.advanceTimersByTime(1000);
+      expect(svc.snapshot().alarms).toHaveLength(1);
+      expect(svc.snapshot().alarms[0].trigger).toMatchObject({
+        node: { id: "node-9" },
+      });
+      plan(telemetry, [{ id: "node-9", ut: 3500 }]);
+      vi.advanceTimersByTime(1000);
+      expect(svc.snapshot().alarms[0].trigger).toMatchObject({ ut: 3440 });
+    });
+
+    it("reads the plan without any widget subscribing to it", () => {
+      const { svc, telemetry } = makeService();
+      svc.addAlarm({ name: "1min before node", trigger: BOUND });
+      expect(telemetry.isSubscribed("vessel.maneuver")).toBe(true);
     });
 
     it("is kept while no plan has been reported", () => {
@@ -1170,6 +1241,22 @@ describe("AlarmHostService", () => {
       );
     });
 
+    it("keeps the node binding of an alarm a station adds", async () => {
+      const { svc, captured } = makeServiceWithHost();
+      captured.addCb?.("station-1", {
+        name: "1min before node",
+        trigger: {
+          kind: "time",
+          ut: 2940,
+          leadSeconds: 10,
+          node: { id: "node-1", beforeSeconds: 60 },
+        },
+      });
+      expect(svc.snapshot().alarms[0].trigger).toMatchObject({
+        node: { id: "node-1", beforeSeconds: 60 },
+      });
+    });
+
     it("refuses a station's alarm the simulation could never watch, and makes no row", async () => {
       const { svc, captured } = makeServiceWithHost();
       // What a station on an older build could send, off the wire: no Topic address.
@@ -1245,6 +1332,83 @@ describe("AlarmHostService", () => {
       telemetry.set("t.universalTime", 1502);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].state).toBe("fired");
+    });
+
+    it("arms a fired alarm again when its Uplink asks for it at a new time", async () => {
+      const { svc, telemetry } = makeService();
+      const requestedBy = {
+        uplinkId: "planner",
+        uplinkName: "Planner",
+        key: "burn",
+      };
+      const alarm = svc.addAlarm({
+        name: "Burn",
+        trigger: { kind: "time", ut: 50000, leadSeconds: 10 },
+        requestedBy,
+      });
+      telemetry.set("t.universalTime", 50000);
+      fireFromMod(telemetry, alarm.id);
+      await vi.advanceTimersByTimeAsync(1100);
+      telemetry.set("t.universalTime", 50005);
+      await vi.advanceTimersByTimeAsync(1100);
+      expect(svc.snapshot().alarms[0].state).toBe("fired");
+
+      svc.addAlarm({
+        name: "Burn",
+        trigger: { kind: "time", ut: 60000, leadSeconds: 10 },
+        requestedBy,
+      });
+      const [again] = svc.snapshot().alarms;
+      expect(again.state).toBe("pending");
+      expect(again.trigger).toMatchObject({ ut: 60000 });
+      expect(again.matchSinceUT).toBeNull();
+    });
+
+    it("keeps a fired alarm fired when a measured delay moves the view clock back by that delay", async () => {
+      const { svc, telemetry } = makeService(60);
+      const alarm = svc.addAlarm({
+        name: "Burn",
+        trigger: { ...SOME_ALARM },
+      });
+      telemetry.set("t.universalTime", 50000);
+      fireFromMod(telemetry, alarm.id);
+      await vi.advanceTimersByTimeAsync(1100);
+      expect(svc.snapshot().alarms[0].state).toBe("firing");
+      telemetry.set("t.universalTime", 50000 - 55);
+      await vi.advanceTimersByTimeAsync(1100);
+      expect(svc.snapshot().alarms[0].state).not.toBe("pending");
+    });
+
+    it("does not latch a rewound alarm from a fire notice replayed before it is armed again", async () => {
+      const { svc, telemetry } = makeService();
+      const alarm = svc.addAlarm({
+        name: "Burn",
+        trigger: { ...SOME_ALARM },
+      });
+      telemetry.set("t.universalTime", 50000);
+      fireFromMod(telemetry, alarm.id, 50000);
+      await vi.advanceTimersByTimeAsync(1100);
+      telemetry.set("t.universalTime", 50000 - 86400);
+      await vi.advanceTimersByTimeAsync(1100);
+      expect(svc.snapshot().alarms[0].state).toBe("pending");
+
+      fireFromMod(telemetry, alarm.id, 50000);
+      await vi.advanceTimersByTimeAsync(1100);
+      expect(svc.snapshot().alarms[0].state).toBe("pending");
+    });
+
+    it("dismisses an alarm on acknowledge while it is still firing", async () => {
+      const { svc, telemetry } = makeService();
+      const alarm = svc.addAlarm({
+        name: "Burn",
+        trigger: { ...SOME_ALARM },
+      });
+      telemetry.set("t.universalTime", 50000);
+      fireFromMod(telemetry, alarm.id);
+      await vi.advanceTimersByTimeAsync(1100);
+      expect(svc.snapshot().alarms[0].state).toBe("firing");
+      svc.acknowledgeAlarm(alarm.id);
+      expect(svc.snapshot().alarms).toEqual([]);
     });
 
     it("goes back to pending when the game's UT steps back behind the fire, so no banner counts down to a time already past", async () => {
