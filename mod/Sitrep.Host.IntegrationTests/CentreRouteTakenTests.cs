@@ -198,6 +198,67 @@ namespace Sitrep.Host.IntegrationTests
             Assert.True(delay == null || Delay(delay) == null);
         }
 
+        /// <summary>
+        /// The craft passes behind a body and the game drops its route home,
+        /// while the home centre's plan still holds an open route through the
+        /// relay. From the moment the centre learns the route is gone until it
+        /// hears the new one, its delay reports no path, so a screen holds the
+        /// figure it had rather than taking the plan route's as the signal
+        /// delay. Run with no radio reading at all and with one saying the link
+        /// is down.
+        /// </summary>
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task TheHomeCentresDelayReportsNoPathThroughALossWhileThePlanStillHoldsARoute(bool radioReportsTheLoss)
+        {
+            Assert.NotNull(await PlannedDelayAsync(Home));
+
+            var game = new ScriptedContactGame();
+            game.GameRoutes[Home] = HomeRoute();
+            await using var world = await ReckonedVantageWorld.StartAsync(game);
+            var (client, view) = await world.SitDownAtAsync(Home, ContactPlanSource.DelayTopic, ScriptedContactUplink.ActiveTelemetryTopic);
+            await using var _ = client;
+
+            async Task TickThrough(IEnumerable<int> uts)
+            {
+                foreach (var ut in uts)
+                {
+                    world.Game.ActiveValue = ut;
+                    world.Tick(ut);
+                }
+                await Task.WhenAll(world.SettleAsync(), ReckonedVantageWorld.SettleAsync(client, view));
+            }
+
+            var seconds = ScriptedContactGame.SecondsOver(HomeRoute());
+            await TickThrough(new[] { 1, 2 }.Concat(Enumerable.Range(700, 80)));
+            Assert.Equal(seconds, view.Delays[view.Delays.Count - 1].OneWaySeconds!.Value, 6);
+
+            const int lostAt = 780;
+            const int returnAt = 900;
+            game.GameRoutes.Remove(Home);
+            if (radioReportsTheLoss)
+            {
+                game.Radio = new ContactRadio(
+                    ScriptedContactGame.Active,
+                    false,
+                    0.0,
+                    new CommsDegrade { ModelId = "test", ModelName = "Test grading", Level = 1.0 },
+                    new RadioHop[0]);
+            }
+            var before = view.Delays.Count;
+            await TickThrough(Enumerable.Range(lostAt, returnAt - lostAt));
+            var heardFrom = lostAt + seconds;
+            var inTheLoss = view.Delays.Skip(before).Where(d => d.ValidAt >= heardFrom).ToList();
+            Assert.NotEmpty(inTheLoss);
+            Assert.All(inTheLoss, d => Assert.Null(d.OneWaySeconds));
+
+            game.GameRoutes[Home] = HomeRoute();
+            game.Radio = null;
+            await TickThrough(Enumerable.Range(returnAt, (int)seconds + 5));
+            Assert.Equal(seconds, view.Delays[view.Delays.Count - 1].OneWaySeconds!.Value, 6);
+        }
+
         /// <summary>The delay a centre is quoted in a world where the game states no route, which is its plan's.</summary>
         private static async Task<double?> PlannedDelayAsync(string centre)
         {

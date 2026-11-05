@@ -591,7 +591,12 @@ public enum CommsDelaySource
 /// <item><description><b>null</b>: no measurable <see cref="CommsPath"/>
 /// (no path home, or incomplete hop geometry). There is nothing to measure,
 /// so nothing is reported. <see cref="Source"/> is
-/// <see cref="CommsDelaySource.None"/>.</description></item>
+/// <see cref="CommsDelaySource.None"/>. A ground centre is sent null from the
+/// moment it learns the game's route from the vessel is gone until it learns
+/// of a new one, unless the newest radio reading to reach it says the vessel
+/// is connected; the last figure before that is the one to hold. A route its
+/// plan still holds through that stretch is offered as a prediction on
+/// <c>comms.route</c>, never as this delay.</description></item>
 /// <item><description><b>0</b>: the delay feature is disabled
 /// (<c>comms.signalDelay.enabled = false</c>). A genuine "zero delay
 /// applied", not an absence. <see cref="Source"/> is also
@@ -616,13 +621,18 @@ public enum CommsDelaySource
 /// <c>comms.path</c>, so the two always agree. Where the game routes the
 /// vessel's samples to the centre (at home, the vessel's own path to the
 /// ground), that path is the game's route and this is the delay the samples
-/// arrive by. Wherever the game states no route, it is the path the centre's own plan has,
+/// arrive by. Wherever the game states no route, it is the path the centre's own plan has
+/// (save for the lost route above, which reports null),
 /// worked out from what the centre has heard of each craft, so the figure
 /// moves only once the news that moves it has reached the centre. A zero that
 /// is a setting (delay switched off, or a save with no comms network) is sent
 /// at once.</para>
 /// <internal>
 /// Published by Sitrep.Host.Comms.ContactPlanSource through CentreDelay.
+/// The null through a lost route is ContactPlanSource.LostRoute: the plan's
+/// geometry can keep a route open the game has cut by occultation or range,
+/// often through a nearer relay, and a client taking that route's shorter
+/// light-time as the delay would move its view clock ahead of the light.
 /// Deliveries are timed by <c>INetwork.DelayTo</c>, fed from the game's own
 /// links on the ungated capture path; at a non-home centre the path published
 /// here is the hops that ledger row was measured over

@@ -1119,9 +1119,18 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>The strength of every <c>comms.signal</c> frame this screen has received, in order.</summary>
         public List<double> SignalStrengths { get; } = new List<double>();
 
+        /// <summary>The one-way figure of every <c>comms.delay</c> frame this screen has received, in order, null where it reported no path.</summary>
+        public List<(double? OneWaySeconds, double ValidAt)> Delays { get; } = new List<(double?, double)>();
+
         public void Received(string topic, string payload, double validAt, double deliveredAt, string vantage)
         {
             _latest[topic] = payload;
+            if (topic == ContactPlanSource.DelayTopic)
+            {
+                using var delay = JsonDocument.Parse(payload);
+                var seconds = delay.RootElement.GetProperty("oneWaySeconds");
+                Delays.Add((seconds.ValueKind == JsonValueKind.Number ? seconds.GetDouble() : (double?)null, validAt));
+            }
             if (topic == ContactPlanSource.SignalTopic)
             {
                 using var signal = JsonDocument.Parse(payload);

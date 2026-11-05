@@ -2151,7 +2151,7 @@ namespace Sitrep.Host.Comms
                 var gameRoute = looked.ActiveCraft == null
                     ? null
                     : _receivedRoutes.Note(centre, looked.ActiveCraft, looked.Ut, _routes?.ActiveVesselRoute(centre), lightFactor);
-                var cut = gameRoute == null && HeardCut(centre, radio);
+                var cut = gameRoute == null && (HeardCut(centre, radio) || LostRoute(centre, radio));
                 // The game's route is known to the centre only once the first sample over it lands; until then the plan's path would state a belief the centre does not have.
                 var awaitingRoute = looked.ActiveCraft != null && gameRoute == null && _receivedRoutes.AwaitingFirst(centre);
                 // A delay that is switched off, or a save with no network to cross, is a setting and not a distance: it needs no plan to state. Where delay is merely off, a craft the centre believes has no path still has none.
@@ -2298,6 +2298,30 @@ namespace Sitrep.Host.Comms
             {
                 return false;
             }
+            return IsGroundCentre(centre);
+        }
+
+        /// <summary>
+        /// Whether a centre on the ground has learned that the game's route
+        /// from the active craft to it is gone, and the newest radio reading to
+        /// reach it does not say the craft is connected (none has yet, or it
+        /// says the link is down). The plan's geometry can still hold an open
+        /// route then, through another relay or one the game has cut by
+        /// occultation or range, and showing it as the centre's path would give
+        /// the centre a signal delay no sample is arriving over. What the plan
+        /// holds for later stays on <c>comms.route</c>.
+        /// </summary>
+        private bool LostRoute(string centre, ContactRadio? heard)
+        {
+            if (_routes == null || !_receivedRoutes.Lost(centre) || heard?.Connected == true)
+            {
+                return false;
+            }
+            return IsGroundCentre(centre);
+        }
+
+        private bool IsGroundCentre(string centre)
+        {
             if (centre == _audience!.HomeCentre())
             {
                 return true;

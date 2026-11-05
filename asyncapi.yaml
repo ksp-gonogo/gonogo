@@ -1038,7 +1038,12 @@ channels:
 
       - **null**: no measurable `CommsPath` (no path home, or incomplete hop
         geometry). There is nothing to measure, so nothing is reported.
-        `CommsDelay.source` is `CommsDelaySource.None`.
+        `CommsDelay.source` is `CommsDelaySource.None`. A ground centre is sent
+        null from the moment it learns the game's route from the vessel is gone
+        until it learns of a new one, unless the newest radio reading to reach it
+        says the vessel is connected; the last figure before that is the one to
+        hold. A route its plan still holds through that stretch is offered as a
+        prediction on `comms.route`, never as this delay.
       - **0**: the delay feature is disabled (`comms.signalDelay.enabled =
         false`). A genuine "zero delay applied", not an absence.
         `CommsDelay.source` is also `CommsDelaySource.None` here: the two cases
@@ -1059,10 +1064,11 @@ channels:
       the two always agree. Where the game routes the vessel's samples to the
       centre (at home, the vessel's own path to the ground), that path is the
       game's route and this is the delay the samples arrive by. Wherever the game
-      states no route, it is the path the centre's own plan has, worked out from
-      what the centre has heard of each craft, so the figure moves only once the
-      news that moves it has reached the centre. A zero that is a setting (delay
-      switched off, or a save with no comms network) is sent at once.
+      states no route, it is the path the centre's own plan has (save for the lost
+      route above, which reports null), worked out from what the centre has heard
+      of each craft, so the figure moves only once the news that moves it has
+      reached the centre. A zero that is a setting (delay switched off, or a save
+      with no comms network) is sent at once.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
@@ -13630,7 +13636,12 @@ components:
 
         - **null**: no measurable `CommsPath` (no path home, or incomplete hop
           geometry). There is nothing to measure, so nothing is reported.
-          `CommsDelay.source` is `CommsDelaySource.None`.
+          `CommsDelay.source` is `CommsDelaySource.None`. A ground centre is sent
+          null from the moment it learns the game's route from the vessel is gone
+          until it learns of a new one, unless the newest radio reading to reach it
+          says the vessel is connected; the last figure before that is the one to
+          hold. A route its plan still holds through that stretch is offered as a
+          prediction on `comms.route`, never as this delay.
         - **0**: the delay feature is disabled (`comms.signalDelay.enabled =
           false`). A genuine "zero delay applied", not an absence.
           `CommsDelay.source` is also `CommsDelaySource.None` here: the two cases
@@ -13651,10 +13662,11 @@ components:
         the two always agree. Where the game routes the vessel's samples to the
         centre (at home, the vessel's own path to the ground), that path is the
         game's route and this is the delay the samples arrive by. Wherever the game
-        states no route, it is the path the centre's own plan has, worked out from
-        what the centre has heard of each craft, so the figure moves only once the
-        news that moves it has reached the centre. A zero that is a setting (delay
-        switched off, or a save with no comms network) is sent at once.
+        states no route, it is the path the centre's own plan has (save for the lost
+        route above, which reports null), worked out from what the centre has heard
+        of each craft, so the figure moves only once the news that moves it has
+        reached the centre. A zero that is a setting (delay switched off, or a save
+        with no comms network) is sent at once.
       required:
         - source
         - meta

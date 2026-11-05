@@ -43,6 +43,7 @@ namespace Sitrep.Host.Comms
             public IReadOnlyList<CommsHop>? Latest;
             public double LatestSeconds;
             public bool Heard;
+            public bool Routed;
         }
 
         private readonly Dictionary<string, Centre> _centres = new Dictionary<string, Centre>(StringComparer.Ordinal);
@@ -69,6 +70,7 @@ namespace Sitrep.Host.Comms
                 held.Latest = null;
                 held.LatestSeconds = 0.0;
                 held.Heard = false;
+                held.Routed = false;
             }
 
             // Every look, not every change: the hops lengthen and shorten as the craft moves, and the centre is owed the lengths its samples were sent over.
@@ -88,6 +90,7 @@ namespace Sitrep.Host.Comms
             {
                 held.Latest = held.Taken[reached].Route;
                 held.Heard = true;
+                held.Routed |= held.Latest != null;
                 held.Taken.RemoveRange(0, reached);
             }
             return held.Latest;
@@ -99,6 +102,14 @@ namespace Sitrep.Host.Comms
         /// still crossing and not that the craft has no route.
         /// </summary>
         public bool AwaitingFirst(string centre) => _centres.TryGetValue(centre, out var held) && !held.Heard;
+
+        /// <summary>
+        /// Whether a route of the craft's has reached <paramref name="centre"/>
+        /// and the newest news to reach it since is that the game has none: the
+        /// centre has learned that the route it was hearing the craft over is
+        /// gone.
+        /// </summary>
+        public bool Lost(string centre) => _centres.TryGetValue(centre, out var held) && held.Routed && held.Latest == null;
 
         /// <summary>Forgets every route, for a timeline the routes were not taken on.</summary>
         public void Clear() => _centres.Clear();
