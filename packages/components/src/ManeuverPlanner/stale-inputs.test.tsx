@@ -8,11 +8,12 @@ import { ManeuverPlannerComponent } from "./index";
 
 /**
  * When the elements the apsis figures are solved from stop arriving, the plan
- * stays available from the last state received and carries its held mark.
+ * is withheld rather than marked: it would be a confident burn for a position
+ * the craft has left. The gate does not reach the diagram's own trajectory.
  */
 
 describe("ManeuverPlanner when its apsis inputs stop arriving", () => {
-  it("keeps planning from the held orbit", async () => {
+  it("withholds the plan and says it is waiting", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 1_000_000,
       suspendFrames: true,
@@ -54,8 +55,9 @@ describe("ManeuverPlanner when its apsis inputs stop arriving", () => {
       fixture.store.beginFrame();
     });
 
-    // A maneuver is a delta-v at a time, so the held orbit still plans; the plan carries the held mark.
-    await act(async () => {});
-    expect(visibleText(container)).not.toContain("Awaiting orbit telemetry");
+    // Withheld out loud: a silent empty panel would look like one that never had telemetry.
+    await waitFor(() =>
+      expect(visibleText(container)).toContain("Awaiting orbit telemetry"),
+    );
   });
 });

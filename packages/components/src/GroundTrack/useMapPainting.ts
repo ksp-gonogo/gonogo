@@ -41,6 +41,8 @@ interface MapPaintingInputs {
   /** Whether the save has reached this body; `false` shows the sketch in place of the texture where no base layer is active. */
   bodyVisited: boolean | undefined;
   baseLayers: ReturnType<typeof useBaseLayers>;
+  /** Saved per-augment settings; a base layer whose `show` is false is switched off by the operator. */
+  augmentSettings: Record<string, Record<string, unknown>> | undefined;
   /** The flown trail's buffer, newest last, and a count that moves whenever its content does. */
   trajectoryRef: RefObject<TrajectoryPoint[]>;
   trajectoryCount: number;
@@ -115,6 +117,7 @@ export function useMapPainting({
   bodyDetail,
   bodyVisited,
   baseLayers,
+  augmentSettings,
   trajectoryRef,
   trajectoryCount,
   hasAtmosphere,
@@ -156,13 +159,16 @@ export function useMapPainting({
     const ctx = sizedContext(canvas, w, h);
     if (!ctx) return;
 
-    // Stackable layers composite in draw order over the stock texture. Suppression needs the suppressing augment's Domain live and withholds the real texture; the sketch stays as the base.
+    // Stackable layers composite in draw order over the stock texture. Suppression needs the suppressing augment's Domain live, and suppressed with every layer off stays black.
     const activeBaseAugments = getAugmentsForSlot("ground-track.base");
     const suppressVanilla = shouldSuppressVanillaBase(
       activeBaseAugments.map((a) => ({
         suppressesVanillaBase: a.suppressesVanillaBase,
         available:
           baseLayers.suppressionAvailabilityRef.current.get(a.id) === true,
+        covering:
+          baseLayers.canvasesRef.current.has(a.id) ||
+          augmentSettings?.[a.id]?.show === false,
       })),
     );
     const layers: BaseSurfaceLayer[] = [];
@@ -180,8 +186,8 @@ export function useMapPainting({
       w,
       h,
       camera,
-      textureImage,
-      sketch,
+      textureImage: sketch ?? textureImage,
+      dimTexture: sketch === null,
       bodyColor,
       suppressVanilla,
       layers,
@@ -195,6 +201,7 @@ export function useMapPainting({
     pencil,
     bodyVisited,
     bodyColor,
+    augmentSettings,
     baseLayers.version,
   ]);
 

@@ -7,7 +7,7 @@ describe("shouldSuppressVanillaBase", () => {
   it("does NOT suppress when the declaring augment's Domain is unavailable (the regression case)", () => {
     expect(
       shouldSuppressVanillaBase([
-        { suppressesVanillaBase: true, available: false },
+        { suppressesVanillaBase: true, available: false, covering: true },
       ]),
     ).toBe(false);
   });
@@ -15,23 +15,33 @@ describe("shouldSuppressVanillaBase", () => {
   it("suppresses once the declaring augment's Domain is available", () => {
     expect(
       shouldSuppressVanillaBase([
-        { suppressesVanillaBase: true, available: true },
+        { suppressesVanillaBase: true, available: true, covering: true },
       ]),
     ).toBe(true);
   });
 
   it("does not suppress for an augment that doesn't declare suppressesVanillaBase, even while available", () => {
-    expect(shouldSuppressVanillaBase([{ available: true }])).toBe(false);
+    expect(
+      shouldSuppressVanillaBase([{ available: true, covering: true }]),
+    ).toBe(false);
   });
 
   it("suppresses if ANY available candidate suppresses (logical OR, order-independent)", () => {
     expect(
       shouldSuppressVanillaBase([
-        { available: true }, // no suppressesVanillaBase
-        { suppressesVanillaBase: true, available: false }, // suppresses, but unavailable
-        { suppressesVanillaBase: true, available: true }, // the one that matters
+        { available: true, covering: true }, // no suppressesVanillaBase
+        { suppressesVanillaBase: true, available: false, covering: true }, // suppresses, but unavailable
+        { suppressesVanillaBase: true, available: true, covering: true }, // the one that matters
       ]),
     ).toBe(true);
+  });
+
+  it("does NOT suppress while the live layer draws nothing, so a locked scanner leaves the stock map", () => {
+    expect(
+      shouldSuppressVanillaBase([
+        { suppressesVanillaBase: true, available: true, covering: false },
+      ]),
+    ).toBe(false);
   });
 
   it("returns false for an empty candidate list", () => {

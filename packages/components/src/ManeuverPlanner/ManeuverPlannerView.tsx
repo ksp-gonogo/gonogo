@@ -61,8 +61,6 @@ export function ManeuverPlannerComponent({
     currentOrbit,
     orbitMarking,
     targetMarking,
-    orbitCurrency,
-    targetCurrency,
   } = telemetry;
   const nodes = useManeuverNodes();
   // The plan stands until changed, but a change made while the link is down is missed, so its figures take the plan reading's currency.
@@ -127,10 +125,6 @@ export function ManeuverPlannerComponent({
   const planMarking = usesTarget(inputs.preset)
     ? mergeMarkings(orbitMarking, targetMarking)
     : orbitMarking;
-
-  const planFrom = usesTarget(inputs.preset)
-    ? [orbitCurrency, targetCurrency]
-    : [orbitCurrency];
 
   const caption = refBody !== undefined && (
     <Section key="body" full>
@@ -223,7 +217,6 @@ export function ManeuverPlannerComponent({
       availableDeltaV={availableDeltaV}
       orbitMarking={orbitMarking}
       planMarking={planMarking}
-      planFrom={planFrom}
       feasible={feasible}
       requiredDeltaV={requiredDeltaV}
       currentUT={currentUT}

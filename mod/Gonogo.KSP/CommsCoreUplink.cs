@@ -67,12 +67,6 @@ namespace Gonogo.KSP
         public const string OcclusionTopic = "comms.occlusion";
 
         /// <summary>
-        /// The ground stations of the network, listed by whichever backend the
-        /// election picked (see <see cref="Sitrep.Contract.CommsGroundStations"/>).
-        /// </summary>
-        public const string GroundStationsTopic = "comms.groundStations";
-
-        /// <summary>
         /// The elected backend's declared grading of the active vessel's link:
         /// one 0..1 rating with the rule that produced it named alongside (see
         /// <see cref="Sitrep.Contract.CommsDegrade"/>). Sourced the same way as
@@ -441,7 +435,6 @@ namespace Gonogo.KSP
         private IChannelPublisher? _control;
         private IChannelPublisher? _link;
         private IChannelPublisher? _occlusion;
-        private IChannelPublisher? _groundStations;
 
         private Kernel? _kernel;
 
@@ -455,11 +448,6 @@ namespace Gonogo.KSP
         // sample cadence. Late subscribers still get an immediate keyframe
         // (ChannelEmitter.NotifySubscribed), so the suppression is invisible.
         private CommsOcclusion? _lastOcclusion;
-
-        // Held for the same reason as _lastOcclusion: a station list that has
-        // not changed republishes the same instance, so the emitter's change-gate
-        // suppresses it.
-        private CommsGroundStations? _lastGroundStations;
 
         private static ChannelDeclaration TrueNow(string topic) => new ChannelDeclaration
         {
@@ -510,10 +498,6 @@ namespace Gonogo.KSP
                 // would have a predictor computing tomorrow's blackout from
                 // yesterday's assumptions.
                 TrueNow(OcclusionTopic),
-                // comms.groundStations is TrueNow for the same reason: the
-                // stations are fixed places in the universe, not an observation
-                // of any craft.
-                TrueNow(GroundStationsTopic),
                 // comms.link: Delayed (rides the normal light-time horizon) but
                 // the ENGINE special-cases it as freeze-EXEMPT by topic identity
                 // (ChannelEngine.ConnectivityMetaTopic), because it is the
@@ -584,7 +568,6 @@ namespace Gonogo.KSP
             _control = host.Publisher(ControlTopic);
             _link = host.Publisher(LinkTopic);
             _occlusion = host.Publisher(OcclusionTopic);
-            _groundStations = host.Publisher(GroundStationsTopic);
 
             host.AddSampledSource(
                 CaptureOnMain,
@@ -592,8 +575,7 @@ namespace Gonogo.KSP
                 ConnectivityTopic,
                 ControlTopic,
                 LinkTopic,
-                OcclusionTopic,
-                GroundStationsTopic);
+                OcclusionTopic);
 
             // Advertise comms.delay to the engine's server-side reveal gate as
             // the AUTHORITATIVE, subscription-independent delay source (§7.3
@@ -931,7 +913,6 @@ namespace Gonogo.KSP
                         Ut = snapshot?.Ut ?? Planetarium.GetUniversalTime(),
                         HasCraft = false,
                         Occlusion = OcclusionFor(backend, snapshot),
-                        GroundStations = GroundStationsFor(backend),
                     };
                 }
 
@@ -981,7 +962,6 @@ namespace Gonogo.KSP
                     // (the same one trackingStation.bodies reads), so no backend has to
                     // walk FlightGlobals itself.
                     Occlusion = OcclusionFor(backend, snapshot),
-                    GroundStations = GroundStationsFor(backend),
                     // The backend declares the RULE and its own rating under it.
                     Degrade = DegradeFor(backend),
                 };
@@ -1042,35 +1022,6 @@ namespace Gonogo.KSP
             return CommsDegradeModels.ToPayload(model);
         }
 
-        /// <summary>
-        /// MAIN-THREAD: the elected backend's ground stations, or an empty list
-        /// when it lists none. Guarded on its own so a station read that throws
-        /// costs the list and nothing else. An unchanged list keeps the previous
-        /// instance, which is what makes the emitter's change-gate suppress it.
-        /// </summary>
-        internal CommsGroundStations GroundStationsFor(ICommsBackend backend)
-        {
-            IReadOnlyList<CommsGroundStation> read;
-            try
-            {
-                read = (backend as ICommsGroundStations)?.GroundStations() ?? new List<CommsGroundStation>();
-            }
-            catch (Exception ex)
-            {
-                FleetCommsReader.ReportIfSkew(backend, ex);
-                return _lastGroundStations ?? new CommsGroundStations();
-            }
-
-            var built = new CommsGroundStations { Stations = read };
-            if (_lastGroundStations != null && GroundStationLists.Same(_lastGroundStations, built))
-            {
-                return _lastGroundStations;
-            }
-
-            _lastGroundStations = built;
-            return built;
-        }
-
         private CommsOcclusion OcclusionFor(ICommsBackend backend, KspSnapshot? snapshot)
         {
             var built = CommsOcclusionBuilder.Build(backend.OcclusionModel(), snapshot);
@@ -1091,7 +1042,6 @@ namespace Gonogo.KSP
                 return;
             }
             _occlusion?.Publish(capture.Occlusion, capture.Ut);
-            _groundStations?.Publish(capture.GroundStations, capture.Ut);
             if (!capture.HasCraft || capture.Settling)
             {
                 // Nothing is reported, which a client must not read as the last craft's link or as a lost one.
@@ -1164,7 +1114,6 @@ namespace Gonogo.KSP
             public CommsControl Control = new();
             public CommsDelay Delay = new();
             public CommsOcclusion Occlusion = new();
-            public CommsGroundStations GroundStations = new();
             public CommsDegrade Degrade = new();
         }
     }

@@ -527,22 +527,6 @@ public class CommsNetworkEdge
     /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool Active { get; set; }
-    /// <summary>
-    /// What this edge's link is worth at the distance it crosses, from 0 to 1,
-    /// in the comms backend's own terms: the same figure the matching
-    /// <see cref="CommsHop.Strength"/> carries, for any client that draws the
-    /// graph without the path. Null when the backend states no strength for
-    /// the edge, or the centre has not heard enough to work one out.
-    /// </summary>
-    [SitrepUnit(Units.Ratio)]
-    [SitrepSampleKind(SampleKind.Continuous)]
-    public double? Strength { get; set; }
-    /// <summary>
-    /// Which quantity <see cref="Strength"/> is, as the comms backend stated it
-    /// for this edge. Null exactly when <see cref="Strength"/> is.
-    /// </summary>
-    [SitrepUnit(Units.Enumeration)]
-    public SignalQuantity? Quantity { get; set; }
 }
 
 /// <summary>

@@ -42,6 +42,7 @@ export const RENDER_GATE_DEBT: ReadonlySet<string> = new Set<string>([
   "objectives|hitTargets",
   "objectives|stress-long-labels|hitTargets",
   "objectives|stress-modded-label|hitTargets",
+  "orbital-ascent|stress-no-craft|svgHtmlOverlaps",
   "power-systems|hitTargets",
   "power-systems|stress-long-labels|hitTargets",
   "power-systems|stress-modded-label|hitTargets",

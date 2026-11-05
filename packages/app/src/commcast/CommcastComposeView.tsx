@@ -2,10 +2,8 @@ import {
   ComposerBar,
   Console,
   EmptyState,
-  FilterRegion,
   SelectableRow,
   Text,
-  useRowFilter,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -48,11 +46,6 @@ export function CommcastComposeView({
   onCommit: (ids: readonly RecipientId[]) => void;
 }) {
   const [picked, setPicked] = useState<readonly RecipientId[]>([]);
-  const filter = useRowFilter({
-    label: "Filter recipients",
-    placeholder: "Filter...",
-  });
-  const shown = recipients.filter((r) => filter.matches(r.name));
   const toggle = (id: RecipientId) =>
     setPicked((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id],
@@ -82,33 +75,28 @@ export function CommcastComposeView({
         }
       >
         <Commcast__Scroll>
-          <FilterRegion filter={filter}>
-            <Commcast__Rows>
-              {recipients.length === 0 && (
-                <EmptyState>No correspondents</EmptyState>
-              )}
-              {recipients.length > 0 && shown.length === 0 && (
-                <EmptyState>No match</EmptyState>
-              )}
-              {shown.map((r) => (
-                <SelectableRow
-                  key={r.id}
-                  selected={picked.includes(r.id)}
-                  onClick={() => toggle(r.id)}
-                >
-                  <Commcast__RowHead>
-                    <Commcast__RowName>{r.name}</Commcast__RowName>
-                    {/* Still addressable; saying so before it is sent stops an unacknowledged message reading as a fault. */}
-                    {!r.staffed && (
-                      <Text size="xs" level="faint">
-                        unstaffed
-                      </Text>
-                    )}
-                  </Commcast__RowHead>
-                </SelectableRow>
-              ))}
-            </Commcast__Rows>
-          </FilterRegion>
+          <Commcast__Rows>
+            {recipients.length === 0 && (
+              <EmptyState>No correspondents</EmptyState>
+            )}
+            {recipients.map((r) => (
+              <SelectableRow
+                key={r.id}
+                selected={picked.includes(r.id)}
+                onClick={() => toggle(r.id)}
+              >
+                <Commcast__RowHead>
+                  <Commcast__RowName>{r.name}</Commcast__RowName>
+                  {/* Still addressable; saying so before it is sent stops an unacknowledged message reading as a fault. */}
+                  {!r.staffed && (
+                    <Text size="xs" level="faint">
+                      unstaffed
+                    </Text>
+                  )}
+                </Commcast__RowHead>
+              </SelectableRow>
+            ))}
+          </Commcast__Rows>
         </Commcast__Scroll>
       </Console>
     </>

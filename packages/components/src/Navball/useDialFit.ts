@@ -72,7 +72,6 @@ export function useDialFit({
   const refutedRef = useRef<{ w: number; h: number } | null>(null);
   const yieldedFromRef = useRef(0);
   const columnRef = useRef<{ w: number; h: number } | null>(null);
-  const skippedRef = useRef<{ w: number; h: number } | null>(null);
   const controlRowObserverRef = useRef<ResizeObserver | null>(null);
   const dialObserverRef = useRef<ResizeObserver | null>(null);
   // The ResizeObserver closure reads these refs.
@@ -149,23 +148,6 @@ export function useDialFit({
   useEffect(() => {
     settleControlRow();
   }, [controlRowWanted, dialPossible, settleControlRow]);
-  const applyColumn = useCallback(
-    (w: number, h: number) => {
-      // Reserved by tile width, not by the column's visibility, which rides `showDial` and would make the fit oscillate.
-      const throttleReserve = throttleReservedRef.current ? 42 : 0;
-      const fit = Math.min(w - throttleReserve, h - ATTITUDE_CHROME_PX);
-      // Capped in control mode so the control surface keeps its room; 600 is where tick text blurs.
-      const cap = controlModeRef.current ? CONTROL_DIAL_CAP_PX : 600;
-      setDialFit(Math.min(cap, Math.floor(fit)));
-      columnRef.current = { w, h };
-      settleControlRow();
-      // The readout carries no throttle bar, so it gets the full width.
-      setReadoutAcross(w >= READOUT_TRIPLE_PX);
-      setColumnWidth(Math.floor(w));
-      setColumnHeight(Math.floor(h));
-    },
-    [settleControlRow],
-  );
   /**
    * A callback ref on the attitude column, which renders in both branches: a
    * ref on the dial would stop observing once the fit said no, and the dial
@@ -181,27 +163,26 @@ export function useDialFit({
         for (const e of entries) {
           const w = e.contentRect.width;
           const h = e.contentRect.height;
-          if (w <= 0 || h <= 0) continue;
-          if (heldRef.current) {
-            skippedRef.current = { w, h };
-            continue;
-          }
-          skippedRef.current = null;
-          applyColumn(w, h);
+          if (w <= 0 || h <= 0 || heldRef.current) continue;
+          // Reserved by tile width, not by the column's visibility, which rides `showDial` and would make the fit oscillate.
+          const throttleReserve = throttleReservedRef.current ? 42 : 0;
+          const fit = Math.min(w - throttleReserve, h - ATTITUDE_CHROME_PX);
+          // Capped in control mode so the control surface keeps its room; 600 is where tick text blurs.
+          const cap = controlModeRef.current ? CONTROL_DIAL_CAP_PX : 600;
+          setDialFit(Math.min(cap, Math.floor(fit)));
+          columnRef.current = { w, h };
+          settleControlRow();
+          // The readout carries no throttle bar, so it gets the full width.
+          setReadoutAcross(w >= READOUT_TRIPLE_PX);
+          setColumnWidth(Math.floor(w));
+          setColumnHeight(Math.floor(h));
         }
       });
       ro.observe(el);
       dialObserverRef.current = ro;
     },
-    [applyColumn],
+    [settleControlRow],
   );
-  // A resize reported while held was dropped, so the last one is measured again once the fit is released.
-  useEffect(() => {
-    const skipped = skippedRef.current;
-    if (held || skipped === null) return;
-    skippedRef.current = null;
-    applyColumn(skipped.w, skipped.h);
-  }, [held, applyColumn]);
   /** A callback ref on the control row's own box, so its height is known while the row is drawn and remembered while it is not. */
   const attachControlRow = useCallback(
     (el: HTMLDivElement | null) => {

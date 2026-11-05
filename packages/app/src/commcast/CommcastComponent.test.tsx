@@ -360,33 +360,6 @@ describe("Commcast, rendered", () => {
     await act(async () => {});
   });
 
-  it("narrows the recipient list by typed text and keeps what was already chosen", async () => {
-    const log = makeLog();
-    log.setVantage("ksc");
-    renderOnStream(log, [
-      { id: "vessel:ares", displayName: "Ares 4", active: true },
-      { id: "ground:woomera", displayName: "Woomera Range", active: true },
-      { id: "ground:baikonur", displayName: "Baikonur", active: true },
-    ]);
-    await userEvent.click(screen.getByRole("button", { name: /New message/ }));
-    await userEvent.click(screen.getByRole("button", { name: /Ares 4/ }));
-    await userEvent.type(
-      screen.getByRole("searchbox", { name: "Filter recipients" }),
-      "woom",
-    );
-    expect(screen.getByRole("button", { name: /Woomera Range/ })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /Baikonur/ })).toBeNull();
-    expect(screen.queryByRole("button", { name: /Ares 4/ })).toBeNull();
-    // The choice survives the filter hiding its row.
-    expect(screen.getByText("Ready")).toBeInTheDocument();
-    await userEvent.type(
-      screen.getByRole("searchbox", { name: "Filter recipients" }),
-      "zzz",
-    );
-    expect(screen.getByText("No match")).toBeInTheDocument();
-    await act(async () => {});
-  });
-
   it("leaves a long delay to the strip, with no chip saying the same thing", async () => {
     /*
      * The terminal widget's model, verbatim. Four light-minutes out a countdown

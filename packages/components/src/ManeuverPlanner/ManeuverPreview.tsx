@@ -1,11 +1,6 @@
 import type { BodyDefinition, CurrentOrbit, DataKey } from "@ksp-gonogo/core";
 import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
-import {
-  type CarriedCurrency,
-  delayVisibility,
-  type Value,
-  value,
-} from "@ksp-gonogo/sitrep-sdk";
+import { delayVisibility, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { Button } from "@ksp-gonogo/ui";
 import {
   ContainerBreak,
@@ -33,7 +28,6 @@ import { Label, PreviewGrid, PreviewValue } from "./styles";
 import { TransferPreview } from "./TransferPreview";
 import { TriggerEditor } from "./TriggerEditor";
 import type { ThresholdOp } from "./triggerTypes";
-import { untilBurn } from "./untilBurn";
 import type { SendDelay } from "./useNodeCommands";
 
 export interface ManeuverPreviewProps {
@@ -66,8 +60,6 @@ export interface ManeuverPreviewProps {
   orbitMarking: ReckoningMarking | null;
   /** The mark the planned figures inherit from the orbit (and the target, where the preset reads one) they were computed from. */
   planMarking: ReckoningMarking | null;
-  /** The currency of the orbit (and target) the plan was computed from, dating the burn countdowns. */
-  planFrom?: readonly CarriedCurrency[];
   feasible: boolean | null;
   requiredDeltaV: number;
   currentUT: Value<"ut"> | undefined;
@@ -184,7 +176,6 @@ function PreviewBody({
   feasible,
   currentUT,
   planMarking,
-  planFrom,
   preset,
   apsisDefined,
 }: ManeuverPreviewProps) {
@@ -198,7 +189,6 @@ function PreviewBody({
         feasible={feasible}
         currentUT={currentUT}
         marking={planMarking}
-        from={planFrom}
       />
     );
   }
@@ -211,7 +201,6 @@ function PreviewBody({
         feasible={feasible}
         currentUT={currentUT}
         marking={planMarking}
-        from={planFrom}
       />
     );
   }
@@ -235,7 +224,7 @@ function PreviewBody({
             <span>{NULL_DISPLAY}</span>
           </Tooltip>
         ) : (
-          <Countdown value={untilBurn(plan.ut, currentUT, planFrom)} />
+          <Countdown value={currentUT && plan.ut.minus(currentUT)} />
         )}
       </PreviewValue>
 

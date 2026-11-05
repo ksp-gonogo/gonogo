@@ -1,9 +1,5 @@
 import type { BodyDefinition, ManeuverSequence } from "@ksp-gonogo/core";
-import {
-  type CarriedCurrency,
-  type Value,
-  value,
-} from "@ksp-gonogo/sitrep-sdk";
+import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Countdown,
   type ReckoningMarking,
@@ -13,7 +9,6 @@ import {
 import { AvailableRow } from "./AvailableRow";
 import { ProjectedRows } from "./ProjectedRows";
 import { Label, PreviewGrid, PreviewValue } from "./styles";
-import { untilBurn } from "./untilBurn";
 
 interface SequencePreviewProps {
   seq: ManeuverSequence;
@@ -24,8 +19,6 @@ interface SequencePreviewProps {
   currentUT: Value<"ut"> | undefined;
   /** The mark the plan inherits from the orbit it was computed from. */
   marking: ReckoningMarking | null;
-  /** The currency of the orbit the plan was computed from, dating the burn countdowns. */
-  from?: readonly CarriedCurrency[];
 }
 
 export function SequencePreview({
@@ -35,7 +28,6 @@ export function SequencePreview({
   feasible,
   currentUT,
   marking,
-  from,
 }: SequencePreviewProps) {
   const burn1 = seq.burns[0];
   const burn2 = seq.burns[1];
@@ -67,7 +59,7 @@ export function SequencePreview({
         </PreviewValue>
         <Label>Burn in</Label>
         <PreviewValue>
-          <Countdown value={untilBurn(burn1.ut, currentUT, from)} />
+          <Countdown value={currentUT && burn1.ut.minus(currentUT)} />
         </PreviewValue>
         <ProjectedRows
           projected={seq.transferEllipse}
@@ -92,7 +84,7 @@ export function SequencePreview({
             </PreviewValue>
             <Label>Burn in</Label>
             <PreviewValue>
-              <Countdown value={untilBurn(burn2.ut, currentUT, from)} />
+              <Countdown value={currentUT && burn2.ut.minus(currentUT)} />
             </PreviewValue>
             <ProjectedRows
               projected={seq.finalProjected}

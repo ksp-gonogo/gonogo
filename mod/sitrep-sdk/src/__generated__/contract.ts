@@ -2468,19 +2468,6 @@ export interface CommsNetworkEdge
 	* sent, so every edge is true.
 	*/
 	active: boolean;
-	/**
-	* What this edge's link is worth at the distance it crosses, from 0 to 1, in
-	* the comms backend's own terms: the same figure the matching
-	* `CommsHop.strength` carries, for any client that draws the graph without the
-	* path. Null when the backend states no strength for the edge, or the centre
-	* has not heard enough to work one out.
-	*/
-	strength?: Value<"ratio"> | null;
-	/**
-	* Which quantity `CommsNetworkEdge.strength` is, as the comms backend stated
-	* it for this edge. Null exactly when `CommsNetworkEdge.strength` is.
-	*/
-	quantity?: SignalQuantity | null;
 }
 /**
 * The `comms.network` payload: the nodes and edges of the active route as it
@@ -2827,60 +2814,6 @@ export interface CommsDegrade
 	* overshot, and one that failed to resolve arrives absent.
 	*/
 	level?: Value<"ratio"> | null;
-}
-/**
-* One ground station of the comms network: where it stands on its body, under
-* the name the route and the network use for it.
-*
-* @category Comms
-*/
-export interface CommsGroundStation
-{
-	/**
-	* The station's join key in the same id space as `CommsNetworkNode.id` and
-	* `CommsHop.from`, so a marker can be matched to the station a route ends at.
-	*/
-	id: string;
-	/** The station's name as the player reads it in game. */
-	name: string;
-	/**
-	* The `bodyName` of the body the station stands on, or null when the body
-	* could not be read. Null together with `CommsGroundStation.latitude`.
-	*/
-	bodyName?: string | null;
-	/**
-	* Body-fixed latitude of the station in degrees. Null exactly when
-	* `CommsGroundStation.bodyName` is.
-	*/
-	latitude?: Value<"°"> | null;
-	/**
-	* Body-fixed longitude of the station in degrees, wrapped to (-180, 180]. Null
-	* exactly when `CommsGroundStation.latitude` is.
-	*/
-	longitude?: Value<"°"> | null;
-	/**
-	* Per-station facts the comms mod in use reports beyond this shape, keyed by
-	* that mod's name. A comms mod that knows more about its stations, such as
-	* their radio equipment, fills its own namespace here, typed by that mod's
-	* client.
-	*/
-	extensions?: ProviderExtensions;
-}
-/**
-* The `comms.groundStations` payload: every ground station the game has, as
-* the comms mod in use reads them, with the body each stands on and its
-* latitude and longitude. Present with or without a craft on screen, and the
-* same for every command centre.
-*
-* Not delayed by signal delay: the stations are fixed places the universe
-* holds, not an observation of any vessel. An unchanged list is not re-sent.
-*
-* @category Comms
-*/
-export interface CommsGroundStations
-{
-	/** Every ground station. Empty when the backend reads none, never null. */
-	stations: CommsGroundStation[];
 }
 /**
 * What one journey report says happened to a command, or to a cancel.

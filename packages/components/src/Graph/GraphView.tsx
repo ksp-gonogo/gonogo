@@ -21,7 +21,6 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import {
@@ -259,26 +258,12 @@ export function GraphView({
           }
         };
 
-  const hasSamples = series.some(
-    (cfg) => (seriesData.get(seriesKeyOf(cfg.source))?.t.length ?? 0) > 0,
-  );
-  /*
-   * "Waiting" is a state of never having heard from the series. A window that
-   * empties after samples (the craft landed and the topic went quiet) is an
-   * empty plot, and the latch is per set of series so reconfiguring starts
-   * waiting again.
-   */
-  const seriesIdentity = series.map((cfg) => seriesKeyOf(cfg.source)).join("|");
-  const heard = useRef({ identity: seriesIdentity, any: false });
-  if (heard.current.identity !== seriesIdentity) {
-    heard.current = { identity: seriesIdentity, any: false };
-  }
-  if (hasSamples) heard.current.any = true;
   const awaitingData =
     notice === undefined &&
     series.length > 0 &&
-    !hasSamples &&
-    !heard.current.any;
+    series.every(
+      (cfg) => (seriesData.get(seriesKeyOf(cfg.source))?.t.length ?? 0) === 0,
+    );
 
   const derive = deriveAxisTitles === true;
   const xAxisTitle = axisTitle(

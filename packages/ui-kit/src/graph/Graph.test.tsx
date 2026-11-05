@@ -234,23 +234,6 @@ describe("Graph", () => {
       expect(screen.getByText("Collecting history...")).toBeTruthy();
     });
 
-    it("centres a notice over an empty plot on the plot rectangle, inside the axis gutters", () => {
-      const { container } = render(
-        <Graph
-          chrome="bare"
-          series={[]}
-          xDomain={[0, 1]}
-          notice="Waiting for data..."
-        />,
-      );
-      const box = container.querySelector<HTMLElement>("[data-plot-notice]");
-      expect(box).not.toBeNull();
-      expect(box?.textContent).toContain("Waiting for data...");
-      // The chart is 400 wide and keeps a gutter either side, so the box is narrower and starts in from the edge.
-      expect(Number.parseFloat(box?.style.left ?? "0")).toBeGreaterThan(0);
-      expect(Number.parseFloat(box?.style.width ?? "400")).toBeLessThan(400);
-    });
-
     it("draws the plot without the frame's styled box", () => {
       const frameOf = (container: HTMLElement) =>
         container.querySelector("svg")?.parentElement?.parentElement;

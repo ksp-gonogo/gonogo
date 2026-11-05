@@ -524,13 +524,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     oneWaySeconds: "s",
     source: "enum",
   },
-  "CommsGroundStation": {
-    bodyName: "text",
-    id: "id",
-    latitude: "°",
-    longitude: "°",
-    name: "text",
-  },
   "CommsHop": {
     distanceMeters: "m",
     from: "id",
@@ -564,8 +557,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     a: "id",
     active: "flag",
     b: "id",
-    quantity: "enum",
-    strength: "ratio",
   },
   "CommsNetworkNode": {
     displayName: "text",
@@ -2808,9 +2799,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "CommsDelay": {
     meta: "PayloadMeta",
   },
-  "CommsGroundStations": {
-    stations: "CommsGroundStation[]",
-  },
   "CommsJourney": {
     events: "CommsJourneyEvent[]",
   },
@@ -3172,9 +3160,6 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "comms.delay": {
     meta: "PayloadMeta",
   },
-  "comms.groundStations": {
-    stations: "CommsGroundStation[]",
-  },
   "comms.journey": {
     events: "CommsJourneyEvent[]",
   },
@@ -3382,9 +3367,6 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   },
   "CommsJourneyEvent": {
     kind: "JourneyEventKind",
-  },
-  "CommsNetworkEdge": {
-    quantity: "SignalQuantity",
   },
   "CommsNetworkNode": {
     kind: "CommsHopKind",
@@ -4016,9 +3998,6 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
  */
 export const GENERATED_CONTRACT_TAGS = {
   topics: {
-    "comms.network": {
-      "edges.*.strength": { kind: "continuous" },
-    },
     "comms.path": {
       "hops.*.distanceMeters": { kind: "continuous" },
       "hops.*.strength": { kind: "continuous" },
@@ -4077,7 +4056,6 @@ export const GENERATED_CONTRACT_TAGS = {
     "comms.control": "Comms control",
     "comms.degrade": "Comms degradation",
     "comms.delay": "Signal delay",
-    "comms.groundStations": "Ground stations",
     "comms.journey": "Comms journey",
     "comms.link": "Comms link",
     "comms.nextLoss": "Next signal loss",

@@ -87,8 +87,6 @@ interface Pane {
   compose?: boolean;
   /** Names to select in the picker, in order. */
   pick?: string[];
-  /** Text typed into the picker's filter after `pick`. */
-  filter?: string;
   /** Press Open, landing in the conversation itself. */
   open?: boolean;
   /** From the open thread, press Add and choose these. */
@@ -1061,34 +1059,6 @@ const SCENES: Scene[] = [
     roster: ROSTER,
     oneWaySeconds: LIGHT_TIME,
     settleOn: "2 chosen",
-    pxW: 460,
-    pxH: 460,
-  },
-  {
-    /*
-     * The recipient list narrowed by typing: the craft was chosen first and the
-     * filter then hides its row, and the choice still counts.
-     */
-    name: "compose-recipients-filtered",
-    panes: [
-      {
-        seat: "mission-control",
-        vantage: KSC,
-        name: "Kennedy Flight",
-        compose: true,
-        pick: ["Ares 4"],
-        filter: "woo",
-      },
-    ],
-    separation: PAIRS,
-    roster: [
-      ...ROSTER,
-      { id: "ground:baikonur", displayName: "Baikonur", active: true },
-      { id: "ground:kourou", displayName: "Kourou", active: true },
-      { id: "ground:wallops", displayName: "Wallops Station", active: true },
-    ],
-    oneWaySeconds: LIGHT_TIME,
-    settleOn: "Ready",
     pxW: 460,
     pxH: 460,
   },

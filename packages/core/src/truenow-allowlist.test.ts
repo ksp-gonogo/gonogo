@@ -214,12 +214,8 @@ const ALLOWED_TRUENOW: Record<string, number> = {
    * Declared via the `TrueNow(topic)` helper: 1 explicit `Delay =` line inside
    * the helper body + 1 call site + the helper's own declaration line (also
    * matches the call-site regex) = 2 helper matches. 1 explicit + 2 helper = 3.
-   *
-   * Raised from 3 to 4 for comms.groundStations: the stations are fixed places
-   * the universe holds, listed by the elected backend, so no light-time could
-   * apply. One more call through the helper.
    */
-  "mod/Gonogo.KSP/CommsCoreUplink.cs": 4,
+  "mod/Gonogo.KSP/CommsCoreUplink.cs": 3,
 
   // system.uplinks (registered-uplink health/availability: a fact about
   // the MOD itself) + system.uplink.pending (what the centre dispatched

@@ -39,7 +39,7 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
     transferBody,
   } = inputs;
   const {
-    orbitPresent,
+    orbitObserved,
     mu,
     argPe,
     inclination,
@@ -216,11 +216,12 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
   );
 
   /*
-   * Positive finite checks, since values can land NaN mid-scene-load. A held
-   * orbit plans too, carrying its held mark: a maneuver is a delta-v at a time,
-   * so it can be authored from the last state received, and the send is what
-   * the link decides. A craft on the ground is withheld: its elements describe
-   * a path through the ground, which no burn can be planned on.
+   * Positive finite checks, since values can land NaN mid-scene-load. Withheld
+   * on a held orbit too: a craft out of contact may have burned unseen, so its
+   * carried elements can describe an orbit it has left. This gates planning
+   * only, never the diagram's own trajectory. A craft on the ground is
+   * withheld too: its elements describe a path through the ground, which no
+   * burn can be planned on.
    */
   const meetsSurface = meetsSurfaceBeforeBurn({
     preset,
@@ -235,7 +236,7 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
   const closedPlanReady =
     !landed &&
     !meetsSurface &&
-    orbitPresent &&
+    orbitObserved &&
     isFiniteNumber(sma) &&
     isFiniteNumber(ecc) &&
     isFiniteNumber(ApR) &&
@@ -251,7 +252,7 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
    */
   const capturable =
     !landed &&
-    orbitPresent &&
+    orbitObserved &&
     openOrbit !== null &&
     currentUT?.isFinite() === true &&
     mu > 0;

@@ -4,7 +4,6 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/test-utils";
-import { useState } from "react";
 import { describe, expect, it } from "vitest";
 import { WidgetAtTileSize } from "./WidgetAtTileSize";
 
@@ -65,24 +64,5 @@ describe("WidgetAtTileSize", () => {
     expect(screen.getByText("TEST")).toBeInTheDocument();
     rerender(<WidgetAtTileSize def={sized} id="t" w={8} h={9} />);
     expect(screen.getByText("the body")).toBeInTheDocument();
-  });
-
-  it("keeps a staysMounted widget mounted, with its state, across the tiny threshold", () => {
-    function Stateful() {
-      const [seed] = useState(() => Math.random());
-      return <p data-testid="seed">{seed}</p>;
-    }
-    const mounted = widget({
-      component: Stateful,
-      tiny: { ...tiny, staysMounted: true },
-      minSize: { w: 4, h: 5 },
-    });
-    const { rerender } = render(
-      <WidgetAtTileSize def={mounted} id="t" w={8} h={9} />,
-    );
-    const before = screen.getByTestId("seed").textContent;
-    rerender(<WidgetAtTileSize def={mounted} id="t" w={2} h={2} />);
-    expect(screen.getByTestId("seed").textContent).toBe(before);
-    expect(screen.queryByText("TEST")).toBeNull();
   });
 });
