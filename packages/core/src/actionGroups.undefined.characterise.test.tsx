@@ -252,14 +252,14 @@ describe("useActionGroup characterisation: resolving a configured id against an 
    * present, named, `toggle: null`, and carrying no index. This is the
    * deliberately-inert half of the fallback.
    */
-  it("degrades a non-AG configured name to a read-only pill with no index", () => {
+  it("degrades a non-AG configured name to a read-only pill with no index, marked unknown", () => {
     const { result } = renderHook(() => useActionGroup("Deploy Solar"));
 
     expect(result.current).toEqual({
       name: "Deploy Solar",
       toggle: null,
       description: "Deploy Solar",
-      provenance: "assumed",
+      provenance: "unknown",
     });
     expect(result.current?.index).toBeUndefined();
   });

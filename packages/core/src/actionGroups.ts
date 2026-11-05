@@ -312,7 +312,7 @@ function resolveActionGroup(
   }
   const found = groups.find((g) => g.name === id);
   if (found) return found;
-  return { name: id, toggle: null, description: id, provenance: "assumed" };
+  return { name: id, toggle: null, description: id, provenance: "unknown" };
 }
 
 // ---------------------------------------------------------------------------
