@@ -105,6 +105,8 @@ export interface ConformancePlotProps {
   /** The mark the current orbit carries while it is not a current observation; the figures worked from it inherit it. */
   marking?: ReckoningMarking | null;
   bodyRadius?: number | null;
+  /** The body's own colour, shared with the planning diagram so one body reads as one colour. */
+  bodyColor?: string;
 }
 
 const INSET_GAP_MULTIPLE = 6;
@@ -126,6 +128,7 @@ export function ConformancePlot({
   currentIsObserved,
   marking = null,
   bodyRadius,
+  bodyColor,
   maxPlotHeight,
 }: ConformancePlotProps) {
   const r = REGIME[regime];
@@ -184,6 +187,7 @@ export function ConformancePlot({
               // Only a deviance is a flown-versus-planned comparison; filling any other regime would colour the burn itself.
               corridor={regime === "deviance"}
               bodyRadius={bodyRadius ?? undefined}
+              bodyColor={bodyColor}
               variant="mini"
             />
           </FramedDisplay>

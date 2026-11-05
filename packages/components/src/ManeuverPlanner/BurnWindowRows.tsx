@@ -1,6 +1,7 @@
 import { type CarriedCurrency, datedFrom, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Cluster,
+  DataLine,
   MissionDate,
   NULL_DISPLAY,
   Row,
@@ -98,23 +99,43 @@ function InstantRow({
       <Row
         as="li"
         data-burn-instant-row=""
-        style={{ alignItems: "stretch", gap: "var(--gap-related)" }}
+        style={{
+          alignItems: "stretch",
+          gap: "var(--gap-related)",
+        }}
       >
-        <Cluster
-          justify="start"
-          style={{
-            gap: "var(--gap-related)",
-            minWidth: 0,
-            alignItems: "stretch",
-          }}
+        <KindSwatch kind={row.kind} />
+        <DataLine
+          aligned
+          style={{ flex: "1 1 auto", minWidth: 0 }}
+          label={
+            <span
+              style={{
+                ...KIND_CHIP,
+                display: "inline-block",
+                minWidth: "9ch",
+                color: KIND_COLOUR[row.kind],
+              }}
+            >
+              {row.label}
+            </span>
+          }
         >
-          <KindSwatch kind={row.kind} />
           <Stack style={{ minWidth: 0 }}>
-            <Cluster align="baseline" style={{ gap: "var(--gap-related)" }}>
-              <span style={{ ...KIND_CHIP, color: KIND_COLOUR[row.kind] }}>
-                {row.label}
+            <Text size="sm" style={{ whiteSpace: "nowrap" }}>
+              {row.atUt == null ? NULL_DISPLAY : relativeToNow(row.atUt, nowUt)}
+            </Text>
+            {row.atUt != null && (
+              <span style={{ ...CAPTION, whiteSpace: "nowrap" }}>
+                <MissionDate
+                  value={
+                    from === undefined
+                      ? row.atUt
+                      : datedFrom(from, value("ut", row.atUt))
+                  }
+                />
               </span>
-            </Cluster>
+            )}
             {/* Only the absent case gets a subtitle: it says why there is no time. */}
             {row.atUt == null && (
               <Tooltip text={row.detail ?? row.question} focusable>
@@ -122,23 +143,7 @@ function InstantRow({
               </Tooltip>
             )}
           </Stack>
-        </Cluster>
-        <Stack style={{ alignItems: "flex-end", flex: "0 0 auto" }}>
-          <Text size="sm" style={{ whiteSpace: "nowrap" }}>
-            {row.atUt == null ? NULL_DISPLAY : relativeToNow(row.atUt, nowUt)}
-          </Text>
-          {row.atUt != null && (
-            <span style={{ ...CAPTION, whiteSpace: "nowrap" }}>
-              <MissionDate
-                value={
-                  from === undefined
-                    ? row.atUt
-                    : datedFrom(from, value("ut", row.atUt))
-                }
-              />
-            </span>
-          )}
-        </Stack>
+        </DataLine>
       </Row>
     </Tooltip>
   );

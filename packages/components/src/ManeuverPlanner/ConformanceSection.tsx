@@ -150,6 +150,7 @@ export function ConformanceSection({
                 currentIsObserved={!elementsNeedDating}
                 marking={orbitMarking}
                 bodyRadius={body?.radius}
+                bodyColor={body?.color}
               />
             </Stack>
           );
