@@ -207,6 +207,7 @@ function GroundTrackComponent({
     vesselMarked,
   } = useMapPainting({
     containerSize,
+    augmentSettings,
     camera,
     bodyTexture: body?.texture,
     bodyColor: body?.color,
