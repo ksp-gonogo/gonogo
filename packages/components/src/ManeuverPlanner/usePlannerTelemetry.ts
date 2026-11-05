@@ -229,7 +229,8 @@ export function usePlannerTelemetry() {
     craftElements,
     celestialBodies,
     craftBody,
-    orbitObserved: orbitReading.state === "observed",
+    orbitPresent:
+      orbitReading.state === "observed" || orbitReading.state === "held",
     elementsNeedDating,
     orbitMarking,
     targetMarking,
