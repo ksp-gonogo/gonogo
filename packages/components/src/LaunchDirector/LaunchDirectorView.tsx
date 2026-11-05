@@ -125,10 +125,10 @@ export function LaunchDirectorComponent({
   const selectedSite = activePad?.name ?? "";
   const scene = sceneRecord?.scene;
 
-  // A balance that never arrived judges nothing: not knowing it is not knowing a craft is unaffordable. A held balance is withheld from the judgement, so it refuses every priced craft. Sandbox and science charge nothing.
-  const fundsAvailable = !chargesFunds
-    ? Number.POSITIVE_INFINITY
-    : (careerFunds ?? (fundsHeld ? 0 : Number.POSITIVE_INFINITY));
+  // Absent funds are insufficient funds; sandbox and science charge nothing.
+  const fundsAvailable = chargesFunds
+    ? (careerFunds ?? 0)
+    : Number.POSITIVE_INFINITY;
 
   const rows = h ?? 9;
   const cols = w ?? 7;

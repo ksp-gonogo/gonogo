@@ -136,7 +136,7 @@ export function ContractRewards({
 /**
  * What cancelling the contract takes, beside the control that does it. The
  * failure penalty is charged at the press, so a figure the wire did not carry
- * reads as unknown rather than free.
+ * is left off rather than drawn as free.
  */
 export function ContractCancelCost({
   contract: c,
@@ -145,44 +145,31 @@ export function ContractCancelCost({
   contract: ContractEntry;
   boardHeld?: ReturnType<typeof heldGrade>;
 }>) {
-  // A penalty of zero is a sent figure that charges nothing, so it is not listed; one the wire did not carry is listed as unknown.
-  const funds = c.fundsFailure === null || c.fundsFailure > 0;
-  const rep = c.repFailure === null || c.repFailure > 0;
+  const funds = c.fundsFailure !== null && c.fundsFailure > 0;
+  const rep = c.repFailure !== null && c.repFailure > 0;
   if (!funds && !rep) return null;
   return (
     <div style={CANCEL_COST_STYLE}>
       <span style={REWARD_LABEL_STYLE}>CANCEL COSTS</span>
-      {funds && (
+      {funds && c.fundsFailure !== null && (
         <span style={REWARD_STYLE}>
           <span style={REWARD_LABEL_STYLE}>FUNDS</span>
           <span style={PENALTY_VALUE_STYLE}>
-            {c.fundsFailure === null ? (
-              NULL_DISPLAY
-            ) : (
-              <>
-                −
-                <BoardFigure held={boardHeld}>
-                  <Unit value={value("funds", c.fundsFailure)} />
-                </BoardFigure>
-              </>
-            )}
+            −
+            <BoardFigure held={boardHeld}>
+              <Unit value={value("funds", c.fundsFailure)} />
+            </BoardFigure>
           </span>
         </span>
       )}
-      {rep && (
+      {rep && c.repFailure !== null && (
         <span style={REWARD_STYLE}>
           <span style={REWARD_LABEL_STYLE}>REP</span>
           <span style={PENALTY_VALUE_STYLE}>
-            {c.repFailure === null ? (
-              NULL_DISPLAY
-            ) : (
-              <>
-                −
-                <BoardFigure held={boardHeld}>
-                  <Unit value={value("rep", c.repFailure)} />
-                </BoardFigure>
-              </>
-            )}
+            −
+            <BoardFigure held={boardHeld}>
+              <Unit value={value("rep", c.repFailure)} />
+            </BoardFigure>
           </span>
         </span>
       )}

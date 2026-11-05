@@ -1,5 +1,5 @@
 import { clearAugments } from "@ksp-gonogo/core";
-import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
@@ -490,17 +490,14 @@ describe("ContractManagerComponent cancel cost", () => {
     expect(visibleText()).toMatch(/−6\.0/);
   });
 
-  it("reads the cost as unknown when the wire carried no penalty", async () => {
+  it("leaves the cost off when the wire carried no penalty", async () => {
     const fixture = newFixture();
     renderContract(fixture);
     act(() => {
       emitContracts(fixture, { active: [contract] });
     });
     await screen.findByText(/Test the booster/);
-    const cost = screen.getByText(/CANCEL COSTS/).parentElement;
-    expect(within(cost as HTMLElement).getAllByText(NULL_DISPLAY)).toHaveLength(
-      2,
-    );
+    expect(screen.queryByText(/CANCEL COSTS/)).toBeNull();
   });
 });
 

@@ -76,8 +76,8 @@ export const KEY_TO_ENUM_FACILITY = Object.fromEntries(
 export interface FacilityLevel {
   level: number;
   max: number;
-  /** Funds cost for the next-tier upgrade. Null when the wire did not send one; 0 at the top tier. */
-  upgradeFunds: number | null;
+  /** Funds cost for the next-tier upgrade. 0 = unknown / already at max. */
+  upgradeFunds: number;
   /** KSP's stock upgrade-dialog text for the current tier; empty when nothing emits it. */
   currentLevelText: string;
   /** The same, for the tier the next upgrade would unlock; empty at max tier. */
@@ -115,7 +115,7 @@ export function parseFacilityLevels(
     out[key] = {
       level: currentTier,
       max: maxTier,
-      upgradeFunds: magnitudeOf(entry.upgradeCost),
+      upgradeFunds: magnitudeOf(entry.upgradeCost) ?? 0,
       currentLevelText: "",
       nextLevelText: "",
     };
@@ -140,8 +140,8 @@ export function stockFacilityEntries(
       currentTier: level.level,
       maxTier: level.max,
     };
-    // An absent price stays absent: a zero would read as free.
-    if (level.upgradeFunds !== null) entry.upgradeCost = level.upgradeFunds;
+    // An absent price, not a zero, which would read as free.
+    if (level.upgradeFunds > 0) entry.upgradeCost = level.upgradeFunds;
     entries.push(entry);
   }
   return entries;
@@ -164,7 +164,7 @@ export function facilityLevelsFrom(
     out[key] = {
       level: entry.currentTier,
       max: entry.maxTier,
-      upgradeFunds: entry.upgradeCost ?? null,
+      upgradeFunds: entry.upgradeCost ?? 0,
       currentLevelText: entry.currentTierText ?? "",
       nextLevelText: entry.nextTierText ?? "",
       heldSince: heldSinceOf(entry.held),
