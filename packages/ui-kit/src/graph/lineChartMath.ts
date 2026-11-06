@@ -86,7 +86,11 @@ export function formatTimeLabel(t: number, spanMs: number): string {
   return `${m}:${String(sec).padStart(2, "0")}`;
 }
 
-/** SVG path through the samples, starting a fresh subpath at each `breaks` index; an isolated sample becomes a zero-length segment so round caps draw it as a dot. */
+/**
+ * SVG path through the samples, starting a fresh subpath at each `breaks` index; an isolated sample becomes a zero-length segment so round caps draw it as a dot.
+ *
+ * A sample whose x or y is not a finite number is skipped and opens a hole, so a missing reading is never drawn as a position.
+ */
 export function buildPath(
   ts: number[],
   vs: number[],
@@ -96,26 +100,41 @@ export function buildPath(
 ): string {
   if (ts.length === 0) return "";
   const parts: string[] = [];
+  let open = false;
   for (let i = 0; i < ts.length; i++) {
+    if (!isPlottable(ts[i], vs[i])) {
+      open = false;
+      continue;
+    }
     const x = scaleX(ts[i]).toFixed(2);
     const y = scaleY(vs[i]).toFixed(2);
-    const starts = i === 0 || breaks.includes(i);
+    const starts = !open || breaks.includes(i);
     parts.push(`${starts ? "M" : "L"}${x},${y}`);
-    if (starts && isolated(i, ts.length, breaks)) parts.push(`L${x},${y}`);
+    open = true;
+    if (starts && endsRun(ts, vs, i, breaks)) parts.push(`L${x},${y}`);
   }
   return parts.join(" ");
 }
 
-/** Whether the run starting at `i` ends there: the next index opens a break, or there is none. */
-function isolated(
-  i: number,
-  length: number,
-  breaks: readonly number[],
-): boolean {
-  return i + 1 >= length || breaks.includes(i + 1);
+function isPlottable(x: number, y: number): boolean {
+  return Number.isFinite(x) && Number.isFinite(y);
 }
 
-/** Step-after path: hold each y until the next x. */
+/** Whether the run starting at `i` ends there: the next sample opens a break, is not plottable, or does not exist. */
+function endsRun(
+  ts: readonly number[],
+  vs: readonly number[],
+  i: number,
+  breaks: readonly number[],
+): boolean {
+  return (
+    i + 1 >= ts.length ||
+    breaks.includes(i + 1) ||
+    !isPlottable(ts[i + 1], vs[i + 1])
+  );
+}
+
+/** Step-after path: hold each y until the next x. A sample that is not a finite number opens a hole rather than being held across. */
 export function buildStepPath(
   ts: number[],
   vs: number[],
@@ -125,17 +144,18 @@ export function buildStepPath(
 ): string {
   if (ts.length === 0) return "";
   const parts: string[] = [];
-  let prevY = scaleY(vs[0]).toFixed(2);
-  const x0 = scaleX(ts[0]).toFixed(2);
-  parts.push(`M${x0},${prevY}`);
-  if (isolated(0, ts.length, breaks)) parts.push(`L${x0},${prevY}`);
-  for (let i = 1; i < ts.length; i++) {
+  let prevY: string | null = null;
+  for (let i = 0; i < ts.length; i++) {
+    if (!isPlottable(ts[i], vs[i])) {
+      prevY = null;
+      continue;
+    }
     const x = scaleX(ts[i]).toFixed(2);
     const y = scaleY(vs[i]).toFixed(2);
-    if (breaks.includes(i)) {
-      // Holding across a break would assert the value did not change while nobody could see it.
+    // Holding across a break would assert the value did not change while nobody could see it.
+    if (prevY === null || breaks.includes(i)) {
       parts.push(`M${x},${y}`);
-      if (isolated(i, ts.length, breaks)) parts.push(`L${x},${y}`);
+      if (endsRun(ts, vs, i, breaks)) parts.push(`L${x},${y}`);
       prevY = y;
       continue;
     }
@@ -230,14 +250,19 @@ export function buildBandPath(
 ): string {
   if (xs.length === 0) return "";
   const n = Math.min(xs.length, yLow.length, yHigh.length);
-  if (n === 0) return "";
-  const parts: string[] = [];
+  const cols: number[] = [];
   for (let i = 0; i < n; i++) {
+    if (isPlottable(xs[i], yLow[i]) && Number.isFinite(yHigh[i])) cols.push(i);
+  }
+  if (cols.length === 0) return "";
+  const parts: string[] = [];
+  cols.forEach((i, k) => {
     const x = scaleX(xs[i]).toFixed(2);
     const y = scaleY(yHigh[i]).toFixed(2);
-    parts.push(`${i === 0 ? "M" : "L"}${x},${y}`);
-  }
-  for (let i = n - 1; i >= 0; i--) {
+    parts.push(`${k === 0 ? "M" : "L"}${x},${y}`);
+  });
+  for (let k = cols.length - 1; k >= 0; k--) {
+    const i = cols[k];
     const x = scaleX(xs[i]).toFixed(2);
     const y = scaleY(yLow[i]).toFixed(2);
     parts.push(`L${x},${y}`);
