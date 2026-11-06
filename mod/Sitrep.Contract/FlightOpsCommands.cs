@@ -21,7 +21,7 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("ksp.revertToEditor", Delay = DelayRole.TrueNow)]
+[SitrepCommand("ksp.revertToEditor", Delay = DelayRole.TrueNow, AllowMetaVantage = true)]
 public class RevertToEditorArgs
 {
     /// <summary><c>"vab"</c> or <c>"sph"</c> (case-insensitive). Any other value yields <see cref="CommandResult.ErrorCode"/> <see cref="CommandErrorCode.Range"/>.</summary>
@@ -47,7 +47,7 @@ public class RevertToEditorArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("ksp.switchVessel", Delay = DelayRole.TrueNow)]
+[SitrepCommand("ksp.switchVessel", Delay = DelayRole.TrueNow, AllowMetaVantage = true)]
 public class SwitchVesselArgs
 {
     /// <summary>The vessel to switch to: KSP's <c>Vessel.id</c> guid as a string, as <c>trackingStation.catalog</c> carries it.</summary>
@@ -71,7 +71,7 @@ public class SwitchVesselArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("ksp.recoverVessel", Delay = DelayRole.TrueNow)]
+[SitrepCommand("ksp.recoverVessel", Delay = DelayRole.TrueNow, AllowMetaVantage = true)]
 public class RecoverVesselArgs
 {
     /// <summary>The vessel to recover: KSP's <c>Vessel.id</c> guid as a string, as <c>trackingStation.catalog</c> and a launch site's <c>padVesselId</c> carry it.</summary>

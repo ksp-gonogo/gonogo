@@ -7,8 +7,8 @@ import {
   type SetControlFrameArgs,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
+  Button,
   Cluster,
-  CommandButton,
   NullValue,
   ReadOnlyField,
   Select,
@@ -102,16 +102,18 @@ function SetControlFrame({
             </option>
           ))}
         </SetControlFrame__Select>
-        <CommandButton
-          handle={set}
-          args={argsOf(option)}
-          commandLabel={`Set Control Frame to ${optionLabel}`}
-          label="Set"
+        <Button
+          command={set.with(argsOf(option), {
+            label: `Set Control Frame to ${optionLabel}`,
+          })}
+          variant="ghost"
           confirmLabel="Confirm"
           confirmAriaLabel={`Confirm: set Control Frame to ${optionLabel}`}
           aria-label={`Set Control Frame to ${optionLabel}`}
           size="sm"
-        />
+        >
+          Set
+        </Button>
       </Cluster>
     </SetControlFrame__Line>
   );

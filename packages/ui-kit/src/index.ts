@@ -102,6 +102,8 @@ export {
   type ButtonVariant,
   IconButton,
   type IconButtonProps,
+  type PlainButtonProps,
+  type PlainIconButtonProps,
   TextButton,
 } from "./Button";
 export {
@@ -126,15 +128,19 @@ export {
   groupComboboxOptions,
   moveComboboxActiveIndex,
 } from "./Combobox";
+export type {
+  CommandedButtonProps,
+  CommandedToggleProps,
+  CommandInput,
+} from "./CommandButton/CommandedButton";
 export {
   ARM_TIMEOUT_MS,
-  CommandButton,
+  type BoundControlCommand,
   type CommandButtonHandle,
   type CommandButtonPhase,
-  type CommandButtonProps,
   type CommandButtonSize,
-  type CommandButtonState,
   type CommandButtonTone,
+  type CommandControlState,
   type CommandGateLike,
   type CommandReplyLike,
   type CommandToggle,
@@ -142,9 +148,9 @@ export {
   SENT_FLASH_MS,
   STREAM_DOWN_TIP,
   type ToggleState,
-  type UseCommandButtonOptions,
-  useCommandButton,
-} from "./CommandButton/CommandButton";
+  type UseCommandControlOptions,
+  useCommandControl,
+} from "./CommandButton/commandControl";
 export {
   CommandDelay,
   type CommandDelayHandle,
@@ -700,6 +706,7 @@ export {
 } from "./TinyEssentials";
 // A row of alternatives is a ToggleButton; a single labelled setting is a Switch.
 export {
+  type PlainToggleButtonProps,
   ToggleButton,
   type ToggleButtonProps,
   type ToggleButtonSize,

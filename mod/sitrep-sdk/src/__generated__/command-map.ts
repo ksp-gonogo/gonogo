@@ -563,6 +563,13 @@ export interface GeneratedCommandRail {
    * command.
    */
   readonly arriveBefore?: string;
+  /**
+   * Set when the command may be sent from the meta vantage, off
+   * `[SitrepCommand(AllowMetaVantage = true)]`: it acts on the game or the program
+   * itself, so it runs at once whichever command centre is selected. A client sends
+   * it from the meta vantage on its own. Absent for every other command.
+   */
+  readonly meta?: true;
 }
 
 /**
@@ -586,15 +593,15 @@ export const GENERATED_COMMAND_RAIL = {
   "alarm.game.delete": { replies: true, delayed: false },
   "alarm.scet.arm": { replies: true, delayed: false },
   "alarm.scet.disarm": { replies: true, delayed: false },
-  "career.contract.accept": { replies: true, delayed: true },
-  "career.contract.cancel": { replies: true, delayed: true },
-  "career.contract.decline": { replies: true, delayed: true },
-  "career.crew.fire": { replies: true, delayed: true },
-  "career.crew.hire": { replies: true, delayed: true },
-  "career.facility.upgrade": { replies: true, delayed: true },
-  "career.strategy.activate": { replies: true, delayed: true },
-  "career.strategy.deactivate": { replies: true, delayed: true },
-  "career.tech.unlock": { replies: true, delayed: true },
+  "career.contract.accept": { replies: true, delayed: true, meta: true },
+  "career.contract.cancel": { replies: true, delayed: true, meta: true },
+  "career.contract.decline": { replies: true, delayed: true, meta: true },
+  "career.crew.fire": { replies: true, delayed: true, meta: true },
+  "career.crew.hire": { replies: true, delayed: true, meta: true },
+  "career.facility.upgrade": { replies: true, delayed: true, meta: true },
+  "career.strategy.activate": { replies: true, delayed: true, meta: true },
+  "career.strategy.deactivate": { replies: true, delayed: true, meta: true },
+  "career.tech.unlock": { replies: true, delayed: true, meta: true },
   "commcast.group.add": { replies: true, delayed: false },
   "commcast.group.open": { replies: true, delayed: false },
   "commcast.message.ack": { replies: true, delayed: false },
@@ -609,13 +616,13 @@ export const GENERATED_COMMAND_RAIL = {
   "host.station.check": { replies: true, delayed: false },
   "host.station.revoke": { replies: true, delayed: false },
   "ksp.launch": { replies: true, delayed: false },
-  "ksp.recover": { replies: true, delayed: false },
-  "ksp.recoverVessel": { replies: true, delayed: false },
-  "ksp.revertToEditor": { replies: true, delayed: false },
-  "ksp.revertToLaunch": { replies: true, delayed: false },
-  "ksp.switchVessel": { replies: true, delayed: false },
-  "ksp.toSpaceCenter": { replies: true, delayed: false },
-  "ksp.toTrackingStation": { replies: true, delayed: false },
+  "ksp.recover": { replies: true, delayed: false, meta: true },
+  "ksp.recoverVessel": { replies: true, delayed: false, meta: true },
+  "ksp.revertToEditor": { replies: true, delayed: false, meta: true },
+  "ksp.revertToLaunch": { replies: true, delayed: false, meta: true },
+  "ksp.switchVessel": { replies: true, delayed: false, meta: true },
+  "ksp.toSpaceCenter": { replies: true, delayed: false, meta: true },
+  "ksp.toTrackingStation": { replies: true, delayed: false, meta: true },
   "robotics.rotor.reverse": { replies: true, delayed: true },
   "robotics.rotor.setBrake": { replies: true, delayed: true },
   "robotics.rotor.setLock": { replies: true, delayed: true },
@@ -632,15 +639,15 @@ export const GENERATED_COMMAND_RAIL = {
   "science.experiment.transmit": { replies: true, delayed: true },
   "science.lab.start": { replies: true, delayed: true },
   "science.lab.stop": { replies: true, delayed: true },
-  "settings.mod.write": { replies: true, delayed: false },
-  "settings.save": { replies: true, delayed: false },
+  "settings.mod.write": { replies: true, delayed: false, meta: true },
+  "settings.save": { replies: true, delayed: false, meta: true },
   "system.frame.set": { replies: true, delayed: false },
   "system.gate.check": { replies: true, delayed: false },
   "system.log.recent": { replies: true, delayed: false },
   "system.uplink.cancel": { replies: true, delayed: false },
   "system.uplink.resend": { replies: true, delayed: false },
-  "time.setPaused": { replies: true, delayed: false },
-  "time.setWarpIndex": { replies: true, delayed: false },
+  "time.setPaused": { replies: true, delayed: false, meta: true },
+  "time.setWarpIndex": { replies: true, delayed: false, meta: true },
   "trackingStation.bodies.statesAt": { replies: true, delayed: false },
   "trackingStation.catalog.dismiss": { replies: true, delayed: false },
   "vessel.control.holdFlyByWire": { replies: true, delayed: true },

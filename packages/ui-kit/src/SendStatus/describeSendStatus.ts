@@ -37,7 +37,7 @@ const WORDS = {
  * and the signal delay, then what the send does (sends now, held until a
  * stated time and arriving at another, or whether a message is expected to
  * arrive). Written for a tooltip or an accessible name. Used by
- * {@link CommandButton} for its tooltip.
+ * {@link Button} for its tooltip.
  *
  * @category CommandButton
  */

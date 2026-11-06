@@ -1,19 +1,19 @@
 import {
-  CommandButton,
   type CommandButtonHandle,
-  type CommandButtonState,
+  type CommandControlState,
   Notice,
+  ToggleButton,
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 
 interface ControlTogglesProps {
   disabled: boolean;
   /** The SAS, RCS and precision controls and the commands they send, from `useSasControls`. */
-  sas: { control: CommandButtonState; handle: CommandButtonHandle };
-  rcs: { control: CommandButtonState; handle: CommandButtonHandle };
+  sas: { control: CommandControlState; handle: CommandButtonHandle };
+  rcs: { control: CommandControlState; handle: CommandButtonHandle };
   /** Absent until a precision reading lands: an unpressed toggle means off, so there is none until then. */
   precision: {
-    control: CommandButtonState;
+    control: CommandControlState;
     handle: CommandButtonHandle;
   } | null;
   /** Why SAS cannot be turned on, or null when it can; the toggle is held and says so. */
@@ -36,27 +36,13 @@ export function ControlToggles({
     <>
       {disabled && <Notice>Vessel not controllable: buttons disabled.</Notice>}
       <div style={TOGGLE_ROW}>
-        <CommandButton
-          size="sm"
-          style={TOGGLE_CELL}
-          handle={sas.handle}
-          controller={sas.control}
-          label="SAS"
-        />
-        <CommandButton
-          size="sm"
-          style={TOGGLE_CELL}
-          handle={rcs.handle}
-          controller={rcs.control}
-          label="RCS"
-        />
+        <ToggleButton command={sas.control} size="sm" style={TOGGLE_CELL} />
+        <ToggleButton command={rcs.control} size="sm" style={TOGGLE_CELL} />
         {precision && (
-          <CommandButton
+          <ToggleButton
+            command={precision.control}
             size="sm"
             style={TOGGLE_CELL}
-            handle={precision.handle}
-            controller={precision.control}
-            label="Precision"
           />
         )}
       </div>

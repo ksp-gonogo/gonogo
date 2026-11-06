@@ -248,7 +248,7 @@ public class SetTargetArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("time.setWarpIndex", Delay = DelayRole.TrueNow)]
+[SitrepCommand("time.setWarpIndex", Delay = DelayRole.TrueNow, AllowMetaVantage = true)]
 public class SetWarpIndexArgs
 {
     /// <summary>
@@ -268,7 +268,7 @@ public class SetWarpIndexArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("time.setPaused", Delay = DelayRole.TrueNow)]
+[SitrepCommand("time.setPaused", Delay = DelayRole.TrueNow, AllowMetaVantage = true)]
 public class SetPausedArgs
 {
     /// <summary>True to pause the game, false to resume it.</summary>

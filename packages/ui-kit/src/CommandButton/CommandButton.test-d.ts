@@ -1,15 +1,12 @@
 /**
- * Type-level proof that this control speaks the handle's own types in both
+ * Type-level proof that a command input speaks the handle's own types in both
  * directions: the reply it hands to `onConfirmed` and the args it dispatches.
  * Reading a field the reply does not have, or omitting a required argument, is
  * a compile error at the widget.
  */
 
-import type {
-  CommandButtonHandle,
-  CommandButtonProps,
-  CommandReplyLike,
-} from "./CommandButton";
+import type { UseCommandResult } from "@ksp-gonogo/sitrep-sdk";
+import type { CommandButtonHandle, CommandReplyLike } from "./commandControl";
 
 type Equal<Left, Right> =
   (<Probe>() => Probe extends Left ? 1 : 2) extends <
@@ -24,11 +21,15 @@ interface Envelope {
   payload?: { replayed?: boolean };
 }
 
+declare const enveloped: UseCommandResult<unknown, Envelope>;
+
 /** The handle's reply type reaches `onConfirmed`, not `unknown`. */
 type _ConfirmedSeesTheReply = Expect<
   Equal<
-    NonNullable<CommandButtonProps<Envelope>["onConfirmed"]>,
-    (result: Envelope) => void
+    NonNullable<
+      NonNullable<ReturnType<typeof enveloped.with>["options"]["onConfirmed"]>
+    >,
+    (reply: Envelope) => void
   >
 >;
 
@@ -53,7 +54,7 @@ interface FlatReceipt {
 }
 
 async function _theHonestReaderIsWritable() {
-  const reply = await bare.send();
+  const reply = await bare.dangerouslySendWithoutInput();
   // Readable without a cast, because every command answers this.
   const succeeded: boolean = reply.success;
   // Still `unknown`: the bare handle does not know which command it is, so reaching a field means narrowing.
@@ -62,14 +63,12 @@ async function _theHonestReaderIsWritable() {
 }
 
 async function _theWrongCastIsAnError() {
-  const reply = await bare.send();
+  const reply = await bare.dangerouslySendWithoutInput();
   // @ts-expect-error the envelope is not the receipt it carries: this is the
   // exact conversion the seven controls above made, and `unknown` allowed it.
   const receipt = reply as FlatReceipt;
   return receipt;
 }
-
-// `args` is `NoInfer`, so a wrong args object cannot widen `Args` to its own shape.
 
 /** A command's declared arguments, as the generated map resolves them. */
 interface BurnArgs {
@@ -77,35 +76,28 @@ interface BurnArgs {
   profile: number;
 }
 
-declare const burnHandle: CommandButtonHandle<CommandReplyLike, BurnArgs>;
+declare const burnHandle: UseCommandResult<BurnArgs, CommandReplyLike>;
 
-/** `args` is the handle's own argument type, inferred, with nothing written. */
+/** `with` takes the handle's own argument type, or a function returning it. */
 type _ArgsComeOffTheHandle = Expect<
   Equal<
-    CommandButtonProps<CommandReplyLike, BurnArgs>["args"],
-    BurnArgs | undefined
+    Parameters<typeof burnHandle.with>[0],
+    BurnArgs | (() => BurnArgs) | undefined
   >
 >;
 
 function _wrongArgsAreAnError() {
-  return {
-    handle: burnHandle,
-    label: "Apply",
-    // @ts-expect-error a required argument is missing; this dispatched for real
-    args: { burnIndex: 0 },
-  } satisfies CommandButtonProps<CommandReplyLike, BurnArgs>;
+  // @ts-expect-error a required argument is missing; this dispatched for real
+  return burnHandle.with({ burnIndex: 0 });
 }
 
 function _misspeltArgsAreAnError() {
-  return {
-    handle: burnHandle,
-    label: "Apply",
-    // @ts-expect-error `burnIndexx` is not an argument of this command
-    args: { burnIndexx: 0, profile: 1 },
-  } satisfies CommandButtonProps<CommandReplyLike, BurnArgs>;
+  // @ts-expect-error `burnIndexx` is not an argument of this command
+  return burnHandle.with({ burnIndexx: 0, profile: 1 });
 }
 
 /** A handle that says nothing about its args still takes anything. */
+declare const untyped: UseCommandResult;
 type _UntypedHandleKeepsTakingAnything = Expect<
-  Equal<CommandButtonProps["args"], unknown>
+  Equal<Parameters<typeof untyped.with>[0], unknown>
 >;

@@ -4,7 +4,6 @@ import { BellIcon, Input, Panel, Placeholder } from "@ksp-gonogo/ui";
 import {
   Button,
   Cluster,
-  CommandButton,
   getSizeBucket,
   IconButton,
   Inline,
@@ -14,6 +13,7 @@ import {
   STREAM_DOWN_TIP,
   Stack,
   Text,
+  ToggleButton,
   Tooltip,
   Truncate,
   Unit,
@@ -208,12 +208,10 @@ export function ActionGroupView({
                   </IconButton>
                 </Tooltip>
               )}
-              <CommandButton
+              <ToggleButton
+                command={button}
                 size="sm"
-                handle={handle}
-                controller={button}
-                label={currentLabel}
-                title={unavailableReason ?? `Toggle ${currentLabel}`}
+                tip={unavailableReason ?? `Toggle ${currentLabel}`}
                 aria-label={`Toggle ${currentLabel}`}
               />
             </Inline>

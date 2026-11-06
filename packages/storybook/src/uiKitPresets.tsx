@@ -1,7 +1,5 @@
-import { railTagsForCommand, value } from "@ksp-gonogo/sitrep-sdk";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import type {
-  CommandButton,
-  CommandButtonHandle,
   CommandGroup,
   Countdown,
   Dial,
@@ -24,14 +22,6 @@ export interface Preset<Props> {
 }
 
 type Presets<Props> = Preset<Props>[];
-
-/** A handle whose send never settles: the button at rest, dispatching nothing. */
-const IDLE_HANDLE: CommandButtonHandle = {
-  send: () => new Promise<never>(() => {}),
-  inFlight: [],
-  tags: railTagsForCommand("vessel.control.stage"),
-  effectiveDelaySeconds: 0,
-};
 
 /** A plain cross, so the preset needs no runtime import from the kit. */
 const GLYPH = () => (
@@ -312,16 +302,6 @@ export const UI_KIT_PRESETS = {
       },
     },
   ] satisfies Presets<ComponentProps<typeof Readout>>,
-  CommandButton: [
-    { name: "Ready", args: { handle: IDLE_HANDLE, label: "Stage" } },
-    {
-      name: "Delayed",
-      args: {
-        handle: { ...IDLE_HANDLE, effectiveDelaySeconds: 12 },
-        label: "Stage",
-      },
-    },
-  ] satisfies Presets<ComponentProps<typeof CommandButton>>,
 };
 
 export type PresetName = keyof typeof UI_KIT_PRESETS;

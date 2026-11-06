@@ -2,8 +2,8 @@ import type { HeldGrade } from "@ksp-gonogo/sitrep-client";
 import type { CommandReply } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
+  Button,
   Cluster,
-  CommandButton,
   type CommandButtonHandle,
   Divider,
   Inline,
@@ -86,22 +86,28 @@ export function LabSection({
                   </Tooltip>
                 )}
                 {lab.partId !== null && lab.running === false && startCmd && (
-                  <CommandButton
+                  <Button
+                    command={startCmd.with(
+                      { partId: lab.partId },
+                      { label: `Start research on ${lab.partName}` },
+                    )}
+                    variant="ghost"
                     size="sm"
-                    handle={startCmd}
-                    args={{ partId: lab.partId }}
-                    commandLabel={`Start research on ${lab.partName}`}
-                    label="Start research"
-                  />
+                  >
+                    Start research
+                  </Button>
                 )}
                 {lab.partId !== null && lab.running === true && stopCmd && (
-                  <CommandButton
+                  <Button
+                    command={stopCmd.with(
+                      { partId: lab.partId },
+                      { label: `Stop research on ${lab.partName}` },
+                    )}
+                    variant="ghost"
                     size="sm"
-                    handle={stopCmd}
-                    args={{ partId: lab.partId }}
-                    commandLabel={`Stop research on ${lab.partName}`}
-                    label="Stop research"
-                  />
+                  >
+                    Stop research
+                  </Button>
                 )}
                 {lab.scientistCount !== null && (
                   <Text level="muted" size="xs">

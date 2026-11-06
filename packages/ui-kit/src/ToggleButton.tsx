@@ -2,6 +2,10 @@ import type { Tone } from "@ksp-gonogo/sitrep-sdk";
 import type { ButtonHTMLAttributes } from "react";
 import { forwardRef } from "react";
 import { Button } from "./Button";
+import {
+  CommandedToggle,
+  type CommandedToggleProps,
+} from "./CommandButton/CommandedButton";
 import type { ReckoningMarking } from "./readingCurrency";
 
 /**
@@ -29,8 +33,18 @@ export type ToggleButtonSize = "sm" | "md";
  *
  * @category Button
  */
-export interface ToggleButtonProps
+export type ToggleButtonProps = PlainToggleButtonProps | CommandedToggleProps;
+
+/**
+ * Props for {@link ToggleButton} with no command: a native button's attributes
+ * and whether it is pressed. Any other `button` attribute passes through.
+ *
+ * @category Button
+ */
+export interface PlainToggleButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement> {
+  /** Set `command` to make the toggle send a command; see {@link CommandedToggleProps}. */
+  command?: undefined;
   /** Whether the toggle is on. Drives `aria-pressed` and the filled look. Defaults to `false`. */
   pressed?: boolean;
   /** The fill while pressed. Defaults to `go`. */
@@ -91,17 +105,17 @@ export interface ToggleButtonProps
  * @category Button
  */
 export const ToggleButton = forwardRef<HTMLButtonElement, ToggleButtonProps>(
-  function ToggleButton(
-    {
+  function ToggleButton(props, ref) {
+    if (props.command !== undefined) return <CommandedToggle {...props} />;
+    const {
       pressed = false,
       tone = "go",
       size = "md",
       type = "button",
       "aria-pressed": ariaPressed,
+      command: _command,
       ...rest
-    },
-    ref,
-  ) {
+    } = props;
     return (
       <Button
         ref={ref}

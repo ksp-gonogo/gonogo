@@ -1,6 +1,6 @@
 import {
+  Button,
   Cluster,
-  CommandButton,
   type CommandButtonHandle,
   Grid,
   NULL_DISPLAY,
@@ -48,19 +48,22 @@ export function UnlockControl({
         )}
       </Grid>
       <Cluster justify="end">
-        <CommandButton
-          handle={unlockCmd}
-          args={{ techId: node.id }}
-          commandLabel={`Unlock ${node.title}`}
+        <Button
+          command={unlockCmd.with(
+            { techId: node.id },
+            { label: `Unlock ${node.title}` },
+          )}
+          variant="ghost"
           size="sm"
-          label="Unlock"
           confirmLabel={
             <>
               Confirm unlock: {node.scienceCost ?? NULL_DISPLAY}
               <Unit>science</Unit>
             </>
           }
-        />
+        >
+          Unlock
+        </Button>
       </Cluster>
     </Stack>
   );

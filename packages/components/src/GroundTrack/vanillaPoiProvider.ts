@@ -102,7 +102,7 @@ function toMapPoi(
         id: "set-target",
         label: "Set as Target",
         run: () =>
-          void setTargetCmd.send(
+          void setTargetCmd.dangerouslySendWithoutInput(
             { kind: TargetKind.Position, bodyIndex, latitude, longitude },
             { label: "Set as Target" },
           ),

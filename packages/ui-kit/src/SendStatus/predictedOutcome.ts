@@ -6,7 +6,7 @@ import type { SendStatus } from "@ksp-gonogo/sitrep-sdk";
  * arrive, `at-risk` for one expected to be lost or with no route. An order that
  * goes at once has no prediction to show. Useful for showing the operator the
  * predicted result at a glance, without a change in the control's size. Used by
- * {@link CommandButton}, and by {@link Button} through its `predictedOutcome`
+ * {@link Button}, and by {@link Button} through its `predictedOutcome`
  * prop.
  *
  * @category CommandButton
@@ -17,7 +17,7 @@ export type PredictedOutcome = "held" | "at-risk";
  * The predicted outcome of a send status: `held` while the order waits and is
  * expected to arrive, `at-risk` when it is expected to be lost or has no route,
  * and `undefined` for an order that goes at once or when nothing is known.
- * Used by {@link CommandButton}.
+ * Used by {@link Button}.
  *
  * @category CommandButton
  */

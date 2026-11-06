@@ -1,5 +1,5 @@
 import { type ActionInputPayload, useActionInput } from "@ksp-gonogo/core";
-import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
+import { useCommand } from "@ksp-gonogo/sitrep-client";
 import { useRef } from "react";
 import type {
   LaunchDirectorActionId,
@@ -9,25 +9,15 @@ import type {
 
 /** The scene commands, and the registry a bound input presses them through. */
 export function useLaunchCommands() {
-  // LAUNCH is a delayed command to the pad; the other scene ops are KSC-desk actions at the meta-vantage.
+  // LAUNCH is a delayed command to the pad; the other scene ops are KSC-desk actions.
   const launchCmd = useCommand("ksp.launch");
-  const recoverCmd = useCommand("ksp.recover", { vantage: META_VANTAGE });
-  const recoverVesselCmd = useCommand("ksp.recoverVessel", {
-    vantage: META_VANTAGE,
-  });
-  const revertLaunchCmd = useCommand("ksp.revertToLaunch", {
-    vantage: META_VANTAGE,
-  });
-  const revertEditorCmd = useCommand("ksp.revertToEditor", {
-    vantage: META_VANTAGE,
-  });
-  const toTrackingCmd = useCommand("ksp.toTrackingStation", {
-    vantage: META_VANTAGE,
-  });
-  const toSpaceCenterCmd = useCommand("ksp.toSpaceCenter", {
-    vantage: META_VANTAGE,
-  });
-  const switchCmd = useCommand("ksp.switchVessel", { vantage: META_VANTAGE });
+  const recoverCmd = useCommand("ksp.recover");
+  const recoverVesselCmd = useCommand("ksp.recoverVessel");
+  const revertLaunchCmd = useCommand("ksp.revertToLaunch");
+  const revertEditorCmd = useCommand("ksp.revertToEditor");
+  const toTrackingCmd = useCommand("ksp.toTrackingStation");
+  const toSpaceCenterCmd = useCommand("ksp.toSpaceCenter");
+  const switchCmd = useCommand("ksp.switchVessel");
 
   const boundPresses = useRef(new Map<LaunchDirectorActionId, Press>()).current;
   const pressBound =

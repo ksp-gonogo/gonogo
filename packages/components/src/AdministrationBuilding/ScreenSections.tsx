@@ -7,7 +7,7 @@ import {
 import {
   AugmentSlot,
   Badge,
-  CommandButton,
+  Button,
   type CommandButtonHandle,
   Divider,
   NULL_DISPLAY,
@@ -292,15 +292,18 @@ export function ScreenSections({
                       )}
                     </FactorTag>
                     {!drawsOwnActions && (
-                      <CommandButton
-                        handle={deactivateCmd}
-                        args={{ strategyId: s.id }}
-                        commandLabel={`Deactivate ${s.title}`}
-                        label="Deactivate"
+                      <Button
+                        command={deactivateCmd.with(
+                          { strategyId: s.id },
+                          { label: `Deactivate ${s.title}` },
+                        )}
+                        variant="ghost"
                         confirmLabel="Confirm deactivate"
                         confirmTone="nogo"
-                        title="Deactivate this strategy"
-                      />
+                        tip="Deactivate this strategy"
+                      >
+                        Deactivate
+                      </Button>
                     )}
                   </>
                 }

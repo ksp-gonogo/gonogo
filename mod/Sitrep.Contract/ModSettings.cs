@@ -399,7 +399,7 @@ namespace Sitrep.Contract
 #if SITREP_CODEGEN
     [TsInterface]
 #endif
-    [SitrepCommand("settings.mod.write", Delay = DelayRole.TrueNow)]
+    [SitrepCommand("settings.mod.write", Delay = DelayRole.TrueNow, AllowMetaVantage = true)]
     public class WriteModSettingArgs
     {
         /// <summary>The Uplink the setting is read through.</summary>

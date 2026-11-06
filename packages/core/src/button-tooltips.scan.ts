@@ -67,7 +67,9 @@ function styledButtons(sf: ts.SourceFile): Map<string, Kind> {
       ts.isFunctionDeclaration(node) &&
       node.name &&
       /Button$/.test(node.name.text) &&
-      /<(Button|IconButton|ToggleButton)\b/.test(node.getText())
+      /<(Button|IconButton|ToggleButton)\b/.test(node.getText()) &&
+      // A wrapper whose button is given a command draws the words of its own phases, whatever it is handed as children.
+      !/\bcommand=\{/.test(node.getText())
     ) {
       found.set(node.name.text, "kit");
     }
@@ -239,7 +241,9 @@ export function buttonTooltipHits(
         const content = contentOf(node);
         const named =
           attr(opening, "aria-label") !== undefined ||
-          attr(opening, "aria-labelledby") !== undefined;
+          attr(opening, "aria-labelledby") !== undefined ||
+          // A kit button given a command draws the words of its own phases.
+          (kind === "kit" && attr(opening, "command") !== undefined);
         const tip = tooltipAncestor(node);
         if (!content.hasText && !named) hit("unnamed", opening);
         if (!content.hasText && named && kind === "raw" && !tip) {

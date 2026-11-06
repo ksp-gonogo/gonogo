@@ -51,6 +51,7 @@ export * from "../rail-tags";
 export * from "./atmospheric-reckoning";
 export * from "./body-derivations";
 export * from "./body-pose";
+export * from "./bound-command";
 export * from "./capability-lock";
 export * from "./celestial-facts";
 export * from "./channel-error-warning";

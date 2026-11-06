@@ -1,4 +1,4 @@
-import { CommandButton, type CommandButtonHandle } from "@ksp-gonogo/ui-kit";
+import { Button, type CommandButtonHandle } from "@ksp-gonogo/ui-kit";
 import { type LaunchDirectorActionId, useBoundPress } from "./actions";
 
 /**
@@ -19,14 +19,15 @@ export function TrackingStationControl({
 }) {
   const onPressReady = useBoundPress(bindAs);
   return (
-    <CommandButton
-      handle={handle}
-      commandLabel={commandLabel}
-      label={label}
+    <Button
+      command={handle.with(undefined, { label: commandLabel })}
+      variant="ghost"
       confirmLabel="Confirm: save and leave"
       confirmTone="warn"
       onPressReady={onPressReady}
-      title={`${label}: saves the game first, and refuses if KSP will not save here`}
-    />
+      tip={`${label}: saves the game first, and refuses if KSP will not save here`}
+    >
+      {label}
+    </Button>
   );
 }

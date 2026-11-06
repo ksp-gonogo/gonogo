@@ -37,7 +37,7 @@ namespace Sitrep.Host
     public static class CommandDelayCatalog
     {
         private static readonly object Gate = new object();
-        private static Dictionary<string, DelayRole> _delayed;
+        private static Dictionary<string, (DelayRole Delay, bool Meta)> _delayed;
         private static HashSet<string> _knownMisses = new HashSet<string>(StringComparer.Ordinal);
         private static Action<string> _diagnosticLog;
 
@@ -84,8 +84,9 @@ namespace Sitrep.Host
                     _delayed = Scan();
                 }
 
-                if (_delayed.TryGetValue(command, out delay))
+                if (_delayed.TryGetValue(command, out var hit))
                 {
+                    delay = hit.Delay;
                     return true;
                 }
 
@@ -95,8 +96,9 @@ namespace Sitrep.Host
                 }
 
                 _delayed = Scan();
-                if (_delayed.TryGetValue(command, out delay))
+                if (_delayed.TryGetValue(command, out hit))
                 {
+                    delay = hit.Delay;
                     return true;
                 }
 
@@ -106,9 +108,40 @@ namespace Sitrep.Host
             }
         }
 
-        private static Dictionary<string, DelayRole> Scan()
+        /// <summary>
+        /// Whether a loaded contract slice tags <paramref name="command"/> with
+        /// <see cref="SitrepCommandAttribute.AllowMetaVantage"/>. An untagged id is
+        /// <c>false</c>, after the same one rescan a miss gets in
+        /// <see cref="TryGetDelay"/>.
+        /// </summary>
+        public static bool AllowsMetaVantage(string command)
         {
-            var found = new Dictionary<string, DelayRole>(StringComparer.Ordinal);
+            if (string.IsNullOrEmpty(command))
+            {
+                return false;
+            }
+
+            // Delay is read for the rescan it triggers on a miss; the answer is the Meta bit.
+            TryGetDelay(command, out _);
+            lock (Gate)
+            {
+                return _delayed != null && _delayed.TryGetValue(command, out var hit) && hit.Meta;
+            }
+        }
+
+        /// <summary>Every command id a loaded contract slice tags with <see cref="SitrepCommandAttribute.AllowMetaVantage"/>, sorted.</summary>
+        public static IReadOnlyList<string> MetaVantageCommandIds()
+        {
+            lock (Gate)
+            {
+                _delayed ??= Scan();
+                return _delayed.Where(e => e.Value.Meta).Select(e => e.Key).OrderBy(k => k, StringComparer.Ordinal).ToList();
+            }
+        }
+
+        private static Dictionary<string, (DelayRole Delay, bool Meta)> Scan()
+        {
+            var found = new Dictionary<string, (DelayRole Delay, bool Meta)>(StringComparer.Ordinal);
             foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
                 Type[] types;
@@ -142,7 +175,7 @@ namespace Sitrep.Host
                             // this path runs inside a running game where the
                             // useful behaviour is to dispatch rather than to
                             // stop.
-                            found[attr.CommandId] = attr.Delay;
+                            found[attr.CommandId] = (attr.Delay, attr.AllowMetaVantage);
                         }
                     }
                     catch (Exception ex)

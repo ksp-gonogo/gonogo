@@ -262,8 +262,8 @@ describe("LaunchDirector actions", () => {
     expect(sent("ksp.recover")).toEqual([]);
     expect(screen.queryByText(/Confirm recover/i)).not.toBeInTheDocument();
     expect(
-      screen.getByText(/Recover unavailable: about to crash/),
-    ).toBeTruthy();
+      screen.queryByText(/Recover unavailable: about to crash/),
+    ).toBeNull();
   });
 
   it("recover arms, then recovers the vessel in flight", async () => {

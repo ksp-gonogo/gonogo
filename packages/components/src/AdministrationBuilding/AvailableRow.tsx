@@ -5,7 +5,7 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
-  CommandButton,
+  Button,
   type CommandButtonHandle,
   ExpandableText,
   Notice,
@@ -172,7 +172,7 @@ export function AvailableRow({
   rosterFrom: readonly CarriedCurrency[];
   factor: number | null;
   onFactorChange: (v: number) => void;
-  /** The shared activate handle; each row's `CommandButton` holds its own arm and in-flight state. */
+  /** The shared activate handle; each row's a command `Button` holds its own arm and in-flight state. */
   activateCmd: CommandButtonHandle;
   /**
    * True when the screen's own body carries the activate verb, so this card
@@ -205,13 +205,16 @@ export function AvailableRow({
       }
       footer={
         drawsOwnActions || sentFactor === null ? undefined : (
-          <CommandButton
-            handle={activateCmd}
-            args={{ strategyId: s.id, factor: sentFactor }}
-            commandLabel={`Activate ${s.title}`}
-            label="Activate"
+          <Button
+            command={activateCmd.with(
+              { strategyId: s.id, factor: sentFactor },
+              { label: `Activate ${s.title}` },
+            )}
+            variant="ghost"
             confirmLabel="Confirm activate"
-          />
+          >
+            Activate
+          </Button>
         )
       }
     >

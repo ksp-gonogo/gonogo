@@ -19,7 +19,7 @@ import {
 /**
  * A hand-rolled command control must render the blocked phase.
  *
- * `useCommandButton` returns `isBlocked` and `refusalText`: the game's standing
+ * `useCommandControl` returns `isBlocked` and `refusalText`: the game's standing
  * verdict on a command, issued before anybody presses anything. A caller that
  * destructures neither has thrown that verdict away, and the control it draws
  * then answers the affordability question out of whatever it happened to have
@@ -48,9 +48,9 @@ import {
  *
  * ## The rule
  *
- * A file that reaches `useCommandButton` must reference `isBlocked`.
+ * A file that reaches `useCommandControl` must reference `isBlocked`.
  *
- * The remedy for a file that cannot is `CommandButton`, the shared control,
+ * The remedy for a file that cannot is a command `Button`, the shared control,
  * which renders the blocked phase (dark, `aria-disabled`, the gate's own
  * sentence as its accessible name) and lets `refusalText` win the title. Most
  * callers should be using it: the hook exists for chrome that genuinely differs
@@ -68,18 +68,18 @@ import {
  */
 
 /** The hook whose blocked phase is the subject. */
-const HOOK = "useCommandButton";
+const HOOK = "useCommandControl";
 
 /** The field on its return that says the game has already answered. */
 const BLOCKED_PHASE = "isBlocked";
 
 /**
  * The hook's own definition site, which is also its first consumer: the shared
- * `CommandButton` is this hook plus the default rendering. It anchors the
+ * A `Button` given a `command` is this hook plus the default rendering. It anchors the
  * caller floor below, because it cannot stop being a caller while the hook
  * exists.
  */
-const SHARED_BUTTON = "packages/ui-kit/src/CommandButton/CommandButton.tsx";
+const SHARED_BUTTON = "packages/ui-kit/src/CommandButton/CommandedButton.tsx";
 
 /**
  * Files that reach the hook and do not render its blocked phase, seeded
@@ -192,17 +192,17 @@ function withoutReExports(raw: string): string {
  * documented twenty lines below the pattern. A call-shape regex here has the
  * same problem in more directions, because the hook can be reached as:
  *
- *   useCommandButton({ ... })                          plain
- *   useCommandButton<Result>({ ... })                  with a type argument
- *   useCommandButton\n  ({ ... })                      newline before the paren
- *   kit.useCommandButton({ ... })                      namespace member access
- *   import { useCommandButton as useCmdBtn }           renamed on import
- *   const { useCommandButton } = require("...")        CJS destructure
- *   const { useCommandButton } = await import("...")   dynamic destructure
+ *   useCommandControl({ ... })                          plain
+ *   useCommandControl<Result>({ ... })                  with a type argument
+ *   useCommandControl\n  ({ ... })                      newline before the paren
+ *   kit.useCommandControl({ ... })                      namespace member access
+ *   import { useCommandControl as useCmdBtn }           renamed on import
+ *   const { useCommandControl } = require("...")        CJS destructure
+ *   const { useCommandControl } = await import("...")   dynamic destructure
  *
  * The identifier is present in all seven, because even the renamed forms must
  * name it on the import to rename it. That leaves exactly one hole, re-export
- * laundering (`export { useCommandButton as X } from "..."`, after which a
+ * laundering (`export { useCommandControl as X } from "..."`, after which a
  * downstream file never types the identifier), and `launderedAliases` below
  * closes it by asserting no such re-export exists.
  */
@@ -236,7 +236,7 @@ function verdict(
  * Names the hook is re-exported under, other than its own.
  *
  * The one spelling `isCaller` cannot see. A downstream file importing the alias
- * never types `useCommandButton`, so it would be walked past entirely: not
+ * never types `useCommandControl`, so it would be walked past entirely: not
  * flagged, not listed, invisible. Held at zero rather than resolved, because
  * resolving it means following re-export chains and a repo with no aliases in
  * it does not need that machinery.
@@ -374,8 +374,8 @@ describe("a hand-rolled command control renders the blocked phase", () => {
     /*
      * The caller floor, anchored on ONE path rather than a count. A count is a
      * tripwire here: the fix this gate asks for is usually to move to the
-     * shared `CommandButton`, which REMOVES a caller, so a floor of three would
-     * fail for the tree improving. `CommandButton` itself cannot stop calling
+     * shared a command `Button`, which REMOVES a caller, so a floor of three would
+     * fail for the tree improving. a command `Button` itself cannot stop calling
      * the hook while the hook exists, and if the hook goes away this whole file
      * should go with it.
      */
@@ -493,7 +493,7 @@ describe("a hand-rolled command control renders the blocked phase", () => {
   it("re-exports the hook under no other name", () => {
     /*
      * The one hole in identifier matching, held shut rather than papered over:
-     * a downstream file importing an alias never types `useCommandButton` and
+     * a downstream file importing an alias never types `useCommandControl` and
      * would be walked past entirely. If this ever needs to be allowed, follow
      * the alias in `isCaller`; do not delete the check.
      */
@@ -537,7 +537,7 @@ describe("a hand-rolled command control renders the blocked phase", () => {
           "a press the game refuses.\n\n" +
           "Either render the phase (dark, `aria-disabled` not `disabled`, " +
           "`refusalText` as the accessible name) or move the control to the " +
-          "shared `CommandButton`, which does all of that:\n" +
+          "shared a command `Button`, which does all of that:\n" +
           unlisted.join("\n"),
       );
     }

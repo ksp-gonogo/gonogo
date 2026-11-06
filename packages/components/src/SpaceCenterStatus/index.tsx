@@ -6,7 +6,6 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import {
-  META_VANTAGE,
   type SpaceCenterState,
   useCommand,
   useStream,
@@ -70,10 +69,7 @@ function SpaceCenterStatusComponent({
   );
   const padOccupied = spaceCenterState?.padOccupied;
   const padVesselTitle = spaceCenterState?.padVesselTitle ?? undefined;
-  // A KSC ground action with no vessel signal delay, so it dispatches at the meta-vantage.
-  const upgradeCmd = useCommand("career.facility.upgrade", {
-    vantage: META_VANTAGE,
-  });
+  const upgradeCmd = useCommand("career.facility.upgrade");
   // The gate's own refusal outranks any affordability verdict; a career mod may queue a tier and bill it as it builds, so a shortfall slows it rather than blocking it, and `undetermined` is not a block.
   const upgradeBlocked = upgradeCmd.gate?.blocked === true;
 
