@@ -1,5 +1,6 @@
 /**
- * What an Uplink's own commits say about its next release: the bump they imply.
+ * What an Uplink's own commits say about its next release: the bump they imply
+ * and the changelog section they make.
  *
  * The commits arrive as a file a CI step wrote after it had already picked out
  * the ones that touched this Uplink, so nothing here reads git. The file is a
@@ -8,7 +9,8 @@
  * true`.
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 export interface Change {
   type: string;
@@ -74,6 +76,13 @@ export function readChanges(file: string): Change[] {
   return changes;
 }
 
+/** The kinds of change that reach a release, in the order the changelog lists them. */
+const SECTIONS: readonly (readonly [string, string])[] = [
+  ["feat", "Features"],
+  ["fix", "Fixes"],
+  ["perf", "Performance"],
+];
+
 /**
  * The bump the changes call for: a breaking change is major, a feature minor, a
  * fix or a performance change patch, and `undefined` when nothing in them
@@ -85,4 +94,49 @@ export function levelOf(changes: readonly Change[]): BumpLevel | undefined {
   if (changes.some((change) => change.type === "fix" || change.type === "perf"))
     return "patch";
   return undefined;
+}
+
+/** The changelog section for one version, ending in a blank line. */
+export function renderSection(
+  version: string,
+  date: string,
+  changes: readonly Change[],
+): string {
+  const lines = [`## ${version} (${date})`, ""];
+  const entry = (change: Change) => `- ${change.description}`;
+  const breaking = changes.filter((change) => change.breaking);
+  if (breaking.length > 0) {
+    lines.push("### Breaking changes", "", ...breaking.map(entry), "");
+  }
+  for (const [type, title] of SECTIONS) {
+    const own = changes.filter((c) => c.type === type && !c.breaking);
+    if (own.length > 0) lines.push(`### ${title}`, "", ...own.map(entry), "");
+  }
+  return `${lines.join("\n")}\n`;
+}
+
+const CHANGELOG_HEADING = "# Changelog\n";
+
+/**
+ * Puts a section at the top of the Uplink's `CHANGELOG.md`, under its heading,
+ * creating the file when there is none. A section for the version that is
+ * already there is replaced rather than repeated, so running the same release
+ * again does not stack two.
+ */
+export function prependSection(
+  uplinkDir: string,
+  version: string,
+  section: string,
+): void {
+  const file = join(uplinkDir, "CHANGELOG.md");
+  const existing = existsSync(file) ? readFileSync(file, "utf8") : "";
+  const body = existing.startsWith(CHANGELOG_HEADING)
+    ? existing.slice(CHANGELOG_HEADING.length).replace(/^\n+/, "")
+    : existing;
+  const heading = `## ${version} (`;
+  const kept = body
+    .split(/^(?=## )/m)
+    .filter((part) => part !== "" && !part.startsWith(heading))
+    .join("");
+  writeFileSync(file, `${CHANGELOG_HEADING}\n${section}${kept}`);
 }

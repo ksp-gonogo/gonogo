@@ -1,5 +1,4 @@
 import {
-  existsSync,
   readdirSync,
   readFileSync,
   rmSync,
@@ -8,22 +7,16 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { levelOf, parseSubject } from "./commits";
+import { levelOf, parseSubject, prependSection } from "./commits";
 import { fixture, put, scratch, writePage } from "./uplink-fixture";
-import {
-  moveVersion,
-  nextVersion,
-  PLACEHOLDER_VERSION,
-  targetVersion,
-  version,
-} from "./version";
+import { moveVersion, nextVersion, version } from "./version";
 
 afterEach(() => {
   for (const dir of scratch.splice(0))
     rmSync(dir, { recursive: true, force: true });
 });
 
-/** Every file under `dir` that still names `needle`. */
+/** Every file under `dir` that still names `needle`, apart from the changelog, which names past versions on purpose. */
 function filesNaming(dir: string, needle: string): string[] {
   const found: string[] = [];
   const walk = (at: string) => {
@@ -33,6 +26,7 @@ function filesNaming(dir: string, needle: string): string[] {
         walk(path);
         continue;
       }
+      if (entry === "CHANGELOG.md") continue;
       if (readFileSync(path, "utf8").includes(needle)) {
         found.push(path.slice(dir.length + 1));
       }
@@ -43,51 +37,29 @@ function filesNaming(dir: string, needle: string): string[] {
 }
 
 const move = (dir: string, request: Parameters<typeof moveVersion>[1]) =>
-  moveVersion(dir, request, { writePage });
+  moveVersion(dir, request, { writePage, today: () => "2026-10-24" });
 
-const STAMPED = [
-  "README.md",
-  "client/gonogo-uplink.json",
-  "client/docs/spec.json",
-  "client/package-lock.json",
-  "client/package.json",
-  "client/src/uplink.ts",
-  "uplink.json",
-].sort();
-
-describe("stamping a version", () => {
-  it("commits the placeholder in every place a release writes the version", () => {
+describe("moving a version", () => {
+  it("leaves no file of the Uplink naming the old version", () => {
     const dir = fixture();
-    expect(filesNaming(dir, PLACEHOLDER_VERSION)).toEqual(STAMPED);
-  });
-
-  it("writes the real version over the placeholder and leaves none behind", () => {
-    const dir = fixture();
-    const result = move(dir, { explicit: "1.0.0-rc.5", rc: false });
+    expect(filesNaming(dir, "1.0.0-rc.4").length).toBe(7);
+    const result = move(dir, { bump: "rc", rc: false });
     expect(result.to).toBe("1.0.0-rc.5");
-    expect(filesNaming(dir, PLACEHOLDER_VERSION)).toEqual([]);
-    expect(filesNaming(dir, "1.0.0-rc.5")).toEqual(STAMPED);
+    expect(filesNaming(dir, "1.0.0-rc.4")).toEqual([]);
+    expect(filesNaming(dir, "1.0.0-rc.5")).toEqual(
+      [
+        "README.md",
+        "client/gonogo-uplink.json",
+        "client/docs/spec.json",
+        "client/package-lock.json",
+        "client/package.json",
+        "client/src/uplink.ts",
+        "uplink.json",
+      ].sort(),
+    );
     expect(readFileSync(join(dir, "uplink.json"), "utf8")).toContain(
       "/demo/1.0.0-rc.5/demo.client.js",
     );
-  });
-
-  it("stamps a copy and leaves the committed Uplink as it was", () => {
-    const committed = fixture();
-    const release = fixture();
-    move(release, { explicit: "2.0.0", rc: false });
-    expect(
-      readFileSync(join(release, "client/package.json"), "utf8"),
-    ).toContain('"version": "2.0.0"');
-    expect(
-      readFileSync(join(committed, "client/package.json"), "utf8"),
-    ).toContain(`"version": "${PLACEHOLDER_VERSION}"`);
-  });
-
-  it("does not write a changelog", () => {
-    const dir = fixture();
-    move(dir, { explicit: "1.0.0", rc: false });
-    expect(existsSync(join(dir, "CHANGELOG.md"))).toBe(false);
   });
 
   it("keeps the lockfile's two version lines and its indentation", () => {
@@ -103,26 +75,10 @@ describe("stamping a version", () => {
     );
   });
 
-  it("takes the next version from the latest release, not from the files", () => {
-    const dir = fixture();
-    const result = move(dir, { bump: "rc", rc: false, from: "1.0.0-rc.4" });
-    expect(result.from).toBe("1.0.0-rc.4");
-    expect(result.to).toBe("1.0.0-rc.5");
-    expect(filesNaming(dir, "1.0.0-rc.5")).toEqual(STAMPED);
-  });
-
-  it("needs the latest release to bump from", () => {
-    const dir = fixture();
-    expect(() => move(dir, { bump: "rc", rc: false })).toThrow(/needs --from/);
-    expect(readFileSync(join(dir, "client/package.json"), "utf8")).toContain(
-      PLACEHOLDER_VERSION,
-    );
-  });
-
   it("puts every file back when the page cannot be written", () => {
     const dir = fixture();
     const before = new Map(
-      filesNaming(dir, PLACEHOLDER_VERSION).map((f) => [
+      filesNaming(dir, "1.0.0-rc.4").map((f) => [
         f,
         readFileSync(join(dir, f), "utf8"),
       ]),
@@ -130,7 +86,7 @@ describe("stamping a version", () => {
     expect(() =>
       moveVersion(
         dir,
-        { explicit: "1.0.0", rc: false },
+        { bump: "rc", rc: false },
         {
           writePage: (client) => {
             put(client, "gonogo-uplink.json", "half");
@@ -149,13 +105,11 @@ describe("stamping a version", () => {
     put(
       dir,
       "client/src/uplink.ts",
-      `const UPLINK_VERSION = "${PLACEHOLDER_VERSION}";\nconst UPLINK_VERSION = "${PLACEHOLDER_VERSION}";\n`,
+      'const UPLINK_VERSION = "1.0.0-rc.4";\nconst UPLINK_VERSION = "1.0.0-rc.4";\n',
     );
-    expect(() => move(dir, { explicit: "1.0.0", rc: false })).toThrow(
-      /exactly once/,
-    );
+    expect(() => move(dir, { bump: "rc", rc: false })).toThrow(/exactly once/);
     expect(readFileSync(join(dir, "client/package.json"), "utf8")).toContain(
-      PLACEHOLDER_VERSION,
+      "1.0.0-rc.4",
     );
   });
 
@@ -166,20 +120,11 @@ describe("stamping a version", () => {
       "uplink.json",
       '{"id":"demo","client":{"url":"https://cdn.example/demo.client.js"}}\n',
     );
-    expect(() => move(dir, { explicit: "1.0.0", rc: false })).toThrow(
-      /names none/,
-    );
+    expect(() => move(dir, { bump: "rc", rc: false })).toThrow(/names none/);
   });
 });
 
-describe("choosing the version", () => {
-  it("names a version with nothing to compare it to", () => {
-    expect(targetVersion({ explicit: "1.0.0", rc: false })).toBe("1.0.0");
-    expect(() =>
-      targetVersion({ explicit: "1.0.0", bump: "patch", rc: false }),
-    ).toThrow(/name a version, or use --bump/);
-  });
-
+describe("choosing the next version", () => {
   it("steps a candidate", () => {
     expect(nextVersion("1.0.0-rc.4", { bump: "rc", rc: false })).toBe(
       "1.0.0-rc.5",
@@ -250,17 +195,40 @@ describe("the commits of one Uplink", () => {
     expect(levelOf([change("fix!: a")])).toBe("major");
   });
 
-  it("decides --bump auto from the commits file", () => {
-    const dir = fixture();
+  it("writes the version's section, newest first", () => {
+    const dir = fixture("1.0.0");
     const commits = join(dir, "commits.json");
-    writeFileSync(commits, JSON.stringify(["feat(demo): a new camera widget"]));
-    const result = move(dir, {
-      bump: "auto",
-      rc: false,
+    writeFileSync(
       commits,
-      from: "1.0.0",
-    });
-    expect(result.to).toBe("1.1.0");
+      JSON.stringify([
+        "feat(demo): a new camera widget",
+        { subject: "fix(demo): the feed no longer drops", breaking: true },
+        "docs(demo): reword",
+      ]),
+    );
+    const result = move(dir, { bump: "auto", rc: false, commits });
+    expect(result.to).toBe("2.0.0");
+    move(dir, { explicit: "2.0.1", rc: false, commits });
+    const log = readFileSync(join(dir, "CHANGELOG.md"), "utf8");
+    expect(log.startsWith("# Changelog\n\n## 2.0.1 (2026-10-24)")).toBe(true);
+    expect(log).toContain("### Breaking changes\n\n- the feed no longer drops");
+    expect(log).toContain("### Features\n\n- a new camera widget");
+    expect(log).not.toContain("reword");
+    expect(log.indexOf("## 2.0.1")).toBeLessThan(log.indexOf("## 2.0.0"));
+  });
+});
+
+describe("the changelog file", () => {
+  it("holds one section for a version however often it is written", () => {
+    const dir = fixture();
+    prependSection(dir, "1.0.0", "## 1.0.0 (2026-10-01)\n\n- a\n\n");
+    prependSection(dir, "1.0.1", "## 1.0.1 (2026-10-02)\n\n- b\n\n");
+    prependSection(dir, "1.0.1", "## 1.0.1 (2026-10-03)\n\n- c\n\n");
+    const log = readFileSync(join(dir, "CHANGELOG.md"), "utf8");
+    expect(log.match(/## 1\.0\.1/g)).toHaveLength(1);
+    expect(log).toContain("- c");
+    expect(log).not.toContain("- b");
+    expect(log).toContain("## 1.0.0 (2026-10-01)");
   });
 });
 
@@ -271,9 +239,7 @@ describe("the command", () => {
     const log = console.log;
     console.log = (line: string) => lines.push(line);
     try {
-      version(["--bump", "rc", "--from", "1.0.0-rc.4", "--uplink", dir], dir, {
-        writePage,
-      });
+      version(["--bump", "rc", "--uplink", dir], dir, { writePage });
     } finally {
       console.log = log;
     }

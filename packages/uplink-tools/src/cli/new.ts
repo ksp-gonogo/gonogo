@@ -40,7 +40,6 @@ import {
   resolveAnswers,
 } from "./questions";
 import { PLACEHOLDER_OWNER } from "./release";
-import { PLACEHOLDER_VERSION } from "./version";
 
 export { validateUplinkId } from "./questions";
 
@@ -113,7 +112,7 @@ export function renderSeed(o: SeedOptions): Map<string, string> {
     json({
       name: `@ksp-gonogo/gonogo-${id}-uplink`,
       license: "MIT",
-      version: PLACEHOLDER_VERSION,
+      version: "0.0.1",
       type: "module",
       main: "./dist/index.js",
       types: "./dist/index.d.ts",
@@ -223,8 +222,8 @@ setQuantityLocale("en-GB");
     `import { defineUplinkClient } from "@ksp-gonogo/sitrep-sdk";
 import { GENERATED_CONTRACT_TAGS } from "./__generated__/units.js";
 
-/** Must equal package.json's version: gonogo-uplink.json is generated from this. A release stamps the real version over it. */
-const UPLINK_VERSION = "${PLACEHOLDER_VERSION}";
+/** Must equal package.json's version: gonogo-uplink.json is generated from this. */
+const UPLINK_VERSION = "0.0.1";
 
 /**
  * This Uplink's client, as the dashboard lists it. Every widget names it as its
@@ -1638,9 +1637,9 @@ ${
 function releaseWorkflow(id: string): string {
   return `name: release
 
-# Publishes a version when its tag is pushed: tag any commit ${id}-v0.0.1 for
-# 0.0.1. The committed files hold ${PLACEHOLDER_VERSION}, and the version in the tag is
-# stamped over it in this checkout before anything is built.
+# Publishes a version when its tag is pushed. Tag the commit whose
+# client/package.json says the version: ${id}-v0.0.1 for 0.0.1. The tag is
+# checked against the version before anything is built.
 on:
   push:
     tags: ["${id}-v*"]
@@ -1665,10 +1664,6 @@ jobs:
       - name: Install the client
         working-directory: client
         run: npm install
-
-      - name: Stamp the version from the tag
-        working-directory: client
-        run: npx uplink-tools version "\${GITHUB_REF_NAME#${id}-v}"
 
       - name: Build both halves for release
         working-directory: client
@@ -1796,14 +1791,14 @@ export async function newUplink(
   const repoName = named?.name ?? (uplinksDir ? "your-uplinks" : id);
   // A repo of several Uplinks publishes each under its own folder of the releases branch.
   const releasesPath = uplinksDir ? "uplinks/releases" : "releases";
-  const derivedUrl = `https://cdn.jsdelivr.net/gh/${owner}/${repoName}@releases/${releasesPath}/${id}/${PLACEHOLDER_VERSION}/${id}.client.js`;
+  const derivedUrl = `https://cdn.jsdelivr.net/gh/${owner}/${repoName}@releases/${releasesPath}/${id}/0.0.1/${id}.client.js`;
   // A sibling's URL with this Uplink's id in its place: the same repository and layout, which is where this one will be published too.
-  // The sibling's version is not this Uplink's: a new one carries the placeholder, which is what its package.json says.
+  // The sibling's version is not this Uplink's: a new one starts at 0.0.1, which is what its package.json says.
   const inheritedUrl = sibling?.clientUrl
     ? sibling.clientUrl
         .split(sibling.id)
         .join(id)
-        .replace(/\/[^/]+(\/[^/]*\.client\.js)$/, `/${PLACEHOLDER_VERSION}$1`)
+        .replace(/\/[^/]+(\/[^/]*\.client\.js)$/, "/0.0.1$1")
     : undefined;
   const files = renderSeed({
     id,

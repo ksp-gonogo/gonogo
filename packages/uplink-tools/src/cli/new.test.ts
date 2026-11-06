@@ -246,7 +246,7 @@ describe("uplink-tools new", () => {
         id: "sib",
         author: "a",
         repo: "https://r",
-        client: { url: "https://cdn/sib/0.0.0-development/sib.client.js" },
+        client: { url: "https://cdn/sib/0.0.1/sib.client.js" },
       }),
     );
     writeFileSync(
@@ -269,9 +269,7 @@ describe("uplink-tools new", () => {
     const declared = JSON.parse(
       readFileSync(join(uplinks, "fresh", "uplink.json"), "utf8"),
     );
-    expect(declared.client.url).toBe(
-      "https://cdn/fresh/0.0.0-development/fresh.client.js",
-    );
+    expect(declared.client.url).toBe("https://cdn/fresh/0.0.1/fresh.client.js");
     expect(existsSync(join(uplinks, "fresh", "mod", "FreshUplink.cs"))).toBe(
       true,
     );
@@ -279,7 +277,7 @@ describe("uplink-tools new", () => {
       newUplink(["fresh", "--dir", uplinks, ...BARE]),
     ).rejects.toThrow(/already exists/);
   });
-  it("carries the placeholder whatever version the sibling it inherits its URL from has reached", async () => {
+  it("starts at 0.0.1 whatever version the sibling it inherits its URL from has reached", async () => {
     const root = workdir();
     const uplinks = join(root, "uplinks");
     mkdirSync(join(uplinks, "sib", "client"), { recursive: true });
@@ -304,7 +302,7 @@ describe("uplink-tools new", () => {
       readFileSync(join(uplinks, "fresh", "uplink.json"), "utf8"),
     );
     expect(declared.client.url).toBe(
-      "https://cdn/releases/fresh/0.0.0-development/fresh.client.js",
+      "https://cdn/releases/fresh/0.0.1/fresh.client.js",
     );
   });
 
@@ -373,7 +371,7 @@ describe("uplink-tools new", () => {
       "utf8",
     );
     expect(provenance).toContain("namespace GonogoSoloUplink");
-    expect(provenance).toContain('Version = "0.0.0-development";');
+    expect(provenance).toContain('Version = "0.0.1";');
     expect(
       readFileSync(join(repo, "mod", "ClientSource.g.cs"), "utf8"),
     ).toContain("solo.client.js");
@@ -410,7 +408,7 @@ describe("uplink-tools new", () => {
     );
     expect(declared.repo).toBe("https://github.com/kerbal/solo-uplink");
     expect(declared.client.url).toBe(
-      "https://cdn.jsdelivr.net/gh/kerbal/solo-uplink@releases/releases/solo/0.0.0-development/solo.client.js",
+      "https://cdn.jsdelivr.net/gh/kerbal/solo-uplink@releases/releases/solo/0.0.1/solo.client.js",
     );
     await expect(
       newUplink(["other", "--repo", "not a repo", ...BARE], workdir()),

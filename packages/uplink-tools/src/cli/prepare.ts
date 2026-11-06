@@ -1,9 +1,9 @@
 /**
- * `uplink-tools release prepare`: stamps an Uplink with the version it is
- * released as and proves that release builds, in a checkout that is discarded.
+ * `uplink-tools release prepare`: moves an Uplink to its next version, proves the
+ * release builds, and only then commits and tags it.
  *
- * Nothing is committed, tagged or pushed. The tag that names the release is made
- * on the commit that passed, after this command, by the workflow that runs it.
+ * A tag exists only when every check passed on the commit it names, because the
+ * tag is the last thing made and nothing after it can fail the checks.
  */
 
 import { spawnSync } from "node:child_process";
@@ -13,30 +13,33 @@ import { join, resolve } from "node:path";
 import { findUplinkDir } from "./bake";
 import { levelOf, readChanges } from "./commits";
 import { parseFlags } from "./flags";
-import { moveVersion, targetVersion, type VersionDeps } from "./version";
+import { moveVersion, nextVersion, type VersionDeps } from "./version";
 
 export const PREPARE_USAGE = `uplink-tools release prepare [options]
 
-  Stamp the Uplink with the version it is released as and prove the release
-  builds. In order, stopping at the first failure:
+  Move the Uplink to its next version, prove the release builds, then commit it.
+  In order, stopping at the first failure:
 
-    1. the tree is clean and the tag <id>-v<version> is unspent here and on origin
+    1. the tree is clean, HEAD is on a branch, and the tag <id>-v<version> is
+       unspent here and on origin
     2. version: every place the version is written, and the page
     3. codegen --check, check, the client's tests, docs --check
     4. release, into a scratch folder: the exact bundle, bake, compile and zip
        a published release is rebuilt from
 
-  The stamped files are left in the tree for the build that follows, and the
-  tree is not committed: run this in a checkout that is thrown away. A failure
-  at any step puts every file back as it was.
+  Only then is the commit made, with the subject "release: <id> v<version>", and
+  with --tag the tag <id>-v<version> on it. A failure at any step puts every
+  file back and makes no commit and no tag. Nothing leaves the machine unless
+  --push is given.
 
-  --version <v>     the version to stamp, X.Y.Z or X.Y.Z-rc.N
-  --from <v>        the Uplink's latest released version, the one its newest tag
-                    names. --bump works from it
+  --version <v>     the version to move to, X.Y.Z or X.Y.Z-rc.N
   --bump <kind>     patch, minor, major, rc or auto, as version takes them
   --rc              make the result a candidate, as version takes it
   --commits <file>  the Uplink's commits since its last release, as version takes
-                    them: they decide --bump auto
+                    them: they decide --bump auto and write the changelog
+  --date <date>     the date the changelog section carries (default: today)
+  --tag             tag the release commit
+  --push            push the branch and the tag in one atomic push. Needs --tag
   --uplink <dir>    the Uplink's directory, the one holding uplink.json
                     (default: found by walking up from the current directory)`;
 
@@ -50,7 +53,8 @@ export interface PrepareDeps extends VersionDeps {
 export interface PrepareResult {
   id: string;
   version: string;
-  tag: string;
+  commit: string;
+  tag?: string;
 }
 
 function git(cwd: string, args: string[]): { ok: boolean; out: string } {
@@ -112,9 +116,14 @@ export async function prepareRelease(
   const { values, switches } = parseFlags(argv, {
     verb: "release prepare",
     usage: PREPARE_USAGE,
-    values: ["--version", "--from", "--bump", "--commits", "--uplink"],
-    switches: ["--rc"],
+    values: ["--version", "--bump", "--commits", "--date", "--uplink"],
+    switches: ["--rc", "--tag", "--push"],
   });
+  if (switches.has("--push") && !switches.has("--tag")) {
+    throw new Error(
+      "--push pushes the release tag with the branch, so it needs --tag",
+    );
+  }
   const named = values.get("--uplink");
   const uplinkDir = named ? resolve(cwd, named) : findUplinkDir(cwd);
   if (!uplinkDir) {
@@ -131,6 +140,7 @@ export async function prepareRelease(
     return typeof found === "string" ? found : "";
   };
   const id = str(read(join(uplinkDir, "uplink.json")), "id");
+  const current = str(read(join(clientDir, "package.json")), "version");
   const clientUrl = Reflect.get(
     Object(Reflect.get(Object(read(join(uplinkDir, "uplink.json"))), "client")),
     "url",
@@ -143,11 +153,11 @@ export async function prepareRelease(
     bump: values.get("--bump"),
     rc: switches.has("--rc"),
     commits: commitsFile,
-    from: values.get("--from"),
+    date: values.get("--date"),
   };
 
   // 1. Everything that can be refused before a file is written.
-  const target = targetVersion({
+  const target = nextVersion(current, {
     ...request,
     level: commitsFile ? levelOf(readChanges(commitsFile)) : undefined,
   });
@@ -156,7 +166,13 @@ export async function prepareRelease(
   const dirty = mustGit(repo, ["status", "--porcelain"]);
   if (dirty) {
     throw new Error(
-      `the working tree is not clean, so the stamp would mix the release with other changes:\n${dirty}`,
+      `the working tree is not clean, so the release commit would carry more than the release:\n${dirty}`,
+    );
+  }
+  const branch = git(repo, ["symbolic-ref", "--short", "-q", "HEAD"]);
+  if (!branch.ok) {
+    throw new Error(
+      "HEAD is not on a branch. Check out the branch the release is made on.",
     );
   }
   if (git(repo, ["rev-parse", "-q", "--verify", `refs/tags/${tag}`]).ok) {
@@ -236,6 +252,8 @@ export async function prepareRelease(
         );
       }
     }
+    mustGit(repo, ["add", "--", ...moved]);
+    mustGit(repo, ["commit", "-q", "-m", `release: ${id} v${target}`]);
   } catch (err) {
     revert(repo, uplinkDir, moved);
     throw err;
@@ -243,6 +261,20 @@ export async function prepareRelease(
     rmSync(scratch, { recursive: true, force: true });
   }
 
-  console.log(`\n${id} ${target}: stamped and checked, not committed`);
-  return { id, version: target, tag };
+  const commit = mustGit(repo, ["rev-parse", "HEAD"]);
+  const tagged = switches.has("--tag");
+  if (tagged) mustGit(repo, ["tag", tag, commit]);
+  if (switches.has("--push")) {
+    mustGit(repo, [
+      "push",
+      "--atomic",
+      "origin",
+      `HEAD:refs/heads/${branch.out}`,
+      `refs/tags/${tag}`,
+    ]);
+  }
+  console.log(
+    `\n${id} ${target}: committed ${commit.slice(0, 10)}${tagged ? `, tagged ${tag}` : ""}${switches.has("--push") ? ", pushed" : ", not pushed"}`,
+  );
+  return { id, version: target, commit, tag: tagged ? tag : undefined };
 }
