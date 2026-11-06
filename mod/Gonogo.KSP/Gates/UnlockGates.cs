@@ -11,17 +11,27 @@ namespace Gonogo.KSP.Gates
     /// </summary>
     internal static class FacilityTiers
     {
-        /// <param name="levelCount">How many levels the building has: 3 in stock, more under a career mod.</param>
+        /// <param name="levelCount">How many levels the building has: 3 in stock, more under a career mod. Zero when the game cannot say.</param>
         /// <param name="unlockedAt">The game's own switch, asked at each level's normalised value.</param>
         public static int? LowestTier(int levelCount, Func<float, bool> unlockedAt)
         {
-            if (levelCount <= 1) return unlockedAt(1f) ? 1 : (int?)null;
+            if (levelCount < 1) return null;
+            if (levelCount == 1) return unlockedAt(1f) ? 1 : (int?)null;
             for (var tier = 0; tier < levelCount; tier++)
             {
                 if (unlockedAt(tier / (float)(levelCount - 1))) return tier + 1;
             }
             return null;
         }
+
+        /// <summary>
+        /// How many levels a building has, from what
+        /// <c>ScenarioUpgradeableFacilities.GetFacilityLevelCount</c> answers.
+        /// That call returns the building's highest level index (2 in stock) and
+        /// answers 1 or -1 when the building's scene objects are not loaded, as
+        /// in flight. So 0 comes back whenever the count cannot be known.
+        /// </summary>
+        public static int LevelCount(int highestLevelIndex) => highestLevelIndex >= 1 ? highestLevelIndex + 1 : 0;
 
         /// <summary>
         /// A building the save has not raised far enough, named and with the
@@ -104,7 +114,7 @@ namespace Gonogo.KSP.Gates
                 if (current.Value >= needed) return GateVerdict.Pass();
 
                 var tier = FacilityTiers.LowestTier(
-                    _trackingStationLevelCount(),
+                    FacilityTiers.LevelCount(_trackingStationLevelCount()),
                     norm => _displayModeAt(norm) is GameVariables.OrbitDisplayMode mode && mode >= needed);
                 return GateVerdict.NotUnlocked(
                     "the Tracking Station does not show this yet",

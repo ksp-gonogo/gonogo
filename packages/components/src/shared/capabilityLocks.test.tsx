@@ -131,7 +131,7 @@ describe("capability locks", () => {
       });
     });
     expect(screen.getByText("Mission Control")).toBeTruthy();
-    expect(screen.getByText("Needs Building level 2")).toBeTruthy();
+    expect(screen.getByText("Needs level 2")).toBeTruthy();
     expect(screen.queryByText("planner body")).toBeNull();
 
     act(() => {
@@ -375,7 +375,7 @@ describe("capability locks", () => {
     expect(screen.queryByText("tiny figures")).toBeNull();
     expect(
       screen.getByRole("status", {
-        name: "Mission Control. Needs Building level 2",
+        name: "Mission Control. Needs level 2",
       }),
     ).toBeTruthy();
   });

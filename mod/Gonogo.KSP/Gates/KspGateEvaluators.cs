@@ -434,7 +434,7 @@ namespace Gonogo.KSP.Gates
                 if (unlockedAt(ScenarioUpgradeableFacilities.GetFacilityLevel(facility))) return GateVerdict.Pass();
 
                 var name = FacilityGateHelp.DisplayName(facility);
-                var tier = FacilityTiers.LowestTier(ScenarioUpgradeableFacilities.GetFacilityLevelCount(facility), unlockedAt);
+                var tier = FacilityTiers.LowestTier(FacilityTiers.LevelCount(ScenarioUpgradeableFacilities.GetFacilityLevelCount(facility)), unlockedAt);
                 return GateVerdict.NotUnlocked(
                     $"the {name} has not unlocked it yet",
                     FacilityTiers.Missing(facility, name, tier));
