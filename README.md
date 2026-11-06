@@ -1,6 +1,14 @@
+[![SpaceDock: Gonogo](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fspacedock.info%2Fapi%2Fmod%2FSPACEDOCK_MOD_ID&query=%24.versions%5B0%5D.friendly_version&label=SpaceDock)](https://spacedock.info/mod/SPACEDOCK_MOD_ID)
+[![Container: ghcr.io/ksp-gonogo/gonogo](https://img.shields.io/github/v/release/ksp-gonogo/gonogo?label=ghcr.io%2Fksp-gonogo%2Fgonogo)](https://github.com/ksp-gonogo/gonogo/pkgs/container/gonogo)
+
 # Gonogo
 
 A telemetry mod system and mission control dashboard for [Kerbal Space Program](https://www.kerbalspaceprogram.com/). The mod captures live data and makes it available through an API. The Gonogo app provides a UI for a multiplayer mission control experience, with movable widgets for all kinds of data.
+
+[![npm: @ksp-gonogo/sitrep-sdk](https://img.shields.io/npm/v/%40ksp-gonogo%2Fsitrep-sdk?label=%40ksp-gonogo%2Fsitrep-sdk)](https://www.npmjs.com/package/@ksp-gonogo/sitrep-sdk)
+[![npm: @ksp-gonogo/ui-kit](https://img.shields.io/npm/v/%40ksp-gonogo%2Fui-kit?label=%40ksp-gonogo%2Fui-kit)](https://www.npmjs.com/package/@ksp-gonogo/ui-kit)
+[![npm: @ksp-gonogo/uplink-tools](https://img.shields.io/npm/v/%40ksp-gonogo%2Fuplink-tools?label=%40ksp-gonogo%2Fuplink-tools)](https://www.npmjs.com/package/@ksp-gonogo/uplink-tools)
+[![NuGet: KspGonogo.Sitrep.Contract](https://img.shields.io/nuget/v/KspGonogo.Sitrep.Contract?label=KspGonogo.Sitrep.Contract)](https://www.nuget.org/packages/KspGonogo.Sitrep.Contract/)
 
 **Quickstart:** [Gonogo Home Page](https://ksp-gonogo.github.io/)
 
