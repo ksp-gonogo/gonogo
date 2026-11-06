@@ -62,5 +62,30 @@ namespace Gonogo.KSP.Tests.FlightOps
 
             Assert.Contains("FlyByWireReadback.IsArmedOn(vessel)", body);
         }
+
+        [Fact]
+        public void ArmingStartsTheLeaseAndEveryDisarmEndsIt()
+        {
+            Assert.Contains("_fbwLease.Renew(", Body("public CommandResult SetFlyByWire("));
+            Assert.Contains("_fbwLease.Release()", Body("private void DisarmFlyByWire("));
+        }
+
+        [Fact]
+        public void AHoldRenewsOnlyAnArmedOverride()
+        {
+            var body = Body("public CommandResult HoldFlyByWire(");
+
+            Assert.Contains("_fbw.Enabled", body);
+            Assert.Contains("_fbwLease.Renew(", body);
+        }
+
+        [Fact]
+        public void ALapsedLeaseDisarmsTheOverrideBeforeItIsApplied()
+        {
+            var body = Body("private void ApplyFlyByWireOverride(");
+
+            Assert.Contains("_fbwLease.HasLapsed(", body);
+            Assert.True(body.IndexOf("HasLapsed(", System.StringComparison.Ordinal) < body.IndexOf("st.pitch", System.StringComparison.Ordinal));
+        }
     }
 }

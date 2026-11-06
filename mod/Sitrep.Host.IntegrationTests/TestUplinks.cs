@@ -1365,6 +1365,7 @@ namespace Sitrep.Host.IntegrationTests
         public CommandResult SetAbort(bool enabled) => CommandResult.Ok();
         public CommandResult SetThrottle(double value) => CommandResult.Ok();
         public CommandResult SetFlyByWire(bool enabled) => CommandResult.Ok();
+        public CommandResult HoldFlyByWire() => CommandResult.Ok();
         public CommandResult SetControlAxes(SetControlAxesArgs axes) => CommandResult.Ok();
         public CommandResult<int> Stage() => CommandResult<int>.Ok(1);
         public CommandResult SetActionGroup(int group, bool state) => CommandResult.Ok();

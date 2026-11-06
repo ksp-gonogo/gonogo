@@ -200,6 +200,9 @@ namespace Gonogo.KSP
         }
 
         private FbwOverride _fbw;
+        private readonly FlyByWireLease _fbwLease = new FlyByWireLease();
+
+        private static double Now => UnityEngine.Time.realtimeSinceStartup;
         private Vessel? _attachedVessel;
         private readonly FlightInputCallback _flyByWireCallback;
 
@@ -423,6 +426,7 @@ namespace Gonogo.KSP
 
                 AttachFlyByWire(vessel);
                 _fbw.Enabled = true;
+                _fbwLease.Renew(Now);
                 FlyByWireReadback.Set(vessel);
             }
             else
@@ -432,8 +436,23 @@ namespace Gonogo.KSP
             return CommandResult.Ok();
         }
 
+        /// <summary>
+        /// Renews the lease of an armed override. A renewal that lands with nothing
+        /// armed is accepted and ignored: it was sent by a console that has not yet
+        /// heard the override lapse.
+        /// </summary>
+        public CommandResult HoldFlyByWire()
+        {
+            if (_fbw.Enabled)
+            {
+                _fbwLease.Renew(Now);
+            }
+            return CommandResult.Ok();
+        }
+
         private void DisarmFlyByWire()
         {
+            _fbwLease.Release();
             _fbw.Enabled = false;
             FlyByWireReadback.Set(null);
             DetachFlyByWire();
@@ -536,6 +555,10 @@ namespace Gonogo.KSP
         private void ApplyFlyByWireOverride(FlightCtrlState st)
         {
             DisarmIfArmedOnAnotherCraft(ActiveVesselScope.Current);
+            if (_fbw.Enabled && _fbwLease.HasLapsed(Now))
+            {
+                DisarmFlyByWire();
+            }
             if (!_fbw.Enabled)
             {
                 return;
