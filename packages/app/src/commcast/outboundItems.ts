@@ -2,6 +2,7 @@ import type { InFlightListItem } from "@ksp-gonogo/ui-kit";
 import { messageText } from "./groups";
 import {
   deliveryPhaseFor,
+  isQuickCrossing,
   legOf,
   roundTripFor,
   type SentPhase,
@@ -30,6 +31,8 @@ export function outboundItems(
       if (phase === "confirmed" || phase === "overdue" || phase === "lost") {
         return [];
       }
+      // A short crossing needs no box: the words are in the thread already.
+      if (isQuickCrossing(delivery)) return [];
       return [
         {
           id: `${out.msg.id}/${delivery.to}`,

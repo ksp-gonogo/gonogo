@@ -10,6 +10,7 @@
  * waiting.
  */
 import { LOSS_MARGIN } from "@ksp-gonogo/sitrep-client";
+import { currentMode, value } from "@ksp-gonogo/sitrep-sdk";
 import type { Seat } from "@ksp-gonogo/sitrep-sdk/spine";
 import type {
   CommsAck,
@@ -299,6 +300,18 @@ export function legOf(phase: SentPhase): "outbound" | "return" | null {
 }
 
 /**
+ * Whether a delivery crosses under the console's own rule for a live send,
+ * `currentMode`: a known one-way delay of a second or less. Such words need no
+ * crossing box and go straight into the thread.
+ */
+export function isQuickCrossing(
+  delivery: Pick<Delivery, "separationSeconds">,
+): boolean {
+  const s = delivery.separationSeconds;
+  return s !== null && currentMode({ oneWaySeconds: value("s", s) }) === "live";
+}
+
+/**
  * One recipient's standing at the author as of `utNow`.
  *
  * The gate on `confirmed` is that recipient's own acknowledgement having
@@ -393,14 +406,16 @@ export function sentArrivalUtFor(
   utNow: number,
 ): number | undefined {
   let giveUpUt: number | undefined;
+  let crossesFast = true;
   for (const delivery of out.deliveries) {
     if (delivery.neverLeft) continue;
     const trip = roundTripFor(delivery);
     if (trip === null) continue;
+    if (!isQuickCrossing(delivery)) crossesFast = false;
     if (giveUpUt === undefined || trip.overdueUt > giveUpUt)
       giveUpUt = trip.overdueUt;
   }
-  if (giveUpUt === undefined) return out.msg.lastSentUt;
+  if (giveUpUt === undefined || crossesFast) return out.msg.lastSentUt;
   const firstAck = firstAckUtFor(out);
   if (firstAck !== undefined && firstAck <= giveUpUt) return firstAck;
   return utNow >= giveUpUt ? giveUpUt : undefined;

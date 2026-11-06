@@ -331,6 +331,27 @@ describe("sentArrivalUtFor", () => {
     expect(sentArrivalUtFor(out, 9999)).toBe(1483);
   });
 
+  it.each([
+    [0.4, true],
+    [1.0, true],
+    [1.5, false],
+  ])("at %s s one-way, lands at once: %s", (seconds, atOnce) => {
+    const out = outbound({
+      deliveries: [delivery(ARES, { separationSeconds: seconds })],
+    });
+    expect(sentArrivalUtFor(out, 1000)).toBe(atOnce ? 1000 : undefined);
+  });
+
+  it("holds the words while any recipient is more than a second away", () => {
+    const out = outbound({
+      deliveries: [
+        delivery(ARES, { separationSeconds: 0.4 }),
+        delivery(WOOMERA, { separationSeconds: 1.5 }),
+      ],
+    });
+    expect(sentArrivalUtFor(out, 1000)).toBeUndefined();
+  });
+
   it("shows words that never left at once, because the author is next to them", () => {
     const out = outbound({
       msg: msg({ separationSeconds: null }),

@@ -770,6 +770,28 @@ describe("Commcast, rendered", () => {
     expect(screen.queryByRole("button", { name: "Unconfirmed" })).toBeNull();
   });
 
+  it.each([
+    [0.4, false],
+    [1.0, false],
+    [1.5, true],
+  ])("at %s s one-way, shows the words crossing in the uplink queue: %s", async (seconds, queued) => {
+    // The console's own rule for a live send is a second or less, and words under it go straight into the thread.
+    const log = makeLog();
+    log.replaceForTesting({
+      outbox: [outbound(sent({ separationSeconds: seconds }), [])],
+    });
+    renderWidget(log);
+    await openConversation(/do you copy/);
+    if (queued) {
+      expect(screen.getByLabelText(/Uplink queue/)).toBeInTheDocument();
+    } else {
+      expect(screen.queryByLabelText(/Uplink queue/)).toBeNull();
+      expect(
+        screen.getByText("Ares, Kennedy, do you copy"),
+      ).toBeInTheDocument();
+    }
+  });
+
   it("lands them the instant the acknowledgement gets back, stamped with when", async () => {
     const log = makeLog();
     // Spoken 480 s ago at a 240 s separation, read at the far end the instant

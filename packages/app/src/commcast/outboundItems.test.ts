@@ -67,4 +67,17 @@ describe("outboundItems", () => {
     const rows = outboundItems([twoRecipients()], 1008);
     expect(rows.map((r) => r.id)).toEqual(["m1/vessel:far"]);
   });
+
+  it.each([
+    [0.4, 0],
+    [1.0, 0],
+    [1.5, 1],
+  ])("at %s s one-way, shows %s box row(s)", (seconds, rows) => {
+    const base = twoRecipients();
+    const out: OutboundMessage = {
+      ...base,
+      deliveries: [{ ...base.deliveries[0], separationSeconds: seconds }],
+    };
+    expect(outboundItems([out], 1000.1)).toHaveLength(rows);
+  });
 });
