@@ -187,31 +187,40 @@ namespace Gonogo.KSP
             _tracker.RecordPartsLost(vessel.id.ToString());
         }
 
+        /// <summary>
+        /// The game's crew-killed report names the kerbal in <c>sender</c> and carries no part, so
+        /// the vessel is found by who was aboard: a crash already built for that kerbal first, then
+        /// the flight still being tracked.
+        /// </summary>
         private void OnCrewKilled(EventReport report)
         {
-            var vessel = report?.origin?.vessel;
-            if (vessel == null)
+            var name = GameWords.Text(report?.sender);
+            if (string.IsNullOrEmpty(name))
             {
                 return;
             }
-            var id = vessel.id.ToString();
-            var name = GameWords.Text(report!.sender);
-            _tracker.RecordKerbalKilled(id, name);
-            AmendRecentCrash(id, name);
+            foreach (var entry in _recentCaptures)
+            {
+                if (entry.Value.CrewAboard.Contains(name))
+                {
+                    AmendRecentCrash(entry.Value, name);
+                    return;
+                }
+            }
+            var vesselId = _tracker.VesselCarrying(name);
+            if (vesselId != null)
+            {
+                _tracker.RecordKerbalKilled(vesselId, name);
+            }
         }
 
         /// <summary>
         /// MAIN-THREAD: stock reports a splashdown death after it destroys the vessel, so the
-        /// crash is already built, and usually published. A kill inside the window of that death
-        /// joins the record, and a record already published goes out again.
+        /// crash is already built, and usually published. The kill joins the record, and a record
+        /// already published goes out again.
         /// </summary>
-        private void AmendRecentCrash(string vesselId, string name)
+        private void AmendRecentCrash(CrashCapture capture, string name)
         {
-            if (!_recentCaptures.TryGetValue(vesselId, out var capture)
-                || Math.Abs(Planetarium.GetUniversalTime() - capture.Ut) > ImpactWindowUt)
-            {
-                return;
-            }
             if (capture.NoteKilled(name, name + " was killed.") && capture.Published)
             {
                 PublishCrash(capture);

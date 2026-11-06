@@ -127,6 +127,22 @@ namespace Sitrep.Host.Crash
         public IReadOnlyList<string> ObservedCrew(string vesselId) =>
             _byVessel.TryGetValue(vesselId, out var s) ? s.Crew : Array.Empty<string>();
 
+        /// <summary>
+        /// The id of the vessel whose latest roster sample lists the named kerbal, or null when no
+        /// tracked vessel does. The game's crew-killed report names the kerbal and no vessel.
+        /// </summary>
+        public string? VesselCarrying(string name)
+        {
+            foreach (var entry in _byVessel)
+            {
+                if (entry.Value.Crew.Contains(name))
+                {
+                    return entry.Key;
+                }
+            }
+            return null;
+        }
+
         /// <summary>Names of the kerbals the game reported killed on the vessel.</summary>
         public IReadOnlyList<string> KilledNames(string vesselId) =>
             _byVessel.TryGetValue(vesselId, out var s) ? s.KilledNames : Array.Empty<string>();

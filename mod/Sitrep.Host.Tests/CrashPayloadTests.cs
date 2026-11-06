@@ -268,6 +268,24 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void VesselCarrying_FindsTheTrackedVesselByKerbalBeforeAndNotAfterItIsForgotten()
+        {
+            var tracker = new FlightStatsTracker();
+            tracker.ObserveRoster("v", new List<LostPart>(), new[] { "Jebediah Kerman" });
+
+            Assert.Equal("v", tracker.VesselCarrying("Jebediah Kerman"));
+            Assert.Null(tracker.VesselCarrying("Bob Kerman"));
+
+            tracker.RecordKerbalKilled(tracker.VesselCarrying("Jebediah Kerman")!, "Jebediah Kerman");
+            var capture = new CrashCapture { VesselId = "v", FlightStats = tracker.Snapshot("v", 1) };
+            capture.Reconcile(tracker.ObservedParts("v"), tracker.ObservedCrew("v"), tracker.KilledNames("v"));
+            Assert.Equal("Jebediah Kerman", Assert.Single(capture.KerbalsKilled));
+
+            tracker.Forget("v");
+            Assert.Null(tracker.VesselCarrying("Jebediah Kerman"));
+        }
+
+        [Fact]
         public void Reconcile_AKerbalOnlyOnTheLastRosterIsNotReportedKilled()
         {
             var tracker = new FlightStatsTracker();

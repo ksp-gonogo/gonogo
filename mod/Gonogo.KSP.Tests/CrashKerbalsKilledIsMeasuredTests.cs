@@ -30,7 +30,9 @@ namespace Gonogo.KSP.Tests
 
             var body = CurrencyDelaySourceText.MethodBody(source, "private void OnCrewKilled(EventReport report)");
             Assert.Contains("AmendRecentCrash(", body, StringComparison.Ordinal);
-            var amend = CurrencyDelaySourceText.MethodBody(source, "private void AmendRecentCrash(string vesselId, string name)");
+            Assert.DoesNotContain("report.origin", body, StringComparison.Ordinal);
+            Assert.Contains("_tracker.VesselCarrying(name)", body, StringComparison.Ordinal);
+            var amend = CurrencyDelaySourceText.MethodBody(source, "private void AmendRecentCrash(CrashCapture capture, string name)");
             Assert.Contains("capture.NoteKilled(", amend, StringComparison.Ordinal);
             Assert.Contains("PublishCrash(capture)", amend, StringComparison.Ordinal);
         }
