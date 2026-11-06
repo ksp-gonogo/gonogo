@@ -28,6 +28,7 @@ import {
   hopHint,
   signalCaption,
 } from "./signalVerdict";
+import { TONE_TEXT_COLOR } from "./tones";
 import { useSignalVerdict } from "./useSignalVerdict";
 
 /** The figure beside the bars. Nulled when the link is held, including the control label, which is read off the held `vessel.comms`. */
@@ -163,7 +164,8 @@ export function CommSignalComponent({
   const rows = h ?? 5;
   // Wide-short: put the bars/headline cluster and the detail grid side-by-side so the width is used instead of clustering top-left.
   const isLandscape = getWidgetShape(w, h).shape === "landscape";
-  const showSubtitle = rows >= 4;
+  // The route sentence wraps to four lines at three columns, so a three-column tile keeps the bars and the figure, which state the connection.
+  const showSubtitle = rows >= 4 && cols >= 4;
   const showDetailGrid = rows >= 4 && cols >= 4;
   // Portrait stacks the route below the readout and needs more rows; below the threshold the caption keeps a hop-count hint.
   const showFullPath = cols >= 5 && (isLandscape ? rows >= 4 : rows >= 6);
@@ -202,16 +204,18 @@ export function CommSignalComponent({
       headline
     );
 
-  const liveAnnouncement = connectionAnnouncement(connected);
+  const liveRegion = (
+    <VisuallyHidden role="status" aria-live="polite">
+      {connectionAnnouncement(connected)}
+    </VisuallyHidden>
+  );
   return (
     <Panel
       panelTitle="COMMNET"
       sections={[
-        <Section key="caption" full>
-          <VisuallyHidden role="status" aria-live="polite">
-            {liveAnnouncement}
-          </VisuallyHidden>
-          {showSubtitle && (
+        showSubtitle && (
+          <Section key="caption" full>
+            {liveRegion}
             <span
               style={{
                 fontSize: "var(--font-size-caption)",
@@ -224,10 +228,22 @@ export function CommSignalComponent({
             >
               {signalCaption({ noSignal, connected, centreLabel, hint })}
             </span>
-          )}
-        </Section>,
+          </Section>
+        ),
         /* One section holding both blocks in a wrapping row: two grid sections would split the width into equal columns and leave the route a gulf away from the readouts. */
         <Section key="signal">
+          {showSubtitle ? null : liveRegion}
+          {!showSubtitle && noSignal && (
+            <span
+              style={{
+                fontSize: "var(--font-size-caption)",
+                color: TONE_TEXT_COLOR.warn,
+                letterSpacing: "0.04em",
+              }}
+            >
+              No signal
+            </span>
+          )}
           <Cluster justify="start" align="start" gap="section" wrap>
             <Stack gap="related">
               <Cluster justify="start" wrap>

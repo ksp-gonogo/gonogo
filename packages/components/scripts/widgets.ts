@@ -325,16 +325,14 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "OrbitView/__fixtures__",
     outPath: "renders/orbit-view-widget",
     modes: [
-      // Minimum size (3x4): the figures alone, Ap and Pe.
-      { name: "tiny-3x4", w: 3, h: 4 },
+      // Minimum size (3x5): the figures alone, Ap and Pe.
+      { name: "tiny-3x5", w: 3, h: 5 },
       // 4x6: adds t-Ap, t-Pe and inclination. No diagram.
       { name: "compact-4x6", w: 4, h: 6 },
       // 5x5: still figures alone, with inclination.
       { name: "square-5x5", w: 5, h: 5 },
       // 5x8: the shortest portrait tile the diagram opens in, above the figures.
       { name: "medium-5x8", w: 5, h: 8 },
-      // Wide but too short for a diagram: the figures alone, in a row.
-      { name: "wide-12x4", w: 12, h: 4 },
       // Shortest wide tile the diagram opens in, with the figures beside it.
       { name: "wide-12x5", w: 12, h: 5 },
       // Wide and shallow: the figures sit beside the diagram.
@@ -494,6 +492,8 @@ const WIDGETS: WidgetRenderConfig[] = [
       // Minimum size: bars + headline only, no subtitle or detail grid
       // (rows<4 suppresses both). Catches overflow at tight sizes.
       { name: "min-3x3", w: 3, h: 3 },
+      // The registered minimum.
+      { name: "min-3x4", w: 3, h: 4 },
       // Default registered size: bars, subtitle, and full detail grid.
       { name: "default-6x6", w: 6, h: 6 },
       // Tall narrow: detail grid wraps in a single column layout.
@@ -1294,7 +1294,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     modes: [
       // The kit's tiny form: ΔV and burn time.
       { name: "tiny-3x3", w: 3, h: 3 },
-      // rows=4, cols=4: showSubtitle still false (rows<5).
+      // rows=4, cols=4, the registered minimum: showSubtitle still false (rows<5).
       // TotalsRow appears, resource list + stage stack still hidden.
       { name: "compact-4x4", w: 4, h: 4 },
       // rows=7, cols=5: showSubtitle + showResourceList both true.

@@ -128,9 +128,9 @@ describe("Orbit View figures: nothing has arrived at all", () => {
   });
 
   it("drops the supplementary rows by height, and dashes the two that remain", () => {
-    const { container } = renderOrbitView({ w: 3, h: 4 });
+    const { container } = renderOrbitView({ w: 3, h: 5 });
 
-    // At the 3x4 minSize only Ap and Pe render at all, so an absent ROW and an absent VALUE are different things: this pins which is which.
+    // At the 3x5 minSize only Ap and Pe render at all, so an absent ROW and an absent VALUE are different things: this pins which is which.
     expect(screen.getAllByText(NULL_DISPLAY)).toHaveLength(2);
     expect(visibleText(container)).toBe(
       `OVIEWNo orbital dataAp${NULL_DISPLAY}Pe${NULL_DISPLAY}`,

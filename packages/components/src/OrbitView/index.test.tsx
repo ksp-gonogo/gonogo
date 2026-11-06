@@ -45,7 +45,7 @@ describe("OrbitViewComponent", () => {
   });
 
   it("gives the figures and the regime at the smallest size, with no diagram", async () => {
-    const { container } = renderOrbitViewStream({ w: 3, h: 4 }, LKO);
+    const { container } = renderOrbitViewStream({ w: 3, h: 5 }, LKO);
 
     await waitFor(() => {
       if (!/km/.test(visibleText(container))) {

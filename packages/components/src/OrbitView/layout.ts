@@ -24,7 +24,7 @@ export function orbitViewLayout(cols: number, rows: number): OrbitViewLayout {
   return {
     tight: cols < 4 || rows < 5,
     narrow: cols < 5,
-    showInclination: rows >= 5,
+    showInclination: rows >= 5 && (cols >= 4 || rows >= 6),
     showApProgress: rows >= 6,
     showEccentricityAndPeriod: rows >= 8,
     hasDiagramRoom: (cols >= 5 && rows >= 8) || (cols >= 12 && rows >= 5),

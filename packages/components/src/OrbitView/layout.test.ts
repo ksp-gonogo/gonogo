@@ -18,7 +18,7 @@ const SHRINKS: ReadonlyArray<keyof OrbitViewLayout> = [
 describe("orbitViewLayout", () => {
   it("never loses a figure or the diagram when a tile grows in either direction", () => {
     for (let c = 3; c <= 24; c++) {
-      for (let r = 4; r <= 24; r++) {
+      for (let r = 5; r <= 24; r++) {
         const small = orbitViewLayout(c, r);
         for (const larger of [
           orbitViewLayout(c + 1, r),
@@ -38,7 +38,7 @@ describe("orbitViewLayout", () => {
   });
 
   it("shows the figures alone at the smallest size the widget can be given", () => {
-    const layout = orbitViewLayout(3, 4);
+    const layout = orbitViewLayout(3, 5);
     expect(layout.hasDiagramRoom).toBe(false);
     expect(layout.showInclination).toBe(false);
   });

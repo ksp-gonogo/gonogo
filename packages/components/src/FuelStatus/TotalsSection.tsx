@@ -1,6 +1,7 @@
 import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Box,
+  Grid,
   NULL_DISPLAY,
   ReadoutCaption,
   Stack,
@@ -45,6 +46,12 @@ function TotalFigure({
   );
 }
 
+const COMPACT_VALUE = {
+  fontWeight: 700,
+  color: "var(--color-text-primary)",
+  whiteSpace: "nowrap",
+} as const;
+
 /** The game's vessel-total ΔV and burn time, and the craft's dry mass, side by side. */
 export function TotalsSection({
   totalDv,
@@ -52,6 +59,7 @@ export function TotalsSection({
   dryMass,
   partCount,
   mode,
+  compact = false,
 }: {
   totalDv: UnitValue<"m/s"> | undefined;
   totalBurnTime: UnitValue<"s"> | null | undefined;
@@ -59,7 +67,33 @@ export function TotalsSection({
   /** Parts on the craft, held ones marked; absent when the vessel's part list could not be read. */
   partCount: UnitValue<"count">;
   mode: DeltaVMode;
+  /** Draws only the ΔV and the burn time, as label and value rows, for a tile too short for the boxed four. */
+  compact?: boolean;
 }) {
+  if (compact) {
+    return (
+      <Grid cols="auto 1fr" gap="label-value" rowGap="related" align="baseline">
+        <ReadoutCaption style={{ whiteSpace: "nowrap" }}>
+          ΔV {DELTA_V_MODE_SHORT[mode]}
+        </ReadoutCaption>
+        <Text size="sm" style={COMPACT_VALUE}>
+          {totalDv !== undefined ? (
+            <Unit value={totalDv} decimals={0} />
+          ) : (
+            NULL_DISPLAY
+          )}
+        </Text>
+        <ReadoutCaption>Burn</ReadoutCaption>
+        <Text size="sm" style={COMPACT_VALUE}>
+          {totalBurnTime !== undefined ? (
+            <Unit value={totalBurnTime} />
+          ) : (
+            NULL_DISPLAY
+          )}
+        </Text>
+      </Grid>
+    );
+  }
   return (
     <Box
       surface="panel"

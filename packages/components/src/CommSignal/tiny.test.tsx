@@ -31,6 +31,28 @@ describe("CommSignal tiny mode", () => {
     renderWidget("comm-signal", { w: 3, h: 4, wrapper: fixture.Provider });
     await waitFor(() => expect(visibleText()).toContain("62 %"));
     expect(document.querySelector("[data-tiny-essential]")).toBeNull();
+    // The route sentence wraps past the tile at three columns, so the bars and the figure carry the connection.
+    expect(visibleText()).not.toMatch(/Signal to/);
+    await act(async () => {});
+  });
+
+  it("says 'No signal' in the body of a three-column tile whose link readings are held, with the figure a dash", async () => {
+    const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
+    renderWidget("comm-signal", { w: 3, h: 4, wrapper: fixture.Provider });
+    act(() => {
+      fixture.emit("comms.link", { connected: true });
+      fixture.emit("vessel.comms", { connected: true, signalStrength: 0.87 });
+      fixture.emit("comms.signal", { strength: 0.87, modelled: false });
+    });
+    await waitFor(() => expect(visibleText()).toContain("87 %"));
+    expect(visibleText()).not.toContain("No signal");
+
+    act(() => {
+      fixture.store.setTransportConnected(false);
+      fixture.store.beginFrame();
+    });
+    await waitFor(() => expect(visibleText()).toContain("No signal"));
+    expect(visibleText()).not.toContain("87 %");
     await act(async () => {});
   });
 

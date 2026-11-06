@@ -173,6 +173,7 @@ function FuelStatusComponent({
               dryMass={dryMass}
               partCount={partCount}
               mode={mode}
+              compact={rows < 5}
             />
           </Section>
         ),
@@ -189,8 +190,8 @@ registerComponent<FuelStatusConfig>({
     "Liquid fuel, oxidiser, monopropellant, xenon and electric charge, with your total Δv and burn time and a stage by stage list of Δv, burn time and TWR. Δv can be shown for vacuum, sea level or the air you are in now.",
   tags: ["telemetry", "fuel", "delta-v"],
   defaultSize: { w: 8, h: 14 },
-  // The totals row needs four rows; below it the two figures stand alone.
-  minSize: { w: 3, h: 4 },
+  // Four columns by four rows hold the ΔV and the burn time as two label and value rows; the dry mass and part count join from five rows.
+  minSize: { w: 4, h: 4 },
   component: FuelStatusComponent,
   tiny: {
     title: "FUEL",
