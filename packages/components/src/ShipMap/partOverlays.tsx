@@ -21,12 +21,12 @@ export function renderPartStateOverlays(
   partState: readonly PartStateModule[] | undefined,
   box: ScreenBox,
   zoom: number,
-  throttle: number,
+  burning: boolean,
 ): React.ReactNode {
   if (!partState || partState.length === 0) return null;
   const overlays: React.ReactNode[] = [];
   for (const m of partState) {
-    const overlay = overlayFor(m, box, zoom, throttle);
+    const overlay = overlayFor(m, box, zoom, burning);
     if (overlay) overlays.push(overlay);
   }
   return overlays;
@@ -36,12 +36,12 @@ function overlayFor(
   m: PartStateModule,
   box: ScreenBox,
   zoom: number,
-  throttle: number,
+  burning: boolean,
 ): React.ReactNode {
   switch (m.type) {
     case "engine":
-      // "active" means ignited, not thrusting: a flamed-out engine keeps it, so the flame also needs fuel and throttle.
-      return m.state === "active" && !m.flameout && throttle > 0
+      // "active" means ignited, not thrusting: a flamed-out engine keeps it, so the flame also needs fuel and a burn.
+      return m.state === "active" && !m.flameout && burning
         ? renderEngineFlame(box, zoom)
         : null;
     case "solarPanel":

@@ -32,6 +32,7 @@ export function shipMapSections({
   setWrapEl,
   ambientTint,
   throttle,
+  thrusting,
   overlayContext,
   partMeters,
   partMeta,
@@ -49,6 +50,7 @@ export function shipMapSections({
   setWrapEl: (el: HTMLDivElement | null) => void;
   ambientTint: string | null;
   throttle: number;
+  thrusting: boolean;
   overlayContext: ShipMapOverlayContext | null;
   partMeters: Map<string, ShipMapPartMeterEntry[]>;
   partMeta: Map<string, ShipMapPartMetaEntry[]>;
@@ -110,6 +112,7 @@ export function shipMapSections({
             width={size.w}
             height={size.h}
             throttle={throttle}
+            thrusting={thrusting}
             partMeters={partMeters}
             partMeta={partMeta}
             onInvokePartAction={onInvokePartAction}

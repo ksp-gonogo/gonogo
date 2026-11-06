@@ -88,7 +88,7 @@ export function drawnHalfExtent(p: ShipMapPart): {
 
 /** Metre-space margin below an active engine for its flame, the same fraction of the body its flame draws. */
 function engineFlameReach(p: ShipMapPart, axialExtent: number): number {
-  if (p.type !== "engine") return 0;
+  if (p.type !== "engine" && p.type !== "booster") return 0;
   const firing = p.partState?.some(
     (m) => m.type === "engine" && m.state === "active",
   );

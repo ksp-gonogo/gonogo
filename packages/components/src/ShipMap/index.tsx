@@ -40,6 +40,7 @@ const topics = defineTopicManifest({
     "vessel.thermal",
     "vessel.flight",
     "vessel.control",
+    "vessel.propulsion",
     "vessel.structure",
     "crash.hasRecent",
     "crash.lastCrash",
@@ -50,6 +51,7 @@ const topics = defineTopicManifest({
     "vessel.thermal.hottestPart.id",
     "vessel.flight.externalTemperature",
     "vessel.control.throttle",
+    "vessel.propulsion.currentThrust",
     "vessel.structure.currentStage",
     "crash.lastCrash",
   ],
@@ -139,6 +141,12 @@ function ShipMapComponent({
       : undefined,
     0,
   );
+  // A solid booster burns at any throttle, so its flame follows the thrust the vessel makes, the one reading true for every engine kind.
+  const propulsionReading = topics.useTelemetry("vessel.propulsion");
+  const thrusting =
+    (propulsionReading.state === "observed" ||
+      propulsionReading.state === "held") &&
+    propulsionReading.value.currentThrust?.isPositive() === true;
 
   // The marked stage is a verdict about now, so only a current reading names it; a held one leaves the stack unmarked.
   const structureReading = topics.useTelemetry("vessel.structure");
@@ -298,6 +306,7 @@ function ShipMapComponent({
           setWrapEl,
           ambientTint,
           throttle,
+          thrusting,
           overlayContext,
           partMeters,
           partMeta,

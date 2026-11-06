@@ -47,6 +47,8 @@ export interface ShipDiagramSvgProps {
   ) => void;
   /** Current throttle (0..1+). Gates engine flames so a staged but idle engine renders no thrust. Defaults to 1. */
   throttle?: number;
+  /** True while the vessel makes thrust, which lights a solid booster at any throttle. Defaults to the throttle being above zero. */
+  thrusting?: boolean;
   /**
    * Per-part resource meters keyed by stringified `ShipMapPart.flightId`,
    * from the `ship-map.part-meters` slot. An empty or omitted map renders no
@@ -76,6 +78,7 @@ export function ShipDiagramSvg({
   onPartFocus,
   onPartActivate,
   throttle = 1,
+  thrusting = throttle > 0,
   partMeters,
   maxScale,
   openClusterId = null,
@@ -206,6 +209,7 @@ export function ShipDiagramSvg({
             highlightPartId={highlightPartId}
             highlightColor={highlightColor}
             throttle={throttle}
+            thrusting={thrusting}
             meters={partMeters?.get(String(p.flightId)) ?? NO_METERS}
             heldHatchId={heldHatchId}
             interactive={interactive}

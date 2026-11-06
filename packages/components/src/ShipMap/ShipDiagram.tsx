@@ -31,6 +31,8 @@ interface Props {
   height: number;
   /** Current throttle (0..1+), gating engine flames. */
   throttle?: number;
+  /** True while the vessel makes thrust, which lights a solid booster at any throttle. */
+  thrusting?: boolean;
   /** Per-part resource meters keyed by stringified flightId: in-body bars in the SVG, real `<Meter>`s in the tooltip. */
   partMeters?: ReadonlyMap<string, readonly ShipMapPartMeterEntry[]>;
   /** Per-part status rows, same keying as `partMeters`. Tooltip only. */
@@ -62,6 +64,7 @@ export function ShipDiagram({
   width,
   height,
   throttle,
+  thrusting,
   partMeters,
   partMeta,
   onInvokePartAction,
@@ -185,6 +188,7 @@ export function ShipDiagram({
         highlightColor={highlightColor}
         cam={cam}
         throttle={throttle}
+        thrusting={thrusting}
         onPartHover={setHovered}
         onPartFocus={(_, center) => {
           const rect = wrapperRef.current?.getBoundingClientRect();

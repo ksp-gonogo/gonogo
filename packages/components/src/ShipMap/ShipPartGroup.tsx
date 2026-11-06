@@ -23,6 +23,7 @@ export function ShipPartGroup({
   highlightPartId,
   highlightColor,
   throttle,
+  thrusting,
   meters,
   heldHatchId,
   interactive,
@@ -36,6 +37,7 @@ export function ShipPartGroup({
   highlightPartId: ShipDiagramSvgProps["highlightPartId"];
   highlightColor: string;
   throttle: number;
+  thrusting: boolean;
   meters: readonly ShipMapPartMeterEntry[];
   /** The id of the diagram's held hatch `<pattern>`. */
   heldHatchId: string;
@@ -152,7 +154,7 @@ export function ShipPartGroup({
           : p.partState,
         box,
         cam.zoom,
-        throttle,
+        p.type === "booster" ? thrusting : throttle > 0,
       )}
       {tint && (
         <rect
