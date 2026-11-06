@@ -27,6 +27,7 @@ import {
   registerDataSource,
   registerStockBodies,
   unregisterDataSource,
+  useTelemetry,
   useWidgetBadges,
   WidgetMetaContext,
   WidgetStreamStatusBridge,
@@ -83,6 +84,12 @@ import "./uplinkClients";
 registerStockBodies();
 
 /** One `StubTransport.emit(topic, payload)` call, replayed post-mount. */
+/** Holds a subscription on `comms.link`, drawing nothing. */
+function LinkReader() {
+  useTelemetry("comms.link");
+  return null;
+}
+
 export interface StreamEmit {
   channel: string;
   value: unknown;
@@ -141,6 +148,11 @@ export interface StreamFixtureBlock {
    * itself, and a confirmed absence is a `null` payload.
    */
   stopsArriving?: boolean;
+  /**
+   * Subscribe `comms.link` for the scene, as the dashboard's header does in
+   * flight, so a link report in `emits` reaches the readings it judges.
+   */
+  readsLink?: boolean;
   /**
    * The install profiles this scene is interesting under
    * (`src/test/installProfile.ts`), by id. The scene names them, so the matrix
@@ -563,6 +575,9 @@ async function mountInto(
         PanelStatusStoreProvider,
         null,
         createElement(WidgetStreamStatusBridge, { def }),
+        (payload.fixture._stream as StreamFixtureBlock | undefined)?.readsLink
+          ? createElement(LinkReader)
+          : null,
         createElement(
           ContributionsProvider,
           null,

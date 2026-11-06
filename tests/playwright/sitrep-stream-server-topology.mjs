@@ -310,7 +310,6 @@ const DV_SUMMARY = {
 
 const VESSEL_STRUCTURE = {
   currentStage: 1,
-  stageCount: 2,
   partCount: VESSEL_PARTS.parts.length,
   meta: payloadMeta,
 };
