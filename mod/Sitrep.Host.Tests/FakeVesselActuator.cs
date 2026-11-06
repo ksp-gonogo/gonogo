@@ -128,14 +128,6 @@ namespace Sitrep.Host.Tests
             return SetFlyByWireResult;
         }
 
-        public int HoldFlyByWireCallCount;
-
-        public CommandResult HoldFlyByWire()
-        {
-            HoldFlyByWireCallCount++;
-            return CommandResult.Ok();
-        }
-
         public CommandResult SetControlAxes(SetControlAxesArgs axes)
         {
             LastSetControlAxes = axes;
