@@ -91,6 +91,7 @@ export type {
   CommSignalLinkRateEntry,
   CrewRowToneEntry,
   ExperimentsInstrumentEntry,
+  ShipMapPartActionEntry,
   ShipMapPartMetaEntry,
   ShipMapPartMeterEntry,
   SpaceCenterFacilityEntry,

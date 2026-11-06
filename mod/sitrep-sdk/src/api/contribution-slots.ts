@@ -40,6 +40,7 @@
 // pressure, ...) whose tone genuinely is a state rather than an identity.
 // ---------------------------------------------------------------------------
 
+import type { CommandId } from "../commands";
 import type { HeldGrade, Reading } from "../reading";
 import type { ReadFrameChoice } from "../spine/reference-frame";
 import type { Value } from "../unit-system/value";
@@ -84,6 +85,39 @@ export interface ShipMapPartMeterEntry {
    * its own thresholds.
    */
   status?: "low" | "critical" | null;
+}
+
+/**
+ * One button in a part's menu on the Ship Map, contributed to
+ * `ship-map.part-actions`.
+ *
+ * The Ship Map lists each entry after the buttons the game's own part window
+ * supplies, counts it in the part's tooltip, and sends `command` with `args`
+ * when the operator picks it. The command goes out through the delay-aware
+ * command path, so the operator sees it wait on the signal delay like any
+ * other. The first entry for a given `partId` and `name` is drawn and any later
+ * one is ignored.
+ * Useful for a mod whose controls the game builds only while the in-game part
+ * window is open, so the part's own button list never carries them. Used by the
+ * Ship Map.
+ *
+ * @category Widget slots
+ */
+export interface ShipMapPartActionEntry {
+  /** The part's `flightId`, as a decimal string. */
+  partId: string;
+  /** Identifies the button on its part, unique among this part's contributed buttons. */
+  name: string;
+  /** The button's text, in the mod's own words for the control, such as `"Start Mystery Goo Observation"`. */
+  label: string;
+  /** The heading the button sits under in the menu, as the game's part window groups its own. Absent for an ungrouped button. */
+  group?: string;
+  /** False draws the button disabled rather than dropping it, as the game greys an inactive one. */
+  active: boolean;
+  /** The command the button sends. */
+  command: CommandId;
+  /** The arguments `command` is sent with. */
+  args: Readonly<Record<string, unknown>>;
 }
 
 /**
@@ -754,6 +788,15 @@ declare module "./types" {
      */
     "ship-map.part-meta": {
       entry: ShipMapPartMetaEntry;
+    };
+    /**
+     * Buttons in a Ship Map part's menu, after the ones the game's own part
+     * window supplies, for controls the game builds only while that window is
+     * open. Each entry is counted in the part's tooltip and sends its own
+     * command when picked. Returns {@link ShipMapPartActionEntry} entries.
+     */
+    "ship-map.part-actions": {
+      entry: ShipMapPartActionEntry;
     };
     /**
      * Things drawn on the Tracking Station diagram, such as a relay's orbit, a

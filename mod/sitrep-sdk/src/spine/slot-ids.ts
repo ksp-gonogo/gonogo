@@ -50,6 +50,7 @@ export const KNOWN_SLOT_IDS = [
   "science-data.aboard-row",
   "science-data.archive-readouts",
   "ship-map.overlay",
+  "ship-map.part-actions",
   "ship-map.part-meta",
   "ship-map.part-meters",
   "space-center-status.facilities",

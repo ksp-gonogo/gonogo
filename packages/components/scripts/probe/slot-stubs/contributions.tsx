@@ -123,6 +123,24 @@ plantContribution("ship-map.part-meters", {
   },
 });
 
+plantContribution("ship-map.part-actions", {
+  deps: ["vessel.parts"],
+  compute: (topics) => {
+    const part = stillTrue(topics["vessel.parts"], null)?.parts[0];
+    if (!part) return null;
+    return [
+      {
+        partId: String(part.id),
+        name: "ship-map.part-actions",
+        label: "ship-map.part-actions",
+        active: true,
+        command: "science.experiment.start" as const,
+        args: { partId: String(part.id) },
+      },
+    ];
+  },
+});
+
 plantContribution("ship-map.part-meta", {
   deps: ["vessel.parts"],
   compute: (topics) => {

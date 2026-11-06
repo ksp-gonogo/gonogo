@@ -8187,6 +8187,10 @@
         "note": "The Science Data widget gains a stat strip above its Archive table that any Uplink can add figures to"
       },
       {
+        "key": "sitrep-sdk . ContributionRegistry#\"ship-map.part-actions\"",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
         "key": "sitrep-sdk . ContributionRegistry#\"strategies.screens\"",
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
@@ -9311,6 +9315,10 @@
         "note": "The Science Data widget gains a stat strip above its Archive table that any Uplink can add figures to"
       },
       {
+        "key": "sitrep-sdk ./registry ~ContributionRegistry#\"ship-map.part-actions\"",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
         "key": "sitrep-sdk ./registry ~ContributionRegistry#\"strategies.screens\"",
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
@@ -10035,6 +10043,10 @@
         "note": "The Science Data widget gains a stat strip above its Archive table that any Uplink can add figures to"
       },
       {
+        "key": "sitrep-sdk ./spine ~ContributionRegistry#\"ship-map.part-actions\"",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
         "key": "sitrep-sdk ./spine ~ContributionRegistry#\"strategies.screens\"",
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
@@ -10361,6 +10373,10 @@
       {
         "key": "sitrep-sdk ./testing ~ContributionRegistry#\"science-data.archive-readouts\"",
         "note": "The Science Data widget gains a stat strip above its Archive table that any Uplink can add figures to"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ContributionRegistry#\"ship-map.part-actions\"",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
       },
       {
         "key": "sitrep-sdk ./testing ~ContributionRegistry#\"strategies.screens\"",
@@ -11149,6 +11165,10 @@
       {
         "key": "ui-kit . ContributionRegistry#\"science-data.archive-readouts\"",
         "note": "The Science Data widget gains a stat strip above its Archive table that any Uplink can add figures to"
+      },
+      {
+        "key": "ui-kit . ContributionRegistry#\"ship-map.part-actions\"",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
       },
       {
         "key": "ui-kit . ContributionRegistry#\"strategies.screens\"",
@@ -13071,6 +13091,38 @@
       {
         "key": "sitrep-sdk . SettledEntry#vantage",
         "note": "Added with SettledEntry: vantage, as the queue's settled entry carries it"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPartActionEntry",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPartActionEntry#active",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPartActionEntry#args",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPartActionEntry#command",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPartActionEntry#group?",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPartActionEntry#label",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPartActionEntry#name",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPartActionEntry#partId",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
       },
       {
         "key": "sitrep-sdk . SizeDelta",
@@ -15017,6 +15069,38 @@
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
       },
       {
+        "key": "sitrep-sdk ./registry ~ShipMapPartActionEntry",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ShipMapPartActionEntry#active",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ShipMapPartActionEntry#args",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ShipMapPartActionEntry#command",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ShipMapPartActionEntry#group?",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ShipMapPartActionEntry#label",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ShipMapPartActionEntry#name",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ShipMapPartActionEntry#partId",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
         "key": "sitrep-sdk ./registry ~ShipMapPartStateModule",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
       },
@@ -16545,6 +16629,38 @@
         "note": "How a channel's samples relate in time: continuous, discrete or event"
       },
       {
+        "key": "sitrep-sdk ./spine ~ShipMapPartActionEntry",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ShipMapPartActionEntry#active",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ShipMapPartActionEntry#args",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ShipMapPartActionEntry#command",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ShipMapPartActionEntry#group?",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ShipMapPartActionEntry#label",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ShipMapPartActionEntry#name",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ShipMapPartActionEntry#partId",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
         "key": "sitrep-sdk ./spine ~SizeDelta",
         "note": "The room an extension asks of its host widget, whole grid units of zero or more"
       },
@@ -17267,6 +17383,38 @@
       {
         "key": "sitrep-sdk ./testing ~SettingDefinitionBase#validate?",
         "note": "Added. A text setting can refuse typed text with a sentence of its own, which Settings shows under the field"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartActionEntry",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartActionEntry#active",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartActionEntry#args",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartActionEntry#command",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartActionEntry#group?",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartActionEntry#label",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartActionEntry#name",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartActionEntry#partId",
+        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
       },
       {
         "key": "sitrep-sdk ./testing ~SizeDelta",

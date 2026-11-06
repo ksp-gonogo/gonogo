@@ -16,11 +16,13 @@ import { NO_METERS } from "./partMeters";
 import { ShipDiagramSvg } from "./ShipDiagramSvg";
 import type {
   ShipMapPart,
+  ShipMapPartActionEntry,
   ShipMapPartMetaEntry,
   ShipMapPartMeterEntry,
 } from "./shipTopology";
 
 const NO_META: readonly ShipMapPartMetaEntry[] = [];
+const NO_ACTIONS: readonly ShipMapPartActionEntry[] = [];
 
 interface Props {
   parts: readonly ShipMapPart[];
@@ -37,6 +39,13 @@ interface Props {
   partMeters?: ReadonlyMap<string, readonly ShipMapPartMeterEntry[]>;
   /** Per-part status rows, same keying as `partMeters`. Tooltip only. */
   partMeta?: ReadonlyMap<string, readonly ShipMapPartMetaEntry[]>;
+  /** Per-part buttons contributed to `ship-map.part-actions`, same keying as `partMeters`. Listed in the part's menu after the game's own and counted in its tooltip. */
+  partActions?: ReadonlyMap<string, readonly ShipMapPartActionEntry[]>;
+  /** Fires one contributed button. The widget owns the command handle so it outlives the menu. */
+  onInvokeContributedAction?: (
+    entry: ShipMapPartActionEntry,
+    partTitle: string,
+  ) => void;
   /**
    * Fires one PAW action on one part. The widget owns the `useCommand` handle
    * so it outlives this popover. Omitted, the part-action affordances do not
@@ -67,6 +76,8 @@ export function ShipDiagram({
   thrusting,
   partMeters,
   partMeta,
+  partActions,
+  onInvokeContributedAction,
   onInvokePartAction,
   turn = 0,
   onTurn,
@@ -211,13 +222,16 @@ export function ShipDiagram({
         onToggleCluster={setOpenClusterId}
       />
 
-      {hovered && (
+      {hovered && !openPart && (
         <PartTooltip
           hovered={hovered}
           meters={hoveredMeters}
           meta={hoveredMeta}
           pointer={pointer}
           showActionCount={Boolean(onInvokePartAction)}
+          contributedActions={
+            partActions?.get(String(hovered.flightId)) ?? NO_ACTIONS
+          }
         />
       )}
 
@@ -231,6 +245,15 @@ export function ShipDiagram({
                 openPart.part.flightId,
                 eventName,
                 actionLabel,
+                openPart.part.title || openPart.part.name,
+              )
+            }
+            contributed={
+              partActions?.get(String(openPart.part.flightId)) ?? NO_ACTIONS
+            }
+            onInvokeContributed={(entry) =>
+              onInvokeContributedAction?.(
+                entry,
                 openPart.part.title || openPart.part.name,
               )
             }

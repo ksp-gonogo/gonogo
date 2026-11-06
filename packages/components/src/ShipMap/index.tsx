@@ -7,7 +7,7 @@ import {
 } from "@ksp-gonogo/core";
 import { usePartsLive, useTopology } from "@ksp-gonogo/data";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
-import { withoutReckoning } from "@ksp-gonogo/sitrep-sdk";
+import { type CommandId, withoutReckoning } from "@ksp-gonogo/sitrep-sdk";
 import { Panel } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -25,6 +25,7 @@ import { computeShipLayout } from "./shipLayout";
 import {
   buildShipMapPart,
   type ShipMapPart,
+  type ShipMapPartActionEntry,
   type ShipMapPartMetaEntry,
   type ShipMapPartMeterEntry,
 } from "./shipTopology";
@@ -59,7 +60,11 @@ const topics = defineTopicManifest({
 
 export type { ShipMapOverlayContext } from "./slots";
 // Re-exported from the widget root like every other slot-context type; authored in `shipTopology.ts` to avoid an import cycle.
-export type { ShipMapPartMetaEntry, ShipMapPartMeterEntry };
+export type {
+  ShipMapPartActionEntry,
+  ShipMapPartMetaEntry,
+  ShipMapPartMeterEntry,
+};
 
 interface ShipMapConfig {
   /** Presses of the rotate control the view is turned from its default, 0 to 7. A presentation setting of this widget, never sent to the game. */
@@ -166,6 +171,7 @@ function ShipMapComponent({
   // Grouped by partId once, so the in-body bars and the hover tooltip read the same lookup.
   const meterContributions = useContributions("ship-map.part-meters");
   const metaContributions = useContributions("ship-map.part-meta");
+  const actionContributions = useContributions("ship-map.part-actions");
   const partMeters = useMemo(
     () => groupByPart(meterContributions, (e) => `${e.partId}:${e.resource}`),
     [meterContributions],
@@ -173,6 +179,38 @@ function ShipMapComponent({
   const partMeta = useMemo(
     () => groupByPart(metaContributions, (e) => `${e.partId}:${e.label}`),
     [metaContributions],
+  );
+
+  const partActions = useMemo(
+    () => groupByPart(actionContributions, (e) => `${e.partId}:${e.name}`),
+    [actionContributions],
+  );
+  const contributedCommands = useMemo(
+    () => [...new Set(actionContributions.map((e) => e.command))].sort(),
+    [actionContributions],
+  );
+  // One sender per command a contributed button can fire, registered by its host below.
+  const contributedSenders = useRef(
+    new Map<string, (args: Record<string, unknown>, label: string) => void>(),
+  );
+  const registerSender = useCallback(
+    (
+      command: string,
+      send: ((args: Record<string, unknown>, label: string) => void) | null,
+    ) => {
+      if (send) contributedSenders.current.set(command, send);
+      else contributedSenders.current.delete(command);
+    },
+    [],
+  );
+  const onInvokeContributedAction = useCallback(
+    (entry: ShipMapPartActionEntry, partTitle: string) => {
+      contributedSenders.current.get(entry.command)?.(
+        { ...entry.args },
+        `${entry.label} on ${partTitle}`,
+      );
+    },
+    [],
   );
 
   // The default angle is found when a craft appears, and every part shares the one view.
@@ -274,6 +312,13 @@ function ShipMapComponent({
 
   return (
     <>
+      {contributedCommands.map((command) => (
+        <ContributedCommandHost
+          key={command}
+          command={command}
+          register={registerSender}
+        />
+      ))}
       {shapeSources}
       <Panel
         panelTitle="VESSEL SCHEMATIC"
@@ -310,6 +355,8 @@ function ShipMapComponent({
           overlayContext,
           partMeters,
           partMeta,
+          partActions,
+          onInvokeContributedAction,
           onInvokePartAction,
           turn,
           onTurn: setTurn,
@@ -318,6 +365,35 @@ function ShipMapComponent({
       />
     </>
   );
+}
+
+/**
+ * Holds the delay-aware command handle for one command a contributed button
+ * sends, mounted for as long as a contribution names it so a dispatch's delay
+ * row outlives the menu that fired it. Hooks cannot be called per entry, hence
+ * one host per distinct command.
+ */
+function ContributedCommandHost({
+  command,
+  register,
+}: Readonly<{
+  command: CommandId;
+  register: (
+    command: string,
+    send: ((args: Record<string, unknown>, label: string) => void) | null,
+  ) => void;
+}>) {
+  // gonogo:reads none
+  const handle = useCommand<Record<string, unknown>>(command);
+  const handleRef = useRef(handle);
+  handleRef.current = handle;
+  useEffect(() => {
+    register(command, (args, label) => {
+      void handleRef.current.send(args, { label });
+    });
+    return () => register(command, null);
+  }, [command, register]);
+  return null;
 }
 
 function normaliseTurn(turn: number | undefined): number {
@@ -339,7 +415,11 @@ registerComponent<ShipMapConfig>({
   component: ShipMapComponent,
   augmentSlots: ["ship-map.overlay"],
   // The built-in contribution always fills part-meters; an Uplink may fill both.
-  contributionSlots: ["ship-map.part-meters", "ship-map.part-meta"],
+  contributionSlots: [
+    "ship-map.part-meters",
+    "ship-map.part-meta",
+    "ship-map.part-actions",
+  ],
   // Per-part thermal, resources and module state all ride the one `vessel.parts` payload.
   channels: topics.channels,
   ...read,

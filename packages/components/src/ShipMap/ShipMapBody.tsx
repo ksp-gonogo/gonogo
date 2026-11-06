@@ -10,6 +10,7 @@ import { ShipDiagram } from "./ShipDiagram";
 import { StageColumn } from "./StageColumn";
 import type {
   ShipMapPart,
+  ShipMapPartActionEntry,
   ShipMapPartMetaEntry,
   ShipMapPartMeterEntry,
 } from "./shipTopology";
@@ -36,6 +37,8 @@ export function shipMapSections({
   overlayContext,
   partMeters,
   partMeta,
+  partActions,
+  onInvokeContributedAction,
   onInvokePartAction,
   turn,
   onTurn,
@@ -54,6 +57,11 @@ export function shipMapSections({
   overlayContext: ShipMapOverlayContext | null;
   partMeters: Map<string, ShipMapPartMeterEntry[]>;
   partMeta: Map<string, ShipMapPartMetaEntry[]>;
+  partActions: Map<string, ShipMapPartActionEntry[]>;
+  onInvokeContributedAction: (
+    entry: ShipMapPartActionEntry,
+    partTitle: string,
+  ) => void;
   onInvokePartAction: InvokePartAction;
   /** Presses of the rotate control the view is turned from its default. */
   turn: number;
@@ -115,6 +123,8 @@ export function shipMapSections({
             thrusting={thrusting}
             partMeters={partMeters}
             partMeta={partMeta}
+            partActions={partActions}
+            onInvokeContributedAction={onInvokeContributedAction}
             onInvokePartAction={onInvokePartAction}
             turn={turn}
             onTurn={onTurn}

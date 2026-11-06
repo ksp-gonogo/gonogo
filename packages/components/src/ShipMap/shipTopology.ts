@@ -126,6 +126,7 @@ export interface StowedStrut {
 }
 
 export type {
+  ShipMapPartActionEntry,
   ShipMapPartMetaEntry,
   ShipMapPartMeterEntry,
 } from "@ksp-gonogo/sitrep-sdk";

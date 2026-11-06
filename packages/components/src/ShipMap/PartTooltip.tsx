@@ -15,6 +15,7 @@ import { CHUTE_STATE_TEXT, chuteStateOf } from "./partChute";
 import { METER_STATUS_COLOR } from "./partMeters";
 import type {
   ShipMapPart,
+  ShipMapPartActionEntry,
   ShipMapPartMetaEntry,
   ShipMapPartMeterEntry,
 } from "./shipTopology";
@@ -26,6 +27,7 @@ export function PartTooltip({
   meta,
   pointer,
   showActionCount,
+  contributedActions,
 }: {
   hovered: ShipMapPart;
   /** The same `partMeters` list the in-body bars read, rendered through ui-kit's `<Meter>`. */
@@ -34,6 +36,8 @@ export function PartTooltip({
   /** The viewport point the card attaches to: the pointer, or the focused part's centre. */
   pointer: { x: number; y: number };
   showActionCount: boolean;
+  /** The part's buttons from `ship-map.part-actions`, counted with the game's own. */
+  contributedActions?: readonly ShipMapPartActionEntry[];
 }) {
   const meteredResourceNames = new Set(meters.map((m) => m.resource));
   const otherResources =
@@ -81,7 +85,12 @@ export function PartTooltip({
         <span style={TOOLTIP_ROW_VALUE}>{hovered.stage}</span>
       </div>
       {/* Mounting is the subscription that makes the mod enumerate the part's PAW, so only for the hovered part. */}
-      {showActionCount ? <PartActionCount flightId={hovered.flightId} /> : null}
+      {showActionCount ? (
+        <PartActionCount
+          flightId={hovered.flightId}
+          contributed={contributedActions}
+        />
+      ) : null}
       {meters.map((m) => (
         <TooltipMeter key={`meter-${m.resource}`} entry={m} />
       ))}
