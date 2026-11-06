@@ -1,7 +1,9 @@
 import {
   clearAugments,
+  clearMapPoiProviders,
   DashboardItemContext,
   registerAugment,
+  registerMapPoiProvider,
 } from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
@@ -10,7 +12,7 @@ import {
   DomainAvailabilityContext,
 } from "@ksp-gonogo/ui-kit";
 import { installFixedSizeResizeObserver } from "@ksp-gonogo/ui-kit/testing";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { GroundTrackComponent } from "./index";
 
@@ -388,5 +390,45 @@ describe("GroundTrack when a map source hides the stock terrain and has no data"
     expect(
       screen.getByRole("button", { name: "Recover a probe from the desert" }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("GroundTrack's layering", () => {
+  let restoreResizeObserver: (() => void) | undefined;
+  beforeEach(() => {
+    restoreResizeObserver = installFixedSizeResizeObserver({
+      width: 600,
+      height: 300,
+    });
+  });
+  afterEach(() => restoreResizeObserver?.());
+
+  it("draws the trail and the vessel marker over the map's station markers", async () => {
+    registerMapPoiProvider({
+      id: "layering",
+      usePois: () => [
+        {
+          id: "gs",
+          bodyId: "Kerbin",
+          lat: 0,
+          lon: 0,
+          kind: "ksc",
+          label: "Station",
+        },
+      ],
+    });
+    const { container } = mount();
+    const station = await screen.findByRole("button", { name: "Station" });
+    for (const id of [
+      "ground-track-trail-canvas",
+      "ground-track-data-canvas",
+    ]) {
+      const canvas = container.querySelector(`[data-testid="${id}"]`);
+      expect(
+        station.compareDocumentPosition(canvas as Element) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
+    clearMapPoiProviders();
   });
 });

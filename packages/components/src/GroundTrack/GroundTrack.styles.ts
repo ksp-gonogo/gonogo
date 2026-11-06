@@ -103,9 +103,12 @@ const CanvasBase = styled.canvas`
 
 export const BaseCanvas = CanvasBase;
 export const OverlayCanvas = CanvasBase;
-export const DataCanvas = CanvasBase;
-export const PersistentDataCanvas = CanvasBase;
-export const PredictionCanvas = CanvasBase;
+/** A canvas drawn over the map's points of interest (the trail, the forward tracks and the vessel marker), pointer-inert so their markers stay reachable beneath it. */
+export const DataCanvas = styled(CanvasBase)`
+  pointer-events: none;
+`;
+export const PersistentDataCanvas = DataCanvas;
+export const PredictionCanvas = DataCanvas;
 
 /** The `ground-track.overlay` layer, over every canvas and pointer-inert; an augment re-enables pointer events on its own elements. */
 export const OverlayAugmentLayer = styled.div`
