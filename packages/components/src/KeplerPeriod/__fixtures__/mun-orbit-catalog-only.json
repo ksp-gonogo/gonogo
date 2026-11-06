@@ -1,0 +1,67 @@
+{
+  "_meta": {
+    "shows": "A Mun probe whose orbit the wire no longer carries, shown as the held period and semi-major axis from the tracking station catalog.",
+    "scenario": "mun-orbit-catalog-only",
+    "notes": "No vessel.orbit emit: the craft's orbit is known only from its trackingStation.catalog entry, as when the widget is opened during a comms blackout."
+  },
+  "v.body": "Mun",
+  "o.referenceBody": "Mun",
+  "o.sma": 215000,
+  "o.period": 3242.0,
+  "_stream": {
+    "emits": [
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 3,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "trackingStation.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Mun",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 200000,
+              "orbit": null,
+              "gravParameter": 65138398000.0
+            }
+          ]
+        }
+      },
+      {
+        "channel": "trackingStation.catalog",
+        "value": {
+          "entries": [
+            {
+              "vesselId": "v1",
+              "name": "Mun Probe",
+              "vesselType": 0,
+              "situation": 3,
+              "bodyIndex": 1,
+              "orbit": {
+                "sma": 215000,
+                "ecc": 0.02
+              }
+            }
+          ]
+        }
+      },
+      {
+        "channel": "comms.link",
+        "value": {
+          "connected": false
+        }
+      }
+    ],
+    "pinnedUt": 0,
+    "stopsArriving": true
+  }
+}

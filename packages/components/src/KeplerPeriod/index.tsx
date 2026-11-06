@@ -5,7 +5,15 @@ import {
   registerComponent,
 } from "@ksp-gonogo/core";
 import { useStream } from "@ksp-gonogo/sitrep-client";
-import { deriveReading, type VesselOrbit, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  deriveReading,
+  type Reading,
+  type TrackingStationCatalog,
+  type Value,
+  type VesselIdentity,
+  type VesselOrbit,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { EmptyState, Panel, Section } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import {
@@ -23,13 +31,19 @@ import read from "./kepler-period.declarations.g";
 
 const topics = defineTopicManifest({
   // The reference curve needs the body's radius and gravitational parameter from `trackingStation.bodies`.
-  channels: ["vessel.orbit", "vessel.identity", "trackingStation.bodies"],
+  channels: [
+    "vessel.orbit",
+    "vessel.identity",
+    "trackingStation.bodies",
+    "trackingStation.catalog",
+  ],
   fields: [
     "vessel.orbit.sma",
     "vessel.orbit.mu",
     "vessel.orbit.referenceBodyIndex",
     "vessel.identity.parentBodyIndex",
     "trackingStation.bodies",
+    "trackingStation.catalog",
   ],
 });
 
@@ -86,6 +100,57 @@ function buildPeriodCurve(
     xs,
     ys,
     color: "var(--color-tag-blue-fg)",
+  };
+}
+
+interface CatalogOrbit {
+  orbitalPeriod: Reading<Value<"s">>;
+  semiMajorAxis: Reading<Value<"m">>;
+}
+
+/**
+ * The active vessel's period and semi-major axis from its tracking station
+ * catalog entry, for a widget opened while the wire carries no `vessel.orbit`.
+ * Both are held readings, since the catalog is the last word on the orbit and
+ * not a live sample. `undefined` when `enabled` is false or the catalog has no
+ * orbit, or no known gravitational parameter for the body, to work from.
+ */
+function useCatalogOrbit(enabled: boolean): CatalogOrbit | undefined {
+  const identity = useStream<VesselIdentity>("vessel.identity");
+  const catalog = useStream<TrackingStationCatalog>("trackingStation.catalog");
+  const vesselId =
+    identity.state === "observed" || identity.state === "held"
+      ? identity.value.vesselId
+      : undefined;
+  const entry =
+    catalog.state === "observed" || catalog.state === "held"
+      ? catalog.value.entries.find((e) => e.vesselId === vesselId)
+      : undefined;
+  const body = useStreamBody(useBodyName(entry?.bodyIndex ?? undefined));
+  if (
+    !enabled ||
+    entry === undefined ||
+    (catalog.state !== "observed" && catalog.state !== "held")
+  ) {
+    return undefined;
+  }
+  const sma = entry.orbit?.sma;
+  if (sma == null || body?.gm === undefined) return undefined;
+  const seconds = periodOf(sma.in("m").valueOf(), body.gm);
+  if (seconds === null) return undefined;
+  const asOfUt = catalog.state === "held" ? catalog.asOfUt : catalog.atUt;
+  const grade = catalog.state === "held" ? catalog.grade : undefined;
+  const held = <T,>(v: T): Reading<T> =>
+    ({
+      state: "held",
+      value: v,
+      asOfUt,
+      grade,
+      reckoning: { status: "none" },
+    }) as Reading<T>;
+  return {
+    orbitalPeriod: held(value("s", seconds)),
+    semiMajorAxis: held(sma),
   };
 }
 
@@ -160,6 +225,54 @@ function KeplerPeriodComponent({
 
   const kind = useTrajectoryKind();
   const offOrbit = kind === "landed" || kind === "suborbital";
+
+  /*
+   * With no sample of the orbit in the plot's window (the widget opened
+   * after the last frame, or the orbit aged out) the plot would only wait, so
+   * the figures stand alone: from the held orbit when there is one, else from
+   * the craft's tracking station catalog entry.
+   */
+  const noSamples = periodData.t.length === 0;
+  const catalogOrbit = useCatalogOrbit(!orbitKnown && noSamples);
+  let heldOrbit = catalogOrbit;
+  if (orbitReading.state === "held" && noSamples) {
+    const seconds = periodOf(
+      orbitReading.value.sma.valueOf(),
+      orbitReading.value.mu.valueOf(),
+    );
+    if (seconds !== null) {
+      heldOrbit = {
+        orbitalPeriod: deriveReading(
+          orbitTelemetry,
+          () => value("s", seconds),
+          () => value("s", seconds),
+        ),
+        semiMajorAxis: deriveReading(
+          orbitTelemetry,
+          () => orbitReading.value.sma,
+          () => orbitReading.value.sma,
+        ),
+      };
+    }
+  }
+  if (!offOrbit && heldOrbit !== undefined) {
+    return (
+      <Panel
+        panelTitle="KEPLER PERIOD"
+        sections={
+          <Section full>
+            <ReadoutRows
+              stacked
+              rows={[
+                { label: "Orbital period", value: heldOrbit.orbitalPeriod },
+                { label: "Semi-major axis", value: heldOrbit.semiMajorAxis },
+              ]}
+            />
+          </Section>
+        }
+      />
+    );
+  }
 
   const notice =
     (!orbitKnown && "No orbit reported: nothing to plot yet.") ||
