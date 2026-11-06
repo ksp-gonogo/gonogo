@@ -1,6 +1,9 @@
 /**
- * `uplink-tools version`: moves an Uplink to its next version in every place the
- * version is written, and regenerates the files that quote it.
+ * `uplink-tools version`: stamps an Uplink with the version a release gives it in
+ * every place the version is written, and regenerates the files that quote it.
+ *
+ * What an Uplink's repository commits is the placeholder, never a release. The
+ * real version is written into a release checkout that is thrown away.
  */
 
 import {
@@ -12,26 +15,30 @@ import {
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { findUplinkDir } from "./bake";
-import {
-  type BumpLevel,
-  levelOf,
-  prependSection,
-  readChanges,
-  renderSection,
-} from "./commits";
+import { type BumpLevel, levelOf, readChanges } from "./commits";
 import { parseFlags } from "./flags";
 import { page } from "./page";
 import { versionsInUrlPath } from "./release";
 
-export const VERSION_USAGE = `uplink-tools version [<version> | --bump <kind>] [options]
+/**
+ * The version every Uplink carries in its committed files. A release writes the
+ * real one over it in a throwaway checkout and never commits the result.
+ */
+export const PLACEHOLDER_VERSION = "0.0.0-development";
 
-  Move the Uplink to its next version everywhere it is written: client/package.json,
-  client/package-lock.json, the UPLINK_VERSION constant in client/src/uplink.ts and
-  the version folder of client.url in uplink.json. Then write the page, which
-  carries the version into README.md, gonogo-uplink.json and docs/spec.json.
-  Nothing is committed. When any step fails every file is put back as it was.
+export const VERSION_USAGE = `uplink-tools version [<version> | --bump <kind> --from <version>] [options]
 
-  <version>        X.Y.Z or X.Y.Z-rc.N, above the current one
+  Stamp the Uplink with its release version everywhere it is written:
+  client/package.json, client/package-lock.json, the UPLINK_VERSION constant in
+  client/src/uplink.ts and the version folder of client.url in uplink.json. Then
+  write the page, which carries the version into README.md, gonogo-uplink.json
+  and docs/spec.json. The committed files hold ${PLACEHOLDER_VERSION}; run this in a
+  checkout that is not committed back. Nothing is committed. When any step
+  fails every file is put back as it was.
+
+  <version>        X.Y.Z or X.Y.Z-rc.N. Above --from when that is given
+  --from <version> the Uplink's latest released version, the one its newest
+                   tag <id>-v<version> names. --bump works from it
   --bump <kind>    patch, minor or major: the next full version. rc: the next
                    candidate of a version that is already one (1.0.0-rc.4 to
                    1.0.0-rc.5). auto: what --commits calls for, and on a
@@ -41,10 +48,8 @@ export const VERSION_USAGE = `uplink-tools version [<version> | --bump <kind>] [
                    --bump minor --rc
   --commits <file> the commits of this Uplink since its last release, as a JSON
                    array of subjects (or of { "subject", "breaking"? }). They
-                   decide --bump auto, and they write this version's section
-                   at the top of the Uplink's CHANGELOG.md. A breaking change
-                   is major, a feat minor, a fix or perf patch
-  --date <date>    the date the changelog section carries (default: today)
+                   decide --bump auto: a breaking change is major, a feat
+                   minor, a fix or perf patch
   --uplink <dir>   the Uplink's directory, the one holding uplink.json
                    (default: found by walking up from the current directory)`;
 
@@ -188,10 +193,9 @@ const UPLINK_VERSION_DECLARATION = /^(const UPLINK_VERSION = ")([^"]*)(")/gm;
 
 export interface VersionResult {
   id: string;
+  /** The version the stamp moved above: `--from`, or the placeholder when none was given. */
   from: string;
   to: string;
-  /** The Uplink's `CHANGELOG.md` section, when commits were given. */
-  changelog?: string;
   /** Every file the move wrote that exists afterwards, as absolute paths. */
   files: string[];
 }
@@ -199,17 +203,37 @@ export interface VersionResult {
 export interface VersionDeps {
   /** Writes the Uplink's generated page. */
   writePage?: (clientDir: string) => void;
-  today?: () => string;
 }
 
 /**
- * Moves the Uplink holding `uplinkDir` to the version `request` names, in the
- * four places it is a source and then through `page` for the three that quote
- * it. Every file touched is put back when any step fails.
+ * The version `request` stamps: the one it names, or the next one above
+ * `request.from`. With no `from` only an explicit version can be stamped.
+ */
+export function targetVersion(
+  request: BumpRequest & { from?: string },
+): string {
+  if (request.from !== undefined) return nextVersion(request.from, request);
+  if (request.explicit === undefined) {
+    throw new Error(
+      "--bump moves above the Uplink's latest released version, so it needs --from <version>: the version of its newest tag. Or name the version to stamp.",
+    );
+  }
+  if (request.bump !== undefined || request.rc) {
+    throw new Error(
+      "name a version, or use --bump and --rc: the version already says whether it is a candidate",
+    );
+  }
+  return versionText(parseVersion(request.explicit));
+}
+
+/**
+ * Stamps the Uplink holding `uplinkDir` with the version `request` names, in
+ * the four places it is a source and then through `page` for the three that
+ * quote it. Every file touched is put back when any step fails.
  */
 export function moveVersion(
   uplinkDir: string,
-  request: BumpRequest & { commits?: string; date?: string },
+  request: BumpRequest & { commits?: string; from?: string },
   deps: VersionDeps = {},
 ): VersionResult {
   const clientDir = join(uplinkDir, "client");
@@ -227,14 +251,14 @@ export function moveVersion(
 
   const manifestText = readFileSync(manifestFile, "utf8");
   const manifest = JSON.parse(manifestText);
-  const from = asString(Reflect.get(Object(manifest), "version"));
-  if (!from) throw new Error(`${manifestFile} carries no version`);
+  const committed = asString(Reflect.get(Object(manifest), "version"));
+  if (!committed) throw new Error(`${manifestFile} carries no version`);
   const declaration: unknown = JSON.parse(
     readFileSync(declarationFile, "utf8"),
   );
   const id = asString(Reflect.get(Object(declaration), "id"));
   const changes = request.commits ? readChanges(request.commits) : undefined;
-  const to = nextVersion(from, {
+  const to = targetVersion({
     ...request,
     level: changes ? levelOf(changes) : undefined,
   });
@@ -245,17 +269,17 @@ export function moveVersion(
   );
   if (url) {
     const named = versionsInUrlPath(url);
-    if (named.length !== 1 || named[0] !== from) {
+    if (named.length !== 1 || named[0] !== committed) {
       throw new Error(
-        `uplink.json's client.url (${url}) must carry the current version ${from} as one folder of its path, so it can move with the version. ${named.length === 0 ? "It names none." : `It names ${named.join(" and ")}.`}`,
+        `uplink.json's client.url (${url}) must carry the current version ${committed} as one folder of its path, so it can move with the version. ${named.length === 0 ? "It names none." : `It names ${named.join(" and ")}.`}`,
       );
     }
   }
   const sourceText = readFileSync(sourceFile, "utf8");
   const declarations = [...sourceText.matchAll(UPLINK_VERSION_DECLARATION)];
-  if (declarations.length !== 1 || declarations[0][2] !== from) {
+  if (declarations.length !== 1 || declarations[0][2] !== committed) {
     throw new Error(
-      `${sourceFile} must declare const UPLINK_VERSION = "${from}" exactly once, the one place the client says its version. It has ${declarations.length === 0 ? "none" : declarations.map((d) => `"${d[2]}"`).join(" and ")}.`,
+      `${sourceFile} must declare const UPLINK_VERSION = "${committed}" exactly once, the one place the client says its version. It has ${declarations.length === 0 ? "none" : declarations.map((d) => `"${d[2]}"`).join(" and ")}.`,
     );
   }
 
@@ -264,7 +288,6 @@ export function moveVersion(
     join(clientDir, "gonogo-uplink.json"),
     join(clientDir, "docs", "widgets.json"),
     join(clientDir, "docs", "spec.json"),
-    join(uplinkDir, "CHANGELOG.md"),
   ];
   const touched = [
     manifestFile,
@@ -313,23 +336,16 @@ export function moveVersion(
     if (url) {
       writeFileSync(
         declarationFile,
-        declarationText.replace(url, url.replace(`/${from}/`, `/${to}/`)),
+        declarationText.replace(url, url.replace(`/${committed}/`, `/${to}/`)),
       );
     }
 
     (deps.writePage ?? writeThePage)(clientDir);
 
-    let section: string | undefined;
-    if (changes) {
-      const date = request.date ?? (deps.today ?? today)();
-      section = renderSection(to, date, changes);
-      prependSection(uplinkDir, to, section);
-    }
     return {
       id,
-      from,
+      from: request.from ?? committed,
       to,
-      changelog: section,
       files: touched.filter((file) => existsSync(file)),
     };
   } catch (err) {
@@ -337,8 +353,6 @@ export function moveVersion(
     throw err;
   }
 }
-
-const today = () => new Date().toISOString().slice(0, 10);
 
 function writeThePage(clientDir: string): void {
   page(["--client", clientDir], dirname(clientDir));
@@ -352,7 +366,7 @@ export function version(
   const { values, switches, positionals } = parseFlags(argv, {
     verb: "version",
     usage: VERSION_USAGE,
-    values: ["--bump", "--commits", "--date", "--uplink"],
+    values: ["--bump", "--commits", "--from", "--uplink"],
     switches: ["--rc"],
     positionals: 1,
   });
@@ -371,7 +385,7 @@ export function version(
       bump: values.get("--bump"),
       rc: switches.has("--rc"),
       commits: commits ? resolve(cwd, commits) : undefined,
-      date: values.get("--date"),
+      from: values.get("--from"),
     },
     deps,
   );

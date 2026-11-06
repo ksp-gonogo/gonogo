@@ -911,6 +911,16 @@ must("npm test, with the pictures drawn", "npm", ["test"], { cwd: client });
 const testsProject = join(uplink, "mod-tests", `${NS}.Tests.csproj`);
 must("dotnet test mod-tests", "dotnet", ["test", testsProject, ...dotnetQuiet]);
 
+// What an author commits holds the placeholder; a release stamps its version over it before anything is built.
+must(
+  "uplink-tools version stamps the release's version",
+  "npx",
+  ["uplink-tools", "version", "0.0.1"],
+  {
+    cwd: client,
+  },
+);
+
 console.log("scaffold-probe: npm run release");
 npmRun("release");
 passesOwnCheck(client, join(client, "src/Heartbeat/index.tsx"));

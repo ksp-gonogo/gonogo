@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { prepareRelease } from "./prepare";
 import { fixture, put, scratch, writePage } from "./uplink-fixture";
+import { PLACEHOLDER_VERSION } from "./version";
 
 afterEach(() => {
   for (const dir of scratch.splice(0))
@@ -15,8 +16,8 @@ const git = (cwd: string, ...args: string[]) =>
   execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
 
 /** The fixture Uplink as a committed repository whose origin is a bare one beside it. */
-function repo(version = "1.0.0-rc.4") {
-  const dir = fixture(version);
+function repo() {
+  const dir = fixture();
   const origin = mkdtempSync(join(tmpdir(), "gonogo-origin-"));
   scratch.push(origin);
   git(origin, "init", "-q", "--bare", "-b", "main");
@@ -45,19 +46,22 @@ const deps = (r: ReturnType<typeof runner>, tests = true) => ({
   run: r.run,
   runTests: () => tests,
   writePage,
-  today: () => "2026-10-24",
 });
 
 describe("release prepare", () => {
-  it("commits the release and tags it after every check", async () => {
+  it("stamps the tree after every check and commits nothing", async () => {
     const { dir } = repo();
     const r = runner();
     const result = await prepareRelease(
-      ["--bump", "rc", "--tag"],
+      ["--bump", "rc", "--from", "1.0.0-rc.4"],
       deps(r),
       dir,
     );
-    expect(result).toMatchObject({ id: "demo", version: "1.0.0-rc.5" });
+    expect(result).toEqual({
+      id: "demo",
+      version: "1.0.0-rc.5",
+      tag: "demo-v1.0.0-rc.5",
+    });
     expect(r.asked.map((a) => a.split(" ")[0])).toEqual([
       "codegen",
       "check",
@@ -65,47 +69,45 @@ describe("release prepare", () => {
       "release",
     ]);
     expect(r.asked.at(-1)).toMatch(/^release --out /);
-    expect(git(dir, "log", "-1", "--format=%s")).toBe(
-      "release: demo v1.0.0-rc.5",
-    );
-    expect(git(dir, "rev-parse", "demo-v1.0.0-rc.5")).toBe(
-      git(dir, "rev-parse", "HEAD"),
-    );
-    expect(git(dir, "status", "--porcelain")).toBe("");
+    expect(git(dir, "rev-list", "--count", "HEAD")).toBe("1");
+    expect(git(dir, "tag", "--list")).toBe("");
   });
 
-  it("makes no commit and no tag, and restores the files, when a check fails", async () => {
+  it("carries the real version in the checkout while the committed file keeps the placeholder", async () => {
+    const { dir } = repo();
+    await prepareRelease(["--version", "1.2.3"], deps(runner()), dir);
+    const stamped = readFileSync(join(dir, "client/package.json"), "utf8");
+    expect(stamped).toContain('"version": "1.2.3"');
+    expect(
+      readFileSync(join(dir, "client/gonogo-uplink.json"), "utf8"),
+    ).toContain("1.2.3");
+    expect(readFileSync(join(dir, "uplink.json"), "utf8")).toContain(
+      "/demo/1.2.3/demo.client.js",
+    );
+    expect(git(dir, "show", "HEAD:client/package.json")).toContain(
+      PLACEHOLDER_VERSION,
+    );
+    expect(git(dir, "show", "HEAD:uplink.json")).toContain(PLACEHOLDER_VERSION);
+    expect(git(dir, "show", "HEAD:client/gonogo-uplink.json")).toContain(
+      PLACEHOLDER_VERSION,
+    );
+  });
+
+  it("restores the files when a check fails", async () => {
     const { dir } = repo();
     const before = readFileSync(join(dir, "client/package.json"), "utf8");
     for (const failing of ["codegen", "check", "docs", "release"]) {
       const r = runner([failing]);
       await expect(
-        prepareRelease(["--bump", "rc", "--tag"], deps(r), dir),
+        prepareRelease(["--version", "1.0.0"], deps(r), dir),
       ).rejects.toThrow(/was not made/);
       expect(git(dir, "status", "--porcelain")).toBe("");
-      expect(git(dir, "tag", "--list")).toBe("");
-      expect(git(dir, "rev-list", "--count", "HEAD")).toBe("1");
     }
     expect(readFileSync(join(dir, "client/package.json"), "utf8")).toBe(before);
-    const failedTests = runner();
     await expect(
-      prepareRelease(["--bump", "rc"], deps(failedTests, false), dir),
+      prepareRelease(["--version", "1.0.0"], deps(runner(), false), dir),
     ).rejects.toThrow(/tests failed/);
     expect(git(dir, "status", "--porcelain")).toBe("");
-  });
-
-  it("removes a changelog the failed attempt created", async () => {
-    const { dir } = repo();
-    const commits = join(dir, "..", "commits.json");
-    put(dir, "../commits.json", JSON.stringify(["fix(demo): a fix"]));
-    await expect(
-      prepareRelease(
-        ["--bump", "auto", "--rc", "--commits", commits],
-        deps(runner(["check"])),
-        dir,
-      ),
-    ).rejects.toThrow(/was not made/);
-    expect(existsSync(join(dir, "CHANGELOG.md"))).toBe(false);
   });
 
   it("refuses a dirty tree before writing anything", async () => {
@@ -113,7 +115,7 @@ describe("release prepare", () => {
     put(dir, "stray.txt", "x");
     const r = runner();
     await expect(
-      prepareRelease(["--bump", "rc"], deps(r), dir),
+      prepareRelease(["--version", "1.0.0"], deps(r), dir),
     ).rejects.toThrow(/not clean/);
     expect(r.asked).toEqual([]);
   });
@@ -122,7 +124,11 @@ describe("release prepare", () => {
     const { dir } = repo();
     git(dir, "tag", "demo-v1.0.0-rc.5");
     await expect(
-      prepareRelease(["--bump", "rc"], deps(runner()), dir),
+      prepareRelease(
+        ["--bump", "rc", "--from", "1.0.0-rc.4"],
+        deps(runner()),
+        dir,
+      ),
     ).rejects.toThrow(/already exists here/);
     git(dir, "tag", "-d", "demo-v1.0.0-rc.5");
 
@@ -131,42 +137,25 @@ describe("release prepare", () => {
     git(other.dir, "push", "-q", "origin", "demo-v1.0.0-rc.5");
     git(other.dir, "tag", "-d", "demo-v1.0.0-rc.5");
     await expect(
-      prepareRelease(["--bump", "rc"], deps(runner()), other.dir),
+      prepareRelease(
+        ["--bump", "rc", "--from", "1.0.0-rc.4"],
+        deps(runner()),
+        other.dir,
+      ),
     ).rejects.toThrow(/already exists on origin/);
   });
 
-  it("pushes the branch and the tag together only when asked", async () => {
-    const { dir, origin } = repo();
-    await prepareRelease(["--bump", "rc", "--tag"], deps(runner()), dir);
-    expect(git(origin, "tag", "--list")).toBe("");
-
-    await prepareRelease(
-      ["--bump", "rc", "--tag", "--push"],
-      deps(runner()),
-      dir,
-    );
-    expect(git(origin, "tag", "--list")).toBe("demo-v1.0.0-rc.6");
-    expect(git(origin, "rev-parse", "main")).toBe(
-      git(dir, "rev-parse", "HEAD"),
-    );
-    await expect(
-      prepareRelease(["--bump", "rc", "--push"], deps(runner()), dir),
-    ).rejects.toThrow(/needs --tag/);
-  });
-
-  it("writes the Uplink's changelog into the release commit", async () => {
-    const { dir } = repo("1.0.0");
+  it("takes the bump from the commits since the last release", async () => {
+    const { dir } = repo();
     const commits = join(dir, "..", "commits.json");
     put(dir, "../commits.json", JSON.stringify(["feat(demo): a new widget"]));
     const result = await prepareRelease(
-      ["--bump", "auto", "--commits", commits],
+      ["--bump", "auto", "--from", "1.0.0", "--commits", commits],
       deps(runner()),
       dir,
     );
     expect(result.version).toBe("1.1.0");
-    expect(git(dir, "show", "HEAD:CHANGELOG.md")).toContain(
-      "## 1.1.0 (2026-10-24)\n\n### Features\n\n- a new widget",
-    );
+    expect(existsSync(join(dir, "CHANGELOG.md"))).toBe(false);
   });
 });
 
@@ -183,7 +172,7 @@ describe("release prepare with a client the plugin vouches for", () => {
     );
     git(dir, "commit", "-q", "-am", "chore: declare a plugin");
     const r = runner();
-    await prepareRelease(["--bump", "rc"], deps(r), dir);
+    await prepareRelease(["--version", "1.0.0"], deps(r), dir);
     expect(r.asked.map((a) => a.split(" ")[0])).toEqual([
       "codegen",
       "bundle",
