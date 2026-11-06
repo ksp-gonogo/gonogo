@@ -17,6 +17,7 @@ import { magnitudeOf, magnitudeOr } from "../shared/magnitude";
 import { externalTempTint } from "./ambientTint";
 import { groupByPart } from "./groupByPart";
 import { INVOKE_PART_ACTION_COMMAND } from "./PartActionMenu";
+import { seatRadialParts } from "./radialSeat";
 import { shipMapSections } from "./ShipMapBody";
 import { StageColumn, showsStagesOnly } from "./StageColumn";
 import read from "./ship-map.declarations.g";
@@ -173,7 +174,8 @@ function ShipMapComponent({
   const parts: ShipMapPart[] = useMemo(() => {
     if (!topology) return [];
     const view = turnedView(baseView, turn);
-    return topology.parts.map((p) => {
+    const seated = seatRadialParts(topology.parts, (key) => shapes.get(key));
+    return seated.map((p) => {
       const live = liveByFlightId.get(p.flightId);
       const part = buildShipMapPart(
         p,

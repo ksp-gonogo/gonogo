@@ -153,7 +153,7 @@ export function normaliseResources(
 type Vec3 = { x: number; y: number; z: number };
 
 /** The vessel-frame images of the part's local X, Y and Z axes: the columns of its rotation. */
-interface PartAxes {
+export interface PartAxes {
   right: Vec3;
   up: Vec3;
   forward: Vec3;
@@ -211,7 +211,7 @@ function swing(v: Vec3, up: Vec3): Vec3 {
  * With `up` alone the roll about it is unknown, so the minimal swing onto
  * `up` stands in for it; with neither the part is unrotated.
  */
-function partAxes(part: TopologyPart): PartAxes {
+export function partAxes(part: TopologyPart): PartAxes {
   const up = part.up ? unit(part.up) : null;
   if (!up) return IDENTITY_AXES;
   const forward = part.forward ? unit(part.forward) : null;
