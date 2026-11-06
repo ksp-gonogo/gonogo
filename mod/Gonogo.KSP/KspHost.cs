@@ -7521,7 +7521,7 @@ namespace Gonogo.KSP
         /// powered. Reading the booleans removes both problems at once.</para>
         ///
         /// <para>The branch order mirrors stock's exactly - no cluster, then not
-        /// enabled or not deployed, then powered, then controller off, then
+        /// deployed, then not enabled, then powered, then controller off, then
         /// unpowered - so this reports what the game's own readout would say,
         /// in a form that survives translation.</para>
         /// </summary>
@@ -7531,7 +7531,11 @@ namespace Gonogo.KSP
         /// </summary>
         private static DeployedPowerState DerivePowerState(bool enabled, bool deployed, bool isPowered, bool controllerEnabled)
         {
-            if (!enabled || !deployed)
+            if (!deployed)
+            {
+                return DeployedPowerState.NotDeployed;
+            }
+            if (!enabled)
             {
                 return DeployedPowerState.Disabled;
             }
@@ -7551,7 +7555,11 @@ namespace Gonogo.KSP
 
             var enabled = ReflectBool(type, module, "Enabled");
             var deployed = ReflectBool(type, module, "DeployedOnGround");
-            if (enabled == false || deployed == false)
+            if (deployed == false)
+            {
+                return DeployedPowerState.NotDeployed;
+            }
+            if (enabled == false)
             {
                 return DeployedPowerState.Disabled;
             }

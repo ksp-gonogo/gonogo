@@ -20,12 +20,13 @@ describe("deployed-science power state", () => {
     expect(stationWith(DeployedPowerState.Powered).powered).toBe(true);
   });
 
-  // The four states that mean not powered.
+  // The five states that mean not powered.
   it.each([
     ["Unpowered", DeployedPowerState.Unpowered],
     ["ControllerDisabled", DeployedPowerState.ControllerDisabled],
     ["Disabled", DeployedPowerState.Disabled],
     ["NotConnected", DeployedPowerState.NotConnected],
+    ["NotDeployed", DeployedPowerState.NotDeployed],
   ])("reads %s as NOT powered", (_name, power) => {
     expect(stationWith(power).powered).toBe(false);
   });

@@ -3718,6 +3718,7 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
     2: "ControllerDisabled",
     3: "Disabled",
     4: "NotConnected",
+    5: "NotDeployed",
   },
   "DockingPortState": {
     0: "Ready",

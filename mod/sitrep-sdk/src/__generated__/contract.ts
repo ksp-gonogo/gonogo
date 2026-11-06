@@ -8244,7 +8244,7 @@ export enum DeployedOffReason {
 * than by KSP.
 *
 * KSP has no enum for this. `ModuleGroundSciencePart` carries the state as a
-* localised sentence, so this reproduces the five outcomes `UpdateModuleUI()`
+* localised sentence, so this reproduces the six outcomes `UpdateModuleUI()`
 * distinguishes, derived from the booleans it reads rather than from the
 * sentence it writes. It is an ordinal on the wire and a closed union on the
 * client like every other enum in this contract.
@@ -8258,13 +8258,21 @@ export enum DeployedPowerState {
 	Unpowered = 1,
 	/** The cluster's controller is switched off, so nothing is powered. */
 	ControllerDisabled = 2,
-	/** This experiment is switched off, or is not deployed on the ground. */
+	/**
+	* This experiment is switched off. It is deployed on the ground; see
+	* `DeployedPowerState.NotDeployed` for one that is not.
+	*/
 	Disabled = 3,
 	/**
 	* Attached to no cluster at all. Distinct from `DeployedPowerState.Unpowered`:
 	* there is nothing to supply power, rather than a supply that is empty.
 	*/
-	NotConnected = 4
+	NotConnected = 4,
+	/**
+	* This experiment is not deployed on the ground. Distinct from
+	* `DeployedPowerState.Disabled`: the switch is not what holds it back.
+	*/
+	NotDeployed = 5
 }
 /**
 * One entry in the `science.sensors` Topic payload: a single

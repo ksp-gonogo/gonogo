@@ -3595,7 +3595,8 @@
       "1": "Unpowered",
       "2": "ControllerDisabled",
       "3": "Disabled",
-      "4": "NotConnected"
+      "4": "NotConnected",
+      "5": "NotDeployed"
     },
     "DockingPortState": {
       "0": "Ready",

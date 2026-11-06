@@ -765,7 +765,7 @@ public enum DeployedOffReason
 /// than by KSP.
 ///
 /// <para>KSP has no enum for this. <c>ModuleGroundSciencePart</c> carries the
-/// state as a localised sentence, so this reproduces the five outcomes
+/// state as a localised sentence, so this reproduces the six outcomes
 /// <c>UpdateModuleUI()</c> distinguishes, derived from the booleans it reads
 /// rather than from the sentence it writes. It is an ordinal on the wire and a
 /// closed union on the client like every other enum in this contract.</para>
@@ -791,8 +791,8 @@ public enum DeployedPowerState
     /// powered.</summary>
     ControllerDisabled,
 
-    /// <summary>This experiment is switched off, or is not deployed on the
-    /// ground.</summary>
+    /// <summary>This experiment is switched off. It is deployed on the ground;
+    /// see <see cref="NotDeployed"/> for one that is not.</summary>
     Disabled,
 
     /// <summary>
@@ -800,6 +800,10 @@ public enum DeployedPowerState
     /// there is nothing to supply power, rather than a supply that is empty.
     /// </summary>
     NotConnected,
+
+    /// <summary>This experiment is not deployed on the ground. Distinct from
+    /// <see cref="Disabled"/>: the switch is not what holds it back.</summary>
+    NotDeployed,
 }
 
 /// <summary>
