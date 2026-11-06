@@ -323,6 +323,8 @@ export interface LineChartProps {
     | ((room: { width: number; height: number; form: number }) => ReactNode);
   /** How many forms `card` can draw, the most spread out first. 1 when omitted. */
   cardForms?: number;
+  /** Laid over the middle of the plot rectangle, inside the axis gutters, so a message about an empty plot sits where the trace would be. */
+  plotNotice?: ReactNode;
   /** Chart width in pixels. */
   width: number;
   /** Chart height in pixels. */
@@ -574,6 +576,7 @@ export function LineChart({
   yTickUnit,
   card,
   cardForms = 1,
+  plotNotice,
   width,
   height,
 }: Readonly<LineChartProps>) {
@@ -2133,11 +2136,28 @@ export function LineChart({
     </div>
   ) : null;
 
+  const plotNoticeNode = plotNotice ? (
+    <div
+      data-plot-notice=""
+      style={{
+        position: "absolute",
+        left: plotX0,
+        top: plotY0,
+        width: plotW,
+        height: plotH,
+        pointerEvents: "none",
+      }}
+    >
+      {plotNotice}
+    </div>
+  ) : null;
+
   if (!crosshairOn) {
     return (
       <>
         {chart}
         {cardNode}
+        {plotNoticeNode}
       </>
     );
   }
@@ -2145,6 +2165,7 @@ export function LineChart({
     <>
       {chart}
       {cardNode}
+      {plotNoticeNode}
       <VisuallyHidden id={`${uid}-crosshair-hint`}>
         Use the arrow keys to read the values at each sample
       </VisuallyHidden>

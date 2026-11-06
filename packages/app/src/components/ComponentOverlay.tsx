@@ -190,6 +190,11 @@ export function ComponentOverlay({
       });
   }, [allComponents]);
 
+  const seatHidden = useMemo(
+    () => allComponents.filter((def) => !availableAtSeat(def, seat)),
+    [allComponents, seat],
+  );
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return allComponents.filter((def) => {
@@ -452,7 +457,15 @@ export function ComponentOverlay({
               </ChipRow>
             )}
             <ResultsHeader>
-              {filtered.length} of {allComponents.length} widgets
+              {filtered.length} of {allComponents.length - seatHidden.length}{" "}
+              widgets
+              {seatHidden.length > 0 && (
+                <Tooltip text={seatHidden.map((def) => def.name).join(", ")}>
+                  <Badge size="sm" tabIndex={0}>
+                    {seatHidden.length} hidden
+                  </Badge>
+                </Tooltip>
+              )}
             </ResultsHeader>
             {/* The options sit beside their checkboxes, which a listbox may not contain, so the listbox owns them by id instead. */}
             <div
@@ -659,6 +672,9 @@ const SearchInput = styled.input`
 `;
 
 const ResultsHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--gap-related);
   padding: var(--inset-overlay-heading);
   font-size: var(--font-size-caption);
   letter-spacing: 0.1em;
