@@ -1,8 +1,9 @@
-import { act, render, screen } from "@ksp-gonogo/test-utils";
+// @vitest-environment jsdom
+
 import { describe, expect, it } from "vitest";
+import { act, render, StubTransport, screen } from "../testing";
 import { TelemetryClient } from "./client";
 import { TelemetryProvider } from "./context";
-import { StubTransport } from "./stub-transport";
 import { useObservedVantage } from "./use-observed-vantage";
 
 function VantageProbe() {

@@ -25,6 +25,7 @@ import { useActionInput } from "../spine/use-action-input";
 import { useCommand } from "../spine/use-command";
 import { useDataSources } from "../spine/use-data-sources";
 import { useLateTelemetrySubscribe } from "../spine/use-late-telemetry-subscribe";
+import { useObservedVantage } from "../spine/use-observed-vantage";
 import { useProcessor } from "../spine/use-processor";
 import { useRouteCommands } from "../spine/use-route-commands";
 import { useLatestValue, useStream } from "../spine/use-stream";
@@ -148,6 +149,7 @@ export function installRealTestHost(uiKit: UiKitHostPieces): () => void {
     useTelemetryStoreOptional: () => useTelemetryStoreOptional(),
     useViewClockOptional: () => useViewClockOptional(),
     useTopicClock: (topic) => useTopicClock(topic),
+    useObservedVantage: () => useObservedVantage(),
     getActiveTelemetryClient: () =>
       getActiveTelemetryClient() as ReturnType<
         GonogoHost["getActiveTelemetryClient"]

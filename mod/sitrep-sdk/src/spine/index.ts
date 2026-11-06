@@ -126,6 +126,7 @@ export * from "./use-body-states";
 export * from "./use-command";
 export * from "./use-data-sources";
 export * from "./use-late-telemetry-subscribe";
+export * from "./use-observed-vantage";
 export * from "./use-orbit-curve";
 export * from "./use-orbit-trajectory";
 export * from "./use-patch-chain";

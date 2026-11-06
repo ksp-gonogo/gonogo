@@ -74,6 +74,8 @@ export {
   solveSelfOrbit,
   systemPosesAt,
   type UseTransmissionsResult,
+  useObservedVantage,
+  useSelectedVantage,
   useSystemInstant,
   useTransmissions,
 } from "@ksp-gonogo/sitrep-sdk/spine";
@@ -494,14 +496,12 @@ export {
   type Unsubscribe,
   useLateTelemetrySubscribe,
 } from "./use-late-telemetry-subscribe";
-export { useObservedVantage } from "./use-observed-vantage";
 export { useProcessor } from "./use-processor";
 export type {
   PendingUplinkQueueLike,
   UseRouteCommandsResult,
 } from "./use-route-commands";
 export { useRouteCommands } from "./use-route-commands";
-export { useSelectedVantage } from "./use-selected-vantage";
 export { useLatestValue, useStream } from "./use-stream";
 export { useStreamEvent } from "./use-stream-event";
 export { useStreamStatus } from "./use-stream-status";

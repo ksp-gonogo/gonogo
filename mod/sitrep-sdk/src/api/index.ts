@@ -1225,6 +1225,26 @@ export function useTopicClock(topic: string): TopicClock {
 }
 
 /**
+ * The command centre this screen is viewing from, as the frames arriving in
+ * front of the operator name it, updating when it changes. Useful for deciding
+ * whether a camera or readout belongs to the place the operator is watching
+ * from, such as telling a ground camera at the viewing command centre from one
+ * at another. Used by a camera feed to read its own signal at the viewer's
+ * vantage rather than the active craft's.
+ *
+ * `undefined` until a frame has arrived, while the mod reports no command
+ * centre (no save is loaded), and with no stream mounted. On a station it names
+ * the centre of the host session the frames are relayed from, since the
+ * station's own selection never leaves the default.
+ *
+ * @category Delay and vantage
+ */
+export function useObservedVantage(): string | undefined {
+  // gonogo:reads none
+  return getHost().useObservedVantage();
+}
+
+/**
  * Returns the {@link TelemetryClient} of the most recently mounted telemetry
  * stream, or `undefined` when none is mounted. Useful for code outside a React
  * component that needs to reach the stream; a component uses

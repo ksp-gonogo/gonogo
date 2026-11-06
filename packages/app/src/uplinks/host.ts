@@ -37,6 +37,7 @@ import {
   useCommand,
   useLatestValue,
   useLateTelemetrySubscribe,
+  useObservedVantage,
   useProcessor,
   useRouteCommands,
   useStream,
@@ -107,6 +108,7 @@ export function buildGonogoHost(): GonogoHost {
     useTelemetryStoreOptional: () => useTelemetryStoreOptional(),
     useViewClockOptional: () => useViewClockOptional(),
     useTopicClock: (topic) => useTopicClock(topic),
+    useObservedVantage: () => useObservedVantage(),
     /*
      * A hosting screen's Uplinks send their commands on the host's jobs
      * connection, from the centre the screen's picker chose. Without one (a

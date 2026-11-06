@@ -8299,6 +8299,10 @@
         "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
       },
       {
+        "key": "sitrep-sdk . GonogoHost#useObservedVantage",
+        "note": "The host member behind useObservedVantage"
+      },
+      {
         "key": "sitrep-sdk . GonogoHost#useStreamEvent",
         "note": "the event handler is also given the frame's Meta, whose validAt and deliveredAt stamp when the event happened and when it arrived"
       },
@@ -10477,6 +10481,10 @@
       {
         "key": "sitrep-sdk ./testing ~GonogoHost#useHostIceServers",
         "note": "Removed. The relay runs no TURN server, so the main screen has no ICE servers to hand a station; a station's media connection to a server on the main screen's network goes through RelayCaller.bridgeMedia"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~GonogoHost#useObservedVantage",
+        "note": "The host member behind useObservedVantage"
       },
       {
         "key": "sitrep-sdk ./testing ~GonogoHost#useStreamEvent",
@@ -13697,6 +13705,10 @@
         "note": "New: read the countdown to the liftoff of the active craft"
       },
       {
+        "key": "sitrep-sdk . useObservedVantage",
+        "note": "New: the command centre the arriving frames name, so a feed can tell its own site from the viewer's"
+      },
+      {
         "key": "sitrep-sdk . useSystemInstant",
         "note": "Where every body is at the instant on screen, as a pose that says whether it is exact, modelled, held or withdrawn"
       },
@@ -16271,6 +16283,10 @@
       {
         "key": "sitrep-sdk ./spine useLivePhaseAngles",
         "note": "New: where each body leads the craft in [0, 360), left out while its pose is held or withdrawn, for a mark drawn only while true"
+      },
+      {
+        "key": "sitrep-sdk ./spine useObservedVantage",
+        "note": "New: the command centre the arriving frames name, so a feed can tell its own site from the viewer's"
       },
       {
         "key": "sitrep-sdk ./spine useOrbitCurve",

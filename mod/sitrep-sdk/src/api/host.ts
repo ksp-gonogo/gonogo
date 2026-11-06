@@ -134,6 +134,8 @@ export interface GonogoHost {
   useViewClockOptional(): ViewClockLike | undefined;
   /** What {@link useTopicClock} calls. */
   useTopicClock(topic: string): TopicClock;
+  /** What {@link useObservedVantage} calls. */
+  useObservedVantage(): string | undefined;
 
   /** What {@link useReplaySessionActive} calls. */
   useReplaySessionActive(): boolean;
