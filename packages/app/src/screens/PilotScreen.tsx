@@ -3,6 +3,7 @@ import { StationConnectView } from "@ksp-gonogo/ui";
 import { Button, Text } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
+import { pageCounter } from "../analytics/pageCounts";
 import { useFollowHostAnalytics } from "../analytics/useFollowHostAnalytics";
 import { StationSupersededNotice } from "../components/StationSupersededNotice";
 import { PeerClientProvider } from "../peer/PeerClientContext";
@@ -82,6 +83,7 @@ export function PilotScreen() {
         if (s === "connected") {
           setHostNotFound(false);
           setEverConnected(true);
+          pageCounter().event("pilot-joined");
         }
       }),
       client.onHostUnavailable(() => setHostNotFound(true)),

@@ -38,6 +38,7 @@
  */
 
 import {
+  copyFileSync,
   cpSync,
   existsSync,
   mkdirSync,
@@ -52,11 +53,20 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 /** The paths each channel owns in the site checkout, relative to its root. */
 export const OWNED_PATHS = {
-  rc: ["rc", "gonogo", "index.html", "img", "404.html", ".nojekyll"],
+  rc: [
+    "rc",
+    "gonogo",
+    "index.html",
+    "counting.js",
+    "img",
+    "404.html",
+    ".nojekyll",
+  ],
   release: [
     "app",
     "gonogo",
     "index.html",
+    "counting.js",
     "img",
     "404.html",
     "README.md",
@@ -170,6 +180,15 @@ const LANDING_APP_LINK = "https://ksp-gonogo.github.io/app/";
 /** Where the landing page names SpaceDock beside the GitHub Releases page, once Gonogo is listed there. */
 export const SPACEDOCK_SLOT = "<!-- spacedock -->";
 
+/** Where the landing page's counting script reads its site code, filled from `docs/homepage/goatcounter.json`. */
+export const COUNT_SITE_SLOT = "__GOATCOUNTER_SITE__";
+
+function countSite() {
+  return JSON.parse(
+    readFileSync(join(REPO_ROOT, "docs/homepage/goatcounter.json"), "utf8"),
+  ).site;
+}
+
 /** The landing page's SpaceDock link for a mod id, or nothing when there is no listing yet. */
 export function spacedockLink(modId) {
   if (!modId) return "";
@@ -197,7 +216,12 @@ function writeRoot(site, appBase, apiPage, spacedockModId) {
     join(site, "index.html"),
     landing
       .replaceAll(LANDING_APP_LINK, `https://ksp-gonogo.github.io${appBase}`)
-      .replaceAll(SPACEDOCK_SLOT, spacedockLink(spacedockModId)),
+      .replaceAll(SPACEDOCK_SLOT, spacedockLink(spacedockModId))
+      .replaceAll(COUNT_SITE_SLOT, countSite()),
+  );
+  copyFileSync(
+    join(REPO_ROOT, "docs/homepage/counting.js"),
+    join(site, "counting.js"),
   );
   // An old deep link that is not one of the written routes still lands here, so the root fallback is the redirect page too.
   writeFileSync(

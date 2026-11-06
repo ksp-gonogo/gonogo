@@ -28,6 +28,7 @@ import {
   AlarmsModal,
   StationAlarmBanner,
 } from "../alarms";
+import { pageCounter } from "../analytics/pageCounts";
 import { useFollowHostAnalytics } from "../analytics/useFollowHostAnalytics";
 import { ComponentOverlay } from "../components/ComponentOverlay";
 import type { DashboardConfig } from "../components/Dashboard";
@@ -251,6 +252,7 @@ export function StationScreen() {
         if (s === "connected") {
           setHostNotFound(false);
           setEverConnected(true);
+          pageCounter().event("station-joined");
         }
       }),
     );

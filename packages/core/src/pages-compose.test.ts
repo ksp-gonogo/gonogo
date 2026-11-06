@@ -111,6 +111,15 @@ describe("the rc channel before the first release", () => {
     expect(read("index.html")).not.toContain("ksp-gonogo.github.io/app/");
   });
 
+  it("fills the landing page's count script with the shared site code and ships the script", () => {
+    compose("rc", dist, api, site);
+    expect(read("index.html")).toContain(
+      '<script src="counting.js" data-site="ksp-gonogo">',
+    );
+    expect(read("index.html")).not.toContain("__GOATCOUNTER_SITE__");
+    expect(read("counting.js")).toContain("GonogoLandingCounting");
+  });
+
   it("sends the old /gonogo/ URLs to /rc/, keeping the station routes", () => {
     compose("rc", dist, api, site);
 

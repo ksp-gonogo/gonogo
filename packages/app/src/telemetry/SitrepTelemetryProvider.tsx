@@ -16,6 +16,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import { pageCounter } from "../analytics/pageCounts";
 import { KspCalendarObserver } from "./KspCalendarObserver";
 import {
   getSitrepHostConfig,
@@ -253,7 +254,10 @@ export function SitrepTelemetryProvider({
     const unsubStatus = statusSource?.onStatusChange((status) => {
       reportSitrepTransportStatus(status);
       traceStatus(status);
-      if (status === "connected") setVantageRefused(false);
+      if (status === "connected") {
+        setVantageRefused(false);
+        if (ownedTransport) pageCounter().event("game-connected");
+      }
     });
     if (statusSource) {
       reportSitrepTransportStatus(statusSource.status);

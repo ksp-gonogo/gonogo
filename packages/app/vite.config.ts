@@ -17,6 +17,16 @@ import { workspaceAliases } from "./workspaceAlias";
 
 const workspaceAlias = workspaceAliases();
 
+/** The hosted page-count site code, the one place it is set; the landing page reads the same file. */
+const COUNT_SITE = (
+  JSON.parse(
+    readFileSync(
+      resolve(__dirname, "../../docs/homepage/goatcounter.json"),
+      "utf-8",
+    ),
+  ) as { site: string }
+).site;
+
 const pkg = JSON.parse(
   readFileSync(resolve(__dirname, "package.json"), "utf-8"),
 ) as { version: string };
@@ -340,6 +350,7 @@ export default defineConfig({
     __GONOGO_VERSION__: JSON.stringify(VERSION),
     __GONOGO_BUILD_TIME__: JSON.stringify(BUILD_TIME),
     __GONOGO_CHANNEL__: JSON.stringify(CHANNEL),
+    __GONOGO_COUNT_SITE__: JSON.stringify(COUNT_SITE),
     // The C# contract's half of the app's Uplink-compat identity; read by
     // src/uplinks/hostCompat.ts and gated against a descriptor's declared
     // versions before any bundle is loaded. apiVersion needs no define:

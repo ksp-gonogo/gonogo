@@ -21,7 +21,8 @@
         "$TURBO_ROOT$/scripts/uplink-matrix.mjs",
         "$TURBO_ROOT$/tests/fixtures/wire/**",
         "$TURBO_ROOT$/README.md",
-        "$TURBO_ROOT$/docs/homepage/index.html"
+        "$TURBO_ROOT$/docs/homepage/index.html",
+        "$TURBO_ROOT$/docs/homepage/counting.js"
       ]
     }
   }

@@ -11,6 +11,7 @@ import { ModalProvider } from "@ksp-gonogo/ui";
 import { UiKitThemeProvider } from "@ksp-gonogo/ui-kit";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { pageCounter } from "./analytics/pageCounts";
 import { installSocketTrace } from "./peer/peerSocketTrace";
 // Side-effect imports below trigger self-registration of built-in
 // extensions: themes (from @ksp-gonogo/ui), components (from @ksp-gonogo/components),
@@ -34,6 +35,7 @@ import { BUILD_TIME, VERSION } from "./version";
 
 setAppVersion(VERSION, BUILD_TIME);
 stampBootRole();
+pageCounter().countPage();
 
 // The Axiom transport is opt-in and consent-gated, it is NOT installed
 // here. The main screen installs/removes it via AnalyticsConsentHost while
