@@ -14986,7 +14986,10 @@ components:
           items:
             type: string
             x-sitrep-unit: text
-          description: "Names of the kerbals lost in this crash: everyone aboard at the crash."
+          description: |-
+            Names of the kerbals the game reported killed in this crash. A kerbal the
+            game reports after the crash was first published is added and the crash is
+            published again.
         situation:
           type: string
           x-sitrep-unit: text

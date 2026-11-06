@@ -42,6 +42,8 @@ namespace Gonogo.KSP
         private readonly VesselDeaths<CrashCapture, CrashImpact> _deaths =
             new VesselDeaths<CrashCapture, CrashImpact>(ImpactWindowUt);
 
+        private readonly Dictionary<string, CrashCapture> _recentCaptures = new Dictionary<string, CrashCapture>();
+
         private IChannelPublisher? _lastCrash;
         private IChannelPublisher? _hasRecent;
         private bool _subscribed;
@@ -192,7 +194,28 @@ namespace Gonogo.KSP
             {
                 return;
             }
-            _tracker.RecordKerbalKilled(vessel.id.ToString(), GameWords.Text(report!.sender));
+            var id = vessel.id.ToString();
+            var name = GameWords.Text(report!.sender);
+            _tracker.RecordKerbalKilled(id, name);
+            AmendRecentCrash(id, name);
+        }
+
+        /// <summary>
+        /// MAIN-THREAD: stock reports a splashdown death after it destroys the vessel, so the
+        /// crash is already built, and usually published. A kill inside the window of that death
+        /// joins the record, and a record already published goes out again.
+        /// </summary>
+        private void AmendRecentCrash(string vesselId, string name)
+        {
+            if (!_recentCaptures.TryGetValue(vesselId, out var capture)
+                || Math.Abs(Planetarium.GetUniversalTime() - capture.Ut) > ImpactWindowUt)
+            {
+                return;
+            }
+            if (capture.NoteKilled(name, name + " was killed.") && capture.Published)
+            {
+                PublishCrash(capture);
+            }
         }
 
         private void OnCrash(EventReport report) => NoteImpact(report, "Crash");
@@ -261,8 +284,10 @@ namespace Gonogo.KSP
                 // One line per vessel that dies: the debris a crash breaks into
                 // and the second event the game raises for the same vessel
                 // write nothing.
-                if (_deaths.Death(vessel.id.ToString(), BuildCapture(vessel, vesselType, ut), ut))
+                var capture = BuildCapture(vessel, vesselType, ut);
+                if (_deaths.Death(vessel.id.ToString(), capture, ut))
                 {
+                    _recentCaptures[vessel.id.ToString()] = capture;
                     GonogoLog.Info("crash", "crash: " + eventName + " vessel " + vessel.id
                         + " type " + vesselType + " active " + (active != null && active.id == vessel.id));
                 }
@@ -280,6 +305,19 @@ namespace Gonogo.KSP
         /// </summary>
         private void PublishDeaths(double nowUt)
         {
+            var stale = new List<string>();
+            foreach (var entry in _recentCaptures)
+            {
+                if (entry.Value.Published && Math.Abs(nowUt - entry.Value.Ut) > ImpactWindowUt)
+                {
+                    stale.Add(entry.Key);
+                }
+            }
+            foreach (var id in stale)
+            {
+                _recentCaptures.Remove(id);
+            }
+
             foreach (var death in _deaths.Drain(nowUt))
             {
                 try
@@ -295,16 +333,21 @@ namespace Gonogo.KSP
                         capture.NameCause(impact.Kind, impact.What, impact.Msg, impact.Part);
                     }
                     capture.Events.Add(CrashLine(capture.VesselName, capture.EventKind));
-
-                    // The crash is the lost craft's own report, sent over its own link.
-                    SayFrom(_lastCrash, capture.VesselId, CrashPayload.Build(capture), death.Ut);
-                    SayFrom(_hasRecent, capture.VesselId, CrashPayload.ToWire(new CrashRecent { Recent = true }), death.Ut);
+                    capture.Published = true;
+                    PublishCrash(capture);
                 }
                 catch (Exception ex)
                 {
                     GonogoLog.Error("crash publish failed", ex);
                 }
             }
+        }
+
+        private void PublishCrash(CrashCapture capture)
+        {
+            // The crash is the lost craft's own report, sent over its own link.
+            SayFrom(_lastCrash, capture.VesselId, CrashPayload.Build(capture), capture.Ut);
+            SayFrom(_hasRecent, capture.VesselId, CrashPayload.ToWire(new CrashRecent { Recent = true }), capture.Ut);
         }
 
         private static void SayFrom(IChannelPublisher? publisher, string vesselId, object payload, double ut)
@@ -333,8 +376,6 @@ namespace Gonogo.KSP
                 FlightStats = _tracker.Snapshot(vesselId, vessel.missionTime),
                 VesselName = GameWords.VesselName(vessel),
                 Events = new List<string>(_tracker.Events(vesselId)),
-                // Everyone aboard died in the crash.
-                KerbalsKilled = new List<string>(crew),
                 Situation = vessel.situation.ToString(),
                 CrewAboard = crew,
                 Altitude = vessel.altitude,

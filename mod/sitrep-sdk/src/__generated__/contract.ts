@@ -3428,7 +3428,11 @@ export interface CrashReport
 	* most the 200 most recent lines.
 	*/
 	events: string[];
-	/** Names of the kerbals lost in this crash: everyone aboard at the crash. */
+	/**
+	* Names of the kerbals the game reported killed in this crash. A kerbal the
+	* game reports after the crash was first published is added and the crash is
+	* published again.
+	*/
 	kerbalsKilled: string[];
 	/**
 	* The vessel's flight situation at the crash (`Vessel.Situations` name, e.g.

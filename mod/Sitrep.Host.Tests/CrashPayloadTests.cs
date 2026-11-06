@@ -246,6 +246,28 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void NoteKilled_ASplashdownKillReportedAfterTheCrashWasBuiltJoinsTheRecord()
+        {
+            var tracker = new FlightStatsTracker();
+            tracker.Sample("v", ut: 1, altitude: 0, srfSpeed: 223, horizontalSrfSpeed: 0, missionTime: 1, geeForce: 1, splashed: false);
+            tracker.ObserveRoster("v", new List<LostPart>(), new[] { "Jebediah Kerman" });
+            var capture = new CrashCapture { VesselId = "v", EventKind = "CrashSplashdown", FlightStats = tracker.Snapshot("v", 1) };
+            capture.Reconcile(tracker.ObservedParts("v"), tracker.ObservedCrew("v"), tracker.KilledNames("v"));
+
+            var before = CrashPayload.Build(capture);
+            Assert.Empty((List<object?>)before["kerbalsKilled"]!);
+
+            Assert.True(capture.NoteKilled("Jebediah Kerman", "Jebediah Kerman was killed."));
+            var wire = CrashPayload.Build(capture);
+
+            Assert.Equal("Jebediah Kerman", Assert.Single((List<object?>)wire["kerbalsKilled"]!));
+            Assert.Equal("Jebediah Kerman", Assert.Single((List<object?>)wire["crewAboard"]!));
+            Assert.Equal(1, ((Dictionary<string, object?>)wire["flightStats"]!)["kerbalsKilled"]);
+            Assert.Contains("Jebediah Kerman was killed.", (List<object?>)wire["events"]!);
+            Assert.False(capture.NoteKilled("Jebediah Kerman", "Jebediah Kerman was killed."));
+        }
+
+        [Fact]
         public void Reconcile_AKerbalOnlyOnTheLastRosterIsNotReportedKilled()
         {
             var tracker = new FlightStatsTracker();

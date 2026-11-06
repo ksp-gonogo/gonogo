@@ -83,7 +83,10 @@ public class CrashReport
     [SitrepUnit(Units.Text)]
     public List<string> Events { get; set; } = new();
 
-    /// <summary>Names of the kerbals lost in this crash: everyone aboard at the crash.</summary>
+    /// <summary>
+    /// Names of the kerbals the game reported killed in this crash. A kerbal the game reports after the
+    /// crash was first published is added and the crash is published again.
+    /// </summary>
     [SitrepUnit(Units.Text)]
     public List<string> KerbalsKilled { get; set; } = new();
 

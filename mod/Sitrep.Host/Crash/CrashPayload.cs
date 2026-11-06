@@ -80,6 +80,9 @@ namespace Sitrep.Host.Crash
         public double Altitude;
         public double Ut;
 
+        /// <summary>True once this record has been published, so a late change republishes it.</summary>
+        public bool Published;
+
         /// <summary>
         /// Folds in what the vessel was last seen carrying. Whatever the game no longer lists
         /// when it reports the vessel destroyed (parts already broken off, crew already killed)
@@ -108,6 +111,26 @@ namespace Sitrep.Host.Crash
                     KerbalsKilled.Add(name);
                 }
             }
+        }
+
+        /// <summary>
+        /// Records a kerbal the game reported killed after this record was built, which stock does
+        /// on a splashdown: the vessel is destroyed first and the crew-killed report follows. Returns
+        /// true when the record changed, so a record already published is published again.
+        /// </summary>
+        public bool NoteKilled(string name, string eventLine)
+        {
+            if (string.IsNullOrEmpty(name) || KerbalsKilled.Contains(name))
+            {
+                return false;
+            }
+            AddAboard(name);
+            KerbalsKilled.Add(name);
+            if (!string.IsNullOrEmpty(eventLine))
+            {
+                Events.Add(eventLine);
+            }
+            return true;
         }
 
         private void AddAboard(string name)

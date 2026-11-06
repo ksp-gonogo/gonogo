@@ -22,5 +22,17 @@ namespace Gonogo.KSP.Tests
             var body = CurrencyDelaySourceText.MethodBody(source, "private void OnCrewKilled(EventReport report)");
             Assert.Contains("_tracker.RecordKerbalKilled(", body, StringComparison.Ordinal);
         }
+
+        [Fact]
+        public void a_kill_after_the_crash_was_built_amends_and_republishes_it()
+        {
+            var source = CurrencyDelaySourceText.ReadRelative("CrashUplink.cs");
+
+            var body = CurrencyDelaySourceText.MethodBody(source, "private void OnCrewKilled(EventReport report)");
+            Assert.Contains("AmendRecentCrash(", body, StringComparison.Ordinal);
+            var amend = CurrencyDelaySourceText.MethodBody(source, "private void AmendRecentCrash(string vesselId, string name)");
+            Assert.Contains("capture.NoteKilled(", amend, StringComparison.Ordinal);
+            Assert.Contains("PublishCrash(capture)", amend, StringComparison.Ordinal);
+        }
     }
 }
