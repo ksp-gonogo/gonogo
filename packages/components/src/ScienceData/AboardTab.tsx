@@ -14,6 +14,7 @@ import {
   Stack,
   Text,
   Unit,
+  useElementSize,
   useRowFilter,
   useSlotBound,
 } from "@ksp-gonogo/ui-kit";
@@ -51,8 +52,15 @@ function dated<UnitSymbol extends string>(
   return datedFrom(from, dynamicValue(unit, amount));
 }
 
+/** The ledger width, in CSS pixels, from which the Biome column has room beside the others. */
+const BIOME_COLUMN_MIN_WIDTH = 360;
+
+/** The ledger width, in CSS pixels, from which the Data column has room beside Subject and Remaining. */
+const DATA_COLUMN_MIN_WIDTH = 240;
+
 const breakdownColumns = (
   from: readonly CarriedCurrency[],
+  ledgerWidth: number,
 ): ReadonlyArray<DataTableColumn<ExperimentBreakdownEntry>> => [
   {
     key: "subject",
@@ -62,23 +70,32 @@ const breakdownColumns = (
     minWidth: "14ch",
     render: (b) => b.expTitle,
   },
-  {
-    key: "biome",
-    header: "Biome",
-    render: (b) => b.biome || <Text level="muted">{NULL_DISPLAY}</Text>,
-  },
-  {
-    key: "data",
-    header: "Data",
-    align: "end",
-    width: "9ch",
-    render: (b) =>
-      b.dataMits === null ? (
-        <Text level="muted">{NULL_DISPLAY}</Text>
-      ) : (
-        <Unit value={dated(from, "Mit", b.dataMits)} />
-      ),
-  },
+  ...(ledgerWidth >= BIOME_COLUMN_MIN_WIDTH
+    ? [
+        {
+          key: "biome",
+          header: "Biome",
+          render: (b: ExperimentBreakdownEntry) =>
+            b.biome || <Text level="muted">{NULL_DISPLAY}</Text>,
+        },
+      ]
+    : []),
+  ...(ledgerWidth >= DATA_COLUMN_MIN_WIDTH
+    ? [
+        {
+          key: "data",
+          header: "Data",
+          align: "end" as const,
+          width: "9ch",
+          render: (b: ExperimentBreakdownEntry) =>
+            b.dataMits === null ? (
+              <Text level="muted">{NULL_DISPLAY}</Text>
+            ) : (
+              <Unit value={dated(from, "Mit", b.dataMits)} />
+            ),
+        },
+      ]
+    : []),
   {
     key: "remaining",
     header: "Remaining",
@@ -134,7 +151,9 @@ function AboardLedger({
   experiments,
   slotFilled,
   from,
+  ledgerWidth,
 }: Readonly<{
+  ledgerWidth: number;
   breakdown: ExperimentBreakdownEntry[] | null;
   experiments: ParsedExperiment[] | null;
   slotFilled: boolean;
@@ -145,7 +164,7 @@ function AboardLedger({
       <DataTable
         caption="Science aboard the active vessel, by subject"
         empty="No subject matches the filter."
-        columns={breakdownColumns(from)}
+        columns={breakdownColumns(from, ledgerWidth)}
         rows={breakdown}
         rowKey={(b) => b.subjectId}
         rowDetail={
@@ -231,14 +250,23 @@ export function AboardTab({
   const hasBreakdown = breakdown !== null && breakdown.length > 0;
   const hasExperiments = experiments !== null && experiments.length > 0;
 
+  /* Zero until measured, so the narrow form is what first paints at the default size. */
+  const { ref: ledgerRef, size: ledgerSize } = useElementSize<HTMLDivElement>({
+    w: 0,
+    h: 0,
+  });
+
   const ledger = (
     <ScrollArea>
-      <AboardLedger
-        breakdown={hasBreakdown ? shownBreakdown : null}
-        experiments={hasExperiments ? shownExperiments : null}
-        slotFilled={slotFilled}
-        from={ledgerFrom}
-      />
+      <div ref={ledgerRef}>
+        <AboardLedger
+          ledgerWidth={ledgerSize.w}
+          breakdown={hasBreakdown ? shownBreakdown : null}
+          experiments={hasExperiments ? shownExperiments : null}
+          slotFilled={slotFilled}
+          from={ledgerFrom}
+        />
+      </div>
     </ScrollArea>
   );
 

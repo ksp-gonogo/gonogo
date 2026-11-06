@@ -2,10 +2,11 @@ import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import {
   expectNoA11yViolations,
+  installFixedSizeResizeObserver,
   visibleText,
 } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, onTestFinished } from "vitest";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -128,7 +129,43 @@ describe("ScienceDataComponent", () => {
     expect(screen.queryByText(/42 SCI/)).not.toBeInTheDocument();
   });
 
+  it.each([
+    { width: 500, columns: ["Subject", "Biome", "Data", "Remaining"] },
+    { width: 300, columns: ["Subject", "Data", "Remaining"] },
+    { width: 200, columns: ["Subject", "Remaining"] },
+  ])("draws the Aboard columns $columns at a ledger $width px wide", async ({
+    width,
+    columns,
+  }) => {
+    const restore = installFixedSizeResizeObserver({ width, height: 400 });
+    try {
+      const fixture = newFixture();
+      renderData(fixture);
+      act(() => {
+        fixture.emit("science.experimentBreakdown", [
+          {
+            subjectId: "mysteryGoo@MunSrfLandedMidlands",
+            biome: "Midlands",
+            situation: "SrfLanded",
+            expTitle: "Mystery Goo Observation",
+            dataMits: 8,
+            remainingPotential: 12.5,
+          },
+        ]);
+      });
+      await waitFor(() =>
+        expect(
+          screen.getAllByRole("columnheader").map((h) => h.textContent),
+        ).toEqual(columns),
+      );
+    } finally {
+      restore();
+    }
+  });
+
   it("lists the Aboard breakdown rows with data and remaining potential", async () => {
+    const restore = installFixedSizeResizeObserver({ width: 300, height: 400 });
+    onTestFinished(restore);
     const fixture = newFixture();
     renderData(fixture);
     act(() => {
