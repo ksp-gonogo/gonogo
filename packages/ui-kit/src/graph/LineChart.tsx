@@ -85,9 +85,6 @@ export interface ChartSeriesData {
 
 const HEAD_MARK_RADIUS = 4;
 
-/** How far the trace clip stands outside the plot, so a stroke along the frame's own edge keeps its full width. */
-const TRACE_CLIP_PAD = 2;
-
 /** Larger than a scatter dot so it holds its own against the dashed line crossing it. */
 const OBSERVED_MARK_RADIUS = 2.5;
 
@@ -481,25 +478,13 @@ const RECKONED_BAND_EDGE_OPACITY = 0.45;
 
 const BAND_CLAIM = "the value is inside the shaded region";
 
-/**
- * Every finite Y value a series can draw: its samples, a band's upper bounds, the
- * uncertainty bands of reckoned runs and the model's path across a bridged gap.
- */
+/** Pull every plottable Y value out of a series, including band upper bounds. */
 function seriesYValues(s: ChartSeries): number[] {
-  const out: number[] = [...s.data.y];
-  if ((s.type ?? "line") === "band" && s.data.y2) out.push(...s.data.y2);
-  for (const run of s.data.reckoned ?? []) {
-    if (run.bandLo && run.bandHi) out.push(...run.bandLo, ...run.bandHi);
+  if ((s.type ?? "line") === "band" && s.data.y2) {
+    return [...s.data.y, ...s.data.y2];
   }
-  for (const bridge of s.data.bridges ?? []) out.push(...bridge.v);
-  return out.filter(Number.isFinite);
+  return s.data.y;
 }
-
-/** A span narrower than this share of the values' own magnitude is single-precision rounding, not movement. */
-const MIN_RELATIVE_SPAN = 1e-5;
-
-/** The narrowest half-span an axis keeps around values that are all near zero. */
-const MIN_ABSOLUTE_SPAN = 1e-9;
 
 /** The width the column beside the plot needs to hold its widest line whole: the legend chips and the limit and target captions. */
 function readoutColumnWidth({
@@ -1588,7 +1573,6 @@ export function LineChart({
   const onSolid =
     spatial && layers ? solidRegionCover(layers, layerFrame) : () => false;
   const layerClipId = `plot-layer-clip-${uid}`;
-  const traceClipId = `plot-trace-clip-${uid}`;
 
   // Negative rect dimensions spam the console.
   if (plotW <= 0 || plotH <= 0) {
@@ -1628,19 +1612,13 @@ export function LineChart({
           : {}),
       }}
     >
-      <defs>
-        <clipPath id={layerClipId}>
-          <rect x={plotX0} y={plotY0} width={plotW} height={plotH} />
-        </clipPath>
-        <clipPath id={traceClipId}>
-          <rect
-            x={plotX0 - TRACE_CLIP_PAD}
-            y={plotY0 - TRACE_CLIP_PAD}
-            width={plotW + 2 * TRACE_CLIP_PAD}
-            height={plotH + 2 * TRACE_CLIP_PAD}
-          />
-        </clipPath>
-      </defs>
+      {layers && layers.length > 0 && (
+        <defs>
+          <clipPath id={layerClipId}>
+            <rect x={plotX0} y={plotY0} width={plotW} height={plotH} />
+          </clipPath>
+        </defs>
+      )}
       {/* A hover only where a mark needs one: a held or modelled figure says why, and a chart with nothing to say draws no native tooltip. */}
       {stateClauses.length > 0 && <title>{stateClauses.join("; ")}</title>}
       <rect
@@ -1830,164 +1808,158 @@ export function LineChart({
         </>
       )}
 
-      <g clipPath={`url(#${traceClipId})`}>
-        {drawables
-          .filter(
-            (d): d is Extract<typeof d, { kind: "band" }> => d.kind === "band",
-          )
-          .map((d) => (
+      {drawables
+        .filter(
+          (d): d is Extract<typeof d, { kind: "band" }> => d.kind === "band",
+        )
+        .map((d) => (
+          <path
+            key={d.id}
+            d={d.d}
+            fill={d.color}
+            fillOpacity={d.opacity}
+            stroke="none"
+          />
+        ))}
+
+      {/* A hard bound gets an edge; a one-sigma region has none, since it claims no boundary. */}
+      {drawables
+        .filter(
+          (d): d is Extract<typeof d, { kind: "stroked" }> =>
+            d.kind === "stroked",
+        )
+        .flatMap((d) =>
+          d.uncertainty.map((region, i) => (
             <path
-              key={d.id}
-              d={d.d}
+              // biome-ignore lint/suspicious/noArrayIndexKey: a region has no identity beyond its run's position
+              key={`${d.id}-band-${i}`}
+              d={region.d}
+              data-band-kind={region.kind}
               fill={d.color}
-              fillOpacity={d.opacity}
-              stroke="none"
+              fillOpacity={RECKONED_BAND_OPACITY}
+              stroke={region.kind === "bound" ? d.color : "none"}
+              strokeOpacity={
+                region.kind === "bound" ? RECKONED_BAND_EDGE_OPACITY : undefined
+              }
+              strokeWidth={region.kind === "bound" ? 1 : undefined}
             />
-          ))}
+          )),
+        )}
 
-        {/* A hard bound gets an edge; a one-sigma region has none, since it claims no boundary. */}
-        {drawables
-          .filter(
-            (d): d is Extract<typeof d, { kind: "stroked" }> =>
-              d.kind === "stroked",
-          )
-          .flatMap((d) =>
-            d.uncertainty.map((region, i) => (
+      {drawables
+        .filter(
+          (d): d is Extract<typeof d, { kind: "stroked" }> =>
+            d.kind === "stroked",
+        )
+        .flatMap((d) =>
+          d.segments.map((seg, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: a run has no identity beyond its position in the series
+            <React.Fragment key={`${d.id}-${i}`}>
+              {compact &&
+                seg.basis === undefined &&
+                areaUnder(seg.d, plotY1) && (
+                  <path
+                    d={areaUnder(seg.d, plotY1) ?? undefined}
+                    fill={d.color}
+                    fillOpacity={0.12}
+                    stroke="none"
+                  />
+                )}
               <path
-                // biome-ignore lint/suspicious/noArrayIndexKey: a region has no identity beyond its run's position
-                key={`${d.id}-band-${i}`}
-                d={region.d}
-                data-band-kind={region.kind}
-                fill={d.color}
-                fillOpacity={RECKONED_BAND_OPACITY}
-                stroke={region.kind === "bound" ? d.color : "none"}
-                strokeOpacity={
-                  region.kind === "bound"
-                    ? RECKONED_BAND_EDGE_OPACITY
-                    : undefined
-                }
-                strokeWidth={region.kind === "bound" ? 1 : undefined}
-              />
-            )),
-          )}
-
-        {drawables
-          .filter(
-            (d): d is Extract<typeof d, { kind: "stroked" }> =>
-              d.kind === "stroked",
-          )
-          .flatMap((d) =>
-            d.segments.map((seg, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: a run has no identity beyond its position in the series
-              <React.Fragment key={`${d.id}-${i}`}>
-                {compact &&
-                  seg.basis === undefined &&
-                  areaUnder(seg.d, plotY1) && (
-                    <path
-                      d={areaUnder(seg.d, plotY1) ?? undefined}
-                      fill={d.color}
-                      fillOpacity={0.12}
-                      stroke="none"
-                    />
-                  )}
-                <path
-                  d={seg.d}
-                  data-stream-status={seg.status}
-                  data-reckoning-basis={seg.basis}
-                  stroke={d.color}
-                  strokeWidth={1.5}
-                  fill="none"
-                  strokeLinejoin="round"
-                  strokeLinecap="round"
-                  strokeOpacity={
-                    seg.basis !== undefined
-                      ? RECKONED_STROKE_OPACITY
-                      : undefined
-                  }
-                  strokeDasharray={
-                    seg.basis !== undefined
-                      ? RECKONED_DASHARRAY
-                      : d.dashed
-                        ? "4 3"
-                        : undefined
-                  }
-                />
-              </React.Fragment>
-            )),
-          )}
-
-        {drawables
-          .filter(
-            (d): d is Extract<typeof d, { kind: "stroked" }> =>
-              d.kind === "stroked",
-          )
-          .flatMap((d) =>
-            d.modelled.map((path, i) => (
-              <path
-                // biome-ignore lint/suspicious/noArrayIndexKey: a bridged gap has no identity beyond its position in the series
-                key={`${d.id}-modelled-${i}`}
-                d={path.d}
-                data-reckoning-basis={path.basis}
+                d={seg.d}
+                data-stream-status={seg.status}
+                data-reckoning-basis={seg.basis}
                 stroke={d.color}
                 strokeWidth={1.5}
                 fill="none"
                 strokeLinejoin="round"
                 strokeLinecap="round"
-                strokeOpacity={RECKONED_STROKE_OPACITY}
-                strokeDasharray={RECKONED_DASHARRAY}
+                strokeOpacity={
+                  seg.basis !== undefined ? RECKONED_STROKE_OPACITY : undefined
+                }
+                strokeDasharray={
+                  seg.basis !== undefined
+                    ? RECKONED_DASHARRAY
+                    : d.dashed
+                      ? "4 3"
+                      : undefined
+                }
               />
-            )),
-          )}
-
-        {drawables.map((d) =>
-          d.kind === "stroked" && d.tail !== null ? (
-            <ReckoningMarkSvg
-              key={`${d.id}-tail`}
-              kind="modelled"
-              x={d.tail.cx}
-              y={d.tail.cy}
-            />
-          ) : null,
+            </React.Fragment>
+          )),
         )}
 
-        {/* The measured instants on a modelled span. */}
-        {drawables
-          .filter(
-            (d): d is Extract<typeof d, { kind: "stroked" }> =>
-              d.kind === "stroked",
-          )
-          .flatMap((d) =>
-            d.observed.map((p, i) => (
-              <circle
-                // biome-ignore lint/suspicious/noArrayIndexKey: an observed sample has no identity beyond its position in the series
-                key={`${d.id}-observed-${i}`}
-                cx={p.cx}
-                cy={p.cy}
-                r={OBSERVED_MARK_RADIUS}
-                fill={d.color}
-                data-observed-sample=""
-              />
-            )),
-          )}
+      {drawables
+        .filter(
+          (d): d is Extract<typeof d, { kind: "stroked" }> =>
+            d.kind === "stroked",
+        )
+        .flatMap((d) =>
+          d.modelled.map((path, i) => (
+            <path
+              // biome-ignore lint/suspicious/noArrayIndexKey: a bridged gap has no identity beyond its position in the series
+              key={`${d.id}-modelled-${i}`}
+              d={path.d}
+              data-reckoning-basis={path.basis}
+              stroke={d.color}
+              strokeWidth={1.5}
+              fill="none"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              strokeOpacity={RECKONED_STROKE_OPACITY}
+              strokeDasharray={RECKONED_DASHARRAY}
+            />
+          )),
+        )}
 
-        {drawables
-          .filter(
-            (d): d is Extract<typeof d, { kind: "scatter" }> =>
-              d.kind === "scatter",
-          )
-          .flatMap((d) =>
-            d.points.map((p, i) => (
-              <circle
-                // biome-ignore lint/suspicious/noArrayIndexKey: scatter points have no other identity
-                key={`${d.id}-${i}`}
-                cx={p.cx}
-                cy={p.cy}
-                r={SCATTER_RADIUS}
-                fill={d.color}
-              />
-            )),
-          )}
-      </g>
+      {drawables.map((d) =>
+        d.kind === "stroked" && d.tail !== null ? (
+          <ReckoningMarkSvg
+            key={`${d.id}-tail`}
+            kind="modelled"
+            x={d.tail.cx}
+            y={d.tail.cy}
+          />
+        ) : null,
+      )}
+
+      {/* The measured instants on a modelled span. */}
+      {drawables
+        .filter(
+          (d): d is Extract<typeof d, { kind: "stroked" }> =>
+            d.kind === "stroked",
+        )
+        .flatMap((d) =>
+          d.observed.map((p, i) => (
+            <circle
+              // biome-ignore lint/suspicious/noArrayIndexKey: an observed sample has no identity beyond its position in the series
+              key={`${d.id}-observed-${i}`}
+              cx={p.cx}
+              cy={p.cy}
+              r={OBSERVED_MARK_RADIUS}
+              fill={d.color}
+              data-observed-sample=""
+            />
+          )),
+        )}
+
+      {drawables
+        .filter(
+          (d): d is Extract<typeof d, { kind: "scatter" }> =>
+            d.kind === "scatter",
+        )
+        .flatMap((d) =>
+          d.points.map((p, i) => (
+            <circle
+              // biome-ignore lint/suspicious/noArrayIndexKey: scatter points have no other identity
+              key={`${d.id}-${i}`}
+              cx={p.cx}
+              cy={p.cy}
+              r={SCATTER_RADIUS}
+              fill={d.color}
+            />
+          )),
+        )}
 
       {series.map((s) => {
         if (!s.headMark) return null;
@@ -2215,30 +2187,10 @@ function computeYDomain(
   if (pinned) return pinned;
   if (axisSeries.length === 0 && layerYs.length === 0)
     return scale === "log" ? [1, 10] : [0, 1];
-  let all: number[] = [
-    ...axisSeries.flatMap(seriesYValues),
-    ...layerYs.filter(Number.isFinite),
-  ];
+  let all: number[] = [...axisSeries.flatMap(seriesYValues), ...layerYs];
   if (scale === "log") all = all.filter((v) => v > 0);
   if (all.length === 0) return scale === "log" ? [1, 10] : [0, 1];
-  let lo = all[0];
-  let hi = all[0];
-  for (const v of all) {
-    if (v < lo) lo = v;
-    if (v > hi) hi = v;
-  }
-  // A span of float rounding is drawn as a flat line, or the noise fills the plot's height.
-  const floor = Math.max(
-    Math.max(Math.abs(lo), Math.abs(hi)) * MIN_RELATIVE_SPAN,
-    MIN_ABSOLUTE_SPAN,
-  );
-  if (scale === "linear" || scale === undefined) {
-    if (hi > lo && hi - lo < floor) {
-      const mid = (lo + hi) / 2;
-      return [mid - floor, mid + floor];
-    }
-  }
-  return [lo, hi];
+  return [Math.min(...all), Math.max(...all)];
 }
 
 function formatYTick(n: number, ticks?: readonly number[]): string {

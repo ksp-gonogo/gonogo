@@ -740,7 +740,7 @@ describe("LineChart threshold tone", () => {
     expect(marks[0].getAttribute("tabindex")).toBe("0");
     // The trace is one stroke in its own colour, end to end.
     expect(
-      container.querySelectorAll('svg > g[clip-path] > path[stroke="#fff"]'),
+      container.querySelectorAll('svg > path[stroke="#fff"]'),
     ).toHaveLength(1);
     // A chart with parts a reader can reach is a group, not one image.
     expect(container.querySelector("svg")?.getAttribute("role")).toBe("group");
