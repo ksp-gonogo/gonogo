@@ -56,6 +56,7 @@ namespace Sitrep.Host
         // arms/disarms; setAxes partially updates the held axes/trims.
         public const string SetFlyByWireCommand = "vessel.control.setFlyByWire";
         public const string SetControlAxesCommand = "vessel.control.setAxes";
+        public const string HoldFlyByWireCommand = "vessel.control.holdFlyByWire";
 
         // ---- vessel.maneuver.* -- delayed:true (F2: a maneuver node is
         // craft-side state, so add/update/remove is an uplink that rides
@@ -106,6 +107,9 @@ namespace Sitrep.Host
             }
             return actuator.SetThrottle(args.Value);
         }
+
+        public static CommandResult HandleHoldFlyByWire(IVesselActuator actuator, object? _) =>
+            actuator.HoldFlyByWire();
 
         public static CommandResult HandleSetFlyByWire(IVesselActuator actuator, SetFlyByWireArgs args) =>
             actuator.SetFlyByWire(args.Enabled);

@@ -4,7 +4,7 @@ info:
   version: 50.4.0
   description: |-
     The WebSocket API of the Gonogo mod: 91 telemetry channels a client
-    subscribes to and 79 commands it sends, each with its payload and what it
+    subscribes to and 80 commands it sends, each with its payload and what it
     means, all over one socket.
 
     ## Frames the mod sends
@@ -3275,6 +3275,19 @@ channels:
         $ref: "#/components/messages/streamData.vessel.control"
       event:
         $ref: "#/components/messages/event"
+  vessel.control.holdFlyByWire:
+    address: vessel.control.holdFlyByWire
+    description: Keep an armed fly-by-wire override from lapsing.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: true
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.vessel.control.holdFlyByWire"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.vessel.control.holdFlyByWire"
+      commandAccepted:
+        $ref: "#/components/messages/commandAccepted"
   vessel.control.setAbort:
     address: vessel.control.setAbort
     description: Set or clear the abort action group.
@@ -3358,6 +3371,13 @@ channels:
       so control returns to the player and SAS with nothing left over. Turning it
       on fails when there is no active vessel or the vessel cannot currently be
       controlled; turning it off is never refused for control reasons.
+
+      The override lapses on its own: it stays on for 5 seconds after the last arm
+      or `vessel.control.holdFlyByWire` reaches the vessel, and is then turned off
+      as if disarmed. A console that has it armed sends
+      `vessel.control.holdFlyByWire` regularly. A console that crashes, closes or
+      loses its connection stops sending, so the vessel does not keep holding the
+      stick, and a loss of contact lapses it the same way.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: true
@@ -4908,6 +4928,21 @@ operations:
         $ref: "#/channels/trackingStation.catalog.dismiss"
       messages:
         - $ref: "#/channels/trackingStation.catalog.dismiss/messages/commandResponse"
+  dispatch:vessel.control.holdFlyByWire:
+    action: send
+    channel:
+      $ref: "#/channels/vessel.control.holdFlyByWire"
+    title: Dispatch vessel.control.holdFlyByWire
+    tags:
+      - name: vessel
+    messages:
+      - $ref: "#/channels/vessel.control.holdFlyByWire/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/vessel.control.holdFlyByWire"
+      messages:
+        - $ref: "#/channels/vessel.control.holdFlyByWire/messages/commandResponse"
+        - $ref: "#/channels/vessel.control.holdFlyByWire/messages/commandAccepted"
   dispatch:vessel.control.setAbort:
     action: send
     channel:
@@ -7151,6 +7186,21 @@ components:
                 const: trackingStation.catalog.dismiss
               args:
                 $ref: "#/components/schemas/TrackingStationDismissArgs"
+    commandRequest.vessel.control.holdFlyByWire:
+      name: command-request
+      title: Dispatch vessel.control.holdFlyByWire
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `vessel.control.holdFlyByWire`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: vessel.control.holdFlyByWire
+              args:
+                $ref: "#/components/schemas/NoCommandArgs"
     commandRequest.vessel.control.setAbort:
       name: command-request
       title: Dispatch vessel.control.setAbort
@@ -8289,6 +8339,19 @@ components:
         $ref: "#/components/correlationIds/requestId"
       payload:
         description: The `command-response` envelope for `trackingStation.catalog.dismiss`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                $ref: "#/components/schemas/CommandResult"
+    commandResponse.vessel.control.holdFlyByWire:
+      name: command-response
+      title: Reply to vessel.control.holdFlyByWire
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `vessel.control.holdFlyByWire`, with its typed `result`.
         allOf:
           - $ref: "#/components/schemas/CommandResponse"
           - properties:
@@ -18717,11 +18780,12 @@ components:
     NoCommandArgs:
       type: object
       description: |-
-        Take no args: stage, clear the target, recover, revert to launch, or go to
-        the Tracking Station or Space Center. The empty args shape, for the core
-        commands that operate on the current flight or the active vessel and so take
-        nothing: `vessel.control.stage`, `vessel.target.clear`, `ksp.recover`,
-        `ksp.revertToLaunch`, `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
+        Take no args: stage, clear the target, hold fly-by-wire, recover, revert to
+        launch, or go to the Tracking Station or Space Center. The empty args shape,
+        for the core commands that operate on the current flight or the active
+        vessel and so take nothing: `vessel.control.stage`, `vessel.target.clear`,
+        `vessel.control.holdFlyByWire`, `ksp.recover`, `ksp.revertToLaunch`,
+        `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
 
         Takes no arguments: send `args: {}`. Anything sent in `args` is ignored.
       properties: {}
@@ -21710,6 +21774,13 @@ components:
         so control returns to the player and SAS with nothing left over. Turning it
         on fails when there is no active vessel or the vessel cannot currently be
         controlled; turning it off is never refused for control reasons.
+
+        The override lapses on its own: it stays on for 5 seconds after the last arm
+        or `vessel.control.holdFlyByWire` reaches the vessel, and is then turned off
+        as if disarmed. A console that has it armed sends
+        `vessel.control.holdFlyByWire` regularly. A console that crashes, closes or
+        loses its connection stops sending, so the vessel does not keep holding the
+        stick, and a loss of contact lapses it the same way.
       required:
         - enabled
       properties:
