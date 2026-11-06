@@ -22,7 +22,7 @@ const techLock: LockSummary = {
 
 const buildingLock: LockSummary = {
   reason: "Tracking Station",
-  hint: "Needs level 2",
+  hint: "Needs Building level 2",
   locks: [
     {
       capability: { kind: "command", id: "vessel.maneuver.add" },

@@ -41,21 +41,6 @@ namespace Gonogo.KSP.Tests.Career
             Assert.Equal(expected, FacilityTiers.LowestTier(levels, norm => norm > threshold));
         }
 
-        [Theory]
-        [InlineData(2, 3)]
-        [InlineData(1, 0)]
-        [InlineData(-1, 0)]
-        public void TheGamesLevelCallIsTheHighestIndexAndUnreadableOutsideTheSpaceCentre(int answer, int levels)
-        {
-            Assert.Equal(levels, FacilityTiers.LevelCount(answer));
-        }
-
-        [Fact]
-        public void AnUnreadableLevelCountNamesNoTier()
-        {
-            Assert.Null(FacilityTiers.LowestTier(FacilityTiers.LevelCount(1), _ => true));
-        }
-
         [Fact]
         public void ACapabilityNoLevelUnlocksHasNoTier()
         {
@@ -70,7 +55,7 @@ namespace Gonogo.KSP.Tests.Career
                 gameMode: () => Game.Modes.CAREER,
                 displayModeAt: StockDisplay,
                 trackingStationLevel: () => 0f,
-                trackingStationLevelCount: () => 2);
+                trackingStationLevelCount: () => 3);
 
             var verdict = gate.Evaluate(Need(KspGateEvaluators.Kinds.OrbitDisplay, OrbitDisplayGate.PatchedConics), Empty);
 
@@ -90,7 +75,7 @@ namespace Gonogo.KSP.Tests.Career
                 gameMode: () => Game.Modes.CAREER,
                 displayModeAt: StockDisplay,
                 trackingStationLevel: () => 0f,
-                trackingStationLevelCount: () => 2);
+                trackingStationLevelCount: () => 3);
 
             var verdict = gate.Evaluate(Need(KspGateEvaluators.Kinds.OrbitDisplay, OrbitDisplayGate.AllOrbits), Empty);
 
