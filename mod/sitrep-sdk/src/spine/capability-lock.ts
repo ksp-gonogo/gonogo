@@ -137,7 +137,7 @@ export function lockSentence(
   return { reason: "Not unlocked yet", hint: locks[0]?.detail };
 }
 
-/** "Needs Building level N" when the facilities agree on a level, each named with its own when they do not. */
+/** "Needs level N" when the facilities agree on a level (the reason line names them), each named with its own when they do not. */
 function levelSentence(
   facilities: readonly MissingUnlock[],
   write: LockQuantityWriter,
@@ -147,7 +147,7 @@ function levelSentence(
   );
   if (tiers.length === 0) return undefined;
   if (tiers.every((m) => m.level === tiers[0].level)) {
-    return `Needs Building level ${tiers[0].level}`;
+    return `Needs level ${tiers[0].level}`;
   }
   return `Needs ${tiers.map((m) => `${m.name} level ${m.level}`).join(", ")}`;
 }
