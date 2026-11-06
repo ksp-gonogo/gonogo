@@ -30,7 +30,6 @@ export const GENERATED_CHANNEL_KINDS = {
   "comms.control": "discrete",
   "comms.degrade": "continuous",
   "comms.delay": "continuous",
-  "comms.groundStations": "discrete",
   "comms.journey": "discrete",
   "comms.link": "discrete",
   "comms.network": "discrete",

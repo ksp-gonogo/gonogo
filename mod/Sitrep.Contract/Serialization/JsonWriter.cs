@@ -346,12 +346,6 @@ namespace Sitrep.Contract.Serialization
                 case Sitrep.Contract.CommsOcclusion occlusion:
                     AppendCommsOcclusion(sb, occlusion);
                     break;
-                case Sitrep.Contract.CommsGroundStations groundStations:
-                    AppendCommsGroundStations(sb, groundStations);
-                    break;
-                case Sitrep.Contract.CommsGroundStation groundStation:
-                    AppendCommsGroundStation(sb, groundStation);
-                    break;
                 case Sitrep.Contract.CommsDegrade degrade:
                     AppendCommsDegrade(sb, degrade);
                     break;
@@ -3132,28 +3126,6 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "active");
             sb.Append(':');
             AppendBool(sb, e.Active);
-            sb.Append(',');
-            AppendString(sb, "strength");
-            sb.Append(':');
-            if (e.Strength.HasValue)
-            {
-                AppendNumber(sb, e.Strength.Value);
-            }
-            else
-            {
-                AppendNull(sb);
-            }
-            sb.Append(',');
-            AppendString(sb, "quantity");
-            sb.Append(':');
-            if (e.Quantity.HasValue)
-            {
-                AppendInteger(sb, (long)e.Quantity.Value);
-            }
-            else
-            {
-                AppendNull(sb);
-            }
             sb.Append('}');
         }
 
@@ -3207,56 +3179,6 @@ namespace Sitrep.Contract.Serialization
                     }
                     first = false;
                     AppendCommsOcclusionBody(sb, body);
-                }
-            }
-            sb.Append(']');
-            sb.Append('}');
-        }
-
-        private static void AppendCommsGroundStation(StringBuilder sb, Sitrep.Contract.CommsGroundStation g)
-        {
-            sb.Append('{');
-            AppendString(sb, "id");
-            sb.Append(':');
-            AppendString(sb, g.Id ?? "");
-            sb.Append(',');
-            AppendString(sb, "name");
-            sb.Append(':');
-            AppendString(sb, g.Name ?? "");
-            sb.Append(',');
-            AppendString(sb, "bodyName");
-            sb.Append(':');
-            AppendNullableString(sb, g.BodyName);
-            sb.Append(',');
-            AppendString(sb, "latitude");
-            sb.Append(':');
-            AppendNullableNumber(sb, g.Latitude);
-            sb.Append(',');
-            AppendString(sb, "longitude");
-            sb.Append(':');
-            AppendNullableNumber(sb, g.Longitude);
-            // Omitted entirely when no provider filled a bag (see AppendProviderExtensions).
-            AppendProviderExtensions(sb, g.Extensions);
-            sb.Append('}');
-        }
-
-        private static void AppendCommsGroundStations(StringBuilder sb, Sitrep.Contract.CommsGroundStations g)
-        {
-            sb.Append('{');
-            AppendString(sb, "stations");
-            sb.Append(':');
-            sb.Append('[');
-            if (g.Stations != null)
-            {
-                var first = true;
-                foreach (var station in g.Stations)
-                {
-                    if (!first)
-                    {
-                        sb.Append(',');
-                    }
-                    first = false;
-                    AppendCommsGroundStation(sb, station);
                 }
             }
             sb.Append(']');

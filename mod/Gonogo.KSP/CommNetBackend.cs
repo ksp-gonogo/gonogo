@@ -23,41 +23,9 @@ namespace Gonogo.KSP
     /// (<see cref="CommsCoreUplink"/>). It is a stateless view over
     /// <see cref="ActiveVesselScope.Current"/>, not a cached snapshot.</para>
     /// </summary>
-    public sealed class CommNetBackend : CommsBackendBase, ICommsPathStrength, ICommsGroundStations
+    public sealed class CommNetBackend : CommsBackendBase, ICommsPathStrength
     {
         public const string Id = "commnet";
-
-        private readonly StockHomeNodeSource _homes = new StockHomeNodeSource();
-
-        /// <summary>
-        /// Every stock home node (the space centre, the extra ground stations and
-        /// any mod's sites, which subclass <c>CommNetHome</c>) with the body it
-        /// stands on and its latitude and longitude. Each station is keyed by the
-        /// id <see cref="NodeId"/> gives its CommNet node, so a marker joins onto
-        /// the route that ends there. A station with no CommNet node yet (a save
-        /// that has CommNet off) is keyed by its centre name.
-        /// </summary>
-        public IReadOnlyList<CommsGroundStation> GroundStations()
-        {
-            var stations = new List<CommsGroundStation>();
-            foreach (var centre in _homes.Enumerate())
-            {
-                var node = (centre as KspCommandCentre)?.Node;
-                var bodies = FlightGlobals.Bodies;
-                var bodyName = centre.BodyIndex is int index && bodies != null && index >= 0 && index < bodies.Count
-                    ? bodies[index].name
-                    : null;
-                stations.Add(new CommsGroundStation
-                {
-                    Id = node != null ? NodeId(node) : centre.DisplayName,
-                    Name = centre.DisplayName,
-                    BodyName = bodyName,
-                    Latitude = bodyName != null ? centre.Latitude : null,
-                    Longitude = bodyName != null ? centre.Longitude : null,
-                });
-            }
-            return stations;
-        }
 
         public override string ProviderId => Id;
 

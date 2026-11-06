@@ -484,13 +484,6 @@
       "oneWaySeconds": "s",
       "source": "enum"
     },
-    "CommsGroundStation": {
-      "bodyName": "text",
-      "id": "id",
-      "latitude": "°",
-      "longitude": "°",
-      "name": "text"
-    },
     "CommsHop": {
       "distanceMeters": "m",
       "from": "id",
@@ -523,9 +516,7 @@
     "CommsNetworkEdge": {
       "a": "id",
       "active": "flag",
-      "b": "id",
-      "quantity": "enum",
-      "strength": "ratio"
+      "b": "id"
     },
     "CommsNetworkNode": {
       "displayName": "text",
@@ -2734,9 +2725,6 @@
     "CommsDelay": {
       "meta": "PayloadMeta"
     },
-    "CommsGroundStations": {
-      "stations": "CommsGroundStation[]"
-    },
     "CommsJourney": {
       "events": "CommsJourneyEvent[]"
     },
@@ -3096,9 +3084,6 @@
     "comms.delay": {
       "meta": "PayloadMeta"
     },
-    "comms.groundStations": {
-      "stations": "CommsGroundStation[]"
-    },
     "comms.journey": {
       "events": "CommsJourneyEvent[]"
     },
@@ -3297,9 +3282,6 @@
     },
     "CommsJourneyEvent": {
       "kind": "JourneyEventKind"
-    },
-    "CommsNetworkEdge": {
-      "quantity": "SignalQuantity"
     },
     "CommsNetworkNode": {
       "kind": "CommsHopKind"
@@ -3932,7 +3914,6 @@
     "comms.control": "Comms control",
     "comms.degrade": "Comms degradation",
     "comms.delay": "Signal delay",
-    "comms.groundStations": "Ground stations",
     "comms.journey": "Comms journey",
     "comms.link": "Comms link",
     "comms.nextLoss": "Next signal loss",
