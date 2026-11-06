@@ -31,6 +31,23 @@ const CONTROL = {
   actionGroups: GROUPS,
 };
 
+const EVA_TOPIC = "eva.kerbal.k2.state";
+
+let evaName = "Bob Kerman";
+
+function evaKerbal(lampOn: boolean) {
+  return {
+    kerbalVesselId: "k2",
+    name: evaName,
+    lampOn,
+    helmetOn: true,
+    visorState: "Lowered",
+    slots: 6,
+    slotsUsed: 2,
+    carrying: [{ name: "evaRepairKit", title: "Repair Kit", quantity: 1 }],
+  };
+}
+
 function instruments(state: "unused" | "holding" | "sent") {
   return [
     {
@@ -55,7 +72,8 @@ export type SharedWidget =
   | "navball"
   | "action-group"
   | "experiments"
-  | "rotor-tachometer";
+  | "rotor-tachometer"
+  | "crew-status";
 /** What the Experiments card starts with: an unused Mystery Goo, or one holding data to transmit. */
 export type ExperimentsScenario = "deploy" | "transmit";
 export type SharedScreen = "main" | "station";
@@ -78,6 +96,8 @@ export interface SharedScene {
     pxW: number;
     delaySeconds?: number;
     scenario?: ExperimentsScenario;
+    /** The name of the kerbal outside, for the crew-status scene. */
+    evaName?: string;
   }): Promise<void>;
   /** Plays `step` with `from` as the screen the operator pressed on. */
   step(step: SharedStep, from: SharedScreen): Promise<void>;
@@ -241,6 +261,12 @@ function toggleOn(
   screen: SharedScreen,
   name: SharedToggle = "RCS",
 ): HTMLButtonElement | null {
+  if (widget === "crew-status") {
+    const lamp = Array.from(host(screen).querySelectorAll("button")).find((b) =>
+      (b.getAttribute("aria-label") ?? "").endsWith(" lamp"),
+    );
+    return (lamp as HTMLButtonElement | undefined) ?? null;
+  }
   if (widget === "experiments") {
     const word = scenario === "deploy" ? "Deploy" : "Transmit";
     const found = Array.from(host(screen).querySelectorAll("button")).find(
@@ -363,6 +389,7 @@ const scene: SharedScene = {
     linkUp = true;
     delay = opts.delaySeconds ?? 27.4;
     widget = opts.widget;
+    evaName = opts.evaName ?? "Bob Kerman";
     scenario = opts.scenario ?? "deploy";
     const root = document.getElementById("root");
     if (!root) throw new Error("shared-rail: #root missing");
@@ -402,6 +429,39 @@ const scene: SharedScene = {
                       meta,
                     },
                     { channel: "robotics.servos", value: [ROTOR], meta },
+                  ]
+                : []),
+              ...(opts.widget === "crew-status"
+                ? [
+                    {
+                      channel: "vessel.crew",
+                      value: {
+                        count: 1,
+                        capacity: 2,
+                        crew: [{ name: "Jebediah Kerman" }],
+                      },
+                      meta,
+                    },
+                    {
+                      channel: "vessel.identity",
+                      value: { vesselId: "pod", vesselType: 15 },
+                      meta,
+                    },
+                    {
+                      channel: "eva.crew",
+                      value: {
+                        count: 1,
+                        kerbals: [
+                          {
+                            kerbalVesselId: "k2",
+                            parentVesselId: "pod",
+                            name: evaName,
+                          },
+                        ],
+                      },
+                      meta,
+                    },
+                    { channel: EVA_TOPIC, value: evaKerbal(false), meta },
                   ]
                 : []),
               ...(opts.widget === "experiments"
@@ -589,6 +649,10 @@ const scene: SharedScene = {
       }
     }
     pressed.clear();
+    if (widget === "crew-status") {
+      if (outcome === "done") emitBoth(EVA_TOPIC, evaKerbal(on));
+      return;
+    }
     if (widget === "experiments") {
       if (outcome === "done") {
         emitBoth(

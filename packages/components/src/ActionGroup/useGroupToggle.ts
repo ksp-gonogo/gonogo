@@ -14,6 +14,7 @@ import {
   STREAM_DOWN_TIP,
   useCommandButton,
 } from "@ksp-gonogo/ui-kit";
+import { useRef } from "react";
 import {
   type CapabilityWarning,
   useCommandCapabilityWarning,
@@ -26,6 +27,14 @@ import {
   type UnavailableReason,
   unavailableReasonOf,
 } from "./toggleAvailability";
+
+/** The on or off state a toggle's args set, or undefined for args that set none. */
+function askedStateOf(args: unknown): boolean | undefined {
+  if (args === null || typeof args !== "object") return undefined;
+  const asked =
+    "state" in args ? args.state : "enabled" in args ? args.enabled : undefined;
+  return typeof asked === "boolean" ? asked : undefined;
+}
 
 export interface GroupToggleInput {
   group: ActionGroup | undefined;
@@ -127,6 +136,8 @@ export function useGroupToggle({
         (group?.toggle
           ? "The group's state cannot be inverted"
           : "No toggle is configured for this group"));
+  // The state the latest press asked for, which is what a bound device is told the control now shows.
+  const askedRef = useRef<boolean | undefined>(undefined);
   const readState =
     typeof value === "boolean" || typeof value === "number" ? value : null;
   const button = useCommandButton({
@@ -145,8 +156,15 @@ export function useGroupToggle({
       args: (base) => {
         if (!group?.toggle || !toggleCommand) return undefined;
         const args = buildToggleArgs(group, base);
-        return args === TOGGLE_INVALID ? undefined : args;
+        if (args === TOGGLE_INVALID) return undefined;
+        askedRef.current = askedStateOf(args);
+        return args;
       },
+      // A stage command lowers the stage count by one when it arrives.
+      modelled: (state) =>
+        group?.name === "Stage" && typeof state === "number"
+          ? Math.max(0, state - 1)
+          : state,
       unavailable: cannotToggleBecause,
       marking,
     },
@@ -160,8 +178,11 @@ export function useGroupToggle({
       if (!group) return undefined;
       // Press edge only, so one tap is one toggle.
       if (payload.kind === "button" && payload.value !== true) return undefined;
+      askedRef.current = undefined;
       press();
-      return { [group.name]: value !== true };
+      return askedRef.current === undefined
+        ? undefined
+        : { [group.name]: askedRef.current };
     },
   });
 

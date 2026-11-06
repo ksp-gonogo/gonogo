@@ -210,4 +210,25 @@ describe("Block and Card share one set of parts", () => {
     expect(own).toContain("--color-text-primary:var(--color-text-muted)");
     expect(own).not.toContain("opacity");
   });
+
+  it("spaces the title from titleRight by titleGap, where titleRight wraps under it too", () => {
+    render(
+      <Card
+        title="Bob Kerman"
+        titleRight={<span data-testid="right">icons</span>}
+        titleGap="related"
+      />,
+    );
+    const heading = screen.getByTestId("right").parentElement;
+    expect(heading).not.toBeNull();
+    const css = injectedCss();
+    const rule = css
+      .split("}")
+      .find((r) =>
+        Array.from(heading?.classList ?? []).some((name) =>
+          r.startsWith(`.${name}{`),
+        ),
+      );
+    expect(rule).toContain("gap:var(--gap-related)");
+  });
 });

@@ -200,6 +200,8 @@ export interface InFlightCommand {
   replyEtaSeconds: number | null;
   /** Where it is expected to be now. */
   predictedPhase: PredictedPhase;
+  /** What the command was sent with, where this screen sent it; absent for a command another screen sent. */
+  args?: unknown;
   /** True while the sending centre's route puts the command waiting at a relay for a link to open, so it has not left the command centre's side of the break. Absent otherwise. */
   held?: boolean;
   /** Where a command held on its way out is: present while it is on its way out with a wait known, absent otherwise. */

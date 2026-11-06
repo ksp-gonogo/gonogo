@@ -128,13 +128,34 @@ function useWarpControl(config: WarpControlConfig | undefined) {
 
   const mode = normalizeWarpMode(warp?.warpMode);
   const [refusedPresses, setRefusedPresses] = useState(0);
+  /*
+   * The rung last commanded, held while the reading still shows the rung it
+   * was commanded from, so a second step builds on the first instead of
+   * repeating it. Dropped when the reading moves or the command does not take.
+   */
+  const commandedRef = useRef<{ index: number; from: number | null } | null>(
+    null,
+  );
+  const stepBase =
+    commandedRef.current !== null && commandedRef.current.from === currentIndex
+      ? commandedRef.current.index
+      : currentIndex;
+  const stepBaseRef = useRef(stepBase);
+  stepBaseRef.current = stepBase;
   const setWarp = (idx: number) => {
     // Announced before the command, so this screen alone skips its unscheduled-warp alert for it.
     announceWarpIntent?.();
-    void warpCmd.send({ index: idx });
+    commandedRef.current = { index: idx, from: currentIndex };
+    stepBaseRef.current = idx;
+    warpCmd.send({ index: idx }).catch(() => {
+      commandedRef.current = null;
+    });
   };
+  const effectivePausedRef = useRef(effectivePaused);
+  effectivePausedRef.current = effectivePaused;
   const togglePause = () => {
-    const next = !effectivePaused;
+    const next = !effectivePausedRef.current;
+    effectivePausedRef.current = next;
     setPauseIntent(next);
     pauseCmd
       .send({ paused: next })
@@ -165,14 +186,17 @@ function useWarpControl(config: WarpControlConfig | undefined) {
         setRefusedPresses((n) => n + 1);
         return undefined;
       }
-      const next = Math.min(topWarpIndex(mode), currentIndex + 1);
+      const next = Math.min(
+        topWarpIndex(mode),
+        (stepBaseRef.current ?? currentIndex) + 1,
+      );
       setWarp(next);
       return { Warp: warpLabel(next, mode) };
     },
     "step-down": (payload) => {
       if (payload.kind === "button" && payload.value !== true) return undefined;
       if (currentIndex === null) return undefined;
-      const next = Math.max(0, currentIndex - 1);
+      const next = Math.max(0, (stepBaseRef.current ?? currentIndex) - 1);
       setWarp(next);
       return { Warp: warpLabel(next, mode) };
     },
@@ -183,8 +207,9 @@ function useWarpControl(config: WarpControlConfig | undefined) {
     },
     "toggle-pause": (payload) => {
       if (payload.kind === "button" && payload.value !== true) return undefined;
+      const next = !effectivePausedRef.current;
       togglePause();
-      return { Paused: !effectivePaused };
+      return { Paused: next };
     },
     "warp-to-contact": (payload) => armEventAction("contact", payload),
     "warp-to-soi": (payload) => armEventAction("soi", payload),
