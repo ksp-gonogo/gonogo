@@ -1,31 +1,37 @@
 import type { MapPoi } from "@ksp-gonogo/core";
-import { IconButton } from "@ksp-gonogo/ui-kit";
+import {
+  GroundStationIcon,
+  IconButton,
+  VisuallyHidden,
+} from "@ksp-gonogo/ui-kit";
 import {
   type ButtonHTMLAttributes,
   type CSSProperties,
   forwardRef,
   type HTMLAttributes,
   type ReactNode,
+  useState,
 } from "react";
 
 interface PoiKindStyle {
   background: string;
   border: string;
   borderStyle: "solid" | "dashed";
-  /** Square for a place on the ground, round for everything else, so a pad never reads as the craft's own dot. */
-  shape?: "square";
+  /** A dish on a mast for a place on the ground, a dot for everything else, so a pad never reads as the craft's own dot. */
+  glyph?: "dish";
 }
 
 const KSC_STYLE: PoiKindStyle = {
   background: "var(--color-text-primary)",
   border: "var(--color-text-primary)",
   borderStyle: "solid",
-  shape: "square",
+  glyph: "dish",
 };
 const LAUNCH_SITE_STYLE: PoiKindStyle = {
   background: "var(--color-text-muted)",
   border: "var(--color-text-muted)",
   borderStyle: "solid",
+  glyph: "dish",
 };
 const CONTRACT_ACTIVE_STYLE: PoiKindStyle = {
   background: "transparent",
@@ -84,6 +90,10 @@ const POI_LAYER_ROOT_STYLE: CSSProperties = {
   pointerEvents: "none",
 };
 
+/**
+ * One map point's marker: a dish glyph for a place on the ground, a dot for
+ * the rest. A plain button, since the shared hover card is its only tip.
+ */
 export const PoiMarkerButton = forwardRef<
   HTMLButtonElement,
   Readonly<
@@ -92,33 +102,74 @@ export const PoiMarkerButton = forwardRef<
       style?: CSSProperties;
     }
   >
->(function PoiMarkerButton({ $style, style, ...rest }, ref) {
+>(function PoiMarkerButton(
+  {
+    $style,
+    style,
+    "aria-label": label,
+    onPointerEnter,
+    onPointerLeave,
+    ...rest
+  },
+  ref,
+) {
+  const dish = $style.glyph === "dish";
+  const [hovered, setHovered] = useState(false);
+  const raised = hovered || rest["aria-expanded"] === true;
   return (
     <IconButton
       ref={ref}
       style={{
-        ...POI_MARKER_BUTTON_STYLE,
-        background: $style.background,
-        border: `2px ${$style.borderStyle} ${$style.border}`,
-        ...($style.shape === "square"
-          ? { borderRadius: "var(--radius-regular)" }
-          : {}),
+        ...(dish ? POI_DISH_BUTTON_STYLE : POI_DOT_BUTTON_STYLE),
+        ...(dish
+          ? { color: $style.background }
+          : {
+              background: $style.background,
+              border: `2px ${$style.borderStyle} ${$style.border}`,
+            }),
+        transform: dish
+          ? `translate(-50%, -50%)${raised ? " scale(1.25)" : ""}`
+          : raised
+            ? "scale(1.25)"
+            : undefined,
+        transition: "transform var(--duration-fast)",
         ...style,
       }}
+      onPointerEnter={(event) => {
+        setHovered(true);
+        onPointerEnter?.(event);
+      }}
+      onPointerLeave={(event) => {
+        setHovered(false);
+        onPointerLeave?.(event);
+      }}
       {...rest}
-    />
+    >
+      {label !== undefined && <VisuallyHidden>{label}</VisuallyHidden>}
+      {dish && <GroundStationIcon size="100%" />}
+    </IconButton>
   );
 });
 
-const POI_MARKER_BUTTON_STYLE: CSSProperties = {
+const POI_DOT_BUTTON_STYLE: CSSProperties = {
   position: "absolute",
+  padding: 0,
+  pointerEvents: "auto",
   width: 10,
   height: 10,
   // Off the spacing ladder: half the marker size, centring it on its coordinate.
   margin: "-5px 0 0 -5px",
-  padding: 0,
   borderRadius: "var(--radius-circle)",
+};
+
+const POI_DISH_BUTTON_STYLE: CSSProperties = {
+  position: "absolute",
+  padding: 0,
   pointerEvents: "auto",
+  width: 16,
+  height: 16,
+  background: "none",
+  border: "none",
 };
 
 /**

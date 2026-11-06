@@ -18409,6 +18409,10 @@
         "note": "Longitude in degrees east"
       },
       {
+        "key": "ui-kit . GroundStationIcon",
+        "note": "a dish antenna icon for marking a ground station or launch site on a map"
+      },
+      {
         "key": "ui-kit . HeldFigureProps#elsewhere?",
         "note": "The figure is of something other than what its label names, so its mark is drawn hollow: a ring for a current figure, the held square or modelled triangle emptied otherwise"
       },
@@ -18697,12 +18701,12 @@
         "note": "focusable, so the keyboard can pan and zoom"
       },
       {
-        "key": "ui-kit . PanelSidebarPlacement",
-        "note": "where a panel's sidebar sits: auto, beside the body or below it"
-      },
-      {
         "key": "ui-kit . PanelProps#sidebarPlacement?",
         "note": "lets a widget keep its sidebar beside the body on a tall tile, or always under it"
+      },
+      {
+        "key": "ui-kit . PanelSidebarPlacement",
+        "note": "where a panel's sidebar sits: auto, beside the body or below it"
       },
       {
         "key": "ui-kit . Pips",
