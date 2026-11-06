@@ -431,7 +431,7 @@ namespace Sitrep.Contract.Serialization
                     AppendScienceTransmission(sb, scienceTransmission);
                     break;
                 case Sitrep.Contract.RunStateChange runStateChange:
-                    // science.experiment.start/stop and science.lab.start/stop's reply payload, inside CommandResult<RunStateChange>.Payload.
+                    // science.experiment.start/stop, science.lab.start/stop and vessel.converter.start/stop's reply payload, inside CommandResult<RunStateChange>.Payload.
                     AppendRunStateChange(sb, runStateChange);
                     break;
                 case Sitrep.Contract.RecentLog recentLog:
@@ -1211,7 +1211,7 @@ namespace Sitrep.Contract.Serialization
 
         /// <summary>
         /// Flattens a <see cref="Sitrep.Contract.IsruDrillEntry"/> to the wire
-        /// object <c>{ partId, partTitle, resource, deployed, running, abundance,
+        /// object <c>{ partId, partTitle, converterName, throughput, shortfall, resource, deployed, running, abundance,
         /// rate }</c>, plus <c>extensions</c> when a provider filled its namespace
         /// (omitted rather than null when empty; see
         /// <see cref="AppendProviderExtensions"/>): camelCase keys, JSON null for absent
@@ -1229,6 +1229,18 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "partTitle");
             sb.Append(':');
             AppendNullableString(sb, d.PartTitle);
+            sb.Append(',');
+            AppendString(sb, "converterName");
+            sb.Append(':');
+            AppendNullableString(sb, d.ConverterName);
+            sb.Append(',');
+            AppendString(sb, "throughput");
+            sb.Append(':');
+            AppendNullableNumber(sb, d.Throughput);
+            sb.Append(',');
+            AppendString(sb, "shortfall");
+            sb.Append(':');
+            AppendNullableString(sb, d.Shortfall);
             sb.Append(',');
             AppendString(sb, "resource");
             sb.Append(':');
@@ -1255,7 +1267,7 @@ namespace Sitrep.Contract.Serialization
 
         /// <summary>
         /// Flattens a <see cref="Sitrep.Contract.IsruConverterEntry"/> to the wire
-        /// object <c>{ partId, partTitle, running, inputs, outputs }</c>, plus
+        /// object <c>{ partId, partTitle, converterName, throughput, shortfall, running, inputs, outputs }</c>, plus
         /// <c>extensions</c> when a provider filled its namespace. The two recipe
         /// sides are always written as arrays, empty rather than null, because the
         /// contract declares them non-nullable lists: a converter with no recipe has
@@ -1271,6 +1283,18 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "partTitle");
             sb.Append(':');
             AppendNullableString(sb, c.PartTitle);
+            sb.Append(',');
+            AppendString(sb, "converterName");
+            sb.Append(':');
+            AppendNullableString(sb, c.ConverterName);
+            sb.Append(',');
+            AppendString(sb, "throughput");
+            sb.Append(':');
+            AppendNullableNumber(sb, c.Throughput);
+            sb.Append(',');
+            AppendString(sb, "shortfall");
+            sb.Append(':');
+            AppendNullableString(sb, c.Shortfall);
             sb.Append(',');
             AppendString(sb, "running");
             sb.Append(':');

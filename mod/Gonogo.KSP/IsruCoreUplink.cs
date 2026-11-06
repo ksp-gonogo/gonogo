@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Gonogo.KSP.Gates;
 using Sitrep.Contract;
+using Sitrep.Host;
 using Sitrep.Host.Isru;
 
 namespace Gonogo.KSP
@@ -43,6 +44,18 @@ namespace Gonogo.KSP
                 Delayed(DrillsTopic, CareerGates.Modules.ResourceHarvester),
                 Delayed(ConvertersTopic, CareerGates.Modules.ResourceConverter),
             },
+            Commands = new List<CommandDeclaration>
+            {
+                Command(ConverterCommandProvider.StartCommand, ConvertersTopic),
+                Command(ConverterCommandProvider.StopCommand, ConvertersTopic),
+            },
+        };
+
+        private static CommandDeclaration Command(string command, string subject) => new CommandDeclaration
+        {
+            Command = command,
+            Subject = subject,
+            Requires = GateDeclarations.For(command),
         };
 
         private static ChannelDeclaration Delayed(string topic, string module) => new ChannelDeclaration
@@ -72,6 +85,10 @@ namespace Gonogo.KSP
             _drills = host.Publisher(DrillsTopic);
             _converters = host.Publisher(ConvertersTopic);
             host.AddSampledSource(CaptureOnMain, HandleOnCourier, DrillsTopic, ConvertersTopic);
+
+            var converters = new KspConverterSwitch();
+            host.AddCommandHandler<ConverterSwitchArgs, CommandResult>(ConverterCommandProvider.StartCommand, args => ConverterCommandProvider.HandleStart(converters, args));
+            host.AddCommandHandler<ConverterSwitchArgs, CommandResult>(ConverterCommandProvider.StopCommand, args => ConverterCommandProvider.HandleStop(converters, args));
         }
 
         /// <summary>MAIN-THREAD capture: resolve the elected backend and walk its part modules (live KSP, safe here).</summary>

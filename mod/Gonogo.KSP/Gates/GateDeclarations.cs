@@ -53,6 +53,8 @@ namespace Gonogo.KSP.Gates
             ScienceCommandProvider.StopExperimentCommand,
             ScienceCommandProvider.StartLabCommand,
             ScienceCommandProvider.StopLabCommand,
+            ConverterCommandProvider.StartCommand,
+            ConverterCommandProvider.StopCommand,
             RoboticsCommandProvider.ServoSetAngleCommand,
             RoboticsCommandProvider.ServoSetExtensionCommand,
             RoboticsCommandProvider.ServoSetMotorCommand,

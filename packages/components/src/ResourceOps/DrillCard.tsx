@@ -7,6 +7,7 @@ import {
   ReadoutCaption,
   resourceColor,
   Stack,
+  Tooltip,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import {
@@ -15,17 +16,23 @@ import {
   RunStateBadge,
   WithheldOr,
 } from "./ProcessCells";
+import { ProcessSwitch, type ProcessSwitchHandles } from "./ProcessSwitch";
+import { isStarved, reportedStarved } from "./rates";
 
 export function DrillCard({
   drill,
   highlighted,
   held: drillHeld,
+  switchHandles,
 }: Readonly<{
+  switchHandles: ProcessSwitchHandles;
   drill: IsruDrillEntry;
   highlighted: boolean;
   /** The drill channel was held: the rig is still there, its figures are not. */
   held: boolean;
 }>) {
+  const starved = !drillHeld && isStarved(drill);
+
   return (
     <Card
       aria-current={highlighted ? "true" : undefined}
@@ -46,6 +53,11 @@ export function DrillCard({
           ) : (
             <RunStateBadge running={drill.running} />
           )}
+          {starved && (
+            <Tooltip text={drill.shortfall ?? undefined}>
+              <Badge tone="warn">no output</Badge>
+            </Tooltip>
+          )}
         </Inline>
       }
     >
@@ -54,7 +66,7 @@ export function DrillCard({
           <ResourceCells
             flow={{ resource: drill.resource, rate: drill.rate }}
             direction="extract"
-            ratesHeld={drillHeld}
+            ratesHeld={drillHeld || reportedStarved(drill)}
           />
         </Grid>
         <Inline>
@@ -70,6 +82,14 @@ export function DrillCard({
             }
           />
         </Inline>
+        <ProcessSwitch
+          handles={switchHandles}
+          partId={drill.partId}
+          converterName={drill.converterName}
+          title={drill.partTitle ?? drill.partId ?? "drill"}
+          running={drill.running}
+          held={drillHeld}
+        />
       </Stack>
     </Card>
   );

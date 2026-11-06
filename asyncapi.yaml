@@ -4,7 +4,7 @@ info:
   version: 51.0.0
   description: |-
     The WebSocket API of the Gonogo mod: 92 telemetry channels a client
-    subscribes to and 80 commands it sends, each with its payload and what it
+    subscribes to and 82 commands it sends, each with its payload and what it
     means, all over one socket.
 
     ## Frames the mod sends
@@ -3514,6 +3514,32 @@ channels:
         $ref: "#/components/messages/commandResponse.vessel.control.stage"
       commandAccepted:
         $ref: "#/components/messages/commandAccepted"
+  vessel.converter.start:
+    address: vessel.converter.start
+    description: Switch a converter, drill or fuel cell on.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: true
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.vessel.converter.start"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.vessel.converter.start"
+      commandAccepted:
+        $ref: "#/components/messages/commandAccepted"
+  vessel.converter.stop:
+    address: vessel.converter.stop
+    description: Switch a converter, drill or fuel cell off.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: true
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.vessel.converter.stop"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.vessel.converter.stop"
+      commandAccepted:
+        $ref: "#/components/messages/commandAccepted"
   vessel.crew:
     address: vessel.crew
     title: Active vessel crew
@@ -5160,6 +5186,36 @@ operations:
       messages:
         - $ref: "#/channels/vessel.control.stage/messages/commandResponse"
         - $ref: "#/channels/vessel.control.stage/messages/commandAccepted"
+  dispatch:vessel.converter.start:
+    action: send
+    channel:
+      $ref: "#/channels/vessel.converter.start"
+    title: Dispatch vessel.converter.start
+    tags:
+      - name: vessel
+    messages:
+      - $ref: "#/channels/vessel.converter.start/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/vessel.converter.start"
+      messages:
+        - $ref: "#/channels/vessel.converter.start/messages/commandResponse"
+        - $ref: "#/channels/vessel.converter.start/messages/commandAccepted"
+  dispatch:vessel.converter.stop:
+    action: send
+    channel:
+      $ref: "#/channels/vessel.converter.stop"
+    title: Dispatch vessel.converter.stop
+    tags:
+      - name: vessel
+    messages:
+      - $ref: "#/channels/vessel.converter.stop/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/vessel.converter.stop"
+      messages:
+        - $ref: "#/channels/vessel.converter.stop/messages/commandResponse"
+        - $ref: "#/channels/vessel.converter.stop/messages/commandAccepted"
   dispatch:vessel.invokePartAction:
     action: send
     channel:
@@ -7429,6 +7485,36 @@ components:
                 const: vessel.control.stage
               args:
                 $ref: "#/components/schemas/NoCommandArgs"
+    commandRequest.vessel.converter.start:
+      name: command-request
+      title: Dispatch vessel.converter.start
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `vessel.converter.start`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: vessel.converter.start
+              args:
+                $ref: "#/components/schemas/ConverterSwitchArgs"
+    commandRequest.vessel.converter.stop:
+      name: command-request
+      title: Dispatch vessel.converter.stop
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `vessel.converter.stop`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: vessel.converter.stop
+              args:
+                $ref: "#/components/schemas/ConverterSwitchArgs"
     commandRequest.vessel.invokePartAction:
       name: command-request
       title: Dispatch vessel.invokePartAction
@@ -8572,6 +8658,58 @@ components:
                           - number
                           - "null"
                         description: The value the command returns; absent on a refusal.
+    commandResponse.vessel.converter.start:
+      name: command-response
+      title: Reply to vessel.converter.start
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `vessel.converter.start`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                description: |-
+                  A `CommandResult` that also returns a value in `payload`:
+                  `vessel.control.stage` returns the new current stage index, and
+                  `vessel.maneuver.add` returns the created node's id. `payload` is absent
+                  when `CommandResult.success` is false.
+                allOf:
+                  - $ref: "#/components/schemas/CommandResult"
+                  - type: object
+                    properties:
+                      payload:
+                        description: The value the command returns; absent on a refusal.
+                        anyOf:
+                          - $ref: "#/components/schemas/RunStateChange"
+                          - type: "null"
+    commandResponse.vessel.converter.stop:
+      name: command-response
+      title: Reply to vessel.converter.stop
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `vessel.converter.stop`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                description: |-
+                  A `CommandResult` that also returns a value in `payload`:
+                  `vessel.control.stage` returns the new current stage index, and
+                  `vessel.maneuver.add` returns the created node's id. `payload` is absent
+                  when `CommandResult.success` is false.
+                allOf:
+                  - $ref: "#/components/schemas/CommandResult"
+                  - type: object
+                    properties:
+                      payload:
+                        description: The value the command returns; absent on a refusal.
+                        anyOf:
+                          - $ref: "#/components/schemas/RunStateChange"
+                          - type: "null"
     commandResponse.vessel.invokePartAction:
       name: command-response
       title: Reply to vessel.invokePartAction
@@ -14955,6 +15093,42 @@ components:
         - const: 11
           title: Unknown
           description: A state name the mod does not recognise.
+    ConverterSwitchArgs:
+      type: object
+      description: |-
+        Switch a converter on a part on or off (`vessel.converter.start` and
+        `vessel.converter.stop`). Reaches every converter the game runs as a
+        resource process: an ISRU unit, a fuel cell, a drill.
+
+        The part is named by `ConverterSwitchArgs.partId`, the part's flight id as a
+        string, the same id `isru.converters` and `isru.drills` carry on each entry.
+        An empty or unknown `ConverterSwitchArgs.partId` fails with
+        `CommandErrorCode.NotFound`.
+
+        Start and stop are idempotent: a converter already in the requested state
+        answers success with `RunStateChange.changed` false. A start the game would
+        refuse, such as a drill whose head is not deployed, fails with
+        `CommandErrorCode.WrongState`.
+      required:
+        - partId
+      properties:
+        partId:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            The converter's part, as its flight id in a string: the id the
+            `isru.converters` and `isru.drills` entries are keyed by.
+        converterName:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            Which converter on the part is meant, as the `converterName` of its
+            `isru.converters` or `isru.drills` entry. Optional: an empty value means the
+            part's only converter. A part can carry several, so an empty value on such a
+            part is refused with `CommandErrorCode.NotFound`, as is a name the part does
+            not carry.
     CrashFlightStats:
       type: object
       description: |-
@@ -17693,6 +17867,36 @@ components:
             - "null"
           x-sitrep-unit: text
           description: Part.partInfo.title, for display without a vessel.parts join.
+        converterName:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            The converter's own name on its part, which tells two on one part apart: the
+            `converterName` a `vessel.converter.start` or `vessel.converter.stop`
+            command names. Empty when the part's module carries no name.
+        throughput:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: ratio
+          description: |-
+            The share of its recipe this converter achieved on its last tick, 0..1, as
+            the game's own efficiency figure reports it. Zero means it is switched on
+            and cannot run, for example because an input is missing; the nominal rates
+            alongside are then not being produced or consumed. Null when it is not
+            running, or when the backend does not report it.
+        shortfall:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            The game's own words for why a running converter achieved nothing (for
+            example "missing Liquid Fuel"). Null whenever
+            `IsruConverterEntry.throughput` is not zero, and when the backend has no
+            wording for it.
         running:
           type:
             - boolean
@@ -17751,6 +17955,35 @@ components:
             - "null"
           x-sitrep-unit: text
           description: Part.partInfo.title, for display without a vessel.parts join.
+        converterName:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            The drill's own name on its part, which tells two on one part apart: the
+            `converterName` a `vessel.converter.start` or `vessel.converter.stop`
+            command names. Empty when the part's module carries no name.
+        throughput:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: ratio
+          description: |-
+            The share of its recipe this drill achieved on its last tick, 0..1, as the
+            game's own efficiency figure reports it. Zero means it is switched on and
+            cannot run, for example because an input is missing; the nominal rates
+            alongside are then not being produced or consumed. Null when it is not
+            running, or when the backend does not report it.
+        shortfall:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            The game's own words for why a running drill achieved nothing (for example
+            "missing Liquid Fuel"). Null whenever `IsruDrillEntry.throughput` is not
+            zero, and when the backend has no wording for it.
         resource:
           type:
             - string

@@ -45,6 +45,34 @@ public class IsruDrillEntry
     public string? PartTitle { get; set; }
 
     /// <summary>
+    /// The drill's own name on its part, which tells two on one part apart:
+    /// the <c>converterName</c> a <c>vessel.converter.start</c> or
+    /// <c>vessel.converter.stop</c> command names. Empty when the part's module
+    /// carries no name.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? ConverterName { get; set; }
+
+    /// <summary>
+    /// The share of its recipe this drill achieved on its last tick, 0..1, as the
+    /// game's own efficiency figure reports it. Zero means it is switched on and
+    /// cannot run, for example because an input is missing; the nominal rates
+    /// alongside are then not being produced or consumed. Null when it is not
+    /// running, or when the backend does not report it.
+    /// </summary>
+    [SitrepUnit(Units.Ratio)]
+    public double? Throughput { get; set; }
+
+    /// <summary>
+    /// The game's own words for why a running drill achieved nothing (for example
+    /// "missing Liquid Fuel"). Null whenever <see cref="Throughput"/> is not
+    /// zero, and when the backend has no wording for it.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? Shortfall { get; set; }
+
+
+    /// <summary>
     /// Resource this drill extracts (e.g. "Ore"). Free text, not a closed enum:
     /// whatever the running install's configs and profiles name, as with every
     /// resource name in this contract.
@@ -143,6 +171,34 @@ public class IsruConverterEntry
     /// join.</summary>
     [SitrepUnit(Units.Text)]
     public string? PartTitle { get; set; }
+
+    /// <summary>
+    /// The converter's own name on its part, which tells two on one part apart:
+    /// the <c>converterName</c> a <c>vessel.converter.start</c> or
+    /// <c>vessel.converter.stop</c> command names. Empty when the part's module
+    /// carries no name.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? ConverterName { get; set; }
+
+    /// <summary>
+    /// The share of its recipe this converter achieved on its last tick, 0..1, as the
+    /// game's own efficiency figure reports it. Zero means it is switched on and
+    /// cannot run, for example because an input is missing; the nominal rates
+    /// alongside are then not being produced or consumed. Null when it is not
+    /// running, or when the backend does not report it.
+    /// </summary>
+    [SitrepUnit(Units.Ratio)]
+    public double? Throughput { get; set; }
+
+    /// <summary>
+    /// The game's own words for why a running converter achieved nothing (for example
+    /// "missing Liquid Fuel"). Null whenever <see cref="Throughput"/> is not
+    /// zero, and when the backend has no wording for it.
+    /// </summary>
+    [SitrepUnit(Units.Text)]
+    public string? Shortfall { get; set; }
+
 
     /// <summary>Actively converting this tick.</summary>
     [SitrepUnit(Units.Flag)]

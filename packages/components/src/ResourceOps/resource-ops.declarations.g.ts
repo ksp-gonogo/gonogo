@@ -2,5 +2,5 @@
 export default {
   optionalChannels: ["trackingStation.bodies", "vessel.identity"],
   optionalChannelFamilies: [],
-  commands: [],
+  commands: ["vessel.converter.start", "vessel.converter.stop"],
 } as const;

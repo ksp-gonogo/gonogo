@@ -33,6 +33,9 @@ namespace Sitrep.Host.Tests
         {
             nameof(IsruDrillEntry.PartId),
             nameof(IsruDrillEntry.PartTitle),
+            nameof(IsruDrillEntry.ConverterName),
+            nameof(IsruDrillEntry.Throughput),
+            nameof(IsruDrillEntry.Shortfall),
             nameof(IsruDrillEntry.Resource),
             nameof(IsruDrillEntry.Deployed),
             nameof(IsruDrillEntry.Running),
@@ -51,6 +54,9 @@ namespace Sitrep.Host.Tests
         {
             nameof(IsruConverterEntry.PartId),
             nameof(IsruConverterEntry.PartTitle),
+            nameof(IsruConverterEntry.ConverterName),
+            nameof(IsruConverterEntry.Throughput),
+            nameof(IsruConverterEntry.Shortfall),
             nameof(IsruConverterEntry.Running),
             nameof(IsruConverterEntry.Inputs),
             nameof(IsruConverterEntry.Outputs),

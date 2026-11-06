@@ -3448,6 +3448,39 @@ export interface SetControlFrameArgs
 	targetFrameSelected?: boolean;
 }
 /**
+* Switch a converter on a part on or off (`vessel.converter.start` and
+* `vessel.converter.stop`). Reaches every converter the game runs as a
+* resource process: an ISRU unit, a fuel cell, a drill.
+*
+* The part is named by `ConverterSwitchArgs.partId`, the part's flight id as a
+* string, the same id `isru.converters` and `isru.drills` carry on each entry.
+* An empty or unknown `ConverterSwitchArgs.partId` fails with
+* `CommandErrorCode.NotFound`.
+*
+* Start and stop are idempotent: a converter already in the requested state
+* answers success with `RunStateChange.changed` false. A start the game would
+* refuse, such as a drill whose head is not deployed, fails with
+* `CommandErrorCode.WrongState`.
+*
+* @category Command arguments
+*/
+export interface ConverterSwitchArgs
+{
+	/**
+	* The converter's part, as its flight id in a string: the id the
+	* `isru.converters` and `isru.drills` entries are keyed by.
+	*/
+	partId: string;
+	/**
+	* Which converter on the part is meant, as the `converterName` of its
+	* `isru.converters` or `isru.drills` entry. Optional: an empty value means the
+	* part's only converter. A part can carry several, so an empty value on such a
+	* part is refused with `CommandErrorCode.NotFound`, as is a name the part does
+	* not carry.
+	*/
+	converterName?: string;
+}
+/**
 * The last notable crash of the current save. A subscriber that joins late
 * still receives the most recent record, since every value is delivered, in
 * order. Every field is captured from the crashed vessel at the moment of the
@@ -5278,6 +5311,26 @@ export interface IsruDrillEntry
 	/** Part.partInfo.title, for display without a vessel.parts join. */
 	partTitle?: string | null;
 	/**
+	* The drill's own name on its part, which tells two on one part apart: the
+	* `converterName` a `vessel.converter.start` or `vessel.converter.stop`
+	* command names. Empty when the part's module carries no name.
+	*/
+	converterName?: string | null;
+	/**
+	* The share of its recipe this drill achieved on its last tick, 0..1, as the
+	* game's own efficiency figure reports it. Zero means it is switched on and
+	* cannot run, for example because an input is missing; the nominal rates
+	* alongside are then not being produced or consumed. Null when it is not
+	* running, or when the backend does not report it.
+	*/
+	throughput?: Value<"ratio"> | null;
+	/**
+	* The game's own words for why a running drill achieved nothing (for example
+	* "missing Liquid Fuel"). Null whenever `IsruDrillEntry.throughput` is not
+	* zero, and when the backend has no wording for it.
+	*/
+	shortfall?: string | null;
+	/**
 	* Resource this drill extracts (e.g. "Ore"). Free text, not a closed enum:
 	* whatever the running install's configs and profiles name, as with every
 	* resource name in this contract.
@@ -5354,6 +5407,27 @@ export interface IsruConverterEntry
 	partId?: string | null;
 	/** Part.partInfo.title, for display without a vessel.parts join. */
 	partTitle?: string | null;
+	/**
+	* The converter's own name on its part, which tells two on one part apart: the
+	* `converterName` a `vessel.converter.start` or `vessel.converter.stop`
+	* command names. Empty when the part's module carries no name.
+	*/
+	converterName?: string | null;
+	/**
+	* The share of its recipe this converter achieved on its last tick, 0..1, as
+	* the game's own efficiency figure reports it. Zero means it is switched on
+	* and cannot run, for example because an input is missing; the nominal rates
+	* alongside are then not being produced or consumed. Null when it is not
+	* running, or when the backend does not report it.
+	*/
+	throughput?: Value<"ratio"> | null;
+	/**
+	* The game's own words for why a running converter achieved nothing (for
+	* example "missing Liquid Fuel"). Null whenever
+	* `IsruConverterEntry.throughput` is not zero, and when the backend has no
+	* wording for it.
+	*/
+	shortfall?: string | null;
 	/** Actively converting this tick. */
 	running?: boolean | null;
 	/**

@@ -7,12 +7,15 @@ import {
   resourceColor,
   Stack,
   Text,
+  Tooltip,
 } from "@ksp-gonogo/ui-kit";
 import {
   RESOURCE_TABLE_COLS,
   ResourceCells,
   RunStateBadge,
 } from "./ProcessCells";
+import { ProcessSwitch, type ProcessSwitchHandles } from "./ProcessSwitch";
+import { isStarved, reportedStarved } from "./rates";
 
 function converterTone(
   starved: boolean,
@@ -36,22 +39,16 @@ export function ConverterCard({
   converter,
   highlighted,
   held: converterHeld,
+  switchHandles,
 }: Readonly<{
+  switchHandles: ProcessSwitchHandles;
   converter: IsruConverterEntry;
   highlighted: boolean;
   /** The recipe still holds; the rates, run state and starved diagnostic do not. */
   held: boolean;
 }>) {
-  /*
-   * A running converter whose every output arrived as zero is starved. A process
-   * with no outputs (a scrubber) is exempt, and an absent rate is an unread one,
-   * not a stall.
-   */
-  const starved =
-    !converterHeld &&
-    converter.running === true &&
-    converter.outputs.length > 0 &&
-    converter.outputs.every((flow) => flow.rate?.isZero() === true);
+  // The game's own figure when it reports one, else every output reading zero; a process with no outputs (a scrubber) is exempt from the fallback.
+  const starved = !converterHeld && isStarved(converter);
 
   // Identity colour, never status: what it makes if it makes anything, else what it consumes.
   const primaryResource =
@@ -72,7 +69,11 @@ export function ConverterCard({
           ) : (
             <RunStateBadge running={converter.running} />
           )}
-          {starved && <Badge tone="warn">no output</Badge>}
+          {starved && (
+            <Tooltip text={converter.shortfall ?? undefined}>
+              <Badge tone="warn">no output</Badge>
+            </Tooltip>
+          )}
         </Inline>
       }
     >
@@ -85,7 +86,7 @@ export function ConverterCard({
               key={`in-${flow.resource ?? index}`}
               flow={flow}
               direction="in"
-              ratesHeld={converterHeld}
+              ratesHeld={converterHeld || reportedStarved(converter)}
             />
           ))}
           {converter.outputs.length === 0 && <NoFlows />}
@@ -94,10 +95,18 @@ export function ConverterCard({
               key={`out-${flow.resource ?? index}`}
               flow={flow}
               direction="out"
-              ratesHeld={converterHeld}
+              ratesHeld={converterHeld || reportedStarved(converter)}
             />
           ))}
         </Grid>
+        <ProcessSwitch
+          handles={switchHandles}
+          partId={converter.partId}
+          converterName={converter.converterName}
+          title={converter.partTitle ?? converter.partId ?? "converter"}
+          running={converter.running}
+          held={converterHeld}
+        />
       </Stack>
     </Card>
   );

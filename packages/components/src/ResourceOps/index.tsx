@@ -4,6 +4,7 @@ import {
   registerComponent,
   useActionInput,
 } from "@ksp-gonogo/core";
+import { useCommand } from "@ksp-gonogo/sitrep-client";
 import { hasAnswered, stillTrue } from "@ksp-gonogo/sitrep-sdk";
 import {
   EmptyState,
@@ -28,6 +29,12 @@ export type { ResourceOpsActions } from "./config";
 
 const topics = defineTopicManifest({
   channels: ["isru.drills", "isru.converters"],
+  fields: [
+    "isru.drills.throughput",
+    "isru.converters.converterName",
+    "isru.converters.throughput",
+    "isru.converters.shortfall",
+  ],
   optionalChannels: read.optionalChannels,
 });
 
@@ -67,6 +74,12 @@ function ResourceOpsComponent(
   // Each channel carries its own currency: a held drill channel says nothing about the converters.
   const drillsReading = topics.useTelemetry("isru.drills");
   const convertersReading = topics.useTelemetry("isru.converters");
+  const startCmd = useCommand("vessel.converter.start");
+  const stopCmd = useCommand("vessel.converter.stop");
+  const switchHandles = useMemo(
+    () => ({ start: startCmd, stop: stopCmd }),
+    [startCmd, stopCmd],
+  );
   const drillsHeld = drillsReading.state === "held";
   const convertersHeld = convertersReading.state === "held";
 
@@ -143,6 +156,7 @@ function ResourceOpsComponent(
           drill={drill}
           highlighted={index === current}
           held={drillsHeld}
+          switchHandles={switchHandles}
         />
       ),
     }));
@@ -156,11 +170,19 @@ function ResourceOpsComponent(
           converter={converter}
           highlighted={allDrills.length + index === current}
           held={convertersHeld}
+          switchHandles={switchHandles}
         />
       ),
     }));
     return [...drillRows, ...converterRows];
-  }, [allDrills, allConverters, current, drillsHeld, convertersHeld]);
+  }, [
+    allDrills,
+    allConverters,
+    current,
+    drillsHeld,
+    convertersHeld,
+    switchHandles,
+  ]);
 
   if (!anything) {
     return (
@@ -216,6 +238,7 @@ registerComponent<ResourceOpsConfig>({
   minSize: { w: 3, h: 4 },
   component: ResourceOpsComponent,
   channels: topics.channels,
+  fields: topics.fields,
   ...read,
   defaultConfig: {},
   actions: resourceOpsActions,

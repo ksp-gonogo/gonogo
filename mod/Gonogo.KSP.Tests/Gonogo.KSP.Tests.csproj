@@ -131,6 +131,8 @@
          part; the rule takes the three facts and needs nothing. -->
     <Compile Include="..\Gonogo.KSP\ExperimentDeployRule.cs" />
     <Compile Include="..\Gonogo.KSP\ConverterRunRule.cs" />
+    <Compile Include="..\Gonogo.KSP\ConverterPick.cs" />
+    <Compile Include="..\Gonogo.KSP\ConverterThroughput.cs" />
     <Compile Include="..\Gonogo.KSP\LabRunRule.cs" />
     <!-- What TimeWarp actually settled on against what the command asked for.
          The read is live; the comparison is not. -->

@@ -120,6 +120,9 @@ namespace Gonogo.KSP
             return entries;
         }
 
+        private static ConverterThroughput Reach(BaseConverter converter) =>
+            ConverterThroughput.Of(converter.IsActivated, converter.lastTimeFactor, converter.status);
+
         private static IsruDrillEntry BuildDrill(Part part, ModuleResourceHarvester harvester)
         {
             var running = harvester.IsActivated;
@@ -129,6 +132,9 @@ namespace Gonogo.KSP
             {
                 PartId = part.flightID.ToString(),
                 PartTitle = TitleOf(part),
+                ConverterName = harvester.ConverterName ?? "",
+                Throughput = Reach(harvester).Throughput,
+                Shortfall = Reach(harvester).Shortfall,
                 Resource = string.IsNullOrEmpty(harvester.ResourceName) ? null : harvester.ResourceName,
                 Deployed = DeployedState(part),
                 Running = running,
@@ -146,6 +152,9 @@ namespace Gonogo.KSP
             {
                 PartId = part.flightID.ToString(),
                 PartTitle = TitleOf(part),
+                ConverterName = converter.ConverterName ?? "",
+                Throughput = Reach(converter).Throughput,
+                Shortfall = Reach(converter).Shortfall,
                 Running = converter.IsActivated,
             };
 

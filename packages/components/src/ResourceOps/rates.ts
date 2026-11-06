@@ -1,4 +1,7 @@
-import type { IsruConverterEntry } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  IsruConverterEntry,
+  IsruDrillEntry,
+} from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 
 /**
@@ -11,6 +14,33 @@ export function rateDecimals(rate: Quantityish, base: number): number {
   if (magnitude === null || magnitude === 0) return base;
   const twoSignificant = 1 - Math.floor(Math.log10(Math.abs(magnitude)));
   return Math.min(6, Math.max(base, twoSignificant));
+}
+
+/**
+ * A switched-on drill or converter the game itself reports as achieving none of
+ * its recipe (an input is missing), so the nominal rates beside it are not real.
+ * False when the backend does not report the figure.
+ */
+export function reportedStarved(
+  entry: IsruConverterEntry | IsruDrillEntry,
+): boolean {
+  if (entry.running !== true) return false;
+  const throughput = entry.throughput;
+  return throughput != null && !throughput.isPositive();
+}
+
+/**
+ * Starved by the game's own figure, or, for a converter whose backend reports
+ * none, running with outputs that all read zero. A drill with no figure is not.
+ */
+export function isStarved(entry: IsruConverterEntry | IsruDrillEntry): boolean {
+  if (reportedStarved(entry)) return true;
+  if (entry.running !== true || !("outputs" in entry)) return false;
+  if (entry.throughput != null) return false;
+  return (
+    entry.outputs.length > 0 &&
+    entry.outputs.every((flow) => flow.rate?.isZero() === true)
+  );
 }
 
 /**
@@ -34,14 +64,14 @@ export function netElectricChargeDraw(
     for (const flow of converter.inputs) {
       if (flow.resource !== "ElectricCharge") continue;
       moves = true;
-      if (converter.running !== true) continue;
+      if (converter.running !== true || reportedStarved(converter)) continue;
       const rate = magnitudeOf(flow.rate);
       net = rate === null || net === null ? null : net + rate;
     }
     for (const flow of converter.outputs) {
       if (flow.resource !== "ElectricCharge") continue;
       moves = true;
-      if (converter.running !== true) continue;
+      if (converter.running !== true || reportedStarved(converter)) continue;
       const rate = magnitudeOf(flow.rate);
       net = rate === null || net === null ? null : net - rate;
     }

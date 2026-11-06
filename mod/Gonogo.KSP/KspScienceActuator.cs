@@ -386,7 +386,7 @@ namespace Gonogo.KSP
             return true;
         }
 
-        private static bool TryResolvePart(string partId, out Part? part, out RefusalCode? error)
+        internal static bool TryResolvePart(string partId, out Part? part, out RefusalCode? error)
         {
             part = null;
 

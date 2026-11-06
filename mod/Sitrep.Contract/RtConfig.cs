@@ -262,6 +262,7 @@ public static class RtConfig
                 typeof(RotorSetBrakeArgs),
                 typeof(RotorReverseArgs),
                 typeof(ExperimentActionArgs),
+                typeof(ConverterSwitchArgs),
                 // vessel.invokePartAction args (fire one PAW button)
                 typeof(InvokePartActionArgs),
                 // vessel.control fly-by-wire command args

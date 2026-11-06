@@ -595,6 +595,10 @@
       "secondaryBody": "text",
       "targetFrameSelected": "flag"
     },
+    "ConverterSwitchArgs": {
+      "converterName": "text",
+      "partId": "id"
+    },
     "CraftFileParts": {
       "failure": "text"
     },
@@ -950,18 +954,24 @@
       "partId": "id"
     },
     "IsruConverterEntry": {
+      "converterName": "text",
       "partId": "id",
       "partTitle": "text",
-      "running": "flag"
+      "running": "flag",
+      "shortfall": "text",
+      "throughput": "ratio"
     },
     "IsruDrillEntry": {
       "abundance": "ratio",
+      "converterName": "text",
       "deployed": "flag",
       "partId": "id",
       "partTitle": "text",
       "rate": "units/s",
       "resource": "text",
-      "running": "flag"
+      "running": "flag",
+      "shortfall": "text",
+      "throughput": "ratio"
     },
     "IsruResourceFlow": {
       "rate": "units/s",
@@ -2158,18 +2168,24 @@
       "holderId": "id"
     },
     "isru.converters": {
+      "converterName": "text",
       "partId": "id",
       "partTitle": "text",
-      "running": "flag"
+      "running": "flag",
+      "shortfall": "text",
+      "throughput": "ratio"
     },
     "isru.drills": {
       "abundance": "ratio",
+      "converterName": "text",
       "deployed": "flag",
       "partId": "id",
       "partTitle": "text",
       "rate": "units/s",
       "resource": "text",
-      "running": "flag"
+      "running": "flag",
+      "shortfall": "text",
+      "throughput": "ratio"
     },
     "ksp.revertAvailability": {
       "canRevertToEditor": "flag",

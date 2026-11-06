@@ -62,20 +62,66 @@
             "partTitle": "Convert-O-Tron 250",
             "running": true,
             "inputs": [
-              { "resource": "Ore", "rate": 0.5 },
-              { "resource": "ElectricCharge", "rate": 30 }
+              {
+                "resource": "Ore",
+                "rate": 0.5
+              },
+              {
+                "resource": "ElectricCharge",
+                "rate": 30
+              }
             ],
             "outputs": [
-              { "resource": "LiquidFuel", "rate": 0.45 },
-              { "resource": "Oxidizer", "rate": 0.55 }
+              {
+                "resource": "LiquidFuel",
+                "rate": 0.45
+              },
+              {
+                "resource": "Oxidizer",
+                "rate": 0.55
+              }
             ]
           },
           {
             "partId": "202",
             "partTitle": "Convert-O-Tron 125",
             "running": true,
-            "inputs": [{ "resource": "Ore", "rate": 0.25 }],
-            "outputs": [{ "resource": "Monopropellant", "rate": 0 }]
+            "inputs": [
+              {
+                "resource": "Ore",
+                "rate": 0.25
+              }
+            ],
+            "outputs": [
+              {
+                "resource": "Monopropellant",
+                "rate": 0
+              }
+            ]
+          },
+          {
+            "partId": "203",
+            "partTitle": "Fuel Cell",
+            "converterName": "Fuel Cell",
+            "running": true,
+            "throughput": 0,
+            "shortfall": "missing Liquid Fuel",
+            "inputs": [
+              {
+                "resource": "LiquidFuel",
+                "rate": 0.0016875
+              },
+              {
+                "resource": "Oxidizer",
+                "rate": 0.0020625
+              }
+            ],
+            "outputs": [
+              {
+                "resource": "ElectricCharge",
+                "rate": 1.5
+              }
+            ]
           }
         ]
       }
