@@ -661,6 +661,16 @@ function publishesToReleases() {
     "init",
   );
   const tag = `${ID}-v0.0.1`;
+  // The commit holds the placeholder; a release stamps the tag's version over it in its own checkout.
+  must(
+    "uplink-tools version stamps the tag's version",
+    "npx",
+    ["uplink-tools", "version", "0.0.1"],
+    {
+      cwd: client,
+      env: noHooks,
+    },
+  );
   mustFail(
     "release for a tag naming another version, seen by --tag",
     /is for version 9\.9\.9/,

@@ -58,12 +58,11 @@ const USAGE = `uplink-tools <command>
   package  lay the built plugin out as GameData and zip it
   release  bundle, bake, compile the plugin and package, in the order that
            gives a plugin the app will load a client for. \`release prepare\`
-           moves the version, proves the release builds, then commits and
-           tags it
+           stamps the version and proves the release builds
   deps     read the mod and packages this Uplink pins against every channel
            they publish on, and move the pins that are behind
-  version  move the Uplink to its next version in every place it is written,
-           and write its changelog section from its commits
+  version  stamp the Uplink with its release version in every place it is
+           written, over the placeholder its committed files hold
   publish  put the released client where its client.url is served from, and
            say the links
   page     write this Uplink's generated page from its registrations, with

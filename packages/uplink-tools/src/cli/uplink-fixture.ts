@@ -10,8 +10,8 @@ export const put = (dir: string, file: string, text: string) => {
   writeFileSync(path, text);
 };
 
-/** An Uplink at `v` with the version written everywhere a real one writes it. */
-export function fixture(v = "1.0.0-rc.4"): string {
+/** An Uplink as committed, at `v`, with the version written everywhere a real one writes it. */
+export function fixture(v = "0.0.0-development"): string {
   const dir = mkdtempSync(join(tmpdir(), "gonogo-version-"));
   scratch.push(dir);
   put(
