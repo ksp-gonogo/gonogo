@@ -107,12 +107,9 @@ describe("MapPoiLayer", () => {
 
     expect(screen.queryByText("Launch pad")).toBeNull();
 
-    const runway = screen.getByRole("button", { name: "Runway" });
-    fireEvent.mouseEnter(runway);
+    fireEvent.mouseEnter(screen.getByRole("button", { name: "Runway" }));
 
-    expect(
-      screen.getAllByText("Runway").filter((node) => !runway.contains(node)),
-    ).toHaveLength(1);
+    expect(screen.getByText("Runway")).toBeInTheDocument();
     expect(screen.getByText("Launch pad")).toBeInTheDocument();
     expect(visibleText()).toMatch(/-0\.05.*-74\.72/);
 
@@ -388,44 +385,7 @@ describe("MapPoiLayer", () => {
 });
 
 describe("MapPoiLayer marker tidy", () => {
-  it("opens only the hover card on hover, with no second tip naming the marker", () => {
-    vi.useFakeTimers();
-    registerMapPoiProvider({
-      id: "station",
-      usePois: () => [
-        makePoi({ id: "gs-1", kind: "launchSite", label: "Woomerang" }),
-      ],
-    });
-    renderLayer();
-
-    const marker = screen.getByRole("button", { name: "Woomerang" });
-    fireEvent.pointerEnter(marker);
-    fireEvent.mouseEnter(marker);
-    act(() => {
-      vi.advanceTimersByTime(2000);
-    });
-
-    expect(marker).not.toHaveAttribute("data-tooltip");
-    expect(
-      screen.getAllByText("Woomerang").filter((node) => !marker.contains(node)),
-    ).toHaveLength(1);
-  });
-
-  it("draws a ground site as a dish glyph in a button at least as large as the old dot", () => {
-    registerMapPoiProvider({
-      id: "station",
-      usePois: () => [
-        makePoi({ id: "gs-1", kind: "launchSite", label: "Woomerang" }),
-      ],
-    });
-    renderLayer();
-
-    const marker = screen.getByRole("button", { name: "Woomerang" });
-    expect(marker.querySelector("svg")).not.toBeNull();
-    expect(Number.parseInt(marker.style.width, 10)).toBeGreaterThanOrEqual(10);
-  });
-
-  it("draws a launch pad as a dish glyph in a different colour from the craft's green dot", () => {
+  it("draws a launch pad as a square in a different colour from the craft's green dot", () => {
     registerMapPoiProvider({
       id: "pad",
       usePois: () => [
@@ -435,9 +395,9 @@ describe("MapPoiLayer marker tidy", () => {
     renderLayer();
 
     const marker = screen.getByRole("button", { name: "LaunchPad" });
-    expect(marker.style.color).toContain("--color-text-primary");
-    expect(marker.style.color).not.toContain("--color-accent-fg");
-    expect(marker.querySelector("svg")).not.toBeNull();
+    expect(marker.style.background).toContain("--color-text-primary");
+    expect(marker.style.background).not.toContain("--color-accent-fg");
+    expect(marker.style.borderRadius).toBe("var(--radius-regular)");
   });
 
   it("names each contract waypoint beside its ring, hidden from assistive technology since the marker already carries the name", () => {

@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo WebSocket API
-  version: 51.0.0
+  version: 50.4.0
   description: |-
     The WebSocket API of the Gonogo mod: 91 telemetry channels a client
     subscribes to and 80 commands it sends, each with its payload and what it
@@ -3936,8 +3936,8 @@ channels:
     address: vessel.structure
     title: Active vessel structure
     description: |-
-      The active vessel's current stage and part count. Absent when there is no
-      active vessel.
+      The active vessel's stage and part counts. Absent when there is no active
+      vessel.
 
       `VesselStructure.currentStage` uses KSP's own staging numbering unchanged,
       which runs inverted relative to the staging list as drawn: this contract
@@ -25260,8 +25260,8 @@ components:
     VesselStructure:
       type: object
       description: |-
-        The active vessel's current stage and part count. Absent when there is no
-        active vessel.
+        The active vessel's stage and part counts. Absent when there is no active
+        vessel.
 
         `VesselStructure.currentStage` uses KSP's own staging numbering unchanged,
         which runs inverted relative to the staging list as drawn: this contract
@@ -25276,6 +25276,14 @@ components:
           description: |-
             KSP's own `Vessel.currentStage` numbering (capsule and upper stages have low
             numbers); see the class doc comment.
+        stageCount:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: count
+          description: |-
+            Number of stages: the highest `Part.inverseStage` on the vessel plus one.
+            Null when the vessel has no parts this tick.
         partCount:
           type:
             - number

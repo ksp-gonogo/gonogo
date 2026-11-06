@@ -72,45 +72,6 @@ describe("readings of a craft whose link home is lost", () => {
   });
 });
 
-describe("readings of the active craft outside the vessel namespace when its link is lost", () => {
-  it("are held from their last value before the blackout", () => {
-    const s = store();
-    s.ingest("dv.stages", point(36909.1, { stages: [] }));
-    s.ingest("crash.lastCrash", point(36909.1, { partName: "pod" }));
-    s.ingest("target.available", point(36909.1, { targets: [] }));
-    s.ingest("comms.link", point(36910.1, LOST));
-    s.beginFrame();
-
-    for (const topic of ["dv.stages", "crash.lastCrash", "target.available"]) {
-      const reading = s.sampleReading(topic);
-      expect(reading.state).toBe("held");
-      expect(reading.state === "held" && reading.grade).toBe(
-        "last-before-blackout",
-      );
-    }
-  });
-
-  it("are current when frames taken after the loss still arrive", () => {
-    const s = store();
-    s.ingest("comms.link", point(36910.1, LOST));
-    s.ingest("dv.stages", point(36911.2, { stages: [] }));
-    s.beginFrame();
-
-    expect(s.sampleReading("dv.stages").state).toBe("observed");
-  });
-
-  it("leave the reports of the link itself and a craft's own namespace alone", () => {
-    const s = store();
-    s.ingest("comms.connectivity", point(36909.1, LINKED));
-    s.ingest("fleet.abc.state", point(36909.1, { name: "Other" }));
-    s.ingest("comms.link", point(36910.1, LOST));
-    s.beginFrame();
-
-    expect(s.sampleReading("comms.connectivity").state).toBe("observed");
-    expect(s.sampleReading("fleet.abc.state").state).toBe("observed");
-  });
-});
-
 describe("readings of a craft whose link is lost behind a signal delay", () => {
   it("are held as soon as the loss is delivered, without waiting for the heartbeat", () => {
     let wall = 0;

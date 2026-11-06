@@ -13018,8 +13018,8 @@ export interface VesselResources
 	meta: PayloadMeta;
 }
 /**
-* The active vessel's current stage and part count. Absent when there is no
-* active vessel.
+* The active vessel's stage and part counts. Absent when there is no active
+* vessel.
 *
 * `VesselStructure.currentStage` uses KSP's own staging numbering unchanged,
 * which runs inverted relative to the staging list as drawn: this contract
@@ -13034,6 +13034,11 @@ export interface VesselStructure
 	* numbers); see the class doc comment.
 	*/
 	currentStage: number;
+	/**
+	* Number of stages: the highest `Part.inverseStage` on the vessel plus one.
+	* Null when the vessel has no parts this tick.
+	*/
+	stageCount?: Value<"count"> | null;
 	/**
 	* Number of parts on the vessel. Null when the vessel's part list could not be
 	* read this tick.

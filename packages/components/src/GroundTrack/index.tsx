@@ -400,20 +400,7 @@ function GroundTrackComponent({
                       data-map-base="pending"
                     />
                     <OverlayCanvas ref={overlayRef} />
-                    {overlayContext && showPois && (
-                      <MapPoiLayer
-                        bodyId={targetBodyId}
-                        project={overlayContext.project}
-                        repeats={{
-                          width: overlayContext.width,
-                          period: WORLD_W * camera.zoom,
-                        }}
-                      />
-                    )}
-                    <PersistentDataCanvas
-                      ref={persistentDataRef}
-                      data-testid="ground-track-trail-canvas"
-                    />
+                    <PersistentDataCanvas ref={persistentDataRef} />
                     {/* A canvas has no inspectable content, so the drawn segment count and markers are exposed here. */}
                     <PredictionCanvas
                       ref={predictionRef}
@@ -425,7 +412,6 @@ function GroundTrackComponent({
                     />
                     <DataCanvas
                       ref={dataRef}
-                      data-testid="ground-track-data-canvas"
                       data-vessel-marker={vesselMarked ? "" : undefined}
                       data-vessel-position={vesselPosition(
                         vesselMarked,
@@ -464,6 +450,16 @@ function GroundTrackComponent({
                           props={overlayContext}
                         />
                       </OverlayAugmentLayer>
+                    )}
+                    {overlayContext && showPois && (
+                      <MapPoiLayer
+                        bodyId={targetBodyId}
+                        project={overlayContext.project}
+                        repeats={{
+                          width: overlayContext.width,
+                          period: WORLD_W * camera.zoom,
+                        }}
+                      />
                     )}
                   </PanZoomViewport>
                 </MapOuter>

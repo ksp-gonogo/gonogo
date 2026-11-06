@@ -1878,7 +1878,8 @@
     },
     "VesselStructure": {
       "currentStage": "id",
-      "partCount": "count"
+      "partCount": "count",
+      "stageCount": "count"
     },
     "VesselSurface": {
       "biome": "text",
@@ -2564,7 +2565,8 @@
     },
     "vessel.structure": {
       "currentStage": "id",
-      "partCount": "count"
+      "partCount": "count",
+      "stageCount": "count"
     },
     "vessel.surface": {
       "biome": "text",

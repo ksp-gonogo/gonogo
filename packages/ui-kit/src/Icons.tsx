@@ -42,7 +42,6 @@ import {
   RotateCw,
   Rows2,
   Satellite,
-  SatelliteDish,
   Settings,
   Square,
   Star,
@@ -220,14 +219,6 @@ export const SettingsIcon = makeIcon(Settings);
  * @category Icons
  */
 export const SatelliteIcon = makeIcon(Satellite);
-/**
- * A dish antenna on a mast, pointing skyward. Useful for marking a ground
- * station or launch site on a map the operator reads. Used by the Ground Track
- * map's ground station markers.
- *
- * @category Icons
- */
-export const GroundStationIcon = makeIcon(SatelliteDish);
 /**
  * Four corners pointing outward. Useful for the control that puts the dashboard
  * into fullscreen. Used by the fullscreen button.

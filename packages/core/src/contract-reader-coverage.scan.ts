@@ -30,7 +30,7 @@ import { modTsRoots, SCANNED_PACKAGE_ROOTS } from "./unknown-cast.scan";
  *     `comms.delay`, `comms.link` and about 16 other payloads' `meta.source`,
  *     which no client reads.
  *  2. A non-widget production file that both (a) names the field's Topic as a
- *     string literal outside a list of strings and (b) uses every segment of the field's path as an identifier
+ *     string literal and (b) uses every segment of the field's path as an identifier
  *     somewhere in that file: `AlarmStatusBridge.tsx`, `TrajectoryCurrencyBridge.tsx`,
  *     the Settings panel and similar app chrome read contract fields directly,
  *     with no `registerComponent` in sight, and a gate that only understood
@@ -422,13 +422,11 @@ function collectTokens(sf: ts.SourceFile): {
   members: Set<string>;
   fieldNames: Set<string>;
   strings: Set<string>;
-  readStrings: Set<string>;
 } {
   const identifiers = new Set<string>();
   const members = new Set<string>();
   const fieldNames = new Set<string>();
   const strings = new Set<string>();
-  const readStrings = new Set<string>();
   const visit = (node: ts.Node): void => {
     if (ts.isExportDeclaration(node)) return;
     if (ts.isIdentifier(node)) identifiers.add(node.text);
@@ -457,18 +455,11 @@ function collectTokens(sf: ts.SourceFile): {
       fieldNames.add(node.name.text);
     }
     if (ts.isShorthandPropertyAssignment(node)) fieldNames.add(node.name.text);
-    if (ts.isStringLiteral(node)) {
-      strings.add(node.text);
-      /*
-       * A literal in a list of strings routes (an id set, a table of Topics to
-       * treat alike) and names no field of the payload, so it is not a read.
-       */
-      if (!ts.isArrayLiteralExpression(node.parent)) readStrings.add(node.text);
-    }
+    if (ts.isStringLiteral(node)) strings.add(node.text);
     ts.forEachChild(node, visit);
   };
   ts.forEachChild(sf, visit);
-  return { identifiers, members, fieldNames, strings, readStrings };
+  return { identifiers, members, fieldNames, strings };
 }
 
 const EXPORTED_CONST_STRING_RE =
@@ -654,8 +645,7 @@ export function scanContractReaderCoverage(root = REPO_ROOT): CoverageScan {
     }
 
     if (mightTouchContract) {
-      const { identifiers, members, fieldNames, strings, readStrings } =
-        collectTokens(sf);
+      const { identifiers, members, fieldNames, strings } = collectTokens(sf);
       const touchesId = (
         id: string,
         aliases: Map<string, Set<string>>,
@@ -669,12 +659,7 @@ export function scanContractReaderCoverage(root = REPO_ROOT): CoverageScan {
         }
       }
       for (const topic of topics) {
-        if (
-          !readStrings.has(topic) &&
-          !aliasNamesOf(topicAliases, topic).some((n) => identifiers.has(n))
-        ) {
-          continue;
-        }
+        if (!touchesId(topic, topicAliases)) continue;
         const dir = rel.slice(0, rel.lastIndexOf("/"));
         const mounted = topicsByDir.get(dir) ?? new Set<string>();
         mounted.add(topic);

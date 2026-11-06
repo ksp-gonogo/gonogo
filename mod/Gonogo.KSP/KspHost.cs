@@ -1809,10 +1809,28 @@ namespace Gonogo.KSP
         private static Dictionary<string, object?> BuildMisc(Vessel vessel)
         {
             var parts = vessel.parts;
+            int? stageCount = null;
+            if (parts != null && parts.Count > 0)
+            {
+                var maxInverseStage = -1;
+                foreach (var part in parts)
+                {
+                    if (part != null && part.inverseStage > maxInverseStage)
+                    {
+                        maxInverseStage = part.inverseStage;
+                    }
+                }
+                if (maxInverseStage >= 0)
+                {
+                    stageCount = maxInverseStage + 1;
+                }
+            }
+
             return new Dictionary<string, object?>
             {
                 ["crewCount"] = vessel.GetCrewCount(),
                 ["currentStage"] = vessel.currentStage,
+                ["stageCount"] = stageCount,
                 ["partCount"] = parts != null ? (int?)parts.Count : null,
             };
         }

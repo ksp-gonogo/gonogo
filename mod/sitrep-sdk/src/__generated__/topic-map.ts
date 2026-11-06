@@ -288,7 +288,7 @@ export interface GeneratedTopicPayloadMap {
   "vessel.propulsion": VesselPropulsion;
   /** What the active vessel carries, keyed by resource name, each with its current amount and capacity. */
   "vessel.resources": VesselResources;
-  /** The active vessel's current stage and part count. */
+  /** The active vessel's stage and part counts. */
   "vessel.structure": VesselStructure;
   /** Surface data a landing widget needs that `vessel.flight` doesn't already carry. */
   "vessel.surface": VesselSurface;

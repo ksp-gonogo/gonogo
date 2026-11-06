@@ -404,7 +404,6 @@ export {
   FullscreenExitIcon,
   FullWidthIcon,
   GripIcon,
-  GroundStationIcon,
   HalfHeightIcon,
   HalfWidthIcon,
   HeartIcon,
