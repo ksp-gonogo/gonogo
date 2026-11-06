@@ -42,6 +42,40 @@ namespace Gonogo.KSP.Tests.Career
         }
 
         [Fact]
+        public void AnUnreadableLevelCountNamesNoTier()
+        {
+            Assert.Null(FacilityTiers.LowestTier(null, _ => true));
+        }
+
+        [Theory]
+        [InlineData(2, 3)]
+        [InlineData(0, 1)]
+        [InlineData(17, 18)]
+        public void TheLevelCountIsTheTopLevelsIndexPlusOne(int maxLevel, int expected)
+        {
+            Gonogo.KSP.Career.FacilityLadder.Clear();
+            Gonogo.KSP.Career.FacilityLadder.Remember(
+                "TestFacility", new Gonogo.KSP.Career.FacilityLadder.Rungs(maxLevel, new float[maxLevel + 1], null));
+
+            Assert.Equal(expected, Gonogo.KSP.Career.FacilityLadder.LevelCount("TestFacility"));
+        }
+
+        [Theory]
+        [InlineData(2, 0.5f, 2)]
+        [InlineData(17, 0.5f, 10)]
+        [InlineData(17, 0.2f, 5)]
+        public void ATierIsFoundFromTheLadderCountWhateverTheLevelCount(int maxLevel, float unlockNorm, int expected)
+        {
+            Gonogo.KSP.Career.FacilityLadder.Clear();
+            Gonogo.KSP.Career.FacilityLadder.Remember(
+                "TestFacility", new Gonogo.KSP.Career.FacilityLadder.Rungs(maxLevel, new float[maxLevel + 1], null));
+
+            var count = Gonogo.KSP.Career.FacilityLadder.LevelCount("TestFacility");
+
+            Assert.Equal(expected, FacilityTiers.LowestTier(count, norm => norm >= unlockNorm - 1e-4f));
+        }
+
+        [Fact]
         public void ACapabilityNoLevelUnlocksHasNoTier()
         {
             Assert.Null(FacilityTiers.LowestTier(3, _ => false));

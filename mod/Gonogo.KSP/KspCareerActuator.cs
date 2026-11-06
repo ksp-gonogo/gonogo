@@ -652,27 +652,8 @@ namespace Gonogo.KSP
         /// out of the loaded hierarchy, which holds the same serialized ladder
         /// whether or not it is registered.
         /// </summary>
-        private static FacilityLadder.Rungs? OffSceneLadder(string sanitizedId)
-        {
-            if (FacilityLadder.TryGet(sanitizedId, out var remembered)) return remembered;
-            try
-            {
-                UpgradeableFacility? found = null;
-                foreach (var candidate in UnityEngine.Resources.FindObjectsOfTypeAll<UpgradeableFacility>())
-                {
-                    if (candidate == null || !string.Equals(candidate.id, sanitizedId, StringComparison.Ordinal)) continue;
-                    found = candidate;
-                    if (candidate.gameObject.scene.IsValid()) break;
-                }
-                if (found == null) return null;
-                FacilityLadder.Remember(sanitizedId, found);
-                return FacilityLadder.TryGet(sanitizedId, out var read) ? read : null;
-            }
-            catch (Exception)
-            {
-                return null;
-            }
-        }
+        private static FacilityLadder.Rungs? OffSceneLadder(string sanitizedId) =>
+            FacilityLadder.Resolve(sanitizedId);
 
         /// <summary><c>UpgradeableFacility.GetUpgradeCost</c>'s arithmetic over a remembered rung.</summary>
         private static float StockUpgradeCost(float levelCost) =>

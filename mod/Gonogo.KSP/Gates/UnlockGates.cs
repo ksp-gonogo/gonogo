@@ -11,14 +11,16 @@ namespace Gonogo.KSP.Gates
     /// </summary>
     internal static class FacilityTiers
     {
-        /// <param name="levelCount">How many levels the building has: 3 in stock, more under a career mod.</param>
+        /// <param name="levelCount">How many levels the building has: 3 in stock, more under a career mod. Null when it cannot be read, which names no tier.</param>
         /// <param name="unlockedAt">The game's own switch, asked at each level's normalised value.</param>
-        public static int? LowestTier(int levelCount, Func<float, bool> unlockedAt)
+        public static int? LowestTier(int? levelCount, Func<float, bool> unlockedAt)
         {
-            if (levelCount <= 1) return unlockedAt(1f) ? 1 : (int?)null;
-            for (var tier = 0; tier < levelCount; tier++)
+            if (levelCount == null) return null;
+            var count = levelCount.Value;
+            if (count <= 1) return unlockedAt(1f) ? 1 : (int?)null;
+            for (var tier = 0; tier < count; tier++)
             {
-                if (unlockedAt(tier / (float)(levelCount - 1))) return tier + 1;
+                if (unlockedAt(tier / (float)(count - 1))) return tier + 1;
             }
             return null;
         }
@@ -35,6 +37,15 @@ namespace Gonogo.KSP.Gates
             Name = string.IsNullOrEmpty(name) ? facility.ToString() : name,
             Tier = tier,
         };
+    }
+
+    /// <summary>The number of levels a building has, in the game's own count.</summary>
+    internal static class FacilityLevels
+    {
+        /// <summary>How many levels the building has, from its own ladder, or null when it cannot be read.</summary>
+        public static int? Count(SpaceCenterFacility facility) =>
+            Career.FacilityLadder.LevelCount(
+                ScenarioUpgradeableFacilities.SlashSanitize(facility.ToString()));
     }
 
     /// <summary>
@@ -57,7 +68,7 @@ namespace Gonogo.KSP.Gates
         private readonly Func<Game.Modes?> _gameMode;
         private readonly Func<float, GameVariables.OrbitDisplayMode?> _displayModeAt;
         private readonly Func<float> _trackingStationLevel;
-        private readonly Func<int> _trackingStationLevelCount;
+        private readonly Func<int?> _trackingStationLevelCount;
 
         /// <summary>The live reads, each replaceable for a headless test.</summary>
         public OrbitDisplayGate(
@@ -65,7 +76,7 @@ namespace Gonogo.KSP.Gates
             Func<Game.Modes?>? gameMode = null,
             Func<float, GameVariables.OrbitDisplayMode?>? displayModeAt = null,
             Func<float>? trackingStationLevel = null,
-            Func<int>? trackingStationLevelCount = null)
+            Func<int?>? trackingStationLevelCount = null)
         {
             _scenarioLoaded = scenarioLoaded ?? FacilityGateHelp.FacilitiesScenarioLoaded;
             _gameMode = gameMode ?? FacilityGateHelp.CurrentGameMode;
@@ -73,7 +84,7 @@ namespace Gonogo.KSP.Gates
             _trackingStationLevel = trackingStationLevel
                 ?? (() => ScenarioUpgradeableFacilities.GetFacilityLevel(SpaceCenterFacility.TrackingStation));
             _trackingStationLevelCount = trackingStationLevelCount
-                ?? (() => ScenarioUpgradeableFacilities.GetFacilityLevelCount(SpaceCenterFacility.TrackingStation));
+                ?? (() => FacilityLevels.Count(SpaceCenterFacility.TrackingStation));
         }
 
         public string Kind => KspGateEvaluators.Kinds.OrbitDisplay;

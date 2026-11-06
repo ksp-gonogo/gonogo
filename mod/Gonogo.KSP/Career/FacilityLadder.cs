@@ -64,6 +64,55 @@ namespace Gonogo.KSP.Career
             lock (Gate) return Seen.TryGetValue(sanitizedId, out rungs!);
         }
 
+        /// <summary>
+        /// The ladder for a facility in any scene: the live component when one is
+        /// registered, else the one remembered from a registering scene, else the
+        /// KSC's own component read out of the loaded hierarchy, which holds the
+        /// same serialized ladder whether or not it is registered. Null when none
+        /// can be found.
+        /// </summary>
+        public static Rungs? Resolve(string sanitizedId)
+        {
+            try
+            {
+                if (ScenarioUpgradeableFacilities.protoUpgradeables.TryGetValue(sanitizedId, out var proto)
+                    && proto?.facilityRefs != null && proto.facilityRefs.Count > 0 && proto.facilityRefs[0] != null)
+                {
+                    Remember(sanitizedId, proto.facilityRefs[0]);
+                }
+                if (TryGet(sanitizedId, out var remembered)) return remembered;
+
+                UpgradeableFacility? found = null;
+                foreach (var candidate in UnityEngine.Resources.FindObjectsOfTypeAll<UpgradeableFacility>())
+                {
+                    if (candidate == null || !string.Equals(candidate.id, sanitizedId, StringComparison.Ordinal)) continue;
+                    found = candidate;
+                    if (candidate.gameObject.scene.IsValid()) break;
+                }
+                if (found == null) return null;
+                Remember(sanitizedId, found);
+                return TryGet(sanitizedId, out var read) ? read : null;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// How many levels a facility has, read off its own ladder
+        /// (<c>UpgradeableObject.MaxLevel + 1</c>) so it holds in every scene and
+        /// under a career mod that adds levels. Null when no ladder can be read.
+        /// <c>ScenarioUpgradeableFacilities.GetFacilityLevelCount</c> is not
+        /// this: it answers the top level's index at the Space Center and -1
+        /// where no component is registered.
+        /// </summary>
+        public static int? LevelCount(string sanitizedId)
+        {
+            var rungs = Resolve(sanitizedId);
+            return rungs == null ? (int?)null : rungs.MaxLevel + 1;
+        }
+
         /// <summary>Forgets every ladder. For tests.</summary>
         internal static void Clear()
         {
