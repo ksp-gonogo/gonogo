@@ -197,18 +197,48 @@ function KeplerPeriodComponent({
       plotReadout={(room) => {
         const { present } = room;
         // A period is the orbit's, and a craft that rests on a body or meets its surface has none to read.
-        if (!present || offOrbit) return undefined;
+        if (offOrbit) return undefined;
         /* The figures keep the orbit reading's currency and are the plot's own newest sample, so a period is never shown for an orbit the plot has no sample of. */
-        const period = deriveReading(
-          orbitTelemetry,
-          () => value("s", present.y),
-          () => value("s", present.y),
-        );
-        const semiMajorAxis = deriveReading(
-          orbitTelemetry,
-          () => value("m", present.x),
-          () => value("m", present.x),
-        );
+        let period = present
+          ? deriveReading(
+              orbitTelemetry,
+              () => value("s", present.y),
+              () => value("s", present.y),
+            )
+          : undefined;
+        let semiMajorAxis = present
+          ? deriveReading(
+              orbitTelemetry,
+              () => value("m", present.x),
+              () => value("m", present.x),
+            )
+          : undefined;
+        if (!present) {
+          /* A coasting craft's orbit carried through a blackout has aged out of the plot's window but is still the orbit, so its figures are solved from the elements the model carries. */
+          const carried =
+            orbitReading.state === "held" &&
+            orbitReading.reckoning.status === "available";
+          if (!carried) return undefined;
+          const elements = orbitReading.value;
+          const seconds = periodOf(
+            elements.sma.valueOf(),
+            elements.mu.valueOf(),
+          );
+          if (seconds === null) return undefined;
+          period = deriveReading(
+            orbitTelemetry,
+            () => value("s", seconds),
+            () => value("s", seconds),
+          );
+          semiMajorAxis = deriveReading(
+            orbitTelemetry,
+            () => value("m", elements.sma.valueOf()),
+            () => value("m", elements.sma.valueOf()),
+          );
+        }
+        if (period === undefined || semiMajorAxis === undefined) {
+          return undefined;
+        }
         return (
           <ReadoutRows
             stacked={room.compact}

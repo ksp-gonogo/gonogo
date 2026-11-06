@@ -35,8 +35,9 @@ export type ResourceAmountMap = Record<string, Value<"units">>;
 /**
  * Shared lookup behind both `dv.currentStageResource`/`dv.currentStageResourceMax`:
  * finds the `dv.stages` entry whose `stage` field equals
- * `vessel.structure.currentStage` and returns its raw `resources` map (or `{}`
- * when no stage matches, or the matching stage carries none). `dv.stages`
+ * `vessel.structure.currentStage` and returns its raw `resources` map. With no
+ * such entry the nearest lower stage's map stands in; `{}` when there is none,
+ * or the chosen stage carries none. `dv.stages`
  * already carries a per-STAGE resource breakdown
  * (`Gonogo.KSP.KspHost.BuildStageResources`); this derivation exists purely to
  * pick out the one entry the old `r.resourceCurrent[X]`/
@@ -67,9 +68,19 @@ function currentStageResources(
   if (typeof currentStage !== "number") return {};
 
   const stages = Array.isArray(stagesPoint.payload) ? stagesPoint.payload : [];
-  const match = stages.find(
-    (s) => s && typeof s === "object" && s.stage === currentStage,
+  const entries = stages.filter(
+    (s): s is StageDeltaVWireEntry & { stage: number } =>
+      !!s && typeof s === "object" && typeof s.stage === "number",
   );
+  /*
+   * A current stage with no delta-v entry (a vessel not yet staged past its
+   * last stage) holds the resources of the nearest stage below it.
+   */
+  const match =
+    entries.find((s) => s.stage === currentStage) ??
+    entries
+      .filter((s) => s.stage < currentStage)
+      .sort((a, b) => b.stage - a.stage)[0];
 
   return match?.resources && typeof match.resources === "object"
     ? match.resources

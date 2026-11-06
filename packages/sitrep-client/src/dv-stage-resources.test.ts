@@ -132,12 +132,28 @@ describe("deriveCurrentStageResourceCurrent/Max: the r.resourceCurrent(Max)[X] p
     ).toEqual({});
   });
 
-  it("empty map when currentStage doesn't match any dv.stages entry", () => {
+  it("empty map when currentStage is below every dv.stages entry", () => {
     expect(
       deriveCurrentStageResourceCurrent(
-        fakeGet(point(STAGES), point({ currentStage: 99 })),
+        fakeGet(point(STAGES), point({ currentStage: -1 })),
       ),
     ).toEqual({});
+  });
+
+  it("a currentStage with no dv.stages entry reads the nearest lower stage (probe: currentStage 1, only stage 0)", () => {
+    const probe: StageDeltaVWireEntry[] = [
+      {
+        stage: 0,
+        resources: {
+          LiquidFuel: { current: units(180), max: units(180) },
+          Oxidizer: { current: units(220), max: units(220) },
+        },
+      },
+    ];
+    const both = { LiquidFuel: units(180), Oxidizer: units(220) };
+    const get = fakeGet(point(probe), point({ currentStage: 1 }));
+    expect(deriveCurrentStageResourceCurrent(get)).toEqual(both);
+    expect(deriveCurrentStageResourceMax(get)).toEqual(both);
   });
 
   it("empty map when currentStage itself isn't a number yet", () => {

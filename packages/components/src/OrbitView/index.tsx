@@ -200,8 +200,11 @@ function OrbitViewComponent({
     },
   );
   const apsides = apsidesExist(readFrame.frame);
-  // Derived figures are null unless the reading is current, even under a model; the radii stay because the diagram gates its own geometry.
-  const orbitCurrent = orbitReading.state === "observed";
+  // Derived figures are null unless the reading is current or its elements are carried forward by the model, as through a blackout; the radii stay because the diagram gates its own geometry.
+  const orbitCurrent =
+    orbitReading.state === "observed" ||
+    (orbitReading.state === "held" &&
+      orbitReading.reckoning.status === "available");
   const current = <Field,>(v: Field | null | undefined): Field | undefined =>
     orbitCurrent ? (v ?? undefined) : undefined;
 
