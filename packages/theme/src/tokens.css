@@ -896,6 +896,10 @@ textarea {
   --gutter-screen: var(--space-24);
   /* The gutter of a widget screen whose children draw no edge of their own; the panel pads the sides. */
   --gutter-screen-body: var(--space-8) 0;
+  /* The floating dashboard-controls button's diameter. */
+  --fab-size: 48px;
+  /* The button's distance from the bottom and right edges, before any safe-area inset. */
+  --fab-edge: var(--space-24);
   /* The dashboard grid's gutter between tiles. */
   --gutter-dashboard: var(--space-8);
   /* A tile's drag header. */

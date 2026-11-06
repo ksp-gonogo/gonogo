@@ -552,7 +552,10 @@ function StationWakeLockBridge() {
 const Layout = styled.div`
   padding: var(--gutter-screen);
   padding-top: calc(var(--gutter-screen) + env(safe-area-inset-top, 0px));
-  padding-bottom: calc(var(--gutter-screen) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(
+    var(--gutter-screen) + var(--fab-size) + var(--fab-edge) +
+      env(safe-area-inset-bottom, 0px)
+  );
   padding-left: calc(var(--gutter-screen) + env(safe-area-inset-left, 0px));
   padding-right: calc(var(--gutter-screen) + env(safe-area-inset-right, 0px));
   background: var(--color-surface-app);

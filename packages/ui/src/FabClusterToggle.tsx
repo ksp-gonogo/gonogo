@@ -33,13 +33,13 @@ export function FabClusterToggle() {
 
 const Toggle = styled.button`
   position: fixed;
-  /* Held literal with the rest of the FAB-geometry chain: BannerStack's
-     right: 88px (24 + 48 + 16), FabPrompt's 72px and Fab's own right: 24px are
-     all arithmetic on this 48px button at 24px from the corner. */
-  bottom: 24px;
-  right: 24px;
-  width: 48px;
-  height: 48px;
+  /* BannerStack's 88px, FabPrompt's 72px and Fab's own right: 24px are still
+     literal arithmetic on this size and edge, and the dashboard screens reserve
+     room beneath their tiles from the same two tokens. */
+  bottom: calc(var(--fab-edge) + env(safe-area-inset-bottom, 0px));
+  right: calc(var(--fab-edge) + env(safe-area-inset-right, 0px));
+  width: var(--fab-size);
+  height: var(--fab-size);
   border-radius: var(--radius-circle);
   background: var(--color-accent-fg);
   border: none;
