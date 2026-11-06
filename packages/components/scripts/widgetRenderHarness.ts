@@ -10,8 +10,9 @@
  */
 
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { createServer, type Server } from "node:http";
 import { createRequire } from "node:module";
-import { dirname, join, resolve } from "node:path";
+import { dirname, extname, join, normalize, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { build, type Plugin } from "esbuild";
 import {
@@ -432,6 +433,7 @@ export async function renderWidgets(
     slug,
   });
 
+  const probeServer = await serveProbePage(probeHtmlOut);
   console.log(`Launching ${engine}...`);
   const browser = await ENGINES[engine].launch();
   try {
@@ -471,7 +473,7 @@ export async function renderWidgets(
           }
         });
       });
-      await page.goto(pathToFileURL(probeHtmlOut).toString(), {
+      await page.goto(probeServer.url, {
         waitUntil: "domcontentloaded",
       });
       await page.waitForFunction(
@@ -783,6 +785,7 @@ export async function renderWidgets(
     }
   } finally {
     await browser.close();
+    await probeServer.close();
   }
 }
 
@@ -810,16 +813,17 @@ export async function renderScreens(
     ...PROBE_PAGES.screen,
     slug: configs.length === 1 ? configs[0].screenId : "screens",
   });
-  const probeUrl = pathToFileURL(probeHtmlOut).toString();
+  const probeServer = await serveProbePage(probeHtmlOut);
 
   console.log("Launching Chromium...");
   const browser = await chromium.launch();
   try {
     for (const config of configs) {
-      await renderOneScreen(browser, probeUrl, config);
+      await renderOneScreen(browser, probeServer.url, config);
     }
   } finally {
     await browser.close();
+    await probeServer.close();
   }
 }
 
@@ -3017,6 +3021,92 @@ document.head.appendChild(__style);`,
     });
   },
 };
+
+/** Ports the gate must never bind: those of the app, the relay and the other local services. */
+const RESERVED_PORTS = new Set([
+  5390, 5391, 5392, 5393, 8080, 8088, 8090, 3002, 47100,
+]);
+
+const CONTENT_TYPES: Record<string, string> = {
+  ".html": "text/html; charset=utf-8",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".svg": "image/svg+xml",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+  ".json": "application/json",
+};
+
+export interface ProbeServer {
+  /** The probe page's http URL. */
+  url: string;
+  close(): Promise<void>;
+}
+
+/**
+ * Serves a generated probe page, and the app's `public/` folder beside it, from
+ * a loopback server on a port the OS picks, so the page and every texture it
+ * draws share one origin. A page opened from file:// has an opaque origin, which
+ * taints any canvas that draws an image and makes `getImageData` throw.
+ */
+export async function serveProbePage(htmlPath: string): Promise<ProbeServer> {
+  const html = (await readFile(htmlPath, "utf8")).replace(
+    /<base href="[^"]*" \/>/,
+    '<base href="/" />',
+  );
+  const root = normalize(PUBLIC_ASSETS + sep);
+  const server: Server = createServer((req, res) => {
+    void (async () => {
+      const path = decodeURIComponent((req.url ?? "/").split("?")[0]);
+      if (path === "/" || path === "/__probe.html") {
+        res.writeHead(200, { "content-type": CONTENT_TYPES[".html"] });
+        res.end(html);
+        return;
+      }
+      const file = normalize(join(PUBLIC_ASSETS, path));
+      if (!file.startsWith(root)) {
+        res.writeHead(403).end();
+        return;
+      }
+      try {
+        const body = await readFile(file);
+        res.writeHead(200, {
+          "content-type":
+            CONTENT_TYPES[extname(file).toLowerCase()] ??
+            "application/octet-stream",
+        });
+        res.end(body);
+      } catch {
+        res.writeHead(404).end();
+      }
+    })();
+  });
+  for (let attempt = 0; attempt < 20; attempt++) {
+    await new Promise<void>((ok, fail) => {
+      server.once("error", fail);
+      server.listen(0, "127.0.0.1", () => {
+        server.off("error", fail);
+        ok();
+      });
+    });
+    const address = server.address();
+    const port = typeof address === "object" && address ? address.port : 0;
+    if (!RESERVED_PORTS.has(port)) {
+      return {
+        url: `http://127.0.0.1:${port}/__probe.html`,
+        close: () =>
+          new Promise<void>((ok) => {
+            server.closeAllConnections();
+            server.close(() => ok());
+          }),
+      };
+    }
+    await new Promise<void>((ok) => server.close(() => ok()));
+  }
+  throw new Error("serveProbePage: no free port outside the reserved set");
+}
 
 /** Build a probe bundle, inline it + the theme CSS into the HTML template,
  *  write to tmpdir. Shared by the widget and screen render paths, they
