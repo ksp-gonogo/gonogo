@@ -1,6 +1,6 @@
 import type { LogEntry } from "@ksp-gonogo/logger";
 import { describe, expect, it } from "vitest";
-import { recentLogsWindow } from "./recentLogsWindow";
+import { capLogsByBytes, recentLogsWindow } from "./recentLogsWindow";
 
 function entry(timestamp: string): LogEntry {
   return { level: "info", message: "x", timestamp };
@@ -45,5 +45,22 @@ describe("recentLogsWindow", () => {
       entry("2026-05-12T10:30:00.000Z"),
     ];
     expect(recentLogsWindow(buf, 15, now)).toEqual([]);
+  });
+});
+
+describe("capLogsByBytes", () => {
+  it("returns the same array when everything fits", () => {
+    const buf = [entry("2026-05-12T11:00:00.000Z")];
+    expect(capLogsByBytes(buf, 10_000)).toBe(buf);
+  });
+
+  it("keeps the newest entries that fit and drops the oldest", () => {
+    const buf = Array.from({ length: 10 }, (_, i) => ({
+      ...entry("2026-05-12T11:00:00.000Z"),
+      message: `m${i}`,
+    }));
+    const one = JSON.stringify(buf[0]).length + 1;
+    const capped = capLogsByBytes(buf, one * 3 + 2);
+    expect(capped.map((e) => e.message)).toEqual(["m7", "m8", "m9"]);
   });
 });

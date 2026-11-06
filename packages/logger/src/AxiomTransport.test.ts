@@ -8,6 +8,7 @@ import {
   vi,
 } from "vitest";
 import { type AxiomIngestClient, AxiomTransport } from "./AxiomTransport.js";
+import { DEFAULT_LOG_BUDGET } from "./LogBudget.js";
 import type { LogEntry } from "./types.js";
 
 /**
@@ -126,6 +127,7 @@ describe("AxiomTransport", () => {
       client,
       dataset: "gonogo",
       flushOnPageHide: false,
+      budget: { ...DEFAULT_LOG_BUDGET, linesPerWindow: 10_000 },
     });
     transport.send(Array.from({ length: 1200 }, (_, i) => entry(`l${i}`)));
     expect(
@@ -250,7 +252,10 @@ describe("AxiomTransport scrubbing", () => {
       ...entry("hello"),
       context: { ...SENSITIVE, kept: 7 },
     });
-    const context = sent.context as Record<string, unknown>;
+    const context = {
+      ...(sent.context as Record<string, unknown>),
+      ...JSON.parse((sent.context as { extra: string }).extra),
+    };
     for (const key of Object.keys(SENSITIVE)) {
       expect(context[key]).toMatch(/^<[a-z]+:[0-9a-f]{8}>$/);
     }
@@ -479,9 +484,9 @@ describe("AxiomTransport field cap", () => {
       {
         ...entry("x"),
         context: {
-          channels: byChannel,
-          rows: [{ channel: "a", fps: 1 }],
-          initial: { a: 1, b: { c: { d: { e: 1 } } } },
+          state: byChannel,
+          status: [{ channel: "a", fps: 1 }],
+          outcome: { a: 1, b: { c: { d: { e: 1 } } } },
         },
       },
     ]);
@@ -492,9 +497,9 @@ describe("AxiomTransport field cap", () => {
       { context: Record<string, unknown> }[],
     ];
     const ctx = events[0].context;
-    expect(ctx.channels).toBe(JSON.stringify(byChannel));
-    expect(ctx.rows).toEqual([{ channel: "a", fps: 1 }]);
-    expect(ctx.initial).toEqual({
+    expect(ctx.state).toBe(JSON.stringify(byChannel));
+    expect(ctx.status).toEqual([{ channel: "a", fps: 1 }]);
+    expect(ctx.outcome).toEqual({
       a: 1,
       b: { c: { d: JSON.stringify({ e: 1 }) } },
     });

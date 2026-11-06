@@ -26,6 +26,7 @@ import { LogsManager } from "./LogsManager";
 /** Every request the ingest endpoint received, as its parsed JSON body. */
 let ingested: unknown[][] = [];
 let ingestStatus = 200;
+let ingestFailed = 0;
 
 // The one-shot report transport talks to Axiom itself, so intercept at the network boundary.
 const server = setupServer(
@@ -46,7 +47,11 @@ const server = setupServer(
       })();
       ingested.push(Array.isArray(parsed) ? parsed : [parsed]);
       return ingestStatus === 200
-        ? HttpResponse.json({ ingested: 1, failed: 0 })
+        ? HttpResponse.json({
+            ingested: ingestFailed > 0 ? 0 : 1,
+            failed: ingestFailed,
+            failures: ingestFailed > 0 ? [{ error: "too many fields" }] : [],
+          })
         : new HttpResponse("nope", { status: ingestStatus });
     },
   ),
@@ -65,6 +70,7 @@ afterAll(() => {
 beforeEach(() => {
   ingested = [];
   ingestStatus = 200;
+  ingestFailed = 0;
   vi.stubEnv("VITE_AXIOM_TOKEN", "test-token");
   logger.clearBuffer();
   logger.setEnabled(true);
@@ -370,6 +376,66 @@ describe("LogsManager: Feedback with analytics off", () => {
       await screen.findByText(/report could not be sent/i),
     ).toBeInTheDocument();
     expect(screen.queryByText(/bug report sent/i)).not.toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  it("does not tell the player the report was sent when Axiom answers 200 with failed events", async () => {
+    ingestFailed = 1;
+    const user = await openReportForm();
+    await user.type(screen.getByLabelText(/what went wrong/i), "Gauge froze");
+    await user.click(screen.getByRole("button", { name: /send report/i }));
+
+    expect(
+      await screen.findByText(/report could not be sent/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/bug report sent/i)).not.toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  it("ships a report once, by its own request, while analytics is on", async () => {
+    const controller = createBrowserConsentController();
+    controller.apply(true);
+    const user = await openReportForm();
+    await user.type(screen.getByLabelText(/what went wrong/i), "Gauge froze");
+    await user.click(screen.getByRole("button", { name: /send report/i }));
+    await waitFor(
+      () => {
+        expect(screen.getByText(/bug report sent/i)).toBeInTheDocument();
+      },
+      { timeout: 8000 },
+    );
+    await logger.flushTransports();
+    controller.apply(false);
+
+    const messages = (ingested.flat() as { message?: string }[]).map(
+      (e) => e.message,
+    );
+    expect(
+      messages.filter((m) => m === "[bug-report] Gauge froze"),
+    ).toHaveLength(1);
+    await act(async () => {});
+  });
+
+  it("keeps the logs embedded in a report within a byte cap", async () => {
+    for (let i = 0; i < 3000; i++)
+      logger.info(`filler ${i} ${"x".repeat(300)}`);
+    const user = await openReportForm();
+    await user.type(screen.getByLabelText(/what went wrong/i), "Gauge froze");
+    await user.click(screen.getByRole("button", { name: /send report/i }));
+    await waitFor(
+      () => {
+        expect(screen.getByText(/bug report sent/i)).toBeInTheDocument();
+      },
+      { timeout: 8000 },
+    );
+    const sent = (
+      ingested.flat() as {
+        context?: { bug_report?: { recentLogs: unknown[] } };
+      }[]
+    ).find((e) => e.context?.bug_report);
+    const bytes = JSON.stringify(sent?.context?.bug_report?.recentLogs).length;
+    expect(bytes).toBeLessThanOrEqual(400_000);
+    expect(sent?.context?.bug_report?.recentLogs.length).toBeGreaterThan(100);
     await act(async () => {});
   });
 

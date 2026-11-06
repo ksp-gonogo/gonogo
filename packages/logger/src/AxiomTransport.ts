@@ -1,5 +1,11 @@
 import { AxiomFetchClient } from "./AxiomFetchClient.js";
 import { collapseContext } from "./collapseContext.js";
+import {
+  DEFAULT_LOG_BUDGET,
+  LogBudget,
+  type LogBudgetLimits,
+} from "./LogBudget.js";
+import { isReportEvent } from "./reportTags.js";
 import { scrubEntry } from "./scrub.js";
 import type { LogEntry, LogTransport } from "./types.js";
 
@@ -41,6 +47,14 @@ export interface AxiomTransportOptions {
   flushOnPageHide?: boolean;
   /** How long lines are held to go out as one request. Defaults to 1000. */
   flushIntervalMs?: number;
+  /** Limits on what one transport lets through. Defaults to {@link DEFAULT_LOG_BUDGET}. */
+  budget?: LogBudgetLimits;
+  /**
+   * Whether feedback and bug-report entries are sent by this transport.
+   * Defaults to `true`. A standing transport turns it off when reports go by
+   * their own one-shot transport, so a report is not sent twice.
+   */
+  carryReports?: boolean;
   /**
    * Called when a delivery attempt fails, before it is retried. Omitted,
    * failures are silent.
@@ -56,9 +70,10 @@ export interface AxiomTransportOptions {
  * as a request that outlives the page.
  *
  * Entries are scrubbed of share codes, addresses, host names, peer ids and
- * URLs before they leave, and a context object whose keys come from data is
- * collapsed to a JSON string so it cannot add fields to the dataset. Failures are swallowed, log delivery never crashes
- * the app.
+ * URLs before they leave, and context keys outside the allowlist travel in one
+ * JSON string so they cannot add fields to the dataset. A per-session budget
+ * (see {@link LogBudget}) folds repeated lines and drops the excess before the
+ * queue. Failures are swallowed, log delivery never crashes the app.
  */
 export class AxiomTransport implements LogTransport {
   /** Max entries per `ingest` call: bounds a one-shot backfill so a full
@@ -77,6 +92,10 @@ export class AxiomTransport implements LogTransport {
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
   private retryDelayMs = AxiomTransport.RETRY_START_MS;
   private readonly onError: ((error: unknown) => void) | undefined;
+  private readonly budget: LogBudget;
+  private readonly windowMs: number;
+  private readonly carryReports: boolean;
+  private summaryTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(options: AxiomTransportOptions) {
     if (!options.dataset) {
@@ -86,6 +105,9 @@ export class AxiomTransport implements LogTransport {
     this.dataset = options.dataset;
     this.flushIntervalMs = options.flushIntervalMs ?? 1000;
     this.onError = options.onError;
+    this.budget = new LogBudget(options.budget);
+    this.windowMs = (options.budget ?? DEFAULT_LOG_BUDGET).windowMs;
+    this.carryReports = options.carryReports ?? true;
     this.client = AxiomTransport.resolveClient(options);
 
     const wantPageHide =
@@ -93,6 +115,7 @@ export class AxiomTransport implements LogTransport {
       typeof globalThis.addEventListener === "function";
     if (wantPageHide && typeof globalThis.addEventListener === "function") {
       this.pageHideHandler = () => {
+        this.enqueue(this.budget.close());
         void this.flush({ keepalive: true });
       };
       globalThis.addEventListener("pagehide", this.pageHideHandler);
@@ -128,16 +151,17 @@ export class AxiomTransport implements LogTransport {
        * event is filed at the moment it arrived, which puts a backfill of the
        * whole pre-consent buffer at the moment analytics was switched on.
        */
+      let sawError = false;
       for (const e of unscrubbed) {
-        this.queue.push({
-          _time: e.timestamp,
-          ...collapseContext(scrubEntry(e)),
-        });
+        if (!this.carryReports && isReportEvent(e)) continue;
+        const admitted = this.budget.admit(e);
+        if (admitted.length > 0) this.armSummaryTimer();
+        for (const a of admitted) {
+          if (a.level === "error") sawError = true;
+        }
+        this.enqueue(admitted);
       }
-      if (
-        this.queue.length >= AxiomTransport.MAX_BATCH ||
-        unscrubbed.some((e) => e.level === "error")
-      ) {
+      if (this.queue.length >= AxiomTransport.MAX_BATCH || sawError) {
         void this.flush();
         return;
       }
@@ -152,6 +176,27 @@ export class AxiomTransport implements LogTransport {
     } catch {
       // ignore: never let a logging path throw
     }
+  }
+
+  private enqueue(entries: readonly LogEntry[]): void {
+    for (const e of entries) {
+      this.queue.push({
+        _time: e.timestamp,
+        ...collapseContext(scrubEntry(e)),
+      });
+    }
+  }
+
+  /** Makes sure the summary lines of a window are sent when it ends, even if nothing else is logged. */
+  private armSummaryTimer(): void {
+    if (this.summaryTimer !== null) return;
+    this.summaryTimer = setTimeout(() => {
+      this.summaryTimer = null;
+      if (!this.budget.hasPending()) return;
+      this.enqueue(this.budget.close());
+      void this.flush();
+    }, this.windowMs);
+    (this.summaryTimer as { unref?: () => void }).unref?.();
   }
 
   /**
@@ -232,5 +277,7 @@ export class AxiomTransport implements LogTransport {
     this.clearRetry();
     if (this.timer !== null) clearTimeout(this.timer);
     this.timer = null;
+    if (this.summaryTimer !== null) clearTimeout(this.summaryTimer);
+    this.summaryTimer = null;
   }
 }

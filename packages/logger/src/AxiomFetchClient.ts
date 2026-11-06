@@ -1,4 +1,5 @@
 import type { AxiomIngestClient } from "./AxiomTransport.js";
+import { isReportEvent } from "./reportTags.js";
 
 export interface AxiomFetchClientOptions {
   token: string;
@@ -42,6 +43,20 @@ export class AxiomFetchClient implements AxiomIngestClient {
   ingest(dataset: string, events: object | readonly object[]): void {
     const list = Array.isArray(events) ? events : [events];
     for (const event of list) this.pending.push({ dataset, event });
+    this.trim();
+  }
+
+  /** Keeps the newest `maxPending` events, and never evicts a report while an ordinary event is waiting. */
+  private trim(): void {
+    let excess = this.pending.length - this.maxPending;
+    if (excess <= 0) return;
+    this.pending = this.pending.filter((p) => {
+      if (excess > 0 && !isReportEvent(p.event)) {
+        excess--;
+        return false;
+      }
+      return true;
+    });
     if (this.pending.length > this.maxPending) {
       this.pending = this.pending.slice(-this.maxPending);
     }
@@ -54,9 +69,17 @@ export class AxiomFetchClient implements AxiomIngestClient {
     const settled = new Set<(typeof sending)[number]>();
     try {
       for (const dataset of new Set(sending.map((p) => p.dataset))) {
-        const items = sending.filter((p) => p.dataset === dataset);
-        for (let i = 0; i < items.length; i += MAX_EVENTS_PER_REQUEST) {
-          const chunk = items.slice(i, i + MAX_EVENTS_PER_REQUEST);
+        const all = sending.filter((p) => p.dataset === dataset);
+        /* Reports go first and in requests of their own, so a chunk the server refuses or part-rejects cannot take one down with it. */
+        const reports = all.filter((p) => isReportEvent(p.event));
+        const rest = all.filter((p) => !isReportEvent(p.event));
+        const chunks: (typeof sending)[] = [];
+        for (const group of [reports, rest]) {
+          for (let i = 0; i < group.length; i += MAX_EVENTS_PER_REQUEST) {
+            chunks.push(group.slice(i, i + MAX_EVENTS_PER_REQUEST));
+          }
+        }
+        for (const chunk of chunks) {
           try {
             await this.post(
               dataset,
@@ -64,7 +87,10 @@ export class AxiomFetchClient implements AxiomIngestClient {
               options?.keepalive === true,
             );
           } catch (error) {
-            if (error instanceof RefusedBatchError) {
+            if (
+              error instanceof RefusedBatchError ||
+              error instanceof RejectedEventsError
+            ) {
               for (const p of chunk) settled.add(p);
             }
             throw error;
@@ -77,7 +103,8 @@ export class AxiomFetchClient implements AxiomIngestClient {
       this.pending = [
         ...sending.filter((p) => !settled.has(p)),
         ...this.pending,
-      ].slice(-this.maxPending);
+      ];
+      this.trim();
       throw error;
     }
   }
@@ -111,7 +138,10 @@ export class AxiomFetchClient implements AxiomIngestClient {
     } finally {
       clearTimeout(timeout);
     }
-    if (response.ok) return;
+    if (response.ok) {
+      await rejectedEvents(response);
+      return;
+    }
     const retryable =
       response.status >= 500 ||
       response.status === 429 ||
@@ -121,4 +151,35 @@ export class AxiomFetchClient implements AxiomIngestClient {
   }
 }
 
+/**
+ * Axiom answers 200 even when it turned some events away (a field over the
+ * dataset's limit, an oversized event): the body carries `failed` and
+ * `failures`. Resending the same events cannot change that, so they are not
+ * kept, but the flush must still report it.
+ */
+async function rejectedEvents(response: Response): Promise<void> {
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch {
+    return;
+  }
+  if (typeof body !== "object" || body === null) return;
+  const failed = "failed" in body ? body.failed : undefined;
+  if (typeof failed !== "number" || failed <= 0) return;
+  const failures = "failures" in body ? body.failures : undefined;
+  const firstFailure = Array.isArray(failures) ? failures[0] : undefined;
+  const first =
+    typeof firstFailure === "object" &&
+    firstFailure !== null &&
+    "error" in firstFailure
+      ? firstFailure.error
+      : undefined;
+  throw new RejectedEventsError(
+    `Axiom ingest rejected ${failed} events${typeof first === "string" ? `: ${first}` : ""}`,
+  );
+}
+
 class RefusedBatchError extends Error {}
+
+class RejectedEventsError extends Error {}

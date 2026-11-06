@@ -14,11 +14,15 @@ import {
  * present so a tokenless build (local dev, CI) can never install a sink,
  * the {@link AxiomConsentController} then treats `apply(true)` as a no-op.
  *
+ * A standing transport leaves feedback and bug reports to the report form,
+ * which ships each one by its own request.
+ *
  * Token = credential, consent = runtime gate: both must hold before
  * anything ships to Axiom.
  */
 export function makeBrowserAxiomTransport(
   onError?: (error: unknown) => void,
+  options: { carryReports?: boolean } = {},
 ): AxiomTransport | null {
   const token = import.meta.env.VITE_AXIOM_TOKEN;
   if (!token) return null;
@@ -28,6 +32,7 @@ export function makeBrowserAxiomTransport(
     url: import.meta.env.VITE_AXIOM_URL,
     orgId: import.meta.env.VITE_AXIOM_ORG_ID,
     onError,
+    carryReports: options.carryReports,
   });
 }
 
@@ -42,7 +47,9 @@ export function createBrowserConsentController(): AxiomConsentController {
     logger,
     makeTransport: () => {
       resetAxiomDeliveryFailure();
-      const transport = makeBrowserAxiomTransport(reportAxiomDeliveryFailure);
+      const transport = makeBrowserAxiomTransport(reportAxiomDeliveryFailure, {
+        carryReports: false,
+      });
       if (!transport) {
         logger.warn(
           "analytics is on but this build has no Axiom token, so no logs leave this screen",
