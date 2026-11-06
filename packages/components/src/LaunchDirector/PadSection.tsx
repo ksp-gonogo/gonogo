@@ -4,6 +4,7 @@ import type { CatalogEntry } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
   type CommandButtonHandle,
+  commandGateSentence,
   SelectableRow,
   Text,
   Unit,
@@ -290,6 +291,15 @@ function OpenPad({
           : crew.filter((k) => crewReading(k) === "available").length
       }
       showLaunched={split}
+      gateReason={(craft) => {
+        const gate = launchCmd.gateFor?.({
+          shipName: craft.file,
+          facility: launchFacilityArg(craft),
+          site: site.name,
+          crew: [],
+        });
+        return gate?.blocked ? commandGateSentence(gate) : null;
+      }}
       detail={
         ship && (
           <PadColumn>

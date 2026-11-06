@@ -1,0 +1,178 @@
+{
+  "_meta": {
+    "shows": "A saved craft the launch gate refuses because the vehicle is still rolling out: its row is dark with the game's reason and the ready count leaves it out.",
+    "scenario": "pre-launch-rolling-out",
+    "notes": "The pre-launch-mixed scene with system.uplink.gates carrying a per-vehicle refusal for the first craft, as the career mod publishes it for a vehicle that has not finished rolling out."
+  },
+  "_stream": {
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "spaceCenter.scene",
+        "value": {
+          "scene": "SpaceCenter",
+          "launchSite": "LaunchPad"
+        }
+      },
+      {
+        "channel": "spaceCenter.launchSites",
+        "value": [
+          {
+            "name": "LaunchPad",
+            "displayName": "KSC Launch Pad",
+            "editorFacility": "VAB",
+            "bodyIndex": 1,
+            "isStock": true,
+            "padOccupied": false,
+            "padVesselTitle": null
+          },
+          {
+            "name": "Runway",
+            "displayName": "KSC Runway",
+            "editorFacility": "SPH",
+            "bodyIndex": 1,
+            "isStock": true,
+            "padOccupied": null,
+            "padVesselTitle": null
+          },
+          {
+            "name": "Woomerang_Launch_Site",
+            "displayName": "Woomerang",
+            "editorFacility": "VAB",
+            "bodyIndex": 1,
+            "isStock": false,
+            "padOccupied": null,
+            "padVesselTitle": null
+          }
+        ]
+      },
+      {
+        "channel": "career.status",
+        "value": {
+          "balances": {
+            "funds": 42500,
+            "reputation": null,
+            "science": null
+          },
+          "contracts": null,
+          "strategies": null,
+          "tech": null
+        }
+      },
+      {
+        "channel": "spaceCenter.savedShips",
+        "value": [
+          {
+            "name": "Mun Hopper I",
+            "file": "Mun Hopper I",
+            "partCount": 18,
+            "totalMass": 8.4,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 12000,
+            "crewSeats": 1,
+            "canFlyUnmanned": true,
+            "minimumCrew": 0,
+            "missingParts": []
+          },
+          {
+            "name": "Duna Transfer Stage",
+            "file": "Duna Transfer Stage",
+            "partCount": 42,
+            "totalMass": 35.2,
+            "facility": "VAB",
+            "facilityOrdinal": 1,
+            "requiresFunds": 180000,
+            "crewSeats": 3,
+            "canFlyUnmanned": true,
+            "minimumCrew": 0,
+            "missingParts": []
+          },
+          {
+            "name": "SSTO Spaceplane",
+            "file": "SSTO Spaceplane",
+            "partCount": 24,
+            "totalMass": 11.6,
+            "facility": "SPH",
+            "facilityOrdinal": 2,
+            "requiresFunds": 8500,
+            "crewSeats": 0,
+            "canFlyUnmanned": true,
+            "minimumCrew": 0,
+            "missingParts": ["rapierEngine", "precooler"]
+          },
+          {
+            "name": "Orbital Tug (subassembly)",
+            "file": "Orbital Tug (subassembly)",
+            "partCount": 9,
+            "totalMass": 3.1,
+            "facility": "None",
+            "facilityOrdinal": 0,
+            "requiresFunds": 4200,
+            "crewSeats": 2,
+            "canFlyUnmanned": true,
+            "minimumCrew": 0,
+            "missingParts": []
+          }
+        ]
+      },
+      {
+        "channel": "spaceCenter.crewRoster",
+        "value": [
+          {
+            "name": "Jebediah Kerman",
+            "trait": "Pilot",
+            "experienceLevel": 5,
+            "available": true,
+            "unavailableReason": ""
+          },
+          {
+            "name": "Bill Kerman",
+            "trait": "Engineer",
+            "experienceLevel": 3,
+            "available": true,
+            "unavailableReason": ""
+          },
+          {
+            "name": "Valentina Kerman",
+            "trait": "Pilot",
+            "experienceLevel": 4,
+            "available": false,
+            "unavailableReason": "On EVA"
+          }
+        ]
+      },
+      {
+        "channel": "system.uplink.gates",
+        "value": {
+          "gates": [
+            {
+              "command": "ksp.launch",
+              "verdict": {
+                "outcome": 2,
+                "detail": ""
+              },
+              "itemSets": [
+                {
+                  "argument": "shipName",
+                  "items": [
+                    {
+                      "value": "Mun Hopper I",
+                      "verdict": {
+                        "outcome": 1,
+                        "errorCode": "notReady",
+                        "detail": "\"Mun Hopper I\" is still rolling out to the launch pad"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "channels": []
+        }
+      }
+    ],
+    "profiles": ["stock-career", "planted-space-centre"]
+  }
+}

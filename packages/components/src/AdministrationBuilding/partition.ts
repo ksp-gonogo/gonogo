@@ -55,3 +55,25 @@ export function inferCap(softBlocked: readonly Strategy[]): number | null {
   }
   return null;
 }
+
+/**
+ * What is in the way of a strategy the active cap holds back, in the screen's
+ * own noun: the cap, and which of the screen's running items can be deactivated
+ * to make room. Names none when the running items belong to another screen.
+ */
+export function capReason(
+  running: readonly Strategy[],
+  cap: number | null,
+  noun: string,
+): string {
+  const limit =
+    cap === null
+      ? `The limit of active ${noun}`
+      : `The limit of ${cap} active ${noun}`;
+  const names = running.map((s) => s.title);
+  if (names.length === 0) return `${limit} is reached.`;
+  const last = names[names.length - 1];
+  const list =
+    names.length === 1 ? last : `${names.slice(0, -1).join(", ")} or ${last}`;
+  return `${limit} is reached. Deactivate ${list} to make room.`;
+}

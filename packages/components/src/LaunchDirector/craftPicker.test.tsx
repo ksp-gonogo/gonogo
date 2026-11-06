@@ -2,6 +2,7 @@ import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, within } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { perItemGateReport } from "../test/perItemGate";
 import {
   type MockDataSourceFixture,
   setupMockDataSource,
@@ -116,6 +117,30 @@ describe("LaunchDirector craft list", () => {
     expect(screen.getByText("Station Core")).toBeInTheDocument();
     expect(screen.getByText("Station Module")).toBeInTheDocument();
     expect(screen.queryByText("Mun Hopper")).not.toBeInTheDocument();
+  });
+
+  it("does not count a craft ready that the launch gate refuses, and says why on its row", async () => {
+    renderWidget();
+    emit([PAD], ["Rolling Out", "On The Pad"]);
+    act(() => {
+      stream.emit(
+        "system.uplink.gates",
+        perItemGateReport("ksp.launch", "shipName", {
+          "Rolling Out": {
+            errorCode: "notReady",
+            detail: '"Rolling Out" is still rolling out to the pad',
+          },
+        }),
+      );
+    });
+
+    expect(await screen.findByText(/1\/2 ready/i)).toBeInTheDocument();
+    const rows = Array.from(document.querySelectorAll("[data-ship-row]"));
+    const rolling = rows.find((r) => r.textContent?.includes("Rolling Out"));
+    expect(rolling?.getAttribute("aria-disabled")).toBe("true");
+    expect(
+      document.querySelector('[data-tooltip*="still rolling out"]'),
+    ).not.toBeNull();
   });
 
   it("marks a craft that needs crew as not ready while no kerbal is free, before any press", async () => {

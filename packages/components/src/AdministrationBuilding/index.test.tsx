@@ -268,8 +268,10 @@ describe("AdministrationBuildingComponent", () => {
 
     const available = await openTab("Available");
     expect(
-      within(available).getByText(/Deactivate the running strategy first/i),
-    ).toBeInTheDocument();
+      available.querySelector(
+        '[data-tooltip*="Deactivate"][data-tooltip*="to make room"]',
+      ),
+    ).not.toBeNull();
   });
 
   it("opens on Active when a strategy is running", async () => {

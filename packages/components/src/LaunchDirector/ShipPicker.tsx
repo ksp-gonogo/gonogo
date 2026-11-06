@@ -8,7 +8,7 @@ import {
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useState } from "react";
-import { type SavedShip, shipBlocked, shipBlockedReason } from "./ships";
+import { type SavedShip, shipBlockedReason } from "./ships";
 import {
   BlockedTag,
   CostTag,
@@ -36,6 +36,7 @@ export function ShipPicker({
   freeCrew = null,
   detail,
   showLaunched = false,
+  gateReason,
 }: {
   padCraft: readonly SavedShip[];
   selectedShip: string | null;
@@ -47,15 +48,22 @@ export function ShipPicker({
   detail?: ReactNode;
   /** Marks each craft that has been launched with its date, and says when the time came from a vessel of the same name. */
   showLaunched?: boolean;
+  /** What the launch command's gate already says about a craft, in the game's own words, or null when it holds nothing against it. A craft it refuses is not ready. */
+  gateReason?: (ship: SavedShip) => string | null;
 }) {
   const [query, setQuery] = useState("");
   const needle = query.trim().toLowerCase();
   const shown = needle
     ? padCraft.filter((s) => s.name.toLowerCase().includes(needle))
     : padCraft;
-  const ready = padCraft.filter(
-    (s) => !shipBlocked(s, fundsAvailable, freeCrew),
-  ).length;
+  const blockedReason = (s: SavedShip) => {
+    const causes = [
+      shipBlockedReason(s, fundsAvailable, freeCrew),
+      gateReason?.(s) ?? null,
+    ].filter((cause) => cause !== null);
+    return causes.length === 0 ? null : causes.join("\n");
+  };
+  const ready = padCraft.filter((s) => blockedReason(s) === null).length;
   return (
     <PadColumn>
       <SectionLabel>
@@ -70,7 +78,7 @@ export function ShipPicker({
       <ShipList>
         {shown.length === 0 && <EmptyNote>No craft match "{query}"</EmptyNote>}
         {shown.map((s) => {
-          const reason = shipBlockedReason(s, fundsAvailable, freeCrew);
+          const reason = blockedReason(s);
           const blocked = reason !== null;
           const picked = selectedShip === s.file;
           return (

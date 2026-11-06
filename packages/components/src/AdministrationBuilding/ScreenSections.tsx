@@ -6,6 +6,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
+  Badge,
   CommandButton,
   type CommandButtonHandle,
   Divider,
@@ -15,6 +16,7 @@ import {
   Stack,
   type TabDescriptor,
   Tabs,
+  Tooltip,
   Unit,
   useSlotBound,
 } from "@ksp-gonogo/ui-kit";
@@ -22,7 +24,7 @@ import { type Dispatch, type SetStateAction, useState } from "react";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 import { AvailableRow, StrategyDescription } from "./AvailableRow";
 import { factorSliderOf, parseEffectLines } from "./parsing";
-import { partition, sharedReason } from "./partition";
+import { capReason, inferCap, partition, sharedReason } from "./partition";
 import { ShortRow, type ShortState } from "./ShortForm";
 import {
   BlockedNote,
@@ -54,6 +56,8 @@ export interface ScreenSectionsProps {
   listsStrategies?: boolean;
   /** True when the screen's own body carries the activate/deactivate verbs, so the host draws no Activate/Deactivate button on its cards. */
   drawsOwnActions?: boolean;
+  /** What this screen calls what it lists, lower case and plural, in the cap message. */
+  noun?: string;
   /** Draw one line per strategy instead of the Active / Available / Locked cards, for a tile too short for them. */
   short?: boolean;
   /** The career's activation is the game's own, so a strategy with no verdict is checked in full when it is confirmed. */
@@ -81,6 +85,7 @@ export function ScreenSections({
   showDepartment = true,
   listsStrategies = true,
   drawsOwnActions = false,
+  noun = "strategies",
   short = false,
   checkedOnConfirm,
   funds,
@@ -97,6 +102,7 @@ export function ScreenSections({
   const { active, available, softBlocked, ineligible, unknown } =
     partition(strategies);
   const unknownReason = sharedReason(unknown);
+  const blockedByCap = capReason(active, inferCap(softBlocked), noun);
   const fundsNow = magnitudeOf(funds);
   const reputationNow = magnitudeOf(reputation);
   const scienceNow = magnitudeOf(science);
@@ -229,8 +235,7 @@ export function ScreenSections({
               {softBlocked.map((s) =>
                 shortRow(s, {
                   kind: "locked",
-                  reason:
-                    "Deactivate the running strategy first to enable this one.",
+                  reason: blockedByCap,
                 }),
               )}
               {ineligible.map((s) =>
@@ -333,9 +338,9 @@ export function ScreenSections({
                     ) : undefined
                   }
                 >
-                  <BlockedNote>
-                    Deactivate the running strategy first to enable this one.
-                  </BlockedNote>
+                  <Tooltip text={blockedByCap} focusable>
+                    <Badge>LOCKED</Badge>
+                  </Tooltip>
                 </StrategyCard>
               ))}
             </>

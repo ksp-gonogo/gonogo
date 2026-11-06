@@ -173,6 +173,7 @@ export function AdministrationBuildingView({
                         {...sectionProps}
                         strategies={screen.strategies}
                         screenId={screen.id}
+                        noun={screen.label.toLowerCase()}
                         showDepartment={!screen.namesOneDepartment}
                         listsStrategies={screen.listsStrategies}
                         drawsOwnActions={screen.drawsOwnActions}
