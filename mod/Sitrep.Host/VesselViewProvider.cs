@@ -1562,7 +1562,8 @@ namespace Sitrep.Host
             {
                 CurrentStage = currentStage.Value,
                 // Null when the vessel has no parts this tick (R1(a)) --
-                // never -1 or 0 masquerading as a real part count.
+                // never -1 or 0 masquerading as a real stage/part count.
+                StageCount = GetInt(misc, "stageCount"),
                 PartCount = GetInt(misc, "partCount"),
                 Meta = BuildMeta(vesselId),
             };
@@ -2234,6 +2235,7 @@ namespace Sitrep.Host
         private static Dictionary<string, object?> ToWire(VesselStructure structure) => new Dictionary<string, object?>
         {
             ["currentStage"] = structure.CurrentStage,
+            ["stageCount"] = structure.StageCount,
             ["partCount"] = structure.PartCount,
             ["meta"] = ToWire(structure.Meta),
         };

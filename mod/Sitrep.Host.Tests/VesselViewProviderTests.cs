@@ -2705,21 +2705,22 @@ namespace Sitrep.Host.Tests
 
 
         [Fact]
-        public void BuildStructureMapsCurrentStageAndPartCount()
+        public void BuildStructureMapsCurrentStageStageCountAndPartCount()
         {
             var snapshot = SnapshotWith(
                 identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
-                misc: new Dictionary<string, object?> { ["currentStage"] = 2, ["partCount"] = 42 });
+                misc: new Dictionary<string, object?> { ["currentStage"] = 2, ["stageCount"] = 5, ["partCount"] = 42 });
 
             var structure = VesselViewProvider.BuildStructure(snapshot);
 
             Assert.NotNull(structure);
             Assert.Equal(2, structure!.CurrentStage);
+            Assert.Equal(5, structure.StageCount);
             Assert.Equal(42, structure.PartCount);
         }
 
         [Fact]
-        public void BuildStructureLeavesPartCountNullWhenVesselHasNoParts()
+        public void BuildStructureLeavesStageCountAndPartCountNullWhenVesselHasNoParts()
         {
             var snapshot = SnapshotWith(
                 identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
@@ -2728,7 +2729,8 @@ namespace Sitrep.Host.Tests
             var structure = VesselViewProvider.BuildStructure(snapshot);
 
             Assert.NotNull(structure);
-            Assert.Null(structure!.PartCount);
+            Assert.Null(structure!.StageCount);
+            Assert.Null(structure.PartCount);
         }
 
 
@@ -3287,7 +3289,7 @@ namespace Sitrep.Host.Tests
 
             yield return new object[]
             {
-                new VesselStructure { CurrentStage = 2, PartCount = 42, Meta = meta },
+                new VesselStructure { CurrentStage = 2, StageCount = 5, PartCount = 42, Meta = meta },
             };
 
             yield return new object[]

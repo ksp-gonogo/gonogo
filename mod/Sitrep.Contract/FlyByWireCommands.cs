@@ -16,13 +16,6 @@ namespace Sitrep.Contract;
 /// so control returns to the player and SAS with nothing left over. Turning it
 /// on fails when there is no active vessel or the vessel cannot currently be
 /// controlled; turning it off is never refused for control reasons.</para>
-///
-/// <para>The override lapses on its own: it stays on for 5 seconds after the
-/// last arm or <c>vessel.control.holdFlyByWire</c> reaches the vessel, and is
-/// then turned off as if disarmed. A console that has it armed sends
-/// <c>vessel.control.holdFlyByWire</c> regularly. A console that crashes,
-/// closes or loses its connection stops sending, so the vessel does not keep
-/// holding the stick, and a loss of contact lapses it the same way.</para>
 /// <internal>
 /// The override is re-applied from a Vessel.OnFlyByWire callback held by
 /// KspVesselActuator.

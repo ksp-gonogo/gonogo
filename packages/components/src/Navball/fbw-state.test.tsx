@@ -243,35 +243,3 @@ describe("Navball says fly-by-wire is armed when the control surface is out of s
     );
   });
 });
-
-describe("Navball renews the mod's lease on the override it armed", () => {
-  it("sends a hold while armed and none after the disarm", async () => {
-    const fixture = setupStreamFixture({ pinnedUt: 0, suspendFrames: true });
-    const seen: string[] = [];
-    fixture.transport.setCommandHandler((command: string) => {
-      seen.push(command);
-      return { success: true };
-    });
-    navball("fbw-hold", fixture.Provider);
-    act(() => {
-      fixture.emit("vessel.comms", { controlState: 4 });
-    });
-    press("fbw-hold", "arm-fbw");
-    await fbwButton("FBW ARMED");
-
-    await waitFor(
-      () => expect(seen).toContain("vessel.control.holdFlyByWire"),
-      { timeout: 4000 },
-    );
-
-    press("fbw-hold", "disarm-fbw");
-    await fbwButton("Arm FBW");
-    const holds = seen.filter((c) => c === "vessel.control.holdFlyByWire");
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-    });
-    expect(seen.filter((c) => c === "vessel.control.holdFlyByWire")).toEqual(
-      holds,
-    );
-  });
-});

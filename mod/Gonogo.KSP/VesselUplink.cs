@@ -256,7 +256,6 @@ namespace Gonogo.KSP
                 Command(VesselCommandProvider.SetActionGroupCommand, VesselViewProvider.ControlTopic),
                 Command(VesselCommandProvider.SetFlyByWireCommand, VesselViewProvider.ControlTopic),
                 Command(VesselCommandProvider.SetControlAxesCommand, VesselViewProvider.ControlTopic),
-                Command(VesselCommandProvider.HoldFlyByWireCommand, VesselViewProvider.ControlTopic),
                 Command(VesselCommandProvider.ManeuverAddCommand, VesselViewProvider.ManeuverTopic),
                 Command(VesselCommandProvider.ManeuverUpdateCommand, VesselViewProvider.ManeuverTopic),
                 Command(VesselCommandProvider.ManeuverRemoveCommand, VesselViewProvider.ManeuverTopic),
@@ -388,7 +387,6 @@ namespace Gonogo.KSP
             host.AddCommandHandler<object?, CommandResult<int>>(VesselCommandProvider.StageCommand, args => VesselCommandProvider.HandleStage(_actuator, args));
             host.AddCommandHandler<SetActionGroupArgs, CommandResult>(VesselCommandProvider.SetActionGroupCommand, args => VesselCommandProvider.HandleSetActionGroup(_actuator, args));
             host.AddCommandHandler<SetFlyByWireArgs, CommandResult>(VesselCommandProvider.SetFlyByWireCommand, args => VesselCommandProvider.HandleSetFlyByWire(_actuator, args));
-            host.AddCommandHandler<object?, CommandResult>(VesselCommandProvider.HoldFlyByWireCommand, args => VesselCommandProvider.HandleHoldFlyByWire(_actuator, args));
             host.AddCommandHandler<SetControlAxesArgs, CommandResult>(VesselCommandProvider.SetControlAxesCommand, args => VesselCommandProvider.HandleSetControlAxes(_actuator, args));
             host.AddCommandHandler<AddManeuverNodeArgs, CommandResult<string>>(VesselCommandProvider.ManeuverAddCommand, args => VesselCommandProvider.HandleManeuverAdd(_actuator, args));
             host.AddCommandHandler<UpdateManeuverNodeArgs, CommandResult>(VesselCommandProvider.ManeuverUpdateCommand, args => VesselCommandProvider.HandleManeuverUpdate(_actuator, args));

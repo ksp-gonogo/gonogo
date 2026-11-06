@@ -4784,13 +4784,6 @@ export interface LaunchArgs
 * on fails when there is no active vessel or the vessel cannot currently be
 * controlled; turning it off is never refused for control reasons.
 *
-* The override lapses on its own: it stays on for 5 seconds after the last arm
-* or `vessel.control.holdFlyByWire` reaches the vessel, and is then turned off
-* as if disarmed. A console that has it armed sends
-* `vessel.control.holdFlyByWire` regularly. A console that crashes, closes or
-* loses its connection stops sending, so the vessel does not keep holding the
-* stick, and a loss of contact lapses it the same way.
-*
 * @category Command arguments
 */
 export interface SetFlyByWireArgs
@@ -5945,12 +5938,11 @@ export interface WriteModSettingArgs
 	value: string;
 }
 /**
-* Take no args: stage, clear the target, hold fly-by-wire, recover, revert to
-* launch, or go to the Tracking Station or Space Center. The empty args shape,
-* for the core commands that operate on the current flight or the active
-* vessel and so take nothing: `vessel.control.stage`, `vessel.target.clear`,
-* `vessel.control.holdFlyByWire`, `ksp.recover`, `ksp.revertToLaunch`,
-* `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
+* Take no args: stage, clear the target, recover, revert to launch, or go to
+* the Tracking Station or Space Center. The empty args shape, for the core
+* commands that operate on the current flight or the active vessel and so take
+* nothing: `vessel.control.stage`, `vessel.target.clear`, `ksp.recover`,
+* `ksp.revertToLaunch`, `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
 *
 * Takes no arguments: send `args: {}`. Anything sent in `args` is ignored.
 *
@@ -13018,8 +13010,8 @@ export interface VesselResources
 	meta: PayloadMeta;
 }
 /**
-* The active vessel's current stage and part count. Absent when there is no
-* active vessel.
+* The active vessel's stage and part counts. Absent when there is no active
+* vessel.
 *
 * `VesselStructure.currentStage` uses KSP's own staging numbering unchanged,
 * which runs inverted relative to the staging list as drawn: this contract
@@ -13034,6 +13026,11 @@ export interface VesselStructure
 	* numbers); see the class doc comment.
 	*/
 	currentStage: number;
+	/**
+	* Number of stages: the highest `Part.inverseStage` on the vessel plus one.
+	* Null when the vessel has no parts this tick.
+	*/
+	stageCount?: Value<"count"> | null;
 	/**
 	* Number of parts on the vessel. Null when the vessel's part list could not be
 	* read this tick.

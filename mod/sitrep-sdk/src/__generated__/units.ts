@@ -1919,6 +1919,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "VesselStructure": {
     currentStage: "id",
     partCount: "count",
+    stageCount: "count",
   },
   "VesselSurface": {
     biome: "text",
@@ -2610,6 +2611,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "vessel.structure": {
     currentStage: "id",
     partCount: "count",
+    stageCount: "count",
   },
   "vessel.surface": {
     biome: "text",
