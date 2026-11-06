@@ -6,7 +6,7 @@ import { Tooltip } from "../Tooltip";
 import { TONE_TEXT } from "../tone";
 import { CommandDelay } from "./CommandDelay";
 import { CommandList } from "./CommandList";
-import { STREAM_MIN_DELAY_SECONDS } from "./ControlDelayStream";
+import { hasRealDelay, STREAM_MIN_DELAY_SECONDS } from "./ControlDelayStream";
 import {
   commandFailedSentence,
   type RailFailed,
@@ -223,9 +223,12 @@ function handleHasContent(handle: CommandHandle): boolean {
     const delay = handle.effectiveDelaySeconds;
     const ribbons = handle.ribbons?.length ?? 0;
     const streams = handle.streams?.length ?? 0;
-    if (delay === null || delay <= 0) return false;
+    // CommandDelay's own rule, so a delay it draws nothing for never mounts an empty strip.
+    if (!hasRealDelay(delay)) return false;
     // The graph's own rule, so the rail never mounts around nothing: streams need its floor, ribbons do not.
-    return ribbons > 0 || (delay >= STREAM_MIN_DELAY_SECONDS && streams > 0);
+    return (
+      ribbons > 0 || ((delay ?? 0) >= STREAM_MIN_DELAY_SECONDS && streams > 0)
+    );
   }
   return handle.inFlight.length > 0;
 }

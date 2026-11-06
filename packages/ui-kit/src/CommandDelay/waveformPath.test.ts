@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { WAVE_HALF_H, WAVE_MID_Y, waveformPath } from "./waveformPath";
+import {
+  WAVE_HALF_H,
+  WAVE_MID_Y,
+  waveformBand,
+  waveformPath,
+} from "./waveformPath";
 
 /** Every "x.xx,y.yy" vertex of a path, in order. */
 function vertices(d: string): { x: number; y: number }[] {
@@ -59,6 +64,17 @@ describe("waveformPath", () => {
     const flat = vertices(waveformPath(new Array(32).fill(0), 31, 100));
     expect(flat.length).toBeGreaterThan(1);
     for (const v of flat) expect(v.y).toBe(MID_Y);
+  });
+
+  it("keeps a short loud syllable between two turning points instead of letting it fall between them", () => {
+    // 250 samples of silence with a single loud block somewhere the coarse pitch would step over.
+    const ring = new Array(250).fill(0);
+    ring[250 - 1 - 37] = 1;
+    const d = waveformPath(ring, 250, 33.33);
+    const peaks = [...d.matchAll(/,(-?\d+\.\d\d)/g)].map((m) =>
+      Math.abs(Number(m[1]) - WAVE_MID_Y),
+    );
+    expect(Math.max(...peaks)).toBeCloseTo(WAVE_HALF_H, 1);
   });
 
   it("is empty with nothing to draw", () => {
@@ -156,5 +172,91 @@ describe("the trace never draws more detail than it has", () => {
       Math.abs(v.y - MID_Y),
     );
     for (const h of heights) expect(h).toBeCloseTo(0.9 * WAVE_HALF_H, 5);
+  });
+});
+
+describe("the wave itself, as a filled band", () => {
+  const silent = { lo: 0, hi: 0 };
+  /** The y of every vertex, as a number, in order. */
+  const ys = (d: string) =>
+    [...d.matchAll(/,(-?\d+\.\d\d)/g)].map((m) => Number(m[1]));
+
+  it("draws silence as a band of no height along the centre", () => {
+    const d = waveformBand(new Array(100).fill(silent), 100, 33.33);
+    expect(d).not.toBe("");
+    expect(ys(d).every((y) => y === WAVE_MID_Y)).toBe(true);
+  });
+
+  it("stands the band from each slice's lowest sample to its highest, not symmetrically", () => {
+    // Newest last: the last block is the newest and lies at the near end.
+    const ring = [...new Array(99).fill(silent), { lo: -0.2, hi: 0.8 }];
+    const d = waveformBand(ring, 100, 33.33);
+    const all = ys(d);
+    expect(Math.min(...all)).toBeCloseTo(WAVE_MID_Y - 0.8 * WAVE_HALF_H, 1);
+    expect(Math.max(...all)).toBeCloseTo(WAVE_MID_Y + 0.2 * WAVE_HALF_H, 1);
+  });
+
+  it("keeps the pause between two bursts as a pause", () => {
+    const burst = { lo: -0.6, hi: 0.6 };
+    const ring = [
+      ...new Array(30).fill(burst),
+      ...new Array(40).fill(silent),
+      ...new Array(30).fill(burst),
+    ];
+    const d = waveformBand(ring, 100, 33.33);
+    // The top edge, left to right: loud, then flat on the centre, then loud.
+    const top = [...d.matchAll(/(-?\d+\.\d\d),(-?\d+\.\d\d)/g)]
+      .map((m) => ({ x: Number(m[1]), y: Number(m[2]) }))
+      .slice(0, d.split(" L").length / 2);
+    const flat = top.filter((p) => p.y === WAVE_MID_Y);
+    expect(flat.length).toBeGreaterThan(0);
+    expect(top[0].y).toBeLessThan(WAVE_MID_Y);
+    expect(top[top.length - 1].y).toBeLessThan(WAVE_MID_Y);
+  });
+
+  it("is one simple outline whose area is exactly the columns' heights, with no fold in the lower edge", () => {
+    const burst = { lo: -0.6, hi: 0.6 };
+    const ring = [
+      ...new Array(40).fill(silent),
+      ...new Array(60).fill(burst),
+      ...new Array(50).fill(silent),
+    ];
+    const d = waveformBand(ring, 150, 33.33);
+    const pts = [...d.matchAll(/(-?\d+\.\d\d),(-?\d+\.\d\d)/g)].map((m) => ({
+      x: Number(m[1]),
+      y: Number(m[2]),
+    }));
+    // Shoelace area of the closed outline.
+    let twice = 0;
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i];
+      const b = pts[(i + 1) % pts.length];
+      twice += a.x * b.y - b.x * a.y;
+    }
+    const area = Math.abs(twice) / 2;
+    // The burst is 60 of 150 blocks wide, 1.2 of full height tall.
+    const expected = (60 / 150) * 33.33 * (0.6 + 0.6) * WAVE_HALF_H;
+    expect(Math.abs(area - expected) / expected).toBeLessThan(0.03);
+    // The lower edge only ever moves back toward now.
+    const half = pts.length / 2;
+    const lower = pts.slice(half).map((p) => p.x);
+    expect(lower).toEqual([...lower].sort((a, b) => b - a));
+  });
+
+  it("keeps a block that is only one sample wide inside its column", () => {
+    const ring = new Array(250).fill(silent);
+    ring[250 - 1 - 37] = { lo: -1, hi: 1 };
+    const d = waveformBand(ring, 250, 33.33);
+    expect(Math.min(...ys(d))).toBeCloseTo(WAVE_MID_Y - WAVE_HALF_H, 1);
+  });
+
+  it("is empty for a ring with no width to draw, and survives a non-finite block", () => {
+    expect(waveformBand([silent], 100, 33.33)).toBe("");
+    const d = waveformBand(
+      [{ lo: Number.NaN, hi: Number.NaN }, silent, silent],
+      3,
+      33.33,
+    );
+    expect(d).not.toMatch(/NaN/);
   });
 });

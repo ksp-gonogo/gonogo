@@ -59,10 +59,15 @@ function recordingReceiver() {
   let streams = 0;
   let closed = false;
   const receiver: RadioReceiver = {
-    openStream: (): RadioDecoderLike => {
+    openStream: (onLoudness): RadioDecoderLike => {
       streams += 1;
       return {
-        decode: (bytes, timestamp) => decoded.push({ bytes, timestamp }),
+        decode: (bytes, timestamp) => {
+          decoded.push({ bytes, timestamp });
+          // A stand-in for the loudness read off the decoded audio: the chunk's first byte over ten.
+          const level = (bytes[0] ?? 0) / 10;
+          onLoudness?.(level, { lo: -level, hi: level });
+        },
         reset: () => {
           resets += 1;
         },
@@ -343,6 +348,24 @@ describe("radio playout, what the operator is told", () => {
     expect(session.snapshot().live).toEqual([]);
   });
 
+  it("carries how loud each block of the arriving voice was, read where it is heard", () => {
+    const { clock, session } = scene();
+    const t = transmission();
+    session.receive(chunk(t, 1, 1000));
+    session.receive(chunk(t, 2, 1000 + CHUNK));
+    session.receive(chunk(t, 3, 1000 + 2 * CHUNK));
+
+    clock.set(1000 + LIGHT_TIME + 3 * CHUNK);
+    for (let i = 0; i < 3; i++) session.pump(100 + i * CHUNK);
+
+    expect(session.snapshot().live[0]?.amplitudes).toEqual([0.1, 0.2, 0.3]);
+    expect(session.snapshot().live[0]?.waves).toEqual([
+      { lo: -0.1, hi: 0.1 },
+      { lo: -0.2, hi: 0.2 },
+      { lo: -0.3, hi: 0.3 },
+    ]);
+  });
+
   it("reports a backlog rather than playing faster to catch up", () => {
     // The warp caveat, made a reading. Five chunks come off the delay clock at
     // once; playback takes them one 20 ms step at a time and says how far
@@ -417,6 +440,8 @@ describe("radio monitoring, a per-conversation mute", () => {
         from: ARES,
         authorName: "Jeb",
         muted: false,
+        amplitudes: [0],
+        waves: [{ lo: -0, hi: 0 }],
       },
     ]);
   });

@@ -8,6 +8,7 @@ import { WarpRateTable } from "../../alarms/WarpRateTable";
 import type { CommcastLog } from "../CommcastLog";
 import type { Vantage } from "../reveal";
 import type { RecipientId } from "../types";
+import type { WaveBlock } from "./amplitude";
 import { useRadioBackend } from "./backend";
 import { loadInputDevice, saveInputDevice } from "./inputDevice";
 import { loadMutedThreads, saveMutedThreads } from "./monitor";
@@ -56,6 +57,8 @@ export interface RadioControl {
    * keyed.
    */
   amplitudes: readonly number[];
+  /** The lowest and highest sample of each of those chunks, for drawing the wave itself; one per entry of `amplitudes`. */
+  waves: readonly WaveBlock[];
   /** What is playing here, and how far behind playback is running. */
   reception: RadioReception;
   /**
@@ -301,7 +304,9 @@ export function useRadio({
     });
     setTransmitter(built);
     const unsubscribe = built.subscribe(setTransmit);
+    const offRefused = log.onRadioRefused(() => built.refuse());
     return () => {
+      offRefused();
       unsubscribe();
       built.dispose();
       setTransmitter(null);
@@ -349,6 +354,7 @@ export function useRadio({
     transmitting: transmit.live,
     opening: transmit.opening,
     amplitudes: transmit.amplitudes ?? [],
+    waves: transmit.waves ?? [],
     reception,
     unavailable,
     fault: transmit.fault,

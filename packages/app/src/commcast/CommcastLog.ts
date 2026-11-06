@@ -83,6 +83,9 @@ export interface CommcastLogOptions {
  * one-shot transmission can make, and it is why the acknowledgement is the
  * loss signal rather than merely delay decoration.
  */
+/** The most deliveries held while the vantage is unknown, which is only the instant between the subscribe and the first frame. */
+const AWAITING_VANTAGE_CAP = 200;
+
 export class CommcastLog {
   private outbox: OutboundMessage[] = [];
   private inbox: CommsMessage[] = [];
@@ -96,8 +99,11 @@ export class CommcastLog {
   private ackIdentity: Omit<OutgoingAck, "messageId"> | undefined;
   private droppedCount = 0;
   private vantageId: string | undefined;
+  /** What the wire delivered before the vantage was known, judged once it is. */
+  private awaitingVantage: CommsMessage[] = [];
   private readonly listeners = new Set<Listener>();
   private readonly radioListeners = new Set<(frame: HeardRadioFrame) => void>();
+  private readonly radioRefusalListeners = new Set<() => void>();
   private readonly now: () => number;
   private readonly storage: Storage | undefined;
   private readonly key: string;
@@ -136,6 +142,19 @@ export class CommcastLog {
    */
   sendRadio(frame: RadioFrame): void {
     this.transmitter?.radio?.(frame);
+  }
+
+  /** The mod refused a radio frame this screen sent, so what was said is not going out. */
+  refuseRadio(): void {
+    for (const listener of this.radioRefusalListeners) listener();
+  }
+
+  /** Listen for the mod refusing this screen's own radio frames. */
+  onRadioRefused(cb: () => void): () => void {
+    this.radioRefusalListeners.add(cb);
+    return () => {
+      this.radioRefusalListeners.delete(cb);
+    };
   }
 
   /** A radio frame as the mod delivered it, this screen's own voice already dropped. */
@@ -356,11 +375,17 @@ export class CommcastLog {
    *
    * It arrives after construction because it comes off the first frame
    * (`useObservedVantage`), which is later than the log has to exist. Until
-   * then the log accepts nothing from the wire, which is right: a screen that
-   * does not yet know where it is standing cannot know what reached it.
+   * then it cannot judge what reached it, so what the wire delivers is kept
+   * aside and judged the moment the vantage is known: the mod replays a
+   * group's membership once, on subscribe, and a replay that arrived first
+   * would otherwise be lost for good.
    */
   setVantage(vantageId: string | undefined): void {
     this.vantageId = vantageId;
+    if (vantageId === undefined || this.awaitingVantage.length === 0) return;
+    const waiting = this.awaitingVantage;
+    this.awaitingVantage = [];
+    for (const msg of waiting) this.receiveTransmission(msg);
   }
 
   /**
@@ -374,7 +399,12 @@ export class CommcastLog {
    * resend exists because the first one never reached the author.
    */
   receiveTransmission(msg: CommsMessage): boolean {
-    if (this.vantageId === undefined) return false;
+    if (this.vantageId === undefined) {
+      if (this.awaitingVantage.length < AWAITING_VANTAGE_CAP) {
+        this.awaitingVantage.push(msg);
+      }
+      return false;
+    }
     if (!msg.to.includes(this.vantageId)) return false;
     if (this.holds(msg.id)) {
       this.reacknowledge(msg.id);

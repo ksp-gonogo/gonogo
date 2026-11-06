@@ -1296,6 +1296,29 @@ async function main(): Promise<void> {
         !process.env.COMMCAST_SCENE || s.name === process.env.COMMCAST_SCENE,
     )) {
       const { name } = scene;
+      if (process.env.COMMCAST_ONEWAY !== undefined) {
+        const seconds = Number(process.env.COMMCAST_ONEWAY);
+        scene.oneWaySeconds = seconds;
+        for (const p of scene.separation ?? []) {
+          if (p.from !== p.to) p.oneWaySeconds = seconds;
+        }
+      }
+      if (process.env.COMMCAST_NOKEY) {
+        for (const pane of scene.panes) pane.key = false;
+        scene.settleOn = undefined;
+      }
+      if (process.env.COMMCAST_SEAT === "pilot") {
+        for (const pane of scene.panes) {
+          pane.seat = "pilot";
+          pane.vantage = ARES;
+          pane.name = "Jeb";
+          pane.openThread = "Kennedy";
+        }
+      }
+      if (process.env.COMMCAST_PXW)
+        scene.pxW = Number(process.env.COMMCAST_PXW);
+      if (process.env.COMMCAST_PXH)
+        scene.pxH = Number(process.env.COMMCAST_PXH);
       await page.goto(pathToFileURL(probeHtml).toString(), {
         waitUntil: "domcontentloaded",
       });
@@ -1316,6 +1339,11 @@ async function main(): Promise<void> {
        * was ready is what removed it.
        */
       await page.waitForTimeout(1_500);
+      if (process.env.COMMCAST_MOBILE) {
+        await page.evaluate((m) => {
+          (window as unknown as { __mobile: string }).__mobile = m;
+        }, process.env.COMMCAST_MOBILE);
+      }
       // The whole scene, name included: the probe prints it when a scene does not settle, and a warning that cannot say which scene it is about is no better than silence.
       await page.evaluate(
         (s) =>
@@ -1333,6 +1361,73 @@ async function main(): Promise<void> {
       await page.waitForTimeout(200);
       const root = await page.$("#root");
       if (!root) throw new Error("#root missing after render");
+      if (process.env.COMMCAST_DEBUG) {
+        console.log(
+          "DBG",
+          await page.evaluate(`(() => ({
+            frames: document.querySelectorAll("[data-panel-rail-frame]").length,
+            rails: document.querySelectorAll("[data-panel-rail]").length,
+            ribbons: document.querySelectorAll('[data-role="ribbon"]').length, ribbonD: (document.querySelector('[data-role="ribbon"]')||{getAttribute(){return null}}).getAttribute("d"),
+            pressed: [...document.querySelectorAll("button[aria-pressed=true]")].map(b => b.textContent), frameHtml: (document.querySelector("[data-panel-rail-frame]") || {}).outerHTML.slice(0, 1800), live: [...document.querySelectorAll("[role=status]")].map(e=>e.textContent)
+          }))()`),
+        );
+      }
+      if (process.env.COMMCAST_FOCUS) {
+        await page.locator('input[placeholder="Message"]').first().focus();
+        await page.waitForTimeout(300);
+      }
+      if (process.env.COMMCAST_FEED) {
+        await page.evaluate(
+          (sec) =>
+            (
+              window as unknown as { __feedIncoming: (s: number) => void }
+            ).__feedIncoming(sec),
+          Number(process.env.COMMCAST_FEED),
+        );
+        await page.waitForTimeout(2_500);
+      }
+      if (process.env.COMMCAST_RAIL) {
+        const railBox = await page.evaluate(`(() => {
+          const e = document.querySelector("[data-panel-rail-frame]");
+          if (!e) return null;
+          const b = e.getBoundingClientRect();
+          return { x: Math.max(0, b.left - 8), y: Math.max(0, b.top - 4), width: b.width + 16, height: 60 };
+        })()`);
+        if (railBox) {
+          await page.screenshot({
+            path: join(OUT_DIR, `${name}-rail.png`),
+            clip: railBox as {
+              x: number;
+              y: number;
+              width: number;
+              height: number;
+            },
+          });
+        }
+      }
+      if (process.env.COMMCAST_FOCUS || process.env.COMMCAST_INPUTCROP) {
+        await page
+          .locator('input[placeholder="Message"]')
+          .first()
+          .scrollIntoViewIfNeeded();
+        const box = await page.evaluate(`(() => {
+          const i = document.querySelector('input[placeholder="Message"]');
+          if (!i) return null;
+          const b = i.getBoundingClientRect();
+          return { x: Math.max(0, b.left - 70), y: Math.max(0, b.top - 20), width: b.width + 140, height: b.height + 40 };
+        })()`);
+        if (box) {
+          await page.screenshot({
+            path: join(OUT_DIR, `${name}-input.png`),
+            clip: box as {
+              x: number;
+              y: number;
+              width: number;
+              height: number;
+            },
+          });
+        }
+      }
       const out = join(OUT_DIR, `${name}.png`);
       await root.screenshot({ path: out });
       console.log(`  ✓ ${name} → ${out}`);

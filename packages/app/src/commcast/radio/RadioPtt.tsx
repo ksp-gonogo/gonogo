@@ -1,4 +1,4 @@
-import { railTagsForTelemetry } from "@ksp-gonogo/sitrep-sdk";
+import { railTagsForControlAxis } from "@ksp-gonogo/sitrep-sdk";
 import {
   BroadcastIcon,
   Text,
@@ -39,19 +39,20 @@ import type { RadioControl } from "./useRadio";
 const CHUNK_SECONDS = 0.02;
 
 /**
- * What the operator's voice is on the rail's three axes.
+ * What the operator's own voice is on the rail's three axes.
  *
- * One axis is declared and two are read: continuity is `continuous` because an
- * open microphone occupies a span of time rather than being an event, which is
- * a fact about this producer and nothing else can know it. Direction and
- * delivery come from `railTagsForTelemetry` itself: nothing is being asked of
- * anyone, and there is no reply channel for an ack to arrive on.
+ * It leaves this screen as the `commcast.radio.transmit` command, which the mod
+ * answers, so direction and delivery are that command's own: `command` and
+ * `acked`. Continuity is `continuous` because an open microphone occupies a
+ * span of time rather than being an event, which is a fact about this producer
+ * and nothing else can know it. A voice arriving here is the other case, drawn
+ * by `RadioInboundRail` with `railTagsForTelemetry`.
  *
  * It is a declaration, not an override: the entry's properties decide its
- * mark, so the same declaration would draw the same picture if it arrived by
- * any other route.
+ * mark and where it lies, so the same declaration would draw the same picture
+ * if it arrived by any other route.
  */
-const VOICE_RAIL_TAGS = railTagsForTelemetry("continuous");
+const VOICE_RAIL_TAGS = railTagsForControlAxis("commcast.radio.transmit");
 
 /**
  * What the ribbon's zone stands for, in captured chunks: the signal delay to the
@@ -121,6 +122,7 @@ export function RadioPtt({
               label,
               oneWaySeconds: separationSeconds ?? null,
               amplitudes: radio.amplitudes,
+              wave: radio.waves,
               spanSamples: crossingSpanSamples(separationSeconds),
               tags: VOICE_RAIL_TAGS,
             },

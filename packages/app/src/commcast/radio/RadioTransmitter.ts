@@ -1,6 +1,7 @@
 import { PerfBudget, safeRandomUuid } from "@ksp-gonogo/core";
 import type { Seat } from "@ksp-gonogo/sitrep-sdk/spine";
 import type { RecipientId } from "../types";
+import type { WaveBlock } from "./amplitude";
 import type { RadioFrame, RadioTransmission } from "./wire";
 import { recordRadioFrame } from "./wire";
 
@@ -41,7 +42,7 @@ export interface RadioCapture {
  * deliberately not made.
  */
 export type StartRadioCapture = (
-  onChunk: (bytes: Uint8Array, amplitude: number) => void,
+  onChunk: (bytes: Uint8Array, amplitude: number, wave?: WaveBlock) => void,
   options?: RadioCaptureOptions,
 ) => Promise<RadioCapture>;
 
@@ -111,6 +112,8 @@ export interface RadioTransmitState {
    * it never measured. The transmitter itself always carries one.
    */
   amplitudes?: readonly number[];
+  /** The lowest and highest sample of each of those chunks, from the same PCM, for drawing the wave itself. Kept in step with `amplitudes`. */
+  waves?: readonly WaveBlock[];
   /**
    * Why the last attempt to key failed, in the operator's terms, or `null`.
    * A stated fact beats a control that silently does nothing.
@@ -247,6 +250,7 @@ export class RadioTransmitter {
   private seq = 0;
   /** This transmission's per-chunk loudness, newest last, capped at `historyLimit`. */
   private amplitudes: number[] = [];
+  private waves: WaveBlock[] = [];
   /** What this transmission's separation entitles the ring to hold. */
   private historyLimit = AMPLITUDE_HISTORY;
   /** Bumped on every key-down and key-up, so a capture that finishes opening
@@ -276,6 +280,7 @@ export class RadioTransmitter {
     }
     const generation = ++this.generation;
     this.amplitudes = [];
+    this.waves = [];
     /*
      * Sized here, from the same frozen separation the envelope carries, so the
      * ring covers the gap this transmission is actually crossing. Before the
@@ -304,8 +309,8 @@ export class RadioTransmitter {
 
     let capture: RadioCapture;
     try {
-      capture = await this.opts.startCapture((bytes, amplitude) =>
-        this.emitChunk(generation, bytes, amplitude),
+      capture = await this.opts.startCapture((bytes, amplitude, wave) =>
+        this.emitChunk(generation, bytes, amplitude, wave),
       );
     } catch (err) {
       if (generation !== this.generation) return;
@@ -329,6 +334,19 @@ export class RadioTransmitter {
       amplitudes: NO_AMPLITUDES,
       fault: null,
     });
+  }
+
+  /**
+   * The far end refused what was sent: stop the microphone and show that the
+   * words did not go, instead of leaving the key reading as on air.
+   */
+  refuse(): void {
+    if (!this.state.live && !this.state.opening) return;
+    this.generation += 1;
+    this.capture?.stop();
+    this.capture = null;
+    this.current = null;
+    this.set({ ...IDLE, fault: "NOT SENT" });
   }
 
   /** Unkey. Safe at any point, including while the microphone is still opening. */
@@ -358,6 +376,7 @@ export class RadioTransmitter {
     generation: number,
     bytes: Uint8Array,
     amplitude: number,
+    wave: WaveBlock = { lo: 0, hi: 0 },
   ): void {
     if (generation !== this.generation) return;
     const transmission = this.current;
@@ -394,10 +413,16 @@ export class RadioTransmitter {
     }
     AMPLITUDE_RING_BUDGET.record(next.length);
     this.amplitudes = next;
+    const waves = [...this.waves, wave];
+    if (waves.length > this.historyLimit) {
+      waves.splice(0, waves.length - this.historyLimit);
+    }
+    this.waves = waves;
     this.set({
       ...this.state,
       chunks: this.seq,
       amplitudes: this.amplitudes,
+      waves: this.waves,
     });
   }
 

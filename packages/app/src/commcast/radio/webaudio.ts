@@ -4,7 +4,8 @@ import {
   RADIO_ENCODER_CONFIG,
   radioSupportStatus,
 } from "@ksp-gonogo/sitrep-sdk/media";
-import { chunkAmplitude } from "./amplitude";
+import { chunkAmplitude, chunkWave, type WaveBlock } from "./amplitude";
+import { withLoudness } from "./loudness";
 import { mixSample } from "./mix";
 import type {
   RadioAudioSink,
@@ -226,8 +227,10 @@ export const startWebAudioCapture: StartRadioCapture = async (
    * was never measured.
    */
   const pendingAmplitudes: number[] = [];
+  const pendingWaves: WaveBlock[] = [];
   const MAX_PENDING = 50;
   let lastAmplitude = 0;
+  let lastWave: WaveBlock = { lo: 0, hi: 0 };
 
   try {
     await addWorklet(ctx, CAPTURE_WORKLET);
@@ -236,7 +239,8 @@ export const startWebAudioCapture: StartRadioCapture = async (
         const bytes = new Uint8Array(chunk.byteLength);
         chunk.copyTo(bytes);
         lastAmplitude = pendingAmplitudes.shift() ?? lastAmplitude;
-        onChunk(bytes, lastAmplitude);
+        lastWave = pendingWaves.shift() ?? lastWave;
+        onChunk(bytes, lastAmplitude, lastWave);
       },
       /*
        * A failed encode ends the transmission rather than being swallowed: an
@@ -258,8 +262,12 @@ export const startWebAudioCapture: StartRadioCapture = async (
       if (stopped || encoder.state !== "configured") return;
       // Before the encode, because `AudioData` takes the buffer from here on
       // and this is the one moment the raw PCM is ours to read.
-      if (pendingAmplitudes.length >= MAX_PENDING) pendingAmplitudes.shift();
+      if (pendingAmplitudes.length >= MAX_PENDING) {
+        pendingAmplitudes.shift();
+        pendingWaves.shift();
+      }
       pendingAmplitudes.push(chunkAmplitude(event.data));
+      pendingWaves.push(chunkWave(event.data));
       const data = new AudioData({
         format: "f32-planar",
         sampleRate: RADIO_ENCODER_CONFIG.sampleRate,
@@ -352,8 +360,12 @@ export class WebAudioRadioReceiver implements RadioReceiver {
     });
   }
 
-  openStream(): RadioDecoderLike {
-    return new WebCodecsRadioDecoder(this.lane(this.nextLane++));
+  openStream(
+    onLoudness?: (amplitude: number, wave: WaveBlock) => void,
+  ): RadioDecoderLike {
+    return new WebCodecsRadioDecoder(
+      withLoudness(this.lane(this.nextLane++), onLoudness),
+    );
   }
 
   close(): void {

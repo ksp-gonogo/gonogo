@@ -20,9 +20,10 @@ export const Commcast__Identity = styled.div`
   gap: var(--gap-related);
 `;
 
-// The row above the console in all three views; non-growing, so switching view never resizes the console.
+// The row above the console in all three views; non-growing, so switching view never resizes the console. It wraps rather than running past the tile when the frame is too narrow for everything on one line.
 export const Commcast__Bar = styled.div`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--gap-related);
   flex: 0 0 auto;
@@ -48,6 +49,7 @@ export const Commcast__BarTitle = styled.span`
 // The key and the mute keep their size in the bar's corner, so they are in the same place whatever the conversation is called.
 export const Commcast__BarRadio = styled.div`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--gap-related);
   flex: 0 0 auto;
@@ -207,9 +209,4 @@ export const Commcast__Input = styled.input`
   background: transparent;
   border: none;
   padding: var(--inset-line);
-
-  &:focus-visible {
-    outline: 2px solid var(--console-tone-fg, var(--color-accent-fg));
-    outline-offset: 2px;
-  }
 `;

@@ -130,6 +130,59 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
+        public async Task ADispatchNamingTheActiveCraft_ReachesTheHandlerAtThatCraft()
+        {
+            var seat = new SeatSource(Probe);
+            using var engine = StartedEngine(seat);
+            try
+            {
+                Tick(engine, 0.0, craft: 1.0);
+                WriteSeatRows(engine, seat);
+                await using var ground = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                while (EchoUplink.Seen.TryDequeue(out _)) { }
+
+                await DispatchAsync(ground, "r0", ChannelEngine.ActiveCraftVantage);
+
+                Assert.Equal(new[] { Probe }, EchoUplink.Seen.ToArray());
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
+        public async Task ADispatchNamingTheActiveCraft_IsRefusedWhileThereIsNone()
+        {
+            var seat = new SeatSource(Probe) { Present = false };
+            using var engine = StartedEngine(seat);
+            try
+            {
+                Tick(engine, 0.0, craft: 1.0);
+                await using var ground = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                while (EchoUplink.Seen.TryDequeue(out _)) { }
+
+                await ground.SendAsync(EnvelopeCodec.WriteCommandRequest(new CommandRequest<object?>
+                {
+                    Type = "command-request",
+                    RequestId = "r0",
+                    Command = EchoUplink.Command,
+                    Vantage = ChannelEngine.ActiveCraftVantage,
+                    Args = null,
+                    SentAt = 0.0,
+                }));
+                var refused = await ReceiveTypedAsync<ErrorMsg>(ground, Timeout);
+
+                Assert.Equal(FaultCode.UnknownVantage, refused.Code);
+                Assert.Empty(EchoUplink.Seen);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
         public async Task WithNoActiveCraft_TheFollowerReadsFromTheFreshConnectionVantage()
         {
             var seat = new SeatSource(Probe) { Present = false };
@@ -238,13 +291,14 @@ namespace Sitrep.Host.IntegrationTests
             throw new TimeoutException("demand never became " + tier);
         }
 
-        private static async Task<CommandResponse<object?>> DispatchAsync(TestClient client, string requestId)
+        private static async Task<CommandResponse<object?>> DispatchAsync(TestClient client, string requestId, string? vantage = null)
         {
             await client.SendAsync(EnvelopeCodec.WriteCommandRequest(new CommandRequest<object?>
             {
                 Type = "command-request",
                 RequestId = requestId,
                 Command = EchoUplink.Command,
+                Vantage = vantage,
                 Args = null,
                 SentAt = 0.0,
             }));
@@ -267,7 +321,15 @@ namespace Sitrep.Host.IntegrationTests
                 },
             };
 
-            public void Register(IUplinkHost host) => host.AddCommandHandler<object?, object?>(Command, _ => null);
+            public static readonly System.Collections.Concurrent.ConcurrentQueue<string> Seen =
+                new System.Collections.Concurrent.ConcurrentQueue<string>();
+
+            public void Register(IUplinkHost host) =>
+                host.AddVantageCommandHandler<object?, object?>(Command, (_, vantage) =>
+                {
+                    Seen.Enqueue(vantage);
+                    return null;
+                });
         }
 
         private sealed class GroundSource : ICommandCentreSource

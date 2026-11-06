@@ -7,6 +7,7 @@ import {
 import type { Vantage } from "../reveal";
 import { inboundCounterparties } from "../threads";
 import type { RecipientId } from "../types";
+import type { WaveBlock } from "./amplitude";
 import type { HeardRadioFrame, RadioTransmission } from "./wire";
 import { recordRadioFrame } from "./wire";
 
@@ -71,7 +72,9 @@ export interface RadioDecoderLike {
  */
 export interface RadioReceiver {
   /** A decode chain for one transmission, mixed into this receiver's output. */
-  openStream(): RadioDecoderLike;
+  openStream(
+    onLoudness?: (amplitude: number, wave: WaveBlock) => void,
+  ): RadioDecoderLike;
   close(): void;
 }
 
@@ -100,6 +103,14 @@ export interface RadioLight {
   authorName: string;
   /** Muted here, so it is shown and not heard. */
   muted: boolean;
+  /**
+   * How loud each 20 ms of this voice has been as it reached the output,
+   * newest last, read off the decoded audio here because loudness is not on the
+   * wire. Drawn as the ribbon of an arriving voice on the rail.
+   */
+  amplitudes: readonly number[];
+  /** The lowest and highest sample of each of those blocks, from the same decoded audio, for drawing the wave itself. */
+  waves: readonly WaveBlock[];
 }
 
 /** What a screen can honestly say about what it is hearing. */
@@ -145,6 +156,9 @@ export interface RadioReception {
    *  snapping past a backlog. Each one costs 20 ms and nothing downstream. */
   droppedChunks: number;
 }
+
+/** Blocks of loudness kept per keying: twenty seconds at 20 ms a block, longer than the rail's span floor. */
+const LOUDNESS_HISTORY = 1000;
 
 const EMPTY_RECEPTION: RadioReception = {
   live: [],
@@ -197,6 +211,10 @@ interface HeardTransmission {
    * always there rather than building one against a backlog.
    */
   decoder: RadioDecoderLike;
+  /** Loudness of each block the decoder has produced, newest last, capped at {@link LOUDNESS_HISTORY}. */
+  loudness: number[];
+  /** The lowest and highest sample of each of those blocks, beside {@link loudness}. */
+  waves: WaveBlock[];
   /**
    * The decoder has been told a stream is running. `false` before the first
    * audible chunk, and again after a muted one: a gap the decoder was never
@@ -475,6 +493,8 @@ export class RadioSession {
     to: readonly RecipientId[],
   ): HeardTransmission | undefined {
     if (this.me.vantageId === undefined) return undefined;
+    const loudness: number[] = [];
+    const waves: WaveBlock[] = [];
     const held: HeardTransmission = {
       transmission,
       threadKey: transmission.groupId,
@@ -491,7 +511,17 @@ export class RadioSession {
           this.discard(frame.data);
         },
       }),
-      decoder: this.opts.receiver.openStream(),
+      decoder: this.opts.receiver.openStream((amplitude, wave) => {
+        loudness.push(amplitude);
+        waves.push(wave);
+        if (loudness.length > LOUDNESS_HISTORY) {
+          loudness.shift();
+          waves.shift();
+        }
+        this.publish();
+      }),
+      loudness,
+      waves,
       streaming: false,
       inflight: 0,
       inBuffer: [],
@@ -626,6 +656,8 @@ export class RadioSession {
         from: heard.transmission.from,
         authorName: heard.transmission.authorName,
         muted: this.muted.has(heard.threadKey),
+        amplitudes: heard.loudness.slice(),
+        waves: heard.waves.slice(),
       });
     }
     return {
@@ -664,6 +696,9 @@ function signatureOf(reception: RadioReception): string {
   return [
     reception.backlogSeconds,
     reception.droppedChunks,
-    ...reception.live.map((l) => `${l.transmissionId}:${l.muted ? "m" : "o"}`),
+    ...reception.live.map(
+      (l) =>
+        `${l.transmissionId}:${l.muted ? "m" : "o"}:${l.amplitudes.length}:${l.amplitudes.at(-1) ?? ""}`,
+    ),
   ].join("|");
 }

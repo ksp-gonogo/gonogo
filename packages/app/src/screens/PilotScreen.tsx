@@ -48,6 +48,9 @@ export function PilotScreen() {
   const [hostInput, setHostInput] = useState(
     () => localStorage.getItem(HOST_ID_KEY) ?? "",
   );
+  const [codeCommitted, setCodeCommitted] = useState(
+    () => !!localStorage.getItem(HOST_ID_KEY),
+  );
   const [dismissed, setDismissed] = useState(false);
   const [changingCode, setChangingCode] = useState(false);
   const unsubs = useRef<Array<() => void>>([]);
@@ -67,6 +70,7 @@ export function PilotScreen() {
     if (!trimmed) return;
     localStorage.setItem(HOST_ID_KEY, trimmed);
     setHostInput(trimmed);
+    setCodeCommitted(true);
     setChangingCode(false);
     setDismissed(false);
     for (const u of unsubs.current) u();
@@ -117,10 +121,11 @@ export function PilotScreen() {
   const [relayedTransport] = useState(() => new PeerTransport(client));
 
   const connected = status === "connected";
-  // Nothing saved and nothing tried, or a saved code being replaced: the
-  // operator is asked for a code. This is setup, not a connection failure, and
-  // it is the only state that takes the whole screen.
-  const needsFirstSetup = (!hostInput && !everConnected) || changingCode;
+  // No code submitted yet, or a saved code being replaced: the operator is
+  // asked for a code. Typing into the field is not submitting it. This is setup,
+  // not a connection failure, and it is the only state that takes the whole
+  // screen.
+  const needsFirstSetup = (!codeCommitted && !everConnected) || changingCode;
 
   if (needsFirstSetup) {
     return (

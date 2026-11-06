@@ -23,6 +23,7 @@ const CONTROL: RadioControl = {
   transmitting: false,
   opening: false,
   amplitudes: [],
+  waves: [],
   reception: { live: [], backlogSeconds: 0, droppedChunks: 0 },
   unavailable: null,
   fault: null,

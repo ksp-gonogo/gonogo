@@ -530,7 +530,7 @@ function ribbon(over: Partial<ControlRibbonDatum> = {}): ControlRibbonDatum {
     oneWaySeconds: 1.6,
     amplitudes: [0.2, 0.6, 0.4, 0.8],
     spanSamples: 3,
-    tags: VOICE_TAGS,
+    tags: AXIS_TAGS,
     ...over,
   };
 }
@@ -607,6 +607,58 @@ describe("the ribbon mark", () => {
     expect(Number(divider?.getAttribute("x1"))).toBeCloseTo(boundary, 5);
   });
 
+  it("lies in the CONFIRMED zone, past the second divider, for what arrives", () => {
+    const { container } = render(
+      <ControlDelayStream
+        streams={[]}
+        ribbons={[
+          ribbon({
+            tags: VOICE_TAGS,
+            amplitudes: new Array(129).fill(0.6),
+            spanSamples: 128,
+          }),
+        ]}
+        variant="rail"
+      />,
+    );
+    const group = container.querySelector("[data-ribbon-group]");
+    expect(group?.getAttribute("data-ribbon-zone")).toBe("confirmed");
+    const shift = Number(
+      group?.getAttribute("transform")?.match(/translate\((-?[\d.]+)/)?.[1],
+    );
+    expect(shift).toBeCloseTo(2 * ribbonBoundaryX("rail"), 1);
+  });
+
+  it("lies in the OUTGOING zone for what leaves", () => {
+    const { container } = render(
+      <ControlDelayStream streams={[]} ribbons={[ribbon()]} variant="rail" />,
+    );
+    const group = container.querySelector("[data-ribbon-group]");
+    expect(group?.getAttribute("data-ribbon-zone")).toBe("outgoing");
+  });
+
+  it("fills the wave itself when the producer kept it, with a line along the centre for silence", () => {
+    const { container } = render(
+      <ControlDelayStream
+        streams={[]}
+        ribbons={[
+          ribbon({
+            wave: [
+              { lo: 0, hi: 0 },
+              { lo: -0.4, hi: 0.6 },
+              { lo: -0.2, hi: 0.3 },
+            ],
+            spanSamples: 2,
+          }),
+        ]}
+      />,
+    );
+    const band = container.querySelector('[data-role="ribbon"]');
+    expect(band?.getAttribute("fill")).toMatch(/^url\(#/);
+    expect(band?.getAttribute("stroke")).toBe("none");
+    expect(container.querySelector('[data-role="ribbon-axis"]')).not.toBeNull();
+  });
+
   it("strokes the voice as a trace rather than filling it as a blob", () => {
     const { container } = render(
       <ControlDelayStream streams={[]} ribbons={[ribbon()]} />,
@@ -647,16 +699,16 @@ describe("the ribbon mark", () => {
     };
     // Telemetry arrives, so it is clearest where it lands.
     const { container: inbound } = render(
-      <ControlDelayStream streams={[]} ribbons={[ribbon()]} />,
+      <ControlDelayStream
+        streams={[]}
+        ribbons={[ribbon({ tags: VOICE_TAGS })]}
+      />,
     );
     const [inX1, inX2] = span(inbound);
     expect(inX1).toBeGreaterThan(inX2);
     // A command leaves this end clear and dissolves toward its target.
     const { container: out } = render(
-      <ControlDelayStream
-        streams={[]}
-        ribbons={[ribbon({ tags: AXIS_TAGS })]}
-      />,
+      <ControlDelayStream streams={[]} ribbons={[ribbon()]} />,
     );
     const [outX1, outX2] = span(out);
     expect(outX1).toBeLessThan(outX2);

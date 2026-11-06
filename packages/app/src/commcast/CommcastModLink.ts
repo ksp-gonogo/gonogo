@@ -1,6 +1,9 @@
 import { PerfBudget } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
-import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
+import {
+  classifyCommandRejection,
+  type ServerMessage,
+} from "@ksp-gonogo/sitrep-sdk";
 import type { Seat } from "@ksp-gonogo/sitrep-sdk/spine";
 import type {
   CommcastLog,
@@ -81,6 +84,7 @@ export function attachCommcastModLink(
     args: unknown,
     onResult?: (result: unknown) => void,
     onRefused?: (result: unknown) => void,
+    onRejected?: () => void,
   ) => {
     COMMCAST_COMMAND_BUDGET.record();
     wire
@@ -102,6 +106,8 @@ export function attachCommcastModLink(
           command,
           err: String(err),
         });
+        // A lost reply may still have run, so only a command that provably did not go is reported.
+        if (classifyCommandRejection(err).kind !== "lost") onRejected?.();
       });
   };
 
@@ -115,18 +121,24 @@ export function attachCommcastModLink(
     // A key-up with nothing spoken since the last batch still ends the keying, so it goes up empty.
     if (!keying || (frames.length === 0 && !end)) return;
     const { transmission } = keying;
-    send("commcast.radio.transmit", {
-      transmissionId,
-      groupId: transmission.groupId,
-      seq: frames[0]?.seq ?? keying.nextSeq,
-      chunks: frames.map((f) => toBase64(f.bytes)),
-      end,
-      author: authorOf(
-        transmission.authorName,
-        keying.authorStationKey,
-        transmission.authorSeat,
-      ),
-    });
+    send(
+      "commcast.radio.transmit",
+      {
+        transmissionId,
+        groupId: transmission.groupId,
+        seq: frames[0]?.seq ?? keying.nextSeq,
+        chunks: frames.map((f) => toBase64(f.bytes)),
+        end,
+        author: authorOf(
+          transmission.authorName,
+          keying.authorStationKey,
+          transmission.authorSeat,
+        ),
+      },
+      undefined,
+      () => log.refuseRadio(),
+      () => log.refuseRadio(),
+    );
   };
 
   const transmitter: CommcastTransmitter = {

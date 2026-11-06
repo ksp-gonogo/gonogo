@@ -40,3 +40,36 @@ export function chunkAmplitude(samples: Float32Array): number {
   const scaled = rms / FULL_SCALE_RMS;
   return scaled < 0 ? 0 : scaled > 1 ? 1 : scaled;
 }
+
+/**
+ * A sample value at which the drawn wave reaches the edge of the band. Speech
+ * peaks at a fraction of full scale, so reading the band against full scale
+ * would leave it a thin line; against this it fills about as much of the band
+ * as an audio editor's zoomed-out track fills its lane.
+ */
+const FULL_SCALE_PEAK = 0.5;
+
+/** The lowest and highest sample of one block, each scaled to -1..1 against the band's edge. */
+export interface WaveBlock {
+  lo: number;
+  hi: number;
+}
+
+/**
+ * The lowest and highest sample of one 20 ms block, taken from the PCM itself,
+ * scaled and clamped to -1..1. A block of silence is `{ lo: 0, hi: 0 }`. A
+ * non-finite sample is skipped, as in {@link chunkAmplitude}. Kept beside the
+ * block's RMS so the rail can draw the wave itself, not only how loud it is.
+ */
+export function chunkWave(samples: Float32Array): WaveBlock {
+  let lo = 0;
+  let hi = 0;
+  for (let i = 0; i < samples.length; i++) {
+    const s = samples[i];
+    if (!Number.isFinite(s)) continue;
+    if (s < lo) lo = s;
+    if (s > hi) hi = s;
+  }
+  const scale = (v: number) => Math.max(-1, Math.min(1, v / FULL_SCALE_PEAK));
+  return { lo: scale(lo), hi: scale(hi) };
+}

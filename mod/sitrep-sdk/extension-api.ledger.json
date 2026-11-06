@@ -18265,6 +18265,10 @@
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
       {
+        "key": "ui-kit . ControlRibbonDatum#wave?",
+        "note": "a voice ribbon can carry the lowest and highest sample of each block, so the rail draws the wave itself"
+      },
+      {
         "key": "ui-kit . ConversionTargetsOfKind",
         "note": "Exported from the kit's index because a published signature names it"
       },
@@ -19337,6 +19341,18 @@
         "note": "zooms about the middle of the view by a ratio, for a zoom button"
       },
       {
+        "key": "ui-kit . WaveBlock",
+        "note": "one block of audio as its lowest and highest sample, scaled to the band"
+      },
+      {
+        "key": "ui-kit . WaveBlock#hi",
+        "note": "the highest sample of the block"
+      },
+      {
+        "key": "ui-kit . WaveBlock#lo",
+        "note": "the lowest sample of the block"
+      },
+      {
         "key": "ui-kit . WheelGesture",
         "note": "the wheel rule as a replayable state machine, exported so an Uplink can test its own surface against a recorded event sequence"
       },
@@ -19475,6 +19491,10 @@
       {
         "key": "ui-kit . utXTickFormat",
         "note": "x tick writer for a universal-time axis, moved here unchanged"
+      },
+      {
+        "key": "ui-kit . waveformBand",
+        "note": "draws a voice as a filled band from each slice lowest sample to its highest"
       },
       {
         "key": "ui-kit . wheelZoomFactor",

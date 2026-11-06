@@ -1,4 +1,5 @@
 import { useTelemetry } from "@ksp-gonogo/core";
+import { logger } from "@ksp-gonogo/logger";
 import {
   useObservedVantage,
   useTelemetryClientOptional,
@@ -239,6 +240,24 @@ export interface Unreachable {
   kind: string | undefined;
 }
 
+const NO_REMEMBERED: readonly UnreachableCentreEntry[] = [];
+
+/**
+ * What an address nobody has named reads as. The first time each one is met it
+ * is logged with the roster's own state, so a screen that names a member
+ * "Unknown station" can be told apart from a roster that has not arrived.
+ */
+function unnamedAs(id: string, rosterState: string, seen: Set<string>): string {
+  if (!seen.has(id) && seen.size < 50) {
+    seen.add(id);
+    logger.warn("[commcast] no roster entry names an address", {
+      id,
+      rosterState,
+    });
+  }
+  return id.startsWith("vessel:") ? "Unknown vessel" : "Unknown station";
+}
+
 /** Who a thread's members are, by name, and which of them can no longer be reached. */
 export interface AddressBook {
   /** A name for any address; an address nobody has named reads as a kind of correspondent, never as the address. */
@@ -257,24 +276,44 @@ export interface AddressBook {
 export function useAddressBook(): AddressBook {
   const roster = useTelemetry("commandCentre.roster");
   const gone = useTelemetry("commandCentre.unreachable");
-  const entries: readonly CommandCentreEntry[] | undefined =
+  const identity = useTelemetry("vessel.identity");
+  const activeVessel =
+    identity.state === "observed" || identity.state === "held"
+      ? { id: `vessel:${identity.value.vesselId}`, name: identity.value.name }
+      : undefined;
+  /*
+   * Held across a reading that blinks to pending or absent, so a name this
+   * screen already knew does not turn into "Unknown station" for the frames in
+   * between.
+   */
+  const entries = useRetained<readonly CommandCentreEntry[]>(
     roster.state === "observed" || roster.state === "held"
       ? roster.value
-      : undefined;
-  const remembered: readonly UnreachableCentreEntry[] =
-    gone.state === "observed" || gone.state === "held" ? gone.value : [];
+      : undefined,
+  );
+  const rememberedNow: readonly UnreachableCentreEntry[] | undefined =
+    gone.state === "observed" || gone.state === "held" ? gone.value : undefined;
+  const remembered = useRetained(rememberedNow) ?? NO_REMEMBERED;
+  const unnamed = useRef(new Set<string>());
   return useMemo(
     () => ({
       nameFor: (id) =>
         entries?.find((e) => e.id === id)?.displayName ??
         remembered.find((e) => e.id === id)?.displayName ??
-        (id.startsWith("vessel:") ? "Unknown vessel" : "Unknown station"),
+        // A craft the roster has not heard of yet is still the active vessel, which the screen can name.
+        (activeVessel?.id === id ? activeVessel.name : undefined) ??
+        unnamedAs(id, roster.state, unnamed.current),
       staffedOf: (id) => {
         const entry = entries?.find((e) => e.id === id);
         return entry === undefined ? undefined : entry.active === true;
       },
       unreachableOf: (id) => {
-        if (entries === undefined || entries.some((e) => e.id === id)) {
+        // The roster lists a craft only once its own word has arrived, so the screen's active vessel is not absent for having left.
+        if (
+          entries === undefined ||
+          entries.some((e) => e.id === id) ||
+          activeVessel?.id === id
+        ) {
           return undefined;
         }
         const seen = remembered.find((e) => e.id === id);
@@ -285,6 +324,6 @@ export function useAddressBook(): AddressBook {
         };
       },
     }),
-    [entries, remembered],
+    [entries, remembered, activeVessel?.id, activeVessel?.name, roster.state],
   );
 }

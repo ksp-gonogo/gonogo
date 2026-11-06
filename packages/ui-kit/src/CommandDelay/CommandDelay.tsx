@@ -1,12 +1,9 @@
-import {
-  delayVisibility,
-  type Reading,
-  type Value,
-} from "@ksp-gonogo/sitrep-sdk";
+import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import {
   ControlDelayStream,
   type ControlRibbonDatum,
   type ControlStreamDatum,
+  hasRealDelay,
 } from "./ControlDelayStream";
 import type { CommandFailedEntry } from "./commandFailedSentence";
 import type { CommandFoundEntry } from "./commandFoundSentence";
@@ -223,7 +220,7 @@ export function CommandDelay({
     const streamHandle = lone;
     // An unknown delay draws nothing, as an instant one does.
     const delay = streamHandle.effectiveDelaySeconds;
-    if (delayVisibility(delay) !== "shown") return null;
+    if (!hasRealDelay(delay)) return null;
     return (
       <ControlDelayStream
         streams={streamHandle.streams ?? []}

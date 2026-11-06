@@ -47,6 +47,15 @@ describe("PilotScreen", () => {
     expect(screen.getByLabelText("Join code")).toBeInTheDocument();
   });
 
+  it("keeps the join code field open while the code is typed", async () => {
+    renderPilot();
+
+    const input = await screen.findByLabelText("Join code");
+    await userEvent.type(input, "5RML48");
+
+    expect(screen.getByLabelText("Join code")).toHaveValue("5RML48");
+  });
+
   it("lets a saved host code be changed from the page", async () => {
     localStorage.setItem(HOST_ID_KEY, "OLDCODE");
     renderPilot();

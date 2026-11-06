@@ -31,6 +31,8 @@ function light(over: Partial<RadioLight> = {}): RadioLight {
     from,
     authorName: "Jeb",
     muted: false,
+    amplitudes: [],
+    waves: [],
     ...over,
   };
 }

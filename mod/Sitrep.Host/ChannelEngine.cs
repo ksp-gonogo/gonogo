@@ -3820,6 +3820,11 @@ namespace Sitrep.Host
             {
                 throw new InvalidOperationException($"PublishAddressed(\"{topic}\"): the topic was never declared addressed.");
             }
+            if (IsSeat(fromCentre))
+            {
+                _courier.RecordAddressed(AddressedNode, topic, payload, validAtUt, SeatStamp(fromCentre), audience);
+                return;
+            }
             _courier.RecordAddressed(AddressedNode, topic, payload, validAtUt, CentreNodePrefix + fromCentre, audience);
         }
 
@@ -3882,14 +3887,45 @@ namespace Sitrep.Host
             {
                 return true;
             }
+            // A seat is written as an origin only, so its own row says whom it reaches; CommNet paths run both ways.
+            if (IsSeat(fromCentre))
+            {
+                return _centreRoutes.TryGetValue(fromCentre, out var seatReached) && seatReached.Contains(toCentre);
+            }
             // The ledger's orientation: a listener's row against the speaker's node.
             return _centreRoutes.TryGetValue(toCentre, out var reached) && reached.Contains(fromCentre);
         }
 
-        public DelayStamp StampFrom(string fromCentre) => _network.StampFor(CentreNodePrefix + fromCentre);
+        private bool IsSeat(string centreId) => _seatIds.Contains(centreId);
+
+        /// <summary>What a seat's words arrive after at each centre it reaches: its own origin row to that centre, and none to itself.</summary>
+        private DelayStamp SeatStamp(string seat)
+        {
+            var seconds = new Dictionary<string, double>(StringComparer.Ordinal) { [seat] = 0.0 };
+            if (_centreRoutes.TryGetValue(seat, out var reached))
+            {
+                foreach (var centre in reached)
+                {
+                    seconds[centre] = _network.DelayTo(seat, CentreNodePrefix + centre);
+                }
+            }
+            return new DelayStamp(double.PositiveInfinity, seconds);
+        }
+
+        public DelayStamp StampFrom(string fromCentre) =>
+            IsSeat(fromCentre) ? SeatStamp(fromCentre) : _network.StampFor(CentreNodePrefix + fromCentre);
 
         public IReadOnlyCollection<string> ReachedFrom(string fromCentre)
         {
+            if (IsSeat(fromCentre))
+            {
+                var seatReached = new List<string> { fromCentre };
+                if (_centreRoutes.TryGetValue(fromCentre, out var routed))
+                {
+                    seatReached.AddRange(routed.Where(c => c != fromCentre));
+                }
+                return seatReached;
+            }
             var reached = new List<string> { fromCentre };
             foreach (var row in _centreRoutes)
             {
@@ -12445,9 +12481,30 @@ namespace Sitrep.Host
             // chosen (or the engine chose itself), and re-checking it here would
             // start refusing ordinary commands the moment the centre a session is
             // sitting at went inactive.
-            if (!string.IsNullOrEmpty(req.Vantage)
-                && req.Vantage != MetaVantage
-                && !IsSelectableVantage(req.Vantage!))
+            var override_ = req.Vantage;
+            var followsActiveCraft = override_ == ActiveCraftVantage;
+            if (followsActiveCraft)
+            {
+                // The reserved id means where the active craft stands now, the
+                // vantage a connection following it observes from.
+                override_ = _activeCraftVantage;
+                if (override_ == null)
+                {
+                    var noCraft = new ErrorMsg
+                    {
+                        RequestId = req.RequestId,
+                        Code = FaultCode.UnknownVantage,
+                        Message = "there is no active craft to dispatch from",
+                    };
+                    session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(noCraft)));
+                    return null;
+                }
+            }
+
+            if (!followsActiveCraft
+                && !string.IsNullOrEmpty(override_)
+                && override_ != MetaVantage
+                && !IsSelectableVantage(override_!))
             {
                 // Refused rather than quietly demoted to the session vantage.
                 // A fallback would dispatch from somewhere the client did not
@@ -12489,7 +12546,7 @@ namespace Sitrep.Host
             var job = MakeDispatchJob(
                 req.Command,
                 req.Args,
-                string.IsNullOrEmpty(req.Vantage) ? home : req.Vantage,
+                string.IsNullOrEmpty(override_) ? home : override_!,
                 result =>
             {
                 Reply(req.RequestId, session, home, ResponseFrame(req.RequestId, req.Command, home, req.SentAt, result), terminal: true);

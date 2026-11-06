@@ -458,6 +458,45 @@ describe("attachCommcastModLink", () => {
     );
   });
 
+  it("tells the log when the mod refuses a transmit, and not when its reply is lost", async () => {
+    const rejecting = (code: string) => {
+      const wire: CommcastWire = {
+        dispatch: () => ({
+          result: Promise.reject(Object.assign(new Error("no"), { code })),
+        }),
+        subscribe: () => () => {},
+        onRawMessage: () => () => {},
+      };
+      return wire;
+    };
+    const refused = vi.fn();
+    log.onRadioRefused(refused);
+
+    detach();
+    detach = attachCommcastModLink(log, rejecting("E_LOST"));
+    log.sendRadio(chunk(0));
+    log.sendRadio({
+      kind: "end",
+      transmissionId: "t1",
+      authorStationKey: "screen-a",
+      ut: 101,
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(refused).not.toHaveBeenCalled();
+
+    detach();
+    detach = attachCommcastModLink(log, rejecting("unknownVantage"));
+    log.sendRadio(chunk(0));
+    log.sendRadio({
+      kind: "end",
+      transmissionId: "t1",
+      authorStationKey: "screen-a",
+      ut: 101,
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(refused).toHaveBeenCalled();
+  });
+
   it("ends a keying whose last batch was already full, naming its group", () => {
     for (let seq = 0; seq < 10; seq++) log.sendRadio(chunk(seq));
     log.sendRadio({

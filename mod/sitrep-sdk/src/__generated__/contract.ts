@@ -3912,8 +3912,10 @@ export interface CommandRequest<Args>
 	* program rather than a craft (tech, strategy, contract) sends `"meta"`, which
 	* carries no delay whichever centre the operator has selected; sent from a
 	* centre instead, it rides that centre's delay to the home command, which is
-	* none for a ground station. A centre that is not active is refused with an
-	* `unknownVantage` error.
+	* none for a ground station. `"active-craft"` dispatches from wherever the
+	* active craft stands at that moment, at no delay, and is refused with an
+	* `unknownVantage` error while there is no active craft. A centre that is not
+	* active is refused with an `unknownVantage` error.
 	*/
 	vantage?: string;
 	/**

@@ -46,7 +46,7 @@ const clamp01 = (v: number): number =>
  * {@link ControlDelayStream}.
  */
 export function waveformExtentX(
-  amplitudes: readonly number[],
+  amplitudes: { readonly length: number },
   spanSamples: number,
   boundaryX: number,
 ): number {
@@ -97,17 +97,102 @@ export function waveformPath(
   // A trace of no length is a single vertex, not empty: a key that has just opened IS a crossing.
   if (!(extentX > 0)) return `M0.00,${WAVE_MID_Y.toFixed(2)}`;
   const steps = waveformSteps(amplitudes, spanSamples, extentX);
+  /*
+   * Each turning point is the LOUDEST sample of the stretch of audio it stands
+   * for, not the one sample at its centre. The trace has far fewer points than
+   * the ring has samples, and reading one sample per point would let a syllable
+   * fall between two of them and vanish from the picture.
+   */
+  const agesPerStep = (extentX / boundaryX) * (spanSamples / steps);
+  const newest = amplitudes.length - 1;
   const points: string[] = [];
   for (let k = 0; k <= steps; k++) {
     const x = Math.min((k / steps) * extentX, extentX);
-    // Newest at this end: age 0 is `now`, and x walks back through the ring.
-    const age = Math.min(
-      Math.round((x / boundaryX) * spanSamples),
-      amplitudes.length - 1,
-    );
-    const a = clamp01(amplitudes[amplitudes.length - 1 - age]);
+    const from = Math.max(0, Math.round((k - 0.5) * agesPerStep));
+    const to = Math.min(newest, Math.round((k + 0.5) * agesPerStep));
+    let a = 0;
+    for (let age = from; age <= Math.max(from, to); age++) {
+      a = Math.max(a, clamp01(amplitudes[newest - Math.min(age, newest)]));
+    }
     const dy = (k % 2 === 0 ? -1 : 1) * a * WAVE_HALF_H;
     points.push(`${x.toFixed(2)},${(WAVE_MID_Y + dy).toFixed(2)}`);
   }
   return `M${points.join(" L")}`;
+}
+
+/**
+ * One block of audio as the lowest and highest sample it held, each scaled to
+ * -1..1 against the edge of the band. Useful for drawing the wave itself
+ * instead of how loud it was. Taken by {@link waveformBand}.
+ *
+ * @category CommandDelay
+ */
+export interface WaveBlock {
+  /** The lowest sample of the block, -1 to 0. */
+  lo: number;
+  /** The highest sample of the block, 0 to 1. */
+  hi: number;
+}
+
+/** The horizontal width of one column of the filled wave, in box units: about two screen pixels on the rail. */
+const WAVE_COLUMN = 0.25;
+
+/**
+ * Turn a newest-last ring of per-block lowest and highest samples into a filled
+ * band, the way an audio editor draws a zoomed-out track: one column for each
+ * slice of audio, from that slice's lowest sample to its highest. A pause is a
+ * line along the centre; an attack and a decay are as steep as the voice made
+ * them. Each column is placed where its audio is in the gap, by the same rule
+ * as {@link waveformPath}. Useful for showing the operator the voice itself
+ * crossing the gap. Used by {@link ControlDelayStream}.
+ *
+ * Returns the closed outline to fill, and `""` for a ring with fewer than two
+ * blocks, which has no width to draw.
+ *
+ * @category CommandDelay
+ */
+export function waveformBand(
+  blocks: readonly WaveBlock[],
+  spanSamples: number,
+  boundaryX: number,
+): string {
+  const extentX = waveformExtentX(blocks, spanSamples, boundaryX);
+  if (!(extentX > 0)) return "";
+  const newest = blocks.length - 1;
+  const columns = Math.max(
+    1,
+    Math.min(
+      Math.round(Math.min(blocks.length, spanSamples)),
+      Math.ceil(extentX / WAVE_COLUMN),
+    ),
+  );
+  const agesPerColumn = (extentX / boundaryX) * (spanSamples / columns);
+  const top: string[] = [];
+  const bottom: string[] = [];
+  for (let c = 0; c < columns; c++) {
+    const from = Math.max(0, Math.round(c * agesPerColumn));
+    const to = Math.min(
+      newest,
+      Math.max(from, Math.round((c + 1) * agesPerColumn) - 1),
+    );
+    let lo = 0;
+    let hi = 0;
+    for (let age = from; age <= to; age++) {
+      const block = blocks[newest - age];
+      if (!block) continue;
+      if (Number.isFinite(block.lo)) lo = Math.min(lo, Math.max(-1, block.lo));
+      if (Number.isFinite(block.hi)) hi = Math.max(hi, Math.min(1, block.hi));
+    }
+    const x0 = (c / columns) * extentX;
+    const x1 = ((c + 1) / columns) * extentX;
+    const yTop = (WAVE_MID_Y - hi * WAVE_HALF_H).toFixed(2);
+    const yBottom = (WAVE_MID_Y - lo * WAVE_HALF_H).toFixed(2);
+    top.push(`${x0.toFixed(2)},${yTop}`, `${x1.toFixed(2)},${yTop}`);
+    // The lower edge runs back the way the upper one came, so the outline is one simple loop.
+    bottom.unshift(
+      `${x1.toFixed(2)},${yBottom}`,
+      `${x0.toFixed(2)},${yBottom}`,
+    );
+  }
+  return `M${top.join(" L")} L${bottom.join(" L")} Z`;
 }

@@ -9,7 +9,9 @@
  * one size however far away the recipient is. All of those are things a correct
  * pure function can still get wrong in the UI.
  */
+
 import { clearRegistry } from "@ksp-gonogo/core";
+import { logger } from "@ksp-gonogo/logger";
 import { TelemetryClient, TelemetryProvider } from "@ksp-gonogo/sitrep-client";
 import { UnreachableReason } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -22,7 +24,7 @@ import {
   visibleText,
 } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { CommcastWidget } from "./CommcastComponent";
 import { CommcastLog } from "./CommcastLog";
 import { CommcastLogProvider } from "./CommcastLogContext";
@@ -487,18 +489,34 @@ describe("Commcast, rendered", () => {
 
   it("says over the composer when there is no path to send over", async () => {
     /*
-     * No delay has arrived on a stub transport, so the bar's own outline turns
-     * and the chip says why, rather than the refusal reaching the operator only
+     * The mod says the craft has no path home: the bar's own outline turns and
+     * the chip says why, rather than the refusal reaching the operator only
      * after they press.
      */
     const log = makeLog();
     log.replaceForTesting({
       outbox: [outbound(sent({ separationSeconds: null }), [])],
     });
-    renderWidget(log);
+    const { fixture } = renderOnStream(log, [], []);
+    act(() => {
+      fixture.emit("comms.delay", { oneWaySeconds: null }, { vantage: "ksc" });
+      fixture.store.beginFrame();
+    });
     await openConversation(/do you copy/);
     expect(screen.getByText("NO PATH")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  it("does not say there is no path before any delay has been heard", async () => {
+    const log = makeLog();
+    log.replaceForTesting({
+      outbox: [outbound(sent({ separationSeconds: null }), [])],
+    });
+    renderWidget(log);
+    await openConversation(/do you copy/);
+    expect(screen.queryByText("NO PATH")).toBeNull();
+    await act(async () => {});
   });
 
   describe("an addressee the roster no longer lists", () => {
@@ -575,6 +593,51 @@ describe("Commcast, rendered", () => {
       });
       expect(row).toHaveTextContent("Unreachable, last reachable unknown");
       expect(row).not.toHaveTextContent("ground:woomera");
+      await act(async () => {});
+    });
+
+    it("says, with the roster's own state, when it can not name an address", async () => {
+      const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
+      renderOnStream(woomeraSaid(), ROSTER);
+      await screen.findByRole("button", { name: /Unknown station/ });
+      expect(warn).toHaveBeenCalledWith(
+        "[commcast] no roster entry names an address",
+        expect.objectContaining({
+          id: "ground:woomera",
+          rosterState: expect.any(String),
+        }),
+      );
+      warn.mockRestore();
+      await act(async () => {});
+    });
+
+    it("does not read the active vessel as unreachable because the roster has not listed it yet", async () => {
+      const log = makeLog();
+      log.setVantage("ksc");
+      log.replaceForTesting({
+        inbox: [
+          {
+            ...sent({
+              id: "in1",
+              from: "vessel:ares",
+              to: ["ksc", "vessel:ares"],
+              groupId: "ga",
+              body: "Pilot on the pad",
+            }),
+          },
+        ],
+      });
+      const { fixture } = renderOnStream(log, ROSTER);
+      act(() => {
+        fixture.emit(
+          "vessel.identity",
+          { vesselId: "ares", name: "MkI" },
+          { vantage: "ksc" },
+        );
+        fixture.store.beginFrame();
+      });
+      const row = await screen.findByRole("button", { name: /MkI/ });
+      expect(row).not.toHaveTextContent("Unreachable");
       await act(async () => {});
     });
 
@@ -934,6 +997,24 @@ describe("Commcast, rendered", () => {
         within(queue).getByText(/, to Unknown vessel/),
       ).toBeInTheDocument();
       expect(within(queue).queryByText(/, to Unknown station/)).toBeNull();
+      await act(async () => {});
+    });
+
+    it("names a craft the roster does not list by the active vessel's name", async () => {
+      const log = makeLog();
+      log.replaceForTesting({ outbox: [toGroup(-100, [woomeraAck(-88)])] });
+      const { fixture } = renderOnStream(log, []);
+      act(() => {
+        fixture.emit(
+          "vessel.identity",
+          { vesselId: "ares", name: "MkI" },
+          { vantage: "ksc" },
+        );
+        fixture.store.beginFrame();
+      });
+      await openConversation(/do you copy/);
+      const queue = screen.getByLabelText(/Uplink queue/);
+      expect(within(queue).getByText(/, to MkI/)).toBeInTheDocument();
       await act(async () => {});
     });
 

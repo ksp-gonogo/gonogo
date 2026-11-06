@@ -163,6 +163,24 @@ describe("radio transmit, one keying", () => {
 });
 
 describe("radio transmit, when it cannot", () => {
+  it("stops and says NOT SENT when the far end refuses what was sent", async () => {
+    const { sent, mic, transmitter } = scene();
+    const keying = transmitter.keyDown(JEB);
+    mic.open();
+    await keying;
+
+    transmitter.refuse();
+
+    expect(transmitter.snapshot()).toMatchObject({
+      live: false,
+      opening: false,
+      fault: "NOT SENT",
+    });
+    expect(mic.stops).toBe(1);
+    mic.speak();
+    expect(sent).toEqual([]);
+  });
+
   it("names a refused microphone rather than doing nothing", async () => {
     const { sent, mic, transmitter } = scene();
     const keying = transmitter.keyDown(JEB);

@@ -243,6 +243,8 @@ export { type RailEntry, useRailEntry } from "./CommandDelay/useRailEntry";
 export {
   WAVE_HALF_H,
   WAVE_MID_Y,
+  type WaveBlock,
+  waveformBand,
   waveformPath,
 } from "./CommandDelay/waveformPath";
 export {

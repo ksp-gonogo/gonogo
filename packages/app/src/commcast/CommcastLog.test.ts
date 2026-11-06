@@ -100,6 +100,25 @@ describe("CommcastLog, one vantage's own record", () => {
     expect(log.snapshot().outbox[0].deliveries[0]?.neverLeft).toBe(true);
   });
 
+  it("judges what the wire delivered before the vantage was known once it is", () => {
+    const early = makeLog();
+    expect(early.receiveTransmission(fromWire({ to: [KSC] }))).toBe(false);
+    expect(early.snapshot().pending).toHaveLength(0);
+
+    early.setVantage(KSC);
+
+    expect(early.snapshot().pending).toHaveLength(1);
+  });
+
+  it("drops, once the vantage is known, what named another vantage", () => {
+    const early = makeLog();
+    early.receiveTransmission(fromWire({ id: "m2", to: ["ground:woomera"] }));
+
+    early.setVantage(KSC);
+
+    expect(early.snapshot().pending).toHaveLength(0);
+  });
+
   it("keeps only what NAMES this vantage", () => {
     // Every frame passes every participant, because the star topology gives no
     // choice. Dropping other people's mail unread here is what makes two

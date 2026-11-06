@@ -1,6 +1,6 @@
 import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { Button, Console, EmptyState, PlusIcon } from "@ksp-gonogo/ui-kit";
-import type { ReactNode } from "react";
+import { type ReactNode, useRef } from "react";
 import { Addressees } from "./CommcastAddressee";
 import { CommcastBackButton } from "./CommcastBackButton";
 import { CommcastComposer } from "./CommcastComposer";
@@ -31,6 +31,7 @@ import type { RadioControl } from "./radio/useRadio";
 import type { Separation, Vantage } from "./reveal";
 import type { CommcastThread } from "./threads";
 import type { RecipientId } from "./types";
+import { useKeepNewestInView } from "./useKeepNewestInView";
 
 /** One group's thread. The way back is in the body rather than the panel aside, which collapses at narrow widths. */
 export function CommcastThreadView({
@@ -70,6 +71,11 @@ export function CommcastThreadView({
   onAdd: (() => void) | undefined;
   onBack: () => void;
 }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useKeepNewestInView(
+    scrollRef,
+    thread.entries.length + thread.outbound.length,
+  );
   const noPath = separation.kind === "no-path";
   const nameFor = book.nameFor;
   const threadName = namesOf(thread.with, nameFor);
@@ -146,7 +152,7 @@ export function CommcastThreadView({
           />
         }
       >
-        <Commcast__Scroll>
+        <Commcast__Scroll ref={scrollRef}>
           <Commcast__List>
             {thread.entries.length === 0 && thread.outbound.length === 0 && (
               <EmptyState>No messages</EmptyState>

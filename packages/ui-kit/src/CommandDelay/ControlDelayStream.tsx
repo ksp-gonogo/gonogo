@@ -1,9 +1,4 @@
-import {
-  delayVisibility,
-  type Reading,
-  type Value,
-  value,
-} from "@ksp-gonogo/sitrep-sdk";
+import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { Fragment, useId } from "react";
 import styled from "styled-components";
 import {
@@ -25,7 +20,14 @@ import {
   railToneToken,
   reportUnrepresentedRail,
 } from "./railTags";
-import { WAVE_VB_H, waveformExtentX, waveformPath } from "./waveformPath";
+import {
+  WAVE_MID_Y,
+  WAVE_VB_H,
+  type WaveBlock,
+  waveformBand,
+  waveformExtentX,
+  waveformPath,
+} from "./waveformPath";
 
 /**
  * One sample on a control axis's trace in {@link ControlDelayStream}: a
@@ -95,6 +97,14 @@ export interface ControlRibbonDatum {
    */
   amplitudes: readonly number[];
   /**
+   * The lowest and highest sample of each block of `amplitudes`, from the same
+   * audio, newest last. When present the ribbon is drawn as the wave itself, a
+   * filled band from each slice's lowest sample to its highest, and
+   * `amplitudes` is not drawn; absent, the ribbon is drawn from `amplitudes`
+   * alone as a loudness trace.
+   */
+  wave?: readonly WaveBlock[];
+  /**
    * How many samples span the signal delay. Defaults to the whole
    * array. Fractional below one and never floored: a short signal delay can be
    * a fraction of a single sample.
@@ -159,6 +169,19 @@ export interface ControlDelayStreamProps {
  * @category CommandDelay
  */
 export const STREAM_MIN_DELAY_SECONDS = 0.05;
+
+/**
+ * Whether a one-way delay is a real, positive figure. A ribbon draws at any
+ * such delay, however short, because the zone it crosses is scaled to the
+ * delay and the trace is sized by the audio, not by the gap; only a delay that
+ * is exactly zero or unknown has nothing to cross. Used by the rail to decide
+ * whether to mount around a ribbon.
+ */
+export function hasRealDelay(
+  oneWay: number | null | undefined,
+): oneWay is number {
+  return typeof oneWay === "number" && Number.isFinite(oneWay) && oneWay > 0;
+}
 const DEVIATION_EPSILON = 0.02;
 /**
  * How far either side of its predicted moment a reading may be matched to the
@@ -590,13 +613,15 @@ function StreamPaths({
 }
 
 /**
- * The ribbon mark: one continuous entry's amplitude history, lying along the
- * outgoing zone and fading there. Each axis lands on one property:
+ * The ribbon mark: one continuous entry's amplitude history, lying along one
+ * zone of the strip. Each axis lands on one property:
  *
  * - Continuity puts it on this strip at all; a discrete datum draws nothing
- * - Delivery keeps it in the outgoing zone, ending at the T divider
- * - Direction picks the tone and the fade direction: a command dissolves
- *   toward the target, telemetry is clearest where it lands
+ * - Direction places it and picks its tone: a command lies in the outgoing zone
+ *   in the accent tone, telemetry lies in the confirmed zone, past the second
+ *   divider, in the info tone
+ * - Delivery decides only whether a return leg is drawn, which a ribbon has no
+ *   use for
  *
  * Drawn in the waveform's own 16-unit box and scaled into the plot band.
  */
@@ -619,22 +644,34 @@ function RibbonMark({
   }
 
   const boundaryX = (VB_W - padX * 2) / 3;
-  const samples = ribbon.amplitudes;
+  const wave = ribbon.wave;
+  const samples = wave ?? ribbon.amplitudes;
   const span = ribbon.spanSamples ?? samples.length;
-  const path = waveformPath(samples, span, boundaryX);
+  // The wave itself when the producer kept it, else the loudness trace.
+  const band = wave !== undefined ? waveformBand(wave, span, boundaryX) : "";
+  const path =
+    wave !== undefined
+      ? band
+      : waveformPath(ribbon.amplitudes, span, boundaryX);
   // A ribbon with nothing in it is not a crossing.
-  if (path === "") return null;
+  if (path === "" && !(wave !== undefined && wave.length > 0)) return null;
 
   // The fade spans the trace's own length, at least a unit so the gradient has extent.
-  const fadeX = Math.max(waveformExtentX(samples, span, boundaryX), 1);
+  const fadeX = Math.max(
+    waveformExtentX(wave ?? ribbon.amplitudes, span, boundaryX),
+    1,
+  );
   const tone = `var(${railToneToken(tags)})`;
+  // What arrives lies past the second divider, where what has been confirmed is drawn.
   const outbound = railFlow(tags) === "outbound";
+  const zoneStartX = outbound ? 0 : 2 * boundaryX;
 
   return (
     <g
       data-ribbon-group={ribbon.id}
+      data-ribbon-zone={zoneStartX === 0 ? "outgoing" : "confirmed"}
       // The waveform's 16-unit box mapped onto the plot band.
-      transform={`translate(${padX} ${PAD_T}) scale(1 ${PLOT_H / WAVE_VB_H})`}
+      transform={`translate(${padX + zoneStartX} ${PAD_T}) scale(1 ${PLOT_H / WAVE_VB_H})`}
     >
       <defs>
         {/* The fade runs the way the entry does, in user space so a flat passage still paints. */}
@@ -657,17 +694,42 @@ function RibbonMark({
           AND scaled vertically into the band, so a scaled stroke would come out
           several times thicker across than it is tall and the near-vertical
           parts of the trace would fatten into a blob. */}
-      <path
-        data-role="ribbon"
-        data-ribbon={ribbon.id}
-        d={path}
-        fill="none"
-        stroke={`url(#${fadeId})`}
-        strokeWidth="1"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        vectorEffect="non-scaling-stroke"
-      />
+      {wave !== undefined ? (
+        <>
+          {/* Silence is a line along the centre, and the wave stands on it. */}
+          <line
+            data-role="ribbon-axis"
+            x1="0"
+            x2={fadeX}
+            y1={WAVE_MID_Y}
+            y2={WAVE_MID_Y}
+            stroke={`url(#${fadeId})`}
+            strokeWidth="1"
+            vectorEffect="non-scaling-stroke"
+          />
+          {band !== "" && (
+            <path
+              data-role="ribbon"
+              data-ribbon={ribbon.id}
+              d={band}
+              fill={`url(#${fadeId})`}
+              stroke="none"
+            />
+          )}
+        </>
+      ) : (
+        <path
+          data-role="ribbon"
+          data-ribbon={ribbon.id}
+          d={path}
+          fill="none"
+          stroke={`url(#${fadeId})`}
+          strokeWidth="1"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      )}
     </g>
   );
 }
@@ -710,7 +772,7 @@ export function ControlDelayStream({
   // Every entry crosses the same gap, so the first one that knows its light-time serves the strip.
   const first = [...streams, ...ribbons].find((e) => e.oneWaySeconds !== null);
   const oneWay = first?.oneWaySeconds ?? null;
-  if (!first || oneWay === null || delayVisibility(oneWay) !== "shown") {
+  if (!first || !hasRealDelay(oneWay)) {
     return null;
   }
   const drawStreams = oneWay >= STREAM_MIN_DELAY_SECONDS;

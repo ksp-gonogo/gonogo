@@ -28,7 +28,7 @@ import {
   RADIO_CHUNK_FRAMES,
   RADIO_ENCODER_CONFIG,
 } from "@ksp-gonogo/sitrep-sdk/media";
-import { chunkAmplitude } from "./amplitude";
+import { chunkAmplitude, chunkWave, type WaveBlock } from "./amplitude";
 import type { RadioBackend } from "./backend";
 import type {
   RadioAudioSink,
@@ -218,7 +218,9 @@ export interface ClipMic {
  * waits on a timer, which is what keeps both of them deterministic.
  */
 export function clipMic(clip: RadioClip): ClipMic {
-  let emit: ((bytes: Uint8Array, amplitude: number) => void) | null = null;
+  let emit:
+    | ((bytes: Uint8Array, amplitude: number, wave?: WaveBlock) => void)
+    | null = null;
   let spoken = 0;
   let openings = 0;
   let stops = 0;
@@ -243,9 +245,11 @@ export function clipMic(clip: RadioClip): ClipMic {
        * for: the clip's raised-cosine envelope is what gives it a beginning,
        * a middle and an end.
        */
+      const samples = clipSamples({ ...clip.chunks[spoken], index: spoken });
       emit(
         clipBytes(clip, spoken),
-        chunkAmplitude(clipSamples({ ...clip.chunks[spoken], index: spoken })),
+        chunkAmplitude(samples),
+        chunkWave(samples),
       );
       spoken += 1;
       return true;
@@ -330,13 +334,18 @@ export class ClipDecoder implements RadioDecoderLike {
   readonly decoded: Array<{ index: number; timestampMicros: number }> = [];
   private closed = false;
 
-  constructor(readonly sink: RecordingRadioSink) {}
+  constructor(
+    readonly sink: RecordingRadioSink,
+    private readonly onLoudness?: (amplitude: number, wave: WaveBlock) => void,
+  ) {}
 
   decode(bytes: Uint8Array, timestampMicros: number): void {
     if (this.closed) return;
     const chunk = readClipChunk(bytes);
     this.decoded.push({ index: chunk.index, timestampMicros });
-    this.sink.play(clipSamples(chunk), RADIO_ENCODER_CONFIG.sampleRate);
+    const samples = clipSamples(chunk);
+    this.onLoudness?.(chunkAmplitude(samples), chunkWave(samples));
+    this.sink.play(samples, RADIO_ENCODER_CONFIG.sampleRate);
   }
 
   reset(): void {
@@ -366,8 +375,10 @@ export class RecordingRadioReceiver implements RadioReceiver {
   readonly decoders: ClipDecoder[] = [];
   closed = false;
 
-  openStream(): RadioDecoderLike {
-    const decoder = new ClipDecoder(new RecordingRadioSink());
+  openStream(
+    onLoudness?: (amplitude: number, wave: WaveBlock) => void,
+  ): RadioDecoderLike {
+    const decoder = new ClipDecoder(new RecordingRadioSink(), onLoudness);
     this.decoders.push(decoder);
     return decoder;
   }

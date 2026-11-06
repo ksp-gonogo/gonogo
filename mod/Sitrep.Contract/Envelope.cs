@@ -141,7 +141,10 @@ public class CommandRequest<TArgs>
     /// space program rather than a craft (tech, strategy, contract) sends
     /// <c>"meta"</c>, which carries no delay whichever centre the operator has
     /// selected; sent from a centre instead, it rides that centre's delay to the
-    /// home command, which is none for a ground station. A centre that is not active is refused with an
+    /// home command, which is none for a ground station. <c>"active-craft"</c>
+    /// dispatches from wherever the active craft stands at that moment, at no delay,
+    /// and is refused with an <c>unknownVantage</c> error while there is no active
+    /// craft. A centre that is not active is refused with an
     /// <c>unknownVantage</c> error.
     /// </summary>
     [SitrepUnit(Units.Id)]

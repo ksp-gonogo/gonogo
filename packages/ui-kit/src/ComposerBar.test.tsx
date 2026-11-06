@@ -2,9 +2,22 @@ import { act, fireEvent, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { ComposerBar } from "./ComposerBar";
 import { expectNoA11yViolations } from "./expectNoA11yViolations";
-import { emittedRuleFor } from "./test/emittedRule";
+import { emittedRuleFor, emittedStateRuleFor } from "./test/emittedRule";
 
 describe("ComposerBar", () => {
+  it("draws no outline around a field typed into inside it, and thickens its own border for focus instead", () => {
+    render(
+      <ComposerBar>
+        <input aria-label="Message" />
+      </ComposerBar>,
+    );
+    const row = screen.getByLabelText("Message").parentElement as HTMLElement;
+    expect(emittedStateRuleFor(row, " input:focus-visible")).toContain(
+      "outline:none",
+    );
+    expect(emittedStateRuleFor(row, ":focus-within")).toContain("box-shadow");
+  });
+
   it("renders its children", () => {
     render(
       <ComposerBar>

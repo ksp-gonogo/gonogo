@@ -81,7 +81,8 @@ export interface ComposerBarProps extends ComponentPropsWithoutRef<"div"> {
  *
  * It styles the row and nothing inside it except the send button (`onSend`)
  * and the prompt glyph (`prompt`); font and character pitch belong to the
- * caller. Whatever goes in sits flush on the row, with no outline of its own.
+ * caller. Whatever goes in sits flush on the row, with no outline of its own: a
+ * field inside draws none when focused, and the row's border thickens instead.
  *
  * @category Console
  */
@@ -150,6 +151,25 @@ const ComposerBar__Row = styled.div<{ $blocked: boolean }>`
         ? "var(--color-nogo-text)"
         : "var(--console-tone-fg, var(--color-accent-fg))"};
   border-radius: var(--radius-regular);
+
+  /*
+   * The row's border is the outline, so a field typed into inside it draws none
+   * of its own, whatever the page's focus rule says. Focus is shown on the row
+   * instead, by thickening that border, which keeps a visible focus cue
+   * without a second box inside the first.
+   */
+  & input:focus-visible,
+  & textarea:focus-visible {
+    outline: none;
+  }
+
+  &:focus-within {
+    box-shadow: inset 0 0 0 1px
+      ${({ $blocked }) =>
+        $blocked
+          ? "var(--color-nogo-text)"
+          : "var(--console-tone-fg, var(--color-accent-fg))"};
+  }
 `;
 
 // Its own margin rather than the row's gap, since a terminal's caret block must sit flush against the composed line.

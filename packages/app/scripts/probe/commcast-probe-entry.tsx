@@ -1,4 +1,4 @@
-import { ScreenProvider } from "@ksp-gonogo/core";
+import { registerDataSource, ScreenProvider } from "@ksp-gonogo/core";
 import {
   harnessTheme,
   installRealTestHost,
@@ -8,6 +8,7 @@ import {
 import {
   AugmentSlot,
   clearAugments,
+  DelayRailProvider,
   getAugmentsForSlot,
   registerAugment,
   setQuantityLocale,
@@ -19,8 +20,14 @@ import { CommcastLog } from "../../src/commcast/CommcastLog";
 import { CommcastLogProvider } from "../../src/commcast/CommcastLogContext";
 import { RadioBackendProvider } from "../../src/commcast/radio/backend";
 import type { ClipRadio } from "../../src/commcast/radio/clips";
-import { clipRadio, SHORT_CLIP } from "../../src/commcast/radio/clips";
+import {
+  clipBytes,
+  clipRadio,
+  makeClip,
+  SHORT_CLIP,
+} from "../../src/commcast/radio/clips";
 import type { CommsAck, CommsMessage } from "../../src/commcast/types";
+import { MobileDashboard } from "../../src/components/Dashboard/MobileDashboard";
 import {
   StationIdentityProvider,
   StationIdentityService,
@@ -551,18 +558,70 @@ function paneTree(pane: Pane, index: number) {
    * two ends; the transmitter, the wire, the session and the control are all
    * the shipped ones.
    */
+  if ((window as unknown as { __mobile?: string }).__mobile) {
+    registerDataSource({
+      id: "sitrep",
+      name: "Sitrep",
+      connect: async () => {},
+      disconnect: () => {},
+      status: "connected",
+      schema: () => [],
+      subscribe: () => () => {},
+      onStatusChange: () => () => {},
+      configSchema: () => [],
+      configure: () => {},
+      getConfig: () => ({}),
+    });
+  }
   const radio = clipRadio(SHORT_CLIP);
   // The SCREEN is what a provider carries; the seat is derived from it by `seatOf`, which is the whole reason a pane is declared by seat here: a peer-fed pilot would be a third screen at the same seat and this scene would not change.
   const widget = (
-    <ScreenProvider value={pane.seat === "pilot" ? "pilot" : "main"}>
-      <fixture.Provider>
-        <StationIdentityProvider service={identity}>
-          <RadioBackendProvider value={radio.backend}>
-            <CommcastWidget id={`commcast-${index}`} config={{}} w={6} h={9} />
-          </RadioBackendProvider>
-        </StationIdentityProvider>
-      </fixture.Provider>
-    </ScreenProvider>
+    <DelayRailProvider>
+      <ScreenProvider value={pane.seat === "pilot" ? "pilot" : "main"}>
+        <fixture.Provider>
+          <StationIdentityProvider service={identity}>
+            <RadioBackendProvider value={radio.backend}>
+              {(window as unknown as { __mobile?: string }).__mobile ? (
+                <MobileDashboard
+                  items={[
+                    {
+                      i: "c",
+                      componentId: "commcast",
+                      ...((
+                        window as unknown as { __mobile?: string }
+                      ).__mobile?.includes("half")
+                        ? { mobileHeight: "half" as const }
+                        : {}),
+                      ...((
+                        window as unknown as { __mobile?: string }
+                      ).__mobile?.includes("narrow")
+                        ? { mobileWidth: "half" as const }
+                        : {}),
+                    },
+                  ]}
+                  layout={[]}
+                  onLayoutChange={() => {}}
+                  updateItemConfig={() => {}}
+                  updateItemMappings={() => {}}
+                  updateItemMobileWidth={() => {}}
+                  updateItemMobileHeight={() => {}}
+                  removeItem={() => {}}
+                  moveItemUp={() => {}}
+                  moveItemDown={() => {}}
+                />
+              ) : (
+                <CommcastWidget
+                  id={`commcast-${index}`}
+                  config={{}}
+                  w={6}
+                  h={9}
+                />
+              )}
+            </RadioBackendProvider>
+          </StationIdentityProvider>
+        </fixture.Provider>
+      </ScreenProvider>
+    </DelayRailProvider>
   );
   return {
     fixture,
@@ -631,6 +690,50 @@ async function renderSceneOnce(scene: Scene): Promise<boolean> {
   localStorage.setItem("gonogo.station.key", "render-probe-local");
 
   const panes = scene.panes.map((p, i) => paneTree(p, i));
+  /*
+   * A voice arriving at the first pane, one 20 ms chunk at a time, for a render
+   * of the rail while somebody is talking to it. Started by the driver once the
+   * scene has settled.
+   */
+  (
+    window as unknown as { __feedIncoming?: (seconds: number) => void }
+  ).__feedIncoming = (seconds) => {
+    const log = panes[0]?.log;
+    const target = scene.panes[0];
+    if (!log || !target) return;
+    const count = Math.round(seconds / 0.02);
+    const clip = makeClip("arriving", count, 200);
+    const from =
+      target.vantage === "vessel:ares-4" ? "ground:Kennedy" : "vessel:ares-4";
+    let seq = 0;
+    const timer = setInterval(() => {
+      if (seq >= count) {
+        clearInterval(timer);
+        return;
+      }
+      log.receiveRadio({
+        kind: "chunk",
+        transmissionId: "in1",
+        authorStationKey: "pilot-remote",
+        transmission: {
+          id: "in1",
+          groupId: "in-group",
+          from,
+          authorStationKey: "pilot-remote",
+          authorName: "Jeb",
+          authorSeat: "pilot",
+          startedUt: VIEW_UT,
+          separationSeconds: 0,
+        },
+        to: [target.vantage ?? "", from],
+        seq,
+        ut: VIEW_UT,
+        bytes: clipBytes(clip, seq),
+        arrivedUt: VIEW_UT - 10,
+      });
+      seq += 1;
+    }, 20);
+  };
   lastLogCounts = panes.map((p) => {
     const snap = p.log?.snapshot();
     return {

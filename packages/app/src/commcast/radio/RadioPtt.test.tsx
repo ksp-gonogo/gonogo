@@ -19,6 +19,7 @@ function control(over: Partial<RadioControl> = {}): RadioControl {
     transmitting: false,
     opening: false,
     amplitudes: [],
+    waves: [],
     reception: {
       live: [],
       backlogSeconds: 0,
@@ -117,6 +118,8 @@ describe("the push-to-talk key", () => {
                 from: "vessel:ares",
                 authorName: "Jeb",
                 muted: false,
+                amplitudes: [],
+                waves: [],
               },
             ],
             backlogSeconds: 0,
@@ -179,7 +182,15 @@ describe("the voice ribbon it publishes", () => {
     render(
       <DelayRailContext.Provider value={store}>
         <RadioPtt
-          radio={control({ transmitting: true, amplitudes: [0.2, 0.6, 0.4] })}
+          radio={control({
+            transmitting: true,
+            amplitudes: [0.2, 0.6, 0.4],
+            waves: [
+              { lo: -0.2, hi: 0.2 },
+              { lo: -0.6, hi: 0.6 },
+              { lo: -0.4, hi: 0.4 },
+            ],
+          })}
           targetName="Odyssey"
           separationSeconds={1}
         />
@@ -188,16 +199,15 @@ describe("the voice ribbon it publishes", () => {
 
     const handle = store.getActiveHandles()[0];
     expect(handle).toBeDefined();
-    /* Telemetry, continuous, fire-and-forget: what a transmission IS, all
-       three axes stated, and everything a command carries omitted rather than
-       sent as an empty. Asserted as the full triple rather than as one derived
-       word, because the whole point of the axes is that the rail reads all
-       three: a handle claiming only "continuous" is what let voice be drawn as
-       an outbound acked command. */
+    /* Command, continuous, acked: the voice leaves as the transmit command the
+       mod answers, all three axes stated. Asserted as the full triple rather
+       than as one derived word, because the whole point of the axes is that the
+       rail reads all three, and direction is what puts the ribbon in the
+       outgoing zone. */
     expect(handle?.tags).toEqual({
-      direction: "telemetry",
+      direction: "command",
       kind: "continuous",
-      delivery: "fire-and-forget",
+      delivery: "acked",
     });
     expect(handle?.inFlight).toEqual([]);
     /* And it names its own graph, so the rail does not call the operator's
@@ -206,6 +216,12 @@ describe("the voice ribbon it publishes", () => {
     const crossing = ribbon(store);
     expect(crossing).toBeDefined();
     expect(crossing?.amplitudes).toEqual([0.2, 0.6, 0.4]);
+    /* And the wave itself, so the rail draws the voice and not only how loud it was. */
+    expect(crossing?.wave).toEqual([
+      { lo: -0.2, hi: 0.2 },
+      { lo: -0.6, hi: 0.6 },
+      { lo: -0.4, hi: 0.4 },
+    ]);
     expect(crossing?.label).toContain("Odyssey");
     /* One second of light-time is under the five second floor, which is 250
        20 ms chunks: the one number the render harness reads back through
@@ -216,9 +232,9 @@ describe("the voice ribbon it publishes", () => {
        in the `ribbons` array: which array a datum arrives in is now no part of
        what it is. */
     expect(crossing?.tags).toEqual({
-      direction: "telemetry",
+      direction: "command",
       kind: "continuous",
-      delivery: "fire-and-forget",
+      delivery: "acked",
     });
     expect(crossing?.oneWaySeconds).toBe(1);
   });

@@ -31,6 +31,8 @@ namespace Sitrep.Host.IntegrationTests
         private const string A = "ground:a";
         private const string B = "ground:b";
         private const string C = "ground:c";
+        private const string Seat = "vessel:probe";
+        private const double SeatToA = 7;
 
         private static readonly Dictionary<(string, string), double> Separations = new()
         {
@@ -61,6 +63,43 @@ namespace Sitrep.Host.IntegrationTests
             scene.Tick(60);
             await scene.C.AssertNoMessageArrivesAsync(Quiet);
             await scene.C.AssertNoBinaryFrameArrivesAsync(Quiet);
+        }
+
+        [Fact]
+        public async Task ASeatSpeaksToACentreOverItsOwnRow_AndTheCentreHearsItOneRouteDelayLater()
+        {
+            await using var scene = await Scene.StartAsync(seat: true, seatReaches: A);
+            var open = Open("g1", A);
+            ((List<object?>)open["members"]!).Add(Seat);
+            Assert.True((await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, open, Seat)).Success);
+            var receipt = await scene.ReceiptAsync(scene.A, Send("m1", "g1", "hello"), Seat);
+            Assert.Equal(new[] { A, Seat }, Strings(receipt["addressed"]));
+
+            scene.Tick(SeatToA - 1);
+            await scene.A.AssertNoMessageArrivesAsync(Quiet);
+
+            scene.Tick(SeatToA + 1);
+            var heard = await NextTrafficAsync(scene.A);
+            while ((string)heard["kind"]! != "text")
+            {
+                heard = await NextTrafficAsync(scene.A);
+            }
+            Assert.Equal(Seat, heard["from"]);
+            Assert.Equal("hello", heard["body"]);
+        }
+
+        [Fact]
+        public async Task ASeatWithNoRouteToACentreIsNotHeardThere()
+        {
+            await using var scene = await Scene.StartAsync(seat: true, seatReaches: "");
+            var open = Open("g1", A);
+            ((List<object?>)open["members"]!).Add(Seat);
+            Assert.True((await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, open, Seat)).Success);
+            var receipt = await scene.ReceiptAsync(scene.A, Send("m1", "g1", "hello"), Seat);
+            Assert.Equal(new[] { A }, Strings(receipt["unreached"]));
+
+            scene.Tick(60);
+            await scene.A.AssertNoMessageArrivesAsync(Quiet);
         }
 
         [Fact]
@@ -573,14 +612,18 @@ namespace Sitrep.Host.IntegrationTests
 
             private Scene(ChannelEngine engine) => _engine = engine;
 
-            public static async Task<Scene> StartAsync((string, string)? unrouted = null, bool subscribeB = true, bool discovery = false)
+            public static async Task<Scene> StartAsync((string, string)? unrouted = null, bool subscribeB = true, bool discovery = false, string? seatReaches = null, bool seat = false)
             {
                 var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
                 foreach (var id in new[] { CommcastEndToEndTests.A, CommcastEndToEndTests.B, CommcastEndToEndTests.C })
                 {
                     engine.RegisterCommandCentreSource(new StaticSource(id));
                 }
-                var ledger = new LedgerUplink(unrouted);
+                if (seat)
+                {
+                    engine.RegisterCommandCentreSeatSource(new SeatCentreSource());
+                }
+                var ledger = new LedgerUplink(unrouted, seat ? seatReaches ?? "" : null);
                 engine.RegisterUplink(ledger);
                 engine.RegisterUplink(new CommcastUplink());
                 engine.Start();
@@ -598,9 +641,9 @@ namespace Sitrep.Host.IntegrationTests
             public void Shorten(string a, string b, double seconds) => _ledger.Override(a, b, seconds);
 
             /// <summary>Sends a message and returns what the mod said it did with it.</summary>
-            public async Task<Dictionary<string, object?>> ReceiptAsync(TestClient client, Dictionary<string, object?> send)
+            public async Task<Dictionary<string, object?>> ReceiptAsync(TestClient client, Dictionary<string, object?> send, string? vantage = null)
             {
-                var result = await ResultAsync(client, CommcastUplink.SendCommand, send, null);
+                var result = await ResultAsync(client, CommcastUplink.SendCommand, send, vantage);
                 Assert.True((bool)result["success"]!);
                 Assert.True(result.ContainsKey("payload"), "the send returned no receipt");
                 return (Dictionary<string, object?>)result["payload"]!;
@@ -674,7 +717,13 @@ namespace Sitrep.Host.IntegrationTests
                 }
             }
 
-            public LedgerUplink((string, string)? unrouted) => _unrouted = unrouted;
+            private readonly string? _seatReaches;
+
+            public LedgerUplink((string, string)? unrouted, string? seatReaches = null)
+            {
+                _unrouted = unrouted;
+                _seatReaches = seatReaches;
+            }
 
             public UplinkHealth Health() => UplinkHealth.Healthy;
 
@@ -717,7 +766,41 @@ namespace Sitrep.Host.IntegrationTests
                     }
                     routes[from] = reached;
                 }
+                if (_seatReaches != null)
+                {
+                    // Written as the delay Uplink writes a seat: an origin only, never a destination.
+                    var seatRoutes = new List<string>();
+                    if (_seatReaches.Length > 0)
+                    {
+                        _host!.SetCentreDelay(Seat, _seatReaches, SeatToA);
+                        seatRoutes.Add(_seatReaches);
+                    }
+                    routes[Seat] = seatRoutes;
+                }
                 ((ICentreRouteWriter)_host!).SetCentreRoutes(routes);
+            }
+        }
+
+        private sealed class SeatCentreSource : ICommandCentreSource
+        {
+            private readonly ICommandCentre _centre = new SeatCentre();
+
+            public string ProviderId => "seat-test";
+
+            public IEnumerable<ICommandCentre> Enumerate()
+            {
+                yield return _centre;
+            }
+
+            private sealed class SeatCentre : ICommandCentre
+            {
+                public string Id => Seat;
+                public string DisplayName => Seat;
+                public CommandCentreKind Kind => CommandCentreKind.CrewedVessel;
+                public int? BodyIndex => null;
+                public double? Latitude => null;
+                public double? Longitude => null;
+                public bool IsActiveNow() => true;
             }
         }
 

@@ -24,6 +24,7 @@ import { CommcastInboxView } from "./CommcastInboxView";
 import { CommcastThreadView } from "./CommcastThreadView";
 import { Commcast__Frame, Commcast__Identity } from "./commcastStyles";
 import { groupWith } from "./groups";
+import { RadioInboundRail } from "./radio/RadioInboundRail";
 import { RadioIndicator } from "./radio/RadioIndicator";
 import { useRadio } from "./radio/useRadio";
 import { groupSeparation, type Separation, separationsTo } from "./reveal";
@@ -63,9 +64,12 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
    * has not reached. Observed only: this number is frozen into a message
    * record that is later read back as what the link WAS.
    */
+  const pathReading = observedValue(useTelemetry("comms.delay"));
+  // Nothing observed yet is unknown, which is not the same as a path that is not there.
   const pathHome =
-    observedValue(useTelemetry("comms.delay"))?.oneWaySeconds?.magnitude ??
-    null;
+    pathReading === undefined
+      ? undefined
+      : (pathReading.oneWaySeconds?.magnitude ?? null);
   /*
    * A confirmed loss of line of sight, and only that: no link data yet reads
    * as connected. Read ungated because `comms.link` already reveals at the
@@ -172,6 +176,13 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
   const body = (
     // `fill`, because the log is the tile.
     <Section fill>
+      <RadioInboundRail
+        live={radio.reception.live}
+        me={me.vantageId}
+        fallbackSeconds={pathHome}
+        pairs={pairs}
+        nameFor={nameFor}
+      />
       {/* Every view in one frame with the same geometry, so switching view never resizes the tile. */}
       <Commcast__Frame>
         {view.kind === "inbox" && (
@@ -286,8 +297,13 @@ registerComponent({
   description:
     "Messages and push-to-talk radio between the command centres and craft on this mission, always addressed to a group. An inbox of group threads, each message crossing whatever signal delay there is to every member and acknowledged back, so your own words appear only once that acknowledgement returns and the wait you feel is the wait that is really there. Anyone in a group can add somebody to it; they hear from the moment word of it reaches them.",
   tags: ["mission-control", "comms"],
-  defaultSize: { w: 6, h: 8 },
-  minSize: { w: 4, h: 5 },
+  // The bar wraps to two rows under about 300 px, and below this the thread has no room for two messages beside it and the composer.
+  defaultSize: { w: 10, h: 10 },
+  minSize: { w: 8, h: 9 },
+  // A phone tile at half height is half of this, and still has to hold the title, the bar, two messages and the composer.
+  mobileHeight: 720,
+  // The inbox, composer and radio bar do not fit in half a phone's width.
+  mobileWidth: "full",
   component: CommcastWidget,
   /*
    * The roster is who can be addressed and the separation how far away each
@@ -301,6 +317,7 @@ registerComponent({
     "comms.delay",
     "comms.link",
     "commcast.transmissions",
+    "vessel.identity",
   ],
   defaultConfig: {},
   actions: [],
