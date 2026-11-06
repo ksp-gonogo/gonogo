@@ -38,6 +38,9 @@ namespace Gonogo.KSP
         // reports the impact some frames before the part is killed.
         private const double ImpactWindowUt = 2.0;
 
+        // How long after a craft is reported a late kill or a shed part's destruction still amends it.
+        private const double RecentCaptureUt = 30.0;
+
         private readonly FlightStatsTracker _tracker = new FlightStatsTracker();
         private readonly VesselDeaths<CrashCapture, CrashImpact> _deaths =
             new VesselDeaths<CrashCapture, CrashImpact>(ImpactWindowUt);
@@ -283,6 +286,10 @@ namespace Gonogo.KSP
 
                 var vesselType = vessel.vesselType.ToString();
                 var active = ActiveVesselScope.Focused;
+                if (vesselType == "Debris")
+                {
+                    NoteDebrisDeath(vessel);
+                }
                 if (!CrashPayload.ShouldPublish(vesselType) || BoardedVessels.Covers(vessel.id.ToString(), Planetarium.GetUniversalTime()))
                 {
                     _tracker.Forget(vessel.id.ToString());
@@ -308,6 +315,24 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
+        /// MAIN-THREAD: stock counts the parts a craft shed, and that then broke up as debris, among the
+        /// parts the flight lost. Debris is never reported, so its parts are noted for a craft yet to
+        /// be reported and added to one already reported, which goes out again.
+        /// </summary>
+        private void NoteDebrisDeath(Vessel vessel)
+        {
+            var parts = ReadRemainingParts(vessel);
+            _tracker.RecordDebrisDestroyed(parts);
+            foreach (var capture in _recentCaptures.Values)
+            {
+                if (capture.NoteDebrisDestroyed(parts) && capture.Published)
+                {
+                    PublishCrash(capture);
+                }
+            }
+        }
+
+        /// <summary>
         /// MAIN-THREAD: publishes every death held since the last tick.
         /// <see cref="IChannelPublisher.Publish"/> is main-thread-safe (it hands off to the
         /// engine job queue).
@@ -317,7 +342,7 @@ namespace Gonogo.KSP
             var stale = new List<string>();
             foreach (var entry in _recentCaptures)
             {
-                if (entry.Value.Published && Math.Abs(nowUt - entry.Value.Ut) > ImpactWindowUt)
+                if (entry.Value.Published && Math.Abs(nowUt - entry.Value.Ut) > RecentCaptureUt)
                 {
                     stale.Add(entry.Key);
                 }
@@ -391,7 +416,12 @@ namespace Gonogo.KSP
                 Ut = ut,
             };
 
-            capture.Reconcile(_tracker.ObservedParts(vesselId), _tracker.ObservedCrew(vesselId), _tracker.KilledNames(vesselId));
+            capture.Reconcile(
+                _tracker.ObservedParts(vesselId),
+                _tracker.ObservedCrew(vesselId),
+                _tracker.KilledNames(vesselId),
+                _tracker.EverSeenParts(vesselId),
+                _tracker.DestroyedDebrisIds);
 
             // The flight is over; drop the tracker state so a re-used id
             // (revert / new craft) starts clean.

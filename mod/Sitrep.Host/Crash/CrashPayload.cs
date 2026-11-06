@@ -83,6 +83,9 @@ namespace Sitrep.Host.Crash
         /// <summary>True once this record has been published, so a late change republishes it.</summary>
         public bool Published;
 
+        /// <summary>Parts the vessel carried earlier and shed before it was reported, not yet known destroyed.</summary>
+        public List<LostPart> ShedParts = new List<LostPart>();
+
         /// <summary>
         /// Folds in what the vessel was last seen carrying. Whatever the game no longer lists
         /// when it reports the vessel destroyed (parts already broken off, crew already killed)
@@ -90,8 +93,29 @@ namespace Sitrep.Host.Crash
         /// counts as killed on the game's own death report, since a pod that separated or a kerbal on
         /// EVA is on that roster and alive.
         /// </summary>
-        public void Reconcile(IReadOnlyList<LostPart> lastSeenParts, IReadOnlyList<string> lastSeenCrew, IReadOnlyList<string> killedNames)
+        public void Reconcile(
+            IReadOnlyList<LostPart> lastSeenParts,
+            IReadOnlyList<string> lastSeenCrew,
+            IReadOnlyList<string> killedNames,
+            IEnumerable<LostPart>? everSeenParts = null,
+            IReadOnlyCollection<long>? destroyedDebrisIds = null)
         {
+            foreach (var part in everSeenParts ?? new LostPart[0])
+            {
+                if (PartsLost.Exists(p => p.PartId == part.PartId))
+                {
+                    continue;
+                }
+                if (destroyedDebrisIds != null && System.Linq.Enumerable.Contains(destroyedDebrisIds, part.PartId))
+                {
+                    PartsLost.Add(part);
+                    continue;
+                }
+                if (!ShedParts.Exists(p => p.PartId == part.PartId))
+                {
+                    ShedParts.Add(part);
+                }
+            }
             foreach (var part in lastSeenParts)
             {
                 if (!PartsLost.Exists(p => p.PartId == part.PartId))
@@ -111,6 +135,26 @@ namespace Sitrep.Host.Crash
                     KerbalsKilled.Add(name);
                 }
             }
+        }
+
+        /// <summary>
+        /// Counts parts the vessel shed earlier as lost when the game reports them destroyed as debris
+        /// after this record was built. Returns true when the record changed.
+        /// </summary>
+        public bool NoteDebrisDestroyed(IEnumerable<LostPart> destroyed)
+        {
+            var changed = false;
+            foreach (var part in destroyed)
+            {
+                var shed = ShedParts.Find(p => p.PartId == part.PartId);
+                if (shed != null && !PartsLost.Exists(p => p.PartId == part.PartId))
+                {
+                    ShedParts.Remove(shed);
+                    PartsLost.Add(shed);
+                    changed = true;
+                }
+            }
+            return changed;
         }
 
         /// <summary>

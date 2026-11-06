@@ -286,6 +286,53 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void Reconcile_APartShedEarlierAndDestroyedAsDebrisBeforeTheReportIsCounted()
+        {
+            var tracker = new FlightStatsTracker();
+            tracker.ObserveRoster("v", new List<LostPart> { Part(1, "pod"), Part(2, "booster"), Part(3, "fin") }, new[] { "Jeb" });
+            tracker.ObserveRoster("v", new List<LostPart> { Part(1, "pod") }, new[] { "Jeb" });
+            tracker.RecordDebrisDestroyed(new[] { Part(2, "booster"), Part(3, "fin") });
+            var capture = new CrashCapture { VesselId = "v", FlightStats = tracker.Snapshot("v", 1) };
+
+            capture.Reconcile(tracker.ObservedParts("v"), tracker.ObservedCrew("v"), tracker.KilledNames("v"), tracker.EverSeenParts("v"), tracker.DestroyedDebrisIds);
+            var wire = CrashPayload.Build(capture);
+
+            Assert.Equal(3, ((List<object?>)wire["partsLost"]!).Count);
+            Assert.Equal(3, ((Dictionary<string, object?>)wire["flightStats"]!)["partsLost"]);
+        }
+
+        [Fact]
+        public void NoteDebrisDestroyed_ShedPartsDestroyedAfterTheReportJoinItAndOnlyOnce()
+        {
+            var tracker = new FlightStatsTracker();
+            tracker.ObserveRoster("v", new List<LostPart> { Part(1, "pod"), Part(2, "booster"), Part(3, "fin") }, new string[0]);
+            tracker.ObserveRoster("v", new List<LostPart> { Part(1, "pod") }, new string[0]);
+            var capture = new CrashCapture { VesselId = "v", FlightStats = tracker.Snapshot("v", 1) };
+            capture.Reconcile(tracker.ObservedParts("v"), tracker.ObservedCrew("v"), tracker.KilledNames("v"), tracker.EverSeenParts("v"), tracker.DestroyedDebrisIds);
+            Assert.Single((List<object?>)CrashPayload.Build(capture)["partsLost"]!);
+
+            Assert.True(capture.NoteDebrisDestroyed(new[] { Part(2, "booster"), Part(3, "fin"), Part(99, "stranger") }));
+            Assert.False(capture.NoteDebrisDestroyed(new[] { Part(2, "booster") }));
+
+            var wire = CrashPayload.Build(capture);
+            Assert.Equal(3, ((List<object?>)wire["partsLost"]!).Count);
+            Assert.Equal(3, ((Dictionary<string, object?>)wire["flightStats"]!)["partsLost"]);
+        }
+
+        [Fact]
+        public void Reconcile_AShedPartNeverReportedDestroyedIsNotCounted()
+        {
+            var tracker = new FlightStatsTracker();
+            tracker.ObserveRoster("v", new List<LostPart> { Part(1, "pod"), Part(2, "booster") }, new string[0]);
+            tracker.ObserveRoster("v", new List<LostPart> { Part(1, "pod") }, new string[0]);
+            var capture = new CrashCapture { VesselId = "v", FlightStats = tracker.Snapshot("v", 1) };
+
+            capture.Reconcile(tracker.ObservedParts("v"), tracker.ObservedCrew("v"), tracker.KilledNames("v"), tracker.EverSeenParts("v"), tracker.DestroyedDebrisIds);
+
+            Assert.Single((List<object?>)CrashPayload.Build(capture)["partsLost"]!);
+        }
+
+        [Fact]
         public void Reconcile_AKerbalOnlyOnTheLastRosterIsNotReportedKilled()
         {
             var tracker = new FlightStatsTracker();

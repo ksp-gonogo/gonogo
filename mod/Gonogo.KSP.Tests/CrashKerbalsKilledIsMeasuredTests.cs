@@ -36,5 +36,16 @@ namespace Gonogo.KSP.Tests
             Assert.Contains("capture.NoteKilled(", amend, StringComparison.Ordinal);
             Assert.Contains("PublishCrash(capture)", amend, StringComparison.Ordinal);
         }
+
+        [Fact]
+        public void a_debris_death_is_noted_for_the_craft_that_shed_it()
+        {
+            var source = CurrencyDelaySourceText.ReadRelative("CrashUplink.cs");
+
+            var body = CurrencyDelaySourceText.MethodBody(source, "private void NoteDebrisDeath(Vessel vessel)");
+            Assert.Contains("_tracker.RecordDebrisDestroyed(", body, StringComparison.Ordinal);
+            Assert.Contains("capture.NoteDebrisDestroyed(", body, StringComparison.Ordinal);
+            Assert.Contains("PublishCrash(capture)", body, StringComparison.Ordinal);
+        }
     }
 }

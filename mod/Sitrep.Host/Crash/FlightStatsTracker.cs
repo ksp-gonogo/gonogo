@@ -49,10 +49,15 @@ namespace Sitrep.Host.Crash
             public double? LastSampleUt;
             public List<LostPart> Parts = new List<LostPart>();
             public List<string> Crew = new List<string>();
+            public readonly Dictionary<long, LostPart> EverSeen = new Dictionary<long, LostPart>();
             public readonly List<string> KilledNames = new List<string>();
             public readonly List<string> Events = new List<string>();
         }
 
+        private const int MaxDestroyedDebris = 512;
+
+        private readonly HashSet<long> _destroyedDebris = new HashSet<long>();
+        private readonly Queue<long> _destroyedOrder = new Queue<long>();
         private readonly Dictionary<string, State> _byVessel = new Dictionary<string, State>();
 
         /// <summary>
@@ -116,12 +121,46 @@ namespace Sitrep.Host.Crash
             }
             var s = GetOrCreate(vesselId);
             s.Parts = new List<LostPart>(parts);
+            foreach (var part in parts)
+            {
+                s.EverSeen[part.PartId] = part;
+            }
             s.Crew = new List<string>(crew);
         }
 
         /// <summary>The parts the vessel had at its latest roster sample, empty when it never had one.</summary>
         public IReadOnlyList<LostPart> ObservedParts(string vesselId) =>
             _byVessel.TryGetValue(vesselId, out var s) ? s.Parts : Array.Empty<LostPart>();
+
+        /// <summary>
+        /// Every part the vessel was seen carrying at any roster sample, including the ones it has
+        /// since shed. A part keeps its id when it leaves the vessel as debris.
+        /// </summary>
+        public IReadOnlyCollection<LostPart> EverSeenParts(string vesselId) =>
+            _byVessel.TryGetValue(vesselId, out var s) ? (IReadOnlyCollection<LostPart>)s.EverSeen.Values : Array.Empty<LostPart>();
+
+        /// <summary>
+        /// Notes parts destroyed on a vessel that is not itself reported (debris), so a craft that shed
+        /// them can count them as lost when it is reported. Remembers only the most recent
+        /// <see cref="MaxDestroyedDebris"/>.
+        /// </summary>
+        public void RecordDebrisDestroyed(IEnumerable<LostPart> parts)
+        {
+            foreach (var part in parts)
+            {
+                if (_destroyedDebris.Add(part.PartId))
+                {
+                    _destroyedOrder.Enqueue(part.PartId);
+                }
+            }
+            while (_destroyedOrder.Count > MaxDestroyedDebris)
+            {
+                _destroyedDebris.Remove(_destroyedOrder.Dequeue());
+            }
+        }
+
+        /// <summary>The ids of the parts noted destroyed on debris.</summary>
+        public IReadOnlyCollection<long> DestroyedDebrisIds => _destroyedDebris;
 
         /// <summary>The kerbals aboard at the vessel's latest roster sample, empty when it never had one.</summary>
         public IReadOnlyList<string> ObservedCrew(string vesselId) =>
