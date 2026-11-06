@@ -40,6 +40,7 @@ namespace Gonogo.KSP.Gates
             VesselCommandProvider.SetActionGroupCommand,
             VesselCommandProvider.SetFlyByWireCommand,
             VesselCommandProvider.SetControlAxesCommand,
+            VesselCommandProvider.HoldFlyByWireCommand,
             VesselCommandProvider.ManeuverAddCommand,
             VesselCommandProvider.ManeuverUpdateCommand,
             VesselCommandProvider.ManeuverRemoveCommand,

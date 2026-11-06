@@ -3,6 +3,7 @@ export default {
   optionalChannels: ["system.uplink.pending", "vessel.identity"],
   optionalChannelFamilies: [],
   commands: [
+    "vessel.control.holdFlyByWire",
     "vessel.control.setAxes",
     "vessel.control.setFlyByWire",
     "vessel.control.setPrecisionControl",

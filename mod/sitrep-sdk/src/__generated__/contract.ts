@@ -4784,6 +4784,13 @@ export interface LaunchArgs
 * on fails when there is no active vessel or the vessel cannot currently be
 * controlled; turning it off is never refused for control reasons.
 *
+* The override lapses on its own: it stays on for 5 seconds after the last arm
+* or `vessel.control.holdFlyByWire` reaches the vessel, and is then turned off
+* as if disarmed. A console that has it armed sends
+* `vessel.control.holdFlyByWire` regularly. A console that crashes, closes or
+* loses its connection stops sending, so the vessel does not keep holding the
+* stick, and a loss of contact lapses it the same way.
+*
 * @category Command arguments
 */
 export interface SetFlyByWireArgs
@@ -5938,11 +5945,12 @@ export interface WriteModSettingArgs
 	value: string;
 }
 /**
-* Take no args: stage, clear the target, recover, revert to launch, or go to
-* the Tracking Station or Space Center. The empty args shape, for the core
-* commands that operate on the current flight or the active vessel and so take
-* nothing: `vessel.control.stage`, `vessel.target.clear`, `ksp.recover`,
-* `ksp.revertToLaunch`, `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
+* Take no args: stage, clear the target, hold fly-by-wire, recover, revert to
+* launch, or go to the Tracking Station or Space Center. The empty args shape,
+* for the core commands that operate on the current flight or the active
+* vessel and so take nothing: `vessel.control.stage`, `vessel.target.clear`,
+* `vessel.control.holdFlyByWire`, `ksp.recover`, `ksp.revertToLaunch`,
+* `ksp.toTrackingStation` and `ksp.toSpaceCenter`.
 *
 * Takes no arguments: send `args: {}`. Anything sent in `args` is ignored.
 *

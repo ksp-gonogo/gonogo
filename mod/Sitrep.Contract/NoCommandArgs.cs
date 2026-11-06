@@ -5,9 +5,10 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// Take no args: stage, clear the target, recover, revert to launch, or go to the Tracking Station or Space Center. The empty args shape, for the core commands that operate on the current
+/// Take no args: stage, clear the target, hold fly-by-wire, recover, revert to launch, or go to the Tracking Station or Space Center. The empty args shape, for the core commands that operate on the current
 /// flight or the active vessel and so take nothing:
-/// <c>vessel.control.stage</c>, <c>vessel.target.clear</c>, <c>ksp.recover</c>,
+/// <c>vessel.control.stage</c>, <c>vessel.target.clear</c>,
+/// <c>vessel.control.holdFlyByWire</c>, <c>ksp.recover</c>,
 /// <c>ksp.revertToLaunch</c>, <c>ksp.toTrackingStation</c> and
 /// <c>ksp.toSpaceCenter</c>.
 ///
@@ -19,7 +20,7 @@ namespace Sitrep.Contract;
 /// </internal>
 ///
 /// <internal>
-/// <para>Each of the six is tagged onto this class with
+/// <para>Each of the seven is tagged onto this class with
 /// <see cref="SitrepCommandAttribute"/>, so a command with no arguments is still
 /// enumerable and still names its result. The handlers bind <c>TArgs</c> as
 /// <c>object?</c> and ignore what arrives, so this type describes the absence
@@ -43,6 +44,7 @@ namespace Sitrep.Contract;
 #endif
 [SitrepCommand("vessel.control.stage", Payload = typeof(int), Summary = "Activate the next stage.")]
 [SitrepCommand("vessel.target.clear", Summary = "Clear the active vessel's target.")]
+[SitrepCommand("vessel.control.holdFlyByWire", Summary = "Keep an armed fly-by-wire override from lapsing.")]
 [SitrepCommand("ksp.recover", Delay = DelayRole.TrueNow, Summary = "Recover the active vessel.")]
 [SitrepCommand("ksp.revertToLaunch", Delay = DelayRole.TrueNow, Summary = "Revert the flight to its launch.")]
 [SitrepCommand("ksp.toTrackingStation", Delay = DelayRole.TrueNow, Summary = "Leave the flight for the Tracking Station.")]

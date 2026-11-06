@@ -1908,7 +1908,11 @@ namespace Sitrep.Host
             // _pending's doc comment) -- same thread that
             // ProcessDispatchCommand appends on, so no synchronization is
             // needed here either.
-            _channelSources[UplinkPendingTopic] = _ => new PendingUplinkQueue { Pending = _pending.Select(SnapshotOf).ToList(), Settled = _settled.ToList() };
+            _channelSources[UplinkPendingTopic] = _ => new PendingUplinkQueue
+            {
+                Pending = _pending.Where(p => !InternalCommands.Contains(p.Command)).Select(SnapshotOf).ToList(),
+                Settled = _settled.Where(s => !InternalCommands.Contains(s.Command)).ToList(),
+            };
             _engineStateTopics.Add(UplinkPendingTopic);
 
             // Built-in system.uplink.gates declaration + source: see

@@ -56,6 +56,13 @@ namespace Sitrep.Host
         CommandResult SetFlyByWire(bool enabled);
 
         /// <summary>
+        /// Renews the lease on an armed fly-by-wire override. Does nothing when the
+        /// override is not armed. An armed override that goes unrenewed for
+        /// <see cref="FlyByWireLease.LeaseSeconds"/> is disarmed.
+        /// </summary>
+        CommandResult HoldFlyByWire();
+
+        /// <summary>
         /// Partially updates the held fly-by-wire override: only the non-null
         /// fields of <paramref name="axes"/> overwrite their stored value, so a
         /// single-axis command never clobbers the others.

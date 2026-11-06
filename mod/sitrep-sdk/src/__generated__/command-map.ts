@@ -235,6 +235,8 @@ export interface GeneratedCommandArgsMap {
   "trackingStation.bodies.statesAt": BodyStatesRequest;
   /** Take a destroyed craft off the catalog of the command centre the command is sent from. */
   "trackingStation.catalog.dismiss": TrackingStationDismissArgs;
+  /** Keep an armed fly-by-wire override from lapsing. */
+  "vessel.control.holdFlyByWire": NoCommandArgs;
   /** Set or clear the abort action group. */
   "vessel.control.setAbort": SetEnabledArgs;
   /** Set a numbered custom action group on or off. */
@@ -396,6 +398,8 @@ export interface GeneratedCommandReplyMap {
   "trackingStation.bodies.statesAt": BodyStatesReply;
   /** Take a destroyed craft off the catalog of the command centre the command is sent from. */
   "trackingStation.catalog.dismiss": CommandResult;
+  /** Keep an armed fly-by-wire override from lapsing. */
+  "vessel.control.holdFlyByWire": CommandResult;
   /** Set or clear the abort action group. */
   "vessel.control.setAbort": CommandResult;
   /** Set a numbered custom action group on or off. */
@@ -507,6 +511,7 @@ export const GENERATED_COMMAND_REPLY_TYPES = {
   "time.setWarpIndex": "CommandResult",
   "trackingStation.bodies.statesAt": "BodyStatesReply",
   "trackingStation.catalog.dismiss": "CommandResult",
+  "vessel.control.holdFlyByWire": "CommandResult",
   "vessel.control.setAbort": "CommandResult",
   "vessel.control.setActionGroup": "CommandResult",
   "vessel.control.setAxes": "CommandResult",
@@ -627,6 +632,7 @@ export const GENERATED_COMMAND_RAIL = {
   "time.setWarpIndex": { replies: true, delayed: false },
   "trackingStation.bodies.statesAt": { replies: true, delayed: false },
   "trackingStation.catalog.dismiss": { replies: true, delayed: false },
+  "vessel.control.holdFlyByWire": { replies: true, delayed: true },
   "vessel.control.setAbort": { replies: true, delayed: true },
   "vessel.control.setActionGroup": { replies: true, delayed: true },
   "vessel.control.setAxes": { replies: true, delayed: true },
@@ -709,6 +715,7 @@ export const GENERATED_COMMAND_IDS = [
   "time.setWarpIndex",
   "trackingStation.bodies.statesAt",
   "trackingStation.catalog.dismiss",
+  "vessel.control.holdFlyByWire",
   "vessel.control.setAbort",
   "vessel.control.setActionGroup",
   "vessel.control.setAxes",

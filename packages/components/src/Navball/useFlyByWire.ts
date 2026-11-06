@@ -9,6 +9,9 @@ import { useEffect, useRef, useState } from "react";
  */
 export type FbwState = "off" | "arming" | "armed" | "disarming" | "unconfirmed";
 
+/** The mod drops an override it has not heard of for 5 s, so this is well inside it. */
+const FBW_LEASE_RENEWAL_MS = 1500;
+
 type Settled = "off" | "armed" | "unconfirmed";
 
 /**
@@ -18,7 +21,8 @@ type Settled = "off" | "armed" | "unconfirmed";
  * the state once no command is travelling. That is what a page reload relies
  * on, since the reload loses the command outcomes and the unmount disarm never
  * ran. The mod drops the override when the reported craft changes, so a new
- * `vesselId` reads as off. It disarms on unmount.
+ * `vesselId` reads as off. It disarms on unmount, and while armed it renews the
+ * mod's lease on the override so a page that dies does not leave it armed.
  */
 export function useFlyByWire(
   vesselId: string | undefined,
@@ -29,7 +33,10 @@ export function useFlyByWire(
   disarmFbw: () => void;
 } {
   const fbwCmd = useCommand("vessel.control.setFlyByWire");
+  const holdCmd = useCommand("vessel.control.holdFlyByWire");
   const [fbwState, setFbwState] = useState<FbwState>("off");
+  /** Only the page that armed the override renews it, never one that merely reads it back. */
+  const [armedHere, setArmedHere] = useState(false);
   const settled = useRef<Settled>("off");
   const latest = useRef(0);
   const stateRef = useRef<FbwState>("off");
@@ -44,14 +51,27 @@ export function useFlyByWire(
     vesselRef.current = vesselId;
     if (previous === undefined || previous === vesselId) return;
     settled.current = "off";
+    setArmedHere(false);
     setFbwState("off");
   }, [vesselId]);
 
   useEffect(() => {
     if (readback === undefined || travelling.current) return;
     settled.current = readback ? "armed" : "off";
+    if (!readback) setArmedHere(false);
     setFbwState(settled.current);
   }, [readback]);
+
+  const holdSend = holdCmd.send;
+  const holding =
+    armedHere && (fbwState === "armed" || fbwState === "unconfirmed");
+  useEffect(() => {
+    if (!holding) return;
+    const timer = setInterval(() => {
+      holdSend().catch(() => {});
+    }, FBW_LEASE_RENEWAL_MS);
+    return () => clearInterval(timer);
+  }, [holding, holdSend]);
 
   useEffect(() => {
     return () => {
@@ -63,6 +83,7 @@ export function useFlyByWire(
   const dispatch = (enabled: boolean) => {
     const seq = ++latest.current;
     travelling.current = true;
+    setArmedHere(enabled);
     setFbwState(enabled ? "arming" : "disarming");
     fbwCmd
       .send({ enabled }, { label: enabled ? "Arm FBW" : "Disarm FBW" })
