@@ -14,6 +14,13 @@ export interface DebtCheckInput {
   baseAllowance: ReadonlySet<string> | undefined;
 }
 
+/**
+ * A reason that records an approved addition: "Operator approved:"
+ * followed by what will read the field. Only such a key may join an allowance
+ * the base already carries.
+ */
+const APPROVED_REASON = /^Operator approved: \S/;
+
 /** Everything wrong with the list, one sentence each; empty when it is fine. */
 export function debtListProblems(input: DebtCheckInput): string[] {
   const { baseDebt, debt, allowance, baseAllowance } = input;
@@ -31,7 +38,11 @@ export function debtListProblems(input: DebtCheckInput): string[] {
     if (!debt.has(key)) {
       problems.push(`${key} is on the allowance but is not debt any more`);
     }
-    if (baseAllowance && !baseAllowance.has(key)) {
+    if (
+      baseAllowance &&
+      !baseAllowance.has(key) &&
+      !APPROVED_REASON.test(reason)
+    ) {
       problems.push(`${key} was added to an allowance that only shrinks`);
     }
   }

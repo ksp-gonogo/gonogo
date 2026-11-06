@@ -3,7 +3,7 @@ info:
   title: Gonogo WebSocket API
   version: 50.4.0
   description: |-
-    The WebSocket API of the Gonogo mod: 91 telemetry channels a client
+    The WebSocket API of the Gonogo mod: 92 telemetry channels a client
     subscribes to and 80 commands it sends, each with its payload and what it
     means, all over one socket.
 
@@ -1078,6 +1078,28 @@ channels:
     messages:
       streamData:
         $ref: "#/components/messages/streamData.comms.delay"
+      event:
+        $ref: "#/components/messages/event"
+  comms.groundStations:
+    address: comms.groundStations
+    title: Ground stations
+    description: |-
+      The `comms.groundStations` payload: every ground station the game has, as
+      the comms mod in use reads them, with the body each stands on and its
+      latitude and longitude. Present with or without a craft on screen, and the
+      same for every command centre.
+
+      Not delayed by signal delay: the stations are fixed places the universe
+      holds, not an observation of any vessel. An unchanged list is not re-sent.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: lossy-latest
+    x-sitrep-delay-role: true-now
+    x-sitrep-sample-kind: discrete
+    x-sitrep-keyframe-interval-ut: 30
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.comms.groundStations"
       event:
         $ref: "#/components/messages/event"
   comms.journey:
@@ -5448,6 +5470,17 @@ operations:
     messages:
       - $ref: "#/channels/comms.delay/messages/streamData"
       - $ref: "#/channels/comms.delay/messages/event"
+  read:comms.groundStations:
+    action: receive
+    channel:
+      $ref: "#/channels/comms.groundStations"
+    title: Read comms.groundStations
+    description: Delivered only after `subscribe` names `comms.groundStations` on the session channel, which the mod answers here with an `event` named `subscribed`.
+    tags:
+      - name: comms
+    messages:
+      - $ref: "#/channels/comms.groundStations/messages/streamData"
+      - $ref: "#/channels/comms.groundStations/messages/event"
   read:comms.journey:
     action: receive
     channel:
@@ -8947,6 +8980,19 @@ components:
                 const: comms.delay
               payload:
                 $ref: "#/components/schemas/CommsDelay"
+    streamData.comms.groundStations:
+      name: stream-data
+      title: A frame on comms.groundStations
+      contentType: application/json
+      payload:
+        description: The `stream-data` envelope carrying `comms.groundStations`.
+        allOf:
+          - $ref: "#/components/schemas/StreamData"
+          - properties:
+              topic:
+                const: comms.groundStations
+              payload:
+                $ref: "#/components/schemas/CommsGroundStations"
     streamData.comms.journey:
       name: stream-data
       title: A frame on comms.journey
@@ -13795,6 +13841,77 @@ components:
             comms model and it can measure nothing right now: a blackout. A save with no
             comms model reports this alongside `connected:true`, and its channels keep
             arriving with nothing held back; a blackout reports null and they stop.
+    CommsGroundStation:
+      type: object
+      description: |-
+        One ground station of the comms network: where it stands on its body, under
+        the name the route and the network use for it.
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            The station's join key in the same id space as `CommsNetworkNode.id` and
+            `CommsHop.from`, so a marker can be matched to the station a route ends at.
+        name:
+          type: string
+          x-sitrep-unit: text
+          description: The station's name as the player reads it in game.
+        bodyName:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            The `bodyName` of the body the station stands on, or null when the body
+            could not be read. Null together with `CommsGroundStation.latitude`.
+        latitude:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: °
+          description: |-
+            Body-fixed latitude of the station in degrees. Null exactly when
+            `CommsGroundStation.bodyName` is.
+        longitude:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: °
+          description: |-
+            Body-fixed longitude of the station in degrees, wrapped to (-180, 180]. Null
+            exactly when `CommsGroundStation.latitude` is.
+        extensions:
+          type:
+            - object
+            - "null"
+          description: |-
+            Per-station facts the comms mod in use reports beyond this shape, keyed by
+            that mod's name. A comms mod that knows more about its stations, such as
+            their radio equipment, fills its own namespace here, typed by that mod's
+            client.
+          additionalProperties: true
+    CommsGroundStations:
+      type: object
+      description: |-
+        The `comms.groundStations` payload: every ground station the game has, as
+        the comms mod in use reads them, with the body each stands on and its
+        latitude and longitude. Present with or without a craft on screen, and the
+        same for every command centre.
+
+        Not delayed by signal delay: the stations are fixed places the universe
+        holds, not an observation of any vessel. An unchanged list is not re-sent.
+      required:
+        - stations
+      properties:
+        stations:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommsGroundStation"
+          description: Every ground station. Empty when the backend reads none, never null.
     CommsHop:
       type: object
       description: |-
@@ -14135,6 +14252,25 @@ components:
           description: |-
             True when the edge carries the vessel's path. Only the path's own edges are
             sent, so every edge is true.
+        strength:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: ratio
+          description: |-
+            What this edge's link is worth at the distance it crosses, from 0 to 1, in
+            the comms backend's own terms: the same figure the matching
+            `CommsHop.strength` carries, for any client that draws the graph without the
+            path. Null when the backend states no strength for the edge, or the centre
+            has not heard enough to work one out.
+        quantity:
+          description: |-
+            Which quantity `CommsNetworkEdge.strength` is, as the comms backend stated
+            it for this edge. Null exactly when `CommsNetworkEdge.strength` is.
+          anyOf:
+            - $ref: "#/components/schemas/SignalQuantity"
+              x-sitrep-unit: enum
+            - type: "null"
     CommsNetworkNode:
       type: object
       description: |-

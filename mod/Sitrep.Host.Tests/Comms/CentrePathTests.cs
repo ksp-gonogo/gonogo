@@ -113,6 +113,32 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         [Fact]
+        public void EachEdgeOfTheNetworkCarriesTheStrengthOfItsHop()
+        {
+            var plan = Plan(
+                Pair(Probe, Relay, 1.0, Always()),
+                Pair(Relay, Forward, 2.0, Always()));
+
+            var view = CentrePath.For(
+                plan, Probe, Ksc, true, Stations, Name, 10.0, 1.0,
+                Heard((Probe, Relay, 0.9), (Relay, Forward, 0.6)));
+
+            Assert.Equal(new double?[] { 0.9, 0.6 }, view.Network.Edges.Select(e => e.Strength).ToArray());
+            Assert.All(view.Network.Edges, e => Assert.Equal(SignalQuantity.RangeFraction, e.Quantity));
+        }
+
+        [Fact]
+        public void WithNoStrengthsTheEdgesCarryNone()
+        {
+            var plan = Plan(Pair(Probe, Ksc, 2.0, Always()));
+
+            var view = CentrePath.For(plan, Probe, Ksc, true, Stations, Name, 10.0);
+
+            Assert.Null(view.Network.Edges.Single().Strength);
+            Assert.Null(view.Network.Edges.Single().Quantity);
+        }
+
+        [Fact]
         public void WithNoStrengthsTheHopsCarryNoneAndThePathIsWorthNothingStated()
         {
             var plan = Plan(Pair(Probe, Ksc, 2.0, Always()));

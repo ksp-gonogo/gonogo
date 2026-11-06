@@ -133,7 +133,7 @@ namespace Sitrep.Host.Comms
                     Extensions = facts?.Extensions,
                 });
                 nodes.Add(Node(hop.To, ground, nameOf));
-                edges.Add(new CommsNetworkEdge { A = from, B = to, Active = true });
+                edges.Add(new CommsNetworkEdge { A = from, B = to, Active = true, Strength = facts?.HopStrength, Quantity = facts?.Quantity });
                 shape.Append('\u0001').Append(to).Append('\u0001').Append(nodes[nodes.Count - 1].DisplayName);
             }
 
@@ -217,7 +217,7 @@ namespace Sitrep.Host.Comms
                     Extensions = facts?.Extensions,
                 });
                 nodes.Add(Node(last, ground, nameOf));
-                edges.Add(new CommsNetworkEdge { A = hop.From, B = hop.To, Active = true });
+                edges.Add(new CommsNetworkEdge { A = hop.From, B = hop.To, Active = true, Strength = facts?.HopStrength, Quantity = facts?.Quantity });
                 shape.Append('\u0001').Append(hop.To).Append('\u0001').Append(nodes[nodes.Count - 1].DisplayName);
             }
 
