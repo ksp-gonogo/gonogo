@@ -552,6 +552,29 @@ describe("the debt allowance can be seen to work", () => {
     expect(problems.join("\n")).toContain("not debt any more");
   });
 
+  it("passes a key added to the allowance with an operator approval reason", () => {
+    expect(
+      debtListProblems({
+        baseDebt: base,
+        debt: new Set(["field:a.b", "field:c.d"]),
+        allowance: {
+          "field:c.d": "Operator approved: a marker layer will read it",
+        },
+        baseAllowance: new Set(),
+      }),
+    ).toEqual([]);
+  });
+
+  it("fails an approval reason that names nothing to read the field", () => {
+    const problems = debtListProblems({
+      baseDebt: base,
+      debt: new Set(["field:a.b", "field:c.d"]),
+      allowance: { "field:c.d": "Operator approved:" },
+      baseAllowance: new Set(),
+    });
+    expect(problems.join("\n")).toContain("only shrinks");
+  });
+
   it("fails a key added to an allowance the base already carries", () => {
     const problems = debtListProblems({
       baseDebt: base,

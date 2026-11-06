@@ -64,6 +64,8 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "restates comms.link and vessel.comms, which the comms widgets read",
   "field:comms.control.reason":
     "restates comms.link and vessel.comms, which the comms widgets read",
+  "field:comms.groundStations.stations":
+    "Operator approved: the Ground Track station markers will read it",
   "field:comms.occlusion.bodies": "no reader found",
   "field:comms.occlusion.modelId": "no reader found",
   "field:comms.occlusion.modelName": "no reader found",
@@ -103,4 +105,7 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
  * it a reader. Shrink-only like the list itself: a key leaves here when its
  * reader lands, and nothing may be added to it once the base carries one.
  */
-export const CONTRACT_READER_ADDED_WITH_TICKET: Record<string, string> = {};
+export const CONTRACT_READER_ADDED_WITH_TICKET: Record<string, string> = {
+  "field:comms.groundStations.stations":
+    "Operator approved: the Ground Track station markers will read it",
+};

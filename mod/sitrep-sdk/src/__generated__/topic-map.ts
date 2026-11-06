@@ -37,6 +37,7 @@ import type {
   CommsControl,
   CommsDegrade,
   CommsDelay,
+  CommsGroundStations,
   CommsJourney,
   CommsLink,
   CommsNetwork,
@@ -154,6 +155,8 @@ export interface GeneratedTopicPayloadMap {
   "comms.degrade": CommsDegrade;
   /** The `comms.delay` payload: the one-way signal delay to the active vessel, gated by the `comms.signalDelay.enabled` setting. */
   "comms.delay": CommsDelay;
+  /** The `comms.groundStations` payload: every ground station the game has, as the comms mod in use reads them, with the body each stands on and its latitude and longitude. */
+  "comms.groundStations": CommsGroundStations;
   /** Journey reports for this vantage's commands in the current timeline: where each was held, sent on, stopped or run, as reports from those nodes arrive back here. */
   "comms.journey": CommsJourney;
   /** The `comms.link` payload: the one statement a client should read for "is there a control link home right now?". */
@@ -319,6 +322,7 @@ export const GENERATED_TOPIC_IDS = [
   "comms.control",
   "comms.degrade",
   "comms.delay",
+  "comms.groundStations",
   "comms.journey",
   "comms.link",
   "comms.network",

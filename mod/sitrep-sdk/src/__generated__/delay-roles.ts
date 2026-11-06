@@ -20,6 +20,7 @@ export const GENERATED_TRUENOW_TOPICS = [
   "alarm.game.list",
   "alarm.scet.fired",
   "alarm.scet.topics",
+  "comms.groundStations",
   "comms.occlusion",
   "game.dlc",
   "host.record",
