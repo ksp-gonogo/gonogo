@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { baseSurfacePainted, paintBaseSurface } from "./paintBaseSurface";
 
-// With suppression on and every layer off, the surface falls through to the dark panel fill, never the stock texture.
+// Suppression withholds the real texture and never the sketch: a suppressing layer's data composites over the sketch however much it has drawn.
+
+const SKETCH = namedSource("sketch");
 
 function fakeCtx() {
   const calls: string[] = [];
@@ -39,18 +41,18 @@ describe("paintBaseSurface", () => {
     expect(ctx.calls).toEqual(["drawImage stock", "fillRect 0,0,100,50"]);
   });
 
-  it("paints an undimmed texture at its own brightness", () => {
+  it("paints the sketch at its own brightness in place of the stock texture", () => {
     const ctx = fakeCtx();
     paintBaseSurface(ctx as never, {
       textureImage: STOCK,
-      dimTexture: false,
+      sketch: SKETCH,
       bodyColor: undefined,
       suppressVanilla: false,
       layers: [],
       worldW: 100,
       worldH: 50,
     });
-    expect(ctx.calls).toEqual(["drawImage stock"]);
+    expect(ctx.calls).toEqual(["drawImage sketch"]);
   });
 
   it("draws every active layer, in the given order, on top of the stock texture when suppression is off", () => {
@@ -84,7 +86,7 @@ describe("paintBaseSurface", () => {
     expect(ctx.calls).toEqual(["drawImage only"]);
   });
 
-  it("paints nothing at all when suppression is on and every layer is currently inactive (spec: all-off is black, never a fallback to vanilla)", () => {
+  it("paints nothing when suppression is on, there is no sketch and no layer, never falling back to the stock texture", () => {
     const ctx = fakeCtx();
     paintBaseSurface(ctx as never, {
       textureImage: STOCK,
@@ -138,7 +140,71 @@ describe("paintBaseSurface", () => {
 });
 
 // A suppressed and empty map with a stock texture loaded is not painted, so it takes the dark grid.
+describe("paintBaseSurface under a suppressing base layer", () => {
+  const under = (layers: ReturnType<typeof layer>[]) => {
+    const ctx = fakeCtx();
+    paintBaseSurface(ctx as never, {
+      textureImage: STOCK,
+      sketch: SKETCH,
+      bodyColor: "#ff0000",
+      suppressVanilla: true,
+      layers,
+      worldW: 100,
+      worldH: 50,
+    });
+    return ctx.calls;
+  };
+
+  it("live with no data (locked scanner): the sketch alone, never the stock texture", () => {
+    expect(under([])).toEqual(["drawImage sketch"]);
+  });
+
+  it("part scanned: the layer's data composites over the sketch", () => {
+    expect(under([layer("partial")])).toEqual([
+      "drawImage sketch",
+      "drawImage partial",
+    ]);
+  });
+
+  it("fully scanned: the layer's data composites over the sketch, still no stock texture", () => {
+    expect(under([layer("full")])).toEqual([
+      "drawImage sketch",
+      "drawImage full",
+    ]);
+  });
+
+  it("layer switched off by the operator: the sketch alone", () => {
+    expect(under([])).toEqual(["drawImage sketch"]);
+  });
+
+  it("no suppressing layer on a visited body: the stock texture, dimmed, unchanged", () => {
+    const ctx = fakeCtx();
+    paintBaseSurface(ctx as never, {
+      textureImage: STOCK,
+      sketch: null,
+      bodyColor: undefined,
+      suppressVanilla: false,
+      layers: [],
+      worldW: 100,
+      worldH: 50,
+    });
+    expect(ctx.calls).toEqual(["drawImage stock", "fillRect 0,0,100,50"]);
+  });
+});
+
 describe("baseSurfacePainted", () => {
+  it("true when suppressed with the sketch as the base and no layer", () => {
+    expect(
+      baseSurfacePainted({
+        textureImage: STOCK,
+        sketch: SKETCH,
+        bodyColor: undefined,
+        suppressVanilla: true,
+        layers: [],
+      }),
+    ).toBe(true);
+  });
+
   it("true when the stock texture paints (no suppression)", () => {
     expect(
       baseSurfacePainted({

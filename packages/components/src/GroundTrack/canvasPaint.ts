@@ -89,7 +89,7 @@ export function paintMapBase(
     h,
     camera,
     textureImage,
-    dimTexture,
+    sketch,
     bodyColor,
     suppressVanilla,
     layers,
@@ -98,7 +98,7 @@ export function paintMapBase(
     h: number;
     camera: Camera;
     textureImage: CanvasImageSource | null;
-    dimTexture?: boolean;
+    sketch?: CanvasImageSource | null;
     bodyColor: string | undefined;
     suppressVanilla: boolean;
     layers: readonly BaseSurfaceLayer[];
@@ -111,6 +111,7 @@ export function paintMapBase(
   // Keyed off paintBaseSurface's own predicate so the grid cannot disagree with what was painted.
   const surfacePainted = baseSurfacePainted({
     textureImage,
+    sketch,
     bodyColor,
     suppressVanilla,
     layers,
@@ -119,7 +120,7 @@ export function paintMapBase(
     ctx.setTransform(...cameraTransform(camera, w, h, shift));
     paintBaseSurface(ctx, {
       textureImage,
-      dimTexture,
+      sketch,
       bodyColor,
       suppressVanilla,
       layers,

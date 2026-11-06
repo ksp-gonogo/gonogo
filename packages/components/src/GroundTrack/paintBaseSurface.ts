@@ -1,12 +1,13 @@
 /*
- * Background paint for GroundTrack's world canvas: the stock texture or colour
- * wash, then every active `ground-track.base` layer in the order it is handed.
+ * Background paint for GroundTrack's world canvas: the pencil sketch when the
+ * base is the sketch, else the stock texture or colour wash, then every active
+ * `ground-track.base` layer in the order it is handed.
  *
  * Whether the stock texture paints is a separate, declared decision
  * (`suppressVanilla`), independent of whether any layer currently has a
- * canvas: with suppression on and every layer off the surface stays black,
- * never falling back to the stock texture. Inferring suppression from a
- * returned canvas would make "hide vanilla, draw nothing" unreachable.
+ * canvas. Suppression withholds the body's real picture and the colour wash,
+ * never the sketch: a suppressing layer's data composites over the sketch
+ * whether it has drawn everything, part or nothing.
  */
 
 /** The subset of the 2D context this module touches. */
@@ -34,17 +35,19 @@ export interface BaseSurfaceInput {
   /** The body's stock texture, or null if none is loaded. */
   textureImage: CanvasImageSource | null;
   /**
-   * Whether the texture is dimmed under a dark wash, which the photographic stock
-   * texture needs to sit behind the marks. The pencil sketch is drawn at its
-   * own brightness and sets this false. Defaults to true.
+   * The pencil sketch, set when it is the map's base. It is drawn at its own
+   * brightness in place of the stock texture and the colour wash, and
+   * `suppressVanilla` does not withhold it. The stock texture is dimmed under a
+   * dark wash to sit behind the marks.
    */
-  dimTexture?: boolean;
+  sketch?: CanvasImageSource | null;
   /** Last-resort colour wash for bodies with no texture loaded yet. */
   bodyColor: string | undefined;
   /**
    * True when a registered `ground-track.base` augment declares
-   * `suppressesVanillaBase` and its Domain is live. Resolved by the caller,
-   * independent of `layers`, and no setting overrides it.
+   * `suppressesVanillaBase` and its Domain is live: the stock texture and
+   * colour wash are not painted. Resolved by the caller, independent of
+   * `layers`, and no setting overrides it.
    */
   suppressVanilla: boolean;
   /** Every active layer's canvas, in draw order: later entries composite on top. */
@@ -54,15 +57,15 @@ export interface BaseSurfaceInput {
 }
 
 /**
- * Paint the map's base surface: the stock texture/colour-wash (skipped
- * outright when `suppressVanilla` is true), followed by every active
- * `ground-track.base` layer's canvas, in the given order.
+ * Paint the map's base surface: the sketch if there is one, else the stock
+ * texture/colour-wash (skipped when `suppressVanilla` is true), followed by
+ * every active `ground-track.base` layer's canvas, in the given order.
  */
 export function paintBaseSurface(
   ctx: BaseSurfaceCtx,
   {
     textureImage,
-    dimTexture = true,
+    sketch = null,
     bodyColor,
     suppressVanilla,
     layers,
@@ -70,8 +73,9 @@ export function paintBaseSurface(
     worldH,
   }: BaseSurfaceInput,
 ): void {
-  if (!suppressVanilla)
-    paintVanilla(ctx, textureImage, dimTexture, bodyColor, worldW, worldH);
+  if (sketch) ctx.drawImage(sketch, 0, 0, worldW, worldH);
+  if (!sketch && !suppressVanilla)
+    paintVanilla(ctx, textureImage, bodyColor, worldW, worldH);
 
   for (const layer of layers) {
     ctx.drawImage(layer.canvas, 0, 0, worldW, worldH);
@@ -82,17 +86,14 @@ export function paintBaseSurface(
 function paintVanilla(
   ctx: BaseSurfaceCtx,
   textureImage: CanvasImageSource | null,
-  dimTexture: boolean,
   bodyColor: string | undefined,
   worldW: number,
   worldH: number,
 ): void {
   if (textureImage) {
     ctx.drawImage(textureImage, 0, 0, worldW, worldH);
-    if (dimTexture) {
-      ctx.fillStyle = "rgba(0,0,0,0.25)";
-      ctx.fillRect(0, 0, worldW, worldH);
-    }
+    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    ctx.fillRect(0, 0, worldW, worldH);
     return;
   }
   if (!bodyColor) return;
@@ -102,19 +103,20 @@ function paintVanilla(
 
 /**
  * Whether {@link paintBaseSurface} drew any surface pixels for these inputs,
- * mirroring its decision exactly, so a suppressed and empty map takes the dark
- * grid even with a stock texture loaded.
+ * mirroring its decision exactly, so a suppressed map with no sketch and no
+ * layer takes the dark grid even with a stock texture loaded.
  */
 export function baseSurfacePainted({
   textureImage,
+  sketch = null,
   bodyColor,
   suppressVanilla,
   layers,
 }: Pick<
   BaseSurfaceInput,
-  "textureImage" | "bodyColor" | "suppressVanilla" | "layers"
+  "textureImage" | "sketch" | "bodyColor" | "suppressVanilla" | "layers"
 >): boolean {
   const vanillaPainted =
     !suppressVanilla && (textureImage != null || bodyColor != null);
-  return vanillaPainted || layers.length > 0;
+  return sketch != null || vanillaPainted || layers.length > 0;
 }
