@@ -37,6 +37,8 @@ export default {
     "vessel.propulsion",
     "dv.summary",
     "dv.stages",
+    "comms.link",
+    "comms.path",
     "time.warp",
   ],
   dashboards: {
