@@ -1,8 +1,13 @@
 import type { BodyTransferInfo, ManeuverPlan } from "@ksp-gonogo/core";
-import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type CarriedCurrency,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { Countdown, type ReckoningMarking, Unit } from "@ksp-gonogo/ui-kit";
 import { AvailableRow } from "./AvailableRow";
 import { Label, PreviewGrid, PreviewValue } from "./styles";
+import { untilBurn } from "./untilBurn";
 
 interface TransferPreviewProps {
   plan: ManeuverPlan;
@@ -11,6 +16,8 @@ interface TransferPreviewProps {
   feasible: boolean | null;
   currentUT: Value<"ut"> | undefined;
   marking: ReckoningMarking | null;
+  /** The currency of the orbit the plan was computed from, dating the burn countdown. */
+  from?: readonly CarriedCurrency[];
 }
 
 /** A transfer to another body: the burn, when to light it, how long the flight is and the periapsis it is aimed to give. */
@@ -21,6 +28,7 @@ export function TransferPreview({
   feasible,
   currentUT,
   marking,
+  from,
 }: TransferPreviewProps) {
   return (
     <PreviewGrid>
@@ -35,7 +43,7 @@ export function TransferPreview({
 
       <Label>Burn in</Label>
       <PreviewValue>
-        <Countdown value={currentUT && plan.ut.minus(currentUT)} />
+        <Countdown value={untilBurn(plan.ut, currentUT, from)} />
       </PreviewValue>
 
       <Label>Prograde</Label>
