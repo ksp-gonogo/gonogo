@@ -121,11 +121,13 @@ import { syncDataRate } from "../telemetry/dataRate";
 import { PilotVantage } from "../telemetry/PilotVantage";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
 import { reportSitrepTransportStatus } from "../telemetry/sitrepRuntime";
+import { StationUplinkLoader } from "../uplinks/StationUplinkLoader";
 import { UplinkBanners } from "../uplinks/UplinkBanners";
 import { UplinkHealthLogger } from "../uplinks/UplinkHealthLogger";
 import { UplinkHealthRetry } from "../uplinks/UplinkHealthRetry";
 import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
 import { UplinkLoadGate } from "../uplinks/UplinkLoadGate";
+import { bootsWithoutDirectMod } from "./isStationRoute";
 
 const EMPTY_DASHBOARD: DashboardConfig = { items: [], layout: [] };
 
@@ -431,11 +433,18 @@ function MainScreenDisplay({
                                 <CoverageMaskCacheProvider>
                                   <SerialDeviceProvider service={serialService}>
                                     <UplinkLoadGate host={peerHostService}>
-                                      <MainDashboard
-                                        screen={screen}
-                                        hosting={hostsThePeerMesh}
-                                        serialService={serialService}
-                                      />
+                                      <HostUplinks
+                                        loadedHere={
+                                          screen === "pilot" &&
+                                          bootsWithoutDirectMod()
+                                        }
+                                      >
+                                        <MainDashboard
+                                          screen={screen}
+                                          hosting={hostsThePeerMesh}
+                                          serialService={serialService}
+                                        />
+                                      </HostUplinks>
                                     </UplinkLoadGate>
                                   </SerialDeviceProvider>
                                 </CoverageMaskCacheProvider>
@@ -454,6 +463,22 @@ function MainScreenDisplay({
       </ScreenProvider>
     </SitrepTelemetryProvider>
   );
+}
+
+/*
+ * A screen that boots with no direct line to the mod loads its Uplinks through
+ * the host after it connects, the way a station does; every other screen
+ * loaded them before it rendered.
+ */
+function HostUplinks({
+  loadedHere,
+  children,
+}: {
+  loadedHere: boolean;
+  children: ReactNode;
+}) {
+  if (!loadedHere) return children;
+  return <StationUplinkLoader>{children}</StationUplinkLoader>;
 }
 
 /**

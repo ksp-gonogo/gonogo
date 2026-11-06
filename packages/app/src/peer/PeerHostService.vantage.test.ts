@@ -509,6 +509,107 @@ describe("a peer's command address", () => {
     host.stop();
   });
 
+  it("sends a pilot's command through the pilot's own session, naming no centre, never the follow request", async () => {
+    const host = await startedHost();
+    const hostVantages = captureDispatches();
+    const pilotVantages: Array<string | undefined> = [];
+    const sink = {
+      ...makeSink(),
+      command: {
+        dispatch: (
+          _command: string,
+          _args: unknown,
+          _label: string,
+          _topic: string,
+          vantage?: string,
+        ) => {
+          pilotVantages.push(vantage);
+          return { requestId: "p1", result: Promise.resolve(null) };
+        },
+        dispatchGroup: () => {
+          throw new Error("not a group");
+        },
+        onRawMessage: () => () => {},
+      },
+    };
+    const detach = host.attachSitrepSinkFor("active-craft", sink as never);
+    const pilot = await connectStation(host, "pilot-a");
+    setVantage(pilot, "active-craft");
+
+    command(pilot);
+    await Promise.resolve();
+
+    expect(pilotVantages).toEqual([""]);
+    expect(hostVantages).toEqual([]);
+    detach();
+    host.stop();
+  });
+
+  it("answers a pilot's command with a refusal while its own session is not open", async () => {
+    const host = await startedHost();
+    const hostVantages = captureDispatches();
+    const pilot = await connectStation(host, "pilot-a");
+    setVantage(pilot, "active-craft");
+
+    command(pilot);
+    await Promise.resolve();
+
+    expect(hostVantages).toEqual([]);
+    expect(pilot.sent).toContainEqual(
+      expect.objectContaining({ type: "sitrep-command-error" }),
+    );
+    host.stop();
+  });
+
+  it("lets no stored vantage that is not a command centre or a seat reach a command's address", async () => {
+    const stored = ["active-craft", "bogus", "meta", "", CRAFT, "ground:KSC"];
+    for (const vantage of stored) {
+      const host = await startedHost();
+      const hostVantages = captureDispatches();
+      const sessionVantages: Array<string | undefined> = [];
+      const detach = host.attachSitrepSinkFor(vantage, {
+        ...makeSink(),
+        command: {
+          dispatch: (
+            _command: string,
+            _args: unknown,
+            _label: string,
+            _topic: string,
+            sent?: string,
+          ) => {
+            sessionVantages.push(sent);
+            return { requestId: "s1", result: Promise.resolve(null) };
+          },
+          dispatchGroup: () => {
+            throw new Error("not a group");
+          },
+          onRawMessage: () => () => {},
+        },
+      } as never);
+      const conn = await connectStation(
+        host,
+        `peer-${stored.indexOf(vantage)}`,
+      );
+      setVantage(conn, vantage === "" ? null : vantage);
+
+      command(conn);
+      await Promise.resolve();
+
+      for (const address of [...hostVantages, ...sessionVantages]) {
+        const named = address ?? "";
+        expect(
+          named === "" ||
+            named.startsWith("ground:") ||
+            named.startsWith("vessel:"),
+          `a command from a connection at "${vantage}" went out addressed "${named}"`,
+        ).toBe(true);
+      }
+      detach();
+      host.stop();
+      FakeHub.reset();
+    }
+  });
+
   it("dispatches a station's command group upstream as one group under the station's own request ids", async () => {
     const host = await startedHost();
     const transport = new StubTransport();
