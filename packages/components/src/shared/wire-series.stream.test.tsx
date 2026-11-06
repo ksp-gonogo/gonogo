@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { KeplerPeriodComponent } from "../KeplerPeriod";
 import { OrbitalAscentComponent } from "../OrbitalAscent";
 import { TwrComponent } from "../Twr";
+import { emitAt, KERBIN } from "../test/bodyEmits";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { useComputedSeries } from "./useComputedSeries";
 
@@ -121,6 +122,7 @@ describe("series computed from the wire, with no derived channel in the store", 
     );
 
     act(() => {
+      emitAt(fixture, KERBIN);
       for (const [validAt, currentThrust, totalMass] of [
         [-40, 200, 20],
         [-20, 260, 18],

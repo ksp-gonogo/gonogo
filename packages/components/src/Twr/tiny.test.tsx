@@ -6,6 +6,7 @@ import {
   visibleText,
 } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
+import { emitAt, KERBIN } from "../test/bodyEmits";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import "./index";
 
@@ -16,6 +17,7 @@ function mountTiny(size = { w: 3, h: 3 }) {
   const mounted = renderWidget("twr", { ...size, wrapper: fixture.Provider });
   const emitTwr = (twr: number) =>
     act(() => {
+      emitAt(fixture, KERBIN);
       fixture.emit("vessel.propulsion", {
         totalMass: 1,
         dryMass: 0,
