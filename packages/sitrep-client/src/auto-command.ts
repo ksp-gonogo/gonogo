@@ -87,7 +87,7 @@ export function useAutoCommand({
   const delayUnknown =
     cmd.delayMode === null && cmd.effectiveDelaySeconds !== 0;
   const delaySeconds = delayUnknown ? null : leadSeconds;
-  const { dangerouslySendWithoutInput } = cmd;
+  const { send } = cmd;
 
   // Ref guard for the single dispatch (StrictMode-safe); `phase` mirrors it for the reactive return.
   const settled = useRef(false);
@@ -109,20 +109,12 @@ export function useAutoCommand({
     settled.current = true;
     if (decision === "fire") {
       setPhase("fired");
-      void dangerouslySendWithoutInput(args).catch(() => {});
+      void send(args).catch(() => {});
     } else {
       setPhase("skipped");
       onSkip?.();
     }
-  }, [
-    enabled,
-    utNow,
-    targetUt,
-    delaySeconds,
-    dangerouslySendWithoutInput,
-    args,
-    onSkip,
-  ]);
+  }, [enabled, utNow, targetUt, delaySeconds, send, args, onSkip]);
 
   return {
     fired: phase === "fired",

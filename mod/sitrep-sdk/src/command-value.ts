@@ -154,7 +154,7 @@ export function valueCommandState(
  * What a control that sets a value shows, the same on every screen at the
  * command centre: the value commanded, and the value the craft is expected to
  * hold now. Useful for a slider or stepper that keeps reading true while its
- * commands travel. Used with `Slider` and `Stepper` from
+ * commands travel. Used with `CommandSlider` and `CommandStepper` from
  * `@ksp-gonogo/ui-kit`, by the Rotor Tachometer and Robotics Console.
  *
  * @category Delay and vantage

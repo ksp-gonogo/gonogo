@@ -41,11 +41,7 @@ function Rcs() {
     <div>
       <button
         type="button"
-        onClick={() =>
-          void cmd
-            .dangerouslySendWithoutInput({ enabled: true })
-            .catch(() => {})
-        }
+        onClick={() => void cmd.send({ enabled: true }).catch(() => {})}
       >
         rcs
       </button>

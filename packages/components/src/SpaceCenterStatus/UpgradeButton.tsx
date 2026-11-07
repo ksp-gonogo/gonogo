@@ -1,7 +1,7 @@
 import {
-  Button,
   CheckIcon,
   ChevronUpIcon,
+  CommandButton,
   type CommandButtonHandle,
 } from "@ksp-gonogo/ui-kit";
 
@@ -23,18 +23,15 @@ export function UpgradeButton({
   titleOverride,
 }: UpgradeButtonProps) {
   return (
-    <Button
-      command={upgradeCmd.with(
-        { facilityId },
-        { label: `Upgrade ${facilityLabel}` },
-      )}
-      variant="ghost"
+    <CommandButton
+      handle={upgradeCmd}
+      args={{ facilityId }}
+      commandLabel={`Upgrade ${facilityLabel}`}
+      label="Upgrade"
       confirmLabel="Confirm"
       icon={<ChevronUpIcon size={12} />}
       confirmIcon={<CheckIcon size={12} />}
-      tip={titleOverride}
-    >
-      Upgrade
-    </Button>
+      title={titleOverride}
+    />
   );
 }

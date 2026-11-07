@@ -47,13 +47,8 @@ import "./plots";
 import type {
   ActionDefinition,
   ActionHandlers,
-  AnyBoundCommand,
   AnyContribution,
   AugmentDefinition,
-  BoundCommand,
-  BoundCommandOptions,
-  CommandSetOptions,
-  CommandSetResult,
   DataSourceState,
   LateTelemetrySubscribe,
   ModSettingDep,
@@ -70,7 +65,6 @@ import type {
   UseCommandOptions,
   UseCommandResult,
   UseRouteCommandsResult,
-  ValueCommand,
   ViewClockLike,
 } from "./types";
 
@@ -198,7 +192,6 @@ export type {
   ActionHandlers,
   ActionInputKind,
   ActionInputPayload,
-  AnyBoundCommand,
   AnyContribution,
   Arrival,
   AtmosphereModel,
@@ -208,8 +201,6 @@ export type {
   BodyDefinition,
   BodyMapConfig,
   BodyMask,
-  BoundCommand,
-  BoundCommandOptions,
   ClientPrefSetting,
   ClientPrefSettingOf,
   CommandFailure,
@@ -219,8 +210,6 @@ export type {
   CommandLoss,
   CommandRefusal,
   CommandRefusalDetail,
-  CommandSetOptions,
-  CommandSetResult,
   CommandStatus,
   CommandUndelivered,
   CommandWarning,
@@ -301,7 +290,6 @@ export type {
   UseCommandResultFor,
   UseMapPois,
   UseRouteCommandsResult,
-  ValueCommand,
   ViewClockLike,
   WidgetScope,
   WidgetScopeRegistry,
@@ -748,7 +736,7 @@ export function useViewUt(): Value<"ut"> | undefined {
  *
  * function SasOn() {
  *   const setSas = useCommand("vessel.control.setSas");
- *   return <Button command={setSas.with({ enabled: true })}>SAS on</Button>;
+ *   return <Button onClick={() => void setSas.send({ enabled: true })}>SAS on</Button>;
  * }
  * ```
  *
@@ -826,9 +814,9 @@ export function useCommand(
  * const sas = useCommand("vessel.control.setSas");
  *
  * const group = sendTogether(() => {
- *   void ag.dangerouslySendWithoutInput({ group: 1, state: true });
- *   void ag.dangerouslySendWithoutInput({ group: 2, state: true });
- *   void sas.dangerouslySendWithoutInput({ enabled: true });
+ *   void ag.send({ group: 1, state: true });
+ *   void ag.send({ group: 2, state: true });
+ *   void sas.send({ enabled: true });
  * });
  * await group.result;
  * ```

@@ -133,8 +133,7 @@ export function GameAlarmRow({
   contexts: TimeContexts;
 }) {
   const deleteAlarm = useCommand("alarm.game.delete");
-  const onDelete = (id: number) =>
-    void deleteAlarm.dangerouslySendWithoutInput({ id });
+  const onDelete = (id: number) => void deleteAlarm.send({ id });
   const [confirming, setConfirming] = useState(false);
   const title = alarm.title || "Alarm";
   return (

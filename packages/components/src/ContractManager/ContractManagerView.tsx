@@ -1,12 +1,12 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { useTelemetry } from "@ksp-gonogo/core";
-import { useCommand, useViewUt } from "@ksp-gonogo/sitrep-client";
+import { META_VANTAGE, useCommand, useViewUt } from "@ksp-gonogo/sitrep-client";
 import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
 import {
-  Button,
   ButtonGroup,
   Card,
   Cluster,
+  CommandButton,
   EmptyState,
   FilterChip,
   getWidgetShape,
@@ -68,9 +68,16 @@ export function ContractManagerComponent({
   const recentRaw = contracts?.completedRecent;
   const failedRaw = contracts?.failedRecent;
   const universalTime = useViewUt()?.magnitude;
-  const acceptCmd = useCommand("career.contract.accept");
-  const declineCmd = useCommand("career.contract.decline");
-  const cancelCmd = useCommand("career.contract.cancel");
+  // Career actions dispatch at the meta-vantage, with no vessel signal delay.
+  const acceptCmd = useCommand("career.contract.accept", {
+    vantage: META_VANTAGE,
+  });
+  const declineCmd = useCommand("career.contract.decline", {
+    vantage: META_VANTAGE,
+  });
+  const cancelCmd = useCommand("career.contract.cancel", {
+    vantage: META_VANTAGE,
+  });
   const active = parseContracts(activeRaw);
   const offered = parseContracts(offeredRaw);
   const recent = parseContracts(recentRaw);
@@ -152,19 +159,17 @@ export function ContractManagerComponent({
       <ContractTerms contract={c} />
       <div style={ACTIVE_ACTIONS_STYLE}>
         <ContractCancelCost contract={c} boardHeld={boardHeld} />
-        <Button
-          command={cancelCmd.with(
-            { contractId: c.id },
-            { label: `Cancel ${c.title}` },
-          )}
-          variant="ghost"
+        <CommandButton
+          handle={cancelCmd}
+          args={{ contractId: c.id }}
+          commandLabel={`Cancel ${c.title}`}
           size="sm"
+          label="Cancel"
+          /* Cancel forfeits work in progress and spent funds, so its confirm is stronger than Decline's. */
           confirmLabel="Forfeit contract"
           confirmTone="nogo"
-          tip="Cancel this contract: forfeits all progress"
-        >
-          Cancel
-        </Button>
+          title="Cancel this contract: forfeits all progress"
+        />
       </div>
     </Card>
   ));
@@ -189,29 +194,23 @@ export function ContractManagerComponent({
       <ContractRewards contract={c} boardHeld={boardHeld} />
       <ContractTerms contract={c} />
       <ButtonGroup style={OFFERED_ACTIONS_STYLE}>
-        <Button
-          command={acceptCmd.with(
-            { contractId: c.id },
-            { label: `Accept ${c.title}` },
-          )}
-          variant="ghost"
+        <CommandButton
+          handle={acceptCmd}
+          args={{ contractId: c.id }}
+          commandLabel={`Accept ${c.title}`}
           size="sm"
           tone="go"
-        >
-          Accept
-        </Button>
-        <Button
-          command={declineCmd.with(
-            { contractId: c.id },
-            { label: `Decline ${c.title}` },
-          )}
-          variant="ghost"
+          label="Accept"
+        />
+        <CommandButton
+          handle={declineCmd}
+          args={{ contractId: c.id }}
+          commandLabel={`Decline ${c.title}`}
           size="sm"
+          label="Decline"
           confirmLabel="Confirm decline"
           confirmTone="nogo"
-        >
-          Decline
-        </Button>
+        />
       </ButtonGroup>
     </Card>
   ));

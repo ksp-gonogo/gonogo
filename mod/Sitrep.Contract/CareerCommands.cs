@@ -20,7 +20,7 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("career.strategy.activate", AllowMetaVantage = true)]
+[SitrepCommand("career.strategy.activate")]
 public class ActivateStrategyArgs
 {
     /// <summary>The strategy to activate: its <c>StrategyConfig.Name</c>, as <c>career.status</c>'s <c>strategies[].id</c> carries it.</summary>
@@ -41,7 +41,7 @@ public class ActivateStrategyArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("career.strategy.deactivate", AllowMetaVantage = true)]
+[SitrepCommand("career.strategy.deactivate")]
 public class DeactivateStrategyArgs
 {
     /// <summary>The active strategy to deactivate: its <c>StrategyConfig.Name</c>, as <c>career.status</c>'s <c>strategies[].id</c> carries it.</summary>
@@ -59,7 +59,7 @@ public class DeactivateStrategyArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("career.tech.unlock", AllowMetaVantage = true)]
+[SitrepCommand("career.tech.unlock")]
 public class UnlockTechArgs
 {
     /// <summary>The tech node to unlock: its KSP <c>techID</c> (e.g. <c>"basicRocketry"</c>), as <c>career.status</c>'s <c>tech.nodes[].id</c> carries it.</summary>
@@ -80,9 +80,9 @@ public class UnlockTechArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("career.contract.accept", Summary = "Accept an offered contract.", AllowMetaVantage = true)]
-[SitrepCommand("career.contract.decline", Summary = "Decline an offered contract.", AllowMetaVantage = true)]
-[SitrepCommand("career.contract.cancel", Summary = "Cancel an active contract.", AllowMetaVantage = true)]
+[SitrepCommand("career.contract.accept", Summary = "Accept an offered contract.")]
+[SitrepCommand("career.contract.decline", Summary = "Decline an offered contract.")]
+[SitrepCommand("career.contract.cancel", Summary = "Cancel an active contract.")]
 public class ContractActionArgs
 {
     /// <summary>The contract to act on: its KSP <c>ContractID</c> as a string, as <c>career.status</c>'s <c>contracts[].id</c> carries it.</summary>
@@ -103,7 +103,7 @@ public class ContractActionArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("career.facility.upgrade", AllowMetaVantage = true)]
+[SitrepCommand("career.facility.upgrade")]
 public class UpgradeFacilityArgs
 {
     /// <summary>The facility to upgrade: its <c>SpaceCenterFacility</c> enum name, as a key of <c>career.facilities</c>' <c>facilities</c> map.</summary>
@@ -127,7 +127,7 @@ public class UpgradeFacilityArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("career.crew.hire", AllowMetaVantage = true)]
+[SitrepCommand("career.crew.hire")]
 public class HireApplicantArgs
 {
     /// <summary>The applicant to hire: their name, as <c>spaceCenter.astronautComplex</c>'s <c>applicants[].name</c> carries it.</summary>
@@ -153,7 +153,7 @@ public class HireApplicantArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("career.crew.fire", AllowMetaVantage = true)]
+[SitrepCommand("career.crew.fire")]
 public class FireCrewArgs
 {
     /// <summary>The kerbal to fire: their name, as a <c>spaceCenter.crewRoster</c> entry carries it.</summary>

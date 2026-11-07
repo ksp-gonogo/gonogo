@@ -79,7 +79,7 @@ export interface RailFound extends CommandFoundEntry {
  * Never "confirmed": the operator may already have re-sent it. No imperative:
  * the rail says what happened and lets the operator decide. Useful for telling
  * the operator how a command they were told was lost actually ended. Used by
- * {@link CommandList}, the panel delay rail and {@link Button}.
+ * {@link CommandList}, the panel delay rail and {@link CommandButton}.
  *
  * @category CommandDelay
  */

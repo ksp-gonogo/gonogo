@@ -15,8 +15,6 @@ import {
   classifyCommandRejection,
 } from "../api/command-rejection";
 import type {
-  BoundCommand,
-  BoundCommandOptions,
   CommandFailure,
   CommandFound,
   CommandLoss,
@@ -25,7 +23,6 @@ import type {
   CommandUndelivered,
   CommandWarning,
   UseCommandOptions,
-  ValueCommand,
 } from "../api/types";
 import {
   type CommsDelayLike,
@@ -42,7 +39,6 @@ import type {
   CommandId,
   CommandReply,
 } from "../commands";
-import { commandRail } from "../commands";
 import type { RailTags } from "../rail-tags";
 import { railTagsForCommand } from "../rail-tags";
 import { type Reading, readingOf } from "../reading";
@@ -55,7 +51,6 @@ import {
   LATE_ARRIVAL_DETAIL,
   LATE_ARRIVAL_ERROR_CODE,
 } from "./arrival-deadline";
-import { bindCommand, bindValue } from "./bound-command";
 import {
   carriesCommand,
   centreCommandOutcomes,
@@ -114,6 +109,7 @@ import { useStreamConnected } from "./use-stream-connected";
 import { META_VANTAGE } from "./vantage";
 
 export type { UseCommandOptions };
+export { META_VANTAGE };
 
 /** Shared constant so `getSnapshot` returns a referentially stable value when
  * no command has been dispatched yet, a fresh object literal here would
@@ -171,58 +167,23 @@ function isModFault(code: string): boolean {
  * such floor and stays `unknown`, because there is nothing every command's
  * arguments have in common.
  *
- * `dangerouslySendWithoutInput` is declared method-style rather than as a property holding a function.
+ * `send` is declared method-style rather than as a property holding a function.
  * That is what makes a typed handle assignable to the bare `UseCommandResult` that
  * every delay-rail control takes. As a property, `strictFunctionTypes` checks the
  * parameter contravariantly and a typed handle would no longer be assignable.
  */
 export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
   /**
-   * Sends this command with no kit input drawing it, so nothing on screen shows
-   * the operator that it was sent except the panel's delay rail. Useful for a
-   * send that no kit input starts, such as a price query, a background sync or
-   * typed text in a script terminal. Used by a script terminal and by the
-   * maneuver planner when it removes a completed node.
-   *
-   * A control the operator presses takes the command through its `command` prop
-   * instead: pass {@link with} or {@link toArgs} to a {@link Button}, a
-   * {@link Slider} or another kit input, which then draws sent, refused and the
-   * rest. A key or serial binding presses a {@link useCommandControl}.
-   *
-   * Resolves with the reply once the command has run. Rejects when the game
-   * refuses it, and when no reply arrives by the expected time. A refusal or loss
-   * from a call whose promise nobody awaits is still recorded in `refusals` or
-   * `losses`.
+   * Sends the command. Resolves with the reply once the command has run.
+   * Rejects when the game refuses it, and when no reply arrives by the expected
+   * time. A refusal or loss from a `send` whose promise nobody awaits is still
+   * recorded in `refusals` or `losses`.
    *
    * `opts.label` is a description of this dispatch to show the operator.
    * `opts.topic` addresses the command to one part or route on the craft, such
    * as one script terminal.
    */
-  dangerouslySendWithoutInput(
-    args?: Args,
-    opts?: { label?: string; topic?: string },
-  ): Promise<Reply>;
-  /**
-   * This command with its arguments set, for a kit input to send when the
-   * operator presses it. Useful for naming what one control sends and what
-   * happens around the press. Taken by the `command` prop of a kit input such
-   * as a button. `args` may be a function, called at the press, for arguments
-   * that change while the control waits.
-   */
-  with(
-    args?: Args | (() => Args),
-    options?: BoundCommandOptions<Args, Reply>,
-  ): BoundCommand<Args, Reply>;
-  /**
-   * This command with a way to turn an input's value into its arguments, for
-   * an input that sets a value. Useful for a toggle, a stepper or a field.
-   * Taken by the `command` prop of a kit input that sets a value. Return
-   * `undefined` where there is nothing to send.
-   */
-  toArgs<Value>(
-    toArgs: (value: Value) => Args | undefined,
-    options?: BoundCommandOptions<Args, Reply>,
-  ): ValueCommand<Value, Args, Reply>;
+  send(args?: Args, opts?: { label?: string; topic?: string }): Promise<Reply>;
   /** The state of the latest dispatch. See {@link CommandStatus}. */
   status: CommandStatus;
   /**
@@ -274,7 +235,7 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    * `"no-path"` when nothing measurable is reported.
    *
    * `null` until a `comms.delay` reading arrives, which is not the same as
-   * `"no-path"`. It does not stop {@link UseCommandResult.dangerouslySendWithoutInput}: a command sent with no path is
+   * `"no-path"`. It does not stop {@link send}: a command sent with no path is
    * reported in {@link losses}.
    */
   delayMode: DelayMode | null;
@@ -282,7 +243,7 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    * What an order sent now would do, from the sending centre's `comms.route`
    * prediction: it goes at once, is held for a predicted contact and arrives at
    * a stated time, or has no route. An advisory, never a gate: it does not
-   * decide whether {@link UseCommandResult.dangerouslySendWithoutInput} dispatches. `undefined` for an instant command
+   * decide whether {@link send} dispatches. `undefined` for an instant command
    * and while no route is known for the sending centre.
    */
   sendStatus: SendStatus | undefined;
@@ -344,8 +305,8 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    * field behaves exactly as it did.
    *
    * A `blocked` gate is a reason to draw the control dark and say why. It is
-   * not a reason to make it unpressable and silent: see a command `Button`.
-   * While it blocks, `dangerouslySendWithoutInput` refuses locally with the gate's own reason and
+   * not a reason to make it unpressable and silent: see `CommandButton`.
+   * While it blocks, `send` refuses locally with the gate's own reason and
    * dispatches nothing.
    */
   gate?: CommandGateStatus;
@@ -356,7 +317,7 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    *
    * A control that sends arguments draws itself from this rather than from
    * `gate`, so the one facility the career cannot afford goes dark while the
-   * rest stay live. `dangerouslySendWithoutInput` refuses locally on the same answer.
+   * rest stay live. `send` refuses locally on the same answer.
    */
   // A method rather than a function-valued property, so a typed handle stays assignable to the bare one.
   gateFor(args: Args): CommandGateStatus | undefined;
@@ -408,12 +369,12 @@ export type UseCommandResultFor<Command extends CommandId> = UseCommandResult<
  * Sends `command` to the mod through the nearest `TelemetryProvider` and reflects
  * its progress (`idle`, `in-flight`, then `confirmed` or `failed`). Useful for a
  * control that sends a command and shows the operator the delay before it takes
- * effect. Used by command widgets, and its handle is what {@link Button}
+ * effect. Used by command widgets, and its handle is what {@link CommandButton}
  * takes.
  *
  * The hook also holds the set of dispatches still in flight (`inFlight`), so a
  * command widget gets delay state from the same hook it already calls to dispatch,
- * with no separate opt-in. `dangerouslySendWithoutInput` can be called more than once; any status change
+ * with no separate opt-in. `send` can be called more than once; any status change
  * for the active request re-renders the caller. `inFlight` accumulates every
  * pending dispatch, not only the latest: see `UseCommandResult.inFlight`.
  *
@@ -434,11 +395,7 @@ export function useCommand(
   command: string,
   options?: UseCommandOptions,
 ): UseCommandResult {
-  /*
-   * The mod's own declaration decides whether a command is about the program
-   * rather than a craft, so a widget has no vantage to choose for one.
-   */
-  const vantage = commandRail(command)?.meta ? META_VANTAGE : options?.vantage;
+  const vantage = options?.vantage;
   // Read through a ref: the caller passes a fresh check each render, over that render's telemetry.
   const confirmedByRef = useRef(options?.confirmedBy);
   confirmedByRef.current = options?.confirmedBy;
@@ -851,7 +808,7 @@ export function useCommand(
     if (dispatchTick === 0 || railVerifiedRef.current) return;
     if (railed && !rail) {
       throw new Error(
-        `useCommand(${JSON.stringify(command)}).dangerouslySendWithoutInput() dispatched a command ` +
+        `useCommand(${JSON.stringify(command)}).send() dispatched a command ` +
           "with no command rail mounted above it, so its outcome would reach " +
           "nobody. Mount the widget inside a DelayRailProvider: the dashboard, " +
           "renderWidget and the test render all do.",
@@ -1314,7 +1271,7 @@ export function useCommand(
     }
   }, [client, command, trackDispatch]);
 
-  const dangerouslySendWithoutInput = useCallback(
+  const send = useCallback(
     (
       args?: unknown,
       opts?: { label?: string; topic?: string },
@@ -1322,7 +1279,7 @@ export function useCommand(
       // No provider mounted: nothing left the ground, so nothing can come back.
       //
       // Resolving with `undefined` would read as a confirmed command:
-      // a command `Button` awaits `send()`, calls `onConfirmed`, and returns to
+      // `CommandButton` awaits `send()`, calls `onConfirmed`, and returns to
       // rest, so a press with no link would render byte-identically to a press
       // that worked. A rejection is what the controls are built to read, and
       // it matches the client's own answer on `dispose()` and for a command
@@ -1457,16 +1414,7 @@ export function useCommand(
     rail.update(railId, outcome);
   });
 
-  const handle: UseCommandResult = {
-    dangerouslySendWithoutInput,
-    gateFor,
-    check,
-    railed: railed && rail !== null,
-    ...outcome,
-    with: (args, options) => bindCommand(handle, args, options),
-    toArgs: (toArgs, options) => bindValue(handle, toArgs, options),
-  };
-  return handle;
+  return { send, gateFor, check, railed: railed && rail !== null, ...outcome };
 }
 
 /** 0 for an instant command, the target's own figure elsewhere, `activeVessel()` for the active craft, and `null` for a target nobody has placed. */

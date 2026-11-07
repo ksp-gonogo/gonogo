@@ -433,8 +433,10 @@ function PoiHoverCardView({
             {poi.actions.map((action) => (
               <Button
                 key={action.id}
-                command={action.command}
-                unavailable={action.unavailable}
+                type="button"
+                disabled={action.disabled}
+                disabledReason={action.disabledReason}
+                onClick={() => void action.run()}
               >
                 {action.label}
               </Button>

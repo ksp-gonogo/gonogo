@@ -5,7 +5,7 @@ import {
   NULL_DISPLAY,
   type ReckoningMarking,
   type ToggleState,
-  useCommandControl,
+  useCommandButton,
 } from "@ksp-gonogo/ui-kit";
 import { showsToggle } from "../shared/showsToggle";
 import { SAS_MODES, type SasMode, sasModeOrdinal } from "./sasModes";
@@ -60,8 +60,9 @@ export function useSasControls(
   const notControllable = controllable ? null : NOT_CONTROLLABLE;
   const invert = (base: ToggleState) =>
     typeof base === "boolean" ? { enabled: !base } : undefined;
-  const sasButton = useCommandControl({
-    command: sasCmd.with(undefined, { label: "Toggle SAS" }),
+  const sasButton = useCommandButton({
+    handle: sasCmd,
+    commandLabel: "Toggle SAS",
     toggle: {
       state: sasRaw,
       name: "SAS",
@@ -79,8 +80,9 @@ export function useSasControls(
       marking,
     },
   });
-  const rcsButton = useCommandControl({
-    command: rcsCmd.with(undefined, { label: "Toggle RCS" }),
+  const rcsButton = useCommandButton({
+    handle: rcsCmd,
+    commandLabel: "Toggle RCS",
     toggle: {
       state: rcsRaw,
       name: "RCS",
@@ -96,10 +98,9 @@ export function useSasControls(
       marking,
     },
   });
-  const precisionButton = useCommandControl({
-    command: precisionCmd.with(undefined, {
-      label: "Toggle precision control",
-    }),
+  const precisionButton = useCommandButton({
+    handle: precisionCmd,
+    commandLabel: "Toggle precision control",
     toggle: {
       state: precisionRaw,
       name: "Precision",
@@ -116,7 +117,7 @@ export function useSasControls(
     if (sasButton.isBlocked) return;
     // SAS shown on, whether read or predicted, has nothing to engage.
     if (sasButton.toggleView?.shown === true) return;
-    sasButton.pressWith(sasCmd.with({ enabled: true }, { label: "SAS on" }));
+    sasButton.sendAs({ enabled: true }, "SAS on");
   };
   const toggleRcs = () => rcsButton.press(false);
   const togglePrecision = () => precisionButton.press(false);
@@ -134,10 +135,7 @@ export function useSasControls(
           row.predictedPhase === "due"),
     );
     if (onItsWay) return;
-    void sasModeCmd.dangerouslySendWithoutInput(
-      { mode: ordinal },
-      { label: `SAS mode: ${mode}` },
-    );
+    void sasModeCmd.send({ mode: ordinal }, { label: `SAS mode: ${mode}` });
   };
 
   /*

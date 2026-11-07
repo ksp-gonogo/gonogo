@@ -230,7 +230,7 @@ function kitSources(): Record<string, string> {
  */
 const DRAWN_BY: Record<string, readonly string[]> = {
   "./Badge.tsx": ["Badge, held"],
-  "./PlainButton.tsx": ["Button, marked"],
+  "./Button.tsx": ["Button, marked"],
   "./HeldMark.tsx": ["Meter, caller's label", "Countdown", "UnitInput"],
   "./instrumentCurrency.tsx": ["Dial", "Dial, half face", "Tape"],
   "./Unit.tsx": ["Unit"],

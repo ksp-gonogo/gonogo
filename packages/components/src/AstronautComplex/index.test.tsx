@@ -31,7 +31,6 @@ import { expectNoA11yViolations, getByTip } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { findButtonDescribedBy } from "../test/describedButton";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -1330,9 +1329,9 @@ describe("AstronautComplexComponent", () => {
         "short of funds",
       );
     });
-    const hire = await findButtonDescribedBy(
-      /Hire Desdin Kerman unavailable: short of funds/,
-    );
+    const hire = await screen.findByRole("button", {
+      name: /Hire Desdin Kerman unavailable: short of funds/,
+    });
     expect(hire).toHaveAttribute("aria-disabled", "true");
     expect(hire).toHaveAttribute("data-gate", "blocked");
   });
@@ -1355,9 +1354,9 @@ describe("AstronautComplexComponent", () => {
     });
 
     expect(await screen.findByText(/FULL/)).toBeInTheDocument();
-    const hire = await findButtonDescribedBy(
-      /Hire Desdin Kerman unavailable: the roster is full/,
-    );
+    const hire = await screen.findByRole("button", {
+      name: /Hire Desdin Kerman unavailable: the roster is full/,
+    });
     expect(hire).toHaveAttribute("aria-disabled", "true");
   });
 

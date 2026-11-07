@@ -19,17 +19,17 @@ export type ToggleConfirmation = "held" | "sent" | "modelled";
  * group reports one) or nothing yet, where nothing is a third state and not
  * off. Useful for showing the operator what a switch such as SAS or an action
  * group is set to, and for telling an unread switch from one that is off. Used
- * by {@link CommandToggle} and {@link Button}.
+ * by {@link CommandToggle} and {@link CommandButton}.
  *
  * @category CommandButton
  */
 export type ToggleState = boolean | number | null | undefined;
 
 /**
- * The state variant of {@link Button}: the control shows a state, and a
+ * The state variant of {@link CommandButton}: the control shows a state, and a
  * press sends the command that sets the opposite. Useful for a switch the
  * operator flips under signal delay, such as SAS or an action group. Taken by
- * the `toggle` prop of {@link Button} and {@link useCommandControl}.
+ * the `toggle` prop of {@link CommandButton} and {@link useCommandButton}.
  *
  * @category CommandButton
  */

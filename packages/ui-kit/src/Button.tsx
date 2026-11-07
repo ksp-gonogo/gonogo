@@ -1,24 +1,14 @@
 import type { Tone } from "@ksp-gonogo/sitrep-sdk";
-import { type ButtonHTMLAttributes, forwardRef, type ReactNode } from "react";
+import { type ButtonHTMLAttributes, forwardRef } from "react";
 import styled, { css } from "styled-components";
-import { Button__Body, filledLook, IconButton__Body } from "./ButtonBody";
 import {
   buttonTipText,
   reasonedDisabled,
   swallowPress,
   withButtonTip,
 } from "./buttonTip";
-import {
-  CommandedButton,
-  type CommandedButtonProps,
-  CommandedIconButton,
-  CommandedIconToggle,
-  type CommandedToggleProps,
-  isControl,
-} from "./CommandButton/CommandedButton";
 import { focusRing } from "./focusRing";
 import { HeldFigure } from "./HeldMark";
-import { PlainButton } from "./PlainButton";
 import type { ReckoningMarking } from "./readingCurrency";
 import type { PredictedOutcome } from "./SendStatus/predictedOutcome";
 import { TONE_MARK, TONE_ON_STATUS, TONE_STATUS, TONE_TEXT } from "./tone";
@@ -67,26 +57,7 @@ export type ButtonSize = "sm" | "md";
  *
  * @category Button
  */
-/**
- * The props of {@link Button}: those of a plain button, or, when `command` is
- * set, those of a button that sends it.
- * Useful for describing a control the operator presses.
- *
- * @category Button
- */
-export type ButtonProps = PlainButtonProps | CommandedButtonProps;
-
-/**
- * A native button's attributes, plus how prominent it is, what its action
- * does, how large it is and, for a toggle, whether it is pressed. Taken by
- * {@link Button} when it has no `command`.
- *
- * @category Button
- */
-export interface PlainButtonProps
-  extends ButtonHTMLAttributes<HTMLButtonElement> {
-  /** Set `command` to make the button send a command; see {@link CommandedButtonProps}. */
-  command?: undefined;
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** How prominent the button is. Defaults to `default`. */
   variant?: ButtonVariant;
   /**
@@ -163,7 +134,7 @@ export interface PlainButtonProps
  * @categoryDescription Button
  * Buttons for things that happen on this screen: plain, icon and text buttons,
  * toggles, groups, and a button that fits its label to the space it has. A
- * button that sends a command to the game is a {@link Button}.
+ * button that sends a command to the game is a {@link CommandButton}.
  *
  * A button that is a glyph alone, or whose `aria-label` says more than its words
  * do, shows that name as a tip on hover and keyboard focus; a button whose words
@@ -171,11 +142,249 @@ export interface PlainButtonProps
  * shows the reason.
  */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  function Button(props, ref) {
-    if (props.command !== undefined) return <CommandedButton {...props} />;
-    return <PlainButton ref={ref} {...props} />;
+  function Button(
+    {
+      variant = "default",
+      tone,
+      size = "md",
+      pressed,
+      predictedOutcome,
+      disabledReason,
+      marked,
+      type = "button",
+      ...rest
+    },
+    ref,
+  ) {
+    const reasoned = reasonedDisabled(rest.disabled, disabledReason);
+    const tip = buttonTipText({
+      label: rest["aria-label"],
+      children: rest.children,
+      disabledReason: reasoned ? disabledReason : undefined,
+    });
+    const { disabled, onClick, children, ...passed } = rest;
+    return withButtonTip(
+      <Button__Body
+        ref={ref}
+        $variant={variant}
+        $tone={tone ?? (variant === "primary" ? "go" : "neutral")}
+        $size={size}
+        $pressed={pressed === true}
+        aria-pressed={pressed}
+        data-predicted={predictedOutcome}
+        data-held-button={marked ? "" : undefined}
+        {...passed}
+        disabled={reasoned ? undefined : disabled}
+        {...(reasoned ? { "aria-disabled": true } : {})}
+        onClick={reasoned ? swallowPress : onClick}
+        // After the caller's own props, so a button that passed a type keeps the attribute where it always sat.
+        type={type}
+      >
+        {marked ? (
+          <Button__Held kind={marked.kind} caption={marked.caption}>
+            {children}
+          </Button__Held>
+        ) : (
+          children
+        )}
+      </Button__Body>,
+      tip,
+      reasoned,
+    );
   },
 );
+
+/*
+ * The held mark hangs off the button's corner and reserves no room, so a marked
+ * button is the size of the same button unmarked and its label stays centred.
+ */
+const Button__Held = styled(HeldFigure)`
+  position: static;
+
+  &::after {
+    content: none;
+  }
+
+  & > [data-held-mark] {
+    top: 3px;
+    right: 3px;
+  }
+`;
+
+/** The fill a pressed button takes: its tone's status fill, and go for a neutral one. */
+function pressedTone(tone: ButtonTone): Exclude<ButtonTone, "neutral"> {
+  return tone === "neutral" ? "go" : tone;
+}
+
+/**
+ * A button filled in a tone's status colour under its own text. Used by the
+ * primary variant and by every pressed button.
+ */
+export const filledLook = (tone: ButtonTone) => css`
+  background: ${TONE_STATUS[tone]};
+  border-color: ${TONE_STATUS[tone]};
+  color: ${TONE_ON_STATUS[tone]};
+`;
+
+/** A toned outline: the tone's words on the button's own ground, edged in its mark. */
+const tonedOutline = (tone: Exclude<ButtonTone, "neutral">) => css`
+  border-color: ${TONE_MARK[tone]};
+  color: ${TONE_TEXT[tone]};
+`;
+
+const VARIANT_LOOK = {
+  default: css`
+    background: var(--color-surface-raised);
+    border-color: var(--color-border-strong);
+    color: var(--color-text-primary);
+  `,
+  ghost: css`
+    background: none;
+    border-color: var(--color-border-strong);
+    /* Clears 4.5:1 on the app background. */
+    color: var(--color-text-muted);
+  `,
+} as const;
+
+/* Words that are the control: the surrounding colour and type, with no box, so nothing but the focus ring says it is a button. */
+const TEXT_LOOK = css`
+  background: none;
+  border: none;
+  padding: 0;
+  min-height: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  justify-content: flex-start;
+
+  /* No box to brighten, so the words underline under the pointer. */
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      text-decoration: underline;
+    }
+  }
+`;
+
+/* Words keep their place under a coarse pointer: the touch target grows, but no inset pushes the text off its line. */
+const TEXT_TOUCH = css`
+  @media (pointer: coarse) {
+    padding: 0;
+  }
+`;
+
+function variantLook(variant: ButtonVariant, tone: ButtonTone) {
+  if (variant === "text") return TEXT_LOOK;
+  if (variant === "primary") return filledLook(tone);
+  if (tone === "neutral") return VARIANT_LOOK[variant];
+  return css`
+    ${VARIANT_LOOK[variant]}
+    ${tonedOutline(tone)}
+  `;
+}
+
+/* A filled button keeps its fill under the pointer; only an outlined one brightens its edge and words. */
+const OUTLINE_HOVER = css`
+  @media (hover: hover) {
+    &:hover:not(:disabled):not([aria-disabled="true"]) {
+      border-color: var(--color-text-faint);
+      color: var(--color-text-primary);
+    }
+  }
+`;
+
+const SIZE_LOOK = {
+  sm: css`
+    font-size: var(--font-size-caption);
+    padding: var(--inset-control-small);
+  `,
+  md: css`
+    font-size: var(--font-size-compact);
+    padding: var(--inset-control);
+  `,
+} as const;
+
+/**
+ * The styled `button` body that every kit control drawn as a button shares.
+ * Used by {@link ToggleButton} and {@link CommandButton}, which add only the
+ * states of their own behaviour.
+ */
+export const Button__Body = styled.button<{
+  $variant: ButtonVariant;
+  $tone: ButtonTone;
+  $size: ButtonSize;
+  $pressed: boolean;
+}>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-glyph-control);
+  border: 1px solid;
+  border-radius: var(--radius-regular);
+  font-family: inherit;
+  font-weight: 600;
+  /* The kit's one control height, with a flush line height so type size cannot change the box height. */
+  min-height: var(--control-height);
+  line-height: var(--line-height-flush);
+  cursor: pointer;
+  transition: background var(--duration-fast), border-color var(--duration-fast), color var(--duration-fast);
+
+  ${({ $size }) => SIZE_LOOK[$size]}
+  ${({ $variant, $tone }) => variantLook($variant, $tone)}
+  ${({ $pressed, $tone }) => ($pressed ? filledLook(pressedTone($tone)) : "")}
+
+  ${({ $variant, $pressed }) =>
+    $variant === "primary" || $variant === "text" || $pressed
+      ? ""
+      : OUTLINE_HOVER}
+  ${focusRing}
+  &[data-held-button] {
+    position: relative;
+  }
+  &:disabled,
+  &[aria-disabled="true"] {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* A predicted result changes the edge's line style and colour only, never its width, so the box stays the same size; both dashed because they are predictions, apart by colour and the tooltip. */
+  &[data-predicted="held"]:not(:disabled) {
+    border-style: dashed;
+    border-color: var(--color-go-mark);
+  }
+  &[data-predicted="at-risk"]:not(:disabled) {
+    border-style: dashed;
+    /* Eased toward the ground so the amber is no louder than the go green beside it. */
+    border-color: color-mix(
+      in srgb,
+      var(--color-warn-mark) 65%,
+      var(--color-surface-raised)
+    );
+  }
+
+  /* An unconfirmed command may still run and a failed one never left; both read in the warning tone. */
+  &[data-unconfirmed="true"],
+  &[data-failed="true"] {
+    border-color: var(--color-warn-mark);
+    color: var(--color-warn-text);
+    background: color-mix(
+      in srgb,
+      var(--color-warn-mark) 18%,
+      var(--color-surface-raised)
+    );
+  }
+
+  @media (pointer: coarse) {
+    min-height: var(--touch-target);
+    /* Wider on both axes: min-height only covers the vertical target. */
+    padding: ${({ $size }) =>
+      $size === "sm"
+        ? "var(--inset-control-small-touch)"
+        : "var(--inset-control-touch)"};
+  }
+
+  ${({ $variant }) => ($variant === "text" ? TEXT_TOUCH : "")}
+`;
+
 /**
  * A subtle, underlined link-style `button` for a tertiary action inside copy
  * (such as "Clear all" in a list row). Useful for an action that should read as
@@ -211,6 +420,40 @@ export const TextButton = styled.button`
   }
 `;
 
+const IconButton__Body = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-faint);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-flush);
+  padding: var(--inset-glyph-button);
+  transition: color var(--duration-fast);
+
+  @media (hover: hover) {
+    &:hover:not([aria-disabled="true"]) {
+      color: var(--color-text-primary);
+    }
+  }
+  &[aria-pressed="true"] {
+    border-radius: var(--radius-regular);
+    ${filledLook("go")}
+  }
+  ${focusRing}
+  &:disabled,
+  &[aria-disabled="true"] {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  @media (pointer: coarse) {
+    min-width: var(--touch-target);
+    min-height: var(--touch-target);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+`;
+
 /**
  * Props for {@link IconButton}. Any other `button` attribute passes through.
  * Useful for giving a control that is a glyph alone its accessible name and
@@ -218,32 +461,8 @@ export const TextButton = styled.button`
  *
  * @category Button
  */
-export type IconButtonProps =
-  | PlainIconButtonProps
-  | (Omit<CommandedButtonProps, "children" | "aria-label" | "tone"> & {
-      /** The glyph. */
-      children: ReactNode;
-      /** The control's name, which is also its tip. */
-      "aria-label": string;
-    })
-  | (Omit<CommandedToggleProps, "children" | "aria-label"> & {
-      /** The glyph, shown as it is and replaced by the kit's send arrow while the press is unanswered. */
-      children: ReactNode;
-      /** The control's name, which is also its tip. */
-      "aria-label": string;
-    });
-
-/**
- * Props for {@link IconButton} with no command. Any other `button` attribute
- * passes through. Useful for giving a control that is a glyph alone its
- * accessible name and its press handler.
- *
- * @category Button
- */
-export interface PlainIconButtonProps
+export interface IconButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement> {
-  /** Set `command` to make the button send a command; give it `state` too if the command sets a value. */
-  command?: undefined;
   /** Makes the button a toggle: sets `aria-pressed` and, while true, draws the pressed look. */
   pressed?: boolean;
   /** Why the button is disabled, shown as its tip. As for {@link Button}. */
@@ -276,22 +495,7 @@ export interface PlainIconButtonProps
  * @category Button
  */
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
-  function IconButton(props, ref) {
-    if (props.command !== undefined) {
-      const { command } = props;
-      const sets =
-        "kind" in command && command.kind === "value"
-          ? true
-          : isControl(command) && command.toggleView !== null;
-      if (sets) {
-        const { children, ...toggle } = props as CommandedToggleProps & {
-          children: ReactNode;
-        };
-        return <CommandedIconToggle {...toggle} icon={children} />;
-      }
-      return <CommandedIconButton {...(props as CommandedButtonProps)} />;
-    }
-    const { pressed, disabledReason, command: _command, ...rest } = props;
+  function IconButton({ pressed, disabledReason, ...rest }, ref) {
     const reasoned = reasonedDisabled(rest.disabled, disabledReason);
     const tip = buttonTipText({
       label: rest["aria-label"],
@@ -313,5 +517,3 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
     );
   },
 );
-
-export { Button__Body, filledLook };

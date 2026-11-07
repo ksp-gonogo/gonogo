@@ -50,7 +50,7 @@ function MissionPanel() {
           // is what these tests observe, but the promise still must be
           // caught so a lost/failed command never surfaces as an unhandled
           // rejection.
-          cmd.dangerouslySendWithoutInput().catch(() => {});
+          cmd.send().catch(() => {});
         }}
       >
         deploy

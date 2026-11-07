@@ -126,10 +126,7 @@ describe("useCommand counting losses that are answered later", () => {
       const command = useCommand("x.y", { rail: false });
       return (
         <>
-          <button
-            type="button"
-            onClick={() => void command.dangerouslySendWithoutInput({})}
-          >
+          <button type="button" onClick={() => void command.send({})}>
             send
           </button>
           <output>{command.founds.length}</output>

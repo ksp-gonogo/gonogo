@@ -271,7 +271,7 @@ function ShipMapComponent({
       actionLabel: string,
       partTitle: string,
     ) => {
-      void invokePartAction.dangerouslySendWithoutInput(
+      void invokePartAction.send(
         // The wire keys parts by stringified flightID, the form every cross-channel join uses.
         { partId: String(flightId), eventName },
         // Operator-facing description for the delay readouts: the raw event name alone would not say which part it acts on.
@@ -389,7 +389,7 @@ function ContributedCommandHost({
   handleRef.current = handle;
   useEffect(() => {
     register(command, (args, label) => {
-      void handleRef.current.dangerouslySendWithoutInput(args, { label });
+      void handleRef.current.send(args, { label });
     });
     return () => register(command, null);
   }, [command, register]);

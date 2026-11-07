@@ -123,26 +123,6 @@ namespace Sitrep.Contract
         public string? ArriveBefore { get; set; }
 
         /// <summary>
-        /// Whether a client may send this command from the meta vantage, the
-        /// vantage that runs a command at once on every path instead of from a
-        /// command centre. Default <c>false</c>, so the signal delay applies.
-        ///
-        /// <para>Set it only on a command that acts on the game or the program
-        /// itself, from the Kerbal Space Center desk, where a signal delay would
-        /// sit on something with no craft at the other end: the game clock, a
-        /// scene change, the career's own contract book, roster, buildings,
-        /// strategies and tech tree, the program's settings. A command that
-        /// reaches a craft, spends from a command centre's own budget or needs a
-        /// place to speak from never qualifies.</para>
-        ///
-        /// <para>A client reads it from the generated command map and sends the
-        /// command from the meta vantage on its own, so a widget has no vantage to
-        /// choose. The host refuses a meta send of any command that does not set it
-        /// here or in its Uplink's <see cref="CommandDeclaration.AllowMetaVantage"/>.</para>
-        /// </summary>
-        public bool AllowMetaVantage { get; set; } = false;
-
-        /// <summary>
         /// The args property holding the value this command sets on the craft,
         /// for a command a slider or stepper sends, such as a rotor's RPM cap.
         ///

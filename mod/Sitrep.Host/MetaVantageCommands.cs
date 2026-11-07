@@ -11,26 +11,44 @@ namespace Sitrep.Host
     /// signal delay on something that has no craft at the other end. A command that
     /// reaches a craft, spends from a command centre's own budget or needs a place to
     /// speak from never qualifies. An Uplink opens one of its own commands the same way
-    /// through <see cref="Sitrep.Contract.CommandDeclaration.AllowMetaVantage"/>. The core commands are the ones tagged
-    /// with <see cref="Sitrep.Contract.SitrepCommandAttribute.AllowMetaVantage"/>. Every
+    /// through <see cref="Sitrep.Contract.CommandDeclaration.AllowMetaVantage"/>. Every
     /// other command sent with the meta vantage is refused with its reason, so a new
-    /// command is delayed by default until its tag or its Uplink's declaration opens it.
+    /// command is delayed by default until it is added here or its Uplink declares it.
     /// </summary>
     public static class MetaVantageCommands
     {
-        /// <summary>
-        /// The approved core and slice commands, read from the contract assemblies'
-        /// <see cref="Sitrep.Contract.SitrepCommandAttribute.AllowMetaVantage"/> tags.
-        /// </summary>
-        public static IReadOnlyList<string> Approved => CommandDelayCatalog.MetaVantageCommandIds();
+        /// <summary>The approved commands, each with why it is exempt from the delay.</summary>
+        public static readonly IReadOnlyDictionary<string, string> Approved = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["time.setWarpIndex"] = "the game clock belongs to the program, not to any craft",
+            ["time.setPaused"] = "the game clock belongs to the program, not to any craft",
+            ["ksp.recover"] = "a scene change made at the space centre",
+            ["ksp.recoverVessel"] = "recovery is a space centre action on a craft that is already home",
+            ["ksp.revertToLaunch"] = "a scene change made at the space centre",
+            ["ksp.revertToEditor"] = "a scene change made at the space centre",
+            ["ksp.toSpaceCenter"] = "a scene change made at the space centre",
+            ["ksp.toTrackingStation"] = "a scene change made at the space centre",
+            ["ksp.switchVessel"] = "changes which craft the game focuses on, and sends nothing to it",
+            ["career.contract.accept"] = "a space centre desk action on the career's own contract book",
+            ["career.contract.decline"] = "a space centre desk action on the career's own contract book",
+            ["career.contract.cancel"] = "a space centre desk action on the career's own contract book",
+            ["career.crew.hire"] = "an astronaut complex action on the career's own roster",
+            ["career.crew.fire"] = "an astronaut complex action on the career's own roster",
+            ["career.facility.upgrade"] = "a space centre building upgrade, made on the ground",
+            ["career.strategy.activate"] = "an administration building action on the career's own strategies",
+            ["career.strategy.deactivate"] = "an administration building action on the career's own strategies",
+            ["career.tech.unlock"] = "a research and development desk action on the career's own tech tree",
+            ["settings.save"] = "writes the program's own settings",
+            ["settings.mod.write"] = "writes the program's own settings",
+        };
 
         /// <summary>
-        /// True when <paramref name="command"/> may be sent from the meta vantage: its
-        /// command is tagged <see cref="Sitrep.Contract.SitrepCommandAttribute.AllowMetaVantage"/>, or <paramref name="declaration"/>, its owning
+        /// True when <paramref name="command"/> may be sent from the meta vantage: it is
+        /// on <see cref="Approved"/>, or <paramref name="declaration"/>, its owning
         /// Uplink's declaration, sets <see cref="Sitrep.Contract.CommandDeclaration.AllowMetaVantage"/>.
         /// </summary>
         public static bool IsApproved(string? command, Sitrep.Contract.CommandDeclaration? declaration = null) =>
-            command != null && (CommandDelayCatalog.AllowsMetaVantage(command) || declaration?.AllowMetaVantage == true);
+            command != null && (Approved.ContainsKey(command) || declaration?.AllowMetaVantage == true);
 
         /// <summary>The sentence a refused command is answered with.</summary>
         public static string RefusalFor(string? command) =>

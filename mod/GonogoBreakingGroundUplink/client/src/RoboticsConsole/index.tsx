@@ -100,24 +100,21 @@ function RoboticsConsoleComponent({
     const label = `Target ${formatPos(type, value)}${unitFor(type)}`;
     setOwnTarget({ partId: id, value: target, atUt: nowUt });
     if (type === "piston") {
-      void extensionCmd.dangerouslySendWithoutInput(
+      void extensionCmd.send(
         { partId: id, metres: target },
         { label, topic: id },
       );
       return;
     }
-    void angleCmd.dangerouslySendWithoutInput(
-      { partId: id, degrees: target },
-      { label, topic: id },
-    );
+    void angleCmd.send({ partId: id, degrees: target }, { label, topic: id });
   };
   const setMotor = (id: string, engaged: boolean) =>
-    void motorCmd.dangerouslySendWithoutInput(
+    void motorCmd.send(
       { partId: id, enabled: engaged },
       { label: `Motor ${engaged ? "on" : "off"}` },
     );
   const setLock = (id: string, locked: boolean) =>
-    void lockCmd.dangerouslySendWithoutInput(
+    void lockCmd.send(
       { partId: id, enabled: locked },
       { label: locked ? "Lock" : "Unlock" },
     );

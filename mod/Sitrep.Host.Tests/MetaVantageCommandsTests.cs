@@ -7,19 +7,13 @@ namespace Sitrep.Host.Tests
     public class MetaVantageCommandsTests
     {
         [Fact]
-        public void TheApprovedCommandsAreExactlyTheTaggedCore()
+        public void EveryApprovedCommandSaysWhyItIsExempt()
         {
-            var expected = new[]
+            Assert.NotEmpty(MetaVantageCommands.Approved);
+            foreach (var entry in MetaVantageCommands.Approved)
             {
-                "career.contract.accept", "career.contract.cancel", "career.contract.decline",
-                "career.crew.fire", "career.crew.hire", "career.facility.upgrade",
-                "career.strategy.activate", "career.strategy.deactivate", "career.tech.unlock",
-                "ksp.recover", "ksp.recoverVessel", "ksp.revertToEditor", "ksp.revertToLaunch",
-                "ksp.switchVessel", "ksp.toSpaceCenter", "ksp.toTrackingStation",
-                "settings.mod.write", "settings.save", "time.setPaused", "time.setWarpIndex",
-            };
-
-            Assert.Equal(expected, MetaVantageCommands.Approved);
+                Assert.False(string.IsNullOrWhiteSpace(entry.Value), entry.Key);
+            }
         }
 
         [Fact]

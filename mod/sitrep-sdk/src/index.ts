@@ -402,13 +402,6 @@ export {
   type SystemPoses,
   systemPosesAt,
 } from "./spine/body-pose";
-export {
-  argsOf,
-  bindCommand,
-  bindValue,
-  commandSet,
-  runSet,
-} from "./spine/bound-command";
 // What a locked `LockScope` hands its fallback, which ui-kit publishes.
 export type { CapabilityLock } from "./spine/capability-lock";
 // ---------------------------------------------------------------------------

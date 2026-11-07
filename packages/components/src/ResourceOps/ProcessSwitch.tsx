@@ -1,5 +1,9 @@
 import type { CommandReply } from "@ksp-gonogo/sitrep-sdk";
-import { Button, type CommandButtonHandle, Inline } from "@ksp-gonogo/ui-kit";
+import {
+  CommandButton,
+  type CommandButtonHandle,
+  Inline,
+} from "@ksp-gonogo/ui-kit";
 
 export type ProcessSwitchHandles = Readonly<{
   start: CommandButtonHandle<CommandReply<"vessel.converter.start">>;
@@ -41,21 +45,21 @@ export function ProcessSwitch({
   return (
     <Inline>
       {running ? (
-        <Button
+        <CommandButton
           size="sm"
-          variant="ghost"
-          command={handles.stop.with(args, { label: `Stop ${title}` })}
-        >
-          Stop
-        </Button>
+          handle={handles.stop}
+          args={args}
+          commandLabel={`Stop ${title}`}
+          label="Stop"
+        />
       ) : (
-        <Button
+        <CommandButton
           size="sm"
-          variant="ghost"
-          command={handles.start.with(args, { label: `Start ${title}` })}
-        >
-          Start
-        </Button>
+          handle={handles.start}
+          args={args}
+          commandLabel={`Start ${title}`}
+          label="Start"
+        />
       )}
     </Inline>
   );

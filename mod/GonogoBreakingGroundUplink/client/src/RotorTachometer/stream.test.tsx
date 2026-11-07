@@ -78,7 +78,7 @@ describe("RotorTachometer: genuinely runs off the stream", () => {
     expect(screen.queryByText(/Arm Hinge/)).not.toBeInTheDocument();
 
     await act(async () => {
-      screen.getByRole("button", { name: /Increase RPM cap/i }).click();
+      screen.getByRole("button", { name: /Raise RPM cap/i }).click();
     });
     await waitFor(() => {
       const sent = fixture.transport.sentCommands.find(

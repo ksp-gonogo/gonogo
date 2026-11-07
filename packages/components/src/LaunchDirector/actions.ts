@@ -63,7 +63,7 @@ export const BoundPresses = createContext<Map<
 > | null>(null);
 
 /**
- * A a command `Button`'s `onPressReady` for a control a bound input may press:
+ * A `CommandButton`'s `onPressReady` for a control a bound input may press:
  * lists the press under `action` while a click on the control would do
  * something and withdraws it otherwise.
  */

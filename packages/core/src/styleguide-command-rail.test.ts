@@ -167,7 +167,7 @@ describe("every command's outcome reaches the operator", () => {
     if (wrong.length > 0) {
       throw new Error(
         "Widget code dispatched a command without `useCommand`, so nothing " +
-          "puts its outcome on the rail. Use `useCommand(...).dangerouslySendWithoutInput(...)`, or " +
+          "puts its outcome on the rail. Use `useCommand(...).send(...)`, or " +
           "name a file that reports every outcome itself in RAW_DISPATCHERS:\n" +
           wrong.join("\n"),
       );

@@ -2,15 +2,14 @@ import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
   Cluster,
+  CommandStepper,
   ContainerBreak,
   ReadoutCaption,
   type ReckoningMarking,
   Section,
-  Stepper,
   Text,
   ToggleButton,
   Unit,
-  writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { lockStateText, motorStateText } from "../unreadLabels";
@@ -115,34 +114,34 @@ export function RotorControls({
           wide={STEPPER_ROWS_WIDE}
         >
           <CaptionCell>RPM cap</CaptionCell>
-          <Stepper
-            label="RPM cap"
+          <CommandStepper
             unknown="RPM cap unknown"
-            value={rpmCommand.commanded}
+            lowerLabel="Lower RPM cap"
+            raiseLabel="Raise RPM cap"
+            commanded={rpmCommand.commanded}
             expected={rpmCommand.expected}
             lastSeen={rpmCommand.lastSeen}
             lastSeenCaption={rpmCommand.lastSeenCaption}
             min={0}
             max={ROTOR_MAX_RPM}
             step={RPM_STEP}
-            format={(v) => writeQuantity(value("rpm", v), { decimals: 0 })}
-            disabled={rpmCommand.commanded === null}
+            figure={(v) => <Unit value={value("rpm", v)} decimals={0} />}
             disabledReason="The RPM cap is not reported"
             onChange={(v) => setRpmLimit(selected.partId, v)}
           />
           <CaptionCell>Torque</CaptionCell>
-          <Stepper
-            label="Torque limit"
+          <CommandStepper
             unknown="Torque unknown"
-            value={torqueCommand.commanded}
+            lowerLabel="Lower torque limit"
+            raiseLabel="Raise torque limit"
+            commanded={torqueCommand.commanded}
             expected={torqueCommand.expected}
             lastSeen={torqueCommand.lastSeen}
             lastSeenCaption={torqueCommand.lastSeenCaption}
             min={0}
             max={100}
             step={TORQUE_STEP}
-            format={(v) => writeQuantity(value("%", v), { decimals: 0 })}
-            disabled={torqueCommand.commanded === null}
+            figure={(v) => <Unit value={value("%", v)} decimals={0} />}
             disabledReason="The torque limit is not reported"
             onChange={(v) => setTorqueLimit(selected.partId, v)}
           />

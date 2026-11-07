@@ -104,7 +104,7 @@ function RotorTachometerComponent({
   const setRpmLimit = (id: string, rpm: number) => {
     const value = Math.round(clamp(rpm, 0, ROTOR_MAX_RPM));
     setOwnRpm({ partId: id, value, atUt: nowUt });
-    void rpmCmd.dangerouslySendWithoutInput(
+    void rpmCmd.send(
       { partId: id, rpm: value },
       { label: `RPM cap ${value}`, topic: id },
     );
@@ -112,33 +112,30 @@ function RotorTachometerComponent({
   const setTorqueLimit = (id: string, pct: number) => {
     const value = Math.round(clamp(pct, 0, 100));
     setOwnTorque({ partId: id, value, atUt: nowUt });
-    void torqueCmd.dangerouslySendWithoutInput(
+    void torqueCmd.send(
       { partId: id, percent: value },
       { label: `Torque ${writeQuantity(quantity("%", value))}`, topic: id },
     );
   };
   const setBrake = (id: string, pct: number) => {
     const value = Math.round(clamp(pct, 0, 200));
-    void brakeCmd.dangerouslySendWithoutInput(
+    void brakeCmd.send(
       { partId: id, percent: value },
       { label: `Brake ${writeQuantity(quantity("%", value))}` },
     );
   };
   const setMotor = (id: string, engaged: boolean) =>
-    void motorCmd.dangerouslySendWithoutInput(
+    void motorCmd.send(
       { partId: id, enabled: engaged },
       { label: `Motor ${engaged ? "on" : "off"}` },
     );
   const setLock = (id: string, locked: boolean) =>
-    void lockCmd.dangerouslySendWithoutInput(
+    void lockCmd.send(
       { partId: id, enabled: locked },
       { label: locked ? "Lock" : "Unlock" },
     );
   const reverse = (id: string) =>
-    void reverseCmd.dangerouslySendWithoutInput(
-      { partId: id },
-      { label: "Reverse" },
-    );
+    void reverseCmd.send({ partId: id }, { label: "Reverse" });
 
   useActionInput<RotorTachometerActions>({
     // The steppers are relative, so they dispatch nothing while the cap is unread.

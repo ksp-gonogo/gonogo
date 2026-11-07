@@ -14,7 +14,6 @@ import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ContributionHost } from "../test/contributionHost";
-import { findButtonDescribedBy } from "../test/describedButton";
 import { perItemGateReport } from "../test/perItemGate";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
@@ -238,7 +237,9 @@ describe("SpaceCenterStatusComponent", () => {
         }),
       );
     });
-    const refused = await findButtonDescribedBy(/short of funds/);
+    const refused = await screen.findByRole("button", {
+      name: /short of funds/,
+    });
     expect(refused.getAttribute("aria-disabled")).toBe("true");
   });
 

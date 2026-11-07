@@ -72,9 +72,7 @@ export function GithubIssueForm({
       window.setTimeout(() => resolve(null), MOD_LOG_WAIT_MS),
     );
     const reply = await Promise.race([
-      recentLog
-        .dangerouslySendWithoutInput({ maxLines: MOD_LOG_LINES })
-        .catch(() => null),
+      recentLog.send({ maxLines: MOD_LOG_LINES }).catch(() => null),
       timeout,
     ]);
     const lines = reply?.success ? (reply.payload?.lines ?? []) : [];

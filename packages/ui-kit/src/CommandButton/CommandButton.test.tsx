@@ -1,17 +1,13 @@
 import {
-  bindCommand,
-  bindValue,
   CommandErrorCode,
   railTagsForCommand,
   type SendStatus,
-  type UseCommandResult,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
-import { type ReactNode, StrictMode } from "react";
+import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Button } from "../Button";
 import { commandLossSentence } from "../CommandDelay/commandLossSentence";
 import {
   createDelayRailStore,
@@ -19,18 +15,17 @@ import {
 } from "../CommandDelay/DelayRailContext";
 import { PanelDelayRail } from "../CommandDelay/PanelDelayRail";
 import { expectNoA11yViolations } from "../expectNoA11yViolations";
-import { ToggleButton } from "../ToggleButton";
 import { emittedStateRuleFor } from "../test/emittedRule";
 import {
   ARM_TIMEOUT_MS,
+  CommandButton,
   type CommandButtonHandle,
   type CommandReplyLike,
   REFUSAL_TIMEOUT_MS,
   SENT_FLASH_MS,
   STREAM_DOWN_TIP,
-  useCommandControl,
-} from "./commandControl";
-import type { CommandToggle } from "./toggle";
+  useCommandButton,
+} from "./CommandButton";
 
 // The rail axes come from the production derivation, so the fixture follows it rather than asserting a stale literal.
 const RAIL_DISCRETE = railTagsForCommand("vessel.control.setSasMode");
@@ -40,45 +35,16 @@ const OK: CommandReplyLike = { success: true };
 
 /** A hand-built handle satisfying the structural `CommandButtonHandle`; only the dispatch is a fixture. */
 function makeHandle(
-  send: CommandButtonHandle["dangerouslySendWithoutInput"],
+  send: CommandButtonHandle["send"],
   over: Partial<CommandButtonHandle> = {},
 ): CommandButtonHandle {
-  const handle: CommandButtonHandle = {
-    dangerouslySendWithoutInput: send,
+  return {
+    send,
     inFlight: [],
     tags: RAIL_DISCRETE,
     effectiveDelaySeconds: 0,
-    with(args, options) {
-      return bindCommand(this, args, options);
-    },
-    toArgs(toArgs, options) {
-      return bindValue(this, toArgs, options);
-    },
     ...over,
   };
-  return handle;
-}
-
-/** A toggle built the long way: the hook runs here with a full `toggle` config and the button draws from its control. */
-function ConfiguredToggle({
-  handle,
-  commandLabel,
-  toggle,
-  icon,
-  ...rest
-}: {
-  handle: CommandButtonHandle;
-  commandLabel?: string;
-  label?: string;
-  toggle: CommandToggle;
-  icon?: ReactNode;
-  "aria-label"?: string;
-}) {
-  const control = useCommandControl({
-    command: handle.with(undefined, { label: commandLabel }),
-    toggle,
-  });
-  return <ToggleButton command={control} icon={icon} {...rest} />;
 }
 
 type Deferred<Reply = CommandReplyLike> = ReturnType<typeof deferred<Reply>>;
@@ -121,9 +87,7 @@ describe("CommandButton: single-click dispatch", () => {
     const user = userEvent.setup();
     const send = vi.fn(() => Promise.resolve(OK));
     render(
-      <Button command={makeHandle(send).with({ id: "x" })} variant="ghost">
-        Go
-      </Button>,
+      <CommandButton handle={makeHandle(send)} args={{ id: "x" }} label="Go" />,
     );
 
     await user.click(screen.getByRole("button", { name: "Go" }));
@@ -138,9 +102,7 @@ describe("CommandButton: single-click dispatch", () => {
     const reply = deferred();
     render(
       <StrictMode>
-        <Button command={makeHandle(() => reply.promise)} variant="ghost">
-          Go
-        </Button>
+        <CommandButton handle={makeHandle(() => reply.promise)} label="Go" />
       </StrictMode>,
     );
 
@@ -165,13 +127,12 @@ describe("CommandButton: single-click dispatch", () => {
     const send = vi.fn(() => Promise.resolve(OK));
     const handle = makeHandle(send);
     const { rerender } = render(
-      <Button
-        command={handle.with({ id: "a" })}
-        variant="ghost"
+      <CommandButton
+        handle={handle}
+        args={{ id: "a" }}
+        label="Fire"
         confirmLabel="Confirm"
-      >
-        Fire
-      </Button>,
+      />,
     );
     await user.click(screen.getByRole("button", { name: "Fire" }));
     expect(screen.getByRole("button")).toHaveAttribute(
@@ -180,13 +141,12 @@ describe("CommandButton: single-click dispatch", () => {
     );
 
     rerender(
-      <Button
-        command={handle.with({ id: "b" })}
-        variant="ghost"
+      <CommandButton
+        handle={handle}
+        args={{ id: "b" }}
+        label="Fire"
         confirmLabel="Confirm"
-      >
-        Fire
-      </Button>,
+      />,
     );
 
     expect(screen.getByRole("button")).toHaveAttribute(
@@ -200,23 +160,21 @@ describe("CommandButton: single-click dispatch", () => {
     const user = userEvent.setup();
     const handle = makeHandle(() => Promise.resolve(OK));
     const { rerender } = render(
-      <Button
-        command={handle.with({ id: "a" })}
-        variant="ghost"
+      <CommandButton
+        handle={handle}
+        args={{ id: "a" }}
+        label="Fire"
         confirmLabel="Confirm"
-      >
-        Fire
-      </Button>,
+      />,
     );
     await user.click(screen.getByRole("button", { name: "Fire" }));
     rerender(
-      <Button
-        command={handle.with({ id: "a" })}
-        variant="ghost"
+      <CommandButton
+        handle={handle}
+        args={{ id: "a" }}
+        label="Fire"
         confirmLabel="Confirm"
-      >
-        Fire
-      </Button>,
+      />,
     );
     expect(screen.getByRole("button")).toHaveAttribute(
       "data-command-phase",
@@ -228,14 +186,11 @@ describe("CommandButton: single-click dispatch", () => {
     const user = userEvent.setup();
     const send = vi.fn(() => Promise.resolve(OK));
     render(
-      <Button
-        command={makeHandle(send).with(undefined, {
-          label: "Hire Valentina Kerman",
-        })}
-        variant="ghost"
-      >
-        Hire
-      </Button>,
+      <CommandButton
+        handle={makeHandle(send)}
+        commandLabel="Hire Valentina Kerman"
+        label="Hire"
+      />,
     );
 
     await user.click(screen.getByRole("button", { name: "Hire" }));
@@ -252,29 +207,32 @@ describe("CommandButton: arm then confirm", () => {
     const user = userEvent.setup();
     const send = vi.fn(() => Promise.resolve(OK));
     render(
-      <Button command={makeHandle(send)} variant="ghost" confirmLabel="Confirm">
-        Fire
-      </Button>,
+      <CommandButton
+        handle={makeHandle(send)}
+        label="Fire"
+        confirmLabel="Confirm"
+      />,
     );
     const resting = screen.getByRole("button", { name: "Fire" });
     expect(resting.dataset.restLabel).toBe("Fire");
-    // The widest word the button can show, the outcome words included, so no phase resizes it.
-    expect(resting.dataset.armedLabel).toBe("No reply");
+    expect(resting.dataset.armedLabel).toBe("Confirm");
 
     await user.click(resting);
 
     const armed = screen.getByRole("button", { name: "Confirm" });
     expect(armed.dataset.restLabel).toBe("Fire");
-    expect(armed.dataset.armedLabel).toBe("No reply");
+    expect(armed.dataset.armedLabel).toBe("Confirm");
   });
 
   it("arms on the first click and dispatches nothing", async () => {
     const user = userEvent.setup();
     const send = vi.fn(() => Promise.resolve(OK));
     render(
-      <Button command={makeHandle(send)} variant="ghost" confirmLabel="Confirm">
-        Fire
-      </Button>,
+      <CommandButton
+        handle={makeHandle(send)}
+        label="Fire"
+        confirmLabel="Confirm"
+      />,
     );
 
     await user.click(screen.getByRole("button", { name: "Fire" }));
@@ -287,13 +245,12 @@ describe("CommandButton: arm then confirm", () => {
     const user = userEvent.setup();
     const send = vi.fn(() => Promise.resolve(OK));
     render(
-      <Button
-        command={makeHandle(send).with("kerbal")}
-        variant="ghost"
+      <CommandButton
+        handle={makeHandle(send)}
+        args="kerbal"
+        label="Fire"
         confirmLabel="Confirm"
-      >
-        Fire
-      </Button>,
+      />,
     );
 
     await user.click(screen.getByRole("button", { name: "Fire" }));
@@ -307,9 +264,11 @@ describe("CommandButton: arm then confirm", () => {
     const user = useArmClock();
     const send = vi.fn(() => Promise.resolve(OK));
     render(
-      <Button command={makeHandle(send)} variant="ghost" confirmLabel="Confirm">
-        Fire
-      </Button>,
+      <CommandButton
+        handle={makeHandle(send)}
+        label="Fire"
+        confirmLabel="Confirm"
+      />,
     );
 
     await user.click(screen.getByRole("button", { name: "Fire" }));
@@ -336,12 +295,10 @@ describe("CommandButton: the sent window", () => {
     const user = useArmClock();
     const d = deferred();
     render(
-      <Button
-        command={makeHandle(() => d.promise, { status: inFlightStatus(true) })}
-        variant="ghost"
-      >
-        Go
-      </Button>,
+      <CommandButton
+        handle={makeHandle(() => d.promise, { status: inFlightStatus(true) })}
+        label="Go"
+      />,
     );
 
     await user.click(screen.getByRole("button", { name: "Go" }));
@@ -367,14 +324,12 @@ describe("CommandButton: the sent window", () => {
     const user = useArmClock();
     const d = deferred();
     const draw = (accepted: boolean) => (
-      <Button
-        command={makeHandle(() => d.promise, {
+      <CommandButton
+        handle={makeHandle(() => d.promise, {
           status: inFlightStatus(accepted),
         })}
-        variant="ghost"
-      >
-        Go
-      </Button>
+        label="Go"
+      />
     );
     const { rerender } = render(draw(false));
 
@@ -401,12 +356,10 @@ describe("CommandButton: the sent window", () => {
     const user = useArmClock();
     const send = vi.fn(() => deferred().promise);
     render(
-      <Button
-        command={makeHandle(send, { status: inFlightStatus(true) })}
-        variant="ghost"
-      >
-        Go
-      </Button>,
+      <CommandButton
+        handle={makeHandle(send, { status: inFlightStatus(true) })}
+        label="Go"
+      />,
     );
 
     await user.click(screen.getByRole("button", { name: "Go" }));
@@ -417,27 +370,25 @@ describe("CommandButton: the sent window", () => {
 
   it("holds the width of its resting word, so SENT never reflows the row", () => {
     render(
-      <Button command={makeHandle(() => Promise.resolve(OK))} variant="ghost">
-        Launch vessel
-      </Button>,
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(OK))}
+        label="Launch vessel"
+      />,
     );
 
     const button = screen.getByRole("button");
     expect(button).toHaveAttribute("data-rest-label", "Launch vessel");
-    expect(button).toHaveAttribute("data-armed-label", "No reply");
+    expect(button).toHaveAttribute("data-armed-label", "SENT");
   });
 
   it("says in words that the press has gone and not been received", async () => {
     const user = useArmClock();
     render(
-      <Button
-        command={makeHandle(() => deferred().promise).with(undefined, {
-          label: "Launch vessel",
-        })}
-        variant="ghost"
-      >
-        Launch
-      </Button>,
+      <CommandButton
+        handle={makeHandle(() => deferred().promise)}
+        commandLabel="Launch vessel"
+        label="Launch"
+      />,
     );
 
     await user.click(screen.getByRole("button", { name: "Launch" }));
@@ -453,14 +404,11 @@ describe("CommandButton: the sent window", () => {
     const d = deferred();
     const onConfirmed = vi.fn();
     render(
-      <Button
-        command={makeHandle(() => d.promise).with(undefined, {
-          onConfirmed: onConfirmed,
-        })}
-        variant="ghost"
-      >
-        Go
-      </Button>,
+      <CommandButton
+        handle={makeHandle(() => d.promise)}
+        label="Go"
+        onConfirmed={onConfirmed}
+      />,
     );
 
     await user.click(screen.getByRole("button", { name: "Go" }));
@@ -478,14 +426,11 @@ describe("CommandButton: the sent window", () => {
     const d = deferred();
     const onConfirmed = vi.fn();
     render(
-      <Button
-        command={makeHandle(() => d.promise).with(undefined, {
-          onConfirmed: onConfirmed,
-        })}
-        variant="ghost"
-      >
-        Go
-      </Button>,
+      <CommandButton
+        handle={makeHandle(() => d.promise)}
+        label="Go"
+        onConfirmed={onConfirmed}
+      />,
     );
 
     // The envelope, with the command's own receipt on `payload`, where the wire puts it.
@@ -503,9 +448,7 @@ describe("CommandButton: the sent window", () => {
     const user = userEvent.setup();
     const d = deferred();
     const { unmount } = render(
-      <Button command={makeHandle(() => d.promise)} variant="ghost">
-        Go
-      </Button>,
+      <CommandButton handle={makeHandle(() => d.promise)} label="Go" />,
     );
 
     await user.click(screen.getByRole("button", { name: "Go" }));
@@ -529,14 +472,11 @@ describe("CommandButton: outcomes are announced, not only relabelled", () => {
     const user = userEvent.setup();
     const d = deferred();
     const { container } = render(
-      <Button
-        command={makeHandle(() => d.promise).with(undefined, {
-          label: "Upgrade Launch Pad",
-        })}
-        variant="ghost"
-      >
-        Upgrade
-      </Button>,
+      <CommandButton
+        handle={makeHandle(() => d.promise)}
+        commandLabel="Upgrade Launch Pad"
+        label="Upgrade"
+      />,
     );
     const region = announcer(container);
     expect(region).toBeEmptyDOMElement();
@@ -568,12 +508,10 @@ describe("CommandButton: outcomes are announced, not only relabelled", () => {
       const { container } = render(
         <DelayRailContext.Provider value={store}>
           {rail && <PanelDelayRail />}
-          <Button
-            command={makeHandle(() => d.promise, { railed: true })}
-            variant="ghost"
-          >
-            Go
-          </Button>
+          <CommandButton
+            handle={makeHandle(() => d.promise, { railed: true })}
+            label="Go"
+          />
         </DelayRailContext.Provider>,
       );
       await user.click(screen.getByRole("button", { name: "Go" }));
@@ -593,12 +531,10 @@ describe("CommandButton: outcomes are announced, not only relabelled", () => {
     const { container } = render(
       <DelayRailContext.Provider value={store}>
         <PanelDelayRail />
-        <Button
-          command={makeHandle(() => d.promise, { railed: false })}
-          variant="ghost"
-        >
-          Go
-        </Button>
+        <CommandButton
+          handle={makeHandle(() => d.promise, { railed: false })}
+          label="Go"
+        />
       </DelayRailContext.Provider>,
     );
     await user.click(screen.getByRole("button", { name: "Go" }));
@@ -612,9 +548,7 @@ describe("CommandButton: outcomes are announced, not only relabelled", () => {
     const user = userEvent.setup();
     const d = deferred();
     const { container } = render(
-      <Button command={makeHandle(() => d.promise)} variant="ghost">
-        Go
-      </Button>,
+      <CommandButton handle={makeHandle(() => d.promise)} label="Go" />,
     );
     await user.click(screen.getByRole("button", { name: "Go" }));
     await act(async () => {
@@ -625,9 +559,10 @@ describe("CommandButton: outcomes are announced, not only relabelled", () => {
 
   it("says nothing at rest", () => {
     const { container } = render(
-      <Button command={makeHandle(() => deferred().promise)} variant="ghost">
-        Go
-      </Button>,
+      <CommandButton
+        handle={makeHandle(() => deferred().promise)}
+        label="Go"
+      />,
     );
     expect(announcer(container)).toBeEmptyDOMElement();
   });
@@ -638,14 +573,11 @@ describe("CommandButton: the refused phase", () => {
     const user = userEvent.setup();
     const d = deferred();
     render(
-      <Button
-        command={makeHandle(() => d.promise).with(undefined, {
-          label: "Upgrade Launch Pad",
-        })}
-        variant="ghost"
-      >
-        Upgrade
-      </Button>,
+      <CommandButton
+        handle={makeHandle(() => d.promise)}
+        commandLabel="Upgrade Launch Pad"
+        label="Upgrade"
+      />,
     );
 
     await user.click(screen.getByRole("button", { name: "Upgrade" }));
@@ -673,14 +605,11 @@ describe("CommandButton: the refused phase", () => {
     const user = userEvent.setup();
     const d = deferred();
     render(
-      <Button
-        command={makeHandle(() => d.promise).with(undefined, {
-          label: "Arm the write surface",
-        })}
-        variant="ghost"
-      >
-        ARM WRITES
-      </Button>,
+      <CommandButton
+        handle={makeHandle(() => d.promise)}
+        commandLabel="Arm the write surface"
+        label="ARM WRITES"
+      />,
     );
 
     await user.click(screen.getByRole("button", { name: "ARM WRITES" }));
@@ -707,9 +636,7 @@ describe("CommandButton: the refused phase", () => {
     const user = useArmClock();
     const d = deferred();
     render(
-      <Button command={makeHandle(() => d.promise)} variant="ghost">
-        Upgrade
-      </Button>,
+      <CommandButton handle={makeHandle(() => d.promise)} label="Upgrade" />,
     );
 
     await user.click(screen.getByRole("button", { name: "Upgrade" }));
@@ -731,11 +658,7 @@ describe("CommandButton: the refused phase", () => {
     const user = userEvent.setup();
     const d = deferred();
     const send = vi.fn(() => d.promise);
-    render(
-      <Button command={makeHandle(send)} variant="ghost">
-        Upgrade
-      </Button>,
-    );
+    render(<CommandButton handle={makeHandle(send)} label="Upgrade" />);
 
     await user.click(screen.getByRole("button", { name: "Upgrade" }));
     await act(async () => {
@@ -751,11 +674,7 @@ describe("CommandButton: the refused phase", () => {
   it("does not call a lost command refused: nothing was decided", async () => {
     const user = userEvent.setup();
     const d = deferred();
-    render(
-      <Button command={makeHandle(() => d.promise)} variant="ghost">
-        Go
-      </Button>,
-    );
+    render(<CommandButton handle={makeHandle(() => d.promise)} label="Go" />);
 
     await user.click(screen.getByRole("button", { name: "Go" }));
     await act(async () => {
@@ -774,9 +693,7 @@ describe("CommandButton: the refused phase", () => {
       const user = useArmClock();
       const d = deferred();
       const { unmount } = render(
-        <Button command={makeHandle(() => d.promise)} variant="ghost">
-          Go
-        </Button>,
+        <CommandButton handle={makeHandle(() => d.promise)} label="Go" />,
       );
       await user.click(screen.getByRole("button", { name: "Go" }));
       await act(async () => {
@@ -807,11 +724,7 @@ describe("CommandButton: the refused phase", () => {
   it("returns a dropped command's control to rest once the loss has been read", async () => {
     const user = useArmClock();
     const d = deferred();
-    render(
-      <Button command={makeHandle(() => d.promise)} variant="ghost">
-        Go
-      </Button>,
-    );
+    render(<CommandButton handle={makeHandle(() => d.promise)} label="Go" />);
 
     await user.click(screen.getByRole("button", { name: "Go" }));
     await act(async () => {
@@ -831,11 +744,7 @@ describe("CommandButton: the refused phase", () => {
   it("does not call a machinery failure refused either", async () => {
     const user = useArmClock();
     const d = deferred();
-    render(
-      <Button command={makeHandle(() => d.promise)} variant="ghost">
-        Go
-      </Button>,
-    );
+    render(<CommandButton handle={makeHandle(() => d.promise)} label="Go" />);
 
     await user.click(screen.getByRole("button", { name: "Go" }));
     await act(async () => {
@@ -856,14 +765,12 @@ describe("CommandButton: the accessible name tracks the phase", () => {
   it("does not keep announcing the resting name once armed", async () => {
     const user = userEvent.setup();
     render(
-      <Button
-        command={makeHandle(() => Promise.resolve(OK))}
-        variant="ghost"
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(OK))}
+        label="Hire"
         confirmLabel="Confirm"
         aria-label="Hire Desdin Kerman for 30,000 funds"
-      >
-        Hire
-      </Button>,
+      />,
     );
 
     await user.click(
@@ -879,15 +786,13 @@ describe("CommandButton: the accessible name tracks the phase", () => {
   it("uses the caller's confirm name when it has one", async () => {
     const user = userEvent.setup();
     render(
-      <Button
-        command={makeHandle(() => Promise.resolve(OK))}
-        variant="ghost"
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(OK))}
+        label="Hire"
         confirmLabel="Confirm"
         aria-label="Hire Desdin Kerman"
         confirmAriaLabel="Confirm hire of Desdin Kerman"
-      >
-        Hire
-      </Button>,
+      />,
     );
 
     await user.click(
@@ -903,13 +808,11 @@ describe("CommandButton: the accessible name tracks the phase", () => {
     const user = userEvent.setup();
     const d = deferred();
     render(
-      <Button
-        command={makeHandle(() => d.promise)}
-        variant="ghost"
+      <CommandButton
+        handle={makeHandle(() => d.promise)}
+        label="Upgrade"
         aria-label="Upgrade Launch Pad"
-      >
-        Upgrade
-      </Button>,
+      />,
     );
 
     await user.click(
@@ -933,13 +836,11 @@ describe("CommandButton: the accessible name tracks the phase", () => {
 describe("CommandButton: representing state as well as acting", () => {
   it("carries aria-pressed when it represents a current state", () => {
     render(
-      <Button
-        command={makeHandle(() => Promise.resolve(OK))}
-        variant="ghost"
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(OK))}
+        label="SAS"
         pressed
-      >
-        SAS
-      </Button>,
+      />,
     );
     expect(screen.getByRole("button", { name: "SAS" })).toHaveAttribute(
       "aria-pressed",
@@ -949,9 +850,10 @@ describe("CommandButton: representing state as well as acting", () => {
 
   it("carries no aria-pressed when it only acts", () => {
     render(
-      <Button command={makeHandle(() => Promise.resolve(OK))} variant="ghost">
-        Hire
-      </Button>,
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(OK))}
+        label="Hire"
+      />,
     );
     expect(screen.getByRole("button", { name: "Hire" })).not.toHaveAttribute(
       "aria-pressed",
@@ -962,14 +864,12 @@ describe("CommandButton: representing state as well as acting", () => {
     const user = useArmClock();
     const d = deferred();
     render(
-      <Button
-        command={makeHandle(() => d.promise)}
-        variant="ghost"
+      <CommandButton
+        handle={makeHandle(() => d.promise)}
+        label="SAS"
         confirmLabel="Confirm SAS"
         pressed={false}
-      >
-        SAS
-      </Button>,
+      />,
     );
 
     await user.click(screen.getByRole("button", { name: "SAS" }));
@@ -986,8 +886,8 @@ describe("CommandButton: representing state as well as acting", () => {
 
   it("carries data-unconfirmed, never data-failed, while the handle holds an overdue dispatch", () => {
     render(
-      <Button
-        command={makeHandle(() => Promise.resolve(OK), {
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(OK), {
           inFlight: [
             {
               id: "r1",
@@ -996,10 +896,8 @@ describe("CommandButton: representing state as well as acting", () => {
             } as never,
           ],
         })}
-        variant="ghost"
-      >
-        Hire
-      </Button>,
+        label="Hire"
+      />,
     );
     const button = screen.getByRole("button", { name: "Hire" });
     expect(button).toHaveAttribute("data-unconfirmed", "true");
@@ -1008,14 +906,12 @@ describe("CommandButton: representing state as well as acting", () => {
 
   it("carries data-failed while the handle holds a dispatch that never left", () => {
     render(
-      <Button
-        command={makeHandle(() => Promise.resolve(OK), {
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(OK), {
           undelivered: [{ id: "u1", command: "career.crew.hire", label: "" }],
         })}
-        variant="ghost"
-      >
-        Hire
-      </Button>,
+        label="Hire"
+      />,
     );
     const button = screen.getByRole("button", { name: "Hire" });
     expect(button).toHaveAttribute("data-failed", "true");
@@ -1038,12 +934,10 @@ describe("CommandButton: the blocked phase", () => {
     const user = userEvent.setup();
     const send = vi.fn(() => Promise.resolve(OK));
     render(
-      <Button
-        command={makeHandle(send, { gate: blockedGate() })}
-        variant="ghost"
-      >
-        Launch
-      </Button>,
+      <CommandButton
+        handle={makeHandle(send, { gate: blockedGate() })}
+        label="Launch"
+      />,
     );
 
     await user.click(screen.getByRole("button"));
@@ -1065,15 +959,16 @@ describe("CommandButton: the blocked phase", () => {
     });
     render(
       <>
-        <Button
-          command={handle.with({ facilityId: "LaunchPad" })}
-          variant="ghost"
-        >
-          Upgrade pad
-        </Button>
-        <Button command={handle.with({ facilityId: "Runway" })} variant="ghost">
-          Upgrade runway
-        </Button>
+        <CommandButton
+          handle={handle}
+          args={{ facilityId: "LaunchPad" }}
+          label="Upgrade pad"
+        />
+        <CommandButton
+          handle={handle}
+          args={{ facilityId: "Runway" }}
+          label="Upgrade runway"
+        />
       </>,
     );
 
@@ -1090,23 +985,23 @@ describe("CommandButton: the blocked phase", () => {
 
   it("is aria-disabled and NOT disabled, so a screen reader still finds it", () => {
     render(
-      <Button command={makeHandle(() => Promise.resolve(OK))} variant="ghost">
-        Launch
-      </Button>,
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(OK))}
+        label="Launch"
+      />,
     );
     const ungated = screen.getByRole("button");
     expect(ungated).not.toHaveAttribute("aria-disabled");
     expect(ungated).not.toBeDisabled();
 
     render(
-      <Button
-        command={makeHandle(() => Promise.resolve(OK), {
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(OK), {
           gate: blockedGate(),
-        }).with(undefined, { label: "Launch Kerbal I" })}
-        variant="ghost"
-      >
-        Launch
-      </Button>,
+        })}
+        label="Launch"
+        commandLabel="Launch Kerbal I"
+      />,
     );
     const gated = screen.getAllByRole("button")[1];
     expect(gated).toHaveAttribute("aria-disabled", "true");
@@ -1114,30 +1009,30 @@ describe("CommandButton: the blocked phase", () => {
     expect(gated).not.toBeDisabled();
   });
 
-  it("keeps the control's own name and gives the reason as its description", () => {
+  it("makes the REASON the accessible name, not just the fact", () => {
     render(
-      <Button
-        command={makeHandle(() => Promise.resolve(OK), {
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(OK), {
           gate: blockedGate(),
-        }).with(undefined, { label: "Launch Kerbal I" })}
-        variant="ghost"
+        })}
+        label="Launch"
+        commandLabel="Launch Kerbal I"
         aria-label="Launch Kerbal I"
-      >
-        Launch
-      </Button>,
+      />,
     );
 
-    // The name says which control it is; the game's own words, through the shared composer, are read after it.
-    const button = screen.getByRole("button", { name: "Launch Kerbal I" });
-    expect(button).toHaveAccessibleDescription(
-      "Launch Kerbal I unavailable: Launch Pad is occupied.",
-    );
+    // The game's own words, through the shared composer.
+    expect(
+      screen.getByRole("button", {
+        name: "Launch Kerbal I unavailable: Launch Pad is occupied.",
+      }),
+    ).toBeInTheDocument();
   });
 
   it("quotes the numbers when the gate carried a breach", () => {
     render(
-      <Button
-        command={makeHandle(() => Promise.resolve(OK), {
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(OK), {
           gate: blockedGate({
             // CommandErrorCode.LimitReached
             errorCode: CommandErrorCode.LimitReached,
@@ -1152,69 +1047,80 @@ describe("CommandButton: the blocked phase", () => {
               unit: "count",
             },
           }),
-        }).with(undefined, { label: "Hire Valentina Kerman" })}
-        variant="ghost"
-      >
-        Hire
-      </Button>,
+        })}
+        label="Hire"
+        commandLabel="Hire Valentina Kerman"
+      />,
     );
 
     expect(
-      screen.getByRole("button", { name: "Hire" }),
-    ).toHaveAccessibleDescription(
-      "Hire Valentina Kerman unavailable: the Astronaut Complex holds 16 of 16 active crew.",
-    );
+      screen.getByRole("button", {
+        name: "Hire Valentina Kerman unavailable: the Astronaut Complex holds 16 of 16 active crew.",
+      }),
+    ).toBeInTheDocument();
   });
 
-  it("never prints the reason in the control: a press sends nothing and the reason stays in the tip and the description", async () => {
+  it("shows the reason in the control on a press, for the keyboard user a title never reaches", async () => {
     const user = userEvent.setup();
-    const send = vi.fn(() => Promise.resolve(OK));
     render(
-      <Button
-        command={makeHandle(send, { gate: blockedGate() }).with(undefined, {
-          label: "Launch Kerbal I",
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(OK), {
+          gate: blockedGate(),
         })}
-        variant="ghost"
-      >
-        Launch
-      </Button>,
+        label="Launch"
+        commandLabel="Launch Kerbal I"
+      />,
     );
 
     const button = screen.getByRole("button");
     expect(button).toHaveTextContent("Launch");
-    expect(button).toHaveAttribute("aria-disabled", "true");
 
     await user.click(button);
 
-    expect(send).not.toHaveBeenCalled();
-    expect(button).toHaveTextContent("Launch");
-    expect(button).toHaveAccessibleName("Launch");
-    expect(button).toHaveAccessibleDescription(
+    expect(button).toHaveTextContent(
       "Launch Kerbal I unavailable: Launch Pad is occupied.",
     );
+  });
+
+  it("puts the reason away again, since the condition the game named can change", async () => {
+    const user = useArmClock();
+    render(
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(OK), {
+          gate: blockedGate(),
+        })}
+        label="Launch"
+      />,
+    );
+
+    const button = screen.getByRole("button");
+    await user.click(button);
+    expect(button).toHaveTextContent(/Unavailable: Launch Pad is occupied/);
+
+    await act(async () => {
+      vi.advanceTimersByTime(REFUSAL_TIMEOUT_MS + 10);
+    });
+
+    expect(button).toHaveTextContent("Launch");
   });
 
   it("comes back to life the moment the gate opens", async () => {
     const user = userEvent.setup();
     const send = vi.fn(() => Promise.resolve(OK));
     const { rerender } = render(
-      <Button
-        command={makeHandle(send, { gate: blockedGate() })}
-        variant="ghost"
-      >
-        Launch
-      </Button>,
+      <CommandButton
+        handle={makeHandle(send, { gate: blockedGate() })}
+        label="Launch"
+      />,
     );
 
     rerender(
-      <Button
-        command={makeHandle(send, {
+      <CommandButton
+        handle={makeHandle(send, {
           gate: { blocked: false, errorCode: CommandErrorCode.ModeUnavailable },
         })}
-        variant="ghost"
-      >
-        Launch
-      </Button>,
+        label="Launch"
+      />,
     );
 
     const button = screen.getByRole("button");
@@ -1226,11 +1132,7 @@ describe("CommandButton: the blocked phase", () => {
   it("leaves an ungated handle exactly as it was, so nothing changes for a command with no gates", async () => {
     const user = userEvent.setup();
     const send = vi.fn(() => Promise.resolve(OK));
-    render(
-      <Button command={makeHandle(send)} variant="ghost">
-        Launch
-      </Button>,
-    );
+    render(<CommandButton handle={makeHandle(send)} label="Launch" />);
 
     await user.click(screen.getByRole("button"));
 
@@ -1241,9 +1143,7 @@ describe("CommandButton: the blocked phase", () => {
     const user = useArmClock();
     const d = deferred();
     const { rerender } = render(
-      <Button command={makeHandle(() => d.promise)} variant="ghost">
-        Launch
-      </Button>,
+      <CommandButton handle={makeHandle(() => d.promise)} label="Launch" />,
     );
 
     await user.click(screen.getByRole("button"));
@@ -1254,12 +1154,10 @@ describe("CommandButton: the blocked phase", () => {
 
     // The gate shuts behind the command that is already sent.
     rerender(
-      <Button
-        command={makeHandle(() => d.promise, { gate: blockedGate() })}
-        variant="ghost"
-      >
-        Launch
-      </Button>,
+      <CommandButton
+        handle={makeHandle(() => d.promise, { gate: blockedGate() })}
+        label="Launch"
+      />,
     );
 
     expect(screen.getByRole("button")).toHaveAttribute(
@@ -1277,8 +1175,8 @@ describe("CommandButton: the blocked phase", () => {
     const user = userEvent.setup();
     const send = vi.fn(() => Promise.resolve(OK));
     render(
-      <Button
-        command={makeHandle(send, {
+      <CommandButton
+        handle={makeHandle(send, {
           gate: {
             blocked: false,
             undetermined: true,
@@ -1287,10 +1185,8 @@ describe("CommandButton: the blocked phase", () => {
             detail: "the facilities scenario is not loaded",
           },
         })}
-        variant="ghost"
-      >
-        Unlock
-      </Button>,
+        label="Unlock"
+      />,
     );
 
     const button = screen.getByRole("button");
@@ -1306,14 +1202,13 @@ describe("CommandButton: the blocked phase", () => {
 
   it("has no axe violations while blocked", async () => {
     const { container } = render(
-      <Button
-        command={makeHandle(() => Promise.resolve(OK), {
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(OK), {
           gate: blockedGate(),
-        }).with(undefined, { label: "Launch Kerbal I" })}
-        variant="ghost"
-      >
-        Launch
-      </Button>,
+        })}
+        label="Launch"
+        commandLabel="Launch Kerbal I"
+      />,
     );
 
     await expectNoA11yViolations(container);
@@ -1325,14 +1220,12 @@ describe("CommandButton: accessibility", () => {
 
   beforeEach(() => {
     ({ container } = render(
-      <Button
-        command={makeHandle(() => Promise.resolve(OK))}
-        variant="ghost"
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(OK))}
+        label="Hire"
         confirmLabel="Confirm hire"
         pressed={false}
-      >
-        Hire
-      </Button>,
+      />,
     ));
   });
 
@@ -1364,9 +1257,7 @@ describe("CommandButton: a lost command that answered after all", () => {
     const d = deferred();
     const send = vi.fn(() => d.promise);
     const { rerender } = render(
-      <Button command={makeHandle(send)} variant="ghost">
-        SAS
-      </Button>,
+      <CommandButton handle={makeHandle(send)} label="SAS" />,
     );
     await user.click(screen.getByRole("button", { name: "SAS" }));
     await act(async () => {
@@ -1379,9 +1270,7 @@ describe("CommandButton: a lost command that answered after all", () => {
     // The late reply lands: `useCommand` promotes the loss to a found on the handle.
     await act(async () => {
       rerender(
-        <Button command={makeHandle(send, { founds })} variant="ghost">
-          SAS
-        </Button>,
+        <CommandButton handle={makeHandle(send, { founds })} label="SAS" />,
       );
     });
     return { user, send };
@@ -1424,15 +1313,14 @@ describe("CommandButton: a lost command that answered after all", () => {
     // One handle serves many rows; a found belongs only to the row that lost the command.
     const send = vi.fn(async () => OK);
     const { rerender } = render(
-      <Button command={makeHandle(send)} variant="ghost">
-        SAS
-      </Button>,
+      <CommandButton handle={makeHandle(send)} label="SAS" />,
     );
     await act(async () => {
       rerender(
-        <Button command={makeHandle(send, { founds: RAN })} variant="ghost">
-          SAS
-        </Button>,
+        <CommandButton
+          handle={makeHandle(send, { founds: RAN })}
+          label="SAS"
+        />,
       );
     });
     expect(screen.getByRole("button")).toHaveAttribute(
@@ -1446,9 +1334,7 @@ describe("CommandButton: a lost command that answered after all", () => {
     const d = deferred();
     const send = vi.fn(() => d.promise);
     const { rerender } = render(
-      <Button command={makeHandle(send)} variant="ghost">
-        SAS
-      </Button>,
+      <CommandButton handle={makeHandle(send)} label="SAS" />,
     );
     await user.click(screen.getByRole("button", { name: "SAS" }));
     await act(async () => {
@@ -1463,9 +1349,10 @@ describe("CommandButton: a lost command that answered after all", () => {
     // Another row's lost command is found on the shared handle.
     await act(async () => {
       rerender(
-        <Button command={makeHandle(send, { founds: RAN })} variant="ghost">
-          SAS
-        </Button>,
+        <CommandButton
+          handle={makeHandle(send, { founds: RAN })}
+          label="SAS"
+        />,
       );
     });
     expect(screen.getByRole("button")).toHaveAttribute(
@@ -1479,14 +1366,11 @@ describe("CommandButton: a lost command that answered after all", () => {
     const d = deferred();
     const send = vi.fn(() => d.promise);
     const { rerender } = render(
-      <Button
-        command={makeHandle(send).with(undefined, {
-          label: "Hire Valentina Kerman",
-        })}
-        variant="ghost"
-      >
-        Hire
-      </Button>,
+      <CommandButton
+        handle={makeHandle(send)}
+        label="Hire"
+        commandLabel="Hire Valentina Kerman"
+      />,
     );
     await user.click(screen.getByRole("button", { name: "Hire" }));
     await act(async () => {
@@ -1494,8 +1378,8 @@ describe("CommandButton: a lost command that answered after all", () => {
     });
     await act(async () => {
       rerender(
-        <Button
-          command={makeHandle(send, {
+        <CommandButton
+          handle={makeHandle(send, {
             founds: [
               {
                 id: "c9",
@@ -1504,11 +1388,10 @@ describe("CommandButton: a lost command that answered after all", () => {
                 outcome: "ran",
               },
             ],
-          }).with(undefined, { label: "Hire Valentina Kerman" })}
-          variant="ghost"
-        >
-          Hire
-        </Button>,
+          })}
+          label="Hire"
+          commandLabel="Hire Valentina Kerman"
+        />,
       );
     });
     expect(screen.getByRole("button")).toHaveAttribute(
@@ -1524,12 +1407,8 @@ describe("CommandButton: a lost command that answered after all", () => {
     const send = vi.fn(() => d.promise);
     const pair = (handle: CommandButtonHandle) => (
       <>
-        <Button command={handle} variant="ghost">
-          First
-        </Button>
-        <Button command={handle} variant="ghost">
-          Second
-        </Button>
+        <CommandButton handle={handle} label="First" />
+        <CommandButton handle={handle} label="Second" />
       </>
     );
     const { rerender } = render(pair(makeHandle(send)));
@@ -1572,18 +1451,16 @@ describe("CommandButton: a lost command that answered after all", () => {
 describe("CommandButton warning text", () => {
   it("draws an unconfirmed or failed control's label and a blocked control's hover in the warning colour made for a dark ground", () => {
     render(
-      <Button
-        command={makeHandle(() => Promise.resolve(OK), {
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(OK), {
           gate: {
             blocked: true,
             errorCode: CommandErrorCode.NoConnection,
             detail: "Launch Pad is occupied",
           },
         })}
-        variant="ghost"
-      >
-        Launch
-      </Button>,
+        label="Launch"
+      />,
     );
     const button = screen.getByRole("button");
     for (const selector of [
@@ -1601,11 +1478,7 @@ describe("CommandButton keeps keyboard focus through a dispatch", () => {
   it("stays focused while sent, so the outcome lands on the control the operator is on", async () => {
     const user = useArmClock();
     const d = deferred();
-    render(
-      <Button command={makeHandle(() => d.promise)} variant="ghost">
-        Go
-      </Button>,
-    );
+    render(<CommandButton handle={makeHandle(() => d.promise)} label="Go" />);
     await user.tab();
     await user.keyboard("{Enter}");
     const sent = screen.getByRole("button");
@@ -1618,13 +1491,9 @@ describe("CommandButton keeps keyboard focus through a dispatch", () => {
   });
 });
 
-describe("useCommandControl's loss sentence", () => {
+describe("useCommandButton's loss sentence", () => {
   function Custom({ handle }: { handle: CommandButtonHandle }) {
-    const state = useCommandControl({
-      command: bindCommand(handle, undefined, {
-        label: "Stage",
-      }),
-    });
+    const state = useCommandButton({ handle, commandLabel: "Stage" });
     return (
       <>
         <button type="button" onClick={() => state.press(false)}>
@@ -1659,13 +1528,11 @@ describe("CommandButton onPressReady", () => {
     const send = vi.fn(() => d.promise);
     const onPressReady = vi.fn<PressReady>();
     render(
-      <Button
-        command={makeHandle(send)}
-        variant="ghost"
+      <CommandButton
+        handle={makeHandle(send)}
+        label="Stage"
         onPressReady={onPressReady}
-      >
-        Stage
-      </Button>,
+      />,
     );
     expect(onPressReady.mock.calls.at(-1)?.[0]).toBeTypeOf("function");
 
@@ -1682,18 +1549,29 @@ describe("CommandButton onPressReady", () => {
     expect(onPressReady.mock.calls.at(-1)?.[0]).toBeTypeOf("function");
   });
 
+  it("lists no press while the control is disabled", () => {
+    const onPressReady = vi.fn<PressReady>();
+    render(
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(OK))}
+        label="Stage"
+        disabled
+        onPressReady={onPressReady}
+      />,
+    );
+    expect(onPressReady).not.toHaveBeenCalledWith(expect.any(Function));
+  });
+
   it("presses the control from the listed press, arming before it dispatches", async () => {
     const send = vi.fn(() => Promise.resolve(OK));
     const onPressReady = vi.fn<PressReady>();
     render(
-      <Button
-        command={makeHandle(send)}
-        variant="ghost"
+      <CommandButton
+        handle={makeHandle(send)}
+        label="Recover"
         confirmLabel="Confirm recover"
         onPressReady={onPressReady}
-      >
-        Recover
-      </Button>,
+      />,
     );
     const listed = () => {
       const press = onPressReady.mock.calls.at(-1)?.[0];
@@ -1712,13 +1590,11 @@ describe("CommandButton onPressReady", () => {
     const send = vi.fn(() => Promise.resolve(OK));
     const onPressReady = vi.fn<PressReady>();
     render(
-      <Button
-        command={makeHandle(send)}
-        variant="ghost"
+      <CommandButton
+        handle={makeHandle(send)}
+        label="Stage"
         onPressReady={onPressReady}
-      >
-        Stage
-      </Button>,
+      />,
     );
     act(() => onPressReady.mock.calls.at(-1)?.[0]?.());
     expect(send).toHaveBeenCalledOnce();
@@ -1730,15 +1606,13 @@ describe("CommandButton icon", () => {
   it("names the control by its word and keeps the word as the name when armed", async () => {
     const user = userEvent.setup();
     render(
-      <Button
-        command={makeHandle(() => Promise.resolve(OK))}
-        variant="ghost"
+      <CommandButton
+        handle={makeHandle(() => Promise.resolve(OK))}
+        label="Upgrade"
         confirmLabel="Confirm"
         icon={<svg data-testid="up" />}
         confirmIcon={<svg data-testid="check" />}
-      >
-        Upgrade
-      </Button>,
+      />,
     );
     expect(screen.getByRole("button", { name: "Upgrade" })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Upgrade" }));
@@ -1778,9 +1652,7 @@ describe("CommandButton send status", () => {
   ] as const)("outlines %s as %s and still sends on a press", async (_name, sendStatus, predicted) => {
     const send = vi.fn().mockResolvedValue(OK);
     const { container } = render(
-      <Button command={makeHandle(send, { sendStatus })} variant="ghost">
-        Fire
-      </Button>,
+      <CommandButton handle={makeHandle(send, { sendStatus })} label="Fire" />,
     );
     const button = screen.getByRole("button", { name: "Fire" });
     expect(button.getAttribute("data-predicted")).toBe(predicted ?? null);
@@ -1791,12 +1663,10 @@ describe("CommandButton send status", () => {
 
   it("draws nothing beside the control, in any state", () => {
     const { container } = render(
-      <Button
-        command={makeHandle(vi.fn(), { sendStatus: held })}
-        variant="ghost"
-      >
-        Fire
-      </Button>,
+      <CommandButton
+        handle={makeHandle(vi.fn(), { sendStatus: held })}
+        label="Fire"
+      />,
     );
     expect(screen.queryByText(/No contact/)).toBeNull();
     expect(container.querySelectorAll("button")).toHaveLength(1);
@@ -1804,12 +1674,10 @@ describe("CommandButton send status", () => {
 
   it("writes the status in the tooltip", async () => {
     render(
-      <Button
-        command={makeHandle(vi.fn(), { sendStatus: loss })}
-        variant="ghost"
-      >
-        Fire
-      </Button>,
+      <CommandButton
+        handle={makeHandle(vi.fn(), { sendStatus: loss })}
+        label="Fire"
+      />,
     );
     await userEvent.hover(screen.getByRole("button", { name: "Fire" }));
     expect(
@@ -1819,12 +1687,10 @@ describe("CommandButton send status", () => {
 
   it("keeps the predicted outline to the edge's style and colour, so no state moves the box", () => {
     render(
-      <Button
-        command={makeHandle(vi.fn(), { sendStatus: held })}
-        variant="ghost"
-      >
-        Fire
-      </Button>,
+      <CommandButton
+        handle={makeHandle(vi.fn(), { sendStatus: held })}
+        label="Fire"
+      />,
     );
     const rules = [...document.querySelectorAll("style")]
       .flatMap((sheet) => [...(sheet.sheet?.cssRules ?? [])])
@@ -1846,9 +1712,7 @@ describe("CommandButton: the stream to the mod is down", () => {
     const send = vi.fn(async () => OK);
     const down = makeHandle(send, { streamDown: true });
     const { rerender } = render(
-      <Button command={down} variant="ghost" tip="Fire it">
-        Go
-      </Button>,
+      <CommandButton handle={down} label="Go" title="Fire it" />,
     );
     const button = screen.getByRole("button", { name: "Go" });
     expect(button).toHaveAttribute("aria-disabled", "true");
@@ -1861,13 +1725,11 @@ describe("CommandButton: the stream to the mod is down", () => {
     expect(send).not.toHaveBeenCalled();
 
     rerender(
-      <Button
-        command={makeHandle(send, { streamDown: false })}
-        variant="ghost"
-        tip="Fire it"
-      >
-        Go
-      </Button>,
+      <CommandButton
+        handle={makeHandle(send, { streamDown: false })}
+        label="Go"
+        title="Fire it"
+      />,
     );
     expect(button).not.toHaveAttribute("aria-disabled");
     expect(button).not.toHaveAttribute("data-stream");
@@ -1879,13 +1741,11 @@ describe("CommandButton: the stream to the mod is down", () => {
     const user = userEvent.setup();
     const send = vi.fn(async () => OK);
     render(
-      <Button
-        command={makeHandle(send, { streamDown: true })}
-        variant="ghost"
+      <CommandButton
+        handle={makeHandle(send, { streamDown: true })}
+        label="Go"
         confirmLabel="Confirm"
-      >
-        Go
-      </Button>,
+      />,
     );
     await user.click(screen.getByRole("button", { name: "Go" }));
     expect(screen.queryByText("Confirm")).toBeNull();
@@ -1895,23 +1755,19 @@ describe("CommandButton: the stream to the mod is down", () => {
   it("keeps the size of the same button with the stream up", () => {
     const send = vi.fn(async () => OK);
     const { container, rerender } = render(
-      <Button
-        command={makeHandle(send, { streamDown: true })}
-        variant="ghost"
+      <CommandButton
+        handle={makeHandle(send, { streamDown: true })}
+        label="Go"
         confirmLabel="Confirm"
-      >
-        Go
-      </Button>,
+      />,
     );
     const down = container.querySelector("button")?.outerHTML ?? "";
     rerender(
-      <Button
-        command={makeHandle(send, { streamDown: false })}
-        variant="ghost"
+      <CommandButton
+        handle={makeHandle(send, { streamDown: false })}
+        label="Go"
         confirmLabel="Confirm"
-      >
-        Go
-      </Button>,
+      />,
     );
     const up = container.querySelector("button")?.outerHTML ?? "";
     const strip = (html: string) =>
@@ -1932,11 +1788,11 @@ describe("CommandButton: the toggle variant", () => {
   /** A toggle on a handle whose rows and status the test sets. */
   function draw(
     state: boolean | null,
-    send: CommandButtonHandle["dangerouslySendWithoutInput"],
+    send: CommandButtonHandle["send"],
     over: Partial<CommandButtonHandle> = {},
   ) {
     return (
-      <ConfiguredToggle
+      <CommandButton
         handle={makeHandle(send, over)}
         commandLabel="Toggle RCS"
         label="RCS"
@@ -2030,7 +1886,7 @@ describe("CommandButton: the toggle variant", () => {
     const user = userEvent.setup();
     const send = vi.fn(() => Promise.resolve(OK));
     render(
-      <ConfiguredToggle
+      <CommandButton
         handle={makeHandle(send)}
         label="RCS"
         toggle={{
@@ -2068,13 +1924,11 @@ describe("CommandButton: a press while SENT", () => {
     const user = useArmClock();
     const send = vi.fn(() => deferred().promise);
     render(
-      <Button
-        command={makeHandle(send, { status: inFlightStatus(false) })}
-        variant="ghost"
+      <CommandButton
+        handle={makeHandle(send, { status: inFlightStatus(false) })}
+        label="Upgrade"
         confirmLabel="Confirm upgrade"
-      >
-        Upgrade
-      </Button>,
+      />,
     );
 
     await user.click(screen.getByRole("button", { name: "Upgrade" }));
@@ -2099,9 +1953,9 @@ describe("CommandButton: a toggle press that was lost", () => {
     shown === true ? "SAS ON" : "SAS OFF";
   const draw = (
     over: Partial<CommandButtonHandle>,
-    send: CommandButtonHandle["dangerouslySendWithoutInput"],
+    send: CommandButtonHandle["send"],
   ) => (
-    <ConfiguredToggle
+    <CommandButton
       handle={makeHandle(send, over)}
       commandLabel="Toggle SAS"
       label="SAS"
@@ -2171,12 +2025,8 @@ describe("CommandButton: SENT belongs to the button's own dispatch", () => {
       const handle = makeHandle(send, { status });
       return (
         <>
-          <Button command={handle.with("a")} variant="ghost">
-            Row A
-          </Button>
-          <Button command={handle.with("b")} variant="ghost">
-            Row B
-          </Button>
+          <CommandButton handle={handle} args="a" label="Row A" />
+          <CommandButton handle={handle} args="b" label="Row B" />
         </>
       );
     };

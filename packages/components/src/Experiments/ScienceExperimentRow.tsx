@@ -1,11 +1,16 @@
 import { AugmentSlot } from "@ksp-gonogo/core";
 import type { HeldGrade } from "@ksp-gonogo/sitrep-client";
-import type { CommandReply, ScienceTransmission } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type CommandReply,
+  classifyCommandRejection,
+  type ScienceTransmission,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
-  Button,
   Card,
+  CommandButton,
   type CommandButtonHandle,
+  commandRefusalSentence,
   HeldFigure,
   heldWord,
   Inline,
@@ -118,6 +123,19 @@ export function ScienceExperimentRow({
     () => setDeployRefusal(null),
     [instrument.hasData, instrument.deployed],
   );
+  const deployHandle = deployCmd && {
+    ...deployCmd,
+    send: (...sendArgs: Parameters<typeof deployCmd.send>) => {
+      setDeployRefusal(null);
+      return deployCmd.send(...sendArgs).catch((err: unknown) => {
+        const rejection = classifyCommandRejection(err);
+        if (rejection.kind === "refused") {
+          setDeployRefusal(commandRefusalSentence(rejection));
+        }
+        throw err;
+      });
+    },
+  };
   const noteIfUnchanged =
     (started: boolean) => (reply: CommandReply<"science.experiment.start">) => {
       if (reply?.payload?.changed === false)
@@ -130,7 +148,7 @@ export function ScienceExperimentRow({
     !continuous &&
     !instrument.inoperable &&
     (!instrument.deployed || instrument.rerunnable) &&
-    Boolean(deployCmd);
+    Boolean(deployHandle);
   const showsTransmit =
     !continuous &&
     !instrument.inoperable &&
@@ -144,79 +162,57 @@ export function ScienceExperimentRow({
         !instrument.inoperable &&
         instrument.running === false &&
         startCmd && (
-          <Button
-            command={startCmd.with(
-              { partId: instrument.partId, experimentId: instrument.expId },
-              {
-                label: `Start ${experimentName(instrument)}`,
-                onConfirmed: noteIfUnchanged(true),
-              },
-            )}
-            variant="ghost"
+          <CommandButton
             size="sm"
-          >
-            Start
-          </Button>
+            handle={startCmd}
+            args={{ partId: instrument.partId, experimentId: instrument.expId }}
+            commandLabel={`Start ${experimentName(instrument)}`}
+            label="Start"
+            onConfirmed={noteIfUnchanged(true)}
+          />
         )}
       {continuous &&
         !instrument.inoperable &&
         instrument.running === true &&
         stopCmd && (
-          <Button
-            command={stopCmd.with(
-              { partId: instrument.partId, experimentId: instrument.expId },
-              {
-                label: `Stop ${experimentName(instrument)}`,
-                onConfirmed: noteIfUnchanged(false),
-              },
-            )}
-            variant="ghost"
+          <CommandButton
             size="sm"
-          >
-            Stop
-          </Button>
+            handle={stopCmd}
+            args={{ partId: instrument.partId, experimentId: instrument.expId }}
+            commandLabel={`Stop ${experimentName(instrument)}`}
+            label="Stop"
+            onConfirmed={noteIfUnchanged(false)}
+          />
         )}
       {!continuous &&
         !instrument.inoperable &&
         (!instrument.deployed || instrument.rerunnable) &&
-        deployCmd && (
-          <Button
-            command={deployCmd.with(
-              { partId: instrument.partId, experimentId: instrument.expId },
-              {
-                label: `Deploy ${experimentOnPart(instrument)}`,
-                before: () => setDeployRefusal(null),
-                onRefused: setDeployRefusal,
-              },
-            )}
-            variant="ghost"
+        deployHandle && (
+          <CommandButton
             size="sm"
+            handle={deployHandle}
+            args={{ partId: instrument.partId, experimentId: instrument.expId }}
+            commandLabel={`Deploy ${experimentOnPart(instrument)}`}
+            label="Deploy"
             style={pairStyle}
-          >
-            Deploy
-          </Button>
+          />
         )}
       {!continuous &&
         !instrument.inoperable &&
         instrument.hasData &&
         transmitCmd && (
-          <Button
-            command={transmitCmd.with(
-              { partId: instrument.partId, experimentId: instrument.expId },
-              {
-                label: `Transmit ${experimentOnPart(instrument)}`,
-                onConfirmed: (reply) => {
-                  if (reply?.payload) onTransmitted?.(reply.payload);
-                },
-              },
-            )}
-            variant="ghost"
+          <CommandButton
             size="sm"
+            handle={transmitCmd}
+            args={{ partId: instrument.partId, experimentId: instrument.expId }}
+            commandLabel={`Transmit ${experimentOnPart(instrument)}`}
+            label="Transmit"
             style={pairStyle}
             confirmLabel="Confirm transmit"
-          >
-            Transmit
-          </Button>
+            onConfirmed={(reply) => {
+              if (reply?.payload) onTransmitted?.(reply.payload);
+            }}
+          />
         )}
     </Inline>
   );

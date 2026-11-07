@@ -1,5 +1,5 @@
 import { clearRegistry, getMapPoiProviders } from "@ksp-gonogo/core";
-import { argsOf, TargetKind, value } from "@ksp-gonogo/sitrep-sdk";
+import { TargetKind, value } from "@ksp-gonogo/sitrep-sdk";
 import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -77,8 +77,8 @@ describe("vanillaPoiProvider: KSC/launch-site/contract-target POIs", () => {
       ]);
     });
     await waitFor(() => expect(target()).toBeDefined());
-    expect(target()?.unavailable).toBeUndefined();
-    expect(target()?.command.handle.gate?.blocked).not.toBe(true);
+    expect(target()?.disabled).toBeUndefined();
+    expect(target()?.disabledReason).toBeUndefined();
 
     act(() => {
       fixture.emit("system.uplink.gates", {
@@ -95,12 +95,8 @@ describe("vanillaPoiProvider: KSC/launch-site/contract-target POIs", () => {
         ],
       });
     });
-    await waitFor(() =>
-      expect(target()?.command.handle.gate?.blocked).toBe(true),
-    );
-    expect(target()?.command.handle.gate?.detail).toContain(
-      "No vessel is active",
-    );
+    await waitFor(() => expect(target()?.disabled).toBe(true));
+    expect(target()?.disabledReason).toContain("No vessel is active");
   });
 
   it("filters POIs to the current body and carries contractTarget meta (funds/agent/deadline)", async () => {
@@ -231,9 +227,7 @@ describe("vanillaPoiProvider: KSC/launch-site/contract-target POIs", () => {
     expect(poi?.actions?.[0].id).toBe("set-target");
 
     await act(async () => {
-      const command = poi?.actions?.[0].command;
-      if (command)
-        await command.handle.dangerouslySendWithoutInput(argsOf(command));
+      await poi?.actions?.[0].run();
     });
 
     const sent = fixture.transport.sentCommands.find(

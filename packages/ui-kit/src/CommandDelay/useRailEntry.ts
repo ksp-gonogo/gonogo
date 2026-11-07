@@ -12,9 +12,7 @@ import { useDelayRailStore } from "./DelayRailContext";
  *
  * @category CommandDelay
  */
-export type RailEntry = CommandDelayHandle & {
-  dangerouslySendWithoutInput?: never;
-};
+export type RailEntry = CommandDelayHandle & { send?: never };
 
 /**
  * Put a non-command entry on the nearest panel's delay rail for the life of the

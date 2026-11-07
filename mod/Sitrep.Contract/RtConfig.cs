@@ -2494,7 +2494,7 @@ public static class RtConfig
         var localNames = new HashSet<string>(
             target.GetTypes().Select(t => t.Name), StringComparer.Ordinal);
 
-        var rows = new List<(string Id, string Args, string Reply, bool Replies, bool Delayed, string? ArriveBefore, bool Meta)>();
+        var rows = new List<(string Id, string Args, string Reply, bool Replies, bool Delayed, string? ArriveBefore)>();
         var argsNames = new SortedSet<string>(StringComparer.Ordinal);
         var replyNames = new SortedSet<string>(StringComparer.Ordinal);
         foreach (var type in target.GetTypes())
@@ -2526,7 +2526,7 @@ public static class RtConfig
                     else descriptions[attr.CommandId] = description;
                 }
                 CheckSetsValueField(attr, type);
-                rows.Add((attr.CommandId, type.Name, reply, reply != null, attr.Delay == DelayRole.Delayed, ArriveBeforeField(attr, type), attr.AllowMetaVantage));
+                rows.Add((attr.CommandId, type.Name, reply, reply != null, attr.Delay == DelayRole.Delayed, ArriveBeforeField(attr, type)));
                 argsNames.Add(type.Name);
             }
         }
@@ -2702,13 +2702,6 @@ public static class RtConfig
         sb.Append("   * command.\n");
         sb.Append("   */\n");
         sb.Append("  readonly arriveBefore?: string;\n");
-        sb.Append("  /**\n");
-        sb.Append("   * Set when the command may be sent from the meta vantage, off\n");
-        sb.Append("   * `[SitrepCommand(AllowMetaVantage = true)]`: it acts on the game or the program\n");
-        sb.Append("   * itself, so it runs at once whichever command centre is selected. A client sends\n");
-        sb.Append("   * it from the meta vantage on its own. Absent for every other command.\n");
-        sb.Append("   */\n");
-        sb.Append("  readonly meta?: true;\n");
         sb.Append("}\n\n");
 
         sb.Append("/**\n");
@@ -2737,8 +2730,6 @@ public static class RtConfig
               .Append(row.Delayed ? "true" : "false");
             if (row.ArriveBefore != null)
                 sb.Append(", arriveBefore: \"").Append(row.ArriveBefore).Append('"');
-            if (row.Meta)
-                sb.Append(", meta: true");
             sb.Append(" },\n");
         }
         sb.Append("} as const satisfies Record<string, GeneratedCommandRail>;\n\n");

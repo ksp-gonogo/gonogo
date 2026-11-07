@@ -138,14 +138,6 @@ export interface CommandRail {
    * craft at or after that UT.
    */
   readonly arriveBefore?: string;
-
-  /**
-   * Whether the command acts on the game or the program itself, so it runs at
-   * once whichever command centre is selected. `useCommand` sends such a
-   * command from the program's own vantage by itself. Absent for a command that
-   * reaches a craft.
-   */
-  readonly meta?: boolean;
 }
 
 /**

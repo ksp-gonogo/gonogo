@@ -8,7 +8,6 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { findButtonDescribedBy } from "../test/describedButton";
 import {
   type MockDataSourceFixture,
   setupMockDataSource,
@@ -235,7 +234,9 @@ describe("LaunchDirector actions", () => {
     emitPad();
     await user.click(await screen.findByText(/Mun Hopper/));
 
-    await findButtonDescribedBy(/Launch Mun Hopper.*unavailable/);
+    await screen.findByRole("button", {
+      name: /Launch Mun Hopper.*unavailable/,
+    });
 
     const asked = sent("system.gate.check");
     expect(asked).toHaveLength(1);
@@ -250,7 +251,9 @@ describe("LaunchDirector actions", () => {
     renderWidget();
     emitFlight({ name: "Doomed Probe" });
     emitGate("ksp.recover", "about to crash");
-    await findButtonDescribedBy(/Recover unavailable: about to crash/);
+    await screen.findByRole("button", {
+      name: /Recover unavailable: about to crash/,
+    });
 
     press("recover");
     press("recover");
@@ -259,8 +262,8 @@ describe("LaunchDirector actions", () => {
     expect(sent("ksp.recover")).toEqual([]);
     expect(screen.queryByText(/Confirm recover/i)).not.toBeInTheDocument();
     expect(
-      screen.queryByText(/Recover unavailable: about to crash/),
-    ).toBeNull();
+      screen.getByText(/Recover unavailable: about to crash/),
+    ).toBeTruthy();
   });
 
   it("recover arms, then recovers the vessel in flight", async () => {
@@ -282,7 +285,9 @@ describe("LaunchDirector actions", () => {
     renderWidget();
     emitFlight({ name: "Probe" });
     emitGate("ksp.revertToLaunch", "this flight cannot be reverted to launch");
-    await findButtonDescribedBy(/Revert to launch unavailable/);
+    await screen.findByRole("button", {
+      name: /Revert to launch unavailable/,
+    });
 
     press("revert-to-launch");
     press("revert-to-launch");

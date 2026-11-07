@@ -141,7 +141,7 @@ export function InFlightPanel({
           onToggleSpaceObjects={() => setShowSpaceObjects((v) => !v)}
           onSwitch={(vesselId) => {
             setSwitchOpen(false);
-            void switchCmd.dangerouslySendWithoutInput({ vesselId });
+            void switchCmd.send({ vesselId });
           }}
         />
       )}

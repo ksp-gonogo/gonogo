@@ -13,8 +13,7 @@ function useAwaiting() {
   return {
     handle,
     awaiting: handle.status?.phase === "in-flight",
-    press: () =>
-      void handle.dangerouslySendWithoutInput({}).catch(() => undefined),
+    press: () => void handle.send({}).catch(() => undefined),
   };
 }
 

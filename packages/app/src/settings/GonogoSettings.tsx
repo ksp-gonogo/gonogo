@@ -4,7 +4,7 @@ import {
   useTelemetry,
   useTelemetryHostDown,
 } from "@ksp-gonogo/core";
-import { useCommand } from "@ksp-gonogo/sitrep-client";
+import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
 import {
   SettingKind,
   type SettingsModel,
@@ -78,6 +78,7 @@ export function GonogoSettings({
       : undefined;
   // Off the rail: the settings modal has none, and this form states the outcome itself.
   const save = useCommand("settings.save", {
+    vantage: META_VANTAGE,
     rail: false,
   });
   const [draft, setDraft] = useState<Draft>({});
@@ -149,7 +150,7 @@ export function GonogoSettings({
     setSaving(true);
     setOutcome(null);
     try {
-      await save.dangerouslySendWithoutInput({ changes });
+      await save.send({ changes });
       return true;
     } catch (rejected) {
       setOutcome(refusalOf(rejected));

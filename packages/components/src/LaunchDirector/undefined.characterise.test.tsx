@@ -5,7 +5,6 @@ import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { getByTip, queryByTip, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
-import { getButtonDescribedBy } from "../test/describedButton";
 import { isDisabled } from "../test/isDisabled";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { LaunchDirectorComponent } from "./index";
@@ -314,9 +313,9 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
       });
     });
     const blocked = await waitFor(() =>
-      getButtonDescribedBy(
-        /Revert to launch unavailable: this flight cannot be reverted to launch/,
-      ),
+      screen.getByRole("button", {
+        name: /Revert to launch unavailable: this flight cannot be reverted to launch/,
+      }),
     );
     expect(blocked).toHaveAttribute("aria-disabled", "true");
     expect(

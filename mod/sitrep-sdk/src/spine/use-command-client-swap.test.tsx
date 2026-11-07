@@ -10,10 +10,7 @@ import { useCommand } from "./use-command";
 function Control() {
   const command = useCommand("x.y", { rail: false });
   return (
-    <button
-      type="button"
-      onClick={() => void command.dangerouslySendWithoutInput({})}
-    >
+    <button type="button" onClick={() => void command.send({})}>
       {command.status.phase}
     </button>
   );

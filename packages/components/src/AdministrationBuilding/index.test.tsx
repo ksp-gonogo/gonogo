@@ -10,7 +10,6 @@ import {
 } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
-import { findButtonDescribedBy } from "../test/describedButton";
 import { perItemGateReport } from "../test/perItemGate";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
@@ -251,7 +250,9 @@ describe("AdministrationBuildingComponent", () => {
       );
     });
     expect(
-      await findButtonDescribedBy(/minimum commitment has not elapsed/),
+      await screen.findByRole("button", {
+        name: /minimum commitment has not elapsed/,
+      }),
     ).toHaveAttribute("aria-disabled", "true");
   });
 

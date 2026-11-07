@@ -1,7 +1,7 @@
 import type { CarriedCurrency } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
-  Button,
+  CommandButton,
   type CommandButtonHandle,
   Inline,
   Row,
@@ -119,32 +119,26 @@ export function ShortRow({
         )}
       </Row>
       {!drawsOwnActions && offersActivate && sentFactor !== null && (
-        <Button
-          command={activateCmd.with(
-            { strategyId: s.id, factor: sentFactor },
-            { label: `Activate ${s.title}` },
-          )}
-          variant="ghost"
+        <CommandButton
           size="sm"
+          handle={activateCmd}
+          args={{ strategyId: s.id, factor: sentFactor }}
+          commandLabel={`Activate ${s.title}`}
+          label="Activate"
           confirmLabel="Confirm activate"
-        >
-          Activate
-        </Button>
+        />
       )}
       {!drawsOwnActions && state.kind === "active" && (
-        <Button
-          command={deactivateCmd.with(
-            { strategyId: s.id },
-            { label: `Deactivate ${s.title}` },
-          )}
-          variant="ghost"
+        <CommandButton
           size="sm"
+          handle={deactivateCmd}
+          args={{ strategyId: s.id }}
+          commandLabel={`Deactivate ${s.title}`}
+          label="Deactivate"
           confirmLabel="Confirm deactivate"
           confirmTone="nogo"
-          tip="Deactivate this strategy"
-        >
-          Deactivate
-        </Button>
+          title="Deactivate this strategy"
+        />
       )}
       {expanded && details}
     </Stack>

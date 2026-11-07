@@ -1,14 +1,9 @@
-import type { AnyBoundCommand } from "@ksp-gonogo/sitrep-sdk";
 import type { CSSProperties, ReactNode } from "react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import styled from "styled-components";
 import { groupComboboxOptions } from "./Combobox";
-import { useBoundCommandInput } from "./CommandButton/commandInput";
-import { COMMAND_WORD_ROOM, commandEdge } from "./commandEdge";
 import { EmptyState } from "./EmptyState";
 import { focusRingInset } from "./focusRing";
-import { LiveRegion } from "./LiveRegion";
-import { Tooltip } from "./Tooltip";
 
 /**
  * One action in an {@link ActionMenu}. Taken in the menu's `items`.
@@ -28,18 +23,6 @@ export interface ActionMenuItem {
   disabled?: boolean;
   /** Overrides the accessible name when `label` alone is ambiguous out of context. */
   "aria-label"?: string;
-  /**
-   * The command choosing this item sends, made with `with` on a `useCommand`
-   * handle. The item then shows what became of it in a word at its end, and
-   * `onSelect` is called when the choice is made so the caller can close the
-   * menu: at once where the command is on a delay rail that carries its
-   * outcome, else when the press has been answered.
-   */
-  command?: AnyBoundCommand;
-  /** Why a command item cannot be chosen now. It is drawn dimmed with this as its tip and a choice sends nothing. */
-  unavailable?: string;
-  /** The word the item shows after the first choice, which asks for a second to send. Absent, the first choice sends. */
-  confirmLabel?: string;
 }
 
 /**
@@ -238,18 +221,6 @@ export function ActionMenu({
             ) : null}
             {bucket.map((item) => {
               const index = flat.indexOf(item);
-              if (item.command) {
-                return (
-                  <CommandedMenuItem
-                    key={item.key}
-                    item={item}
-                    command={item.command}
-                    tabIndex={index === activeIndex ? 0 : -1}
-                    onFocus={() => setActiveIndex(index)}
-                    onSelect={onSelect}
-                  />
-                );
-              }
               return (
                 <MenuItem
                   key={item.key}
@@ -277,82 +248,6 @@ export function ActionMenu({
   );
 }
 
-/* A command item holds the menu's choice until the command has gone, so an outcome never lands on a menu that has closed. */
-function CommandedMenuItem({
-  item,
-  command,
-  tabIndex,
-  onFocus,
-  onSelect,
-}: {
-  item: ActionMenuItem;
-  command: AnyBoundCommand;
-  tabIndex: number;
-  onFocus: () => void;
-  onSelect: (key: string) => void;
-}) {
-  const input = useBoundCommandInput({
-    command,
-    unavailable: item.unavailable,
-  });
-  const { control } = input;
-  const pending = useRef(false);
-  const railed = control.command.handle.railed === true;
-  const armable = item.confirmLabel !== undefined;
-  // A command with no rail keeps the menu open until the mod answers it.
-  useEffect(() => {
-    if (pending.current && !railed && !control.isSent) {
-      pending.current = false;
-      onSelect(item.key);
-    }
-  }, [control.isSent, railed, onSelect, item.key]);
-  const word = input.word ?? (control.isArmed ? item.confirmLabel : null);
-  return (
-    <>
-      <Tooltip text={input.tip}>
-        <MenuItem
-          type="button"
-          role="menuitem"
-          aria-label={item["aria-label"]}
-          aria-disabled={item.disabled || input.inert || undefined}
-          $disabled={item.disabled || input.inert}
-          tabIndex={tabIndex}
-          onFocus={onFocus}
-          data-command-edge={input.edge["data-command-edge"]}
-          data-command-phase={input.edge["data-command-phase"]}
-          data-stream={input.edge["data-stream"]}
-          data-predicted={input.edge["data-predicted"]}
-          onClick={() => {
-            if (item.disabled || input.inert) return;
-            const wasArmed = control.isArmed;
-            control.press(armable);
-            if (armable && !wasArmed) return;
-            if (railed) onSelect(item.key);
-            else pending.current = true;
-          }}
-        >
-          <MenuItemLabel>{item.label}</MenuItemLabel>
-          <MenuItemWord aria-hidden="true">{word}</MenuItemWord>
-        </MenuItem>
-      </Tooltip>
-      <LiveRegion visuallyHidden>{input.announce}</LiveRegion>
-    </>
-  );
-}
-
-const MenuItemLabel = styled.span`
-  flex: 1;
-`;
-
-/* Holds the room of the longest word at rest too, so the menu never changes width. */
-const MenuItemWord = styled.span`
-  min-width: ${COMMAND_WORD_ROOM};
-  text-align: end;
-  font-size: var(--font-size-caption);
-  color: var(--color-text-muted);
-  letter-spacing: 0.08em;
-`;
-
 const Menu = styled.div`
   position: absolute;
   min-width: 180px;
@@ -376,13 +271,10 @@ const GroupHeader = styled.div`
 `;
 
 const MenuItem = styled.button<{ $disabled?: boolean }>`
-  /* A border of its own, clear at rest, so the state edges of a command are drawn on the item's box as on every other input. */
-  border: 1px solid transparent;
-  display: flex;
-  align-items: center;
-  gap: var(--gap-related);
+  display: block;
   width: 100%;
   text-align: left;
+  border: none;
   background: transparent;
   color: var(--color-text-primary);
   font: inherit;
@@ -405,8 +297,6 @@ const MenuItem = styled.button<{ $disabled?: boolean }>`
     color: var(--color-text-faint);
     cursor: default;
   }
-
-  ${commandEdge}
 
   @media (pointer: coarse) {
     min-height: var(--touch-target);

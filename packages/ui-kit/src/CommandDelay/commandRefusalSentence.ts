@@ -139,7 +139,7 @@ function said(detail: string | undefined): string | null {
  * clause (a refinement's own sentence ahead of its root's), and the
  * `LimitBreach` supplies the numbers, written as {@link Unit} writes them.
  * Useful for telling the operator why the game refused a command. Used by
- * {@link Button} and {@link CommandList}, which show it when a command
+ * {@link CommandButton} and {@link CommandList}, which show it when a command
  * of theirs is refused.
  *
  * Names are user-supplied and unbounded, so render the sentence where it can
@@ -162,7 +162,7 @@ export function commandRefusalSentence(refusal: CommandRefusalLike): string {
  * one thing before the press and another after. "Unavailable" because nothing
  * has been asked yet: a gate is a condition that holds. Useful for telling the
  * operator, before they press, why a command is unavailable. Used by
- * {@link Button}.
+ * {@link CommandButton}.
  *
  * @category CommandDelay
  */

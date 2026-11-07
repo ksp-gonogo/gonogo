@@ -43,7 +43,7 @@ function Deploy() {
           // dispatch call sites; `status` is what the test observes, not
           // the promise, but it still must be caught to avoid an unhandled
           // rejection when a command loses/errors.
-          cmd.dangerouslySendWithoutInput(9).catch(() => {});
+          cmd.send(9).catch(() => {});
         }}
       >
         go
@@ -265,16 +265,10 @@ function DeployWithInFlight() {
   const cmd = useCommand("deploy");
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => void cmd.dangerouslySendWithoutInput(1).catch(() => {})}
-      >
+      <button type="button" onClick={() => void cmd.send(1).catch(() => {})}>
         go1
       </button>
-      <button
-        type="button"
-        onClick={() => void cmd.dangerouslySendWithoutInput(2).catch(() => {})}
-      >
+      <button type="button" onClick={() => void cmd.send(2).catch(() => {})}>
         go2
       </button>
       <span>count:{cmd.inFlight.length}</span>
@@ -863,12 +857,7 @@ describe("useCommand inFlight through a blackout", () => {
     const cmd = useCommand("deploy");
     return (
       <div>
-        <button
-          type="button"
-          onClick={() =>
-            void cmd.dangerouslySendWithoutInput(1).catch(() => {})
-          }
-        >
+        <button type="button" onClick={() => void cmd.send(1).catch(() => {})}>
           go1
         </button>
         <span>count:{cmd.inFlight.length}</span>
@@ -976,10 +965,7 @@ function DeployWithLosses() {
   const cmd = useCommand("deploy");
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => void cmd.dangerouslySendWithoutInput(1).catch(() => {})}
-      >
+      <button type="button" onClick={() => void cmd.send(1).catch(() => {})}>
         go
       </button>
       <span>phase:{cmd.status.phase}</span>
@@ -1087,10 +1073,7 @@ function DeployWithFounds() {
   const cmd = useCommand("deploy");
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => void cmd.dangerouslySendWithoutInput(1).catch(() => {})}
-      >
+      <button type="button" onClick={() => void cmd.send(1).catch(() => {})}>
         go
       </button>
       <span>losses:{cmd.losses.length}</span>
@@ -1215,10 +1198,7 @@ function DeployWithUndelivered() {
   const cmd = useCommand("deploy");
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => void cmd.dangerouslySendWithoutInput(1).catch(() => {})}
-      >
+      <button type="button" onClick={() => void cmd.send(1).catch(() => {})}>
         go
       </button>
       <span>phase:{cmd.status.phase}</span>
@@ -1341,10 +1321,7 @@ function DeployWithFailures() {
   const cmd = useCommand("deploy");
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => void cmd.dangerouslySendWithoutInput(1).catch(() => {})}
-      >
+      <button type="button" onClick={() => void cmd.send(1).catch(() => {})}>
         go
       </button>
       <span>phase:{cmd.status.phase}</span>
@@ -1442,10 +1419,7 @@ describe("useCommand registers every handle with the command rail", () => {
       rail === false ? { rail } : {},
     );
     return (
-      <button
-        type="button"
-        onClick={() => void cmd.dangerouslySendWithoutInput({ techId: "n" })}
-      >
+      <button type="button" onClick={() => void cmd.send({ techId: "n" })}>
         unlock
       </button>
     );
@@ -1529,10 +1503,7 @@ function DeployWithDismiss() {
   const cmd = useCommand("deploy");
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => void cmd.dangerouslySendWithoutInput(1).catch(() => {})}
-      >
+      <button type="button" onClick={() => void cmd.send(1).catch(() => {})}>
         go
       </button>
       <button
@@ -1661,7 +1632,7 @@ describe("useCommand fire-and-forget refusals", () => {
         type="button"
         onClick={() => {
           // Deliberately NO .catch() here: the whole point is the uncaught fire-and-forget shape that eight Uplink call sites use.
-          void cmd.dangerouslySendWithoutInput(9);
+          void cmd.send(9);
         }}
       >
         go
@@ -1716,11 +1687,7 @@ describe("useCommand refusals", () => {
         <button
           type="button"
           onClick={() => {
-            cmd
-              .dangerouslySendWithoutInput({
-                applicantName: "Valentina Kerman",
-              })
-              .catch(() => {});
+            cmd.send({ applicantName: "Valentina Kerman" }).catch(() => {});
           }}
         >
           hire
@@ -1972,9 +1939,7 @@ describe("useCommand gate", () => {
     let sent: Promise<unknown> | undefined;
     act(() => {
       // biome-ignore lint/style/noNonNullAssertion: asserted by the waitFor above
-      sent = captured.handle!.dangerouslySendWithoutInput(1, {
-        label: "Deploy",
-      });
+      sent = captured.handle!.send(1, { label: "Deploy" });
     });
 
     await expect(sent).rejects.toMatchObject({
@@ -2052,9 +2017,7 @@ describe("useCommand gate", () => {
     let refused: Promise<unknown> | undefined;
     act(() => {
       // biome-ignore lint/style/noNonNullAssertion: asserted by the waitFor above
-      refused = captured.handle!.dangerouslySendWithoutInput({
-        facilityId: "LaunchPad",
-      });
+      refused = captured.handle!.send({ facilityId: "LaunchPad" });
     });
     await expect(refused).rejects.toMatchObject({
       code: "E_REFUSED",
@@ -2066,7 +2029,7 @@ describe("useCommand gate", () => {
     act(() => {
       // biome-ignore lint/style/noNonNullAssertion: asserted by the waitFor above
       void captured
-        .handle!.dangerouslySendWithoutInput({ facilityId: "Runway" })
+        .handle!.send({ facilityId: "Runway" })
         .catch(() => undefined);
     });
     expect(fixture.transport.sentCommands).toHaveLength(1);
@@ -2109,9 +2072,7 @@ describe("useCommand gate", () => {
 
     act(() => {
       // biome-ignore lint/style/noNonNullAssertion: asserted by the waitFor above
-      void captured
-        .handle!.dangerouslySendWithoutInput(1)
-        .catch(() => undefined);
+      void captured.handle!.send(1).catch(() => undefined);
     });
 
     expect(fixture.transport.sentCommands).toHaveLength(1);
@@ -2136,9 +2097,7 @@ describe("useCommand gate", () => {
 
     expect(handle).not.toBeNull();
     // biome-ignore lint/style/noNonNullAssertion: asserted non-null on the line above
-    await expect(handle!.dangerouslySendWithoutInput(1)).rejects.toMatchObject({
-      code: "E_LOST",
-    });
+    await expect(handle!.send(1)).rejects.toMatchObject({ code: "E_LOST" });
   });
 });
 
@@ -2466,12 +2425,7 @@ describe("useCommand acceptance and warnings", () => {
       cmd.status.phase === "in-flight" ? String(cmd.status.accepted) : "-";
     return (
       <div>
-        <button
-          type="button"
-          onClick={() =>
-            void cmd.dangerouslySendWithoutInput(1).catch(() => {})
-          }
-        >
+        <button type="button" onClick={() => void cmd.send(1).catch(() => {})}>
           go
         </button>
         <span>accepted:{accepted}</span>

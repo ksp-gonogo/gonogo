@@ -1,20 +1,16 @@
 /**
  * Standalone probe for the send status a command control shows. Mounts
- * command `Button`s with hand-built handles whose `sendStatus` is the one the
+ * `CommandButton`s with hand-built handles whose `sendStatus` is the one the
  * scenario names. The driver is `render-send-status`.
  */
 import {
-  bindCommand,
-  bindValue,
   railTagsForCommand,
   type SendStatus,
-  type UseCommandResult,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
-  type CommandButtonHandle,
-  type CommandReplyLike,
+  CommandButton,
   DataLine,
   DelayRailProvider,
   Panel,
@@ -59,21 +55,14 @@ export interface SendStatusPayload {
 
 let activeRoot: Root | null = null;
 
-function handleFor(state: SendStatusState): CommandButtonHandle {
-  const handle: CommandButtonHandle = {
-    dangerouslySendWithoutInput: () => new Promise<CommandReplyLike>(() => {}),
+function handleFor(state: SendStatusState) {
+  return {
+    send: () => new Promise<{ success: true }>(() => {}),
     inFlight: [],
     tags: railTagsForCommand("vessel.control.setSasMode"),
     effectiveDelaySeconds: 480,
     sendStatus: state === "before" ? undefined : STATUSES[state],
-    with(args, options) {
-      return bindCommand(this as unknown as UseCommandResult, args, options);
-    },
-    toArgs(toArgs, options) {
-      return bindValue(this as unknown as UseCommandResult, toArgs, options);
-    },
   };
-  return handle;
 }
 
 const ROW = {
@@ -96,12 +85,10 @@ function Harness({ payload }: { payload: SendStatusPayload }) {
       <DelayRailProvider>
         <div style={ROW}>
           <Button data-neighbour="a">Left</Button>
-          <Button
-            command={handleFor(payload.state ?? "before")}
-            variant="ghost"
-          >
-            Fire
-          </Button>
+          <CommandButton
+            handle={handleFor(payload.state ?? "before")}
+            label="Fire"
+          />
           <Button data-neighbour="b">Right</Button>
         </div>
       </DelayRailProvider>
@@ -110,9 +97,11 @@ function Harness({ payload }: { payload: SendStatusPayload }) {
   const row = (
     <div style={ROW}>
       {(Object.keys(LABELS) as (keyof typeof LABELS)[]).map((state) => (
-        <Button command={handleFor(state)} variant="ghost" key={state}>
-          {LABELS[state]}
-        </Button>
+        <CommandButton
+          key={state}
+          handle={handleFor(state)}
+          label={LABELS[state]}
+        />
       ))}
     </div>
   );

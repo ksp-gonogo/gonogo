@@ -56,15 +56,9 @@ function Widget({
         type="button"
         onClick={() => {
           const g = sendTogether(() => {
-            void ag
-              .dangerouslySendWithoutInput({ group: "Custom01" })
-              .catch(() => {});
-            void ag
-              .dangerouslySendWithoutInput({ group: "Custom02" })
-              .catch(() => {});
-            void sas
-              .dangerouslySendWithoutInput({ enabled: true })
-              .catch(() => {});
+            void ag.send({ group: "Custom01" }).catch(() => {});
+            void ag.send({ group: "Custom02" }).catch(() => {});
+            void sas.send({ enabled: true }).catch(() => {});
             group();
           });
           onGroup?.(g);
@@ -82,12 +76,7 @@ function StatusProbe() {
   const probe = useCommand("probe");
   return (
     <div>
-      <button
-        type="button"
-        onClick={() =>
-          void probe.dangerouslySendWithoutInput({}).catch(() => {})
-        }
-      >
+      <button type="button" onClick={() => void probe.send({}).catch(() => {})}>
         probe
       </button>
       <span>phase:{probe.status.phase}</span>
@@ -245,9 +234,7 @@ describe("sendTogether", () => {
           onClick={() => {
             sendTogether(() => {
               for (const group of [1, 2, 3]) {
-                void setGroup
-                  .dangerouslySendWithoutInput({ group, state: true })
-                  .catch(() => {});
+                void setGroup.send({ group, state: true }).catch(() => {});
               }
             });
           }}
@@ -285,12 +272,8 @@ describe("sendTogether", () => {
           type="button"
           onClick={() => {
             sendTogether(() => {
-              void ag
-                .dangerouslySendWithoutInput({ n: 1 })
-                .then((r) => settled.push(r));
-              void sas
-                .dangerouslySendWithoutInput({ n: 2 })
-                .then((r) => settled.push(r));
+              void ag.send({ n: 1 }).then((r) => settled.push(r));
+              void sas.send({ n: 2 }).then((r) => settled.push(r));
             });
           }}
         >
@@ -345,9 +328,7 @@ describe("sendTogether", () => {
           onClick={() => {
             try {
               sendTogether(() => {
-                ag.dangerouslySendWithoutInput({ n: 1 }).catch((e: Error) =>
-                  outcomes.push(e.message),
-                );
+                ag.send({ n: 1 }).catch((e: Error) => outcomes.push(e.message));
                 throw new Error("boom");
               });
             } catch {
@@ -388,11 +369,9 @@ describe("sendTogether", () => {
           onClick={() => {
             try {
               sendTogether(() => {
-                void ksc
-                  .dangerouslySendWithoutInput({ n: 1 })
-                  .catch(() => outcomes.push("rejected"));
+                void ksc.send({ n: 1 }).catch(() => outcomes.push("rejected"));
                 void other
-                  .dangerouslySendWithoutInput({ n: 2 })
+                  .send({ n: 2 })
                   .catch(() => outcomes.push("rejected"));
               });
             } catch (e) {

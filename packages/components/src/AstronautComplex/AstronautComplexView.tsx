@@ -1,6 +1,6 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { useActionInput } from "@ksp-gonogo/core";
-import { useCommand } from "@ksp-gonogo/sitrep-client";
+import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
 import {
   canBeSacked,
   GameMode,
@@ -126,11 +126,11 @@ export function AstronautComplexComponent(
   const tabBound = useSlotBound(ASTRONAUT_COMPLEX_TAB_SLOT);
   const tabLabel = useSlotLabel(ASTRONAUT_COMPLEX_TAB_SLOT);
 
-  // The handle still has to reach the delay rail.
-  const hireCmd = useCommand("career.crew.hire");
+  // A KSC ground action, dispatched at the meta-vantage; the handle still has to reach the delay rail.
+  const hireCmd = useCommand("career.crew.hire", { vantage: META_VANTAGE });
 
   // Firing is the same kind of KSC ground action: instant and free.
-  const fireCmd = useCommand("career.crew.fire");
+  const fireCmd = useCommand("career.crew.fire", { vantage: META_VANTAGE });
 
   const sackableCrew = useMemo(
     () => crewRoster.filter((c) => !c.isApplicant && canBeSacked(c.standing)),
@@ -181,7 +181,7 @@ export function AstronautComplexComponent(
       setArmedName(null);
       const name = highlighted.name;
       firedRef.current.add(name);
-      fireCmd.dangerouslySendWithoutInput({ kerbalName: name }).catch(() => {
+      fireCmd.send({ kerbalName: name }).catch(() => {
         firedRef.current.delete(name);
       });
       return { fired: highlighted.name };

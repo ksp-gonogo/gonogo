@@ -235,21 +235,6 @@ function extentOf(content: Element): number {
 
 function EssentialFigure({ essential }: { essential: TinyEssential }) {
   const { control } = essential;
-  if (control?.command !== undefined) {
-    return (
-      <ToggleButton
-        size="sm"
-        command={control.command}
-        state={control.active}
-        name={control.title}
-        unavailable={control.disabled ? (control.hint ?? control.title) : null}
-        tip={control.hint ?? control.title}
-        aria-label={control.title}
-      >
-        {() => control.label}
-      </ToggleButton>
-    );
-  }
   if (control !== undefined) {
     return (
       <Tooltip text={control.hint ?? control.title}>
@@ -283,7 +268,7 @@ function EssentialFigure({ essential }: { essential: TinyEssential }) {
       {essential.word !== undefined ? (
         essential.word
       ) : (
-        <EssentialReading essential={essential} />
+        <MarkedFigure essential={essential} />
       )}
     </>
   );
@@ -306,7 +291,7 @@ function asZero(
  * `elsewhere` empties whichever mark that gives. A kind the widget states for
  * a reading of now is drawn around the figure.
  */
-function EssentialReading({ essential }: { essential: TinyEssential }) {
+function MarkedFigure({ essential }: { essential: TinyEssential }) {
   const { mark, value, decimals } = essential;
   const { held, shown } = resolveCurrency(value);
   // Only a signed figure is read for its sign, so a figure handed over bare is drawn as it came.

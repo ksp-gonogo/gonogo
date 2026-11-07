@@ -3,7 +3,7 @@ import {
   useScreen,
   useTelemetryHostDown,
 } from "@ksp-gonogo/core";
-import { useCommand } from "@ksp-gonogo/sitrep-client";
+import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
 import {
   type ModSettingRow,
   dynamicValue as quantity,
@@ -60,6 +60,7 @@ export function ModSettingsSection({
       : undefined;
   // Off the rail: the settings modal has none, and this section states a refused write itself.
   const write = useCommand("settings.mod.write", {
+    vantage: META_VANTAGE,
     rail: false,
   });
   const [pending, setPending] = useState<Pending>({});
@@ -111,11 +112,7 @@ export function ModSettingsSection({
     setPending((current) => ({ ...current, [row.id]: text }));
     setOutcome(null);
     try {
-      await write.dangerouslySendWithoutInput({
-        uplink: uplinkId,
-        id: row.id,
-        value: text,
-      });
+      await write.send({ uplink: uplinkId, id: row.id, value: text });
     } catch (rejected) {
       setPending(({ [row.id]: _dropped, ...rest }) => rest);
       setOutcome(refusalOf(row, rejected));

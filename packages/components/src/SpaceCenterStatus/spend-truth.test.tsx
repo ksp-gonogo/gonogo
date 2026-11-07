@@ -2,7 +2,6 @@ import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { ContributionHost } from "../test/contributionHost";
-import { findButtonDescribedBy } from "../test/describedButton";
 import { perItemGateReport } from "../test/perItemGate";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SpaceCenterStatusComponent } from "./index";
@@ -130,9 +129,9 @@ describe("SpaceCenterStatus: what the upgrade control claims about money", () =>
         }),
       );
     });
-    const refused = await findButtonDescribedBy(
-      /costs more than the career holds/,
-    );
+    const refused = await screen.findByRole("button", {
+      name: /costs more than the career holds/,
+    });
     expect(refused.getAttribute("data-gate")).toBe("blocked");
     expect(refused.getAttribute("aria-disabled")).toBe("true");
   });
@@ -198,7 +197,9 @@ describe("SpaceCenterStatus: what the upgrade control claims about money", () =>
     emitCareer(fixture, LAUNCH_PAD_SHORT);
     blockFacilityUpgrade(fixture);
 
-    const button = await findButtonDescribedBy(/planted\.facility\.upgrade/);
+    const button = await screen.findByRole("button", {
+      name: /planted\.facility\.upgrade/,
+    });
     // aria-disabled, not disabled, so a screen reader still finds it and a press surfaces the reason.
     expect(button.getAttribute("aria-disabled")).toBe("true");
     expect((button as HTMLButtonElement).disabled).toBe(false);
@@ -213,7 +214,9 @@ describe("SpaceCenterStatus: what the upgrade control claims about money", () =>
     emitCareer(fixture, VAB_AFFORDABLE);
     blockFacilityUpgrade(fixture);
 
-    const button = await findButtonDescribedBy(/planted\.facility\.upgrade/);
+    const button = await screen.findByRole("button", {
+      name: /planted\.facility\.upgrade/,
+    });
     expect(button.getAttribute("aria-disabled")).toBe("true");
   });
 });

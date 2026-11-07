@@ -322,16 +322,8 @@ export interface TinyControl {
    * stays pressable and keeps its size.
    */
   held?: string;
-  /** Called on a press. Give this or `command`. */
-  onPress?: () => void;
-  /**
-   * The command a press sends, made with `toArgs` on a `useCommand` handle and
-   * given `true` to switch on and `false` to switch off. The button shows the
-   * state in `active` and what became of the press, as every control that sends
-   * a command does. Give this or `onPress`.
-   */
-  // biome-ignore lint/suspicious/noExplicitAny: a command of any argument and reply types
-  command?: ValueCommand<boolean, any, any>;
+  /** Called on a press. */
+  onPress: () => void;
 }
 
 /**
@@ -1410,13 +1402,12 @@ export interface MapPoiAction {
   id: string;
   /** The button's text. */
   label: string;
-  /**
-   * The command the button sends, made with `with` on a `useCommand` handle.
-   * The button shows what became of it, as every control that sends a command does.
-   */
-  command: AnyBoundCommand;
-  /** Why the button cannot be pressed now, shown as its tip while it is dimmed. */
-  unavailable?: string;
+  /** Called when the button is pressed. */
+  run: () => void | Promise<void>;
+  /** Whether the button is disabled. */
+  disabled?: boolean;
+  /** Why the button is disabled, shown in place of `label` while it is. */
+  disabledReason?: string;
 }
 
 /**
@@ -2080,9 +2071,9 @@ export type { DelayMode, InFlightCommand, PredictedPhase };
 export interface UseCommandOptions<Args = unknown> {
   /**
    * The command centre this command is sent from, which sets its signal delay.
-   * Omit it to send from the screen's selected centre. A command about the space
-   * program rather than a craft (research, strategies, contracts) is declared so by
-   * the mod and arrives at once from any centre, whatever this says.
+   * Omit it to send from the screen's selected centre. Pass `"meta"` for a
+   * command about the space program rather than a craft (research, strategies,
+   * contracts), which arrives at once from any centre.
    */
   vantage?: string;
   /**
@@ -2108,124 +2099,7 @@ export interface UseCommandOptions<Args = unknown> {
 }
 
 /**
- * The things a press can do around its command, passed to
- * {@link UseCommandResult.with} and {@link UseCommandResult.toArgs}. Useful for
- * naming what one control sends and what happens around the press. Held by a
- * {@link BoundCommand} or {@link ValueCommand}.
- *
- * @category Commands
- */
-export interface BoundCommandOptions<Args = unknown, Reply = AnyCommandReply> {
-  /** The operator-facing description of this dispatch, which a refusal or loss sentence is named after. */
-  label?: string;
-  /** Runs at the real dispatch, after an arm and never for a press the game has already said it will refuse. */
-  before?(args: Args | undefined): void;
-  /** Runs with the reply once the command has run. */
-  onConfirmed?(reply: Reply): void;
-  /** Runs with the sentence the control shows when the game refuses the command. */
-  onRefused?(sentence: string): void;
-  /** Runs when the dispatch ends without a reply: refused, lost or failed. */
-  onRejected?(error: unknown): void;
-}
-
-/**
- * One command with its arguments set, for a kit input to send when the
- * operator presses it. Useful for naming what a control sends, and for holding
- * the command's handle beside it so the input can draw its state. Returned by
- * {@link UseCommandResult.with} and {@link commandSet}.
- *
- * `args` may be a function, called at the press, for arguments that change
- * while the control waits. A set made by {@link commandSet} lists its
- * `members` and its `set` options, and its `handle` stands for them all.
- *
- * @category Commands
- */
-export interface BoundCommand<
-  Args = unknown,
-  Reply = AnyCommandReply,
-  Handle = UseCommandResult<Args, Reply>,
-> {
-  /** Marks a command with arguments, as opposed to a {@link ValueCommand}. */
-  readonly kind: "bound";
-  /** The handle the press dispatches on, and that the input reads its state from. */
-  readonly handle: Handle;
-  /** The arguments, or a function returning them at the press. */
-  readonly args: Args | (() => Args) | undefined;
-  /** What happens around the press. */
-  readonly options: BoundCommandOptions<Args, Reply>;
-  /** The commands of a {@link commandSet}, in the order given. */
-  readonly members?: readonly AnyBoundCommand[];
-  /** How a {@link commandSet} sends its members. */
-  readonly set?: CommandSetOptions;
-}
-
-/**
- * A {@link BoundCommand} of any argument and reply type, for a
- * {@link commandSet} whose members send different commands. Useful for typing
- * a list of commands that are sent by one press.
- *
- * @category Commands
- */
-// biome-ignore lint/suspicious/noExplicitAny: members of a set carry different argument and reply types
-export type AnyBoundCommand = BoundCommand<any, any, any>;
-
-/**
- * One command and the way to turn an input's value into its arguments, for an
- * input that sets a value. Useful for a toggle, a stepper or a field. Returned
- * by {@link UseCommandResult.toArgs}.
- *
- * @category Commands
- */
-export interface ValueCommand<
-  Value = unknown,
-  Args = unknown,
-  Reply = AnyCommandReply,
-  Handle = UseCommandResult<Args, Reply>,
-> {
-  /** Marks a command that takes the input's value, as opposed to a {@link BoundCommand}. */
-  readonly kind: "value";
-  /** The handle the press dispatches on, and that the input reads its state from. */
-  readonly handle: Handle;
-  /** Turns the input's value into the arguments to send, or `undefined` where there is nothing to send. */
-  toArgs(value: Value): Args | undefined;
-  /** What happens around the press. */
-  readonly options: BoundCommandOptions<Args, Reply>;
-}
-
-/**
- * How a {@link commandSet} sends its commands and what it does when they have
- * all been answered. Useful for an action such as clearing every node.
- *
- * @category Commands
- */
-export interface CommandSetOptions {
-  /** `"at-once"` sends them together. `"one-at-a-time"` waits for each answer and carries on past a refusal unless `stopAtFirstFailure` is set. Default `"at-once"`. */
-  order?: "at-once" | "one-at-a-time";
-  /** With `"one-at-a-time"`, stops at the first command that is refused, lost or fails. */
-  stopAtFirstFailure?: boolean;
-  /** Runs once every member sent has been answered, with how many were confirmed and failed, and the first error. */
-  onSettled?(result: CommandSetResult): void;
-}
-
-/**
- * What a {@link commandSet} reports to its `onSettled`: how many commands it
- * sent, how many were confirmed and how many failed, and the first error.
- *
- * @category Commands
- */
-export interface CommandSetResult {
-  /** The commands in the set. */
-  total: number;
-  /** The commands answered with a reply. */
-  confirmed: number;
-  /** The commands refused, lost or failed. */
-  failed: number;
-  /** The first rejection, when any failed. */
-  firstError?: unknown;
-}
-
-/**
- * The handle {@link useCommand} returns: `dangerouslySendWithoutInput` to dispatch the command, and
+ * The handle {@link useCommand} returns: `send` to dispatch the command, and
  * what is known about it while it travels and after it ends.
  *
  * `Args` and `Reply` are the command's own argument and reply types when the
@@ -2240,54 +2114,19 @@ export interface CommandSetResult {
  *
  * @category Commands
  */
-// `dangerouslySendWithoutInput` is a method, not a function-valued property, so a typed handle stays assignable to the bare UseCommandResult under strictFunctionTypes.
+// `send` is a method, not a function-valued property, so a typed handle stays assignable to the bare UseCommandResult under strictFunctionTypes.
 export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
   /**
-   * Sends this command with no kit input drawing it, so nothing on screen shows
-   * the operator that it was sent except the panel's delay rail. Useful for a
-   * send that no kit input starts, such as a price query, a background sync or
-   * typed text in a script terminal. Used by a script terminal and by the
-   * maneuver planner when it removes a completed node.
-   *
-   * A control the operator presses takes the command through its `command` prop
-   * instead: pass {@link with} or {@link toArgs} to a {@link Button}, a
-   * {@link Slider} or another kit input, which then draws sent, refused and the
-   * rest. A key or serial binding presses a {@link useCommandControl}.
-   *
-   * Resolves with the reply once the command has run. Rejects when the game
-   * refuses it, and when no reply arrives by the expected time. A refusal or loss
-   * from a call whose promise nobody awaits is still recorded in `refusals` or
-   * `losses`.
+   * Sends the command. Resolves with the reply once the command has run.
+   * Rejects when the game refuses it, with a `CommandErrorCode` to branch on
+   * (see {@link classifyCommandRejection}), and when no reply arrives by the
+   * expected time. A refusal or loss from a `send` whose promise nobody awaits
+   * is still recorded in `refusals` or `losses`.
    *
    * `opts.label` is a description of this dispatch to show the operator.
-   * `opts.topic` addresses the command to one part or route on the craft, such
-   * as one script terminal.
+   * `opts.topic` addresses the command to one part or route on the craft.
    */
-  dangerouslySendWithoutInput(
-    args?: Args,
-    opts?: { label?: string; topic?: string },
-  ): Promise<Reply>;
-  /**
-   * This command with its arguments set, for a kit input to send when the
-   * operator presses it. Useful for naming what one control sends and what
-   * happens around the press. Taken by the `command` prop of a kit input such
-   * as a button. `args` may be a function, called at the press, for arguments
-   * that change while the control waits.
-   */
-  with(
-    args?: Args | (() => Args),
-    options?: BoundCommandOptions<Args, Reply>,
-  ): BoundCommand<Args, Reply>;
-  /**
-   * This command with a way to turn an input's value into its arguments, for
-   * an input that sets a value. Useful for a toggle, a stepper or a field.
-   * Taken by the `command` prop of a kit input that sets a value. Return
-   * `undefined` where there is nothing to send.
-   */
-  toArgs<Value>(
-    toArgs: (value: Value) => Args | undefined,
-    options?: BoundCommandOptions<Args, Reply>,
-  ): ValueCommand<Value, Args, Reply>;
+  send(args?: Args, opts?: { label?: string; topic?: string }): Promise<Reply>;
   /** The state of the latest dispatch. See {@link CommandStatus}. */
   status: CommandStatus;
   /**
@@ -2334,7 +2173,7 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    * prediction: it goes at once, is held for a predicted contact and arrives at
    * a stated time, or has no route. Never blocks `send`. `undefined` for a
    * command that arrives at once, and while no route is known for the sending
-   * centre. {@link Button} writes it in its tooltip on every control.
+   * centre. {@link CommandButton} writes it in its tooltip on every control.
    */
   sendStatus: SendStatus | undefined;
   /**
@@ -2405,7 +2244,7 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
  * @example
  * ```tsx
  * function SasOn({ handle }: { handle: UseCommandResultFor<"vessel.control.setSas"> }) {
- *   return <Button onClick={() => void handle.dangerouslySendWithoutInput({ enabled: true })}>SAS on</Button>;
+ *   return <Button onClick={() => void handle.send({ enabled: true })}>SAS on</Button>;
  * }
  * ```
  *

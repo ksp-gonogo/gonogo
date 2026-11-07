@@ -3,18 +3,17 @@ import {
   Badge,
   Button,
   Cluster,
+  CommandStepper,
   Inline,
   Panel,
   ReadoutCaption,
   type ReckoningMarking,
   Section,
   SelectableRow,
-  Stepper,
   Text,
   ToggleButton,
   Unit,
   type UnitValue,
-  writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { lockStateText, motorStateText } from "../unreadLabels";
 import {
@@ -138,18 +137,23 @@ export function RoboticsConsoleView({
           <Cluster justify="start" wrap>
             <ReadoutCaption>Target</ReadoutCaption>
             <Cluster justify="start">
-              <Stepper
-                label="target"
+              <CommandStepper
                 unknown="unknown"
-                value={targetCommand.commanded}
+                lowerLabel="Decrease target"
+                raiseLabel="Increase target"
+                commanded={targetCommand.commanded}
                 expected={targetCommand.expected}
                 lastSeen={targetCommand.lastSeen}
                 lastSeenCaption={targetCommand.lastSeenCaption}
+                min={Number.NEGATIVE_INFINITY}
+                max={Number.POSITIVE_INFINITY}
                 step={TARGET_STEP[selected.type]}
-                format={(v) =>
-                  writeQuantity(value(unitFor(selected.type), v), { decimals })
-                }
-                disabled={targetCommand.commanded === null}
+                figure={(v) => (
+                  <Unit
+                    value={value(unitFor(selected.type), v)}
+                    decimals={decimals}
+                  />
+                )}
                 disabledReason="The target is not reported"
                 onChange={(v) => setTarget(selected.partId, selected.type, v)}
               />

@@ -60,7 +60,7 @@ Wraps a `Transport` and provides:
   last real observation, once they stop. Unmounting releases the
   subscription; when the last subscriber for a topic goes away, the client
   sends `unsubscribe` to the transport.
-- **`useCommand(command: string): { dangerouslySendWithoutInput, status }`**: `dangerouslySendWithoutInput(args?)`
+- **`useCommand(command: string): { send, status }`**: `send(args?)`
   dispatches the command and returns the same `Promise` `dispatch` produces;
   `status` reactively reflects the lifecycle (`idle -> in-flight ->
   confirmed | failed`) via `useSyncExternalStore`.
@@ -78,7 +78,7 @@ import {
 
 function MissionPanel() {
   const altitude = useStream<number>("v.alt");
-  const { dangerouslySendWithoutInput, status } = useCommand("stage");
+  const { send, status } = useCommand("stage");
   const shown =
     altitude.state === "observed" || altitude.state === "held"
       ? altitude.value
@@ -89,7 +89,7 @@ function MissionPanel() {
         altitude: {shown}
         {altitude.state === "held" && " (last known)"}
       </span>
-      <button onClick={() => dangerouslySendWithoutInput()} disabled={status.phase === "in-flight"}>
+      <button onClick={() => send()} disabled={status.phase === "in-flight"}>
         stage
       </button>
     </div>

@@ -1,0 +1,181 @@
+import { type ReactNode, useEffect, useId } from "react";
+import styled, { css } from "styled-components";
+import { focusRing } from "../focusRing";
+import { Tooltip } from "../Tooltip";
+import { VisuallyHidden } from "../VisuallyHidden";
+
+interface CommandGroupOwnProps<GroupValue extends Record<string, unknown>> {
+  /** The group's current value, owned by the caller and written by the child inputs. */
+  value: GroupValue;
+  /** Fired exactly once, with the group's current `value`, on an explicit commit; never on a child input's own change. */
+  onCommit: (v: GroupValue) => void;
+  /** Marks the commit control unavailable, in an error tone, for example while there is no path to the craft. It stays focusable and says why (`gatedReason`); `onCommit` never fires while gated. */
+  gated?: boolean;
+  /** The group's inputs (wheels, sliders and so on), drawn as given. */
+  children: ReactNode;
+  /**
+   * What the commit button draws. Defaults to "Commit". A string names the
+   * button by itself; a node (an icon-only commit) must be paired with
+   * `commitAriaLabel`, because every kit icon is `aria-hidden`, and omitting it
+   * is a compile error. A node also squares the button's inset.
+   */
+  commitLabel?: ReactNode;
+  /**
+   * The commit button's accessible name, for when `commitLabel` cannot be one.
+   * Always the action, never the glyph ("Commit framing", not "Return arrow").
+   */
+  commitAriaLabel?: string;
+  /** Why a gated commit is unavailable: the button's description, and its hover title. Absent, a gated commit states no reason. */
+  gatedReason?: string;
+  /**
+   * Where the commit control sits relative to the inputs. `"column"` (default)
+   * puts it on its own line under them; `"row"` puts it beside them, for a
+   * corner-sized strip that cannot spare the height.
+   */
+  orientation?: "column" | "row";
+  /**
+   * Let the inputs break onto further lines. On by default, unlike the kit's
+   * other rows. Turn it off for a strip that must stay one line.
+   */
+  wrap?: boolean;
+}
+
+/**
+ * The commit control's two props, with the a11y pairing spelled as a type: a
+ * `commitLabel` that is not a string has to come with a `commitAriaLabel`. The
+ * component also warns in dev, for a caller who spreads a props bag past the
+ * check.
+ */
+type CommandGroupCommitNaming =
+  | { commitLabel?: string; commitAriaLabel?: string }
+  | { commitLabel: ReactNode; commitAriaLabel: string };
+
+/**
+ * Props for {@link CommandGroup}. A `commitLabel` that is not a string must come with a `commitAriaLabel`.
+ * Useful for giving a form of related inputs one value and one commit that
+ * sends them together. Used by {@link CommandGroup}.
+ *
+ * @category CommandDelay
+ */
+export type CommandGroupProps<GroupValue extends Record<string, unknown>> =
+  CommandGroupOwnProps<GroupValue> & CommandGroupCommitNaming;
+
+/**
+ * A group of inputs committed together: child inputs write into the caller's
+ * controlled `value`, and nothing dispatches until the explicit commit fires
+ * `onCommit` once with the whole group's value. Useful for letting the operator
+ * set several values for one command and send them as one delayed dispatch. It
+ * has no data hooks and no dispatch of its own.
+ *
+ * @category CommandDelay
+ */
+export function CommandGroup<GroupValue extends Record<string, unknown>>({
+  value,
+  onCommit,
+  gated = false,
+  children,
+  commitLabel = "Commit",
+  commitAriaLabel,
+  gatedReason,
+  orientation = "column",
+  wrap = true,
+}: CommandGroupProps<GroupValue>) {
+  // The types refuse a nameless glyph commit; this catches a spread props bag the checker could not see.
+  const named =
+    typeof commitLabel === "string" || typeof commitLabel === "number";
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
+    if (named || commitAriaLabel) return;
+    console.warn(
+      "CommandGroup was given a non-text commitLabel and no commitAriaLabel, " +
+        "so its commit button has no accessible name. Pass commitAriaLabel " +
+        "naming the action (not the glyph).",
+    );
+  }, [named, commitAriaLabel]);
+  const reasonId = useId();
+
+  return (
+    <CommandGroup__Root data-gated={gated} $orientation={orientation}>
+      <CommandGroup__Inputs $wrap={wrap}>{children}</CommandGroup__Inputs>
+      {gated && gatedReason && (
+        <VisuallyHidden id={reasonId}>{gatedReason}</VisuallyHidden>
+      )}
+      <Tooltip text={gated ? gatedReason : undefined} announce={false}>
+        <CommandGroup__CommitButton
+          type="button"
+          aria-disabled={gated || undefined}
+          aria-describedby={gated && gatedReason ? reasonId : undefined}
+          $gated={gated}
+          $orientation={orientation}
+          $icon={!named}
+          aria-label={commitAriaLabel}
+          onClick={() => {
+            if (gated) return;
+            onCommit(value);
+          }}
+        >
+          {commitLabel}
+        </CommandGroup__CommitButton>
+      </Tooltip>
+    </CommandGroup__Root>
+  );
+}
+
+const CommandGroup__Root = styled.div<{ $orientation: "column" | "row" }>`
+  display: flex;
+  flex-direction: ${({ $orientation }) => $orientation};
+  ${({ $orientation }) => $orientation === "row" && "align-items: center;"}
+  gap: var(--gap-control-row);
+`;
+
+const CommandGroup__Inputs = styled.div<{ $wrap: boolean }>`
+  display: flex;
+  flex-wrap: ${({ $wrap }) => ($wrap ? "wrap" : "nowrap")};
+  gap: var(--gap-control-row);
+  align-items: center;
+`;
+
+const CommandGroup__CommitButton = styled.button<{
+  $gated: boolean;
+  $orientation: "column" | "row";
+  $icon: boolean;
+}>`
+  align-self: ${({ $orientation }) =>
+    $orientation === "row" ? "center" : "flex-start"};
+  /* A commit control must not be squeezed to nothing by the inputs beside it. */
+  ${({ $orientation }) => $orientation === "row" && "flex-shrink: 0;"}
+  padding: var(--inset-commit-button);
+  font-size: var(--font-size-compact);
+  font-weight: 600;
+  border-radius: var(--radius-regular);
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  cursor: pointer;
+
+  ${({ $icon }) =>
+    $icon &&
+    css`
+      /* The glyph centres in the box, and the inset is squared so the button is a square. */
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--inset-icon-button-compact);
+
+      @media (pointer: coarse) {
+        padding: var(--inset-icon-button);
+      }
+    `}
+
+  ${focusRing}
+
+  ${({ $gated }) =>
+    $gated &&
+    css`
+      cursor: not-allowed;
+      border-color: var(--color-nogo-status);
+      background: var(--color-nogo-status);
+      color: var(--color-nogo-on-status);
+      opacity: 0.7;
+    `}
+`;

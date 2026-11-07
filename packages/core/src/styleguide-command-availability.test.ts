@@ -15,8 +15,8 @@ import { styleguideScanRoots } from "./styleguideScanRoots";
  *
  * A command's own declaration carries what it needs (its scene, its facility
  * limits, its flags), the mod evaluates that before anyone presses, and
- * `useCommand` refuses locally on the verdict. a command `Button` and every
- * `useCommandControl` chrome then draw the control dark with the command's own
+ * `useCommand` refuses locally on the verdict. `CommandButton` and every
+ * `useCommandButton` chrome then draw the control dark with the command's own
  * sentence. A widget that also passes `disabled`, `enabled` or `aria-disabled`
  * to a command control has made a second, private decision about the same
  * command, and the two drift: a scene gate outlived the backend that needed it
@@ -25,16 +25,16 @@ import { styleguideScanRoots } from "./styleguideScanRoots";
  * ## The rule
  *
  * 1. A JSX element that carries a command (a `handle` prop, a prop named
- *    `*Cmd` or `*Command`, or an `onClick` that calls `.dangerouslySendWithoutInput(`) takes no
+ *    `*Cmd` or `*Command`, or an `onClick` that calls `.send(`) takes no
  *    `disabled`, `enabled` or `aria-disabled` prop.
- * 2. A file that calls `useCommandControl` sets `disabled` / `aria-disabled`
+ * 2. A file that calls `useCommandButton` sets `disabled` / `aria-disabled`
  *    only from the hook's own phases (`isSent`, `isBlocked`) or as a bare
  *    literal, never from a condition of its own.
  *
  * ## What it cannot see
  *
  * A raw button whose `onClick` calls a callback prop that sends somewhere
- * else, rather than `.dangerouslySendWithoutInput(` in place: the command is not visible at the tag.
+ * else, rather than `.send(` in place: the command is not visible at the tag.
  */
 
 /** The widget roots: the mechanism itself lives in ui-kit and the sdk and is not a widget. */
@@ -152,8 +152,7 @@ function jsxTags(src: string): Tag[] {
 function carriesCommand(tag: Tag): boolean {
   for (const [name, value] of tag.props) {
     if (name === "handle" || /(Cmd|Command)$/.test(name)) return true;
-    if (name === "onClick" && /\.dangerouslySendWithoutInput\(/.test(value))
-      return true;
+    if (name === "onClick" && /\.send\(/.test(value)) return true;
   }
   return false;
 }
@@ -170,7 +169,7 @@ function isLiteral(value: string): boolean {
 /** The offending elements in one file's source, as `name` strings. */
 function offenders(raw: string, path: string): string[] {
   const src = stripComments(raw, path);
-  const hookCaller = /\buseCommandControl\b/.test(src);
+  const hookCaller = /\buseCommandButton\b/.test(src);
   const found: string[] = [];
   for (const tag of jsxTags(src)) {
     const decided = [...tag.props].filter(([name]) =>
@@ -250,8 +249,8 @@ describe("a widget does not decide whether a command is available", () => {
     const planted: Record<string, string> = {
       handleProp: `export const W = () => <CommandButton handle={cmd} label="Go" disabled={!ready} />;`,
       namedCmdProp: `export const W = () => <HireButton hireCmd={cmd} enabled={canHire} />;`,
-      sendInClick: `export const W = () => (\n  <button type="button" aria-disabled={!inScene} onClick={() => cmd.dangerouslySendWithoutInput({})}>Go</button>\n);`,
-      hookChrome: `export function W() {\n  const { press } = useCommandControl({ handle });\n  return <Styled disabled={scene !== "SpaceCenter"} onClick={() => press(true)} />;\n}`,
+      sendInClick: `export const W = () => (\n  <button type="button" aria-disabled={!inScene} onClick={() => cmd.send({})}>Go</button>\n);`,
+      hookChrome: `export function W() {\n  const { press } = useCommandButton({ handle });\n  return <Styled disabled={scene !== "SpaceCenter"} onClick={() => press(true)} />;\n}`,
     };
     const missed = Object.entries(planted)
       .filter(([name, src]) => offenders(src, `${name}.tsx`).length === 0)
@@ -265,7 +264,7 @@ describe("a widget does not decide whether a command is available", () => {
   it("does not flag what it should not (planted)", () => {
     const clean: Record<string, string> = {
       commandButton: `export const W = () => <CommandButton handle={cmd} label="Go" />;`,
-      pendingChrome: `export function W() {\n  const { isSent, isBlocked } = useCommandControl({ handle });\n  return <><S disabled aria-busy="true" /><S aria-disabled={isBlocked || undefined} /><S disabled={isSent} /></>;\n}`,
+      pendingChrome: `export function W() {\n  const { isSent, isBlocked } = useCommandButton({ handle });\n  return <><S disabled aria-busy="true" /><S aria-disabled={isBlocked || undefined} /><S disabled={isSent} /></>;\n}`,
       formControl: `export const W = () => <input disabled={saving} onChange={f} />;`,
       prose: `// <CommandButton handle={cmd} disabled={x} />\nexport const W = () => null;`,
     };
@@ -298,7 +297,7 @@ describe("a widget does not decide whether a command is available", () => {
       .sort();
     expect(
       unlisted,
-      "declare the requirement on the command (GateDeclarations) and let CommandButton / useCommandControl draw it; do not decide it in the widget",
+      "declare the requirement on the command (GateDeclarations) and let CommandButton / useCommandButton draw it; do not decide it in the widget",
     ).toEqual([]);
   });
 });
