@@ -51,14 +51,17 @@ const HOST_JOBS_STREAM_BUDGET = new PerfBudget({
  * Replaceable so a test can drive the connection without a socket, the same
  * seam `SitrepTelemetryProvider` offers for its own transport.
  */
-export type OpenJobsTransport = (host: string, port: number) => Transport;
+export type OpenJobsTransport = (
+  host: string,
+  port: number,
+) => Transport & { dispose?(): void };
 
 const openLiveJobsTransport: OpenJobsTransport = (host, port) =>
   new WebSocketTransport({
     host,
     port,
     onStreamFrame: () => HOST_JOBS_STREAM_BUDGET.record(),
-  }) as Transport;
+  });
 
 export interface MainHosts {
   goNoGoHost: GoNoGoHostService;
@@ -137,6 +140,8 @@ export function useHostJobsConnection(
       clearDelaySource();
       detachAuthority();
       client.dispose();
+      // The client leaves its transport open, so a socket left standing here keeps retrying the address it was built for.
+      transport.dispose?.();
     };
   }, [jobs, enabled, host, port, reconnectNonce, openTransport]);
 }

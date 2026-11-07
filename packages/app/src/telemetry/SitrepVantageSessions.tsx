@@ -9,12 +9,15 @@ import type {
   ServerMessage,
   StreamData,
 } from "@ksp-gonogo/sitrep-sdk";
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { isTransmission } from "../commcast/topics";
 import { HOME_SESSION, type PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
 import { requestRateUnderChoice } from "./dataRate";
-import { getSitrepHostConfig } from "./sitrepRuntime";
+import {
+  getSitrepHostConfig,
+  subscribeSitrepHostConfig,
+} from "./sitrepRuntime";
 
 /**
  * Frames relayed out of a second session, counted apart from the host's own
@@ -79,7 +82,16 @@ const openLiveSession: OpenVantageSession = (vantage) => {
   const client = new TelemetryClient(transport as Transport);
   // A session that chooses no vantage is placed at the home command centre.
   if (vantage !== HOME_SESSION) client.setVantage(vantage);
-  return client;
+  return {
+    subscribe: (topic, cb) => client.subscribe(topic, cb),
+    requestRate: (topic, tier) => requestRateUnderChoice(client, topic, tier),
+    onRawMessage: (cb) => client.onRawMessage(cb),
+    dispose: () => {
+      client.dispose();
+      // The client leaves its transport open, so the socket is closed here.
+      transport.dispose();
+    },
+  };
 };
 
 /**
@@ -113,6 +125,18 @@ export function SitrepVantageSessions({
   peerHost: VantageSessionHost;
   openSession?: OpenVantageSession;
 }) {
+  /*
+   * A live session reads the host once, when it opens, so a change of host or
+   * port rebuilds every session: one left standing would keep retrying the
+   * address it was opened against.
+   */
+  const hostConfig = useSyncExternalStore(
+    subscribeSitrepHostConfig,
+    getSitrepHostConfig,
+    getSitrepHostConfig,
+  );
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: hostConfig has no use in the body, a change to it must tear the sessions down and reopen them against the new address.
   useEffect(() => {
     /*
      * Keyed by vantage so a vantage that is still wanted across a change keeps
@@ -180,7 +204,7 @@ export function SitrepVantageSessions({
       for (const close of sessions.values()) close();
       sessions.clear();
     };
-  }, [peerHost, openSession]);
+  }, [peerHost, openSession, hostConfig]);
 
   return null;
 }
