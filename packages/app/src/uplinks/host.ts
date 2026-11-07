@@ -56,6 +56,7 @@ import {
   hasHost,
 } from "@ksp-gonogo/sitrep-sdk";
 import { getRegisteredHostJobs } from "../hosting/HostJobs";
+import { clearUplinkBanner, raiseUplinkBanner } from "./uplinkBannerStore";
 import { useAlarmRequest } from "./useAlarmRequest";
 import { useUplinkRelay } from "./useUplinkRelay";
 
@@ -94,6 +95,8 @@ export function buildGonogoHost(): GonogoHost {
       useProcessor(handle)) as GonogoHost["useProcessor"],
     useViewClock: () => useViewClock(),
     useAlarmRequest: (owner) => useAlarmRequest(owner),
+    raiseUplinkBanner,
+    clearUplinkBanner,
     useActionInput: (handlers) =>
       useActionInput(handlers as Parameters<typeof useActionInput>[0]),
     useDataSources: () => useDataSources(),

@@ -107,6 +107,13 @@ export {
   getRequestedAlarms,
   type RecordedAlarmRequest,
 } from "./recorded-alarm-requests";
+// What `raiseUplinkBanner` was asked for under the real test host. The app owns
+// the banner stack, so a test below the app asserts on the banners raised.
+export {
+  clearRaisedBanners,
+  getRaisedBanners,
+  type RecordedUplinkBanner,
+} from "./recorded-uplink-banners";
 export { probeText, render, renderHook } from "./render";
 // The stream fixture: a real `TelemetryProvider` over a real
 // `TelemetryClient`/`TimelineStore`/`ViewClock`, fed by hand-authored emissions.

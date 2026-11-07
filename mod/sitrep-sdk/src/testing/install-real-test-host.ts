@@ -35,6 +35,10 @@ import { useTopicClock } from "../spine/use-topic-clock";
 import { consoleLogger } from "./console-logger";
 import { installTestHost } from "./install-test-host";
 import { recordAlarmRequest } from "./recorded-alarm-requests";
+import {
+  recordClearedBanner,
+  recordRaisedBanner,
+} from "./recorded-uplink-banners";
 
 /**
  * The four parts of a test host that come from `@ksp-gonogo/ui-kit`, which
@@ -135,6 +139,8 @@ export function installRealTestHost(uiKit: UiKitHostPieces): () => void {
     useViewClock: () => useViewClock(),
     // Records rather than creates: see `./recorded-alarm-requests.ts`.
     useAlarmRequest: (owner) => recordAlarmRequest(owner),
+    raiseUplinkBanner: recordRaisedBanner,
+    clearUplinkBanner: recordClearedBanner,
     useActionInput: (handlers) =>
       useActionInput(handlers as Parameters<typeof useActionInput>[0]),
     useDataSources: () => useDataSources(),

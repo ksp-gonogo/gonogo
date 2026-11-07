@@ -51,6 +51,7 @@ import type {
   UseRouteCommandsResult,
   ViewClockLike,
 } from "./types";
+import type { UplinkBanner } from "./uplink-banner";
 
 /**
  * The registries and hooks the app installs when it starts, which the sdk's
@@ -110,6 +111,10 @@ export interface GonogoHost {
   useAlarmRequest(
     owner: UplinkClientHandle,
   ): (request: UplinkAlarmRequest) => void;
+  /** What {@link raiseUplinkBanner} calls. */
+  raiseUplinkBanner(owner: UplinkClientHandle, banner: UplinkBanner): void;
+  /** What {@link clearUplinkBanner} calls. */
+  clearUplinkBanner(owner: UplinkClientHandle, id: string): void;
   /** What {@link useActionInput} calls. */
   useActionInput<Actions extends readonly ActionDefinition[]>(
     handlers: ActionHandlers<Actions>,

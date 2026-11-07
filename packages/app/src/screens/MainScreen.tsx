@@ -121,6 +121,8 @@ import { syncDataRate } from "../telemetry/dataRate";
 import { PilotVantage } from "../telemetry/PilotVantage";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
 import { reportSitrepTransportStatus } from "../telemetry/sitrepRuntime";
+import { UplinkBanners } from "../uplinks/UplinkBanners";
+import { UplinkHealthLogger } from "../uplinks/UplinkHealthLogger";
 import { UplinkHealthRetry } from "../uplinks/UplinkHealthRetry";
 import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
 import { UplinkLoadGate } from "../uplinks/UplinkLoadGate";
@@ -495,6 +497,7 @@ function MainDashboard({
       <MainAlarmsLauncherScope>
         <Layout as="main" aria-label="Mission control">
           <UplinkIntegrityBanner />
+          <UplinkHealthLogger />
           <MissionBanner
             centre={<PollCentre screen={screen} hosting={hosting} />}
             centreControls={
@@ -559,6 +562,7 @@ function MainDashboard({
             <ContactLossBanner />
             <HomeFallbackNotice />
             <ModVersionBanner />
+            <UplinkBanners />
             {hosting && (
               <>
                 <StationBuildMismatchNotice host={peerHostService} />

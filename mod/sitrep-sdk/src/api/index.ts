@@ -294,6 +294,18 @@ export type {
   WidgetScope,
   WidgetScopeRegistry,
 } from "./types";
+// The banner surface: an Uplink raises a notice in the app's banner stack and
+// the app owns where and how it is drawn. See `./uplink-banner.ts`.
+export type {
+  UplinkBanner,
+  UplinkBannerAction,
+  UplinkBannerSeverity,
+} from "./uplink-banner";
+export {
+  clearUplinkBanner,
+  raiseUplinkBanner,
+  UPLINK_BANNER_LIMITS,
+} from "./uplink-banner";
 
 /**
  * The key of the setting that holds the address of the machine running KSP,

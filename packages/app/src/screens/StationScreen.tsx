@@ -87,6 +87,7 @@ import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
 import type { HostUplinkFailure } from "../uplinks/loadFailures";
 import { StationUplinkLoader } from "../uplinks/StationUplinkLoader";
 import { attachStationBrokers } from "../uplinks/stationBrokers";
+import { UplinkBanners } from "../uplinks/UplinkBanners";
 import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
 import { UplinkLoadFailureScreen } from "../uplinks/UplinkLoadFailureScreen";
 
@@ -516,6 +517,7 @@ export function StationScreen() {
                                   <SignalLossIndicator />
                                   <SustainedFailureBanner />
                                   <HostVersionBanner client={client} />
+                                  <UplinkBanners />
                                   <SceneChangeBanner />
                                   <FlightOutcomeBanner />
                                   <ContactLossBanner />

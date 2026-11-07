@@ -8279,8 +8279,16 @@
         "note": "Null for a recovery in a save with no such currency, where it was 0"
       },
       {
+        "key": "sitrep-sdk . GonogoHost#clearUplinkBanner",
+        "note": "New required member on the host an Uplink never builds; the app and the test host both supply it"
+      },
+      {
         "key": "sitrep-sdk . GonogoHost#defineUplinkClient",
         "note": "The config's description is required, matching the handle it returns"
+      },
+      {
+        "key": "sitrep-sdk . GonogoHost#raiseUplinkBanner",
+        "note": "New required member on the host an Uplink never builds; the app and the test host both supply it"
       },
       {
         "key": "sitrep-sdk . GonogoHost#sendTogether",
@@ -10463,8 +10471,16 @@
         "note": "Fleet Roster is now the Vessel Catalog widget; renamed to VesselCatalogUpdatesContext#vesselName"
       },
       {
+        "key": "sitrep-sdk ./testing ~GonogoHost#clearUplinkBanner",
+        "note": "New required member on the host an Uplink never builds; the app and the test host both supply it"
+      },
+      {
         "key": "sitrep-sdk ./testing ~GonogoHost#defineUplinkClient",
         "note": "The config's description is required, matching the handle it returns"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~GonogoHost#raiseUplinkBanner",
+        "note": "New required member on the host an Uplink never builds; the app and the test host both supply it"
       },
       {
         "key": "sitrep-sdk ./testing ~GonogoHost#sendTogether",
@@ -13385,6 +13401,10 @@
         "note": "New: a transport that is the mod's own connection says it can send a claim"
       },
       {
+        "key": "sitrep-sdk . UPLINK_BANNER_LIMITS",
+        "note": "New: the per-Uplink banner limits an Uplink can read"
+      },
+      {
         "key": "sitrep-sdk . UiKitTheme",
         "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
       },
@@ -13435,6 +13455,42 @@
       {
         "key": "sitrep-sdk . UplinkAlarmInstantTrigger#topic",
         "note": "An alarm that follows a Topic's published instant, which the mod re-reads every tick"
+      },
+      {
+        "key": "sitrep-sdk . UplinkBanner",
+        "note": "New: a banner an Uplink raises in the operator's banner stack"
+      },
+      {
+        "key": "sitrep-sdk . UplinkBanner#action?",
+        "note": "New: a banner an Uplink raises in the operator's banner stack"
+      },
+      {
+        "key": "sitrep-sdk . UplinkBanner#id",
+        "note": "New: a banner an Uplink raises in the operator's banner stack"
+      },
+      {
+        "key": "sitrep-sdk . UplinkBanner#severity",
+        "note": "New: a banner an Uplink raises in the operator's banner stack"
+      },
+      {
+        "key": "sitrep-sdk . UplinkBanner#text",
+        "note": "New: a banner an Uplink raises in the operator's banner stack"
+      },
+      {
+        "key": "sitrep-sdk . UplinkBannerAction",
+        "note": "New: the one button a banner may carry"
+      },
+      {
+        "key": "sitrep-sdk . UplinkBannerAction#label",
+        "note": "New: the one button a banner may carry"
+      },
+      {
+        "key": "sitrep-sdk . UplinkBannerAction#onAction",
+        "note": "New: the one button a banner may carry"
+      },
+      {
+        "key": "sitrep-sdk . UplinkBannerSeverity",
+        "note": "New: how serious a banner is"
       },
       {
         "key": "sitrep-sdk . UplinkClientConfig",
@@ -13581,6 +13637,10 @@
         "note": "Exported from the root barrel, where its documentation already said it was"
       },
       {
+        "key": "sitrep-sdk . clearUplinkBanner",
+        "note": "New: a banner an Uplink raises in the operator's banner stack"
+      },
+      {
         "key": "sitrep-sdk . contractTagsGeneration",
         "note": "Tells a cache built from the registered tags and names when it is stale"
       },
@@ -13639,6 +13699,10 @@
       {
         "key": "sitrep-sdk . poseAtIndex",
         "note": "Looks one body's pose up by its index, null when the instant has none"
+      },
+      {
+        "key": "sitrep-sdk . raiseUplinkBanner",
+        "note": "New: a banner an Uplink raises in the operator's banner stack"
       },
       {
         "key": "sitrep-sdk . registerUplinkTopic",
@@ -16805,8 +16869,24 @@
         "note": "The tags a contract declares on one value: its own sample kind and whether it keys its list entry"
       },
       {
+        "key": "sitrep-sdk ./testing RecordedUplinkBanner",
+        "note": "New: a banner recorded under the test host"
+      },
+      {
+        "key": "sitrep-sdk ./testing RecordedUplinkBanner#uplinkId",
+        "note": "New: a banner recorded under the test host"
+      },
+      {
+        "key": "sitrep-sdk ./testing clearRaisedBanners",
+        "note": "New: test helper for the banners an Uplink raised"
+      },
+      {
         "key": "sitrep-sdk ./testing declareTestReckonable",
         "note": "Declares a test Topic's mark, so a test can register a model where the contract marks nothing"
+      },
+      {
+        "key": "sitrep-sdk ./testing getRaisedBanners",
+        "note": "New: test helper for the banners an Uplink raised"
       },
       {
         "key": "sitrep-sdk ./testing watchStationBrokers",
@@ -17627,6 +17707,42 @@
       {
         "key": "sitrep-sdk ./testing ~UplinkAlarmInstantTrigger#topic",
         "note": "An alarm that follows a Topic's published instant, which the mod re-reads every tick"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UplinkBanner",
+        "note": "New: a banner an Uplink raises in the operator's banner stack"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UplinkBanner#action?",
+        "note": "New: a banner an Uplink raises in the operator's banner stack"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UplinkBanner#id",
+        "note": "New: a banner an Uplink raises in the operator's banner stack"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UplinkBanner#severity",
+        "note": "New: a banner an Uplink raises in the operator's banner stack"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UplinkBanner#text",
+        "note": "New: a banner an Uplink raises in the operator's banner stack"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UplinkBannerAction",
+        "note": "New: the one button a banner may carry"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UplinkBannerAction#label",
+        "note": "New: the one button a banner may carry"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UplinkBannerAction#onAction",
+        "note": "New: the one button a banner may carry"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UplinkBannerSeverity",
+        "note": "New: how serious a banner is"
       },
       {
         "key": "sitrep-sdk ./testing ~UplinkClientConfig",
