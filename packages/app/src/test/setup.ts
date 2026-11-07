@@ -6,7 +6,9 @@ import {
   installDomStubs,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import { setQuantityLocale } from "@ksp-gonogo/ui-kit";
+import { afterEach } from "vitest";
 import { setDefaultShareCodeForTests } from "../peer/hostDefaults";
+import { setChosenSitrepVantage } from "../telemetry/sitrepRuntime";
 import { installGonogoHost } from "../uplinks/host";
 
 installDomStubs();
@@ -22,6 +24,10 @@ installGonogoHost();
 /* A host is given its join code by the game's host record; a test that starts
    one with no game behind it hosts under this. */
 setDefaultShareCodeForTests("TEST23");
+
+/* The command centre a screen chose is kept for the life of the page, which in a
+   suite is the whole file, so each test starts with none chosen. */
+afterEach(() => setChosenSitrepVantage(undefined));
 
 // Soft-cap regression gate: any test that pushes a registered PerfBudget
 // over its threshold fails. See PerfBudget.installTestGate for opt-out.

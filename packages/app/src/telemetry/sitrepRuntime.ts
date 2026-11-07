@@ -131,6 +131,22 @@ export function subscribeSitrepHello(cb: () => void): () => void {
   return () => helloListeners.delete(cb);
 }
 
+let chosenVantage: string | undefined;
+
+/**
+ * The command centre this page's screen chose, kept for the life of the page.
+ * The stream provider is built again when a screen turns from a station into
+ * the host, and its client starts with none, so the choice is read back from
+ * here to be sent to the new connection.
+ */
+export function getChosenSitrepVantage(): string | undefined {
+  return chosenVantage;
+}
+
+export function setChosenSitrepVantage(vantage: string | undefined): void {
+  chosenVantage = vantage;
+}
+
 let reconnectNonce = 0;
 const nonceListeners = new Set<() => void>();
 
@@ -181,6 +197,7 @@ export function resetSitrepRuntimeForTests(): void {
   cachedHostConfig = computeEffectiveHostConfig();
   transportStatus = "disconnected";
   modHello = undefined;
+  chosenVantage = undefined;
   reconnectNonce = 0;
   retryHandler = null;
 }

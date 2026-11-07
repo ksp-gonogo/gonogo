@@ -14229,6 +14229,14 @@
         "note": "New: frames held in the delay buffer now"
       },
       {
+        "key": "sitrep-sdk ./media FrameDelayStatsDetail#bufferedBytes",
+        "note": "New: bytes held in the delay buffer now"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameDelayStatsDetail#capBytes",
+        "note": "New: the most bytes the delay buffer holds"
+      },
+      {
         "key": "sitrep-sdk ./media FrameDelayStatsDetail#keyframeRequests",
         "note": "New: times the pipeline asked the source for a keyframe"
       },
@@ -14251,6 +14259,14 @@
       {
         "key": "sitrep-sdk ./media FrameDelayStatsDetail#keyframeWaits",
         "note": "New: keyframe waits that have ended"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameDelayStatsDetail#shedding",
+        "note": "New: whether new encoded frames are being dropped because the buffer is full"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameDelayStatsDetail#sheddingStarts",
+        "note": "New: how many times the pipeline has started shedding"
       },
       {
         "key": "sitrep-sdk ./media FrameStamp",

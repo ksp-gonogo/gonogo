@@ -20,7 +20,11 @@ class SilentWorker {
     SilentWorker.built.push(this);
   }
 
-  posted: { type?: string; pipelineId?: string }[] = [];
+  posted: {
+    type?: string;
+    pipelineId?: string;
+    snapshot?: { delaySeconds: number };
+  }[] = [];
 
   postMessage(message?: { type?: string; pipelineId?: string }): void {
     if (message) this.posted.push(message);
@@ -92,6 +96,57 @@ describe("createWorkerFrameDelayStream when the worker fails", () => {
     expect(SilentWorker.built).toHaveLength(2);
     SilentWorker.built[1]?.onerror?.({ message: "died again" });
     await expect(second).resolves.toBeNull();
+  });
+
+  describe("clock snapshots", () => {
+    it("are posted per pipeline, each carrying its own camera's clock", async () => {
+      vi.useFakeTimers();
+      try {
+        vi.stubGlobal("Worker", SilentWorker);
+        vi.stubGlobal("MediaStream", OneTrackStream);
+        const viewWithDelay = (delaySeconds: number) => ({
+          ...options.view,
+          snapshot: () => ({ ...options.view.snapshot(), delaySeconds }),
+        });
+        const start = (delaySeconds: number) => {
+          const waiting = createWorkerFrameDelayStream(camera(), {
+            ...options,
+            view: viewWithDelay(delaySeconds),
+          });
+          const [worker] = SilentWorker.built;
+          const created = worker?.posted.filter(
+            (m) => m.type === "createPipeline",
+          );
+          const pipelineId = created?.[created.length - 1]?.pipelineId;
+          worker?.onmessage?.({
+            data: { type: "pipelineReady", pipelineId, track: {} },
+          } as MessageEvent);
+          return { waiting, pipelineId };
+        };
+        const hull = start(4);
+        const ground = start(0.5);
+        await hull.waiting;
+        await ground.waiting;
+
+        await vi.advanceTimersByTimeAsync(50);
+
+        const [worker] = SilentWorker.built;
+        const snapshots = (worker?.posted ?? []).filter(
+          (m) => m.type === "clockSnapshot",
+        );
+        const delayOf = (id: string | undefined) =>
+          new Set(
+            snapshots
+              .filter((m) => m.pipelineId === id)
+              .map((m) => m.snapshot?.delaySeconds),
+          );
+        expect(delayOf(hull.pipelineId)).toEqual(new Set([4]));
+        expect(delayOf(ground.pipelineId)).toEqual(new Set([0.5]));
+        worker?.onerror?.({ message: "done" });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 
   describe("leadLimitSeconds", () => {

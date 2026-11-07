@@ -37,6 +37,7 @@ import type { FrameStampFeed } from "../frame-stamp-timeline";
 import type {
   CreatePipelineMessage,
   MainToWorkerMessage,
+  ReleaseState,
   WorkerToMainMessage,
 } from "./delay-worker";
 import {
@@ -104,7 +105,10 @@ interface PendingReady {
 }
 const pendingReady = new Map<string, PendingReady>();
 const nonFatalErrorHandlers = new Map<string, (reason: string) => void>();
-const statsHandlers = new Map<string, (stats: FrameDelayStatsDetail) => void>();
+const statsHandlers = new Map<
+  string,
+  (stats: FrameDelayStatsDetail, release?: ReleaseState) => void
+>();
 const leadLimits = new Map<string, number>();
 
 /** The interval to ask the worker for: every pipeline reports, since the summary log is always written. */
@@ -141,7 +145,7 @@ function getSharedWorker(): Worker | null {
           nonFatalErrorHandlers.get(msg.pipelineId)?.(msg.reason);
           return;
         case "pipelineStats":
-          statsHandlers.get(msg.pipelineId)?.(msg.stats);
+          statsHandlers.get(msg.pipelineId)?.(msg.stats, msg.release);
           return;
         case "pipelineLeadLimit":
           if (leadLimits.has(msg.pipelineId)) {
@@ -191,9 +195,8 @@ function post(
   worker.postMessage(msg, transfer ?? []);
 }
 
-/** Starts the ~60Hz loop posting `clockSnapshot` (worker-global, so every
- *  pipeline on the shared worker reads the same clock, matches the app's
- *  one real `ViewClock`) and `captureSample` (per-pipeline, only when the
+/** Starts the ~60Hz loop posting `clockSnapshot` (per pipeline, so each
+ *  camera is held by the clock it was given) and `captureSample` (per-pipeline, only when the
  *  sample reference actually changed) for one pipeline. Returns a stop
  *  function. Shared by both backends this file exposes, narrowed to just
  *  the two members either needs, so `AttachEncodedFrameDelayOptions`
@@ -206,7 +209,11 @@ function startPipelineTicker(
 ): () => void {
   let lastSample: CaptureClockSample | null = null;
   return startPacingTicker(() => {
-    post(worker, { type: "clockSnapshot", snapshot: opts.view.snapshot() });
+    post(worker, {
+      type: "clockSnapshot",
+      pipelineId,
+      snapshot: opts.view.snapshot(),
+    });
     const sample = opts.getCaptureSample();
     if (sample !== lastSample) {
       lastSample = sample;

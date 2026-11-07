@@ -47,6 +47,28 @@ describe("createWorkerDelayClock", () => {
     expect(clock.sampleStepSeconds?.()).toBeCloseTo(0.1, 6);
   });
 
+  it("releases again after the game's UT jumps back, and leaves another pipeline's clock alone", () => {
+    const wall = 0;
+    const reverted = createWorkerDelayClock({ nowWall: () => wall });
+    const untouched = createWorkerDelayClock({ nowWall: () => wall });
+    const timeline = (epoch: number, ut: number) => ({
+      epoch,
+      anchorWall: 0,
+      anchorUt: ut,
+      maxSampleUt: ut,
+      delaySeconds: 0,
+      warpRate: 1,
+      slackSeconds: 0,
+    });
+    reverted.applySnapshot(timeline(1, 500));
+    untouched.applySnapshot(timeline(1, 500));
+
+    reverted.applySnapshot(timeline(2, 100));
+
+    expect(reverted.confirmedEdgeUt()).toBe(100);
+    expect(untouched.confirmedEdgeUt()).toBe(500);
+  });
+
   it("evaluates the delay-limited regime correctly too", () => {
     let wall = 0;
     const clock = createWorkerDelayClock({ nowWall: () => wall });

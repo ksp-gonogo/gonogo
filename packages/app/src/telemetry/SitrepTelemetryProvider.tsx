@@ -12,17 +12,19 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
-  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
 import { pageCounter } from "../analytics/pageCounts";
 import { KspCalendarObserver } from "./KspCalendarObserver";
+import { StreamSummaryLog } from "./StreamSummaryLog";
 import {
+  getChosenSitrepVantage,
   getSitrepHostConfig,
   getSitrepReconnectNonce,
   reportSitrepHello,
   reportSitrepTransportStatus,
+  setChosenSitrepVantage,
   setSitrepRetryHandler,
   subscribeSitrepHostConfig,
   subscribeSitrepReconnectNonce,
@@ -217,8 +219,6 @@ export function SitrepTelemetryProvider({
    * subscriptions and vantage up again, and the readings held stay held.
    */
   const [generation, setGeneration] = useState(0);
-  // The screen's own choice of command centre outlives the client that recorded it: a rebuilt client starts with none, and a game that has just started puts every connection at its default.
-  const chosenVantage = useRef<string | undefined>(undefined);
   // The mod refused the vantage on this connection as no active command centre: see `VantageRestore`.
   const [vantageRefused, setVantageRefused] = useState(false);
   const clearVantageRefused = useCallback(() => setVantageRefused(false), []);
@@ -331,11 +331,10 @@ export function SitrepTelemetryProvider({
         ? localStorageOutstandingCommands(screenKey)
         : undefined,
     });
-    if (chosenVantage.current !== undefined) {
-      telemetryClient.setVantage(chosenVantage.current);
-    }
+    const chosen = getChosenSitrepVantage();
+    if (chosen !== undefined) telemetryClient.setVantage(chosen);
     const unsubVantage = telemetryClient.onSelectedVantageChange(() => {
-      chosenVantage.current = telemetryClient.selectedVantage;
+      setChosenSitrepVantage(telemetryClient.selectedVantage);
     });
     setClient(telemetryClient);
     return () => {
@@ -359,6 +358,7 @@ export function SitrepTelemetryProvider({
           so the calendar is adopted before anything formats a duration with
           it. Renders nothing. */}
       <KspCalendarObserver />
+      <StreamSummaryLog />
       <VantageRestore refused={vantageRefused} onRetry={clearVantageRefused} />
       <VantageRefusedContext.Provider value={vantageRefused}>
         {children}

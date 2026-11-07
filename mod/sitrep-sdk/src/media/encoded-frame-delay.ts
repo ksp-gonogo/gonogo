@@ -101,8 +101,9 @@ export interface EncodedFrameDelayOptions {
    */
   captureUt(frame: EncodedVideoFrameLike): number;
   /**
-   * The most encoded video, in bytes, to hold before dropping the oldest.
-   * Defaults to {@link DEFAULT_MAX_BUFFERED_BYTES}.
+   * The most encoded video, in bytes, to hold. Past it, frames that arrive are
+   * dropped to the next keyframe, so the oldest play out and the picture shows in
+   * bursts. Defaults to {@link DEFAULT_MAX_BUFFERED_BYTES}.
    */
   maxBufferedBytes?: number;
   /**
@@ -116,13 +117,18 @@ export interface EncodedFrameDelayOptions {
 }
 
 /**
- * The most encoded video, in bytes, the delay holds before it drops the oldest
- * frames, a whole keyframe group at a time so decoding never breaks: 8 MiB.
+ * The most encoded video, in bytes, the delay holds before it drops the frames
+ * that arrive, up to the next keyframe so decoding never breaks: 64 MiB.
  * Useful as the cap on delayed video held in memory. Used by the radio session.
+ *
+ * A feed delayed by `d` seconds at `r` bytes per second holds `d * r` bytes, and
+ * a delay or bitrate past the cap shows the picture in bursts, each as long as
+ * the cap holds, and never a blank feed. 64 MiB holds about 100 seconds of a
+ * 5 Mbit/s feed.
  *
  * @category Delayed video
  */
-export const DEFAULT_MAX_BUFFERED_BYTES = 8 * 1024 * 1024;
+export const DEFAULT_MAX_BUFFERED_BYTES = 64 * 1024 * 1024;
 
 /** Mirrors `frame-delay.ts`'s own default: see that constant's doc. */
 const DEFAULT_PACING_MAX_BACKLOG_SECONDS = 0.5;

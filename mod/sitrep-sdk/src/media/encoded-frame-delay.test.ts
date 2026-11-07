@@ -138,6 +138,73 @@ describe("attachEncodedFrameDelayTransform", () => {
     pipeline.dispose();
   });
 
+  it("holds a long delay of a high-bitrate feed whole, so the frames are released when due and not evicted first", async () => {
+    const clock = manualClock(Number.NEGATIVE_INFINITY);
+    const fps = 30;
+    const delaySeconds = 25;
+    const frames = Array.from({ length: fps * delaySeconds }, (_, i) =>
+      i % 60 === 0 ? keyFrame(20 * 1024) : deltaFrame(20 * 1024),
+    );
+    const { transformer, written } = fakeTransformer(frames);
+    let n = 0;
+
+    const pipeline = attachEncodedFrameDelayTransform(transformer, {
+      view: clock,
+      captureUt: () => (n++ % frames.length) / fps,
+    });
+
+    await vi.waitFor(() => {
+      expect(pipeline.stats().read).toBe(frames.length);
+    });
+    expect(pipeline.stats().evicted).toBe(0);
+
+    clock.setEdge(delaySeconds);
+    await vi.waitFor(() => {
+      pipeline.tickPacing(0);
+      expect(written.length).toBeGreaterThan(0);
+    });
+    pipeline.dispose();
+  });
+
+  it("plays out the oldest frames of a five minute delay of a busy feed, shedding what arrives and never what it holds", async () => {
+    const clock = manualClock(Number.NEGATIVE_INFINITY);
+    const fps = 30;
+    const delaySeconds = 300;
+    const shared = new ArrayBuffer(8 * 1024);
+    const frames: EncodedVideoFrameLike[] = Array.from(
+      { length: fps * delaySeconds },
+      (_, i) => ({ type: i % 60 === 0 ? "key" : "delta", data: shared }),
+    );
+    const { transformer, written } = fakeTransformer(frames);
+    let n = 0;
+
+    const pipeline = attachEncodedFrameDelayTransform(transformer, {
+      view: clock,
+      captureUt: () => (n++ % frames.length) / fps,
+      maxBufferedBytes: 256 * 1024,
+    });
+
+    await vi.waitFor(() => {
+      expect(pipeline.stats().read).toBe(frames.length);
+    });
+    expect(pipeline.stats().shedding).toBe(true);
+    expect(pipeline.stats().bufferedBytes).toBeLessThanOrEqual(256 * 1024);
+
+    let wall = 0;
+    for (let edge = 0; edge <= 4; edge += 0.05) {
+      clock.setEdge(edge);
+      wall += 0.05;
+      pipeline.tickPacing(wall);
+    }
+    await vi.waitFor(() => {
+      pipeline.tickPacing(wall);
+      expect(written.length).toBeGreaterThan(10);
+    });
+    expect(written[0]).toBe(frames[0]);
+    expect(pipeline.stats().evicted).toBeGreaterThan(0);
+    pipeline.dispose();
+  });
+
   it("never calls close() on an encoded frame (it has none), no crash", async () => {
     const clock = manualClock(0);
     const frame = keyFrame(64);

@@ -18,6 +18,10 @@ function stats(over: Partial<FrameDelayStatsDetail>): FrameDelayStatsDetail {
     keyframeWaitMsTotal: 0,
     keyframeWaitMsLongest: 0,
     keyframeWaitingMs: 0,
+    bufferedBytes: 0,
+    capBytes: 1000,
+    shedding: false,
+    sheddingStarts: 0,
     ...over,
   };
 }
@@ -81,5 +85,85 @@ describe("createFrameDelayReporter", () => {
       "frame delay summary",
       expect.objectContaining({ framesIn: 250 }),
     );
+  });
+
+  it("logs once when shedding starts and once when it stops", () => {
+    const log = { info: vi.fn(), warn: vi.fn() };
+    const report = createFrameDelayReporter("encoded-1", () => log);
+
+    report(stats({ read: 300 }));
+    report(
+      stats({
+        read: 600,
+        shedding: true,
+        sheddingStarts: 1,
+        bufferedBytes: 990,
+      }),
+    );
+    report(
+      stats({
+        read: 900,
+        shedding: true,
+        sheddingStarts: 1,
+        bufferedBytes: 990,
+      }),
+    );
+    expect(log.warn).toHaveBeenCalledTimes(1);
+    expect(log.warn.mock.calls[0]?.[1]).toMatchObject({
+      bufferedBytes: 990,
+      capBytes: 1000,
+    });
+
+    report(stats({ read: 1200, sheddingStarts: 1 }));
+    const stopped = log.info.mock.calls.filter(([m]) =>
+      /keeping every frame/.test(String(m)),
+    );
+    expect(stopped).toHaveLength(1);
+  });
+
+  it("reports the bytes held in each summary", () => {
+    const log = { info: vi.fn(), warn: vi.fn() };
+    const report = createFrameDelayReporter("encoded-1", () => log);
+
+    report(stats({ bufferedBytes: 777, buffered: 5 }));
+
+    expect(log.info.mock.calls[0]?.[1]).toMatchObject({
+      bufferedBytes: 777,
+      capBytes: 1000,
+      buffered: 5,
+    });
+  });
+
+  it("writes the clock's numbers and says once when the newest sample holds the release back", () => {
+    const log = { info: vi.fn(), warn: vi.fn() };
+    const report = createFrameDelayReporter("encoded-1", () => log);
+    const release = (edgeUt: number) => ({
+      edgeUt,
+      utNow: 150,
+      maxSampleUt: 85,
+      delaySeconds: 23,
+      slackSeconds: 0,
+      epoch: 0,
+    });
+
+    report(stats({ buffered: 300 }), release(127));
+    expect(log.warn).not.toHaveBeenCalled();
+
+    report(stats({ buffered: 600 }), release(85));
+    report(stats({ buffered: 900 }), release(85));
+    expect(log.warn).toHaveBeenCalledTimes(1);
+    expect(log.warn.mock.calls[0]?.[1]).toMatchObject({
+      release: { edgeUt: 85, utNow: 150, maxSampleUt: 85, delaySeconds: 23 },
+    });
+    expect(log.info.mock.calls.at(-1)?.[1]).toMatchObject({
+      release: { edgeUt: 85, maxSampleUt: 85 },
+    });
+
+    report(stats({ buffered: 10 }), release(127));
+    expect(
+      log.info.mock.calls.filter(([m]) =>
+        /following the delayed/.test(String(m)),
+      ),
+    ).toHaveLength(1);
   });
 });

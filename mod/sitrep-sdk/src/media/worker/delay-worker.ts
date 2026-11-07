@@ -26,10 +26,9 @@
  * Message protocol (see `delay-worker-client.ts` for the main-thread
  * side of each of these):
  *  - `init`           : once, at worker startup, reconciles wall-clock bases.
- *  - `clockSnapshot`   : ~60Hz, worker-global, the one shared ViewClock's
- *                          formula inputs (every pipeline reads the same
- *                          `WorkerDelayClock`, matching the app's one real
- *                          `ViewClock` instance).
+ *  - `clockSnapshot`   : ~60Hz, per-pipeline, the formula inputs of the
+ *                          clock that pipeline follows (each pipeline reads
+ *                          its own `WorkerDelayClock`).
  *  - `captureSample`   : per-pipeline, whenever that camera's low-rate
  *                          capture-clock sample changes.
  *  - `createPipeline`  : per-pipeline, carries the transferred input track.
@@ -51,7 +50,7 @@
  * `self.onrtctransform` (native platform event, not one of the message
  * types above) is the entry point for the encoded-domain backend; see
  * `handleRtcTransform`'s doc. It reuses the same `pipelines` map,
- * `sharedClock`, and `captureSample`/`clockSnapshot` messages this file
+ * its clock, and `captureSample`/`clockSnapshot` messages this file
  * already handles; only pipeline construction differs (no handshake, no
  * transferred track). Not yet reachable from the real app, the main thread
  * has no `RTCRtpReceiver` to call `receiver.transform = new
@@ -62,7 +61,10 @@
  * moment it does.
  */
 
-import type { ClockFormulaSnapshot } from "../../view-clock-formula";
+import {
+  type ClockFormulaSnapshot,
+  computeUtNowEstimate,
+} from "../../view-clock-formula";
 import type { CaptureClockSample } from "../capture-clock";
 import { captureUtStamper } from "../capture-clock";
 import {
@@ -97,6 +99,7 @@ export interface InitMessage {
 
 export interface ClockSnapshotMessage {
   type: "clockSnapshot";
+  pipelineId: string;
   snapshot: ClockFormulaSnapshot;
 }
 
@@ -160,10 +163,24 @@ export interface PipelineNonFatalErrorMessage {
   reason: string;
 }
 
+/** What holds the oldest frame back, read from the pipeline's clock as it posts its totals. */
+export interface ReleaseState {
+  /** The latest UT the clock lets a frame out at. */
+  edgeUt: number;
+  /** The clock's estimate of the vessel's UT now. */
+  utNow: number;
+  /** The latest UT of any telemetry sample the clock has seen. */
+  maxSampleUt: number;
+  delaySeconds: number;
+  slackSeconds: number;
+  epoch: number;
+}
+
 export interface PipelineStatsMessage {
   type: "pipelineStats";
   pipelineId: string;
   stats: FrameDelayStatsDetail;
+  release: ReleaseState;
 }
 
 export interface PipelineLeadLimitMessage {
@@ -221,9 +238,10 @@ interface WorkerGlobalSurface {
 declare const self: WorkerGlobalSurface;
 const workerSelf = self;
 
-let sharedClock: WorkerDelayClock | null = null;
-/** Set once by `handleInit`: the same time-origin-corrected wall clock the
- *  shared `WorkerDelayClock` uses, reused for `captureUt` interpolation so
+/** One clock per pipeline, so a camera can be held by a different delay from its neighbours. */
+const clocks = new Map<string, WorkerDelayClock>();
+/** Set once by `handleInit`: the same time-origin-corrected wall clock every
+ *  `WorkerDelayClock` uses, reused for `captureUt` interpolation so
  *  both read the main thread's basis consistently (`sample.atMs` is a raw
  *  `performance.now()` reading taken on the main thread). */
 let nowWall: (() => number) | null = null;
@@ -320,11 +338,21 @@ function handleInit(msg: InitMessage): void {
   // IS `mainTimeOrigin`.
   const offsetMs = performance.timeOrigin - msg.mainTimeOriginMs;
   nowWall = createNowWall(offsetMs, () => performance.now());
-  sharedClock = createWorkerDelayClock({ nowWall });
+}
+
+/** The pipeline's clock, made cold on first use: snapshots can arrive before the pipeline is built. */
+function clockFor(pipelineId: string): WorkerDelayClock | null {
+  if (!nowWall) return null;
+  let clock = clocks.get(pipelineId);
+  if (!clock) {
+    clock = createWorkerDelayClock({ nowWall });
+    clocks.set(pipelineId, clock);
+  }
+  return clock;
 }
 
 function handleClockSnapshot(msg: ClockSnapshotMessage): void {
-  sharedClock?.applySnapshot(msg.snapshot);
+  clockFor(msg.pipelineId)?.applySnapshot(msg.snapshot);
 }
 
 function handleCaptureSample(msg: CaptureSampleMessage): void {
@@ -333,11 +361,11 @@ function handleCaptureSample(msg: CaptureSampleMessage): void {
 }
 
 function handleCreatePipeline(msg: CreatePipelineMessage): void {
-  // Captured into locals immediately: `sharedClock` and `nowWall` are
+  // Captured into locals immediately: `nowWall` is
   // module-level `let`s, so TS can't narrow them past the `buildWriter()` call
   // below. Neither can actually change between this check and the `try` block
   // regardless, a plain synchronous WebWorker having a single message queue.
-  const clock = sharedClock;
+  const clock = clockFor(msg.pipelineId);
   const clockNowWall = nowWall;
   if (!clock || !clockNowWall) {
     workerSelf.postMessage({
@@ -423,6 +451,8 @@ function handleCreatePipeline(msg: CreatePipelineMessage): void {
       msg.pipelineId,
       pipeline,
       msg.statsIntervalMs,
+      clock,
+      clockNowWall,
     );
 
     workerSelf.postMessage(
@@ -454,7 +484,7 @@ function handleCreatePipeline(msg: CreatePipelineMessage): void {
  * main thread, before this file ever sees anything (mirrors this file's own
  * module-doc note about `MediaStreamTrack` transfer failures).
  *
- * Reuses the exact same `pipelines` map, `sharedClock`, and `captureSample`
+ * Reuses the exact same `pipelines` map, its clock, and `captureSample`
  * per-pipeline state as `handleCreatePipeline`: `attachEncodedFrameDelayTransform`
  * returns the same `FrameDelayPipeline` shape (`flush`/`dispose`/
  * `tickPacing`) `runFrameDelayPipeline` does, so `handleFlush`/`handleDispose`/
@@ -462,7 +492,12 @@ function handleCreatePipeline(msg: CreatePipelineMessage): void {
  * pipeline `pipelineId` maps to.
  */
 function handleRtcTransform(event: RtcTransformEventLike): void {
-  const clock = sharedClock;
+  const options = event.transformer.options ?? {};
+  const pipelineId =
+    typeof options.pipelineId === "string"
+      ? options.pipelineId
+      : `encoded-${pipelines.size}-${Date.now()}`;
+  const clock = clockFor(pipelineId);
   const clockNowWall = nowWall;
   if (!clock || !clockNowWall) {
     // No `pipelineError` channel to report through here (see doc above),
@@ -471,12 +506,6 @@ function handleRtcTransform(event: RtcTransformEventLike): void {
     // `handleCreatePipeline`'s equivalent guard in spirit, not in wire shape.
     return;
   }
-
-  const options = event.transformer.options ?? {};
-  const pipelineId =
-    typeof options.pipelineId === "string"
-      ? options.pipelineId
-      : `encoded-${pipelines.size}-${Date.now()}`;
 
   const entry: PipelineEntry = {
     // Filled in immediately below: same "closes over `entry`, not the local `pipeline` const" reasoning as `handleCreatePipeline`.
@@ -521,7 +550,24 @@ function handleRtcTransform(event: RtcTransformEventLike): void {
     pipelineId,
     pipeline,
     options.statsIntervalMs,
+    clock,
+    clockNowWall,
   );
+}
+
+function releaseState(
+  clock: WorkerDelayClock,
+  nowWall: () => number,
+): ReleaseState {
+  const snapshot = clock.currentSnapshot();
+  return {
+    edgeUt: clock.confirmedEdgeUt(),
+    utNow: computeUtNowEstimate(snapshot, nowWall()),
+    maxSampleUt: snapshot.maxSampleUt,
+    delaySeconds: snapshot.delaySeconds,
+    slackSeconds: snapshot.slackSeconds,
+    epoch: snapshot.epoch,
+  };
 }
 
 /** Posts the pipeline's totals every `intervalMs`; does nothing unless asked. */
@@ -529,6 +575,8 @@ function startStatsReporter(
   pipelineId: string,
   pipeline: FrameDelayPipeline,
   intervalMs: number | undefined,
+  clock: WorkerDelayClock,
+  clockNowWall: () => number,
 ): () => void {
   if (!intervalMs || intervalMs <= 0) return () => {};
   const timer = setInterval(() => {
@@ -536,6 +584,7 @@ function startStatsReporter(
       type: "pipelineStats",
       pipelineId,
       stats: pipeline.stats(),
+      release: releaseState(clock, clockNowWall),
     });
   }, intervalMs);
   return () => clearInterval(timer);
@@ -555,6 +604,7 @@ function handleDispose(msg: DisposePipelineMessage): void {
   entry.stopStamps();
   entry.pipeline?.dispose();
   pipelines.delete(msg.pipelineId);
+  clocks.delete(msg.pipelineId);
   stampHubs.delete(msg.pipelineId);
 }
 

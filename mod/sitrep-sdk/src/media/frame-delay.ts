@@ -206,6 +206,18 @@ export interface FrameDelayStatsDetail extends FrameDelayStats {
   keyframeWaitMsLongest: number;
   /** How long the keyframe wait in progress has lasted, in milliseconds, or 0 with none. */
   keyframeWaitingMs: number;
+  /** The bytes held in the delay buffer now (frames counted as one byte each when the pipeline has no `frameBytes`). */
+  bufferedBytes: number;
+  /** The most bytes the delay buffer holds. */
+  capBytes: number;
+  /**
+   * Whether new encoded frames are being dropped because the buffer is full, so
+   * the oldest ones can play out. The picture then shows in bursts with gaps
+   * between them. Only an encoded pipeline sheds.
+   */
+  shedding: boolean;
+  /** How many times the pipeline has started shedding. */
+  sheddingStarts: number;
 }
 
 /**
@@ -318,7 +330,13 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
     keyframeWaitMsTotal: 0,
     keyframeWaitMsLongest: 0,
     keyframeWaitingMs: 0,
+    bufferedBytes: 0,
+    capBytes: opts.maxBufferedFrames ?? DEFAULT_MAX_BUFFERED_FRAMES,
+    shedding: false,
+    sheddingStarts: 0,
   };
+  /* Bytes of the frames the buffer holds. */
+  let heldBytes = 0;
 
   const writeAndClose = (data: Frame) => {
     stats.presented += 1;
@@ -356,6 +374,7 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
     gopSafeEviction: opts.gopSafeEviction,
     keepArrivalOrder: true,
     onRelease: (frame) => {
+      heldBytes -= frame.bytes ?? 1;
       const data = frame.data;
       if (!data) return;
       if (pacer) {
@@ -365,6 +384,7 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
       }
     },
     onDrop: (frame, reason) => {
+      heldBytes -= frame.bytes ?? 1;
       if (reason === "flush") stats.flushDropped += 1;
       if (reason === "cap" || reason === "undated") stats.evicted += 1;
       frame.data?.close?.();
@@ -423,12 +443,28 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
         }
         endKeyframeWait();
       }
-      buffer.push({
-        ut,
-        keyframe,
-        data: frame,
-        bytes: opts.frameBytes?.(frame) ?? 1,
-      });
+      const bytes = opts.frameBytes?.(frame) ?? 1;
+      /* A full encoded buffer drops what arrives, never what it holds: the
+         oldest frames are the ones due next, and evicting them as new ones come
+         in leaves every frame gone before it is due, whatever the delay. What
+         arrives is dropped to the next keyframe that fits, since the deltas
+         after a dropped frame cannot be decoded. */
+      if (opts.gopSafeEviction) {
+        const fits = heldBytes + bytes <= stats.capBytes;
+        const resumes = stats.shedding && keyframe && fits;
+        if (resumes) stats.shedding = false;
+        if (stats.shedding || (!fits && buffer.peekQueue().length > 0)) {
+          if (!stats.shedding) {
+            stats.shedding = true;
+            stats.sheddingStarts += 1;
+          }
+          stats.evicted += 1;
+          frame.close?.();
+          continue;
+        }
+      }
+      heldBytes += bytes;
+      buffer.push({ ut, keyframe, data: frame, bytes });
     }
   }
   const api: FrameDelayPipeline = {
@@ -461,6 +497,7 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
     stats: () => ({
       ...stats,
       buffered: buffer.peekQueue().length,
+      bufferedBytes: heldBytes,
       keyframeWaitingMs:
         awaitingSince === null ? 0 : performance.now() - awaitingSince,
     }),

@@ -1,10 +1,14 @@
 import type { FrameDelayStatsDetail } from "../frame-delay";
+import type { ReleaseState } from "./delay-worker";
 
 /** The log tag a delayed camera's summaries are written under. */
 export const FRAME_DELAY_LOG_TAG = "frame-delay";
 
 /** How often a delayed camera writes its summary, in milliseconds. */
 export const FRAME_DELAY_SUMMARY_INTERVAL_MS = 10_000;
+
+/** How far the release time may trail the delayed game time before the summary says so. */
+const SAMPLE_CLAMP_SECONDS = 2;
 
 interface SummaryLog {
   info(message: string, context?: Record<string, unknown>): void;
@@ -24,10 +28,12 @@ interface SummaryLog {
 export function createFrameDelayReporter(
   pipelineId: string,
   logTo: () => SummaryLog | undefined,
-): (stats: FrameDelayStatsDetail) => void {
+): (stats: FrameDelayStatsDetail, release?: ReleaseState) => void {
   let previous: FrameDelayStatsDetail | null = null;
   let warnedUnsupported = false;
-  return (stats) => {
+  let shedLogged = false;
+  let clampLogged = false;
+  return (stats, release) => {
     const log = logTo();
     if (!log) return;
     const since = (pick: (s: FrameDelayStatsDetail) => number) =>
@@ -47,7 +53,48 @@ export function createFrameDelayReporter(
       keyframeWaitMsLongest: Math.round(stats.keyframeWaitMsLongest),
       keyframeWaitingMs: Math.round(stats.keyframeWaitingMs),
       buffered: stats.buffered,
+      bufferedBytes: stats.bufferedBytes,
+      capBytes: stats.capBytes,
+      ...(release ? { release: roundRelease(release) } : {}),
     });
+    const startedShedding = since((s) => s.sheddingStarts) > 0;
+    if ((startedShedding || stats.shedding) && !shedLogged) {
+      shedLogged = true;
+      log.warn(
+        "frame delay is dropping new frames: the buffer is full, so the oldest play out and the picture shows in bursts",
+        {
+          pipelineId,
+          bufferedBytes: stats.bufferedBytes,
+          capBytes: stats.capBytes,
+          buffered: stats.buffered,
+        },
+      );
+    }
+    if (!startedShedding && !stats.shedding && shedLogged) {
+      shedLogged = false;
+      log.info("frame delay is keeping every frame again", { pipelineId });
+    }
+    const clamped =
+      release !== undefined &&
+      release.edgeUt <
+        release.utNow - release.delaySeconds - SAMPLE_CLAMP_SECONDS;
+    if (clamped && !clampLogged) {
+      clampLogged = true;
+      log.warn(
+        "frame delay is held back by the newest telemetry sample: the release time is behind the delayed game time",
+        {
+          pipelineId,
+          buffered: stats.buffered,
+          release: roundRelease(release),
+        },
+      );
+    }
+    if (!clamped && clampLogged) {
+      clampLogged = false;
+      log.info("frame delay is following the delayed game time again", {
+        pipelineId,
+      });
+    }
     if (stats.keyframeRequestsFailed > 0 && !warnedUnsupported) {
       warnedUnsupported = true;
       log.warn(
@@ -59,11 +106,25 @@ export function createFrameDelayReporter(
   };
 }
 
+/** The clock's numbers to the millisecond, so a summary line stays readable. */
+function roundRelease(release: ReleaseState): ReleaseState {
+  const ms = (n: number) =>
+    Number.isFinite(n) ? Math.round(n * 1000) / 1000 : n;
+  return {
+    edgeUt: ms(release.edgeUt),
+    utNow: ms(release.utNow),
+    maxSampleUt: ms(release.maxSampleUt),
+    delaySeconds: ms(release.delaySeconds),
+    slackSeconds: ms(release.slackSeconds),
+    epoch: release.epoch,
+  };
+}
+
 /** `onStats` and the summary writer, called together. */
 export function withFrameDelayReporter(
   pipelineId: string,
   onStats: ((stats: FrameDelayStatsDetail) => void) | undefined,
-): (stats: FrameDelayStatsDetail) => void {
+): (stats: FrameDelayStatsDetail, release?: ReleaseState) => void {
   /* The logger is reached through a dynamic import so the media entry has no
      static edge to the rest of the sdk. */
   let log: SummaryLog | undefined;
@@ -73,8 +134,8 @@ export function withFrameDelayReporter(
     })
     .catch(() => {});
   const report = createFrameDelayReporter(pipelineId, () => log);
-  return (stats) => {
-    report(stats);
+  return (stats, release) => {
+    report(stats, release);
     onStats?.(stats);
   };
 }
