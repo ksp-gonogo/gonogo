@@ -17,21 +17,18 @@ import {
   useLayoutEffect,
   useState,
 } from "react";
-import { FrameReadout } from "./FrameReadout";
 import type { CraftGeometry } from "./geometry/craft";
 import {
   type BandsWanted,
   type Box,
   type FigureRoom,
   figureRooms,
-  frameBlockRoom,
   type Layout,
   NO_BANDS,
   ROW_HEIGHT,
   rowTop,
 } from "./layout";
 import type { RendezvousLevel } from "./levels";
-import { RANGE_RATE_ARROW, RangeRateArrow } from "./RangeRateArrow";
 import { DisplayDash } from "./RendezvousView";
 import { useOwnSize } from "./useOwnSize";
 import type { RendezvousReading } from "./useRendezvousReading";
@@ -266,6 +263,42 @@ function noticeFor(props: ReadoutFiguresProps): Notice | null {
     };
   }
   return null;
+}
+
+/** Whether an arrow beside the range says if the target is closing or opening; one switch to take it out. */
+export const RANGE_RATE_ARROW = true;
+
+/** Below this range rate, metres per second, neither arrow is drawn. */
+const RANGE_RATE_DEADBAND = 0.05;
+
+/** A small arrow beside the range: down and green while closing, up and amber while opening. */
+function RangeRateArrow({
+  closing,
+}: Readonly<{ closing: number | undefined }>) {
+  if (
+    closing === undefined ||
+    !Number.isFinite(closing) ||
+    Math.abs(closing) < RANGE_RATE_DEADBAND
+  ) {
+    return null;
+  }
+  const closes = closing > 0;
+  return (
+    <svg
+      data-range-rate={closes ? "closing" : "opening"}
+      role="img"
+      aria-label={closes ? "Closing" : "Opening"}
+      width={9}
+      height={11}
+      viewBox="0 0 9 11"
+      style={{ marginLeft: 4, verticalAlign: "-0.1em" }}
+    >
+      <path
+        d={closes ? "M4.5 10L0.5 4.5H8.5Z" : "M4.5 1L0.5 6.5H8.5Z"}
+        fill={closes ? "var(--color-accent-fg)" : "var(--color-warn-mark)"}
+      />
+    </svg>
+  );
 }
 
 /**
@@ -615,14 +648,6 @@ export function ReadoutFigures(props: Readonly<ReadoutFiguresProps>) {
     </Text>
   );
   const bottomRowShown = banded && layout.bottomBand > 0;
-  // Only the far and approach circles say where the craft is along its orbit; the docking circle is drawn in the port's frame.
-  const frameRoom =
-    (level === "far" || level === "approach") &&
-    reading.orbitFrame !== undefined &&
-    !props.docked &&
-    !props.noTarget
-      ? frameBlockRoom(layout, box)
-      : null;
   return (
     <>
       {named ? (
@@ -702,9 +727,6 @@ export function ReadoutFigures(props: Readonly<ReadoutFiguresProps>) {
           </>
         )
       ) : null}
-      {frameRoom !== null && reading.orbitFrame !== undefined && (
-        <FrameReadout axes={reading.orbitFrame} room={frameRoom} />
-      )}
       <div
         data-readout-notice=""
         style={{

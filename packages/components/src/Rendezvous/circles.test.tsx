@@ -66,38 +66,3 @@ describe("the circles' sizes in screen pixels", () => {
     expect(Number(opacity(true))).toBeLessThan(0.6);
   });
 });
-
-describe("the drift arrow on the Approach circle", () => {
-  const arrow = (
-    drift: { radial: number; alongTrack: number } | null,
-    small = false,
-  ) => {
-    if (geometry === null) throw new Error("no geometry");
-    const { container } = render(
-      <div>{approachView(geometry, 2, small, drift).svg}</div>,
-    );
-    return container.querySelector("[data-drift-arrow]");
-  };
-
-  it("is drawn while the craft is drifting", () => {
-    expect(arrow({ radial: 0.2, alongTrack: 1.4 })).not.toBeNull();
-  });
-
-  it("is left out while the craft holds station, with no drift reading, and on the small circle", () => {
-    expect(arrow({ radial: 0.01, alongTrack: -0.02 })).toBeNull();
-    expect(arrow(null)).toBeNull();
-    expect(arrow({ radial: 0.2, alongTrack: 1.4 }, true)).toBeNull();
-  });
-
-  it("points the way the craft moves: forward along the orbit is to the left, radially out is up", () => {
-    const tip = (drift: { radial: number; alongTrack: number }) => {
-      const el = arrow(drift)?.querySelector("line");
-      return {
-        dx: Number(el?.getAttribute("x2")) - Number(el?.getAttribute("x1")),
-        dy: Number(el?.getAttribute("y2")) - Number(el?.getAttribute("y1")),
-      };
-    };
-    expect(tip({ radial: 0, alongTrack: 1 }).dx).toBeLessThan(0);
-    expect(tip({ radial: 1, alongTrack: 0 }).dy).toBeLessThan(0);
-  });
-});

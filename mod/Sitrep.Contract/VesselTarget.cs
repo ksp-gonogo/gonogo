@@ -181,41 +181,6 @@ public class VesselTarget
     // share a reference body.
     public Vec3? RelativeVelocity { get; set; }
 
-    /// <summary>
-    /// The target's position relative to the active vessel, in metres, in the
-    /// active vessel's orbit frame: <c>x</c> radial, <c>y</c> along-track,
-    /// <c>z</c> normal (see <see cref="Frames.OrbitRelative"/>). A target above
-    /// the vessel reads positive <c>x</c>, one ahead of it along its orbit
-    /// positive <c>y</c>. Null when <see cref="RelativePosition"/> is null or the
-    /// vessel's position and velocity define no orbit plane this tick.
-    /// <internal>
-    /// RelativePosition stays in scene axes, which turn with the body only below
-    /// its inverse-rotation altitude, so its components change meaning across
-    /// that line with nothing on the wire to say so. This pair is computed in the
-    /// mod from the same instant's world vectors, which makes it independent of
-    /// that switch.
-    /// </internal>
-    /// </summary>
-    [SitrepUnit(Units.Metres)]
-    [SitrepFrame(Frames.OrbitRelative)]
-    public Vec3? OrbitRelativePosition { get; set; }
-
-    /// <summary>
-    /// The rate of change of <see cref="OrbitRelativePosition"/> in m/s, in the
-    /// same orbit frame: the target's velocity relative to the active vessel with
-    /// the frame's own turn removed, so two craft in the same orbit holding a
-    /// fixed range read about zero. Null exactly when
-    /// <see cref="OrbitRelativePosition"/> is.
-    /// <internal>
-    /// RelativeVelocity is the raw difference of the two orbital velocities, which
-    /// for co-orbiting craft is the orbit's angular rate times the range rather
-    /// than any closing motion.
-    /// </internal>
-    /// </summary>
-    [SitrepUnit(Units.MetresPerSecond)]
-    [SitrepFrame(Frames.OrbitRelative)]
-    public Vec3? OrbitRelativeVelocity { get; set; }
-
     /// <summary>The target's orbit. Null when the target has no orbit (it is landed, say, or its orbit could not be resolved this tick).</summary>
     public VesselOrbit? Orbit { get; set; }
 

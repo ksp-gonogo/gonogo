@@ -135,8 +135,7 @@ function RendezvousComponent({
       ? (unit: number, small: boolean) => farView(craft, unit, small)
       : null,
     approach: craft
-      ? (unit: number, small: boolean) =>
-          approachView(craft, unit, small, reading.orbitDrift ?? null)
+      ? (unit: number, small: boolean) => approachView(craft, unit, small)
       : null,
     encounter: encounter
       ? (unit: number) => encounterView(encounter, bodyIsMoon, unit)

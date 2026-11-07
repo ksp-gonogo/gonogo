@@ -20,7 +20,6 @@ using Sitrep.Propagation.Visibility;
 using Strategies;
 using UnityEngine;
 using Sitrep.Contract;
-using ContractVector = Sitrep.Contract.Vector3d;
 
 namespace Gonogo.KSP
 {
@@ -4086,22 +4085,6 @@ namespace Gonogo.KSP
                 ["relativePosition"] = relativePosition,
                 ["relativeVelocity"] = new[] { relVel.x, relVel.y, relVel.z },
             };
-
-            if (relativePosition != null && vessel.mainBody != null)
-            {
-                var height = vessel.CoMD - vessel.mainBody.position;
-                var velocity = vessel.obt_velocity;
-                var inOrbit = TargetOrbitFrame.FromWorld(
-                    new ContractVector(height.x, height.y, height.z),
-                    new ContractVector(velocity.x, velocity.y, velocity.z),
-                    new ContractVector(relativePosition[0], relativePosition[1], relativePosition[2]),
-                    new ContractVector(relVel.x, relVel.y, relVel.z));
-                if (inOrbit is { } split)
-                {
-                    result["orbitRelativePosition"] = new[] { split.Position.X, split.Position.Y, split.Position.Z };
-                    result["orbitRelativeVelocity"] = new[] { split.Velocity.X, split.Velocity.Y, split.Velocity.Z };
-                }
-            }
 
             var targetOrbit = CurrentOrbitOf(target);
             if (targetOrbit != null)

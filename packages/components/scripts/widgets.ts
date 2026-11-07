@@ -457,21 +457,6 @@ const WIDGETS: WidgetRenderConfig[] = [
         h: 12,
         config: { autoSwitch: true, hudMode: "hud" },
       },
-      // Tiles with room the circle leaves empty: the orbit-frame readout takes it.
-      {
-        name: "tall-6x16",
-        w: 6,
-        h: 16,
-        config: { autoSwitch: true, hudMode: "hud" },
-        forFixtures: ["approach-closing", "far-approach-vessel"],
-      },
-      {
-        name: "wide-16x7",
-        w: 16,
-        h: 7,
-        config: { autoSwitch: true, hudMode: "hud" },
-        forFixtures: ["approach-closing", "far-approach-vessel"],
-      },
     ],
   },
   {

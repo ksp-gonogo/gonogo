@@ -62,18 +62,6 @@ namespace Sitrep.Contract
         public const string PortRelative = "port-relative";
 
         /// <summary>
-        /// Origin at the payload's own subject (the active vessel), axes that
-        /// vessel's orbit at the sample's instant: <c>x</c> radial (away from the
-        /// reference body's centre), <c>y</c> along-track (square to radial, in
-        /// the orbit plane, on the side the vessel is moving) and <c>z</c> normal
-        /// (along the orbit's angular momentum). The axes do not depend on
-        /// whether the game's scene axes turn with the body. A velocity in this
-        /// frame is the rate of change seen in these turning axes, so two craft in
-        /// the same orbit at a fixed range read zero.
-        /// </summary>
-        public const string OrbitRelative = "orbit-relative";
-
-        /// <summary>
         /// Origin at the vessel's root part, axes the vessel's construction frame:
         /// KSP's <c>Part.orgPos</c> / <c>Part.orgRot</c> pair, which is the
         /// as-assembled layout and does not follow the vessel's flight attitude.

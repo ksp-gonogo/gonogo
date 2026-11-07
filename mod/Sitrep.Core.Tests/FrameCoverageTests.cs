@@ -349,8 +349,8 @@ namespace Sitrep.Core.Tests
                 + "vector in another frame:\n  "
                 + string.Join("\n  ", bare)
                 + "\n\nDeclare one from the Frames catalog: Frames.BodyCentredInertial, "
-                + "Frames.BodyCentredRotating, Frames.SubjectRelative, Frames.PortRelative, "
-                + "Frames.OrbitRelative, Frames.VesselLocal or Frames.PartLocal. There is deliberately no not-applicable token: establish what the "
+                + "Frames.BodyCentredRotating, Frames.SubjectRelative, Frames.VesselLocal or "
+                + "Frames.PartLocal. There is deliberately no not-applicable token: establish what the "
                 + "producer actually computes rather than picking the closest-looking one, because a wrong "
                 + "frame is worse than a bare vector.\n\n"
                 + "Adding to " + BaselineFile + " records a frame nobody could establish, WITH the reason, "
