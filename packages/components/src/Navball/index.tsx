@@ -187,7 +187,10 @@ function useNavball({
   // Trim has no readback to anchor a control stream, so it sends `setAxes` one field at a time, never clobbering a live axis.
   const trimCmd = useCommand("vessel.control.setAxes");
   const sendTrim = useTrimSender((field: TrimField, raw: number) => {
-    void trimCmd.send({ [field]: raw }, { label: TRIM_LABELS[field] });
+    void trimCmd.dangerouslySendWithoutInput(
+      { [field]: raw },
+      { label: TRIM_LABELS[field] },
+    );
   });
 
   /*

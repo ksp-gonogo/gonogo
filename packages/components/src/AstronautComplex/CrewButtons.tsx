@@ -1,11 +1,11 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
-  CommandButton,
+  Button,
   type CommandButtonHandle,
   speakQuantity,
 } from "@ksp-gonogo/ui-kit";
 
-/** Hire: a funds spend, arm-then-confirm via the shared {@link CommandButton}; the wrapper supplies an accessible name that says the cost. */
+/** Hire: a funds spend, arm-then-confirm via the shared {@link Button}; the wrapper supplies an accessible name that says the cost. */
 export function HireButton({
   applicantName,
   hireCost,
@@ -23,16 +23,16 @@ export function HireButton({
   const who = applicantName || "applicant";
 
   return (
-    <CommandButton
-      handle={hireCmd}
-      args={{ applicantName }}
-      commandLabel={`Hire ${who}`}
+    <Button
+      command={hireCmd.with({ applicantName }, { label: `Hire ${who}` })}
+      variant="ghost"
       size="sm"
-      label="Hire"
       confirmLabel="Confirm"
       aria-label={`Hire ${who}${costText}`}
       confirmAriaLabel={`Confirm hire of ${who}${costText}`}
-    />
+    >
+      Hire
+    </Button>
   );
 }
 
@@ -50,16 +50,16 @@ export function FireButton({
 }) {
   const who = kerbalName || "crew member";
   return (
-    <CommandButton
-      handle={fireCmd}
-      args={{ kerbalName }}
-      commandLabel={`Fire ${who}`}
+    <Button
+      command={fireCmd.with({ kerbalName }, { label: `Fire ${who}` })}
+      variant="ghost"
       size="sm"
-      label="Fire"
       confirmLabel="Confirm"
       confirmTone="nogo"
       aria-label={`Fire ${who}`}
       confirmAriaLabel={`Confirm fire of ${who}`}
-    />
+    >
+      Fire
+    </Button>
   );
 }

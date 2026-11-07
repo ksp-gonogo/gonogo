@@ -4,7 +4,7 @@ import {
   registerComponent,
   useGameContext,
 } from "@ksp-gonogo/core";
-import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
+import { useCommand } from "@ksp-gonogo/sitrep-client";
 import {
   readingOf,
   stillTrue,
@@ -62,8 +62,7 @@ function ResearchAndDevelopmentComponent({
     (c) => c.balances?.science ?? undefined,
   );
   const { chargesScience } = useGameContext();
-  // An R&D-desk action with no vessel signal delay, so it dispatches at the meta-vantage.
-  const unlockCmd = useCommand("career.tech.unlock", { vantage: META_VANTAGE });
+  const unlockCmd = useCommand("career.tech.unlock");
   // A career model that refuses `career.tech.unlock` (one that researches through a queue of its own) refuses for a reason the balance has no part in, so no affordability verdict is drawn.
   const unlockBlocked = unlockCmd.gate?.blocked === true;
 

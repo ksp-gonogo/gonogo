@@ -97,13 +97,20 @@ export function _narrows(value: string): CommandId | null {
 
 /** The reply is the envelope, not `unknown`, when nobody named a command. */
 export type _BareHandleKeepsTheEnvelope = AssertTrue<
-  Equal<Awaited<ReturnType<UseCommandResult["send"]>>, AnyCommandReply>
+  Equal<
+    Awaited<ReturnType<UseCommandResult["dangerouslySendWithoutInput"]>>,
+    AnyCommandReply
+  >
 >;
 
 /** And a named command still overrules it: the floor never widens a known reply. */
 export type _NamedCommandBeatsTheFloor = AssertTrue<
   Equal<
-    Awaited<ReturnType<UseCommandResultFor<"vessel.control.stage">["send"]>>,
+    Awaited<
+      ReturnType<
+        UseCommandResultFor<"vessel.control.stage">["dangerouslySendWithoutInput"]
+      >
+    >,
     CommandResultOf<number>
   >
 >;
@@ -111,7 +118,7 @@ export type _NamedCommandBeatsTheFloor = AssertTrue<
 declare const bare: UseCommandResult;
 
 async function _theHonestReaderIsWritable() {
-  const reply = await bare.send();
+  const reply = await bare.dangerouslySendWithoutInput();
   // Readable, because every command answers this. Under `unknown` it was
   // TS18046 and a widget had to cast to say anything at all, which is how the
   // wrong cast got written.
@@ -128,7 +135,7 @@ interface FlatReceipt {
 }
 
 async function _theWrongCastIsAnError() {
-  const reply = await bare.send();
+  const reply = await bare.dangerouslySendWithoutInput();
   // @ts-expect-error the envelope is not the receipt it carries
   return reply as FlatReceipt;
 }

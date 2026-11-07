@@ -152,3 +152,6 @@ export function commandArgs<Command extends CommandId>(
 ): CommandArgs<Command> {
   return args as CommandArgs<Command>;
 }
+
+export type { FakeCommand, FakeCommandOptions } from "./fake-command";
+export { createFakeCommand } from "./fake-command";

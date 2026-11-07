@@ -2,6 +2,7 @@ import type { Rule } from "../types";
 import { actionRules } from "./actions";
 import { bakeRules } from "./bake";
 import { codegenRules } from "./codegen";
+import { commandRules } from "./commands";
 import { declarationRules } from "./declarations";
 import { importsRules } from "./imports";
 import { manifestRules } from "./manifest";
@@ -18,6 +19,7 @@ export const GROUPS = [
   "imports",
   "plugin",
   "actions",
+  "commands",
   "docs-prose",
 ] as const;
 
@@ -30,4 +32,5 @@ export const RULES: readonly Rule[] = [
   ...importsRules,
   ...pluginRules,
   ...actionRules,
+  ...commandRules,
 ];

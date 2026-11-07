@@ -3,6 +3,7 @@ import {
   type MapPoi,
   registerMapPoiProvider,
 } from "@ksp-gonogo/core";
+import { createFakeCommand } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, fireEvent, render, screen } from "@ksp-gonogo/test-utils";
 import {
   expectNoA11yViolations,
@@ -127,7 +128,12 @@ describe("MapPoiLayer", () => {
     beforeEach(() => {
       vi.useFakeTimers();
     });
-    const run = vi.fn();
+    const fake = createFakeCommand();
+    const action = {
+      id: "set-target",
+      label: "Set as Target",
+      command: fake.handle.with(undefined, { label: "Set as Target" }),
+    };
     function registerRunway() {
       registerMapPoiProvider({
         id: "vanilla:test",
@@ -136,7 +142,7 @@ describe("MapPoiLayer", () => {
             id: "poi-1",
             label: "Runway",
             detail: "Launch pad",
-            actions: [{ id: "set-target", label: "Set as Target", run }],
+            actions: [action],
           }),
         ],
       });
@@ -239,15 +245,21 @@ describe("MapPoiLayer", () => {
     expect(visibleText()).toContain("1000");
   });
 
-  it("dispatches a POI's action when its hover-card button is clicked", () => {
-    const run = vi.fn();
+  it("dispatches a POI's action when its hover-card button is clicked", async () => {
+    const fake = createFakeCommand();
     registerMapPoiProvider({
       id: "vanilla:test",
       usePois: () => [
         makePoi({
           id: "poi-1",
           label: "Runway",
-          actions: [{ id: "set-target", label: "Set as Target", run }],
+          actions: [
+            {
+              id: "set-target",
+              label: "Set as Target",
+              command: fake.handle.with(undefined, { label: "Set as Target" }),
+            },
+          ],
         }),
       ],
     });
@@ -255,9 +267,15 @@ describe("MapPoiLayer", () => {
     renderLayer();
 
     fireEvent.mouseEnter(screen.getByRole("button", { name: "Runway" }));
-    fireEvent.click(screen.getByRole("button", { name: "Set as Target" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Set as Target" }));
+    });
 
-    expect(run).toHaveBeenCalledTimes(1);
+    expect(fake.sent).toHaveLength(1);
+    // The answer settles after the press; hold the scope open across it.
+    await act(async () => {
+      fake.refuse("not now");
+    });
   });
 
   it("falls back to a neutral style for an unrecognised kind instead of throwing", () => {
@@ -373,7 +391,11 @@ describe("MapPoiLayer", () => {
           label: "Runway",
           detail: "Launch pad",
           actions: [
-            { id: "set-target", label: "Set as Target", run: () => {} },
+            {
+              id: "set-target",
+              label: "Set as Target",
+              command: createFakeCommand().handle.with(undefined),
+            },
           ],
         }),
       ],

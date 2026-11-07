@@ -1,5 +1,17 @@
+import type { ValueCommand } from "@ksp-gonogo/sitrep-sdk";
+import {
+  forwardRef,
+  type ReactNode,
+  type SelectHTMLAttributes,
+  useEffect,
+  useState,
+} from "react";
 import styled, { css } from "styled-components";
+import { useCommandInput } from "./CommandButton/commandInput";
+import { commandEdge } from "./commandEdge";
 import { focusRing } from "./focusRing";
+import { LiveRegion } from "./LiveRegion";
+import { Tooltip } from "./Tooltip";
 
 /**
  * A vertical form body, the root of a widget's config form. Each child is
@@ -234,16 +246,67 @@ const inputBase = css`
 export const Input = styled.input`
   ${inputBase}
   width: 100%;
+  ${commandEdge}
+  &[data-command-phase] {
+    /* Room for the word of a command inside the field, at its end. */
+    padding-inline-end: 8ch;
+  }
 `;
 
 /**
- * A native `<select>` in the kit's field style, full width. Useful for choosing
- * one value from a short list. Used by the log manager. For a long or
- * searchable list, use {@link ComboboxListbox} with an {@link Input}.
+ * The props of a {@link Select} that sends a command: the value the vessel
+ * reports, the command a choice sends, and why a choice cannot be made now.
  *
  * @category Form
  */
-export const Select = styled.select`
+export interface CommandedSelectProps
+  extends Omit<
+    SelectHTMLAttributes<HTMLSelectElement>,
+    "value" | "onChange" | "disabled" | "children"
+  > {
+  /** The command a choice sends, made with `toArgs` on a `useCommand` handle and given the chosen option's value. */
+  // biome-ignore lint/suspicious/noExplicitAny: a command of any argument and reply types
+  command: ValueCommand<string, any, any>;
+  /** The value as the vessel last reported it. While a choice is unanswered the field shows the value asked for instead. */
+  value: string;
+  /** Why a choice cannot be made now. The field is drawn dimmed with this as its tip and a choice sends nothing. */
+  unavailable?: string | null;
+  /** The `<option>` elements to choose from. */
+  children?: ReactNode;
+}
+
+/**
+ * The props of a {@link Select} that changes a value the caller holds: a native
+ * `<select>`'s own props.
+ *
+ * @category Form
+ */
+export type PlainSelectProps = SelectHTMLAttributes<HTMLSelectElement> & {
+  command?: never;
+  unavailable?: never;
+};
+
+/**
+ * A native `<select>` in the kit's field style, full width. Given a `command`,
+ * a choice sends it and a word inside the field says what became of it. Useful
+ * for choosing one value from a short list. Used by the log manager. For a long
+ * or searchable list, use {@link ComboboxListbox} with an {@link Input}.
+ *
+ * @category Form
+ */
+export const Select = forwardRef<
+  HTMLSelectElement,
+  PlainSelectProps | CommandedSelectProps
+>(function Select(props, ref) {
+  if (props.command) {
+    return (
+      <CommandedSelect {...props} command={props.command} forwardedRef={ref} />
+    );
+  }
+  return <SelectField ref={ref} {...props} />;
+});
+
+const SelectField = styled.select`
   ${inputBase}
   width: 100%;
   appearance: none;
@@ -259,11 +322,74 @@ export const Select = styled.select`
     var(--size-select-arrow) var(--size-select-arrow);
   background-repeat: no-repeat;
   padding-inline-end: var(--inset-field-select-end);
+  ${commandEdge}
+  &[data-command-phase] {
+    /* Room for the word inside the field, past the chevron. */
+    padding-inline-end: calc(var(--inset-field-select-end) + 8ch);
+  }
 
   @media (pointer: coarse) {
     padding-inline-end: var(--inset-field-select-end);
   }
 `;
+
+/* The word sits inside the field, clear of the chevron, so nothing moves. */
+const FieldWord = styled.span`
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: var(--inset-field-select-end);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+  letter-spacing: 0.08em;
+`;
+
+const FieldBox = styled.div`
+  position: relative;
+  width: 100%;
+`;
+
+function CommandedSelect({
+  command,
+  value,
+  unavailable,
+  forwardedRef,
+  children,
+  ...rest
+}: CommandedSelectProps & {
+  forwardedRef: React.ForwardedRef<HTMLSelectElement>;
+}) {
+  const input = useCommandInput({ command, unavailable });
+  // While a choice is unanswered the field shows what was asked.
+  const [asked, setAsked] = useState<string | null>(null);
+  const sent = input.control.isSent;
+  useEffect(() => {
+    if (!sent) setAsked(null);
+  }, [sent]);
+  return (
+    <Tooltip text={input.tip}>
+      <FieldBox>
+        <SelectField
+          {...rest}
+          ref={forwardedRef}
+          value={asked ?? value}
+          {...input.edge}
+          onChange={(e) => {
+            if (input.inert) return;
+            setAsked(e.target.value);
+            input.send(e.target.value);
+          }}
+        >
+          {children}
+        </SelectField>
+        <FieldWord aria-hidden="true">{input.word}</FieldWord>
+        <LiveRegion visuallyHidden>{input.announce}</LiveRegion>
+      </FieldBox>
+    </Tooltip>
+  );
+}
 
 /**
  * A native `<textarea>` in the kit's field style, full width, resizable

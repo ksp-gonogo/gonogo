@@ -25,8 +25,8 @@ const MAX_LINES = 400;
 export function ModLogForwarder() {
   const [enabled] = useAnalyticsConsent();
   const recentLog = useCommand("system.log.recent", { rail: false });
-  const send = useRef(recentLog.send);
-  send.current = recentLog.send;
+  const send = useRef(recentLog.dangerouslySendWithoutInput);
+  send.current = recentLog.dangerouslySendWithoutInput;
 
   useEffect(() => {
     if (!enabled) return;

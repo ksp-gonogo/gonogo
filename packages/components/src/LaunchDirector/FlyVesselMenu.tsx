@@ -63,7 +63,9 @@ export function FlyVesselMenu({
               type="button"
               onClick={() => {
                 setFlyOpen(false);
-                void switchCmd.send({ vesselId: v.vesselId });
+                void switchCmd.dangerouslySendWithoutInput({
+                  vesselId: v.vesselId,
+                });
               }}
             >
               <VesselSwitchName>

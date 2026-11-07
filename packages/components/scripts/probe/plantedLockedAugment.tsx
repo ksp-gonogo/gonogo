@@ -34,7 +34,9 @@ function BurnExecutorSection() {
       <Text level="muted">Script {state?.script ?? "none"}</Text>
       <Button
         type="button"
-        onClick={() => void arm.send({}, { label: "Arm executor" })}
+        onClick={() =>
+          void arm.dangerouslySendWithoutInput({}, { label: "Arm executor" })
+        }
       >
         Arm on next node
       </Button>

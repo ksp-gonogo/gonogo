@@ -69,7 +69,7 @@ import { modTsRoots, SCANNED_PACKAGE_ROOTS } from "./unknown-cast.scan";
  *
  * What counts as A command reader: a production file naming the command id as
  * a string literal, anywhere. `useCommand(id)` is the common shape, but a
- * command also dispatches through a `handle.send(...)` off a `useCommand`
+ * command also dispatches through a `handle.dangerouslySendWithoutInput(...)` off a `useCommand`
  * result bound elsewhere, a local `send(id, args)` wrapper, or a bare
  * `service.dispatchCommand(id, args)` with no hook at all, and pattern-matching
  * one call shape undercounts real senders (measured against
@@ -400,7 +400,7 @@ function findWidgetDeclarations(
  *
  * Command dispatch has no single call shape worth pattern-matching: the same
  * repo sends a command through `useCommand(id)` (most widgets),
- * `handle.send(args)` off a `useCommand` result named elsewhere
+ * `handle.dangerouslySendWithoutInput(args)` off a `useCommand` result named elsewhere
  * (`ManeuverPlanner`), a local `send(id, args)` wrapper
  * (`CommcastModLink`), and a bare `this.dispatchCommand(id, args)` on a
  * service class with no hook at all (`GoNoGoHostService`). A command id is

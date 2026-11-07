@@ -50,7 +50,7 @@ export interface RailLoss extends CommandLossEntry {
  * command centre, so pressing again may do the thing twice. Never "refused",
  * which is the game's verdict. Useful for telling the operator a command got no
  * reply and may still have run. Used by {@link CommandList}, the panel delay
- * rail and {@link CommandButton}.
+ * rail and {@link Button}.
  *
  * @category CommandDelay
  */

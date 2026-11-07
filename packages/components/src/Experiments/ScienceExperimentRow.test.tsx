@@ -1,7 +1,10 @@
 import {
+  bindCommand,
+  bindValue,
   CommandErrorCode,
   type CommandReply,
   railTagsForCommand,
+  type UseCommandResult,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
@@ -23,9 +26,21 @@ const TRANSMIT_TAGS = railTagsForCommand("science.experiment.transmit");
 
 /** A structural command handle, the shape `useCommand` returns. */
 function handle<Reply extends CommandReplyLike = CommandReplyLike>(
-  send: CommandButtonHandle<Reply>["send"],
+  send: CommandButtonHandle<Reply>["dangerouslySendWithoutInput"],
 ): CommandButtonHandle<Reply> {
-  return { send, inFlight: [], tags: TRANSMIT_TAGS, effectiveDelaySeconds: 0 };
+  const self: CommandButtonHandle<Reply> = {
+    dangerouslySendWithoutInput: send,
+    inFlight: [],
+    tags: TRANSMIT_TAGS,
+    effectiveDelaySeconds: 0,
+    with(args, options) {
+      return bindCommand(this, args, options);
+    },
+    toArgs(toArgs, options) {
+      return bindValue(this, toArgs, options);
+    },
+  };
+  return self;
 }
 
 type TransmitReply = CommandReply<"science.experiment.transmit">;
@@ -375,9 +390,12 @@ describe("ScienceExperimentRow", () => {
     expect(deploy).toHaveAttribute("aria-disabled", "true");
     await userEvent.click(deploy);
     expect(send).not.toHaveBeenCalled();
+    expect(deploy).toHaveAccessibleDescription(
+      /the experiment has already been run/,
+    );
     expect(
-      await screen.findByText(/the experiment has already been run/),
-    ).toBeInTheDocument();
+      screen.queryByText(/the experiment has already been run/),
+    ).toBeNull();
   });
 
   it("leaves Deploy live when the gate has nothing to say about this experiment", () => {

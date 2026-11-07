@@ -32,7 +32,7 @@ export interface CommandOutcomes {
  * Panel rail stays the primary surface. An unanswered command may still run,
  * so it is unconfirmed and never counted as a failure. Useful for showing the
  * operator, beside the control they pressed, what became of the command. Used by
- * {@link CommandButton} and the attitude controls of the navball.
+ * {@link Button} and the attitude controls of the navball.
  *
  * @category CommandButton
  */

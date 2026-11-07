@@ -19,7 +19,7 @@ export function ApplicantsPanel({
 }: {
   applicants: ApplicantRow[];
   hireCost: number | null;
-  /** The shared hire handle; each row's own `CommandButton` holds that applicant's arm and in-flight state. */
+  /** The shared hire handle; each row's own a command `Button` holds that applicant's arm and in-flight state. */
   hireCmd: CommandButtonHandle;
 }) {
   if (applicants.length === 0) {

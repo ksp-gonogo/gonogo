@@ -110,11 +110,15 @@ export function TargetPickerComponent({
       id: entryId(entry),
       expectedName: entry.name,
     });
-    void setTargetCmd.send(args, { label: `Target ${entry.name}` });
+    void setTargetCmd.dangerouslySendWithoutInput(args, {
+      label: `Target ${entry.name}`,
+    });
   };
   const clearTarget = () => {
     setPendingTarget(null);
-    void clearTargetCmd.send(undefined, { label: "Clear target" });
+    void clearTargetCmd.dangerouslySendWithoutInput(undefined, {
+      label: "Clear target",
+    });
   };
 
   const entries = available?.entries ?? [];

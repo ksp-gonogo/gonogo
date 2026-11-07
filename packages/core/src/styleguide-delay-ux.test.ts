@@ -153,7 +153,7 @@ describe("delay-ux: useExecuteAction stays deleted", () => {
  * field it claimed to be waiting on, so "Activating..." lasted a single frame
  * and read to the operator as the command having landed.
  *
- * `@ksp-gonogo/ui-kit`'s `CommandButton` / `useCommandButton` owns arm,
+ * `@ksp-gonogo/ui-kit`'s a command `Button` / `useCommandControl` owns arm,
  * confirm, in-flight and refused now. ui-kit rather than ui because it is the
  * published package, so an Uplink can reach it: `ScienceFileManager`'s local
  * copy was one a third party could not have shared.
@@ -162,7 +162,8 @@ describe("delay-ux: useExecuteAction stays deleted", () => {
  * (a measured collapsing label, a colour per verb). Those take the hook. What
  * must not come back is a second copy of the state machine.
  */
-const ARM_TIMEOUT_OWNER = "packages/ui-kit/src/CommandButton/CommandButton.tsx";
+const ARM_TIMEOUT_OWNER =
+  "packages/ui-kit/src/CommandButton/commandControl.tsx";
 
 describe("delay-ux: arm-then-confirm has one definition", () => {
   it("declares the arm window in ui-kit's CommandButton and nowhere else", () => {
@@ -176,8 +177,8 @@ describe("delay-ux: arm-then-confirm has one definition", () => {
       throw new Error(
         `${offenders.length} file(s) declare their own arm window. Arm, ` +
           "confirm, in-flight and refused are one state machine and it lives " +
-          `in ${ARM_TIMEOUT_OWNER}. Render <CommandButton> for the standard ` +
-          "control, or call useCommandButton() when the chrome genuinely " +
+          `in ${ARM_TIMEOUT_OWNER}. Render a <Button command={...}> for the standard ` +
+          "control, or call useCommandControl() when the chrome genuinely " +
           "differs. Offenders:\n" +
           offenders.map((f) => `  ${f}`).join("\n"),
       );

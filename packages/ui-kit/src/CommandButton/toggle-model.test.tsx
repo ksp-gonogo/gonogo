@@ -1,26 +1,63 @@
-import { railTagsForCommand } from "@ksp-gonogo/sitrep-sdk";
+import {
+  bindCommand,
+  bindValue,
+  railTagsForCommand,
+  type UseCommandResult,
+} from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
+import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
+import { ToggleButton } from "../ToggleButton";
 import {
-  CommandButton,
   type CommandButtonHandle,
   type CommandReplyLike,
-} from "./CommandButton";
+  useCommandControl,
+} from "./commandControl";
+import type { CommandToggle } from "./toggle";
 
 const OK: CommandReplyLike = { success: true };
 
 function handle(
-  send: CommandButtonHandle["send"],
+  send: CommandButtonHandle["dangerouslySendWithoutInput"],
   over: Partial<CommandButtonHandle> = {},
 ): CommandButtonHandle {
-  return {
-    send,
+  const self: CommandButtonHandle = {
+    dangerouslySendWithoutInput: send,
     inFlight: [],
     tags: railTagsForCommand("vessel.control.setRcs"),
     effectiveDelaySeconds: 8,
+    with(args, options) {
+      return bindCommand(this, args, options);
+    },
+    toArgs(toArgs, options) {
+      return bindValue(this, toArgs, options);
+    },
     ...over,
   };
+  return self;
+}
+
+/** A toggle built the long way: the hook runs here with a full `toggle` config and the button draws from its control. */
+function ConfiguredToggle({
+  handle,
+  commandLabel,
+  toggle,
+  icon,
+  ...rest
+}: {
+  handle: CommandButtonHandle;
+  commandLabel?: string;
+  label?: string;
+  toggle: CommandToggle;
+  icon?: ReactNode;
+  "aria-label"?: string;
+}) {
+  const control = useCommandControl({
+    command: handle.with(undefined, { label: commandLabel }),
+    toggle,
+  });
+  return <ToggleButton command={control} icon={icon} {...rest} />;
 }
 
 const row = (id: string, args: unknown, over: Record<string, unknown> = {}) =>
@@ -52,7 +89,7 @@ function toggleButton(
   modelled?: (state: unknown, args: unknown) => unknown,
 ) {
   return (
-    <CommandButton
+    <ConfiguredToggle
       handle={h}
       commandLabel="Toggle RCS"
       label="RCS"
@@ -157,7 +194,7 @@ describe("a toggle given an icon", () => {
   it("draws the icon where its word would be, and the word again while the press is unanswered", async () => {
     const send = vi.fn(() => new Promise<CommandReplyLike>(() => {}));
     render(
-      <CommandButton
+      <ConfiguredToggle
         handle={handle(send)}
         commandLabel="Toggle RCS"
         label="RCS"

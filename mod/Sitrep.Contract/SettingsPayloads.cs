@@ -208,7 +208,7 @@ public class SettingsDeclarationFailure
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("settings.save", Delay = DelayRole.TrueNow)]
+[SitrepCommand("settings.save", Delay = DelayRole.TrueNow, AllowMetaVantage = true)]
 public class SaveSettingsArgs
 {
     /// <summary>Every row to change, each with its new value. Rows not listed keep their values.</summary>

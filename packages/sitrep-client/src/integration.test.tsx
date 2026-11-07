@@ -29,7 +29,7 @@ function MissionPanel() {
   return (
     <div>
       <span>altitude:{altitude ?? NULL_DISPLAY}</span>
-      <button type="button" onClick={() => cmd.send()}>
+      <button type="button" onClick={() => cmd.dangerouslySendWithoutInput()}>
         stage
       </button>
       <span>phase:{cmd.status.phase}</span>

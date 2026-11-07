@@ -5,7 +5,7 @@ import {
   useActionInput,
   useGameContext,
 } from "@ksp-gonogo/core";
-import { META_VANTAGE, useCommand, useViewUt } from "@ksp-gonogo/sitrep-client";
+import { useCommand, useViewUt } from "@ksp-gonogo/sitrep-client";
 import {
   observedValue,
   stillTrue,
@@ -69,10 +69,9 @@ function useWarpControl(config: WarpControlConfig | undefined) {
   const warp = stillTrue(warpReading, undefined);
   const indexRaw = warp?.warpRateIndex;
   const isPaused = warp?.paused;
-  // Sim-meta controls dispatch at the meta-vantage and are never signal-delayed.
   const announceWarpIntent = useWarpIntent();
-  const warpCmd = useCommand("time.setWarpIndex", { vantage: META_VANTAGE });
-  const pauseCmd = useCommand("time.setPaused", { vantage: META_VANTAGE });
+  const warpCmd = useCommand("time.setWarpIndex");
+  const pauseCmd = useCommand("time.setPaused");
 
   // Optimistic pause intent, so a click before the confirming push lands still sends the right state.
   const [pauseIntent, setPauseIntent] = useState<boolean | null>(null);
@@ -147,7 +146,7 @@ function useWarpControl(config: WarpControlConfig | undefined) {
     announceWarpIntent?.();
     commandedRef.current = { index: idx, from: currentIndex };
     stepBaseRef.current = idx;
-    warpCmd.send({ index: idx }).catch(() => {
+    warpCmd.dangerouslySendWithoutInput({ index: idx }).catch(() => {
       commandedRef.current = null;
     });
   };
@@ -158,7 +157,7 @@ function useWarpControl(config: WarpControlConfig | undefined) {
     effectivePausedRef.current = next;
     setPauseIntent(next);
     pauseCmd
-      .send({ paused: next })
+      .dangerouslySendWithoutInput({ paused: next })
       // An acknowledged command that left the game's state unchanged did not take.
       .then(() => {
         if (isPausedRef.current !== next) setPauseIntent(null);

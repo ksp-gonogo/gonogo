@@ -93,12 +93,15 @@ export function useNodeCommands(
       if (removalSentRef.current.has(nodeId)) return;
       removalSentRef.current.add(nodeId);
       removeNodeCmd
-        .send({ nodeId }, { label: "Auto-remove completed node" })
+        .dangerouslySendWithoutInput(
+          { nodeId },
+          { label: "Auto-remove completed node" },
+        )
         .catch(() => {
           removalSentRef.current.delete(nodeId);
         });
     },
-    [removeNodeCmd.send],
+    [removeNodeCmd.dangerouslySendWithoutInput],
   );
   const { completedNodes, watches } = useBurnCompletionTracker(
     nodes,
@@ -119,7 +122,7 @@ export function useNodeCommands(
       });
       const label = "Add maneuver node";
       try {
-        await addNodeCmd.send(args, { label });
+        await addNodeCmd.dangerouslySendWithoutInput(args, { label });
       } catch (err) {
         // Only here are both counts known: what KSP confirmed and what the plan asked for.
         throw new Error(
@@ -173,7 +176,7 @@ export function useNodeCommands(
     await whileRemoving(async () => {
       removalSentRef.current.add(nodeId);
       try {
-        await removeNodeCmd.send({ nodeId }, { label });
+        await removeNodeCmd.dangerouslySendWithoutInput({ nodeId }, { label });
       } catch (err) {
         removalSentRef.current.delete(nodeId);
         setError(
@@ -207,7 +210,7 @@ export function useNodeCommands(
       ...updateNodeCmd.undelivered,
     ];
     try {
-      await updateNodeCmd.send(args, { label });
+      await updateNodeCmd.dangerouslySendWithoutInput(args, { label });
       for (const entry of earlier) updateNodeCmd.dismiss(entry.id);
       setError(null);
     } catch (err) {
@@ -233,7 +236,10 @@ export function useNodeCommands(
         continue;
       }
       try {
-        await removeNodeCmd.send({ nodeId }, { label: "Remove maneuver node" });
+        await removeNodeCmd.dangerouslySendWithoutInput(
+          { nodeId },
+          { label: "Remove maneuver node" },
+        );
       } catch {
         // The refusal is drawn on the command's own rail; the rest of the plan is still cleared.
         notRemoved += 1;

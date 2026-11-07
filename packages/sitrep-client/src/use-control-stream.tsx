@@ -309,8 +309,8 @@ export function useControlStream(
   const resend = useCallback(() => {
     lastSentRef.current = null;
   }, []);
-  const sendRef = useRef(command.send);
-  sendRef.current = command.send;
+  const sendRef = useRef(command.dangerouslySendWithoutInput);
+  sendRef.current = command.dangerouslySendWithoutInput;
   const onDispatchRef = useRef(options?.onDispatch);
   onDispatchRef.current = options?.onDispatch;
 

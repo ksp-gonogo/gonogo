@@ -8339,6 +8339,22 @@
         "note": "MapOverlayContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
       },
       {
+        "key": "sitrep-sdk . MapPoiAction#command",
+        "note": "the command a point's button sends, replacing run"
+      },
+      {
+        "key": "sitrep-sdk . MapPoiAction#disabled?",
+        "note": "replaced by unavailable"
+      },
+      {
+        "key": "sitrep-sdk . MapPoiAction#disabledReason?",
+        "note": "replaced by unavailable"
+      },
+      {
+        "key": "sitrep-sdk . MapPoiAction#run",
+        "note": "replaced by command, so the button shows what became of the command"
+      },
+      {
         "key": "sitrep-sdk . OrbitOverlayContext#held",
         "note": "OrbitOverlayContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
       },
@@ -8763,6 +8779,10 @@
         "note": "Typed as UiKitTheme: the contract moved into the sdk, so a theme is checked where it is registered"
       },
       {
+        "key": "sitrep-sdk . TinyControl#onPress",
+        "note": "onPress is optional now, since a control may give a command instead"
+      },
+      {
         "key": "sitrep-sdk . TinyMode#bodyMinSize?",
         "note": "Removed: a tiny widget's minSize now says where its body stops fitting, so the separate switch point is redundant; no Uplink declares a tiny mode, so nothing reads it"
       },
@@ -8799,12 +8819,20 @@
         "note": "takes the command's argument type, so confirmedBy is checked against the args each dispatch was sent with"
       },
       {
+        "key": "sitrep-sdk . UseCommandResult#dangerouslySendWithoutInput",
+        "note": "the send for a command no kit input draws, renamed from send"
+      },
+      {
         "key": "sitrep-sdk . UseCommandResult#failures",
         "note": "every dispatch the mod answered with a fault (expired, cancelled, dropped, undone by a load) is kept until dismissed, where it was dropped with the promise; required, so a hand-built handle must now carry it"
       },
       {
         "key": "sitrep-sdk . UseCommandResult#railed",
         "note": "whether the panel's command rail holds the handle and speaks its outcomes; required, so a hand-built handle must say it"
+      },
+      {
+        "key": "sitrep-sdk . UseCommandResult#send",
+        "note": "removed: renamed to dangerouslySendWithoutInput"
       },
       {
         "key": "sitrep-sdk . UseCommandResult#sendStatus",
@@ -8815,8 +8843,16 @@
         "note": "The stream to the mod is down, so a press sends nothing; a control reads it to draw itself unavailable"
       },
       {
+        "key": "sitrep-sdk . UseCommandResult#toArgs",
+        "note": "names the arguments of a press and what happens around it, for a kit input's command prop"
+      },
+      {
         "key": "sitrep-sdk . UseCommandResult#warnings",
         "note": "Each dispatch from the handle that the mod accepted with a warning, while it is in flight"
+      },
+      {
+        "key": "sitrep-sdk . UseCommandResult#with",
+        "note": "names the arguments of a press and what happens around it, for a kit input's command prop"
       },
       {
         "key": "sitrep-sdk . WidgetScopeRegistry#\"ground-track\"",
@@ -9523,6 +9559,10 @@
         "note": "Typed as UiKitTheme: the contract moved into the sdk, so a theme is checked where it is registered"
       },
       {
+        "key": "sitrep-sdk ./registry ~TinyControl#onPress",
+        "note": "onPress is optional now, since a control may give a command instead"
+      },
+      {
         "key": "sitrep-sdk ./registry ~TinyMode#bodyMinSize?",
         "note": "Removed: a tiny widget's minSize now says where its body stops fitting, so the separate switch point is redundant; no Uplink declares a tiny mode, so nothing reads it"
       },
@@ -9677,6 +9717,10 @@
       {
         "key": "sitrep-sdk ./spine LibrationStationKeeping",
         "note": "Removed with LibrationOffset#keeping"
+      },
+      {
+        "key": "sitrep-sdk ./spine META_VANTAGE",
+        "note": "removed: useCommand sends a command the mod declares for the program from the meta vantage by itself, so a widget has no vantage to choose"
       },
       {
         "key": "sitrep-sdk ./spine NEVER_RECKONABLE",
@@ -9931,12 +9975,20 @@
         "note": "takes the command's argument type, so confirmedBy is checked against the args each dispatch was sent with"
       },
       {
+        "key": "sitrep-sdk ./spine UseCommandResult#dangerouslySendWithoutInput",
+        "note": "the send for a command no kit input draws, renamed from send"
+      },
+      {
         "key": "sitrep-sdk ./spine UseCommandResult#failures",
         "note": "every dispatch the mod answered with a fault (expired, cancelled, dropped, undone by a load) is kept until dismissed, where it was dropped with the promise; required, so a hand-built handle must now carry it"
       },
       {
         "key": "sitrep-sdk ./spine UseCommandResult#railed",
         "note": "required where it was optional, so a hand-built handle that left it out no longer reads as unrailed"
+      },
+      {
+        "key": "sitrep-sdk ./spine UseCommandResult#send",
+        "note": "removed: renamed to dangerouslySendWithoutInput"
       },
       {
         "key": "sitrep-sdk ./spine UseCommandResult#sendStatus",
@@ -9947,8 +9999,16 @@
         "note": "The stream to the mod is down, so a press sends nothing; a control reads it to draw itself unavailable"
       },
       {
+        "key": "sitrep-sdk ./spine UseCommandResult#toArgs",
+        "note": "names the arguments of a press and what happens around it, for a kit input's command prop"
+      },
+      {
         "key": "sitrep-sdk ./spine UseCommandResult#warnings",
         "note": "Each dispatch from the handle that the mod accepted with a warning, while it is in flight"
+      },
+      {
+        "key": "sitrep-sdk ./spine UseCommandResult#with",
+        "note": "names the arguments of a press and what happens around it, for a kit input's command prop"
       },
       {
         "key": "sitrep-sdk ./spine Vector3",
@@ -11059,12 +11119,20 @@
         "note": "takes the command's argument type, so confirmedBy is checked against the args each dispatch was sent with"
       },
       {
+        "key": "sitrep-sdk ./testing ~UseCommandResult#dangerouslySendWithoutInput",
+        "note": "the send for a command no kit input draws, renamed from send"
+      },
+      {
         "key": "sitrep-sdk ./testing ~UseCommandResult#failures",
         "note": "every dispatch the mod answered with a fault (expired, cancelled, dropped, undone by a load) is kept until dismissed, where it was dropped with the promise; required, so a hand-built handle must now carry it"
       },
       {
         "key": "sitrep-sdk ./testing ~UseCommandResult#railed",
         "note": "Follows UseCommandResult#railed"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UseCommandResult#send",
+        "note": "removed: renamed to dangerouslySendWithoutInput"
       },
       {
         "key": "sitrep-sdk ./testing ~UseCommandResult#sendStatus",
@@ -11075,8 +11143,16 @@
         "note": "The stream to the mod is down, so a press sends nothing; a control reads it to draw itself unavailable"
       },
       {
+        "key": "sitrep-sdk ./testing ~UseCommandResult#toArgs",
+        "note": "names the arguments of a press and what happens around it, for a kit input's command prop"
+      },
+      {
         "key": "sitrep-sdk ./testing ~UseCommandResult#warnings",
         "note": "Each dispatch from the handle that the mod accepted with a warning, while it is in flight"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UseCommandResult#with",
+        "note": "names the arguments of a press and what happens around it, for a kit input's command prop"
       },
       {
         "key": "sitrep-sdk ./uplink-externals UPLINK_EXTERNAL_ENTRIES",
@@ -11123,6 +11199,26 @@
         "note": "Takes titleGap, the spacing token between its title and what sits beside it"
       },
       {
+        "key": "ui-kit . ButtonProps",
+        "note": "now the union of the props of a plain one and of one given a command"
+      },
+      {
+        "key": "ui-kit . ButtonProps#pressed?",
+        "note": "a member of the plain props, now declared on PlainButtonProps or PlainToggleButtonProps"
+      },
+      {
+        "key": "ui-kit . ButtonProps#size?",
+        "note": "a member of the plain props, now declared on PlainButtonProps or PlainToggleButtonProps"
+      },
+      {
+        "key": "ui-kit . ButtonProps#tone?",
+        "note": "a member of the plain props, now declared on PlainButtonProps or PlainToggleButtonProps"
+      },
+      {
+        "key": "ui-kit . ButtonProps#variant?",
+        "note": "a member of the plain props, now declared on PlainButtonProps or PlainToggleButtonProps"
+      },
+      {
         "key": "ui-kit . COL_WIDTH",
         "note": "Column width of the dashboard grid in px, now 21 beside a 20 px gap (was 32 beside 8)"
       },
@@ -11143,12 +11239,84 @@
         "note": "its active prop is now pressed, the name Button and ToggleButton use"
       },
       {
+        "key": "ui-kit . CommandButtonHandle#dangerouslySendWithoutInput",
+        "note": "the send for a command no kit input draws, renamed from send"
+      },
+      {
+        "key": "ui-kit . CommandButtonHandle#send",
+        "note": "removed: renamed to dangerouslySendWithoutInput"
+      },
+      {
+        "key": "ui-kit . CommandButtonHandle#toArgs",
+        "note": "the structural handle carries with and toArgs as useCommand does"
+      },
+      {
+        "key": "ui-kit . CommandButtonHandle#with",
+        "note": "the structural handle carries with and toArgs as useCommand does"
+      },
+      {
         "key": "ui-kit . CommandButtonPhase",
         "note": "The in-flight phase `pending` is now `sent`: SENT until the mod answers the press, then live again; the delay rail shows the journey"
       },
       {
+        "key": "ui-kit . CommandButtonProps",
+        "note": "removed: CommandButton is now a Button given a command, whose props are CommandedButtonProps"
+      },
+      {
         "key": "ui-kit . CommandButtonProps#active?",
         "note": "renamed pressed, the name Button and ToggleButton use"
+      },
+      {
+        "key": "ui-kit . CommandButtonProps#args?",
+        "note": "removed: CommandButton is now a Button given a command, whose props are CommandedButtonProps"
+      },
+      {
+        "key": "ui-kit . CommandButtonProps#blockedAriaLabel?",
+        "note": "removed: CommandButton is now a Button given a command, whose props are CommandedButtonProps"
+      },
+      {
+        "key": "ui-kit . CommandButtonProps#commandLabel?",
+        "note": "removed: CommandButton is now a Button given a command, whose props are CommandedButtonProps"
+      },
+      {
+        "key": "ui-kit . CommandButtonProps#confirmAriaLabel?",
+        "note": "removed: CommandButton is now a Button given a command, whose props are CommandedButtonProps"
+      },
+      {
+        "key": "ui-kit . CommandButtonProps#confirmIcon?",
+        "note": "removed: CommandButton is now a Button given a command, whose props are CommandedButtonProps"
+      },
+      {
+        "key": "ui-kit . CommandButtonProps#confirmLabel?",
+        "note": "removed: CommandButton is now a Button given a command, whose props are CommandedButtonProps"
+      },
+      {
+        "key": "ui-kit . CommandButtonProps#confirmTone?",
+        "note": "removed: CommandButton is now a Button given a command, whose props are CommandedButtonProps"
+      },
+      {
+        "key": "ui-kit . CommandButtonProps#foundLabel?",
+        "note": "removed: CommandButton is now a Button given a command, whose props are CommandedButtonProps"
+      },
+      {
+        "key": "ui-kit . CommandButtonProps#handle",
+        "note": "removed: CommandButton is now a Button given a command, whose props are CommandedButtonProps"
+      },
+      {
+        "key": "ui-kit . CommandButtonProps#icon?",
+        "note": "removed: CommandButton is now a Button given a command, whose props are CommandedButtonProps"
+      },
+      {
+        "key": "ui-kit . CommandButtonProps#label",
+        "note": "removed: CommandButton is now a Button given a command, whose props are CommandedButtonProps"
+      },
+      {
+        "key": "ui-kit . CommandButtonProps#lostLabel?",
+        "note": "removed: CommandButton is now a Button given a command, whose props are CommandedButtonProps"
+      },
+      {
+        "key": "ui-kit . CommandButtonProps#onConfirmed?",
+        "note": "removed: CommandButton is now a Button given a command, whose props are CommandedButtonProps"
       },
       {
         "key": "ui-kit . CommandButtonProps#onPressReady?",
@@ -11163,28 +11331,84 @@
         "note": "Removed with the spinner: a pressed control reads SENT, and the delay rail shows the command in flight"
       },
       {
+        "key": "ui-kit . CommandButtonProps#refusedLabel?",
+        "note": "removed: CommandButton is now a Button given a command, whose props are CommandedButtonProps"
+      },
+      {
+        "key": "ui-kit . CommandButtonProps#size?",
+        "note": "removed: CommandButton is now a Button given a command, whose props are CommandedButtonProps"
+      },
+      {
+        "key": "ui-kit . CommandButtonProps#title?",
+        "note": "removed: CommandButton is now a Button given a command, whose props are CommandedButtonProps"
+      },
+      {
+        "key": "ui-kit . CommandButtonProps#tone?",
+        "note": "removed: CommandButton is now a Button given a command, whose props are CommandedButtonProps"
+      },
+      {
+        "key": "ui-kit . CommandButtonProps#variant?",
+        "note": "removed: CommandButton is now a Button given a command, whose props are CommandedButtonProps"
+      },
+      {
         "key": "ui-kit . CommandButtonState",
         "note": "Takes the args type of its command, which sendAs needs"
       },
       {
-        "key": "ui-kit . CommandButtonState#isOffline",
-        "note": "The stream to the mod is down and nothing is in flight, so the control is drawn unavailable and a press sends nothing"
+        "key": "ui-kit . CommandButtonState#foundText",
+        "note": "removed: renamed to CommandControlState, with sendAs replaced by pressWith"
+      },
+      {
+        "key": "ui-kit . CommandButtonState#hasFailure",
+        "note": "removed: renamed to CommandControlState, with sendAs replaced by pressWith"
+      },
+      {
+        "key": "ui-kit . CommandButtonState#hasUnconfirmed",
+        "note": "removed: renamed to CommandControlState, with sendAs replaced by pressWith"
+      },
+      {
+        "key": "ui-kit . CommandButtonState#isArmed",
+        "note": "removed: renamed to CommandControlState, with sendAs replaced by pressWith"
+      },
+      {
+        "key": "ui-kit . CommandButtonState#isBlocked",
+        "note": "removed: renamed to CommandControlState, with sendAs replaced by pressWith"
+      },
+      {
+        "key": "ui-kit . CommandButtonState#isFound",
+        "note": "removed: renamed to CommandControlState, with sendAs replaced by pressWith"
+      },
+      {
+        "key": "ui-kit . CommandButtonState#isLost",
+        "note": "removed: renamed to CommandControlState, with sendAs replaced by pressWith"
       },
       {
         "key": "ui-kit . CommandButtonState#isPending",
         "note": "Removed: a control is never locked behind its own press. `isSent` says the mod has not yet answered"
       },
       {
-        "key": "ui-kit . CommandButtonState#isSent",
-        "note": "Pressed and the mod has not yet answered the press, for at least SENT_FLASH_MS"
+        "key": "ui-kit . CommandButtonState#isRefused",
+        "note": "removed: renamed to CommandControlState, with sendAs replaced by pressWith"
       },
       {
-        "key": "ui-kit . CommandButtonState#sendAs",
-        "note": "Sends args as the control own press under a label, for a bound input that sets a toggle to a state"
+        "key": "ui-kit . CommandButtonState#isShowingReason",
+        "note": "removed: renamed to CommandControlState, with sendAs replaced by pressWith"
       },
       {
-        "key": "ui-kit . CommandButtonState#toggleView",
-        "note": "What a state toggle shows: the state, its word, the held or modelled mark and the sentence for what it waits on"
+        "key": "ui-kit . CommandButtonState#lossText",
+        "note": "removed: renamed to CommandControlState, with sendAs replaced by pressWith"
+      },
+      {
+        "key": "ui-kit . CommandButtonState#phase",
+        "note": "removed: renamed to CommandControlState, with sendAs replaced by pressWith"
+      },
+      {
+        "key": "ui-kit . CommandButtonState#press",
+        "note": "removed: renamed to CommandControlState, with sendAs replaced by pressWith"
+      },
+      {
+        "key": "ui-kit . CommandButtonState#refusalText",
+        "note": "removed: renamed to CommandControlState, with sendAs replaced by pressWith"
       },
       {
         "key": "ui-kit . CommandDelay",
@@ -11209,6 +11433,14 @@
       {
         "key": "ui-kit . CommandFailedLike",
         "note": "now an interface extending CommandLossLike with an optional fault code, where it was an alias of CommandLossLike"
+      },
+      {
+        "key": "ui-kit . CommandGroup",
+        "note": "removed: a press that sends several commands is a Button given a commandSet"
+      },
+      {
+        "key": "ui-kit . CommandGroupProps",
+        "note": "removed: a press that sends several commands is a Button given a commandSet"
       },
       {
         "key": "ui-kit . CommandListKind",
@@ -11535,6 +11767,10 @@
         "note": "Removed: the delay rail takes the same sample kind a channel declares (SampleKind) instead of a vocabulary of its own"
       },
       {
+        "key": "ui-kit . RailEntry",
+        "note": "its excluded send member follows the rename"
+      },
+      {
         "key": "ui-kit . RailFailed",
         "note": "now its own interface over CommandFailedEntry, where it was an alias of RailLoss, so the rail's failures carry their code"
       },
@@ -11557,6 +11793,22 @@
       {
         "key": "ui-kit . ReckoningMark",
         "note": "Its kind widens with \"current\" and it gains the optional elsewhere prop, which draws the kind's hollow form. Existing callers draw as before"
+      },
+      {
+        "key": "ui-kit . Row",
+        "note": "now takes a command, so its props are a union of the plain and the commanded form"
+      },
+      {
+        "key": "ui-kit . Select",
+        "note": "now takes a command, so its props are a union of the plain and the commanded form"
+      },
+      {
+        "key": "ui-kit . Slider",
+        "note": "now takes a command, so its props are a union of the plain and the commanded form"
+      },
+      {
+        "key": "ui-kit . SliderProps",
+        "note": "its props are now a union of the plain and the commanded form, or moved to a base type"
       },
       {
         "key": "ui-kit . SlotRegistry#\"administration-building.screen-body\"",
@@ -11659,6 +11911,54 @@
         "note": "Each row carries the words of the contributions at its severity, so a collapsed header can describe every status it summarises"
       },
       {
+        "key": "ui-kit . Stepper",
+        "note": "now takes a command, so its props are a union of the plain and the commanded form"
+      },
+      {
+        "key": "ui-kit . StepperProps",
+        "note": "its props are now a union of the plain and the commanded form, or moved to a base type"
+      },
+      {
+        "key": "ui-kit . StepperProps#\"data-testid\"?",
+        "note": "its props are now a union of the plain and the commanded form, or moved to a base type"
+      },
+      {
+        "key": "ui-kit . StepperProps#children?",
+        "note": "its props are now a union of the plain and the commanded form, or moved to a base type"
+      },
+      {
+        "key": "ui-kit . StepperProps#disabled?",
+        "note": "its props are now a union of the plain and the commanded form, or moved to a base type"
+      },
+      {
+        "key": "ui-kit . StepperProps#format?",
+        "note": "its props are now a union of the plain and the commanded form, or moved to a base type"
+      },
+      {
+        "key": "ui-kit . StepperProps#label",
+        "note": "its props are now a union of the plain and the commanded form, or moved to a base type"
+      },
+      {
+        "key": "ui-kit . StepperProps#onChange",
+        "note": "its props are now a union of the plain and the commanded form, or moved to a base type"
+      },
+      {
+        "key": "ui-kit . StepperProps#options",
+        "note": "its props are now a union of the plain and the commanded form, or moved to a base type"
+      },
+      {
+        "key": "ui-kit . StepperProps#value",
+        "note": "its props are now a union of the plain and the commanded form, or moved to a base type"
+      },
+      {
+        "key": "ui-kit . Switch",
+        "note": "now takes a command, so its props are a union of the plain and the commanded form"
+      },
+      {
+        "key": "ui-kit . SwitchProps",
+        "note": "its props are now a union of the plain and the commanded form, or moved to a base type"
+      },
+      {
         "key": "ui-kit . Tape",
         "note": "its label prop is now aria-label"
       },
@@ -11669,6 +11969,46 @@
       {
         "key": "ui-kit . TapeProps#ariaLabel",
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . TextField",
+        "note": "now takes a command, so its props are a union of the plain and the commanded form"
+      },
+      {
+        "key": "ui-kit . TextFieldProps",
+        "note": "its props are now a union of the plain and the commanded form, or moved to a base type"
+      },
+      {
+        "key": "ui-kit . TextFieldProps#\"data-testid\"?",
+        "note": "its props are now a union of the plain and the commanded form, or moved to a base type"
+      },
+      {
+        "key": "ui-kit . TextFieldProps#disabled?",
+        "note": "its props are now a union of the plain and the commanded form, or moved to a base type"
+      },
+      {
+        "key": "ui-kit . TextFieldProps#invalid?",
+        "note": "its props are now a union of the plain and the commanded form, or moved to a base type"
+      },
+      {
+        "key": "ui-kit . TextFieldProps#label",
+        "note": "its props are now a union of the plain and the commanded form, or moved to a base type"
+      },
+      {
+        "key": "ui-kit . TextFieldProps#maxLength?",
+        "note": "its props are now a union of the plain and the commanded form, or moved to a base type"
+      },
+      {
+        "key": "ui-kit . TextFieldProps#onChange",
+        "note": "its props are now a union of the plain and the commanded form, or moved to a base type"
+      },
+      {
+        "key": "ui-kit . TextFieldProps#placeholder?",
+        "note": "its props are now a union of the plain and the commanded form, or moved to a base type"
+      },
+      {
+        "key": "ui-kit . TextFieldProps#value",
+        "note": "its props are now a union of the plain and the commanded form, or moved to a base type"
       },
       {
         "key": "ui-kit . ThemeBorders",
@@ -11695,8 +12035,20 @@
         "note": "TinyEssentialsProps takes an optional equalRows, which draws every figure as an equal row; omitted, the first figure is drawn largest as before"
       },
       {
+        "key": "ui-kit . ToggleButtonProps",
+        "note": "now the union of the props of a plain one and of one given a command"
+      },
+      {
         "key": "ui-kit . ToggleButtonProps#active?",
         "note": "renamed to pressed, matching Button and IconButton"
+      },
+      {
+        "key": "ui-kit . ToggleButtonProps#size?",
+        "note": "a member of the plain props, now declared on PlainButtonProps or PlainToggleButtonProps"
+      },
+      {
+        "key": "ui-kit . ToggleButtonProps#tone?",
+        "note": "a member of the plain props, now declared on PlainButtonProps or PlainToggleButtonProps"
       },
       {
         "key": "ui-kit . Tooltip",
@@ -11729,6 +12081,26 @@
       {
         "key": "ui-kit . Unit",
         "note": "Gains the optional elsewhere prop. A caller that does not pass it draws exactly as before"
+      },
+      {
+        "key": "ui-kit . UseCommandButtonOptions",
+        "note": "removed: renamed to UseCommandControlOptions, whose handle, args, commandLabel and onConfirmed fields are replaced by one command"
+      },
+      {
+        "key": "ui-kit . UseCommandButtonOptions#args?",
+        "note": "removed: renamed to UseCommandControlOptions, whose handle, args, commandLabel and onConfirmed fields are replaced by one command"
+      },
+      {
+        "key": "ui-kit . UseCommandButtonOptions#commandLabel?",
+        "note": "removed: renamed to UseCommandControlOptions, whose handle, args, commandLabel and onConfirmed fields are replaced by one command"
+      },
+      {
+        "key": "ui-kit . UseCommandButtonOptions#handle",
+        "note": "removed: renamed to UseCommandControlOptions, whose handle, args, commandLabel and onConfirmed fields are replaced by one command"
+      },
+      {
+        "key": "ui-kit . UseCommandButtonOptions#onConfirmed?",
+        "note": "removed: renamed to UseCommandControlOptions, whose handle, args, commandLabel and onConfirmed fields are replaced by one command"
       },
       {
         "key": "ui-kit . VESSEL_MARK",
@@ -11809,6 +12181,50 @@
       {
         "key": "ui-kit . widgetDrawnFields",
         "note": "Takes the tile's config as an optional second argument so the Topics channelsFromConfig names join the list"
+      },
+      {
+        "key": "ui-kit . ~CommandGroupCommitNaming",
+        "note": "removed: a press that sends several commands is a Button given a commandSet"
+      },
+      {
+        "key": "ui-kit . ~CommandGroupOwnProps",
+        "note": "removed: a press that sends several commands is a Button given a commandSet"
+      },
+      {
+        "key": "ui-kit . ~CommandGroupOwnProps#children",
+        "note": "removed: a press that sends several commands is a Button given a commandSet"
+      },
+      {
+        "key": "ui-kit . ~CommandGroupOwnProps#commitAriaLabel?",
+        "note": "removed: a press that sends several commands is a Button given a commandSet"
+      },
+      {
+        "key": "ui-kit . ~CommandGroupOwnProps#commitLabel?",
+        "note": "removed: a press that sends several commands is a Button given a commandSet"
+      },
+      {
+        "key": "ui-kit . ~CommandGroupOwnProps#gated?",
+        "note": "removed: a press that sends several commands is a Button given a commandSet"
+      },
+      {
+        "key": "ui-kit . ~CommandGroupOwnProps#gatedReason?",
+        "note": "removed: a press that sends several commands is a Button given a commandSet"
+      },
+      {
+        "key": "ui-kit . ~CommandGroupOwnProps#onCommit",
+        "note": "removed: a press that sends several commands is a Button given a commandSet"
+      },
+      {
+        "key": "ui-kit . ~CommandGroupOwnProps#orientation?",
+        "note": "removed: a press that sends several commands is a Button given a commandSet"
+      },
+      {
+        "key": "ui-kit . ~CommandGroupOwnProps#value",
+        "note": "removed: a press that sends several commands is a Button given a commandSet"
+      },
+      {
+        "key": "ui-kit . ~CommandGroupOwnProps#wrap?",
+        "note": "removed: a press that sends several commands is a Button given a commandSet"
       },
       {
         "key": "ui-kit . ~CommandListCommonProps#ariaLabel?",
@@ -12085,6 +12501,10 @@
         "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
       },
       {
+        "key": "sitrep-sdk . AnyBoundCommand",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
         "key": "sitrep-sdk . Arrival",
         "note": "New: whether a send is expected to arrive, assuming nobody intervenes"
       },
@@ -12139,6 +12559,58 @@
       {
         "key": "sitrep-sdk . BodyPoseCurrency",
         "note": "How well a body's place is known: exact, modelled, held or withdrawn"
+      },
+      {
+        "key": "sitrep-sdk . BoundCommand",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk . BoundCommand#args",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk . BoundCommand#handle",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk . BoundCommand#kind",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk . BoundCommand#members?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk . BoundCommand#options",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk . BoundCommand#set?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk . BoundCommandOptions",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk . BoundCommandOptions#before?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk . BoundCommandOptions#label?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk . BoundCommandOptions#onConfirmed?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk . BoundCommandOptions#onRefused?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk . BoundCommandOptions#onRejected?",
+        "note": "part of the bound command a kit input takes in its command prop"
       },
       {
         "key": "sitrep-sdk . Capability",
@@ -12301,6 +12773,10 @@
         "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
       },
       {
+        "key": "sitrep-sdk . CommandRail#meta?",
+        "note": "whether the command is sent from the meta vantage, read off the mod's own [SitrepCommand] declaration"
+      },
+      {
         "key": "sitrep-sdk . CommandRefusal",
         "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
       },
@@ -12339,6 +12815,42 @@
       {
         "key": "sitrep-sdk . CommandRefusalDetail#reason?",
         "note": "Exported by name so an author can type the refusal, loss or gate a published result carries"
+      },
+      {
+        "key": "sitrep-sdk . CommandSetOptions",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk . CommandSetOptions#onSettled?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk . CommandSetOptions#order?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk . CommandSetOptions#stopAtFirstFailure?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk . CommandSetResult",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk . CommandSetResult#confirmed",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk . CommandSetResult#failed",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk . CommandSetResult#firstError?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk . CommandSetResult#total",
+        "note": "part of the bound command a kit input takes in its command prop"
       },
       {
         "key": "sitrep-sdk . CommandUndelivered",
@@ -12791,6 +13303,10 @@
       {
         "key": "sitrep-sdk . LiftoffCountdown#remainingSeconds",
         "note": "New: seconds left until T-0"
+      },
+      {
+        "key": "sitrep-sdk . MapPoiAction#unavailable?",
+        "note": "why a point's button cannot be pressed now, replacing disabledReason"
       },
       {
         "key": "sitrep-sdk . MissionMeta#endReason?",
@@ -13337,8 +13853,16 @@
         "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
       },
       {
+        "key": "sitrep-sdk . TinyControl#command?",
+        "note": "a tiny control gives a command or onPress"
+      },
+      {
         "key": "sitrep-sdk . TinyControl#held?",
         "note": "The words saying the state a tiny control shows is the last reading, drawn with the held mark on the button. Optional, so a control without it is drawn as before"
+      },
+      {
+        "key": "sitrep-sdk . TinyControl#onPress?",
+        "note": "a tiny control gives a command or onPress"
       },
       {
         "key": "sitrep-sdk . TinyEssential#mark?",
@@ -13577,6 +14101,26 @@
         "note": "a check of the telemetry for what one dispatch set; with it a ran dispatch stays in inFlight until the telemetry shows it, due then overdue a minute of game time after its reply"
       },
       {
+        "key": "sitrep-sdk . ValueCommand",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk . ValueCommand#handle",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk . ValueCommand#kind",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk . ValueCommand#options",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk . ValueCommand#toArgs",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
         "key": "sitrep-sdk . ValueCommandInFlight",
         "note": "one value command still on its way: the value it sets, when it was sent, when it reaches the craft"
       },
@@ -13689,12 +14233,28 @@
         "note": "The one-way delay, in seconds, at or below which a delay readout is drawn as no delay"
       },
       {
+        "key": "sitrep-sdk . argsOf",
+        "note": "builds, reads or runs a bound command, for the kit's command inputs"
+      },
+      {
         "key": "sitrep-sdk . asStatic",
         "note": "Exported from the root barrel, where its documentation already said it was"
       },
       {
+        "key": "sitrep-sdk . bindCommand",
+        "note": "builds, reads or runs a bound command, for the kit's command inputs"
+      },
+      {
+        "key": "sitrep-sdk . bindValue",
+        "note": "builds, reads or runs a bound command, for the kit's command inputs"
+      },
+      {
         "key": "sitrep-sdk . clearUplinkBanner",
         "note": "New: a banner an Uplink raises in the operator's banner stack"
+      },
+      {
+        "key": "sitrep-sdk . commandSet",
+        "note": "several commands sent by one press and shown as one"
       },
       {
         "key": "sitrep-sdk . contractTagsGeneration",
@@ -13767,6 +14327,10 @@
       {
         "key": "sitrep-sdk . rotatePerifocalToInertial",
         "note": "Rotates a perifocal-frame vector into the inertial frame, now reachable from the root barrel"
+      },
+      {
+        "key": "sitrep-sdk . runSet",
+        "note": "builds, reads or runs a bound command, for the kit's command inputs"
       },
       {
         "key": "sitrep-sdk . samplesPerSecondOf",
@@ -13845,6 +14409,10 @@
         "note": "the pure half of useValueCommand, for a host that reads the queue itself"
       },
       {
+        "key": "sitrep-sdk . ~ArgsOf",
+        "note": "helper type of bindCommand and bindValue"
+      },
+      {
         "key": "sitrep-sdk . ~GeneratedReckonableFieldMap",
         "note": "The marked fields of each object Topic, which an Uplink augments with declare module for its own"
       },
@@ -13855,6 +14423,18 @@
       {
         "key": "sitrep-sdk . ~ObjectiveSlotAwaitingHome#homeHearsInSeconds",
         "note": "Seconds until home hears the contract is complete, null while a vessel has no route home"
+      },
+      {
+        "key": "sitrep-sdk . ~ReplyOf",
+        "note": "helper type of bindCommand and bindValue"
+      },
+      {
+        "key": "sitrep-sdk . ~SendsCommand",
+        "note": "helper type of bindCommand and bindValue"
+      },
+      {
+        "key": "sitrep-sdk . ~SendsCommand#dangerouslySendWithoutInput",
+        "note": "helper type of bindCommand and bindValue"
       },
       {
         "key": "sitrep-sdk . ~SystemDataRatesTopicPayloadMap",
@@ -14385,6 +14965,18 @@
         "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
       },
       {
+        "key": "sitrep-sdk ./registry ~AnyBoundCommand",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~AnyCommandReply",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~Arrival",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
         "key": "sitrep-sdk ./registry ~AstronautComplexCrewContext",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
       },
@@ -14399,6 +14991,58 @@
       {
         "key": "sitrep-sdk ./registry ~AstronautComplexCrewContext#standing",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~BoundCommand",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~BoundCommand#args",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~BoundCommand#handle",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~BoundCommand#kind",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~BoundCommand#members?",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~BoundCommand#options",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~BoundCommand#set?",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~BoundCommandOptions",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~BoundCommandOptions#before?",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~BoundCommandOptions#label?",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~BoundCommandOptions#onConfirmed?",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~BoundCommandOptions#onRefused?",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~BoundCommandOptions#onRejected?",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
       },
       {
         "key": "sitrep-sdk ./registry ~ChannelFamily",
@@ -14429,8 +15073,196 @@
         "note": "Reachable through ./registry now that ComponentDefinition.commands is typed by CommandId; the type itself is unchanged"
       },
       {
+        "key": "sitrep-sdk ./registry ~CommandFailure",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandFailure#code",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandFailure#reason",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandFound",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandFoundOutcome",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandGateStatus",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandGateStatus#blocked",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandGateStatus#breach?",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandGateStatus#command",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandGateStatus#detail?",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandGateStatus#errorCode",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandGateStatus#reason?",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandGateStatus#undetermined",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandHold",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandHold#outbound",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
         "key": "sitrep-sdk ./registry ~CommandId",
         "note": "Reachable through ./registry now that ComponentDefinition.commands is typed by CommandId; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandLoss",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandLoss#args",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandLoss#command",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandLoss#id",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandLoss#label",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandRefusal",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandRefusal#errorCode",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandRefusal#id",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandRefusalDetail",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandRefusalDetail#args",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandRefusalDetail#breach?",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandRefusalDetail#command",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandRefusalDetail#detail?",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandRefusalDetail#label",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandRefusalDetail#reason?",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandSetOptions",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandSetOptions#onSettled?",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandSetOptions#order?",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandSetOptions#stopAtFirstFailure?",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandSetResult",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandSetResult#confirmed",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandSetResult#failed",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandSetResult#firstError?",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandSetResult#total",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandStatus",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandUndelivered",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandUndelivered#reason",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandWarning",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandWarning#command",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandWarning#id",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandWarning#label",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~CommandWarning#warning",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
       },
       {
         "key": "sitrep-sdk ./registry ~ComponentDefinition#awaitsFirstSignal?",
@@ -14473,6 +15305,10 @@
         "note": "the reasons a widget can stay open while a game state it requires is not met: the crash that ended a flight"
       },
       {
+        "key": "sitrep-sdk ./registry ~ContactStatus",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
         "key": "sitrep-sdk ./registry ~ContributionDefinition#sizeDelta?",
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
       },
@@ -14503,6 +15339,10 @@
       {
         "key": "sitrep-sdk ./registry ~CrewRowToneEntry#held?",
         "note": "CrewRowToneEntry carries the reading it was drawn from, so the host widget draws a held value as held"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~DelayMode",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
       },
       {
         "key": "sitrep-sdk ./registry ~DeployedExperimentContext",
@@ -14643,6 +15483,62 @@
       {
         "key": "sitrep-sdk ./registry ~ExperimentsInstrumentSlotContext#instrument",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~InFlightCommand",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~InFlightCommand#args?",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~InFlightCommand#command",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~InFlightCommand#direction",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~InFlightCommand#dispatchedAt",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~InFlightCommand#held?",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~InFlightCommand#hold?",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~InFlightCommand#id",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~InFlightCommand#label",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~InFlightCommand#oneWaySeconds",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~InFlightCommand#predictedPhase",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~InFlightCommand#reachEtaSeconds",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~InFlightCommand#replyEtaSeconds",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~InFlightCommand#topic",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
       },
       {
         "key": "sitrep-sdk ./registry ~LaunchDirectorPadContext",
@@ -14985,6 +15881,34 @@
         "note": "Whether the sea is seen from above or from the side"
       },
       {
+        "key": "sitrep-sdk ./registry ~PredictedPhase",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~RailDelivery",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~RailDirection",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~RailTags",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~RailTags#delivery",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~RailTags#direction",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~RailTags#kind",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
         "key": "sitrep-sdk ./registry ~ReckoningDecline#resolvesByWaiting?",
         "note": "Whether a declined figure comes back by itself, such as an integrator not yet computed this far ahead"
       },
@@ -15075,6 +15999,34 @@
       {
         "key": "sitrep-sdk ./registry ~SdkOwnedCommandArgsMap",
         "note": "Reachable through ./registry now that ComponentDefinition.commands is typed by CommandId; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SendStatus",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SendStatus#arrival",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SendStatus#arrivesUt?",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SendStatus#contact",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SendStatus#heldUntilUt?",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SendStatus#sends?",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SendStatus#signalDelay?",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
       },
       {
         "key": "sitrep-sdk ./registry ~ShipMapBounds",
@@ -15553,8 +16505,16 @@
         "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
       },
       {
+        "key": "sitrep-sdk ./registry ~TinyControl#command?",
+        "note": "a tiny control gives a command or onPress"
+      },
+      {
         "key": "sitrep-sdk ./registry ~TinyControl#held?",
         "note": "The words saying the state a tiny control shows is the last reading, drawn with the held mark on the button. Optional, so a control without it is drawn as before"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TinyControl#onPress?",
+        "note": "a tiny control gives a command or onPress"
       },
       {
         "key": "sitrep-sdk ./registry ~TinyEssential#mark?",
@@ -15655,6 +16615,114 @@
       {
         "key": "sitrep-sdk ./registry ~UiKitTheme#typography",
         "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UseCommandResult",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UseCommandResult#dangerouslySendWithoutInput",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UseCommandResult#delayMode",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UseCommandResult#delayReading",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UseCommandResult#dismiss",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UseCommandResult#effectiveDelaySeconds",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UseCommandResult#failures",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UseCommandResult#founds",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UseCommandResult#gate?",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UseCommandResult#gateFor",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UseCommandResult#inFlight",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UseCommandResult#losses",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UseCommandResult#railed",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UseCommandResult#refusals",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UseCommandResult#sendStatus",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UseCommandResult#status",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UseCommandResult#streamDown",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UseCommandResult#tags",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UseCommandResult#toArgs",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UseCommandResult#undelivered",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UseCommandResult#warnings",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UseCommandResult#with",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ValueCommand",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ValueCommand#handle",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ValueCommand#kind",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ValueCommand#options",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ValueCommand#toArgs",
+        "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
       },
       {
         "key": "sitrep-sdk ./registry ~VesselCatalogUpdatesContext",
@@ -15807,6 +16875,10 @@
       {
         "key": "sitrep-sdk ./spine CommandGroupPhase",
         "note": "New with command groups"
+      },
+      {
+        "key": "sitrep-sdk ./spine CommandRail#meta?",
+        "note": "whether the command is sent from the meta vantage, read off the mod's own [SitrepCommand] declaration"
       },
       {
         "key": "sitrep-sdk ./spine CommandWarning",
@@ -16321,8 +17393,20 @@
         "note": "New: an inertial arc put back in its orbit plane, for a diagram that draws the plane flat"
       },
       {
+        "key": "sitrep-sdk ./spine argsOf",
+        "note": "builds, reads or runs a bound command, for the kit's command inputs"
+      },
+      {
         "key": "sitrep-sdk ./spine assertSizeDelta",
         "note": "Registration check for an extension's sizeDelta (whole numbers, zero or more), shared by the augment and contribution registries"
+      },
+      {
+        "key": "sitrep-sdk ./spine bindCommand",
+        "note": "builds, reads or runs a bound command, for the kit's command inputs"
+      },
+      {
+        "key": "sitrep-sdk ./spine bindValue",
+        "note": "builds, reads or runs a bound command, for the kit's command inputs"
       },
       {
         "key": "sitrep-sdk ./spine bodyOffsetAt",
@@ -16339,6 +17423,10 @@
       {
         "key": "sitrep-sdk ./spine canPropagatePatch",
         "note": "The guard that says whether a patch can be propagated: elliptical, with every element present"
+      },
+      {
+        "key": "sitrep-sdk ./spine commandSet",
+        "note": "several commands sent by one press and shown as one"
       },
       {
         "key": "sitrep-sdk ./spine hasItemVerdict",
@@ -16379,6 +17467,10 @@
       {
         "key": "sitrep-sdk ./spine readPendingLane",
         "note": "New spine helper behind a held command's cancel, shared by the hook and by a group"
+      },
+      {
+        "key": "sitrep-sdk ./spine runSet",
+        "note": "builds, reads or runs a bound command, for the kit's command inputs"
       },
       {
         "key": "sitrep-sdk ./spine sendStatusFromRoutes",
@@ -16493,6 +17585,66 @@
         "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
       },
       {
+        "key": "sitrep-sdk ./spine ~AnyBoundCommand",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ArgsOf",
+        "note": "helper type of bindCommand and bindValue"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~BoundCommand",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~BoundCommand#args",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~BoundCommand#handle",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~BoundCommand#kind",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~BoundCommand#members?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~BoundCommand#options",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~BoundCommand#set?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~BoundCommandOptions",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~BoundCommandOptions#before?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~BoundCommandOptions#label?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~BoundCommandOptions#onConfirmed?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~BoundCommandOptions#onRefused?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~BoundCommandOptions#onRejected?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
         "key": "sitrep-sdk ./spine ~CommSignalHopRateEntry#held?",
         "note": "CommSignalHopRateEntry carries the reading it was drawn from, so the host widget draws a held value as held"
       },
@@ -16519,6 +17671,42 @@
       {
         "key": "sitrep-sdk ./spine ~CommandHold#outbound",
         "note": "Added with CommandHold: how far along the way out a held command is, which places its rail mark"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~CommandSetOptions",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~CommandSetOptions#onSettled?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~CommandSetOptions#order?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~CommandSetOptions#stopAtFirstFailure?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~CommandSetResult",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~CommandSetResult#confirmed",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~CommandSetResult#failed",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~CommandSetResult#firstError?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~CommandSetResult#total",
+        "note": "part of the bound command a kit input takes in its command prop"
       },
       {
         "key": "sitrep-sdk ./spine ~ContractReckonableRow",
@@ -16785,8 +17973,20 @@
         "note": "The marked fields of each object Topic, which an Uplink augments with declare module for its own"
       },
       {
+        "key": "sitrep-sdk ./spine ~ReplyOf",
+        "note": "helper type of bindCommand and bindValue"
+      },
+      {
         "key": "sitrep-sdk ./spine ~SampleKind",
         "note": "How a channel's samples relate in time: continuous, discrete or event"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~SendsCommand",
+        "note": "helper type of bindCommand and bindValue"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~SendsCommand#dangerouslySendWithoutInput",
+        "note": "helper type of bindCommand and bindValue"
       },
       {
         "key": "sitrep-sdk ./spine ~ShipMapPartActionEntry",
@@ -16937,6 +18137,114 @@
         "note": "a transport can answer a request for older points of a topic"
       },
       {
+        "key": "sitrep-sdk ./spine ~UseCommandResult",
+        "note": "reachable through the handle of a bound command"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~UseCommandResult#dangerouslySendWithoutInput",
+        "note": "reachable through the handle of a bound command"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~UseCommandResult#delayMode",
+        "note": "reachable through the handle of a bound command"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~UseCommandResult#delayReading",
+        "note": "reachable through the handle of a bound command"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~UseCommandResult#dismiss",
+        "note": "reachable through the handle of a bound command"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~UseCommandResult#effectiveDelaySeconds",
+        "note": "reachable through the handle of a bound command"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~UseCommandResult#failures",
+        "note": "reachable through the handle of a bound command"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~UseCommandResult#founds",
+        "note": "reachable through the handle of a bound command"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~UseCommandResult#gate?",
+        "note": "reachable through the handle of a bound command"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~UseCommandResult#gateFor",
+        "note": "reachable through the handle of a bound command"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~UseCommandResult#inFlight",
+        "note": "reachable through the handle of a bound command"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~UseCommandResult#losses",
+        "note": "reachable through the handle of a bound command"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~UseCommandResult#railed",
+        "note": "reachable through the handle of a bound command"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~UseCommandResult#refusals",
+        "note": "reachable through the handle of a bound command"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~UseCommandResult#sendStatus",
+        "note": "reachable through the handle of a bound command"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~UseCommandResult#status",
+        "note": "reachable through the handle of a bound command"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~UseCommandResult#streamDown",
+        "note": "reachable through the handle of a bound command"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~UseCommandResult#tags",
+        "note": "reachable through the handle of a bound command"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~UseCommandResult#toArgs",
+        "note": "names the arguments of a press and what happens around it, for a kit input's command prop"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~UseCommandResult#undelivered",
+        "note": "reachable through the handle of a bound command"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~UseCommandResult#warnings",
+        "note": "reachable through the handle of a bound command"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~UseCommandResult#with",
+        "note": "names the arguments of a press and what happens around it, for a kit input's command prop"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ValueCommand",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ValueCommand#handle",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ValueCommand#kind",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ValueCommand#options",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ValueCommand#toArgs",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
         "key": "sitrep-sdk ./spine ~ValueTags",
         "note": "The tags a contract declares on one value: its own sample kind and whether it keys its list entry"
       },
@@ -16953,6 +18261,46 @@
         "note": "The tags a contract declares on one value: its own sample kind and whether it keys its list entry"
       },
       {
+        "key": "sitrep-sdk ./testing FakeCommand",
+        "note": "a command handle for tests that records sends and answers as the test says"
+      },
+      {
+        "key": "sitrep-sdk ./testing FakeCommand#confirm",
+        "note": "a command handle for tests that records sends and answers as the test says"
+      },
+      {
+        "key": "sitrep-sdk ./testing FakeCommand#handle",
+        "note": "a command handle for tests that records sends and answers as the test says"
+      },
+      {
+        "key": "sitrep-sdk ./testing FakeCommand#lose",
+        "note": "a command handle for tests that records sends and answers as the test says"
+      },
+      {
+        "key": "sitrep-sdk ./testing FakeCommand#patch",
+        "note": "a command handle for tests that records sends and answers as the test says"
+      },
+      {
+        "key": "sitrep-sdk ./testing FakeCommand#refuse",
+        "note": "a command handle for tests that records sends and answers as the test says"
+      },
+      {
+        "key": "sitrep-sdk ./testing FakeCommand#sent",
+        "note": "a command handle for tests that records sends and answers as the test says"
+      },
+      {
+        "key": "sitrep-sdk ./testing FakeCommandOptions",
+        "note": "a command handle for tests that records sends and answers as the test says"
+      },
+      {
+        "key": "sitrep-sdk ./testing FakeCommandOptions#answer?",
+        "note": "a command handle for tests that records sends and answers as the test says"
+      },
+      {
+        "key": "sitrep-sdk ./testing FakeCommandOptions#reply?",
+        "note": "a command handle for tests that records sends and answers as the test says"
+      },
+      {
         "key": "sitrep-sdk ./testing RecordedUplinkBanner",
         "note": "New: a banner recorded under the test host"
       },
@@ -16963,6 +18311,10 @@
       {
         "key": "sitrep-sdk ./testing clearRaisedBanners",
         "note": "New: test helper for the banners an Uplink raised"
+      },
+      {
+        "key": "sitrep-sdk ./testing createFakeCommand",
+        "note": "a command handle for tests that records sends and answers as the test says"
       },
       {
         "key": "sitrep-sdk ./testing declareTestReckonable",
@@ -17017,12 +18369,68 @@
         "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
       },
       {
+        "key": "sitrep-sdk ./testing ~AnyBoundCommand",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
         "key": "sitrep-sdk ./testing ~Arrival",
         "note": "New: whether a send is expected to arrive, assuming nobody intervenes"
       },
       {
         "key": "sitrep-sdk ./testing ~AugmentDefinition#sizeDelta?",
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~BoundCommand",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~BoundCommand#args",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~BoundCommand#handle",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~BoundCommand#kind",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~BoundCommand#members?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~BoundCommand#options",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~BoundCommand#set?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~BoundCommandOptions",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~BoundCommandOptions#before?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~BoundCommandOptions#label?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~BoundCommandOptions#onConfirmed?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~BoundCommandOptions#onRefused?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~BoundCommandOptions#onRejected?",
+        "note": "part of the bound command a kit input takes in its command prop"
       },
       {
         "key": "sitrep-sdk ./testing ~CommSignalHopRateEntry#held?",
@@ -17091,6 +18499,42 @@
       {
         "key": "sitrep-sdk ./testing ~CommandHold#outbound",
         "note": "Added with CommandHold: how far along the way out a held command is, which places its rail mark"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandSetOptions",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandSetOptions#onSettled?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandSetOptions#order?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandSetOptions#stopAtFirstFailure?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandSetResult",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandSetResult#confirmed",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandSetResult#failed",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandSetResult#firstError?",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandSetResult#total",
+        "note": "part of the bound command a kit input takes in its command prop"
       },
       {
         "key": "sitrep-sdk ./testing ~CommandWarning",
@@ -17869,6 +19313,26 @@
         "note": "a check of the telemetry for what one dispatch set; with it a ran dispatch stays in inFlight until the telemetry shows it, due then overdue a minute of game time after its reply"
       },
       {
+        "key": "sitrep-sdk ./testing ~ValueCommand",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ValueCommand#handle",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ValueCommand#kind",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ValueCommand#options",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ValueCommand#toArgs",
+        "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
         "key": "sitrep-sdk ./testing ~ValueTags",
         "note": "The tags a contract declares on one value: its own sample kind and whether it keys its list entry"
       },
@@ -18113,6 +19577,18 @@
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
       {
+        "key": "ui-kit . ActionMenuItem#command?",
+        "note": "a menu item may send a command and shows what became of it"
+      },
+      {
+        "key": "ui-kit . ActionMenuItem#confirmLabel?",
+        "note": "a menu item may send a command and shows what became of it"
+      },
+      {
+        "key": "ui-kit . ActionMenuItem#unavailable?",
+        "note": "a menu item may send a command and shows what became of it"
+      },
+      {
         "key": "ui-kit . AugmentDefinition#sizeDelta?",
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
       },
@@ -18185,16 +19661,8 @@
         "note": "New optional prop: the spacing token between the title and its right-hand content"
       },
       {
-        "key": "ui-kit . ButtonProps#disabledReason?",
-        "note": "New: the reason a disabled button is disabled, shown as its tip; the button becomes aria-disabled so it keeps focus"
-      },
-      {
-        "key": "ui-kit . ButtonProps#marked?",
-        "note": "New: marks the state a button shows as held or modelled with the kit's held mark; the button stays pressable"
-      },
-      {
-        "key": "ui-kit . ButtonProps#predictedOutcome?",
-        "note": "New: the predicted result of pressing, drawn as a dashed or dotted edge that does not change the button's size"
+        "key": "ui-kit . BoundControlCommand",
+        "note": "a bound command whose handle is the kit's structural handle"
       },
       {
         "key": "ui-kit . ChartSeries",
@@ -18297,20 +19765,80 @@
         "note": "Lets a command control draw itself unavailable while the stream to the mod is down; optional, so a hand-built handle is unchanged"
       },
       {
-        "key": "ui-kit . CommandButtonProps#controller?",
-        "note": "Lets a control draw from a useCommandButton the caller already runs, so a bound input and a click press one control"
+        "key": "ui-kit . CommandControlState",
+        "note": "the renamed useCommandButton and its types"
       },
       {
-        "key": "ui-kit . CommandButtonProps#pressed?",
-        "note": "renamed from active, the name Button and ToggleButton use"
+        "key": "ui-kit . CommandControlState#command",
+        "note": "the bound command the control sends, for a face to read its handle from"
       },
       {
-        "key": "ui-kit . CommandButtonProps#sentAriaLabel?",
-        "note": "The sent phase accessible name, in place of pendingAriaLabel"
+        "key": "ui-kit . CommandControlState#foundText",
+        "note": "the renamed useCommandButton and its types"
       },
       {
-        "key": "ui-kit . CommandButtonProps#toggle?",
-        "note": "Makes the control a state toggle that shows SENT, then the state, marked held or modelled while the command waits or is predicted"
+        "key": "ui-kit . CommandControlState#hasFailure",
+        "note": "the renamed useCommandButton and its types"
+      },
+      {
+        "key": "ui-kit . CommandControlState#hasUnconfirmed",
+        "note": "the renamed useCommandButton and its types"
+      },
+      {
+        "key": "ui-kit . CommandControlState#isArmed",
+        "note": "the renamed useCommandButton and its types"
+      },
+      {
+        "key": "ui-kit . CommandControlState#isBlocked",
+        "note": "the renamed useCommandButton and its types"
+      },
+      {
+        "key": "ui-kit . CommandControlState#isFound",
+        "note": "the renamed useCommandButton and its types"
+      },
+      {
+        "key": "ui-kit . CommandControlState#isLost",
+        "note": "the renamed useCommandButton and its types"
+      },
+      {
+        "key": "ui-kit . CommandControlState#isOffline",
+        "note": "the renamed useCommandButton and its types"
+      },
+      {
+        "key": "ui-kit . CommandControlState#isRefused",
+        "note": "the renamed useCommandButton and its types"
+      },
+      {
+        "key": "ui-kit . CommandControlState#isSent",
+        "note": "the renamed useCommandButton and its types"
+      },
+      {
+        "key": "ui-kit . CommandControlState#isUnavailable",
+        "note": "true when the command cannot be sent now, so the control draws its unavailable edge"
+      },
+      {
+        "key": "ui-kit . CommandControlState#lossText",
+        "note": "the renamed useCommandButton and its types"
+      },
+      {
+        "key": "ui-kit . CommandControlState#phase",
+        "note": "the renamed useCommandButton and its types"
+      },
+      {
+        "key": "ui-kit . CommandControlState#press",
+        "note": "the renamed useCommandButton and its types"
+      },
+      {
+        "key": "ui-kit . CommandControlState#pressWith",
+        "note": "replaces sendAs: sends a bound command as the control's own press"
+      },
+      {
+        "key": "ui-kit . CommandControlState#refusalText",
+        "note": "the renamed useCommandButton and its types"
+      },
+      {
+        "key": "ui-kit . CommandControlState#toggleView",
+        "note": "the renamed useCommandButton and its types"
       },
       {
         "key": "ui-kit . CommandDelayHandle#\"aria-label\"?",
@@ -18333,12 +19861,8 @@
         "note": "the fault code, which commandFailedSentence says in the code's own words"
       },
       {
-        "key": "ui-kit . CommandSlider",
-        "note": "a slider for a value a craft holds, the command on the thumb with modelled and held marks on the track"
-      },
-      {
-        "key": "ui-kit . CommandStepper",
-        "note": "a stepper for a value a craft holds, the command as its figure with modelled and held figures beside it"
+        "key": "ui-kit . CommandInput",
+        "note": "what the command prop of a button takes: a bound command, a handle or a control"
       },
       {
         "key": "ui-kit . CommandToggle",
@@ -18385,58 +19909,6 @@
         "note": "Every word the control can show, so it keeps its size"
       },
       {
-        "key": "ui-kit . CommandValueProps",
-        "note": "the props both command controls take"
-      },
-      {
-        "key": "ui-kit . CommandValueProps#commanded",
-        "note": "member of CommandValueProps: commanded"
-      },
-      {
-        "key": "ui-kit . CommandValueProps#disabled?",
-        "note": "member of CommandValueProps: disabled"
-      },
-      {
-        "key": "ui-kit . CommandValueProps#disabledReason?",
-        "note": "member of CommandValueProps: disabledReason"
-      },
-      {
-        "key": "ui-kit . CommandValueProps#expected?",
-        "note": "member of CommandValueProps: expected"
-      },
-      {
-        "key": "ui-kit . CommandValueProps#expectedCaption?",
-        "note": "member of CommandValueProps: expectedCaption"
-      },
-      {
-        "key": "ui-kit . CommandValueProps#figure",
-        "note": "member of CommandValueProps: figure"
-      },
-      {
-        "key": "ui-kit . CommandValueProps#lastSeen?",
-        "note": "member of CommandValueProps: lastSeen"
-      },
-      {
-        "key": "ui-kit . CommandValueProps#lastSeenCaption?",
-        "note": "member of CommandValueProps: lastSeenCaption"
-      },
-      {
-        "key": "ui-kit . CommandValueProps#max",
-        "note": "member of CommandValueProps: max"
-      },
-      {
-        "key": "ui-kit . CommandValueProps#min",
-        "note": "member of CommandValueProps: min"
-      },
-      {
-        "key": "ui-kit . CommandValueProps#onChange",
-        "note": "member of CommandValueProps: onChange"
-      },
-      {
-        "key": "ui-kit . CommandValueProps#step",
-        "note": "member of CommandValueProps: step"
-      },
-      {
         "key": "ui-kit . CommandWarningEntry",
         "note": "A warned dispatch as the panel delay rail and CommandList draw it"
       },
@@ -18451,6 +19923,214 @@
       {
         "key": "ui-kit . CommandWarningLike#warning",
         "note": "A warned dispatch as the panel delay rail and CommandList draw it"
+      },
+      {
+        "key": "ui-kit . CommandedButtonProps",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedButtonProps#blockedAriaLabel?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedButtonProps#children",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedButtonProps#command",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedButtonProps#confirmAriaLabel?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedButtonProps#confirmIcon?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedButtonProps#confirmLabel?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedButtonProps#confirmTone?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedButtonProps#foundLabel?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedButtonProps#icon?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedButtonProps#lostLabel?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedButtonProps#onPressReady?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedButtonProps#pressed?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedButtonProps#refusedLabel?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedButtonProps#sentAriaLabel?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedButtonProps#size?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedButtonProps#tip?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedButtonProps#tone?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedButtonProps#unavailable?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedButtonProps#variant?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedSelectProps",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . CommandedSelectProps#children?",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . CommandedSelectProps#command",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . CommandedSelectProps#unavailable?",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . CommandedSelectProps#value",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . CommandedStepperProps",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . CommandedSwitchProps",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . CommandedSwitchProps#checked?",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . CommandedSwitchProps#command",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . CommandedSwitchProps#disabled?",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . CommandedSwitchProps#onChange?",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . CommandedSwitchProps#state",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . CommandedSwitchProps#unavailable?",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . CommandedTextFieldProps",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . CommandedTextFieldProps#command",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . CommandedTextFieldProps#disabled?",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . CommandedTextFieldProps#onChange?",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . CommandedTextFieldProps#unavailable?",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . CommandedToggleProps",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedToggleProps#children?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedToggleProps#command",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedToggleProps#icon?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedToggleProps#marking?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedToggleProps#modelled?",
+        "note": "what an arrived command does to a state its args do not set outright, as for a toggle given a command"
+      },
+      {
+        "key": "ui-kit . CommandedToggleProps#name?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedToggleProps#rows?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedToggleProps#sentWord?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedToggleProps#size?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedToggleProps#state?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedToggleProps#tip?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedToggleProps#tone?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedToggleProps#unavailable?",
+        "note": "the props of a button or toggle given a command, replacing those of CommandButton"
       },
       {
         "key": "ui-kit . ContainerBreakProps#at?",
@@ -18809,14 +20489,6 @@
         "note": "IconButton is a component taking pressed, which sets aria-pressed"
       },
       {
-        "key": "ui-kit . IconButtonProps#disabledReason?",
-        "note": "New: the reason a disabled button is disabled, shown as its tip; the button becomes aria-disabled so it keeps focus"
-      },
-      {
-        "key": "ui-kit . IconButtonProps#pressed?",
-        "note": "IconButton is a component taking pressed, which sets aria-pressed"
-      },
-      {
         "key": "ui-kit . InFlightCommandLike",
         "note": "Exported from the kit's index because published signatures take it"
       },
@@ -18981,6 +20653,62 @@
         "note": "What a figure is for the purpose of marking it: current, or a ReckoningKind. The type of the widened kind on ReckoningMark and HeldFigure"
       },
       {
+        "key": "ui-kit . MarkedSliderProps",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . MarkedSliderProps#\"aria-label\"",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . MarkedSliderProps#command?",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . MarkedSliderProps#disabled?",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . MarkedSliderProps#expected?",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . MarkedSliderProps#expectedCaption?",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . MarkedSliderProps#figure",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . MarkedSliderProps#lastSeen?",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . MarkedSliderProps#lastSeenCaption?",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . MarkedSliderProps#max",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . MarkedSliderProps#min",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . MarkedSliderProps#step",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . MarkedSliderProps#unavailable?",
+        "note": "props of the form that sends a command"
+      },
+      {
+        "key": "ui-kit . MarkedSliderProps#value",
+        "note": "props of the form that sends a command"
+      },
+      {
         "key": "ui-kit . MenuIcon",
         "note": "Three horizontal lines, the icon of the dashboard menu button"
       },
@@ -19111,6 +20839,138 @@
       {
         "key": "ui-kit . PipsProps#tone?",
         "note": "colour of the pips"
+      },
+      {
+        "key": "ui-kit . PlainButtonProps",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainButtonProps#command?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainButtonProps#disabledReason?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainButtonProps#marked?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainButtonProps#predictedOutcome?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainButtonProps#pressed?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainButtonProps#size?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainButtonProps#tone?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainButtonProps#variant?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainIconButtonProps",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainIconButtonProps#command?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainIconButtonProps#disabledReason?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainIconButtonProps#pressed?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainSelectProps",
+        "note": "props of the form that changes a value the caller holds"
+      },
+      {
+        "key": "ui-kit . PlainSliderProps",
+        "note": "props of the form that changes a value the caller holds"
+      },
+      {
+        "key": "ui-kit . PlainStepperProps",
+        "note": "props of the form that changes a value the caller holds"
+      },
+      {
+        "key": "ui-kit . PlainSwitchProps",
+        "note": "props of the form that changes a value the caller holds"
+      },
+      {
+        "key": "ui-kit . PlainSwitchProps#checked",
+        "note": "props of the form that changes a value the caller holds"
+      },
+      {
+        "key": "ui-kit . PlainSwitchProps#command?",
+        "note": "props of the form that changes a value the caller holds"
+      },
+      {
+        "key": "ui-kit . PlainSwitchProps#disabled?",
+        "note": "props of the form that changes a value the caller holds"
+      },
+      {
+        "key": "ui-kit . PlainSwitchProps#onChange",
+        "note": "props of the form that changes a value the caller holds"
+      },
+      {
+        "key": "ui-kit . PlainTextFieldProps",
+        "note": "props of the form that changes a value the caller holds"
+      },
+      {
+        "key": "ui-kit . PlainTextFieldProps#command?",
+        "note": "props of the form that changes a value the caller holds"
+      },
+      {
+        "key": "ui-kit . PlainTextFieldProps#disabled?",
+        "note": "props of the form that changes a value the caller holds"
+      },
+      {
+        "key": "ui-kit . PlainTextFieldProps#onChange",
+        "note": "props of the form that changes a value the caller holds"
+      },
+      {
+        "key": "ui-kit . PlainTextFieldProps#unavailable?",
+        "note": "props of the form that changes a value the caller holds"
+      },
+      {
+        "key": "ui-kit . PlainToggleButtonProps",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainToggleButtonProps#command?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainToggleButtonProps#disabledReason?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainToggleButtonProps#marked?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainToggleButtonProps#pressed?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainToggleButtonProps#size?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainToggleButtonProps#tone?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
       },
       {
         "key": "ui-kit . PlotCrosshair",
@@ -19333,6 +21193,14 @@
         "note": "a circular arrow running clockwise, for a control that turns a view a step"
       },
       {
+        "key": "ui-kit . RowProps#command?",
+        "note": "a row may send a command and shows what became of it"
+      },
+      {
+        "key": "ui-kit . RowProps#unavailable?",
+        "note": "a row may send a command and shows what became of it"
+      },
+      {
         "key": "ui-kit . SENT_FLASH_MS",
         "note": "The fewest milliseconds a command control reads SENT after a press"
       },
@@ -19393,23 +21261,59 @@
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
       {
+        "key": "ui-kit . StepperBaseProps",
+        "note": "moved to a base props type shared by the plain and commanded forms"
+      },
+      {
+        "key": "ui-kit . StepperBaseProps#\"data-testid\"?",
+        "note": "moved to a base props type shared by the plain and commanded forms"
+      },
+      {
+        "key": "ui-kit . StepperBaseProps#children?",
+        "note": "moved to a base props type shared by the plain and commanded forms"
+      },
+      {
+        "key": "ui-kit . StepperBaseProps#format?",
+        "note": "moved to a base props type shared by the plain and commanded forms"
+      },
+      {
+        "key": "ui-kit . StepperBaseProps#label",
+        "note": "moved to a base props type shared by the plain and commanded forms"
+      },
+      {
+        "key": "ui-kit . StepperMarks",
+        "note": "moved to a base props type shared by the plain and commanded forms"
+      },
+      {
+        "key": "ui-kit . StepperMarks#expected?",
+        "note": "moved to a base props type shared by the plain and commanded forms"
+      },
+      {
+        "key": "ui-kit . StepperMarks#lastSeen?",
+        "note": "moved to a base props type shared by the plain and commanded forms"
+      },
+      {
+        "key": "ui-kit . StepperMarks#lastSeenCaption?",
+        "note": "moved to a base props type shared by the plain and commanded forms"
+      },
+      {
+        "key": "ui-kit . StepperMarks#startAt?",
+        "note": "the value the first step lands on while a stepper has no value at all"
+      },
+      {
+        "key": "ui-kit . StepperMarks#unknown?",
+        "note": "moved to a base props type shared by the plain and commanded forms"
+      },
+      {
+        "key": "ui-kit . StepperSteps",
+        "note": "moved to a base props type shared by the plain and commanded forms"
+      },
+      {
         "key": "ui-kit . SwitchBaseProps",
         "note": "exported, since a published component's props or return type already names it"
       },
       {
-        "key": "ui-kit . SwitchBaseProps#checked",
-        "note": "exported, since a published component's props or return type already names it"
-      },
-      {
-        "key": "ui-kit . SwitchBaseProps#disabled?",
-        "note": "exported, since a published component's props or return type already names it"
-      },
-      {
         "key": "ui-kit . SwitchBaseProps#id?",
-        "note": "exported, since a published component's props or return type already names it"
-      },
-      {
-        "key": "ui-kit . SwitchBaseProps#onChange",
         "note": "exported, since a published component's props or return type already names it"
       },
       {
@@ -19441,24 +21345,40 @@
         "note": "New: a filled segment at the start of a tag holding a mark such as a plus"
       },
       {
+        "key": "ui-kit . TextFieldBaseProps",
+        "note": "moved to a base props type shared by the plain and commanded forms"
+      },
+      {
+        "key": "ui-kit . TextFieldBaseProps#\"data-testid\"?",
+        "note": "moved to a base props type shared by the plain and commanded forms"
+      },
+      {
+        "key": "ui-kit . TextFieldBaseProps#invalid?",
+        "note": "moved to a base props type shared by the plain and commanded forms"
+      },
+      {
+        "key": "ui-kit . TextFieldBaseProps#label",
+        "note": "moved to a base props type shared by the plain and commanded forms"
+      },
+      {
+        "key": "ui-kit . TextFieldBaseProps#maxLength?",
+        "note": "moved to a base props type shared by the plain and commanded forms"
+      },
+      {
+        "key": "ui-kit . TextFieldBaseProps#placeholder?",
+        "note": "moved to a base props type shared by the plain and commanded forms"
+      },
+      {
+        "key": "ui-kit . TextFieldBaseProps#value",
+        "note": "moved to a base props type shared by the plain and commanded forms"
+      },
+      {
         "key": "ui-kit . ThresholdKind",
         "note": "what a threshold line is for, moved here unchanged"
       },
       {
         "key": "ui-kit . TinyEssentialsProps#equalRows?",
         "note": "TinyEssentialsProps takes an optional equalRows, which draws every figure as an equal row; omitted, the first figure is drawn largest as before"
-      },
-      {
-        "key": "ui-kit . ToggleButtonProps#disabledReason?",
-        "note": "New: the reason a disabled button is disabled, shown as its tip; the button becomes aria-disabled so it keeps focus"
-      },
-      {
-        "key": "ui-kit . ToggleButtonProps#marked?",
-        "note": "New: marks the state a button shows as held or modelled with the kit's held mark; the button stays pressable"
-      },
-      {
-        "key": "ui-kit . ToggleButtonProps#pressed?",
-        "note": "toggle state is pressed on Button, ToggleButton and IconButton"
       },
       {
         "key": "ui-kit . ToggleState",
@@ -19489,8 +21409,20 @@
         "note": "Says in words that the figure is of something other than what its label names. The figure's mark is then drawn hollow, a ring where it is a reading of now, and the words follow what the figure already says about how current it is"
       },
       {
-        "key": "ui-kit . UseCommandButtonOptions#toggle?",
-        "note": "Makes the control a state toggle that shows SENT, then the state, marked held or modelled while the command waits or is predicted"
+        "key": "ui-kit . UseCommandControlOptions",
+        "note": "the renamed useCommandButton and its types"
+      },
+      {
+        "key": "ui-kit . UseCommandControlOptions#command",
+        "note": "the renamed useCommandButton and its types"
+      },
+      {
+        "key": "ui-kit . UseCommandControlOptions#toggle?",
+        "note": "the renamed useCommandButton and its types"
+      },
+      {
+        "key": "ui-kit . UseCommandControlOptions#unavailable?",
+        "note": "why the control cannot be pressed, for what the command's own declaration cannot know"
       },
       {
         "key": "ui-kit . UsePanZoomOptions",
@@ -19703,6 +21635,10 @@
       {
         "key": "ui-kit . splitAtPoleCrossings",
         "note": "Breaks a ground track where it flies over a pole; the antimeridian is no break"
+      },
+      {
+        "key": "ui-kit . useCommandControl",
+        "note": "the renamed useCommandButton and its types"
       },
       {
         "key": "ui-kit . usePanZoom",

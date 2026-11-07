@@ -35,7 +35,7 @@ export const COMMAND_LOST = "E_LOST";
  *   string for an id this SDK does not know. Sending it again may work
  *
  * Useful for telling the operator whether a command was refused, lost or failed,
- * and whether sending it again is worth trying. Used by `CommandButton` from
+ * and whether sending it again is worth trying. Used by a command `Button` from
  * `@ksp-gonogo/ui-kit` to word a rejected command.
  *
  * @category Commands
@@ -102,7 +102,7 @@ export type CommandRejection =
  *   setThrottle: UseCommandResultFor<"vessel.control.setThrottle">,
  * ) {
  *   try {
- *     await setThrottle.send({ value: 1 });
+ *     await setThrottle.dangerouslySendWithoutInput({ value: 1 });
  *   } catch (err) {
  *     const rejection = classifyCommandRejection(err);
  *     if (rejection.kind === "refused") console.warn(rejection.errorCode);

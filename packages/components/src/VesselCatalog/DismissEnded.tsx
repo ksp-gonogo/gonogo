@@ -10,7 +10,7 @@ export type DismissVessel = (vessel: FleetVessel) => void;
 export function useDismissEnded(): DismissVessel {
   const dismiss = useCommand("trackingStation.catalog.dismiss");
   return (vessel) =>
-    void dismiss.send(
+    void dismiss.dangerouslySendWithoutInput(
       { vesselId: vessel.id },
       { label: `Dismiss ${vessel.name}` },
     );

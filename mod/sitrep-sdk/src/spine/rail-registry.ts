@@ -8,7 +8,7 @@ import type { UseCommandResult } from "./use-command";
  */
 export type RailedCommand = Omit<
   UseCommandResult,
-  "send" | "gateFor" | "railed"
+  "dangerouslySendWithoutInput" | "gateFor" | "railed" | "with" | "toArgs"
 > & {
   id: string;
 };

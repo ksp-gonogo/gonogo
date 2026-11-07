@@ -5,6 +5,10 @@ import {
   visibleText,
 } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
+import {
+  findButtonDescribedBy,
+  getButtonDescribedBy,
+} from "../test/describedButton";
 import { perItemGateReport } from "../test/perItemGate";
 import {
   type StreamFixture,
@@ -320,9 +324,10 @@ describe("Administration Building with a verdict derived off-screen", () => {
 
     refuseActivation(fixture, "DerivedYes", "the strategy is not eligible");
     await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: /not eligible/ }),
-      ).toHaveAttribute("aria-disabled", "true"),
+      expect(getButtonDescribedBy(/not eligible/)).toHaveAttribute(
+        "aria-disabled",
+        "true",
+      ),
     );
   });
 });
@@ -371,9 +376,9 @@ describe("Administration Building committing a strategy the roster left unanswer
     );
 
     await openTab("Eligibility unknown");
-    const activate = await screen.findByRole("button", {
-      name: /another mod changes how a strategy activates/,
-    });
+    const activate = await findButtonDescribedBy(
+      /another mod changes how a strategy activates/,
+    );
     expect(activate).toHaveAttribute("aria-disabled", "true");
   });
 

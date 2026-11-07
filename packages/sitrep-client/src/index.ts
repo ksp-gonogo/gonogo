@@ -480,7 +480,6 @@ export {
 export { useCertainty } from "./use-certainty";
 export {
   type CommandGroupHandle,
-  META_VANTAGE,
   sendTogether,
   type UseCommandResult,
   useCommand,

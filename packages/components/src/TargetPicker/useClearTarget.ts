@@ -9,7 +9,9 @@ export function useClearTarget() {
   useActionInput<TargetPickerActions>({
     "clear-target": (payload) => {
       if (payload.kind !== "button" || payload.value !== true) return;
-      void clearTargetCmd.send(undefined, { label: "Clear target" });
+      void clearTargetCmd.dangerouslySendWithoutInput(undefined, {
+        label: "Clear target",
+      });
     },
   });
   return clearTargetCmd;

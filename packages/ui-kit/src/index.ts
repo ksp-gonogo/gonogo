@@ -102,6 +102,8 @@ export {
   type ButtonVariant,
   IconButton,
   type IconButtonProps,
+  type PlainButtonProps,
+  type PlainIconButtonProps,
   TextButton,
 } from "./Button";
 export {
@@ -126,15 +128,19 @@ export {
   groupComboboxOptions,
   moveComboboxActiveIndex,
 } from "./Combobox";
+export type {
+  CommandedButtonProps,
+  CommandedToggleProps,
+  CommandInput,
+} from "./CommandButton/CommandedButton";
 export {
   ARM_TIMEOUT_MS,
-  CommandButton,
+  type BoundControlCommand,
   type CommandButtonHandle,
   type CommandButtonPhase,
-  type CommandButtonProps,
   type CommandButtonSize,
-  type CommandButtonState,
   type CommandButtonTone,
+  type CommandControlState,
   type CommandGateLike,
   type CommandReplyLike,
   type CommandToggle,
@@ -142,18 +148,14 @@ export {
   SENT_FLASH_MS,
   STREAM_DOWN_TIP,
   type ToggleState,
-  type UseCommandButtonOptions,
-  useCommandButton,
-} from "./CommandButton/CommandButton";
+  type UseCommandControlOptions,
+  useCommandControl,
+} from "./CommandButton/commandControl";
 export {
   CommandDelay,
   type CommandDelayHandle,
   type CommandDelayProps,
 } from "./CommandDelay/CommandDelay";
-export {
-  CommandGroup,
-  type CommandGroupProps,
-} from "./CommandDelay/CommandGroup";
 export {
   CommandList,
   type CommandListKind,
@@ -247,12 +249,7 @@ export {
   waveformBand,
   waveformPath,
 } from "./CommandDelay/waveformPath";
-export {
-  CommandSlider,
-  CommandStepper,
-  type CommandValueProps,
-  commandValueMarks,
-} from "./CommandValue/CommandValue";
+export { commandValueMarks } from "./CommandValue/CommandValue";
 export { ComposerBar, type ComposerBarProps } from "./ComposerBar";
 // The only door to the console's parts; `ComposerBar` stays public because what goes on the row is the widget's.
 export { Console, type ConsoleProps, type ConsoleTone } from "./Console";
@@ -332,6 +329,7 @@ export {
 } from "./FitLabelButton";
 export { Floating, type FloatingProps } from "./Floating";
 export {
+  type CommandedSelectProps,
   ConfigForm,
   Field,
   FieldHint,
@@ -339,6 +337,7 @@ export {
   FieldRow,
   FormActions,
   Input,
+  type PlainSelectProps,
   Select,
   Textarea,
 } from "./Form";
@@ -617,7 +616,12 @@ export {
   type PredictedOutcome,
   predictedOutcomeOf,
 } from "./SendStatus/predictedOutcome";
-export { Slider, type SliderProps } from "./Slider";
+export {
+  type MarkedSliderProps,
+  type PlainSliderProps,
+  Slider,
+  type SliderProps,
+} from "./Slider";
 export { Sparkline, type SparklineProps } from "./Sparkline";
 export { Spinner, type SpinnerProps } from "./Spinner";
 export { Stack, type StackProps } from "./Stack";
@@ -631,7 +635,15 @@ export {
   type StatusIndicatorProps,
 } from "./StatusIndicator";
 // Numeric input over a small closed set, beside `UnitInput` (a free quantity) and `JogWheel` (tuned by feel).
-export { Stepper, type StepperProps } from "./Stepper";
+export {
+  type CommandedStepperProps,
+  type PlainStepperProps,
+  Stepper,
+  type StepperBaseProps,
+  type StepperMarks,
+  type StepperProps,
+  type StepperSteps,
+} from "./Stepper";
 export {
   StreamStatusBadge,
   type StreamStatusBadgeProps,
@@ -640,7 +652,13 @@ export {
   SubjectHeading,
   type SubjectHeadingProps,
 } from "./SubjectHeading";
-export { Switch, type SwitchBaseProps, type SwitchProps } from "./Switch";
+export {
+  type CommandedSwitchProps,
+  type PlainSwitchProps,
+  Switch,
+  type SwitchBaseProps,
+  type SwitchProps,
+} from "./Switch";
 export type { GapToken, InsetToken } from "./scales";
 export * from "./sizeDelta";
 export {
@@ -691,7 +709,13 @@ export {
   type TextSize,
   type TextWeight,
 } from "./Text";
-export { TextField, type TextFieldProps } from "./TextField";
+export {
+  type CommandedTextFieldProps,
+  type PlainTextFieldProps,
+  TextField,
+  type TextFieldBaseProps,
+  type TextFieldProps,
+} from "./TextField";
 export {
   gridFloor,
   showsTiny,
@@ -700,6 +724,7 @@ export {
 } from "./TinyEssentials";
 // A row of alternatives is a ToggleButton; a single labelled setting is a Switch.
 export {
+  type PlainToggleButtonProps,
   ToggleButton,
   type ToggleButtonProps,
   type ToggleButtonSize,

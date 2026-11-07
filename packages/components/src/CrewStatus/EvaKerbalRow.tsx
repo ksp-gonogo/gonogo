@@ -2,15 +2,15 @@ import { useCommand, useStream } from "@ksp-gonogo/sitrep-client";
 import { type EvaKerbal, stillTrue, type WireOf } from "@ksp-gonogo/sitrep-sdk";
 import {
   Card,
-  CommandButton,
   HelmetIcon,
   HelmetVisorUpIcon,
   KitIcon,
   LampIcon,
   LampOffIcon,
   ReadoutCaption,
+  ToggleButton,
   Tooltip,
-  useCommandButton,
+  useCommandControl,
 } from "@ksp-gonogo/ui-kit";
 import { evaKerbalTopic } from "../ScienceData/parsers";
 
@@ -78,9 +78,8 @@ export function EvaKerbalRow({
   const kit = kitLabel(state?.carrying, state?.slotsUsed);
 
   const lampLabel = `${name} lamp`;
-  const lampButton = useCommandButton({
-    handle: lamp,
-    commandLabel: lampLabel,
+  const lampButton = useCommandControl({
+    command: lamp.with(undefined, { label: lampLabel }),
     toggle: {
       state: lampOn,
       name: lampLabel,
@@ -132,11 +131,9 @@ export function EvaKerbalRow({
               </span>
             </Tooltip>
           )}
-          <CommandButton
+          <ToggleButton
+            command={lampButton}
             size="sm"
-            handle={lamp}
-            controller={lampButton}
-            label="Lamp"
             icon={
               lampButton.toggleView?.shown === false ? (
                 <LampOffIcon />
@@ -146,7 +143,7 @@ export function EvaKerbalRow({
                 />
               )
             }
-            title={lampButton.isBlocked ? undefined : lampLabel}
+            tip={lampButton.isBlocked ? undefined : lampLabel}
             aria-label={lampLabel}
           />
           <ReadoutCaption>EVA</ReadoutCaption>

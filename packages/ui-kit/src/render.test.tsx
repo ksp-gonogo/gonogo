@@ -13,7 +13,10 @@ import { renderHookWithRail, renderWithRail } from "./testing";
 function Unlock({ rail }: { rail?: false }) {
   const cmd = useCommand("career.tech.unlock", rail === false ? { rail } : {});
   return (
-    <button type="button" onClick={() => void cmd.send({ techId: "n" })}>
+    <button
+      type="button"
+      onClick={() => void cmd.dangerouslySendWithoutInput({ techId: "n" })}
+    >
       unlock
     </button>
   );
@@ -56,7 +59,7 @@ describe("@ksp-gonogo/ui-kit/testing renderWithRail/renderHookWithRail", () => {
     );
     expect(() => {
       act(() => {
-        result.current.send({ techId: "n" });
+        result.current.dangerouslySendWithoutInput({ techId: "n" });
       });
     }).not.toThrow();
     expect(stream.transport.sentCommands).toHaveLength(1);

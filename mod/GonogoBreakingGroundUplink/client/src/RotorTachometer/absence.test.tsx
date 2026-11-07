@@ -137,9 +137,9 @@ describe("RotorTachometer: an unread cap commands nothing", () => {
     mount(rotor({ rpmLimit: null }));
 
     const raise = await screen.findByRole("button", {
-      name: /Raise RPM cap/i,
+      name: /Increase RPM cap/i,
     });
-    const lower = screen.getByRole("button", { name: /Lower RPM cap/i });
+    const lower = screen.getByRole("button", { name: /Decrease RPM cap/i });
     expect(raise).toHaveAttribute("aria-disabled", "true");
     expect(lower).toHaveAttribute("aria-disabled", "true");
     expect(raise).toHaveAccessibleDescription(/not reported/);
@@ -152,7 +152,7 @@ describe("RotorTachometer: an unread cap commands nothing", () => {
 
     // Waits on the button, not the readout, so a regression fails naming what was sent to the craft.
     await user.click(
-      await screen.findByRole("button", { name: /Raise RPM cap/i }),
+      await screen.findByRole("button", { name: /Increase RPM cap/i }),
     );
     await act(async () => {});
 
@@ -165,7 +165,7 @@ describe("RotorTachometer: an unread cap commands nothing", () => {
 
   it("dispatches no setRpmLimit from the mapped rpmUp action", async () => {
     const { fixture } = mount(rotor({ rpmLimit: null }));
-    await screen.findByRole("button", { name: /Raise RPM cap/i });
+    await screen.findByRole("button", { name: /Increase RPM cap/i });
 
     let returned: unknown;
     act(() => {
@@ -206,7 +206,7 @@ describe("RotorTachometer: an unread cap commands nothing", () => {
     const { fixture } = mount(rotor({ rpmLimit: 300 }));
 
     await user.click(
-      await screen.findByRole("button", { name: /Raise RPM cap/i }),
+      await screen.findByRole("button", { name: /Increase RPM cap/i }),
     );
     await waitFor(() => {
       const sent = fixture.transport.sentCommands.find(

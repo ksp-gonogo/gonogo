@@ -41,7 +41,7 @@ const CURRENT_COLOR_EXEMPT =
 /**
  * An `outline` declaration, anchored to the start of its line.
  *
- * `outline:` also occurs in prose: `CommandButton` has a comment reading "it
+ * `outline:` also occurs in prose: a command `Button` has a comment reading "it
  * stays the quiet outline: a row", which an unanchored pattern reports as a
  * ring in the colour "a row".
  *

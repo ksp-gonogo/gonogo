@@ -392,7 +392,11 @@ function FlyOccupant({
       type="button"
       variant="primary"
       data-fly-occupant
-      onClick={() => void switchCmd.send({ vesselId: vessel.vesselId })}
+      onClick={() =>
+        void switchCmd.dangerouslySendWithoutInput({
+          vesselId: vessel.vesselId,
+        })
+      }
     >
       Fly {vessel.name}
     </Button>

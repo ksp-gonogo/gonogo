@@ -1,6 +1,6 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { defineTopicManifest, registerComponent } from "@ksp-gonogo/core";
-import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
+import { useCommand } from "@ksp-gonogo/sitrep-client";
 import {
   readingOf,
   stillTrue,
@@ -72,13 +72,8 @@ function AdministrationBuildingComponent({
     ),
     science: readingOf(careerReading, (c) => c.balances?.science ?? undefined),
   };
-  // An Administration Building action carries no vessel signal delay.
-  const activateCmd = useCommand("career.strategy.activate", {
-    vantage: META_VANTAGE,
-  });
-  const deactivateCmd = useCommand("career.strategy.deactivate", {
-    vantage: META_VANTAGE,
-  });
+  const activateCmd = useCommand("career.strategy.activate");
+  const deactivateCmd = useCommand("career.strategy.deactivate");
 
   const strategies = useMemo(() => parseStrategies(stratsRaw), [stratsRaw]);
 

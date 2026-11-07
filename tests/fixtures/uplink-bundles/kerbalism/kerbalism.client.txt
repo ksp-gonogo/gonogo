@@ -3,20 +3,24 @@ import { registerUplinkCommand } from "@ksp-gonogo/sitrep-sdk";
 
 // src/__generated__/command-map.ts
 var GENERATED_COMMAND_RAIL = {
+  "kerbalism.device.set": { replies: true, delayed: true },
   "kerbalism.file.delete": { replies: true, delayed: true },
   "kerbalism.file.send": { replies: true, delayed: true },
   "kerbalism.repair": { replies: true, delayed: true },
   "kerbalism.sample.analyze": { replies: true, delayed: true },
   "kerbalism.sample.dump": { replies: true, delayed: true },
-  "kerbalism.sample.moveToLab": { replies: true, delayed: true }
+  "kerbalism.sample.moveToLab": { replies: true, delayed: true },
+  "kerbalism.script.set": { replies: true, delayed: true }
 };
 var GENERATED_COMMAND_IDS = [
+  "kerbalism.device.set",
   "kerbalism.file.delete",
   "kerbalism.file.send",
   "kerbalism.repair",
   "kerbalism.sample.analyze",
   "kerbalism.sample.dump",
-  "kerbalism.sample.moveToLab"
+  "kerbalism.sample.moveToLab",
+  "kerbalism.script.set"
 ];
 
 // src/commands.ts
@@ -59,6 +63,16 @@ var GENERATED_TYPE_UNITS = {
     name: "text",
     problem: "units"
   },
+  "KerbalismDevice": {
+    id: "text",
+    name: "text",
+    partName: "text",
+    status: "text"
+  },
+  "KerbalismDeviceSetArgs": {
+    deviceId: "id",
+    on: "flag"
+  },
   "KerbalismFeatures": {
     automation: "flag",
     comfort: "flag",
@@ -89,9 +103,11 @@ var GENERATED_TYPE_UNITS = {
   },
   "KerbalismHabitat": {
     comfort: "ratio",
+    evaSafe: "flag",
     livingSpace: "ratio",
     poisoning: "ratio",
     pressure: "ratio",
+    pressureKpa: "kPa",
     shielding: "ratio",
     surface: "m\xB2",
     volume: "m\xB3"
@@ -114,6 +130,10 @@ var GENERATED_TYPE_UNITS = {
     asOfKerbalismUt: "ut",
     rates: "units/s",
     ruleEnvModifiers: "1"
+  },
+  "KerbalismLogEntry": {
+    level: "enum",
+    message: "text"
   },
   "KerbalismProcessDef": {
     dumpValves: "text",
@@ -231,14 +251,31 @@ var GENERATED_TYPE_UNITS = {
     kind: "id",
     powerDisabled: "flag",
     prodFactor: "ratio",
+    progressFraction: "ratio",
     remainingSampleMass: "t",
     runningState: "id",
-    scanning: "flag"
+    scanning: "flag",
+    sciencePerMB: "science/MB",
+    secondsToComplete: "s",
+    waitingReason: "text"
   },
   "KerbalismScienceLabExt": {
     analysisRateMBps: "MB/s",
     effectiveRateMBps: "MB/s",
     status: "id"
+  },
+  "KerbalismScript": {
+    deviceCount: "count",
+    type: "enum"
+  },
+  "KerbalismScriptSetArgs": {
+    deviceId: "id",
+    scriptType: "enum",
+    state: "flag"
+  },
+  "KerbalismScriptState": {
+    deviceId: "id",
+    on: "flag"
   },
   "KerbalismSpaceWeather": {
     blackout: "flag",
@@ -250,6 +287,7 @@ var GENERATED_TYPE_UNITS = {
     radiationRadPerSecond: "rad/s",
     shieldingAmount: "units",
     shieldingCapacity: "units",
+    solarPanelExposure: "ratio",
     stormEjectionSpeed: "m/s",
     stormInProgress: "flag",
     stormIncoming: "flag"
@@ -276,6 +314,11 @@ var GENERATED_TYPE_UNITS = {
   "KerbalismSubjectFlagArgs": {
     flag: "flag",
     subjectId: "id"
+  },
+  "KerbalismTransmission": {
+    dataRate: "bit/s",
+    scienceTransmitted: "science",
+    target: "text"
   }
 };
 var GENERATED_TOPIC_UNITS = {
@@ -339,14 +382,25 @@ var GENERATED_TOPIC_UNITS = {
     radiationRadPerSecond: "rad/s",
     shieldingAmount: "units",
     shieldingCapacity: "units",
+    solarPanelExposure: "ratio",
     stormEjectionSpeed: "m/s",
     stormInProgress: "flag",
     stormIncoming: "flag"
+  },
+  "kerbalism.transmission": {
+    dataRate: "bit/s",
+    scienceTransmitted: "science",
+    target: "text"
   }
 };
 var GENERATED_TYPE_SHAPES = {
   "KerbalismCrewEntry": {
     rules: "KerbalismCrewRule[]"
+  },
+  "KerbalismDiagnostics": {
+    devices: "KerbalismDevice[]",
+    log: "KerbalismLogEntry[]",
+    scripts: "KerbalismScript[]"
   },
   "KerbalismLifeSupport": {
     greenhouses: "KerbalismGreenhouseEntry[]",
@@ -362,6 +416,9 @@ var GENERATED_TYPE_SHAPES = {
     budgets: "KerbalismReliabilityBudget[]",
     repairCost: "KerbalismRepairCostItem[]"
   },
+  "KerbalismScript": {
+    states: "KerbalismScriptState[]"
+  },
   "KerbalismSpaceWeather": {
     stars: "KerbalismStarInfo[]",
     storms: "KerbalismStormEntry[]"
@@ -370,6 +427,11 @@ var GENERATED_TYPE_SHAPES = {
 var GENERATED_TOPIC_SHAPES = {
   "kerbalism.crew": {
     rules: "KerbalismCrewRule[]"
+  },
+  "kerbalism.diagnostics": {
+    devices: "KerbalismDevice[]",
+    log: "KerbalismLogEntry[]",
+    scripts: "KerbalismScript[]"
   },
   "kerbalism.lifesupport": {
     greenhouses: "KerbalismGreenhouseEntry[]",
@@ -391,6 +453,9 @@ var GENERATED_TOPIC_SHAPES = {
   }
 };
 var GENERATED_TYPE_ENUMS = {
+  "KerbalismLogEntry": {
+    level: null
+  },
   "KerbalismReliabilityBudget": {
     kind: null
   },
@@ -402,6 +467,12 @@ var GENERATED_TYPE_ENUMS = {
   },
   "KerbalismResourceDef": {
     flowModeOrdinal: "KspResourceFlowMode"
+  },
+  "KerbalismScript": {
+    type: null
+  },
+  "KerbalismScriptSetArgs": {
+    scriptType: null
   },
   "KerbalismStormEntry": {
     targetKind: "KerbalismStormTargetKind"
@@ -441,6 +512,7 @@ var GENERATED_CONTRACT_TAGS = {
       "*.rules.*.name": { entryKey: true }
     }
   },
+  names: {},
   reckonable: [
     { topic: "kerbalism.crew", field: "*.rules.*.problem", basis: "rate-integration", inputs: [{ topic: "", path: "fatalThreshold" }] },
     { topic: "vessel.resources", field: "resources.*.current", basis: "rate-integration", inputs: [{ topic: "kerbalism.lifesupport", path: "rates" }, { topic: "kerbalism.lifesupport", path: "asOfKerbalismUt" }] }
@@ -453,17 +525,21 @@ var KERBALISM_SPACEWEATHER_TOPIC = "kerbalism.spaceweather";
 var KERBALISM_PROFILE_TOPIC = "kerbalism.profile";
 var KERBALISM_LIFESUPPORT_TOPIC = "kerbalism.lifesupport";
 var KERBALISM_CREW_TOPIC = "kerbalism.crew";
+var KERBALISM_TRANSMISSION_TOPIC = "kerbalism.transmission";
 var KERBALISM_FEATURES_TOPIC = "kerbalism.features";
 var KERBALISM_RELIABILITY_TOPIC = "kerbalism.reliability";
 var KERBALISM_RELIABILITY_PARTS_TOPIC = "kerbalism.reliabilityParts";
+var KERBALISM_DIAGNOSTICS_TOPIC = "kerbalism.diagnostics";
 registerUplinkTopic(KERBALISM_AVAILABLE_TOPIC);
 registerUplinkTopic(KERBALISM_SPACEWEATHER_TOPIC);
 registerUplinkTopic(KERBALISM_PROFILE_TOPIC);
 registerUplinkTopic(KERBALISM_LIFESUPPORT_TOPIC);
 registerUplinkTopic(KERBALISM_CREW_TOPIC);
 registerUplinkTopic(KERBALISM_FEATURES_TOPIC);
+registerUplinkTopic(KERBALISM_TRANSMISSION_TOPIC);
 registerUplinkTopic(KERBALISM_RELIABILITY_TOPIC);
 registerUplinkTopic(KERBALISM_RELIABILITY_PARTS_TOPIC);
+registerUplinkTopic(KERBALISM_DIAGNOSTICS_TOPIC);
 for (const topic of GENERATED_COLLECTION_TOPIC_IDS) {
   registerCollectionTopic(topic);
 }
@@ -707,11 +783,27 @@ var KERBALISM_ERROR_CODES = [
     origin: null,
     sentence: "no part aboard with that id is broken or due a service",
     meaning: "No reliability module aboard has that id and is broken or due a service."
+  },
+  {
+    id: "kerbalism.craftNotLoaded",
+    kind: "refusal",
+    refines: "modeUnavailable",
+    origin: null,
+    sentence: "the craft is not loaded, so Kerbalism cannot switch its devices",
+    meaning: "Kerbalism lists and switches devices for a loaded craft only, and this one is not loaded."
+  },
+  {
+    id: "kerbalism.noSuchDevice",
+    kind: "refusal",
+    refines: "notFound",
+    origin: null,
+    sentence: "no device or script aboard matches that",
+    meaning: "The craft has no visible device with that id, or no event script by that name."
   }
 ];
 
 // src/uplink.ts
-var UPLINK_VERSION = "1.0.0-rc.4";
+var UPLINK_VERSION = "0.0.0-development";
 var KERBALISM = defineUplinkClient({
   id: "kerbalism",
   version: UPLINK_VERSION,
@@ -722,7 +814,7 @@ var KERBALISM = defineUplinkClient({
 registerErrorCodes(KERBALISM_ERROR_CODES);
 
 // src/processor.ts
-import { deriveReading, observedAt } from "@ksp-gonogo/sitrep-sdk";
+import { deriveReading, observedAt, value as value2 } from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOr as magnitudeOr2 } from "@ksp-gonogo/ui-kit";
 
 // src/ecosystem.ts
@@ -913,6 +1005,7 @@ function diagnose({
   profile,
   lifeSupport,
   stored,
+  capacity = {},
   materiality = DEFAULT_MATERIALITY
 }) {
   const net = {};
@@ -920,7 +1013,16 @@ function diagnose({
     const perSecond = magnitudeOf(rate);
     if (perSecond !== null) net[name] = perSecond;
   }
-  const short = new Set(Object.keys(net).filter((r) => net[r] < 0));
+  const isShort = (name) => {
+    if (net[name] >= 0) return false;
+    const amount = stored[name] ?? 0;
+    if (amount <= 0) return true;
+    const low = profile?.resources?.[name]?.lowThreshold;
+    const cap = capacity[name] ?? 0;
+    if (low === void 0 || cap <= 0) return false;
+    return amount / cap < magnitudeOr(low, Number.NaN);
+  };
+  const short = new Set(Object.keys(net).filter(isShort));
   const byModifier = processesByModifier(profile);
   const blames = /* @__PURE__ */ new Map();
   for (const resource of short) {
@@ -1007,10 +1109,11 @@ function summarise({
   stored,
   capacity,
   crew,
+  levelsRead = true,
   crossings
 }) {
   const facts = resourceFacts(profile);
-  const groups = diagnose({ profile, lifeSupport, stored });
+  const groups = levelsRead ? diagnose({ profile, lifeSupport, stored, capacity }) : [];
   const loops = closedLoops(profile);
   const roleOf = /* @__PURE__ */ new Map();
   for (const group of groups) {
@@ -1215,6 +1318,35 @@ function reconcileCrossing(crossing, trend, level) {
   };
 }
 
+// src/rateHold.ts
+var GLITCH_RATIO = 0.05;
+var GLITCH_HOLD_SECONDS = 30;
+var RateHold = class {
+  byName = /* @__PURE__ */ new Map();
+  newestUt = Number.NEGATIVE_INFINITY;
+  filter(ut, rates) {
+    if (!Number.isFinite(ut)) return { ...rates };
+    if (ut < this.newestUt) this.byName.clear();
+    this.newestUt = ut;
+    const out = {};
+    for (const [name, rate] of Object.entries(rates)) {
+      const held = this.byName.get(name);
+      const stray = held !== void 0 && rate !== 0 && held.rate !== 0 && Math.sign(rate) !== Math.sign(held.rate) && Math.abs(rate) < GLITCH_RATIO * Math.abs(held.rate) && ut - held.confirmedUt <= GLITCH_HOLD_SECONDS;
+      if (stray) {
+        out[name] = held.rate;
+        continue;
+      }
+      this.byName.set(name, { rate, confirmedUt: ut });
+      out[name] = rate;
+    }
+    return out;
+  }
+  reset() {
+    this.byName.clear();
+    this.newestUt = Number.NEGATIVE_INFINITY;
+  }
+};
+
 // src/resourceReckoning.ts
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOf as magnitudeOf2 } from "@ksp-gonogo/ui-kit";
@@ -1310,8 +1442,8 @@ function runningProcesses(lifeSupport, profile) {
   }
   return out;
 }
-function levelAt(current, segments, ut) {
-  let level = current;
+function levelAt(current2, segments, ut) {
+  let level = current2;
   segments.forEach((segment, i) => {
     const end = Math.min(ut, segments[i + 1]?.fromUt ?? ut);
     if (end > segment.fromUt)
@@ -1319,8 +1451,8 @@ function levelAt(current, segments, ut) {
   });
   return level;
 }
-function firstCrossing(current, capacity, segments) {
-  let level = current;
+function firstCrossing(current2, capacity, segments) {
+  let level = current2;
   for (let i = 0; i < segments.length; i++) {
     const { fromUt, perSecond } = segments[i];
     const duration = (segments[i + 1]?.fromUt ?? Number.POSITIVE_INFINITY) - fromUt;
@@ -1344,12 +1476,12 @@ function movingLevels(observed, lifeSupport, rates, profile, asOfUt) {
     const amount = observed.resources[name];
     const perSecond = magnitudeOf2(rates[name]);
     if (!amount || perSecond === null) continue;
-    const current = magnitudeOf2(amount.current);
+    const current2 = magnitudeOf2(amount.current);
     const capacity = magnitudeOf2(amount.max);
-    if (current === null || capacity === null) continue;
+    if (current2 === null || capacity === null) continue;
     measured.set(name, perSecond);
     tracked.set(name, {
-      current,
+      current: current2,
       capacity,
       segments: [{ fromUt: asOfUt, perSecond }]
     });
@@ -1539,11 +1671,11 @@ function reckonResourceLevels(observed, lifeSupport, reckonUt, profile, orbit, b
     modelled,
     reckon: (at) => {
       const resources = { ...observed.resources };
-      for (const { name, current, segments, crossesAtUt } of moving) {
+      for (const { name, current: current2, segments, crossesAtUt } of moving) {
         if (at >= crossesAtUt) continue;
         resources[name] = {
           ...observed.resources[name],
-          current: value("units", levelAt(current, segments, at))
+          current: value("units", levelAt(current2, segments, at))
         };
       }
       return { ...observed, resources };
@@ -1572,6 +1704,22 @@ KERBALISM.registerReckoner("vessel.resources", {
 
 // src/processor.ts
 var levelHistory = new LevelHistory();
+var rateHold = new RateHold();
+function withHeldRates(lifeSupport) {
+  const rates = lifeSupport?.rates;
+  const asOfUt = lifeSupport?.asOfKerbalismUt?.magnitude;
+  if (!lifeSupport || !rates || asOfUt === void 0) return lifeSupport;
+  const measured = {};
+  for (const [name, rate] of Object.entries(rates)) {
+    if (rate != null) measured[name] = rate.magnitude;
+  }
+  const held = rateHold.filter(asOfUt, measured);
+  const heldRates = { ...rates };
+  for (const [name, rate] of Object.entries(held)) {
+    if (rate !== measured[name]) heldRates[name] = value2("units/s", rate);
+  }
+  return { ...lifeSupport, rates: heldRates };
+}
 var SHIP_SYSTEMS = KERBALISM.registerProcessor({
   id: "ship-systems",
   deps: [
@@ -1599,7 +1747,7 @@ var SHIP_SYSTEMS = KERBALISM.registerProcessor({
     const crossings = {};
     for (const c of resourceBoundaryCrossings(
       resources ?? null,
-      lifeSupport,
+      withHeldRates(lifeSupport),
       profile
     )) {
       crossings[c.resource] = {
@@ -1636,6 +1784,7 @@ var SHIP_SYSTEMS = KERBALISM.registerProcessor({
         stored,
         capacity,
         crew: crewCount,
+        levelsRead: resources !== void 0,
         crossings
       }),
       profile,
@@ -1674,18 +1823,18 @@ import {
   combineReadings,
   registerComponent,
   useProcessor,
-  useTelemetry as useTelemetry2,
+  useTelemetry as useTelemetry3,
   useUtNow,
-  value as value3
+  value as value4
 } from "@ksp-gonogo/sitrep-sdk";
 import {
-  Badge as Badge3,
+  Badge as Badge4,
   Card,
-  Cluster as Cluster4,
+  Cluster as Cluster5,
   Disclosure,
   DivergingBar,
   Divider,
-  EmptyState,
+  EmptyState as EmptyState2,
   Grid,
   Meter,
   MeterStack,
@@ -1694,13 +1843,13 @@ import {
   magnitudeOr as magnitudeOr3,
   modelledBeyondReceived,
   Notice,
-  NULL_DISPLAY as NULL_DISPLAY2,
+  NULL_DISPLAY as NULL_DISPLAY3,
   Panel,
   Section as Section2,
-  Stack as Stack3,
+  Stack as Stack4,
   speakQuantity,
   standsApart,
-  Text as Text3,
+  Text as Text4,
   Unit as Unit3,
   writtenAs
 } from "@ksp-gonogo/ui-kit";
@@ -1818,28 +1967,426 @@ registerAugment({
   owner: KERBALISM
 });
 
-// src/ShipSystems/RadiationSection.tsx
-import { value as value2 } from "@ksp-gonogo/sitrep-sdk";
-import {
-  Cluster as Cluster3,
-  Graph,
-  magnitudeOf as magnitudeOf4,
-  Stack as Stack2,
-  Text as Text2,
-  Unit as Unit2
-} from "@ksp-gonogo/ui-kit";
-import { useEffect, useState } from "react";
-
-// src/CrewSurvival/summary.tsx
-import { registerAugment as registerAugment2, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
+// src/ShipSystems/diagnostics.tsx
+import { useCommand, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge as Badge2,
+  Button,
   Cluster as Cluster2,
+  DataTable,
+  EmptyState,
+  ModalProvider,
+  NULL_DISPLAY as NULL_DISPLAY2,
+  Stack as Stack2,
+  Tag,
+  Text as Text2,
+  useModal
+} from "@ksp-gonogo/ui-kit";
+import { useEffect, useSyncExternalStore } from "react";
+import { Fragment, jsx as jsx2, jsxs as jsxs2 } from "react/jsx-runtime";
+var useDeviceSet = () => useCommand("kerbalism.device.set");
+var useScriptSet = () => useCommand("kerbalism.script.set");
+var NOTHING = {
+  devices: void 0,
+  scripts: void 0,
+  log: void 0,
+  parts: void 0,
+  held: false,
+  deviceSet: void 0,
+  scriptSet: void 0
+};
+var current = NOTHING;
+var listeners = /* @__PURE__ */ new Set();
+function publish(next) {
+  if (next.devices === current.devices && next.scripts === current.scripts && next.log === current.log && next.parts === current.parts && next.held === current.held && next.deviceSet === current.deviceSet && next.scriptSet === current.scriptSet) {
+    return;
+  }
+  current = next;
+  for (const listener of listeners) listener();
+}
+function subscribe(listener) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+function useDiagnostics() {
+  return useSyncExternalStore(
+    subscribe,
+    () => current,
+    () => NOTHING
+  );
+}
+function scriptLabel(type) {
+  if (!type) return NULL_DISPLAY2;
+  const words = type.replace(/_/g, " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+function levelLabel(level) {
+  return level ? level.toUpperCase() : NULL_DISPLAY2;
+}
+function conditionLabel(condition) {
+  switch (condition) {
+    case "nominal":
+      return "good";
+    case "service-due":
+      return "service due";
+    case "failed":
+    case "failed-critical":
+      return "broken";
+    default:
+      return "unknown";
+  }
+}
+function conditionTone(condition) {
+  switch (condition) {
+    case "nominal":
+      return "neutral";
+    case "service-due":
+      return "warn";
+    case "failed":
+    case "failed-critical":
+      return "nogo";
+    default:
+      return "info";
+  }
+}
+function levelTone(level) {
+  switch (level) {
+    case "fatality":
+    case "danger":
+      return "nogo";
+    case "warning":
+    case "breakdown":
+      return "warn";
+    case "relax":
+      return "go";
+    default:
+      return "neutral";
+  }
+}
+function DeviceSwitch({ device }) {
+  const { deviceSet } = useDiagnostics();
+  if (!deviceSet || !device.id) return null;
+  const name = device.name ?? "device";
+  return /* @__PURE__ */ jsxs2(Cluster2, { justify: "end", wrap: false, children: [
+    /* @__PURE__ */ jsx2(
+      Button,
+      {
+        command: deviceSet.with(
+          { deviceId: device.id, on: true },
+          { label: `Switch ${name} on` }
+        ),
+        variant: "ghost",
+        size: "sm",
+        tone: "go",
+        "aria-label": `Switch ${name} on`,
+        children: "On"
+      }
+    ),
+    /* @__PURE__ */ jsx2(
+      Button,
+      {
+        command: deviceSet.with(
+          { deviceId: device.id, on: false },
+          { label: `Switch ${name} off` }
+        ),
+        variant: "ghost",
+        size: "sm",
+        "aria-label": `Switch ${name} off`,
+        children: "Off"
+      }
+    )
+  ] });
+}
+var deviceColumns = [
+  {
+    key: "device",
+    header: "Device",
+    rowHeader: true,
+    width: "100%",
+    minWidth: "14ch",
+    render: (d) => /* @__PURE__ */ jsxs2(Fragment, { children: [
+      d.name ?? NULL_DISPLAY2,
+      d.partName ? /* @__PURE__ */ jsxs2(Fragment, { children: [
+        " ",
+        /* @__PURE__ */ jsx2(Tag, { label: d.partName, name: true })
+      ] }) : null
+    ] })
+  },
+  {
+    key: "state",
+    header: "State",
+    align: "end",
+    render: (d) => d.status ? /* @__PURE__ */ jsx2(Badge2, { size: "sm", children: d.status }) : NULL_DISPLAY2
+  },
+  {
+    key: "switch",
+    header: "Switch",
+    align: "end",
+    render: (d) => /* @__PURE__ */ jsx2(DeviceSwitch, { device: d })
+  }
+];
+var scriptColumns = [
+  {
+    key: "script",
+    header: "Script",
+    rowHeader: true,
+    width: "100%",
+    render: (s) => scriptLabel(s.type)
+  },
+  {
+    key: "devices",
+    header: "Devices",
+    align: "end",
+    value: (s) => s.deviceCount
+  }
+];
+function stateWords(state) {
+  if (state == null) return "not set";
+  return state ? "on" : "off";
+}
+function ScriptDeviceControls({
+  script,
+  device
+}) {
+  const { scriptSet } = useDiagnostics();
+  if (!scriptSet || !device.id) return null;
+  const name = device.name ?? "device";
+  const label = scriptLabel(script);
+  const setTo = (state, words) => /* @__PURE__ */ jsx2(
+    Button,
+    {
+      command: scriptSet.with(
+        {
+          scriptType: script,
+          deviceId: device.id,
+          state: state ?? void 0
+        },
+        { label: `${label} script: ${words} ${name}` }
+      ),
+      variant: "ghost",
+      size: "sm",
+      "aria-label": `${label} script: ${words} ${name}`,
+      children: words === "remove" ? "Remove" : words === "on" ? "On" : "Off"
+    }
+  );
+  return /* @__PURE__ */ jsxs2(Cluster2, { justify: "end", wrap: false, children: [
+    setTo(true, "on"),
+    setTo(false, "off"),
+    setTo(null, "remove")
+  ] });
+}
+function ScriptEditor({
+  scripts,
+  devices
+}) {
+  return /* @__PURE__ */ jsx2(Fragment, { children: scripts.map((script) => {
+    const type = script.type ?? "";
+    const states = new Map(
+      (script.states ?? []).map((st) => [st.deviceId, st.on])
+    );
+    return /* @__PURE__ */ jsxs2(Stack2, { children: [
+      /* @__PURE__ */ jsx2(Text2, { weight: "semibold", children: `${scriptLabel(type)} script` }),
+      /* @__PURE__ */ jsx2(
+        DataTable,
+        {
+          caption: `What the ${scriptLabel(type).toLowerCase()} script does to each device`,
+          columns: [
+            {
+              key: "device",
+              header: "Device",
+              rowHeader: true,
+              width: "100%",
+              render: (d) => d.name ?? NULL_DISPLAY2
+            },
+            {
+              key: "state",
+              header: "Sets",
+              align: "end",
+              render: (d) => /* @__PURE__ */ jsx2(Badge2, { size: "sm", children: stateWords(states.get(d.id)) })
+            },
+            {
+              key: "set",
+              header: "Change",
+              align: "end",
+              render: (d) => /* @__PURE__ */ jsx2(ScriptDeviceControls, { script: type, device: d })
+            }
+          ],
+          rows: devices,
+          rowKey: (d) => d.id ?? d.name ?? ""
+        }
+      )
+    ] }, type);
+  }) });
+}
+function HeldNote() {
+  const { held } = useDiagnostics();
+  return held ? /* @__PURE__ */ jsx2(Badge2, { tone: "info", size: "sm", children: "held" }) : null;
+}
+function AutoWindow() {
+  const { devices, scripts } = useDiagnostics();
+  if (devices === void 0 && scripts === void 0) {
+    return /* @__PURE__ */ jsx2(EmptyState, { children: NULL_DISPLAY2 });
+  }
+  return /* @__PURE__ */ jsxs2(Stack2, { children: [
+    /* @__PURE__ */ jsx2(HeldNote, {}),
+    /* @__PURE__ */ jsx2(
+      DataTable,
+      {
+        caption: "Devices Kerbalism can switch",
+        columns: deviceColumns,
+        rows: devices ?? [],
+        rowKey: (d) => d.id ?? d.name ?? "",
+        empty: /* @__PURE__ */ jsx2(EmptyState, { children: "No devices" })
+      }
+    ),
+    /* @__PURE__ */ jsx2(
+      DataTable,
+      {
+        caption: "Event scripts and the devices each sets",
+        columns: scriptColumns,
+        rows: scripts ?? [],
+        rowKey: (s) => s.type ?? "",
+        empty: /* @__PURE__ */ jsx2(EmptyState, { children: "No scripts" })
+      }
+    ),
+    scripts && devices ? /* @__PURE__ */ jsx2(ScriptEditor, { scripts, devices }) : null
+  ] });
+}
+var logColumns = [
+  {
+    key: "level",
+    header: "Level",
+    render: (e) => /* @__PURE__ */ jsx2(Badge2, { size: "sm", tone: levelTone(e.level), children: levelLabel(e.level) })
+  },
+  {
+    key: "message",
+    header: "Message",
+    width: "100%",
+    minWidth: "18ch",
+    render: (e) => e.message ?? NULL_DISPLAY2
+  }
+];
+function LogWindow() {
+  const { log } = useDiagnostics();
+  if (log === void 0) return /* @__PURE__ */ jsx2(EmptyState, { children: NULL_DISPLAY2 });
+  return /* @__PURE__ */ jsxs2(Stack2, { children: [
+    /* @__PURE__ */ jsx2(HeldNote, {}),
+    /* @__PURE__ */ jsx2(
+      DataTable,
+      {
+        caption: "Kerbalism's message log, newest first",
+        columns: logColumns,
+        rows: log.map((entry, index) => ({ ...entry, index })),
+        rowKey: (e) => String(e.index),
+        empty: /* @__PURE__ */ jsx2(EmptyState, { children: "No messages" })
+      }
+    )
+  ] });
+}
+var failureColumns = [
+  {
+    key: "part",
+    header: "Part",
+    rowHeader: true,
+    width: "100%",
+    minWidth: "14ch",
+    render: (p) => p.title ?? NULL_DISPLAY2
+  },
+  {
+    key: "condition",
+    header: "Condition",
+    align: "end",
+    render: (p) => /* @__PURE__ */ jsx2(Badge2, { size: "sm", tone: conditionTone(p.condition), children: conditionLabel(p.condition) })
+  }
+];
+function groupParts(parts) {
+  const groups = /* @__PURE__ */ new Map();
+  for (const part of parts) {
+    const key = part.redundancyGroup ?? "";
+    groups.set(key, [...groups.get(key) ?? [], part]);
+  }
+  return [...groups].map(([key, rows]) => ({
+    id: key || "ungrouped",
+    title: key || NULL_DISPLAY2,
+    rows
+  }));
+}
+function FailuresWindow() {
+  const { parts } = useDiagnostics();
+  if (parts === void 0) return /* @__PURE__ */ jsx2(EmptyState, { children: NULL_DISPLAY2 });
+  return /* @__PURE__ */ jsxs2(Stack2, { children: [
+    /* @__PURE__ */ jsx2(HeldNote, {}),
+    /* @__PURE__ */ jsx2(
+      DataTable,
+      {
+        caption: "Parts that can fail, grouped by Kerbalism's group name",
+        columns: failureColumns,
+        sections: groupParts(parts),
+        rowKey: (p) => p.partId ?? p.title ?? "",
+        empty: /* @__PURE__ */ jsx2(EmptyState, { children: "No parts" })
+      }
+    )
+  ] });
+}
+function DiagnosticsButtonRow() {
+  const { open } = useModal();
+  const { log, parts } = useDiagnostics();
+  const brokenOrDue = parts?.filter((p) => p.condition !== "nominal").length ?? null;
+  return /* @__PURE__ */ jsxs2(Cluster2, { justify: "start", wrap: true, children: [
+    /* @__PURE__ */ jsx2(Button, { size: "sm", onClick: () => open(/* @__PURE__ */ jsx2(AutoWindow, {}), { title: "Auto" }), children: "Auto" }),
+    /* @__PURE__ */ jsx2(Button, { size: "sm", onClick: () => open(/* @__PURE__ */ jsx2(LogWindow, {}), { title: "Log" }), children: log !== void 0 && log.length > 0 ? `Log ${log.length}` : "Log" }),
+    /* @__PURE__ */ jsx2(
+      Button,
+      {
+        size: "sm",
+        onClick: () => open(/* @__PURE__ */ jsx2(FailuresWindow, {}), { title: "Failures" }),
+        children: brokenOrDue !== null && brokenOrDue > 0 ? `Failures ${brokenOrDue}` : "Failures"
+      }
+    )
+  ] });
+}
+function DiagnosticsButtons() {
+  const diagnostics = useTelemetry("kerbalism.diagnostics");
+  const partsReading = useTelemetry("kerbalism.reliabilityParts");
+  const deviceSet = useDeviceSet();
+  const scriptSet = useScriptSet();
+  const body = diagnostics.state === "observed" || diagnostics.state === "held" ? diagnostics.value : void 0;
+  const parts = partsReading.state === "observed" || partsReading.state === "held" ? partsReading.value : void 0;
+  const held = diagnostics.state === "held" || partsReading.state === "held";
+  const devices = body?.devices ?? void 0;
+  const scripts = body?.scripts ?? void 0;
+  const log = body?.log ?? void 0;
+  useEffect(() => {
+    publish({ devices, scripts, log, parts, held, deviceSet, scriptSet });
+  }, [devices, scripts, log, parts, held, deviceSet, scriptSet]);
+  useEffect(() => () => publish(NOTHING), []);
+  return /* @__PURE__ */ jsx2(ModalProvider, { children: /* @__PURE__ */ jsx2(DiagnosticsButtonRow, {}) });
+}
+
+// src/ShipSystems/RadiationSection.tsx
+import { value as value3 } from "@ksp-gonogo/sitrep-sdk";
+import {
+  Cluster as Cluster4,
+  Graph,
+  magnitudeOf as magnitudeOf4,
+  Stack as Stack3,
+  Text as Text3,
+  Unit as Unit2
+} from "@ksp-gonogo/ui-kit";
+import { useEffect as useEffect2, useState } from "react";
+
+// src/CrewSurvival/summary.tsx
+import { registerAugment as registerAugment2, useTelemetry as useTelemetry2 } from "@ksp-gonogo/sitrep-sdk";
+import {
+  Badge as Badge3,
+  Cluster as Cluster3,
   magnitudeOf as magnitudeOf3,
   ReadoutCaption,
   Unit
 } from "@ksp-gonogo/ui-kit";
-import { jsx as jsx2, jsxs as jsxs2 } from "react/jsx-runtime";
+import { jsx as jsx3, jsxs as jsxs3 } from "react/jsx-runtime";
 var HIGH_RADIATION_RAD_PER_HOUR = 0.5;
 function radiationSummaryFor(weather) {
   if (!weather) return null;
@@ -1857,13 +2404,13 @@ function radiationSummaryFor(weather) {
   return null;
 }
 function CrewRadiationSummaryAugment(_props) {
-  const weatherReading = useTelemetry("kerbalism.spaceweather");
+  const weatherReading = useTelemetry2("kerbalism.spaceweather");
   const weather = weatherReading.state === "observed" ? weatherReading.value : void 0;
   const summary = radiationSummaryFor(weather);
   if (!summary) return null;
   const doseValue = weather?.habitatRadiationRadPerSecond ?? weather?.radiationRadPerSecond;
-  return /* @__PURE__ */ jsxs2(
-    Cluster2,
+  return /* @__PURE__ */ jsxs3(
+    Cluster3,
     {
       wrap: true,
       align: "center",
@@ -1871,8 +2418,8 @@ function CrewRadiationSummaryAugment(_props) {
       "aria-live": "polite",
       "aria-label": "crew radiation status",
       children: [
-        /* @__PURE__ */ jsx2(Badge2, { tone: summary.severity, size: "sm", children: summary.label }),
-        doseValue && /* @__PURE__ */ jsx2(ReadoutCaption, { children: /* @__PURE__ */ jsx2(Unit, { value: doseValue }) })
+        /* @__PURE__ */ jsx3(Badge3, { tone: summary.severity, size: "sm", children: summary.label }),
+        doseValue && /* @__PURE__ */ jsx3(ReadoutCaption, { children: /* @__PURE__ */ jsx3(Unit, { value: doseValue }) })
       ]
     }
   );
@@ -1886,7 +2433,7 @@ registerAugment2({
 });
 
 // src/ShipSystems/RadiationSection.tsx
-import { jsx as jsx3, jsxs as jsxs3 } from "react/jsx-runtime";
+import { jsx as jsx4, jsxs as jsxs4 } from "react/jsx-runtime";
 var RADIATION_WINDOW_SEC = 600;
 var MIN_SAMPLE_GAP_UT = 2;
 function pushRadiationSample(buffer, sample, windowSec = RADIATION_WINDOW_SEC, minGapUt = MIN_SAMPLE_GAP_UT) {
@@ -1910,7 +2457,7 @@ function useRadiationHistory(weather, utNow) {
     weather?.habitatRadiationRadPerSecond ?? weather?.radiationRadPerSecond
   );
   const hasWeather = weather !== void 0;
-  useEffect(() => {
+  useEffect2(() => {
     if (!hasWeather || utNow === void 0) return;
     setHistory(
       (prev) => pushRadiationSample(prev, {
@@ -1980,8 +2527,8 @@ function RadiationSection({ weather, utNow }) {
   const shieldedRadPerSec = magnitudeOf4(
     weather.habitatRadiationRadPerSecond ?? weather.radiationRadPerSecond
   );
-  const ambientValue = ambientRadPerSec === null ? null : value2("rad/s", ambientRadPerSec);
-  const shieldedValue = shieldedRadPerSec === null ? null : value2("rad/s", shieldedRadPerSec);
+  const ambientValue = ambientRadPerSec === null ? null : value3("rad/s", ambientRadPerSec);
+  const shieldedValue = shieldedRadPerSec === null ? null : value3("rad/s", shieldedRadPerSec);
   const ambientRadPerHour = ambientRadPerSec === null ? null : ambientRadPerSec * RAD_PER_SEC_TO_RAD_PER_HOUR;
   const shieldedRadPerHour = shieldedRadPerSec === null ? null : shieldedRadPerSec * RAD_PER_SEC_TO_RAD_PER_HOUR;
   const ambientHigh = ambientRadPerHour !== null && ambientRadPerHour > HIGH_RADIATION_RAD_PER_HOUR;
@@ -2026,8 +2573,8 @@ function RadiationSection({ weather, utNow }) {
     // moved below as plain low-emphasis text; `role="status"` stays on that
     // text (not a Stack of badges) since it is still the one bit of this
     // section that changes without the operator watching for it.
-    /* @__PURE__ */ jsxs3(Stack2, { children: [
-      /* @__PURE__ */ jsx3(
+    /* @__PURE__ */ jsxs4(Stack3, { children: [
+      /* @__PURE__ */ jsx4(
         Graph,
         {
           chrome: "bare",
@@ -2042,7 +2589,7 @@ function RadiationSection({ weather, utNow }) {
               id: "safe",
               label: "Safe threshold",
               kind: "marker",
-              value: value2(
+              value: value3(
                 "rad/s",
                 HIGH_RADIATION_RAD_PER_HOUR / RAD_PER_SEC_TO_RAD_PER_HOUR
               )
@@ -2053,11 +2600,11 @@ function RadiationSection({ weather, utNow }) {
           "aria-label": "Radiation dose rate trend: ambient versus shielded, last 10 minutes"
         }
       ),
-      /* @__PURE__ */ jsxs3(Cluster3, { justify: "between", style: { marginTop: "var(--gap-caption)" }, children: [
-        /* @__PURE__ */ jsxs3(Text2, { tone: ambientHigh ? "warn" : void 0, size: "xs", children: [
+      /* @__PURE__ */ jsxs4(Cluster4, { justify: "between", style: { marginTop: "var(--gap-caption)" }, children: [
+        /* @__PURE__ */ jsxs4(Text3, { tone: ambientHigh ? "warn" : void 0, size: "xs", children: [
           "Ambient",
           " ",
-          /* @__PURE__ */ jsx3(
+          /* @__PURE__ */ jsx4(
             Unit2,
             {
               value: ambientValue,
@@ -2065,10 +2612,10 @@ function RadiationSection({ weather, utNow }) {
             }
           )
         ] }),
-        /* @__PURE__ */ jsxs3(Text2, { tone: shieldedHigh ? "nogo" : "info", size: "xs", children: [
+        /* @__PURE__ */ jsxs4(Text3, { tone: shieldedHigh ? "nogo" : "info", size: "xs", children: [
           "Shielded",
           " ",
-          /* @__PURE__ */ jsx3(
+          /* @__PURE__ */ jsx4(
             Unit2,
             {
               value: shieldedValue,
@@ -2077,7 +2624,7 @@ function RadiationSection({ weather, utNow }) {
           )
         ] })
       ] }),
-      /* @__PURE__ */ jsx3(Text2, { level: "muted", size: "xs", role: "status", "aria-live": "polite", children: location })
+      /* @__PURE__ */ jsx4(Text3, { level: "muted", size: "xs", role: "status", "aria-live": "polite", children: location })
     ] })
   );
 }
@@ -2102,10 +2649,10 @@ function useResourceColorMap(names) {
 }
 
 // src/ShipSystems/index.tsx
-import { Fragment, jsx as jsx4, jsxs as jsxs4 } from "react/jsx-runtime";
+import { Fragment as Fragment2, jsx as jsx5, jsxs as jsxs5 } from "react/jsx-runtime";
 var SOON_EMPTY_SEC = 600;
 function fill(fraction) {
-  return fraction === null ? null : value3("ratio", fraction);
+  return fraction === null ? null : value4("ratio", fraction);
 }
 function fmtAmt(n) {
   if (!Number.isFinite(n)) return "0";
@@ -2117,7 +2664,7 @@ function fmtAmt(n) {
 }
 function formatTimeToEmpty(sec) {
   if (sec == null || !Number.isFinite(sec)) return "steady";
-  return speakQuantity(value3("s", Math.max(0, sec)));
+  return speakQuantity(value4("s", Math.max(0, sec)));
 }
 function formatRate(perSecond) {
   if (!Number.isFinite(perSecond) || perSecond === 0) return "0/s";
@@ -2158,7 +2705,7 @@ function crossingSpoken(row, utNow) {
   const seconds2 = secondsToCrossing(row, utNow);
   if (seconds2 === null) return isStable(row) ? "stable" : null;
   const word = crossingWord(row);
-  return seconds2 > 0 ? `${word} in ${speakQuantity(value3("s", seconds2))}, modelled` : `modelled ${word} by now`;
+  return seconds2 > 0 ? `${word} in ${speakQuantity(value4("s", seconds2))}, modelled` : `modelled ${word} by now`;
 }
 function rowValueLabel(row, utNow, modelled = {}) {
   if (row.capacity <= 0) return "not fitted";
@@ -2170,10 +2717,10 @@ function RowValueDisplay({
   row,
   modelled = {}
 }) {
-  if (row.capacity <= 0) return /* @__PURE__ */ jsx4(Fragment, { children: "not fitted" });
-  return /* @__PURE__ */ jsxs4(Fragment, { children: [
+  if (row.capacity <= 0) return /* @__PURE__ */ jsx5(Fragment2, { children: "not fitted" });
+  return /* @__PURE__ */ jsxs5(Fragment2, { children: [
     fmtAmt(row.amount),
-    /* @__PURE__ */ jsx4(
+    /* @__PURE__ */ jsx5(
       ModelledAlongside,
       {
         observed: row.amount,
@@ -2183,7 +2730,7 @@ function RowValueDisplay({
     ),
     " / ",
     fmtAmt(row.capacity),
-    /* @__PURE__ */ jsx4(CrossingTime, { row, lead: " \xB7 " })
+    /* @__PURE__ */ jsx5(CrossingTime, { row, lead: " \xB7 " })
   ] });
 }
 function CrossingTime({
@@ -2194,26 +2741,26 @@ function CrossingTime({
   const ledger = useContext(LedgerReadingContext);
   const utNow = useContext(ViewUtContext);
   const seconds2 = secondsToCrossing(row, utNow);
-  if (seconds2 === null) return isStable(row) ? /* @__PURE__ */ jsxs4(Fragment, { children: [
+  if (seconds2 === null) return isStable(row) ? /* @__PURE__ */ jsxs5(Fragment2, { children: [
     lead,
     "stable"
   ] }) : null;
   const word = crossingWord(row);
   if (seconds2 <= 0) {
-    return /* @__PURE__ */ jsxs4(Fragment, { children: [
+    return /* @__PURE__ */ jsxs5(Fragment2, { children: [
       lead,
       "modelled ",
       word,
       " by now"
     ] });
   }
-  const left = value3("s", seconds2);
-  return /* @__PURE__ */ jsxs4(Fragment, { children: [
+  const left = value4("s", seconds2);
+  return /* @__PURE__ */ jsxs5(Fragment2, { children: [
     lead,
     word,
     " in ",
     approx ? "~" : "",
-    /* @__PURE__ */ jsx4(Unit3, { value: ledger ? combineReadings([ledger], () => left) : left }),
+    /* @__PURE__ */ jsx5(Unit3, { value: ledger ? combineReadings([ledger], () => left) : left }),
     ", modelled"
   ] });
 }
@@ -2264,30 +2811,30 @@ function toGreenhouseRow(g) {
 function ShipSystemsComponent(_props) {
   const shipReading = useProcessor(SHIP_SYSTEMS);
   const ship = shipReading?.state === "observed" || shipReading?.state === "held" ? shipReading.value : void 0;
-  const weatherReading = useTelemetry2("kerbalism.spaceweather");
+  const weatherReading = useTelemetry3("kerbalism.spaceweather");
   const weather = weatherReading.state === "observed" ? weatherReading.value : void 0;
   const utNow = useUtNow();
   if (!ship) {
-    return /* @__PURE__ */ jsx4(
+    return /* @__PURE__ */ jsx5(
       Panel,
       {
         panelTitle: "Ship Systems",
-        sections: /* @__PURE__ */ jsx4(Section2, { full: true, children: /* @__PURE__ */ jsx4(EmptyState, { layout: "fill", role: "status", "aria-live": "polite", children: "Waiting for Kerbalism telemetry..." }) })
+        sections: /* @__PURE__ */ jsx5(Section2, { full: true, children: /* @__PURE__ */ jsx5(EmptyState2, { layout: "fill", role: "status", "aria-live": "polite", children: "Waiting for Kerbalism telemetry..." }) })
       }
     );
   }
   const { summary } = ship;
   const hasAnyResource = summary.supplies.length > 0 || summary.other.length > 0 || summary.wear.length > 0;
   if (!hasAnyResource) {
-    return /* @__PURE__ */ jsx4(
+    return /* @__PURE__ */ jsx5(
       Panel,
       {
         panelTitle: "Ship Systems",
-        sections: /* @__PURE__ */ jsx4(Section2, { full: true, children: /* @__PURE__ */ jsx4(EmptyState, { layout: "fill", role: "status", "aria-live": "polite", children: "No Kerbalism profile reported for this vessel yet." }) })
+        sections: /* @__PURE__ */ jsx5(Section2, { full: true, children: /* @__PURE__ */ jsx5(EmptyState2, { layout: "fill", role: "status", "aria-live": "polite", children: "No Kerbalism profile reported for this vessel yet." }) })
       }
     );
   }
-  return /* @__PURE__ */ jsx4(LedgerReadingContext.Provider, { value: shipReading, children: /* @__PURE__ */ jsx4(ViewUtContext.Provider, { value: utNow, children: /* @__PURE__ */ jsx4(
+  return /* @__PURE__ */ jsx5(LedgerReadingContext.Provider, { value: shipReading, children: /* @__PURE__ */ jsx5(ViewUtContext.Provider, { value: utNow, children: /* @__PURE__ */ jsx5(
     ShipSystemsBody,
     {
       ship,
@@ -2328,6 +2875,8 @@ function ShipSystemsBody({
     0
   );
   const ecRow = summary.supplies.find((r) => r.name === "ElectricCharge") ?? summary.other.find((r) => r.name === "ElectricCharge");
+  const inSunlight = weather?.inSunlight ?? null;
+  const panelExposure = magnitudeOf5(weather?.solarPanelExposure);
   const runningCount = processes.filter((p) => p.state === "running").length;
   const brokenCount = processes.filter((p) => p.state === "broken").length;
   const unknownCount = processes.filter((p) => p.state === "unknown").length;
@@ -2340,15 +2889,19 @@ function ShipSystemsBody({
     (g) => radiationTooHigh(g, ambientRadiationRadPerSecond)
   );
   const status = overallStatus(ship, utNow, anyGreenhouseHalted);
+  const levelsRead = ship.levels.state === "observed" || ship.levels.state === "held";
   const resourceColors = useResourceColorMap([
     ...summary.supplies.map((r) => r.name),
     ...summary.other.map((r) => r.name)
   ]);
-  return /* @__PURE__ */ jsx4(
+  return /* @__PURE__ */ jsx5(
     Panel,
     {
       panelTitle: "Ship Systems",
-      panelAside: /* @__PURE__ */ jsx4(Badge3, { role: "status", "aria-live": "polite", tone: status.tone, children: held ? `${status.label} \xB7 held` : status.label }),
+      panelAside: (
+        // No status without a level to judge: a "Nominal" over absent levels is a reading nobody took.
+        levelsRead && /* @__PURE__ */ jsx5(Badge4, { role: "status", "aria-live": "polite", tone: status.tone, children: held ? `${status.label} \xB7 held` : status.label })
+      ),
       panelFooter: (
         // The power footer, PINNED below the scroller by the Panel itself
         // (not merely rendered last, which still scrolled away with the
@@ -2356,26 +2909,35 @@ function ShipSystemsBody({
         // so it earns the one permanently visible readout, the same
         // "duplicate the balance next to where it matters" convention the
         // funds rule uses. Rendered only when the profile carries EC.
-        ecRow && /* @__PURE__ */ jsx4(
-          Meter,
-          {
-            label: "Power",
-            value: fill(ecRow.fraction),
-            tone: toneForRow(ecRow, utNow),
-            valueLabel: rowValueLabel(
-              ecRow,
-              utNow,
-              modelledRow(ecRow, modelled)
-            ),
-            valueLabelNode: /* @__PURE__ */ jsx4(
-              RowValueDisplay,
-              {
-                row: ecRow,
-                modelled: modelledRow(ecRow, modelled)
-              }
-            )
-          }
-        )
+        (ecRow || inSunlight !== null || panelExposure !== null) && /* @__PURE__ */ jsxs5(Stack4, { gap: "caption", children: [
+          (inSunlight !== null || panelExposure !== null) && /* @__PURE__ */ jsxs5(Cluster5, { justify: "between", align: "center", wrap: true, children: [
+            inSunlight !== null && /* @__PURE__ */ jsx5(Badge4, { tone: inSunlight ? "go" : "neutral", size: "sm", children: inSunlight ? "In sunlight" : "In shadow" }),
+            panelExposure !== null && /* @__PURE__ */ jsxs5(Text4, { level: "muted", size: "xs", children: [
+              "Panels ",
+              /* @__PURE__ */ jsx5(Unit3, { value: weather?.solarPanelExposure, decimals: 1 })
+            ] })
+          ] }),
+          ecRow && /* @__PURE__ */ jsx5(
+            Meter,
+            {
+              label: "Power",
+              value: fill(ecRow.fraction),
+              tone: toneForRow(ecRow, utNow),
+              valueLabel: rowValueLabel(
+                ecRow,
+                utNow,
+                modelledRow(ecRow, modelled)
+              ),
+              valueLabelNode: /* @__PURE__ */ jsx5(
+                RowValueDisplay,
+                {
+                  row: ecRow,
+                  modelled: modelledRow(ecRow, modelled)
+                }
+              )
+            }
+          )
+        ] })
       ),
       sections: [
         /* Radiation leads the widget: the operator's own call, it is the
@@ -2383,9 +2945,9 @@ function ShipSystemsBody({
            slot rather than sitting below the resource ledger, and it spans
            because a trend reads wide. Renders nothing when no spaceweather
            frame has ever landed, matching RadiationSection's own contract. */
-        weather && /* @__PURE__ */ jsxs4(Section2, { full: true, children: [
-          /* @__PURE__ */ jsx4(SectionHead, { label: "Radiation" }),
-          /* @__PURE__ */ jsx4(RadiationSection, { weather, utNow })
+        weather && /* @__PURE__ */ jsxs5(Section2, { full: true, children: [
+          /* @__PURE__ */ jsx5(SectionHead, { label: "Radiation" }),
+          /* @__PURE__ */ jsx5(RadiationSection, { weather, utNow })
         ] }, "radiation"),
         summary.causes.length > 0 && /* Spans, like any warning the sections below it are qualified by.
         
@@ -2393,15 +2955,15 @@ function ShipSystemsBody({
                      sections below it, not a record among them, and it is announced
                      when it appears. The announcement contract is the component's, so
                      this site no longer carries a hand-written role and aria-live. */
-        /* @__PURE__ */ jsx4(Section2, { full: true, children: /* @__PURE__ */ jsx4(Notice, { tone: "nogo", title: "Limiting factors", children: /* @__PURE__ */ jsx4(Stack3, { gap: "caption", children: summary.causes.flatMap(
+        /* @__PURE__ */ jsx5(Section2, { full: true, children: /* @__PURE__ */ jsx5(Notice, { tone: "nogo", title: "Limiting factors", children: /* @__PURE__ */ jsx5(Stack4, { gap: "caption", children: summary.causes.flatMap(
           (cause) => cause.explains.length > 0 ? cause.explains.map((explained) => {
             const explainedRow = rowsByDisplayName.get(explained);
-            return /* @__PURE__ */ jsx4(
-              Text3,
+            return /* @__PURE__ */ jsx5(
+              Text4,
               {
                 tone: "nogo",
                 size: "xs",
-                children: /* @__PURE__ */ jsx4(
+                children: /* @__PURE__ */ jsx5(
                   LimitedByMessage,
                   {
                     subjectDisplayName: explained,
@@ -2413,20 +2975,20 @@ function ShipSystemsBody({
               `${cause.name}-${explained}`
             );
           }) : [
-            /* @__PURE__ */ jsxs4(Text3, { tone: "nogo", size: "xs", children: [
+            /* @__PURE__ */ jsxs5(Text4, { tone: "nogo", size: "xs", children: [
               cause.displayName,
               " is running critically low",
-              secondsToFloor(cause, utNow) !== null && /* @__PURE__ */ jsxs4(Fragment, { children: [
+              secondsToFloor(cause, utNow) !== null && /* @__PURE__ */ jsxs5(Fragment2, { children: [
                 " (",
-                /* @__PURE__ */ jsx4(CrossingTime, { row: cause, approx: true }),
+                /* @__PURE__ */ jsx5(CrossingTime, { row: cause, approx: true }),
                 ")"
               ] })
             ] }, cause.name)
           ]
         ) }) }) }, "causes"),
-        /* @__PURE__ */ jsxs4(Section2, { children: [
-          /* @__PURE__ */ jsx4(SectionHead, { label: "Supplies" }),
-          /* @__PURE__ */ jsx4(MeterStack, { children: summary.supplies.map((row) => /* @__PURE__ */ jsx4(
+        /* @__PURE__ */ jsxs5(Section2, { children: [
+          /* @__PURE__ */ jsx5(SectionHead, { label: "Supplies" }),
+          /* @__PURE__ */ jsx5(MeterStack, { children: summary.supplies.map((row) => /* @__PURE__ */ jsx5(
             ResourceLedgerRow,
             {
               row,
@@ -2437,9 +2999,9 @@ function ShipSystemsBody({
             row.name
           )) })
         ] }, "supplies"),
-        summary.other.length > 0 && /* @__PURE__ */ jsxs4(Section2, { children: [
-          /* @__PURE__ */ jsx4(SectionHead, { label: "Other resources" }),
-          /* @__PURE__ */ jsx4(MeterStack, { children: summary.other.map((row) => /* @__PURE__ */ jsx4(
+        summary.other.length > 0 && /* @__PURE__ */ jsxs5(Section2, { children: [
+          /* @__PURE__ */ jsx5(SectionHead, { label: "Other resources" }),
+          /* @__PURE__ */ jsx5(MeterStack, { children: summary.other.map((row) => /* @__PURE__ */ jsx5(
             ResourceLedgerRow,
             {
               row,
@@ -2450,9 +3012,9 @@ function ShipSystemsBody({
             row.name
           )) })
         ] }, "other"),
-        summary.wear.length > 0 && /* @__PURE__ */ jsxs4(Section2, { children: [
-          /* @__PURE__ */ jsx4(SectionHead, { label: "Wear" }),
-          /* @__PURE__ */ jsx4(MeterStack, { children: summary.wear.map((w) => /* @__PURE__ */ jsx4(
+        summary.wear.length > 0 && /* @__PURE__ */ jsxs5(Section2, { children: [
+          /* @__PURE__ */ jsx5(SectionHead, { label: "Wear" }),
+          /* @__PURE__ */ jsx5(MeterStack, { children: summary.wear.map((w) => /* @__PURE__ */ jsx5(
             Meter,
             {
               label: w.process,
@@ -2463,17 +3025,18 @@ function ShipSystemsBody({
             w.name
           )) })
         ] }, "wear"),
-        /* @__PURE__ */ jsxs4(Section2, { children: [
-          /* @__PURE__ */ jsx4(
+        /* @__PURE__ */ jsxs5(Section2, { children: [
+          /* @__PURE__ */ jsx5(
             SectionHead,
             {
               label: "Habitat",
-              value: pressurized === null ? NULL_DISPLAY2 : pressurized ? "Pressurized" : "Unpressurized",
+              value: pressurized === null ? NULL_DISPLAY3 : pressurized ? "Pressurized" : "Unpressurized",
+              detail: habitat?.pressureKpa ? /* @__PURE__ */ jsx5(Unit3, { value: habitat.pressureKpa, decimals: 1 }) : void 0,
               tone: pressurized === null ? "neutral" : pressurized ? "go" : "warn"
             }
           ),
-          /* @__PURE__ */ jsxs4(Grid, { minColWidth: "10rem", gap: "related-comfortable", children: [
-            /* @__PURE__ */ jsx4(
+          /* @__PURE__ */ jsxs5(Grid, { minColWidth: "10rem", gap: "related-comfortable", children: [
+            /* @__PURE__ */ jsx5(
               Meter,
               {
                 label: "Comfort",
@@ -2481,7 +3044,7 @@ function ShipSystemsBody({
                 tone: comfort !== null && comfort < 0.25 ? "warn" : "neutral"
               }
             ),
-            /* @__PURE__ */ jsx4(
+            /* @__PURE__ */ jsx5(
               Meter,
               {
                 label: "Living space",
@@ -2489,7 +3052,7 @@ function ShipSystemsBody({
                 tone: "neutral"
               }
             ),
-            /* @__PURE__ */ jsx4(
+            /* @__PURE__ */ jsx5(
               Meter,
               {
                 label: "CO2 poisoning",
@@ -2499,8 +3062,8 @@ function ShipSystemsBody({
             )
           ] })
         ] }, "habitat"),
-        /* @__PURE__ */ jsxs4(Section2, { children: [
-          /* @__PURE__ */ jsx4(
+        /* @__PURE__ */ jsxs5(Section2, { children: [
+          /* @__PURE__ */ jsx5(
             SectionHead,
             {
               label: "Processes",
@@ -2508,46 +3071,55 @@ function ShipSystemsBody({
               tone: held ? void 0 : brokenCount > 0 ? "nogo" : unknownCount > 0 ? "warn" : "go"
             }
           ),
-          /* @__PURE__ */ jsx4(Stack3, { children: processes.map((p) => /* @__PURE__ */ jsxs4(Cluster4, { justify: "between", children: [
-            /* @__PURE__ */ jsx4(Text3, { size: "xs", children: p.name }),
-            held ? /* @__PURE__ */ jsx4(Badge3, { tone: "info", size: "sm", children: "held" }) : /* @__PURE__ */ jsx4(Badge3, { tone: processSeverity(p.state), size: "sm", children: p.state })
+          /* @__PURE__ */ jsx5(Stack4, { children: processes.map((p) => /* @__PURE__ */ jsxs5(Cluster5, { justify: "between", children: [
+            /* @__PURE__ */ jsx5(Text4, { size: "xs", children: p.name }),
+            held ? /* @__PURE__ */ jsx5(Badge4, { tone: "info", size: "sm", children: "held" }) : /* @__PURE__ */ jsx5(Badge4, { tone: processSeverity(p.state), size: "sm", children: p.state })
           ] }, p.id)) })
         ] }, "processes"),
         /* This package's own GreenhouseSection fills this slot, self-registering
            into `ship-systems.life-support` via the side-effect import above.
            `AugmentSlot` renders a fragment, so each bound augment becomes its
            own item of the section grid and flows beside the host's sections. */
-        /* @__PURE__ */ jsx4(
+        /* @__PURE__ */ jsx5(
           AugmentSlot,
           {
             name: "ship-systems.life-support",
             props: { greenhouses, ambientRadiationRadPerSecond, held }
           },
           "life-support"
-        )
+        ),
+        /* @__PURE__ */ jsx5(Section2, { full: true, children: /* @__PURE__ */ jsx5(DiagnosticsButtons, {}) }, "diagnostics")
       ]
     }
   );
 }
 function SectionHead({
   label,
-  value: value11,
+  value: value13,
+  detail,
   tone
 }) {
-  return /* @__PURE__ */ jsxs4(Cluster4, { justify: "between", align: "baseline", children: [
-    /* @__PURE__ */ jsx4(Text3, { level: "muted", size: "xs", children: label.toUpperCase() }),
-    value11 !== void 0 && // `neutral` is a Meter/Badge tone, not a Text one: a resting
-    // section reading renders in the same muted text as the label.
-    /* @__PURE__ */ jsx4(
-      Text3,
-      {
-        tone: tone === void 0 || tone === "neutral" ? void 0 : tone,
-        level: "muted",
-        size: "xs",
-        children: value11
-      }
-    )
-  ] });
+  return (
+    // Wraps so a long reading drops under its label at the smallest tile
+    // instead of running past the right edge.
+    /* @__PURE__ */ jsxs5(Cluster5, { justify: "between", align: "baseline", wrap: true, children: [
+      /* @__PURE__ */ jsx5(Text4, { level: "muted", size: "xs", children: label.toUpperCase() }),
+      (value13 !== void 0 || detail !== void 0) && /* @__PURE__ */ jsxs5(Cluster5, { justify: "end", align: "baseline", wrap: true, children: [
+        value13 !== void 0 && // `neutral` is a Meter/Badge tone, not a Text one: a resting
+        // section reading renders in the same muted text as the label.
+        /* @__PURE__ */ jsx5(
+          Text4,
+          {
+            tone: tone === void 0 || tone === "neutral" ? void 0 : tone,
+            level: "muted",
+            size: "xs",
+            children: value13
+          }
+        ),
+        detail !== void 0 && /* @__PURE__ */ jsx5(Text4, { level: "muted", size: "xs", children: detail })
+      ] })
+    ] })
+  );
 }
 function ResourceLedgerRow({
   row,
@@ -2570,23 +3142,23 @@ function ResourceLedgerRow({
     // accessible name, so a heading above it would say the same word twice.
     // The testid is the escape hatch a test needs to reach THIS row's own card
     // and assert its identity tab, there being no role or label of its own.
-    /* @__PURE__ */ jsx4(
+    /* @__PURE__ */ jsx5(
       Card,
       {
         identityColor,
         "data-testid": `resource-card-${row.name}`,
-        children: /* @__PURE__ */ jsxs4(Stack3, { children: [
-          /* @__PURE__ */ jsx4(
+        children: /* @__PURE__ */ jsxs5(Stack4, { children: [
+          /* @__PURE__ */ jsx5(
             Meter,
             {
               label: row.displayName,
               value: fill(row.fraction),
               tone: toneForRow(row, utNow),
               valueLabel: rowValueLabel(row, utNow, modelled),
-              valueLabelNode: /* @__PURE__ */ jsx4(RowValueDisplay, { row, modelled })
+              valueLabelNode: /* @__PURE__ */ jsx5(RowValueDisplay, { row, modelled })
             }
           ),
-          row.role === "downstream" && row.blockedBy.length > 0 && /* @__PURE__ */ jsx4(Text3, { tone: "warn", size: "xs", children: /* @__PURE__ */ jsx4(
+          row.role === "downstream" && row.blockedBy.length > 0 && /* @__PURE__ */ jsx5(Text4, { tone: "warn", size: "xs", children: /* @__PURE__ */ jsx5(
             LimitedByMessage,
             {
               subjectDisplayName: row.displayName,
@@ -2594,7 +3166,7 @@ function ResourceLedgerRow({
               row
             }
           ) }),
-          /* @__PURE__ */ jsx4(
+          /* @__PURE__ */ jsx5(
             Disclosure,
             {
               variant: "inline",
@@ -2602,7 +3174,7 @@ function ResourceLedgerRow({
               buttonSize: "sm",
               label: null,
               "aria-label": `Show rate breakdown for ${row.displayName}`,
-              children: /* @__PURE__ */ jsx4(LedgerBody, { ledger })
+              children: /* @__PURE__ */ jsx5(LedgerBody, { ledger })
             }
           )
         ] })
@@ -2616,23 +3188,23 @@ function LimitedByMessage({
   row
 }) {
   const utNow = useContext(ViewUtContext);
-  return /* @__PURE__ */ jsxs4(Fragment, { children: [
+  return /* @__PURE__ */ jsxs5(Fragment2, { children: [
     subjectDisplayName,
     " is being limited by ",
     blockedBy.join(", "),
     ".",
-    row !== void 0 && secondsToFloor(row, utNow) !== null && /* @__PURE__ */ jsxs4(Fragment, { children: [
+    row !== void 0 && secondsToFloor(row, utNow) !== null && /* @__PURE__ */ jsxs5(Fragment2, { children: [
       " ",
       subjectDisplayName,
       " ",
-      /* @__PURE__ */ jsx4(CrossingTime, { row, approx: true })
+      /* @__PURE__ */ jsx5(CrossingTime, { row, approx: true })
     ] })
   ] });
 }
 function LedgerBody({ ledger }) {
   const ledgerReading = useContext(LedgerReadingContext);
   const hasResidual = ledger.residual !== void 0 && Math.abs(ledger.residual) > 1e-6;
-  const maxAbsRate = value3(
+  const maxAbsRate = value4(
     "units/s",
     Math.max(0, ...ledger.terms.map((t) => Math.abs(t.ratePerSecond)))
   );
@@ -2641,8 +3213,8 @@ function LedgerBody({ ledger }) {
     // hosts it, spilling the ledger past the widget's right edge at any width
     // narrower than the floor. `width: 100%` sizes it to whatever the accordion
     // panel actually has, at every panel width down to minSize.
-    /* @__PURE__ */ jsxs4(Stack3, { style: { width: "100%", minWidth: 0 }, children: [
-      ledger.terms.length === 0 ? /* @__PURE__ */ jsx4(Text3, { level: "muted", size: "xs", children: "No modelled sources" }) : ledger.terms.map((term) => (
+    /* @__PURE__ */ jsxs5(Stack4, { style: { width: "100%", minWidth: 0 }, children: [
+      ledger.terms.length === 0 ? /* @__PURE__ */ jsx5(Text4, { level: "muted", size: "xs", children: "No modelled sources" }) : ledger.terms.map((term) => (
         // `wrap`: the rate ("-0.01/s") is one unbreakable token (no space
         // for the browser's own text-wrap to catch), so once the term
         // NAME has shrunk as far as ITS wrapping allows, the rate has
@@ -2651,39 +3223,39 @@ function LedgerBody({ ledger }) {
         // widths instead of forcing the row, and everything above it, wider
         // than the panel: the overflow this function's own doc comment
         // describes.
-        /* @__PURE__ */ jsxs4(
-          Cluster4,
+        /* @__PURE__ */ jsxs5(
+          Cluster5,
           {
             justify: "between",
             wrap: true,
             children: [
-              /* @__PURE__ */ jsx4(Text3, { size: "xs", children: term.name }),
-              /* @__PURE__ */ jsxs4(Cluster4, { justify: "start", children: [
-                /* @__PURE__ */ jsx4(
+              /* @__PURE__ */ jsx5(Text4, { size: "xs", children: term.name }),
+              /* @__PURE__ */ jsxs5(Cluster5, { justify: "start", children: [
+                /* @__PURE__ */ jsx5(
                   DivergingBar,
                   {
                     value: ledgerReading ? combineReadings(
                       [ledgerReading],
-                      () => value3("units/s", term.ratePerSecond)
-                    ) : value3("units/s", term.ratePerSecond),
+                      () => value4("units/s", term.ratePerSecond)
+                    ) : value4("units/s", term.ratePerSecond),
                     maxAbs: maxAbsRate
                   }
                 ),
-                /* @__PURE__ */ jsx4(Text3, { size: "xs", children: formatRate(term.ratePerSecond) })
+                /* @__PURE__ */ jsx5(Text4, { size: "xs", children: formatRate(term.ratePerSecond) })
               ] })
             ]
           },
           `${term.kind}-${term.name}-${term.flightId ?? ""}`
         )
       )),
-      /* @__PURE__ */ jsx4(Divider, {}),
-      /* @__PURE__ */ jsxs4(Cluster4, { justify: "between", wrap: true, children: [
-        /* @__PURE__ */ jsx4(Text3, { level: "muted", size: "xs", children: "Net (derived)" }),
-        /* @__PURE__ */ jsx4(Text3, { size: "xs", children: formatRate(ledger.derivedNet) })
+      /* @__PURE__ */ jsx5(Divider, {}),
+      /* @__PURE__ */ jsxs5(Cluster5, { justify: "between", wrap: true, children: [
+        /* @__PURE__ */ jsx5(Text4, { level: "muted", size: "xs", children: "Net (derived)" }),
+        /* @__PURE__ */ jsx5(Text4, { size: "xs", children: formatRate(ledger.derivedNet) })
       ] }),
-      ledger.reportedNet !== void 0 && /* @__PURE__ */ jsxs4(Cluster4, { justify: "between", wrap: true, children: [
-        /* @__PURE__ */ jsx4(Text3, { level: "muted", size: "xs", children: "Reported" }),
-        /* @__PURE__ */ jsx4(Text3, { size: "xs", children: formatRate(ledger.reportedNet) })
+      ledger.reportedNet !== void 0 && /* @__PURE__ */ jsxs5(Cluster5, { justify: "between", wrap: true, children: [
+        /* @__PURE__ */ jsx5(Text4, { level: "muted", size: "xs", children: "Reported" }),
+        /* @__PURE__ */ jsx5(Text4, { size: "xs", children: formatRate(ledger.reportedNet) })
       ] }),
       hasResidual && ledger.residual !== void 0 && // Same near-black-on-dark landmine as the row footnote above: the
       // `-fg-muted` override keeps this readable on the panel surface.
@@ -2693,7 +3265,7 @@ function LedgerBody({ ledger }) {
       // (timewarp catch-up between samples, a consumer this ledger does not
       // enumerate) and is worth keeping visible as exactly that, never
       // hidden.
-      /* @__PURE__ */ jsxs4(Text3, { tone: "warn", size: "xs", children: [
+      /* @__PURE__ */ jsxs5(Text4, { tone: "warn", size: "xs", children: [
         "Residual ",
         formatRate(ledger.residual),
         " (unaccounted)"
@@ -2706,7 +3278,7 @@ registerComponent({
   name: "Ship Systems",
   description: "Vessel-wide Kerbalism resource ledger: root-cause diagnosis, every profile resource as a meter with a per-source rate ledger, wear gauges, habitat, processes, and the power meter.",
   tags: ["telemetry", "kerbalism"],
-  defaultSize: { w: 9, h: 15 },
+  defaultSize: { w: 12, h: 24 },
   minSize: { w: 4, h: 5 },
   component: ShipSystemsComponent,
   dataRequirements: [
@@ -2783,20 +3355,25 @@ KERBALISM.registerContribution({
 });
 
 // src/CrewSurvival/index.tsx
-import { registerAugment as registerAugment3, useProcessor as useProcessor2, value as value8 } from "@ksp-gonogo/sitrep-sdk";
 import {
-  Badge as Badge4,
+  registerAugment as registerAugment3,
+  useProcessor as useProcessor2,
+  useTelemetry as useTelemetry4,
+  value as value9
+} from "@ksp-gonogo/sitrep-sdk";
+import {
+  Badge as Badge5,
   ModelledAlongside as ModelledAlongside2,
   modelledBeyondReceived as modelledBeyondReceived2,
   writeQuantity as writeQuantity2
 } from "@ksp-gonogo/ui-kit";
 
 // src/CrewSurvival/meters.ts
-import { value as value7 } from "@ksp-gonogo/sitrep-sdk";
+import { value as value8 } from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOf as magnitudeOf9, writeQuantity } from "@ksp-gonogo/ui-kit";
 
 // src/CrewSurvival/processor.ts
-import { deriveReading as deriveReading2, value as value4 } from "@ksp-gonogo/sitrep-sdk";
+import { deriveReading as deriveReading2, value as value5 } from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOf as magnitudeOf6, magnitudeOr as magnitudeOr4 } from "@ksp-gonogo/ui-kit";
 var SOON_DEATH_SEC = 600;
 var CRITICAL_FRACTION = 0.8;
@@ -2895,7 +3472,7 @@ var CREW_SURVIVAL = KERBALISM.registerProcessor({
   // callback's own parameters, which trips `noImplicitAny` on every one of
   // them the moment more than plain property access is needed.
   compute: ([crew, kerbals, delay], frame) => {
-    const receivedUt = value4("ut", frame.viewUt);
+    const receivedUt = value5("ut", frame.viewUt);
     const oneWay = oneWayOf(delay);
     const marginOf = (name) => marginToAct(kerbals, name, receivedUt, oneWay);
     if (kerbals.state === "held" && kerbals.reckoning.status === "available") {
@@ -2951,11 +3528,11 @@ function criticalCause(kerbal) {
 }
 
 // src/CrewSurvival/ruleReadings.ts
-import { bandIn, value as value6 } from "@ksp-gonogo/sitrep-sdk";
+import { bandIn, value as value7 } from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOf as magnitudeOf8 } from "@ksp-gonogo/ui-kit";
 
 // src/crewReckoning.ts
-import { value as value5 } from "@ksp-gonogo/sitrep-sdk";
+import { value as value6 } from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOf as magnitudeOf7 } from "@ksp-gonogo/ui-kit";
 var CREW_DEGENERATION_HORIZON_SECONDS = 600;
 var CREW_HISTORY = {
@@ -3075,7 +3652,7 @@ function reckonCrewAccumulators(point, { reckonUt, history }) {
       for (const carried of moving) {
         const target = next[carried.kerbal].rules?.[carried.rule];
         if (!target) continue;
-        target.problem = value5("units", carriedValue(carried, at));
+        target.problem = value6("units", carriedValue(carried, at));
       }
       return next;
     },
@@ -3088,7 +3665,7 @@ function reckonCrewAccumulators(point, { reckonUt, history }) {
         const halfWidth = Math.abs(at - asOfUt) * slopeSigma;
         if (!Number.isFinite(halfWidth)) continue;
         bands[carried.path] = {
-          value: value5("units", centre),
+          value: value6("units", centre),
           /*
            * Clamped to the same range the value is, because the range is not a
            * display convenience: below zero the accumulator does not exist,
@@ -3096,8 +3673,8 @@ function reckonCrewAccumulators(point, { reckonUt, history }) {
            * describes anybody. An end outside it would be an interval over
            * states that cannot occur, which is a worse claim than a narrow one.
            */
-          lo: value5("units", clamp(centre - halfWidth, 0, ceiling)),
-          hi: value5("units", clamp(centre + halfWidth, 0, ceiling)),
+          lo: value6("units", clamp(centre - halfWidth, 0, ceiling)),
+          hi: value6("units", clamp(centre + halfWidth, 0, ceiling)),
           kind: "sigma1"
         };
       }
@@ -3132,7 +3709,7 @@ function ruleReadings(reading) {
       if (Object.hasOwn(readings, key)) return;
       readings[key] = fractionReading(
         reading,
-        value6("ratio", fraction),
+        value7("ratio", fraction),
         kerbal,
         index,
         threshold
@@ -3171,7 +3748,7 @@ function fractionReckoning(reading, kerbal, index, threshold) {
     status: "available",
     atUt: problem.atUt,
     beyondReceived: problem.beyondReceived,
-    modelled: carried == null || magnitudeOf8(carried) === null ? value6("ratio", 0) : onFatalAxis(carried, threshold),
+    modelled: carried == null || magnitudeOf8(carried) === null ? value7("ratio", 0) : onFatalAxis(carried, threshold),
     basis: problem.basis,
     band: band === void 0 ? void 0 : onAxis(band, threshold)
   };
@@ -3200,7 +3777,7 @@ function ruleLabel(name) {
   }
   return name.length > 0 ? name.charAt(0).toUpperCase() + name.slice(1) : name;
 }
-var pct = (v) => writeQuantity(value7("%", v * 100), { decimals: 0 });
+var pct = (v) => writeQuantity(value8("%", v * 100), { decimals: 0 });
 function survivalMeters(survival, readings) {
   if (!survival) return null;
   const entries = [];
@@ -3223,7 +3800,7 @@ function survivalMeters(survival, readings) {
          * and a meter drawn from it is the picture every one of these was
          * before the model existed.
          */
-        value: reading ?? value7("ratio", rule.fraction),
+        value: reading ?? value8("ratio", rule.fraction),
         tone: toneFor(observed),
         // A caller's label replaces the kit's `<Unit>`, and with it the mark
         // saying the figure is held, so a reading goes without one.
@@ -3256,7 +3833,7 @@ KERBALISM.registerContribution({
 });
 
 // src/CrewSurvival/index.tsx
-import { jsx as jsx5, jsxs as jsxs5 } from "react/jsx-runtime";
+import { Fragment as Fragment3, jsx as jsx6, jsxs as jsxs6 } from "react/jsx-runtime";
 function findKerbal(survival, crewName, crewIndex) {
   const byIndex = survival.kerbals[crewIndex];
   return byIndex?.name === crewName ? byIndex : survival.kerbals.find((k) => k.name === crewName);
@@ -3269,9 +3846,9 @@ function warningFor(kerbal) {
       return { label: "too late", severity: "nogo" };
     }
     return {
-      label: `~${writeQuantity2(value8("s", margin))} to act`,
+      label: `~${writeQuantity2(value9("s", margin))} to act`,
       severity: "nogo",
-      observed: value8("s", margin),
+      observed: value9("s", margin),
       modelled: modelledBeyondReceived2(kerbal.marginToAct)
     };
   }
@@ -3283,21 +3860,35 @@ function warningFor(kerbal) {
   }
   return null;
 }
+function useEvaStatus() {
+  const reading = useTelemetry4(KERBALISM_LIFESUPPORT_TOPIC);
+  if (reading.state !== "observed" && reading.state !== "held") {
+    return void 0;
+  }
+  const safe = reading.value.habitat?.evaSafe;
+  return safe == null ? void 0 : { safe, held: reading.state === "held" };
+}
 function CrewSurvivalBadgeAugment({
   crewName,
   crewIndex
 }) {
   const answer = survivalFrom(useProcessor2(CREW_SURVIVAL));
-  if (!answer) return null;
-  const kerbal = findKerbal(answer.survival, crewName, crewIndex);
-  if (!kerbal) return null;
-  const warning = warningFor(kerbal);
-  if (!warning) return null;
+  const eva = useEvaStatus();
+  const kerbal = answer ? findKerbal(answer.survival, crewName, crewIndex) : void 0;
+  const warning = kerbal ? warningFor(kerbal) : null;
+  const survival = answer && kerbal && warning ? survivalBadge(answer, kerbal, warning) : null;
+  if (!eva && !survival) return null;
+  return /* @__PURE__ */ jsxs6(Fragment3, { children: [
+    eva ? /* @__PURE__ */ jsx6(Badge5, { tone: eva.safe ? "go" : "warn", size: "sm", children: `${eva.safe ? "EVA safe" : "EVA risky"}${eva.held ? " \xB7 held" : ""}` }) : null,
+    survival
+  ] });
+}
+function survivalBadge(answer, kerbal, warning) {
   const modelled = answer.held && marginSecondsOf(kerbal) === null && criticalCause(kerbal) === "carried-rule" ? answer.basis : void 0;
   const label = !answer.held ? warning.label : modelled ? `${warning.label} \xB7 modelled` : `${warning.label} \xB7 held`;
-  return /* @__PURE__ */ jsxs5(Badge4, { tone: warning.severity, size: "sm", "data-reckoning-basis": modelled, children: [
+  return /* @__PURE__ */ jsxs6(Badge5, { tone: warning.severity, size: "sm", "data-reckoning-basis": modelled, children: [
     label,
-    /* @__PURE__ */ jsx5(
+    /* @__PURE__ */ jsx6(
       ModelledAlongside2,
       {
         observed: warning.observed,
@@ -3314,6 +3905,7 @@ registerAugment3({
   id: "crew-status-survival-badge",
   augments: "crew-status.row-badges",
   component: CrewSurvivalBadgeAugment,
+  channels: [KERBALISM_LIFESUPPORT_TOPIC],
   requires: "kerbalism",
   owner: KERBALISM
 });
@@ -3422,31 +4014,31 @@ import {
   registerComponent as registerComponent2,
   useProcessor as useProcessor3,
   useStream,
-  useTelemetry as useTelemetry3,
+  useTelemetry as useTelemetry5,
   useViewUt,
-  value as value9
+  value as value10
 } from "@ksp-gonogo/sitrep-sdk";
 import {
-  Badge as Badge5,
+  Badge as Badge6,
   Box,
   Card as Card2,
-  Cluster as Cluster5,
+  Cluster as Cluster6,
   Countdown,
-  EmptyState as EmptyState2,
+  EmptyState as EmptyState3,
   Meter as Meter2,
   MissionDate,
   magnitudeOf as magnitudeOf10,
-  NULL_DISPLAY as NULL_DISPLAY3,
+  NULL_DISPLAY as NULL_DISPLAY4,
   Panel as Panel2,
   ReadoutCaption as ReadoutCaption2,
   Section as Section3,
   SectionTitle,
-  Stack as Stack4,
-  Text as Text4,
+  Stack as Stack5,
+  Text as Text5,
   Unit as Unit4
 } from "@ksp-gonogo/ui-kit";
 import { css, keyframes, styled } from "styled-components";
-import { Fragment as Fragment2, jsx as jsx6, jsxs as jsxs6 } from "react/jsx-runtime";
+import { Fragment as Fragment4, jsx as jsx7, jsxs as jsxs7 } from "react/jsx-runtime";
 var ABSENCE_TEXT = {
   /* Two different sentences on purpose: a vessel whose subject confirms it has
      no space-weather record (no Kerbalism, or nothing loaded) is not waiting for
@@ -3456,8 +4048,8 @@ var ABSENCE_TEXT = {
   awaiting: "Awaiting space weather"
 };
 function useSpaceWeather() {
-  const weatherReading = useTelemetry3("kerbalism.spaceweather");
-  const flightReading = useTelemetry3("vessel.flight");
+  const weatherReading = useTelemetry5("kerbalism.spaceweather");
+  const flightReading = useTelemetry5("vessel.flight");
   const flightValue = flightReading.state === "observed" || flightReading.state === "held" ? flightReading.value : void 0;
   const flight = flightValue && flightReading.reckoning.status === "available" ? { ...flightValue, ...flightReading.reckoning.value } : flightReading.state === "observed" ? flightReading.value : void 0;
   const t = weatherReading.state === "observed" || weatherReading.state === "held" ? weatherReading.value : void 0;
@@ -3470,7 +4062,7 @@ function useSpaceWeather() {
   }
   const stormState = t.stormInProgress ? "inprogress" : t.stormIncoming ? "incoming" : t.stormInProgress == null || t.stormIncoming == null ? "unknown" : "none";
   const radiationRadPerSecond = magnitudeOf10(t.radiationRadPerSecond);
-  const radiationRadPerHour = radiationRadPerSecond === null ? null : value9("rad/s", radiationRadPerSecond).in("rad/h").magnitude;
+  const radiationRadPerHour = radiationRadPerSecond === null ? null : value10("rad/s", radiationRadPerSecond).in("rad/h").magnitude;
   const innerBelt = held ? false : t.innerBelt ?? false;
   const outerBelt = held ? false : t.outerBelt ?? false;
   const magnetosphere = held ? false : t.magnetosphere ?? false;
@@ -3668,7 +4260,7 @@ function StarDiagram({
   const { strokeWidth, opacity } = ringGeometry(activity.level);
   const color = ringColor(activity.level, activity.severity);
   const label = activity.level <= 0 ? `Solar activity for ${starName}: baseline` : `Solar activity for ${starName}: ${activity.severity === "nogo" ? "CME impacting" : "CME inbound"}`;
-  return /* @__PURE__ */ jsx6(
+  return /* @__PURE__ */ jsx7(
     Box,
     {
       style: {
@@ -3678,7 +4270,7 @@ function StarDiagram({
         alignItems: "center",
         justifyContent: "center"
       },
-      children: /* @__PURE__ */ jsxs6(
+      children: /* @__PURE__ */ jsxs7(
         "svg",
         {
           viewBox: "0 0 100 100",
@@ -3687,7 +4279,7 @@ function StarDiagram({
           role: "img",
           "aria-label": label,
           children: [
-            /* @__PURE__ */ jsx6(
+            /* @__PURE__ */ jsx7(
               RingPath,
               {
                 d,
@@ -3704,7 +4296,7 @@ function StarDiagram({
               const tip = pointAt(46, centreDeg);
               const left = pointAt(24, centreDeg - 3);
               const right = pointAt(24, centreDeg + 3);
-              return /* @__PURE__ */ jsx6(
+              return /* @__PURE__ */ jsx7(
                 "polygon",
                 {
                   points: `${left.x},${left.y} ${tip.x},${tip.y} ${right.x},${right.y}`,
@@ -3713,7 +4305,7 @@ function StarDiagram({
                 storm.key
               );
             }),
-            /* @__PURE__ */ jsx6("circle", { cx: 50, cy: 50, r: 14, fill: STAR_FILL })
+            /* @__PURE__ */ jsx7("circle", { cx: 50, cy: 50, r: 14, fill: STAR_FILL })
           ]
         }
       )
@@ -3736,38 +4328,38 @@ function StormCard({
   const target = storm.targetName ?? fallbackBodyName ?? "current body";
   const verb = storm.state === null ? "CME state unread for" : storm.state >= 2 ? "Impacting" : "Inbound to";
   const qualifier = storm.targetKind === STORM_TARGET_VESSEL ? " (current vessel)" : "";
-  return /* @__PURE__ */ jsx6(
+  return /* @__PURE__ */ jsx7(
     Card2,
     {
       tone: SEVERITY_CARD_TONE[severity],
       title: storm.star,
-      titleRight: /* @__PURE__ */ jsx6(Badge5, { tone: severity, size: "sm", children: stormLabel(storm.state) }),
-      children: /* @__PURE__ */ jsxs6(Stack4, { children: [
-        /* @__PURE__ */ jsx6(Text4, { level: "muted", size: "xs", children: `${verb} ${target}${qualifier}` }),
-        storm.departureUt !== null ? /* @__PURE__ */ jsxs6(Fragment2, { children: [
-          !compact && /* @__PURE__ */ jsxs6(Cluster5, { justify: "between", children: [
-            /* @__PURE__ */ jsx6(Text4, { level: "muted", size: "xs", children: "Departed" }),
-            /* @__PURE__ */ jsx6(Text4, { size: "xs", children: /* @__PURE__ */ jsx6(MissionDate, { value: storm.departureUt }) })
+      titleRight: /* @__PURE__ */ jsx7(Badge6, { tone: severity, size: "sm", children: stormLabel(storm.state) }),
+      children: /* @__PURE__ */ jsxs7(Stack5, { children: [
+        /* @__PURE__ */ jsx7(Text5, { level: "muted", size: "xs", children: `${verb} ${target}${qualifier}` }),
+        storm.departureUt !== null ? /* @__PURE__ */ jsxs7(Fragment4, { children: [
+          !compact && /* @__PURE__ */ jsxs7(Cluster6, { justify: "between", children: [
+            /* @__PURE__ */ jsx7(Text5, { level: "muted", size: "xs", children: "Departed" }),
+            /* @__PURE__ */ jsx7(Text5, { size: "xs", children: /* @__PURE__ */ jsx7(MissionDate, { value: storm.departureUt }) })
           ] }),
-          storm.progressPct !== null ? /* @__PURE__ */ jsx6(
+          storm.progressPct !== null ? /* @__PURE__ */ jsx7(
             Meter2,
             {
               hideLabel: true,
               label: `Transit progress from ${storm.star}`,
-              value: value9("ratio", storm.progressPct / 100),
+              value: value10("ratio", storm.progressPct / 100),
               fillColor: transitThreatColor(storm)
             }
-          ) : /* @__PURE__ */ jsx6(Text4, { level: "muted", size: "xs", children: "Transit progress needs a mission clock." })
-        ] }) : /* @__PURE__ */ jsx6(Text4, { level: "muted", size: "xs", children: "Transit data not yet captured." }),
-        /* @__PURE__ */ jsxs6(Cluster5, { justify: "between", children: [
-          /* @__PURE__ */ jsx6(Text4, { level: "muted", size: "xs", children: "Impact" }),
-          /* @__PURE__ */ jsx6(
-            Text4,
+          ) : /* @__PURE__ */ jsx7(Text5, { level: "muted", size: "xs", children: "Transit progress needs a mission clock." })
+        ] }) : /* @__PURE__ */ jsx7(Text5, { level: "muted", size: "xs", children: "Transit data not yet captured." }),
+        /* @__PURE__ */ jsxs7(Cluster6, { justify: "between", children: [
+          /* @__PURE__ */ jsx7(Text5, { level: "muted", size: "xs", children: "Impact" }),
+          /* @__PURE__ */ jsx7(
+            Text5,
             {
               tone: storm.state !== null && storm.state >= 2 ? "nogo" : "warn",
               size: "xs",
               weight: "semibold",
-              children: storm.impactEtaSec !== null ? /* @__PURE__ */ jsx6(Countdown, { value: storm.impactEtaSec, clock: true }) : "unknown"
+              children: storm.impactEtaSec !== null ? /* @__PURE__ */ jsx7(Countdown, { value: storm.impactEtaSec, clock: true }) : "unknown"
             }
           )
         ] })
@@ -3785,10 +4377,10 @@ function StormTimeline({ state }) {
   const nowPct = state === "unknown" ? null : state === "none" ? 17 : state === "incoming" ? 45 : 67;
   const headline = state === "inprogress" ? "Storm in progress" : state === "incoming" ? "CME inbound" : state === "unknown" ? "Storm state unread" : "No storm activity";
   let acc = 0;
-  return /* @__PURE__ */ jsxs6(Section3, { style: STAT_SECTION, children: [
-    /* @__PURE__ */ jsxs6("div", { style: SECTION_HEAD, children: [
-      /* @__PURE__ */ jsx6("span", { style: SECTION_LABEL, children: "Storm forecast" }),
-      /* @__PURE__ */ jsx6(
+  return /* @__PURE__ */ jsxs7(Section3, { style: STAT_SECTION, children: [
+    /* @__PURE__ */ jsxs7("div", { style: SECTION_HEAD, children: [
+      /* @__PURE__ */ jsx7("span", { style: SECTION_LABEL, children: "Storm forecast" }),
+      /* @__PURE__ */ jsx7(
         "span",
         {
           style: sectionValueStyle(
@@ -3798,7 +4390,7 @@ function StormTimeline({ state }) {
         }
       )
     ] }),
-    /* @__PURE__ */ jsxs6(
+    /* @__PURE__ */ jsxs7(
       "svg",
       {
         viewBox: "0 0 100 14",
@@ -3811,7 +4403,7 @@ function StormTimeline({ state }) {
           phases.map((p) => {
             const x = acc;
             acc += p.w;
-            return /* @__PURE__ */ jsx6(
+            return /* @__PURE__ */ jsx7(
               "rect",
               {
                 x,
@@ -3825,8 +4417,8 @@ function StormTimeline({ state }) {
               p.key
             );
           }),
-          nowPct !== null && /* @__PURE__ */ jsxs6(Fragment2, { children: [
-            /* @__PURE__ */ jsx6(
+          nowPct !== null && /* @__PURE__ */ jsxs7(Fragment4, { children: [
+            /* @__PURE__ */ jsx7(
               "line",
               {
                 x1: nowPct,
@@ -3837,7 +4429,7 @@ function StormTimeline({ state }) {
                 strokeWidth: 0.8
               }
             ),
-            /* @__PURE__ */ jsx6(
+            /* @__PURE__ */ jsx7(
               "circle",
               {
                 cx: nowPct,
@@ -3872,7 +4464,7 @@ function BeltRings({
   ];
   const vr = inner || outer ? inner ? 26 : 40 : altitudeKm === null ? null : 12 + Math.min(1, Math.max(0, altitudeKm / 8e3)) * 36;
   const vesselTone = inner ? "nogo" : outer ? "warn" : magnetosphere ? "go" : "info";
-  return /* @__PURE__ */ jsxs6(
+  return /* @__PURE__ */ jsxs7(
     "svg",
     {
       viewBox: "0 0 100 100",
@@ -3885,7 +4477,7 @@ function BeltRings({
       role: "img",
       "aria-label": vr === null ? "Radiation belts, vessel position unknown" : "Radiation belt position",
       children: [
-        rings.map((ring) => /* @__PURE__ */ jsx6(
+        rings.map((ring) => /* @__PURE__ */ jsx7(
           "circle",
           {
             cx,
@@ -3899,9 +4491,9 @@ function BeltRings({
           },
           ring.label
         )),
-        outer && !inner && /* @__PURE__ */ jsx6("circle", { cx, cy, r: 40, fill: TONE_HEX.warn, opacity: 0.08 }),
-        inner && /* @__PURE__ */ jsx6("circle", { cx, cy, r: 26, fill: TONE_HEX.nogo, opacity: 0.1 }),
-        /* @__PURE__ */ jsx6(
+        outer && !inner && /* @__PURE__ */ jsx7("circle", { cx, cy, r: 40, fill: TONE_HEX.warn, opacity: 0.08 }),
+        inner && /* @__PURE__ */ jsx7("circle", { cx, cy, r: 26, fill: TONE_HEX.nogo, opacity: 0.1 }),
+        /* @__PURE__ */ jsx7(
           "circle",
           {
             cx,
@@ -3911,7 +4503,7 @@ function BeltRings({
             opacity: 0.85
           }
         ),
-        vr !== null && /* @__PURE__ */ jsx6(
+        vr !== null && /* @__PURE__ */ jsx7(
           "circle",
           {
             cx: cx + vr,
@@ -3947,7 +4539,7 @@ function SolarWindChart({
     d += ` L ${x.toFixed(2)} ${y.toFixed(2)}`;
   }
   const area = `${d} L ${W} ${H} L 0 ${H} Z`;
-  return /* @__PURE__ */ jsxs6(
+  return /* @__PURE__ */ jsxs7(
     "svg",
     {
       viewBox: `0 0 ${W} ${H}`,
@@ -3957,8 +4549,8 @@ function SolarWindChart({
       role: "img",
       "aria-label": "Solar-wind and radiation-field flux",
       children: [
-        /* @__PURE__ */ jsx6("path", { d: area, fill: TONE_HEX[tone], opacity: 0.16 }),
-        /* @__PURE__ */ jsx6("path", { d, fill: "none", stroke: TONE_HEX[tone], strokeWidth: 0.9 })
+        /* @__PURE__ */ jsx7("path", { d: area, fill: TONE_HEX[tone], opacity: 0.16 }),
+        /* @__PURE__ */ jsx7("path", { d, fill: "none", stroke: TONE_HEX[tone], strokeWidth: 0.9 })
       ]
     }
   );
@@ -3975,12 +4567,12 @@ function SpaceWeatherComponent({
   const parentIndex = identityReading.state === "observed" || identityReading.state === "held" ? identityReading.value.parentBodyIndex : void 0;
   const fallbackBodyName = parentIndex == null ? void 0 : facts?.nameByIndex[parentIndex];
   if (!read3.readable) {
-    return /* @__PURE__ */ jsx6(
+    return /* @__PURE__ */ jsx7(
       Panel2,
       {
         panelTitle: "Space Weather",
         compactTitle: ["SPACE WX", "WX"],
-        sections: /* @__PURE__ */ jsx6(Section3, { fill: true, children: /* @__PURE__ */ jsx6(EmptyState2, { layout: "fill", role: "status", "aria-live": "polite", children: ABSENCE_TEXT[read3.absence] }) })
+        sections: /* @__PURE__ */ jsx7(Section3, { fill: true, children: /* @__PURE__ */ jsx7(EmptyState3, { layout: "fill", role: "status", "aria-live": "polite", children: ABSENCE_TEXT[read3.absence] }) })
       }
     );
   }
@@ -3990,7 +4582,7 @@ function SpaceWeatherComponent({
   const cols = w ?? 8;
   const rows = h ?? 8;
   const compact = cols < 7 || rows < 6;
-  const doseText = d.radiationRadPerHour === null ? NULL_DISPLAY3 : `${d.radiationRadPerHour.toFixed(d.radiationRadPerHour < 1 ? 3 : 2)} rad/h`;
+  const doseText = d.radiationRadPerHour === null ? NULL_DISPLAY4 : d.radiationRadPerHour < 1e-3 ? /* @__PURE__ */ jsx7(Unit4, { value: value10("rad/h", d.radiationRadPerHour), decimals: 3 }) : `${d.radiationRadPerHour.toFixed(d.radiationRadPerHour < 1 ? 3 : 2)} rad/h`;
   const shielding = d.shieldingValue !== null && d.shieldingCapacity !== null && d.shieldingCapacity > 0 ? {
     fraction: d.shieldingValue / d.shieldingCapacity,
     label: `${d.shieldingValue.toFixed(1)} / ${d.shieldingCapacity.toFixed(1)}`
@@ -4000,13 +4592,13 @@ function SpaceWeatherComponent({
     (s, i) => deriveStorm(s, i, nowUt, d.stormEjectionSpeedMps)
   );
   const activeStorms = allStorms.filter((s) => s.state !== 0);
-  return /* @__PURE__ */ jsx6(
+  return /* @__PURE__ */ jsx7(
     Panel2,
     {
       panelTitle: "Space Weather",
       compactTitle: ["SPACE WX", "WX"],
-      panelAside: /* @__PURE__ */ jsx6(
-        Badge5,
+      panelAside: /* @__PURE__ */ jsx7(
+        Badge6,
         {
           role: "status",
           "aria-live": "polite",
@@ -4015,26 +4607,26 @@ function SpaceWeatherComponent({
         }
       ),
       sections: [
-        read3.held && /* @__PURE__ */ jsx6(Section3, { full: true, children: /* @__PURE__ */ jsx6(Text4, { tone: "warn", size: "xs", role: "status", "aria-live": "polite", children: "Space weather held: the dose, shielding, stars and CMEs are the last reported, and the craft's position in the belts is unknown." }) }, "dated"),
+        read3.held && /* @__PURE__ */ jsx7(Section3, { full: true, children: /* @__PURE__ */ jsx7(Text5, { tone: "warn", size: "xs", role: "status", "aria-live": "polite", children: "Space weather held: the dose, shielding, stars and CMEs are the last reported, and the craft's position in the belts is unknown." }) }, "dated"),
         /* Sun vantage first: the widget's subject is what the STAR is doing,
            and the vessel-local consequence below is downstream of it. */
-        /* @__PURE__ */ jsxs6(Section3, { children: [
-          /* @__PURE__ */ jsx6(SectionTitle, { children: "Stars" }),
-          d.stars.length === 0 ? /* @__PURE__ */ jsx6(EmptyState2, { children: "No stars detected yet." }) : (
+        /* @__PURE__ */ jsxs7(Section3, { children: [
+          /* @__PURE__ */ jsx7(SectionTitle, { children: "Stars" }),
+          d.stars.length === 0 ? /* @__PURE__ */ jsx7(EmptyState3, { children: "No stars detected yet." }) : (
             // `justify="start"`, not Cluster's default `between`: with one or two
             // stars, space-between shoves the cards to opposite edges with a
             // canyon between them, which reads as broken rather than as "not much
             // going on". Packing left with a fixed card width is what scales from
             // a lone star to a five-star system, wrapping instead of stretching.
-            /* @__PURE__ */ jsx6(Cluster5, { wrap: true, justify: "start", children: d.stars.map((star) => {
+            /* @__PURE__ */ jsx7(Cluster6, { wrap: true, justify: "start", children: d.stars.map((star) => {
               const name = star.star ?? "Unknown star";
               const activity = starActivity(allStorms, name);
-              return /* @__PURE__ */ jsx6(
+              return /* @__PURE__ */ jsx7(
                 Card2,
                 {
                   tone: SEVERITY_CARD_TONE[activity.severity],
                   style: { width: 128, flexShrink: 0 },
-                  top: /* @__PURE__ */ jsx6(
+                  top: /* @__PURE__ */ jsx7(
                     StarDiagram,
                     {
                       starName: name,
@@ -4043,16 +4635,16 @@ function SpaceWeatherComponent({
                     }
                   ),
                   title: name,
-                  children: /* @__PURE__ */ jsx6(Text4, { level: "muted", size: "xs", children: /* @__PURE__ */ jsx6(Unit4, { value: star.distance }) })
+                  children: /* @__PURE__ */ jsx7(Text5, { level: "muted", size: "xs", children: /* @__PURE__ */ jsx7(Unit4, { value: star.distance }) })
                 },
                 name
               );
             }) })
           )
         ] }, "stars"),
-        /* @__PURE__ */ jsxs6(Section3, { children: [
-          /* @__PURE__ */ jsx6(SectionTitle, { children: "CME tracker" }),
-          activeStorms.length === 0 ? /* @__PURE__ */ jsx6(EmptyState2, { children: "No inbound CMEs detected." }) : /* @__PURE__ */ jsx6(Stack4, { children: activeStorms.map((storm) => /* @__PURE__ */ jsx6(
+        /* @__PURE__ */ jsxs7(Section3, { children: [
+          /* @__PURE__ */ jsx7(SectionTitle, { children: "CME tracker" }),
+          activeStorms.length === 0 ? /* @__PURE__ */ jsx7(EmptyState3, { children: "No inbound CMEs detected." }) : /* @__PURE__ */ jsx7(Stack5, { children: activeStorms.map((storm) => /* @__PURE__ */ jsx7(
             StormCard,
             {
               storm,
@@ -4062,10 +4654,10 @@ function SpaceWeatherComponent({
             storm.key
           )) })
         ] }, "cme"),
-        /* @__PURE__ */ jsx6(Section3, { full: true, children: /* @__PURE__ */ jsx6(StormTimeline, { state: d.stormState }) }, "timeline"),
-        /* @__PURE__ */ jsx6(Section3, { full: true, children: /* @__PURE__ */ jsxs6("div", { style: midRowStyle(compact), children: [
-          /* @__PURE__ */ jsxs6("div", { style: RINGS_SLOT, children: [
-            /* @__PURE__ */ jsx6(
+        /* @__PURE__ */ jsx7(Section3, { full: true, children: /* @__PURE__ */ jsx7(StormTimeline, { state: d.stormState }) }, "timeline"),
+        /* @__PURE__ */ jsx7(Section3, { full: true, children: /* @__PURE__ */ jsxs7("div", { style: midRowStyle(compact), children: [
+          /* @__PURE__ */ jsxs7("div", { style: RINGS_SLOT, children: [
+            /* @__PURE__ */ jsx7(
               BeltRings,
               {
                 inner: d.innerBelt,
@@ -4076,23 +4668,23 @@ function SpaceWeatherComponent({
             ),
             positionUnknown && // Says WHY the dot is gone. A diagram missing its "you are here"
             // marker otherwise reads as a widget that failed to draw one.
-            /* @__PURE__ */ jsx6("span", { style: POSITION_UNKNOWN_TAG, children: "Position unknown" }),
-            d.blackout && /* @__PURE__ */ jsx6("span", { style: BLACKOUT_TAG, children: "Comms blackout" })
+            /* @__PURE__ */ jsx7("span", { style: POSITION_UNKNOWN_TAG, children: "Position unknown" }),
+            d.blackout && /* @__PURE__ */ jsx7("span", { style: BLACKOUT_TAG, children: "Comms blackout" })
           ] }),
-          /* @__PURE__ */ jsxs6("div", { style: DOSE_SLOT, children: [
-            /* @__PURE__ */ jsx6(
+          /* @__PURE__ */ jsxs7("div", { style: DOSE_SLOT, children: [
+            /* @__PURE__ */ jsx7(
               "div",
               {
                 style: doseValueStyle(doseTone(d.radiationRadPerHour), compact),
                 children: doseText
               }
             ),
-            /* @__PURE__ */ jsx6("div", { style: DOSE_CAPTION, children: "habitat dose rate" })
+            /* @__PURE__ */ jsx7("div", { style: DOSE_CAPTION, children: "habitat dose rate" })
           ] })
         ] }) }, "environment"),
-        !compact ? /* @__PURE__ */ jsx6(Section3, { full: true, children: /* @__PURE__ */ jsxs6("div", { style: FLUX_SECTION, children: [
-          /* @__PURE__ */ jsx6(ReadoutCaption2, { style: SPACED_CAPTION, children: "Solar-wind flux" }),
-          /* @__PURE__ */ jsx6("div", { style: CHART_SLOT, children: d.radiationRadPerHour === null ? /* @__PURE__ */ jsx6(EmptyState2, { children: "Flux needs a dose rate" }) : /* @__PURE__ */ jsx6(
+        !compact ? /* @__PURE__ */ jsx7(Section3, { full: true, children: /* @__PURE__ */ jsxs7("div", { style: FLUX_SECTION, children: [
+          /* @__PURE__ */ jsx7(ReadoutCaption2, { style: SPACED_CAPTION, children: "Solar-wind flux" }),
+          /* @__PURE__ */ jsx7("div", { style: CHART_SLOT, children: d.radiationRadPerHour === null ? /* @__PURE__ */ jsx7(EmptyState3, { children: "Flux needs a dose rate" }) : /* @__PURE__ */ jsx7(
             SolarWindChart,
             {
               radiation: d.radiationRadPerHour,
@@ -4101,20 +4693,20 @@ function SpaceWeatherComponent({
             }
           ) })
         ] }) }, "flux") : null,
-        /* @__PURE__ */ jsx6(Section3, { full: true, children: /* @__PURE__ */ jsxs6("div", { style: FOOTER_ROW, children: [
-          /* @__PURE__ */ jsx6(
+        /* @__PURE__ */ jsx7(Section3, { full: true, children: /* @__PURE__ */ jsxs7("div", { style: FOOTER_ROW, children: [
+          /* @__PURE__ */ jsx7(
             Meter2,
             {
               label: "Shielding",
-              value: shieldFrac === null ? null : value9("ratio", shieldFrac),
+              value: shieldFrac === null ? null : value10("ratio", shieldFrac),
               tone: shieldFrac === null ? "info" : shieldFrac >= 0.6 ? "go" : shieldFrac >= 0.3 ? "warn" : "nogo",
               valueLabel: shielding?.label
             }
           ),
-          !compact && /* @__PURE__ */ jsxs6("div", { style: ENV_ROW, children: [
-            /* @__PURE__ */ jsx6("span", { style: envTagStyle(d.magnetosphere), children: "Magnetosphere" }),
-            /* @__PURE__ */ jsx6("span", { style: envTagStyle(d.outerBelt, "warn"), children: "Outer belt" }),
-            /* @__PURE__ */ jsx6("span", { style: envTagStyle(d.innerBelt, "nogo"), children: "Inner belt" })
+          !compact && /* @__PURE__ */ jsxs7("div", { style: ENV_ROW, children: [
+            /* @__PURE__ */ jsx7("span", { style: envTagStyle(d.magnetosphere), children: "Magnetosphere" }),
+            /* @__PURE__ */ jsx7("span", { style: envTagStyle(d.outerBelt, "warn"), children: "Outer belt" }),
+            /* @__PURE__ */ jsx7("span", { style: envTagStyle(d.innerBelt, "nogo"), children: "Inner belt" })
           ] })
         ] }) }, "shielding")
       ]
@@ -4434,6 +5026,40 @@ KERBALISM.registerContribution({
   )
 });
 
+// src/ShipMap/partActions.ts
+function computeKerbalismPartActions(instruments) {
+  const entries = [];
+  for (const instrument of instruments ?? []) {
+    const ext = readKerbalismScienceInstrumentExt(instrument);
+    if (ext?.kind !== "experiment") continue;
+    if (!instrument.partId || !instrument.experimentId) continue;
+    if (typeof instrument.running !== "boolean") continue;
+    const title = instrument.title || instrument.experimentId;
+    const running = instrument.running;
+    entries.push({
+      partId: instrument.partId,
+      name: `${instrument.experimentId}.${running ? "stop" : "start"}`,
+      label: `${running ? "Stop" : "Start"} ${title}`,
+      group: "Science",
+      // A broken experiment cannot be switched.
+      active: ext.runningState !== "Broken" && ext.expStatus !== "Broken",
+      command: running ? "science.experiment.stop" : "science.experiment.start",
+      args: {
+        partId: instrument.partId,
+        experimentId: instrument.experimentId
+      }
+    });
+  }
+  return entries;
+}
+KERBALISM.registerContribution({
+  id: "ship-map-part-actions",
+  contributes: "ship-map.part-actions",
+  deps: ["science.instruments"],
+  requires: "kerbalism",
+  compute: (topics) => computeKerbalismPartActions(lastValue(topics["science.instruments"]))
+});
+
 // src/ShipMap/partMeta.ts
 import { magnitudeOf as magnitudeOf12 } from "@ksp-gonogo/ui-kit";
 function computeKerbalismPartMeta(lifeSupport, held) {
@@ -4570,21 +5196,23 @@ KERBALISM.registerContribution({
 import {
   readingOf,
   registerAugment as registerAugment4,
-  useCommand,
-  useTelemetry as useTelemetry5
+  useCommand as useCommand2,
+  useTelemetry as useTelemetry7,
+  value as value11
 } from "@ksp-gonogo/sitrep-sdk";
 import {
-  Badge as Badge6,
-  Cluster as Cluster6,
-  CommandButton,
+  Badge as Badge7,
+  Button as Button2,
+  Cluster as Cluster7,
   Section as Section4,
-  Stack as Stack5,
-  Text as Text5,
+  Stack as Stack6,
+  ToggleButton,
+  Text as Text6,
   Unit as Unit5
 } from "@ksp-gonogo/ui-kit";
 
 // src/ScienceFileManager/useTransferRailEntry.ts
-import { useTelemetry as useTelemetry4 } from "@ksp-gonogo/sitrep-sdk";
+import { useTelemetry as useTelemetry6 } from "@ksp-gonogo/sitrep-sdk";
 import { useRailEntry } from "@ksp-gonogo/ui-kit";
 import { useRef } from "react";
 
@@ -4629,7 +5257,7 @@ function transferAmplitudes(trace) {
 
 // src/ScienceFileManager/useTransferRailEntry.ts
 function useTransferRailEntry(experimentsReading, file, subjectId, label) {
-  const delay = useTelemetry4("comms.delay");
+  const delay = useTelemetry6("comms.delay");
   const oneWaySeconds = delay.state === "observed" ? delay.value.oneWaySeconds?.magnitude ?? null : null;
   const trace = useRef(EMPTY_TRANSFER_TRACE);
   const lastFolded = useRef(null);
@@ -4642,10 +5270,10 @@ function useTransferRailEntry(experimentsReading, file, subjectId, label) {
       file.transmitting ?? null
     ) : trace.current;
   }
-  const current = trace.current;
+  const current2 = trace.current;
   const ribbonLabel = `${label} transferring to the ground`;
   useRailEntry(
-    transferTraceVisible(current) ? {
+    transferTraceVisible(current2) ? {
       inFlight: [],
       tags: KERBALISM_TRANSFER_TAGS,
       effectiveDelaySeconds: oneWaySeconds,
@@ -4655,7 +5283,7 @@ function useTransferRailEntry(experimentsReading, file, subjectId, label) {
           id: `kerbalism.transfer.${subjectId}`,
           label: ribbonLabel,
           oneWaySeconds,
-          amplitudes: transferAmplitudes(current),
+          amplitudes: transferAmplitudes(current2),
           ...oneWaySeconds === null ? {} : { spanSamples: oneWaySeconds / TRANSFER_STEP_SECONDS },
           tags: KERBALISM_TRANSFER_TAGS
         }
@@ -4665,7 +5293,7 @@ function useTransferRailEntry(experimentsReading, file, subjectId, label) {
 }
 
 // src/ScienceFileManager/index.tsx
-import { Fragment as Fragment3, jsx as jsx7, jsxs as jsxs7 } from "react/jsx-runtime";
+import { Fragment as Fragment5, jsx as jsx8, jsxs as jsxs8 } from "react/jsx-runtime";
 function stillTrue(reading, whenConfirmedNothing) {
   if (reading.state === "observed") return reading.value;
   if (reading.state === "held") return reading.value;
@@ -4684,28 +5312,34 @@ function findDriveEntries(experiments, subjectId) {
   }
   return out;
 }
+function drivePartName(experiments, subjectId, kind) {
+  return experiments?.find(
+    (e) => e.subjectId === subjectId && readKerbalismScienceExperimentExt(e)?.kind === kind && e.partName
+  )?.partName ?? void 0;
+}
 function DriveCapacity({
   ext,
-  dated
+  dated,
+  partName
 }) {
   const hasStorage = ext.storageCapacityMB != null && ext.storageUsedMB != null;
   const hasSlots = ext.sampleSlotsTotal != null && ext.sampleSlotsUsed != null;
   if (!hasStorage && !hasSlots) return null;
-  return /* @__PURE__ */ jsxs7(Text5, { size: "xs", level: "muted", children: [
-    "Drive",
-    " ",
-    hasStorage && /* @__PURE__ */ jsxs7(Fragment3, { children: [
-      /* @__PURE__ */ jsx7(Unit5, { value: dated(ext.storageUsedMB) }),
-      " /",
+  return /* @__PURE__ */ jsxs8(Text6, { size: "xs", level: "muted", children: [
+    partName ? `Stored in ${partName}` : "Stored on drive",
+    hasStorage && /* @__PURE__ */ jsxs8(Fragment5, { children: [
+      " \xB7 files ",
+      /* @__PURE__ */ jsx8(Unit5, { value: dated(ext.storageUsedMB) }),
+      " used of",
       " ",
-      /* @__PURE__ */ jsx7(Unit5, { value: dated(ext.storageCapacityMB) })
+      /* @__PURE__ */ jsx8(Unit5, { value: dated(ext.storageCapacityMB) })
     ] }),
-    hasStorage && hasSlots && " \xB7 ",
-    hasSlots && /* @__PURE__ */ jsxs7(Fragment3, { children: [
-      /* @__PURE__ */ jsx7(Unit5, { value: dated(ext.sampleSlotsUsed) }),
-      "/",
-      /* @__PURE__ */ jsx7(Unit5, { value: dated(ext.sampleSlotsTotal) }),
-      " slots"
+    hasSlots && /* @__PURE__ */ jsxs8(Fragment5, { children: [
+      " \xB7 sample slots ",
+      /* @__PURE__ */ jsx8(Unit5, { value: dated(ext.sampleSlotsUsed) }),
+      " used of",
+      " ",
+      /* @__PURE__ */ jsx8(Unit5, { value: dated(ext.sampleSlotsTotal) })
     ] })
   ] });
 }
@@ -4717,16 +5351,16 @@ function flagState(flag) {
 function ScienceDataAboardRowAugment({
   subjectId
 }) {
-  const experimentsReading = useTelemetry5("science.experiments");
+  const experimentsReading = useTelemetry7("science.experiments");
   const experiments = stillTrue(experimentsReading, void 0);
   const held = experimentsReading.state === "held";
   const dated = (figure) => figure == null ? null : readingOf(experimentsReading, () => figure);
-  const labs = stillTrue(useTelemetry5("science.lab"), void 0);
-  const sendCmd = useCommand("kerbalism.file.send");
-  const deleteCmd = useCommand("kerbalism.file.delete");
-  const analyzeCmd = useCommand("kerbalism.sample.analyze");
-  const dumpCmd = useCommand("kerbalism.sample.dump");
-  const moveCmd = useCommand("kerbalism.sample.moveToLab");
+  const labs = stillTrue(useTelemetry7("science.lab"), void 0);
+  const sendCmd = useCommand2("kerbalism.file.send");
+  const deleteCmd = useCommand2("kerbalism.file.delete");
+  const analyzeCmd = useCommand2("kerbalism.sample.analyze");
+  const dumpCmd = useCommand2("kerbalism.sample.dump");
+  const moveCmd = useCommand2("kerbalism.sample.moveToLab");
   const { file, sample } = findDriveEntries(experiments, subjectId);
   useTransferRailEntry(
     experimentsReading,
@@ -4739,18 +5373,39 @@ function ScienceDataAboardRowAugment({
   const driveExt = file ?? sample;
   const send = flagState(file?.sendFlagged);
   const analyze = flagState(sample?.analyze);
-  return /* @__PURE__ */ jsxs7(
+  return /* @__PURE__ */ jsxs8(
     Section4,
     {
       style: { paddingLeft: "var(--indent-row)" },
       "aria-label": "Kerbalism file manager",
       children: [
-        file && /* @__PURE__ */ jsxs7(Stack5, { children: [
-          /* @__PURE__ */ jsxs7(Cluster6, { wrap: true, justify: "start", children: [
-            file.dataSizeMB != null && /* @__PURE__ */ jsx7(Text5, { size: "xs", children: /* @__PURE__ */ jsx7(Unit5, { value: dated(file.dataSizeMB) }) }),
-            file.transmitRateMBps?.isPositive() && /* @__PURE__ */ jsx7(Text5, { size: "xs", level: "muted", children: /* @__PURE__ */ jsx7(Unit5, { value: dated(file.transmitRateMBps) }) }),
-            file.transmitting === true && /* @__PURE__ */ jsx7(
-              Badge6,
+        file && /* @__PURE__ */ jsxs8(Stack6, { children: [
+          /* @__PURE__ */ jsxs8(Cluster7, { wrap: true, justify: "start", children: [
+            file.dataSizeMB != null && /* @__PURE__ */ jsxs8(Text6, { size: "xs", children: [
+              "File ",
+              /* @__PURE__ */ jsx8(Unit5, { value: dated(file.dataSizeMB) })
+            ] }),
+            file.dataSizeMB != null && file.sciencePerMB != null && /* @__PURE__ */ jsxs8(Text6, { size: "xs", level: "muted", children: [
+              "Worth",
+              " ",
+              /* @__PURE__ */ jsx8(
+                Unit5,
+                {
+                  value: dated(
+                    value11(
+                      "science",
+                      file.dataSizeMB.magnitude * file.sciencePerMB.magnitude
+                    )
+                  )
+                }
+              )
+            ] }),
+            file.transmitRateMBps?.isPositive() && /* @__PURE__ */ jsxs8(Text6, { size: "xs", level: "muted", children: [
+              "Sending at ",
+              /* @__PURE__ */ jsx8(Unit5, { value: dated(file.transmitRateMBps) })
+            ] }),
+            file.transmitting === true && /* @__PURE__ */ jsx8(
+              Badge7,
               {
                 tone: held ? "info" : "go",
                 size: "sm",
@@ -4759,93 +5414,113 @@ function ScienceDataAboardRowAugment({
                 children: held ? "Transmitting \xB7 held" : "Transmitting"
               }
             ),
-            file.transmitting == null && /* @__PURE__ */ jsx7(Badge6, { tone: "warn", size: "sm", children: "Transmit unknown" })
+            file.transmitting == null && /* @__PURE__ */ jsx8(Badge7, { tone: "warn", size: "sm", children: "Transmit unknown" })
           ] }),
-          /* @__PURE__ */ jsxs7(Cluster6, { wrap: true, justify: "start", children: [
-            /* @__PURE__ */ jsx7(
-              CommandButton,
+          /* @__PURE__ */ jsxs8(Cluster7, { wrap: true, justify: "start", children: [
+            /* @__PURE__ */ jsx8(
+              ToggleButton,
               {
+                command: sendCmd.toArgs(
+                  (flag) => ({ subjectId, flag }),
+                  { label: send.on ? "Cancel send" : "Send" }
+                ),
+                state: file?.sendFlagged,
+                name: "Send file",
                 size: "sm",
                 tone: "go",
-                handle: sendCmd,
-                args: { subjectId, flag: send.next },
-                commandLabel: send.on ? "Cancel send" : "Send",
-                pressed: send.on,
-                disabled: !send.read,
-                title: send.read ? void 0 : UNREAD_FLAG_TITLE,
-                label: send.read ? send.on ? "Queued" : "Send" : "Unknown",
-                pendingLabel: send.on ? "Cancelling..." : "Queueing...",
-                "aria-label": send.read ? send.on ? "Cancel send for file" : "Send file" : "Send file (send flag could not be read)"
+                unavailable: send.read ? null : UNREAD_FLAG_TITLE,
+                "aria-label": "Send file",
+                children: (shown) => shown === true ? "Queued" : shown === false ? "Send" : "Unknown"
               }
             ),
-            /* @__PURE__ */ jsx7(
-              CommandButton,
+            /* @__PURE__ */ jsx8(
+              Button2,
               {
+                command: deleteCmd.with({ subjectId }, { label: "Delete file" }),
+                variant: "ghost",
                 size: "sm",
-                handle: deleteCmd,
-                args: { subjectId },
-                commandLabel: "Delete file",
-                label: "Delete",
                 confirmLabel: "Confirm",
                 confirmTone: "nogo",
-                pendingLabel: "Deleting...",
                 "aria-label": "Delete file",
-                confirmAriaLabel: "Confirm delete file"
+                confirmAriaLabel: "Confirm delete file",
+                children: "Delete"
               }
             )
           ] })
         ] }),
-        sample && /* @__PURE__ */ jsxs7(Stack5, { children: [
-          /* @__PURE__ */ jsx7(Cluster6, { wrap: true, justify: "start", children: sample.sampleMass != null && /* @__PURE__ */ jsx7(Text5, { size: "xs", children: /* @__PURE__ */ jsx7(Unit5, { value: dated(sample.sampleMass) }) }) }),
-          /* @__PURE__ */ jsxs7(Cluster6, { wrap: true, justify: "start", children: [
-            /* @__PURE__ */ jsx7(
-              CommandButton,
+        sample && /* @__PURE__ */ jsxs8(Stack6, { children: [
+          /* @__PURE__ */ jsxs8(Cluster7, { wrap: true, justify: "start", children: [
+            sample.sampleMass != null && /* @__PURE__ */ jsxs8(Text6, { size: "xs", children: [
+              "Sample ",
+              /* @__PURE__ */ jsx8(Unit5, { value: dated(sample.sampleMass) })
+            ] }),
+            sample.dataSizeMB != null && sample.sciencePerMB != null && /* @__PURE__ */ jsxs8(Text6, { size: "xs", level: "muted", children: [
+              "Worth",
+              " ",
+              /* @__PURE__ */ jsx8(
+                Unit5,
+                {
+                  value: dated(
+                    value11(
+                      "science",
+                      sample.dataSizeMB.magnitude * sample.sciencePerMB.magnitude
+                    )
+                  )
+                }
+              )
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxs8(Cluster7, { wrap: true, justify: "start", children: [
+            /* @__PURE__ */ jsx8(
+              ToggleButton,
               {
+                command: analyzeCmd.toArgs(
+                  (flag) => ({ subjectId, flag }),
+                  { label: analyze.on ? "Cancel analyze" : "Analyze" }
+                ),
+                state: sample?.analyze,
+                name: "Analyze sample",
                 size: "sm",
                 tone: "go",
-                handle: analyzeCmd,
-                args: { subjectId, flag: analyze.next },
-                commandLabel: analyze.on ? "Cancel analyze" : "Analyze",
-                pressed: analyze.on,
-                disabled: !analyze.read,
-                title: analyze.read ? void 0 : UNREAD_FLAG_TITLE,
-                label: analyze.read ? analyze.on ? "Analyzing" : "Analyze" : "Unknown",
-                pendingLabel: analyze.on ? "Cancelling..." : "Flagging...",
-                "aria-label": analyze.read ? analyze.on ? "Cancel analyze for sample" : "Flag sample for analysis" : "Flag sample for analysis (analyze flag could not be read)"
+                unavailable: analyze.read ? null : UNREAD_FLAG_TITLE,
+                "aria-label": "Flag sample for analysis",
+                children: (shown) => shown === true ? "Analyzing" : shown === false ? "Analyze" : "Unknown"
               }
             ),
-            /* @__PURE__ */ jsx7(
-              CommandButton,
+            /* @__PURE__ */ jsx8(
+              Button2,
               {
+                command: moveCmd.with({ subjectId }, { label: "Move to lab" }),
+                variant: "ghost",
                 size: "sm",
-                handle: moveCmd,
-                args: { subjectId },
-                commandLabel: "Move to lab",
-                label: "Move to lab",
-                pendingLabel: "Moving...",
-                disabled: !hasLab,
-                title: hasLab ? void 0 : "No lab part aboard this vessel",
-                "aria-label": hasLab ? "Move sample to lab" : "Move sample to lab (no lab part aboard this vessel)"
+                unavailable: hasLab ? null : "No lab part aboard this vessel",
+                "aria-label": "Move sample to lab",
+                children: "Move to lab"
               }
             ),
-            /* @__PURE__ */ jsx7(
-              CommandButton,
+            /* @__PURE__ */ jsx8(
+              Button2,
               {
+                command: dumpCmd.with({ subjectId }, { label: "Dump sample" }),
+                variant: "ghost",
                 size: "sm",
-                handle: dumpCmd,
-                args: { subjectId },
-                commandLabel: "Dump sample",
-                label: "Dump",
                 confirmLabel: "Confirm",
                 confirmTone: "nogo",
-                pendingLabel: "Dumping...",
                 "aria-label": "Dump sample",
-                confirmAriaLabel: "Confirm dump sample"
+                confirmAriaLabel: "Confirm dump sample",
+                children: "Dump"
               }
             )
           ] })
         ] }),
-        driveExt && /* @__PURE__ */ jsx7(DriveCapacity, { ext: driveExt, dated })
+        driveExt && /* @__PURE__ */ jsx8(
+          DriveCapacity,
+          {
+            ext: driveExt,
+            dated,
+            partName: drivePartName(experiments, subjectId, driveExt.kind)
+          }
+        )
       ]
     }
   );
@@ -4858,28 +5533,85 @@ registerAugment4({
   owner: KERBALISM
 });
 
-// src/Reliability/index.tsx
-import { registerAugment as registerAugment5, useTelemetry as useTelemetry6 } from "@ksp-gonogo/sitrep-sdk";
+// src/ExperimentProgress/index.tsx
 import {
-  Badge as Badge7,
+  readingOf as readingOf2,
+  registerAugment as registerAugment5,
+  useTelemetry as useTelemetry8
+} from "@ksp-gonogo/sitrep-sdk";
+import { Cluster as Cluster8, Text as Text7, Unit as Unit6 } from "@ksp-gonogo/ui-kit";
+import { jsx as jsx9, jsxs as jsxs9 } from "react/jsx-runtime";
+function earningRate(running, ext) {
+  const perSecond = ext.dataRateMBps;
+  const perMegabyte = ext.sciencePerMB;
+  if (perSecond == null || perMegabyte == null) return null;
+  const nominal = perSecond.times(perMegabyte);
+  if (running === false) return nominal.times(0).in("science/day");
+  if (running !== true || ext.prodFactor == null) return null;
+  return nominal.times(ext.prodFactor.magnitude).in("science/day");
+}
+function ExperimentProgressAugment({
+  instrument
+}) {
+  const reading = useTelemetry8("science.instruments");
+  if (reading.state !== "observed" && reading.state !== "held") return null;
+  const entry = reading.value.find(
+    (i) => i.partId === instrument.partId && i.experimentId === instrument.expId
+  );
+  const ext = readKerbalismScienceInstrumentExt(entry);
+  if (ext?.kind !== "experiment") return null;
+  const remaining = instrument.running === true && instrument.producing === true ? ext.secondsToComplete : null;
+  const earning = earningRate(instrument.running, ext);
+  if (remaining == null && earning == null) return null;
+  return /* @__PURE__ */ jsxs9(
+    Cluster8,
+    {
+      wrap: true,
+      justify: "start",
+      role: "group",
+      "aria-label": `${instrument.partTitle} earning rate`,
+      children: [
+        earning != null && /* @__PURE__ */ jsxs9(Text7, { size: "xs", level: "muted", children: [
+          "Earning ",
+          /* @__PURE__ */ jsx9(Unit6, { value: readingOf2(reading, () => earning) })
+        ] }),
+        remaining != null && /* @__PURE__ */ jsxs9(Text7, { size: "xs", level: "muted", children: [
+          "To finish ",
+          /* @__PURE__ */ jsx9(Unit6, { value: readingOf2(reading, () => remaining) })
+        ] })
+      ]
+    }
+  );
+}
+registerAugment5({
+  id: "experiments-instrument-progress",
+  augments: "experiments.instrument",
+  component: ExperimentProgressAugment,
+  requires: "kerbalism",
+  owner: KERBALISM
+});
+
+// src/Reliability/index.tsx
+import { registerAugment as registerAugment6, useTelemetry as useTelemetry9 } from "@ksp-gonogo/sitrep-sdk";
+import {
+  Badge as Badge8,
   Card as Card3,
-  Cluster as Cluster8,
+  Cluster as Cluster10,
   heldWord,
   magnitudeOf as magnitudeOf16,
-  Stack as Stack7,
-  Text as Text7,
+  Stack as Stack8,
+  Text as Text9,
   worstSeverity
 } from "@ksp-gonogo/ui-kit";
 
 // src/Reliability/RepairControl.tsx
-import { useCommand as useCommand2 } from "@ksp-gonogo/sitrep-sdk";
+import { useCommand as useCommand3 } from "@ksp-gonogo/sitrep-sdk";
 import {
-  Button,
-  Cluster as Cluster7,
-  CommandButton as CommandButton2,
+  Button as Button3,
+  Cluster as Cluster9,
   SelectableRow,
-  Stack as Stack6,
-  Text as Text6
+  Stack as Stack7,
+  Text as Text8
 } from "@ksp-gonogo/ui-kit";
 import { useState as useState2 } from "react";
 
@@ -4938,7 +5670,7 @@ function repairCostResolver(crew, stores) {
 }
 
 // src/Reliability/RepairControl.tsx
-import { jsx as jsx8, jsxs as jsxs8 } from "react/jsx-runtime";
+import { jsx as jsx10, jsxs as jsxs10 } from "react/jsx-runtime";
 function costWords(cost) {
   return cost.map((line) => `${line.needed} \xD7 ${line.label}`).join(", ");
 }
@@ -4960,7 +5692,7 @@ function RepairControl({
   crew,
   cost
 }) {
-  const repair = useCommand2("kerbalism.repair");
+  const repair = useCommand3("kerbalism.repair");
   const [open, setOpen] = useState2(false);
   const [chosen, setChosen] = useState2(null);
   const verb = verbFor(condition);
@@ -4968,7 +5700,8 @@ function RepairControl({
   const rankOn = cost[0]?.name;
   const eligible = crew.filter((c) => mayAct(c, repairTrait, repairLevel));
   const readiest = rankOn ? eligible.slice().sort((a, b) => carriedOf(b, rankOn) - carriedOf(a, rankOn))[0] : eligible[0];
-  const performer = chosen ?? readiest?.name ?? null;
+  const pick = eligible.find((c) => c.name === chosen);
+  const performer = pick?.name ?? readiest?.name ?? null;
   const acting = eligible.find((c) => c.name === performer);
   const lines = cost.map((line) => {
     const carried = acting ? carriedOf(acting, line.name) : 0;
@@ -4978,14 +5711,14 @@ function RepairControl({
   const requirement = repairTrait ? `${repairTrait}${repairLevel != null ? ` level ${repairLevel}` : ""}` : null;
   const refusal = refusalFor(eligible.length, requirement, short);
   if (!open) {
-    return /* @__PURE__ */ jsxs8(Cluster7, { justify: "start", align: "baseline", children: [
-      /* @__PURE__ */ jsx8(Button, { variant: "ghost", size: "sm", onClick: () => setOpen(true), children: verb }),
-      price && /* @__PURE__ */ jsx8(Text6, { level: "muted", children: price })
+    return /* @__PURE__ */ jsxs10(Cluster9, { justify: "start", align: "baseline", children: [
+      /* @__PURE__ */ jsx10(Button3, { variant: "ghost", size: "sm", onClick: () => setOpen(true), children: verb }),
+      price && /* @__PURE__ */ jsx10(Text8, { level: "muted", children: price })
     ] });
   }
-  return /* @__PURE__ */ jsxs8(Stack6, { children: [
-    lines.map((line) => /* @__PURE__ */ jsx8("span", { children: `${line.needed} \xD7 ${line.label} \xB7 ${line.carried} carried \xB7 ${line.reserve} aboard` }, line.name)),
-    eligible.map((member) => /* @__PURE__ */ jsx8(
+  return /* @__PURE__ */ jsxs10(Stack7, { children: [
+    lines.map((line) => /* @__PURE__ */ jsx10("span", { children: `${line.needed} \xD7 ${line.label} \xB7 ${line.carried} carried \xB7 ${line.reserve} aboard` }, line.name)),
+    eligible.map((member) => /* @__PURE__ */ jsx10(
       SelectableRow,
       {
         selected: member.name === performer,
@@ -4994,29 +5727,29 @@ function RepairControl({
       },
       member.name ?? "unknown"
     )),
-    refusal && /* @__PURE__ */ jsx8("span", { children: refusal }),
-    /* @__PURE__ */ jsx8(
-      CommandButton2,
+    refusal && /* @__PURE__ */ jsx10("span", { children: refusal }),
+    /* @__PURE__ */ jsx10(
+      Button3,
       {
-        handle: repair,
-        args: { partId, crewName: performer ?? "" },
+        command: repair.with(
+          { partId, crewName: performer ?? "" },
+          { label: `${verb} with ${performer ?? "nobody"}` }
+        ),
+        variant: "ghost",
         size: "sm",
-        commandLabel: `${verb} with ${performer ?? "nobody"}`,
-        label: verb,
         confirmLabel: price ? `Confirm, ${price.toLowerCase()}` : "Confirm",
-        pendingLabel: `${verb}...`,
-        disabled: refusal !== null,
-        title: refusal ?? void 0
+        unavailable: refusal ?? null,
+        children: verb
       }
     )
   ] });
 }
 
 // src/Reliability/rows.tsx
-import { value as value10 } from "@ksp-gonogo/sitrep-sdk";
-import { magnitudeOf as magnitudeOf15, Unit as Unit6 } from "@ksp-gonogo/ui-kit";
-import { Fragment as Fragment4, jsx as jsx9, jsxs as jsxs9 } from "react/jsx-runtime";
-var seconds = (magnitude) => value10("s", magnitude);
+import { value as value12 } from "@ksp-gonogo/sitrep-sdk";
+import { magnitudeOf as magnitudeOf15, Unit as Unit7 } from "@ksp-gonogo/ui-kit";
+import { Fragment as Fragment6, jsx as jsx11, jsxs as jsxs11 } from "react/jsx-runtime";
+var seconds = (magnitude) => value12("s", magnitude);
 var SERVICE_ATTENTION = 0.9;
 function serviceBudget(part) {
   return (part.budgets ?? []).find((budget) => budget.kind === "schedule");
@@ -5032,21 +5765,21 @@ function serviceClause(budget) {
   if (used === null || limit === null) return void 0;
   const label = budget?.label ?? "service";
   if (used >= limit) {
-    return /* @__PURE__ */ jsxs9(Fragment4, { children: [
+    return /* @__PURE__ */ jsxs11(Fragment6, { children: [
       label,
       " overdue by ",
-      /* @__PURE__ */ jsx9(Unit6, { value: seconds(used - limit) })
+      /* @__PURE__ */ jsx11(Unit7, { value: seconds(used - limit) })
     ] });
   }
-  return /* @__PURE__ */ jsxs9(Fragment4, { children: [
+  return /* @__PURE__ */ jsxs11(Fragment6, { children: [
     label,
     " due in ",
-    /* @__PURE__ */ jsx9(Unit6, { value: seconds(limit - used) })
+    /* @__PURE__ */ jsx11(Unit7, { value: seconds(limit - used) })
   ] });
 }
 function joined(detail, rest) {
   if (detail && rest) {
-    return /* @__PURE__ */ jsxs9(Fragment4, { children: [
+    return /* @__PURE__ */ jsxs11(Fragment6, { children: [
       detail,
       " \xB7 ",
       rest
@@ -5083,7 +5816,7 @@ function rowFor(part) {
 }
 
 // src/Reliability/index.tsx
-import { jsx as jsx10, jsxs as jsxs10 } from "react/jsx-runtime";
+import { jsx as jsx12, jsxs as jsxs12 } from "react/jsx-runtime";
 function stillTrue2(reading) {
   return reading.state === "observed" || reading.state === "held" ? reading.value : void 0;
 }
@@ -5091,11 +5824,11 @@ function KerbalismReliabilityUpdates({
   vesselId,
   compact
 }) {
-  const identity = stillTrue2(useTelemetry6("vessel.identity"));
-  const summary = stillTrue2(useTelemetry6("kerbalism.reliability"));
-  const partsReading = useTelemetry6("kerbalism.reliabilityParts");
-  const crew = stillTrue2(useTelemetry6("vessel.crew"))?.crew ?? [];
-  const stores = stillTrue2(useTelemetry6("vessel.inventory"))?.stores ?? [];
+  const identity = stillTrue2(useTelemetry9("vessel.identity"));
+  const summary = stillTrue2(useTelemetry9("kerbalism.reliability"));
+  const partsReading = useTelemetry9("kerbalism.reliabilityParts");
+  const crew = stillTrue2(useTelemetry9("vessel.crew"))?.crew ?? [];
+  const stores = stillTrue2(useTelemetry9("vessel.inventory"))?.stores ?? [];
   if (!identity || identity.vesselId !== vesselId) return null;
   if (summary?.coverage !== "modeled") return null;
   const parts = stillTrue2(partsReading);
@@ -5109,22 +5842,22 @@ function KerbalismReliabilityUpdates({
   const atRisk = rows.some(
     (entry) => entry.row.severity === "nogo" || entry.part.condition === "unknown"
   );
-  return /* @__PURE__ */ jsxs10(Stack7, { role: "group", "aria-label": "Kerbalism reliability", children: [
-    /* @__PURE__ */ jsxs10(Cluster8, { justify: "start", wrap: true, children: [
-      /* @__PURE__ */ jsx10(Badge7, { tone: severity, children: `${rows.length} ${atRisk ? "at risk" : "to watch"}` }),
-      held && /* @__PURE__ */ jsx10(Badge7, { tone: "caution", children: heldWord(held) })
+  return /* @__PURE__ */ jsxs12(Stack8, { role: "group", "aria-label": "Kerbalism reliability", children: [
+    /* @__PURE__ */ jsxs12(Cluster10, { justify: "start", wrap: true, children: [
+      /* @__PURE__ */ jsx12(Badge8, { tone: severity, children: `${rows.length} ${atRisk ? "at risk" : "to watch"}` }),
+      held && /* @__PURE__ */ jsx12(Badge8, { tone: "caution", children: heldWord(held) })
     ] }),
     !compact && rows.map(({ part, row }, index) => (
       // The key falls back to the index, never the title: many modules share a title.
-      /* @__PURE__ */ jsxs10(
+      /* @__PURE__ */ jsxs12(
         Card3,
         {
           tone: row.severity,
           title: part.title ?? "Unknown part",
-          titleRight: /* @__PURE__ */ jsx10(Badge7, { tone: row.severity, children: row.word }),
+          titleRight: /* @__PURE__ */ jsx12(Badge8, { tone: row.severity, children: row.word }),
           children: [
-            row.clause !== void 0 && /* @__PURE__ */ jsx10(Text7, { level: "muted", children: row.clause }),
-            !held && actionable(part.condition) && part.partId && /* @__PURE__ */ jsx10(
+            row.clause !== void 0 && /* @__PURE__ */ jsx12(Text9, { level: "muted", children: row.clause }),
+            !held && actionable(part.condition) && part.partId && /* @__PURE__ */ jsx12(
               RepairControl,
               {
                 partId: part.partId,
@@ -5142,12 +5875,60 @@ function KerbalismReliabilityUpdates({
     ))
   ] });
 }
-registerAugment5({
+registerAugment6({
   id: "kerbalism-reliability-updates",
   augments: "vessel-catalog.updates",
   component: KerbalismReliabilityUpdates,
   requires: "kerbalism",
   owner: KERBALISM
+});
+
+// src/Transmission/scienceTransmitted.ts
+function scienceTransmittedReadouts(transmission, held) {
+  const total = transmission?.scienceTransmitted;
+  if (total == null) return null;
+  return [
+    {
+      id: "science-transmitted",
+      label: "Transmitted",
+      value: total,
+      ...held === void 0 ? {} : { held }
+    }
+  ];
+}
+KERBALISM.registerContribution({
+  id: "science-transmitted",
+  contributes: "science-data.archive-readouts",
+  requires: "kerbalism",
+  deps: [KERBALISM_TRANSMISSION_TOPIC],
+  compute: (topics) => scienceTransmittedReadouts(
+    lastValue(topics[KERBALISM_TRANSMISSION_TOPIC]),
+    topics[KERBALISM_TRANSMISSION_TOPIC]
+  )
+});
+
+// src/Transmission/linkRate.ts
+function kerbalismLinkRate(transmission, held) {
+  const rate = transmission?.dataRate?.magnitude;
+  if (rate === void 0 || !Number.isFinite(rate)) return null;
+  const target = transmission?.target;
+  return [
+    {
+      bitsPerSec: rate,
+      ...target ? { target } : {},
+      ...held === void 0 ? {} : { held }
+    }
+  ];
+}
+KERBALISM.registerContribution({
+  id: "comm-signal-link-rate",
+  contributes: "comm-signal.link-rate",
+  requires: "kerbalism",
+  deps: [KERBALISM_TRANSMISSION_TOPIC],
+  compute: (topics) => kerbalismLinkRate(
+    lastValue(topics[KERBALISM_TRANSMISSION_TOPIC]),
+    topics[KERBALISM_TRANSMISSION_TOPIC]
+  )
 });
 export {
   CREW_DEGENERATION_HORIZON_SECONDS,
@@ -5157,6 +5938,7 @@ export {
   ISRU_DRILLS_TOPIC,
   KERBALISM_AVAILABLE_TOPIC,
   KERBALISM_CREW_TOPIC,
+  KERBALISM_DIAGNOSTICS_TOPIC,
   KERBALISM_FEATURES_TOPIC,
   KERBALISM_ISRU_PROVIDER_ID,
   KERBALISM_LIFESUPPORT_TOPIC,
@@ -5166,6 +5948,7 @@ export {
   KERBALISM_SCIENCE_PROVIDER_ID,
   KERBALISM_SCIENCE_VALUE_MODEL,
   KERBALISM_SPACEWEATHER_TOPIC,
+  KERBALISM_TRANSMISSION_TOPIC,
   KERBALISM_UNIT_SYMBOLS,
   RESOURCE_RATE_HORIZON_SECONDS,
   SCIENCE_EXPERIMENTS_TOPIC,

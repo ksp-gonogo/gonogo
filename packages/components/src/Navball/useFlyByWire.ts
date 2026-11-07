@@ -62,7 +62,7 @@ export function useFlyByWire(
     setFbwState(settled.current);
   }, [readback]);
 
-  const holdSend = holdCmd.send;
+  const holdSend = holdCmd.dangerouslySendWithoutInput;
   const holding =
     armedHere && (fbwState === "armed" || fbwState === "unconfirmed");
   useEffect(() => {
@@ -76,9 +76,12 @@ export function useFlyByWire(
   useEffect(() => {
     return () => {
       if (stateRef.current === "off") return;
-      void fbwCmd.send({ enabled: false }, { label: "Disarm FBW" });
+      void fbwCmd.dangerouslySendWithoutInput(
+        { enabled: false },
+        { label: "Disarm FBW" },
+      );
     };
-  }, [fbwCmd.send]);
+  }, [fbwCmd.dangerouslySendWithoutInput]);
 
   const dispatch = (enabled: boolean) => {
     const seq = ++latest.current;
@@ -86,7 +89,10 @@ export function useFlyByWire(
     setArmedHere(enabled);
     setFbwState(enabled ? "arming" : "disarming");
     fbwCmd
-      .send({ enabled }, { label: enabled ? "Arm FBW" : "Disarm FBW" })
+      .dangerouslySendWithoutInput(
+        { enabled },
+        { label: enabled ? "Arm FBW" : "Disarm FBW" },
+      )
       .then(
         () => {
           if (seq !== latest.current) return;

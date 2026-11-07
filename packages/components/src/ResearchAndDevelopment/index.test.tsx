@@ -7,6 +7,7 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
+import { getButtonDescribedBy } from "../test/describedButton";
 import { perItemGateReport } from "../test/perItemGate";
 import {
   type StreamFixture,
@@ -267,9 +268,10 @@ describe("ResearchAndDevelopmentComponent", () => {
       );
     });
     await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: /not enough science/ }),
-      ).toHaveAttribute("aria-disabled", "true"),
+      expect(getButtonDescribedBy(/not enough science/)).toHaveAttribute(
+        "aria-disabled",
+        "true",
+      ),
     );
   });
 

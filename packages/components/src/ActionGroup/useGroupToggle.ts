@@ -9,10 +9,10 @@ import {
 import { useCommand } from "@ksp-gonogo/sitrep-client";
 import {
   type CommandButtonHandle,
-  type CommandButtonState,
+  type CommandControlState,
   type ReckoningMarking,
   STREAM_DOWN_TIP,
-  useCommandButton,
+  useCommandControl,
 } from "@ksp-gonogo/ui-kit";
 import { useRef } from "react";
 import {
@@ -67,8 +67,8 @@ export interface GroupToggle {
    * craft and its reply is on its way back, else null.
    */
   confirmation: "sent" | "held" | "modelled" | null;
-  /** The control that draws and presses the toggle: hand it to a {@link CommandButton} as its `controller`. */
-  button: CommandButtonState;
+  /** The control that draws and presses the toggle: hand it to a {@link Button} as its `controller`. */
+  button: CommandControlState;
   /** The group's toggle command, for the button it draws through. */
   handle: CommandButtonHandle;
   /** The word the button shows: `SENT` until the mod answers the press, else the state. */
@@ -140,9 +140,8 @@ export function useGroupToggle({
   const askedRef = useRef<boolean | undefined>(undefined);
   const readState =
     typeof value === "boolean" || typeof value === "number" ? value : null;
-  const button = useCommandButton({
-    handle: toggleCmd,
-    commandLabel: sendLabel,
+  const button = useCommandControl({
+    command: toggleCmd.with(undefined, { label: sendLabel }),
     toggle: {
       state: readState,
       name: label,

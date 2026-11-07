@@ -1,10 +1,10 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
-  CommandSlider,
   Countdown,
   Disclosure,
   MARKER_ICONS,
+  Slider,
   StatusIndicator,
   ToggleButton,
   Unit,
@@ -190,15 +190,15 @@ export function ControlSurface({
         aria-label="Throttle controls"
       >
         <div style={GROUP}>
-          <CommandSlider
+          <Slider
             min={0}
             max={1}
             step={0.01}
-            commanded={throttleBase}
+            value={throttleBase}
             expected={throttleExpected}
             lastSeen={throttleLastSeen?.value ?? null}
             lastSeenCaption={throttleLastSeen?.caption}
-            onChange={(v) => onSetThrottleCmd(v)}
+            onChange={(e) => onSetThrottleCmd(Number(e.target.value))}
             figure={(v) => <Unit value={value("%", v * 100)} decimals={0} />}
             disabled={disabled}
             aria-label="Throttle"

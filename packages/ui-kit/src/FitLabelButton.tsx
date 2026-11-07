@@ -63,7 +63,7 @@ export const FitLabelButton = forwardRef<
 /**
  * The label-or-icon content of a {@link FitLabelButton}, for another control
  * that draws its own button and wants the same collapse. Used by
- * {@link FitLabelButton} and {@link CommandButton}. It measures its parent's
+ * {@link FitLabelButton} and {@link Button}. It measures its parent's
  * content box, so the parent must be able to shrink below the label
  * (`min-width: 0`). Both states are `aria-hidden`: the parent carries the name.
  * Kit-internal, not on the barrel.
