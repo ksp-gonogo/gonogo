@@ -211,6 +211,31 @@ export class ClientTimeline<Payload = unknown> {
     this.revision++;
   }
 
+  /** How many points this timeline holds. */
+  get size(): number {
+    return this.points.length;
+  }
+
+  /** The oldest point held, or `undefined` while the timeline is empty. */
+  earliest(): TimelinePoint<Payload> | undefined {
+    return this.points[0];
+  }
+
+  /**
+   * Drop every point older than the newest one at or before `ut`, which stays so
+   * a hold-last read at `ut` still answers. What was dropped is recorded in
+   * `droppedThroughUt`, so a reader of an older range knows the data existed and
+   * is no longer held here.
+   */
+  trimBefore(ut: number): void {
+    const keepFrom = this.firstIndexAfter(ut, true) - 1;
+    if (keepFrom <= 0) return;
+    this.droppedThrough = this.points[keepFrom - 1].validAt;
+    this.points.splice(0, keepFrom);
+    this.superseded = Math.max(0, this.superseded - keepFrom);
+    this.revision++;
+  }
+
   /** Drop every point with `validAt < ut`. Used to enforce an externally-computed retention bound (e.g. the real delay window). */
   evictBelow(ut: number): void {
     const next = this.points.filter((p) => p.validAt >= ut);

@@ -487,6 +487,27 @@ export type PeerMessage =
       topic: string;
       tier: import("@ksp-gonogo/sitrep-sdk").DataRateTier;
     }
+  // Station -> host: the frames of `topic` with `validAt` in `[fromUt, toUt]`,
+  // for a chart that draws further back than the station keeps. The station
+  // holds only the window its widgets draw; the host holds the full run.
+  | {
+      type: "sitrep-history-request";
+      /** The station's own correlation key, echoed on the response. */
+      id: string;
+      topic: string;
+      fromUt: number;
+      toUt: number;
+    }
+  // Host -> station: the answer to one `sitrep-history-request`, oldest first.
+  // Empty when the host holds nothing in the range or the station reads from a
+  // vantage the host keeps no run for.
+  | {
+      type: "sitrep-history-response";
+      id: string;
+      frames: import("@ksp-gonogo/sitrep-sdk").StreamData<unknown>[];
+      /** Set when numbers the packer cannot write ride in `frames` as tagged strings (see `wideNumbers.ts`). */
+      wide?: true;
+    }
   // Station -> host: fire a mapped Sitrep command (`useCommand`'s carried
   // branch) through the host's own live TelemetryClient, the host is the
   // only thing that ever talks to the mod server, so this is a one-way

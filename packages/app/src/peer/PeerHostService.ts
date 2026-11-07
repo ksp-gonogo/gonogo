@@ -11,7 +11,11 @@ import {
   getActiveTelemetryClient,
   type TelemetryClient,
 } from "@ksp-gonogo/sitrep-client";
-import type { DataRateTier, RelayCaller } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  DataRateTier,
+  RelayCaller,
+  StreamData,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   CommandErrorCode,
   classifyCommandRejection,
@@ -120,6 +124,12 @@ export interface SitrepSubscriptionSink {
    * topic, and the run before it is what a chart on that topic has plotted.
    */
   cachedFrames(topic: string): PeerMessage[];
+  /**
+   * The frames of `topic` with `validAt` in `[fromUt, toUt]`, oldest first: the
+   * full run a station asks for when a chart draws further back than it keeps.
+   * Absent on a sink that holds no run, which answers every request empty.
+   */
+  history?(topic: string, fromUt: number, toUt: number): StreamData<unknown>[];
   /** The latest `system.dataRates` report this stream carries, or undefined before one arrives. */
   dataRates?(): unknown;
 }
@@ -2149,6 +2159,26 @@ export class PeerHostService {
         rates.set(msg.topic, msg.tier);
       }
       this.syncRateHold(conn, msg.topic);
+    },
+    "sitrep-history-request": (msg, conn) => {
+      const sink = this.sitrepSinks.get(this.vantageOf(conn));
+      const frames = sink?.history?.(msg.topic, msg.fromUt, msg.toUt) ?? [];
+      try {
+        conn.send({
+          type: "sitrep-history-response",
+          id: msg.id,
+          frames,
+        } satisfies PeerMessage);
+      } catch {
+        conn.send({
+          type: "sitrep-history-response",
+          id: msg.id,
+          frames: frames.map(
+            (frame) => encodeWideNumbers(frame) as StreamData<unknown>,
+          ),
+          wide: true,
+        } satisfies PeerMessage);
+      }
     },
     "sitrep-set-vantage": (msg, conn) => {
       this.setConnVantage(conn, msg.vantage ?? undefined);

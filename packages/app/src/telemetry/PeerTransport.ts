@@ -20,9 +20,13 @@ import type {
   PeerClientService,
   StationApproval,
 } from "../peer/PeerClientService";
+import { RELAY_TAIL_PER_TOPIC } from "./relayTail";
 
-/** Matches the host relay's per-topic history at one sample a second, the most it can replay of one topic; scaled by the topic's rate as the relay's is. */
-const SEEN_FRAMES_PER_TOPIC = 1500;
+/** Matches the host relay's per-topic tail at one sample a second, the most it replays of one topic; scaled by the topic's rate as the relay's is. */
+const SEEN_FRAMES_PER_TOPIC = RELAY_TAIL_PER_TOPIC;
+
+/** How long a station waits for the main screen to answer a history request before giving the chart what it has. */
+const HISTORY_TIMEOUT_MS = 10_000;
 
 /**
  * Maps the station's PeerJS connection status onto the `Transport` status
@@ -188,6 +192,15 @@ export class PeerTransport implements Transport {
    * points on a chart.
    */
   private readonly seenFrames = new Map<string, Map<string, unknown>>();
+  private historyRequests = 0;
+  private readonly pendingHistory = new Map<
+    string,
+    {
+      resolve: (frames: StreamData<unknown>[]) => void;
+      reject: (error: Error) => void;
+      timer: ReturnType<typeof setTimeout>;
+    }
+  >();
 
   constructor(private readonly client: PeerClientService) {
     this._status = toTransportStatus(client.getConnStatus());
@@ -203,6 +216,14 @@ export class PeerTransport implements Transport {
       client.onSitrepReset(() => {
         this.gameState = undefined;
         this.seenFrames.clear();
+      }),
+      client.onSitrepHistory((id, frames) => {
+        const pending = this.pendingHistory.get(id);
+        if (!pending) return;
+        this.pendingHistory.delete(id);
+        clearTimeout(pending.timer);
+        for (const frame of frames) hydratePayload(frame.payload);
+        pending.resolve(frames);
       }),
       client.onSitrepFrame((message, replayed) => {
         if (message.type === "game-state") this.gameState = message;
@@ -505,6 +526,31 @@ export class PeerTransport implements Transport {
     this.lostListeners.clear();
     this.subscribedTopics.clear();
     this.topicTiers.clear();
+    for (const [id, pending] of this.pendingHistory) {
+      clearTimeout(pending.timer);
+      pending.reject(new Error("transport disposed"));
+      this.pendingHistory.delete(id);
+    }
+  }
+
+  requestHistory(
+    topic: string,
+    fromUt: number,
+    toUt: number,
+  ): Promise<StreamData<unknown>[]> {
+    const id = `h${this.historyRequests++}`;
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.pendingHistory.delete(id);
+        reject(new Error("the main screen did not answer"));
+      }, HISTORY_TIMEOUT_MS);
+      this.pendingHistory.set(id, { resolve, reject, timer });
+      if (!this.client.sendSitrepHistoryRequest(id, topic, fromUt, toUt)) {
+        clearTimeout(timer);
+        this.pendingHistory.delete(id);
+        reject(new Error("no connection to the main screen"));
+      }
+    });
   }
 
   private setStatus(status: TransportStatus): void {

@@ -266,13 +266,15 @@ export function useDataSeries(key: string, windowSec: number): SeriesRange {
       // reckoner's declared deps up too, which is what the RECKONED tail below
       // needs, and which every point read needs for the same reason.
       const releaseInputs = subscribeTopicRead(client, store, topic);
+      const releaseWindow = store.holdWindow(topic, windowSec);
       const unsubscribeFrame = store.subscribeFrame(onStoreChange);
       return () => {
         unsubscribeFrame();
+        releaseWindow();
         releaseInputs();
       };
     },
-    [client, store, topic],
+    [client, store, topic, windowSec],
   );
 
   const getStreamSnapshot = useCallback((): SeriesRange => {

@@ -186,6 +186,10 @@ type ClientEventMap = {
     message: import("@ksp-gonogo/sitrep-sdk").ServerMessage,
     replayed: boolean,
   ];
+  sitrepHistory: [
+    id: string,
+    frames: import("@ksp-gonogo/sitrep-sdk").StreamData<unknown>[],
+  ];
   sitrepReset: [];
   sitrepLink: [connected: boolean];
   sitrepCommandResponse: [
@@ -1365,6 +1369,16 @@ export class PeerClientService {
     return this.events.on("sitrepFrame", cb);
   }
 
+  /** The host's answer to a {@link sendSitrepHistoryRequest}, keyed by the id it was sent under. */
+  onSitrepHistory(
+    cb: (
+      id: string,
+      frames: import("@ksp-gonogo/sitrep-sdk").StreamData<unknown>[],
+    ) => void,
+  ): () => void {
+    return this.events.on("sitrepHistory", cb);
+  }
+
   /** Whether the host's own stream to the mod is open, each time the host says. */
   onSitrepLink(cb: (connected: boolean) => void): () => void {
     return this.events.on("sitrepLink", cb);
@@ -1480,6 +1494,24 @@ export class PeerClientService {
       type: "sitrep-subscribe",
       topic,
     } satisfies PeerMessage);
+  }
+
+  /** Ask the host for the frames of `topic` in `[fromUt, toUt]`, answered through {@link onSitrepHistory} under `id`. Returns false with no live connection. */
+  sendSitrepHistoryRequest(
+    id: string,
+    topic: string,
+    fromUt: number,
+    toUt: number,
+  ): boolean {
+    if (!this.conn) return false;
+    this.conn.send({
+      type: "sitrep-history-request",
+      id,
+      topic,
+      fromUt,
+      toUt,
+    } satisfies PeerMessage);
+    return true;
   }
 
   /**
@@ -2080,6 +2112,13 @@ export class PeerClientService {
         "sitrepFrame",
         msg.wide ? decodeWideNumbers(msg.message) : msg.message,
         msg.replay === true,
+      );
+    },
+    "sitrep-history-response": (msg) => {
+      this.events.emit(
+        "sitrepHistory",
+        msg.id,
+        msg.wide ? decodeWideNumbers(msg.frames) : msg.frames,
       );
     },
     "sitrep-reset": () => {
