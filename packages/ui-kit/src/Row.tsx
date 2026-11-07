@@ -1,6 +1,11 @@
+import type { AnyBoundCommand } from "@ksp-gonogo/sitrep-sdk";
 import type { ElementType, HTMLAttributes, ReactNode } from "react";
 import styled, { css } from "styled-components";
+import { useBoundCommandInput } from "./CommandButton/commandInput";
+import { commandOutlineEdge } from "./commandEdge";
 import { focusRingInset } from "./focusRing";
+import { LiveRegion } from "./LiveRegion";
+import { Tooltip } from "./Tooltip";
 import { statusFill } from "./tone";
 
 /**
@@ -41,6 +46,15 @@ export interface RowProps extends HTMLAttributes<HTMLElement> {
    * one level of nesting.
    */
   nested?: boolean;
+  /**
+   * The command pressing the row sends, made with `with` on a `useCommand`
+   * handle. The row becomes a button, and a word at its end says what became of
+   * the press. A row that closes its list on the press leaves the outcome to the
+   * delay rail.
+   */
+  command?: AnyBoundCommand;
+  /** Why a command row cannot be pressed now. It is drawn dimmed with this as its tip and a press sends nothing. */
+  unavailable?: string;
   /** The row's content: its label and value, or whatever the row lays out. */
   children?: ReactNode;
 }
@@ -49,7 +63,54 @@ export interface RowProps extends HTMLAttributes<HTMLElement> {
  * A single spaced-between list row: name on the left, badges and actions on
  * the right. The truncating name child is `RowName` (also `Row.Name`).
  */
-function RowBase({
+function RowBase(props: RowProps) {
+  if (props.command) {
+    return <CommandedRow {...props} command={props.command} />;
+  }
+  const { command: _command, unavailable: _unavailable, ...rest } = props;
+  return <PlainRow {...rest} />;
+}
+
+function CommandedRow({
+  command,
+  unavailable,
+  children,
+  onClick,
+  ...rest
+}: RowProps & { command: AnyBoundCommand }) {
+  const input = useBoundCommandInput({ command, unavailable });
+  return (
+    <>
+      <Tooltip text={input.tip}>
+        <PlainRow
+          {...rest}
+          {...input.edge}
+          as="button"
+          interactive
+          onClick={(e) => {
+            if (input.inert) return;
+            input.control.press(false);
+            onClick?.(e);
+          }}
+        >
+          {children}
+          {input.word !== null && (
+            <RowWord aria-hidden="true">{input.word}</RowWord>
+          )}
+        </PlainRow>
+      </Tooltip>
+      <LiveRegion visuallyHidden>{input.announce}</LiveRegion>
+    </>
+  );
+}
+
+const RowWord = styled.span`
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+  letter-spacing: 0.08em;
+`;
+
+function PlainRow({
   as,
   interactive = false,
   selected = false,
@@ -58,7 +119,7 @@ function RowBase({
   type,
   children,
   ...rest
-}: RowProps) {
+}: Omit<RowProps, "command" | "unavailable">) {
   return (
     <Row__Root
       as={as ?? "li"}
@@ -152,6 +213,8 @@ const Row__Root = styled.li<{
       : ""}
   /* After the interactive block, whose padding shorthand would reset it. */
   ${({ $nested }) => ($nested ? "padding-left: var(--indent-row);" : "")}
+
+  ${commandOutlineEdge}
 `;
 
 /**

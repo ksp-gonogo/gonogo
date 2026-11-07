@@ -322,8 +322,16 @@ export interface TinyControl {
    * stays pressable and keeps its size.
    */
   held?: string;
-  /** Called on a press. */
-  onPress: () => void;
+  /** Called on a press. Give this or `command`. */
+  onPress?: () => void;
+  /**
+   * The command a press sends, made with `toArgs` on a `useCommand` handle and
+   * given `true` to switch on and `false` to switch off. The button shows the
+   * state in `active` and what became of the press, as every control that sends
+   * a command does. Give this or `onPress`.
+   */
+  // biome-ignore lint/suspicious/noExplicitAny: a command of any argument and reply types
+  command?: ValueCommand<boolean, any, any>;
 }
 
 /**
@@ -1402,12 +1410,13 @@ export interface MapPoiAction {
   id: string;
   /** The button's text. */
   label: string;
-  /** Called when the button is pressed. */
-  run: () => void | Promise<void>;
-  /** Whether the button is disabled. */
-  disabled?: boolean;
-  /** Why the button is disabled, shown in place of `label` while it is. */
-  disabledReason?: string;
+  /**
+   * The command the button sends, made with `with` on a `useCommand` handle.
+   * The button shows what became of it, as every control that sends a command does.
+   */
+  command: AnyBoundCommand;
+  /** Why the button cannot be pressed now, shown as its tip while it is dimmed. */
+  unavailable?: string;
 }
 
 /**

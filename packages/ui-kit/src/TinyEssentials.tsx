@@ -235,6 +235,21 @@ function extentOf(content: Element): number {
 
 function EssentialFigure({ essential }: { essential: TinyEssential }) {
   const { control } = essential;
+  if (control?.command !== undefined) {
+    return (
+      <ToggleButton
+        size="sm"
+        command={control.command}
+        state={control.active}
+        name={control.title}
+        unavailable={control.disabled ? (control.hint ?? control.title) : null}
+        tip={control.hint ?? control.title}
+        aria-label={control.title}
+      >
+        {() => control.label}
+      </ToggleButton>
+    );
+  }
   if (control !== undefined) {
     return (
       <Tooltip text={control.hint ?? control.title}>

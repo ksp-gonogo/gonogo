@@ -141,7 +141,7 @@ describe("RotorTachometerComponent", () => {
 
     await waitFor(() => expect(visibleText()).toContain("120")); // gauge value label
 
-    await user.click(screen.getByRole("button", { name: /Raise RPM cap/i }));
+    await user.click(screen.getByRole("button", { name: /Increase RPM cap/i }));
     await waitFor(() => {
       const sent = fixture.transport.sentCommands.find(
         (c) => c.command === "robotics.rotor.setRpmLimit",
@@ -189,7 +189,7 @@ describe("RotorTachometerComponent", () => {
     });
 
     await user.click(await screen.findByRole("button", { name: /Rotor B/i }));
-    await user.click(screen.getByRole("button", { name: /Raise RPM cap/i }));
+    await user.click(screen.getByRole("button", { name: /Increase RPM cap/i }));
     await waitFor(() => {
       const sent = fixture.transport.sentCommands.find(
         (c) => c.command === "robotics.rotor.setRpmLimit",

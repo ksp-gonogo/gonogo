@@ -116,7 +116,7 @@ describe("RotorTachometer: a rotor list that has stopped arriving", () => {
     await waitFor(() => expect(motorMark()).not.toBeNull());
     expect(screen.queryByText("OFFLINE")).toBeNull();
     // The cap is a figure of its own, marked where it is drawn.
-    const cap = screen.getByText("200").closest("[data-held]");
+    const cap = screen.getByText(/^200/).closest("[data-held]");
     expect(cap).not.toBeNull();
   });
 });

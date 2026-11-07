@@ -1,6 +1,5 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import type {
-  CommandGroup,
   Countdown,
   Dial,
   Graph,
@@ -254,27 +253,6 @@ export const UI_KIT_PRESETS = {
       },
     },
   ] satisfies Presets<ComponentProps<typeof Stepper>>,
-  CommandGroup: [
-    {
-      name: "Commit",
-      args: {
-        value: {},
-        onCommit: () => {},
-        children: "Grouped inputs",
-        commitLabel: "Commit",
-      },
-    },
-    {
-      name: "Gated",
-      args: {
-        value: {},
-        onCommit: () => {},
-        children: "Grouped inputs",
-        commitLabel: "Commit",
-        gated: true,
-      },
-    },
-  ] satisfies Presets<ComponentProps<typeof CommandGroup>>,
   IconButton: [
     {
       name: "At rest",

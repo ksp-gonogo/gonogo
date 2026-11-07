@@ -1,4 +1,9 @@
+import type { ValueCommand } from "@ksp-gonogo/sitrep-sdk";
 import styled from "styled-components";
+import { useCommandInput } from "./CommandButton/commandInput";
+import { commandEdge } from "./commandEdge";
+import { LiveRegion } from "./LiveRegion";
+import { Tooltip } from "./Tooltip";
 
 /**
  * The props every {@link Switch} takes. Useful for letting the operator turn a
@@ -7,14 +12,43 @@ import styled from "styled-components";
  * @category Form
  */
 export interface SwitchBaseProps {
+  /** The checkbox's id, for a `<label htmlFor>` outside the switch. */
+  id?: string;
+}
+
+/**
+ * The props of a {@link Switch} that changes a setting the caller holds.
+ *
+ * @category Form
+ */
+export interface PlainSwitchProps {
   /** Whether the switch is on. The switch is controlled: it shows this value and changes only when the caller changes it. */
   checked: boolean;
   /** Called with the new state when the operator flips the switch. */
   onChange: (value: boolean) => void;
   /** Renders dimmed and non-interactive; `onChange` never fires. For a toggle whose effective state is controlled elsewhere, such as a sub-setting inert while its parent setting is off. */
   disabled?: boolean;
-  /** The checkbox's id, for a `<label htmlFor>` outside the switch. */
-  id?: string;
+  command?: never;
+}
+
+/**
+ * The props of a {@link Switch} that sends a command. The switch shows the
+ * state the vessel reports and a flip sends the opposite, with a word beside
+ * the track while the press is unanswered or has failed.
+ *
+ * @category Form
+ */
+export interface CommandedSwitchProps {
+  /** The command a flip sends, made with `toArgs` on a `useCommand` handle and given `true` to switch on and `false` to switch off. */
+  // biome-ignore lint/suspicious/noExplicitAny: a command of any argument and reply types
+  command: ValueCommand<boolean, any, any>;
+  /** The state as the vessel last reported it. Nothing yet is a third state, drawn off and not flipped from. */
+  state: boolean | null | undefined;
+  /** Why the switch cannot be flipped now. It is drawn dimmed with this as its tip and a flip sends nothing. */
+  unavailable?: string | null;
+  checked?: never;
+  onChange?: never;
+  disabled?: never;
 }
 
 /**
@@ -27,6 +61,7 @@ export interface SwitchBaseProps {
  * @category Form
  */
 export type SwitchProps = SwitchBaseProps &
+  (PlainSwitchProps | CommandedSwitchProps) &
   (
     | {
         /** The visible name, drawn beside the track. Give this or `aria-label`, never both. */
@@ -51,14 +86,22 @@ export type SwitchProps = SwitchBaseProps &
  *
  * @category Form
  */
-export function Switch({
+export function Switch(props: SwitchProps) {
+  if (props.command) {
+    return <CommandedSwitch {...props} command={props.command} />;
+  }
+  return <PlainSwitch {...props} />;
+}
+
+function PlainSwitch({
   checked,
   onChange,
   label,
   disabled,
   id,
   "aria-label": ariaLabel,
-}: SwitchProps) {
+}: SwitchBaseProps &
+  PlainSwitchProps & { label?: string; "aria-label"?: string }) {
   return (
     <SwitchLabel $disabled={disabled}>
       <SwitchInput
@@ -74,6 +117,43 @@ export function Switch({
       </SwitchTrack>
       {label && <SwitchText>{label}</SwitchText>}
     </SwitchLabel>
+  );
+}
+
+/* Flips to the opposite of the state the vessel reports, whatever became of an earlier flip. */
+function CommandedSwitch({
+  command,
+  state,
+  unavailable,
+  label,
+  id,
+  "aria-label": ariaLabel,
+}: SwitchBaseProps &
+  CommandedSwitchProps & { label?: string; "aria-label"?: string }) {
+  const input = useCommandInput({ command, unavailable });
+  const on = state === true;
+  const flippable = typeof state === "boolean";
+  return (
+    <Tooltip text={input.tip}>
+      <SwitchLabel $disabled={input.inert}>
+        <SwitchInput
+          type="checkbox"
+          id={id}
+          checked={on}
+          aria-disabled={input.inert || undefined}
+          onChange={() => {
+            if (flippable) input.send(!state);
+          }}
+          aria-label={label ? undefined : ariaLabel}
+        />
+        <SwitchTrack $checked={on} $disabled={input.inert} {...input.edge}>
+          <SwitchThumb $checked={on} $disabled={input.inert} />
+        </SwitchTrack>
+        {label && <SwitchText>{label}</SwitchText>}
+        <SwitchWord aria-hidden="true">{input.word}</SwitchWord>
+        <LiveRegion visuallyHidden>{input.announce}</LiveRegion>
+      </SwitchLabel>
+    </Tooltip>
   );
 }
 
@@ -102,6 +182,15 @@ const SwitchTrack = styled.div<{ $checked: boolean; $disabled?: boolean }>`
   position: relative;
   flex-shrink: 0;
   transition: background var(--duration-base), border-color var(--duration-base);
+  ${commandEdge}
+`;
+
+/* Holds the room of the longest word the switch can show, so a press never moves the row. */
+const SwitchWord = styled.span`
+  min-width: 7ch;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+  letter-spacing: 0.08em;
 `;
 
 /* The input is invisible and sizeless, so its keyboard focus is drawn on the

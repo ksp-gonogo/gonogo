@@ -73,10 +73,6 @@ const SEND_WITHOUT_INPUT: Record<string, Entry> = {
     reads: 1,
     why: "fire from a bound key, awaiting a control press",
   },
-  "packages/components/src/GroundTrack/vanillaPoiProvider.ts": {
-    reads: 1,
-    why: "map point action, awaiting a command on the action",
-  },
   "packages/components/src/LaunchDirector/FlyVesselMenu.tsx": {
     reads: 1,
     why: "menu item, awaiting a kit input command",

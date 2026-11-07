@@ -113,6 +113,15 @@ export type BoundControlCommand<Args = unknown, Result = any> = BoundCommand<
 /** The word a command control shows while the mod has not answered the press. */
 export const SENT_WORD = "SENT";
 
+/** The word a command control shows once the game has refused the press. */
+export const REFUSED_WORD = "Refused";
+
+/** The word a command control shows when no reply came to the press. */
+export const LOST_WORD = "No reply";
+
+/** The word a command control shows when a command it lost has since replied. */
+export const FOUND_WORD = "Found";
+
 /**
  * What the mod says about a command before it is pressed: whether the game would
  * refuse it. Useful for darkening a control the operator cannot usefully press
