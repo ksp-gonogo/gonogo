@@ -13,7 +13,10 @@ export type ProcessSwitchHandles = Readonly<{
 /**
  * The start or stop control for one drill or converter: the opposite of the
  * state it is in. Drawn only for a unit that has a part id and a run state
- * that is current, so a held channel or an unread state offers neither.
+ * that is current, so a held channel or an unread state offers neither. A
+ * unit carrying a provider extension bag comes from a modelling mod's own
+ * backend, whose units the stock converter command cannot resolve, so it
+ * offers neither either.
  */
 export function ProcessSwitch({
   handles,
@@ -22,6 +25,7 @@ export function ProcessSwitch({
   title,
   running,
   held,
+  extensions,
 }: Readonly<{
   handles: ProcessSwitchHandles;
   partId: string | null | undefined;
@@ -29,7 +33,11 @@ export function ProcessSwitch({
   title: string;
   running: boolean | null | undefined;
   held: boolean;
+  extensions?: Readonly<Record<string, unknown>> | null;
 }>) {
+  if (extensions != null && Object.keys(extensions).length > 0) {
+    return null;
+  }
   if (held || !partId || running === null || running === undefined) {
     return null;
   }

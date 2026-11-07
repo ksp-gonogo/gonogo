@@ -106,6 +106,7 @@ export function ConverterCard({
           title={converter.partTitle ?? converter.partId ?? "converter"}
           running={converter.running}
           held={converterHeld}
+          extensions={converter.extensions}
         />
       </Stack>
     </Card>

@@ -89,6 +89,7 @@ export function DrillCard({
           title={drill.partTitle ?? drill.partId ?? "drill"}
           running={drill.running}
           held={drillHeld}
+          extensions={drill.extensions}
         />
       </Stack>
     </Card>

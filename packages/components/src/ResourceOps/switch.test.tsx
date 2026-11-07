@@ -110,6 +110,20 @@ describe("Resource Ops start and stop", () => {
     expect(screen.queryByRole("button", { name: "Start" })).toBeNull();
   });
 
+  it("offers neither control on a unit from a modelling mod backend the core command cannot drive", async () => {
+    const { fixture } = renderWidget();
+    act(() => {
+      fixture.emit("isru.drills", []);
+      fixture.emit("isru.converters", [
+        { ...CONVERTER, extensions: { "mod-backend": { throttle: 1 } } },
+      ]);
+    });
+
+    await screen.findByText("Convert-O-Tron 250");
+    expect(screen.queryByRole("button", { name: "Stop" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Start" })).toBeNull();
+  });
+
   it("has no accessibility violations with the controls drawn", async () => {
     const { fixture, view } = renderWidget();
     act(() => {
