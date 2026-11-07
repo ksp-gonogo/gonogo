@@ -23,6 +23,8 @@ export const GENERATED_TOPIC_FRAMES = {
     velocity: { frame: "body-centred-inertial", whenSet: "body-centred-rotating", selectedBy: "frameRotating" },
   },
   "vessel.target": {
+    orbitRelativePosition: { frame: "orbit-relative" },
+    orbitRelativeVelocity: { frame: "orbit-relative" },
     relativePosition: { frame: "subject-relative" },
     relativeVelocity: { frame: "subject-relative" },
   },
@@ -58,6 +60,8 @@ export const GENERATED_TYPE_FRAMES = {
     up: { frame: "vessel-local" },
   },
   "VesselTarget": {
+    orbitRelativePosition: { frame: "orbit-relative" },
+    orbitRelativeVelocity: { frame: "orbit-relative" },
     relativePosition: { frame: "subject-relative" },
     relativeVelocity: { frame: "subject-relative" },
   },

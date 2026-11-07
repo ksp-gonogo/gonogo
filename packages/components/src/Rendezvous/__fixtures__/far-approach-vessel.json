@@ -37,6 +37,8 @@
             "y": 0,
             "z": 312.5
           },
+          "orbitRelativePosition": { "x": -2200000, "y": 2350000, "z": 0 },
+          "orbitRelativeVelocity": { "x": 180, "y": 255, "z": 0 },
           "closestApproach": {
             "time": 2567890,
             "distance": 1100000.0

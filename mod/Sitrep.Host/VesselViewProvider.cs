@@ -1129,6 +1129,8 @@ namespace Sitrep.Host
                 // comment (one canonical shape everywhere -- kills V-8).
                 RelativePosition = GetVec3(target, "relativePosition"),
                 RelativeVelocity = relativeVelocity,
+                OrbitRelativePosition = GetVec3(target, "orbitRelativePosition"),
+                OrbitRelativeVelocity = GetVec3(target, "orbitRelativeVelocity"),
                 Orbit = orbit,
                 ClosestApproach = closestApproach,
                 Meta = BuildMeta(vesselId),
@@ -2085,6 +2087,8 @@ namespace Sitrep.Host
             ["partId"] = target.PartId,
             ["relativePosition"] = target.RelativePosition != null ? ToWire(target.RelativePosition) : null,
             ["relativeVelocity"] = target.RelativeVelocity != null ? ToWire(target.RelativeVelocity) : null,
+            ["orbitRelativePosition"] = target.OrbitRelativePosition != null ? ToWire(target.OrbitRelativePosition) : null,
+            ["orbitRelativeVelocity"] = target.OrbitRelativeVelocity != null ? ToWire(target.OrbitRelativeVelocity) : null,
             ["orbit"] = target.Orbit != null ? ToWire(target.Orbit) : null,
             ["closestApproach"] = target.ClosestApproach != null ? ToWire(target.ClosestApproach) : null,
             ["meta"] = ToWire(target.Meta),

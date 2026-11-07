@@ -21,8 +21,10 @@ import {
   closingSpeed,
   deriveDockAngles,
   rangeReading,
+  type Vec3,
   vecMagnitude,
 } from "../shared/dockAngles";
+import { drift, type OrbitComponents, orbitFrameAxes } from "./orbitFrame";
 
 // Side-effect import: registers the `vessel.target` reckoner (stubbed, so it declines) and its processor.
 
@@ -158,6 +160,24 @@ export function useRendezvousReading() {
     targetReading.relativePosition,
     targetReading.relativeVelocity,
   );
+  // Where the target sits and drifts along the craft's own orbit, which the scene-axes figures above cannot say.
+  const orbitComponents = (v: Vec3): OrbitComponents => ({
+    radial: v.x,
+    alongTrack: v.y,
+    normal: v.z,
+  });
+  const orbitOffset = target?.orbitRelativePosition;
+  const orbitRate = target?.orbitRelativeVelocity;
+  const orbitFrame = orbitFrameAxes(
+    targetReading.orbitRelativePosition,
+    targetReading.orbitRelativeVelocity,
+    orbitOffset ? orbitComponents(bare(orbitOffset)) : undefined,
+    orbitRate ? orbitComponents(bare(orbitRate)) : undefined,
+  );
+  const orbitDrift = drift(
+    targetReading.orbitRelativeVelocity,
+    targetReading.orbitRelativePosition,
+  );
   const derivedDockAngles = dockRelPos
     ? deriveDockAngles(dockRelPos)
     : undefined;
@@ -244,6 +264,8 @@ export function useRendezvousReading() {
     relVel,
     rangeR,
     closingRateR,
+    orbitFrame,
+    orbitDrift,
     dockAx,
     dockAy,
     dockAz,
