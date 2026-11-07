@@ -670,6 +670,8 @@ registerComponent<NavballConfig>({
   tags: ["telemetry", "control"],
   // Fifteen rows hold the control surface with its sections folded beside a dial as large as the plain default gives.
   defaultSize: { w: 8, h: 15 },
+  // The control surface needs seven columns, which a half-width list tile does not reach.
+  mobileWidth: "full",
   // Below four columns the three figures are the tiny form's, with the title behind a hover.
   minSize: NAVBALL_MIN_SIZE,
   component: NavballComponent,
