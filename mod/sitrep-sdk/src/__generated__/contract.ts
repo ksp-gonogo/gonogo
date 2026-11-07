@@ -13371,6 +13371,23 @@ export interface VesselTarget
 	*/
 	relativeVelocity?: Vec3Of<"m/s"> | null;
 	/**
+	* The target's position relative to the active vessel, in metres, in the
+	* active vessel's orbit frame: `x` radial, `y` along-track, `z` normal (see
+	* Frames.OrbitRelative). A target above the vessel reads positive `x`, one
+	* ahead of it along its orbit positive `y`. Null when
+	* `VesselTarget.relativePosition` is null or the vessel's position and
+	* velocity define no orbit plane this tick.
+	*/
+	orbitRelativePosition?: Vec3Of<"m"> | null;
+	/**
+	* The rate of change of `VesselTarget.orbitRelativePosition` in m/s, in the
+	* same orbit frame: the target's velocity relative to the active vessel with
+	* the frame's own turn removed, so two craft in the same orbit holding a fixed
+	* range read about zero. Null exactly when
+	* `VesselTarget.orbitRelativePosition` is.
+	*/
+	orbitRelativeVelocity?: Vec3Of<"m/s"> | null;
+	/**
 	* The target's orbit. Null when the target has no orbit (it is landed, say, or
 	* its orbit could not be resolved this tick).
 	*/

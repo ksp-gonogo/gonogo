@@ -240,7 +240,7 @@ describe("the scale bar", () => {
     emitCraft(fixture, 3_000);
     await waitFor(() => expect(circle("Approach")).not.toBeNull());
     const bar = document.querySelector("[data-scale-bar]");
-    expect(bar?.getAttribute("data-tooltip")).toMatch(/^Scale bar: .+ m$/);
+    expect(bar?.getAttribute("data-tooltip")).toMatch(/^Scale bar: .+ k?m$/);
   });
 });
 

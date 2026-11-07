@@ -131,11 +131,31 @@ export function farView(
   };
 }
 
-/** Approach: you and the target at the scale that holds both and the closest approach, the target held still. */
+/** How you are drifting past the target, metres per second, radial out and along-track forward. */
+export interface Drift {
+  radial: number;
+  alongTrack: number;
+}
+
+/** Below this drift, metres per second, no arrow is drawn: the craft is holding station. */
+const DRIFT_DEADBAND = 0.05;
+/** Where the arrow starts from the centre of your mark, in screen pixels. */
+const DRIFT_START_PX = 7;
+/** The arrow's length in screen pixels, a tenth of the circle's radius within these limits; it gives the direction, the readout gives the rate. */
+const driftArrowPx = (unit: number) =>
+  Math.min(Math.max((0.1 * C) / unit, 12), 22);
+
+/**
+ * Approach: you and the target at the scale that holds both and the closest
+ * approach, the target held still. Where the wire gives the drift, a short
+ * arrow leaves your mark the way you are moving now, which stays right where
+ * the dashed track is a two-body estimate the craft will not follow.
+ */
 export function approachView(
   g: CraftGeometry,
   unit: number,
   small = false,
+  drift: Drift | null = null,
 ): CircleView {
   // Screen: x is minus the along-track offset (travel to the left), up is radial out.
   const s = (p: readonly [number, number, number]): Point2 => [-p[1], p[0]];
@@ -148,7 +168,15 @@ export function approachView(
     20,
   );
   const half = reach * 1.12;
-  const k = rim(unit) / half;
+  /*
+   * Your mark and the target sit near the rim whichever way you drift, so an
+   * arrow leaving the mark outward would be cut off by the circle. The room it
+   * needs is kept inside the rim on the large circle.
+   */
+  const driftRoom = small
+    ? 0
+    : (DRIFT_START_PX + driftArrowPx(unit) + 3) * unit;
+  const k = (rim(unit) - driftRoom) / half;
   const at = (p: Point2): Point2 => [
     C + (p[0] - mid[0]) * k,
     C - (p[1] - mid[1]) * k,
@@ -239,10 +267,49 @@ export function approachView(
           y={origin[1] - (PX.icon * unit) / 2}
           size={PX.icon * unit}
         />
+        {drift && !small && (
+          <DriftArrow from={meAt} drift={drift} unit={unit} />
+        )}
         <VesselMarkSvg x={meAt[0]} y={meAt[1]} r={PX.mark * unit} />
       </Drawing>
     ),
   };
+}
+
+/** The arrow from your mark along your drift, in the drawing's screen directions (travel to the left, radial out up). */
+function DriftArrow({
+  from,
+  drift,
+  unit,
+}: Readonly<{ from: Point2; drift: Drift; unit: number }>) {
+  const speed = Math.hypot(drift.radial, drift.alongTrack);
+  if (!Number.isFinite(speed) || speed < DRIFT_DEADBAND) return null;
+  const dx = -drift.alongTrack / speed;
+  const dy = -drift.radial / speed;
+  const start = DRIFT_START_PX * unit;
+  const length = driftArrowPx(unit) * unit;
+  const tip: Point2 = [
+    from[0] + dx * (start + length),
+    from[1] + dy * (start + length),
+  ];
+  const tail: Point2 = [from[0] + dx * start, from[1] + dy * start];
+  const head = 5 * unit;
+  const wing = (sign: number): Point2 => [
+    tip[0] - dx * head - sign * dy * head * 0.6,
+    tip[1] - dy * head + sign * dx * head * 0.6,
+  ];
+  return (
+    <g
+      data-drift-arrow=""
+      stroke={LINE.chaser}
+      strokeWidth={PX.line * unit}
+      strokeLinecap="round"
+      fill="none"
+    >
+      <line x1={tail[0]} y1={tail[1]} x2={tip[0]} y2={tip[1]} />
+      <polyline points={points([wing(1), tip, wing(-1)])} />
+    </g>
+  );
 }
 
 /**

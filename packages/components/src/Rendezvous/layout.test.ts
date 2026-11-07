@@ -3,7 +3,9 @@ import {
   COMPACT_BELOW_W,
   CUE_PAD,
   DOTS_HEIGHT,
+  FRAME_BLOCK,
   figureRooms,
+  frameBlockRoom,
   layoutFor,
   MIN_DIAMETER,
   ROW_HEIGHT,
@@ -134,5 +136,64 @@ describe("layoutFor small circle placement", () => {
 
   it("is left out where the margin cannot hold a readable circle", () => {
     expect(layoutFor({ w: 300, h: 300 }).small.diameter).toBe(0);
+  });
+});
+
+describe("frameBlockRoom", () => {
+  const room = (w: number, h: number) => {
+    const box = { w, h };
+    const layout = layoutFor(box);
+    return { box, layout, rect: frameBlockRoom(layout, box) };
+  };
+
+  it("takes no room in a box the circle and figures already fill", () => {
+    for (const [w, h] of [
+      [372, 400],
+      [616, 752],
+      [300, 300],
+      [240, 280],
+    ]) {
+      expect(room(w, h).rect).toBeNull();
+    }
+  });
+
+  it("takes none in a compact or overlaid box", () => {
+    expect(room(120, 600).rect).toBeNull();
+    expect(room(110, 104).rect).toBeNull();
+  });
+
+  it("takes the empty strip below the circle of a tall box, clear of the circle and the foot row", () => {
+    const { layout, rect } = room(372, 1100);
+    expect(rect).not.toBeNull();
+    if (rect === null) return;
+    expect(rect.w).toBe(FRAME_BLOCK.w);
+    expect(rect.y).toBeGreaterThan(layout.large.y + layout.diameter / 2);
+    expect(rect.y + rect.h).toBeLessThanOrEqual(layout.lane - ROW_HEIGHT);
+  });
+
+  it("takes the margin beside the circle of a wide box, between the corner figures", () => {
+    const { layout, box, rect } = room(900, 400);
+    expect(rect).not.toBeNull();
+    if (rect === null) return;
+    expect(rect.x).toBeGreaterThanOrEqual(layout.large.x + layout.diameter / 2);
+    expect(rect.x + rect.w).toBeLessThanOrEqual(box.w);
+    expect(rect.y).toBeGreaterThanOrEqual(ROW_HEIGHT);
+    expect(rect.y + rect.h).toBeLessThanOrEqual(layout.lane - ROW_HEIGHT);
+  });
+
+  it("never leaves the box", () => {
+    for (const [w, h] of [
+      [372, 1100],
+      [900, 400],
+      [520, 900],
+      [700, 360],
+    ]) {
+      const { box, rect } = room(w, h);
+      if (rect === null) continue;
+      expect(rect.x).toBeGreaterThanOrEqual(0);
+      expect(rect.y).toBeGreaterThanOrEqual(0);
+      expect(rect.x + rect.w).toBeLessThanOrEqual(box.w);
+      expect(rect.y + rect.h).toBeLessThanOrEqual(box.h);
+    }
   });
 });

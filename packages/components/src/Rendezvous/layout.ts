@@ -171,3 +171,48 @@ export function figureRooms(
     right: { inset: 0, width: side },
   };
 }
+
+/** A placed rectangle in the box, pixels. */
+export interface Rect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** The orbit-frame readout: three labelled rows, one per axis. */
+export const FRAME_BLOCK = { w: 176, h: 3 * ROW_HEIGHT } as const;
+
+/**
+ * Where the orbit-frame readout sits, or null where there is no room that is
+ * not already empty. It takes the free strip below the large circle or, failing
+ * that, the free margin to its right, between the corner figures; it never
+ * changes the circle, the figures or the small circle, so a box that is full
+ * stays exactly as it was.
+ */
+export function frameBlockRoom(layout: Layout, box: Box): Rect | null {
+  if (layout.compact || layout.overlay || layout.diameter === 0) return null;
+  const { w, h } = FRAME_BLOCK;
+  const r = layout.diameter / 2;
+  const small = layout.small;
+  const clearOfSmall = (rect: Rect) =>
+    small.diameter === 0 ||
+    rect.x >= small.x + small.diameter / 2 + FIGURE_GAP ||
+    rect.y + rect.h <= small.y - small.diameter / 2 - FIGURE_GAP;
+  const foot =
+    layout.lane - Math.max(layout.bottomBand, ROW_HEIGHT) - FIGURE_GAP;
+
+  const circleBottom = layout.large.y + r + CUE_PAD;
+  if (foot - circleBottom >= h + FIGURE_GAP && box.w >= w) {
+    const below = { x: (box.w - w) / 2, y: foot - h, w, h };
+    if (clearOfSmall(below)) return below;
+  }
+
+  const marginRight = box.w - (layout.large.x + r + CUE_PAD) - FIGURE_GAP;
+  const head = Math.max(layout.topBand, ROW_HEIGHT) + FIGURE_GAP;
+  if (marginRight >= w && foot - head >= h) {
+    const y = Math.min(Math.max(layout.large.y - h / 2, head), foot - h);
+    return { x: box.w - w, y, w, h };
+  }
+  return null;
+}

@@ -55,6 +55,8 @@
     <Compile Include="..\Gonogo.KSP\PartsPropulsion.cs" />
     <!-- ThrustFrame.cs splits a world-frame thrust along a craft's own prograde, radial and normal and carries no KSP or Unity type. -->
     <Compile Include="..\Gonogo.KSP\ThrustFrame.cs" />
+    <!-- TargetOrbitFrame.cs turns a target's relative state into the craft's orbit frame and carries no KSP or Unity type. -->
+    <Compile Include="..\Gonogo.KSP\TargetOrbitFrame.cs" />
     <Compile Include="..\Gonogo.KSP\SavedPartRules.cs" />
     <Compile Include="..\Gonogo.KSP\ExpansionHealth.cs" />
     <Compile Include="..\Gonogo.KSP\LogTail.cs" />
