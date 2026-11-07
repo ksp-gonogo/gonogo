@@ -67,6 +67,10 @@ export const CUE_PAD = 5;
 export const MIN_SMALL_DIAMETER = 72;
 /** The small circle's share of the large one. */
 export const SMALL_RATIO = 0.3;
+/** Where the margin holds at least this many times the usual small circle, the small circle grows into it. */
+export const SMALL_GROW_FROM = 2;
+/** The largest share of the large circle the small one grows to. */
+export const SMALL_GROW_MAX_RATIO = 0.55;
 /** The gap between a figure and a circle. */
 export const FIGURE_GAP = 6;
 /** Below this width only the name and range are shown. */
@@ -113,12 +117,19 @@ export function layoutFor(box: Box, wanted: BandsWanted = NO_BANDS): Layout {
    * The small circle never covers the large one or its lit border. It takes
    * the margin beside the large circle, above the bottom row, shrunk to the
    * margin where that is narrower than its usual size, and is left out
-   * (diameter zero) where the margin is too narrow to read it at.
+   * (diameter zero) where the margin is too narrow to read it at. Where the
+   * margin holds twice its usual size or more it grows to half the margin, up
+   * to a share of the large circle, so it is the usual size at the threshold.
    */
   const room = margin - 2 * FIGURE_GAP;
   const smallDiameter =
     diameter > 0 && room >= MIN_SMALL_DIAMETER
-      ? Math.min(wantedSmall, Math.floor(room))
+      ? room >= SMALL_GROW_FROM * wantedSmall
+        ? Math.min(
+            Math.floor(room / 2),
+            Math.max(wantedSmall, Math.floor(diameter * SMALL_GROW_MAX_RATIO)),
+          )
+        : Math.min(wantedSmall, Math.floor(room))
       : 0;
   const small = {
     diameter: smallDiameter,

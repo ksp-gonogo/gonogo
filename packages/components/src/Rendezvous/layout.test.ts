@@ -128,6 +128,12 @@ describe("layoutFor small circle placement", () => {
     expect(l.small.diameter).toBe(Math.floor(l.diameter * 0.3));
   });
 
+  it("grows into the margin of a very wide, short box", () => {
+    const l = layoutFor({ w: 1272, h: 424 }, { top: 24, bottom: 24 });
+    expect(l.small.diameter).toBeGreaterThan(Math.floor(l.diameter * 0.3));
+    expect(l.small.diameter).toBeLessThanOrEqual(Math.floor(l.diameter * 0.55));
+  });
+
   it("shrinks to the margin in a tile whose picture is limited by its height", () => {
     const l = layoutFor({ w: 926, h: 774 }, { top: 46, bottom: 46 });
     expect(l.small.diameter).toBeGreaterThanOrEqual(72);
