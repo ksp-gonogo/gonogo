@@ -91,7 +91,9 @@ export function EvaKerbalRow({
       unavailable:
         lampOn === undefined || !kerbalVesselId
           ? "Lamp state not reported"
-          : null,
+          : state?.focused === false
+            ? "Switch to this kerbal to use the lamp"
+            : null,
       args: (base) =>
         kerbalVesselId && typeof base === "boolean"
           ? { kerbalVesselId, enabled: !base }

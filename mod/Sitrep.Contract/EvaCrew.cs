@@ -153,6 +153,14 @@ public class EvaKerbal
     /// <summary>How many of those slots hold something, or <c>null</c> when it could not be read.</summary>
     [SitrepUnit(Units.Count)]
     public int? SlotsUsed { get; set; }
+
+    /// <summary>
+    /// Whether this kerbal is the vessel the game is flying. KSP switches a kerbal's lamp
+    /// only while it is, so a command centre offers the lamp only for the kerbal this is
+    /// true for. <c>null</c> when it could not be read.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? Focused { get; set; }
 }
 
 /// <summary>

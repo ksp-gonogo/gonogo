@@ -51,6 +51,7 @@
           "kerbalVesselId": "bob-eva-1",
           "name": "Bob Kerman",
           "lampOn": false,
+          "focused": false,
           "helmetOn": true,
           "visorState": "Lowered",
           "slots": 6,

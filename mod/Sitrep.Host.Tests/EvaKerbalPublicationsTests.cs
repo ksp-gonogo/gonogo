@@ -43,6 +43,30 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void AKerbalTheGameIsFlyingIsMarkedFocusedAndOneItIsNotIsNot()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 0.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["evaCrew"] = new List<object?>
+                    {
+                        new Dictionary<string, object?> { ["kerbalVesselId"] = "k1", ["focused"] = true },
+                        new Dictionary<string, object?> { ["kerbalVesselId"] = "k2", ["focused"] = false },
+                        new Dictionary<string, object?> { ["kerbalVesselId"] = "k3" },
+                    },
+                },
+            };
+
+            var publications = new EvaKerbalPublications().Next(snapshot);
+
+            Assert.Equal(true, Assert.IsAssignableFrom<IDictionary<string, object?>>(publications[0].Payload)["focused"]);
+            Assert.Equal(false, Assert.IsAssignableFrom<IDictionary<string, object?>>(publications[1].Payload)["focused"]);
+            Assert.Null(Assert.IsAssignableFrom<IDictionary<string, object?>>(publications[2].Payload)["focused"]);
+        }
+
+        [Fact]
         public void TheHelmetAndThePackAreCarriedAndAnUnreadPackIsNullNotEmpty()
         {
             var read = new Dictionary<string, object?>

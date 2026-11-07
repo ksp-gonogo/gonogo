@@ -736,6 +736,7 @@
     },
     "EvaKerbal": {
       "canSafelyRemoveHelmet": "flag",
+      "focused": "flag",
       "hasJetpack": "flag",
       "helmetOn": "flag",
       "helmetUnsafeReason": "text",

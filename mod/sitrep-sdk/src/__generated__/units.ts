@@ -776,6 +776,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "EvaKerbal": {
     canSafelyRemoveHelmet: "flag",
+    focused: "flag",
     hasJetpack: "flag",
     helmetOn: "flag",
     helmetUnsafeReason: "text",

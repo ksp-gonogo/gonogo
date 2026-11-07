@@ -2065,6 +2065,7 @@ namespace Gonogo.KSP
             TrySet(entry, "jetpackIsThrusting", () => (object?)eva.JetpackIsThrusting);
             TrySet(entry, "onALadder", () => (object?)eva.OnALadder);
             TrySet(entry, "lampOn", () => (object?)eva.lampOn);
+            TrySet(entry, "focused", () => (object?)ReferenceEquals(vessel, ActiveVesselScope.Focused));
             TrySet(entry, "visorState", () => (object?)eva.VisorState.ToString());
             TrySet(entry, "willDieWithoutHelmet", () => (object?)eva.WillDieWithoutHelmet());
             TrySet(entry, "canSafelyRemoveHelmet", () => (object?)eva.CanSafelyRemoveHelmet());

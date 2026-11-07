@@ -4471,6 +4471,12 @@ export interface EvaKerbal
 	slots?: Value<"count"> | null;
 	/** How many of those slots hold something, or `null` when it could not be read. */
 	slotsUsed?: Value<"count"> | null;
+	/**
+	* Whether this kerbal is the vessel the game is flying. KSP switches a
+	* kerbal's lamp only while it is, so a command centre offers the lamp only for
+	* the kerbal this is true for. `null` when it could not be read.
+	*/
+	focused?: boolean | null;
 }
 /**
 * One science result a kerbal on EVA is holding, in `EvaKerbal.heldData`.

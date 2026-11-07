@@ -1462,6 +1462,7 @@ namespace Sitrep.Host
             Carrying = BuildInventoryItems(raw),
             Slots = GetInt(raw, "slots"),
             SlotsUsed = GetInt(raw, "slotsUsed"),
+            Focused = GetBool(raw, "focused"),
         };
 
         /// <summary>The results a kerbal holds, or null when the capture did not read them, which is not the same as holding none.</summary>
@@ -2201,6 +2202,7 @@ namespace Sitrep.Host
             ["carrying"] = kerbal.Carrying?.Select(ToWire).ToList<object?>(),
             ["slots"] = kerbal.Slots,
             ["slotsUsed"] = kerbal.SlotsUsed,
+            ["focused"] = kerbal.Focused,
         };
 
         private static Dictionary<string, object?> ToWire(EvaHeldData held) => new Dictionary<string, object?>

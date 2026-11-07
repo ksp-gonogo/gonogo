@@ -43,6 +43,7 @@ const BOB_STATE = {
   kerbalVesselId: BOB,
   name: "Bob Kerman",
   lampOn: false,
+  focused: true,
   helmetOn: true,
   visorState: "Lowered",
   slots: 6,
@@ -107,6 +108,46 @@ describe("Crew Status: a kerbal outside shows helmet, kit and lamp", () => {
     expect(
       screen.getByRole("button", { name: "Bob Kerman lamp" }),
     ).toHaveAttribute("aria-disabled", "true");
+  });
+
+  it("disables the lamp of a kerbal the game is not flying and sends nothing when pressed", async () => {
+    const fixture = mount();
+    act(() => {
+      fixture.emit(`eva.kerbal.${BOB}.state`, { ...BOB_STATE, focused: false });
+    });
+    const lamp = await screen.findByRole("button", { name: "Bob Kerman lamp" });
+    expect(lamp).toHaveAttribute("aria-disabled", "true");
+
+    await userEvent.click(lamp);
+
+    expect(
+      fixture.transport.sentCommands.filter(
+        (sent) => sent.command === "eva.kerbal.setLamp",
+      ),
+    ).toHaveLength(0);
+  });
+
+  it("leaves the lamp of the kerbal the game is flying pressable", async () => {
+    const fixture = mount();
+    act(() => {
+      fixture.emit(`eva.kerbal.${BOB}.state`, BOB_STATE);
+    });
+    expect(
+      await screen.findByRole("button", { name: "Bob Kerman lamp" }),
+    ).not.toHaveAttribute("aria-disabled", "true");
+  });
+
+  it("leaves the lamp pressable when the state does not say whether the kerbal is flown", async () => {
+    const fixture = mount();
+    act(() => {
+      fixture.emit(`eva.kerbal.${BOB}.state`, {
+        ...BOB_STATE,
+        focused: undefined,
+      });
+    });
+    expect(
+      await screen.findByRole("button", { name: "Bob Kerman lamp" }),
+    ).not.toHaveAttribute("aria-disabled", "true");
   });
 
   it("sends the opposite of the lamp's state for that kerbal when pressed", async () => {
