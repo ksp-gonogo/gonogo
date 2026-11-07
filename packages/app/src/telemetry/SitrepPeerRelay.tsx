@@ -15,7 +15,6 @@ import { isTransmission } from "../commcast/topics";
 import { HOST_SESSION, type PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
 import { requestRateUnderChoice } from "./dataRate";
-import { RELAY_TAIL_PER_TOPIC } from "./relayTail";
 
 /**
  * The Uplink roster. A station reads it to know which bundles to load, which is
@@ -59,19 +58,12 @@ const SITREP_PEER_SUB_BUDGET = new PerfBudget({
 });
 
 /**
- * Frames served to stations that ask for older points than the tail the relay
- * replays. Counted per frame because the cost of a request is its size, and a
- * station with several charts scrolling back at once is the realistic burst.
+ * Frames kept per topic for a station that subscribes late, at one sample a
+ * second, and that many times more for a topic sent faster. The main screen's
+ * own timeline keeps the same, so a station given the same run plots the same
+ * trace.
  */
-const SITREP_PEER_HISTORY_BUDGET = new PerfBudget({
-  name: "Station history frames served/sec",
-  threshold: 60000,
-  windowMs: 1000,
-  unit: "frames",
-});
-
-/** The most frames one history request is answered with, the newest of the range, so a reply stays a size the link carries. */
-const HISTORY_FRAMES_PER_REQUEST = 6000;
+const HISTORY_PER_TOPIC = 1500;
 
 /** Whether a frame's payload reports a measured one-way delay, rather than none. */
 function reportsOneWayDelay(message: ServerMessage | undefined): boolean {
@@ -157,13 +149,12 @@ function isCarriedFrame(message: ServerMessage): boolean {
  * that refcount when a station leaves without saying so is
  * `PeerHostService.reconcileSitrepSubs` plus the host's ICE liveness detector.
  *
- * Backfill: keeps its own short tail of the last `RELAY_TAIL_PER_TOPIC`
- * seconds per topic (the main screen's timeline is the one full run, which a
- * station asks for over `sitrep-history-request`), filled from mount rather than from the first station's arrival, and
+ * Backfill: keeps its own run of the last `HISTORY_PER_TOPIC` frames per
+ * topic, filled from mount rather than from the first station's arrival, and
  * cleared only when the client is rebuilt, so it stays useful across a
  * connect/disconnect gap. A newly connecting peer is sent the newest frame of
  * each topic alone (`sendToPeer`, never `broadcast`), and a station that
- * subscribes a topic the host was already holding is sent the tail, so
+ * subscribes a topic the host was already holding is sent the whole run, so
  * neither sits blank on a low-rate topic that has not changed since it asked
  * and a chart starts with the trace the main screen drew. The station
  * discards a frame it has already ingested. A frame older than the one on
@@ -331,7 +322,7 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
         }
         run.push(message);
         const kept = Math.round(
-          RELAY_TAIL_PER_TOPIC *
+          HISTORY_PER_TOPIC *
             samplesPerSecondOf(
               client.getValue("system.dataRates"),
               message.topic,
@@ -378,19 +369,6 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
       },
       requestRate: (topic, tier) => requestRateUnderChoice(client, topic, tier),
       dataRates: () => client.getValue("system.dataRates"),
-      history: (topic, fromUt, toUt) => {
-        const points = store?.sampleRange<unknown>(topic, fromUt, toUt) ?? [];
-        const frames = points.slice(-HISTORY_FRAMES_PER_REQUEST).map(
-          (point): StreamData<unknown> => ({
-            type: "stream-data",
-            topic,
-            payload: point.payload,
-            meta: point.meta,
-          }),
-        );
-        SITREP_PEER_HISTORY_BUDGET.record(frames.length);
-        return frames;
-      },
       cachedFrames: (topic) => {
         const ack = acksRef.current.get(topic);
         const run = cacheRef.current.get(topic) ?? [];
@@ -414,7 +392,7 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
         );
       },
     });
-  }, [client, peerHost, store]);
+  }, [client, peerHost]);
 
   useEffect(() => {
     if (!client || !hasConnections) return;

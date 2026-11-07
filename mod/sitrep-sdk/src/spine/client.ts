@@ -1074,18 +1074,6 @@ export class TelemetryClient {
     }
     // Only each topic's newest point is replayed, never the history behind it.
     for (const [topic, point] of this.lastPoints) store.ingest(topic, point);
-    const requestHistory = this.transport.requestHistory?.bind(this.transport);
-    const releaseHistory = requestHistory
-      ? store.setHistorySource({
-          request: async (topic, fromUt, toUt) =>
-            (await requestHistory(topic, fromUt, toUt)).map((frame) => ({
-              validAt: frame.meta.validAt,
-              payload: frame.payload,
-              meta: frame.meta,
-              epoch: frame.meta.timelineEpoch,
-            })),
-        })
-      : undefined;
     if (this.gameState) {
       store.setGameState(this.gameState.state, this.gameState.scene);
     }
@@ -1097,7 +1085,6 @@ export class TelemetryClient {
       store.markTopicUnowned(topic);
     }
     return () => {
-      releaseHistory?.();
       this.stores.delete(store);
     };
   }

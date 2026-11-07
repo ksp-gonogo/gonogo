@@ -109,9 +109,6 @@ function makeFakeHost() {
     cachedFrames(topic: string) {
       return sink?.cachedFrames(topic) ?? [];
     },
-    history(topic: string, fromUt: number, toUt: number) {
-      return sink?.history?.(topic, fromUt, toUt) ?? [];
-    },
     broadcasts,
     allBroadcasts,
     sentToPeer,
@@ -324,33 +321,6 @@ describe("SitrepPeerRelay", () => {
         (m) => (m as { message: { meta: Meta } }).message.meta.validAt,
       ),
     ).toEqual([1, 2, 3]);
-
-    view.unmount();
-  });
-
-  it("replays only a short tail but answers a station's history request from the main screen's own run", async () => {
-    const peerHost = makeFakeHost();
-    const { transport, view } = renderRelay(peerHost);
-
-    act(() => peerHost.connectPeer("station-a"));
-    act(() => peerHost.claim("vessel.flight"));
-    await waitFor(() =>
-      expect(transport.isSubscribed("vessel.flight")).toBe(true),
-    );
-    act(() => {
-      for (let validAt = 1; validAt <= 400; validAt++) {
-        transport.emit("vessel.flight", { altitude: validAt }, { validAt });
-      }
-    });
-
-    expect(peerHost.cachedFrames("vessel.flight").length).toBeLessThanOrEqual(
-      100,
-    );
-    const older = peerHost.history("vessel.flight", 1, 200);
-    expect(older.map((frame) => frame.meta.validAt)).toEqual(
-      Array.from({ length: 200 }, (_, index) => index + 1),
-    );
-    expect(older[0].payload).toMatchObject({ altitude: 1 });
 
     view.unmount();
   });

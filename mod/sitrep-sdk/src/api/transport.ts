@@ -1,4 +1,3 @@
-import type { StreamData } from "../__generated__/contract";
 import type { ClientMessage, ServerMessage } from "../envelope";
 
 /**
@@ -114,18 +113,6 @@ export interface Transport {
    * relays through the main screen, which holds the answers for it.
    */
   readonly claimsAnswers?: boolean;
-  /**
-   * Optional: asks the machine that holds the full run for the frames of
-   * `topic` with `validAt` in `[fromUt, toUt]`, oldest first. A transport
-   * offering it marks a client that keeps only the window its widgets draw, and
-   * the client asks through it when a chart draws further back than is held.
-   * Absent means the client keeps everything its bounds allow.
-   */
-  requestHistory?(
-    topic: string,
-    fromUt: number,
-    toUt: number,
-  ): Promise<StreamData<unknown>[]>;
   /**
    * Optional: `true` when this transport passes on the mod's acknowledgement
    * of each subscription, so a Topic that is never acknowledged can be shown as

@@ -9563,24 +9563,12 @@
         "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
       },
       {
-        "key": "sitrep-sdk ./spine ClientTimeline#earliest",
-        "note": "the time of the oldest point a timeline still holds"
-      },
-      {
-        "key": "sitrep-sdk ./spine ClientTimeline#get size",
-        "note": "how many points a timeline holds"
-      },
-      {
         "key": "sitrep-sdk ./spine ClientTimeline#scaleMaxPoints",
         "note": "New: keeps a multiple of the point bound, so a Topic sent faster keeps the same span of game time"
       },
       {
         "key": "sitrep-sdk ./spine ClientTimeline#supersedeBefore",
         "note": "New: replaces the payload of every point older than the one on screen, so a long history can drop fields only the newest sample is read for"
-      },
-      {
-        "key": "sitrep-sdk ./spine ClientTimeline#trimBefore",
-        "note": "drops points older than a time, keeping the one that covers it"
       },
       {
         "key": "sitrep-sdk ./spine CommandStatus",
@@ -9863,14 +9851,6 @@
         "note": "New: what the game is doing as the operator is shown it, after the onset"
       },
       {
-        "key": "sitrep-sdk ./spine TimelineStore#heldPointCount",
-        "note": "how many points the store holds across every topic"
-      },
-      {
-        "key": "sitrep-sdk ./spine TimelineStore#holdWindow",
-        "note": "a chart declares how much recent history it draws so the store can drop the rest"
-      },
-      {
         "key": "sitrep-sdk ./spine TimelineStore#ingest",
         "note": "Gains an optional options argument whose replayed flag keeps a replayed sample from pulling the clock anchor back"
       },
@@ -9881,10 +9861,6 @@
       {
         "key": "sitrep-sdk ./spine TimelineStore#setGameState",
         "note": "New: sets what the game is doing from the game-state frame, a load taking effect after the onset"
-      },
-      {
-        "key": "sitrep-sdk ./spine TimelineStore#setHistorySource",
-        "note": "a transport that can fetch older points lets the store trim and refetch on demand"
       },
       {
         "key": "sitrep-sdk ./spine TimelineStore#streamConnected",
@@ -10311,14 +10287,6 @@
         "note": "New: what the game is doing as the operator is shown it, after the onset"
       },
       {
-        "key": "sitrep-sdk ./testing TimelineStore#heldPointCount",
-        "note": "how many points the store holds across every topic"
-      },
-      {
-        "key": "sitrep-sdk ./testing TimelineStore#holdWindow",
-        "note": "a chart declares how much recent history it draws so the store can drop the rest"
-      },
-      {
         "key": "sitrep-sdk ./testing TimelineStore#ingest",
         "note": "Gains an optional options argument whose replayed flag keeps a replayed sample from pulling the clock anchor back"
       },
@@ -10329,10 +10297,6 @@
       {
         "key": "sitrep-sdk ./testing TimelineStore#setGameState",
         "note": "New: sets what the game is doing from the game-state frame, a load taking effect after the onset"
-      },
-      {
-        "key": "sitrep-sdk ./testing TimelineStore#setHistorySource",
-        "note": "a transport that can fetch older points lets the store trim and refetch on demand"
       },
       {
         "key": "sitrep-sdk ./testing TimelineStore#streamConnected",
@@ -10395,24 +10359,12 @@
         "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
       },
       {
-        "key": "sitrep-sdk ./testing ~ClientTimeline#earliest",
-        "note": "the time of the oldest point a timeline still holds"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ClientTimeline#get size",
-        "note": "how many points a timeline holds"
-      },
-      {
         "key": "sitrep-sdk ./testing ~ClientTimeline#scaleMaxPoints",
         "note": "New: keeps a multiple of the point bound, so a Topic sent faster keeps the same span of game time"
       },
       {
         "key": "sitrep-sdk ./testing ~ClientTimeline#supersedeBefore",
         "note": "New: replaces the payload of every point older than the one on screen, so a long history can drop fields only the newest sample is read for"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ClientTimeline#trimBefore",
-        "note": "drops points older than a time, keeping the one that covers it"
       },
       {
         "key": "sitrep-sdk ./testing ~CommandStatus",
@@ -13449,10 +13401,6 @@
         "note": "New: a transport that is the mod's own connection says it can send a claim"
       },
       {
-        "key": "sitrep-sdk . Transport#requestHistory?",
-        "note": "a transport can answer a request for older points of a topic"
-      },
-      {
         "key": "sitrep-sdk . UPLINK_BANNER_LIMITS",
         "note": "New: the per-Uplink banner limits an Uplink can read"
       },
@@ -15949,14 +15897,6 @@
         "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
       },
       {
-        "key": "sitrep-sdk ./spine HistorySource",
-        "note": "asks a transport for older points of one topic"
-      },
-      {
-        "key": "sitrep-sdk ./spine HistorySource#request",
-        "note": "asks a transport for older points of one topic"
-      },
-      {
         "key": "sitrep-sdk ./spine IDENTITY_TOPIC",
         "note": "New: the vessel.identity topic the delay authority reads to see a change of craft"
       },
@@ -16913,10 +16853,6 @@
         "note": "New: a transport that is the mod's own connection says it can send a claim"
       },
       {
-        "key": "sitrep-sdk ./spine ~Transport#requestHistory?",
-        "note": "a transport can answer a request for older points of a topic"
-      },
-      {
         "key": "sitrep-sdk ./spine ~ValueTags",
         "note": "The tags a contract declares on one value: its own sample kind and whether it keys its list entry"
       },
@@ -17271,14 +17207,6 @@
       {
         "key": "sitrep-sdk ./testing ~GroupMember#topic?",
         "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~HistorySource",
-        "note": "asks a transport for older points of one topic"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~HistorySource#request",
-        "note": "asks a transport for older points of one topic"
       },
       {
         "key": "sitrep-sdk ./testing ~InFlightCommand#args?",
@@ -17739,10 +17667,6 @@
       {
         "key": "sitrep-sdk ./testing ~Transport#claimsAnswers?",
         "note": "New: a transport that is the mod's own connection says it can send a claim"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~Transport#requestHistory?",
-        "note": "a transport can answer a request for older points of a topic"
       },
       {
         "key": "sitrep-sdk ./testing ~UplinkActionOutcome",

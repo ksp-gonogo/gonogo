@@ -4,7 +4,7 @@ import type {
   UndeliveredCommand,
 } from "@ksp-gonogo/sitrep-client";
 import { LOSS_MARGIN, TelemetryClient } from "@ksp-gonogo/sitrep-client";
-import type { Meta, ServerMessage, StreamData } from "@ksp-gonogo/sitrep-sdk";
+import type { Meta, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import {
   COMMAND_LOST,
   FaultCode,
@@ -78,15 +78,6 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
   const statusListeners = new Set<(status: ConnStatus) => void>();
   const resetListeners = new Set<() => void>();
   const linkListeners = new Set<(connected: boolean) => void>();
-  const historyListeners = new Set<
-    (id: string, frames: StreamData<unknown>[]) => void
-  >();
-  const sentHistory: Array<{
-    id: string;
-    topic: string;
-    fromUt: number;
-    toUt: number;
-  }> = [];
   type Approval = "unknown" | "pending" | "approved" | "refused";
   let approval: Approval = "approved";
   const approvalListeners = new Set<(approval: Approval) => void>();
@@ -127,21 +118,6 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
     onSitrepReset: (cb: () => void) => {
       resetListeners.add(cb);
       return () => resetListeners.delete(cb);
-    },
-    onSitrepHistory: (
-      cb: (id: string, frames: StreamData<unknown>[]) => void,
-    ) => {
-      historyListeners.add(cb);
-      return () => historyListeners.delete(cb);
-    },
-    sendSitrepHistoryRequest: (
-      id: string,
-      topic: string,
-      fromUt: number,
-      toUt: number,
-    ) => {
-      sentHistory.push({ id, topic, fromUt, toUt });
-      return true;
     },
     onSitrepLink: (cb: (connected: boolean) => void) => {
       linkListeners.add(cb);
@@ -206,9 +182,6 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
     emitReset() {
       for (const cb of resetListeners) cb();
     },
-    emitHistory(id: string, frames: StreamData<unknown>[]) {
-      for (const cb of historyListeners) cb(id, frames);
-    },
     emitApproval(next: Approval) {
       approval = next;
       for (const cb of approvalListeners) cb(next);
@@ -233,7 +206,6 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
     sentGroups,
     sentSubscribes,
     sentVantages,
-    sentHistory,
     sentClaims,
     claimedIds,
   };
@@ -368,8 +340,8 @@ describe("PeerTransport", () => {
     client.emitFrame(flight(3_000));
     received.length = 0;
 
-    // Within the bound of 60 at one a second: still known, so not taken twice.
-    client.emitFrame(flight(2_970));
+    // Within the bound of 1,500 at one a second: still known, so not taken twice.
+    client.emitFrame(flight(2_000));
     expect(received).toHaveLength(0);
     // Past it: forgotten along with its payload.
     client.emitFrame(flight(10));
@@ -1227,31 +1199,5 @@ describe("PeerTransport while the main screen has not approved the station", () 
       { op: "subscribe", topic: "vessel.flight" },
     ]);
     transport.dispose();
-  });
-
-  it("asks the main screen for a topic's older frames and hands back what it answers", async () => {
-    const fake = makeFakeClient("connected");
-    const transport = new PeerTransport(asService(fake));
-    const answer = transport.requestHistory("vessel.flight", 100, 200);
-    expect(fake.sentHistory).toEqual([
-      { id: "h0", topic: "vessel.flight", fromUt: 100, toUt: 200 },
-    ]);
-    const frame: StreamData<unknown> = {
-      type: "stream-data",
-      topic: "vessel.flight",
-      payload: { n: 1 },
-      meta: makeMeta(),
-    };
-    fake.emitHistory("h0", [frame]);
-    expect(await answer).toEqual([frame]);
-    transport.dispose();
-  });
-
-  it("gives up on a history request when the transport is disposed", async () => {
-    const fake = makeFakeClient("connected");
-    const transport = new PeerTransport(asService(fake));
-    const answer = transport.requestHistory("vessel.flight", 0, 10);
-    transport.dispose();
-    await expect(answer).rejects.toThrow("transport disposed");
   });
 });
