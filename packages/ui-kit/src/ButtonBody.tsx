@@ -204,6 +204,12 @@ export const IconButton__Body = styled.button`
   padding: var(--inset-glyph-button);
   transition: color var(--duration-fast);
 
+  /* A target of at least 24 by 24 on a fine pointer, whatever size the caller draws the glyph at; a coarse pointer already gets the touch target. */
+  @media (pointer: fine) {
+    min-width: 24px;
+    min-height: 24px;
+  }
+
   @media (hover: hover) {
     &:hover:not([aria-disabled="true"]) {
       color: var(--color-text-primary);

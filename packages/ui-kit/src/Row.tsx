@@ -2,7 +2,7 @@ import type { AnyBoundCommand } from "@ksp-gonogo/sitrep-sdk";
 import type { ElementType, HTMLAttributes, ReactNode } from "react";
 import styled, { css } from "styled-components";
 import { useBoundCommandInput } from "./CommandButton/commandInput";
-import { commandOutlineEdge } from "./commandEdge";
+import { COMMAND_WORD_ROOM, commandOutlineEdge } from "./commandEdge";
 import { focusRingInset } from "./focusRing";
 import { LiveRegion } from "./LiveRegion";
 import { Tooltip } from "./Tooltip";
@@ -94,9 +94,7 @@ function CommandedRow({
           }}
         >
           {children}
-          {input.word !== null && (
-            <RowWord aria-hidden="true">{input.word}</RowWord>
-          )}
+          <RowWord aria-hidden="true">{input.word}</RowWord>
         </PlainRow>
       </Tooltip>
       <LiveRegion visuallyHidden>{input.announce}</LiveRegion>
@@ -104,7 +102,10 @@ function CommandedRow({
   );
 }
 
+/* Holds the room of the longest word at rest too, so the row never changes width. */
 const RowWord = styled.span`
+  min-width: ${COMMAND_WORD_ROOM};
+  text-align: end;
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   letter-spacing: 0.08em;

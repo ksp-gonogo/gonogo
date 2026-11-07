@@ -126,7 +126,7 @@ describe("ResearchAndDevelopment spend truth", () => {
     );
     expect(
       screen.getByRole("button", { name: /^Unlock( |$)/ }),
-    ).toHaveAccessibleName(/career holds 10/);
+    ).toHaveAccessibleDescription(/career holds 10/);
   });
 
   it("draws no science verdict on an unlock the career model refuses", async () => {
@@ -151,6 +151,6 @@ describe("ResearchAndDevelopment spend truth", () => {
     // No affordability verdict on the row either: the grey and the red cost claim the balance decides.
     expect(document.querySelector("[data-afford]")).toBeNull();
     // It says the career model's own reason instead.
-    expect(unlock).toHaveAccessibleName(/planted\.tech\.research/);
+    expect(unlock).toHaveAccessibleDescription(/planted\.tech\.research/);
   });
 });

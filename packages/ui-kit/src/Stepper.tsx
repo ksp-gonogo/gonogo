@@ -6,7 +6,7 @@ import {
   useCommandInput,
 } from "./CommandButton/commandInput";
 import { MarkedFigure } from "./CommandValue/CommandValue";
-import { commandEdge } from "./commandEdge";
+import { COMMAND_WORD_ROOM, commandEdge } from "./commandEdge";
 import { focusRing } from "./focusRing";
 import { LiveRegion } from "./LiveRegion";
 import { NULL_DISPLAY } from "./NullValue";
@@ -43,6 +43,7 @@ export interface StepperBaseProps<Option> {
  */
 export type StepperSteps<Option> =
   | {
+      /** The values in the order the stepper moves through them. */
       options: readonly Option[];
       min?: never;
       max?: never;
@@ -74,6 +75,12 @@ export interface StepperMarks<Option> {
   lastSeenCaption?: string;
   /** What the figure reads while there is no value at all. Defaults to the kit's null placeholder. */
   unknown?: ReactNode;
+  /**
+   * The value the first step lands on while there is no value at all, in either
+   * direction. Defaults to the first option, or to the lowest value of a range
+   * (zero where the range has no lower end, kept within its upper end).
+   */
+  startAt?: Option;
 }
 
 /**
@@ -84,7 +91,7 @@ export interface StepperMarks<Option> {
 export type PlainStepperProps<Option> = StepperBaseProps<Option> &
   StepperSteps<Option> &
   StepperMarks<Option> & {
-    /** The value now held. One not present in `options` reads as off the set: both step controls stay live and stepping lands on the nearest end. `null` reads as `unknown` and steps nowhere. */
+    /** The value now held. One not present in `options` reads as off the set: both step controls stay live and stepping lands on the nearest end. `null` reads as `unknown`, and the first step lands on `startAt`. */
     value: Option | null;
     /** Called with the value a step lands on. */
     onChange: (value: Option) => void;
@@ -209,7 +216,7 @@ function CommandedStepper<Option>(props: CommandedStepperProps<Option>) {
 /* Holds the room of the longest word at rest too, so the group never changes width. */
 const StepperWord = styled.span`
   display: inline-block;
-  min-width: 7ch;
+  min-width: ${COMMAND_WORD_ROOM};
   text-align: start;
   margin-inline-start: var(--gap-related);
   font-size: var(--font-size-caption);
@@ -255,19 +262,25 @@ function StepperView<Option>({
     : Math.max((options?.length ?? 0) - 1, 0);
   const index = options && value !== null ? options.indexOf(value) : -1;
   const atStart = range
-    ? numeric === null || numeric <= lowest
+    ? numeric !== null && numeric <= lowest
     : index >= 0 && index <= 0;
   const atEnd = range
-    ? numeric === null || numeric >= highest
+    ? numeric !== null && numeric >= highest
     : index >= 0 && index >= (options?.length ?? 0) - 1;
 
   const land = (next: Option | undefined) => {
-    if (disabled || value === null || next === undefined || next === value)
-      return;
+    if (disabled || next === undefined || next === value) return;
     onChange(next);
+  };
+  /* With no value at all, any step lands on the same starting value, since there is no neighbour to step to. */
+  const start = (): Option | undefined => {
+    if (marks.startAt !== undefined) return marks.startAt;
+    if (options) return options[0];
+    return Math.min(highest, Math.max(lowest, 0)) as Option;
   };
   // A held value outside the set steps to an end, the only answer that needs no guess at the neighbour.
   const toward = (dir: -1 | 1): Option | undefined => {
+    if (value === null) return start();
     if (options) {
       if (options.length === 0) return undefined;
       const to = index < 0 ? (dir === 1 ? options.length - 1 : 0) : index + dir;
@@ -278,6 +291,7 @@ function StepperView<Option>({
     return Math.min(highest, Math.max(lowest, numeric + by)) as Option;
   };
   const end = (which: "start" | "end"): Option | undefined => {
+    if (value === null) return start();
     if (options) return options[which === "start" ? 0 : options.length - 1];
     const bound = which === "start" ? lowest : highest;
     return Number.isFinite(bound) ? (bound as Option) : undefined;
@@ -301,7 +315,7 @@ function StepperView<Option>({
           type="button"
           aria-label={`Decrease ${label}`}
           onClick={() => land(toward(-1))}
-          {...stepState(disabled || value === null || atStart, reasonId, tip)}
+          {...stepState(disabled || atStart, reasonId, tip)}
         >
           −
         </Stepper__Step>
@@ -381,7 +395,7 @@ function StepperView<Option>({
           type="button"
           aria-label={`Increase ${label}`}
           onClick={() => land(toward(1))}
-          {...stepState(disabled || value === null || atEnd, reasonId, tip)}
+          {...stepState(disabled || atEnd, reasonId, tip)}
         >
           +
         </Stepper__Step>

@@ -1,6 +1,13 @@
 import { css } from "styled-components";
 
 /**
+ * The room an input holds for the word that says what became of its command,
+ * the widest being "No reply" with its letter spacing, so the input is the same
+ * size at rest and in every phase.
+ */
+export const COMMAND_WORD_ROOM = "10ch";
+
+/**
  * The edge of a command input that shows what became of its command, for an
  * element that draws a border: warning colour after a refusal or no reply, a
  * dashed warning edge when the game will refuse the press, a dotted dim one

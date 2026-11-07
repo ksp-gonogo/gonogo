@@ -18,8 +18,6 @@ export const FACE_DEBT: Readonly<Record<string, string>> = {
     'face "press 1": div "No active strategies" resized 0.0, -150.2px',
   'administration-building|button "Available"':
     'face "press 1": div "No strategies available right now" resized 0.0, -138.0px',
-  'administration-building|button "Deactivate Aggressive Negotiations unava"':
-    'face "press 1": div.daSaQs moved 0.0, 51.0px',
   'administration-building|button "Eligibility unknown"':
     'face "press 1": div "unknown: another mod changes how strateg" resized 0.0, 101.2px',
   'administration-building|button "Fundraising Campaign"':
@@ -46,14 +44,10 @@ export const FACE_DEBT: Readonly<Record<string, string>> = {
     'face "press 1": div "3 active · 0 offered · 1 recentBuild an " resized 0.0, -109.4px',
   'contract-manager|button "Briefing"':
     'face "press 1": div "CANCEL COSTSFUNDS−10,000f fundsREP−3.0 r" moved 0.0, 132.0px (+2 more)',
-  'contract-manager|button "Cancel"':
-    'face "no reply": div "CANCEL COSTSFUNDS−10,000f fundsREP−3.0 r" resized -75.2, 0.0px (+1 more)',
   'contract-manager|button "Completed0"':
     'face "press 1": div "1 active · 1 offered · 0 recentNo contra" resized 0.0, -652.2px',
   'contract-manager|button "Completed1"':
     'face "press 1": div "0 active · 0 offered · 1 recent · 2 fail" resized 0.0, -223.6px',
-  'contract-manager|button "Decline"':
-    'face "no reply": button "Accept" resized -14.8, 0.0px',
   'contract-manager|button "Failed0"':
     'face "press 1": div "1 active · 1 offered · 0 recentNo contra" resized 0.0, -652.2px',
   'contract-manager|button "Failed2"':
@@ -66,12 +60,6 @@ export const FACE_DEBT: Readonly<Record<string, string>> = {
     'face "sent": div "Bob Kerman" resized -10.0, 0.0px (+1 more)',
   'experiments|button "Deploy"':
     'face "no reply": span.fMSYLu moved 12.8, 0.0px',
-  'experiments|button "Start"':
-    'face "no reply": div "Spectrometer" resized -19.2, 0.0px',
-  'experiments|button "Stop"':
-    'face "no reply": div "Gravity Scan" resized -25.6, 0.0px',
-  'experiments|button "Transmit"':
-    'face "no reply": button "Deploy" resized -116.6, 0.0px (+4 more)',
   'launch-director|button "Alpha Lifter14 parts · 6.4 t tonnes9,800"':
     'face "answered": div "KSC RunwayRunwayOccupancy unreported" moved 0.0, -72.6px (+1 more)',
   'launch-director|button "Fly vessel ▾"':
@@ -112,14 +100,14 @@ export const FACE_DEBT: Readonly<Record<string, string>> = {
     'face "press 1": span "0.85 m metres" resized 20.0, 0.0px (+9 more)',
   'robotics-console|button "Increase target"':
     'face "answered": button "Decrease target" moved -47.0, 21.0px (+3 more)',
-  'rotor-tachometer|button "Lower RPM cap"':
-    'face "answered": div "RPM cap" moved 0.0, -7.0px and resized -11.0, 14.0px (+7 more)',
-  'rotor-tachometer|button "Lower torque limit"':
-    'face "answered": button "Lower RPM cap" moved -11.0, 0.0px (+7 more)',
-  'rotor-tachometer|button "Raise RPM cap"':
-    'face "answered": button "Lower RPM cap" moved -11.0, 0.0px (+7 more)',
-  'rotor-tachometer|button "Raise torque limit"':
-    'face "answered": button "Lower RPM cap" moved -11.0, 0.0px (+7 more)',
+  'rotor-tachometer|button "Decrease RPM cap"':
+    'face "answered": button "Increase RPM cap" moved 62.0, 1.0px (+4 more)',
+  'rotor-tachometer|button "Decrease Torque limit"':
+    'face "answered": div "RPM cap" moved 0.0, 1.0px (+4 more)',
+  'rotor-tachometer|button "Increase RPM cap"':
+    'face "answered": button "Decrease RPM cap" moved 0.0, 1.0px (+4 more)',
+  'rotor-tachometer|button "Increase Torque limit"':
+    'face "refused": div "Torque limit" resized 68.0, 0.0px',
   'rotor-tachometer|button "Tail Rotor0, OFFLINE, as of Y1 D1 00:00:"':
     'face "press 1": button "Motor off, OFFLINE, as of Y1 D1 00:00:00" resized 6.0, 0.0px (+7 more)',
   'rotor-tachometer|button "Tail Rotor0/120 rpm revolutions per minu"':
@@ -132,22 +120,6 @@ export const FACE_DEBT: Readonly<Record<string, string>> = {
     'face "press 1": div "RECORDED" moved -133.2, 12.0px and resized 133.2, 18.0px',
   'science-data|summary "2 warning. Panel status and controls"':
     'face "press 1": div "BLACKOUT" moved -133.2, 12.0px and resized 133.2, 18.0px',
-  'space-center-status|button "Upgrade Astronaut unavailable: it costs "':
-    'face "press 1": span "30kf funds" moved 0.0, 7.0px',
-  'space-center-status|button "Upgrade Launch Pad unavailable: it costs"':
-    'face "press 1": span "25kf funds" moved 0.0, 7.0px',
-  'space-center-status|button "Upgrade Mission Control unavailable: it "':
-    'face "press 1": span "45kf funds" moved 0.0, 7.0px',
-  'space-center-status|button "Upgrade R&D unavailable: it costs 250,00"':
-    'face "press 1": span "250kf funds" moved 0.0, 7.0px',
-  'space-center-status|button "Upgrade SPH unavailable: it costs 175,00"':
-    'face "press 1": span "175kf funds" moved 0.0, 7.0px',
-  'space-center-status|button "Upgrade Tracking unavailable: it costs 4"':
-    'face "press 1": span "45kf funds" moved 0.0, 7.0px',
-  'space-center-status|button "Upgrade VAB unavailable: it costs 25,000"':
-    'face "press 1": span "25kf funds" moved 0.0, 7.0px',
-  'space-center-status|button "Upgrade"':
-    'face "no reply": span "25kf funds" moved 0.0, 7.0px',
   'target-picker|button "▸Bodies (3)"':
     'face "press 1": div "▸Parts (5)Target Docking Port 1Orbiting\u2014" moved 0.0, -70.0px',
   'target-picker|button "▸Vessels (3)"':

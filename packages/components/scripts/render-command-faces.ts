@@ -93,6 +93,14 @@ async function main(theme: string): Promise<void> {
         els.map((el) => Math.round(el.getBoundingClientRect().width)),
       );
     console.log("  long label widths by scenario:", widths.join(", "));
+    const icon = await page
+      .locator('[data-row="Icon button"] button')
+      .first()
+      .evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        return `${Math.round(r.width)} x ${Math.round(r.height)}`;
+      });
+    console.log("  icon button size at rest:", icon);
     await page.screenshot({ path: join(OUT_DIR, "command-faces.png") });
     console.log("  command-faces.png");
   } finally {

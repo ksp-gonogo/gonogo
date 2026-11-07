@@ -177,3 +177,56 @@ describe("Button width across phases", () => {
     expect(sizer()).toEqual(atRest);
   });
 });
+
+describe("Button given a command, announcements and tips", () => {
+  it("announces SENT in its own live region when no rail carries the command", async () => {
+    const user = userEvent.setup();
+    const fake = createFakeCommand({ answer: "hold" });
+    const { container } = render(
+      <Button command={fake.handle.with(undefined, { label: "Deploy" })}>
+        Deploy
+      </Button>,
+    );
+    await user.click(screen.getByRole("button"));
+    expect(container.querySelector("[data-live-region]")).toHaveTextContent(
+      "Deploy sent, not yet received",
+    );
+  });
+
+  it("gives a command that got no reply the same tip a refusal gets", async () => {
+    const user = userEvent.setup();
+    const fake = createFakeCommand({ answer: "hold" });
+    render(
+      <Button command={fake.handle.with(undefined, { label: "Deploy" })}>
+        Deploy
+      </Button>,
+    );
+    const button = screen.getByRole("button");
+    await user.click(button);
+    await act(async () => {
+      fake.lose();
+    });
+    expect(button).toHaveTextContent("No reply");
+    expect(button).toHaveAttribute(
+      "data-tooltip",
+      expect.stringMatching(/no reply\. May have run/),
+    );
+  });
+});
+
+describe("Icon buttons", () => {
+  it("are at least 24 by 24 on a fine pointer, whatever size the caller draws them at", () => {
+    render(
+      <IconButton aria-label="Edit" style={{ width: 22, height: 22 }}>
+        x
+      </IconButton>,
+    );
+    // jsdom has no pointer media, so the rule is read from the emitted stylesheet.
+    const css = Array.from(document.querySelectorAll("style"))
+      .map((el) => el.textContent ?? "")
+      .join("");
+    expect(css).toMatch(
+      /@media \(pointer:\s?fine\)\{[^}]*min-width:24px;min-height:24px/,
+    );
+  });
+});

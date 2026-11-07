@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { build } from "esbuild";
-import { chromium } from "playwright";
+import { chromium, type Locator } from "playwright";
 /**
  * Render the faces a command input draws (toggle, icon toggle, button) at rest
  * and in each phase, to one PNG. `--out <dir>` picks the folder. Model copied
@@ -22,7 +22,32 @@ const OUT_DIR = resolve(
     : process.argv[outFlag + 1],
 );
 
-const WIDTH = 1400;
+const WIDTH = 1800;
+
+/** Presses whichever control a cell holds, once, in the way its kind is operated. */
+async function pressCell(cell: Locator): Promise<void> {
+  if (await cell.getByRole("checkbox").count()) {
+    return cell.locator("label").first().click();
+  }
+  const combo = cell.getByRole("combobox");
+  if (await combo.count()) {
+    await combo.selectOption("b");
+    return;
+  }
+  const text = cell.getByRole("textbox");
+  if (await text.count()) {
+    await text.fill("Jeb");
+    return text.press("Enter");
+  }
+  const slider = cell.getByRole("slider");
+  if (await slider.count()) return slider.press("ArrowRight");
+  const step = cell.getByRole("button", { name: "Increase RPM cap" });
+  if (await step.count()) return step.click();
+  const item = cell.getByRole("menuitem", { name: /Cut chute/ });
+  if (await item.count()) return item.click();
+  const button = cell.getByRole("button");
+  if (await button.count()) return button.first().click();
+}
 
 async function main(theme: string): Promise<void> {
   await mkdir(OUT_DIR, { recursive: true });
@@ -82,26 +107,54 @@ async function main(theme: string): Promise<void> {
     );
     // Drive every control that needs a press to reach its phase.
     for (const cell of await page.locator("[data-scenario-cell]").all()) {
-      const checkbox = cell.getByRole("checkbox");
-      const combo = cell.getByRole("combobox");
-      const text = cell.getByRole("textbox");
-      const slider = cell.getByRole("slider");
-      const spin = cell.getByRole("button", { name: "Increase RPM cap" });
-      const button = cell.getByRole("button");
-      if (await checkbox.count()) await cell.locator("label").first().click();
-      else if (await combo.count()) await combo.selectOption("b");
-      else if (await text.count()) {
-        await text.fill("Jeb");
-        await text.press("Enter");
-      } else if (await slider.count()) await slider.press("ArrowRight");
-      else if (await spin.count()) await spin.click();
-      else if ((await cell.getByRole("menuitem").count()) > 0)
-        await cell.getByRole("menuitem").click();
-      else if ((await button.count()) > 0) await button.first().click();
+      await pressCell(cell);
     }
+    // The last control pressed keeps keyboard focus and so its focus ring; the faces are drawn without it.
+    await page.evaluate(
+      "document.activeElement && document.activeElement.blur()",
+    );
     await page.waitForTimeout(700);
     await page.mouse.move(0, 0);
     await page.screenshot({ path: join(OUT_DIR, "command-inputs.png") });
+    // Boxes must not change size when the word shows: measure the menu, row and field boxes of every column.
+    const columnWidths = (await page.evaluate(`(() => {
+      const names = ["Switch", "Select", "Text field", "Slider", "Stepper", "Row", "Menu item"];
+      const cells = Array.from(document.querySelectorAll("[data-scenario]")).filter(
+        (e) => !e.closest("#real"),
+      );
+      const out = {};
+      names.forEach((name, row) => {
+        out[name] = cells
+          .slice(row * 8, row * 8 + 8)
+          .map((c) => Math.round(c.firstElementChild.getBoundingClientRect().width));
+      });
+      return out;
+    })()`)) as Record<string, number[]>;
+    for (const [label, widths] of Object.entries(columnWidths)) {
+      console.log(`  width of ${label}:`, widths.join(", "));
+    }
+    // The real menu has a 180 px minimum that would hide any growth, so its natural width is measured with the minimum removed.
+    const naturalMenuW = (await page.evaluate(`(() => {
+      return Array.from(document.querySelectorAll("[data-real-menu] [role=menu]")).map((m) => {
+        const before = m.style.minWidth + "|" + m.style.width;
+        m.style.minWidth = "0";
+        m.style.width = "max-content";
+        const w = Math.round(m.getBoundingClientRect().width);
+        m.style.minWidth = before.split("|")[0];
+        m.style.width = before.split("|")[1];
+        return w;
+      });
+    })()`)) as number[];
+    console.log(
+      "  open menu natural width (minimum removed):",
+      naturalMenuW.join(", "),
+    );
+    const menuW = await page
+      .locator("[data-real-menu] [role=menu]")
+      .evaluateAll((els) =>
+        els.map((e) => Math.round(e.getBoundingClientRect().width)),
+      );
+    console.log("  open menu width at rest, sent, refused:", menuW.join(", "));
     await page.locator("#real").screenshot({
       path: join(OUT_DIR, "command-inputs-widget.png"),
     });

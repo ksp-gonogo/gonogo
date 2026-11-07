@@ -66,6 +66,7 @@ export function useCommandInput<Value>({
     },
     unavailable,
   });
+  const railSpeaks = useRailSpeaks(control);
   const inert =
     control.isBlocked ||
     control.isUnavailable ||
@@ -74,6 +75,7 @@ export function useCommandInput<Value>({
   return inputState(
     control,
     inert,
+    railSpeaks,
     (value) => {
       if (inert) return;
       const args = command.toArgs(value);
@@ -102,6 +104,7 @@ export function useBoundCommandInput({
   unavailable?: string | null;
 }): CommandInputState<void> {
   const control = useCommandControl({ command, unavailable });
+  const railSpeaks = useRailSpeaks(control);
   const inert =
     control.isBlocked ||
     control.isUnavailable ||
@@ -110,6 +113,7 @@ export function useBoundCommandInput({
   return inputState(
     control,
     inert,
+    railSpeaks,
     () => {
       if (inert) return;
       control.press(false);
@@ -121,6 +125,7 @@ export function useBoundCommandInput({
 function inputState<Value>(
   control: CommandControlState,
   inert: boolean,
+  railSpeaks: boolean,
   send: (value: Value) => void,
   unavailable: string | null,
 ): CommandInputState<Value> {
@@ -169,7 +174,10 @@ function inputState<Value>(
       "data-predicted": gated ? undefined : predictedOutcomeOf(sendStatus),
       "aria-disabled": inert ? true : undefined,
     },
-    announce: outcome,
+    // A mounted rail that carries this command already speaks what became of it.
+    announce: railSpeaks
+      ? null
+      : (outcome ?? (control.isSent ? "Sent, not yet received" : null)),
   };
 }
 

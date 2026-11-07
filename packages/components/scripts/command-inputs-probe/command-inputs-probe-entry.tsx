@@ -118,11 +118,12 @@ const CELL = {
   gap: "var(--gap-glyph)",
   padding: "var(--inset-placeholder)",
   minHeight: "52px",
+  minWidth: 0,
 } as const;
 
 const GRID = {
   display: "grid",
-  gridTemplateColumns: `repeat(${SCENARIOS.length}, 1fr)`,
+  gridTemplateColumns: `repeat(${SCENARIOS.length}, minmax(0, 1fr))`,
   gap: "var(--gap-glyph)",
 } as const;
 
@@ -235,6 +236,7 @@ function RowCell({ s }: { s: Scenario }) {
 
 function MenuCell({ s }: { s: Scenario }) {
   const h = handleFor(s);
+  const other = handleFor("rest");
   return (
     <Act s={s}>
       <ActionMenu
@@ -242,16 +244,67 @@ function MenuCell({ s }: { s: Scenario }) {
         style={{ position: "static", minWidth: 0, width: "100%" }}
         items={[
           {
+            key: "deploy",
+            label: "Deploy chute",
+            command: other.with(undefined, { label: "Deploy chute" }),
+          },
+          {
             key: "cut",
             label: "Cut chute",
             command: h.with(undefined, { label: "Cut chute" }),
             unavailable: unavailable(s, "Chute not deployed") ?? undefined,
+          },
+          {
+            key: "repack",
+            label: "Repack chute",
+            command: other.with(undefined, { label: "Repack chute" }),
           },
         ]}
         onSelect={() => {}}
         onDismiss={() => {}}
       />
     </Act>
+  );
+}
+
+/** A part's action menu as the Ship Map opens it, at the menu's own width, before and after the press. */
+function RealMenu({ s }: { s: Scenario }) {
+  const h = handleFor(s);
+  const other = handleFor("rest");
+  return (
+    <div
+      data-real-menu={s}
+      style={{ position: "relative", width: 240, height: 150 }}
+    >
+      <Text level="muted" size="xs">
+        {s}
+      </Text>
+      <Act s={s}>
+        <ActionMenu
+          aria-label="Part actions"
+          style={{ position: "absolute", top: 20, left: 0 }}
+          items={[
+            {
+              key: "deploy",
+              label: "Deploy",
+              command: other.with(undefined, { label: "Deploy" }),
+            },
+            {
+              key: "cut",
+              label: "Cut chute",
+              command: h.with(undefined, { label: "Cut chute" }),
+            },
+            {
+              key: "repack",
+              label: "Repack",
+              command: other.with(undefined, { label: "Repack" }),
+            },
+          ]}
+          onSelect={() => {}}
+          onDismiss={() => {}}
+        />
+      </Act>
+    </div>
   );
 }
 
@@ -331,6 +384,9 @@ function Harness() {
         }}
         id="real"
       >
+        <RealMenu s="rest" />
+        <RealMenu s="sent" />
+        <RealMenu s="refused" />
         <RealLayout s="rest" />
         <RealLayout s="sent" />
       </div>

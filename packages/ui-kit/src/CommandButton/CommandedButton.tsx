@@ -122,8 +122,8 @@ export interface CommandedButtonProps extends NativeButtonProps {
   foundLabel?: ReactNode;
   /**
    * The accessible name while the control cannot be pressed, for a control whose
-   * reason is already spelled out beside it. Omit it and the accessible name is
-   * the composed reason.
+   * resting name would mislead then. Omit it and the accessible name stays the
+   * control's own name, with the reason as its description, read after the name.
    */
   blockedAriaLabel?: string;
   /**
@@ -335,7 +335,9 @@ function CommandedButtonFace({
         ? lossText
         : isFound
           ? foundText
-          : null;
+          : isSent
+            ? sentSentence
+            : null;
 
   const filled = pressed === true || isArmed || isRefused;
   const drawnTone = commandTone({
@@ -371,7 +373,12 @@ function CommandedButtonFace({
   return (
     <>
       <Tooltip
-        text={foundText ?? refusalText ?? (isSent ? sentSentence : tipText)}
+        text={
+          foundText ??
+          refusalText ??
+          lossText ??
+          (isSent ? sentSentence : tipText)
+        }
       >
         <Body
           type="button"
@@ -412,7 +419,7 @@ function CommandedButtonFace({
                 : isFound
                   ? (foundText ?? ariaLabel)
                   : isBlocked
-                    ? (blockedAriaLabel ?? refusalText ?? ariaLabel)
+                    ? (blockedAriaLabel ?? ariaLabel)
                     : isSent
                       ? (sentAriaLabel ?? sentSentence)
                       : isArmed

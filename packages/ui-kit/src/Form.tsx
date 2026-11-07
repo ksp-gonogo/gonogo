@@ -249,7 +249,7 @@ export const Input = styled.input`
   ${commandEdge}
   &[data-command-phase] {
     /* Room for the word of a command inside the field, at its end. */
-    padding-inline-end: 7ch;
+    padding-inline-end: 8ch;
   }
 `;
 
@@ -271,6 +271,7 @@ export interface CommandedSelectProps
   value: string;
   /** Why a choice cannot be made now. The field is drawn dimmed with this as its tip and a choice sends nothing. */
   unavailable?: string | null;
+  /** The `<option>` elements to choose from. */
   children?: ReactNode;
 }
 
@@ -324,7 +325,7 @@ const SelectField = styled.select`
   ${commandEdge}
   &[data-command-phase] {
     /* Room for the word inside the field, past the chevron. */
-    padding-inline-end: calc(var(--inset-field-select-end) + 7ch);
+    padding-inline-end: calc(var(--inset-field-select-end) + 8ch);
   }
 
   @media (pointer: coarse) {

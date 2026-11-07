@@ -1,7 +1,7 @@
 import type { ValueCommand } from "@ksp-gonogo/sitrep-sdk";
 import styled from "styled-components";
 import { useCommandInput } from "./CommandButton/commandInput";
-import { commandEdge } from "./commandEdge";
+import { COMMAND_WORD_ROOM, commandEdge } from "./commandEdge";
 import { LiveRegion } from "./LiveRegion";
 import { Tooltip } from "./Tooltip";
 
@@ -187,7 +187,7 @@ const SwitchTrack = styled.div<{ $checked: boolean; $disabled?: boolean }>`
 
 /* Holds the room of the longest word the switch can show, so a press never moves the row. */
 const SwitchWord = styled.span`
-  min-width: 7ch;
+  min-width: ${COMMAND_WORD_ROOM};
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   letter-spacing: 0.08em;

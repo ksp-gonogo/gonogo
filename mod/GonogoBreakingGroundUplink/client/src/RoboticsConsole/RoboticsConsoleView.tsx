@@ -149,6 +149,7 @@ export function RoboticsConsoleView({
                 format={(v) =>
                   writeQuantity(value(unitFor(selected.type), v), { decimals })
                 }
+                disabled={targetCommand.commanded === null}
                 disabledReason="The target is not reported"
                 onChange={(v) => setTarget(selected.partId, selected.type, v)}
               />

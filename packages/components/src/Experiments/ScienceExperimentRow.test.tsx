@@ -390,7 +390,9 @@ describe("ScienceExperimentRow", () => {
     expect(deploy).toHaveAttribute("aria-disabled", "true");
     await userEvent.click(deploy);
     expect(send).not.toHaveBeenCalled();
-    expect(deploy).toHaveAccessibleName(/the experiment has already been run/);
+    expect(deploy).toHaveAccessibleDescription(
+      /the experiment has already been run/,
+    );
     expect(
       screen.queryByText(/the experiment has already been run/),
     ).toBeNull();

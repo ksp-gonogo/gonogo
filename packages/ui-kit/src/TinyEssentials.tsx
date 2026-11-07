@@ -283,7 +283,7 @@ function EssentialFigure({ essential }: { essential: TinyEssential }) {
       {essential.word !== undefined ? (
         essential.word
       ) : (
-        <MarkedFigure essential={essential} />
+        <EssentialReading essential={essential} />
       )}
     </>
   );
@@ -306,7 +306,7 @@ function asZero(
  * `elsewhere` empties whichever mark that gives. A kind the widget states for
  * a reading of now is drawn around the figure.
  */
-function MarkedFigure({ essential }: { essential: TinyEssential }) {
+function EssentialReading({ essential }: { essential: TinyEssential }) {
   const { mark, value, decimals } = essential;
   const { held, shown } = resolveCurrency(value);
   // Only a signed figure is read for its sign, so a figure handed over bare is drawn as it came.

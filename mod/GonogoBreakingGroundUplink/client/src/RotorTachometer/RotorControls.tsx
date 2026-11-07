@@ -126,6 +126,7 @@ export function RotorControls({
             max={ROTOR_MAX_RPM}
             step={RPM_STEP}
             format={(v) => writeQuantity(value("rpm", v), { decimals: 0 })}
+            disabled={rpmCommand.commanded === null}
             disabledReason="The RPM cap is not reported"
             onChange={(v) => setRpmLimit(selected.partId, v)}
           />
@@ -141,6 +142,7 @@ export function RotorControls({
             max={100}
             step={TORQUE_STEP}
             format={(v) => writeQuantity(value("%", v), { decimals: 0 })}
+            disabled={torqueCommand.commanded === null}
             disabledReason="The torque limit is not reported"
             onChange={(v) => setTorqueLimit(selected.partId, v)}
           />

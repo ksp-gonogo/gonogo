@@ -4,7 +4,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import styled from "styled-components";
 import { groupComboboxOptions } from "./Combobox";
 import { useBoundCommandInput } from "./CommandButton/commandInput";
-import { commandOutlineEdge } from "./commandEdge";
+import { COMMAND_WORD_ROOM, commandEdge } from "./commandEdge";
 import { EmptyState } from "./EmptyState";
 import { focusRingInset } from "./focusRing";
 import { LiveRegion } from "./LiveRegion";
@@ -332,9 +332,7 @@ function CommandedMenuItem({
           }}
         >
           <MenuItemLabel>{item.label}</MenuItemLabel>
-          {word !== null && word !== undefined && (
-            <MenuItemWord aria-hidden="true">{word}</MenuItemWord>
-          )}
+          <MenuItemWord aria-hidden="true">{word}</MenuItemWord>
         </MenuItem>
       </Tooltip>
       <LiveRegion visuallyHidden>{input.announce}</LiveRegion>
@@ -346,7 +344,10 @@ const MenuItemLabel = styled.span`
   flex: 1;
 `;
 
+/* Holds the room of the longest word at rest too, so the menu never changes width. */
 const MenuItemWord = styled.span`
+  min-width: ${COMMAND_WORD_ROOM};
+  text-align: end;
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   letter-spacing: 0.08em;
@@ -375,12 +376,13 @@ const GroupHeader = styled.div`
 `;
 
 const MenuItem = styled.button<{ $disabled?: boolean }>`
+  /* A border of its own, clear at rest, so the state edges of a command are drawn on the item's box as on every other input. */
+  border: 1px solid transparent;
   display: flex;
   align-items: center;
   gap: var(--gap-related);
   width: 100%;
   text-align: left;
-  border: none;
   background: transparent;
   color: var(--color-text-primary);
   font: inherit;
@@ -404,7 +406,7 @@ const MenuItem = styled.button<{ $disabled?: boolean }>`
     cursor: default;
   }
 
-  ${commandOutlineEdge}
+  ${commandEdge}
 
   @media (pointer: coarse) {
     min-height: var(--touch-target);

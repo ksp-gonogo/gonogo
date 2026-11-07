@@ -1114,7 +1114,7 @@ describe("CommandButton: the blocked phase", () => {
     expect(gated).not.toBeDisabled();
   });
 
-  it("makes the REASON the accessible name, not just the fact", () => {
+  it("keeps the control's own name and gives the reason as its description", () => {
     render(
       <Button
         command={makeHandle(() => Promise.resolve(OK), {
@@ -1127,12 +1127,11 @@ describe("CommandButton: the blocked phase", () => {
       </Button>,
     );
 
-    // The game's own words, through the shared composer.
-    expect(
-      screen.getByRole("button", {
-        name: "Launch Kerbal I unavailable: Launch Pad is occupied.",
-      }),
-    ).toBeInTheDocument();
+    // The name says which control it is; the game's own words, through the shared composer, are read after it.
+    const button = screen.getByRole("button", { name: "Launch Kerbal I" });
+    expect(button).toHaveAccessibleDescription(
+      "Launch Kerbal I unavailable: Launch Pad is occupied.",
+    );
   });
 
   it("quotes the numbers when the gate carried a breach", () => {
@@ -1161,13 +1160,13 @@ describe("CommandButton: the blocked phase", () => {
     );
 
     expect(
-      screen.getByRole("button", {
-        name: "Hire Valentina Kerman unavailable: the Astronaut Complex holds 16 of 16 active crew.",
-      }),
-    ).toBeInTheDocument();
+      screen.getByRole("button", { name: "Hire" }),
+    ).toHaveAccessibleDescription(
+      "Hire Valentina Kerman unavailable: the Astronaut Complex holds 16 of 16 active crew.",
+    );
   });
 
-  it("never prints the reason in the control: a press sends nothing and the reason stays in the tip and the name", async () => {
+  it("never prints the reason in the control: a press sends nothing and the reason stays in the tip and the description", async () => {
     const user = userEvent.setup();
     const send = vi.fn(() => Promise.resolve(OK));
     render(
@@ -1189,7 +1188,8 @@ describe("CommandButton: the blocked phase", () => {
 
     expect(send).not.toHaveBeenCalled();
     expect(button).toHaveTextContent("Launch");
-    expect(button).toHaveAccessibleName(
+    expect(button).toHaveAccessibleName("Launch");
+    expect(button).toHaveAccessibleDescription(
       "Launch Kerbal I unavailable: Launch Pad is occupied.",
     );
   });

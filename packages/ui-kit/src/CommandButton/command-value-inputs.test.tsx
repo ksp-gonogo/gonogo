@@ -7,7 +7,9 @@ import {
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
+import { ActionMenu } from "../ActionMenu";
 import { Select } from "../Form";
+import { Row } from "../Row";
 import { Slider } from "../Slider";
 import { Stepper } from "../Stepper";
 import { Switch } from "../Switch";
@@ -180,6 +182,86 @@ describe("Slider", () => {
   });
 });
 
+describe("Slider given a command, once the hand lets go", () => {
+  it("stays on the value asked while the mod has not answered, then returns to the value reported when it is refused, keeping the warning edge", async () => {
+    const fake = createFakeCommand<{ level: number }>({ answer: "hold" });
+    render(
+      <Slider
+        aria-label="Gain"
+        value={0.2}
+        min={0}
+        max={1}
+        step={0.1}
+        figure={figure}
+        command={fake.handle.toArgs((level: number) => ({ level }))}
+      />,
+    );
+    const slider = screen.getByRole("slider", { name: "Gain" });
+    fireEvent.change(slider, { target: { value: "0.6" } });
+    expect(slider).toHaveValue("0.6");
+    await act(async () => {
+      fake.refuse("not now");
+    });
+    expect(slider).toHaveValue("0.2");
+    expect(slider).toHaveAttribute("data-command-edge", "warn");
+  });
+});
+
+describe("Stepper with no value", () => {
+  it("steps onto the first option from either button, or onto startAt when given", async () => {
+    const user = userEvent.setup();
+    const seen: number[] = [];
+    const { rerender } = render(
+      <Stepper
+        options={[64, 128, 256]}
+        value={null}
+        label="Steps"
+        onChange={(v) => seen.push(v)}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Increase Steps" }));
+    await user.click(screen.getByRole("button", { name: "Decrease Steps" }));
+    expect(seen).toEqual([64, 64]);
+    rerender(
+      <Stepper
+        options={[64, 128, 256]}
+        value={null}
+        startAt={128}
+        label="Steps"
+        onChange={(v) => seen.push(v)}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Increase Steps" }));
+    expect(seen).toEqual([64, 64, 128]);
+  });
+
+  it("steps onto the lowest value of a range, or zero where it has none", async () => {
+    const user = userEvent.setup();
+    const seen: number[] = [];
+    const { rerender } = render(
+      <Stepper<number>
+        min={10}
+        max={100}
+        step={10}
+        value={null}
+        label="Limit"
+        onChange={(v) => seen.push(v)}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Increase Limit" }));
+    rerender(
+      <Stepper<number>
+        step={5}
+        value={null}
+        label="Limit"
+        onChange={(v) => seen.push(v)}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Increase Limit" }));
+    expect(seen).toEqual([10, 0]);
+  });
+});
+
 describe("Stepper given a command", () => {
   const OPTIONS = [330, 340, 350, 360];
 
@@ -219,7 +301,7 @@ describe("Stepper given a command", () => {
     expect(held[0].textContent).toContain("340");
   });
 
-  it("reads its worded absence while there is no value at all, and steps nowhere", async () => {
+  it("reads its worded absence while there is no value at all, and the first step lands on the first option", async () => {
     const user = userEvent.setup();
     const fake = createFakeCommand<{ rpm: number }>();
     render(
@@ -233,6 +315,62 @@ describe("Stepper given a command", () => {
     );
     expect(screen.getByText("RPM cap unknown")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Increase RPM cap" }));
-    expect(fake.sent).toEqual([]);
+    expect(fake.sent).toEqual([{ args: { rpm: 330 }, label: undefined }]);
+  });
+});
+
+describe("Row and menu item given a command", () => {
+  /* jsdom has no layout, so the width itself is measured in the render probe; here the slot that holds it is checked. */
+  const slotOf = (el: HTMLElement) =>
+    Array.from(
+      el.querySelectorAll<HTMLElement>('span[aria-hidden="true"]'),
+    ).pop();
+
+  it("a Row holds the room of its longest word at rest and while sent", async () => {
+    const user = userEvent.setup();
+    const fake = createFakeCommand({ answer: "hold" });
+    render(
+      <Row as="button" command={fake.handle.with(undefined, { label: "Go" })}>
+        Mun
+      </Row>,
+    );
+    const row = screen.getByRole("button");
+    const rest = slotOf(row);
+    expect(rest).toBeDefined();
+    expect(getComputedStyle(rest as HTMLElement).minWidth).toBe("10ch");
+    expect(rest).toHaveTextContent("");
+    await user.click(row);
+    const sent = slotOf(row);
+    expect(sent).toHaveTextContent("SENT");
+    expect(getComputedStyle(sent as HTMLElement).minWidth).toBe("10ch");
+  });
+
+  it("a menu item holds the same room, and draws its warning edge on its own border", async () => {
+    const user = userEvent.setup();
+    const fake = createFakeCommand({ answer: "hold" });
+    render(
+      <ActionMenu
+        aria-label="Part"
+        items={[
+          {
+            key: "cut",
+            label: "Cut chute",
+            command: fake.handle.with(undefined, { label: "Cut chute" }),
+          },
+        ]}
+        onSelect={() => {}}
+        onDismiss={() => {}}
+      />,
+    );
+    const item = screen.getByRole("menuitem", { name: /Cut chute/ });
+    expect(getComputedStyle(slotOf(item) as HTMLElement).minWidth).toBe("10ch");
+    expect(getComputedStyle(item).borderTopWidth).toBe("1px");
+    await user.click(item);
+    await act(async () => {
+      fake.refuse("not now");
+    });
+    expect(item).toHaveAttribute("data-command-edge", "warn");
+    // The edge is the shared border-colour rule, on the item's own 1px border, so its box keeps its size.
+    expect(getComputedStyle(item).borderTopWidth).toBe("1px");
   });
 });

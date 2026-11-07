@@ -19,7 +19,7 @@ import {
   TRACK,
   TrackMark,
 } from "./CommandValue/CommandValue";
-import { commandOutlineEdge } from "./commandEdge";
+import { COMMAND_WORD_ROOM, commandOutlineEdge } from "./commandEdge";
 import { focusRing } from "./focusRing";
 import { LiveRegion } from "./LiveRegion";
 import { NULL_DISPLAY } from "./NullValue";
@@ -165,7 +165,13 @@ function MarkedSlider({
       window.removeEventListener("pointercancel", end);
     };
   }, [hand]);
-  const shown = hand ?? value;
+  // After the hand lets go the thumb stays on what was asked until the mod answers, and goes back to the value reported if it is refused or gets no reply.
+  const [asked, setAsked] = useState<number | null>(null);
+  const sentNow = input?.control.isSent === true;
+  useEffect(() => {
+    if (!sentNow) setAsked(null);
+  }, [sentNow]);
+  const shown = hand ?? asked ?? value;
   const marks = commandValueMarks({
     commanded: shown,
     expected,
@@ -175,6 +181,7 @@ function MarkedSlider({
   const at = (v: number) =>
     `calc(8px + ${(v - min) / (max - min || 1)} * (100% - 16px))`;
   const send = (v: number) => {
+    if (input && !input.inert) setAsked(v);
     input?.send(v);
   };
   return (
@@ -222,7 +229,7 @@ function MarkedSlider({
         {shown === null ? NULL_DISPLAY : figure(shown)}
         {input && <SliderWord aria-hidden="true">{input.word}</SliderWord>}
       </span>
-      {input && <LiveRegion visuallyHidden>{input.announce}</LiveRegion>}
+      <LiveRegion visuallyHidden>{input?.announce ?? null}</LiveRegion>
     </div>
   );
 }
@@ -230,7 +237,7 @@ function MarkedSlider({
 /* Holds the room of the longest word at rest too, so the track never changes length. */
 const SliderWord = styled.span`
   display: inline-block;
-  min-width: 7ch;
+  min-width: ${COMMAND_WORD_ROOM};
   margin-inline-start: var(--gap-related);
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
