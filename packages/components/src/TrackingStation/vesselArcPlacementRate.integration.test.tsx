@@ -6,7 +6,7 @@ import {
   WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { TrackingStationComponent } from "./index";
 import { followControlFrameProjectionId } from "./projection";
@@ -52,6 +52,8 @@ function integratedEmits(): Emit[] {
 }
 
 describe("TrackingStation arc placement rate", () => {
+  afterEach(() => vi.restoreAllMocks());
+
   it("places the craft's arc once, not on every frame inside one UT bucket", async () => {
     const budget = PerfBudget.getAll().find(
       (b) => b.name === "TrackingStation body placements/sec",
@@ -98,5 +100,63 @@ describe("TrackingStation arc placement rate", () => {
     await act(async () => {});
 
     expect(record.mock.calls.length - settled).toBe(0);
+  });
+  it("stays well under the placement budget while a live craft ticks every frame", async () => {
+    const budget = PerfBudget.getAll().find(
+      (b) => b.name === "TrackingStation body placements/sec",
+    ) as PerfBudget;
+    const record = vi.spyOn(budget, "record");
+    let wallMs = 1000;
+    vi.spyOn(performance, "now").mockImplementation(() => wallMs);
+
+    const fixture = setupStreamFixture({ pinnedUt: 0, suspendFrames: true });
+    const view = render(
+      <fixture.Provider>
+        <WidgetMetaContext.Provider value={WIDGET_META}>
+          <ContributionsProvider>
+            <TrackingStationComponent
+              config={
+                {
+                  frame: "Kerbin",
+                  projection: followControlFrameProjectionId(KERBIN_INDEX),
+                } as never
+              }
+              id="sv"
+            />
+          </ContributionsProvider>
+        </WidgetMetaContext.Provider>
+      </fixture.Provider>,
+    );
+    const emits = integratedEmits();
+    act(() => {
+      for (const e of emits) fixture.emit(e.channel, e.value, e.meta);
+    });
+    await waitFor(() => {
+      expect(
+        view.container.querySelector('path[data-vessel-trajectory="arc"]'),
+      ).not.toBeNull();
+    });
+    await act(async () => {});
+
+    const orbit = emits.find((e) => e.channel === "vessel.orbit");
+    const settled = record.mock.calls.length;
+    const seconds = 10;
+    const framesPerSecond = 30;
+    for (let i = 1; i <= seconds * framesPerSecond; i++) {
+      wallMs += 1000 / framesPerSecond;
+      const ut = i / framesPerSecond;
+      act(() => {
+        fixture.emit("vessel.orbit", orbit?.value, {
+          validAt: ut,
+          deliveredAt: ut,
+        });
+        fixture.scrubTo(ut);
+      });
+    }
+    await act(async () => {});
+
+    // The arc is 128 points placed once a UT bucket; placed on every frame it is about 4,000 a second here and grows with every body and patch.
+    const perSecond = (record.mock.calls.length - settled) / seconds;
+    expect(perSecond).toBeLessThan(budget.threshold / 20);
   });
 });

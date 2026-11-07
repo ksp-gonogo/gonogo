@@ -59,6 +59,36 @@ describe("useOrbitTrajectory holding", () => {
     for (const a of rest) expect(a).toBe(first);
   });
 
+  it("holds across a coast re-anchored to a later epoch, which is the same curve", () => {
+    const meanMotion = Math.sqrt(KERBIN_MU / 850_000 ** 3);
+    const answers: (OrbitTrajectory | null)[] = [];
+    const stream = setupStreamFixture({ pinnedUt: 100.1 });
+    function Probe({ anchoredAt }: Readonly<{ anchoredAt: number }>) {
+      answers.push(
+        useOrbitTrajectory({
+          ...orbit(),
+          epoch: anchoredAt,
+          meanAnomalyAtEpoch: meanMotion * anchoredAt,
+        }),
+      );
+      return null;
+    }
+    const view = render(
+      <stream.Provider>
+        <Probe anchoredAt={100.1} />
+      </stream.Provider>,
+    );
+    for (const at of [100.3, 100.5, 100.9]) {
+      view.rerender(
+        <stream.Provider>
+          <Probe anchoredAt={at} />
+        </stream.Provider>,
+      );
+    }
+    expect(answers[0]?.shape).toBe("arc");
+    for (const a of answers) expect(a).toBe(answers[0]);
+  });
+
   it("answers afresh when the second turns over", () => {
     const { answers, stream, rerender } = mount(100.1);
     act(() => stream.store.clock.scrubTo(101.2));

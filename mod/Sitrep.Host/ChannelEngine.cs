@@ -1326,12 +1326,21 @@ namespace Sitrep.Host
             {
                 return false;
             }
-            if (_lastWarmUt.TryGetValue(topic, out var last) && ut > last && ut - last < WarmIntervalUt)
+            var hasLast = _lastWarmUt.TryGetValue(topic, out var last);
+            if (hasLast && ut > last && ut - last < WarmIntervalUt)
             {
                 return false;
             }
             _lastWarmUt[topic] = ut;
-            _warmSampleBudget?.Record(1, ut);
+            /*
+             * The budget's window is UT, which a stopped clock never advances: every
+             * build at an unchanged UT would pile into one window that cannot trim.
+             * Those builds are paced by the sample gate in real time instead.
+             */
+            if (!hasLast || ut > last)
+            {
+                _warmSampleBudget?.Record(1, ut);
+            }
             _emitter.NotifySubscribed(topic);
             return true;
         }

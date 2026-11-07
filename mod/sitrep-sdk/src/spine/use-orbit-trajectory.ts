@@ -10,6 +10,26 @@ import {
 /** Length of the UT bucket an answer is held for, in game seconds. */
 const BUCKET_SEC = 1;
 
+/**
+ * The mean anomaly the elements put the craft at when the bucket opens, to nine
+ * figures. A coast re-anchored to a later epoch carries a different pair of
+ * `meanAnomalyAtEpoch` and `epoch` for the same curve; this is the one number both
+ * agree on.
+ */
+function phaseAtBucketStart(
+  e: ReturnType<typeof buildElements>,
+  bucketUt: number,
+): string {
+  const sma = e.ecc > 1 ? Math.abs(e.sma) : e.sma;
+  const meanMotion = Math.sqrt(e.mu / (sma * sma * sma));
+  const advanced = e.meanAnomalyAtEpoch + meanMotion * (bucketUt - e.epoch);
+  const phase =
+    e.ecc > 1
+      ? advanced
+      : ((advanced % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+  return phase.toPrecision(9);
+}
+
 /** Everything `orbitTrajectory` reads from the orbit, as one string, so an orbit rebuilt with the same content keys the same. */
 function orbitKey(
   orbit: OrbitTrajectoryInput["orbit"],
@@ -27,8 +47,7 @@ function orbitKey(
     e.inc,
     e.lan,
     e.argPe,
-    e.meanAnomalyAtEpoch,
-    e.epoch,
+    phaseAtBucketStart(e, bucket * BUCKET_SEC),
     e.mu,
     h?.kind,
     until,
@@ -54,7 +73,7 @@ function orbitKey(
  * The view instant is read when your widget renders, not on every frame, so the
  * answer moves with your own telemetry. The answer is held for each whole second
  * of that instant: while the orbit's elements, horizon, sample count and read frame
- * are unchanged, every render in the same second gets the very same object back, so
+ * are unchanged (a coast re-anchored to a later epoch is the same elements), every render in the same second gets the very same object back, so
  * a caller can memoise whatever it derives from it by identity. An orbit whose
  * payload is rebuilt on every render holds just as well, because the key is the
  * orbit's content and never its reference.
