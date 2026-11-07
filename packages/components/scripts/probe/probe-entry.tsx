@@ -339,6 +339,11 @@ function teardownMount(state: MountState): void {
 /** The mount {@link renderProbe} last made, which the next call replaces. */
 let current: ProbeMount | null = null;
 
+/** The stream fixture of the widget {@link renderProbe} last mounted; undefined for a scene with no `_stream` block. */
+export function probeStream(): StreamFixture | undefined {
+  return current?.stream();
+}
+
 /** Unmounts the widget {@link renderProbe} last mounted and drops its data source. */
 export function unmountProbe(): void {
   current?.unmount();

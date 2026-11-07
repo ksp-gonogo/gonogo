@@ -12,6 +12,7 @@
     "test": "vitest run",
     "unfed-snapshot-gate": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/unfed-snapshot-gate.ts",
     "probe-render-smoke": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/probe-render-smoke.ts",
+    "face-gate": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/face-gate.ts",
     "render-gate": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-gate.ts",
     "sticky-bar-gate": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/sticky-bar-gate.ts",
     "aspect-gate": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/aspect-gate.ts",

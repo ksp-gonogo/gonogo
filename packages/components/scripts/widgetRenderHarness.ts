@@ -29,6 +29,8 @@ import {
   findCoveredEssentials,
   proveCoverDetectorWorks,
 } from "./coveredEssentials";
+import { findFaceShifts, proveFaceCheckWorks } from "./faceShiftChecks";
+import { FACE_DEBT, seedFaceDebt, settleFaceDebt } from "./faceShiftDebt";
 import { jetbrainsMonoFontFace } from "./jetbrainsMonoFontFace";
 import { type ProbePayload, probePayload } from "./probe/payload";
 import {
@@ -282,6 +284,14 @@ export interface WidgetRenderConfig {
    * a gate that discards the picture.
    */
   checkActions?: boolean;
+  /**
+   * Press every control of each scene, at the config's largest mode, through
+   * every face it can show, and report anything else in the widget that moves
+   * or resizes. It is the only check made of such a config, and it leaves the
+   * widget in the state the presses made, so it is for a gate that discards the
+   * picture.
+   */
+  checkFaces?: boolean;
 }
 
 /** A viewport size the screen harness renders a screen at. Unlike a widget
@@ -385,6 +395,8 @@ export async function renderWidgets(
      * any other caller draws a few and says nothing about the rest.
      */
     judgeDebt?: boolean;
+    /** Proves the face check on its planted widgets when each page opens; see `checkFaces` on the config. */
+    checkFaces?: boolean;
     /**
      * Render only this declared install rather than every one a scene names.
      * An iteration convenience: looking at one install's shots while working
@@ -506,6 +518,8 @@ export async function renderWidgets(
         await proveFontDetectorWorks(page, cdp);
         await proveCoverDetectorWorks(page);
       }
+      // Last: it mounts widgets of its own, which the proofs above must not find in the page.
+      if (opts.checkFaces) await proveFaceCheckWorks(page);
       return { page, cdp };
     };
 
@@ -675,6 +689,40 @@ export async function renderWidgets(
         `${findings.actionShifts.length} control(s) moved when another control's action was fired:\n  ` +
           findings.actionShifts.join("\n  ") +
           "\n(A control that moves under the operator's pointer gets pressed in its new place. Give the control that appears or disappears a slot of its own, or reserve the room.)",
+      );
+    }
+
+    const faceDebt = settleFaceDebt(
+      findings.faceShifts,
+      new Set(configs.filter((c) => c.checkFaces).map((c) => c.widgetId)),
+      FACE_DEBT,
+    );
+    if (faceDebt.covered > 0) {
+      console.warn(
+        `\n[warn] ${faceDebt.covered} face finding(s) are known debt in faceShiftDebt.ts and were not reported.`,
+      );
+    }
+    if (opts.checkFaces && faceDebt.stale.length > 0) {
+      throw new Error(
+        `${faceDebt.stale.length} entr(ies) in FACE_DEBT reported nothing:\n  ` +
+          faceDebt.stale.join("\n  ") +
+          "\n(Delete them so the next finding cannot slip in under one.)",
+      );
+    }
+    if (process.env.FACE_GATE_SEED === "1") {
+      console.log(
+        `\nFACE_DEBT seed (${findings.faceShifts.length} finding(s)):\n` +
+          seedFaceDebt(findings.faceShifts).join("\n"),
+      );
+      return;
+    }
+    if (faceDebt.reported.length > 0) {
+      throw new Error(
+        `${faceDebt.reported.length} element(s) moved or resized when a control changed face:\n  ` +
+          faceDebt.reported.join("\n  ") +
+          "\n(Nothing outside the pressed control may move. Reserve the room the widest face needs, " +
+          "give an appearing line a slot of its own, or name a panel the control opens below itself " +
+          "in the fixture's _meta.opensBelow.)",
       );
     }
 
@@ -2461,6 +2509,8 @@ type RenderFindings = {
   hitTargets: string[];
   /** Controls that moved when a declared action was fired. */
   actionShifts: string[];
+  /** Elements that moved or resized when a control changed face. */
+  faceShifts: string[];
   /** Drawn boxes whose content runs past their own right edge. */
   overruns: string[];
   /** Elements a clipping ancestor hides entirely (the inverse of `overlaps`). */
@@ -2552,6 +2602,7 @@ function noFindings(): RenderFindings {
     svgHtmlOverlaps: [],
     hitTargets: [],
     actionShifts: [],
+    faceShifts: [],
     overruns: [],
     clipped: [],
     clipSurvey: [],
@@ -2649,6 +2700,7 @@ async function renderOneWidget(
       if (mode.forFixtures && !mode.forFixtures.includes(fixture.name)) {
         continue;
       }
+      if (config.checkFaces && mode !== largestMode(config.modes)) continue;
       /*
        * Every finding below names the install as well as the scene: two renders
        * of one fixture can disagree for no reason but the install, and a report
@@ -2679,6 +2731,22 @@ async function renderOneWidget(
           `${config.widgetId} @ ${mode.name} (${sceneLabel}): ` +
             (err instanceof Error ? err.message.split("\n")[0] : String(err)),
         );
+        continue;
+      }
+      // The face check is the only question asked of a config that sets `checkFaces`, in the one mode with room to show every control.
+      if (config.checkFaces) {
+        const opensBelow = fixtureOpensBelow(fixture.data);
+        const shifts = await findFaceShifts(
+          page,
+          () => page.evaluate((p) => window.__renderProbe?.(p), payload),
+          opensBelow,
+        );
+        for (const shift of shifts) {
+          findings.faceShifts.push(
+            `${config.widgetId} @ ${mode.name} (${sceneLabel}): ${shift}`,
+          );
+        }
+        count++;
         continue;
       }
       // Before any full-content growth, which measures a tile nobody runs.
@@ -3232,6 +3300,16 @@ async function cleanArtifacts(
   if (removed > 0) {
     console.log(`Cleaned ${removed} stale artifact(s) from ${dir}`);
   }
+}
+
+/** The controls a scene lets open a panel below themselves, by accessible name. */
+function fixtureOpensBelow(fixture: Record<string, unknown>): string[] {
+  const meta = fixture._meta;
+  if (typeof meta !== "object" || meta === null) return [];
+  const names: unknown = Reflect.get(meta, "opensBelow");
+  return Array.isArray(names)
+    ? names.filter((n): n is string => typeof n === "string")
+    : [];
 }
 
 /** The mode with the most tile area, where a widget has room to show every control. */

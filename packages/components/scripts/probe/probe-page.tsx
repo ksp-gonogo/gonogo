@@ -6,16 +6,17 @@
  */
 
 import { getComponent } from "@ksp-gonogo/core";
-import { dispatchAction } from "@ksp-gonogo/sitrep-sdk";
+import { COMMAND_LOST, dispatchAction } from "@ksp-gonogo/sitrep-sdk";
 import {
   auditMinFit,
   type MinFitFinding,
 } from "../../../uplink-tools/src/render/minFit";
 import type { ProbePayload } from "./payload";
-import { renderProbe } from "./probe-entry";
+import { probeStream, renderProbe } from "./probe-entry";
 import "./plantedTinyMisfitWidget";
 import "./plantedEmptyMap";
 import "./plantedLockedAugment";
+import "./plantedFaceWidgets";
 
 declare global {
   interface Window {
@@ -28,6 +29,14 @@ declare global {
     ) => { id: string; label: string; kind: "button" | "analog" }[];
     /** Fires one declared action on the mounted widget, a press then a release for a button. */
     __dispatchProbeAction: (id: string, kind: "button" | "analog") => void;
+    /** Drives the mounted scene's command stub: how the next commands are answered, and how many were sent. */
+    __probeStub: {
+      hold: () => void;
+      answerHeld: () => void;
+      refuse: () => void;
+      lose: () => void;
+      sent: () => number;
+    };
     /** The tile size a registered widget is placed at when first added, in grid units. */
     __probeDefaultSize: (widgetId: string) => { w: number; h: number } | null;
   }
@@ -62,4 +71,18 @@ window.__dispatchProbeAction = (id, kind) => {
   const released = kind === "button" ? false : 0;
   dispatchAction("probe", id, { kind, value: pressed });
   dispatchAction("probe", id, { kind, value: released });
+};
+
+window.__probeStub = {
+  hold: () => probeStream()?.transport.holdCommands(),
+  answerHeld: () => probeStream()?.transport.answerHeldCommands(),
+  refuse: () =>
+    probeStream()?.transport.setCommandHandler(() => {
+      throw { code: "E_REFUSED", message: "The game refused it" };
+    }),
+  lose: () =>
+    probeStream()?.transport.setCommandHandler(() => {
+      throw { code: COMMAND_LOST, message: "No reply arrived" };
+    }),
+  sent: () => probeStream()?.transport.sentCommands.length ?? 0,
 };
