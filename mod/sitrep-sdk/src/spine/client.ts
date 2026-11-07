@@ -467,6 +467,11 @@ export class TelemetryClient {
    * pause does.
    */
   private gameLoading = false;
+  /** Whether a load has begun since the last live sample that was not behind the game's UT. */
+  private loadSinceLastSample = false;
+  /** How far the client's timeline epoch runs ahead of the wire's, for rewinds the mod did not announce with a new epoch. */
+  private epochShift = 0;
+  private lastWireEpoch = 0;
   /** The keyframe interval each topic's `subscribed` ack declared, kept so a store attached later is told too. */
   private readonly declaredKeyframeIntervals = new Map<string, number>();
 
@@ -539,11 +544,15 @@ export class TelemetryClient {
       : undefined;
     /* A transport still connecting reports no change until it opens, so the tracker is told here that nothing can ack yet. */
     if (transport.status !== "connected") this.ownership?.handleDisconnected();
-    this.unsubscribeFromTransport = transport.onMessage((message, delivery) => {
-      if (message.type === "stream-data") this.restoreUnchanged(message);
-      for (const listener of this.rawMessageListeners) listener(message);
-      this.handleMessage(message, delivery?.replayed === true);
-    });
+    this.unsubscribeFromTransport = transport.onMessage(
+      (incoming, delivery) => {
+        const replayed = delivery?.replayed === true;
+        const message = replayed ? incoming : this.followRewind(incoming);
+        if (message.type === "stream-data") this.restoreUnchanged(message);
+        for (const listener of this.rawMessageListeners) listener(message);
+        this.handleMessage(message, replayed);
+      },
+    );
     this.unsubscribeFromUndelivered =
       transport.onUndelivered?.((command) =>
         this.handleUndelivered(command.requestId, command.reason),
@@ -1950,9 +1959,54 @@ export class TelemetryClient {
     this.gamePaused = paused;
   }
 
+  /**
+   * Gives a live sample the timeline epoch the client holds it under.
+   *
+   * A quickload or revert starts a new timeline, which the mod announces with
+   * a higher epoch. When a load was seen and the next live sample's UT is
+   * behind the game's UT already seen on the same epoch, no epoch came, and
+   * the sample is the new timeline: the client bumps its own epoch so every
+   * store and the view clock drop the abandoned one. The game's own load is
+   * what tells this apart from samples that merely arrive out of order within
+   * one timeline, which are still refused. A later epoch from the mod is
+   * absorbed into the shift so the two never add up.
+   */
+  private followRewind(message: ServerMessage): ServerMessage {
+    if (message.type !== "stream-data" && message.type !== "stream-binary") {
+      return message;
+    }
+    const meta = message.meta;
+    const wire = meta.timelineEpoch ?? 0;
+    if (wire > this.lastWireEpoch) {
+      this.epochShift = Math.max(
+        0,
+        this.epochShift - (wire - this.lastWireEpoch),
+      );
+    }
+    this.lastWireEpoch = Math.max(this.lastWireEpoch, wire);
+    let epoch = wire + this.epochShift;
+    const prior = this.gameClock;
+    const behind =
+      prior !== undefined &&
+      epoch === prior.epoch &&
+      Number.isFinite(meta.deliveredAt) &&
+      meta.deliveredAt < prior.ut;
+    const rewound = this.loadSinceLastSample && behind;
+    if (rewound) {
+      this.epochShift += 1;
+      epoch += 1;
+    }
+    if (rewound || (!this.gameLoading && !behind)) {
+      this.loadSinceLastSample = false;
+    }
+    if (epoch === wire) return message;
+    return { ...message, meta: { ...meta, timelineEpoch: epoch } };
+  }
+
   /** Holds the game's UT still from the moment a load starts and lets it run again from there when it ends. */
   private noteLoading(loading: boolean): void {
     if (loading === this.gameLoading) return;
+    if (loading) this.loadSinceLastSample = true;
     const anchor = this.gameClock;
     const ut = this.gameUtNow();
     if (anchor && ut !== undefined) {
