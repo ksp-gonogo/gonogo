@@ -121,10 +121,9 @@ export function StationConnectView({
         {nameEditor && <NameRow>{nameEditor}</NameRow>}
         {brokerUnreachable && (
           <ErrorMsg>
-            Can&apos;t reach the peer broker. This device joins through an
-            internet service, so it needs a working internet connection even
-            when the main screen is on the same WiFi. Check that this device is
-            online and that the network allows outbound HTTPS.
+            Can&apos;t reach the peer broker after repeated attempts. The broker
+            may be down, or this device&apos;s network may be blocking outbound
+            HTTPS. Retrying automatically.
           </ErrorMsg>
         )}
         {!brokerUnreachable && brokerClosed && (

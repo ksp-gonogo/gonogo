@@ -15,7 +15,7 @@ export function describeConnStatus(
 ): string {
   // Ranked above hostNotFound: a station that never reached the broker learned nothing about the host.
   if (brokerUnreachable) {
-    return "Can't reach the peer broker: this device needs internet access.";
+    return "Can't reach the peer broker after repeated attempts.";
   }
   if (brokerClosed) {
     return "Connection closed by peer broker service.";

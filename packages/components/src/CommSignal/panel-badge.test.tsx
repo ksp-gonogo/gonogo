@@ -83,4 +83,18 @@ describe("CommSignal panel badge (comm-signal-no-signal-badge contribution)", ()
       expect(screen.getAllByText("No signal")).toHaveLength(1),
     );
   });
+
+  it("shows no badge while a link left held by a time jump waits for its next report", async () => {
+    unmount = renderPanel(fixture).unmount;
+    act(() => {
+      fixture.emit("comms.link", { connected: true }, { staleness: 1 });
+      fixture.emit(
+        "vessel.comms",
+        { connected: true, signalStrength: 0.87 },
+        { staleness: 1 },
+      );
+    });
+    await waitFor(() => expect(screen.getByText("COMMNET")).toBeTruthy());
+    expect(screen.queryByText("No signal")).toBeNull();
+  });
 });

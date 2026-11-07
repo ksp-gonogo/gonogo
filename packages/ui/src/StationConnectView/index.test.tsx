@@ -120,10 +120,12 @@ describe("StationConnectView", () => {
       />,
     );
     expect(
-      screen.getByText(/needs a working internet connection/i),
+      screen.getByText(/after repeated attempts\. The broker may be down/i),
     ).not.toBeNull();
     expect(
-      screen.getByText(/this device needs internet access/i),
+      screen.getByText(
+        /Can't reach the peer broker after repeated attempts\.$/i,
+      ),
     ).not.toBeNull();
     // The code-is-wrong copy would send the operator to the main screen for a fault on this device's network.
     expect(screen.queryByText(/Couldn't find join code/i)).toBeNull();
