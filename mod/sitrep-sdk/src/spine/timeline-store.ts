@@ -154,6 +154,25 @@ function mintToken(clock: ViewClock, generation: number): FrameToken {
   };
 }
 
+/**
+ * Where a store that keeps only the window its readers draw gets older points
+ * from: the one screen that holds the full run. Used by a station's store, which
+ * asks the main screen over PeerJS.
+ *
+ * @category Stream fixture
+ */
+export interface HistorySource {
+  /** The points of `topic` with `validAt` in `[fromUt, toUt]`, oldest first. Rejects when the main screen cannot answer. */
+  request(
+    topic: string,
+    fromUt: number,
+    toUt: number,
+  ): Promise<readonly TimelinePoint<unknown>[]>;
+}
+
+/** Seconds of game time kept beyond what readers hold, so a hold-last or interpolated read at the view edge finds its neighbours. */
+const HELD_WINDOW_FLOOR_SECONDS = 10;
+
 export interface TimelineStoreOptions {
   timelineOptions?: ClientTimelineOptions;
   /** Per-topic keyframe intervals and the staleness margin that decide when a reading is held for want of a new frame. */
@@ -791,6 +810,14 @@ export class TimelineStore {
     DerivedChannelDefinition<unknown>
   >();
   private readonly frameListeners = new Set<() => void>();
+  /* Seconds each raw Topic's readers draw, one entry per live hold. Only read while a history source is set. */
+  private readonly heldWindows = new Map<string, Set<{ seconds: number }>>();
+  /* The span last asked the history source for, per raw Topic and epoch, so a gap is requested once. */
+  private readonly askedFrom = new Map<
+    string,
+    { epoch: number; fromUt: number; toUt: number }
+  >();
+  private historySource: HistorySource | undefined;
   private currentToken: FrameToken;
   private generation = 0;
 
@@ -1135,6 +1162,7 @@ export class TimelineStore {
     }
 
     this.timelineFor<Payload>(topic).append(point);
+    if (this.historySource) this.keepHeldWindow(topic);
     if (topic === DATA_RATES_TOPIC) {
       this.applyDataRates(point.payload as DataRateReport | null);
     }
@@ -1173,6 +1201,124 @@ export class TimelineStore {
         lagging.adoptEpoch(newEpoch);
       }
     }
+  }
+
+  /**
+   * Make a reader's window of `topic` count as needed, for as long as the
+   * returned release has not been called. With a history source set, a Topic
+   * keeps only the longest window any live hold names plus a short floor, and
+   * older points are asked for from the source when a hold needs them. Without
+   * one the store keeps every point its bound allows and a hold does nothing.
+   * Used by the series hook behind charts and sparklines.
+   */
+  holdWindow(topic: string, seconds: number): () => void {
+    const hold = { seconds };
+    const rawTopics = this.rawTopicsOf(topic);
+    for (const raw of rawTopics) {
+      let holds = this.heldWindows.get(raw);
+      if (!holds) {
+        holds = new Set();
+        this.heldWindows.set(raw, holds);
+      }
+      holds.add(hold);
+    }
+    if (this.historySource) {
+      for (const raw of rawTopics) this.keepHeldWindow(raw);
+    }
+    return () => {
+      for (const raw of rawTopics) {
+        this.heldWindows.get(raw)?.delete(hold);
+        if (this.historySource) this.keepHeldWindow(raw);
+      }
+    };
+  }
+
+  /**
+   * Keep only the window readers hold, fetching older points from `source`
+   * when a reader asks for more than is held. Useful on a screen that is not the
+   * one holding the full run. Returns the function that puts the store back to
+   * keeping everything its bound allows.
+   */
+  setHistorySource(source: HistorySource): () => void {
+    this.historySource = source;
+    for (const topic of this.timelines.keys()) this.keepHeldWindow(topic);
+    return () => {
+      if (this.historySource === source) this.historySource = undefined;
+    };
+  }
+
+  /** How many points all Topics hold between them. */
+  heldPointCount(): number {
+    let total = 0;
+    for (const timeline of this.timelines.values()) total += timeline.size;
+    return total;
+  }
+
+  private rawTopicsOf(topic: string): string[] {
+    const out = new Set<string>();
+    for (const wire of this.resolveSubscriptionTopics(topic)) {
+      out.add(this.resolveRawFieldSubtopic(wire)?.rawTopic ?? wire);
+    }
+    return [...out];
+  }
+
+  private keepHeldWindow(raw: string): void {
+    const timeline = this.timelines.get(raw);
+    const latest = timeline?.latest();
+    if (!timeline || !latest) return;
+    let need = 0;
+    for (const hold of this.heldWindows.get(raw) ?? []) {
+      need = Math.max(need, hold.seconds);
+    }
+    const viewUt = this.clock.viewUt("delayed");
+    const anchor = Number.isFinite(viewUt)
+      ? Math.min(latest.validAt, viewUt)
+      : latest.validAt;
+    const fromUt = anchor - need - HELD_WINDOW_FLOOR_SECONDS;
+    timeline.trimBefore(fromUt);
+    if (need > 0) this.fetchHeldWindow(raw, timeline, fromUt);
+  }
+
+  private fetchHeldWindow(
+    raw: string,
+    timeline: ClientTimeline<unknown>,
+    fromUt: number,
+  ): void {
+    const source = this.historySource;
+    const earliest = timeline.earliest();
+    if (!source || !earliest || earliest.validAt <= fromUt) return;
+    const asked = this.askedFrom.get(raw);
+    const epoch = timeline.epoch;
+    const toUt = earliest.validAt;
+    if (
+      asked &&
+      asked.epoch === epoch &&
+      asked.fromUt <= fromUt &&
+      asked.toUt >= toUt
+    ) {
+      return;
+    }
+    this.askedFrom.set(raw, { epoch, fromUt, toUt });
+    source
+      .request(raw, fromUt, toUt)
+      .then((points) => {
+        if (this.historySource !== source || timeline.epoch !== epoch) return;
+        const held = new Set(
+          timeline.range(fromUt, toUt).map((p) => `${p.validAt}:${p.meta.seq}`),
+        );
+        for (const point of points) {
+          if (point.epoch !== epoch) continue;
+          const key = `${point.validAt}:${point.meta.seq}`;
+          if (held.has(key)) continue;
+          held.add(key);
+          timeline.append(point);
+        }
+      })
+      .catch(() => {
+        if (this.askedFrom.get(raw)?.fromUt === fromUt) {
+          this.askedFrom.delete(raw);
+        }
+      });
   }
 
   /** The per-topic `ClientTimeline`, created on first access. */
