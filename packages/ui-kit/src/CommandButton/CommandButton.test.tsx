@@ -258,13 +258,14 @@ describe("CommandButton: arm then confirm", () => {
     );
     const resting = screen.getByRole("button", { name: "Fire" });
     expect(resting.dataset.restLabel).toBe("Fire");
-    expect(resting.dataset.armedLabel).toBe("Confirm");
+    // The widest word the button can show, the outcome words included, so no phase resizes it.
+    expect(resting.dataset.armedLabel).toBe("No reply");
 
     await user.click(resting);
 
     const armed = screen.getByRole("button", { name: "Confirm" });
     expect(armed.dataset.restLabel).toBe("Fire");
-    expect(armed.dataset.armedLabel).toBe("Confirm");
+    expect(armed.dataset.armedLabel).toBe("No reply");
   });
 
   it("arms on the first click and dispatches nothing", async () => {
@@ -423,7 +424,7 @@ describe("CommandButton: the sent window", () => {
 
     const button = screen.getByRole("button");
     expect(button).toHaveAttribute("data-rest-label", "Launch vessel");
-    expect(button).toHaveAttribute("data-armed-label", "SENT");
+    expect(button).toHaveAttribute("data-armed-label", "No reply");
   });
 
   it("says in words that the press has gone and not been received", async () => {

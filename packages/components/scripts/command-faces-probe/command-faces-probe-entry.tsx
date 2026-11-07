@@ -187,6 +187,21 @@ function Plain({ scenario }: { scenario: Scenario }) {
   );
 }
 
+function LongLabel({ scenario }: { scenario: Scenario }) {
+  const handle = handleFor(scenario) as unknown as UseCommandResult;
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      data-act={isPressed(scenario) ? "" : undefined}
+      command={handle.with(undefined, { label: "Fly Kerbal X" })}
+      unavailable={scenario === "unavailable" ? "No vessel on the pad" : null}
+    >
+      Fly Kerbal X
+    </Button>
+  );
+}
+
 function Harness() {
   const rows: [string, (s: Scenario) => React.ReactNode][] = [
     ["Toggle off", (s) => <Toggle scenario={s} on={false} />],
@@ -195,6 +210,7 @@ function Harness() {
     ["Icon toggle on", (s) => <Icon scenario={s} on={true} />],
     ["Icon button", (s) => <IconAction scenario={s} />],
     ["Button", (s) => <Plain scenario={s} />],
+    ["Long label", (s) => <LongLabel scenario={s} />],
   ];
   return (
     <DelayRailProvider>

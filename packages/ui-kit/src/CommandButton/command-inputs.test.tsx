@@ -149,3 +149,31 @@ describe("Button given a command and an unavailable reason", () => {
     expect(screen.queryByText("No vessel in flight")).toBeNull();
   });
 });
+
+describe("Button width across phases", () => {
+  it("is sized to the wider of its label and its longest word in every phase", async () => {
+    const user = userEvent.setup();
+    const fake = createFakeCommand({ answer: "hold" });
+    render(
+      <Button command={fake.handle.with(undefined, { label: "Fly" })}>
+        Fly Kerbal X
+      </Button>,
+    );
+    const button = screen.getByRole("button");
+    const sizer = () => [
+      button.getAttribute("data-rest-label"),
+      button.getAttribute("data-armed-label"),
+    ];
+    const atRest = sizer();
+    // The sizers are the label and the widest word, and the longer of the two sets the width.
+    expect(atRest).toEqual(["Fly Kerbal X", "No reply"]);
+    await user.click(button);
+    expect(button).toHaveTextContent("SENT");
+    expect(sizer()).toEqual(atRest);
+    await act(async () => {
+      fake.refuse("not now");
+    });
+    expect(button).toHaveTextContent("Refused");
+    expect(sizer()).toEqual(atRest);
+  });
+});

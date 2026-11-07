@@ -314,14 +314,16 @@ function CommandedButtonFace({
    * every state, so pressing it never reflows the row it sits in. Only plain-text
    * labels can be measured this way; a node label sizes itself as before.
    */
+  /* Every word the control can show in place of its label: the widest sets the width in every phase, so an outcome never resizes the control. */
+  const words = [confirmLabel, SENT_WORD, refusedLabel, lostLabel, foundLabel];
   const reserve =
     !glyph &&
     icon === undefined &&
     typeof label === "string" &&
-    (confirmLabel === undefined || typeof confirmLabel === "string") &&
-    !isRefused &&
-    !isLost &&
-    !isFound;
+    words.every((w) => w === undefined || typeof w === "string");
+  const widest = (words as (string | undefined)[])
+    .filter((w): w is string => w !== undefined)
+    .reduce((a, b) => (b.length > a.length ? b : a), SENT_WORD);
 
   // A mounted rail announces every outcome of the commands it holds, so this control's own region stays quiet beside one only when its handle is one of them.
   const railed = useRailAnnounces() && handle.railed === true;
@@ -419,14 +421,7 @@ function CommandedButtonFace({
           }
           onClick={() => press(confirmLabel !== undefined)}
           data-rest-label={reserve ? label : undefined}
-          data-armed-label={
-            reserve
-              ? typeof confirmLabel === "string" &&
-                confirmLabel.length > SENT_WORD.length
-                ? confirmLabel
-                : SENT_WORD
-              : undefined
-          }
+          data-armed-label={reserve ? widest : undefined}
           {...rest}
         >
           {reserve ? <CommandButton__Face>{body}</CommandButton__Face> : body}

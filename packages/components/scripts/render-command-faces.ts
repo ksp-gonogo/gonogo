@@ -86,6 +86,13 @@ async function main(theme: string): Promise<void> {
     }
     await page.waitForTimeout(700);
     await page.mouse.move(0, 0);
+    // The button's width must not change with the phase, whatever its label.
+    const widths = await page
+      .locator('[data-row="Long label"] button')
+      .evaluateAll((els) =>
+        els.map((el) => Math.round(el.getBoundingClientRect().width)),
+      );
+    console.log("  long label widths by scenario:", widths.join(", "));
     await page.screenshot({ path: join(OUT_DIR, "command-faces.png") });
     console.log("  command-faces.png");
   } finally {
