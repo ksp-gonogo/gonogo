@@ -217,6 +217,20 @@ describe("Navball dial fit", () => {
       expect(controls()).toBeInTheDocument();
     });
 
+    it("tries again to free a dial when one short measurement refuted the first try", () => {
+      // The yielded layout reports a column too short once (a font still loading, a tile mid-resize), then the row returns and the column reads as it did before.
+      columnHeight = 128;
+      installColumnAndRowObserver(64);
+      renderAt({ w: 5, h: 8 }, emitAttitude);
+      expect(controls()).not.toBeInTheDocument();
+      reportColumn(158, 130);
+      expect(controls()).toBeInTheDocument();
+      reportColumn(158, 128);
+      reportColumn(158, 200);
+      expect(dial()).toBeInTheDocument();
+      expect(controls()).not.toBeInTheDocument();
+    });
+
     it("leaves the row out of a tile too short to hold it under the readout", () => {
       installColumnAndRowObserver(64);
       renderAt({ w: 5, h: 7 }, emitAttitude);

@@ -18,6 +18,14 @@ export const MIN_DIAL_PX = 80;
 const CONTROL_SECTION_SPACING_PX = 8;
 
 /**
+ * How many times the control row yields to a dial at one column size and is
+ * refuted before it stays. A single short reading from the yielded layout (a
+ * font still loading, a tile mid-resize) must not cost the dial for good, and a
+ * column that truly cannot hold one must still settle rather than cycle.
+ */
+const MAX_YIELD_ATTEMPTS = 3;
+
+/**
  * Measures the attitude column for the dial and the numeric readout.
  * `reserveThrottle` holds room for the throttle bar beside the dial, and
  * `controlSurface` caps the dial so the control surface keeps its room.
@@ -69,7 +77,9 @@ export function useDialFit({
   const controlRowWantedRef = useRef(false);
   const dialPossibleRef = useRef(false);
   const controlRowPxRef = useRef(0);
-  const refutedRef = useRef<{ w: number; h: number } | null>(null);
+  const refutedRef = useRef<{ w: number; h: number; attempts: number } | null>(
+    null,
+  );
   const yieldedFromRef = useRef(0);
   const columnRef = useRef<{ w: number; h: number } | null>(null);
   const skippedRef = useRef<{ w: number; h: number } | null>(null);
@@ -121,14 +131,25 @@ export function useDialFit({
            * the readout's own height, so the projection over-promised. The
            * row stays until the column is taller than it was then.
            */
-          refutedRef.current = { w: column.w, h: yieldedFromRef.current };
+          const prior = refutedRef.current;
+          const sameColumn =
+            prior !== null &&
+            prior.w === column.w &&
+            prior.h === yieldedFromRef.current;
+          refutedRef.current = {
+            w: column.w,
+            h: yieldedFromRef.current,
+            attempts: sameColumn ? prior.attempts + 1 : 1,
+          };
           yielded = false;
         }
       } else {
         const refuted = refutedRef.current;
-        const stillRefuted =
+        const sameColumn =
           refuted !== null && refuted.w === column.w && column.h <= refuted.h;
-        if (!stillRefuted) refutedRef.current = null;
+        if (!sameColumn) refutedRef.current = null;
+        const stillRefuted =
+          sameColumn && refuted.attempts >= MAX_YIELD_ATTEMPTS;
         yielded =
           !stillRefuted &&
           fitNow < MIN_DIAL_PX &&
