@@ -11,7 +11,10 @@ import {
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { SignalLossIndicator } from "./SignalLossIndicator";
+import {
+  forgetHeldSignalLoss,
+  SignalLossIndicator,
+} from "./SignalLossIndicator";
 
 const DELAY_SECONDS = 5;
 
@@ -53,6 +56,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  forgetHeldSignalLoss();
   vi.useRealTimers();
 });
 

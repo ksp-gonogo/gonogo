@@ -1,8 +1,11 @@
 import { useTelemetry } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { SignalLossIndicator } from "./SignalLossIndicator";
+import {
+  forgetHeldSignalLoss,
+  SignalLossIndicator,
+} from "./SignalLossIndicator";
 
 /**
  * Characterisation of what `SignalLossIndicator` does today when its two
@@ -89,6 +92,10 @@ function expectNoBanner() {
   expect(screen.queryByText("PARTIAL CONTROL")).toBeNull();
   expect(screen.queryByText(/^T\+/)).toBeNull();
 }
+
+afterEach(() => {
+  forgetHeldSignalLoss();
+});
 
 describe("SignalLossIndicator: nothing has arrived", () => {
   it("renders no banner at all, and both reads are literally undefined", async () => {

@@ -11,7 +11,10 @@ import {
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { SignalLossIndicator } from "./SignalLossIndicator";
+import {
+  forgetHeldSignalLoss,
+  SignalLossIndicator,
+} from "./SignalLossIndicator";
 
 const DELAY_SECONDS = 5;
 
@@ -36,10 +39,10 @@ function setupStream() {
 
   let ut = 0;
   let epoch = 0;
-  const emit = (topic: string, payload: unknown) =>
+  const emit = (topic: string, payload: unknown, validAt = ut) =>
     transport.emit(topic, payload, {
-      validAt: ut,
-      deliveredAt: ut,
+      validAt,
+      deliveredAt: validAt,
       timelineEpoch: epoch,
     });
   /* A live topic keeps arriving through a blackout and moves the view clock's horizon on. */
@@ -72,6 +75,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  forgetHeldSignalLoss();
   vi.useRealTimers();
 });
 
@@ -104,6 +108,38 @@ describe("SignalLossIndicator: a rejoin in the middle of a loss", () => {
     await act(async () => {
       fixture.emit("comms.link", { connected: false });
     });
+    await fixture.advance(DELAY_SECONDS);
+    expect(screen.getByText("SIGNAL LOSS")).toBeTruthy();
+    expect(elapsedSeconds()).toBeGreaterThanOrEqual(before);
+  });
+
+  it("keeps counting when the indicator is unmounted and mounted again, as a host change does", async () => {
+    const fixture = setupStream();
+    const view = render(
+      <fixture.Provider>
+        <SignalLossIndicator />
+      </fixture.Provider>,
+    );
+
+    await act(async () => {
+      fixture.emit("comms.link", { connected: true });
+    });
+    await fixture.advance(DELAY_SECONDS);
+    await act(async () => {
+      fixture.emit("comms.link", { connected: false });
+    });
+    await fixture.advance(DELAY_SECONDS);
+    await fixture.advance(60);
+    const before = elapsedSeconds();
+    expect(before).toBeGreaterThanOrEqual(55);
+
+    view.unmount();
+    await fixture.advance(2);
+    render(
+      <fixture.Provider>
+        <SignalLossIndicator />
+      </fixture.Provider>,
+    );
     await fixture.advance(DELAY_SECONDS);
     expect(screen.getByText("SIGNAL LOSS")).toBeTruthy();
     expect(elapsedSeconds()).toBeGreaterThanOrEqual(before);

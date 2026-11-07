@@ -10,7 +10,7 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { SignalLossBanner, type SignalState } from "@ksp-gonogo/ui";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 /**
  * Wires `SignalLossBanner` to the live CommNet state.
@@ -52,6 +52,23 @@ const NO_SIGNAL_STRENGTH = value("ratio", 0);
  * awaited, so a link that answers at once never flashes it.
  */
 const AWAITING_GRACE_MS = 1500;
+
+let heldLoss: {
+  since: Value<"ut">;
+  floor: Value<"ut">;
+  craft: string | undefined;
+} | null = null;
+
+/** Pins a loss to the craft it is first seen on, and drops it when the active craft changes. */
+function withCraft(loss: NonNullable<typeof heldLoss>, craftId: string) {
+  if (loss.craft === undefined) return { ...loss, craft: craftId };
+  return loss.craft === craftId ? loss : null;
+}
+
+/** Forgets a loss the indicator is carrying across a remount, for tests that share a module. */
+export function forgetHeldSignalLoss(): void {
+  heldLoss = null;
+}
 
 export function SignalLossIndicator() {
   const linkReading = useTelemetry("comms.link");
@@ -106,15 +123,28 @@ export function SignalLossIndicator() {
     if (connected === true) setHasConfirmedConnection(true);
   }, [connected]);
 
-  const state: SignalState =
-    linkPending && graceElapsed
+  const derived: SignalState =
+    linkPending && graceElapsed && heldLoss === null
       ? "awaiting"
       : deriveState(
           connected,
           signalStrength,
           controlState,
-          hasConfirmedConnection,
+          hasConfirmedConnection || heldLoss !== null,
         );
+  /*
+   * A link report that is held or not yet in, as after a host change or a
+   * rejoin, says nothing about whether the loss ended, so a loss already under
+   * way stays a loss until one says so. A report that is merely slow to arrive
+   * stays quiet for the same grace the awaiting state waits.
+   */
+  const state: SignalState =
+    derived === "connected" &&
+    connected === undefined &&
+    (!linkPending || graceElapsed) &&
+    heldLoss !== null
+      ? "lost"
+      : derived;
 
   /*
    * Read on a 1 s timer, and only while a banner is up, rather than through
@@ -137,37 +167,54 @@ export function SignalLossIndicator() {
   const edge = clock?.confirmedEdgeUt();
   const viewUt =
     edge !== undefined && Number.isFinite(edge) ? value("ut", edge) : undefined;
-  const lostSinceRef = useRef<Value<"ut"> | null>(null);
-
   /*
    * The loss start survives a rejoin: after a station reconnects, `comms.link`
    * is pending until the first report lands, and that wait reads as "connected"
    * and then "awaiting" without the link ever having been seen up. Only a
    * link report that says the link is up ends the loss, and so does a change of
    * active craft, which is a different loss.
+   *
+   * It is kept at module scope because a host change rebuilds the stream client
+   * and unmounts everything below the provider, this component included. The
+   * start is a game UT, which every host shares, so it stays true across that.
    */
   const identityReading = useTelemetry("vessel.identity");
   const craftId =
     identityReading.state === "observed" || identityReading.state === "held"
       ? identityReading.value.vesselId
       : undefined;
-  const craftRef = useRef<string | undefined>(undefined);
-  if (craftId !== undefined && craftId !== craftRef.current) {
-    if (craftRef.current !== undefined) lostSinceRef.current = null;
-    craftRef.current = craftId;
+  if (craftId !== undefined && heldLoss !== null) {
+    heldLoss = withCraft(heldLoss, craftId);
   }
-  if (state === "connected" && !linkPending) {
-    lostSinceRef.current = null;
+  /*
+   * A host that takes over replays the link's history, whose "up" readings
+   * pre-date the loss and do not end it. `floor` is when the drop was
+   * reported to have happened, so only an "up" after it does.
+   */
+  const reportedAt =
+    linkReading.state === "observed" ? linkReading.atUt : undefined;
+  const upBeforeTheDrop =
+    reportedAt !== undefined &&
+    heldLoss !== null &&
+    reportedAt.lessThanOrEqual(heldLoss.floor);
+  if (state === "connected" && connected === true && !upBeforeTheDrop) {
+    heldLoss = null;
   }
-  if (banner && lostSinceRef.current === null && viewUt !== undefined) {
-    lostSinceRef.current = viewUt;
+  if (banner && heldLoss === null && viewUt !== undefined) {
+    heldLoss = {
+      since: viewUt,
+      floor:
+        connected === false && reportedAt !== undefined ? reportedAt : viewUt,
+      craft: craftId,
+    };
   }
+  const lostSince = heldLoss?.since ?? null;
 
   // Game time, so the timer keeps pace with a warp; a UT that steps back (a quickload) reads 0 rather than a negative.
   const elapsed =
-    lostSinceRef.current === null || viewUt === undefined
+    lostSince === null || viewUt === undefined
       ? value("s", 0)
-      : viewUt.minus(lostSinceRef.current);
+      : viewUt.minus(lostSince);
 
   return (
     <SignalLossBanner
