@@ -599,6 +599,16 @@ export const PanelToolbar = styled.div`
   background: var(--color-surface-panel);
 `;
 
+/** How far the scroll glow reaches in from the edge of a scroller. */
+const SCROLL_GLOW_REACH = "44px";
+
+/*
+ * A scroller keeps its glow's reach clear at both ends when it brings a
+ * control into view, so a button reached by focus, find or a scripted click
+ * lands above the fade and never beneath it.
+ */
+const SCROLL_CLEAR_OF_GLOW = `scroll-padding-block: ${SCROLL_GLOW_REACH};`;
+
 /**
  * A panel body is the default density tier, and re-declares both steppable gap
  * names so a panel nested inside a compact `Card` does not inherit the card's
@@ -628,6 +638,7 @@ const PanelBody__Box = styled.div<{
   padding-left: var(--panel-body-gutter);
   /* Body is the scroller, so the inset sits inside the scrolling box and never clips overflow. */
   overflow: auto;
+  ${SCROLL_CLEAR_OF_GLOW}
   ${focusRingInset}
   /* The glow shows scroll state, so the native bar is hidden. */
   scrollbar-width: none;
@@ -929,6 +940,7 @@ const ScrollAreaInner = styled.div`
   min-height: 0;
   overflow: auto;
   padding-inline: var(--bleed-inline);
+  ${SCROLL_CLEAR_OF_GLOW}
   ${focusRingInset}
   /* The glow indicators show scroll state, so the native bar is hidden. */
   scrollbar-width: none;
@@ -950,8 +962,8 @@ const ScrollOverflowGlow = styled.div<{
   right: 0;
   ${({ $position }) => ($position === "top" ? "top: 0;" : "bottom: 0;")}
   /* The box both layers fade within; each sets its own reach in its gradient stops. */
-  height: 44px;
-  /* The audit reads the mask depth from the gradient, so the literal height costs it nothing. */
+  height: ${SCROLL_GLOW_REACH};
+  /* The audit reads the mask depth from the gradient stops, not from this height. */
   ${fitMask("panel-scroll-glow")}
   pointer-events: none;
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};

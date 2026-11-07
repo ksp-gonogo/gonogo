@@ -30,14 +30,6 @@ import { POWER_LABEL, POWER_TONE, powerBalance, powerState } from "./power";
 
 const XS2_STYLE = { fontSize: "var(--font-size-caption)" } as const;
 
-const FIGURE_AND_BADGE = {
-  display: "inline-flex",
-  flexWrap: "wrap",
-  alignItems: "center",
-  justifyContent: "flex-end",
-  gap: "var(--gap-related)",
-} as const;
-
 /** A completion fraction as a percentage, exactly as current as the station's report is. */
 function progressPercentReading(
   source: Reading<unknown>,
@@ -214,22 +206,24 @@ export function DeployedStationCard({ listing }: { listing: StationListing }) {
               {station.body}
             </Text>
           )}
-          <Badge tone={link.tone} data-tone={link.tone} live>
+        </Cluster>
+        <Cluster justify="start" wrap>
+          <Badge tone={link.tone} data-tone={link.tone} live size="sm">
             {link.label}
           </Badge>
+          <Text level="muted" style={XS2_STYLE}>
+            {listing.contact === CatalogContact.InContact ? (
+              // The catalog dates an entry in contact from when its listing last changed, which is not a running time.
+              "Heard now"
+            ) : listing.lastContactUt === null ? (
+              "No contact on record"
+            ) : (
+              <>
+                Last heard <MissionDate value={listing.lastContactUt} />
+              </>
+            )}
+          </Text>
         </Cluster>
-        <Text level="muted" style={XS2_STYLE}>
-          {listing.contact === CatalogContact.InContact ? (
-            // The catalog dates an entry in contact from when its listing last changed, which is not a running time.
-            "Heard now"
-          ) : listing.lastContactUt === null ? (
-            "No contact on record"
-          ) : (
-            <>
-              Last heard <MissionDate value={listing.lastContactUt} />
-            </>
-          )}
-        </Text>
 
         {station === null ? (
           <Text level="muted" style={XS2_STYLE}>
@@ -257,12 +251,12 @@ export function DeployedStationCard({ listing }: { listing: StationListing }) {
               >
                 {POWER_LABEL[powerState(station)]}
               </Badge>
+              {siteLine(station) && (
+                <Text level="muted" style={XS2_STYLE}>
+                  {siteLine(station)}
+                </Text>
+              )}
             </Cluster>
-            {siteLine(station) && (
-              <Text level="muted" style={XS2_STYLE}>
-                {siteLine(station)}
-              </Text>
-            )}
             <Text level="muted" style={XS2_STYLE}>
               {/* Breaking Ground power units, not electric charge. */}
               {powerBalance(station) ?? "Power unknown"}
@@ -305,6 +299,7 @@ export function DeployedStationCard({ listing }: { listing: StationListing }) {
                   {/* No completion draws the absent form, not an empty track. */}
                   <Meter
                     label={exp.name}
+                    wrapLabel
                     tone="go"
                     value={
                       exp.progress === null
@@ -312,40 +307,42 @@ export function DeployedStationCard({ listing }: { listing: StationListing }) {
                         : progressRatioReading(reading, exp.progress)
                     }
                     valueLabelNode={
-                      <span style={FIGURE_AND_BADGE}>
-                        {exp.progress !== null && (
-                          <Unit
-                            value={progressPercentReading(
-                              reading,
-                              exp.progress,
-                            )}
-                            decimals={0}
-                          />
-                        )}
-                        {state && (
-                          <Tooltip text={state.hint}>
-                            <Badge tone={state.tone} size="sm">
-                              {state.label}
-                            </Badge>
-                          </Tooltip>
-                        )}
-                        {exp.stranded === true && (
-                          <Tooltip text="This experiment has finished and will not send what it still holds, a kerbal has to retrieve it">
-                            <Badge tone="caution" size="sm">
-                              Stranded
-                            </Badge>
-                          </Tooltip>
-                        )}
-                        {exp.collecting === true && (
-                          <Tooltip text="This experiment is collecting science now">
-                            <Badge tone="go" size="sm">
-                              Collecting
-                            </Badge>
-                          </Tooltip>
-                        )}
-                      </span>
+                      exp.progress === null ? undefined : (
+                        <Unit
+                          value={progressPercentReading(reading, exp.progress)}
+                          decimals={0}
+                        />
+                      )
                     }
                   />
+                  {/* The badges sit under the bar, so the figure beside the name never takes the room a long experiment name needs. */}
+                  {(state ||
+                    exp.stranded === true ||
+                    exp.collecting === true) && (
+                    <Cluster justify="start" wrap>
+                      {state && (
+                        <Tooltip text={state.hint}>
+                          <Badge tone={state.tone} size="sm">
+                            {state.label}
+                          </Badge>
+                        </Tooltip>
+                      )}
+                      {exp.stranded === true && (
+                        <Tooltip text="This experiment has finished and will not send what it still holds, a kerbal has to retrieve it">
+                          <Badge tone="caution" size="sm">
+                            Stranded
+                          </Badge>
+                        </Tooltip>
+                      )}
+                      {exp.collecting === true && (
+                        <Tooltip text="This experiment is collecting science now">
+                          <Badge tone="go" size="sm">
+                            Collecting
+                          </Badge>
+                        </Tooltip>
+                      )}
+                    </Cluster>
+                  )}
                   <AugmentSlot
                     name="deployed-science.experiment"
                     props={{

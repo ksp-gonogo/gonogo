@@ -11499,6 +11499,10 @@
         "note": "Removed: LineGraph had no consumer; Graph draws plotted series"
       },
       {
+        "key": "ui-kit . Meter",
+        "note": "Takes the new optional wrapLabel prop, which changes the component's props type"
+      },
+      {
         "key": "ui-kit . PanelProps#panelSections?",
         "note": "Removed with WidgetSections. Panel always places the sections an Uplink adds, as ordinary sections, so no widget places the slot or turns the default off"
       },
@@ -19747,6 +19751,10 @@
       {
         "key": "ui-kit . ~ContributedSlot",
         "note": "Helper type of Contribution, referenced by its props"
+      },
+      {
+        "key": "ui-kit . ~MeterCommonProps#wrapLabel?",
+        "note": "Wraps a long label onto further lines instead of cutting it with an ellipsis"
       },
       {
         "key": "ui-kit . ~SizedWidget",

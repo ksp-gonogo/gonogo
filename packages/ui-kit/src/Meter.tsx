@@ -84,6 +84,12 @@ interface MeterCommonProps
    */
   hideLabel?: boolean;
   /**
+   * Let a label too long for the line wrap onto further lines instead of being
+   * cut with an ellipsis. Opt-in, default `false`; for a meter whose name an
+   * operator has to read whole, such as one named after an experiment.
+   */
+  wrapLabel?: boolean;
+  /**
    * Keep the figure, `120 / 400 kg`, on a line under a bar drawn alone with
    * `hideLabel`. A capacity can change (a tank is staged away, a queue grows),
    * and the statement says how much of how much where the bar alone says only
@@ -200,6 +206,7 @@ export function Meter<UnitSymbol extends string = string>({
   valueLabelNode,
   layout = "stacked",
   hideLabel = false,
+  wrapLabel = false,
   statement = false,
   ...rest
 }: MeterProps<UnitSymbol>) {
@@ -216,6 +223,7 @@ export function Meter<UnitSymbol extends string = string>({
       <MeterFrame
         layout={layout}
         label={label}
+        wrapLabel={wrapLabel}
         display={<NullValue />}
         {...rest}
       >
@@ -229,6 +237,7 @@ export function Meter<UnitSymbol extends string = string>({
     label,
     layout,
     hideLabel,
+    wrapLabel,
     statement,
     pct: Math.round(clamped * 100),
     tone,
@@ -468,6 +477,8 @@ interface MeterBarProps
   label: string;
   layout: MeterLayout;
   hideLabel: boolean;
+  /** Whether a long label wraps rather than being cut. */
+  wrapLabel: boolean;
   /** Whether the figure is kept on a line under a bar drawn alone. */
   statement: boolean;
   /** The fill, as the whole percent `aria-valuenow` and the track both take. */
@@ -499,6 +510,7 @@ function MeterBar({
   label,
   layout,
   hideLabel,
+  wrapLabel,
   statement,
   pct,
   tone,
@@ -517,6 +529,7 @@ function MeterBar({
       label={label}
       display={display}
       hideHead={hideLabel}
+      wrapLabel={wrapLabel}
       statement={statement}
       {...rest}
     >
@@ -566,6 +579,7 @@ function MeterFrame({
   label,
   display,
   hideHead = false,
+  wrapLabel = false,
   statement = false,
   children,
   ...rest
@@ -575,6 +589,8 @@ function MeterFrame({
   display: ReactNode;
   /** Draw the bar alone; the track carries the name and the value. */
   hideHead?: boolean;
+  /** Let the label wrap instead of ending in an ellipsis. */
+  wrapLabel?: boolean;
   /** With `hideHead`, keep the figure on a line under the bar. */
   statement?: boolean;
   children: ReactNode;
@@ -607,7 +623,7 @@ function MeterFrame({
   return (
     <Meter__Root $row={false} {...rest}>
       <Meter__Head>
-        <Meter__Label>{label}</Meter__Label>
+        <Meter__Label $wrap={wrapLabel}>{label}</Meter__Label>
         <Meter__Value $row={false}>{display}</Meter__Value>
       </Meter__Head>
       <Meter__Bar $row={false}>{children}</Meter__Bar>
@@ -909,14 +925,15 @@ const Meter__Head = styled.div`
   flex-wrap: wrap;
 `;
 
-const Meter__Label = styled.span`
+const Meter__Label = styled.span<{ $wrap?: boolean }>`
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  ${({ $wrap }) =>
+    $wrap
+      ? "overflow-wrap: anywhere;"
+      : "white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"}
   /* Never shrinks below the name: overflow hidden zeroes a flex item's automatic minimum size. */
   flex: 0 0 auto;
   max-width: 100%;
