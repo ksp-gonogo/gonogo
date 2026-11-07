@@ -78,6 +78,24 @@ export function sliceShard(
   return widgets.filter((_, i) => i % shard.count === shard.index - 1);
 }
 
+/**
+ * One slice of a gate whose verdict is per widget: every config of a widget id
+ * lands in the same shard, and the shards partition the ids. A check that
+ * judges a widget as a whole, such as stale debt, would otherwise see only the
+ * configs its shard happened to deal it.
+ */
+export function sliceShardByWidget(
+  widgets: readonly WidgetRenderConfig[],
+  shard: Shard | undefined,
+): readonly WidgetRenderConfig[] {
+  if (shard === undefined) return widgets;
+  const ids = [...new Set(widgets.map((w) => w.widgetId))];
+  const mine = new Set(
+    ids.filter((_, i) => i % shard.count === shard.index - 1),
+  );
+  return widgets.filter((w) => mine.has(w.widgetId));
+}
+
 export function scopeWidgets(
   all: readonly WidgetRenderConfig[],
   dirs: readonly string[] | undefined,
