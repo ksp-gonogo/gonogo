@@ -82,7 +82,7 @@ export const HELP_TOPICS: readonly HelpTopic[] = [
     title: "Connecting to KSP on another computer",
     blocks: [
       text(
-        "In Settings, Connection, press the gear on the Telemetry stream row and set Host to the KSP computer's address. Run setup again, on the same page, shows how to find the address. The firewall on the KSP computer must accept incoming connections on port 8090.",
+        "In Settings, Connection, press Host address on the telemetry row and enter the KSP computer's address. Run setup again, on the same page, shows how to find the address. The firewall on the KSP computer must accept incoming connections on port 8090.",
       ),
     ],
   },

@@ -68,7 +68,7 @@ export const WIZARD_COPY = {
   "connect.heading": "Connect to KSP",
   "connect.advance": "Check Uplinks",
   "connect.instruction":
-    "Start KSP with the Gonogo mod installed and wait for the main menu. If KSP runs on another computer, press the gear below and set Host to its IP address.",
+    "Start KSP with the Gonogo mod installed and wait for the main menu. If KSP runs on another computer, press Host address below and enter its IP address.",
   "connect.twoComputers":
     "By default, KSP will not run when minimised. If that's an issue for you, check that settings.cfg in the KSP install folder has the line SIMULATE_IN_BACKGROUND = True, or keep the dashboard on a second screen or device.",
   "connect.confirm":
