@@ -18,6 +18,7 @@ namespace Sitrep.Host.IntegrationTests
         {
             Kind = SampleKind.Event,
             Delivery = Delivery.LossyLatest,
+            Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
             Delay = DelayRole.Delayed,
             PerVesselNode = true,
             VesselIdForKey = _ => Vessel,
