@@ -208,21 +208,6 @@ export async function retryStationUplink(
   );
 }
 
-/**
- * The set the main screen last announced, read synchronously so a loader
- * mounted after it arrived opens on its first render instead of drawing the
- * loading screen for one.
- */
-function currentHostSet(
-  peerClient: Pick<PeerClientService, "onHostUplinksChange"> | null,
-): readonly RunningUplink[] | null {
-  let set: readonly RunningUplink[] | null = null;
-  peerClient?.onHostUplinksChange((announced) => {
-    set = announced;
-  })();
-  return set;
-}
-
 /** Whether `outcome` is the main screen's `uplink` loaded at the version the main screen runs. */
 function matchesHost(
   uplink: RunningUplink,
@@ -272,7 +257,7 @@ export function StationUplinkLoader({
     subscribeUplinkOutcomes,
     getUplinkOutcomes,
   );
-  const [hostSet, setHostSet] = useState(() => currentHostSet(peerClient));
+  const [hostSet, setHostSet] = useState<readonly RunningUplink[] | null>(null);
   const [firstLoadDone, setFirstLoadDone] = useState(false);
   const startedRef = useRef(false);
   const reloadRef = useRef(reload);
@@ -313,12 +298,7 @@ export function StationUplinkLoader({
       const first = hostSetRef.current === null;
       hostSetRef.current = set;
       setHostSet(set);
-      /*
-       * A loader mounted on a page that has already loaded (its parent
-       * remounted it) follows the set like any later one, so it imports
-       * nothing the page already holds.
-       */
-      if (first && getUplinkOutcomes().length === 0) {
+      if (first) {
         enqueue(() =>
           runStationUplinkLoad(
             telemetryClient,
@@ -330,19 +310,16 @@ export function StationUplinkLoader({
         );
         return;
       }
-      enqueue(() => {
-        const followed = followHostUplinks(
+      enqueue(() =>
+        followHostUplinks(
           telemetryClient,
           peerClient,
           set,
           () => reloadRef.current(),
           rosterTimeoutMs,
           importBundle,
-        );
-        return first
-          ? followed.finally(() => setFirstLoadDone(true))
-          : followed;
-      });
+        ),
+      );
     });
   }, [telemetryClient, peerClient, rosterTimeoutMs, importBundle, fail]);
 

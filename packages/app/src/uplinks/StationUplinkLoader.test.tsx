@@ -738,27 +738,6 @@ describe("a station opens only once every Uplink its main screen runs has loaded
     await screen.findByTestId("dashboard-widgets");
   });
 
-  it("opens at once and loads nothing again when remounted over a set already loaded", async () => {
-    stubFetch(registryWith(goodHash));
-    const stub = new StubTransport();
-    const client = new TelemetryClient(stub);
-    stub.emit("system.uplinks", ROSTER);
-    const sendBundleFetch = vi.fn(async () => BUNDLE_BYTES);
-    const peerClient = peerClientWith(sendBundleFetch, ALPHA_RUNS);
-    const first = renderStation(peerClient, client);
-    await screen.findByTestId("dashboard-widgets");
-    first.unmount();
-
-    renderStation(peerClient, client);
-    expect(screen.getByTestId("dashboard-widgets")).toBeTruthy();
-    expect(screen.queryByText("Loading station widgets")).toBeNull();
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-    });
-    expect(sendBundleFetch).toHaveBeenCalledTimes(1);
-    expect(screen.queryByText("Loading station widgets")).toBeNull();
-  });
-
   it("shows no dashboard while an Uplink of the set is still downloading", async () => {
     stubFetch(registryWith(goodHash));
     const stub = new StubTransport();

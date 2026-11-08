@@ -425,34 +425,33 @@ function MainScreenDisplay({
                     )}
                     <CommcastLogProviderOrPassthrough log={commcastLog}>
                       <ManeuverTriggerProvider service={maneuverTriggerHost}>
-                        <HostUplinks
-                          loadedHere={
-                            screen === "pilot" && bootsWithoutDirectMod()
-                          }
-                        >
-                          <RootProviders screen={screen}>
-                            <MissionProfilesProvider service={missionProfiles}>
-                              <GoNoGoHostProvider service={goNoGoHost}>
-                                <StageCountdownBridge />
-                                <PushHostProvider service={pushHost}>
-                                  <CoverageMaskCacheProvider>
-                                    <SerialDeviceProvider
-                                      service={serialService}
-                                    >
-                                      <UplinkLoadGate host={peerHostService}>
+                        <RootProviders screen={screen}>
+                          <MissionProfilesProvider service={missionProfiles}>
+                            <GoNoGoHostProvider service={goNoGoHost}>
+                              <StageCountdownBridge />
+                              <PushHostProvider service={pushHost}>
+                                <CoverageMaskCacheProvider>
+                                  <SerialDeviceProvider service={serialService}>
+                                    <UplinkLoadGate host={peerHostService}>
+                                      <HostUplinks
+                                        loadedHere={
+                                          screen === "pilot" &&
+                                          bootsWithoutDirectMod()
+                                        }
+                                      >
                                         <MainDashboard
                                           screen={screen}
                                           hosting={hostsThePeerMesh}
                                           serialService={serialService}
                                         />
-                                      </UplinkLoadGate>
-                                    </SerialDeviceProvider>
-                                  </CoverageMaskCacheProvider>
-                                </PushHostProvider>
-                              </GoNoGoHostProvider>
-                            </MissionProfilesProvider>
-                          </RootProviders>
-                        </HostUplinks>
+                                      </HostUplinks>
+                                    </UplinkLoadGate>
+                                  </SerialDeviceProvider>
+                                </CoverageMaskCacheProvider>
+                              </PushHostProvider>
+                            </GoNoGoHostProvider>
+                          </MissionProfilesProvider>
+                        </RootProviders>
                       </ManeuverTriggerProvider>
                     </CommcastLogProviderOrPassthrough>
                   </ScopedStationIdentity>
@@ -470,10 +469,6 @@ function MainScreenDisplay({
  * A screen that boots with no direct line to the mod loads its Uplinks through
  * the host after it connects, the way a station does; every other screen
  * loaded them before it rendered.
- *
- * It has to sit above `RootProviders`. A loaded client that registers a root
- * provider changes that set, which remounts everything below it, and a loader
- * remounted there loads every Uplink again, which registers the provider again.
  */
 function HostUplinks({
   loadedHere,
