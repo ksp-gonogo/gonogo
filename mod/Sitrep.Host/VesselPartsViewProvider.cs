@@ -207,6 +207,9 @@ namespace Sitrep.Host
                             Flow = GetDouble(row, "flow"),
                             NominalFlow = GetDouble(row, "nominalFlow"),
                             UnratedProcess = GetBool(row, "unratedProcess") == true ? true : (bool?)null,
+                            Transferable = GetBool(row, "transferable"),
+                            FlowMode = row.TryGetValue("flowMode", out var flowMode) && flowMode is int mode ? (KspTankFlowMode)mode : (KspTankFlowMode?)null,
+                            Locked = GetBool(row, "locked"),
                         };
                     }
                 }
@@ -384,6 +387,9 @@ namespace Sitrep.Host
             ["flow"] = row.Flow,
             ["nominalFlow"] = row.NominalFlow,
             ["unratedProcess"] = row.UnratedProcess,
+            ["transferable"] = row.Transferable,
+            ["flowMode"] = row.FlowMode is { } mode ? (int)mode : (int?)null,
+            ["locked"] = row.Locked,
         };
 
         private static Dictionary<string, object?> ToWire(PartModuleState module) => new Dictionary<string, object?>

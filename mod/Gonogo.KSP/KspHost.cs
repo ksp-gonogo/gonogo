@@ -8493,6 +8493,9 @@ namespace Gonogo.KSP
                         ["maxAmount"] = (double)res.maxAmount,
                         ["flow"] = null,
                         ["nominalFlow"] = null,
+                        ["transferable"] = KspResourceTransfers.IsTransferable(res),
+                        ["flowMode"] = (int)res.flowMode,
+                        ["locked"] = !res.flowState,
                     };
                 }
             }

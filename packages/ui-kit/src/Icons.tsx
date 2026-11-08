@@ -1,6 +1,7 @@
 import {
   ArrowDown,
   ArrowLeft,
+  ArrowLeftRight,
   ArrowRight,
   ArrowUp,
   ArrowUpToLine,
@@ -376,6 +377,13 @@ export const ChevronRightIcon = makeIcon(ChevronRight);
  * @category Icons
  */
 export const ArrowLeftIcon = makeIcon(ArrowLeft);
+/**
+ * A two-way arrow. Useful for a control that moves something between two
+ * places. Used by the fuel widget's transfer control and the crew move control.
+ *
+ * @category Icons
+ */
+export const ArrowLeftRightIcon = makeIcon(ArrowLeftRight);
 /**
  * An upward arrow. Useful for marking a rise or an upward direction.
  *

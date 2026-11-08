@@ -434,6 +434,14 @@ namespace Sitrep.Contract.Serialization
                     // science.experiment.start/stop, science.lab.start/stop and vessel.converter.start/stop's reply payload, inside CommandResult<RunStateChange>.Payload.
                     AppendRunStateChange(sb, runStateChange);
                     break;
+                case Sitrep.Contract.ResourceTransferStarted transferStarted:
+                    // vessel.resource.transfer.start's reply payload, inside CommandResult<ResourceTransferStarted>.
+                    sb.Append('{');
+                    AppendString(sb, "transferId");
+                    sb.Append(':');
+                    AppendString(sb, transferStarted.TransferId);
+                    sb.Append('}');
+                    break;
                 case Sitrep.Contract.RecentLog recentLog:
                     // system.log.recent's reply payload, inside CommandResult<RecentLog>.Payload.
                     AppendRecentLog(sb, recentLog);

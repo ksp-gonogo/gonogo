@@ -44,6 +44,12 @@ export type MeterLayout = "stacked" | "row";
 
 interface MeterCommonProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
+  /**
+   * A small control drawn beside the figure in the `row` layout, on the line it
+   * already occupies. Useful for offering an action on what the meter shows
+   * without giving the row more height. Ignored by the other layouts.
+   */
+  rowAction?: ReactNode;
   /** Short label shown above the bar and used as the meter's accessible name. */
   label: string;
   /**
@@ -575,6 +581,7 @@ function MeterBar({
  * all three are siblings on one line, the bar between the two words.
  */
 function MeterFrame({
+  rowAction,
   layout,
   label,
   display,
@@ -587,6 +594,7 @@ function MeterFrame({
   layout: MeterLayout;
   label: string;
   display: ReactNode;
+  rowAction?: ReactNode;
   /** Draw the bar alone; the track carries the name and the value. */
   hideHead?: boolean;
   /** Let the label wrap instead of ending in an ellipsis. */
@@ -614,8 +622,13 @@ function MeterFrame({
         <Meter__Bar $row data-meter-part="bar">
           {children}
         </Meter__Bar>
-        <Meter__Value $row data-meter-part="figure">
+        <Meter__Value
+          $row
+          $hasAction={rowAction != null}
+          data-meter-part="figure"
+        >
           {display}
+          {rowAction && <Meter__RowAction>{rowAction}</Meter__RowAction>}
         </Meter__Value>
       </Meter__Root>
     );
@@ -940,7 +953,7 @@ const Meter__Label = styled.span<{ $wrap?: boolean }>`
 `;
 
 /* The row form writes its figure a step smaller, so a dense list keeps one line per meter. */
-const Meter__Value = styled.span<{ $row: boolean }>`
+const Meter__Value = styled.span<{ $row: boolean; $hasAction?: boolean }>`
   font-size: ${({ $row }) =>
     $row ? "var(--font-size-compact)" : "var(--font-size-value)"};
   color: var(--color-text-primary);
@@ -950,10 +963,18 @@ const Meter__Value = styled.span<{ $row: boolean }>`
   /* Pins the value to the trailing edge on the shared line and when it wraps to its own. */
   margin-left: auto;
   max-width: 100%;
-  overflow: hidden;
+  overflow: ${({ $hasAction }) => ($hasAction ? "visible" : "hidden")};
   text-overflow: ellipsis;
   /* Room for the held mark Unit draws outside this box, reserved unconditionally so a quiet channel causes no reflow. */
   padding-right: max(0.44em, var(--inset-meter-mark));
+`;
+
+/* A control on the figure's line. The negative block margin keeps a full-size target from making the row any taller. */
+const Meter__RowAction = styled.span`
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  margin-block: calc(var(--gap-glyph-control) * -1);
 `;
 
 /* The figure under a bar drawn alone: the row form's smaller step, since it annotates the bar rather than heading it. */

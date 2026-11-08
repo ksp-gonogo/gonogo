@@ -8,6 +8,14 @@ const NO_CONTRIBUTED: readonly ShipMapPartActionEntry[] = [];
 
 /** The key a contributed button carries in the menu, kept apart from the game's own event names. */
 const CONTRIBUTED_KEY_PREFIX = "contributed:";
+const TRANSFER_KEY_PREFIX = "transfer:";
+const NO_RESOURCES: readonly TransferResourceOption[] = [];
+
+/** A resource this part could move, as a menu offers it. */
+export interface TransferResourceOption {
+  resource: string;
+  label: string;
+}
 
 /** The mod command that fires one PAW button. Must match `PartActionCommandProvider.InvokePartActionCommand`, which `partActions.cs-sync.test.ts` reads out of the C# source. */
 export const INVOKE_PART_ACTION_COMMAND = "vessel.invokePartAction";
@@ -56,6 +64,10 @@ export interface PartActionMenuProps {
   contributed?: readonly ShipMapPartActionEntry[];
   /** Fires one contributed button. Owned by the widget, like `onInvoke`, so its delay row outlives the menu. */
   onInvokeContributed?: (entry: ShipMapPartActionEntry) => void;
+  /** Resources held in this tank that could be transferred, each offered as an entry. */
+  transferResources?: readonly TransferResourceOption[];
+  /** Starts picking tanks for a transfer of the resource, beginning with this part. */
+  onPickTransfer?: (resource: string) => void;
   /** Anchoring, owned by the caller (the diagram knows where the part is). */
   style?: CSSProperties;
 }
@@ -73,6 +85,8 @@ export function PartActionMenu({
   onDismiss,
   contributed = NO_CONTRIBUTED,
   onInvokeContributed,
+  transferResources = NO_RESOURCES,
+  onPickTransfer,
   style,
 }: Readonly<PartActionMenuProps>) {
   const { actions, pending } = usePartActions(flightId);
@@ -93,6 +107,12 @@ export function PartActionMenu({
       disabled: !entry.active,
       "aria-label": `${entry.label} on ${partTitle}`,
     })),
+    ...transferResources.map(({ resource, label }) => ({
+      key: TRANSFER_KEY_PREFIX + resource,
+      label: `${label}...`,
+      group: "Transfer",
+      "aria-label": `Transfer ${label} from or to ${partTitle}`,
+    })),
   ];
 
   return (
@@ -102,11 +122,16 @@ export function PartActionMenu({
       style={style}
       // An unanswered subscription (a real wait under delay) is not a part with no buttons.
       emptyLabel={
-        pending && contributed.length === 0
+        pending && contributed.length === 0 && transferResources.length === 0
           ? "Awaiting actions..."
           : "No actions"
       }
       onSelect={(eventName) => {
+        if (eventName.startsWith(TRANSFER_KEY_PREFIX)) {
+          onPickTransfer?.(eventName.slice(TRANSFER_KEY_PREFIX.length));
+          onDismiss();
+          return;
+        }
         if (eventName.startsWith(CONTRIBUTED_KEY_PREFIX)) {
           const entry = contributed.find(
             (c) => CONTRIBUTED_KEY_PREFIX + c.name === eventName,
