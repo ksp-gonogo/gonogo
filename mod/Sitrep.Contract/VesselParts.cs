@@ -244,6 +244,9 @@ public class VesselPart
     /// any group. Derive an action group's human-readable caption from this.
     /// </summary>
     public List<ActionBinding> ActionBindings { get; set; } = new();
+
+    /// <summary>The part's seats. Null for a part with no seats, and on topics that do not report them.</summary>
+    public PartSeats? Seats { get; set; }
 }
 
 /// <summary> One action-group binding in <see

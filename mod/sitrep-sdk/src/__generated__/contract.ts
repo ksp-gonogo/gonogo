@@ -3695,6 +3695,42 @@ export enum CrewStanding {
 	Missing = 6
 }
 /**
+* Move a kerbal to another part of the active vessel (`vessel.crew.transfer`).
+* Docked craft are one vessel, so this also moves a kerbal between them. Parts
+* are named by flight id, the id `vessel.parts` carries.
+*
+* A kerbal no longer in `CrewTransferArgs.fromPartId` is refused with
+* `CommandErrorCode.WrongState`. A full destination is refused with
+* `CommandErrorCode.LimitReached`. A part crew cannot use is refused with
+* `CommandErrorCode.CapabilityMismatch`, and a move a mod keeps out with
+* `CommandErrorCode.NotClearToProceed`.
+*
+* @category Command arguments
+*/
+export interface CrewTransferArgs
+{
+	/** The kerbal's name, as `vessel.crew` gives it. */
+	kerbalName: string;
+	/** The part the kerbal was last seen in. */
+	fromPartId: string;
+	/** The part to move the kerbal into. */
+	toPartId: string;
+}
+/**
+* A part's seats, on `vessel.parts`.
+*
+* @category Parts
+*/
+export interface PartSeats
+{
+	/** How many kerbals the part can hold now. Some habitats change this in flight. */
+	capacity: Value<"count">;
+	/** False for a part the game keeps crew from moving into or out of. */
+	transferAvailable: boolean;
+	/** True for an external command seat, which is never a source or destination. */
+	isExternalSeat: boolean;
+}
+/**
 * One science credit, attributed to the vessel that earned it.
 *
 * Stock credits science in a lump the moment a transmit stream finishes;
@@ -11608,6 +11644,12 @@ export interface CrewMember
 	*/
 	partId?: string | null;
 	/**
+	* Parts this kerbal could move into that would leave the craft with no
+	* control. The move is still allowed, since moving back restores control.
+	* Empty when no move costs control. Null when it could not be worked out.
+	*/
+	movesLeavingNoControl?: string[] | null;
+	/**
 	* The title of the part this kerbal is seated in, such as `"Mk1-3 Command
 	* Pod"`, so a transfer between two pods shows as a move. Null when the seat
 	* could not be read.
@@ -13019,6 +13061,11 @@ export interface VesselPart
 	* action group's human-readable caption from this.
 	*/
 	actionBindings: ActionBinding[];
+	/**
+	* The part's seats. Null for a part with no seats, and on topics that do not
+	* report them.
+	*/
+	seats?: PartSeats | null;
 }
 /**
 * One action-group binding in `VesselPart.actionBindings`: a single part

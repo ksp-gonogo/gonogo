@@ -385,6 +385,8 @@ public static class RtConfig
                 typeof(InventoryItem),
                 // vessel.parts channel payload + nested value shapes
                 typeof(VesselParts),
+                typeof(CrewTransferArgs),
+                typeof(PartSeats),
                 typeof(ResourceTransfers),
                 typeof(ResourceTransferJob),
                 typeof(ResourceTransferStartArgs),
