@@ -1,4 +1,3 @@
-[![SpaceDock: Gonogo](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fspacedock.info%2Fapi%2Fmod%2FSPACEDOCK_MOD_ID&query=%24.versions%5B0%5D.friendly_version&label=SpaceDock)](https://spacedock.info/mod/SPACEDOCK_MOD_ID)
 [![Container: ghcr.io/ksp-gonogo/gonogo](https://img.shields.io/github/v/release/ksp-gonogo/gonogo?label=ghcr.io%2Fksp-gonogo%2Fgonogo)](https://github.com/ksp-gonogo/gonogo/pkgs/container/gonogo)
 
 # Gonogo
@@ -28,7 +27,7 @@ Gonogo features an _optional_ realistic light delay, on by default. Signals in t
 
 ## Uplinks
 
-Uplinks are the name for Gonogo's own mod support. They can extend and modify core behaviour and widgets, and add their own. Uplinks are generally used for creating integrations with other KSP mods. Uplinks currently exist for mods like [kOS](https://github.com/ksp-gonogo/gonogo-uplinks/blob/main/uplinks/kos/client/README.md), [SCANSat](https://github.com/ksp-gonogo/gonogo-uplinks/blob/main/uplinks/scansat/client/README.md), [Kerbcast](https://github.com/ksp-gonogo/gonogo-uplinks/blob/main/uplinks/kerbcast/client/README.md), [RP-1](https://github.com/ksp-gonogo/gonogo-uplinks/blob/main/uplinks/rp1/client/README.md), and [Principia](https://github.com/ksp-gonogo/gonogo-uplinks/blob/main/uplinks/principia/client/README.md).
+Uplinks are the name for Gonogo's own mod support. They can extend and modify core behaviour and widgets, and add their own. Uplinks are generally used for creating integrations with other KSP mods. Uplinks currently exist for mods like [kOS](https://github.com/ksp-gonogo/gonogo-uplinks/blob/main/uplinks/kos/README.md), [SCANSat](https://github.com/ksp-gonogo/gonogo-uplinks/blob/main/uplinks/scansat/README.md), [Kerbcast](https://github.com/ksp-gonogo/gonogo-uplinks/blob/main/uplinks/kerbcast/README.md), [RP-1](https://github.com/ksp-gonogo/gonogo-uplinks/blob/main/uplinks/rp1/README.md), and [Principia](https://github.com/ksp-gonogo/gonogo-uplinks/blob/main/uplinks/principia/README.md).
 
 _You can search for Uplinks in CKAN by filtering for `dep:GonogoCore`._
 
