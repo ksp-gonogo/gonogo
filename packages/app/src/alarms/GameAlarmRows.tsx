@@ -9,7 +9,7 @@ import {
 import { Badge, Button } from "@ksp-gonogo/ui";
 import { Card, heldWord, MissionDate, Tag } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DangerButton, RowActions, RowMeta } from "./alarmRowStyles";
+import { RowActions, RowMeta } from "./alarmRowStyles";
 
 const KIND_LABEL: Record<GameAlarmKind, string> = {
   [GameAlarmKind.Time]: "TIME",
@@ -133,8 +133,6 @@ export function GameAlarmRow({
   contexts: TimeContexts;
 }) {
   const deleteAlarm = useCommand("alarm.game.delete");
-  const onDelete = (id: number) =>
-    void deleteAlarm.dangerouslySendWithoutInput({ id });
   const [confirming, setConfirming] = useState(false);
   const title = alarm.title || "Alarm";
   return (
@@ -163,15 +161,16 @@ export function GameAlarmRow({
             >
               Cancel
             </Button>
-            <DangerButton
-              type="button"
-              onClick={() => {
-                onDelete(alarm.id);
-                setConfirming(false);
-              }}
+            <Button
+              command={deleteAlarm.with(
+                { id: alarm.id },
+                { label: `Delete ${title}` },
+              )}
+              variant="primary"
+              tone="nogo"
             >
               Delete
-            </DangerButton>
+            </Button>
           </RowActions>
         ) : (
           <Button

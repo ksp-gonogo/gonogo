@@ -141,24 +141,56 @@ function useWarpControl(config: WarpControlConfig | undefined) {
       : currentIndex;
   const stepBaseRef = useRef(stepBase);
   stepBaseRef.current = stepBase;
-  const setWarp = (idx: number) => {
-    // Announced before the command, so this screen alone skips its unscheduled-warp alert for it.
+  /* Announced before the command, so this screen alone skips its unscheduled-warp alert for it. */
+  const noteWarpSent = (idx: number) => {
     announceWarpIntent?.();
     commandedRef.current = { index: idx, from: currentIndex };
     stepBaseRef.current = idx;
+  };
+  const warpCommand = (idx: number) =>
+    warpCmd.with(
+      { index: idx },
+      {
+        label: `Warp to ${warpLabel(idx, mode)}`,
+        before: () => noteWarpSent(idx),
+        onRejected: () => {
+          commandedRef.current = null;
+        },
+      },
+    );
+  // Bound keys and the tiny form's reset press a warp without a button of this widget's own to draw the outcome.
+  const setWarp = (idx: number) => {
+    noteWarpSent(idx);
     warpCmd.dangerouslySendWithoutInput({ index: idx }).catch(() => {
       commandedRef.current = null;
     });
   };
   const effectivePausedRef = useRef(effectivePaused);
   effectivePausedRef.current = effectivePaused;
+  const pausedAskedRef = useRef<boolean | null>(null);
+  const pauseCommand = pauseCmd.toArgs<boolean>((paused) => ({ paused }), {
+    label: "Pause",
+    before: (args) => {
+      const next = args?.paused ?? !effectivePausedRef.current;
+      pausedAskedRef.current = next;
+      effectivePausedRef.current = next;
+      setPauseIntent(next);
+    },
+    // An acknowledged command that left the game's state unchanged did not take.
+    onConfirmed: () => {
+      if (isPausedRef.current !== pausedAskedRef.current) {
+        setPauseIntent(null);
+      }
+    },
+    onRejected: () => setPauseIntent(null),
+  });
+  // A bound key toggles pause without a button of this widget's own to draw the outcome.
   const togglePause = () => {
     const next = !effectivePausedRef.current;
     effectivePausedRef.current = next;
     setPauseIntent(next);
     pauseCmd
       .dangerouslySendWithoutInput({ paused: next })
-      // An acknowledged command that left the game's state unchanged did not take.
       .then(() => {
         if (isPausedRef.current !== next) setPauseIntent(null);
       })
@@ -233,7 +265,8 @@ function useWarpControl(config: WarpControlConfig | undefined) {
     createAlarm,
     openAlarms,
     setWarp,
-    togglePause,
+    warpCommand,
+    pauseCommand,
   };
 }
 
@@ -293,8 +326,8 @@ function WarpControlComponent({
     pending,
     createAlarm,
     openAlarms,
-    setWarp,
-    togglePause,
+    warpCommand,
+    pauseCommand,
   } = useWarpControl(config);
 
   return (
@@ -320,8 +353,8 @@ function WarpControlComponent({
       nextAlarm={pending?.[0] ?? null}
       createAlarm={createAlarm}
       events={events}
-      onSetWarp={setWarp}
-      onTogglePause={togglePause}
+      warpCommand={warpCommand}
+      pauseCommand={pauseCommand}
       onOpenAlarms={() => openAlarms?.({})}
     />
   );

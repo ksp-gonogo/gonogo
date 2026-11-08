@@ -37,14 +37,14 @@ export interface TextFieldBaseProps {
  *
  * @category Form
  */
-export interface PlainTextFieldProps {
+export type PlainTextFieldProps = {
   /** Called with the whole new text on every edit. */
   onChange: (next: string) => void;
   /** Shows the text but takes no input. */
   disabled?: boolean;
   command?: never;
   unavailable?: never;
-}
+};
 
 /**
  * The props of a {@link TextField} that sends a command: `value` is the text

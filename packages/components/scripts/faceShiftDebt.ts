@@ -132,14 +132,8 @@ export const FACE_DEBT: Readonly<Record<string, string>> = {
     'face "answered": span "168.2 km kilometres" moved -20.0, 0.0px',
   'target-picker|button "Clamp-O-Tron Sr. (fore)Orbiting168.2 km "':
     'face "answered": span "168.2 km kilometres" moved -20.0, 0.0px',
-  'target-picker|button "Comsat Relay 4Probe · Orbiting950.3 km k"':
-    'face "answered": span "950.3 km kilometres, OFFLINE, as of Y1 D" moved -20.0, 0.0px',
-  'target-picker|button "Kerbin720.0 km kilometres, OFFLINE, as o"':
-    'face "answered": span "720.0 km kilometres, OFFLINE, as of Y1 D" moved -20.0, 0.0px',
   'target-picker|button "Kerbin720.0 km kilometres"':
     'face "answered": span "720.0 km kilometres" moved -20.0, 0.0px',
-  'target-picker|button "Mun11.9 Mm megametres, OFFLINE, as of Y1"':
-    'face "answered": span "11.9 Mm megametres, OFFLINE, as of Y1 D1" moved -20.0, 0.0px',
   'target-picker|button "Mun11.9 Mm megametres"':
     'face "answered": span "11.9 Mm megametres" moved -20.0, 0.0px',
   'target-picker|button "Munar Transfer StageShip · Escaping1.6 M"':

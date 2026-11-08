@@ -11451,6 +11451,10 @@
         "note": "Gains the warned kind and its entries"
       },
       {
+        "key": "ui-kit . ComposerBar",
+        "note": "the send button can send a game command, through the new command and sendUnavailable props"
+      },
+      {
         "key": "ui-kit . ContainerBreak",
         "note": "its props take an aspect-ratio breakpoint, and the width breakpoint is optional"
       },
@@ -12611,6 +12615,10 @@
       {
         "key": "sitrep-sdk . BoundCommandOptions#onRejected?",
         "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk . BoundCommandOptions#topic?",
+        "note": "a bound command can address its send to one part or route, as a direct send already could"
       },
       {
         "key": "sitrep-sdk . Capability",
@@ -15047,6 +15055,10 @@
       {
         "key": "sitrep-sdk ./registry ~BoundCommandOptions#onRejected?",
         "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~BoundCommandOptions#topic?",
+        "note": "a bound command can address its send to one part or route, as a direct send already could"
       },
       {
         "key": "sitrep-sdk ./registry ~ChannelFamily",
@@ -17657,6 +17669,10 @@
         "note": "part of the bound command a kit input takes in its command prop"
       },
       {
+        "key": "sitrep-sdk ./spine ~BoundCommandOptions#topic?",
+        "note": "a bound command can address its send to one part or route, as a direct send already could"
+      },
+      {
         "key": "sitrep-sdk ./spine ~CommSignalHopRateEntry#held?",
         "note": "CommSignalHopRateEntry carries the reading it was drawn from, so the host widget draws a held value as held"
       },
@@ -18447,6 +18463,10 @@
       {
         "key": "sitrep-sdk ./testing ~BoundCommandOptions#onRejected?",
         "note": "part of the bound command a kit input takes in its command prop"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~BoundCommandOptions#topic?",
+        "note": "a bound command can address its send to one part or route, as a direct send already could"
       },
       {
         "key": "sitrep-sdk ./testing ~CommSignalHopRateEntry#held?",
@@ -20153,6 +20173,14 @@
         "note": "the props of a button or toggle given a command, replacing those of CommandButton"
       },
       {
+        "key": "ui-kit . ComposerBarProps#command?",
+        "note": "the command the send button sends, so it shows what became of the press"
+      },
+      {
+        "key": "ui-kit . ComposerBarProps#sendUnavailable?",
+        "note": "why a command send cannot be pressed now"
+      },
+      {
         "key": "ui-kit . ContainerBreakProps#at?",
         "note": "the width breakpoint, now optional"
       },
@@ -20863,138 +20891,6 @@
       {
         "key": "ui-kit . PipsProps#tone?",
         "note": "colour of the pips"
-      },
-      {
-        "key": "ui-kit . PlainButtonProps",
-        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
-      },
-      {
-        "key": "ui-kit . PlainButtonProps#command?",
-        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
-      },
-      {
-        "key": "ui-kit . PlainButtonProps#disabledReason?",
-        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
-      },
-      {
-        "key": "ui-kit . PlainButtonProps#marked?",
-        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
-      },
-      {
-        "key": "ui-kit . PlainButtonProps#predictedOutcome?",
-        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
-      },
-      {
-        "key": "ui-kit . PlainButtonProps#pressed?",
-        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
-      },
-      {
-        "key": "ui-kit . PlainButtonProps#size?",
-        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
-      },
-      {
-        "key": "ui-kit . PlainButtonProps#tone?",
-        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
-      },
-      {
-        "key": "ui-kit . PlainButtonProps#variant?",
-        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
-      },
-      {
-        "key": "ui-kit . PlainIconButtonProps",
-        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
-      },
-      {
-        "key": "ui-kit . PlainIconButtonProps#command?",
-        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
-      },
-      {
-        "key": "ui-kit . PlainIconButtonProps#disabledReason?",
-        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
-      },
-      {
-        "key": "ui-kit . PlainIconButtonProps#pressed?",
-        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
-      },
-      {
-        "key": "ui-kit . PlainSelectProps",
-        "note": "props of the form that changes a value the caller holds"
-      },
-      {
-        "key": "ui-kit . PlainSliderProps",
-        "note": "props of the form that changes a value the caller holds"
-      },
-      {
-        "key": "ui-kit . PlainStepperProps",
-        "note": "props of the form that changes a value the caller holds"
-      },
-      {
-        "key": "ui-kit . PlainSwitchProps",
-        "note": "props of the form that changes a value the caller holds"
-      },
-      {
-        "key": "ui-kit . PlainSwitchProps#checked",
-        "note": "props of the form that changes a value the caller holds"
-      },
-      {
-        "key": "ui-kit . PlainSwitchProps#command?",
-        "note": "props of the form that changes a value the caller holds"
-      },
-      {
-        "key": "ui-kit . PlainSwitchProps#disabled?",
-        "note": "props of the form that changes a value the caller holds"
-      },
-      {
-        "key": "ui-kit . PlainSwitchProps#onChange",
-        "note": "props of the form that changes a value the caller holds"
-      },
-      {
-        "key": "ui-kit . PlainTextFieldProps",
-        "note": "props of the form that changes a value the caller holds"
-      },
-      {
-        "key": "ui-kit . PlainTextFieldProps#command?",
-        "note": "props of the form that changes a value the caller holds"
-      },
-      {
-        "key": "ui-kit . PlainTextFieldProps#disabled?",
-        "note": "props of the form that changes a value the caller holds"
-      },
-      {
-        "key": "ui-kit . PlainTextFieldProps#onChange",
-        "note": "props of the form that changes a value the caller holds"
-      },
-      {
-        "key": "ui-kit . PlainTextFieldProps#unavailable?",
-        "note": "props of the form that changes a value the caller holds"
-      },
-      {
-        "key": "ui-kit . PlainToggleButtonProps",
-        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
-      },
-      {
-        "key": "ui-kit . PlainToggleButtonProps#command?",
-        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
-      },
-      {
-        "key": "ui-kit . PlainToggleButtonProps#disabledReason?",
-        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
-      },
-      {
-        "key": "ui-kit . PlainToggleButtonProps#marked?",
-        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
-      },
-      {
-        "key": "ui-kit . PlainToggleButtonProps#pressed?",
-        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
-      },
-      {
-        "key": "ui-kit . PlainToggleButtonProps#size?",
-        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
-      },
-      {
-        "key": "ui-kit . PlainToggleButtonProps#tone?",
-        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
       },
       {
         "key": "ui-kit . PlotCrosshair",
@@ -21715,6 +21611,66 @@
       {
         "key": "ui-kit . ~MeterCommonProps#wrapLabel?",
         "note": "Wraps a long label onto further lines instead of cutting it with an ellipsis"
+      },
+      {
+        "key": "ui-kit . ~PlainButtonProps",
+        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
+      },
+      {
+        "key": "ui-kit . ~PlainIconButtonProps",
+        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
+      },
+      {
+        "key": "ui-kit . ~PlainSliderProps",
+        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
+      },
+      {
+        "key": "ui-kit . ~PlainStepperProps",
+        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
+      },
+      {
+        "key": "ui-kit . ~PlainSwitchProps",
+        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
+      },
+      {
+        "key": "ui-kit . ~PlainSwitchProps#checked",
+        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
+      },
+      {
+        "key": "ui-kit . ~PlainSwitchProps#command?",
+        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
+      },
+      {
+        "key": "ui-kit . ~PlainSwitchProps#disabled?",
+        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
+      },
+      {
+        "key": "ui-kit . ~PlainSwitchProps#onChange",
+        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
+      },
+      {
+        "key": "ui-kit . ~PlainTextFieldProps",
+        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
+      },
+      {
+        "key": "ui-kit . ~PlainTextFieldProps#command?",
+        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
+      },
+      {
+        "key": "ui-kit . ~PlainTextFieldProps#disabled?",
+        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
+      },
+      {
+        "key": "ui-kit . ~PlainTextFieldProps#onChange",
+        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
+      },
+      {
+        "key": "ui-kit . ~PlainTextFieldProps#unavailable?",
+        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
+      },
+      {
+        "key": "ui-kit . ~PlainToggleButtonProps",
+        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
       },
       {
         "key": "ui-kit . ~SizedWidget",
