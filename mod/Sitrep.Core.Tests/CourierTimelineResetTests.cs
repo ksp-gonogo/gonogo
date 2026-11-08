@@ -214,6 +214,24 @@ namespace Sitrep.Core.Tests
         }
 
         [Fact]
+        public void ATopicTheCallerLeavesOutIsNotReissued()
+        {
+            var clock = new ManualClock();
+            var courier = new Courier(clock, new StubNetwork());
+
+            var delivered = new List<StreamData>();
+            courier.SubscribeStream("system", "crash.lastCrash", "KSC", data => delivered.Add(data));
+            courier.Record("system", "crash.lastCrash", "old crash", 5);
+            clock.AdvanceTo(10);
+            delivered.Clear();
+
+            courier.ResetTimeline(8);
+            courier.ReissueRetainedAfterReset(topic => topic != "crash.lastCrash");
+
+            Assert.Empty(delivered);
+        }
+
+        [Fact]
         public void NothingIsReissuedForATopicWhoseValuesAllBelongedToTheAbandonedTimeline()
         {
             var clock = new ManualClock();

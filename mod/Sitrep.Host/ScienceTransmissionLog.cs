@@ -93,17 +93,16 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Drops every transmission that started after <paramref name="ut"/>, expected or arrived:
-        /// a load back to <paramref name="ut"/> undid it. One without a start time goes by when it
-        /// finishes. True when an arrived one was dropped, so the caller republishes the list.
+        /// Drops every transmission that had not finished leaving the vessel by <paramref name="ut"/>,
+        /// expected or arrived: a load back to <paramref name="ut"/> undid it, and the data is back
+        /// aboard. True when an arrived one was dropped, so the caller republishes the list.
         /// </summary>
-        public bool ForgetStartedAfter(double ut)
+        public bool ForgetUnfinishedAt(double ut)
         {
             lock (_gate)
             {
-                Predicate<Entry> undone = e => (e.StartedAt ?? e.CompletedAt) > ut;
-                _pending.RemoveAll(undone);
-                return _arrived.RemoveAll(undone) > 0;
+                _pending.RemoveAll(e => e.CompletedAt > ut);
+                return _arrived.RemoveAll(e => e.CompletedAt > ut) > 0;
             }
         }
 

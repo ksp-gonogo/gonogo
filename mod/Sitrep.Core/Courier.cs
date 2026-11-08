@@ -1680,8 +1680,10 @@ namespace Sitrep.Core
         /// What survived the reset is true on the timeline now current, so it goes out
         /// again under that epoch. A topic with a sticky keyframe sends that instead of
         /// the newest sample, as a late subscriber's catch-up does.
+        /// <paramref name="reissues"/> names the topics worth sending again; an event
+        /// stream is left out, since a client would take the last event as a new one.
         /// </summary>
-        public void ReissueRetainedAfterReset()
+        public void ReissueRetainedAfterReset(Func<string, bool>? reissues = null)
         {
             var now = _clock.Now();
             foreach (var nodeEntry in _subscribers.ToList())
@@ -1691,7 +1693,7 @@ namespace Sitrep.Core
                 {
                     var topic = topicEntry.Key;
                     var subs = topicEntry.Value;
-                    if (subs.Count == 0)
+                    if (subs.Count == 0 || (reissues != null && !reissues(topic)))
                     {
                         continue;
                     }

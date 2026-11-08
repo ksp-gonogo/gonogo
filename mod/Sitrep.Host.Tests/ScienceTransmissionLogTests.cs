@@ -185,16 +185,17 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void ALoadForgetsTransmissionsItUndidAndKeepsTheOnesBeforeIt()
+        public void ALoadForgetsTransmissionsNotFinishedByTheSaveAndKeepsTheOnesBeforeIt()
         {
             var log = new ScienceTransmissionLog();
             log.Expect("v1", "before", "Before", 1, 100, 101);
             log.Release(102);
-            log.Expect("v1", "undoneArrived", "Undone", 1, 200, 201);
+            log.Expect("v1", "startedBeforeArrivedAfter", "Straddles", 1, 140, 200);
             log.Release(202);
             log.Expect("v1", "undonePending", "Pending", 1, 210, 400);
+            log.Expect("v1", "straddlingPending", "Straddles", 1, 145, 300);
 
-            Assert.True(log.ForgetStartedAfter(150));
+            Assert.True(log.ForgetUnfinishedAt(150));
 
             var wire = Assert.Single(log.ToWire("v1")!);
             Assert.Equal("before", wire["subjectId"]);

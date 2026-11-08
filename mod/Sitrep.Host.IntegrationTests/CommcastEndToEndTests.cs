@@ -150,6 +150,19 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
+        public async Task LoadingADifferentSaveForgetsTheChatOfTheOneBefore()
+        {
+            await using var scene = await Scene.StartAsync();
+            scene.Tick(50, "career-a");
+            await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, Open("early", B));
+            scene.Tick(100, "career-a");
+
+            scene.Tick(120, "career-b");
+
+            Assert.True((await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, Open("early", B))).Success);
+        }
+
+        [Fact]
         public async Task ANonMemberCannotSpeakToAGroup()
         {
             await using var scene = await Scene.StartAsync();
@@ -655,6 +668,13 @@ namespace Sitrep.Host.IntegrationTests
             }
 
             public void Tick(double ut) => _engine.TickAndWait(ut, null, Timeout);
+
+            /// <summary>Ticks to <paramref name="ut"/> as a tick that belongs to the save folder <paramref name="save"/>.</summary>
+            public void Tick(double ut, string save)
+            {
+                _engine.NoteSave(save);
+                Tick(ut);
+            }
 
             /// <summary>Changes how far apart two centres are, from the next tick.</summary>
             public void Shorten(string a, string b, double seconds) => _ledger.Override(a, b, seconds);

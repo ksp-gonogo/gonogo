@@ -125,6 +125,7 @@ namespace Sitrep.Host.Commcast
             new Dictionary<string, Transmission>(StringComparer.Ordinal);
         private readonly Queue<string> _transmissionOrder = new Queue<string>();
 
+        private Sitrep.Host.Comms.ICraftStateHost? _craftState;
         private IUplinkHost? _host;
         private IAddressedStreamHost? _streams;
 
@@ -193,7 +194,8 @@ namespace Sitrep.Host.Commcast
             /* Groups, messages and keyings are stamped with the UT they were said
                at, so a reset keeps what was said up to the loaded UT and drops
                what was said after it. */
-            (host as Sitrep.Host.Comms.ICraftStateHost)?.OnTimelineReset(ForgetTheTimeline);
+            _craftState = host as Sitrep.Host.Comms.ICraftStateHost;
+            _craftState?.OnTimelineReset(ForgetTheTimeline);
 
             host.AddVantageCommandHandler<CommcastGroupOpenArgs, CommandResult>(OpenCommand, HandleOpen);
             host.AddVantageCommandHandler<CommcastGroupAddArgs, CommandResult>(AddCommand, HandleAdd);
@@ -204,7 +206,8 @@ namespace Sitrep.Host.Commcast
 
         private void ForgetTheTimeline()
         {
-            var loadedAt = Now();
+            /* Another save folder is another game, whose chat is not this one's. */
+            var loadedAt = _craftState?.TimelineResetChangedSave == true ? double.NegativeInfinity : Now();
             foreach (var id in _groups.Keys.ToList())
             {
                 _groups[id].RemoveAll(change => change.Ut > loadedAt);

@@ -259,7 +259,7 @@ namespace Gonogo.KSP
                     if (_forgetUndoneTransmissions)
                     {
                         _forgetUndoneTransmissions = false;
-                        changed |= ScienceTransmissions.Log.ForgetStartedAfter(poll.Ut);
+                        changed |= ScienceTransmissions.Log.ForgetUnfinishedAt(poll.Ut);
                     }
 
                     var released = ScienceTransmissions.Log.Release(poll.Ut);
