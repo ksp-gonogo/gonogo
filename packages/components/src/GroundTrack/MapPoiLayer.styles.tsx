@@ -121,12 +121,7 @@ export const PoiMarkerButton = forwardRef<
       ref={ref}
       style={{
         ...(dish ? POI_DISH_BUTTON_STYLE : POI_DOT_BUTTON_STYLE),
-        ...(dish
-          ? { color: $style.background }
-          : {
-              background: $style.background,
-              border: `2px ${$style.borderStyle} ${$style.border}`,
-            }),
+        ...(dish ? { color: $style.background } : null),
         transform: dish
           ? `translate(-50%, -50%)${raised ? " scale(1.25)" : ""}`
           : raised
@@ -146,19 +141,45 @@ export const PoiMarkerButton = forwardRef<
       {...rest}
     >
       {label !== undefined && <VisuallyHidden>{label}</VisuallyHidden>}
-      {dish && <GroundStationIcon size="100%" />}
+      {dish ? (
+        <span style={POI_DISH_GLYPH_STYLE}>
+          <GroundStationIcon size="100%" />
+        </span>
+      ) : (
+        <span
+          style={{
+            ...POI_DOT_STYLE,
+            background: $style.background,
+            border: `2px ${$style.borderStyle} ${$style.border}`,
+          }}
+        />
+      )}
     </IconButton>
   );
 });
+
+/* The button is the 24 px hit area the kit's icon button enforces; the drawn marker is a smaller child centred in it. */
+const POI_HIT_AREA = 24;
 
 const POI_DOT_BUTTON_STYLE: CSSProperties = {
   position: "absolute",
   padding: 0,
   pointerEvents: "auto",
+  width: POI_HIT_AREA,
+  height: POI_HIT_AREA,
+  margin: `${-POI_HIT_AREA / 2}px 0 0 ${-POI_HIT_AREA / 2}px`,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: "none",
+  border: "none",
+};
+
+const POI_DOT_STYLE: CSSProperties = {
+  display: "block",
+  boxSizing: "border-box",
   width: 10,
   height: 10,
-  // Off the spacing ladder: half the marker size, centring it on its coordinate.
-  margin: "-5px 0 0 -5px",
   borderRadius: "var(--radius-circle)",
 };
 
@@ -166,10 +187,19 @@ const POI_DISH_BUTTON_STYLE: CSSProperties = {
   position: "absolute",
   padding: 0,
   pointerEvents: "auto",
-  width: 16,
-  height: 16,
+  width: POI_HIT_AREA,
+  height: POI_HIT_AREA,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
   background: "none",
   border: "none",
+};
+
+const POI_DISH_GLYPH_STYLE: CSSProperties = {
+  display: "block",
+  width: 16,
+  height: 16,
 };
 
 /**

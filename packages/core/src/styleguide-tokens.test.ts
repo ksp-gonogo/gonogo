@@ -143,7 +143,6 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/app/src/styles/global.css": 1,
     "packages/components/src/VesselCatalog/RosterTable.tsx": 1,
     "packages/components/src/VesselCatalog/UpdatesRow.tsx": 1,
-    "packages/components/src/GroundTrack/MapPoiLayer.styles.tsx": 2,
     "packages/components/src/Navball/index.tsx": 1,
     "packages/ui/src/StationConnectView/StationConnectView.styles.ts": 19,
     "packages/data/src/FlightsManager/index.tsx": 2,
