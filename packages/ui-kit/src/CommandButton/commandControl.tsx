@@ -58,7 +58,7 @@ function argsKey(args: unknown): string | null {
 /**
  * The words a command control shows as its tip while the stream to the mod is
  * down: that nothing can be sent. Useful for telling the operator why a command
- * control is greyed out, and for a control of your own that follows the same
+ * control is dimmed with a dotted edge, and for a control of your own that follows the same
  * state. Used by {@link Button} and by the Action Group widget's toggle.
  *
  * @category CommandButton
@@ -192,9 +192,9 @@ export interface CommandButtonHandle<Result = CommandReplyLike, Args = unknown>
    * `opts.topic` addresses the command to one part or route on the craft, such
    * as one script terminal.
    *
-   * `Result` carries the reply's real type to
-   * {@link CommandButtonProps.onConfirmed}; a handle from `useCommand("...")`
-   * supplies it from the generated command map.
+   * `Result` carries the reply's real type to the `onConfirmed` option of
+   * `with`; a handle from `useCommand("...")` supplies it from the generated
+   * command map.
    */
   dangerouslySendWithoutInput(
     args?: Args,
@@ -243,8 +243,9 @@ export interface CommandButtonHandle<Result = CommandReplyLike, Args = unknown>
   railed?: boolean;
   /**
    * The stream to the mod is down, so a press cannot be sent. The control is
-   * drawn unavailable and a press does nothing until the stream returns; a
-   * command already in flight is not affected. `useCommand` supplies it.
+   * drawn dimmed with a dotted edge and a press does nothing until the stream
+   * returns; a command already in flight is not affected. `useCommand`
+   * supplies it.
    */
   streamDown?: boolean;
 }
@@ -281,11 +282,16 @@ export function standingGate<Args>(
  *   command may have executed
  * - `found`: this control lost a command, and that command has since replied.
  *   Not a confirmation: the operator may already have re-sent it
- * - `blocked`: the game will refuse this, and said so before anyone pressed.
- *   The control is dark but not `disabled`: it carries `aria-disabled`, stays
- *   focusable, and responds to a press by showing why. A gate verdict is
- *   advice, sampled and possibly a beat behind, and the dispatch is evaluated
- *   again by the game anyway
+ * - `blocked`: the control cannot be pressed and says why, either because the
+ *   game will refuse this and said so before anyone pressed, or because the
+ *   caller gave an `unavailable` reason. The control is dimmed but not
+ *   `disabled`: it carries `aria-disabled`, stays focusable, and a press sends
+ *   nothing. Only the game's own refusal is drawn with a dashed warning edge;
+ *   the caller's reason keeps a solid edge. A gate verdict is advice, sampled
+ *   and possibly a beat behind, and the game evaluates the dispatch again
+ *
+ * The stream to the mod being down is not a phase: it is `isOffline`, drawn
+ * dimmed with a dotted edge whichever phase the control is in
  *
  * @category CommandButton
  */
@@ -353,7 +359,7 @@ export interface UseCommandControlOptions<
  * @category CommandButton
  */
 export interface CommandControlState<Args = unknown> {
-  /** The current phase. `blocked` whenever the gate refuses and no outcome or dispatch is standing. */
+  /** The current phase. `blocked` whenever the gate refuses or the caller gave a reason and no outcome or dispatch is standing. */
   phase: CommandButtonPhase;
   /** Pressed, and the mod has not yet answered the press. */
   isSent: boolean;
@@ -374,8 +380,9 @@ export interface CommandControlState<Args = unknown> {
   /**
    * The caller said the control cannot be pressed (`unavailable`, or a toggle's
    * own reason), as opposed to the game having said it will refuse the command.
-   * A control draws the two differently: dimmed for the caller's reason, and
-   * dimmed with a dashed warning edge for the game's.
+   * It is true together with `isBlocked`, and `refusalText` carries the caller's
+   * reason. A control draws the two differently: dimmed with a solid edge for the
+   * caller's reason, and dimmed with a dashed warning edge for the game's.
    */
   isUnavailable: boolean;
   /** The command this control sends, with its handle: what a face reads the command's standing state from. */
@@ -398,7 +405,8 @@ export interface CommandControlState<Args = unknown> {
   lossText: string | null;
   /**
    * The stream to the mod is down and nothing is in flight, so a press sends
-   * nothing. The control is drawn unavailable, whichever phase it is in.
+   * nothing. The control is drawn dimmed with a dotted edge and its tip says it
+   * is not connected to the mod, whichever phase it is in.
    */
   isOffline: boolean;
   /**

@@ -73,7 +73,7 @@ function boundOf(
 
 /**
  * Props for a {@link Button} given a command: the command it sends, its words
- * for each phase and the confirm wording. Any other native button attribute is
+ * for each state and the confirm wording. Any other native button attribute is
  * passed through, except `onClick` and `disabled`, which the command decides.
  * Useful for naming the command a button sends and how the operator confirms it.
  * Taken by {@link Button} when it has a `command`.
@@ -85,8 +85,9 @@ export interface CommandedButtonProps extends NativeButtonProps {
   command: CommandInput;
   /**
    * What the control says on hover and keyboard focus while it is at rest or
-   * armed, in the kit's tip. An outcome's own sentence replaces it while one
-   * stands. It is not the accessible name: give `aria-label` for that.
+   * armed, in the kit's tip. An outcome's own sentence, the caller's
+   * `unavailable` reason or the game's reason for refusing replaces it while
+   * one stands. It is not the accessible name: give `aria-label` for that.
    */
   tip?: string;
   /** The resting label. */
@@ -94,8 +95,10 @@ export interface CommandedButtonProps extends NativeButtonProps {
   /**
    * Why the control cannot be pressed now, for what a command's own declaration
    * cannot know, such as a reading that has not arrived. The control is drawn
-   * dimmed with this as its tip and a press sends nothing. Null or absent when
-   * it can be pressed. A control given as a `useCommandControl` states its own.
+   * dimmed with a solid edge, apart from the dashed warning edge the game's own
+   * refusal gets, with this as its tip and accessible description, and a press
+   * sends nothing. Null or absent when it can be pressed. A control given as a
+   * `useCommandControl` states its own.
    */
   unavailable?: string | null;
   /**
@@ -107,11 +110,12 @@ export interface CommandedButtonProps extends NativeButtonProps {
    * Arm anything irreversible, and anything that spends career funds.
    */
   confirmLabel?: ReactNode;
-  /** The refused label. Defaults to "Refused". */
+  /** The word shown in place of the label after the game refuses the command. Defaults to "Refused". */
   refusedLabel?: ReactNode;
   /**
-   * The label for a dispatch that got no reply. Defaults to "No reply": not
-   * "failed" and not "refused", neither of which is known.
+   * The word shown in place of the label after a dispatch got no reply.
+   * Defaults to "No reply": not "failed" and not "refused", neither of which is
+   * known.
    */
   lostLabel?: ReactNode;
   /**
@@ -178,8 +182,10 @@ export interface CommandedButtonProps extends NativeButtonProps {
 /**
  * A button given a command: it sends the command and shows what became of it,
  * at rest, armed (with a `confirmLabel`), sent, refused, lost (no reply came in
- * time), found (a lost command has since replied), or unable to be pressed.
- * Rendered by {@link Button} when it has a `command`.
+ * time), found (a lost command has since replied), or unable to be pressed
+ * (unavailable for the caller's reason, stream down, or blocked by the game's
+ * refusal, told apart by edge). Rendered by {@link Button} when it has a
+ * `command`.
  */
 export function CommandedButton(props: CommandedButtonProps) {
   const { command, unavailable, ...rest } = props;
@@ -445,7 +451,10 @@ function CommandedButtonFace({
  * state it shows and what it is called. Any other native button attribute is
  * passed through, except `onClick` and `disabled`, which the command decides.
  * Useful for a switch the operator flips under signal delay, such as SAS or an
- * action group. Taken by {@link ToggleButton} when it has a `command`.
+ * action group. A toggle keeps its on and off word in every state: a refusal or
+ * a missing reply shows as a warning edge, the game's refusal in advance as a
+ * dashed warning edge, and the stream to the mod being down as a dotted edge.
+ * Taken by {@link ToggleButton} when it has a `command`.
  *
  * @category CommandButton
  */
@@ -463,9 +472,9 @@ export interface CommandedToggleProps extends NativeButtonProps {
   /** What the control is called in the sentences it speaks ("RCS sent, not yet received"). Not used with a control. */
   name?: string;
   /**
-   * Why the control cannot be pressed now. It is drawn dimmed with this as its
-   * tip, and a press sends nothing. Null or absent when it can be pressed. Not
-   * used with a control.
+   * Why the control cannot be pressed now. It is drawn dimmed with a solid edge
+   * and this as its tip, and a press sends nothing. Null or absent when it can
+   * be pressed. Not used with a control.
    */
   unavailable?: string | null;
   /** The fill while on. Defaults to `go`. */

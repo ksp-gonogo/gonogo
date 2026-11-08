@@ -321,7 +321,7 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
   undelivered: CommandUndelivered[];
   /**
    * The stream to the mod is down, so a press sends nothing. A control reads it
-   * to draw itself unavailable.
+   * to draw its stream-down state: dimmed, with a dotted edge.
    */
   streamDown: boolean;
   /**

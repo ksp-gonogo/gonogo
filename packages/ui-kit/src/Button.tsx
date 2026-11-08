@@ -59,15 +59,6 @@ export type ButtonTone = Extract<Tone, "neutral" | "go" | "warn" | "nogo">;
 export type ButtonSize = "sm" | "md";
 
 /**
- * A native button's attributes, plus how prominent it is, what its action
- * does, how large it is and, for a toggle, whether it is pressed. Taken by
- * {@link Button}.
- * Useful for describing a control the operator presses, with its prominence,
- * tone and size.
- *
- * @category Button
- */
-/**
  * The props of {@link Button}: those of a plain button, or, when `command` is
  * set, those of a button that sends it.
  * Useful for describing a control the operator presses.
@@ -141,6 +132,28 @@ export interface PlainButtonProps
  *
  * Its content is a centred flex row, so an icon beside the word centres on it
  * rather than sitting on the text baseline.
+ *
+ * Given a `command`, it sends that command and shows what became of the press.
+ * Every command control draws the same seven states:
+ *
+ * - rest: the label, with a `confirmLabel` it arms first and sends on the
+ *   second press
+ * - sent: "SENT" until the mod answers the press
+ * - refused: the label becomes "Refused" (`refusedLabel`) and the reason is the
+ *   tip and the accessible name
+ * - no reply: the label becomes "No reply" (`lostLabel`), because the game
+ *   decided nothing and the command may have run
+ * - unavailable: the reason the caller gave in `unavailable`, dimmed with a
+ *   solid edge; a press sends nothing
+ * - stream down: not connected to the mod, dimmed with a dotted edge; a press
+ *   sends nothing
+ * - blocked: the game has said it will refuse the command, dimmed with a dashed
+ *   warning edge; a press sends nothing and shows why
+ *
+ * The three dimmed states differ by edge, and the reason is each one's tip and
+ * accessible description, read after the control's own name. A toggle keeps its on and off word in every state and shows
+ * a refusal or a missing reply as a warning edge instead. Reach the same states
+ * from your own markup with {@link useCommandControl}.
  *
  * @example
  * ```tsx
