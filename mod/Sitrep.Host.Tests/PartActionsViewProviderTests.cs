@@ -129,6 +129,53 @@ namespace Sitrep.Host.Tests
             Assert.Equal("Deploy", actions[0]["name"]);
         }
 
+        /// <summary>
+        /// These buttons open a window on the game's screen that locks the craft's
+        /// controls until someone there finishes it, so a console must never be
+        /// offered them.
+        /// </summary>
+        [Theory]
+        [InlineData("SpawnTransferDialog", null)]
+        [InlineData("TransferDataEvent", "ModuleScienceExperiment")]
+        [InlineData("TransferDataEvent", "ModuleScienceContainer")]
+        [InlineData("RenameVessel", "ModuleCommand")]
+        [InlineData("RenameAsteroidEvent", "ModuleAsteroid")]
+        [InlineData("RenameCometEvent", "ModuleComet")]
+        [InlineData("SetVesselNaming", "ModuleGroundExpControl")]
+        [InlineData("SetVesselNaming", null)]
+        [InlineData("RenameVessel", "KerbalEVA")]
+        [InlineData("ShowUpgradeStats", null)]
+        public void BuildDropsAButtonOnlySomeoneAtTheGameCanFinish(string eventName, string? moduleName)
+        {
+            var actuator = new FakePartActionActuator();
+            actuator.ActionsByPartId["1"] = new List<PartActionEntry>
+            {
+                Entry(eventName, moduleName: moduleName),
+                Entry("Deploy"),
+            };
+
+            var publications = PartActionsViewProvider.Build(actuator, new[] { "1" }, "guid-1");
+            var actions = WireActions(publications[0]);
+
+            Assert.Single(actions);
+            Assert.Equal("Deploy", actions[0]["name"]);
+        }
+
+        /// <summary>A mod module that subclasses a stock one inherits the button under its own module name.</summary>
+        [Fact]
+        public void BuildDropsTheSameButtonOnAModuleThatInheritsIt()
+        {
+            var actuator = new FakePartActionActuator();
+            actuator.ActionsByPartId["1"] = new List<PartActionEntry>
+            {
+                Entry("TransferDataEvent", moduleName: "DMModuleScienceAnimate"),
+            };
+
+            var publications = PartActionsViewProvider.Build(actuator, new[] { "1" }, "guid-1");
+
+            Assert.Empty(WireActions(publications[0]));
+        }
+
         [Fact]
         public void BuildPreservesTheActuatorsOrderRatherThanSorting()
         {

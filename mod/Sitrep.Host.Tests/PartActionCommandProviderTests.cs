@@ -59,6 +59,31 @@ namespace Sitrep.Host.Tests
             Assert.Null(actuator.LastInvokePartId);
         }
 
+        /// <summary>
+        /// Fired from a console, these open a window on the game's screen that
+        /// locks the craft's controls until someone there finishes it.
+        /// </summary>
+        [Theory]
+        [InlineData("SpawnTransferDialog")]
+        [InlineData("TransferDataEvent")]
+        [InlineData("RenameVessel")]
+        [InlineData("RenameAsteroidEvent")]
+        [InlineData("RenameCometEvent")]
+        [InlineData("SetVesselNaming")]
+        [InlineData("ShowUpgradeStats")]
+        public void InvokeRefusesAButtonOnlySomeoneAtTheGameCanFinishWithoutCallingTheActuator(string eventName)
+        {
+            var actuator = new FakePartActionActuator();
+
+            var result = PartActionCommandProvider.HandleInvoke(
+                actuator,
+                new InvokePartActionArgs { PartId = "1234567", EventName = eventName });
+
+            Assert.False(result.Success);
+            Assert.Equal(CommandErrorCode.CapabilityMismatch, result.ErrorCode);
+            Assert.Null(actuator.LastInvokePartId);
+        }
+
         [Fact]
         public void InvokeSurfacesTheActuatorsTypedFailureUnchanged()
         {

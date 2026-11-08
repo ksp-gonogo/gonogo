@@ -160,6 +160,11 @@ namespace Sitrep.Host
                     continue;
                 }
 
+                if (InGameOnlyPartActions.IsInGameOnly(entry.Name))
+                {
+                    continue;
+                }
+
                 // Separated by the same control character Signature uses, so
                 // two distinct (module, name) pairs can never concatenate into
                 // a single key.
