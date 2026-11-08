@@ -64,13 +64,6 @@ namespace Gonogo.KSP
         /// and lower-cased. That is a rendering of the game's own token, not a
         /// table of our own words for its states.</para>
         /// </summary>
-        /// <summary>
-        /// What an operator is told when the flight cannot be saved. Deliberately
-        /// says nothing about why: saving is instant at every centre, and the reason
-        /// would say what the craft is doing before its signal arrives.
-        /// </summary>
-        public const string CantSaveNow = "Can't save right now";
-
         public static string Phrase(Enum member)
         {
             if (member == null) return "";

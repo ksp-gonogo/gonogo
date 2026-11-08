@@ -1725,8 +1725,6 @@ describe("PeerClientService: sitrep frame/command dispatcher wiring", () => {
       { enabled: true },
       "Enable SAS",
       "vessel/control",
-      undefined,
-      { seenBootId: "run-a", seenEpoch: 2 },
     );
 
     expect(sent).toEqual([
@@ -1736,8 +1734,6 @@ describe("PeerClientService: sitrep frame/command dispatcher wiring", () => {
         command: "vessel.control.setSas",
         label: "Enable SAS",
         topic: "vessel/control",
-        seenBootId: "run-a",
-        seenEpoch: 2,
         args: { enabled: true },
       },
     ]);

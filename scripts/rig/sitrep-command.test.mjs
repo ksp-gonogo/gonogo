@@ -15,9 +15,6 @@ async function standIn(reply) {
   await new Promise((resolve) => server.on("listening", resolve));
   const received = [];
   server.on("connection", (socket) => {
-    socket.send(
-      JSON.stringify({ type: "hello", bootId: "run-a", timelineEpoch: 3 }),
-    );
     socket.on("message", (data) => {
       const request = JSON.parse(String(data));
       received.push(request);
@@ -66,8 +63,6 @@ test("sends the app's command-request and settles on its own response", async ()
     );
     const [request] = server.received;
     assert.equal(request.type, "command-request");
-    assert.equal(request.seenBootId, "run-a");
-    assert.equal(request.seenEpoch, 3);
     assert.equal(request.command, "ksp.launch");
     assert.deepEqual(request.args, args);
     assert.equal(request.sentAt, 0);

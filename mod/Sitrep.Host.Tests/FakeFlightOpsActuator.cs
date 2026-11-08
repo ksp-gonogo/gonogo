@@ -35,26 +35,6 @@ namespace Sitrep.Host.Tests
         public CommandResult RecoverVesselResult = CommandResult.Ok();
         public CommandResult LaunchResult = CommandResult.Ok();
 
-        public bool LoadScheduled { get; set; }
-        public int QuicksaveCallCount;
-        public string? LastQuickloadSaveId;
-        public string? LastQuickloadRequestedBy;
-        public CommandResult<SaveWritten> QuicksaveResult = CommandResult<SaveWritten>.Ok(new SaveWritten { SaveId = "s1", Ut = 10 });
-        public CommandResult<LoadScheduled> QuickloadResult = CommandResult<LoadScheduled>.Ok(new LoadScheduled { SaveId = "s1", SaveUt = 10, LoadId = "l1" });
-
-        public CommandResult<SaveWritten> Quicksave()
-        {
-            QuicksaveCallCount++;
-            return QuicksaveResult;
-        }
-
-        public CommandResult<LoadScheduled> Quickload(string saveId, string requestedBy)
-        {
-            LastQuickloadSaveId = saveId;
-            LastQuickloadRequestedBy = requestedBy;
-            return QuickloadResult;
-        }
-
         public CommandResult RevertToLaunch()
         {
             RevertToLaunchCallCount++;

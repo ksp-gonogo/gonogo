@@ -109,8 +109,6 @@ export function LaunchDirectorComponent({
     toTrackingCmd,
     toSpaceCenterCmd,
     switchCmd,
-    quicksaveCmd,
-    quickloadCmd,
   } = useLaunchCommands();
 
   const ships = parseSavedShips(savedShipsRaw);
@@ -244,8 +242,6 @@ export function LaunchDirectorComponent({
                 toTrackingCmd={toTrackingCmd}
                 toSpaceCenterCmd={toSpaceCenterCmd}
                 switchCmd={switchCmd}
-                quicksaveCmd={quicksaveCmd}
-                quickloadCmd={quickloadCmd}
               />
             ) : (
               <PadSection

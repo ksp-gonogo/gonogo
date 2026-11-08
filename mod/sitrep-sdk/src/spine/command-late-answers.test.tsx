@@ -94,19 +94,11 @@ describe("a command whose answer arrives after a scene load", () => {
 
     transport.deliver({
       type: "game-state",
-      bootId: "run-a",
-      timelineEpoch: 0,
       state: "loading",
       scene: "FLIGHT",
     });
     clock.advance(5);
-    transport.deliver({
-      type: "game-state",
-      state: "ready",
-      scene: "FLIGHT",
-      bootId: "run-a",
-      timelineEpoch: 0,
-    });
+    transport.deliver({ type: "game-state", state: "ready", scene: "FLIGHT" });
     transport.deliver({
       type: "command-response",
       requestId: id,

@@ -61,8 +61,6 @@ namespace Gonogo.KSP.Tests
                 "GameLoadReporter.cs",
                 // Removes its subscriptions only from the addon's own teardown
                 "KspHost.cs",
-                // Listens only while a quickload is held, and removes itself when the hold ends
-                "KspQuicksaves.cs",
             };
 
             var dir = new DirectoryInfo(AppContext.BaseDirectory);

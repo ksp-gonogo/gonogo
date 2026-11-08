@@ -212,8 +212,6 @@ const commandRequest: CommandRequest<Record<string, unknown>> = {
   command: "deploy",
   label: "",
   topic: "",
-  seenBootId: "run-a",
-  seenEpoch: 3,
   args: { part: "solar-panel-1" },
   sentAt: 100,
 };

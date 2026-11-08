@@ -552,8 +552,6 @@ describe("SitrepPeerRelay", () => {
   describe("the game's own state", () => {
     const loading: ServerMessage = {
       type: "game-state",
-      bootId: "run-a",
-      timelineEpoch: 0,
       state: "loading",
       scene: "FLIGHT",
     };
@@ -591,8 +589,6 @@ describe("SitrepPeerRelay", () => {
       const { transport, view } = renderRelay(peerHost);
       const ready: ServerMessage = {
         type: "game-state",
-        bootId: "run-a",
-        timelineEpoch: 0,
         state: "ready",
         scene: "FLIGHT",
       };

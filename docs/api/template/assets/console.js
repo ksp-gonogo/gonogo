@@ -341,15 +341,6 @@
     return `No game answered at ${address}. Start KSP with the Gonogo mod installed, then connect again.`;
   }
 
-  /* The run and timeline a command says it was sent from, or the mod refuses a delayed one. */
-  let seenBootId = "";
-  let seenEpoch = 0;
-  function noteTimeline(frame) {
-    if (frame?.type !== "hello" && frame?.type !== "game-state") return;
-    seenBootId = frame.bootId ?? seenBootId;
-    seenEpoch = frame.timelineEpoch ?? seenEpoch;
-  }
-
   let requestCount = 0;
   function sendFrame(frame) {
     socket.send(JSON.stringify(frame));
@@ -378,10 +369,6 @@
       if (!frame.requestId) {
         requestCount += 1;
         frame.requestId = `api-page-${Date.now().toString(36)}-${requestCount}`;
-      }
-      if (!frame.seenBootId) {
-        frame.seenBootId = seenBootId;
-        frame.seenEpoch = seenEpoch;
       }
       commandsByRequest.set(frame.requestId, frame.command);
     }
@@ -481,7 +468,6 @@
     } catch {
       return log("in", { type: "unreadable" }, text);
     }
-    noteTimeline(frame);
     const answered =
       frame?.type === "event" && frame.name === "subscribed"
         ? "subscribed"

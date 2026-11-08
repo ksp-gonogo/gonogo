@@ -91,12 +91,6 @@ export interface SentCommand {
   topic: string;
   /** Per-call vantage override, `""` when the dispatch omitted it. */
   vantage: string;
-  /** The run of the mod the sender last heard from. */
-  seenBootId: string;
-  /** The timeline epoch the sender last received. */
-  seenEpoch: number;
-  /** The vessel the sender showed as active, absent when it stated none. */
-  seenVesselId?: string;
 }
 
 /**
@@ -173,9 +167,6 @@ export class StubTransport implements Transport {
       label: message.label,
       topic: message.topic,
       vantage: message.vantage ?? "",
-      seenBootId: message.seenBootId,
-      seenEpoch: message.seenEpoch,
-      ...(message.seenVesselId ? { seenVesselId: message.seenVesselId } : {}),
     });
     // Answer on a later microtask, not inline within this `send()` call.
     // Even at zero simulated latency, a command response must not

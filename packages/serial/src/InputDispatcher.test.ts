@@ -82,35 +82,6 @@ describe("InputDispatcher", () => {
     dispatcher.dispose();
   });
 
-  it("takes a bouncing switch as one press, and a real second press as a second", async () => {
-    vi.useFakeTimers();
-    const { service, transport } = await makeServiceWithVirtualDevice();
-    const pressSpy = vi.fn();
-    registerActionHandler("ag-1", "press", pressSpy);
-    const dispatcher = new InputDispatcher({
-      getItems: () => [
-        {
-          i: "ag-1",
-          inputMappings: { press: { deviceId: "d1", inputId: "a" } },
-        },
-      ],
-      service,
-    });
-
-    transport.inject("a", true);
-    vi.advanceTimersByTime(10);
-    transport.inject("a", false);
-    vi.advanceTimersByTime(10);
-    transport.inject("a", true);
-    const presses = () =>
-      pressSpy.mock.calls.filter(([p]) => p.value === true).length;
-    expect(presses()).toBe(1);
-    vi.advanceTimersByTime(60);
-    transport.inject("a", true);
-    expect(presses()).toBe(2);
-    dispatcher.dispose();
-  });
-
   it("routes a serial input event to the mapped action handler", async () => {
     vi.useFakeTimers();
     const { service, transport } = await makeServiceWithVirtualDevice();
@@ -186,7 +157,6 @@ describe("InputDispatcher", () => {
   });
 
   it("reads items via getItems on every event so runtime mapping changes are picked up", async () => {
-    vi.useFakeTimers();
     const { service, transport } = await makeServiceWithVirtualDevice();
     const spy = vi.fn();
     registerActionHandler("ag-1", "toggle", spy);
@@ -213,7 +183,6 @@ describe("InputDispatcher", () => {
         inputMappings: { toggle: { deviceId: "d1", inputId: "a" } },
       },
     ];
-    vi.advanceTimersByTime(60);
     transport.inject("a", true);
     expect(spy).toHaveBeenCalledTimes(1);
 

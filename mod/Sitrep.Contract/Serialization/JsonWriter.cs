@@ -197,21 +197,6 @@ namespace Sitrep.Contract.Serialization
                 case Sitrep.Contract.CommsDelay commsDelay:
                     AppendCommsDelay(sb, commsDelay);
                     break;
-                case Sitrep.Contract.SaveSlots saveSlots:
-                    AppendSaveSlots(sb, saveSlots);
-                    break;
-                case Sitrep.Contract.SaveSummary saveSummary:
-                    AppendSaveSummary(sb, saveSummary);
-                    break;
-                case Sitrep.Contract.GameLoaded gameLoaded:
-                    AppendGameLoaded(sb, gameLoaded);
-                    break;
-                case Sitrep.Contract.SaveWritten saveWritten:
-                    AppendSaveWritten(sb, saveWritten);
-                    break;
-                case Sitrep.Contract.LoadScheduled loadScheduled:
-                    AppendLoadScheduled(sb, loadScheduled);
-                    break;
                 case Sitrep.Contract.VesselInventory vesselInventory:
                     AppendVesselInventory(sb, vesselInventory);
                     break;
@@ -746,108 +731,6 @@ namespace Sitrep.Contract.Serialization
         /// never collapsed to 0. Enums (<c>source</c>) are
         /// written as integer ordinals.
         /// </summary>
-        private static void AppendSaveSlots(StringBuilder sb, Sitrep.Contract.SaveSlots slots)
-        {
-            sb.Append('{');
-            AppendString(sb, "quicksave");
-            sb.Append(':');
-            AppendNullableSaveSummary(sb, slots.Quicksave);
-            sb.Append(',');
-            AppendString(sb, "previousQuicksave");
-            sb.Append(':');
-            AppendNullableSaveSummary(sb, slots.PreviousQuicksave);
-            sb.Append('}');
-        }
-
-        private static void AppendNullableSaveSummary(StringBuilder sb, Sitrep.Contract.SaveSummary? summary)
-        {
-            if (summary == null)
-            {
-                AppendNull(sb);
-                return;
-            }
-            AppendSaveSummary(sb, summary);
-        }
-
-        private static void AppendSaveSummary(StringBuilder sb, Sitrep.Contract.SaveSummary summary)
-        {
-            sb.Append('{');
-            AppendString(sb, "saveId");
-            sb.Append(':');
-            AppendString(sb, summary.SaveId);
-            sb.Append(',');
-            AppendString(sb, "ut");
-            sb.Append(':');
-            AppendNumber(sb, summary.Ut);
-            sb.Append('}');
-        }
-
-        private static void AppendGameLoaded(StringBuilder sb, Sitrep.Contract.GameLoaded loaded)
-        {
-            sb.Append('{');
-            AppendString(sb, "loadId");
-            sb.Append(':');
-            AppendString(sb, loaded.LoadId);
-            sb.Append(',');
-            AppendString(sb, "outcome");
-            sb.Append(':');
-            AppendString(sb, loaded.Outcome);
-            sb.Append(',');
-            AppendString(sb, "failReason");
-            sb.Append(':');
-            if (loaded.FailReason != null)
-            {
-                AppendString(sb, loaded.FailReason);
-            }
-            else
-            {
-                AppendNull(sb);
-            }
-            sb.Append(',');
-            AppendString(sb, "saveUt");
-            sb.Append(':');
-            AppendNumber(sb, loaded.SaveUt);
-            sb.Append(',');
-            AppendString(sb, "fromUt");
-            sb.Append(':');
-            AppendNumber(sb, loaded.FromUt);
-            sb.Append(',');
-            AppendString(sb, "requestedBy");
-            sb.Append(':');
-            AppendString(sb, loaded.RequestedBy);
-            sb.Append('}');
-        }
-
-        private static void AppendSaveWritten(StringBuilder sb, Sitrep.Contract.SaveWritten written)
-        {
-            sb.Append('{');
-            AppendString(sb, "saveId");
-            sb.Append(':');
-            AppendString(sb, written.SaveId);
-            sb.Append(',');
-            AppendString(sb, "ut");
-            sb.Append(':');
-            AppendNumber(sb, written.Ut);
-            sb.Append('}');
-        }
-
-        private static void AppendLoadScheduled(StringBuilder sb, Sitrep.Contract.LoadScheduled scheduled)
-        {
-            sb.Append('{');
-            AppendString(sb, "saveId");
-            sb.Append(':');
-            AppendString(sb, scheduled.SaveId);
-            sb.Append(',');
-            AppendString(sb, "saveUt");
-            sb.Append(':');
-            AppendNumber(sb, scheduled.SaveUt);
-            sb.Append(',');
-            AppendString(sb, "loadId");
-            sb.Append(':');
-            AppendString(sb, scheduled.LoadId);
-            sb.Append('}');
-        }
-
         private static void AppendCommsDelay(StringBuilder sb, Sitrep.Contract.CommsDelay delay)
         {
             sb.Append('{');

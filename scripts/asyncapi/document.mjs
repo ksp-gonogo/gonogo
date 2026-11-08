@@ -355,8 +355,6 @@ const EXAMPLE_COMMAND_REQUEST = {
   label: "Throttle 40%",
   topic: "vessel.control",
   vantage: "ground:Kerbal Space Center",
-  seenBootId: "4d3a1f0c9b7e4c21a6f58e2d7c1b0a93",
-  seenEpoch: 0,
   args: { value: 0.4 },
   /*
    * Zero, and not a placeholder. `CommandRequest.sentAt`'s own doc comment says
@@ -444,8 +442,6 @@ function defineEnvelopes(schemas, contract) {
       "command",
       "label",
       "topic",
-      "seenBootId",
-      "seenEpoch",
       "args",
       "sentAt",
     ],
@@ -457,8 +453,6 @@ function defineEnvelopes(schemas, contract) {
       topic: field("CommandRequest", "topic"),
       vantage: field("CommandRequest", "vantage"),
       seenVesselId: field("CommandRequest", "seenVesselId"),
-      seenBootId: field("CommandRequest", "seenBootId"),
-      seenEpoch: field("CommandRequest", "seenEpoch"),
       args: {
         description:
           "The command's own arguments. Each command's `command-request` " +

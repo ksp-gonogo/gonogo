@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Net.WebSockets;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -223,22 +222,13 @@ namespace Sitrep.Host.IntegrationTests
                             // The greeting belongs to the connection and not to anything a test asked for, so it is kept aside for the tests that are about it.
                             if (text.StartsWith("{\"type\":\"hello\"", StringComparison.Ordinal))
                             {
-                                var hello = EnvelopeCodec.ParseHello(text);
-                                _seenEpoch = hello.TimelineEpoch;
-                                _hello.TrySetResult(hello);
+                                _hello.TrySetResult(EnvelopeCodec.ParseHello(text));
                                 continue;
                             }
                             if (text.StartsWith("{\"type\":\"game-state\"", StringComparison.Ordinal))
                             {
-                                var state = EnvelopeCodec.ParseGameState(text);
-                                _seenEpoch = state.TimelineEpoch;
-                                _gameStates.Writer.TryWrite(state);
+                                _gameStates.Writer.TryWrite(EnvelopeCodec.ParseGameState(text));
                                 continue;
-                            }
-                            var stated = Regex.Match(text, "\"timelineEpoch\":(\\d+)");
-                            if (stated.Success)
-                            {
-                                _seenEpoch = Math.Max(_seenEpoch, int.Parse(stated.Groups[1].Value));
                             }
                             _incoming.Writer.TryWrite(text);
                         }
@@ -279,31 +269,7 @@ namespace Sitrep.Host.IntegrationTests
                 return await _hello.Task;
             }
 
-            /// <summary>
-            /// Sends <paramref name="text"/>, giving a command written with no
-            /// timeline this connection's own, as the real client always does. A
-            /// test about what a stale or absent one does writes its own.
-            /// </summary>
-            public async Task SendAsync(string text)
-            {
-                await _socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(await WithTimeline(text))), WebSocketMessageType.Text, true, CancellationToken.None);
-            }
-
-            private async Task<string> WithTimeline(string text)
-            {
-                if (!text.Contains(Unstated))
-                {
-                    return text;
-                }
-                var hello = await _hello.Task;
-                return text.Replace(Unstated, "\"seenBootId\":\"" + hello.BootId + "\",\"seenEpoch\":" + _seenEpoch);
-            }
-
-            private const string Unstated = "\"seenBootId\":\"\",\"seenEpoch\":0";
-
-            private volatile int _seenEpoch;
-
-            internal Task SendRawAsync(string text)
+            public Task SendAsync(string text)
             {
                 var bytes = Encoding.UTF8.GetBytes(text);
                 return _socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None);

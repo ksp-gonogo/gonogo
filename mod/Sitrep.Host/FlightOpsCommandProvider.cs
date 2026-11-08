@@ -31,36 +31,6 @@ namespace Sitrep.Host
         public const string RecoverCommand = "ksp.recover";
         public const string RecoverVesselCommand = "ksp.recoverVessel";
         public const string LaunchCommand = "ksp.launch";
-        public const string QuicksaveCommand = "ksp.quicksave";
-        public const string QuickloadCommand = "ksp.quickload";
-
-        /// <summary>The commands that act on the game's scene or on a flight a game load would replace, and so are refused when sent from an older timeline.</summary>
-        private static readonly HashSet<string> SceneOperations = new HashSet<string>(StringComparer.Ordinal)
-        {
-            RevertToLaunchCommand, RevertToEditorCommand, ToTrackingStationCommand, ToSpaceCenterCommand,
-            SwitchVesselCommand, RecoverCommand, RecoverVesselCommand, LaunchCommand,
-            QuicksaveCommand, QuickloadCommand,
-        };
-
-        /// <summary>Whether <paramref name="command"/> acts on the scene or on a flight a game load would replace.</summary>
-        public static bool IsSceneOperation(string command) => SceneOperations.Contains(command);
-
-        /// <summary>Runs <paramref name="run"/> unless a quickload is holding the game, when every other scene operation is refused.</summary>
-        public static CommandResult UnlessLoadScheduled(IFlightOpsActuator actuator, Func<CommandResult> run) =>
-            actuator.LoadScheduled
-                ? CommandResult.Fail(CommandErrorCode.WrongState, "a quickload is running")
-                : run();
-
-        public static CommandResult<SaveWritten> HandleQuicksave(IFlightOpsActuator actuator, object? _) => actuator.Quicksave();
-
-        public static CommandResult<LoadScheduled> HandleQuickload(IFlightOpsActuator actuator, QuickloadArgs args)
-        {
-            if (string.IsNullOrEmpty(args.SaveId))
-            {
-                return CommandResult<LoadScheduled>.Fail(CommandErrorCode.Range, "no save was named");
-            }
-            return actuator.Quickload(args.SaveId, args.RequestedBy ?? "");
-        }
 
         public static CommandResult HandleRevertToLaunch(IFlightOpsActuator actuator, object? _) =>
             actuator.RevertToLaunch();

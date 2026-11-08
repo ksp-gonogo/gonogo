@@ -2,7 +2,6 @@ import { safeRandomUuid } from "@ksp-gonogo/core";
 import type { FlightRecord } from "@ksp-gonogo/data";
 import { debugPeer, logger } from "@ksp-gonogo/logger";
 import type { DataRateTier } from "@ksp-gonogo/sitrep-sdk";
-import type { CommandSeen } from "@ksp-gonogo/sitrep-sdk/spine";
 import type { ConnectProgress } from "@ksp-gonogo/ui";
 import Peer, { type DataConnection } from "peerjs";
 import { localDeadline } from "../goNoGo/countdownClock";
@@ -1439,8 +1438,7 @@ export class PeerClientService {
     args: unknown,
     label: string,
     topic: string,
-    vantage: string | undefined,
-    seen: CommandSeen,
+    vantage?: string,
   ): void {
     this.conn?.send({
       type: "sitrep-command-request",
@@ -1449,7 +1447,6 @@ export class PeerClientService {
       label,
       topic,
       vantage,
-      ...seen,
       args,
     } satisfies PeerMessage);
   }
@@ -1480,9 +1477,6 @@ export class PeerClientService {
       command: string;
       label: string;
       topic: string;
-      seenBootId: string;
-      seenEpoch: number;
-      seenVesselId?: string;
       args: unknown;
     }[],
     vantage?: string,

@@ -7,12 +7,7 @@ import {
   type UseCommandResult,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
-import {
-  act,
-  render,
-  screen,
-  setupStreamFixture,
-} from "@ksp-gonogo/sitrep-sdk/testing";
+import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
 import { type ReactNode, StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -192,45 +187,6 @@ describe("CommandButton: single-click dispatch", () => {
       >
         Fire
       </Button>,
-    );
-
-    expect(screen.getByRole("button")).toHaveAttribute(
-      "data-command-phase",
-      "idle",
-    );
-    expect(send).not.toHaveBeenCalled();
-  });
-
-  it("disarms when a game load starts a new timeline, so a confirm cannot fire at the world it replaced", async () => {
-    const user = userEvent.setup();
-    const send = vi.fn(() => Promise.resolve(OK));
-    const handle = makeHandle(send);
-    const stream = setupStreamFixture();
-    render(
-      <stream.Provider>
-        <Button
-          command={handle.with({ id: "a" })}
-          variant="ghost"
-          confirmLabel="Confirm"
-        >
-          Fire
-        </Button>
-      </stream.Provider>,
-    );
-    await user.click(screen.getByRole("button", { name: "Fire" }));
-    expect(screen.getByRole("button")).toHaveAttribute(
-      "data-command-phase",
-      "armed",
-    );
-
-    act(() =>
-      stream.transport.emitRaw({
-        type: "game-state",
-        state: "ready",
-        scene: "FLIGHT",
-        bootId: "run-a",
-        timelineEpoch: 1,
-      }),
     );
 
     expect(screen.getByRole("button")).toHaveAttribute(

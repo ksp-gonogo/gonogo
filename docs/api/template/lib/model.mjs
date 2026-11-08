@@ -129,8 +129,6 @@ export function buildModel(doc) {
           command: address,
           label: address,
           topic: "",
-          seenBootId: "",
-          seenEpoch: 0,
           args: schemas.placeholder(args, { requiredOnly: true }) ?? {},
           sentAt: 0,
         },

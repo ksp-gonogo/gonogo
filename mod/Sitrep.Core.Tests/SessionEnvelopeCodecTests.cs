@@ -16,7 +16,7 @@ namespace Sitrep.Core.Tests
         {
             var json = EnvelopeCodec.WriteHello(new Hello { BootId = "3f2a", ModVersion = "v1.4.0", ContractMajor = 44, ContractMinor = 2 });
 
-            Assert.Equal("{\"type\":\"hello\",\"bootId\":\"3f2a\",\"timelineEpoch\":0,\"modVersion\":\"v1.4.0\",\"contractMajor\":44,\"contractMinor\":2}", json);
+            Assert.Equal("{\"type\":\"hello\",\"bootId\":\"3f2a\",\"modVersion\":\"v1.4.0\",\"contractMajor\":44,\"contractMinor\":2}", json);
             Assert.Equal("3f2a", Assert.IsType<Hello>(EnvelopeCodec.ParseServerMessage(json)).BootId);
         }
 
@@ -37,7 +37,7 @@ namespace Sitrep.Core.Tests
         {
             var json = EnvelopeCodec.WriteGameState(new GameState { State = GameState.Loading, Scene = "FLIGHT" });
 
-            Assert.Equal("{\"type\":\"game-state\",\"state\":\"loading\",\"scene\":\"FLIGHT\",\"bootId\":\"\",\"timelineEpoch\":0}", json);
+            Assert.Equal("{\"type\":\"game-state\",\"state\":\"loading\",\"scene\":\"FLIGHT\"}", json);
             var read = Assert.IsType<GameState>(EnvelopeCodec.ParseServerMessage(json));
             Assert.Equal("loading", read.State);
             Assert.Equal("FLIGHT", read.Scene);

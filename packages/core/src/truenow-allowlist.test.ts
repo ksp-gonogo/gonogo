@@ -110,9 +110,6 @@ const SKIP_DIR_PATTERN = /\.(Tests|IntegrationTests)$/;
 // that's what keeps this a ratchet and not just a snapshot.
 // ---------------------------------------------------------------------
 const ALLOWED_TRUENOW: Record<string, number> = {
-  // ksp.saves and ksp.gameLoaded: which save files exist and whether a load finished, facts about files and the game with no craft link to cross.
-  "mod/Gonogo.KSP/FlightOpsUplink.cs": 1,
-
   // parts.shape.<key>: a kind of part's 3D model, read from the install's part
   // prefab. A fact about the install, the same for every craft and every
   // vantage, like the body catalogue; there is no craft whose link it crosses.

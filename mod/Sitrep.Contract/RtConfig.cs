@@ -253,7 +253,6 @@ public static class RtConfig
                 typeof(RevertToEditorArgs),
                 typeof(SwitchVesselArgs),
                 typeof(RecoverVesselArgs),
-                typeof(QuickloadArgs),
                 typeof(LaunchArgs),
                 typeof(ServoSetAngleArgs),
                 typeof(ServoSetExtensionArgs),
@@ -355,12 +354,6 @@ public static class RtConfig
                 typeof(CareerMode),
                 typeof(GameDlc),
                 typeof(RevertAvailability),
-                // ksp.saves / ksp.gameLoaded, and the two commands' replies
-                typeof(SaveSlots),
-                typeof(SaveSummary),
-                typeof(GameLoaded),
-                typeof(SaveWritten),
-                typeof(LoadScheduled),
                 typeof(RoboticsAvailability),
                 // vessel.physics.mode + vessel.crew nested roster entry
                 typeof(VesselPhysicsMode),

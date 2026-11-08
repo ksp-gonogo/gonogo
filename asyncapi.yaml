@@ -3,8 +3,8 @@ info:
   title: Gonogo WebSocket API
   version: 51.0.0
   description: |-
-    The WebSocket API of the Gonogo mod: 94 telemetry channels a client
-    subscribes to and 84 commands it sends, each with its payload and what it
+    The WebSocket API of the Gonogo mod: 92 telemetry channels a client
+    subscribes to and 82 commands it sends, each with its payload and what it
     means, all over one socket.
 
     ## Frames the mod sends
@@ -1784,24 +1784,6 @@ channels:
         $ref: "#/components/messages/streamData.isru.drills"
       event:
         $ref: "#/components/messages/event"
-  ksp.gameLoaded:
-    address: ksp.gameLoaded
-    title: Game loaded
-    description: |-
-      A quickload ending, one way or the other. Useful for telling every screen
-      what just happened to the game and who asked for it. Delivered at no delay,
-      on every connection subscribed when it happens.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delivery: reliable-ordered
-    x-sitrep-delay-role: true-now
-    x-sitrep-sample-kind: event
-    x-sitrep-keyframe-interval-ut: 3600
-    messages:
-      streamData:
-        $ref: "#/components/messages/streamData.ksp.gameLoaded"
-      event:
-        $ref: "#/components/messages/event"
   ksp.launch:
     address: ksp.launch
     description: |-
@@ -1822,32 +1804,6 @@ channels:
         $ref: "#/components/messages/commandRequest.ksp.launch"
       commandResponse:
         $ref: "#/components/messages/commandResponse.ksp.launch"
-  ksp.quickload:
-    address: ksp.quickload
-    description: |-
-      Quickload a save: the quicksave slot or the save it replaced. It runs after
-      a short hold, once, against the save the operator confirmed, and takes the
-      whole game back to that save. What became of it arrives on `ksp.gameLoaded`;
-      the reply only says it was scheduled.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delayed: false
-    messages:
-      commandRequest:
-        $ref: "#/components/messages/commandRequest.ksp.quickload"
-      commandResponse:
-        $ref: "#/components/messages/commandResponse.ksp.quickload"
-  ksp.quicksave:
-    address: ksp.quicksave
-    description: Save the flight to the quicksave slot.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delayed: false
-    messages:
-      commandRequest:
-        $ref: "#/components/messages/commandRequest.ksp.quicksave"
-      commandResponse:
-        $ref: "#/components/messages/commandResponse.ksp.quicksave"
   ksp.recover:
     address: ksp.recover
     description: Recover the active vessel.
@@ -1936,26 +1892,6 @@ channels:
         $ref: "#/components/messages/commandRequest.ksp.revertToLaunch"
       commandResponse:
         $ref: "#/components/messages/commandResponse.ksp.revertToLaunch"
-  ksp.saves:
-    address: ksp.saves
-    title: Saves
-    description: |-
-      The quicksave slot of the loaded game and the save it replaced. Null when no
-      game is loaded. Useful for showing the operator what a quickload would
-      return to and for offering the previous save after a stray quicksave. Sent
-      only when it changes, and at no delay at any command centre: a save is a
-      file outside the universe.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delivery: reliable-ordered
-    x-sitrep-delay-role: true-now
-    x-sitrep-sample-kind: discrete
-    x-sitrep-keyframe-interval-ut: 3600
-    messages:
-      streamData:
-        $ref: "#/components/messages/streamData.ksp.saves"
-      event:
-        $ref: "#/components/messages/event"
   ksp.switchVessel:
     address: ksp.switchVessel
     description: |-
@@ -4548,34 +4484,6 @@ operations:
         $ref: "#/channels/ksp.launch"
       messages:
         - $ref: "#/channels/ksp.launch/messages/commandResponse"
-  dispatch:ksp.quickload:
-    action: send
-    channel:
-      $ref: "#/channels/ksp.quickload"
-    title: Dispatch ksp.quickload
-    tags:
-      - name: ksp
-    messages:
-      - $ref: "#/channels/ksp.quickload/messages/commandRequest"
-    reply:
-      channel:
-        $ref: "#/channels/ksp.quickload"
-      messages:
-        - $ref: "#/channels/ksp.quickload/messages/commandResponse"
-  dispatch:ksp.quicksave:
-    action: send
-    channel:
-      $ref: "#/channels/ksp.quicksave"
-    title: Dispatch ksp.quicksave
-    tags:
-      - name: ksp
-    messages:
-      - $ref: "#/channels/ksp.quicksave/messages/commandRequest"
-    reply:
-      channel:
-        $ref: "#/channels/ksp.quicksave"
-      messages:
-        - $ref: "#/channels/ksp.quicksave/messages/commandResponse"
   dispatch:ksp.recover:
     action: send
     channel:
@@ -5860,17 +5768,6 @@ operations:
     messages:
       - $ref: "#/channels/isru.drills/messages/streamData"
       - $ref: "#/channels/isru.drills/messages/event"
-  read:ksp.gameLoaded:
-    action: receive
-    channel:
-      $ref: "#/channels/ksp.gameLoaded"
-    title: Read ksp.gameLoaded
-    description: Delivered only after `subscribe` names `ksp.gameLoaded` on the session channel, which the mod answers here with an `event` named `subscribed`.
-    tags:
-      - name: ksp
-    messages:
-      - $ref: "#/channels/ksp.gameLoaded/messages/streamData"
-      - $ref: "#/channels/ksp.gameLoaded/messages/event"
   read:ksp.revertAvailability:
     action: receive
     channel:
@@ -5882,17 +5779,6 @@ operations:
     messages:
       - $ref: "#/channels/ksp.revertAvailability/messages/streamData"
       - $ref: "#/channels/ksp.revertAvailability/messages/event"
-  read:ksp.saves:
-    action: receive
-    channel:
-      $ref: "#/channels/ksp.saves"
-    title: Read ksp.saves
-    description: Delivered only after `subscribe` names `ksp.saves` on the session channel, which the mod answers here with an `event` named `subscribed`.
-    tags:
-      - name: ksp
-    messages:
-      - $ref: "#/channels/ksp.saves/messages/streamData"
-      - $ref: "#/channels/ksp.saves/messages/event"
   read:missions.active:
     action: receive
     channel:
@@ -6879,36 +6765,6 @@ components:
                 const: ksp.launch
               args:
                 $ref: "#/components/schemas/LaunchArgs"
-    commandRequest.ksp.quickload:
-      name: command-request
-      title: Dispatch ksp.quickload
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-request` envelope for `ksp.quickload`, with its typed `args`.
-        allOf:
-          - $ref: "#/components/schemas/CommandRequest"
-          - properties:
-              command:
-                const: ksp.quickload
-              args:
-                $ref: "#/components/schemas/QuickloadArgs"
-    commandRequest.ksp.quicksave:
-      name: command-request
-      title: Dispatch ksp.quicksave
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-request` envelope for `ksp.quicksave`, with its typed `args`.
-        allOf:
-          - $ref: "#/components/schemas/CommandRequest"
-          - properties:
-              command:
-                const: ksp.quicksave
-              args:
-                $ref: "#/components/schemas/NoCommandArgs"
     commandRequest.ksp.recover:
       name: command-request
       title: Dispatch ksp.recover
@@ -8087,58 +7943,6 @@ components:
           - properties:
               result:
                 $ref: "#/components/schemas/CommandResult"
-    commandResponse.ksp.quickload:
-      name: command-response
-      title: Reply to ksp.quickload
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-response` envelope for `ksp.quickload`, with its typed `result`.
-        allOf:
-          - $ref: "#/components/schemas/CommandResponse"
-          - properties:
-              result:
-                description: |-
-                  A `CommandResult` that also returns a value in `payload`:
-                  `vessel.control.stage` returns the new current stage index, and
-                  `vessel.maneuver.add` returns the created node's id. `payload` is absent
-                  when `CommandResult.success` is false.
-                allOf:
-                  - $ref: "#/components/schemas/CommandResult"
-                  - type: object
-                    properties:
-                      payload:
-                        description: The value the command returns; absent on a refusal.
-                        anyOf:
-                          - $ref: "#/components/schemas/LoadScheduled"
-                          - type: "null"
-    commandResponse.ksp.quicksave:
-      name: command-response
-      title: Reply to ksp.quicksave
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-response` envelope for `ksp.quicksave`, with its typed `result`.
-        allOf:
-          - $ref: "#/components/schemas/CommandResponse"
-          - properties:
-              result:
-                description: |-
-                  A `CommandResult` that also returns a value in `payload`:
-                  `vessel.control.stage` returns the new current stage index, and
-                  `vessel.maneuver.add` returns the created node's id. `payload` is absent
-                  when `CommandResult.success` is false.
-                allOf:
-                  - $ref: "#/components/schemas/CommandResult"
-                  - type: object
-                    properties:
-                      payload:
-                        description: The value the command returns; absent on a refusal.
-                        anyOf:
-                          - $ref: "#/components/schemas/SaveWritten"
-                          - type: "null"
     commandResponse.ksp.recover:
       name: command-response
       title: Reply to ksp.recover
@@ -9606,19 +9410,6 @@ components:
                 type: array
                 items:
                   $ref: "#/components/schemas/IsruDrillEntry"
-    streamData.ksp.gameLoaded:
-      name: stream-data
-      title: A frame on ksp.gameLoaded
-      contentType: application/json
-      payload:
-        description: The `stream-data` envelope carrying `ksp.gameLoaded`.
-        allOf:
-          - $ref: "#/components/schemas/StreamData"
-          - properties:
-              topic:
-                const: ksp.gameLoaded
-              payload:
-                $ref: "#/components/schemas/GameLoaded"
     streamData.ksp.revertAvailability:
       name: stream-data
       title: A frame on ksp.revertAvailability
@@ -9632,19 +9423,6 @@ components:
                 const: ksp.revertAvailability
               payload:
                 $ref: "#/components/schemas/RevertAvailability"
-    streamData.ksp.saves:
-      name: stream-data
-      title: A frame on ksp.saves
-      contentType: application/json
-      payload:
-        description: The `stream-data` envelope carrying `ksp.saves`.
-        allOf:
-          - $ref: "#/components/schemas/StreamData"
-          - properties:
-              topic:
-                const: ksp.saves
-              payload:
-                $ref: "#/components/schemas/SaveSlots"
     streamData.missions.active:
       name: stream-data
       title: A frame on missions.active
@@ -13076,8 +12854,6 @@ components:
               - command
               - label
               - topic
-              - seenBootId
-              - seenEpoch
               - args
               - sentAt
             properties:
@@ -13138,23 +12914,6 @@ components:
                   operator's screen runs one signal delay behind the game and a switch inside
                   that delay is not yet visible there. Commands that are not addressed to the
                   active vessel ignore it.
-              seenBootId:
-                type: string
-                x-sitrep-unit: id
-                description: |-
-                  The run of the mod the sending screen last heard from: the `Hello.bootId` it
-                  holds. Required. A delayed command or a scene change sent from another run,
-                  or with this empty, is refused with `undoneByLoad`; a command that is about
-                  the game rather than the flight, such as a pause, ignores it. A station
-                  forwarded through a host sends its own, not the host's.
-              seenEpoch:
-                type: number
-                x-sitrep-unit: id
-                description: |-
-                  The raw `Meta.timelineEpoch` the sending screen last received from the mod.
-                  A delayed command or a scene change sent from any other epoch is refused
-                  with `undoneByLoad`, because a game load replaced the timeline it was aimed
-                  at. Commands that ignore `CommandRequest.seenBootId` ignore this too.
               args:
                 description: The command's arguments, in the command's own argument type.
               sentAt:
@@ -13187,8 +12946,6 @@ components:
         - command
         - label
         - topic
-        - seenBootId
-        - seenEpoch
         - args
         - sentAt
       properties:
@@ -13248,23 +13005,6 @@ components:
             operator's screen runs one signal delay behind the game and a switch inside
             that delay is not yet visible there. Commands that are not addressed to the
             active vessel ignore it.
-        seenBootId:
-          type: string
-          x-sitrep-unit: id
-          description: |-
-            The run of the mod the sending screen last heard from: the `Hello.bootId` it
-            holds. Required. A delayed command or a scene change sent from another run,
-            or with this empty, is refused with `undoneByLoad`; a command that is about
-            the game rather than the flight, such as a pause, ignores it. A station
-            forwarded through a host sends its own, not the host's.
-        seenEpoch:
-          type: number
-          x-sitrep-unit: id
-          description: |-
-            The raw `Meta.timelineEpoch` the sending screen last received from the mod.
-            A delayed command or a scene change sent from any other epoch is refused
-            with `undoneByLoad`, because a game load replaced the timeline it was aimed
-            at. Commands that ignore `CommandRequest.seenBootId` ignore this too.
         args:
           description: The command's own arguments. Each command's `command-request` message narrows this to that command's args schema.
         sentAt:
@@ -13286,8 +13026,6 @@ components:
           label: Throttle 40%
           topic: vessel.control
           vantage: ground:Kerbal Space Center
-          seenBootId: 4d3a1f0c9b7e4c21a6f58e2d7c1b0a93
-          seenEpoch: 0
           args:
             value: 0.4
           sentAt: 0
@@ -17275,51 +17013,6 @@ components:
           description: |-
             Whether the Making History expansion is installed: the mission builder and
             extra parts.
-    GameLoaded:
-      type: object
-      description: |-
-        A quickload ending, one way or the other. Useful for telling every screen
-        what just happened to the game and who asked for it. Delivered at no delay,
-        on every connection subscribed when it happens.
-      required:
-        - loadId
-        - outcome
-        - saveUt
-        - fromUt
-        - requestedBy
-      properties:
-        loadId:
-          type: string
-          x-sitrep-unit: id
-          description: The `LoadScheduled.loadId` this answers.
-        outcome:
-          type: string
-          x-sitrep-unit: id
-          description: |-
-            GameLoaded.Loaded, GameLoaded.Failed or GameLoaded.Cancelled. Treat a value
-            you do not know as a load that did not happen.
-        failReason:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: Why a load failed. Null unless `GameLoaded.outcome` is GameLoaded.Failed.
-        saveUt:
-          type: number
-          x-sitrep-unit: ut
-          description: The universal time the save holds.
-        fromUt:
-          type: number
-          x-sitrep-unit: ut
-          description: |-
-            The universal time the game had reached when the load was asked for, which a
-            screen compares with `GameLoaded.saveUt` to say how far it moved.
-        requestedBy:
-          type: string
-          x-sitrep-unit: text
-          description: |-
-            The screen that asked for it, as `QuickloadArgs.requestedBy` said. Empty
-            when the main screen asked.
     GameMode:
       type: integer
       description: |-
@@ -17373,8 +17066,6 @@ components:
         - type
         - state
         - scene
-        - bootId
-        - timelineEpoch
       properties:
         type:
           type: string
@@ -17394,20 +17085,6 @@ components:
             The scene being loaded while `GameState.state` is `"loading"`, otherwise the
             scene that stands: one of KSP's scene names, such as `"FLIGHT"`,
             `"SPACECENTER"`, `"TRACKSTATION"`, `"EDITOR"` or `"MAINMENU"`.
-        bootId:
-          type: string
-          x-sitrep-unit: id
-          description: |-
-            The run of the mod this frame is from, the same value as `Hello.bootId`. A
-            station relayed through a host hears this frame and not the mod's `hello`.
-        timelineEpoch:
-          type: number
-          x-sitrep-unit: id
-          description: |-
-            The timeline the game is on: the `Meta.timelineEpoch` a client sends back on
-            a command as `CommandRequest.seenEpoch`. Sent again whenever a game load
-            starts a new timeline, so a connection that is subscribed to nothing still
-            learns it.
     GateCheckRequest:
       type: object
       description: |-
@@ -17551,7 +17228,6 @@ components:
       required:
         - type
         - bootId
-        - timelineEpoch
         - contractMajor
         - contractMinor
       properties:
@@ -17566,13 +17242,6 @@ components:
           description: |-
             An opaque id made afresh each time the mod starts its stream, the same on
             every connection until it next does. Compare it for equality only.
-        timelineEpoch:
-          type: number
-          x-sitrep-unit: id
-          description: |-
-            The timeline the game is on as this connection opens: the
-            `Meta.timelineEpoch` a client sends back on a command as
-            `CommandRequest.seenEpoch`.
         modVersion:
           type:
             - string
@@ -19029,29 +18698,6 @@ components:
             dimensions, so `LimitBreach.limit` and `LimitBreach.actual` have no fixed
             unit of their own. Read it from here, and render the comparison in the
             operator's own units.
-    LoadScheduled:
-      type: object
-      description: |-
-        A quickload the game has accepted and will carry out after a short hold. The
-        reply to `ksp.quickload`; what became of it arrives on `ksp.gameLoaded`
-        under the same `LoadScheduled.loadId`.
-      required:
-        - saveId
-        - saveUt
-        - loadId
-      properties:
-        saveId:
-          type: string
-          x-sitrep-unit: id
-          description: Identifies the save, the value `SaveSummary.saveId` carries.
-        saveUt:
-          type: number
-          x-sitrep-unit: ut
-          description: The universal time the save holds.
-        loadId:
-          type: string
-          x-sitrep-unit: id
-          description: Matches this load to its `GameLoaded.loadId`.
     LockedValue:
       type: object
       description: |-
@@ -20389,29 +20035,6 @@ components:
         - const: 1
           title: Loaded
           description: Loaded and simulated under physics.
-    QuickloadArgs:
-      type: object
-      description: |-
-        Quickload a save: the quicksave slot or the save it replaced. It runs after
-        a short hold, once, against the save the operator confirmed, and takes the
-        whole game back to that save. What became of it arrives on `ksp.gameLoaded`;
-        the reply only says it was scheduled.
-      required:
-        - saveId
-        - requestedBy
-      properties:
-        saveId:
-          type: string
-          x-sitrep-unit: id
-          description: |-
-            The `SaveSummary.saveId` the operator confirmed. A file rewritten since then
-            is refused with `CommandErrorCode.WrongState`.
-        requestedBy:
-          type: string
-          x-sitrep-unit: text
-          description: |-
-            The name of the screen asking, shown on `GameLoaded.requestedBy`. A
-            station's host fills it in; send `""` otherwise.
     RecentLog:
       type: object
       description: |-
@@ -21151,61 +20774,6 @@ components:
           description: |-
             Every row to change, each with its new value. Rows not listed keep their
             values.
-    SaveSlots:
-      type: object
-      description: |-
-        The quicksave slot of the loaded game and the save it replaced. Null when no
-        game is loaded. Useful for showing the operator what a quickload would
-        return to and for offering the previous save after a stray quicksave. Sent
-        only when it changes, and at no delay at any command centre: a save is a
-        file outside the universe.
-      properties:
-        quicksave:
-          description: The quicksave slot, or null when this game has none.
-          anyOf:
-            - $ref: "#/components/schemas/SaveSummary"
-            - type: "null"
-        previousQuicksave:
-          description: |-
-            The slot as it stood before the last quicksave from mission control, or null
-            when there has been none.
-          anyOf:
-            - $ref: "#/components/schemas/SaveSummary"
-            - type: "null"
-    SaveSummary:
-      type: object
-      description: "One save on disk, as file facts only: nothing about the craft it holds."
-      required:
-        - saveId
-        - ut
-      properties:
-        saveId:
-          type: string
-          x-sitrep-unit: id
-          description: |-
-            Identifies this file on disk at this moment. A file that has been rewritten
-            since has another id.
-        ut:
-          type: number
-          x-sitrep-unit: ut
-          description: The universal time the save holds.
-    SaveWritten:
-      type: object
-      description: |-
-        What a quicksave wrote: the save it made and the universal time it holds.
-        The reply to `ksp.quicksave`.
-      required:
-        - saveId
-        - ut
-      properties:
-        saveId:
-          type: string
-          x-sitrep-unit: id
-          description: Identifies the save, the value `SaveSummary.saveId` carries.
-        ut:
-          type: number
-          x-sitrep-unit: ut
-          description: The universal time the save holds.
     SavedShipEntry:
       type: object
       description: |-

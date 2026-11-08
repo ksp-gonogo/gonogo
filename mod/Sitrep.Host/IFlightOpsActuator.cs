@@ -46,9 +46,6 @@ namespace Sitrep.Host
     /// </summary>
     public interface IFlightOpsActuator
     {
-        /// <summary>Whether a quickload is holding the game until it runs, during which every scene operation is refused.</summary>
-        bool LoadScheduled { get; }
-
         CommandResult RevertToLaunch();
 
         CommandResult RevertToEditor(EditorFacilityKind facility);
@@ -60,12 +57,6 @@ namespace Sitrep.Host
         CommandResult SwitchVessel(string vesselId);
 
         CommandResult Recover();
-
-        /// <summary>Writes the quicksave slot, keeping the save it replaced as the previous quicksave.</summary>
-        CommandResult<SaveWritten> Quicksave();
-
-        /// <summary>Schedules a quickload of the save with <paramref name="saveId"/>, after a short hold.</summary>
-        CommandResult<LoadScheduled> Quickload(string saveId, string requestedBy);
 
         /// <summary>
         /// Recovers the vessel whose <c>Vessel.id</c> is

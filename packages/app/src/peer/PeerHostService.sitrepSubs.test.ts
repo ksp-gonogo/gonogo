@@ -219,13 +219,7 @@ describe("the sitrep refcount re-syncs", () => {
     const host = await startedHost();
     const frame: PeerMessage = {
       type: "sitrep-frame",
-      message: {
-        type: "game-state",
-        state: "ready",
-        scene: "FLIGHT",
-        bootId: "run-a",
-        timelineEpoch: 0,
-      },
+      message: { type: "game-state", state: "ready", scene: "FLIGHT" },
     };
     host.attachSitrepSink(makeSink({ [TOPIC]: [frame] }));
 

@@ -83,9 +83,7 @@ export function sendCommand({
       seen.push({ type: "connection-error", message: String(error.message) });
       finish("connection-error");
     });
-    let sent = false;
-    const sendRequest = (hello) => {
-      sent = true;
+    socket.on("open", () => {
       socket.send(
         JSON.stringify({
           type: "command-request",
@@ -94,13 +92,11 @@ export function sendCommand({
           label: "",
           topic: "",
           ...(vantage === undefined ? {} : { vantage }),
-          seenBootId: hello.bootId,
-          seenEpoch: hello.timelineEpoch,
           args,
           sentAt: 0,
         }),
       );
-    };
+    });
     socket.on("message", (data) => {
       let message;
       try {
@@ -108,7 +104,6 @@ export function sendCommand({
       } catch {
         return;
       }
-      if (!sent && message?.type === "hello") sendRequest(message);
       if (message?.requestId !== requestId) return;
       seen.push(message);
       if (message.type === "command-response") finish("response");

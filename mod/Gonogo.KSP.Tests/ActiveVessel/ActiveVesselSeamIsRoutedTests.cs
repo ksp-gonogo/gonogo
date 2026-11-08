@@ -48,8 +48,6 @@ namespace Gonogo.KSP.Tests.ActiveVessel
             ["CurrencyEventUplink.cs"] = 1,
             ["Gates/KspGateEvaluators.cs"] = 1,
             ["KspFlightOpsActuator.cs"] = 2,
-            // Stock's quicksave rule judges whatever KSP itself has active, kerbal or craft.
-            ["KspQuicksaves.cs"] = 1,
             ["SilenceTracking/KspVisibilityGeometryFactory.cs"] = 1,
         };
 

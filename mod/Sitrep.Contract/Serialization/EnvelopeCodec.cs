@@ -397,12 +397,6 @@ namespace Sitrep.Contract.Serialization
                 JsonWriter.AppendString(sb, msg.SeenVesselId);
             }
 
-            AppendField(sb, "seenBootId");
-            JsonWriter.AppendString(sb, msg.SeenBootId);
-
-            AppendField(sb, "seenEpoch");
-            JsonWriter.AppendInteger(sb, msg.SeenEpoch);
-
             AppendField(sb, "args");
             JsonWriter.AppendValue(sb, msg.Args);
 
@@ -440,9 +434,6 @@ namespace Sitrep.Contract.Serialization
                 Vantage = TryGetString(raw, "vantage") ?? "",
                 // Optional: absent states no vessel and the command is not checked against one.
                 SeenVesselId = TryGetString(raw, "seenVesselId"),
-                // Absent reads as a run no mod has, so the engine refuses it rather than taking it as current.
-                SeenBootId = TryGetString(raw, "seenBootId") ?? "",
-                SeenEpoch = raw.TryGetValue("seenEpoch", out var seenEpoch) && seenEpoch is double epoch ? (int)epoch : 0,
                 Args = raw.TryGetValue("args", out var args) ? args : null,
                 SentAt = RequireDouble(raw, "sentAt"),
             };
@@ -882,9 +873,6 @@ namespace Sitrep.Contract.Serialization
             AppendField(sb, "bootId");
             JsonWriter.AppendString(sb, msg.BootId);
 
-            AppendField(sb, "timelineEpoch");
-            JsonWriter.AppendInteger(sb, msg.TimelineEpoch);
-
             if (msg.ModVersion != null)
             {
                 AppendField(sb, "modVersion");
@@ -904,7 +892,7 @@ namespace Sitrep.Contract.Serialization
         /// <param name="json">The JSON text of the envelope.</param>
         /// <returns>The parsed envelope.</returns>
         /// <exception cref="FormatException">The text is not a <c>hello</c>
-        /// envelope, or <c>bootId</c>, <c>timelineEpoch</c>, <c>contractMajor</c> or <c>contractMinor</c> is missing or of the wrong type.</exception>
+        /// envelope, or <c>bootId</c>, <c>contractMajor</c> or <c>contractMinor</c> is missing or of the wrong type.</exception>
         public static Hello ParseHello(string json)
         {
             var raw = ExpectObject(JsonReader.Parse(json));
@@ -913,7 +901,6 @@ namespace Sitrep.Contract.Serialization
             {
                 Type = "hello",
                 BootId = RequireString(raw, "bootId"),
-                TimelineEpoch = (int)RequireDouble(raw, "timelineEpoch"),
                 ModVersion = TryGetString(raw, "modVersion"),
                 ContractMajor = (int)RequireDouble(raw, "contractMajor"),
                 ContractMinor = (int)RequireDouble(raw, "contractMinor"),
@@ -933,10 +920,6 @@ namespace Sitrep.Contract.Serialization
             JsonWriter.AppendString(sb, msg.State);
             AppendField(sb, "scene");
             JsonWriter.AppendString(sb, msg.Scene);
-            AppendField(sb, "bootId");
-            JsonWriter.AppendString(sb, msg.BootId);
-            AppendField(sb, "timelineEpoch");
-            JsonWriter.AppendInteger(sb, msg.TimelineEpoch);
             sb.Append('}');
             return sb.ToString();
         }
@@ -955,8 +938,6 @@ namespace Sitrep.Contract.Serialization
                 Type = "game-state",
                 State = RequireString(raw, "state"),
                 Scene = raw.TryGetValue("scene", out var scene) && scene is string text ? text : "",
-                BootId = TryGetString(raw, "bootId") ?? "",
-                TimelineEpoch = raw.TryGetValue("timelineEpoch", out var epoch) && epoch is double value ? (int)value : 0,
             };
         }
 

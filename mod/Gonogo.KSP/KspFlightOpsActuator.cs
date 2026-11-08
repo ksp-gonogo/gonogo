@@ -42,15 +42,6 @@ namespace Gonogo.KSP
         /// would then dereference a <c>FlightStateCache</c> that may be null or
         /// restore a stale save over the current one.</para>
         /// </summary>
-        /// <inheritdoc />
-        public bool LoadScheduled => KspQuicksaves.LoadScheduled;
-
-        /// <inheritdoc />
-        public CommandResult<SaveWritten> Quicksave() => KspQuicksaves.Quicksave();
-
-        /// <inheritdoc />
-        public CommandResult<LoadScheduled> Quickload(string saveId, string requestedBy) => KspQuicksaves.Quickload(saveId, requestedBy);
-
         public CommandResult RevertToLaunch()
         {
             if (!HighLogic.LoadedSceneIsFlight)
@@ -301,7 +292,8 @@ namespace Gonogo.KSP
             {
                 return null;
             }
-            return FlightGlobals.ClearToSave() == ClearToSaveStatus.CLEAR ? null : GameWords.CantSaveNow;
+            var clear = FlightGlobals.ClearToSave();
+            return clear == ClearToSaveStatus.CLEAR ? null : GameWords.Phrase(clear);
         }
 
         /// <summary>
