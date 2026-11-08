@@ -35,8 +35,6 @@ The choice belongs to the save, so each game has its own. Set it in KSP under **
 
 The same two settings appear in the Gonogo app, under **Settings, Gonogo, Signal delay**, while KSP is connected, and a change in either place shows in the other within a second. Turning delay off delivers every command still on its way at once, in the order you sent them, and releases the science, reputation and funds still waiting to reach mission control. Raising the light speed brings both forward by the same share, and lowering it changes nothing already sent. A command held because its craft has no path stays held: only the waiting is removed, not the missing path.
 
-A save made with an earlier build of the mod used a `SIGNAL_DELAY` entry in `GameData/Gonogo/PluginData/gonogo.cfg`. That entry is no longer read: set the choice in the difficulty options instead.
-
 ### What still applies with signal delay off
 
 Switching delay off removes the waiting and nothing else. Gonogo still follows the game's CommNet, so a craft behind a planet or beyond its antennas' reach is out of contact, loses its readings during a blackout, and refuses commands while it has no path to mission control.

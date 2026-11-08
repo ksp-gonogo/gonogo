@@ -371,9 +371,11 @@ export async function bumpDependencies(
         );
       }
     }
-    const paged = run(self[0], [...self.slice(1), "page"], { cwd: workDir });
-    if (paged.status !== 0) {
-      throw new BumpError(`page failed:\n${excerptOf(paged.output)}`);
+    if (hasClient) {
+      const paged = run(self[0], [...self.slice(1), "page"], { cwd: workDir });
+      if (paged.status !== 0) {
+        throw new BumpError(`page failed:\n${excerptOf(paged.output)}`);
+      }
     }
   } catch (err) {
     restore();

@@ -42,7 +42,7 @@ describe("bumpDependencies", () => {
   });
 
   it("moves the pin and writes CKAN's spelling, and calls a reflection-bound mod unverified", async () => {
-    const dir = uplinkOn(ex1);
+    const dir = uplinkOn(ex1, {});
     const commands: string[] = [];
     const run: Runner = (command, args) => {
       commands.push([command, ...args].join(" "));
@@ -93,8 +93,24 @@ describe("bumpDependencies", () => {
     expect(exit).toBe(1);
   });
 
-  it("restores every file when the page cannot be written", async () => {
+  it("writes no page for an Uplink with no client package", async () => {
     const dir = uplinkOn(ex1);
+    const commands: string[] = [];
+    const run: Runner = (command, args) => {
+      commands.push([command, ...args].join(" "));
+      return { status: 0, output: "ok" };
+    };
+    const { result } = await bumpDependencies({
+      ...base(dir),
+      http: recordedHttp(),
+      run,
+    });
+    expect(result.bumps).toHaveLength(1);
+    expect(commands).not.toContain("uplink-tools page");
+  });
+
+  it("restores every file when the page cannot be written", async () => {
+    const dir = uplinkOn(ex1, {});
     const before = readFileSync(join(dir, "uplink.json"), "utf8");
     const run: Runner = () => ({ status: 1, output: "no" });
     await expect(
