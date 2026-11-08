@@ -1,6 +1,7 @@
 import {
   Button,
   Floating,
+  IconButton,
   PanZoomViewport,
   RotateAnticlockwiseIcon,
   RotateClockwiseIcon,
@@ -171,24 +172,20 @@ export function ShipDiagram({
       </Button>
       {onTurn && width >= ROTATE_MIN_WIDTH && (
         <div style={ROTATE_GROUP}>
-          <Button
-            size="sm"
+          <IconButton
             type="button"
             onClick={() => onTurn(turn - 1)}
             aria-label="Rotate view anticlockwise"
-            style={ROTATE_BUTTON}
           >
             <RotateAnticlockwiseIcon size={14} />
-          </Button>
-          <Button
-            size="sm"
+          </IconButton>
+          <IconButton
             type="button"
             onClick={() => onTurn(turn + 1)}
             aria-label="Rotate view clockwise"
-            style={ROTATE_BUTTON}
           >
             <RotateClockwiseIcon size={14} />
-          </Button>
+          </IconButton>
         </div>
       )}
       <ShipDiagramSvg
@@ -283,8 +280,6 @@ const ROTATE_GROUP: CSSProperties = {
   gap: "var(--gap-related)",
   zIndex: RESET_BUTTON.zIndex,
 };
-
-const ROTATE_BUTTON: CSSProperties = { position: "static" };
 
 // Static, not the menu's own absolute, so it stays in the layer's flow and the layer can be measured.
 const MENU_IN_LAYER: CSSProperties = { position: "static" };

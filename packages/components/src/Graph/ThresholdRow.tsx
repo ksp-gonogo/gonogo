@@ -1,6 +1,6 @@
 import { Input, Select } from "@ksp-gonogo/ui";
 import { IconButton } from "@ksp-gonogo/ui-kit";
-import { REMOVE_BUTTON, ROW } from "./rowStyles";
+import { ROW } from "./rowStyles";
 import type { GraphThresholdConfig } from "./types";
 
 /** A threshold line as the form holds it: the value is absent until a number is entered. */
@@ -77,7 +77,6 @@ export function ThresholdRow({ threshold, onUpdate, onRemove }: Props) {
         type="button"
         aria-label={`Remove threshold ${threshold.label || ""}`.trim()}
         onClick={() => onRemove(threshold.id)}
-        style={REMOVE_BUTTON}
       >
         ×
       </IconButton>

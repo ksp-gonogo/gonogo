@@ -2,7 +2,7 @@ import type { DataKeyMeta } from "@ksp-gonogo/data";
 import { DataKeyPicker, Select } from "@ksp-gonogo/ui";
 import { IconButton } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
-import { REMOVE_BUTTON, ROW } from "./rowStyles";
+import { ROW } from "./rowStyles";
 import type { GraphSeriesConfig } from "./types";
 
 interface Props {
@@ -31,7 +31,6 @@ export function SeriesRow({ series, numericKeys, onUpdate, onRemove }: Props) {
             type="button"
             aria-label={`Remove series ${series.label || series.key}`.trim()}
             onClick={() => onRemove(series.id)}
-            style={REMOVE_BUTTON}
           >
             ×
           </IconButton>
