@@ -29,6 +29,11 @@ const CANARY_KINDS = "text-cut-off, title-clipped";
  * lost a rule) produces an empty list reports success when it sees nothing, so
  * it is not believed until it has seen the first and passed the second.
  *
+ * The ids already registered when this module runs are the bundled core host
+ * widgets (the page loads `gonogo.renderWith` ahead of it and the client's
+ * entry after it). They are left out of the sweep: the Uplink cannot change
+ * them, so their size is not its fault.
+ *
  * Written into the client's own directory so every bare specifier resolves as
  * the client's source does.
  */
@@ -36,6 +41,8 @@ const PROBE_SOURCE = `
 import { registerComponent } from "@ksp-gonogo/sitrep-sdk";
 import { getComponents } from "@ksp-gonogo/sitrep-sdk/registry";
 import { Panel } from "@ksp-gonogo/ui-kit";
+
+const HOST_IDS = new Set(getComponents().map((def) => def.id));
 
 const CANARY_ID = "uplink-tools-minsize-canary";
 const FITS_ID = "uplink-tools-minsize-fits";
@@ -80,7 +87,7 @@ registerComponent({
 globalThis.__minsizeCanaryId = CANARY_ID;
 globalThis.__minsizeFitsId = FITS_ID;
 globalThis.__minsizeWidgets = () =>
-  getComponents().map((def) => ({
+  getComponents().filter((def) => !HOST_IDS.has(def.id)).map((def) => ({
     id: def.id,
     name: def.name,
     minSize: def.minSize ? { ...def.minSize } : undefined,
@@ -125,7 +132,7 @@ export interface MinsizeResult {
 }
 
 /**
- * Renders every widget the client registers at the `minSize` it declares, in a
+ * Renders every widget the client itself registers at the `minSize` it declares, in a
  * real browser, and returns the ones an operator could not read there.
  *
  * The measurement is in pixels through a real layout, so the verdict is the
