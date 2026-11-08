@@ -4,6 +4,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import { useFollowHostAnalytics } from "../analytics/useFollowHostAnalytics";
 import { StationSupersededNotice } from "../components/StationSupersededNotice";
+import { FirstRunSetupHost } from "../firstRun/FirstRunSetupHost";
 import {
   type OpenJobsTransport,
   useHostJobsConnection,
@@ -20,6 +21,7 @@ import { PeerClientProvider } from "../peer/PeerClientContext";
 import { PeerClientService } from "../peer/PeerClientService";
 import { PeerHostProvider } from "../peer/PeerHostProvider";
 import { peerHostService } from "../peer/PeerHostService";
+import { SettingsProvider, SettingsService } from "../settings";
 import { StationApprovalNotice } from "../stationApproval/StationApprovalNotice";
 import { ScopedStationIdentity } from "../stationIdentity";
 import { MainScreen } from "./MainScreen";
@@ -86,7 +88,9 @@ function useHostRoleOver(
  * and hosts the peer mesh or joins the screen that does, by itself.
  *
  * It shows that it is waiting for the game until the mod answers, and never
- * asks for a code. Then it claims the host role: granted, it hosts; refused, it
+ * asks for a code. At mission control on a browser that has never been through
+ * the setup, the setup opens over that wait, since a player whose mod is not
+ * installed yet would otherwise wait with nothing to tell them why. Then it claims the host role: granted, it hosts; refused, it
  * joins the holder's code. When the host goes, it claims again and the mod
  * decides which screen takes over. A host told it no longer holds the role
  * stops hosting at once and joins.
@@ -103,6 +107,7 @@ export function LocalScreen({
   acquireToken?: () => Promise<TabToken>;
 }) {
   const [jobs] = useState(() => new HostJobs());
+  const [settings] = useState(() => new SettingsService());
   useHostJobsConnection(jobs, true, openTransport);
   const role = useHostRoleOver(jobs, acquireToken);
   const state = useSyncExternalStore(
@@ -115,7 +120,14 @@ export function LocalScreen({
     document.title = seat === "pilot" ? "gonogo - Pilot" : "gonogo - Main";
   }, [seat]);
 
-  if (!role || state.kind === "waiting") return <WaitingForGame />;
+  if (!role || state.kind === "waiting") {
+    return (
+      <SettingsProvider service={settings}>
+        <WaitingForGame />
+        {seat === "main" && <FirstRunSetupHost />}
+      </SettingsProvider>
+    );
+  }
 
   return (
     <HostRoleProvider role={role}>
@@ -125,12 +137,18 @@ export function LocalScreen({
           seat={seat}
           role={role}
           jobs={jobs}
+          settings={settings}
           code={state.record.code}
           generation={state.generation}
           takeover={state.takeover}
         />
       ) : (
-        <JoinedLocalScreen key="joined" seat={seat} code={state.record.code} />
+        <JoinedLocalScreen
+          key="joined"
+          seat={seat}
+          code={state.record.code}
+          settings={settings}
+        />
       )}
     </HostRoleProvider>
   );
@@ -140,6 +158,7 @@ function HostingLocalScreen({
   seat,
   role,
   jobs,
+  settings,
   code,
   generation,
   takeover,
@@ -147,6 +166,7 @@ function HostingLocalScreen({
   seat: Seat;
   role: HostRole;
   jobs: HostJobs;
+  settings: SettingsService;
   code: string;
   generation: number;
   takeover: boolean;
@@ -162,7 +182,7 @@ function HostingLocalScreen({
   return (
     <PeerHostProvider code={code} generation={generation}>
       {takenOver && <TakeoverNotice />}
-      <MainScreen screen={seat} hosting jobs={jobs} />
+      <MainScreen screen={seat} hosting jobs={jobs} settings={settings} />
     </PeerHostProvider>
   );
 }
@@ -176,7 +196,15 @@ type ConnStatus = Parameters<
  * the shared thread, votes and roster over the peer link to the host, joined
  * with the code from the game's record.
  */
-function JoinedLocalScreen({ seat, code }: { seat: Seat; code: string }) {
+function JoinedLocalScreen({
+  seat,
+  code,
+  settings,
+}: {
+  seat: Seat;
+  code: string;
+  settings: SettingsService;
+}) {
   const [client] = useState(() => new PeerClientService({ seat }));
   const [status, setStatus] = useState<ConnStatus>("idle");
   const [hostNotFound, setHostNotFound] = useState(false);
@@ -226,7 +254,12 @@ function JoinedLocalScreen({ seat, code }: { seat: Seat; code: string }) {
             <Button onClick={() => client.connect(code)}>Retry</Button>
           </JoinedLocalScreen__Banner>
         )}
-        <MainScreen screen={seat} hosting={false} joinedVia={client} />
+        <MainScreen
+          screen={seat}
+          hosting={false}
+          joinedVia={client}
+          settings={settings}
+        />
       </PeerClientProvider>
     </ScopedStationIdentity>
   );

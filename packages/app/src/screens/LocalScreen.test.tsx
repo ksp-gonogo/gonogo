@@ -14,6 +14,7 @@ import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ANALYTICS_CONSENT_KEY } from "../analytics/AnalyticsConsentService";
+import { markFirstRunSetupSeen } from "../firstRun/firstRunFlag";
 import { HostRole } from "../hosting/HostRole";
 import { peerHostService } from "../peer/PeerHostService";
 import { FakeHostMod } from "../test/fakeHostMod";
@@ -205,12 +206,16 @@ async function untilPeerId(peerId: string | null): Promise<void> {
   });
 }
 
-function renderLocal(stub: StubTransport, mod?: FakeHostMod) {
+function renderLocal(
+  stub: StubTransport,
+  mod?: FakeHostMod,
+  seat: "main" | "pilot" = "main",
+) {
   const view = render(
     <ErrorBoundary>
       <ModalProvider>
         <LocalScreen
-          seat="main"
+          seat={seat}
           openTransport={() => stub}
           acquireToken={tabToken}
         />
@@ -411,5 +416,50 @@ describe("a local screen", () => {
     expect(other.state.kind).toBe("joined");
     expect(screen.queryByText(/This screen is now the host/)).toBeNull();
     other.dispose();
+  });
+
+  describe("on a browser that has never been through the setup", () => {
+    const setupDialog = () =>
+      screen.queryByRole("dialog", { name: "Set up Gonogo" });
+
+    it("opens the setup over the wait at mission control", async () => {
+      renderLocal(new StubTransport());
+      await settle();
+
+      expect(setupDialog()).not.toBeNull();
+    });
+
+    it("keeps the same setup open once the game answers, and opens no second one", async () => {
+      const mod = new FakeHostMod();
+      const { publish } = renderLocal(connectionTo(mod), mod);
+      await settle();
+      expect(setupDialog()).not.toBeNull();
+
+      await publish();
+      await settle();
+      await untilHostingUnder(mod.code);
+
+      expect(screen.queryByText("Waiting for the game")).toBeNull();
+      expect(
+        screen.getAllByRole("dialog", { name: "Set up Gonogo" }),
+      ).toHaveLength(1);
+    });
+
+    it("leaves a pilot page waiting with no setup", async () => {
+      renderLocal(new StubTransport(), undefined, "pilot");
+      await settle();
+
+      expect(screen.getByText("Waiting for the game")).toBeVisible();
+      expect(setupDialog()).toBeNull();
+    });
+  });
+
+  it("only waits once the setup has been seen on this browser", async () => {
+    markFirstRunSetupSeen();
+    renderLocal(new StubTransport());
+    await settle();
+
+    expect(screen.getByText("Waiting for the game")).toBeVisible();
+    expect(screen.queryByRole("dialog", { name: "Set up Gonogo" })).toBeNull();
   });
 });

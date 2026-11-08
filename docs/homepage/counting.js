@@ -18,6 +18,7 @@
   var COPY_EVENTS = {
     "ckan-filter": "install-ckan-copy",
     "run-command": "install-docker-copy",
+    "run-command-windows": "install-docker-copy",
   };
 
   var LINK_EVENTS = [

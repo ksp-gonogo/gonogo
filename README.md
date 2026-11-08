@@ -25,6 +25,13 @@ A telemetry mod system and mission control dashboard for [Kerbal Space Program](
 
 Gonogo features an _optional_ signal delay, on by default. Signals in the game are modelled under a real propagation system; it takes longer to get flight data from vessels further away, and vessels occluded behind planets and out of range won't be able to communicate. Signals get routed through available relay nodes to command centres, via a model heavily inspired by [NASA's Contact Graph Routing](https://ntrs.nasa.gov/citations/20120006508) system.
 
+### The pilot page
+
+`/pilot` is a dashboard for whoever is flying. It reads the active craft with no signal delay, as if from the cockpit, while mission control sees the same craft with the delay. It has its own layout and joins mission control's session like a station.
+
+- On your network: open `http://<the computer running Gonogo>:8080/pilot`. If it says Waiting for the game, enter the KSP computer's address there
+- From anywhere else: open `https://ksp-gonogo.github.io/app/pilot` (`/rc/pilot` for the `:rc` image) and type in the join code
+
 ## Uplinks
 
 Uplinks are the name for Gonogo's own mod support. They can extend and modify core behaviour and widgets, and add their own. Uplinks are generally used for creating integrations with other KSP mods. Uplinks currently exist for mods like [kOS](https://github.com/ksp-gonogo/gonogo-uplinks/blob/main/uplinks/kos/README.md), [SCANSat](https://github.com/ksp-gonogo/gonogo-uplinks/blob/main/uplinks/scansat/README.md), [Kerbcast](https://github.com/ksp-gonogo/gonogo-uplinks/blob/main/uplinks/kerbcast/README.md), [RP-1](https://github.com/ksp-gonogo/gonogo-uplinks/blob/main/uplinks/rp1/README.md), and [Principia](https://github.com/ksp-gonogo/gonogo-uplinks/blob/main/uplinks/principia/README.md).
@@ -43,13 +50,28 @@ _Data Visualisation Companion_. Run Gonogo as a second screen while you fly, to 
 
 ## Host it yourself
 
-You need KSP 1.12. The main screen runs in a container, so you also need Docker or Podman; with Podman, type `podman` where the steps say `docker`.
+You need KSP 1.12 and Docker, or another container tool such as Podman.
 
-1. Install the mod: search for `Gonogo` in [CKAN](https://github.com/KSP-CKAN/CKAN/wiki/Installing-CKAN)
-2. Install and open [Docker Desktop](https://docs.docker.com/get-started/get-docker/)
-3. Paste this into a terminal (on Windows, as one line: remove the `\` and the line breaks)
+1. Install the Gonogo mod from CKAN or SpaceDock. To install it by hand, see [KSP setup](docs/KSP-SETUP.md)
+2. Get [Docker](https://docs.docker.com/get-started/get-docker/) or similar, and start it
+3. Paste this into a terminal, with the KSP computer's IP address in place of `<ksp-ip>`. On Windows, use the Windows command below
 
 ```bash
+docker run -d --name gonogo --restart unless-stopped --pull always \
+  -e KSP_HOST=<ksp-ip> \
+  -p 8080:8080 -p 127.0.0.1:3002:3002 \
+  -p 47100:47100/udp -p 47100:47100/tcp \
+  ghcr.io/ksp-gonogo/gonogo:latest
+```
+
+Find the IP on the KSP computer: `ipconfig` on Windows (IPv4 Address), `ip addr show` on Linux, or System Settings, Network on macOS.
+
+<details>
+<summary>KSP on this computer</summary>
+
+Use `host.docker.internal` as the address, and add the `--add-host` line:
+
+```sh
 docker run -d --name gonogo --restart unless-stopped --pull always \
   --add-host=host.docker.internal:host-gateway \
   -e KSP_HOST=host.docker.internal \
@@ -58,27 +80,55 @@ docker run -d --name gonogo --restart unless-stopped --pull always \
   ghcr.io/ksp-gonogo/gonogo:latest
 ```
 
-   With Podman, type `podman` in place of `docker` in every command here (on macOS and Windows, run `podman machine start` first).
+</details>
 
-   Every setting the container takes, such as `KSP_HOST`, is in [the settings table](docs/CONFIGURATION.md).
+<details>
+<summary>Windows</summary>
 
-   If Docker answers that the name `gonogo` is already in use, a container from an earlier install exists. Run `docker rm -f gonogo`, then the command again.
+Press Start, type PowerShell, open Windows PowerShell, then right-click to paste this and press Enter. Do not paste the version above with `\` there. Put the KSP computer's IP address in place of `<ksp-ip>` before pressing Enter.
+
+```powershell
+docker run -d --name gonogo --restart unless-stopped --pull always -e KSP_HOST=<ksp-ip> -p 8080:8080 -p 127.0.0.1:3002:3002 -p 47100:47100/udp -p 47100:47100/tcp ghcr.io/ksp-gonogo/gonogo:latest
+```
+
+</details>
+
+<details>
+<summary>Podman</summary>
+
+Podman 5 or later. Type `podman` in place of `docker`, in this command and every other one here. On macOS and Windows, run `podman machine start` first. With rootless Podman, use this computer's IP address in place of `host.docker.internal` when KSP runs on it.
+
+</details>
+
+   `127.0.0.1:3002` keeps the relay's own port on this computer only; leave it as it is. Every setting the container takes is in [the settings table](docs/CONFIGURATION.md).
+
+   If Docker says the name `gonogo` is already in use, a container from an earlier install exists. Run `docker rm -f gonogo`, then the command again.
 
    For friends joining from another network, see the [networking guide](docs/NETWORKING.md#friends-on-other-networks).
 
-4. Start KSP and open [localhost:8080](http://localhost:8080)
+4. Start KSP, load a save, and open [localhost:8080](http://localhost:8080)
 
-The setup wizard opens by itself and checks the container, the connection to KSP and your Uplinks. It explains anything that is wrong, and Settings > Help covers the rest.
+The setup wizard opens by itself and checks the container, the connection to KSP and your Uplinks. It explains anything that is wrong, and Settings > Help covers the rest. When its Connect to KSP check turns green you are connected; widgets fill in once you are at a vessel.
+
+Keep this tab open while you play. Friends' screens get their data through it, and stop if it closes or the computer sleeps.
+
+KSP stops sending data when its window loses focus. With KSP and Gonogo on one computer, close KSP, set `SIMULATE_IN_BACKGROUND = True` in `settings.cfg` in the KSP folder, and save.
+
+### Firewall
+
+- Windows: if asked, tick Private networks and Allow for KSP and Docker
+- Linux with ufw: `sudo ufw allow in on docker0 to any port 8090 proto tcp`, so the container can reach KSP. Ports Docker publishes (`8080`, `47100`) ignore ufw
+- Never forward port 8090 to the internet: it accepts commands to your game with no password
 
 ## Joining a friend's game
 
-Open the link from their **Add station** panel, or type in the join code. Nothing to install. The link opens the public Gonogo site that matches the version your friend runs: `https://ksp-gonogo.github.io/app/station` for a release, `https://ksp-gonogo.github.io/rc/station` for the release candidate (`:rc`) image.
+Open the link from their **Add station** panel, or type in the join code, then wait for your friend to approve you. Nothing to install. The link opens the public Gonogo site that matches the version your friend runs: `https://ksp-gonogo.github.io/app/station` for a release, `https://ksp-gonogo.github.io/rc/station` for the release candidate (`:rc`) image.
 
 ## Upgrading from an earlier version
 
 - **Mod:** replace the `Gonogo` folder in `GameData`, or update it through CKAN
 - **App:** run `docker rm -f gonogo` to remove the existing container (the run command refuses to start while one has the name), then the `docker run` command above again ([`--pull always`](https://docs.docker.com/reference/cli/docker/container/run/) fetches the newest image)
-- **Uplinks:** update each one the same way as Gonogo. An Uplink built for another Gonogo version will refuse to run
+- **Uplinks:** update each one through CKAN, or replace its folder in `GameData`. An Uplink built for another Gonogo version will refuse to run
 
 ## If something is not working
 

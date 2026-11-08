@@ -46,7 +46,7 @@ import {
 import { __resetConnectionClock } from "./useConnectionCheck";
 
 function stepHeading(index: number, heading: string): string {
-  return say("shell.stepHeading", { index, total: 7, heading });
+  return say("shell.stepHeading", { index, total: 8, heading });
 }
 
 /** The words one of a sentence's links is drawn with. */
@@ -180,6 +180,7 @@ async function goToUplinks() {
   await user.click(
     screen.getByRole("button", { name: say("connect.advance") }),
   );
+  await user.click(screen.getByRole("button", { name: say("delay.advance") }));
 }
 
 async function goToHealth() {
@@ -255,8 +256,8 @@ describe("FirstRunSetup: recommended settings step", () => {
     expect(
       screen.getByText(
         say("shell.stepHeading", {
-          index: 6,
-          total: 8,
+          index: 7,
+          total: 9,
           heading: say("recommended.heading"),
         }),
       ),
@@ -271,7 +272,7 @@ describe("FirstRunSetup: recommended settings step", () => {
 });
 
 describe("FirstRunSetup: step sequence", () => {
-  it("opens on Welcome and walks the seven steps", async () => {
+  it("opens on Welcome and walks the eight steps", async () => {
     const onFinish = vi.fn();
     const { wsClients } = renderSetup({ onFinish });
     const user = userEvent.setup();
@@ -307,7 +308,14 @@ describe("FirstRunSetup: step sequence", () => {
     );
 
     expect(
-      screen.getByText(stepHeading(5, say("uplinks.heading"))),
+      screen.getByText(stepHeading(5, say("delay.heading"))),
+    ).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: say("delay.advance") }),
+    );
+
+    expect(
+      screen.getByText(stepHeading(6, say("uplinks.heading"))),
     ).toBeInTheDocument();
     await emitRoster(wsClients, []);
     await user.click(
@@ -315,7 +323,7 @@ describe("FirstRunSetup: step sequence", () => {
     );
 
     expect(
-      screen.getByText(stepHeading(6, say("health.heading"))),
+      screen.getByText(stepHeading(7, say("health.heading"))),
     ).toBeInTheDocument();
     await screen.findByText(say("container.check.pass"));
     await user.click(
@@ -323,7 +331,7 @@ describe("FirstRunSetup: step sequence", () => {
     );
 
     expect(
-      screen.getByText(stepHeading(7, say("done.heading"))),
+      screen.getByText(stepHeading(8, say("done.heading"))),
     ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: say("done.advance") }));
     expect(onFinish).toHaveBeenCalledTimes(1);
@@ -974,7 +982,7 @@ describe("FirstRunSetup: accessibility", () => {
       .setup()
       .click(screen.getByRole("button", { name: say("health.advance") }));
     expect(
-      screen.getByText(stepHeading(7, say("done.heading"))),
+      screen.getByText(stepHeading(8, say("done.heading"))),
     ).toBeInTheDocument();
     expect(screen.getByText(/green menu button/)).toBeInTheDocument();
     await expectNoA11yViolations(container);

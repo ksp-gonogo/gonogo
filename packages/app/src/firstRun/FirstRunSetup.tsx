@@ -6,6 +6,7 @@ import { LeaveGuardContext, type LeaveSave } from "./leaveGuard";
 import { useHasSetupSettings } from "./setupSettings";
 import { ConnectStep } from "./steps/ConnectStep";
 import { ContainerStep } from "./steps/ContainerStep";
+import { DelayStep } from "./steps/DelayStep";
 import { DoneStep } from "./steps/DoneStep";
 import { FriendsStep } from "./steps/FriendsStep";
 import { HealthStep } from "./steps/HealthStep";
@@ -18,6 +19,7 @@ export type SetupStep =
   | "container"
   | "friends"
   | "connect"
+  | "delay"
   | "uplinks"
   | "recommended"
   | "health"
@@ -28,6 +30,7 @@ const ORDER: readonly SetupStep[] = [
   "container",
   "friends",
   "connect",
+  "delay",
   "uplinks",
   "recommended",
   "health",
@@ -39,6 +42,7 @@ const HEADING = {
   container: "container.heading",
   friends: "friends.heading",
   connect: "connect.heading",
+  delay: "delay.heading",
   uplinks: "uplinks.heading",
   recommended: "recommended.heading",
   health: "health.heading",
@@ -55,6 +59,7 @@ const ADVANCE_LABEL = {
   container: "container.advance",
   friends: "friends.advance",
   connect: "connect.advance",
+  delay: "delay.advance",
   uplinks: "uplinks.advance",
   recommended: "recommended.advance",
   health: "health.advance",
@@ -75,7 +80,8 @@ export interface FirstRunSetupProps {
  * The setup an operator walks through the first time they open Gonogo. Between
  * a welcome and a close, each step is one instruction, the command that carries
  * it out, and a check the app runs by itself: the container, the connection to
- * the mod, each installed Uplink, then all three together.
+ * the mod, the save's signal delay, each installed Uplink, then the
+ * container, the mod and the Uplinks together.
  *
  * Composed for embedding inside an existing modal rather than opening a dialog
  * of its own, so there is no dialog chrome here: a step heading, the step body,
@@ -130,6 +136,7 @@ export function FirstRunSetup({
         {step === "container" && <ContainerStep />}
         {step === "friends" && <FriendsStep />}
         {step === "connect" && <ConnectStep />}
+        {step === "delay" && <DelayStep />}
         {step === "uplinks" && <UplinkReadinessStep />}
         {step === "recommended" && <RecommendedStep />}
         {step === "health" && <HealthStep />}

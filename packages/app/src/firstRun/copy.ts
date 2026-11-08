@@ -28,7 +28,7 @@ export const WIZARD_COPY = {
   "container.heading": "Start the app",
   "container.advance": "Friends on other networks",
   "container.instruction":
-    "In a terminal, start the Gonogo container. It serves this app and the relay that lets other screens join yours. You can change `{tag}` to a specific version if you want.",
+    "In a terminal, start the Gonogo container, with the KSP computer's IP address in place of `<ksp-ip>`. Find the IP on the KSP computer: `ipconfig` on Windows (IPv4 Address), `ip addr show` on Linux, or System Settings, Network on macOS. The container serves this app and the relay that lets other screens join yours. You can change `{tag}` to a specific version if you want.",
   "container.runCommandLabel": "run command",
   "container.powershellNote":
     "Written for PowerShell. If you're using Command Prompt, type ^ in place of the ` that ends each line.",
@@ -66,7 +66,7 @@ export const WIZARD_COPY = {
     "The relay is not answering, so it cannot ask your router. Check the container is running.",
 
   "connect.heading": "Connect to KSP",
-  "connect.advance": "Check Uplinks",
+  "connect.advance": "Signal delay",
   "connect.instruction":
     "Start KSP with the Gonogo mod installed and wait for the main menu. If KSP runs on another computer, press Host address below and enter its IP address.",
   "connect.twoComputers":
@@ -91,6 +91,13 @@ export const WIZARD_COPY = {
     "The command above prints nothing: the mod is not installed. The [KSP setup guide](kspSetup) covers installing it",
   "connect.hint.blocked":
     'The command prints "[Gonogo] Started" and this still fails: the Host is wrong, or a firewall on the KSP computer is blocking port 8090. See the [networking guide](networking)',
+
+  "delay.heading": "Signal delay",
+  "delay.advance": "Check Uplinks",
+  "delay.instruction":
+    "With signal delay on, commands and readings take as long as light needs to travel between mission control and the craft, so a probe at Duna answers minutes after you ask. Each save has its own setting, and a new save starts with it on.",
+  "delay.owner": "Gonogo",
+  "delay.later": "You can change it at any time in Settings, under Uplinks.",
 
   "uplinks.heading": "Uplinks",
   "uplinks.advance": "Review setup",

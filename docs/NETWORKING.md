@@ -9,15 +9,15 @@ A **station** is any other browser that joins: a tablet, a phone, a friend's lap
 
 ## Connecting the main screen to KSP
 
-If KSP runs on the same computer as gonogo, there is nothing to set up. KSP stops simulating when its window is minimised, so either keep it visible, set `SIMULATE_IN_BACKGROUND = True` in `settings.cfg` in the KSP install folder (with KSP closed), or use two computers.
+If KSP runs on the same computer as gonogo, start the container with the README's command for KSP on this computer. KSP stops simulating when its window is minimised, so either keep it visible, set `SIMULATE_IN_BACKGROUND = True` in `settings.cfg` in the KSP install folder (with KSP closed), or use two computers.
 
-If KSP is on a second computer, give the main screen that computer's address on your network. Find it there:
+If KSP is on a second computer, the run command needs that computer's address on your network. Find it there:
 
 - **Windows**: run `ipconfig`, look for "IPv4 Address"
 - **macOS**: System Settings, Network, Wi-Fi, Details, TCP/IP
 - **Linux, SteamOS, Steam Deck**: run `ip addr show`, look for an `inet` address on your active connection
 
-It usually looks like `192.168.x.x` or `10.x.x.x`. Enter it in **Settings, Connection, Telemetry stream**, or in the **Connect to KSP** step of the setup that opens on a first run.
+It usually looks like `192.168.x.x` or `10.x.x.x`. Put it in the run command as `KSP_HOST`. To change it later, enter it in **Settings, Connection, Telemetry stream**, or in the **Connect to KSP** step of the setup that opens on a first run.
 
 If it won't connect, a firewall on the KSP computer is the usual cause. It must allow incoming connections on port 8090 (and 8088 for camera feeds).
 
@@ -76,7 +76,7 @@ The relay then asks that router, and only that router, to open the port to this 
 
 The relay finds your public address on its own. If it guesses wrong (more than one internet connection, a changing address on a dynamic DNS name), add `-e PUBLIC_IP=<your public IP>`. If your provider puts you behind carrier-grade NAT (an internet provider sharing one address between many customers), forwarding can't help, because the main screen computer has no public address to reach.
 
-The container also needs this computer's address on your home network, because from inside a container it cannot see it, and friends on your home network are given it. `scripts/run-gonogo.sh` and `pnpm dev` fill it in; with a run command of your own, add `-e LAN_IP=<this computer's address>`.
+From inside the container the relay cannot see this computer's address on your home network. A friend on your home network joins without it: if they cannot reach the relay within a few seconds, they connect to the main screen tab directly. To have them join through the relay, add `-e LAN_IP=<this computer's address>` to the run command (`scripts/run-gonogo.sh` and `pnpm dev` fill it in).
 
 ### Camera feeds
 

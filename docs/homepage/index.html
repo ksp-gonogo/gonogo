@@ -268,21 +268,27 @@
                 Use <a href="https://www.docker.com/">Docker</a> or another container runtime,
                 like <a href="https://podman.io/">Podman</a>. It's easiest to do this on a
                 different computer to the one running KSP. If you're using the same computer,
-                ensure KSP's background simulation setting is on.
+                close KSP, set <code class="inline">SIMULATE_IN_BACKGROUND = True</code> in
+                <code class="inline">settings.cfg</code> in the KSP folder, and save.
               </p>
-              <p>In a terminal, run:</p>
+              <p>In a terminal, run this with the KSP computer's IP address in place of <code class="inline">&lt;ksp-ip&gt;</code>:</p>
               <div class="command">
                 <code id="run-command">docker run -d --name gonogo --restart unless-stopped --pull always \
-  --add-host=host.docker.internal:host-gateway \
-  -e KSP_HOST=host.docker.internal \
+  -e KSP_HOST=&lt;ksp-ip&gt; \
   -p 8080:8080 -p 127.0.0.1:3002:3002 \
   -p 47100:47100/udp -p 47100:47100/tcp \
   ghcr.io/ksp-gonogo/gonogo:latest</code>
                 <button class="copy" type="button" data-copy="run-command" aria-label="Copy run command">Copy</button>
               </div>
+              <p>Find the IP on the KSP computer: <code class="inline">ipconfig</code> on Windows (IPv4 Address), <code class="inline">ip addr show</code> on Linux, or System Settings, Network on macOS.</p>
+              <p>On Windows, press Start, type PowerShell, open Windows PowerShell, then right-click to paste this one-line version and press Enter. Do not paste the version above there.</p>
+              <div class="command">
+                <code id="run-command-windows">docker run -d --name gonogo --restart unless-stopped --pull always -e KSP_HOST=&lt;ksp-ip&gt; -p 8080:8080 -p 127.0.0.1:3002:3002 -p 47100:47100/udp -p 47100:47100/tcp ghcr.io/ksp-gonogo/gonogo:latest</code>
+                <button class="copy" type="button" data-copy="run-command-windows" aria-label="Copy Windows run command">Copy</button>
+              </div>
               <ul class="notes">
+                <li>KSP on this computer? Use <code class="inline">host.docker.internal</code> as the address and add <code class="inline">--add-host=host.docker.internal:host-gateway</code>.</li>
                 <li>Name <code class="inline">gonogo</code> already in use? Run <code class="inline">docker rm -f gonogo</code>, then the command again.</li>
-                <li>PowerShell: end each line with <code class="inline">`</code> in place of <code class="inline">\</code>, or type it as one line.</li>
                 <li>If playing with friends on the Internet, see the <a href="https://github.com/ksp-gonogo/gonogo/blob/main/docs/NETWORKING.md#friends-on-other-networks">networking guide</a>.</li>
               </ul>
             </div>

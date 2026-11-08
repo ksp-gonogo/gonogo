@@ -1,44 +1,50 @@
-# Connecting Gonogo to KSP
+# KSP setup
 
-Gonogo reads your game through mods installed in KSP. This page covers what you do before the app is open, and how signal delay is set. Everything after that is in the app itself, under **Settings, Help**: connecting from another computer, checking telemetry is arriving, what an empty widget means and Uplinks.
-
-## The mods you need
-
-Gonogo is built for KSP 1.12. Two mods are required: the **Gonogo mod** and [Harmony 2](https://github.com/KSPModdingLibs/HarmonyKSP). Everything else is optional: each add-on is an Uplink, a small mod that connects Gonogo to one other mod and adds its widgets.
+Gonogo needs KSP 1.12 and the Gonogo mod. Everything after that is set up in the app, which opens a setup wizard the first time you run it.
 
 ## Installing the Gonogo mod
 
-The easiest way is CKAN, a mod manager for KSP: [install CKAN](https://github.com/KSP-CKAN/CKAN/wiki/Installing-CKAN), then search it for `Gonogo` and install it. CKAN installs Harmony 2 with it.
+Install **Gonogo** with CKAN, or download it from SpaceDock. CKAN installs its dependencies for you.
 
-If CKAN does not list it, download `Gonogo-v<version>.zip` from the [releases page](https://github.com/ksp-gonogo/gonogo/releases), unzip it and copy the folders inside its `GameData/` into your KSP install's `GameData/`, so that `Squad/` and `Gonogo/` sit side by side. Install Harmony 2 the same way, from its own releases page, so that `000_Harmony/` sits beside them. On Steam, find the install with Manage, Browse local files. Until a release carries the zip there is nothing to download.
+Uplinks are optional add-ons that connect Gonogo to other mods. Find them in CKAN by searching for `dep:GonogoCore`.
 
-To install an Uplink, search CKAN for `dep:GonogoCore`, or do the same by hand with its zip from the [Uplinks releases page](https://github.com/ksp-gonogo/gonogo-uplinks/releases), after installing the mod it connects to.
+### Installing by hand
 
-The mod listens on port 8090 with no password, and that port accepts commands that act on your game. Keep it to a network you trust and do not forward it to the internet.
+1. Download `Gonogo-v<version>.zip` from the [releases page](https://github.com/ksp-gonogo/gonogo/releases)
+2. Copy the `Gonogo` folder from the zip's `GameData` into the `GameData` folder of your KSP install
+3. Install the dependencies the same way
 
-## Checking telemetry is arriving
+Dependencies:
 
-Open the app, then **Settings, Help, Checking telemetry is arriving**. The first-run setup runs the same checks for you, and **Settings, Connection, Run setup again** opens it again.
+- [Harmony 2](https://github.com/KSPModdingLibs/HarmonyKSP/releases) (its folder is `000_Harmony`)
 
-For running KSP on a second computer, firewalls and stations, see [NETWORKING.md](NETWORKING.md).
+Uplinks install the same way, from the [Uplinks releases page](https://github.com/ksp-gonogo/gonogo-uplinks/releases). Install the mod an Uplink connects to first.
 
-## Signal loss and CommNet
+## Keep port 8090 private
 
-Gonogo makes distance matter. Commands to a craft and readings from it take the time light needs to cross the distance between mission control and the craft, so a probe at Duna answers minutes after you ask. Signal delay is on by default, at real light speed. A craft that is out of contact, behind a planet or past the range of its antennas, is out of contact whether delay is on or off.
+The mod listens on port 8090 with no password, and anything that reaches it can control your game. Keep it on a network you trust and never forward it to the internet.
 
-### Turning signal delay off, or changing the speed
+## Checking it works
 
-The choice belongs to the save, so each game has its own. Set it in KSP under **Settings, Difficulty options, Gonogo**, when you create a game or at any time in one that is running. It has two settings:
+The setup wizard checks the connection to the mod for you. To run it again, open **Settings, Connection, Run setup again**. For KSP on a second computer, firewalls and stations, see [NETWORKING.md](NETWORKING.md).
 
-- **Signal delay** is the switch. Off, commands and readings arrive at once
-- **Light speed** is how fast signals travel as a fraction of the speed of light, from 0.00000001 to 100, typed into the field. 1 is real light speed, and 0.5 doubles every delay. It cannot be 0, because that would mean a delay that never ends
+## Signal delay
 
-The same two settings appear in the Gonogo app, under **Settings, Gonogo, Signal delay**, while KSP is connected, and a change in either place shows in the other within a second. Turning delay off delivers every command still on its way at once, in the order you sent them, and releases the science, reputation and funds still waiting to reach mission control. Raising the light speed brings both forward by the same share, and lowering it changes nothing already sent. A command held because its craft has no path stays held: only the waiting is removed, not the missing path.
+Commands to a craft, and readings from it, take as long as light takes to travel between mission control and the craft. A probe at Duna answers minutes after you ask. Signal delay is on by default, at real light speed.
 
-### What still applies with signal delay off
+Each save has its own setting. Change it in KSP under **Settings, Difficulty options, Gonogo**, when you create a game or at any time in one that is running:
 
-Switching delay off removes the waiting and nothing else. Gonogo still follows the game's CommNet, so a craft behind a planet or beyond its antennas' reach is out of contact, loses its readings during a blackout, and refuses commands while it has no path to mission control.
+- **Signal delay** turns it on or off
+- **Light speed** is how fast signals travel, as a fraction of real light speed, from 0.00000001 to 100. At 0.5 every delay is twice as long. It cannot be 0
 
-### Stock CommNet is a different setting
+The same two settings are in the app under **Settings, Gonogo, Signal delay** while KSP is connected. A change in either place shows in the other within a second.
 
-KSP's own **Enable Comm Network** option, in the same difficulty screen, is not the same thing. With it off, the game treats every craft as in perfect sight of mission control: nothing is occluded and nothing blacks out, so there is no signal loss to model. Gonogo then reports every craft as in contact.
+Turning delay off delivers every command still on its way at once, in the order you sent them, along with any science, reputation and funds still on their way to mission control. Raising the light speed brings them forward; lowering it leaves anything already sent alone. A command held because its craft has no path to mission control stays held.
+
+### With signal delay off
+
+Only the waiting goes away. Gonogo still follows CommNet: a craft behind a planet or out of antenna range is out of contact, sends no readings and refuses commands until it has a path to mission control again.
+
+### KSP's own CommNet setting
+
+**Enable Comm Network**, on the same difficulty screen, is a different setting. With it off, KSP treats every craft as always in contact, so Gonogo does too.

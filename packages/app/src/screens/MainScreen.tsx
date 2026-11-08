@@ -229,8 +229,15 @@ export function MainScreen({
   jobs,
   joinedVia,
   hostLink,
+  settings,
 }: {
   screen?: Screen;
+  /**
+   * The client settings this screen reads and writes, when its parent already
+   * holds them. A setup opened before the dashboard mounts keeps writing to
+   * the same instance after it does, so the dashboard hears every change.
+   */
+  settings?: SettingsService;
   /** Whether this screen hosts the peer mesh. Absent, a mission-control screen does and a pilot's does not. */
   hosting?: boolean;
   /** The hosting screen's connection to the game for its own jobs, when it already holds one. */
@@ -280,6 +287,7 @@ export function MainScreen({
         hostsThePeerMesh={hostsThePeerMesh}
         joinedVia={joinedVia}
         hostLink={hostLink ?? joinedVia}
+        settings={settings}
       />
     </HostingProvider>
   );
@@ -296,12 +304,14 @@ function MainScreenDisplay({
   hostsThePeerMesh,
   joinedVia,
   hostLink,
+  settings,
 }: {
   screen: Screen;
   transport?: Transport;
   hostsThePeerMesh: boolean;
   joinedVia?: PeerClientService;
   hostLink?: PeerClientService;
+  settings?: SettingsService;
 }) {
   const hosts = useHostingHosts();
   const [alarmClient] = useState(() =>
@@ -310,7 +320,7 @@ function MainScreenDisplay({
   const [serialService] = useState(
     () => new SerialDeviceService({ screenKey: screen }),
   );
-  const [settingsService] = useState(() => new SettingsService());
+  const [settingsService] = useState(() => settings ?? new SettingsService());
   const [missionProfiles] = useState(() => new MissionProfilesService(screen));
   const [commcastLog] = useState(() =>
     hostsThePeerMesh ? createCommcastLog() : null,

@@ -19,7 +19,11 @@ const README = resolve(HERE, "../../../../README.md");
 
 /** The text of the one element carrying `id`, which is how the static page marks each command. */
 function codeById(html: string, id: string): string | undefined {
-  return new RegExp(`<code id="${id}">([^<]*)</code>`).exec(html)?.[1];
+  return new RegExp(`<code id="${id}">([^<]*)</code>`)
+    .exec(html)?.[1]
+    ?.replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&amp;", "&");
 }
 
 /** A multi-line command as the single line it runs as, once `continuation` and the line break after it are taken out. */
@@ -82,5 +86,15 @@ describe("the run command is spelled once", () => {
       readFileSync(README, "utf8"),
     );
     expect(block?.[1]).toBe(runCommandFor("posix"));
+  });
+
+  it("is the one-line command the README and home page give for Windows", () => {
+    const block = /```powershell\n(docker run[^\n]*)\n```/.exec(
+      readFileSync(README, "utf8"),
+    );
+    expect(block?.[1]).toBe(RUN_COMMAND);
+    expect(
+      codeById(readFileSync(HOME_PAGE, "utf8"), "run-command-windows"),
+    ).toBe(RUN_COMMAND);
   });
 });

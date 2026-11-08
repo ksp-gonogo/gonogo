@@ -17,7 +17,7 @@ import {
 import { requestFirstRunSetup } from "./firstRunRequest";
 
 function stepHeading(index: number, heading: string): string {
-  return say("shell.stepHeading", { index, total: 7, heading });
+  return say("shell.stepHeading", { index, total: 8, heading });
 }
 
 /**
@@ -103,6 +103,9 @@ describe("FirstRunSetupHost", () => {
     );
     await user.click(
       screen.getByRole("button", { name: say("connect.advance") }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: say("delay.advance") }),
     );
     await user.click(
       screen.getByRole("button", { name: say("uplinks.advance") }),

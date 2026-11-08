@@ -16,6 +16,9 @@ export const CONTAINER_NAME = "gonogo";
  */
 export const RUN_IMAGE_TAG = "latest";
 
+/** What the run command names the KSP computer's IP address as, for the operator to replace. */
+export const KSP_HOST_PLACEHOLDER = "<ksp-ip>";
+
 /**
  * Starts the app and the relay in one container, one entry per line it is
  * printed on. Every surface that prints the command renders these lines, so
@@ -24,8 +27,7 @@ export const RUN_IMAGE_TAG = "latest";
 function runCommandLinesFor(tag: string): string[] {
   return [
     `docker run -d --name ${CONTAINER_NAME} --restart unless-stopped --pull always`,
-    "--add-host=host.docker.internal:host-gateway",
-    "-e KSP_HOST=host.docker.internal",
+    `-e KSP_HOST=${KSP_HOST_PLACEHOLDER}`,
     "-p 8080:8080 -p 127.0.0.1:3002:3002",
     "-p 47100:47100/udp -p 47100:47100/tcp",
     `ghcr.io/ksp-gonogo/gonogo:${tag}`,

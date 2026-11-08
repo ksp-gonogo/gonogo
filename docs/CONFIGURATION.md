@@ -4,7 +4,7 @@ The Gonogo container reads these settings when it starts. Set one by adding `-e 
 
 | Setting | What it does | Default | Example |
 | --- | --- | --- | --- |
-| `KSP_HOST` | Where the KSP computer is, so the main screen finds the game and its camera feeds without asking | `host.docker.internal` in the README's command (KSP on this computer) | `-e KSP_HOST=<the KSP computer's address>` |
+| `KSP_HOST` | Where the KSP computer is, so the main screen finds the game and its camera feeds without asking | The KSP computer's address in the README's command, or `host.docker.internal` for KSP on this computer | `-e KSP_HOST=<the KSP computer's address>` |
 | `GONOGO_AUTO_PORT_FORWARD` | The starting value of **Automatic port forwarding** in the app's Settings, under Relay; the app's choice wins once made | Off | `-e GONOGO_AUTO_PORT_FORWARD=1` |
 | `ENDPOINT_PORT` | The port friends on other networks connect through, UDP and TCP. Change both `-p 47100:47100` parts of the command to match | `47100` | `-e ENDPOINT_PORT=47200 -p 47200:47200/udp -p 47200:47200/tcp` |
 | `LAN_IP` | This computer's address on your home network, which the container cannot see for itself. Also the starting value of **This computer's IP address** in the app's Settings, under Relay | Found by `scripts/run-gonogo.sh` and `pnpm dev`; otherwise unset | `-e LAN_IP=<this computer's address>` |
