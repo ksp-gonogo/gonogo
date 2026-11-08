@@ -29,7 +29,7 @@ namespace Sitrep.Host.Tests
             var health = CommsHealth.Evaluate(backendElected: true, modelPresent: true, forcedBlackout: true);
 
             Assert.Equal(UplinkHealthState.Degraded, health.State);
-            Assert.Contains("force-comms-request.cfg", health.Detail);
+            Assert.Equal("Forced blackout (dev tools)", health.Detail);
         }
 
         [Fact]
@@ -38,8 +38,7 @@ namespace Sitrep.Host.Tests
             var health = CommsHealth.Evaluate(backendElected: false, forcedBlackout: true);
 
             Assert.Equal(UplinkHealthState.Degraded, health.State);
-            Assert.Contains("force-comms-request.cfg", health.Detail);
-            Assert.Contains("no comms backend elected", health.Detail);
+            Assert.Equal("Forced blackout (dev tools); no comms backend elected", health.Detail);
         }
 
         [Fact]

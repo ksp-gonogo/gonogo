@@ -46,9 +46,9 @@ namespace Sitrep.Host.Comms
         /// </param>
         /// <param name="forcedBlackout">
         /// Whether a development build's comms override is forcing the active
-        /// craft out of contact, whatever its real link. The override is read
-        /// from a request file that outlives a game restart, so it is named here,
-        /// where whoever reads the Uplink's health sees why no craft is in contact.
+        /// craft out of contact, whatever its real link. The override outlives a
+        /// game restart, so the Uplink's health names it as a short state; the
+        /// request file that sets it is named in the log when the blackout starts.
         /// </param>
         public static UplinkHealth Evaluate(bool backendElected, bool? modelPresent = null, bool forcedBlackout = false)
         {
@@ -57,11 +57,10 @@ namespace Sitrep.Host.Comms
             {
                 return health;
             }
-            const string forced =
-                "dev tools are forcing a comms blackout: the active craft reads out of contact whatever its link, until GameData/GonogoDevTools/Plugins/PluginData/force-comms-request.cfg is set to restore";
+            const string forced = "Forced blackout (dev tools)";
             return new UplinkHealth(
                 UplinkHealthState.Degraded,
-                string.IsNullOrEmpty(health.Detail) ? forced : forced + "; also: " + health.Detail);
+                string.IsNullOrEmpty(health.Detail) ? forced : forced + "; " + health.Detail);
         }
 
         private static UplinkHealth Underlying(bool backendElected, bool? modelPresent)

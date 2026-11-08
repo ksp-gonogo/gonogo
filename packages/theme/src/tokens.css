@@ -879,7 +879,7 @@ textarea {
   --inset-empty-popover: var(--space-16) 0;
   --inset-chart-empty: var(--space-24) 0;
   /* A widget's refusal to draw. */
-  --inset-refusal: var(--space-8);
+  --inset-refusal: var(--space-8) 0;
   /* A message standing in for a whole screen. */
   --inset-screen-message: var(--space-24);
   /* A stand-in box with no content of its own. */

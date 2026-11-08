@@ -42,6 +42,9 @@ export function InactiveNotice({ reason }: { reason: PanelInactiveReason }) {
 const InactiveNotice__Body = styled.div`
   /* Never shrinks below its text: a centred box squeezed under its content spills it upward over the title. */
   flex: 0 0 auto;
+  /* Held to the body's width, so a long word wraps inside the padding rather than widening the box past both edges. */
+  max-width: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -52,6 +55,8 @@ const InactiveNotice__Body = styled.div`
 `;
 
 const InactiveNotice__Reason = styled.div`
+  max-width: 100%;
+  overflow-wrap: break-word;
   color: var(--color-text-muted);
   font-size: var(--font-size-caption);
   font-weight: 600;
@@ -60,6 +65,8 @@ const InactiveNotice__Reason = styled.div`
 `;
 
 const InactiveNotice__Hint = styled.div`
+  max-width: 100%;
+  overflow-wrap: break-word;
   color: var(--color-text-faint);
   font-size: var(--font-size-caption);
   letter-spacing: 0.04em;

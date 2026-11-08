@@ -70,3 +70,23 @@ describe("Panel inactive in a short tile", () => {
     expect(getComputedStyle(notice).flexShrink).toBe("0");
   });
 });
+
+describe("Panel inactive in a narrow tile", () => {
+  it("holds the notice to the body's width and breaks a word too long for one line", () => {
+    render(
+      <Panel
+        panelTitle="COMMNET"
+        inactive={{
+          reason: "Waiting on GameData/Example/Plugins/PluginData/request.cfg",
+          hint: "GameData/Example/Plugins/PluginData/another-request.cfg",
+        }}
+      />,
+    );
+    const notice = screen.getByRole("status");
+    expect(getComputedStyle(notice).maxWidth).toBe("100%");
+    for (const line of Array.from(notice.children)) {
+      expect(getComputedStyle(line).maxWidth).toBe("100%");
+      expect(getComputedStyle(line).overflowWrap).toBe("break-word");
+    }
+  });
+});
