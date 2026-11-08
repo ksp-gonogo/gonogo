@@ -11,6 +11,7 @@ import { HeartIcon } from "@ksp-gonogo/ui";
 import {
   Badge,
   EmptyState,
+  IconButton,
   MissionDate,
   Notice,
   NULL_DISPLAY,
@@ -441,16 +442,15 @@ export function FlightsManager({
                         />
                       </Td>
                       <Td>
-                        <StarButton
+                        <IconButton
                           type="button"
-                          $on={Boolean(f.starred)}
+                          pressed={Boolean(f.starred)}
                           onClick={() => void handleToggleStar(f)}
                           aria-label={
                             f.starred
                               ? `Unstar ${f.vesselName || "flight"}`
                               : `Star ${f.vesselName || "flight"} (keep from auto-delete)`
                           }
-                          aria-pressed={Boolean(f.starred)}
                           title={
                             f.starred
                               ? "Kept from auto-delete"
@@ -461,7 +461,7 @@ export function FlightsManager({
                             size="var(--icon-size-control)"
                             fill={f.starred ? "currentColor" : "none"}
                           />
-                        </StarButton>
+                        </IconButton>
                       </Td>
                       <Td>
                         {f.vesselName || NULL_DISPLAY}
@@ -572,11 +572,11 @@ export function FlightsManager({
                               </CancelButton>
                             </ConfirmRow>
                           ) : (
-                            <DeleteButton
+                            <IconButton
                               onClick={() => setConfirmDeleteId(f.id)}
                             >
                               ×
-                            </DeleteButton>
+                            </IconButton>
                           )}
                         </RowActions>
                       </Td>
@@ -954,16 +954,6 @@ const OutcomeBadge = styled.span<{ $tone: "go" | "nogo" }>`
     p.$tone === "go" ? "var(--color-go-text)" : "var(--color-nogo-text)"};
 `;
 
-const DeleteButton = styled.button`
-  background: none;
-  border: none;
-  color: var(--color-text-faint);
-  cursor: pointer;
-  font-size: var(--font-size-lg);
-  padding: var(--inset-glyph);
-  &:hover { color: var(--color-nogo-text); }
-`;
-
 const ConfirmRow = styled.div`
   display: flex;
   align-items: center;
@@ -1036,24 +1026,6 @@ const ThStar = styled.th`
   color: var(--color-text-faint);
   border-bottom: 1px solid var(--color-border-subtle);
   text-align: center;
-`;
-
-const StarButton = styled.button<{ $on: boolean }>`
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: var(--inset-glyph-tight);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: ${({ $on }) =>
-    $on ? "var(--color-tag-yellow-fg)" : "var(--color-text-faint)"};
-
-  @media (hover: hover) {
-    &:hover {
-      color: var(--color-tag-yellow-fg);
-    }
-  }
 `;
 
 const RightControls = styled.div`

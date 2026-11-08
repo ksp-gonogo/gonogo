@@ -1,4 +1,4 @@
-import { Tooltip } from "@ksp-gonogo/ui-kit";
+import { IconButton, Tooltip } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
 import type { DeviceParserId } from "../types";
@@ -16,13 +16,13 @@ export function ProtocolReferenceButton({
   return (
     <>
       <Tooltip text="Show protocol reference">
-        <HelpLink
+        <IconButton
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Show protocol reference"
         >
           ?
-        </HelpLink>
+        </IconButton>
       </Tooltip>
       {open && (
         <Backdrop onClick={() => setOpen(false)} role="presentation">
@@ -38,13 +38,13 @@ export function ProtocolReferenceButton({
                   ? "json-state protocol"
                   : "char-position protocol"}
               </Title>
-              <Close
+              <IconButton
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Close"
               >
                 ✕
-              </Close>
+              </IconButton>
             </Header>
             <Body>
               {parser === "json-state" ? (
@@ -180,26 +180,6 @@ function JsonStateContent() {
 
 // ── Styles ────────────────────────────────────────────────────────────────
 
-const HelpLink = styled.button`
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-circle);
-  color: var(--color-info-text);
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  /* Literal on purpose: 11px with a collapsed line box is what optically
-     centres the "?" glyph in this fixed 18x18 circle. --font-size-xs is 12px
-     under @media (pointer: coarse), which overflows it on the Steam Deck. */
-  font-size: 11px;
-  line-height: var(--line-height-flush);
-  cursor: pointer;
-  &:hover {
-    background: var(--color-border-subtle);
-    color: var(--color-text-primary);
-  }
-`;
-
 const Backdrop = styled.div`
   position: fixed;
   inset: 0;
@@ -243,17 +223,6 @@ const Title = styled.h3`
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-muted);
-`;
-
-const Close = styled.button`
-  background: none;
-  border: none;
-  color: var(--color-text-faint);
-  font-size: var(--font-size-base);
-  cursor: pointer;
-  &:hover {
-    color: var(--color-text-primary);
-  }
 `;
 
 const Body = styled.div`

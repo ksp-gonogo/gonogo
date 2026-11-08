@@ -1,5 +1,5 @@
 import { useViewUt } from "@ksp-gonogo/sitrep-client";
-import { Cluster } from "@ksp-gonogo/ui-kit";
+import { Cluster, IconButton } from "@ksp-gonogo/ui-kit";
 import { useSyncExternalStore } from "react";
 import styled from "styled-components";
 import {
@@ -41,7 +41,7 @@ export function ReplaySessionBanner() {
   return (
     <Bar role="region" aria-label="Replay controls">
       <BannerGroup>
-        <PlayButton
+        <IconButton
           type="button"
           onClick={() =>
             snapshot.playing ? controller.pause() : controller.play()
@@ -49,7 +49,7 @@ export function ReplaySessionBanner() {
           aria-label={snapshot.playing ? "Pause replay" : "Play replay"}
         >
           {snapshot.playing ? "❚❚" : "▶"}
-        </PlayButton>
+        </IconButton>
         <Title>
           REPLAY: <Strong>{meta.vesselName || "Unnamed vessel"}</Strong>
         </Title>
@@ -144,24 +144,6 @@ const Strong = styled.span`
   color: var(--color-tag-purple-fg);
   font-weight: 700;
   margin-left: var(--gap-trailing-figure);
-`;
-
-const PlayButton = styled.button`
-  background: var(--color-tag-purple-fg);
-  border: none;
-  color: var(--color-surface-app);
-  cursor: pointer;
-  font-size: var(--font-size-base);
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-circle);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  &:focus-visible {
-    outline: 2px solid var(--color-accent-fg);
-    outline-offset: 2px;
-  }
 `;
 
 const SeekArea = styled.div`
