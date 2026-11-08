@@ -675,6 +675,7 @@ export function AutoRecordController({
           outcome,
           validAt: meta.validAt,
           deliveredAt: meta.deliveredAt,
+          recordedAt: Date.now(),
         })
         .catch((error: unknown) => {
           logger.warn("[auto-record] contract finish not stored", {

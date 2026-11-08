@@ -1,8 +1,10 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
-import { describe, expect, it } from "vitest";
+import { act, renderHook } from "@ksp-gonogo/sitrep-sdk/testing";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   type CompletedEntry,
   computeCompletionUpdate,
+  useBurnCompletionTracker,
 } from "./BurnCompletionTracker";
 import {
   type BurnContext,
@@ -207,5 +209,74 @@ describe("a node that outlives its hold", () => {
     );
 
     expect(again.size).toBe(0);
+  });
+});
+
+describe("a quickload during the hold", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function flown(): {
+    done: ReadonlyMap<number, CompletedEntry>;
+    watches: Map<number, BurnWatch>;
+  } {
+    const planned = node();
+    const watches = new Map<number, BurnWatch>();
+    let done: ReadonlyMap<number, CompletedEntry> = new Map();
+    done = computeCompletionUpdate(done, [planned], watches, ctx({}), 1000);
+    done = computeCompletionUpdate(
+      done,
+      [planned],
+      watches,
+      ctx({ nowUt: 995, thrust: { thrusting: true, lastThrustEndUt: null } }),
+      1500,
+    );
+    done = computeCompletionUpdate(done, [planned], watches, AFTER_BURN, 2000);
+    return { done, watches };
+  }
+
+  it("does not show the reloaded node at the same UT as completed", () => {
+    const { done, watches } = flown();
+    expect(done.size).toBe(1);
+
+    const reloaded = node({ id: "reloaded" });
+    const next = computeCompletionUpdate(
+      done,
+      [reloaded],
+      watches,
+      ctx({ nowUt: 600 }),
+      3000,
+    );
+
+    expect(next.has(1000)).toBe(false);
+  });
+
+  it("does not remove the reloaded node when the hold runs out", () => {
+    vi.useFakeTimers();
+    const removeNode = vi.fn();
+    const preBurn = ctx({});
+    const { rerender } = renderHook(
+      ({ nodes, c }) => useBurnCompletionTracker(nodes, removeNode, c),
+      { initialProps: { nodes: [node()], c: preBurn } },
+    );
+    rerender({
+      nodes: [node()],
+      c: ctx({
+        nowUt: 995,
+        thrust: { thrusting: true, lastThrustEndUt: null },
+      }),
+    });
+    rerender({ nodes: [node()], c: AFTER_BURN });
+
+    act(() => {
+      vi.advanceTimersByTime(9_000);
+    });
+    rerender({ nodes: [node({ id: "reloaded" })], c: ctx({ nowUt: 600 }) });
+    act(() => {
+      vi.advanceTimersByTime(2_000);
+    });
+
+    expect(removeNode).not.toHaveBeenCalled();
   });
 });

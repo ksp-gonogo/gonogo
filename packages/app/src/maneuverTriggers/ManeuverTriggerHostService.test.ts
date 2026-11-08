@@ -105,6 +105,14 @@ function buildOrbitStoreFixture(pinnedUt: number) {
       transport.emit("vessel.identity", payload);
       store.beginFrame();
     },
+    /** The first frame of a new timeline the game started at `ut` (a quickload, a revert), carrying `payload` as the craft's orbit. */
+    emitOrbitOnNewTimeline(payload: unknown, epoch: number, ut: number): void {
+      transport.emit("vessel.orbit", payload, {
+        timelineEpoch: epoch,
+        validAt: ut,
+      });
+      store.beginFrame();
+    },
     emitBodies(payload: unknown): void {
       transport.emit("trackingStation.bodies", payload);
       store.beginFrame();
@@ -701,6 +709,89 @@ describe("ManeuverTriggerHostService", () => {
     });
     expect(svc.snapshot().triggers).toHaveLength(0);
     expect(strandedFiredIds(svc)).toEqual([]);
+  });
+
+  describe("a game load", () => {
+    function armedAt(ut: { now: number }) {
+      setActiveViewClockForTests({ viewUt: () => ut.now });
+    }
+
+    it("drops a trigger armed after the instant the load went back to", () => {
+      const svc = makeService();
+      const storeFixture = seedKerbinOrbit();
+      const ut = { now: 1_000_000 };
+      armedAt(ut);
+      svc.arm({
+        dataKey: "vessel.orbit.sma",
+        op: ">=",
+        value: 750_000,
+        inputs: FROZEN,
+      });
+
+      ut.now = 999_000;
+      storeFixture.emitOrbitOnNewTimeline(
+        kerbinOrbitPayload(999_000),
+        1,
+        999_000,
+      );
+
+      expect(svc.snapshot().triggers).toEqual([]);
+    });
+
+    it("keeps a trigger armed before the instant the load went back to", () => {
+      const svc = makeService();
+      const storeFixture = seedKerbinOrbit();
+      const ut = { now: 1_000_000 };
+      armedAt(ut);
+      svc.arm({
+        dataKey: "vessel.orbit.sma",
+        op: ">=",
+        value: 750_000,
+        inputs: FROZEN,
+      });
+
+      ut.now = 1_000_200;
+      storeFixture.emitOrbitOnNewTimeline(
+        kerbinOrbitPayload(1_000_200),
+        1,
+        1_000_200,
+      );
+
+      expect(svc.snapshot().triggers).toHaveLength(1);
+    });
+
+    it("arms again a trigger that fired after the instant the load went back to", async () => {
+      const svc = makeService();
+      const storeFixture = seedKerbinOrbit();
+      const ut = { now: 1_000_000 };
+      armedAt(ut);
+      svc.arm({
+        dataKey: "vessel.orbit.sma",
+        op: ">=",
+        value: 750_000,
+        inputs: FROZEN,
+      });
+      ut.now = 1_000_500;
+      storeFixture.emitOrbit(kerbinOrbitPayload(1_000_000, 800_000));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(svc.snapshot().triggers).toHaveLength(0);
+
+      ut.now = 1_000_200;
+      storeFixture.emitOrbitOnNewTimeline(
+        kerbinOrbitPayload(1_000_200),
+        1,
+        1_000_200,
+      );
+
+      const [again] = svc.snapshot().triggers;
+      expect(again).toMatchObject({
+        dataKey: "vessel.orbit.sma",
+        op: ">=",
+        value: 750_000,
+      });
+      expect(again?.sent).toBeUndefined();
+      expect(again?.failure).toBeUndefined();
+    });
   });
 
   it("persists triggers across construction and restores them on load", () => {

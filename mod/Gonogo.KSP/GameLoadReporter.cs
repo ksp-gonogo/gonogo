@@ -29,6 +29,7 @@ namespace Gonogo.KSP
             GameEvents.onGameSceneLoadRequested.Add(OnLoadRequested);
             GameEvents.onLevelWasLoadedGUIReady.Add(OnSceneStood);
             GameEvents.onFlightReady.Add(OnFlightReady);
+            GameEvents.onGameStatePostLoad.Add(OnGameLoaded);
 
             _state.Seed(HighLogic.LoadedScene.ToString());
             Announce();
@@ -53,6 +54,7 @@ namespace Gonogo.KSP
             GameEvents.onGameSceneLoadRequested.Remove(OnLoadRequested);
             GameEvents.onLevelWasLoadedGUIReady.Remove(OnSceneStood);
             GameEvents.onFlightReady.Remove(OnFlightReady);
+            GameEvents.onGameStatePostLoad.Remove(OnGameLoaded);
         }
 
         private void OnLoadRequested(GameScenes target)
@@ -61,7 +63,25 @@ namespace Gonogo.KSP
             _state.LoadRequested(target.ToString());
         }
 
-        private void OnSceneStood(GameScenes scene) => _state.SceneStood(scene.ToString());
+        private void OnSceneStood(GameScenes scene)
+        {
+            if (!HostsCommandDelivery(scene))
+            {
+                _engine.NoteLoadAbandoned();
+            }
+            _state.SceneStood(scene.ToString());
+        }
+
+        /// <summary>
+        /// The game loaded a save, from a quickload, a revert or a load menu, and
+        /// never on a scene change. The save itself reaches the engine through
+        /// <see cref="CommandDeliveryScenario"/> once the next scene loads it.
+        /// </summary>
+        private void OnGameLoaded(ConfigNode node) => _engine.NoteLoadStarted();
+
+        /// <summary>Whether <see cref="CommandDeliveryScenario"/> loads in <paramref name="scene"/>, and so answers a load mark there.</summary>
+        private static bool HostsCommandDelivery(GameScenes scene) =>
+            scene == GameScenes.FLIGHT || scene == GameScenes.SPACECENTER || scene == GameScenes.TRACKSTATION;
 
         private void OnFlightReady() => _state.FlightReady();
 

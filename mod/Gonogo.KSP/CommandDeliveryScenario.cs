@@ -13,11 +13,10 @@ namespace Gonogo.KSP
     ///
     /// <para>A scenario is saved and loaded again on every scene change, which is
     /// not a new timeline. Each save stamps a token, and a load carrying the token
-    /// of this process's latest save is that round trip, so it changes nothing. A
-    /// load from disk carries an older token, or none, and starts a new
-    /// timeline. A quickload of the latest save carries its token too, so the
-    /// round trip still hands the engine what it held, for the rewind that
-    /// load starts.</para>
+    /// of this process's latest save with no load marked by
+    /// <see cref="GameLoadReporter"/> is that round trip, so it changes nothing.
+    /// Every other load starts a timeline, and the engine decides from the token
+    /// whether it keeps the history before the save.</para>
     ///
     /// <para>Each save also tells the engine what it has just written and at
     /// what UT. A quickload turns the clock back before this module is loaded
@@ -65,14 +64,14 @@ namespace Gonogo.KSP
                     ? ut
                     : double.NegativeInfinity;
                 GonogoLog.Info("command-delivery", "CommandDeliveryScenario loaded a save of UT " + savedUt.ToString("F2", CultureInfo.InvariantCulture)
-                    + (ownLatest ? ", this process's own latest" : ", not this process's latest, so a new timeline")
+                    + (ownLatest ? ", this process's own latest" : ", not this process's latest")
                     + ", heard " + (encodedHeard?.Length ?? 0) + " chars" + (heard == null ? " (none read)" : ""));
                 if (ownLatest)
                 {
-                    GonogoAddon.SharedEngine?.NoteSaveReloaded(carried, heard, savedUt, HighLogic.SaveFolder);
+                    GonogoAddon.SharedEngine?.NoteSaveReloaded(carried, heard, savedUt, HighLogic.SaveFolder, token);
                     return;
                 }
-                GonogoAddon.SharedEngine?.NoteGameLoaded(carried, heard, savedUt, HighLogic.SaveFolder);
+                GonogoAddon.SharedEngine?.NoteGameLoaded(carried, heard, savedUt, HighLogic.SaveFolder, token);
             }
             catch (Exception ex)
             {
@@ -100,7 +99,7 @@ namespace Gonogo.KSP
                 {
                     node.SetValue(HeardKey, HeardSnapshotCodec.Encode(heard), true);
                 }
-                GonogoAddon.SharedEngine?.NoteSaved(snapshot, heard, ut, HighLogic.SaveFolder);
+                GonogoAddon.SharedEngine?.NoteSaved(snapshot, heard, ut, HighLogic.SaveFolder, token);
             }
             catch (Exception ex)
             {

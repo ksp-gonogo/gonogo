@@ -190,8 +190,10 @@ export type PeerMessage =
      GO/NO-GO widget is mounted on that screen, which is also what a screen
      sends when its widget is removed. A screen whose vote is null stays
      listed but is not in the poll: it neither blocks a countdown nor counts
-     towards one. */
-  | { type: "gonogo-vote"; status: "go" | "no-go" | null }
+     towards one. `epoch` is the timeline epoch the station's screen showed
+     when the vote was cast, so a GO resent after a load the station was away
+     for is not counted on the new flight. */
+  | { type: "gonogo-vote"; status: "go" | "no-go" | null; epoch?: number }
   /* Host → stations when the poll reads GO: at least one screen has voted GO
      and none has voted NO-GO. `remainingMs` is the time left at the moment
      of sending; a station counts it down from the frame's arrival on its own
@@ -216,8 +218,9 @@ export type PeerMessage =
      `null` when nothing fires. */
   | { type: "gonogo-outcome"; action: string | null; sent: boolean }
   // Station → host after launch, when the operator hits the big red ABORT
-  // button. Host re-sends the action group execution for `f.abort`.
-  | { type: "gonogo-abort" }
+  // button. Host re-sends the action group execution for `f.abort`. `epoch` is
+  // the timeline epoch the station's screen showed when it was pressed.
+  | { type: "gonogo-abort"; epoch?: number }
   // Host → stations: someone triggered the abort. Carries the name so all
   // screens can show who did it.
   | { type: "gonogo-abort-notify"; stationName: string; t: number }

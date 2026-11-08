@@ -71,6 +71,7 @@ export * from "./hooks/useManeuverNodes";
 export * from "./hooks/usePartShape";
 export * from "./hooks/usePartsLive";
 export * from "./hooks/useSeriesReadings";
+export * from "./hooks/useTimelineEpoch";
 export * from "./hooks/useTopicFields";
 export * from "./hooks/useTopology";
 export * from "./hooks/useTrackedVesselTopology";

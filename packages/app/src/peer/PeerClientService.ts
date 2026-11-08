@@ -1047,12 +1047,18 @@ export class PeerClientService {
     } satisfies PeerMessage);
   }
 
-  sendGonogoVote(status: "go" | "no-go" | null) {
-    this.conn?.send({ type: "gonogo-vote", status } satisfies PeerMessage);
+  /** `epoch` is the timeline epoch this screen showed when the vote was cast. */
+  sendGonogoVote(status: "go" | "no-go" | null, epoch?: number) {
+    this.conn?.send({
+      type: "gonogo-vote",
+      status,
+      epoch,
+    } satisfies PeerMessage);
   }
 
-  sendGonogoAbort() {
-    this.conn?.send({ type: "gonogo-abort" } satisfies PeerMessage);
+  /** `epoch` is the timeline epoch this screen showed when the abort was pressed. */
+  sendGonogoAbort(epoch?: number) {
+    this.conn?.send({ type: "gonogo-abort", epoch } satisfies PeerMessage);
   }
 
   sendWidgetPush(msg: {

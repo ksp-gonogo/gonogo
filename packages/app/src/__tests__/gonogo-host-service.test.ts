@@ -52,8 +52,10 @@ class FakeHost {
         info: { name: string; version?: string; buildTime?: string },
       ) => void
     >(),
-    vote: new Set<(peerId: string, status: "go" | "no-go" | null) => void>(),
-    abort: new Set<(peerId: string) => void>(),
+    vote: new Set<
+      (peerId: string, status: "go" | "no-go" | null, epoch?: number) => void
+    >(),
+    abort: new Set<(peerId: string, epoch?: number) => void>(),
   };
 
   broadcast(msg: PeerMessage): void {
@@ -89,11 +91,13 @@ class FakeHost {
     this.listeners.stationInfo.add(cb);
     return () => this.listeners.stationInfo.delete(cb);
   }
-  onGonogoVote(cb: (peerId: string, status: "go" | "no-go" | null) => void) {
+  onGonogoVote(
+    cb: (peerId: string, status: "go" | "no-go" | null, epoch?: number) => void,
+  ) {
     this.listeners.vote.add(cb);
     return () => this.listeners.vote.delete(cb);
   }
-  onGonogoAbort(cb: (peerId: string) => void) {
+  onGonogoAbort(cb: (peerId: string, epoch?: number) => void) {
     this.listeners.abort.add(cb);
     return () => this.listeners.abort.delete(cb);
   }
@@ -108,11 +112,11 @@ class FakeHost {
   fireStationInfo(peerId: string, name: string) {
     for (const cb of this.listeners.stationInfo) cb(peerId, { name });
   }
-  fireVote(peerId: string, status: "go" | "no-go" | null) {
-    for (const cb of this.listeners.vote) cb(peerId, status);
+  fireVote(peerId: string, status: "go" | "no-go" | null, epoch?: number) {
+    for (const cb of this.listeners.vote) cb(peerId, status, epoch);
   }
-  fireAbort(peerId: string) {
-    for (const cb of this.listeners.abort) cb(peerId);
+  fireAbort(peerId: string, epoch?: number) {
+    for (const cb of this.listeners.abort) cb(peerId, epoch);
   }
 
   asHost(): PeerHostService {
@@ -882,6 +886,57 @@ describe("GoNoGoHostService", () => {
     expect(svc.getSnapshot().notice).toMatchObject({ kind: "outcome" });
     timeline.emitMet(4);
     expect(svc.getSnapshot().notice).toBeNull();
+  });
+
+  describe("a station that reconnects across a load", () => {
+    it("does not fire an abort the station pressed on the timeline the load left", async () => {
+      host.fireConnect("peer-1");
+      host.fireStationInfo("peer-1", "Booster");
+      timeline.emitMet(120);
+      host.fireAbort("peer-1", 0);
+      await drainDispatch();
+      expect(abortDispatches()).toHaveLength(1);
+
+      host.fireDisconnect("peer-1");
+      timeline.emitNewTimeline();
+      timeline.emitMet(60);
+      host.fireConnect("peer-1");
+      host.fireStationInfo("peer-1", "Booster");
+      host.fireAbort("peer-1", 0);
+      await drainDispatch();
+
+      expect(abortDispatches()).toHaveLength(1);
+      expect(svc.getSnapshot().abort).toBeNull();
+    });
+
+    it("still fires an abort pressed on the timeline the game is on", async () => {
+      host.fireConnect("peer-1");
+      host.fireStationInfo("peer-1", "Booster");
+      timeline.emitMet(120);
+      timeline.emitNewTimeline();
+      timeline.emitMet(60);
+      host.fireAbort("peer-1", 1);
+      await drainDispatch();
+
+      expect(abortDispatches()).toHaveLength(1);
+    });
+
+    it("does not count a GO the station cast before the load, and tells it to vote again", () => {
+      host.fireConnect("peer-1");
+      host.fireStationInfo("peer-1", "A");
+      timeline.emitOnPad();
+      timeline.emitNewTimeline();
+      host.sent.length = 0;
+
+      host.fireVote("peer-1", "go", 0);
+
+      expect(svc.getSnapshot().countdown).toBeNull();
+      expect(svc.getSnapshot().stations[0]?.status).toBe("no-go");
+      expect(host.sent).toContainEqual({
+        peerId: "peer-1",
+        msg: { type: "gonogo-reset", reopened: false },
+      });
+    });
   });
 
   describe("a new timeline", () => {

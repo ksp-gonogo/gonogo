@@ -64,6 +64,33 @@ describe("Objectives: contracts heard completing", () => {
     );
   });
 
+  it("drops a completion the game loaded back to before, though the scene is still Flight", async () => {
+    const fixture = mount();
+    act(() => {
+      fixture.emit(
+        "career.contractEvent",
+        completion("90", "Launch a new vessel"),
+      );
+      fixture.store.beginFrame();
+    });
+    await waitFor(() =>
+      expect(visibleText(document.body)).toContain("Launch a new vessel"),
+    );
+
+    act(() => {
+      fixture.emit(
+        "spaceCenter.scene",
+        { scene: "Flight" },
+        { validAt: 10, timelineEpoch: 1 },
+      );
+      fixture.store.beginFrame();
+    });
+
+    await waitFor(() =>
+      expect(visibleText(document.body)).not.toContain("Launch a new vessel"),
+    );
+  });
+
   it("does not list a contract that failed", async () => {
     const fixture = mount();
 

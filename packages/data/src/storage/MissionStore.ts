@@ -45,6 +45,8 @@ export interface ContractFinish {
   validAt: number;
   /** The game time, in seconds, the finish reached the command centre (RT). */
   deliveredAt: number;
+  /** Wall-clock ms when this screen heard it; absent on a finish stored before it was recorded. */
+  recordedAt?: number;
 }
 
 function contractKey(finish: Pick<ContractFinish, "id" | "outcome">): string {

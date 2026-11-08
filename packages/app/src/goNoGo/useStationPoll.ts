@@ -4,7 +4,7 @@ import {
   useGameContext,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useViewUt } from "@ksp-gonogo/sitrep-client";
+import { getActiveTimelineEpoch, useViewUt } from "@ksp-gonogo/sitrep-client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PeerClient } from "../peer/PeerClientContext";
 import type { GoNoGoNotice } from "./notice";
@@ -88,6 +88,9 @@ export function useStationPoll(client: PeerClient | null): StationPoll {
   const [abortedBy, setAbortedBy] = useState<string | null>(null);
   // Whether this station pressed abort, so it can tell a main screen that restarted mid-flight.
   const iAbortedRef = useRef(false);
+  /* The timeline each was cast on travels with every resend, so a main screen that started a new timeline while this station was away refuses them. */
+  const voteEpochRef = useRef<number | undefined>(undefined);
+  const abortEpochRef = useRef<number | undefined>(undefined);
 
   const polling = inFlight && (!launched || pollOpen);
   // A launched station has left the poll: null is "not voting", where a stale NO-GO would draw a red box on the main screen.
@@ -96,7 +99,7 @@ export function useStationPoll(client: PeerClient | null): StationPoll {
   // Split from the lifecycle effect below so a vote flip never transiently sends null, which would cancel a countdown in flight.
   useEffect(() => {
     if (!client || !approvedRef.current) return;
-    client.sendGonogoVote(effectiveVote);
+    client.sendGonogoVote(effectiveVote, voteEpochRef.current);
   }, [client, effectiveVote]);
 
   const effectiveVoteRef = useRef(effectiveVote);
@@ -113,9 +116,9 @@ export function useStationPoll(client: PeerClient | null): StationPoll {
       setApproval(next);
       if (next !== "approved") return;
       if (effectiveVoteRef.current !== null) {
-        client.sendGonogoVote(effectiveVoteRef.current);
+        client.sendGonogoVote(effectiveVoteRef.current, voteEpochRef.current);
       }
-      if (iAbortedRef.current) client.sendGonogoAbort();
+      if (iAbortedRef.current) client.sendGonogoAbort(abortEpochRef.current);
     });
   }, [client]);
   const launchedRef = useRef(launched);
@@ -198,13 +201,15 @@ export function useStationPoll(client: PeerClient | null): StationPoll {
 
   const toggleVote = () => {
     if (!polling || !inPoll) return;
+    voteEpochRef.current = getActiveTimelineEpoch()?.epoch;
     setVote((prev) => (prev === "go" ? "no-go" : "go"));
   };
 
   const abort = () => {
     if (!inFlight || !launched || !inPoll || !client) return;
     iAbortedRef.current = true;
-    if (approvedRef.current) client.sendGonogoAbort();
+    abortEpochRef.current = getActiveTimelineEpoch()?.epoch;
+    if (approvedRef.current) client.sendGonogoAbort(abortEpochRef.current);
   };
 
   const voteRef = useRef(vote);

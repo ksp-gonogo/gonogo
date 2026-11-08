@@ -1,5 +1,6 @@
 import { dispatchAction, ScreenProvider } from "@ksp-gonogo/core";
 import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
+import { getActiveTimelineEpoch } from "@ksp-gonogo/sitrep-client";
 import { act, fireEvent, render, screen } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
@@ -357,6 +358,25 @@ describe("GO/NO-GO in a station's header", () => {
       });
       await act(async () => announce("approved"));
       expect(sent).toEqual(["no-go"]);
+    });
+
+    it("resends a GO with the timeline it was cast on, so the main screen can refuse it after a load", async () => {
+      const { client, announce } = relinking();
+      const sentWithEpoch: Array<[string | null, number | undefined]> = [];
+      client.sendGonogoVote = (v, epoch) => {
+        sentWithEpoch.push([v, epoch]);
+      };
+      station(client);
+      fireEvent.click(await voteButton("NO-GO"));
+      await screen.findByText("GO");
+      const castOn = getActiveTimelineEpoch()?.epoch;
+      expect(castOn).toBeTypeOf("number");
+      sentWithEpoch.length = 0;
+
+      await act(async () => announce("unknown"));
+      await act(async () => announce("approved"));
+
+      expect(sentWithEpoch).toEqual([["go", castOn]]);
     });
 
     it("never sends a vote to a main screen that refuses the station", async () => {

@@ -1,4 +1,5 @@
 import { defineTopicManifest } from "@ksp-gonogo/core";
+import { useTimelineEpoch } from "@ksp-gonogo/data";
 import {
   type PendingObjectiveRow,
   unsettledObjectiveRows,
@@ -70,9 +71,9 @@ function completionOf(payload: unknown): FinishedContract | null {
 }
 
 /**
- * The contracts heard completing since the scene last changed. Held in memory
- * only, so a refresh or a scene change empties it; the events replayed on
- * subscribe are not counted.
+ * The contracts heard completing since the scene last changed or the game
+ * started a new timeline. Held in memory only, so a refresh, a scene change or
+ * a load empties it; the events replayed on subscribe are not counted.
  */
 function useFinishedContracts(): FinishedContract[] {
   const [finished, setFinished] = useState<FinishedContract[]>([]);
@@ -95,6 +96,15 @@ function useFinishedContracts(): FinishedContract[] {
     }
     lastScene.current = scene;
   }, [scene]);
+  const epoch = useTimelineEpoch();
+  const lastEpoch = useRef(epoch);
+  useEffect(() => {
+    if (epoch === undefined) return;
+    if (lastEpoch.current !== undefined && epoch > lastEpoch.current) {
+      setFinished([]);
+    }
+    lastEpoch.current = epoch;
+  }, [epoch]);
   return finished;
 }
 

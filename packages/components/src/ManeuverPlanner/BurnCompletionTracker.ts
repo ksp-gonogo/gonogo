@@ -25,6 +25,9 @@ export const COMPLETED_HOLD_MS = 10_000;
  * - Returns the next `completedNodes` map: a node is added to it the first
  *   time the burn is found flown (see `burnFlown`). A node's own delta-v
  *   plays no part, so trimming a plan down never completes it.
+ * - A different node at a completed node's UT (a quickload puts back a node
+ *   with a new id) is a burn not yet flown: the completed entry and its
+ *   watch are dropped and the node is watched afresh.
  *
  * Returns the same `current` reference if no transitions happened, so React
  * can short-circuit re-renders.
@@ -40,9 +43,15 @@ export function computeCompletionUpdate(
   let next: Map<number, CompletedEntry> | null = null;
   for (const n of nodes) {
     present.add(n.UT);
+    const held = current.get(n.UT);
+    if (held !== undefined && held.snapshot.id !== n.id) {
+      if (next === null) next = new Map(current);
+      next.delete(n.UT);
+      watches.delete(n.UT);
+    }
     const watch = watchBurn(watches.get(n.UT), n, ctx);
     watches.set(n.UT, watch);
-    if (current.has(n.UT)) continue;
+    if ((next ?? current).has(n.UT)) continue;
     if (burnFlown(watch, n, ctx)) {
       if (next === null) next = new Map(current);
       next.set(n.UT, { snapshot: n, completedAt: now });
@@ -106,11 +115,13 @@ export function useBurnCompletionTracker(
       );
       timers.push(
         setTimeout(() => {
-          const live = nodesRef.current.find((n) => n.UT === ut);
+          const live = nodesRef.current.find(
+            (n) => n.UT === ut && n.id === entry.snapshot.id,
+          );
           // Re-read rather than captured, so a node the operator already removed during the hold is not asked to be removed again.
           if (live) removeNode(live.id);
           setCompletedNodes((done) => {
-            if (!done.has(ut)) return done;
+            if (done.get(ut) !== entry) return done;
             const next = new Map(done);
             next.delete(ut);
             return next;

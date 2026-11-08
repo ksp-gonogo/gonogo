@@ -15,6 +15,7 @@ import { safeRandomUuid } from "@ksp-gonogo/core";
 import { LocalStorageStore } from "@ksp-gonogo/data";
 import {
   bodyRadiusOf,
+  getActiveTimelineEpoch,
   getOrbitSolve,
   getSystemBodies,
   getValue,
@@ -30,6 +31,7 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { magnitudeOf, type Quantityish } from "@ksp-gonogo/ui-kit";
 import type { PeerHostService } from "../peer/PeerHostService";
+import { viewUtSeconds } from "../telemetry/viewUtSeconds";
 
 /**
  * Main-screen owner of conditional maneuver triggers.
@@ -50,6 +52,8 @@ import type { PeerHostService } from "../peer/PeerHostService";
  *   - Auto-clear triggers whose observed vessel identity no longer matches
  *     the one it was armed against, a circularize armed for vessel A
  *     shouldn't fire on vessel B.
+ *   - Follow a game load: a trigger armed after the instant the game went
+ *     back to is dropped, and one that fired after it is armed again.
  *   - Broadcast snapshots to connected peers; accept arm / cancel from
  *     them via the host service.
  *
@@ -66,6 +70,10 @@ import type { PeerHostService } from "../peer/PeerHostService";
  */
 
 const STORAGE_KEY = "gonogo.maneuverTriggers.list";
+const FLOWN_STORAGE_KEY = "gonogo.maneuverTriggers.flown";
+
+/** How many fired triggers are kept for a load to arm again. */
+const FLOWN_KEPT = 20;
 
 /** A persisted trigger's frozen plan inputs, and an empty set when the record
  *  carried none: a trigger with no inputs fires against nothing. */
@@ -130,6 +138,10 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
   private lastEmitted: string | null = null;
   private host: ManeuverTriggerPeerHost | null;
   private store: LocalStorageStore<ArmedTrigger[]>;
+  /** Triggers whose burns were all taken, kept so a load to before they fired can arm them again. */
+  private flownStore: LocalStorageStore<ArmedTrigger[]>;
+  /** The epoch each store showed at its last frame, so a frame can tell a new timeline from one more frame of the same. */
+  private epochs = new WeakMap<object, number>();
   private readonly nowMs: () => number;
 
   constructor(
@@ -140,6 +152,11 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
     this.nowMs = opts.nowMs ?? (() => Date.now());
     this.store = new LocalStorageStore<ArmedTrigger[]>({
       key: STORAGE_KEY,
+      defaults: [],
+      storage: opts.storage ?? globalThis.localStorage,
+    });
+    this.flownStore = new LocalStorageStore<ArmedTrigger[]>({
+      key: FLOWN_STORAGE_KEY,
       defaults: [],
       storage: opts.storage ?? globalThis.localStorage,
     });
@@ -204,6 +221,7 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
       inputs: input.inputs,
       vesselName: this.readVesselName(),
       createdAt: this.nowMs(),
+      armedAtUt: viewUtSeconds(),
       createdBy,
     };
     this.triggers.push(trigger);
@@ -246,6 +264,7 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
     // frame tick re-evaluates every armed trigger's `dataKey` threshold below
     // (`evaluate()`).
     this.vesselUnsub = onActiveTimelineFrame(() => {
+      this.noteTimeline();
       // Vessel changed: drop triggers for the old one. A `live` of null is
       // "no identity read yet", not "a different vessel", so it drops nothing.
       const live = this.readVesselName();
@@ -261,6 +280,54 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
       this.emit();
       this.evaluate();
     });
+  }
+
+  /**
+   * Follows the game onto a new timeline (a revert, a quickload), compared per
+   * store as the go/no-go poll does: a replay's epoch and the live stream's are
+   * unrelated numbers.
+   */
+  private noteTimeline(): void {
+    const now = getActiveTimelineEpoch();
+    if (!now) return;
+    const prev = this.epochs.get(now.store);
+    this.epochs.set(now.store, now.epoch);
+    if (prev === undefined || now.epoch <= prev) return;
+    const loadedUt = viewUtSeconds();
+    if (loadedUt === undefined) return;
+    this.followLoad(loadedUt);
+  }
+
+  /**
+   * The game went back to `loadedUt`. A trigger armed after it was armed on a
+   * flight that no longer happened, and one that fired after it has not fired
+   * on this one, so it waits on its condition again under a new id: a burn still
+   * settling from the old flight then finds nothing listed to settle.
+   */
+  private followLoad(loadedUt: number): void {
+    const after = (ut: number | undefined) => ut !== undefined && ut > loadedUt;
+    const rearm = (t: ArmedTrigger): ArmedTrigger => ({
+      ...t,
+      id: generateId(),
+      sent: undefined,
+      failure: undefined,
+      firedAtUt: undefined,
+    });
+    const kept = this.triggers
+      .filter((t) => !after(t.armedAtUt))
+      .map((t) => (after(t.firedAtUt) ? rearm(t) : t));
+    const flown = this.flownStore.get();
+    const back = flown
+      .filter((t) => t.armedAtUt !== undefined && !after(t.armedAtUt))
+      .filter((t) => after(t.firedAtUt))
+      .map(rearm);
+    const stillFlown = flown.filter(
+      (t) => !after(t.armedAtUt) && !after(t.firedAtUt),
+    );
+    this.triggers = [...kept, ...back];
+    this.fired.clear();
+    this.flownStore.set(stillFlown);
+    this.persist();
   }
 
   /**
@@ -334,10 +401,11 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
       if (!compareThreshold(value, t.op, t.value)) continue;
       this.fired.add(t.id);
       // Listed as sent until its burns settle, so the operator sees a fired trigger while its nodes travel.
+      const firedAtUt = viewUtSeconds();
       this.triggers = this.triggers.map((x) =>
-        x.id === t.id ? { ...x, sent: true } : x,
+        x.id === t.id ? { ...x, sent: true, firedAtUt } : x,
       );
-      this.fire(t);
+      this.fire({ ...t, firedAtUt });
       mutated = true;
     }
     this.pruneFired();
@@ -366,6 +434,13 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
       if (t.id !== trigger.id) return [t];
       return failure ? [{ ...trigger, sent: undefined, failure }] : [];
     });
+    if (!failure) {
+      this.flownStore.set(
+        [...this.flownStore.get(), { ...trigger, sent: undefined }].slice(
+          -FLOWN_KEPT,
+        ),
+      );
+    }
     this.pruneFired();
     this.persist();
     this.emit();

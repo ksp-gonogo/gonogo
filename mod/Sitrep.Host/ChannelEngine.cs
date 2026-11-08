@@ -10280,12 +10280,17 @@ namespace Sitrep.Host
             // A game load is a new timeline whatever its save or UT says, so held
             // commands from one game never carry into another.
             // The load is taken whether or not the save changed with it, or it would start a second timeline a tick later.
+            var loadMarkHeld = LoadMarkHeld();
+            var gameRewound = TakeGameRewound();
             var gameLoaded = TakeGameLoaded();
+            var markGaveWay = TakeLoadMarkGaveWay();
             var folderChanged = tick.Save != null && _timelineSave != null && tick.Save != _timelineSave;
             var saveChanged = gameLoaded || folderChanged;
             var ic = System.Globalization.CultureInfo.InvariantCulture;
             var why = gameLoaded
                 ? "a game was loaded"
+                : gameRewound
+                    ? "this run's own save was loaded"
                 : folderChanged
                     ? "the save changed from '" + _timelineSave + "' to '" + tick.Save + "'"
                     : "the clock went back from UT " + _clock.Now().ToString("F2", ic);
@@ -10301,17 +10306,45 @@ namespace Sitrep.Host
              */
             var behindPreviousTick = tick.Ut < _lastTickUt;
             _lastTickUt = tick.Ut;
-            if ((tick.Ut < _clock.Now() && behindPreviousTick) || saveChanged)
+            var clockWentBack = tick.Ut < _clock.Now() && (behindPreviousTick || markGaveWay);
+            /*
+             * A marked load resets once, when its save arrives. Reset on the clock going
+             * back as well and the first reset restores from whatever save was newest,
+             * telling commands the loaded save carries that they will not run.
+             */
+            if (loadMarkHeld && !saveChanged && !gameRewound)
             {
+                _lowestTickWhileMarked = Math.Min(_lowestTickWhileMarked, tick.Ut);
+                clockWentBack = false;
+            }
+            if (clockWentBack || saveChanged || gameRewound)
+            {
+                var resetUt = Math.Min(tick.Ut, _lowestTickWhileMarked);
+                if (gameRewound)
+                {
+                    var savedUt = Volatile.Read(ref _loadedGame)?.Ut ?? double.NaN;
+                    if (!double.IsNaN(savedUt) && !double.IsInfinity(savedUt))
+                    {
+                        resetUt = Math.Min(resetUt, savedUt);
+                    }
+                }
                 if (saveChanged)
                 {
+                    resetUt = double.NegativeInfinity;
                     _courier.ResetTimeline(double.NegativeInfinity);
                     _clock.Reset(tick.Ut);
                 }
                 else
                 {
-                    _courier.ResetTimeline(tick.Ut);
+                    _courier.ResetTimeline(resetUt);
                 }
+                ForgetOwnSavesAfter(resetUt);
+                var loadedToken = Volatile.Read(ref _loadedGame);
+                if (loadedToken != null && (saveChanged || gameRewound))
+                {
+                    RememberOwnSave(loadedToken.Token, loadedToken.Ut);
+                }
+                CountTimelineReset(resetUt);
                 _emitter.Reset(tick.Ut);
                 Cadence.ResetTimeline();
                 _lastWarmUt.Clear();
@@ -10360,7 +10393,7 @@ namespace Sitrep.Host
                 // What became of a command on the abandoned timeline is no news on this one.
                 _settled.Clear();
                 _settledDispatcher.Clear();
-                LogHost("timeline reset at UT " + tick.Ut.ToString("F2", ic) + ", " + why + ": " + ResetDelivery(tick.Ut, tick.Save, pendingBefore, dispatchersBefore));
+                LogHost("timeline reset at UT " + resetUt.ToString("F2", ic) + ", " + why + ": " + ResetDelivery(tick.Ut, tick.Save, pendingBefore, dispatchersBefore));
                 RecomputeChannelBirthFromArchive();
                 _failedCommands.Clear();
                 _recoveryWithdrawalPending = false;
@@ -10369,6 +10402,10 @@ namespace Sitrep.Host
                 SendKeptAfterTimelineReset();
                 TimelineResetChangedSave = folderChanged;
                 NotifyTimelineResetListeners();
+            }
+            if (!loadMarkHeld)
+            {
+                _lowestTickWhileMarked = double.PositiveInfinity;
             }
 
             var activeVesselId = VesselViewProvider.TryGetActiveVesselId(tick.Snapshot);

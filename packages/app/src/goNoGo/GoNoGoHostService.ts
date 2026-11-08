@@ -215,7 +215,16 @@ export class GoNoGoHostService {
     }
 
     this.unsubs.push(
-      host.onGonogoVote((peerId, status) => {
+      host.onGonogoVote((peerId, status, epoch) => {
+        if (status === "go" && this.castBeforeThisTimeline(epoch)) {
+          this.peerIdToVote.set(peerId, "no-go");
+          this.host.sendToPeer(peerId, {
+            type: "gonogo-reset",
+            reopened: this.reopened,
+          });
+          this.emit();
+          return;
+        }
         this.peerIdToVote.set(peerId, status);
         const centre = this.voterCentre(peerId);
         if (centre === null) return;
@@ -239,8 +248,16 @@ export class GoNoGoHostService {
     );
 
     this.unsubs.push(
-      host.onGonogoAbort((peerId) => {
+      host.onGonogoAbort((peerId, epoch) => {
         if (!this.launched) return;
+        // A station that was away during a load resends the abort it pressed on the flight the load left.
+        if (this.castBeforeThisTimeline(epoch)) {
+          this.host.sendToPeer(peerId, {
+            type: "gonogo-reset",
+            reopened: this.reopened,
+          });
+          return;
+        }
         // If an abort is already on record, treat this as a re-notification
         // (station reconnecting after a host refresh). Rebroadcast the
         // attribution so any fresh/reconnecting stations learn who aborted,
@@ -337,6 +354,13 @@ export class GoNoGoHostService {
         cause: "dropped",
       });
     }
+  }
+
+  /** Whether a vote or abort cast at timeline `epoch` came from before the timeline the game is on now. */
+  private castBeforeThisTimeline(epoch: number | undefined): boolean {
+    if (epoch === undefined) return false;
+    const now = getActiveTimelineEpoch();
+    return now !== undefined && epoch < now.epoch;
   }
 
   /**

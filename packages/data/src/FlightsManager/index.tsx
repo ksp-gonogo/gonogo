@@ -473,31 +473,33 @@ export function FlightsManager({
                             EVA: {f.evaKerbals.join(", ")}
                           </FlightDetail>
                         )}
-                        {contractsOnRow(row, contractFinishes).map((c) => (
-                          <ContractFinishLine key={`${c.id}:${c.outcome}`}>
-                            <Badge
-                              size="sm"
-                              tone={c.outcome === "Completed" ? "go" : "nogo"}
-                            >
-                              {c.outcome === "Completed"
-                                ? "completed"
-                                : "failed"}
-                            </Badge>
-                            <span>{c.title ?? NULL_DISPLAY}</span>
-                            <ContractFinishTime>
-                              <MissionDate
-                                value={c.validAt}
-                                context={{ frame: "scet" }}
-                              />
-                            </ContractFinishTime>
-                            <ContractFinishTime>
-                              <MissionDate
-                                value={c.deliveredAt}
-                                context={{ frame: "received" }}
-                              />
-                            </ContractFinishTime>
-                          </ContractFinishLine>
-                        ))}
+                        {contractsOnRow(row, contractFinishes, rows).map(
+                          (c) => (
+                            <ContractFinishLine key={`${c.id}:${c.outcome}`}>
+                              <Badge
+                                size="sm"
+                                tone={c.outcome === "Completed" ? "go" : "nogo"}
+                              >
+                                {c.outcome === "Completed"
+                                  ? "completed"
+                                  : "failed"}
+                              </Badge>
+                              <span>{c.title ?? NULL_DISPLAY}</span>
+                              <ContractFinishTime>
+                                <MissionDate
+                                  value={c.validAt}
+                                  context={{ frame: "scet" }}
+                                />
+                              </ContractFinishTime>
+                              <ContractFinishTime>
+                                <MissionDate
+                                  value={c.deliveredAt}
+                                  context={{ frame: "received" }}
+                                />
+                              </ContractFinishTime>
+                            </ContractFinishLine>
+                          ),
+                        )}
                         {f.outcome?.kind === "recovered" && (
                           <OutcomeBadge
                             $tone="go"

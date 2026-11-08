@@ -64,13 +64,17 @@ namespace Sitrep.Host
         /// </summary>
         private sealed class SavedGame
         {
-            public SavedGame(DeliverySnapshot delivery, HeardSnapshot? heard, double ut, string? save)
+            public SavedGame(DeliverySnapshot delivery, HeardSnapshot? heard, double ut, string? save, string? token = null)
             {
                 Delivery = delivery;
                 Heard = heard;
                 Ut = ut;
                 Save = save;
+                Token = token;
             }
+
+            /// <summary>The token the save was stamped with, or null when it carries none.</summary>
+            public string? Token { get; }
 
             public DeliverySnapshot Delivery { get; }
 
@@ -224,29 +228,50 @@ namespace Sitrep.Host
         /// <summary>
         /// A game was loaded, carrying <paramref name="carried"/> and
         /// <paramref name="heard"/>: the next tick starts a new timeline and
-        /// restores what the save held. Callable from any thread.
+        /// restores what the save held. When <paramref name="token"/> names a
+        /// save this run wrote on the timeline being played, the timeline is
+        /// rewound to the save and keeps its history before it; any other save
+        /// starts a timeline with no history. Callable from any thread.
         /// </summary>
         /// <param name="savedUt">The UT the save was written at, or negative infinity when it does not say.</param>
         /// <param name="save">The save folder the game belongs to, or null when unknown.</param>
-        public void NoteGameLoaded(DeliverySnapshot? carried, HeardSnapshot? heard = null, double savedUt = double.NegativeInfinity, string? save = null)
+        /// <param name="token">The token the save was stamped with, or null when it carries none.</param>
+        public void NoteGameLoaded(DeliverySnapshot? carried, HeardSnapshot? heard = null, double savedUt = double.NegativeInfinity, string? save = null, string? token = null)
         {
-            var loaded = new SavedGame(carried ?? new DeliverySnapshot(), heard, savedUt, save);
+            var loaded = new SavedGame(carried ?? new DeliverySnapshot(), heard, savedUt, save, token);
             Volatile.Write(ref _latestSave, loaded);
             Volatile.Write(ref _loadedGame, loaded);
-            Interlocked.Exchange(ref _gameLoaded, 1);
+            if (IsOwnSaveOnThisTimeline(token))
+            {
+                Interlocked.Exchange(ref _gameRewound, 1);
+            }
+            else
+            {
+                Interlocked.Exchange(ref _gameLoaded, 1);
+            }
+            Interlocked.Exchange(ref _loadMarkedAt, 0);
         }
 
         /// <summary>
-        /// The game loaded this process's own latest save, as it does on every
-        /// scene change, which starts no new timeline. Callable from any thread.
+        /// The game loaded this process's own latest save. On a scene change that
+        /// starts no new timeline. After <see cref="NoteLoadStarted"/> it is a real
+        /// load of that save, which may move the clock either way, and is taken as
+        /// <see cref="NoteGameLoaded"/>. Callable from any thread.
         /// </summary>
-        public void NoteSaveReloaded(DeliverySnapshot? carried, HeardSnapshot? heard = null, double savedUt = double.NegativeInfinity, string? save = null) =>
-            Volatile.Write(ref _latestSave, new SavedGame(carried ?? new DeliverySnapshot(), heard, savedUt, save));
+        public void NoteSaveReloaded(DeliverySnapshot? carried, HeardSnapshot? heard = null, double savedUt = double.NegativeInfinity, string? save = null, string? token = null)
+        {
+            if (Volatile.Read(ref _loadMarkedAt) != 0)
+            {
+                NoteGameLoaded(carried, heard, savedUt, save, token);
+                return;
+            }
+            Volatile.Write(ref _latestSave, new SavedGame(carried ?? new DeliverySnapshot(), heard, savedUt, save, token));
+        }
 
         /// <summary>
         /// The game was saved at <paramref name="ut"/>, holding
-        /// <paramref name="delivery"/> and <paramref name="heard"/>. Callable
-        /// from any thread.
+        /// <paramref name="delivery"/> and <paramref name="heard"/>, stamped with
+        /// <paramref name="token"/>. Callable from any thread.
         ///
         /// <para>The newest save written or loaded is what any later reset of
         /// the timeline restores from, when that save lies behind the instant
@@ -257,8 +282,11 @@ namespace Sitrep.Host
         /// none. A rewind to before the newest save restores nothing of it:
         /// the load that caused it brings its own record.</para>
         /// </summary>
-        public void NoteSaved(DeliverySnapshot? delivery, HeardSnapshot? heard, double ut, string? save = null) =>
-            Volatile.Write(ref _latestSave, new SavedGame(delivery ?? new DeliverySnapshot(), heard, ut, save));
+        public void NoteSaved(DeliverySnapshot? delivery, HeardSnapshot? heard, double ut, string? save = null, string? token = null)
+        {
+            Volatile.Write(ref _latestSave, new SavedGame(delivery ?? new DeliverySnapshot(), heard, ut, save, token));
+            RememberOwnSave(token, ut);
+        }
 
         private Func<HeardSnapshot?>? _heardNow;
         private Action<HeardSnapshot?>? _heardRestore;
@@ -1547,7 +1575,7 @@ namespace Sitrep.Host
             var latest = Volatile.Read(ref _latestSave);
             var from = loaded ?? (latest != null && latest.IsBehind(ut, save) ? latest : null);
             _heardRestore?.Invoke(from?.Heard);
-            var carried = from?.Delivery;
+            var carried = WithoutUndone(from?.Delivery);
             if (carried != null)
             {
                 _delivery.Restore(carried, _courier.CurrentEpoch);
@@ -1645,10 +1673,12 @@ namespace Sitrep.Host
                     _pendingDispatcher[entry.Id] = dispatcher;
                 }
             }
-            var undone = jobsBefore.Concat(courierJobsBefore)
-                .Select(entry => entry.Value)
-                .Where(job => !carried.Contains(job))
-                .Distinct();
+            var undoneEntries = jobsBefore.Concat(courierJobsBefore)
+                .Where(entry => !carried.Contains(entry.Value))
+                .ToList();
+            RememberUndone(undoneEntries.Select(entry => entry.Key)
+                .Concat(undoneEntries.Select(entry => entry.Value.ClientRequestId ?? "")));
+            var undone = undoneEntries.Select(entry => entry.Value).Distinct();
             foreach (var job in undone)
             {
                 try

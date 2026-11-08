@@ -57,6 +57,10 @@ export interface ArmedTrigger {
   vesselName: string | null;
   /** Wall-clock ms when armed. */
   createdAt: number;
+  /** The view UT, in seconds, when armed; absent for a trigger armed before it was recorded. */
+  armedAtUt?: number;
+  /** The view UT, in seconds, when it fired; absent until it does. */
+  firedAtUt?: number;
   /** "main" or peer id of the screen that armed it. */
   createdBy: string;
   /**

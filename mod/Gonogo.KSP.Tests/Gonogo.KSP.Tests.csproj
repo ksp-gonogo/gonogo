@@ -42,6 +42,7 @@
     <Compile Include="..\Gonogo.KSP\PartActionText.cs" />
     <Compile Include="..\Gonogo.KSP\TargetOrbitFreshness.cs" />
     <Compile Include="..\Gonogo.KSP\TerminatedVessels.cs" />
+    <Compile Include="..\Gonogo.KSP\RecentCrashWindow.cs" />
     <Compile Include="..\Gonogo.KSP\BoardedVessels.cs" />
     <Compile Include="..\Gonogo.KSP\BreakingGroundReads.cs" />
     <!-- SavedModuleReads.cs reads a kerbal's sample and a flag's plaque off saved part modules and carries no KSP or Unity type. -->

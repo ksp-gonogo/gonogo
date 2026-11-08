@@ -38,9 +38,6 @@ namespace Gonogo.KSP
         // reports the impact some frames before the part is killed.
         private const double ImpactWindowUt = 2.0;
 
-        // How long after a craft is reported a late kill or a shed part's destruction still amends it.
-        private const double RecentCaptureUt = 30.0;
-
         private readonly FlightStatsTracker _tracker = new FlightStatsTracker();
         private readonly VesselDeaths<CrashCapture, CrashImpact> _deaths =
             new VesselDeaths<CrashCapture, CrashImpact>(ImpactWindowUt);
@@ -323,8 +320,13 @@ namespace Gonogo.KSP
         {
             var parts = ReadRemainingParts(vessel);
             _tracker.RecordDebrisDestroyed(parts);
+            var nowUt = Planetarium.GetUniversalTime();
             foreach (var capture in _recentCaptures.Values)
             {
+                if (RecentCrashWindow.Abandoned(capture.Ut, nowUt))
+                {
+                    continue;
+                }
                 if (capture.NoteDebrisDestroyed(parts) && capture.Published)
                 {
                     PublishCrash(capture);
@@ -342,7 +344,8 @@ namespace Gonogo.KSP
             var stale = new List<string>();
             foreach (var entry in _recentCaptures)
             {
-                if (entry.Value.Published && Math.Abs(nowUt - entry.Value.Ut) > RecentCaptureUt)
+                if (RecentCrashWindow.Abandoned(entry.Value.Ut, nowUt)
+                    || (entry.Value.Published && RecentCrashWindow.Expired(entry.Value.Ut, nowUt)))
                 {
                     stale.Add(entry.Key);
                 }

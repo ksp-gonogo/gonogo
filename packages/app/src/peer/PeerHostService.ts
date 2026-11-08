@@ -288,11 +288,14 @@ type StationInfoListener = (
     centre?: string;
   },
 ) => void;
+/** `epoch` is the timeline epoch the station's screen showed when the vote was cast, absent when it did not say. */
 type GonogoVoteListener = (
   peerId: string,
   status: "go" | "no-go" | null,
+  epoch?: number,
 ) => void;
-type GonogoAbortListener = (peerId: string) => void;
+/** `epoch` is the timeline epoch the station's screen showed when the abort was pressed, absent when it did not say. */
+type GonogoAbortListener = (peerId: string, epoch?: number) => void;
 type PeerLifecycleListener = (peerId: string) => void;
 type WidgetPushListener = (
   peerId: string,
@@ -2283,10 +2286,10 @@ export class PeerHostService {
       this.serveIfApproved(conn);
     },
     "gonogo-vote": (msg, conn) => {
-      this.events.emit("gonogoVote", conn.peer, msg.status);
+      this.events.emit("gonogoVote", conn.peer, msg.status, msg.epoch);
     },
-    "gonogo-abort": (_msg, conn) => {
-      this.events.emit("gonogoAbort", conn.peer);
+    "gonogo-abort": (msg, conn) => {
+      this.events.emit("gonogoAbort", conn.peer, msg.epoch);
     },
     "widget-push": (msg, conn) => {
       this.events.emit("widgetPush", conn.peer, msg);

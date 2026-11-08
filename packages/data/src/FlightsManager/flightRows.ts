@@ -20,16 +20,46 @@ export interface FlightRow {
 
 /**
  * The contracts that finished during a row's flight: those whose finish time falls within the span the row's recordings hold samples for. A finish with no flight spanning it belongs to no row, and a row whose recordings kept no valid-time span has none.
+ *
+ * A reverted flight and its retry cover the same game time, so `rows`, when given, settles which of them a finish belongs to: of the rows whose span holds it, the one launched last before the finish was heard. A finish that does not say when it was heard is listed under each.
  */
 export function contractsOnRow(
-  row: Pick<FlightRow, "firstValidUt" | "lastValidUt">,
+  row: Pick<FlightRow, "firstValidUt" | "lastValidUt" | "launchedAt">,
   finishes: readonly ContractFinish[],
+  rows: readonly Pick<
+    FlightRow,
+    "firstValidUt" | "lastValidUt" | "launchedAt"
+  >[] = [],
 ): ContractFinish[] {
+  return finishes.filter((f) => {
+    if (!spans(row, f.validAt)) return false;
+    if (f.recordedAt === undefined) return true;
+    return (heardOn(rows, f.validAt, f.recordedAt) ?? row) === row;
+  });
+}
+
+function spans(
+  row: Pick<FlightRow, "firstValidUt" | "lastValidUt">,
+  ut: number,
+): boolean {
   const { firstValidUt, lastValidUt } = row;
-  if (firstValidUt === undefined || lastValidUt === undefined) return [];
-  return finishes.filter(
-    (f) => f.validAt >= firstValidUt && f.validAt <= lastValidUt,
-  );
+  if (firstValidUt === undefined || lastValidUt === undefined) return false;
+  return ut >= firstValidUt && ut <= lastValidUt;
+}
+
+/** Of the rows spanning `validAt`, the one launched last at or before `recordedAt`, or undefined when none was. */
+function heardOn<
+  Row extends Pick<FlightRow, "firstValidUt" | "lastValidUt" | "launchedAt">,
+>(rows: readonly Row[], validAt: number, recordedAt: number): Row | undefined {
+  let best: Row | undefined;
+  for (const candidate of rows) {
+    if (!spans(candidate, validAt) || candidate.launchedAt > recordedAt)
+      continue;
+    if (best === undefined || candidate.launchedAt > best.launchedAt) {
+      best = candidate;
+    }
+  }
+  return best;
 }
 
 function widen(

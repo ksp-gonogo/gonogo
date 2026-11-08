@@ -4,18 +4,17 @@ import { logger } from "@ksp-gonogo/logger";
 import {
   getActiveTelemetryClient,
   getVesselIdentity,
-  getViewUt,
   sampleActiveTopic,
 } from "@ksp-gonogo/sitrep-client";
 import {
   type CommsDelay,
   type ManeuverNode,
-  magnitudeOf,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { dispatchActionGroup } from "../dispatchActionGroup";
 import type { HostJobs } from "../hosting/HostJobs";
 import type { PeerHostService } from "../peer/PeerHostService";
+import { viewUtSeconds } from "../telemetry/viewUtSeconds";
 import { AlarmPeerBridge } from "./AlarmPeerBridge";
 import { AlarmWarpPlanner } from "./AlarmWarpPlanner";
 import { type EditedInGame, ScetAlarmBridge } from "./ScetAlarmBridge";
@@ -80,14 +79,6 @@ export interface AlarmHostOptions {
    * is armed through. Omitted on a screen that holds none.
    */
   hostJobs?: HostJobs;
-}
-
-/**
- * The view instant in the plain UT seconds an alarm is stored in, persisted and
- * sent to stations as, and settled against.
- */
-function viewUtSeconds(): number | undefined {
-  return magnitudeOf(getViewUt()) ?? undefined;
 }
 
 /** A node-bound time trigger naming the active craft, when there is one to name. */

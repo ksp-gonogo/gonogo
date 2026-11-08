@@ -1162,10 +1162,12 @@ namespace Sitrep.Host.IntegrationTests
                 var saved = engine.DeliverySnapshotNow();
                 Assert.Single(saved.Held);
 
+                engine.NoteLoadStarted();
                 engine.NoteGameLoaded(null);
                 Tick(engine, 2.0);
                 Assert.Empty(engine.DeliverySnapshotNow().Held);
 
+                engine.NoteLoadStarted();
                 engine.NoteGameLoaded(saved);
                 Assert.Same(saved, engine.DeliverySnapshotNow());
                 Tick(engine, 3.0);

@@ -1,3 +1,4 @@
+import { FlightEndReason } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { contractsOnRow, flightRows } from "./flightRows";
 
@@ -91,6 +92,40 @@ describe("contractsOnRow", () => {
       finish("after", 450),
     ]);
     expect(held.map((f) => f.id)).toEqual(["first", "second"]);
+  });
+
+  describe("a reverted flight and its retry, which cover the same game time", () => {
+    const rows = flightRows(
+      [
+        flight("retry", "Hopper", 10_000, {
+          firstValidUt: 100,
+          lastValidUt: 300,
+        }),
+        flight("reverted", "Hopper", 1_000, {
+          firstValidUt: 100,
+          lastValidUt: 250,
+          endReason: FlightEndReason.Reverted,
+        }),
+      ],
+      new Set(),
+    );
+    const [retryRow, revertedRow] = rows;
+
+    it("lists a finish heard during the retry under the retry alone", () => {
+      const heard = [{ ...finish("orbit", 200), recordedAt: 12_000 }];
+      expect(contractsOnRow(retryRow, heard, rows).map((f) => f.id)).toEqual([
+        "orbit",
+      ]);
+      expect(contractsOnRow(revertedRow, heard, rows)).toEqual([]);
+    });
+
+    it("lists a finish heard on the reverted flight under that flight alone", () => {
+      const heard = [{ ...finish("orbit", 200), recordedAt: 5_000 }];
+      expect(contractsOnRow(revertedRow, heard, rows).map((f) => f.id)).toEqual(
+        ["orbit"],
+      );
+      expect(contractsOnRow(retryRow, heard, rows)).toEqual([]);
+    });
   });
 
   it("holds nothing for a row whose recordings kept no valid-time span", () => {
