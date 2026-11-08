@@ -9,7 +9,6 @@ import { usePartsLive, useTopology } from "@ksp-gonogo/data";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
 import { type CommandId, withoutReckoning } from "@ksp-gonogo/sitrep-sdk";
 import { Panel } from "@ksp-gonogo/ui-kit";
-import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 // Side-effect import: registers the built-in `ship-map.part-meters` contribution.
 import "./partMetersContribution";
@@ -34,6 +33,7 @@ import type { ShipMapOverlayContext } from "./slots";
 import { buildStageStack } from "./stageStack";
 import { useBaseView } from "./useBaseView";
 import { usePartShapes } from "./usePartShapes";
+import { useSchematicTransfer } from "./useSchematicTransfer";
 
 const topics = defineTopicManifest({
   channels: [
@@ -55,6 +55,8 @@ const topics = defineTopicManifest({
     "vessel.propulsion.currentThrust",
     "vessel.structure.currentStage",
     "crash.lastCrash",
+    "vessel.resourceTransfers",
+    "vessel.transferReach",
   ],
 });
 
@@ -180,6 +182,8 @@ function ShipMapComponent({
     () => groupByPart(metaContributions, (e) => `${e.partId}:${e.label}`),
     [metaContributions],
   );
+
+  const transfer = useSchematicTransfer(partMeta);
 
   const partActions = useMemo(
     () => groupByPart(actionContributions, (e) => `${e.partId}:${e.name}`),
@@ -354,8 +358,13 @@ function ShipMapComponent({
           thrusting,
           overlayContext,
           partMeters,
-          partMeta,
+          partMeta: transfer.partMeta,
           partActions,
+          transferTray: transfer.tray,
+          transferDrawing: transfer.drawing,
+          onPickTank: transfer.onPickTank,
+          transferResourcesOf: transfer.transferResourcesOf,
+          onStartTransferPick: transfer.onStartTransferPick,
           onInvokeContributedAction,
           onInvokePartAction,
           turn,
@@ -425,7 +434,14 @@ registerComponent<ShipMapConfig>({
   ...read,
   fields: topics.fields,
   defaultConfig: {},
-  actions: [],
+  actions: [
+    {
+      id: "stop-transfers",
+      label: "Stop transfers",
+      description: "Stop every resource transfer running on the vessel",
+      accepts: ["button"],
+    },
+  ],
   pushable: true,
 });
 

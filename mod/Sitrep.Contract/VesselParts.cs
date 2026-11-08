@@ -342,6 +342,30 @@ public class PartResourceFlow
     /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool? UnratedProcess { get; set; }
+
+    /// <summary>
+    /// Whether a resource transfer can move this resource in this tank: the
+    /// resource allows transfer, and the tank is visible and has capacity. Null
+    /// on topics that do not report it.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? Transferable { get; set; }
+
+    /// <summary>
+    /// The tank's direction limit. A tank set to <c>Out</c> cannot be filled by a
+    /// transfer and one set to <c>In</c> cannot be drawn from. Null on topics that
+    /// do not report it.
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public KspTankFlowMode? FlowMode { get; set; }
+
+    /// <summary>
+    /// The player's flow lock on this tank. It stops engines and consumers
+    /// drawing from the tank, and does not stop a transfer. Null on topics that
+    /// do not report it.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? Locked { get; set; }
 }
 
 /// <summary>

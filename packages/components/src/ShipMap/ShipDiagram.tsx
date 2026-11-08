@@ -10,7 +10,7 @@ import {
 import type React from "react";
 import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
-import { PartActionMenu } from "./PartActionMenu";
+import { PartActionMenu, type TransferResourceOption } from "./PartActionMenu";
 import { PartTooltip } from "./PartTooltip";
 import { NO_METERS } from "./partMeters";
 import { ShipDiagramSvg } from "./ShipDiagramSvg";
@@ -20,6 +20,8 @@ import type {
   ShipMapPartMetaEntry,
   ShipMapPartMeterEntry,
 } from "./shipTopology";
+
+import type { TransferDrawing } from "./TransferLayer";
 
 const NO_META: readonly ShipMapPartMetaEntry[] = [];
 const NO_ACTIONS: readonly ShipMapPartActionEntry[] = [];
@@ -61,6 +63,16 @@ interface Props {
   turn?: number;
   /** Sets the turn. Omitted, the rotate control does not appear. */
   onTurn?: (turn: number) => void;
+  /** Tank marks and running transfers to draw. */
+  transferDrawing?: TransferDrawing;
+  /** While picking tanks, a press on a part chooses it instead of opening its menu. */
+  onPickTank?: (part: ShipMapPart) => void;
+  /** The resources a part's menu offers for transfer. */
+  transferResourcesOf?: (
+    part: ShipMapPart,
+  ) => readonly TransferResourceOption[];
+  /** A resource was chosen in a part's menu. */
+  onStartTransferPick?: (part: ShipMapPart, resource: string) => void;
 }
 
 /** The diagram is too small to hold the rotate control beside the reset one under this width, in px. */
@@ -81,6 +93,10 @@ export function ShipDiagram({
   onInvokePartAction,
   turn = 0,
   onTurn,
+  transferDrawing,
+  onPickTank,
+  transferResourcesOf,
+  onStartTransferPick,
 }: Readonly<Props>) {
   const [hovered, setHovered] = useState<ShipMapPart | null>(null);
   const [openClusterId, setOpenClusterId] = useState<string | null>(null);
@@ -210,14 +226,17 @@ export function ShipDiagram({
         }}
         // Only with a command surface; a static render passes none.
         onPartActivate={
-          onInvokePartAction
-            ? (part, anchor) => {
-                triggerRef.current = document.activeElement;
-                setOpenPart({ part, anchor });
-              }
-            : undefined
+          onPickTank
+            ? (part) => onPickTank(part)
+            : onInvokePartAction
+              ? (part, anchor) => {
+                  triggerRef.current = document.activeElement;
+                  setOpenPart({ part, anchor });
+                }
+              : undefined
         }
         partMeters={partMeters}
+        transferDrawing={transferDrawing}
         openClusterId={openClusterId}
         onToggleCluster={setOpenClusterId}
       />
@@ -256,6 +275,10 @@ export function ShipDiagram({
                 entry,
                 openPart.part.title || openPart.part.name,
               )
+            }
+            transferResources={transferResourcesOf?.(openPart.part)}
+            onPickTransfer={(resource) =>
+              onStartTransferPick?.(openPart.part, resource)
             }
             onDismiss={dismissMenu}
             // The floating layer positions; the menu goes back in flow so the layer can be measured.

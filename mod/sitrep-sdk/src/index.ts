@@ -368,6 +368,8 @@ export {
   reckonableInputsOf,
   reckonableValuesOf,
 } from "./reckonability";
+// Offering a resource transfer: the one rule for what can be picked, and the hook widgets share.
+export * from "./resource-transfer";
 // Which Topics a client package has registered at runtime, and a subscription
 // to that answer changing. Read by the app's field catalogue; an Uplink author
 // registers the way they already do and never calls these.

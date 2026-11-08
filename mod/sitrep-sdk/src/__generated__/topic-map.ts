@@ -72,6 +72,7 @@ import type {
   PlantedFlag,
   RecoveryRecent,
   RecoveryReport,
+  ResourceTransfers,
   RevertAvailability,
   RoboticsAvailability,
   SaveSlots,
@@ -92,6 +93,7 @@ import type {
   TargetAvailable,
   TimeCalendar,
   TrackingStationCatalog,
+  TransferReach,
   UnreachableCentreEntry,
   VesselAttitude,
   VesselComms,
@@ -295,6 +297,8 @@ export interface GeneratedTopicPayloadMap {
   "vessel.physics.mode": VesselPhysicsMode;
   /** The active vessel's mass and thrust, the inputs to thrust-to-weight and burn-time figures. */
   "vessel.propulsion": VesselPropulsion;
+  /** The active vessel's resource transfers: running ones, then the last eight ended, newest first. */
+  "vessel.resourceTransfers": ResourceTransfers;
   /** What the active vessel carries, keyed by resource name, each with its current amount and capacity. */
   "vessel.resources": VesselResources;
   /** The active vessel's current stage and part count. */
@@ -305,6 +309,8 @@ export interface GeneratedTopicPayloadMap {
   "vessel.target": VesselTarget;
   /** The active vessel's thermal rollup, its hottest part, heat shield and engine. */
   "vessel.thermal": VesselThermal;
+  /** Which tanks of the active vessel can exchange each resource. */
+  "vessel.transferReach": TransferReach;
 }
 
 export const GENERATED_TOPIC_IDS = [
@@ -397,11 +403,13 @@ export const GENERATED_TOPIC_IDS = [
   "vessel.parts",
   "vessel.physics.mode",
   "vessel.propulsion",
+  "vessel.resourceTransfers",
   "vessel.resources",
   "vessel.structure",
   "vessel.surface",
   "vessel.target",
   "vessel.thermal",
+  "vessel.transferReach",
 ] as const;
 
 // The Topics whose payload is a bare JSON array of the element type, so a
