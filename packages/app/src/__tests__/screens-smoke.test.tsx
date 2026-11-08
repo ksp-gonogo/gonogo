@@ -20,7 +20,14 @@ import { ANALYTICS_CONSENT_KEY } from "../analytics/AnalyticsConsentService";
 import { MainScreen } from "../screens/MainScreen";
 import { StationScreen } from "../screens/StationScreen";
 
-/** Mirror the real provider tree from `main.tsx`: ErrorBoundary above ModalProvider at root. */
+/**
+ * Mirror the real provider tree from `main.tsx`: ErrorBoundary above ModalProvider at root.
+ *
+ * Each test unmounts the screen at the end of its own body. A mounted screen
+ * keeps updating on its own clocks (alarm strips, stream status), and one of
+ * those updates landing between the body and the automatic cleanup is outside
+ * `act`.
+ */
 function renderScreen(screenNode: React.ReactNode) {
   return render(
     <ErrorBoundary>
@@ -48,20 +55,26 @@ describe("MainScreen smoke", () => {
   });
 
   it("mounts without throwing", () => {
-    expect(() => renderScreen(<MainScreen />)).not.toThrow();
+    let view: ReturnType<typeof renderScreen> | undefined;
+    expect(() => {
+      view = renderScreen(<MainScreen />);
+    }).not.toThrow();
+    view?.unmount();
   });
 
   it("renders with the dashboard visible (widget area mounted)", () => {
-    const { container } = renderScreen(<MainScreen />);
+    const { container, unmount } = renderScreen(<MainScreen />);
     // Any styled container at the layout root, we're not asserting widget internals, just that the screen rendered past error boundary.
     expect(container.querySelector("div")).not.toBeNull();
+    unmount();
   });
 
   it("shows the empty-dashboard notice on a first run, with a button that adds a widget", () => {
-    renderScreen(<MainScreen />);
+    const { unmount } = renderScreen(<MainScreen />);
     expect(screen.getByText("No widgets on this dashboard")).not.toBeNull();
     expect(screen.getByRole("button", { name: "Add a widget" })).not.toBeNull();
     expect(screen.getByRole("button", { name: "Add widget" })).not.toBeNull();
+    unmount();
   });
 
   it("renders the mission banner above the dashboard", () => {
@@ -71,13 +84,14 @@ describe("MainScreen smoke", () => {
     // Full MainScreen has no telemetry stream mounted here, so the time
     // field reads its "no sample yet" placeholder and the vantage control
     // names no centre, since nothing was chosen and no frame has said where.
-    renderScreen(<MainScreen />);
+    const { unmount } = renderScreen(<MainScreen />);
     expect(
       screen.getByRole("group", { name: "Mission status" }),
     ).not.toBeNull();
     expect(
       screen.getByRole("button", { name: "Command centre vantage: Unknown" }),
     ).not.toBeNull();
+    unmount();
   });
 
   it("gives the pilot seat a vantage readout, never the picker", () => {
@@ -85,7 +99,7 @@ describe("MainScreen smoke", () => {
     // own binding. Asserted through the whole provider tower rather than on
     // `VantageControl` alone, because what decides it is the `screen` prop
     // this file is the only test to thread all the way down.
-    renderScreen(<MainScreen screen="pilot" />);
+    const { unmount } = renderScreen(<MainScreen screen="pilot" />);
 
     expect(
       screen.queryByRole("button", { name: /^Command centre vantage:/ }),
@@ -93,6 +107,7 @@ describe("MainScreen smoke", () => {
     expect(
       screen.getAllByRole("status").map((region) => region.textContent),
     ).toContain("Command centre vantage: No vantage yet");
+    unmount();
   });
 
   it("keeps each scene's old layout: a stored scene slot switches in when the game enters that scene", async () => {
@@ -111,7 +126,9 @@ describe("MainScreen smoke", () => {
       }),
     );
     const transport = new StubTransport();
-    const { container } = renderScreen(<MainScreen transport={transport} />);
+    const { container, unmount } = renderScreen(
+      <MainScreen transport={transport} />,
+    );
     expect(container.querySelector('[data-i="orbit"]')).not.toBeNull();
     expect(container.querySelector('[data-i="warp"]')).toBeNull();
 
@@ -132,15 +149,17 @@ describe("MainScreen smoke", () => {
       expect(container.querySelector('[data-i="warp"]')).not.toBeNull(),
     );
     expect(container.querySelector('[data-i="orbit"]')).toBeNull();
+    unmount();
   });
 
   it("goes straight to first-run setup with no analytics ask", async () => {
-    renderScreen(<MainScreen />);
+    const { unmount } = renderScreen(<MainScreen />);
 
     const dialog = await screen.findByRole("dialog");
     expect(dialog).not.toHaveAccessibleName(/improve gonogo/i);
     expect(document.querySelectorAll('[aria-modal="true"]')).toHaveLength(1);
     expect(localStorage.getItem(ANALYTICS_CONSENT_KEY)).toBeNull();
+    unmount();
   });
 });
 
@@ -164,15 +183,20 @@ describe("StationScreen smoke", () => {
 
   it("mounts without throwing and shows the connect prompt", () => {
     // With no saved host in localStorage and no connection, StationScreen shows the "Connect to Mission Control" prompt rather than the dashboard.
-    expect(() => renderScreen(<StationScreen />)).not.toThrow();
+    let view: ReturnType<typeof renderScreen> | undefined;
+    expect(() => {
+      view = renderScreen(<StationScreen />);
+    }).not.toThrow();
     expect(screen.getByText(/Connect to Mission Control/i)).not.toBeNull();
+    view?.unmount();
   });
 
   it("does not attempt auto-connect when localStorage is empty", () => {
-    renderScreen(<StationScreen />);
+    const { unmount } = renderScreen(<StationScreen />);
     // The connect button's disabled attribute reflects the live connection state: idle means the screen isn't mid-reconnect on mount.
     const connectButton = screen.getByRole("button", { name: /connect/i });
     expect(connectButton.getAttribute("disabled")).toBeNull();
+    unmount();
   });
 
   it("consumes ?host=<id> from the URL, persists it, and strips the param", async () => {
@@ -180,7 +204,7 @@ describe("StationScreen smoke", () => {
     // should pre-fill the input from the URL, drop the param, and (for
     // the next load) treat localStorage as authoritative.
     globalThis.history.replaceState({}, "", "/station?host=ABC123");
-    renderScreen(<StationScreen />);
+    const { unmount } = renderScreen(<StationScreen />);
 
     expect(localStorage.getItem("gonogo-station-host-id")).toBe("ABC123");
     expect(globalThis.location.search).toBe("");
@@ -196,6 +220,7 @@ describe("StationScreen smoke", () => {
     expect(
       await screen.findByText(/^Reconnecting: the host or broker/),
     ).toBeInTheDocument();
+    unmount();
 
     // Reset for subsequent tests in this file.
     globalThis.history.replaceState({}, "", "/");
