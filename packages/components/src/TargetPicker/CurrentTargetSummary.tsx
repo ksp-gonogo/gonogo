@@ -1,5 +1,5 @@
 import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
-import { Button, Tooltip, Unit } from "@ksp-gonogo/ui-kit";
+import { Button, type CommandInput, Tooltip, Unit } from "@ksp-gonogo/ui-kit";
 import {
   CurrentSummary,
   CurrentSummaryDistance,
@@ -17,7 +17,7 @@ export function CurrentTargetSummary({
   tarRelVel,
   rangeR,
   closingRateR,
-  onClear,
+  clearControl,
 }: Readonly<{
   tarName: string | undefined;
   tarType: string | undefined;
@@ -25,7 +25,7 @@ export function CurrentTargetSummary({
   tarRelVel: number | undefined;
   rangeR: Reading<Value<"m">>;
   closingRateR: Reading<Value<"m/s">>;
-  onClear: () => void;
+  clearControl: CommandInput;
 }>) {
   return (
     <CurrentSummary>
@@ -51,9 +51,7 @@ export function CurrentTargetSummary({
                 Closing <Unit value={closingRateR} decimals={2} />
               </span>
             )}
-            <Button onClick={onClear} type="button">
-              Clear target
-            </Button>
+            <Button command={clearControl}>Clear target</Button>
           </CurrentSummaryMeta>
         </>
       )}

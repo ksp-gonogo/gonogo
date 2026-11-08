@@ -235,7 +235,7 @@ describe("GonogoSettings", () => {
     await publish(fixture, model());
 
     const save = await screen.findByRole("button", { name: "Save" });
-    expect(save).toBeDisabled();
+    expect(save).toHaveAttribute("aria-disabled", "true");
 
     fireEvent.click(
       screen.getByRole("checkbox", { name: "Apply light-time delay" }),
@@ -272,7 +272,10 @@ describe("GonogoSettings", () => {
       await screen.findByRole("textbox", { name: "Light speed scale" }),
       { target: { value: "0.5" } },
     );
-    expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Save" })).not.toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
 
     const saved = ROWS.map((r) =>
       r.path === "SIGNAL_DELAY/lightSpeedScale" ? { ...r, value: "0.5" } : r,
@@ -280,7 +283,10 @@ describe("GonogoSettings", () => {
     act(() => fixture.emit(TOPIC, model(saved)));
 
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Save" })).toBeDisabled(),
+      expect(screen.getByRole("button", { name: "Save" })).toHaveAttribute(
+        "aria-disabled",
+        "true",
+      ),
     );
     expect(
       screen.getByRole("textbox", { name: "Light speed scale" }),
@@ -297,7 +303,10 @@ describe("GonogoSettings", () => {
       { target: { value: "fast" } },
     );
 
-    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
     expect(screen.getByText("Not a number.")).toBeInTheDocument();
     expect(
       screen.getByRole("textbox", { name: "Light speed scale" }),
@@ -334,7 +343,10 @@ describe("GonogoSettings", () => {
     expect(
       await screen.findByRole("checkbox", { name: "Apply light-time delay" }),
     ).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
     expect(
       screen.getByText("Not connected to KSP, so nothing here can be changed."),
     ).toBeInTheDocument();

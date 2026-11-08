@@ -1,5 +1,6 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
 import { value } from "@ksp-gonogo/sitrep-sdk";
+import { createFakeCommand } from "@ksp-gonogo/sitrep-sdk/testing";
 import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { ManeuverNodeList } from "./ManeuverNodeList";
@@ -25,10 +26,11 @@ function list(nodes: ParsedManeuverNode[], now: number) {
       completedNodes={new Map()}
       currentUT={value("ut", now)}
       availableDv={2000}
-      onDelete={() => {}}
+      removeCommand={() => createFakeCommand().handle.with()}
       onEdit={() => {}}
-      onClearAll={() => {}}
-      removing={false}
+      clearAllCommand={null}
+      removeUnavailable={() => null}
+      clearAllUnavailable={null}
       adding={false}
     />,
   );

@@ -7,7 +7,11 @@ import {
 } from "@ksp-gonogo/core";
 import { usePartsLive, useTopology } from "@ksp-gonogo/data";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
-import { type CommandId, withoutReckoning } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type CommandId,
+  type UseCommandResult,
+  withoutReckoning,
+} from "@ksp-gonogo/sitrep-sdk";
 import { Panel } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -189,27 +193,28 @@ function ShipMapComponent({
     () => [...new Set(actionContributions.map((e) => e.command))].sort(),
     [actionContributions],
   );
-  // One sender per command a contributed button can fire, registered by its host below.
-  const contributedSenders = useRef(
-    new Map<string, (args: Record<string, unknown>, label: string) => void>(),
+  // The latest handle for each command a contributed button can send, registered by its host below.
+  const contributedHandles = useRef(
+    new Map<string, UseCommandResult<Record<string, unknown>>>(),
   );
-  const registerSender = useCallback(
+  const registerHandle = useCallback(
     (
       command: string,
-      send: ((args: Record<string, unknown>, label: string) => void) | null,
+      handle: UseCommandResult<Record<string, unknown>> | null,
     ) => {
-      if (send) contributedSenders.current.set(command, send);
-      else contributedSenders.current.delete(command);
+      if (handle) contributedHandles.current.set(command, handle);
+      else contributedHandles.current.delete(command);
     },
     [],
   );
-  const onInvokeContributedAction = useCallback(
-    (entry: ShipMapPartActionEntry, partTitle: string) => {
-      contributedSenders.current.get(entry.command)?.(
-        { ...entry.args },
-        `${entry.label} on ${partTitle}`,
-      );
-    },
+  const contributedActionCommand = useCallback(
+    (entry: ShipMapPartActionEntry, partTitle: string) =>
+      contributedHandles.current
+        .get(entry.command)
+        ?.with(
+          { ...entry.args },
+          { label: `${entry.label} on ${partTitle}` },
+        ) ?? null,
     [],
   );
 
@@ -264,20 +269,19 @@ function ShipMapComponent({
   // The command handle lives at the always-mounted widget: the menu closes when an action fires, and its in-flight delay row must outlive it.
   const invokePartAction = useCommand(INVOKE_PART_ACTION_COMMAND);
 
-  const onInvokePartAction = useCallback(
+  const partActionCommand = useCallback(
     (
       flightId: number,
       eventName: string,
       actionLabel: string,
       partTitle: string,
-    ) => {
-      void invokePartAction.dangerouslySendWithoutInput(
+    ) =>
+      invokePartAction.with(
         // The wire keys parts by stringified flightID, the form every cross-channel join uses.
         { partId: String(flightId), eventName },
         // Operator-facing description for the delay readouts: the raw event name alone would not say which part it acts on.
         { label: `${actionLabel} on ${partTitle}` },
-      );
-    },
+      ),
     [invokePartAction],
   );
 
@@ -316,7 +320,7 @@ function ShipMapComponent({
         <ContributedCommandHost
           key={command}
           command={command}
-          register={registerSender}
+          register={registerHandle}
         />
       ))}
       {shapeSources}
@@ -356,8 +360,8 @@ function ShipMapComponent({
           partMeters,
           partMeta,
           partActions,
-          onInvokeContributedAction,
-          onInvokePartAction,
+          contributedActionCommand,
+          partActionCommand,
           turn,
           onTurn: setTurn,
           stages,
@@ -380,19 +384,15 @@ function ContributedCommandHost({
   command: CommandId;
   register: (
     command: string,
-    send: ((args: Record<string, unknown>, label: string) => void) | null,
+    handle: UseCommandResult<Record<string, unknown>> | null,
   ) => void;
 }>) {
   // gonogo:reads none
   const handle = useCommand<Record<string, unknown>>(command);
-  const handleRef = useRef(handle);
-  handleRef.current = handle;
   useEffect(() => {
-    register(command, (args, label) => {
-      void handleRef.current.dangerouslySendWithoutInput(args, { label });
-    });
-    return () => register(command, null);
-  }, [command, register]);
+    register(command, handle);
+  });
+  useEffect(() => () => register(command, null), [command, register]);
   return null;
 }
 
