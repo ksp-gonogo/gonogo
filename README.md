@@ -19,11 +19,11 @@ A telemetry mod system and mission control dashboard for [Kerbal Space Program](
   <img src="docs/assets/navball-sizes.gif" alt="Six Navball panels side by side, from a three-line heading, pitch and roll readout to the full ball with heading tape, throttle, SAS mode buttons and fly-by-wire controls, all showing the same flight at the same moment" />
 </p>
 
-## Real Light Delay
+## Signal Delay
 
 <img src="docs/assets/light-delay-rail.gif" alt="The delay rail on a Throttle panel: a throttle pulse crosses from left to right through three zones, outgoing to the craft, the echo coming back, and confirmed at the command centre" />
 
-Gonogo features an _optional_ realistic light delay, on by default. Signals in the game are modelled under a real propagation system; it takes longer to get flight data from vessels further away, and vessels occluded behind planets and out of range won't be able to communicate. Signals get routed through available relay nodes to command centres, via a model heavily inspired by [NASA's Contact Graph Routing](https://ntrs.nasa.gov/citations/20120006508) system.
+Gonogo features an _optional_ signal delay, on by default. Signals in the game are modelled under a real propagation system; it takes longer to get flight data from vessels further away, and vessels occluded behind planets and out of range won't be able to communicate. Signals get routed through available relay nodes to command centres, via a model heavily inspired by [NASA's Contact Graph Routing](https://ntrs.nasa.gov/citations/20120006508) system.
 
 ## Uplinks
 
