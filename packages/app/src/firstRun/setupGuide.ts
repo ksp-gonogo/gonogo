@@ -11,12 +11,10 @@
 export const CONTAINER_NAME = "gonogo";
 
 /**
- * The image tag the run command pulls. Only the release candidate exists
- * until the first release is published; after it, this becomes `latest` and
- * the README, the home page and the wizard follow by the tests that hold them
- * to this module.
+ * The image tag the run command pulls: the newest release. The README, the
+ * home page and the wizard follow by the tests that hold them to this module.
  */
-export const RUN_IMAGE_TAG = "rc";
+export const RUN_IMAGE_TAG = "latest";
 
 /**
  * Starts the app and the relay in one container, one entry per line it is
@@ -43,8 +41,8 @@ export const RUN_COMMAND_LINES = runCommandLinesFor(RUN_IMAGE_TAG);
  * (`0.0.0`) takes the tag the static pages print.
  */
 export function imageTagOf(version: string): string {
-  if (version === "0.0.0" || version.includes("-")) return RUN_IMAGE_TAG;
-  return /^\d+\.\d+\.\d+$/.test(version) ? "latest" : RUN_IMAGE_TAG;
+  if (version === "0.0.0") return RUN_IMAGE_TAG;
+  return /^\d+\.\d+\.\d+$/.test(version) ? "latest" : "rc";
 }
 
 /** The run command as the single line it runs as, with no continuation of any shell's. */

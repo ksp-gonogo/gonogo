@@ -44,11 +44,9 @@ describe("the run command is spelled once", () => {
     expect(imageTagOf("2.0.0-rc.23")).toBe("rc");
     expect(imageTagOf("2.0.0")).toBe("latest");
     expect(imageTagOf("0.0.0")).toBe(RUN_IMAGE_TAG);
-    expect(runCommandFor("posix", "latest").endsWith("gonogo:latest")).toBe(
-      true,
-    );
-    expect(runCommandFor("posix", "latest")).toBe(
-      runCommandFor("posix").replace(/gonogo:rc$/, "gonogo:latest"),
+    expect(runCommandFor("posix", "rc").endsWith("gonogo:rc")).toBe(true);
+    expect(runCommandFor("posix", "rc")).toBe(
+      runCommandFor("posix").replace(/gonogo:latest$/, "gonogo:rc"),
     );
   });
 

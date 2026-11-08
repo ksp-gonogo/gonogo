@@ -56,7 +56,7 @@ docker run -d --name gonogo --restart unless-stopped --pull always \
   -e KSP_HOST=host.docker.internal \
   -p 8080:8080 -p 127.0.0.1:3002:3002 \
   -p 47100:47100/udp -p 47100:47100/tcp \
-  ghcr.io/ksp-gonogo/gonogo:rc
+  ghcr.io/ksp-gonogo/gonogo:latest
 ```
 
    With Podman, type `podman` in place of `docker` in every command here (on macOS and Windows, run `podman machine start` first).
