@@ -205,17 +205,7 @@ namespace Sitrep.Host
             return null;
         }
 
-        public static VesselOrbit? BuildOrbit(KspSnapshot? snapshot) =>
-            BuildOrbit(snapshot, countdownsOnRails: false);
-
-        /// <summary>
-        /// The orbit as the simulation reads it for a threshold alarm. KSP's apsis
-        /// countdowns are live on rails as well as under physics, and a threshold on
-        /// one has to see them whenever the game is warping: the wire withholds them
-        /// there to keep its change gate quiet, which is a rule about what is
-        /// published and not about what the simulation can read.
-        /// </summary>
-        private static VesselOrbit? BuildOrbit(KspSnapshot? snapshot, bool countdownsOnRails)
+        public static VesselOrbit? BuildOrbit(KspSnapshot? snapshot)
         {
             var vessel = GetVesselGroup(snapshot);
             if (vessel == null || !TryGetSubjectId(vessel, out var vesselId))
@@ -232,7 +222,7 @@ namespace Sitrep.Host
                 return null;
             }
 
-            return MapOrbit(orbit, vesselId, snapshot!, QualityOf(vessel), countdownsOnRails);
+            return MapOrbit(orbit, vesselId, snapshot!, QualityOf(vessel));
         }
 
         /// <summary>
@@ -244,7 +234,7 @@ namespace Sitrep.Host
         /// <c>null</c> on any missing required field, same rules as
         /// <see cref="BuildOrbit"/>.
         /// </summary>
-        private static VesselOrbit? MapOrbit(IDictionary<string, object?> orbit, string vesselId, KspSnapshot snapshot, Quality quality, bool countdownsOnRails = false)
+        private static VesselOrbit? MapOrbit(IDictionary<string, object?> orbit, string vesselId, KspSnapshot snapshot, Quality quality)
         {
             var sma = GetDouble(orbit, "sma");
             var ecc = GetDouble(orbit, "ecc");
@@ -320,7 +310,7 @@ namespace Sitrep.Host
             // each craft from its own force model, and cannot answer for one it has
             // not been shown.
             var horizon = ElementHorizon(target, snapshot.Ut);
-            var (timeToAp, timeToPe) = quality == Quality.Loaded || countdownsOnRails
+            var (timeToAp, timeToPe) = quality == Quality.Loaded
                 ? ApsisCountdowns(orbit, ecc.Value)
                 : (null, null);
 
@@ -1509,8 +1499,6 @@ namespace Sitrep.Host
             ExperienceLevel = GetInt(raw, "experienceLevel"),
             Type = GetString(raw, "type"),
             RosterStatus = GetString(raw, "rosterStatus"),
-            PartId = GetString(raw, "partId"),
-            PartTitle = GetString(raw, "partTitle"),
             Carrying = BuildInventoryItems(raw),
             Slots = GetInt(raw, "slots"),
             PackedVolumeLimit = GetDouble(raw, "packedVolumeLimit"),
@@ -1735,14 +1723,6 @@ namespace Sitrep.Host
 
         public static object? BuildOrbitWire(KspSnapshot? snapshot) =>
             BuildOrbit(snapshot) is { } orbit ? ToWire(orbit) : null;
-
-        /// <summary>
-        /// <see cref="BuildOrbitWire"/> with the apsis countdowns carried on rails
-        /// too, for the simulation's own threshold reads only: see
-        /// <see cref="BuildOrbit(KspSnapshot?, bool)"/>.
-        /// </summary>
-        public static object? BuildOrbitReadingWire(KspSnapshot? snapshot) =>
-            BuildOrbit(snapshot, countdownsOnRails: true) is { } orbit ? ToWire(orbit) : null;
 
         public static object? BuildOrbitTruthWire(KspSnapshot? snapshot) =>
             BuildOrbitTruth(snapshot) is { } truth ? ToWire(truth) : null;
@@ -2243,8 +2223,6 @@ namespace Sitrep.Host
             ["experienceLevel"] = member.ExperienceLevel,
             ["type"] = member.Type,
             ["rosterStatus"] = member.RosterStatus,
-            ["partId"] = member.PartId,
-            ["partTitle"] = member.PartTitle,
             ["carrying"] = member.Carrying?.Select(ToWire).ToList(),
             ["slots"] = member.Slots,
             ["packedVolumeLimit"] = member.PackedVolumeLimit,

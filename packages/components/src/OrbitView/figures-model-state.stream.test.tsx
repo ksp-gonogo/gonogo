@@ -76,13 +76,19 @@ describe("Orbit View figures names why the figures are dashes", () => {
     expect(screen.getByText("CANNOT MODEL")).toBeInTheDocument();
   });
 
-  it("keeps the old patch's orbit, with no state word, past the predicted SOI transition until the wire moves on", () => {
-    // The predicted end of a patch can fall just before the wire moves the craft to the next one: the old body's orbit stays on screen for that gap and never blanks.
+  it("says CANNOT MODEL past the SOI transition", () => {
+    scene({ encounter: { transitionUt: 5 } });
+
+    expect(screen.getByText("CANNOT MODEL")).toBeInTheDocument();
+  });
+
+  it("shows no inclination or eccentricity beside the sentence that there is no orbit", () => {
+    // The sample that straddles an SOI change: the old orbit is past its transition, so it is no orbit now, and its figures are the old body's.
     scene({ encounter: { transitionUt: 5 }, ecc: 0.5, inc: 12 });
 
-    expect(screen.queryByText("CANNOT MODEL")).toBeNull();
-    expect(screen.queryByText("No orbital data")).toBeNull();
-    expect(screen.getByText("0.5000")).toBeInTheDocument();
+    expect(screen.getByText("No orbital data")).toBeInTheDocument();
+    expect(screen.queryByText("0.5000")).toBeNull();
+    expect(screen.queryByText(/12\.0/)).toBeNull();
   });
 
   it("leaves a refused trajectory to its own note rather than saying it twice", () => {

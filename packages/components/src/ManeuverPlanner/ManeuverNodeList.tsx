@@ -5,7 +5,7 @@ import { Button, Stack } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import type { CompletedEntry } from "./BurnCompletionTracker";
 import type { ThrustObservation } from "./conformance";
-import { type NodeEditPatch, NodeRow, pastCutoff } from "./NodeRow";
+import { type NodeEditPatch, NodeRow } from "./NodeRow";
 
 interface ManeuverNodeListProps {
   nodes: readonly ParsedManeuverNode[];
@@ -52,14 +52,7 @@ export function ManeuverNodeList({
   // A completed node already gone from the live list stays as an inert phantom until its hold expires.
   const displayedNodes = useMemo<DisplayedNode[]>(() => {
     const liveUts = new Set<number>();
-    // A passed node with nothing to burn is the game's leftover, not a plan: the game keeps it until it is deleted, and listing it only reads as a burn that never came.
-    const shown = nodes.filter(
-      (n) =>
-        n.deltaVMagnitude !== 0 ||
-        !pastCutoff(n, currentUT) ||
-        completedNodes.has(n.UT),
-    );
-    const live = shown.map<DisplayedNode>((n) => {
+    const live = nodes.map<DisplayedNode>((n) => {
       liveUts.add(n.UT);
       return {
         node: n,
@@ -73,7 +66,7 @@ export function ManeuverNodeList({
         phantoms.push({ node: entry.snapshot, completed: true, phantom: true });
     }
     return [...live, ...phantoms];
-  }, [nodes, completedNodes, currentUT]);
+  }, [nodes, completedNodes]);
 
   return (
     <>

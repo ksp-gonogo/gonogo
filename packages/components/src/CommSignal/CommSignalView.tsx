@@ -60,7 +60,6 @@ export function CommSignalComponent({
   const {
     connected,
     noSignal,
-    streamLost,
     nothingHasArrived,
     noRoute,
     pct,
@@ -161,8 +160,6 @@ export function CommSignalComponent({
     );
   }
 
-  // The verdict the header's delay readout takes: a link reported down wins over a path and a delay, which are not drawn as a working route.
-  const linkUp = connected !== false;
   const cols = w ?? 6;
   const rows = h ?? 5;
   // Wide-short: put the bars/headline cluster and the detail grid side-by-side so the width is used instead of clustering top-left.
@@ -254,7 +251,6 @@ export function CommSignalComponent({
                   bars={bars}
                   tone={noSignal ? "neutral" : control.tone}
                   noSignal={noSignal}
-                  streamLost={streamLost}
                 />
                 <SignalHeadline
                   headline={headlineWithTip}
@@ -271,7 +267,6 @@ export function CommSignalComponent({
                   <CommSignalDetailRows
                     control={control}
                     delay={delay}
-                    linkUp={linkUp}
                     noSignal={noSignal}
                     quantity={quantity}
                     linkRate={connected === false ? undefined : linkRate}
@@ -279,7 +274,7 @@ export function CommSignalComponent({
                 </Grid>
               )}
             </Stack>
-            {showFullPath && linkUp && (
+            {showFullPath && (
               <CommsPathRoute
                 hops={hops}
                 vesselLabel={vesselLabel}

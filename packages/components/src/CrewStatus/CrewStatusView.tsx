@@ -18,7 +18,7 @@ import {
   renderRoster,
 } from "./CrewRoster";
 import type { CrewStatusConfig } from "./config";
-import { toCrewNames, toCrewSeats } from "./crewNames";
+import { toCrewNames } from "./crewNames";
 import { ROW_CARD_TONE } from "./slots";
 import { EvaSuitReadout, suitTank } from "./suitResources";
 import { crewStatusTopics } from "./topics";
@@ -89,7 +89,6 @@ export function CrewStatusComponent(
     linkReading.value.connected === false;
 
   const names = toCrewNames(crewRaw);
-  const seats = toCrewSeats(crewRaw);
   const known =
     crewCount !== undefined || crewCapacity !== undefined || names.length > 0;
 
@@ -138,7 +137,6 @@ export function CrewStatusComponent(
               outOfContact,
               crewCount: crewCount?.magnitude,
               names,
-              seats,
               avatarSizePx,
               avatarBound,
               rowToneByName,

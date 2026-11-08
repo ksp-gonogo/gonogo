@@ -191,10 +191,9 @@ namespace Sitrep.Host.Flight
         /// mutation + publish happens on the Courier thread, drained at the
         /// top of the next <see cref="Sample"/> call.
         /// </summary>
-        /// <param name="wasActiveVessel">The vessel was the one the operator was flying when it ended. Such a craft has a flight to end even when no tick saw it active first, as when it is destroyed in the frame its scene finishes loading.</param>
-        public void SignalEnd(string vesselId, string vesselName, FlightEndReason reason, double ut, bool wasActiveVessel = false)
+        public void SignalEnd(string vesselId, string vesselName, FlightEndReason reason, double ut)
         {
-            _pendingEnds.Enqueue(new EndSignal(vesselId, vesselName, reason, ut, null, null, wasActiveVessel));
+            _pendingEnds.Enqueue(new EndSignal(vesselId, vesselName, reason, ut, null, null));
         }
 
         /// <summary>
@@ -205,7 +204,7 @@ namespace Sitrep.Host.Flight
         /// </summary>
         public void SignalDocked(string vesselId, string vesselName, string joinedVesselId, string joinedVesselName, double ut)
         {
-            _pendingEnds.Enqueue(new EndSignal(vesselId, vesselName, FlightEndReason.Docked, ut, joinedVesselId, joinedVesselName, false));
+            _pendingEnds.Enqueue(new EndSignal(vesselId, vesselName, FlightEndReason.Docked, ut, joinedVesselId, joinedVesselName));
         }
 
         /// <summary>
@@ -455,13 +454,6 @@ namespace Sitrep.Host.Flight
                 seenMidWay = true;
             }
 
-            if (!_flights.ContainsKey(vesselId) && end.WasActiveVessel)
-            {
-                // The craft the operator was flying ended before any tick saw it
-                // active, so its flight starts and ends at the same instant.
-                StartFlightForEndedActiveVessel(vesselId, vesselName, ut);
-            }
-
             if (!_flights.TryGetValue(vesselId, out var flight))
             {
                 // A craft nobody flew that was absorbed by a dock is the ordinary
@@ -502,15 +494,6 @@ namespace Sitrep.Host.Flight
             _lastEndedFlightId = flight.FlightId;
             _lastEndedVesselName = vesselName;
             _lastEndedUt = ut;
-        }
-
-        private void StartFlightForEndedActiveVessel(string vesselId, string vesselName, double ut)
-        {
-            _activeVesselId = vesselId;
-            _activeVesselName = vesselName;
-            _flights[vesselId] = new FlightRecord(_mintFlightId(), vesselId, ut, vesselName);
-            _announcedStartedFlightId = null;
-            AnnounceStartedIfUnheard();
         }
 
         private FlightRecord StartNewFlight(string vesselId, KspSnapshot snapshot, double? startUt = null)
@@ -799,11 +782,9 @@ namespace Sitrep.Host.Flight
             public readonly double Ut;
             public readonly string? JoinedVesselId;
             public readonly string? JoinedVesselName;
-            public readonly bool WasActiveVessel;
 
-            public EndSignal(string vesselId, string vesselName, FlightEndReason reason, double ut, string? joinedVesselId, string? joinedVesselName, bool wasActiveVessel)
+            public EndSignal(string vesselId, string vesselName, FlightEndReason reason, double ut, string? joinedVesselId, string? joinedVesselName)
             {
-                WasActiveVessel = wasActiveVessel;
                 VesselId = vesselId;
                 VesselName = vesselName;
                 Reason = reason;

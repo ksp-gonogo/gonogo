@@ -1,31 +1,10 @@
 import { CORE_UPLINK_CLIENT, isAwaitingFirstSignal } from "@ksp-gonogo/core";
 import type { BadgeEntry } from "@ksp-gonogo/ui-kit";
 
-/** Whether a reading is held because the connection to the game dropped. */
-export function isStreamLost(reading: {
-  state: string;
-  grade?: string;
-}): boolean {
-  return reading.state === "held" && reading.grade === "disconnected";
-}
-
-/**
- * The badge for a link whose readings are held. A dropped connection to the
- * game says nothing about the craft's own link, so it reads "Stream lost" and
- * never "No signal", which belongs to a link the game stopped reporting.
- */
-export function commSignalNoSignalBadge(
-  noSignal: boolean,
-  streamLost = false,
-): BadgeEntry[] {
-  if (!noSignal) return [];
-  return [
-    {
-      id: "comm-signal-no-signal",
-      label: streamLost ? "Stream lost" : "No signal",
-      tone: "warn",
-    },
-  ];
+export function commSignalNoSignalBadge(noSignal: boolean): BadgeEntry[] {
+  return noSignal
+    ? [{ id: "comm-signal-no-signal", label: "No signal", tone: "warn" }]
+    : [];
 }
 
 CORE_UPLINK_CLIENT.registerContribution({
@@ -48,7 +27,6 @@ CORE_UPLINK_CLIENT.registerContribution({
     return commSignalNoSignalBadge(
       link.state === "held" ||
         (comms.state === "held" && link.state !== "absent"),
-      isStreamLost(link) || isStreamLost(comms),
     );
   },
 });

@@ -37,21 +37,7 @@ namespace Gonogo.KSP
 
         private static readonly object Impacted = new object();
 
-        /// <summary>What a vessel's death holds until the next tick: its name, and whether it was the craft on screen.</summary>
-        private readonly struct EndedFlight
-        {
-            public EndedFlight(string name, bool wasActive)
-            {
-                Name = name;
-                WasActive = wasActive;
-            }
-
-            public string Name { get; }
-
-            public bool WasActive { get; }
-        }
-
-        private readonly VesselDeaths<EndedFlight, object> _deaths = new VesselDeaths<EndedFlight, object>(ImpactWindowUt);
+        private readonly VesselDeaths<string, object> _deaths = new VesselDeaths<string, object>(ImpactWindowUt);
         private FlightLifecycleSampler? _sampler;
         private bool _subscribed;
 
@@ -219,8 +205,7 @@ namespace Gonogo.KSP
                     return;
                 }
                 var id = vessel.id.ToString();
-                var active = ActiveVesselScope.Current;
-                var name = new EndedFlight(GameWords.VesselName(vessel), active != null && active.id == vessel.id);
+                var name = GameWords.VesselName(vessel);
                 var ut = Planetarium.GetUniversalTime();
                 if (collision)
                 {
@@ -351,7 +336,7 @@ namespace Gonogo.KSP
                 var reason = terminated
                     ? FlightEndReason.Terminated
                     : death.Impact != null ? FlightEndReason.Crashed : FlightEndReason.Destroyed;
-                _sampler.SignalEnd(death.VesselId, death.Record.Name, reason, death.Ut, death.Record.WasActive);
+                _sampler.SignalEnd(death.VesselId, death.Record, reason, death.Ut);
             }
             return null;
         }

@@ -40,7 +40,6 @@ export function renderRoster({
   outOfContact,
   crewCount,
   names,
-  seats,
   avatarSizePx,
   avatarBound,
   rowToneByName,
@@ -52,8 +51,6 @@ export function renderRoster({
   outOfContact: boolean;
   crewCount: number | undefined;
   names: string[];
-  /** The title of the part each kerbal sits in, by name, for the ones the vessel says. */
-  seats: ReadonlyMap<string, string>;
   avatarSizePx: number;
   /** Reserve the leading avatar cell: an augment that can render is bound to `crew-status.avatar`. */
   avatarBound: boolean;
@@ -141,9 +138,6 @@ export function renderRoster({
               ) : undefined
             }
           >
-            {seats.has(name) && (
-              <ReadoutCaption>{seats.get(name)}</ReadoutCaption>
-            )}
             <Contribution
               slot="meters"
               component={CrewMeters}

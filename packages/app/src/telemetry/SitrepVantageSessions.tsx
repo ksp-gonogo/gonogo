@@ -11,11 +11,7 @@ import type {
 } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useSyncExternalStore } from "react";
 import { isTransmission } from "../commcast/topics";
-import {
-  type CommandRoute,
-  HOME_SESSION,
-  type PeerHostService,
-} from "../peer/PeerHostService";
+import { HOME_SESSION, type PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
 import { requestRateUnderChoice } from "./dataRate";
 import {
@@ -67,8 +63,6 @@ export interface VantageSession {
   onRawMessage(cb: (message: ServerMessage) => void): () => void;
   /** Close the session and its socket. */
   dispose(): void;
-  /** This session as the route a command leaves through, for a connection that follows the active craft. */
-  command?: CommandRoute;
 }
 
 /**
@@ -97,7 +91,6 @@ const openLiveSession: OpenVantageSession = (vantage) => {
       // The client leaves its transport open, so the socket is closed here.
       transport.dispose();
     },
-    command: client,
   };
 };
 
@@ -184,7 +177,6 @@ export function SitrepVantageSessions({
             ? [{ type: "sitrep-frame", message: frame } satisfies PeerMessage]
             : [];
         },
-        command: client.command,
       });
 
       sessions.set(vantage, () => {

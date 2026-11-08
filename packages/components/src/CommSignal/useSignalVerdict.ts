@@ -11,7 +11,6 @@ import {
   type Value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
-import { isStreamLost } from "./badge";
 import {
   type ControlDescription,
   describeControl,
@@ -24,8 +23,6 @@ export interface SignalVerdict {
   connected: boolean | undefined;
   /** The link state stopped arriving, so every verdict below is withheld. */
   noSignal: boolean;
-  /** The readings are held because the connection to the game dropped, which says nothing of the craft's own link. */
-  streamLost: boolean;
   /** Nothing about the link has arrived yet. */
   nothingHasArrived: boolean;
   /** `comms.delay` arrived saying no path to any command centre can be measured. That is an answer about the craft, so nothing is awaited. */
@@ -123,7 +120,6 @@ export function useSignalVerdict(): SignalVerdict {
       : undefined;
   const noSignal =
     linkReading.state === "held" || commsReading.state === "held";
-  const streamLost = isStreamLost(linkReading) || isStreamLost(commsReading);
   // Kept through a held reading because a pill that blanked between frames would read as a control loss; `noSignal` withholds it on screen.
   const commsHeld =
     commsReading.state === "observed" || commsReading.state === "held"
@@ -157,7 +153,6 @@ export function useSignalVerdict(): SignalVerdict {
   return {
     connected,
     noSignal,
-    streamLost,
     nothingHasArrived,
     noRoute,
     pct,

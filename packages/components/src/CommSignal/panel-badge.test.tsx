@@ -66,7 +66,7 @@ describe("CommSignal panel badge (comm-signal-no-signal-badge contribution)", ()
     expect(screen.queryByText("No signal")).toBeNull();
   });
 
-  it("says the stream was lost, not that there is no signal, when the connection to the game drops", async () => {
+  it("shows one warning-toned 'No signal' badge once the link goes stale", async () => {
     unmount = renderPanel(fixture).unmount;
     act(() => {
       fixture.emit("comms.link", { connected: true });
@@ -80,9 +80,8 @@ describe("CommSignal panel badge (comm-signal-no-signal-badge contribution)", ()
     });
 
     await waitFor(() =>
-      expect(screen.getAllByText("Stream lost")).toHaveLength(1),
+      expect(screen.getAllByText("No signal")).toHaveLength(1),
     );
-    expect(screen.queryByText("No signal")).toBeNull();
   });
 
   it("shows no badge while a link left held by a time jump waits for its next report", async () => {

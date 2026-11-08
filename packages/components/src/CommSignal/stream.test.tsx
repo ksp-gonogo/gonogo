@@ -65,7 +65,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
   });
 
   // The panel stays and every figure nulls; the badge itself is asserted in `panel-badge.test.tsx`.
-  it("nulls every line once the stream is lost", async () => {
+  it("nulls every line once the link stops arriving", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
       suspendFrames: true,
@@ -91,7 +91,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
 
     // The panel stays: no collapse to a single sentence.
     await waitFor(() =>
-      expect(screen.getByLabelText("Stream lost")).toBeTruthy(),
+      expect(screen.getByLabelText("No signal")).toBeTruthy(),
     );
     expect(screen.queryByText("No signal data")).toBeNull();
     expect(screen.getByText("Control")).toBeTruthy();
@@ -102,7 +102,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
     expect(container.querySelectorAll("[data-held]").length).toBe(0);
     expect(visibleText()).not.toContain("Full");
     // The bars withhold their count, and their aria-label matches the visible badge.
-    expect(screen.getByLabelText("Stream lost")).toBeTruthy();
+    expect(screen.getByLabelText("No signal")).toBeTruthy();
     expect(screen.queryByLabelText(/Signal \d of 4/)).toBeNull();
 
     expect(visibleText()).not.toMatch(/stale/i);

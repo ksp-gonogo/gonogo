@@ -249,24 +249,6 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void TheActiveVesselDestroyedBeforeAnyTickSawItStartsAndEndsItsFlight()
-        {
-            var rig = new Rig();
-            rig.Sampler.Sample(NoVesselSnapshot(0.0));
-
-            rig.Sampler.SignalEnd(VesselA, "Alpha", FlightEndReason.Crashed, 5.0, wasActiveVessel: true);
-            rig.Sampler.Sample(NoVesselSnapshot(6.0));
-
-            var started = Assert.IsType<FlightStarted>(Assert.Single(rig.Started.Calls).Payload);
-            Assert.Equal(VesselA, started.VesselId);
-            var ended = Assert.IsType<FlightEnded>(Assert.Single(rig.Ended.Calls).Payload);
-            Assert.Equal(started.FlightId, ended.FlightId);
-            Assert.Equal(FlightEndReason.Crashed, ended.Reason);
-            Assert.Equal(0, rig.Sampler.EndsWithoutStart);
-            Assert.Empty(rig.Reports);
-        }
-
-        [Fact]
         public void AnEndForAVesselTheSamplerSawStartIsNeitherCountedNorReported()
         {
             var rig = new Rig();

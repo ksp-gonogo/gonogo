@@ -20,22 +20,6 @@ namespace Sitrep.Host.Alarms
         /// </summary>
         public bool StopWarp { get; set; }
 
-        /// <summary>
-        /// The fastest warp rate, as a multiple of real time, that still lets the
-        /// next step-down or fire land inside the window it is meant to stop
-        /// in, or null when no armed alarm is close enough to ask. One capture
-        /// covers a whole stretch of game time under warp, so a step-down taken
-        /// only at the lead instant arrives a capture late at 100000 times; the
-        /// caller slows the warp to this rate on the way in instead.
-        /// </summary>
-        public double? MaxWarpRate { get; private set; }
-
-        /// <summary>Lowers <see cref="MaxWarpRate"/> to <paramref name="rate"/> if that is lower than what is asked already.</summary>
-        internal void LimitWarpRate(double rate)
-        {
-            MaxWarpRate = MaxWarpRate is { } current ? Math.Min(current, rate) : rate;
-        }
-
         /// <summary>The notices to publish, in the order the alarms were armed.</summary>
         public List<ScetAlarmFired> Fired { get; } = new List<ScetAlarmFired>();
 
@@ -112,9 +96,6 @@ namespace Sitrep.Host.Alarms
         /// Read between passes, by the one that holds the actuator.
         /// </summary>
         public bool StopWarp => Tick.StopWarp;
-
-        /// <summary>The fastest rate the alarms evaluated so far this tick allow, or null for no limit. See <see cref="ScetAlarmTick.MaxWarpRate"/>.</summary>
-        public double? MaxWarpRate => Tick.MaxWarpRate;
 
         /// <summary>The onboard actions queued so far this tick. Read between passes, by the one that holds the actuator.</summary>
         public IReadOnlyList<ScetAlarmActionsDue> ActionsDue => Tick.ActionsDue;
@@ -738,29 +719,14 @@ namespace Sitrep.Host.Alarms
             }
         }
 
-        /// <summary>
-        /// The real seconds of game time one capture may be allowed to cover on the
-        /// way to a step-down: the warp is held to a rate at which the lead
-        /// instant is at least this many real seconds away, so a capture that
-        /// runs late cannot carry the clock past it.
-        /// </summary>
-        internal const double CaptureCoverSeconds = 2.0;
-
         private static void EvaluateTime(
             Entry entry, ScetAlarmCondition condition, double nowUt, ScetAlarmTick tick)
         {
             var lead = condition.LeadSeconds > 0 ? condition.LeadSeconds : 0;
-            if (!entry.SteppedDown)
+            if (!entry.SteppedDown && nowUt >= condition.Ut - lead)
             {
-                if (nowUt >= condition.Ut - lead)
-                {
-                    entry.SteppedDown = true;
-                    tick.StopWarp = true;
-                }
-                else
-                {
-                    tick.LimitWarpRate((condition.Ut - lead - nowUt) / CaptureCoverSeconds);
-                }
+                entry.SteppedDown = true;
+                tick.StopWarp = true;
             }
 
             if (nowUt < condition.Ut)
@@ -872,7 +838,6 @@ namespace Sitrep.Host.Alarms
             if (nowUt < instant - lead)
             {
                 entry.SteppedDown = false;
-                tick.LimitWarpRate((instant - lead - nowUt) / CaptureCoverSeconds);
                 return;
             }
 

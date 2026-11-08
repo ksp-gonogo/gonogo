@@ -717,7 +717,6 @@ namespace Gonogo.KSP
                 ScetAlarmTickState tick;
                 IDictionary<string, object?>? finishedContracts = null;
                 bool stopWarp;
-                double? maxWarpRate;
                 List<ScetAlarmActionsDue> actionsDue;
                 var flown = ActiveVesselScope.Current;
                 var game = CommandDeliveryScenario.GameKey;
@@ -745,7 +744,6 @@ namespace Gonogo.KSP
                         GonogoLog.ErrorLimited("game alarm clock sync failed", ex);
                     }
                     stopWarp = tick.StopWarp;
-                    maxWarpRate = tick.MaxWarpRate;
                     actionsDue = new List<ScetAlarmActionsDue>(tick.ActionsDue);
                     if (_roster.WatchesContracts())
                     {
@@ -757,10 +755,6 @@ namespace Gonogo.KSP
                 {
                     WarpStopBudget.Record(1, ut);
                     _actuator.SetWarp(0);
-                }
-                if (!stopWarp && maxWarpRate is { } cap)
-                {
-                    SlowWarpTo(cap);
                 }
 
                 // In the same frame as the stop, before the notices leave: this is
@@ -793,31 +787,6 @@ namespace Gonogo.KSP
             {
                 GonogoLog.ErrorLimited("SCET alarm evaluation failed", ex);
                 return null;
-            }
-        }
-
-        /// <summary>
-        /// Holds a rails warp to <paramref name="maxRate"/> on the way to an alarm's
-        /// step-down, so one capture cannot carry the clock past the lead instant.
-        /// Main thread only, like every <c>TimeWarp</c> call. Physics warp is left
-        /// alone: it is at most a few times real time and cannot overshoot.
-        /// </summary>
-        private void SlowWarpTo(double maxRate)
-        {
-            var fetch = TimeWarp.fetch;
-            if (fetch == null || TimeWarp.WarpMode != TimeWarp.Modes.HIGH || fetch.warpRates == null)
-            {
-                return;
-            }
-            var rates = new double[fetch.warpRates.Length];
-            for (var i = 0; i < rates.Length; i++)
-            {
-                rates[i] = fetch.warpRates[i];
-            }
-            var index = WarpSlowdown.SlowTo(rates, TimeWarp.CurrentRateIndex, maxRate);
-            if (index.HasValue)
-            {
-                _actuator.SetWarp(index.Value);
             }
         }
 

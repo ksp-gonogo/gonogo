@@ -122,9 +122,9 @@ describe("a craft past the sphere-of-influence change that ends its observed pat
     expect(screen.getByText("Mun")).toBeInTheDocument();
   });
 
-  it("keeps the old patch's orbit when the sample carries no next patch", () => {
+  it("still withholds the orbit when the sample carries no next patch", () => {
     mount("orbit", [], TRANSITION + 5);
 
-    expect(screen.queryByText("No orbital data")).toBeNull();
+    expect(screen.getByText("No orbital data")).toBeInTheDocument();
   });
 });

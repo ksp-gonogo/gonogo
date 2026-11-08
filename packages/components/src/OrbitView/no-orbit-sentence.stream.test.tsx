@@ -77,11 +77,11 @@ describe("OrbitView's empty sentence follows the reason the conic withdrew", () 
     expect(screen.getByText("No orbital data")).toBeInTheDocument();
   });
 
-  it("does not say packed, or that there is no orbit, past the predicted SOI transition while the wire still reports this patch", () => {
+  it("does not say packed past the SOI transition", () => {
     scene({ encounter: { transitionUt: 5 } });
 
     expect(screen.queryByText(/packed/)).toBeNull();
-    expect(screen.queryByText("No orbital data")).toBeNull();
+    expect(screen.getByText("No orbital data")).toBeInTheDocument();
   });
 
   it("draws the orbit, and no empty sentence at all, for an analytic coast above the air", () => {

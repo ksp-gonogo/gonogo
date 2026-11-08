@@ -11385,17 +11385,6 @@ export interface CrewMember
 	*/
 	rosterStatus?: string | null;
 	/**
-	* The `flightID` of the part this kerbal is seated in, as a string, the same
-	* id `vessel.parts` carries. Null when the seat could not be read.
-	*/
-	partId?: string | null;
-	/**
-	* The title of the part this kerbal is seated in, such as `"Mk1-3 Command
-	* Pod"`, so a transfer between two pods shows as a move. Null when the seat
-	* could not be read.
-	*/
-	partTitle?: string | null;
-	/**
 	* What this kerbal is personally carrying, from their own
 	* `ModuleInventoryPart`.
 	*

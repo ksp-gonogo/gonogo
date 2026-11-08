@@ -111,31 +111,6 @@ export const HOST_SESSION = "host";
  */
 export const HOME_SESSION = "home";
 
-/**
- * The part of a mod session a command is dispatched through. A session that
- * follows the active craft carries its own, because the mod resolves where its
- * commands leave from.
- */
-export type CommandRoute = Pick<
-  TelemetryClient,
-  "dispatch" | "dispatchGroup" | "onRawMessage"
->;
-
-/**
- * The vantage a pilot's connection holds while it follows the active craft.
- * It is a request to the mod and names no command centre, so it can select a
- * session but never stand as the vantage a command is sent from.
- */
-const FOLLOW_ACTIVE_CRAFT = "active-craft";
-
-const UNSENDABLE_VANTAGE =
-  "this connection's vantage is not a command centre a command can leave from";
-
-/** Whether `vantage` is a command centre's id in the `commandCentre.roster` vocabulary. */
-function isCentreId(vantage: string): boolean {
-  return vantage.startsWith("ground:") || vantage.startsWith("vessel:");
-}
-
 export interface SitrepSubscriptionSink {
   /** Hold an upstream subscription for `topic`. Returns its release. */
   subscribe(topic: string): () => void;
@@ -157,8 +132,6 @@ export interface SitrepSubscriptionSink {
   history?(topic: string, fromUt: number, toUt: number): StreamData<unknown>[];
   /** The latest `system.dataRates` report this stream carries, or undefined before one arrives. */
   dataRates?(): unknown;
-  /** Where a command from a connection reading this session is dispatched, when the session is the one it must leave from. */
-  command?: CommandRoute;
 }
 
 function isRelayHandle(handle: unknown): handle is UplinkRelayHandle {
@@ -1469,39 +1442,16 @@ export class PeerHostService {
   }
 
   /**
-   * What a command from `conn` is dispatched through: the host's client, except
-   * for a connection following the active craft, whose own session sends it so
-   * the mod picks the centre it leaves from. Undefined when that session is not
-   * open.
-   */
-  private commandRouteFor(conn: StationLink): CommandRoute | undefined {
-    const vantage = this.vantageOf(conn);
-    if (vantage === FOLLOW_ACTIVE_CRAFT) {
-      return this.sitrepSinks.get(vantage)?.command;
-    }
-    return this.commandClient();
-  }
-
-  /**
    * Where a command from `conn` leaves from when the sender names no centre: the
    * centre its own session reads, and for a station on the host's session, the
-   * centre the host's screen is showing it. Empty when the dispatching session
-   * is already at the right centre, which is the case for a connection
-   * following the active craft. Undefined when the connection's vantage is none
-   * a command can be sent from.
+   * centre the host's screen is showing it.
    */
-  private commandVantageFor(
-    conn: StationLink,
-    override?: string,
-  ): string | undefined {
+  private commandVantageFor(conn: StationLink, override?: string): string {
     if (override) return override;
     const connVantage = this.vantageOf(conn);
     if (connVantage === HOME_SESSION) return "";
-    if (connVantage === FOLLOW_ACTIVE_CRAFT) return "";
-    if (connVantage === HOST_SESSION) {
-      return this.hostJobs?.plainStationVantage() ?? "";
-    }
-    return isCentreId(connVantage) ? connVantage : undefined;
+    if (connVantage !== HOST_SESSION) return connVantage;
+    return this.hostJobs?.plainStationVantage() ?? "";
   }
 
   /**
@@ -3087,18 +3037,12 @@ export class PeerHostService {
        * name the command would leave from home while the station was shown the
        * centre the host's picker chose.
        */
-      const vantage = this.commandVantageFor(conn, msg.vantage);
-      if (vantage === undefined) {
-        throw Object.assign(new Error(UNSENDABLE_VANTAGE), {
-          code: FaultCode.UnknownVantage,
-        });
-      }
       return client.dispatch(
         msg.command,
         msg.args,
         msg.label ?? "",
         msg.topic ?? "",
-        vantage,
+        this.commandVantageFor(conn, msg.vantage),
         /*
          * The station's own id, not a fresh host one: the mod stamps it on the
          * pending queue, and the station's `useCommand` looks for its own id
@@ -3119,7 +3063,7 @@ export class PeerHostService {
     msg: Extract<PeerMessage, { type: "sitrep-command-group" }>,
     conn: StationLink,
   ): Promise<void> {
-    const client = this.commandRouteFor(conn);
+    const client = this.commandClient();
     const refuseAll = (code: string, message: string) => {
       for (const member of msg.members) {
         conn.send({
@@ -3134,11 +3078,6 @@ export class PeerHostService {
       refuseAll(FaultCode.NoClient, "host has no live telemetry client");
       return;
     }
-    const vantage = this.commandVantageFor(conn, msg.vantage);
-    if (vantage === undefined) {
-      refuseAll(FaultCode.UnknownVantage, UNSENDABLE_VANTAGE);
-      return;
-    }
     let dispatched: ReturnType<typeof client.dispatchGroup>;
     try {
       dispatched = client.dispatchGroup(
@@ -3149,7 +3088,7 @@ export class PeerHostService {
           topic: member.topic,
           requestId: member.requestId,
         })),
-        vantage,
+        this.commandVantageFor(conn, msg.vantage),
         msg.groupId,
       );
     } catch (err) {
@@ -3235,9 +3174,9 @@ export class PeerHostService {
   private async relaySitrepCommand(
     msg: { requestId: string; command: string },
     conn: StationLink,
-    start: (client: CommandRoute) => Promise<unknown>,
+    start: (client: TelemetryClient) => Promise<unknown>,
   ): Promise<void> {
-    const client = this.commandRouteFor(conn);
+    const client = this.commandClient();
     if (!client) {
       conn.send({
         type: "sitrep-command-error",
