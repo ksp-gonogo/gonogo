@@ -172,7 +172,7 @@ type DeclaredMod = NonNullable<UplinkDeclaration["mod"]>;
  * The file is found by the sdk's own search, so the declaration this page prints
  * from is the one the manifest was built from. Absent is normal: an Uplink
  * bundled inside the app's own repo has no separate declaration, and the page
- * omits the row it would have filled rather than inventing one.
+ * omits the sentence it would have filled rather than inventing one.
  */
 function declaredMod(pkgDir: string): DeclaredMod | undefined {
   return readUplinkDeclaration(pkgDir)?.declared.mod ?? undefined;
@@ -316,8 +316,57 @@ function table(
   ];
 }
 
+/** Where a player finds Gonogo itself. */
+const GONOGO_URL = "https://ksp-gonogo.github.io/";
+
 /**
- * The images for one registration: alt text and nothing else.
+ * The width, in pixels, every picture on the page is shown at. GitHub ignores
+ * CSS in markdown, so the width is an attribute of an `<img>` tag; each picture
+ * links to its full-size file.
+ */
+export const PAGE_IMAGE_WIDTH = 400;
+
+/** The width of a picture in the page's gallery of what the Uplink adds to other widgets. */
+export const GALLERY_IMAGE_WIDTH = 280;
+
+/** Pictures per gallery row. */
+const GALLERY_COLUMNS = 3;
+
+/** Text safe inside a double-quoted HTML attribute. */
+function attr(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+/**
+ * Lines wrapped in a collapsed `<details>` block, opened by `summary`.
+ *
+ * The blank lines after `<summary>` and before `</details>` are what make
+ * GitHub render the markdown inside. A leading `## ` heading in `lines` is
+ * dropped, since the summary names the block.
+ */
+function collapsed(summary: string, lines: readonly string[]): string[] {
+  const headed = lines[0]?.startsWith("## ");
+  const content = headed ? lines.slice(lines[1] === "" ? 2 : 1) : [...lines];
+  if (content.every((l) => l === "")) return [];
+  return [
+    "<details>",
+    `<summary>${summary}</summary>`,
+    "",
+    ...content,
+    ...(content[content.length - 1] === "" ? [] : [""]),
+    "</details>",
+    "",
+  ];
+}
+
+/**
+ * The images for one registration, each an `<img>` inside a link to the
+ * full-size file. A picture is shown at `width` pixels, or at the size it was
+ * drawn at when that is smaller, so a small widget is not enlarged.
  *
  * The scene's caption goes in the alt, where a screen reader and a
  * broken-image placeholder both find it.
@@ -331,16 +380,30 @@ export function imageLinks(
   pkgDir: string,
   assetDir: string,
   assets: readonly PageAsset[],
+  width: number = PAGE_IMAGE_WIDTH,
 ): string[] {
-  const out: string[] = [];
+  return assets.flatMap((asset) => {
+    const tag = imageTag(pkgDir, assetDir, asset, width);
+    return tag ? ["", tag] : [];
+  });
+}
+
+/** One picture as a linked `<img>`, or nothing when it has not been drawn. */
+function imageTag(
+  pkgDir: string,
+  assetDir: string,
+  asset: PageAsset,
+  width: number,
+): string | undefined {
+  const path = `${assetDir}/${asset.file}`;
+  if (!existsSync(join(pkgDir, path))) return undefined;
   const fromPage = relative(pageRoot(pkgDir), pkgDir).split("\\").join("/");
-  for (const asset of assets) {
-    const path = `${assetDir}/${asset.file}`;
-    if (!existsSync(join(pkgDir, path))) continue;
-    const link = fromPage === "" ? path : `${fromPage}/${path}`;
-    out.push("", `![${altFor(asset)}](${link})`);
-  }
-  return out;
+  const href = attr(encodeURI(fromPage === "" ? path : `${fromPage}/${path}`));
+  const alt = attr(altFor(asset).replace(/\s+/g, " ").trim());
+  // Never wider than the size the picture was drawn at, so a small widget is not blown up.
+  const natural = asset.scene.modes.find((m) => m.name === asset.mode)?.pxW;
+  const shown = natural ? Math.min(width, natural) : width;
+  return `<a href="${href}"><img src="${href}" width="${shown}" alt="${alt}"></a>`;
 }
 
 function altFor(asset: PageAsset): string {
@@ -424,32 +487,97 @@ export function widgetRecordsOf(inventory: UplinkInventory): WidgetRecord[] {
 function widgetSection(inputs: DocsInputs, widget: WidgetRecord): string[] {
   const out = [`### ${widget.name}`, "", widget.description, ""];
   out.push(
-    ...facts([
-      ...widgetFactsOf(widget).map((fact): [string, string] => [
-        fact.label,
-        widgetFactValueMd(fact.items),
-      ]),
-      // How many STATES somebody thought worth showing, not how many pictures.
-      // A widget with three warning states and one scene is the shape that hides
-      // a finding, and this is what makes that visible in review.
-      ["Scenes", String(scenesFor(inputs, "widget", widget.id).length)],
-    ]),
-  );
-  out.push(
     ...imageLinks(
       inputs.pkg.dir,
       inputs.assetDir,
       heroAssetsFor(inputs, "widget", widget.id),
     ),
+    "",
   );
+  const detail = facts([
+    ...widgetFactsOf(widget).map((fact): [string, string] => [
+      fact.label,
+      widgetFactValueMd(fact.items),
+    ]),
+    // How many STATES somebody thought worth showing, not how many pictures.
+    // A widget with three warning states and one scene is the shape that hides
+    // a finding, and this is what makes that visible in review.
+    ["Scenes", String(scenesFor(inputs, "widget", widget.id).length)],
+  ]);
+  out.push(...collapsed("Widget details", detail));
   return out;
+}
+
+/**
+ * The pictures of what the Uplink adds to other widgets, as a visible gallery:
+ * every augment and contribution that has a drawn picture, a small thumbnail
+ * each linking to the full size, with the host it adds to beneath. Only the
+ * tables stay collapsed.
+ *
+ * Returns the lines and the assets it shows, which the collapsed tables then
+ * leave out.
+ */
+function addedToOtherWidgets(inputs: DocsInputs): {
+  lines: string[];
+  shown: ReadonlySet<PageAsset>;
+} {
+  const entries = [
+    ...inputs.inventory.augments.map((augment) => ({
+      kind: "augment",
+      id: augment.id,
+      into: augment.augments,
+    })),
+    ...inputs.inventory.contributions.map((contribution) => ({
+      kind: "contribution",
+      id: contribution.id,
+      into: contribution.contributes,
+    })),
+  ];
+  const cells: string[] = [];
+  const shown = new Set<PageAsset>();
+  for (const entry of entries) {
+    for (const asset of heroAssetsFor(inputs, entry.kind, entry.id)) {
+      const tag = imageTag(
+        inputs.pkg.dir,
+        inputs.assetDir,
+        asset,
+        GALLERY_IMAGE_WIDTH,
+      );
+      if (!tag) continue;
+      shown.add(asset);
+      cells.push(`${tag}<br>\`${entry.id}\` in \`${entry.into}\``);
+      break;
+    }
+  }
+  if (cells.length === 0) return { lines: [], shown };
+  const columns = Math.min(GALLERY_COLUMNS, cells.length);
+  const rows: string[][] = [];
+  for (let i = 0; i < cells.length; i += columns) {
+    const row = cells.slice(i, i + columns);
+    while (row.length < columns) row.push("");
+    rows.push(row);
+  }
+  return {
+    lines: [
+      "## What it adds to other widgets",
+      "",
+      `|${" |".repeat(columns)}`,
+      `|${" --- |".repeat(columns)}`,
+      ...rows.map((row) => `| ${row.join(" | ")} |`),
+      "",
+    ],
+    shown,
+  };
 }
 
 /**
  * Every augment in one table, with its images after it, so a reader can compare
  * which host widgets this Uplink reaches into.
  */
-function augmentTable(inputs: DocsInputs): string[] {
+function augmentTable(
+  inputs: DocsInputs,
+  shown: ReadonlySet<PageAsset>,
+): string[] {
   const rows = inputs.inventory.augments.map((augment: InventoryAugment) => {
     const notes: string[] = [];
     if (augment.suppressesVanillaBase) notes.push("replaces the host surface");
@@ -476,14 +604,19 @@ function augmentTable(inputs: DocsInputs): string[] {
       imageLinks(
         inputs.pkg.dir,
         inputs.assetDir,
-        heroAssetsFor(inputs, "augment", augment.id),
+        heroAssetsFor(inputs, "augment", augment.id).filter(
+          (asset) => !shown.has(asset),
+        ),
       ),
     ),
     "",
   ];
 }
 
-function contributionTable(inputs: DocsInputs): string[] {
+function contributionTable(
+  inputs: DocsInputs,
+  shown: ReadonlySet<PageAsset>,
+): string[] {
   const rows = inputs.inventory.contributions.map(
     (contribution: InventoryContribution) => [
       `\`${contribution.id}\``,
@@ -501,7 +634,9 @@ function contributionTable(inputs: DocsInputs): string[] {
       imageLinks(
         inputs.pkg.dir,
         inputs.assetDir,
-        heroAssetsFor(inputs, "contribution", contribution.id),
+        heroAssetsFor(inputs, "contribution", contribution.id).filter(
+          (asset) => !shown.has(asset),
+        ),
       ),
     ),
     "",
@@ -623,23 +758,15 @@ export function buildReadme(
     // would render as monospace with a scrollbar.
     inventory.description.replace(/\s+/g, " ").trim(),
     "",
-    ...facts([
-      ["Uplink id", `\`${inventory.id}\``],
-      ["Version", `\`${inventory.version}\``],
-      [
-        "Wraps",
-        mod?.name
-          ? `${mod.name}${mod.builtAgainst ? ` ${mod.builtAgainst}` : ""}${mod.tier ? ` (${mod.tier})` : ""}`
-          : undefined,
-      ],
-      [
-        "Built against",
-        `contract ${manifest.contractMajor}.${manifest.contractMinor}, extension API ${manifest.apiVersion}`,
-      ],
-    ]),
+    `An Uplink for [Gonogo](${GONOGO_URL}), the mission-control dashboard for Kerbal Space Program that runs in a web browser on any screen.`,
+    "",
+    ...(mod?.name
+      ? [
+          `Built against ${mod.name}${mod.builtAgainst ? ` ${mod.builtAgainst}` : ""}.`,
+          "",
+        ]
+      : []),
     ...installSection(inputs),
-    ...wireSection(wire),
-    ...commandSection(wire),
   ];
 
   const records = widgetRecordsOf(inventory);
@@ -660,10 +787,32 @@ export function buildReadme(
       out.push(...widgetSection(inputs, widget), "");
     }
   }
-  out.push(...augmentTable(inputs));
-  out.push(...contributionTable(inputs));
-  out.push(...modelTable(inputs));
-  out.push(...errorCodeTable(inputs));
+  const added = addedToOtherWidgets(inputs);
+  out.push(...added.lines);
+  const developer = [
+    ...collapsed(
+      "Uplink details",
+      facts([
+        ["Uplink id", `\`${inventory.id}\``],
+        [
+          "Wraps",
+          mod?.tier ? `${mod.name ?? ""} (${mod.tier})`.trim() : undefined,
+        ],
+        ["Version", `\`${inventory.version}\``],
+        [
+          "Built against",
+          `contract ${manifest.contractMajor}.${manifest.contractMinor}, extension API ${manifest.apiVersion}`,
+        ],
+      ]),
+    ),
+    ...collapsed("Topics", wireSection(wire)),
+    ...collapsed("Commands", commandSection(wire)),
+    ...collapsed("Augments", augmentTable(inputs, added.shown)),
+    ...collapsed("Contributions", contributionTable(inputs, added.shown)),
+    ...collapsed("Models", modelTable(inputs)),
+    ...collapsed("Error codes", errorCodeTable(inputs)),
+  ];
+  out.push("## For developers", "", ...developer);
 
   return `${out.join("\n").replace(/\n{3,}/g, "\n\n")}\n`;
 }

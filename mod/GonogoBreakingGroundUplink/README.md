@@ -5,11 +5,7 @@
 
 Drives Breaking Ground robotic joints and rotors from the console, and reports deployed surface bases on every body while you fly something else.
 
-| | |
-| --- | --- |
-| Uplink id | `breakingGround` |
-| Version | `0.0.1` |
-| Built against | contract 51.0, extension API 6.0.0 |
+An Uplink for [Gonogo](https://ksp-gonogo.github.io/), the mission-control dashboard for Kerbal Space Program that runs in a web browser on any screen.
 
 ## Install
 
@@ -21,6 +17,11 @@ The Breaking Ground Uplink comes with Gonogo, so there is nothing separate to in
 
 Whether each Breaking Ground deployed station's science is reaching home and when it was last heard, with its power balance and per-experiment science progress, reported even while you fly something else. Read-only.
 
+<a href="client/docs/assets/mun-and-minmus-stations--default.png"><img src="client/docs/assets/mun-and-minmus-stations--default.png" width="185" alt="A Mun station in contact above a Minmus station out of contact, with the time it was last heard and its unsent data"></a>
+
+<details>
+<summary>Widget details</summary>
+
 | | |
 | --- | --- |
 | Widget id | `deployed-science` |
@@ -31,11 +32,16 @@ Whether each Breaking Ground deployed station's science is reaching home and whe
 | Smallest size, in grid units | 5 × 7 |
 | Scenes | 4 |
 
-![A Mun station in contact above a Minmus station out of contact, with the time it was last heard and its unsent data](client/docs/assets/mun-and-minmus-stations--default.png)
+</details>
 
 ### Robotics Console
 
 Current-vs-target position, at-target state and motor/lock controls for Breaking Ground robotic hinges, rotation servos and pistons. Select a joint to drive it from the stepper or a mapped input.
+
+<a href="client/docs/assets/servos--default.png"><img src="client/docs/assets/servos--default.png" width="185" alt="A hinge driving towards its target, a piston already at one, and a locked rotor the console leaves to the tachometer"></a>
+
+<details>
+<summary>Widget details</summary>
 
 | | |
 | --- | --- |
@@ -47,11 +53,16 @@ Current-vs-target position, at-target state and motor/lock controls for Breaking
 | Smallest size, in grid units | 4 × 4 |
 | Scenes | 3 |
 
-![A hinge driving towards its target, a piston already at one, and a locked rotor the console leaves to the tachometer](client/docs/assets/servos--default.png)
+</details>
 
 ### Rotor Tachometer
 
 Live RPM vs commanded cap for Breaking Ground robotic rotors, with motor, lock, brake and direction controls. Select a rotor to drive it from the dial or a mapped input.
+
+<a href="client/docs/assets/rotors--default.png"><img src="client/docs/assets/rotors--default.png" width="226" alt="Main rotor turning near its commanded cap, tail rotor stopped with the brake full on and the servo locked"></a>
+
+<details>
+<summary>Widget details</summary>
 
 | | |
 | --- | --- |
@@ -63,5 +74,18 @@ Live RPM vs commanded cap for Breaking Ground robotic rotors, with motor, lock, 
 | Smallest size, in grid units | 4 × 4 |
 | Scenes | 3 |
 
-![Main rotor turning near its commanded cap, tail rotor stopped with the brake full on and the servo locked](client/docs/assets/rotors--default.png)
+</details>
+
+## For developers
+
+<details>
+<summary>Uplink details</summary>
+
+| | |
+| --- | --- |
+| Uplink id | `breakingGround` |
+| Version | `0.0.1` |
+| Built against | contract 51.0, extension API 6.0.0 |
+
+</details>
 

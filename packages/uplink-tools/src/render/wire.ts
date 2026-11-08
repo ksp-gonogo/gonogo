@@ -359,7 +359,7 @@ function fieldList(list: WireField[]): string {
 }
 
 /**
- * The page's `## Wire` section as markdown lines: a table of channels with their
+ * The page's Topics block as markdown lines: a table of channels with their
  * payload, delivery and delay, then a table of every payload shape with its
  * fields and each field's unit. Empty when the Uplink has no contract slice.
  * Useful for showing an Uplink author what the Uplink sends. Used by the page
@@ -399,8 +399,8 @@ export function wireSection(surface: WireSurface): string[] {
 }
 
 /**
- * The page's `## Commands` section as markdown lines: two tables of the commands
- * the Uplink accepts and their argument shapes, beside `## Wire`. It is derived
+ * The page's Commands block as markdown lines: two tables of the commands
+ * the Uplink accepts and their argument shapes, beside the Topics block. It is derived
  * from the generated command map, so a command added in C# reaches the table
  * with no hand edit. Useful for showing an Uplink author which commands an
  * operator can send. Used by the page generator.

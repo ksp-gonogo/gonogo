@@ -5,21 +5,37 @@
 
 Lists the running Making History mission's objectives in the Objectives widget, each marked pending, under way, reached or failed.
 
+An Uplink for [Gonogo](https://ksp-gonogo.github.io/), the mission-control dashboard for Kerbal Space Program that runs in a web browser on any screen.
+
+## Install
+
+The Making History Uplink comes with Gonogo, so there is nothing separate to install. Installing Gonogo installs it.
+
+## What it adds to other widgets
+
+| |
+| --- |
+| <a href="client/docs/assets/mission-part-way--default.png"><img src="client/docs/assets/mission-part-way--default.png" width="226" alt="A Making History mission part way through, its objectives listed in the Objectives widget with the phase and score above them"></a><br>`objectives-making-history` in `objectives.source` |
+
+## For developers
+
+<details>
+<summary>Uplink details</summary>
+
 | | |
 | --- | --- |
 | Uplink id | `makingHistory` |
 | Version | `0.0.1` |
 | Built against | contract 51.0, extension API 6.0.0 |
 
-## Install
+</details>
 
-The Making History Uplink comes with Gonogo, so there is nothing separate to install. Installing Gonogo installs it.
-
-## Augments
+<details>
+<summary>Augments</summary>
 
 | Augment | Into | Reads | Presence | Scenes | Notes |
 | --- | --- | --- | --- | --- | --- |
 | `objectives-making-history` | `objectives.source` | `missions.active` |  | 1 |  |
 
-![A Making History mission part way through, its objectives listed in the Objectives widget with the phase and score above them](client/docs/assets/mission-part-way--default.png)
+</details>
 

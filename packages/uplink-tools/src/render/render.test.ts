@@ -930,8 +930,53 @@ describe("fixtures become scenes", () => {
     writeFileSync(join(pkg.dir, "docs/assets", names[0]), "drawn");
     expect(imageLinks(pkg.dir, "docs/assets", assets)).toEqual([
       "",
-      "![hot](docs/assets/hot--default.png)",
+      '<a href="docs/assets/hot--default.png"><img src="docs/assets/hot--default.png" width="232" alt="hot"></a>',
     ]);
+  });
+
+  it("escapes a caption in the picture's alt and keeps it on one line", () => {
+    const pkg = resolveUplinkPackage(
+      fixture({
+        _scene: { widget: "reactor", caption: 'A "hot" <core>\n\nat 5 & 6' },
+      }),
+    );
+    const assets = linkedAssets(buildScenes(pkg, INVENTORY));
+    mkdirSync(join(pkg.dir, "docs/assets"), { recursive: true });
+    writeFileSync(join(pkg.dir, "docs/assets", assets[0].file), "drawn");
+    const [, image] = imageLinks(pkg.dir, "docs/assets", assets);
+    expect(image).toContain(
+      'alt="A &quot;hot&quot; &lt;core&gt; at 5 &amp; 6"',
+    );
+    expect(image).not.toContain("\n");
+  });
+
+  it("shows the first drawn augment pictures as a small visible gallery and leaves them out of the collapsed table", () => {
+    const pkg = resolveUplinkPackage(
+      fixture({ _scene: { augment: "reactor-badge", hero: true } }),
+    );
+    const scenes = buildScenes(pkg, INVENTORY);
+    const assets = linkedAssets(scenes);
+    mkdirSync(join(pkg.dir, "docs/assets"), { recursive: true });
+    writeFileSync(join(pkg.dir, "docs/assets", assets[0].file), "drawn");
+    const inputs = {
+      pkg,
+      inventory: { ...INVENTORY, description: "An example.", widgets: [] },
+      scenes,
+      assets,
+      assetDir: "docs/assets",
+    };
+    const readme = buildReadme(inputs, buildManifest(inputs).manifest);
+    const gallery = readme.slice(
+      readme.indexOf("## What it adds to other widgets"),
+      readme.indexOf("## For developers"),
+    );
+    expect(gallery).toMatch(/width="\d+"/);
+    expect(Number(gallery.match(/width="(\d+)"/)?.[1])).toBeLessThanOrEqual(
+      280,
+    );
+    expect(gallery).toContain("`reactor-badge` in `console.header`");
+    // Shown once: the collapsed Augments block keeps its table and drops the picture.
+    expect(readme.match(/<img /g)).toHaveLength(1);
   });
 
   it("defaults every emission's instant to the pinned clock", () => {
@@ -1061,6 +1106,24 @@ describe("the widget section of the page", () => {
     expect(readme).toContain("`trackingStation.vessel.<vessel>.link`");
     expect(readme).toMatch(
       /Also reads, if the mod publishes them.*`example\.extra`.*`<domain>\.available`/,
+    );
+  });
+
+  it("puts the widgets before the developer detail, and the detail in collapsed blocks", () => {
+    const readme = readmeWith({});
+    expect(readme.indexOf("## Widgets")).toBeGreaterThan(
+      readme.indexOf("## Install"),
+    );
+    expect(readme.indexOf("## For developers")).toBeGreaterThan(
+      readme.indexOf("## Widgets"),
+    );
+    // Markdown inside a block renders only with a blank line after the summary.
+    expect(readme).toMatch(/<summary>Widget details<\/summary>\n\n\|/);
+    expect(readme).toMatch(/<summary>Uplink details<\/summary>\n\n\|/);
+    expect(readme).toContain("`example.reactor`");
+    // Every opened block is closed.
+    expect(readme.match(/<details>/g)?.length).toBe(
+      readme.match(/<\/details>/g)?.length,
     );
   });
 
