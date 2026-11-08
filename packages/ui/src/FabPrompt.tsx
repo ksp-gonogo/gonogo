@@ -1,4 +1,4 @@
-import { Tooltip } from "@ksp-gonogo/ui-kit";
+import { IconButton, Tooltip } from "@ksp-gonogo/ui-kit";
 import { useEffect } from "react";
 import styled, { css } from "styled-components";
 
@@ -42,9 +42,9 @@ export function FabPrompt({
         {label}
       </Accept>
       <Tooltip text="Dismiss">
-        <Dismiss type="button" onClick={onDismiss} aria-label="Dismiss">
+        <IconButton type="button" onClick={onDismiss} aria-label="Dismiss">
           ×
-        </Dismiss>
+        </IconButton>
       </Tooltip>
     </Wrap>
   );
@@ -111,32 +111,6 @@ const Accept = styled.button`
 
   &:hover {
     background: var(--color-border-subtle);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--color-info-mark);
-    outline-offset: -2px;
-  }
-`;
-
-const Dismiss = styled.button`
-  appearance: none;
-  border: 0;
-  border-left: 1px solid var(--color-border-subtle);
-  background: transparent;
-  color: var(--color-text-muted);
-  font-family: inherit;
-  /* Off the type scale: a glyph size for the close mark, above --font-size-lg. */
-  font-size: 18px;
-  line-height: var(--line-height-flush);
-  padding: var(--inset-prompt-button);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-
-  &:hover {
-    background: var(--color-border-subtle);
-    color: var(--color-text-primary);
   }
 
   &:focus-visible {

@@ -1,5 +1,5 @@
 import { getDataSource } from "@ksp-gonogo/core";
-import { Grid, Input } from "@ksp-gonogo/ui-kit";
+import { Grid, IconButton, Input } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
 import type { FlightChapterRecord, FlightRecord } from "../types";
@@ -209,13 +209,13 @@ export function ChaptersEditor({ flight, onChange }: ChaptersEditorProps) {
                         <EditButton type="button" onClick={() => startEdit(c)}>
                           edit
                         </EditButton>
-                        <RemoveButton
+                        <IconButton
                           type="button"
                           onClick={() => void handleRemove(c.id)}
                           aria-label={`Remove chapter ${c.label}`}
                         >
                           ×
-                        </RemoveButton>
+                        </IconButton>
                       </Actions>
                     </>
                   )}
@@ -349,16 +349,6 @@ const CancelButton = styled.button`
   padding: var(--inset-control);
   border-radius: var(--radius-regular);
   &:hover { color: var(--color-text-primary); }
-`;
-
-const RemoveButton = styled.button`
-  background: none;
-  border: none;
-  color: var(--color-text-faint);
-  cursor: pointer;
-  font-size: var(--font-size-base);
-  padding: var(--inset-glyph);
-  &:hover { color: var(--color-nogo-text); }
 `;
 
 const AddRow = styled.div`

@@ -7,6 +7,7 @@ import {
   Input,
   Select,
 } from "@ksp-gonogo/ui";
+import { IconButton } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import styled from "styled-components";
 import { getSerialRenderStyles } from "../registry";
@@ -331,13 +332,13 @@ export function DeviceTypeEditor({
                 </TinyField>
               </>
             )}
-            <RemoveBtn
+            <IconButton
               type="button"
               onClick={() => removeInput(idx)}
               aria-label={`Remove input ${input.name || input.id}`}
             >
               ✕
-            </RemoveBtn>
+            </IconButton>
           </InputRow>
         ))}
 
@@ -450,16 +451,4 @@ const SmallField = styled(Field)`
 
 const TinyField = styled(Field)`
   flex: 0 0 56px;
-`;
-
-const RemoveBtn = styled.button`
-  background: none;
-  border: none;
-  color: var(--color-text-faint);
-  cursor: pointer;
-  font-size: var(--font-size-base);
-  padding: var(--inset-icon-button);
-  &:hover {
-    color: var(--color-nogo-text);
-  }
 `;
