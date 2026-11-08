@@ -2,10 +2,10 @@ import {
   ActionMenu,
   type ActionMenuItem,
   Floating,
+  IconButton,
   Tooltip,
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useRef, useState } from "react";
-import styled from "styled-components";
 import { usePushClient } from "../../pushToMain/PushClientContext";
 import { useStationApproved } from "../../stationApproval/useStationApproved";
 import type { DashboardItem } from "./index";
@@ -126,7 +126,7 @@ export function TileMenu({
   return (
     <>
       <Tooltip text={`${name} options`}>
-        <Trigger
+        <IconButton
           ref={triggerRef}
           type="button"
           aria-label={`${name} options`}
@@ -145,7 +145,7 @@ export function TileMenu({
             <circle cx="12" cy="12" r="2" />
             <circle cx="19" cy="12" r="2" />
           </svg>
-        </Trigger>
+        </IconButton>
       </Tooltip>
       {open && (
         <Floating anchor={anchor}>
@@ -161,22 +161,3 @@ export function TileMenu({
     </>
   );
 }
-
-const Trigger = styled.button`
-  background: none;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-regular);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  line-height: var(--line-height-flush);
-  padding: var(--inset-control-compact);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  ${touchTarget}
-
-  &:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
-`;

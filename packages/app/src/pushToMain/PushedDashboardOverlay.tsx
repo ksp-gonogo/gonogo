@@ -5,7 +5,7 @@ import {
   getComponent,
 } from "@ksp-gonogo/core";
 import { CloseIcon, WidgetAtTileSize } from "@ksp-gonogo/ui";
-import { Box, Tooltip } from "@ksp-gonogo/ui-kit";
+import { Box, IconButton, Tooltip } from "@ksp-gonogo/ui-kit";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import {
@@ -173,13 +173,13 @@ function PushedItem({
       <ItemHeader>
         <StationChip>{placement.widget.stationName}</StationChip>
         <Tooltip text="Dismiss">
-          <DismissBtn
+          <IconButton
             type="button"
             onClick={onDismiss}
             aria-label="Dismiss pushed widget"
           >
             <CloseIcon size="var(--icon-size-control)" />
-          </DismissBtn>
+          </IconButton>
         </Tooltip>
       </ItemHeader>
       <ItemBody>
@@ -332,18 +332,6 @@ const StationChip = styled.span`
    the --control-height the full inset name is defined against. It loses 1px
    of vertical joining them, which is the compact name's own floor arithmetic.
    See RemoveBtn in components/Dashboard/shared.tsx. */
-const DismissBtn = styled.button`
-  background: none;
-  border: none;
-  color: var(--color-text-faint);
-  line-height: var(--line-height-flush);
-  padding: var(--inset-control-compact);
-  cursor: pointer;
-  &:hover {
-    color: var(--color-tag-red-fg);
-  }
-`;
-
 const ItemBody = styled.div`
   /* 1fr grid row: children with height: 100% resolve to this row's
      concrete height. min-height: 0 so content can't force the row taller. */

@@ -1,5 +1,5 @@
 import { CloseIcon, PushUpIcon, RecallIcon } from "@ksp-gonogo/ui";
-import { Tooltip } from "@ksp-gonogo/ui-kit";
+import { IconButton, Tooltip } from "@ksp-gonogo/ui-kit";
 import styled, { css, keyframes } from "styled-components";
 import { usePushClient } from "../../pushToMain/PushClientContext";
 import { useStationApproved } from "../../stationApproval/useStationApproved";
@@ -17,7 +17,7 @@ export function RemoveButton({
 }: Readonly<{ onRemove: () => void; name?: string }>) {
   return (
     <Tooltip text={`Remove ${name}`}>
-      <RemoveBtn
+      <IconButton
         type="button"
         onMouseDown={handleMouseDown}
         onClick={(e) => {
@@ -27,7 +27,7 @@ export function RemoveButton({
         aria-label={`Remove ${name}`}
       >
         <CloseIcon size={12} />
-      </RemoveBtn>
+      </IconButton>
     </Tooltip>
   );
 }
@@ -68,20 +68,19 @@ export function PushButton({
   };
   return (
     <Tooltip text={pushed ? "Recall from main" : "Push to main"}>
-      <PushBtn
+      <IconButton
         type="button"
         onMouseDown={handleMouseDown}
         onClick={handleClick}
         aria-label={pushed ? "Recall from main" : "Push to main"}
         disabled={!approved}
-        $pushed={pushed}
       >
         {pushed ? (
           <RecallIcon size="var(--icon-size-control)" />
         ) : (
           <PushUpIcon size="var(--icon-size-control)" />
         )}
-      </PushBtn>
+      </IconButton>
     </Tooltip>
   );
 }
@@ -161,50 +160,6 @@ export const ComponentWrapper = styled.div`
  * these should be real targets; the tray in MobileDashboard follows this for
  * the same reason.
  */
-const RemoveBtn = styled.button`
-  pointer-events: all;
-  background: none;
-  border: none;
-  color: var(--color-text-faint);
-  cursor: pointer;
-  font-size: var(--font-size-xs);
-  line-height: var(--line-height-flush);
-  padding: var(--inset-control-compact);
-  margin-left: var(--gap-glyph-tray);
-
-  ${touchTarget}
-
-  &:hover {
-    color: var(--color-nogo-text);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
-`;
-
-const PushBtn = styled.button<{ $pushed: boolean }>`
-  pointer-events: all;
-  background: none;
-  border: none;
-  color: ${({ $pushed }) => ($pushed ? "var(--color-info-mark)" : "var(--color-text-faint)")};
-  cursor: pointer;
-  line-height: var(--line-height-flush);
-  padding: var(--inset-control-compact);
-  margin-left: var(--gap-glyph-tray);
-  ${touchTarget}
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  &:hover:not(:disabled) {
-    color: var(--color-info-text);
-  }
-`;
-
 const WidgetErrorPanel = styled.div`
   height: 100%;
   display: flex;

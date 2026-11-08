@@ -50,7 +50,7 @@ export function LayoutHistoryControl({
         </>
       ) : null}
       <Tooltip text={`${stepLabel("Undo", undoStep)} (Ctrl/Cmd+Z)`}>
-        <HistoryButton
+        <IconButton
           type="button"
           aria-label={stepLabel("Undo", undoStep)}
           aria-keyshortcuts="Control+Z Meta+Z"
@@ -58,10 +58,10 @@ export function LayoutHistoryControl({
           onClick={() => dashboard.undo()}
         >
           <RecallIcon />
-        </HistoryButton>
+        </IconButton>
       </Tooltip>
       <Tooltip text={`${stepLabel("Redo", redoStep)} (Ctrl/Cmd+Shift+Z)`}>
-        <HistoryButton
+        <IconButton
           type="button"
           aria-label={stepLabel("Redo", redoStep)}
           aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y"
@@ -71,7 +71,7 @@ export function LayoutHistoryControl({
           <Mirrored>
             <RecallIcon />
           </Mirrored>
-        </HistoryButton>
+        </IconButton>
       </Tooltip>
     </Wrap>
   );
@@ -97,20 +97,4 @@ const Name = styled.span`
 const Mirrored = styled.span`
   display: inline-flex;
   transform: scaleX(-1);
-`;
-
-const HistoryButton = styled(IconButton)`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-primary);
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-regular);
-
-  @media (hover: hover) {
-    &:hover:not(:disabled) {
-      background: var(--color-border-subtle);
-    }
-  }
 `;
