@@ -17429,6 +17429,10 @@
         "note": "several commands sent by one press and shown as one"
       },
       {
+        "key": "sitrep-sdk ./spine getActiveTimelineEpoch",
+        "note": "New spine plumbing that says which timeline the mounted provider shows, so a service can tell a revert or quickload from one more frame; not an author surface"
+      },
+      {
         "key": "sitrep-sdk ./spine hasItemVerdict",
         "note": "New spine plumbing that says whether a gate report names the item a call is about; not an author surface"
       },

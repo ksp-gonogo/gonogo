@@ -734,6 +734,28 @@ export function getViewUt(): Value<"ut"> | undefined {
 }
 
 /**
+ * Which timeline the mounted `TelemetryProvider` is showing: the epoch the game
+ * has reached and the store that holds it, or `undefined` without a store that
+ * keeps one. The epoch goes up each time the game starts a new timeline, on a
+ * revert, a quickload or a load of another save. Useful for a service outside
+ * React that has to forget what belongs to the previous flight. Used by the
+ * go/no-go host service.
+ *
+ * `store` tells one provider's timeline from another's: the epoch of a replay
+ * and the epoch of the live stream are unrelated numbers, so a caller compares
+ * epochs only while `store` is the same.
+ */
+export function getActiveTimelineEpoch():
+  | { epoch: number; store: object }
+  | undefined {
+  const store = activeTimelineStore as
+    | (ActiveTimelineStore & { clock?: Pick<ViewClock, "getEpoch"> })
+    | undefined;
+  if (typeof store?.clock?.getEpoch !== "function") return undefined;
+  return { epoch: store.clock.getEpoch(), store };
+}
+
+/**
  * Makes `clock` the source of `getViewUt()` and the clock that
  * `dispatchActiveCommandTopic` judges arrival by, without mounting a
  * `TelemetryProvider`. Useful for a test of a service that has no React tree.

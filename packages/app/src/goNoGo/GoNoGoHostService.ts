@@ -15,6 +15,7 @@ import { logger } from "@ksp-gonogo/logger";
 import type { TelemetryClient } from "@ksp-gonogo/sitrep-client";
 import {
   dispatchActiveCommandTopic,
+  getActiveTimelineEpoch,
   getVesselIdentity,
   getViewUt,
   onActiveTimelineFrame,
@@ -142,6 +143,10 @@ export class GoNoGoHostService {
   private launched = false;
   private reopened = false;
   private abortInFlight = false;
+  /** The epoch each store showed at its last frame, so a frame can tell a new timeline from one more frame of the same. */
+  private epochs = new WeakMap<object, number>();
+  /** Counts flights started over, so a T-0 outcome that settles after a revert is not shown against the new flight. */
+  private flightSerial = 0;
   private abort: { peerId: string; stationName: string; at: number } | null =
     null;
   private config: GoNoGoConfig = { ...DEFAULT_GONOGO_CONFIG };
@@ -262,6 +267,7 @@ export class GoNoGoHostService {
         // A craft on the pad has no launch clock, so `met` is null there rather
         // than 0, and a null is also what a frame without identity yet reads. The
         // situation is what says "on the pad", which a revert to launch needs.
+        this.noteTimeline();
         if (getVesselIdentity()?.situation === Situation.PreLaunch) {
           this.handleMissionTime(value("s", 0));
           return;
@@ -333,20 +339,54 @@ export class GoNoGoHostService {
     }
   }
 
+  /**
+   * Starts every poll over when the game starts a new timeline (a revert, a
+   * quickload, another save). The epoch is remembered per store: a replay
+   * mounts a store with an epoch of its own, so swapping between it and the
+   * live stream is no new timeline, and a revert that happens while a replay is
+   * showing is still seen when the live store returns. A store is first
+   * compared once it has delivered a sample, because a store that has only
+   * just been built reads epoch 0 before the stream's own epoch reaches it.
+   */
+  private noteTimeline(): void {
+    const now = getActiveTimelineEpoch();
+    if (!now || getVesselIdentity() === undefined) return;
+    const prev = this.epochs.get(now.store);
+    this.epochs.set(now.store, now.epoch);
+    if (prev !== undefined && now.epoch > prev) this.startOver();
+  }
+
+  /**
+   * Forgets everything the previous timeline left in the polls (votes, T-0
+   * commits, the staging notice and the abort), closes a reopened poll, and
+   * tells every station to drop its own vote and banner.
+   */
+  private startOver(): void {
+    for (const [centre, poll] of this.polls) {
+      this.cancelCountdownIfRunning(centre, "new flight", { cause: "reset" });
+      poll.committed = false;
+      poll.notice = null;
+    }
+    this.peerIdToVote.clear();
+    this.abort = null;
+    this.reopened = false;
+    this.flightSerial++;
+    this.host.broadcast({ type: "gonogo-reset", reopened: false });
+    this.emit();
+  }
+
   /** The launch-state transition for one mission elapsed time. */
   private handleMissionTime(missionTime: Value<"s">): void {
     const wasLaunched = this.launched;
     this.launched = missionTime.isPositive();
     if (wasLaunched && !this.launched) {
-      // Revert to pad: clear abort so the operator can try again.
-      this.abort = null;
+      // Back on the pad after a flight: a new flight that the game did not announce as a new timeline (a recovery, then a launch from the hangar).
+      this.startOver();
+    }
+    if (this.launched && !wasLaunched && !this.reopened) {
+      // The stage has taken effect: "sent" is no longer news.
       for (const poll of this.polls.values()) {
-        poll.committed = false;
         if (poll.notice?.kind === "outcome") poll.notice = null;
-      }
-      if (this.reopened) {
-        this.reopened = false;
-        this.host.broadcast({ type: "gonogo-reset", reopened: false });
       }
     }
     if (this.launched && !this.reopened) {
@@ -594,6 +634,7 @@ export class GoNoGoHostService {
    * the countdown restartable.
    */
   private async fireOnGo(centre: string, actionGroupId: string): Promise<void> {
+    const flight = this.flightSerial;
     const outcome = dispatchActionGroup(
       actionGroupId,
       centre ? this.places.commandFrom(centre) : undefined,
@@ -601,6 +642,7 @@ export class GoNoGoHostService {
     const refusal = outcome.routed
       ? (await outcome.settled)?.message
       : outcome.refusal;
+    if (flight !== this.flightSerial) return;
     if (refusal !== undefined) {
       logger.warn(`[GoNoGoHost] T-0 action not sent: ${refusal}`);
       this.pollAt(centre).committed = false;

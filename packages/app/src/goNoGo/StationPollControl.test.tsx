@@ -202,6 +202,50 @@ describe("GO/NO-GO in a station's header", () => {
     expect(screen.queryByRole("timer")).toBeNull();
   });
 
+  it("drops the staging banner when the main screen restarts", async () => {
+    let restart: () => void = () => {};
+    let outcome: (action: string | null, sent: boolean) => void = () => {};
+    const client: PeerClient = {
+      ...idlePeerClient(),
+      onHostRestart: (cb) => {
+        restart = cb;
+        return () => {};
+      },
+      onGonogoOutcome: (cb) => {
+        outcome = cb;
+        return () => {};
+      },
+    };
+    station(client);
+    await screen.findByText("NO-GO");
+    await act(async () => outcome("Stage", true));
+    expect(screen.getByText("Stage sent")).toBeInTheDocument();
+    await act(async () => restart());
+    expect(screen.queryByText("Stage sent")).toBeNull();
+  });
+
+  it("drops the abort attribution when the main screen starts the poll over", async () => {
+    let reset: (reopened: boolean) => void = () => {};
+    let aborted: (name: string, t: number) => void = () => {};
+    const client: PeerClient = {
+      ...idlePeerClient(),
+      onGonogoReset: (cb) => {
+        reset = cb;
+        return () => {};
+      },
+      onGonogoAbortNotify: (cb) => {
+        aborted = cb;
+        return () => {};
+      },
+    };
+    station(client);
+    await screen.findByText("NO-GO");
+    await act(async () => aborted("CAPCOM", 1));
+    expect(screen.getByText("Aborted by CAPCOM")).toBeInTheDocument();
+    await act(async () => reset(false));
+    expect(screen.queryByText("Aborted by CAPCOM")).toBeNull();
+  });
+
   it("shows why a countdown was held and which station dropped", async () => {
     let hold: (reason: string | undefined, h: CountdownHold) => void = () => {};
     const client: PeerClient = {

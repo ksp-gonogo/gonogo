@@ -125,6 +125,7 @@ export {
   type DispatchCommandRefusal,
   dispatchActiveCommandTopic,
   getActiveTelemetryClient,
+  getActiveTimelineEpoch,
   getContractsActive,
   getOrbitSolve,
   getSystemBodies,

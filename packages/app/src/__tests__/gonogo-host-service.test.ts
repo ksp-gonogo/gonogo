@@ -131,15 +131,21 @@ const VIEW_UT = 1_000;
 class FakeTimelineStore {
   private met: number | null = null;
   private onPad = false;
+  private vesselId = "vessel-a";
+  private epoch = 0;
+  private identityReady = true;
+  /** The epoch the real store's clock keeps, which the service reads to tell a new timeline from one more frame. */
+  readonly clock = { getEpoch: () => this.epoch };
   private frameListeners = new Set<() => void>();
 
   sample<Payload>(topic: string): TimelinePoint<Payload> | undefined {
-    if (topic !== "vessel.identity") return undefined;
+    if (topic !== "vessel.identity" || !this.identityReady) return undefined;
     return {
       validAt: 0,
       epoch: 0,
       meta: {} as TimelinePoint<Payload>["meta"],
       payload: {
+        vesselId: this.vesselId,
         situation: this.onPad ? Situation.PreLaunch : Situation.Flying,
         launchUt:
           this.onPad || this.met === null
@@ -183,6 +189,31 @@ class FakeTimelineStore {
   /** Driver: a newly ingested frame with the craft back on the pad, which carries no launch clock. */
   emitOnPad(): void {
     this.onPad = true;
+    this.emit();
+  }
+
+  /** Driver: a store that has been built but has not yet been sent its first sample. */
+  withholdSamples(): void {
+    this.identityReady = false;
+    this.epoch = 0;
+  }
+
+  /** Driver: the stream's first sample reaches the store, carrying the epoch the game is already on. */
+  deliverFirstSample(epoch: number): void {
+    this.identityReady = true;
+    this.epoch = epoch;
+    this.emit();
+  }
+
+  /** Driver: the game starts a new timeline (a revert, a quickload), and the next frame carries the higher epoch. */
+  emitNewTimeline(): void {
+    this.epoch++;
+    this.emit();
+  }
+
+  /** Driver: a newly ingested frame whose craft is a different vessel, as a new flight or a quickload brings. */
+  emitVessel(vesselId: string): void {
+    this.vesselId = vesselId;
     this.emit();
   }
 
@@ -840,6 +871,242 @@ describe("GoNoGoHostService", () => {
     expect(svc.getSnapshot().countdown).not.toBeNull();
     timeline.emitMet(1);
     expect(svc.getSnapshot().countdown).toBeNull();
+  });
+
+  it("drops the staging notice once the launch is seen, so the header stops reading stage sent", async () => {
+    host.fireConnect("peer-1");
+    host.fireStationInfo("peer-1", "A");
+    host.fireVote("peer-1", "go");
+    vi.advanceTimersByTime(DEFAULT_GONOGO_CONFIG.countdownLengthMs + 1);
+    await drainDispatch();
+    expect(svc.getSnapshot().notice).toMatchObject({ kind: "outcome" });
+    timeline.emitMet(4);
+    expect(svc.getSnapshot().notice).toBeNull();
+  });
+
+  describe("a new timeline", () => {
+    /* Stages at T-0, then the game reverts before any frame showed a positive mission time. */
+    async function stagedThenReverted(): Promise<void> {
+      host.fireConnect("peer-1");
+      host.fireStationInfo("peer-1", "A");
+      timeline.emitMet(null);
+      host.fireVote("peer-1", "go");
+      vi.advanceTimersByTime(DEFAULT_GONOGO_CONFIG.countdownLengthMs + 1);
+      await drainDispatch();
+      host.fireVote("peer-1", "no-go");
+      expect(svc.getSnapshot().notice).toMatchObject({ kind: "outcome" });
+      host.broadcasts.length = 0;
+      timeline.emitNewTimeline();
+    }
+
+    it("clears the vote and the staging notice when the game reverts before a launch was seen", async () => {
+      await stagedThenReverted();
+      expect(svc.getSnapshot().notice).toBeNull();
+      expect(svc.getSnapshot().stations).toEqual([
+        { peerId: "peer-1", name: "A", status: null },
+      ]);
+    });
+
+    it("tells every station to drop its vote and its staging banner", async () => {
+      await stagedThenReverted();
+      expect(host.broadcasts).toContainEqual({
+        type: "gonogo-reset",
+        reopened: false,
+      });
+    });
+
+    it("lets the next poll count down after the revert", async () => {
+      await stagedThenReverted();
+      host.fireVote("peer-1", "go");
+      expect(svc.getSnapshot().countdown).not.toBeNull();
+    });
+
+    it("keeps the votes when another craft takes the pad's place", () => {
+      host.fireConnect("peer-1");
+      host.fireStationInfo("peer-1", "A");
+      timeline.emitOnPad();
+      host.fireVote("peer-1", "no-go");
+      host.broadcasts.length = 0;
+      timeline.emitVessel("vessel-b");
+      expect(svc.getSnapshot().stations[0]?.status).toBe("no-go");
+      expect(host.broadcasts).toEqual([]);
+    });
+
+    it("shows no outcome for a T-0 command that settles after the revert", async () => {
+      transport.setCommandHandler(
+        () => new Promise((resolve) => setTimeout(() => resolve(null), 5_000)),
+      );
+      host.fireConnect("peer-1");
+      host.fireStationInfo("peer-1", "A");
+      timeline.emitMet(null);
+      host.fireVote("peer-1", "go");
+      vi.advanceTimersByTime(DEFAULT_GONOGO_CONFIG.countdownLengthMs + 1);
+      timeline.emitNewTimeline();
+      await vi.advanceTimersByTimeAsync(6_000);
+      await drainDispatch();
+      expect(svc.getSnapshot().notice).toBeNull();
+    });
+
+    it("keeps a reopened poll's votes when the active vessel changes in flight", () => {
+      host.fireConnect("peer-1");
+      host.fireStationInfo("peer-1", "A");
+      timeline.emitMet(10);
+      svc.reset();
+      host.fireVote("peer-1", "no-go");
+      host.broadcasts.length = 0;
+      timeline.emitVessel("debris");
+      expect(svc.getSnapshot().stations[0]?.status).toBe("no-go");
+      expect(host.broadcasts).toEqual([]);
+    });
+
+    it("clears a staging notice left by a craft that never left the pad", async () => {
+      host.fireConnect("peer-1");
+      host.fireStationInfo("peer-1", "A");
+      timeline.emitOnPad();
+      host.fireVote("peer-1", "go");
+      vi.advanceTimersByTime(DEFAULT_GONOGO_CONFIG.countdownLengthMs + 1);
+      await drainDispatch();
+      expect(svc.getSnapshot().notice).toMatchObject({ kind: "outcome" });
+      host.broadcasts.length = 0;
+      timeline.emitNewTimeline();
+      expect(svc.getSnapshot().notice).toBeNull();
+      expect(host.broadcasts).toContainEqual({
+        type: "gonogo-reset",
+        reopened: false,
+      });
+      host.fireVote("peer-1", "go");
+      expect(svc.getSnapshot().countdown).not.toBeNull();
+    });
+
+    it("lets an abort go out again after a quickload to before the first one", async () => {
+      host.fireConnect("peer-1");
+      host.fireStationInfo("peer-1", "CAPCOM");
+      timeline.emitMet(10);
+      host.fireAbort("peer-1");
+      await drainDispatch();
+      expect(svc.getSnapshot().abort).not.toBeNull();
+      const before = abortDispatches().length;
+      timeline.emitNewTimeline();
+      expect(svc.getSnapshot().abort).toBeNull();
+      host.fireAbort("peer-1");
+      await drainDispatch();
+      expect(abortDispatches().length).toBe(before + 1);
+    });
+
+    it("closes a reopened poll when the game starts a new timeline", () => {
+      host.fireConnect("peer-1");
+      timeline.emitMet(10);
+      svc.reset();
+      expect(svc.getSnapshot().reopened).toBe(true);
+      timeline.emitNewTimeline();
+      expect(svc.getSnapshot().reopened).toBe(false);
+    });
+
+    it("starts over when the craft comes back to the pad after a flight the game did not announce as a new timeline", () => {
+      host.fireConnect("peer-1");
+      host.fireStationInfo("peer-1", "A");
+      timeline.emitMet(10);
+      svc.reset();
+      host.fireVote("peer-1", "go");
+      host.broadcasts.length = 0;
+      timeline.emitOnPad();
+      expect(svc.getSnapshot().stations[0]?.status).toBeNull();
+      expect(host.broadcasts).toContainEqual({
+        type: "gonogo-reset",
+        reopened: false,
+      });
+    });
+
+    it("sees a revert that happened while a replay was showing", () => {
+      host.fireConnect("peer-1");
+      host.fireStationInfo("peer-1", "A");
+      timeline.emitOnPad();
+      host.fireVote("peer-1", "no-go");
+      const replay = new FakeTimelineStore();
+      setActiveTimelineStoreForTests(replay);
+      replay.emitOnPad();
+      timeline.emitNewTimeline();
+      setActiveTimelineStoreForTests(timeline);
+      timeline.emitOnPad();
+      expect(svc.getSnapshot().stations[0]?.status).toBeNull();
+    });
+
+    it("takes a store's first sample as its starting epoch, not as a new timeline", () => {
+      host.fireConnect("peer-1");
+      host.fireStationInfo("peer-1", "A");
+      const fresh = new FakeTimelineStore();
+      fresh.withholdSamples();
+      setActiveTimelineStoreForTests(fresh);
+      fresh.emitOnPad();
+      host.fireVote("peer-1", "no-go");
+      fresh.deliverFirstSample(4);
+      expect(svc.getSnapshot().stations[0]?.status).toBe("no-go");
+    });
+
+    describe("a replay taking over the stream", () => {
+      function replayStore() {
+        const replay = new FakeTimelineStore();
+        replay.emitOnPad();
+        return replay;
+      }
+
+      it("does not reset the live poll when a replay starts or ends", () => {
+        host.fireConnect("peer-1");
+        host.fireStationInfo("peer-1", "A");
+        timeline.emitOnPad();
+        host.fireVote("peer-1", "no-go");
+        host.broadcasts.length = 0;
+        const replay = replayStore();
+        setActiveTimelineStoreForTests(replay);
+        replay.emitOnPad();
+        setActiveTimelineStoreForTests(timeline);
+        timeline.emitOnPad();
+        expect(svc.getSnapshot().stations[0]?.status).toBe("no-go");
+        expect(host.broadcasts).toEqual([]);
+      });
+
+      it("still resets when the live store's own epoch goes up afterwards", () => {
+        host.fireConnect("peer-1");
+        host.fireStationInfo("peer-1", "A");
+        timeline.emitOnPad();
+        const replay = replayStore();
+        setActiveTimelineStoreForTests(replay);
+        replay.emitOnPad();
+        setActiveTimelineStoreForTests(timeline);
+        timeline.emitOnPad();
+        host.fireVote("peer-1", "no-go");
+        timeline.emitNewTimeline();
+        expect(svc.getSnapshot().stations[0]?.status).toBeNull();
+      });
+    });
+
+    it("keeps a vote across frames of the same craft, and across a station reconnecting", () => {
+      host.fireConnect("peer-1");
+      host.fireStationInfo("peer-1", "A");
+      host.fireConnect("peer-2");
+      host.fireStationInfo("peer-2", "B");
+      timeline.emitOnPad();
+      host.fireVote("peer-1", "no-go");
+      host.fireVote("peer-2", "go");
+      timeline.emitOnPad();
+      host.fireDisconnect("peer-2");
+      host.fireConnect("peer-2");
+      host.fireStationInfo("peer-2", "B");
+      host.broadcasts.length = 0;
+      timeline.emitOnPad();
+      expect(svc.getSnapshot().stations[0]?.status).toBe("no-go");
+      expect(host.broadcasts).toEqual([]);
+    });
+
+    it("does not reset on the first frame the host ever sees", () => {
+      host.fireConnect("peer-1");
+      host.fireStationInfo("peer-1", "A");
+      host.fireVote("peer-1", "no-go");
+      host.broadcasts.length = 0;
+      timeline.emitOnPad();
+      expect(svc.getSnapshot().stations[0]?.status).toBe("no-go");
+      expect(host.broadcasts).toEqual([]);
+    });
   });
 
   it("reads a craft back on the pad as not launched, which a revert to launch needs", () => {

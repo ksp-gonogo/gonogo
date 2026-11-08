@@ -134,6 +134,9 @@ export function useStationPoll(client: PeerClient | null): StationPoll {
       iAbortedRef.current = false;
       setPollOpen(false);
       setAbortedBy(null);
+      // The vote and banner of the flight that ended must not carry into the next poll.
+      setVote("no-go");
+      setNotice(null);
     }
   }, [launched]);
 
@@ -144,6 +147,7 @@ export function useStationPoll(client: PeerClient | null): StationPoll {
       iAbortedRef.current = false;
       // The new main screen holds no countdown, so one still ticking here would run out and sit at T-0 with nothing to end it.
       setCountdownT0(null);
+      setNotice(null);
       effectiveVoteRef.current = eligibleRef.current ? "no-go" : null;
       setVote("no-go");
     });
@@ -178,6 +182,11 @@ export function useStationPoll(client: PeerClient | null): StationPoll {
         setCountdownT0(null);
         setNotice(null);
         setPollOpen(reopened);
+        // A poll closed again has no abort on record: the host drops it with the poll.
+        if (!reopened) {
+          iAbortedRef.current = false;
+          setAbortedBy(null);
+        }
         if (approvedRef.current) client.sendGonogoVote(next);
       }),
       client.onGonogoAbortNotify((stationName) => setAbortedBy(stationName)),
