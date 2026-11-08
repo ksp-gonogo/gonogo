@@ -29,6 +29,8 @@ type Config struct {
 	MaxPending int
 	// PendingTimeout is how long a session may wait for its data channel to open.
 	PendingTimeout time.Duration
+	// ReachDelay is how long after an offer a session that has heard nothing from its station is logged as unreachable.
+	ReachDelay time.Duration
 	// MaxBuffered is how many bytes may wait to go out to one station before it is dropped.
 	MaxBuffered uint64
 	// TabPingInterval is how often the endpoint pings the main screen's socket.
@@ -44,6 +46,7 @@ type Config struct {
 const (
 	defaultMaxPending     = 8
 	defaultPendingTimeout = 15 * time.Second
+	defaultReachDelay     = 5 * time.Second
 	defaultMaxBuffered    = 4 << 20
 	defaultTabPing        = 5 * time.Second
 	defaultTabTimeout     = 15 * time.Second
@@ -137,6 +140,9 @@ func New(cfg Config, udp net.PacketConn, tcp net.Listener) (*Endpoint, error) {
 	if cfg.PendingTimeout == 0 {
 		cfg.PendingTimeout = defaultPendingTimeout
 	}
+	if cfg.ReachDelay == 0 {
+		cfg.ReachDelay = defaultReachDelay
+	}
 	if cfg.TabPingInterval == 0 {
 		cfg.TabPingInterval = defaultTabPing
 	}
@@ -216,6 +222,7 @@ func (e *Endpoint) serveTab(t *tab) {
 	}
 	e.tab = t
 	e.mu.Unlock()
+	log.Printf("main screen connected; stations are offered %s", advertised(e.cfg.PublicIP, e.cfg.LANIP, e.port, e.cfg.OmitUDP))
 	e.keepAlive(t)
 	defer t.stopPings()
 	status, _ := json.Marshal(controlFrame{Type: "status", PublicIP: e.cfg.PublicIP, Port: e.port})
@@ -225,9 +232,11 @@ func (e *Endpoint) serveTab(t *tab) {
 	defer close(stopReports)
 	go e.reportQueues(stopReports)
 
+	var readErr error
 	for {
 		kind, msg, err := t.conn.ReadMessage()
 		if err != nil {
+			readErr = err
 			break
 		}
 		e.extendTab(t)
@@ -258,8 +267,10 @@ func (e *Endpoint) serveTab(t *tab) {
 	if current {
 		e.tab = nil
 	}
+	stations := len(e.sessions)
 	e.mu.Unlock()
 	if current {
+		log.Printf("main screen left (%v), dropping %d stations", readErr, stations)
 		e.dropAll()
 	}
 }
@@ -427,6 +438,8 @@ func (e *Endpoint) offer(t *tab, f controlFrame) {
 	<-gathered
 	sdp := withCandidates(pc.LocalDescription().SDP, e.cfg.PublicIP, e.cfg.LANIP, e.port, e.cfg.OmitUDP)
 	e.send(controlFrame{Type: "answer", Sid: s.sid, SDP: sdp})
+	log.Printf("station %s offered as session %d with %s, answered with %s", s.peerID, s.sid, offeredCandidates(f.SDP), advertised(e.cfg.PublicIP, e.cfg.LANIP, e.port, e.cfg.OmitUDP))
+	time.AfterFunc(e.cfg.ReachDelay, func() { e.checkReach(s) })
 }
 
 func (e *Endpoint) forward(frame []byte) {
@@ -462,15 +475,20 @@ func (e *Endpoint) drop(sid uint32, reason string) {
 	s := e.sessions[sid]
 	delete(e.sessions, sid)
 	var dc *webrtc.DataChannel
+	open := false
 	if s != nil {
 		dc = s.dc
+		open = s.open
 	}
 	e.mu.Unlock()
 	if s == nil {
 		return
 	}
 	s.timer.Stop()
-	go closeDrained(s.pc, dc, s.link)
+	go func() {
+		logDrop(s, open, reason)
+		closeDrained(s.pc, dc, s.link)
+	}()
 	if reason != "" {
 		e.send(controlFrame{Type: "close", Sid: sid, Reason: reason})
 	}

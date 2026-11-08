@@ -109,8 +109,9 @@ export interface FrameDelayPipelineOptions<Frame extends FrameLike> {
    * `frameBytes` supplied, the cap counts bytes instead.
    */
   maxBufferedFrames?: number;
-  /** Non-fatal pipeline errors (a read/write rejection), reported here,
-   *  never thrown across the internal pump loop. */
+  /** Non-fatal pipeline errors (a read/write rejection, or the source ending
+   *  before the pipeline is disposed), reported here, never thrown across the
+   *  internal pump loop. */
   onError?(error: unknown): void;
   /**
    * Whether a frame is a keyframe. Defaults to never, which suits decoded
@@ -400,7 +401,20 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
         opts.onError?.(err);
         return;
       }
-      if (result.done) return;
+      if (result.done) {
+        /* A source that ends while the pipeline still runs leaves it reading
+           nothing for good, and its totals then look the same as a source
+           that is only quiet, so the end is reported. Disposing ends the
+           source on purpose and is not. */
+        if (!disposed) {
+          opts.onError?.(
+            new Error(
+              `the frame source ended after ${stats.read} frames while the delay was still running`,
+            ),
+          );
+        }
+        return;
+      }
       const frame = result.value;
       if (disposed) {
         frame.close?.();
