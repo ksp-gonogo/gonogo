@@ -534,6 +534,15 @@ export type PeerMessage =
        * instead of silently re-defaulting to the host's.
        */
       vantage?: string;
+      /**
+       * What this station had last received from the mod. Carried across the
+       * hop because the host re-dispatches through its own client, whose run,
+       * timeline and vessel are always current, and the mod has to judge the
+       * station's own view of them.
+       */
+      seenBootId?: string;
+      seenEpoch?: number;
+      seenVesselId?: string;
       args: unknown;
     }
   // Station -> host: several commands sent together, which the host dispatches
@@ -551,6 +560,10 @@ export type PeerMessage =
         command: string;
         label: string;
         topic: string;
+        /** As on `sitrep-command-request`. */
+        seenBootId?: string;
+        seenEpoch?: number;
+        seenVesselId?: string;
         args: unknown;
       }[];
     }

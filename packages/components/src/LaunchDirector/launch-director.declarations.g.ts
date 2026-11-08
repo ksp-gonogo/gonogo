@@ -6,6 +6,7 @@ export default {
     "crash.hasRecent",
     "crash.lastCrash",
     "eva.crew",
+    "ksp.saves",
     "recovery.lastSummary",
     "spaceCenter.crewRoster",
     "spaceCenter.launchSites",
@@ -24,6 +25,8 @@ export default {
   ],
   commands: [
     "ksp.launch",
+    "ksp.quickload",
+    "ksp.quicksave",
     "ksp.recover",
     "ksp.recoverVessel",
     "ksp.revertToEditor",

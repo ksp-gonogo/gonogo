@@ -10,6 +10,7 @@ import {
   type UseCommandResult,
   type ValueCommand,
 } from "@ksp-gonogo/sitrep-sdk";
+import { useWireTimelineEpoch } from "@ksp-gonogo/sitrep-sdk/spine";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled, { css, keyframes } from "styled-components";
@@ -725,6 +726,7 @@ export function useCommandControl<Result = CommandReplyLike, Args = unknown>({
         toggle.modelled,
       )
     : undefined;
+  const wireEpoch = useWireTimelineEpoch();
   // While the latest press is outstanding the shown reading is still the old state, so the next press inverts the state that press asked for.
   const askedRef = useRef<boolean | undefined>(undefined);
   // The reading a press was made against: while a confirmed press has not moved it, the press still stands as the state asked for.
@@ -771,22 +773,38 @@ export function useCommandControl<Result = CommandReplyLike, Args = unknown>({
         if (sent) return;
         if (phase !== "armed") {
           armedForRef.current = argsKey(args);
+          armedOnEpochRef.current = wireEpoch;
           setPhase("armed");
           return;
         }
       }
       dispatch();
     },
-    [phase, sent, streamDown, gateBlocks, dispatch, args, toggle, command],
+    [
+      phase,
+      sent,
+      streamDown,
+      gateBlocks,
+      dispatch,
+      args,
+      toggle,
+      command,
+      wireEpoch,
+    ],
   );
 
-  // One handle serves many rows, and a row keyed by position can be handed another item while armed; the confirming press must not send to it.
+  // One handle serves many rows, and a row keyed by position can be handed another item while armed; the confirming press must not send to it. A game load drops the confirm too, because what was armed against is gone.
   const armedForRef = useRef<string | null>(null);
+  const armedOnEpochRef = useRef(wireEpoch);
   useEffect(() => {
-    if (phase === "armed" && argsKey(args) !== armedForRef.current) {
+    if (
+      phase === "armed" &&
+      (argsKey(args) !== armedForRef.current ||
+        wireEpoch !== armedOnEpochRef.current)
+    ) {
       setPhase("idle");
     }
-  }, [phase, args]);
+  }, [phase, args, wireEpoch]);
 
   // A real outcome outranks a standing gate, and a command already travelling is not stopped by a gate that shut behind it.
   const effectivePhase: CommandButtonPhase =

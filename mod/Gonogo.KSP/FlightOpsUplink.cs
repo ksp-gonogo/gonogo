@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Gonogo.KSP.Gates;
 using Sitrep.Contract;
@@ -17,15 +18,15 @@ namespace Gonogo.KSP
     /// <see cref="VesselUplink"/>'s command-classification table).
     ///
     /// <para>Read topics for the same domain (<c>ksp.revertAvailability</c>,
-    /// <c>ksp.scene</c>, ...) are produced elsewhere; this uplink declares no
-    /// channels: it exists purely to carry the flight-ops command handlers.
+    /// <c>ksp.scene</c>, ...) are produced elsewhere; this uplink's own channels
+    /// are the save slots and the result of a quickload, which only it knows.
     /// Mirrors <see cref="VesselUplink"/>'s KSP-free-provider / real-actuator
     /// split exactly: all the arg-parsing lives in the headlessly-testable
     /// <see cref="FlightOpsCommandProvider"/> (<c>Sitrep.Host</c>); only
     /// <see cref="KspFlightOpsActuator"/> touches KSP directly.</para>
     /// </summary>
     [SitrepUplink("ksp")]
-    public sealed class FlightOpsUplink : ISitrepUplink
+    public sealed class FlightOpsUplink : ISitrepUplink, IUplinkCapabilityDeclarer
     {
         private readonly IFlightOpsActuator _actuator;
 
@@ -49,10 +50,9 @@ namespace Gonogo.KSP
             Id = "ksp",
             Bundled = true,
             Version = "1.0.0",
-            // No channels: this uplink is command-only (see the class doc
-            // comment). Every one of these is instant, and each says so on its
-            // own args type in the contract, which is where the client reads it
-            // from too (SitrepCommandAttribute.Delay).
+            // Every one of these is instant, and each says so on its own args
+            // type in the contract, which is where the client reads it from too
+            // (SitrepCommandAttribute.Delay).
             Commands = new List<CommandDeclaration>
             {
                 // The reverts, recover and launch carry declared gates (see
@@ -68,6 +68,13 @@ namespace Gonogo.KSP
                 Command(FlightOpsCommandProvider.RecoverCommand),
                 Command(FlightOpsCommandProvider.RecoverVesselCommand),
                 Command(FlightOpsCommandProvider.LaunchCommand),
+                Command(FlightOpsCommandProvider.QuicksaveCommand),
+                Command(FlightOpsCommandProvider.QuickloadCommand),
+            },
+            Channels = new List<ChannelDeclaration>
+            {
+                TrueNowChannel(SavesTopic, SampleKind.Discrete),
+                TrueNowChannel(GameLoadedTopic, SampleKind.Event),
             },
         };
 
@@ -75,17 +82,50 @@ namespace Gonogo.KSP
         /// channel uplink is Healthy once it has registered without error.</summary>
         public UplinkHealth Health() => UplinkHealth.Healthy;
 
+        public void DeclareCapabilities(Kernel kernel) =>
+            kernel.RegisterCapability(new CapabilityDescriptor
+            {
+                Id = SaveGuardCapability.Id,
+                Exclusive = false,
+                SpineCritical = false,
+            });
+
         public void Register(IUplinkHost host)
         {
-            host.AddCommandHandler<object?, CommandResult>(FlightOpsCommandProvider.RevertToLaunchCommand, args => FlightOpsCommandProvider.HandleRevertToLaunch(_actuator, args));
-            host.AddCommandHandler<RevertToEditorArgs, CommandResult>(FlightOpsCommandProvider.RevertToEditorCommand, args => FlightOpsCommandProvider.HandleRevertToEditor(_actuator, args));
-            host.AddCommandHandler<object?, CommandResult>(FlightOpsCommandProvider.ToTrackingStationCommand, args => FlightOpsCommandProvider.HandleToTrackingStation(_actuator, args));
-            host.AddCommandHandler<object?, CommandResult>(FlightOpsCommandProvider.ToSpaceCenterCommand, args => FlightOpsCommandProvider.HandleToSpaceCenter(_actuator, args));
-            host.AddCommandHandler<SwitchVesselArgs, CommandResult>(FlightOpsCommandProvider.SwitchVesselCommand, args => FlightOpsCommandProvider.HandleSwitchVessel(_actuator, args));
-            host.AddCommandHandler<object?, CommandResult>(FlightOpsCommandProvider.RecoverCommand, args => FlightOpsCommandProvider.HandleRecover(_actuator, args));
-            host.AddCommandHandler<RecoverVesselArgs, CommandResult>(FlightOpsCommandProvider.RecoverVesselCommand, args => FlightOpsCommandProvider.HandleRecoverVessel(_actuator, args));
-            host.AddCommandHandler<LaunchArgs, CommandResult>(FlightOpsCommandProvider.LaunchCommand, args => FlightOpsCommandProvider.HandleLaunch(_actuator, args));
+            CommandResult Guarded(Func<CommandResult> run) => FlightOpsCommandProvider.UnlessLoadScheduled(_actuator, run);
+
+            host.AddCommandHandler<object?, CommandResult>(FlightOpsCommandProvider.RevertToLaunchCommand, args => Guarded(() => FlightOpsCommandProvider.HandleRevertToLaunch(_actuator, args)));
+            host.AddCommandHandler<RevertToEditorArgs, CommandResult>(FlightOpsCommandProvider.RevertToEditorCommand, args => Guarded(() => FlightOpsCommandProvider.HandleRevertToEditor(_actuator, args)));
+            host.AddCommandHandler<object?, CommandResult>(FlightOpsCommandProvider.ToTrackingStationCommand, args => Guarded(() => FlightOpsCommandProvider.HandleToTrackingStation(_actuator, args)));
+            host.AddCommandHandler<object?, CommandResult>(FlightOpsCommandProvider.ToSpaceCenterCommand, args => Guarded(() => FlightOpsCommandProvider.HandleToSpaceCenter(_actuator, args)));
+            host.AddCommandHandler<SwitchVesselArgs, CommandResult>(FlightOpsCommandProvider.SwitchVesselCommand, args => Guarded(() => FlightOpsCommandProvider.HandleSwitchVessel(_actuator, args)));
+            host.AddCommandHandler<object?, CommandResult>(FlightOpsCommandProvider.RecoverCommand, args => Guarded(() => FlightOpsCommandProvider.HandleRecover(_actuator, args)));
+            host.AddCommandHandler<RecoverVesselArgs, CommandResult>(FlightOpsCommandProvider.RecoverVesselCommand, args => Guarded(() => FlightOpsCommandProvider.HandleRecoverVessel(_actuator, args)));
+            host.AddCommandHandler<LaunchArgs, CommandResult>(FlightOpsCommandProvider.LaunchCommand, args => Guarded(() => FlightOpsCommandProvider.HandleLaunch(_actuator, args)));
+            host.AddCommandHandler<object?, CommandResult<SaveWritten>>(FlightOpsCommandProvider.QuicksaveCommand, args => FlightOpsCommandProvider.HandleQuicksave(_actuator, args));
+            host.AddCommandHandler<QuickloadArgs, CommandResult<LoadScheduled>>(FlightOpsCommandProvider.QuickloadCommand, args => FlightOpsCommandProvider.HandleQuickload(_actuator, args));
+
+            Gates.QuickSaveRules.QuicksaveAllowedNow = KspQuicksaves.QuicksaveAllowedNow;
+            Gates.QuickSaveRules.QuickloadRefusal = KspQuicksaves.QuickloadRefusal;
+            KspQuicksaves.Kernel = host.Kernel;
+            KspQuicksaves.Publisher = host.Publisher(GameLoadedTopic);
+            (host as Sitrep.Host.Comms.ICraftStateHost)?.OnTimelineReset(KspQuicksaves.OnTimelineReset);
+            var savesPublisher = host.Publisher(SavesTopic);
+            host.AddSampledSource(_ => { KspQuicksaves.PublishSlotsIfChanged(savesPublisher); return null; }, _ => { });
         }
+
+        private const string SavesTopic = "ksp.saves";
+        private const string GameLoadedTopic = "ksp.gameLoaded";
+
+        private static ChannelDeclaration TrueNowChannel(string topic, SampleKind kind) => new ChannelDeclaration
+        {
+            Kind = kind,
+            Topic = topic,
+            Requires = Requirement.None,
+            Delay = DelayRole.TrueNow,
+            Delivery = Delivery.ReliableOrdered,
+            Emission = new EmissionPolicy(keyframeIntervalUt: 3600, quantum: EmissionQuantum.Absolute(0)),
+        };
 
         private static CommandDeclaration Command(string command) => new CommandDeclaration
         {

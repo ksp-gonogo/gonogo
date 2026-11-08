@@ -413,6 +413,27 @@ namespace Sitrep.Host
             return true;
         }
 
+        /// <summary>
+        /// Refuses a delayed command or a scene operation sent from a run or a
+        /// timeline that is no longer the game's, since the world it was aimed at
+        /// is gone. A request that states no timeline is refused the same way. A
+        /// command about the game rather than the flight is not checked, so a
+        /// screen a moment behind can still pause. True when refused.
+        /// </summary>
+        private bool RefuseIfFromAnotherTimeline(DispatchCommandJob job)
+        {
+            if (job.SeenBootId == null || !(ResolveCommandDelay(job.Command) || FlightOpsCommandProvider.IsSceneOperation(job.Command)))
+            {
+                return false;
+            }
+            if (string.Equals(job.SeenBootId, BootId, StringComparison.Ordinal) && job.SeenEpoch == _courier.CurrentEpoch)
+            {
+                return false;
+            }
+            job.OnRefused?.Invoke(FaultCode.UndoneByLoad, "A game load has replaced the timeline this was sent from, so it will not run.");
+            return true;
+        }
+
         /// <summary>True when <paramref name="job"/> is for the active craft and names a different one as the craft the operator saw.</summary>
         private bool SeenAnotherCraft(DispatchCommandJob job, string node) =>
             !string.IsNullOrEmpty(job.SeenVesselId)

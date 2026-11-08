@@ -1,4 +1,5 @@
 import type { TelemetryClient } from "@ksp-gonogo/sitrep-client";
+import type { CommandSeen } from "@ksp-gonogo/sitrep-sdk/spine";
 
 /**
  * The slice of a telemetry client that says which command centre it stands at.
@@ -131,6 +132,7 @@ function sendingFrom(
           topic?: string,
           vantage?: string,
           requestId?: string,
+          seen?: CommandSeen,
         ) =>
           target.dispatch(
             command,
@@ -139,6 +141,7 @@ function sendingFrom(
             topic,
             stand(vantage),
             requestId,
+            seen,
           );
       }
       if (prop === "dispatchGroup") {

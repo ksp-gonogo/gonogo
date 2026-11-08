@@ -178,6 +178,8 @@ describe("a client carrying the game's state to its stores", () => {
 
     transport.emitRaw({
       type: "game-state",
+      bootId: "run-a",
+      timelineEpoch: 0,
       state: "loading",
       scene: "FLIGHT",
     });

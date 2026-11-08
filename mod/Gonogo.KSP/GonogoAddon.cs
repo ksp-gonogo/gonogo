@@ -97,6 +97,9 @@ namespace Gonogo.KSP
 
         /// <summary>The running engine, for the scenario that saves what store-and-forward holds; null before it starts.</summary>
         internal static ChannelEngine? SharedEngine { get; private set; }
+
+        /// <summary>The running addon, for work that needs a coroutine, or null before the first scene.</summary>
+        internal static GonogoAddon? Instance { get; private set; }
         private bool _shutDown;
         private SampleGate? _sampleGate;
         private string? _sessionPath;
@@ -124,6 +127,7 @@ namespace Gonogo.KSP
                 // comment describes.
                 _engine = new ChannelEngine(BindUri, executeCommandsOnMainThread: true);
                 SharedEngine = _engine;
+                Instance = this;
                 _engine.SetAfterCaptures(_host.RefreshTime);
                 _engine.ConfigureSkippableGroups(SnapshotGroups.Readers, typeof(GonogoAddon).Assembly);
                 KspHost.GroupGate = _engine.SamplesGroup;

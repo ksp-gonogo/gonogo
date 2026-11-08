@@ -18,6 +18,8 @@ export function useLaunchCommands() {
   const toTrackingCmd = useCommand("ksp.toTrackingStation");
   const toSpaceCenterCmd = useCommand("ksp.toSpaceCenter");
   const switchCmd = useCommand("ksp.switchVessel");
+  const quicksaveCmd = useCommand("ksp.quicksave");
+  const quickloadCmd = useCommand("ksp.quickload");
 
   const boundPresses = useRef(new Map<LaunchDirectorActionId, Press>()).current;
   const pressBound =
@@ -33,6 +35,9 @@ export function useLaunchCommands() {
     "revert-to-editor": pressBound("revert-to-editor"),
     "tracking-station": pressBound("tracking-station"),
     "space-center": pressBound("space-center"),
+    quicksave: pressBound("quicksave"),
+    quickload: pressBound("quickload"),
+    "quickload-previous": pressBound("quickload-previous"),
   });
 
   return {
@@ -45,5 +50,7 @@ export function useLaunchCommands() {
     toTrackingCmd,
     toSpaceCenterCmd,
     switchCmd,
+    quicksaveCmd,
+    quickloadCmd,
   };
 }
