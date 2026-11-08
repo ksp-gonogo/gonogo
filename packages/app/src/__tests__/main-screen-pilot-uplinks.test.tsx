@@ -1,7 +1,12 @@
 import { clearRegistry, ErrorBoundary } from "@ksp-gonogo/core";
+import {
+  clearRootProviders,
+  registerRootProvider,
+} from "@ksp-gonogo/sitrep-sdk";
 import { act, render, StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { waitFor } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
+import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ANALYTICS_CONSENT_KEY } from "../analytics/AnalyticsConsentService";
 import { type PeerClient, PeerClientProvider } from "../peer/PeerClientContext";
@@ -97,13 +102,17 @@ describe("MainScreen: a pilot that joined through a host", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     setConsentPrompt(async () => false);
+    clearRootProviders();
     window.history.replaceState(null, "", "/");
   });
 
-  async function mountPilot() {
+  async function mountPilot(
+    sendBundleFetch: PeerClient["sendBundleFetch"] = vi.fn(
+      async () => BUNDLE_BYTES,
+    ),
+  ) {
     window.history.replaceState(null, "", "/pilot/station");
     stubRegistry(await integrityOf(BUNDLE_BYTES));
-    const sendBundleFetch = vi.fn(async () => BUNDLE_BYTES);
     const transport = new StubTransport();
     const view = render(
       <ErrorBoundary>
@@ -129,6 +138,32 @@ describe("MainScreen: a pilot that joined through a host", () => {
 
     await waitFor(() => expect(sendBundleFetch).toHaveBeenCalledTimes(1));
     expect(getUplinkOutcomes().map((o) => o.id)).toEqual(["alpha"]);
+    await waitFor(() =>
+      expect(getUplinkOutcomes()[0]?.status).not.toBe("loading"),
+    );
+    view.unmount();
+  });
+
+  it("loads once when an Uplink's client registers a root provider, keeping the dashboard up", async () => {
+    /*
+     * Each fetch stands in for one import of the client: a re-executed module
+     * registers a provider of a new identity, which is what makes
+     * `RootProviders` remount everything below it.
+     */
+    const sendBundleFetch = vi.fn(async () => {
+      registerRootProvider({
+        id: "alpha.root",
+        Provider: ({ children }: { children: ReactNode }) => <>{children}</>,
+      });
+      return BUNDLE_BYTES;
+    });
+    const { view } = await mountPilot(sendBundleFetch);
+
+    await waitFor(() => expect(sendBundleFetch).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    });
+    expect(sendBundleFetch).toHaveBeenCalledTimes(1);
     view.unmount();
   });
 });
