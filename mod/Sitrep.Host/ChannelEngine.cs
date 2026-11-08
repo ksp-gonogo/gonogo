@@ -2293,6 +2293,11 @@ namespace Sitrep.Host
                     MarkUplinkUnavailable(id, UndefinedKind("channel \"" + channel.Topic + "\"", channel.Kind));
                     return;
                 }
+                if (channel.Emission == null)
+                {
+                    MarkUplinkUnavailable(id, NoEmission("channel \"" + channel.Topic + "\""));
+                    return;
+                }
             }
 
             var taken = TakenByAnother(id, uplink.Manifest);
@@ -4422,6 +4427,10 @@ namespace Sitrep.Host
                     + " a fact held at home reaches each vantage after its delay to home, and TrueNow says it reaches every vantage at once",
                     nameof(template));
             }
+            if (template.Emission == null)
+            {
+                throw new ArgumentException(NoEmission("namespace \"" + prefix + "\""), nameof(template));
+            }
             if (template.PerLensNode && (template.PerVesselNode || template.HeldAtHome))
             {
                 throw new ArgumentException(
@@ -4465,6 +4474,14 @@ namespace Sitrep.Host
             }
             return new DynamicChannelSource(this, prefix);
         }
+
+        /*
+         * The emitter reads a channel's policy on every sample after the first, so
+         * a declaration without one would register, publish once and then take the
+         * whole Uplink down with a null reference.
+         */
+        private static string NoEmission(string what) =>
+            what + " declares no Emission: set it to an EmissionPolicy, which says when a sample goes on the wire";
 
         private static string UndefinedKind(string what, SampleKind kind) =>
             what + " declares sample kind " + (int)kind + ", which is not a SampleKind:"
