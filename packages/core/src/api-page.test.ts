@@ -128,6 +128,8 @@ describe("the API page", () => {
     expect(
       validate({
         type: "command-request",
+        seenBootId: "run-a",
+        seenEpoch: 0,
         requestId: "x",
         command: "alarm.scet.arm",
         label: "",

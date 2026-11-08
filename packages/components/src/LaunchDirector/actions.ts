@@ -49,6 +49,27 @@ export const launchDirectorActions = [
     description:
       "In flight or the Tracking Station: first press arms, second press saves the game and leaves for the Space Center.",
   },
+  {
+    id: "quicksave",
+    label: "Quicksave",
+    accepts: ["button"],
+    description:
+      "In flight: saves to the quicksave slot, keeping the save it replaces as the previous one.",
+  },
+  {
+    id: "quickload",
+    label: "Quickload",
+    accepts: ["button"],
+    description:
+      "In flight: first press arms, second press loads the quicksave for every screen.",
+  },
+  {
+    id: "quickload-previous",
+    label: "Load previous",
+    accepts: ["button"],
+    description:
+      "In flight: first press arms, second press loads the save the last quicksave replaced, for every screen.",
+  },
 ] as const satisfies readonly ActionDefinition[];
 
 export type LaunchDirectorActions = typeof launchDirectorActions;

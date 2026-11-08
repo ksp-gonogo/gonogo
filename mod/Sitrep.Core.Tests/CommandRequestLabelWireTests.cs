@@ -75,6 +75,28 @@ namespace Sitrep.Core.Tests
         }
 
         [Fact]
+        public void TheSeenRunAndEpochSurviveWriteThenParseRoundTrip()
+        {
+            var parsed = EnvelopeCodec.ParseCommandRequest(EnvelopeCodec.WriteCommandRequest(new CommandRequest<object?>
+            {
+                RequestId = "r",
+                Command = "ksp.revertToLaunch",
+                SeenBootId = "run-a",
+                SeenEpoch = 3,
+            }));
+            Assert.Equal("run-a", parsed.SeenBootId);
+            Assert.Equal(3, parsed.SeenEpoch);
+        }
+
+        [Fact]
+        public void ACommandStatingNoRunReadsAsEmptyRatherThanCurrent()
+        {
+            var parsed = EnvelopeCodec.ParseCommandRequest("{\"type\":\"command-request\",\"requestId\":\"r\",\"command\":\"x\",\"sentAt\":0}");
+            Assert.Equal("", parsed.SeenBootId);
+            Assert.Equal(0, parsed.SeenEpoch);
+        }
+
+        [Fact]
         public void AnAbsentSeenVesselIdIsNotWrittenAndReadsAsNull()
         {
             var wire = EnvelopeCodec.WriteCommandRequest(new CommandRequest<object?>

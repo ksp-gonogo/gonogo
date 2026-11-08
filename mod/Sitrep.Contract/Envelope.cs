@@ -163,6 +163,27 @@ public class CommandRequest<TArgs>
     [SitrepUnit(Units.Id)]
     public string? SeenVesselId { get; set; }
 
+    /// <summary>
+    /// The run of the mod the sending screen last heard from: the
+    /// <see cref="Hello.BootId"/> it holds. Required. A delayed command or a scene
+    /// change sent from another run, or with this empty, is refused with
+    /// <c>undoneByLoad</c>; a command that is about the game rather than the
+    /// flight, such as a pause, ignores it. A station forwarded through a host
+    /// sends its own, not the host's.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string SeenBootId { get; set; } = "";
+
+    /// <summary>
+    /// The raw <see cref="Meta.TimelineEpoch"/> the sending screen last received
+    /// from the mod. A delayed command or a scene change sent from any other
+    /// epoch is refused with <c>undoneByLoad</c>, because a game load replaced
+    /// the timeline it was aimed at. Commands that ignore
+    /// <see cref="SeenBootId"/> ignore this too.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public int SeenEpoch { get; set; }
+
     /// <summary>The command's arguments, in the command's own argument
     /// type.</summary>
     public TArgs Args { get; set; } = default!;
@@ -617,6 +638,14 @@ public class Hello
     public string BootId { get; set; } = "";
 
     /// <summary>
+    /// The timeline the game is on as this connection opens: the
+    /// <see cref="Meta.TimelineEpoch"/> a client sends back on a command as
+    /// <see cref="CommandRequest{TArgs}.SeenEpoch"/>.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public int TimelineEpoch { get; set; }
+
+    /// <summary>
     /// The mod's release label: <c>v1.4.0</c> for a release, <c>rc-&lt;sha&gt;</c>
     /// for a release candidate. Absent from the frame for a build that carries no label,
     /// such as one built from source.
@@ -702,6 +731,23 @@ public class GameState
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string Scene { get; set; } = "";
+
+    /// <summary>
+    /// The run of the mod this frame is from, the same value as
+    /// <see cref="Hello.BootId"/>. A station relayed through a host hears this
+    /// frame and not the mod's <c>hello</c>.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string BootId { get; set; } = "";
+
+    /// <summary>
+    /// The timeline the game is on: the <see cref="Meta.TimelineEpoch"/> a client
+    /// sends back on a command as <see cref="CommandRequest{TArgs}.SeenEpoch"/>.
+    /// Sent again whenever a game load starts a new timeline, so a connection
+    /// that is subscribed to nothing still learns it.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public int TimelineEpoch { get; set; }
 }
 
 /// <summary>

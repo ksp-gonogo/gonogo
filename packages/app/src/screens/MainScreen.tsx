@@ -63,6 +63,7 @@ import { HeaderBadges } from "../components/HeaderBadges";
 import { HomeFallbackNotice } from "../components/HomeFallbackNotice";
 import { MissionBanner } from "../components/MissionBanner";
 import { ModVersionBanner } from "../components/ModVersionBanner";
+import { QuickloadBanner } from "../components/QuickloadBanner";
 import { SceneChangeBanner } from "../components/SceneChangeBanner";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
 import { StationBuildMismatchNotice } from "../components/StationBuildMismatchNotice";
@@ -598,6 +599,7 @@ function MainDashboard({
             <SignalLossIndicator />
             <SustainedFailureBanner />
             <SceneChangeBanner />
+            <QuickloadBanner />
             <FlightOutcomeBanner />
             <ContactLossBanner />
             <HomeFallbackNotice />

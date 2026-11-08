@@ -14,7 +14,7 @@ namespace Sitrep.Host.Tests
                 "career.contract.accept", "career.contract.cancel", "career.contract.decline",
                 "career.crew.fire", "career.crew.hire", "career.facility.upgrade",
                 "career.strategy.activate", "career.strategy.deactivate", "career.tech.unlock",
-                "ksp.recover", "ksp.recoverVessel", "ksp.revertToEditor", "ksp.revertToLaunch",
+                "ksp.quickload", "ksp.quicksave", "ksp.recover", "ksp.recoverVessel", "ksp.revertToEditor", "ksp.revertToLaunch",
                 "ksp.switchVessel", "ksp.toSpaceCenter", "ksp.toTrackingStation",
                 "settings.mod.write", "settings.save", "time.setPaused", "time.setWarpIndex",
             };

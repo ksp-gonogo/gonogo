@@ -188,6 +188,8 @@ describe("sitrep-command-request label/topic tunnel (station → host)", () => {
       { script: "boot.ks" },
       "Run boot script",
       "kos/cpu-1",
+      undefined,
+      { seenBootId: "run-a", seenEpoch: 2 },
     );
 
     for (let i = 0; i < 6; i++) await Promise.resolve();
@@ -199,6 +201,96 @@ describe("sitrep-command-request label/topic tunnel (station → host)", () => {
         label: "Run boot script",
         topic: "kos/cpu-1",
       }),
+    ]);
+  });
+
+  it("hands the mod the station's own run, timeline and vessel rather than the host's", async () => {
+    const transport = new StubTransport();
+    const hostClient = new TelemetryClient(transport);
+    transport.setCommandHandler(() => ({ ok: true }));
+    setActiveTelemetryClientForTests(hostClient);
+    /* The host's own view is current, which is exactly what must not stand in for the station's. */
+    transport.emitRaw({
+      type: "game-state",
+      state: "ready",
+      scene: "FLIGHT",
+      bootId: "run-now",
+      timelineEpoch: 7,
+    });
+
+    const host = new PeerHostService();
+    await host.start();
+    await Promise.resolve();
+
+    const client = new PeerClientService();
+    client.connect(host.shareCode);
+    for (let i = 0; i < 6; i++) await Promise.resolve();
+    approveStation();
+
+    client.sendSitrepCommand(
+      "station-ab12:c0",
+      "ksp.revertToLaunch",
+      {},
+      "Revert",
+      "",
+      undefined,
+      { seenBootId: "run-a", seenEpoch: 2, seenVesselId: "vessel-a" },
+    );
+    for (let i = 0; i < 6; i++) await Promise.resolve();
+
+    expect(transport.sentCommands).toEqual([
+      expect.objectContaining({
+        command: "ksp.revertToLaunch",
+        seenBootId: "run-a",
+        seenEpoch: 2,
+        seenVesselId: "vessel-a",
+      }),
+    ]);
+  });
+
+  it("answers a station whose stale-timeline command the mod refused with undoneByLoad", async () => {
+    const transport = new StubTransport();
+    const hostClient = new TelemetryClient(transport);
+    setActiveTelemetryClientForTests(hostClient);
+    transport.holdCommands();
+
+    const host = new PeerHostService();
+    await host.start();
+    await Promise.resolve();
+
+    const client = new PeerClientService();
+    client.connect(host.shareCode);
+    for (let i = 0; i < 6; i++) await Promise.resolve();
+    approveStation();
+
+    const errors: Array<{ requestId: string; code: string }> = [];
+    client.onSitrepCommandError((requestId, code) =>
+      errors.push({ requestId, code }),
+    );
+    client.sendSitrepCommand(
+      "station-ab12:c1",
+      "vessel.control.setThrottle",
+      { throttle: 1 },
+      "Throttle",
+      "",
+      undefined,
+      { seenBootId: "run-a", seenEpoch: 1 },
+    );
+    for (let i = 0; i < 6; i++) await Promise.resolve();
+
+    const [sent] = transport.sentCommands;
+    expect(sent).toMatchObject({ seenBootId: "run-a", seenEpoch: 1 });
+    transport.emitRaw({
+      type: "error",
+      requestId: sent.requestId,
+      code: "undoneByLoad",
+      message:
+        "A game load has replaced the timeline this was sent from, so it will not run.",
+    });
+    for (let i = 0; i < 6; i++) await Promise.resolve();
+
+    expect(errors).toEqual([
+      { requestId: "station-ab12:c1", code: "undoneByLoad" },
     ]);
   });
 
@@ -264,6 +356,8 @@ describe("command-accepted tunnel (host → station)", () => {
       { throttle: 1 },
       "Throttle",
       "",
+      undefined,
+      { seenBootId: "run-a", seenEpoch: 2 },
     );
     for (let i = 0; i < 6; i++) await Promise.resolve();
     const [sent] = transport.sentCommands;

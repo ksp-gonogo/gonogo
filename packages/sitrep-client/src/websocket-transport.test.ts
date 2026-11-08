@@ -750,6 +750,8 @@ describe("WebSocketTransport outbound queue", () => {
   ): Extract<ClientMessage, { type: "command-request" }> {
     return {
       type: "command-request",
+      seenBootId: "run-a",
+      seenEpoch: 0,
       requestId,
       command: "vessel.stage",
       label: "",

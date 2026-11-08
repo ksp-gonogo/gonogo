@@ -551,6 +551,8 @@ describe("AutoRecordController", () => {
     act(() => {
       rig.transport.emitRaw({
         type: "game-state",
+        bootId: "run-a",
+        timelineEpoch: 0,
         state: "no-game",
         scene: "MAINMENU",
       });

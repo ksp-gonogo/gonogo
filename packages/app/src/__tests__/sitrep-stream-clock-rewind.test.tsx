@@ -87,10 +87,22 @@ describe("the view clock after the game's UT goes backwards", () => {
     client.send(frame("vessel.control", CONTROL, 8319, 0));
     await waitFor(() => expect(screen.getByText("ut:8319")).toBeTruthy());
     client.send(
-      JSON.stringify({ type: "game-state", state: "loading", scene: "flight" }),
+      JSON.stringify({
+        type: "game-state",
+        state: "loading",
+        scene: "flight",
+        bootId: "run-a",
+        timelineEpoch: 0,
+      }),
     );
     client.send(
-      JSON.stringify({ type: "game-state", state: "ready", scene: "flight" }),
+      JSON.stringify({
+        type: "game-state",
+        state: "ready",
+        scene: "flight",
+        bootId: "run-a",
+        timelineEpoch: 0,
+      }),
     );
     client.send(frame("vessel.control", CONTROL, 397.7, 0));
     await waitFor(() => expect(screen.getByText("ut:397")).toBeTruthy());

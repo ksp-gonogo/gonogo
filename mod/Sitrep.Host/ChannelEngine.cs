@@ -10398,6 +10398,7 @@ namespace Sitrep.Host
                 _failedCommands.Clear();
                 _recoveryWithdrawalPending = false;
                 BroadcastTimelineReset();
+                AnnounceTimelineEpoch();
                 _courier.ReissueRetainedAfterReset(topic => DeclarationOf(topic)?.Kind != SampleKind.Event);
                 SendKeptAfterTimelineReset();
                 TimelineResetChangedSave = folderChanged;
@@ -11173,6 +11174,12 @@ namespace Sitrep.Host
             {
                 if (job.OnMalformed != null) job.OnMalformed(unbindable);
                 else job.OnRefused?.Invoke(FaultCode.InvalidEnvelope, unbindable);
+                job.Done?.Set();
+                return;
+            }
+
+            if (RefuseIfFromAnotherTimeline(job))
+            {
                 job.Done?.Set();
                 return;
             }
@@ -12328,6 +12335,8 @@ namespace Sitrep.Host
 
         private void SayGameState(GameState state)
         {
+            state.BootId = BootId;
+            state.TimelineEpoch = _courier.CurrentEpoch;
             _toldGameState = state;
             var bytes = Encoding.UTF8.GetBytes(EnvelopeCodec.WriteGameState(state));
             foreach (var session in _sessions.Values)
@@ -12339,6 +12348,22 @@ namespace Sitrep.Host
                 catch (Exception sendEx)
                 {
                     LogHost("could not tell a connection the game state: " + SafeExceptionMessage(sendEx));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tells every connection the new timeline's epoch. A connection subscribed
+        /// to nothing gets no <c>timeline-reset</c>, so the one frame everyone gets
+        /// carries it. A ready still waiting for its tick is stamped when released.
+        /// </summary>
+        private void AnnounceTimelineEpoch()
+        {
+            lock (_gameStateLock)
+            {
+                if (_toldGameState != null && _waitingReady == null)
+                {
+                    SayGameState(_toldGameState);
                 }
             }
         }
@@ -12524,7 +12549,7 @@ namespace Sitrep.Host
             connection.Closed += () => OnConnectionClosed(session);
             try
             {
-                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteHello(new Hello { BootId = BootId, ModVersion = CoreBuildInfo.Version, ContractMajor = ContractVersion.Major, ContractMinor = ContractVersion.Minor })));
+                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteHello(new Hello { BootId = BootId, TimelineEpoch = _courier.CurrentEpoch, ModVersion = CoreBuildInfo.Version, ContractMajor = ContractVersion.Major, ContractMinor = ContractVersion.Minor })));
                 GreetWithGameState(session);
             }
             catch (Exception publishEx)
@@ -12684,6 +12709,8 @@ namespace Sitrep.Host
                 Reply(req.RequestId, session, home, Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)), terminal: true);
             }, clientRequestId: req.RequestId, sessionId: session.Connection.Id);
             job.SeenVesselId = req.SeenVesselId;
+            job.SeenBootId = req.SeenBootId;
+            job.SeenEpoch = req.SeenEpoch;
             return job;
         }
 
@@ -13177,6 +13204,12 @@ namespace Sitrep.Host
 
             /// <summary>The vessel the operator's screen showed as active when this was pressed, or null when the request stated none.</summary>
             public string? SeenVesselId { get; set; }
+
+            /// <summary>The run of the mod the sending screen last heard from, empty when the request stated none, or null for a dispatch that did not come off the wire.</summary>
+            public string? SeenBootId { get; set; }
+
+            /// <summary>The timeline epoch the sending screen last received. Meaningful only with <see cref="SeenBootId"/>.</summary>
+            public int SeenEpoch { get; set; }
 
             /// <summary>Told what the acceptance warns of, for a caller that takes <see cref="OnAccepted"/> and has no frame to put a warning on.</summary>
             public Action<string>? OnWarned { get; set; }

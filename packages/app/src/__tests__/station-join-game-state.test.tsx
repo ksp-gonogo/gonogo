@@ -227,6 +227,8 @@ describe("a station joining while the game is not running a scene", () => {
         type: "game-state",
         state: "no-game",
         scene: "MAINMENU",
+        bootId: "run-a",
+        timelineEpoch: 0,
       }),
     );
     expect(screen.getByTestId("host-game").textContent).toBe(
@@ -253,6 +255,8 @@ describe("a station joining while the game is not running a scene", () => {
         type: "game-state",
         state: "loading",
         scene: "TRACKSTATION",
+        bootId: "run-a",
+        timelineEpoch: 0,
       }),
     );
     await waitFor(
@@ -268,6 +272,8 @@ describe("a station joining while the game is not running a scene", () => {
         type: "game-state",
         state: "ready",
         scene: "TRACKSTATION",
+        bootId: "run-a",
+        timelineEpoch: 0,
       }),
     );
     await waitFor(

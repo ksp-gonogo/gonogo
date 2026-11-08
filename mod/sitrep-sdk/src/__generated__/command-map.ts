@@ -75,7 +75,9 @@ import type {
   HostTokenArgs,
   InvokePartActionArgs,
   LaunchArgs,
+  LoadScheduled,
   NoCommandArgs,
+  QuickloadArgs,
   RecentLog,
   RecentLogArgs,
   RecoverVesselArgs,
@@ -87,6 +89,7 @@ import type {
   RotorSetTorqueLimitArgs,
   RunStateChange,
   SaveSettingsArgs,
+  SaveWritten,
   ScetAlarmArmArgs,
   ScetAlarmDisarmArgs,
   ScienceTransmission,
@@ -168,6 +171,10 @@ export interface GeneratedCommandArgsMap {
   "host.station.revoke": HostRevokeStationArgs;
   /** Load a saved craft onto a launch site. */
   "ksp.launch": LaunchArgs;
+  /** Load the quicksave, or the save it replaced. */
+  "ksp.quickload": QuickloadArgs;
+  /** Save the flight to the quicksave slot. */
+  "ksp.quicksave": NoCommandArgs;
   /** Recover the active vessel. */
   "ksp.recover": NoCommandArgs;
   /** Recover a vessel standing at the Space Center by id, the way the Space Center's own Recover button does: the game books the recovery refund, the science and the crew's return exactly as it does for a flight recovery. */
@@ -335,6 +342,10 @@ export interface GeneratedCommandReplyMap {
   "host.station.revoke": CommandResult;
   /** Load a saved craft onto a launch site. */
   "ksp.launch": CommandResult;
+  /** Load the quicksave, or the save it replaced. */
+  "ksp.quickload": CommandResultOf<LoadScheduled>;
+  /** Save the flight to the quicksave slot. */
+  "ksp.quicksave": CommandResultOf<SaveWritten>;
   /** Recover the active vessel. */
   "ksp.recover": CommandResult;
   /** Recover a vessel standing at the Space Center by id, the way the Space Center's own Recover button does: the game books the recovery refund, the science and the crew's return exactly as it does for a flight recovery. */
@@ -486,6 +497,8 @@ export const GENERATED_COMMAND_REPLY_TYPES = {
   "host.station.check": "HostStationCheckReply",
   "host.station.revoke": "CommandResult",
   "ksp.launch": "CommandResult",
+  "ksp.quickload": "CommandResultOf<LoadScheduled>",
+  "ksp.quicksave": "CommandResultOf<SaveWritten>",
   "ksp.recover": "CommandResult",
   "ksp.recoverVessel": "CommandResult",
   "ksp.revertToEditor": "CommandResult",
@@ -616,6 +629,8 @@ export const GENERATED_COMMAND_RAIL = {
   "host.station.check": { replies: true, delayed: false },
   "host.station.revoke": { replies: true, delayed: false },
   "ksp.launch": { replies: true, delayed: false },
+  "ksp.quickload": { replies: true, delayed: false, meta: true },
+  "ksp.quicksave": { replies: true, delayed: false, meta: true },
   "ksp.recover": { replies: true, delayed: false, meta: true },
   "ksp.recoverVessel": { replies: true, delayed: false, meta: true },
   "ksp.revertToEditor": { replies: true, delayed: false, meta: true },
@@ -701,6 +716,8 @@ export const GENERATED_COMMAND_IDS = [
   "host.station.check",
   "host.station.revoke",
   "ksp.launch",
+  "ksp.quickload",
+  "ksp.quicksave",
   "ksp.recover",
   "ksp.recoverVessel",
   "ksp.revertToEditor",
