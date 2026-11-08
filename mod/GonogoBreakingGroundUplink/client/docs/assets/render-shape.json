@@ -8,23 +8,23 @@
       "text": "e2f1fa7a"
     },
     "mun-and-minmus-stations--default.png": {
-      "hash": "7cbf03a762b07aae",
-      "elements": 85,
+      "hash": "7745be7e63c62334",
+      "elements": 87,
       "text": "520188a3"
     },
     "mun-and-minmus-stations--min.png": {
-      "hash": "7cbf03a762b07aae",
-      "elements": 85,
+      "hash": "7745be7e63c62334",
+      "elements": 87,
       "text": "520188a3"
     },
     "mun-and-minmus-stations-stopped-arriving--default.png": {
-      "hash": "a22d1b119ca24fcf",
-      "elements": 86,
+      "hash": "c8b2e753ff731eec",
+      "elements": 88,
       "text": "c03c2572"
     },
     "mun-and-minmus-stations-stopped-arriving--min.png": {
-      "hash": "a22d1b119ca24fcf",
-      "elements": 86,
+      "hash": "c8b2e753ff731eec",
+      "elements": 88,
       "text": "c03c2572"
     },
     "robotics-dlc-absent--default.png": {
@@ -68,13 +68,13 @@
       "text": "9bb529d7"
     },
     "station-out-of-contact--default.png": {
-      "hash": "92cce72684c7c406",
-      "elements": 43,
+      "hash": "fd10151c77f1d690",
+      "elements": 44,
       "text": "c750e602"
     },
     "station-out-of-contact--min.png": {
-      "hash": "92cce72684c7c406",
-      "elements": 43,
+      "hash": "fd10151c77f1d690",
+      "elements": 44,
       "text": "c750e602"
     }
   }
