@@ -49,23 +49,27 @@ export function ResourceFlowRow({
         <Truncate style={ROUTE}>{route}</Truncate>
         {transfer.held && <Badge tone="info">held</Badge>}
       </Inline>
-      <Inline>
-        <ReadoutCaption>Moved</ReadoutCaption>
-        <Text size="sm">
-          <Unit value={job.moved} decimals={1} />
-          {job.requested != null ? (
-            <>
-              {" / "}
-              <Unit value={job.requested} decimals={1} />
-            </>
-          ) : (
-            " / until full"
-          )}
-        </Text>
-        <ReadoutCaption>Rate</ReadoutCaption>
-        <Text size="sm">
-          <Unit value={job.rate ?? value("units/s", 0)} decimals={1} />
-        </Text>
+      <Inline wrap>
+        <Inline wrap>
+          <ReadoutCaption>Moved</ReadoutCaption>
+          <Text size="sm">
+            <Unit value={job.moved} decimals={1} />
+            {job.requested != null ? (
+              <>
+                {" / "}
+                <Unit value={job.requested} decimals={1} />
+              </>
+            ) : (
+              " / until full"
+            )}
+          </Text>
+        </Inline>
+        <Inline>
+          <ReadoutCaption>Rate</ReadoutCaption>
+          <Text size="sm">
+            <Unit value={job.rate ?? value("units/s", 0)} decimals={1} />
+          </Text>
+        </Inline>
       </Inline>
       <Inline>
         <Button
