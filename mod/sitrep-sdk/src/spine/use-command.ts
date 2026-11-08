@@ -71,6 +71,11 @@ import {
   toGateStatus,
 } from "./command-gate";
 import { openCommandGroup } from "./command-group";
+import {
+  type CommandOutcomeSet,
+  commandOutcomesOf,
+  NO_OUTCOMES,
+} from "./command-outcomes";
 import { JOURNEY_TOPIC, readJourney } from "./comms-journey";
 import { ROUTE_TOPIC, readRouteRows } from "./comms-route";
 import {
@@ -126,25 +131,9 @@ const IDLE: CommandStatus = { phase: "idle" };
  * in-flight, or every consumer re-renders needlessly. */
 const NO_IN_FLIGHT: InFlightCommand[] = [];
 
-/** Same reason as `NO_IN_FLIGHT`: a fresh `[]` per render would re-render every
- *  consumer of a hook that has refused nothing, which is nearly all of them. */
-const NO_REFUSALS: CommandRefusal[] = [];
+const NO_SUBSCRIBE = () => () => {};
 
-/** Same reason as `NO_REFUSALS`. */
-const NO_LOSSES: CommandLoss[] = [];
-
-/** Same reason as `NO_REFUSALS`, and this one is empty for nearly every hook
- *  that ever runs: a found needs a loss to have happened first. */
-const NO_FOUNDS: CommandFound[] = [];
-
-/** Same reason as `NO_REFUSALS`. Empty unless a transport gave up on a link
- *  entirely, which is once per outage that never ends. */
-const NO_UNDELIVERED: CommandUndelivered[] = [];
-
-/** Same reason as `NO_REFUSALS`. Empty unless the mod answered a dispatch with a fault. */
-const NO_FAILURES: CommandFailure[] = [];
-
-/** Same reason as `NO_REFUSALS`. Empty unless the mod accepted a dispatch with a warning. */
+/** A fresh `[]` per render would re-render every consumer of a hook that has no warning, which is nearly all of them. */
 const NO_WARNINGS: CommandWarning[] = [];
 
 const MOD_FAULTS: ReadonlySet<string> = new Set(
@@ -491,30 +480,52 @@ export function useCommand(
   // Pruned once the id leaves the underlying set anyway, so it can't grow
   // unbounded over a long session.
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);
-  // Refusals this hook has collected, accumulated on the dispatch promise's own
-  // rejection rather than derived from `status`. Status only ever tracks the
-  // LATEST requestId, so a widget that fires twice would lose the first
-  // refusal, and a refusal is terminal so there is nothing to re-derive it from
-  // later.
-  const [refusals, setRefusals] = useState<CommandRefusal[]>(NO_REFUSALS);
-  // Dispatches nothing ever answered. Accumulated on the promise's own `lost`
-  // rejection for the same reason `refusals` is: `status` tracks only the
-  // LATEST requestId, and a loss is terminal so there is nothing to re-derive
-  // it from later.
-  const [losses, setLosses] = useState<CommandLoss[]>(NO_LOSSES);
-  // Losses this hook has since seen answered. Promoted out of `losses` by the
-  // sweep effect below rather than accumulated on the promise, because the
-  // promise settled as lost and never settles again: the client's own status
-  // store is the only channel a late reply moves.
-  const [founds, setFounds] = useState<CommandFound[]>(NO_FOUNDS);
-  // Dispatches that never left this machine. Fed from BOTH channels, because
-  // the news arrives at whichever of the two a given dispatch was waiting on:
-  // the promise's own rejection when the command was still in flight, and the
-  // sweep below when the loss timer had already settled it (that promise is
-  // spent, exactly as it is for a found).
-  const [undelivered, setUndelivered] =
-    useState<CommandUndelivered[]>(NO_UNDELIVERED);
-  const [failures, setFailures] = useState<CommandFailure[]>(NO_FAILURES);
+  /*
+   * Refusals, losses, founds, undelivered and failures are held on the client,
+   * keyed by command id, and accumulated on each dispatch promise's own
+   * rejection rather than derived from `status`: status only tracks the LATEST
+   * requestId, and these outcomes are terminal so nothing could re-derive
+   * them. Held there, an outcome outlives the widget that sent the command.
+   */
+  const outcomeStore = useMemo(
+    () => (client ? commandOutcomesOf(client) : null),
+    [client],
+  );
+  const { refusals, losses, founds, undelivered, failures } =
+    useSyncExternalStore(
+      outcomeStore?.subscribe ?? NO_SUBSCRIBE,
+      useCallback(
+        () => outcomeStore?.get(command) ?? NO_OUTCOMES,
+        [outcomeStore, command],
+      ),
+    );
+  const editOutcomes = useCallback(
+    <Key extends keyof CommandOutcomeSet>(
+      key: Key,
+      update: (prev: CommandOutcomeSet[Key]) => CommandOutcomeSet[Key],
+    ) => outcomeStore?.edit(command, key, update),
+    [outcomeStore, command],
+  );
+  const setRefusals = useCallback(
+    (update: (prev: CommandRefusal[]) => CommandRefusal[]) =>
+      editOutcomes("refusals", update),
+    [editOutcomes],
+  );
+  const setLosses = useCallback(
+    (update: (prev: CommandLoss[]) => CommandLoss[]) =>
+      editOutcomes("losses", update),
+    [editOutcomes],
+  );
+  const setUndelivered = useCallback(
+    (update: (prev: CommandUndelivered[]) => CommandUndelivered[]) =>
+      editOutcomes("undelivered", update),
+    [editOutcomes],
+  );
+  const setFailures = useCallback(
+    (update: (prev: CommandFailure[]) => CommandFailure[]) =>
+      editOutcomes("failures", update),
+    [editOutcomes],
+  );
   const entryCacheRef = useRef<Map<string, PendingEntry>>(new Map());
   const firstSeenAtRef = useRef<Map<string, number>>(new Map());
   // Each tracked dispatch's args, for the caller's check of whether the telemetry shows them.
@@ -641,7 +652,6 @@ export function useCommand(
       checkSupersededRef.current = undefined;
     };
   }, [client, command, vantage]);
-  const localRefusalSeqRef = useRef(0);
   /*
    * Whether a tracked dispatch has been settled by something other than
    * silence, which is what separates a command that arrived from one nobody
@@ -1063,122 +1073,22 @@ export function useCommand(
     trackedBeforeRef.current = dispatchedIds;
   }, [dispatchedIds]);
 
-  /*
-   * Promote a loss the client has since heard back about, or learned never
-   * left.
-   *
-   * Driven off `client.subscribeStore` and not off the dispatch promise, and
-   * that is the crux of the whole feature. The promise is a one-shot await that
-   * already rejected as `E_LOST`, honestly, and it never settles twice; the
-   * client's per-request status is the living state, and a late reply moves it
-   * from `lost` to `found` and notifies. So this listens where the news
-   * actually arrives.
-   *
-   * Scoped to `losses` rather than to every dispatched id on purpose: a found
-   * exists only where a loss did, `losses` is retained until the operator
-   * dismisses it, and `dispatchedIds` is pruned long before a late reply is
-   * likely to land.
-   *
-   * It carries the `undelivered` promotion for the same reason and by the same
-   * route: a stranded command's promise rejected as `E_LOST` long before the
-   * transport gave up, so the status store is again the only channel the
-   * correction arrives on.
-   */
-  useEffect(() => {
-    if (!client || losses.length === 0) return;
-    const sweep = () => {
-      const promoted: CommandFound[] = [];
-      const unsent: CommandUndelivered[] = [];
-      for (const loss of losses) {
-        const status = client.getCommand(loss.id);
-        if (status.phase === "undelivered") {
-          unsent.push({ ...loss, reason: status.reason });
-          continue;
-        }
-        if (status.phase !== "found") continue;
-        promoted.push(
-          status.outcome === "refused"
-            ? {
-                ...loss,
-                outcome: "refused",
-                errorCode: status.errorCode,
-                reason: status.reason,
-                breach: status.breach,
-                detail: status.detail,
-              }
-            : status.outcome === "errored"
-              ? { ...loss, outcome: "errored", error: status.error }
-              : { ...loss, outcome: "ran", result: status.result },
-        );
-      }
-      if (promoted.length === 0 && unsent.length === 0) return;
-      setLosses((prev) =>
-        prev.filter(
-          (l) =>
-            !promoted.some((f) => f.id === l.id) &&
-            !unsent.some((u) => u.id === l.id),
-        ),
-      );
-      if (promoted.length > 0) {
-        setFounds((prev) => [
-          ...prev,
-          // Same repeated notify as `undelivered` below.
-          ...promoted.filter((f) => !prev.some((seen) => seen.id === f.id)),
-        ]);
-      }
-      if (unsent.length > 0) {
-        setUndelivered((prev) => [
-          ...prev,
-          // A store notify can arrive more than once for the same status, and `losses` is only filtered on the render after this one.
-          ...unsent.filter((u) => !prev.some((seen) => seen.id === u.id)),
-        ]);
-      }
-    };
-    // Once up front: a reply can land between the render that read `losses` and the effect that subscribes, and a store notify for it would then be gone.
-    sweep();
-    return client.subscribeStore(sweep);
-  }, [client, losses]);
-
-  const dismiss = useCallback((id: string) => {
-    centreMemoryRef.current.dismissed.add(id);
-    dismissCentreOutcome(centreMemoryRef.current, id);
-    setDismissedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
-    // A refusal is dropped outright rather than hidden behind `dismissedIds`.
-    // That set is pruned once an id leaves the underlying in-flight set, which a
-    // refused dispatch does as soon as its grace window closes, and a dismissed
-    // refusal that came back would read as the game refusing a second time.
-    setRefusals((prev) => {
-      const keep = prev.filter((r) => r.id !== id);
-      return keep.length === prev.length ? prev : keep;
-    });
-    // Dropped outright for the same reason a refusal is: a loss is terminal, so a dismissed one that came back would read as a second silence.
-    setLosses((prev) => {
-      const keep = prev.filter((l) => l.id !== id);
-      return keep.length === prev.length ? prev : keep;
-    });
-    /*
-     * Dropped outright for the third time, same reason again: a found is
-     * terminal, and one that came back would read as the command answering
-     * twice.
-     */
-    setFounds((prev) => {
-      const keep = prev.filter((f) => f.id !== id);
-      return keep.length === prev.length ? prev : keep;
-    });
-    /*
-     * And a fourth time, same reason: nothing can answer a command that was
-     * never sent, so a dismissed one that reappeared would be a second silence
-     * about the same dispatch.
-     */
-    setUndelivered((prev) => {
-      const keep = prev.filter((u) => u.id !== id);
-      return keep.length === prev.length ? prev : keep;
-    });
-    setFailures((prev) => {
-      const keep = prev.filter((f) => f.id !== id);
-      return keep.length === prev.length ? prev : keep;
-    });
-  }, []);
+  const dismiss = useCallback(
+    (id: string) => {
+      centreMemoryRef.current.dismissed.add(id);
+      dismissCentreOutcome(centreMemoryRef.current, id);
+      setDismissedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+      /*
+       * An outcome is dropped outright rather than hidden behind `dismissedIds`.
+       * That set is pruned once an id leaves the underlying in-flight set, which
+       * a settled dispatch does as soon as its grace window closes, and a
+       * dismissed outcome that came back would read as the command answering
+       * twice.
+       */
+      outcomeStore?.dismiss(command, id);
+    },
+    [outcomeStore, command],
+  );
 
   /*
    * Everything a dispatch needs once it has a request id: the tracking, and
@@ -1303,7 +1213,7 @@ export function useCommand(
       // something.
       return result as Promise<AnyCommandReply>;
     },
-    [command],
+    [command, setLosses, setUndelivered, setFailures, setRefusals],
   );
 
   // Commands an earlier page of this screen sent under this id and is still waiting on, taken once so their answers show as a send's own do.
@@ -1354,9 +1264,8 @@ export function useCommand(
         >,
         reason: string,
       ): Promise<AnyCommandReply> => {
-        localRefusalSeqRef.current += 1;
         const refusal: CommandRefusal = {
-          id: `local-refusal:${command}:${localRefusalSeqRef.current}`,
+          id: `local-refusal:${command}:${outcomeStore?.nextLocalSeq() ?? 0}`,
           errorCode: verdict.errorCode,
           reason: verdict.reason,
           command,
@@ -1422,7 +1331,7 @@ export function useCommand(
       );
       return track(newRequestId, result);
     },
-    [client, command, vantage, trackDispatch],
+    [client, command, vantage, trackDispatch, outcomeStore, setRefusals],
   );
 
   const outcome = {

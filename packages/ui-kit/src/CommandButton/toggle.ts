@@ -108,8 +108,17 @@ export function modelledToggleState(
   let state = reading;
   let known = false;
   for (const row of arrivedRows(status, rows)) {
-    // Another screen's args do not cross the wire, so its press can only be read as a flip of the running state.
+    /*
+     * Another screen's args do not cross the wire. The centre's queue carries
+     * the state it set as a number where the command sets one, and without it
+     * the press can only be read as a flip of the running state.
+     */
     if (row.args === undefined) {
+      if (typeof row.commandedValue === "number") {
+        state = row.commandedValue !== 0;
+        known = true;
+        continue;
+      }
       if (typeof state === "boolean") {
         state = !state;
         known = true;

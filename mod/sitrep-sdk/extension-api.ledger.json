@@ -13273,6 +13273,10 @@
         "note": "New optional field: what this screen sent the command with, absent for another screen's command"
       },
       {
+        "key": "sitrep-sdk . InFlightCommand#commandedValue?",
+        "note": "New optional field: the value another screen's command sets, as the centre's queue reports it, so a switch shows the state commanded"
+      },
+      {
         "key": "sitrep-sdk . InFlightCommand#held?",
         "note": "New optional field: true while the route has the command waiting at a relay for a link to open"
       },
@@ -15495,6 +15499,10 @@
       {
         "key": "sitrep-sdk ./registry ~InFlightCommand#command",
         "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~InFlightCommand#commandedValue?",
+        "note": "New optional field: the value another screen's command sets, as the centre's queue reports it, so a switch shows the state commanded"
       },
       {
         "key": "sitrep-sdk ./registry ~InFlightCommand#direction",
@@ -17817,6 +17825,10 @@
         "note": "New optional field: what this screen sent the command with, absent for another screen's command"
       },
       {
+        "key": "sitrep-sdk ./spine ~InFlightCommand#commandedValue?",
+        "note": "New optional field: the value another screen's command sets, as the centre's queue reports it, so a switch shows the state commanded"
+      },
+      {
         "key": "sitrep-sdk ./spine ~InFlightCommand#held?",
         "note": "New optional field: true while the route has the command waiting at a relay for a link to open"
       },
@@ -18751,6 +18763,10 @@
       {
         "key": "sitrep-sdk ./testing ~InFlightCommand#args?",
         "note": "New optional field: what this screen sent the command with, absent for another screen's command"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~InFlightCommand#commandedValue?",
+        "note": "New optional field: the value another screen's command sets, as the centre's queue reports it, so a switch shows the state commanded"
       },
       {
         "key": "sitrep-sdk ./testing ~InFlightCommand#held?",
@@ -20503,6 +20519,10 @@
       {
         "key": "ui-kit . InFlightCommandLike#command",
         "note": "Exported from the kit's index because published signatures take it"
+      },
+      {
+        "key": "ui-kit . InFlightCommandLike#commandedValue?",
+        "note": "New optional field: the value another screen's command sets, as the centre's queue reports it, so a toggle shows the state commanded"
       },
       {
         "key": "ui-kit . InFlightCommandLike#direction?",

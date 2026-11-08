@@ -31,6 +31,8 @@ export interface InFlightCommandLike {
   dispatchedAt?: number;
   /** What the command was sent with, where this screen sent it; absent for a command another screen sent. */
   args?: unknown;
+  /** The value another screen's command sets, where the centre reports one: a switch's state as 1 or 0. */
+  commandedValue?: number;
   /** True while the route holds the command at a relay, waiting for a link. */
   held?: boolean;
   /** Where a command held on its way out waits, which places it at the relay on the rail. */

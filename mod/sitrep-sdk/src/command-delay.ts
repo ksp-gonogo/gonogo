@@ -202,6 +202,8 @@ export interface InFlightCommand {
   predictedPhase: PredictedPhase;
   /** What the command was sent with, where this screen sent it; absent for a command another screen sent. */
   args?: unknown;
+  /** The value the command sets, for a command another screen sent that sets one, as the centre's queue reports it: a switch's state as 1 or 0. Absent when the command sets no single value. */
+  commandedValue?: number;
   /** True while the sending centre's route puts the command waiting at a relay for a link to open, so it has not left the command centre's side of the break. Absent otherwise. */
   held?: boolean;
   /** Where a command held on its way out is: present while it is on its way out with a wait known, absent otherwise. */

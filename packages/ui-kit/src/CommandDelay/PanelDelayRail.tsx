@@ -275,8 +275,10 @@ export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
       (h.refusals ?? []).map((r) => ({ ...r, tags: h.tags })),
     ),
   );
-  const losses: RailLoss[] = handles.flatMap((h) =>
-    (h.losses ?? []).map((l) => ({ ...l, tags: h.tags })),
+  const losses: RailLoss[] = firstOfEachId(
+    handles.flatMap((h) =>
+      (h.losses ?? []).map((l) => ({ ...l, tags: h.tags })),
+    ),
   );
   // A found answers an unconfirmed command, so it is never counted with the failures.
   const founds: RailFound[] = firstOfEachId(
@@ -285,8 +287,10 @@ export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
     ),
   );
   // An undelivered command provably did not run, so it counts with the failures.
-  const undelivered: RailUndelivered[] = handles.flatMap((h) =>
-    (h.undelivered ?? []).map((u) => ({ ...u, tags: h.tags })),
+  const undelivered: RailUndelivered[] = firstOfEachId(
+    handles.flatMap((h) =>
+      (h.undelivered ?? []).map((u) => ({ ...u, tags: h.tags })),
+    ),
   );
   // The mod said what became of each of these, and none of them ran.
   const failures: RailFailed[] = firstOfEachId(

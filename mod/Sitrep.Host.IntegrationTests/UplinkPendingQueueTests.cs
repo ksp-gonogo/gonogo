@@ -622,6 +622,56 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// A switch command that is no declared control channel carries the
+        /// state it asked for as 1 or 0, so another screen's toggle shows the
+        /// state that was commanded and not a flip of what it last read.
+        /// </summary>
+        [Fact]
+        public async Task ASwitchCommandThatIsNoChannelCarriesItsStateAsTheCommandedValue()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new PendingQueueTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.RegisterCommandCentreSource(new StaticSource("KSC"));
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, ChannelEngine.UplinkPendingTopic, Timeout);
+
+                const double signalDelay = 5.0;
+                engine.TickAndWait(
+                    0.0,
+                    FreezeGateTestUplink.Snapshot(0.0, connected: true, delay: signalDelay),
+                    Timeout);
+                await ReceiveStreamDataAsync(client, Timeout);
+
+                engine.DispatchCommandAndWait(
+                    PendingQueueTestUplink.ActionGroupCommand,
+                    new Dictionary<string, object> { ["group"] = 1, ["state"] = true },
+                    "KSC",
+                    _ => { },
+                    TestBudgets.Op);
+
+                engine.TickAndWait(
+                    1.0,
+                    FreezeGateTestUplink.Snapshot(1.0, connected: true, delay: signalDelay),
+                    Timeout);
+
+                var frame = await ReceiveStreamDataAsync(client, Timeout);
+                var payload = Assert.IsType<Dictionary<string, object?>>(frame.Payload);
+                var pending = Assert.IsType<List<object?>>(payload["pending"]);
+                var entry = Assert.IsType<Dictionary<string, object?>>(Assert.Single(pending));
+
+                Assert.Equal(1.0, Assert.IsType<double>(entry["commandedValue"]));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         [Fact]
         public async Task DelayedCommandDispatchWithNoTopicStillEnqueues()
         {
@@ -1171,6 +1221,9 @@ namespace Sitrep.Host.IntegrationTests
             /// <summary>A command whose args declare the value it sets, as a stepper's does, with no control channel behind it.</summary>
             public const string RpmCapCommand = "robotics.rotor.setRpmLimit";
 
+            /// <summary>A switch whose args carry a boolean state, with no control channel behind it.</summary>
+            public const string ActionGroupCommand = "vessel.control.setActionGroup";
+
             /// <summary>A command the game always refuses, with its own words.</summary>
             public const string RefusedCommand = "pending-queue-test.refuse";
 
@@ -1215,6 +1268,7 @@ namespace Sitrep.Host.IntegrationTests
                     new CommandDeclaration { Command = ThrottleCommand, Delay = DelayRole.Delayed, Subject = VesselViewProvider.ControlTopic },
                     new CommandDeclaration { Command = GearCommand, Delay = DelayRole.Delayed, Subject = VesselViewProvider.ControlTopic },
                     new CommandDeclaration { Command = RpmCapCommand, Delay = DelayRole.Delayed, Subject = VesselViewProvider.ControlTopic },
+                    new CommandDeclaration { Command = ActionGroupCommand, Delay = DelayRole.Delayed, Subject = VesselViewProvider.ControlTopic },
                     new CommandDeclaration { Command = RefusedCommand, Delay = DelayRole.Delayed, Subject = VesselViewProvider.ControlTopic },
                 },
             };
@@ -1239,6 +1293,9 @@ namespace Sitrep.Host.IntegrationTests
                 host.AddCommandHandler<RotorSetRpmLimitArgs, CommandResult>(
                     RpmCapCommand,
                     _ => CommandResult.Ok());
+                host.AddCommandHandler<Dictionary<string, object>, string>(
+                    ActionGroupCommand,
+                    _ => "ok");
                 host.AddCommandHandler<string, CommandResult>(
                     RefusedCommand,
                     _ => CommandResult.Fail(CommandErrorCode.ModeUnavailable, "No RCS thrusters aboard"));

@@ -258,6 +258,9 @@ export function centreCommandRows(args: {
       if (!(unanswered && settled.has(id))) memory.unanswered.delete(id);
       continue;
     }
+    if (typeof entry.commandedValue === "number") {
+      row = { ...row, commandedValue: entry.commandedValue };
+    }
     if (unanswered) memory.unanswered.add(id);
     else memory.unanswered.delete(id);
     if (memory.dismissed.has(id)) {

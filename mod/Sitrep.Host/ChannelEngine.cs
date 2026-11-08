@@ -11432,9 +11432,33 @@ namespace Sitrep.Host
                 return ControlChannelDescriptor.ScalarFrom(job.Args, key);
             }
             var setsValue = CommandAttribute(job.Command)?.SetsValue;
-            return string.IsNullOrEmpty(setsValue)
-                ? null
-                : ControlChannelDescriptor.ScalarFrom(job.Args, char.ToLowerInvariant(setsValue![0]) + setsValue.Substring(1));
+            if (!string.IsNullOrEmpty(setsValue))
+            {
+                return ControlChannelDescriptor.ScalarFrom(job.Args, char.ToLowerInvariant(setsValue![0]) + setsValue.Substring(1));
+            }
+            return BooleanStateFrom(job.Args);
+        }
+
+        /// <summary>
+        /// The state a switch command asks for, as 1 or 0, from the boolean
+        /// <c>state</c> or <c>enabled</c> its args carry, or null when they carry
+        /// neither. A switch that is no control channel has no declared value key,
+        /// and its press would otherwise reach another screen with no value on it.
+        /// </summary>
+        private static double? BooleanStateFrom(object args)
+        {
+            if (!(args is IDictionary<string, object> bag))
+            {
+                return null;
+            }
+            foreach (var key in new[] { "state", "enabled" })
+            {
+                if (bag.TryGetValue(key, out var raw) && raw is bool state)
+                {
+                    return state ? 1d : 0d;
+                }
+            }
+            return null;
         }
 
         /// <summary>

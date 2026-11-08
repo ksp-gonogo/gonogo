@@ -199,7 +199,8 @@ export function useControlStream(
    * Nothing draws this handle's outcomes: the stream's own strip shows what was
    * sent and what came back. An outcome the handle kept would stay for as long
    * as the widget is mounted, one for every input that went unanswered or was
-   * refused, so each is dismissed as it arrives.
+   * refused, so each is dismissed as it arrives. Outcomes are held per command,
+   * so another control writing the same command is told apart by its label.
    */
   const { dismiss, losses, founds, undelivered, failures, refusals } = command;
   const warnings = useDistinctWarnings(command.warnings);
@@ -211,9 +212,9 @@ export function useControlStream(
       ...failures,
       ...refusals,
     ]) {
-      dismiss(outcome.id);
+      if (outcome.label === label) dismiss(outcome.id);
     }
-  }, [dismiss, losses, founds, undelivered, failures, refusals]);
+  }, [dismiss, label, losses, founds, undelivered, failures, refusals]);
   /*
    * The rail axes for this channel. Continuous because this hook is what makes
    * an axis continuous (it rolls a ring against light-time and coalesces at
