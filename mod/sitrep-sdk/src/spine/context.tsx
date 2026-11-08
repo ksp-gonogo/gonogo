@@ -1149,21 +1149,6 @@ export function useActiveTelemetryClient(): TelemetryClient | undefined {
 }
 
 /**
- * The timeline epoch this screen last received from the mod, re-rendering its
- * caller when a game load starts a new timeline, and 0 with no provider mounted.
- * Useful for dropping anything the operator had primed against the timeline a
- * load replaced. Used by {@link useCommandControl} to disarm a confirm.
- */
-export function useWireTimelineEpoch(): number {
-  // gonogo:reads none
-  const client = useTelemetryClientOptional();
-  return useSyncExternalStore(
-    (listener) => client?.onTimelineChange(listener) ?? (() => undefined),
-    () => client?.wireEpoch ?? 0,
-  );
-}
-
-/**
  * The mod's refusal of a command that was routed: its code and message, as
  * the mod wrote them. Useful for telling the operator why a command did not take
  * effect. Used by `dispatchActiveCommandTopic`, which resolves `settled` with

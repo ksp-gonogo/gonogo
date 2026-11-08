@@ -9867,10 +9867,6 @@
         "note": "New: the rate tier the live claims on a Topic ask for"
       },
       {
-        "key": "sitrep-sdk ./spine TelemetryClient#dispatch",
-        "note": "Gains an optional argument: the run, timeline and vessel the sending screen had seen, so a host can send a station's own view"
-      },
-      {
         "key": "sitrep-sdk ./spine TelemetryClient#dispatchGroup",
         "note": "New: sends several commands as one command-group frame"
       },
@@ -9879,20 +9875,12 @@
         "note": "New: asks the mod to keep the connection at the active craft, moved by the mod when the craft changes"
       },
       {
-        "key": "sitrep-sdk ./spine TelemetryClient#get wireEpoch",
-        "note": "New: the raw timeline epoch this screen last received from the mod"
-      },
-      {
         "key": "sitrep-sdk ./spine TelemetryClient#getCarriedCommand",
         "note": "New: the status of a command this client or a client it carries dispatched, for the rows a main screen draws for its stations' commands"
       },
       {
         "key": "sitrep-sdk ./spine TelemetryClient#holdCommands",
         "note": "New: keeps the records of named commands past the sweep of answered ones, so a command group keeps reading its members' answers"
-      },
-      {
-        "key": "sitrep-sdk ./spine TelemetryClient#onTimelineChange",
-        "note": "New: tells a listener when the wire timeline epoch moves"
       },
       {
         "key": "sitrep-sdk ./spine TelemetryClient#requestRate",
@@ -10365,14 +10353,6 @@
       {
         "key": "sitrep-sdk ./spine ~Transport#onMessage",
         "note": "Gains an optional delivery argument, so a transport can mark a message as a replay of the past; a listener that ignores it is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./testing SentCommand#seenBootId",
-        "note": "New: what the sender said it had seen from the mod"
-      },
-      {
-        "key": "sitrep-sdk ./testing SentCommand#seenEpoch",
-        "note": "New: what the sender said it had seen from the mod"
       },
       {
         "key": "sitrep-sdk ./testing StubTransport#sentGroups",
@@ -11087,10 +11067,6 @@
         "note": "New: the rate tier the live claims on a Topic ask for"
       },
       {
-        "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#dispatch",
-        "note": "Gains an optional argument: the run, timeline and vessel the sending screen had seen, so a host can send a station's own view"
-      },
-      {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#dispatchGroup",
         "note": "New: sends several commands as one command-group frame"
       },
@@ -11099,20 +11075,12 @@
         "note": "New: asks the mod to keep the connection at the active craft, moved by the mod when the craft changes"
       },
       {
-        "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#get wireEpoch",
-        "note": "New: the raw timeline epoch this screen last received from the mod"
-      },
-      {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#getCarriedCommand",
         "note": "New: the status of a command this client or a client it carries dispatched, for the rows a main screen draws for its stations' commands"
       },
       {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#holdCommands",
         "note": "New: keeps the records of named commands past the sweep of answered ones, so a command group keeps reading its members' answers"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#onTimelineChange",
-        "note": "New: tells a listener when the wire timeline epoch moves"
       },
       {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#requestRate",
@@ -11481,10 +11449,6 @@
       {
         "key": "ui-kit . CommandListProps",
         "note": "Gains the warned kind and its entries"
-      },
-      {
-        "key": "ui-kit . ComposerBar",
-        "note": "the send button can send a game command, through the new command and sendUnavailable props"
       },
       {
         "key": "ui-kit . ContainerBreak",
@@ -12647,10 +12611,6 @@
       {
         "key": "sitrep-sdk . BoundCommandOptions#onRejected?",
         "note": "part of the bound command a kit input takes in its command prop"
-      },
-      {
-        "key": "sitrep-sdk . BoundCommandOptions#topic?",
-        "note": "a bound command can address its send to one part or route, as a direct send already could"
       },
       {
         "key": "sitrep-sdk . Capability",
@@ -15089,10 +15049,6 @@
         "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
       },
       {
-        "key": "sitrep-sdk ./registry ~BoundCommandOptions#topic?",
-        "note": "a bound command can address its send to one part or route, as a direct send already could"
-      },
-      {
         "key": "sitrep-sdk ./registry ~ChannelFamily",
         "note": "A pattern for Topic ids built at runtime, one angle-bracket placeholder per dotted segment"
       },
@@ -16933,22 +16889,6 @@
         "note": "whether the command is sent from the meta vantage, read off the mod's own [SitrepCommand] declaration"
       },
       {
-        "key": "sitrep-sdk ./spine CommandSeen",
-        "note": "New: the run, timeline and vessel a command's sending screen had last received"
-      },
-      {
-        "key": "sitrep-sdk ./spine CommandSeen#seenBootId",
-        "note": "New: the run, timeline and vessel a command's sending screen had last received"
-      },
-      {
-        "key": "sitrep-sdk ./spine CommandSeen#seenEpoch",
-        "note": "New: the run, timeline and vessel a command's sending screen had last received"
-      },
-      {
-        "key": "sitrep-sdk ./spine CommandSeen#seenVesselId?",
-        "note": "New: the run, timeline and vessel a command's sending screen had last received"
-      },
-      {
         "key": "sitrep-sdk ./spine CommandWarning",
         "note": "A dispatch the mod accepted with a warning, as useCommand lists it"
       },
@@ -17103,10 +17043,6 @@
       {
         "key": "sitrep-sdk ./spine GroupMember#requestId?",
         "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
-      },
-      {
-        "key": "sitrep-sdk ./spine GroupMember#seen?",
-        "note": "New: what a member's sending screen had seen"
       },
       {
         "key": "sitrep-sdk ./spine GroupMember#topic?",
@@ -17625,10 +17561,6 @@
         "note": "A clock and link state that follow one Topic's own arrivals, so a feed is released at the delay of the site it stands at"
       },
       {
-        "key": "sitrep-sdk ./spine useWireTimelineEpoch",
-        "note": "New: the timeline epoch this screen last received, re-rendering when a load starts a new one"
-      },
-      {
         "key": "sitrep-sdk ./spine wrap180",
         "note": "Wraps a degree value to (-180, 180]; the one copy, moved out of the impact point and core calc, which now re-export it"
       },
@@ -17723,10 +17655,6 @@
       {
         "key": "sitrep-sdk ./spine ~BoundCommandOptions#onRejected?",
         "note": "part of the bound command a kit input takes in its command prop"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~BoundCommandOptions#topic?",
-        "note": "a bound command can address its send to one part or route, as a direct send already could"
       },
       {
         "key": "sitrep-sdk ./spine ~CommSignalHopRateEntry#held?",
@@ -18397,10 +18325,6 @@
         "note": "New: a banner recorded under the test host"
       },
       {
-        "key": "sitrep-sdk ./testing SentCommand#seenVesselId?",
-        "note": "New: what the sender said it had seen from the mod"
-      },
-      {
         "key": "sitrep-sdk ./testing clearRaisedBanners",
         "note": "New: test helper for the banners an Uplink raised"
       },
@@ -18525,10 +18449,6 @@
         "note": "part of the bound command a kit input takes in its command prop"
       },
       {
-        "key": "sitrep-sdk ./testing ~BoundCommandOptions#topic?",
-        "note": "a bound command can address its send to one part or route, as a direct send already could"
-      },
-      {
         "key": "sitrep-sdk ./testing ~CommSignalHopRateEntry#held?",
         "note": "CommSignalHopRateEntry carries the reading it was drawn from, so the host widget draws a held value as held"
       },
@@ -18595,22 +18515,6 @@
       {
         "key": "sitrep-sdk ./testing ~CommandHold#outbound",
         "note": "Added with CommandHold: how far along the way out a held command is, which places its rail mark"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~CommandSeen",
-        "note": "New: the run, timeline and vessel a command's sending screen had last received"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~CommandSeen#seenBootId",
-        "note": "New: the run, timeline and vessel a command's sending screen had last received"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~CommandSeen#seenEpoch",
-        "note": "New: the run, timeline and vessel a command's sending screen had last received"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~CommandSeen#seenVesselId?",
-        "note": "New: the run, timeline and vessel a command's sending screen had last received"
       },
       {
         "key": "sitrep-sdk ./testing ~CommandSetOptions",
@@ -18843,10 +18747,6 @@
       {
         "key": "sitrep-sdk ./testing ~GroupMember#requestId?",
         "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~GroupMember#seen?",
-        "note": "New: what a member's sending screen had seen"
       },
       {
         "key": "sitrep-sdk ./testing ~GroupMember#topic?",
@@ -20253,14 +20153,6 @@
         "note": "the props of a button or toggle given a command, replacing those of CommandButton"
       },
       {
-        "key": "ui-kit . ComposerBarProps#command?",
-        "note": "the command the send button sends, so it shows what became of the press"
-      },
-      {
-        "key": "ui-kit . ComposerBarProps#sendUnavailable?",
-        "note": "why a command send cannot be pressed now"
-      },
-      {
         "key": "ui-kit . ContainerBreakProps#at?",
         "note": "the width breakpoint, now optional"
       },
@@ -20971,6 +20863,138 @@
       {
         "key": "ui-kit . PipsProps#tone?",
         "note": "colour of the pips"
+      },
+      {
+        "key": "ui-kit . PlainButtonProps",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainButtonProps#command?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainButtonProps#disabledReason?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainButtonProps#marked?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainButtonProps#predictedOutcome?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainButtonProps#pressed?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainButtonProps#size?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainButtonProps#tone?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainButtonProps#variant?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainIconButtonProps",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainIconButtonProps#command?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainIconButtonProps#disabledReason?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainIconButtonProps#pressed?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainSelectProps",
+        "note": "props of the form that changes a value the caller holds"
+      },
+      {
+        "key": "ui-kit . PlainSliderProps",
+        "note": "props of the form that changes a value the caller holds"
+      },
+      {
+        "key": "ui-kit . PlainStepperProps",
+        "note": "props of the form that changes a value the caller holds"
+      },
+      {
+        "key": "ui-kit . PlainSwitchProps",
+        "note": "props of the form that changes a value the caller holds"
+      },
+      {
+        "key": "ui-kit . PlainSwitchProps#checked",
+        "note": "props of the form that changes a value the caller holds"
+      },
+      {
+        "key": "ui-kit . PlainSwitchProps#command?",
+        "note": "props of the form that changes a value the caller holds"
+      },
+      {
+        "key": "ui-kit . PlainSwitchProps#disabled?",
+        "note": "props of the form that changes a value the caller holds"
+      },
+      {
+        "key": "ui-kit . PlainSwitchProps#onChange",
+        "note": "props of the form that changes a value the caller holds"
+      },
+      {
+        "key": "ui-kit . PlainTextFieldProps",
+        "note": "props of the form that changes a value the caller holds"
+      },
+      {
+        "key": "ui-kit . PlainTextFieldProps#command?",
+        "note": "props of the form that changes a value the caller holds"
+      },
+      {
+        "key": "ui-kit . PlainTextFieldProps#disabled?",
+        "note": "props of the form that changes a value the caller holds"
+      },
+      {
+        "key": "ui-kit . PlainTextFieldProps#onChange",
+        "note": "props of the form that changes a value the caller holds"
+      },
+      {
+        "key": "ui-kit . PlainTextFieldProps#unavailable?",
+        "note": "props of the form that changes a value the caller holds"
+      },
+      {
+        "key": "ui-kit . PlainToggleButtonProps",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainToggleButtonProps#command?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainToggleButtonProps#disabledReason?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainToggleButtonProps#marked?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainToggleButtonProps#pressed?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainToggleButtonProps#size?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
+      },
+      {
+        "key": "ui-kit . PlainToggleButtonProps#tone?",
+        "note": "the props of one with no command, as ButtonProps, ToggleButtonProps and IconButtonProps were"
       },
       {
         "key": "ui-kit . PlotCrosshair",
@@ -21691,66 +21715,6 @@
       {
         "key": "ui-kit . ~MeterCommonProps#wrapLabel?",
         "note": "Wraps a long label onto further lines instead of cutting it with an ellipsis"
-      },
-      {
-        "key": "ui-kit . ~PlainButtonProps",
-        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
-      },
-      {
-        "key": "ui-kit . ~PlainIconButtonProps",
-        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
-      },
-      {
-        "key": "ui-kit . ~PlainSliderProps",
-        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
-      },
-      {
-        "key": "ui-kit . ~PlainStepperProps",
-        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
-      },
-      {
-        "key": "ui-kit . ~PlainSwitchProps",
-        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
-      },
-      {
-        "key": "ui-kit . ~PlainSwitchProps#checked",
-        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
-      },
-      {
-        "key": "ui-kit . ~PlainSwitchProps#command?",
-        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
-      },
-      {
-        "key": "ui-kit . ~PlainSwitchProps#disabled?",
-        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
-      },
-      {
-        "key": "ui-kit . ~PlainSwitchProps#onChange",
-        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
-      },
-      {
-        "key": "ui-kit . ~PlainTextFieldProps",
-        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
-      },
-      {
-        "key": "ui-kit . ~PlainTextFieldProps#command?",
-        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
-      },
-      {
-        "key": "ui-kit . ~PlainTextFieldProps#disabled?",
-        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
-      },
-      {
-        "key": "ui-kit . ~PlainTextFieldProps#onChange",
-        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
-      },
-      {
-        "key": "ui-kit . ~PlainTextFieldProps#unavailable?",
-        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
-      },
-      {
-        "key": "ui-kit . ~PlainToggleButtonProps",
-        "note": "the props of an input without a command are no longer exported by name; ButtonProps and its siblings are the one name per input"
       },
       {
         "key": "ui-kit . ~SizedWidget",

@@ -42,7 +42,6 @@ import { FullscreenFab } from "../components/FullscreenFab";
 import { HeaderBadges } from "../components/HeaderBadges";
 import { HomeFallbackNotice } from "../components/HomeFallbackNotice";
 import { MissionBanner } from "../components/MissionBanner";
-import { QuickloadBanner } from "../components/QuickloadBanner";
 import { SceneChangeBanner } from "../components/SceneChangeBanner";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
 import { StationConnectionFab } from "../components/StationConnectionFab";
@@ -520,7 +519,6 @@ export function StationScreen() {
                                   <HostVersionBanner client={client} />
                                   <UplinkBanners />
                                   <SceneChangeBanner />
-                                  <QuickloadBanner />
                                   <FlightOutcomeBanner />
                                   <ContactLossBanner />
                                   <HomeFallbackNotice />

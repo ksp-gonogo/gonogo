@@ -58,8 +58,6 @@ namespace Gonogo.KSP.Gates
             yield return new FacilityLimitGate();
             yield return new FacilityUnlockedGate();
             yield return new ClearToSaveGate();
-            yield return new QuicksaveReadyGate();
-            yield return new QuickloadReadyGate();
             yield return new PreFlightGate();
             yield return new RevertAvailableGate();
             yield return new AffordableGate();
@@ -79,8 +77,6 @@ namespace Gonogo.KSP.Gates
             public const string FacilityLimit = "facility-limit";
             public const string FacilityUnlocked = "facility-unlocked";
             public const string ClearToSave = "clear-to-save";
-            public const string QuicksaveReady = "quicksave-ready";
-            public const string QuickloadReady = "quickload-ready";
             public const string PreFlight = "preflight";
             public const string RevertAvailable = "revert-available";
             public const string Affordable = "affordable";
@@ -480,58 +476,6 @@ namespace Gonogo.KSP.Gates
             catch (Exception ex)
             {
                 return GateVerdict.Unknown("could not ask whether the flight is clear: " + ex.Message);
-            }
-        }
-    }
-
-    /// <summary>The live answers the two save gates give, set where KSP is reachable; the gates themselves compile headlessly.</summary>
-    internal static class QuickSaveRules
-    {
-        public static Func<bool> QuicksaveAllowedNow = () => false;
-        public static Func<string?> QuickloadRefusal = () => "this game cannot load now";
-    }
-
-    /// <summary>
-    /// Whether the game would take a quicksave now, as one fact: which rule said
-    /// no is withheld, because a save is instant at every centre and the reason
-    /// could say what the craft is doing before its signal arrives.
-    /// </summary>
-    internal sealed class QuicksaveReadyGate : ICommandGateEvaluator
-    {
-        public string Kind => KspGateEvaluators.Kinds.QuicksaveReady;
-
-        public GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments)
-        {
-            try
-            {
-                return QuickSaveRules.QuicksaveAllowedNow()
-                    ? GateVerdict.Pass()
-                    : GateVerdict.Fail(CommandErrorCode.NotClearToProceed, GameWords.CantSaveNow);
-            }
-            catch (Exception ex)
-            {
-                return GateVerdict.Unknown("could not ask whether the game can save: " + ex.Message);
-            }
-        }
-    }
-
-    /// <summary>Whether the game would take a quickload now.</summary>
-    internal sealed class QuickloadReadyGate : ICommandGateEvaluator
-    {
-        public string Kind => KspGateEvaluators.Kinds.QuickloadReady;
-
-        public GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments)
-        {
-            try
-            {
-                var refusal = QuickSaveRules.QuickloadRefusal();
-                return refusal == null
-                    ? GateVerdict.Pass()
-                    : GateVerdict.Fail(CommandErrorCode.NotClearToProceed, refusal);
-            }
-            catch (Exception ex)
-            {
-                return GateVerdict.Unknown("could not ask whether the game can load: " + ex.Message);
             }
         }
     }

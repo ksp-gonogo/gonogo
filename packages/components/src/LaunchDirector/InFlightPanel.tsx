@@ -9,7 +9,6 @@ import {
 import { useState } from "react";
 import { ArmedButton } from "./ArmedButton";
 import { formatMissionTime } from "./flightFigures";
-import { SaveControls } from "./SaveControls";
 import {
   CrashChip,
   FlightStatRow,
@@ -36,8 +35,6 @@ export function InFlightPanel({
   toTrackingCmd,
   toSpaceCenterCmd,
   switchCmd,
-  quicksaveCmd,
-  quickloadCmd,
 }: {
   missionTime: number | null;
   altitude: Reading<Value<"m">>;
@@ -55,8 +52,6 @@ export function InFlightPanel({
   toTrackingCmd: CommandButtonHandle;
   toSpaceCenterCmd: CommandButtonHandle;
   switchCmd: CommandButtonHandle;
-  quicksaveCmd: CommandButtonHandle;
-  quickloadCmd: CommandButtonHandle;
 }) {
   const [switchOpen, setSwitchOpen] = useState(false);
   const [showSpaceObjects, setShowSpaceObjects] = useState(false);
@@ -138,16 +133,16 @@ export function InFlightPanel({
           </Button>
         </Tooltip>
       </PadActions>
-      <SaveControls quicksaveCmd={quicksaveCmd} quickloadCmd={quickloadCmd} />
       {switchOpen && availableVessels && totalAvailable > 0 && (
         <VesselSwitchList
           vessels={availableVessels}
           distanceOf={distanceOf}
           showSpaceObjects={showSpaceObjects}
           onToggleSpaceObjects={() => setShowSpaceObjects((v) => !v)}
-          switchCommand={(vesselId, name) =>
-            switchCmd.with({ vesselId }, { label: `Fly ${name}` })
-          }
+          onSwitch={(vesselId) => {
+            setSwitchOpen(false);
+            void switchCmd.dangerouslySendWithoutInput({ vesselId });
+          }}
         />
       )}
     </InFlightWrap>

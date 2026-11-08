@@ -398,8 +398,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     command: "id",
     label: "text",
     requestId: "id",
-    seenBootId: "id",
-    seenEpoch: "id",
     seenVesselId: "id",
     sentAt: "ut",
     topic: "id",
@@ -901,19 +899,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     breakingGround: "flag",
     makingHistory: "flag",
   },
-  "GameLoaded": {
-    failReason: "text",
-    fromUt: "ut",
-    loadId: "id",
-    outcome: "id",
-    requestedBy: "text",
-    saveUt: "ut",
-  },
   "GameState": {
-    bootId: "id",
     scene: "id",
     state: "id",
-    timelineEpoch: "id",
     type: "id",
   },
   "GateCheckRequest": {
@@ -930,7 +918,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     contractMajor: "id",
     contractMinor: "id",
     modVersion: "id",
-    timelineEpoch: "id",
     type: "id",
   },
   "HireApplicantArgs": {
@@ -1075,11 +1062,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     limit: "n/a",
     quantity: "id",
     unit: "id",
-  },
-  "LoadScheduled": {
-    loadId: "id",
-    saveId: "id",
-    saveUt: "ut",
   },
   "ManeuverNode": {
     cutoffUt: "ut",
@@ -1303,10 +1285,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     trajectoryKind: "enum",
     untilUt: "ut",
   },
-  "QuickloadArgs": {
-    requestedBy: "text",
-    saveId: "id",
-  },
   "RecentLog": {
     lines: "text",
     total: "count",
@@ -1411,14 +1389,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "RunStateChange": {
     changed: "flag",
     running: "flag",
-  },
-  "SaveSummary": {
-    saveId: "id",
-    ut: "ut",
-  },
-  "SaveWritten": {
-    saveId: "id",
-    ut: "ut",
   },
   "SavedShipEntry": {
     canFlyUnmanned: "flag",
@@ -2264,14 +2234,6 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     shortfall: "text",
     throughput: "ratio",
   },
-  "ksp.gameLoaded": {
-    failReason: "text",
-    fromUt: "ut",
-    loadId: "id",
-    outcome: "id",
-    requestedBy: "text",
-    saveUt: "ut",
-  },
   "ksp.revertAvailability": {
     canRevertToEditor: "flag",
     canRevertToLaunch: "flag",
@@ -3062,10 +3024,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "SaveSettingsArgs": {
     changes: "SettingsChange[]",
   },
-  "SaveSlots": {
-    previousQuicksave: "SaveSummary",
-    quicksave: "SaveSummary",
-  },
   "ScetAlarm": {
     condition: "ScetAlarmCondition",
     onFire: "ScetAlarmAction[]",
@@ -3285,10 +3243,6 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "isru.converters": {
     inputs: "IsruResourceFlow[]",
     outputs: "IsruResourceFlow[]",
-  },
-  "ksp.saves": {
-    previousQuicksave: "SaveSummary",
-    quicksave: "SaveSummary",
   },
   "missions.active": {
     objectives: "MissionObjectiveEntry[]",
@@ -4171,9 +4125,7 @@ export const GENERATED_CONTRACT_TAGS = {
     "game.dlc": "Game DLC",
     "isru.converters": "Converters",
     "isru.drills": "Drills",
-    "ksp.gameLoaded": "Game loaded",
     "ksp.revertAvailability": "Revert",
-    "ksp.saves": "Saves",
     "missions.active": "Active missions",
     "parts.power": "Electric power",
     "recovery.hasRecent": "Recent recovery",

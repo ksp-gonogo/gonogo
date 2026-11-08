@@ -76,7 +76,7 @@ namespace Gonogo.KSP.Tests.FlightOps
                 "private static string? NotClearToLeaveFlight()");
 
             Assert.Contains("FlightGlobals.ClearToSave()", arm);
-            Assert.Contains("GameWords.CantSaveNow", arm);
+            Assert.Contains("GameWords.Phrase(clear)", arm);
             Assert.Contains("HighLogic.LoadedSceneIsFlight", arm);
             Assert.Contains("FlightGlobals.ActiveVessel == null", arm);
             Assert.Contains("NotClearToLeaveFlight()", ToTrackingStationBody());

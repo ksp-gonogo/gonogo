@@ -59,9 +59,6 @@ interface Options {
  *
  * Constructed per-screen; the owner calls `dispose()` on unmount.
  */
-/** How soon after a press a repeat of the same input is still that press. */
-const INPUT_SETTLE_MS = 50;
-
 export class InputDispatcher {
   private readonly getItems: () => readonly InputMappingSource[];
   private readonly service: SerialDeviceService;
@@ -79,22 +76,6 @@ export class InputDispatcher {
     });
   }
 
-  /**
-   * The newest press seen of each input. A mechanical switch can bounce and
-   * report one press as several within a few milliseconds, which would arm and
-   * then confirm a control in one stroke, so a repeat inside the settle time is
-   * the same press.
-   */
-  private readonly lastPressAt = new Map<string, number>();
-
-  private isBounce(deviceId: string, inputId: string): boolean {
-    const key = `${deviceId}\u0000${inputId}`;
-    const now = Date.now();
-    const last = this.lastPressAt.get(key);
-    this.lastPressAt.set(key, now);
-    return last !== undefined && now - last < INPUT_SETTLE_MS;
-  }
-
   dispose(): void {
     this.unsubInput();
   }
@@ -102,7 +83,6 @@ export class InputDispatcher {
   private handleInput(deviceId: string, event: InputEvent): void {
     if (this.service.isCaptureMode()) return;
     if (event.value === true) {
-      if (this.isBounce(deviceId, event.inputId)) return;
       let switched = false;
       for (const profile of this.getProfileBindings()) {
         const binding = profile.inputBinding;

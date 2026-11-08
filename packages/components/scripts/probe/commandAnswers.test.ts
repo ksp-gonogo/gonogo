@@ -29,8 +29,6 @@ function setup() {
   const send = (command: string, args: unknown) =>
     transport.send({
       type: "command-request",
-      seenBootId: "run-a",
-      seenEpoch: 0,
       requestId: "r1",
       command,
       args,

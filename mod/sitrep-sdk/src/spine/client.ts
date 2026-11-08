@@ -290,24 +290,6 @@ export interface GroupMember {
   topic?: string;
   /** A request id the caller already holds, as {@link TelemetryClient.dispatch} takes. */
   requestId?: string;
-  /** What the sending screen had seen, as {@link TelemetryClient.dispatch} takes. */
-  seen?: CommandSeen;
-}
-
-/**
- * What a command's sending screen had last received from the mod: the run and
- * timeline it was aimed at, and the vessel it showed. A delayed command or a
- * scene change from an older run or timeline is refused, because a game load
- * replaced what it was aimed at. Passed to {@link TelemetryClient.dispatch} by a
- * host forwarding a station's command, so the station's own view is the one
- * judged and not the host's.
- *
- * @category Commands
- */
-export interface CommandSeen {
-  seenBootId: string;
-  seenEpoch: number;
-  seenVesselId?: string;
 }
 
 /**
@@ -490,9 +472,6 @@ export class TelemetryClient {
   /** How far the client's timeline epoch runs ahead of the wire's, for rewinds the mod did not announce with a new epoch. */
   private epochShift = 0;
   private lastWireEpoch = 0;
-  /** The mod's run this client last heard from, empty until it has. */
-  private wireBootId = "";
-  private readonly timelineListeners = new Set<() => void>();
   /** The keyframe interval each topic's `subscribed` ack declared, kept so a store attached later is told too. */
   private readonly declaredKeyframeIntervals = new Map<string, number>();
 
@@ -568,7 +547,6 @@ export class TelemetryClient {
     this.unsubscribeFromTransport = transport.onMessage(
       (incoming, delivery) => {
         const replayed = delivery?.replayed === true;
-        this.followTimeline(incoming);
         const message = replayed ? incoming : this.followRewind(incoming);
         if (message.type === "stream-data") this.restoreUnchanged(message);
         for (const listener of this.rawMessageListeners) listener(message);
@@ -1249,7 +1227,6 @@ export class TelemetryClient {
     topic?: string,
     vantage?: string,
     requestIdOverride?: string,
-    seen?: CommandSeen,
   ): { requestId: string; result: Promise<unknown> } {
     const { requestId, result, frame } = this.register(
       command,
@@ -1258,7 +1235,6 @@ export class TelemetryClient {
       topic,
       vantage,
       requestIdOverride,
-      seen,
     );
     this.transport.send(frame);
     return { requestId, result };
@@ -1294,15 +1270,7 @@ export class TelemetryClient {
       throw new Error("a request id in the group is already in use");
     }
     const registered = members.map((m) =>
-      this.register(
-        m.command,
-        m.args,
-        m.label,
-        m.topic,
-        vantage,
-        m.requestId,
-        m.seen,
-      ),
+      this.register(m.command, m.args, m.label, m.topic, vantage, m.requestId),
     );
     const id = groupId ?? `${this.idPrefix}-g${this.nextRequestId++}`;
     this.transport.send({
@@ -1331,7 +1299,6 @@ export class TelemetryClient {
     topic: string | undefined,
     vantage: string | undefined,
     requestIdOverride: string | undefined,
-    seen: CommandSeen | undefined,
   ): {
     requestId: string;
     result: Promise<unknown>;
@@ -1459,7 +1426,10 @@ export class TelemetryClient {
         topic: topic ?? "",
         // Per-call vantage override (delay-UX): "" ⇒ the server uses the session vantage; "meta" pins a program-meta command to instant dispatch.
         vantage: vantage ?? "",
-        ...(seen ?? this.seen()),
+        ...seenVessel(
+          this.lastValues.get("vessel.identity"),
+          this.lastValues.has("vessel.identity"),
+        ),
         args: wireArgs,
         sentAt: 0,
       },
@@ -2020,7 +1990,13 @@ export class TelemetryClient {
     }
     const meta = message.meta;
     const wire = meta.timelineEpoch ?? 0;
-    this.absorbWireEpoch(wire);
+    if (wire > this.lastWireEpoch) {
+      this.epochShift = Math.max(
+        0,
+        this.epochShift - (wire - this.lastWireEpoch),
+      );
+    }
+    this.lastWireEpoch = Math.max(this.lastWireEpoch, wire);
     let epoch = wire + this.epochShift;
     const prior = this.gameClock;
     const behind =
@@ -2038,74 +2014,6 @@ export class TelemetryClient {
     }
     if (epoch === wire) return message;
     return { ...message, meta: { ...meta, timelineEpoch: epoch } };
-  }
-
-  /**
-   * Learns the mod's run and timeline from the frames that carry them outside a
-   * sample. A quiet connection hears no stream data after a load, so without
-   * these it would send the old timeline forever and have its commands refused.
-   * Replayed frames count: a late station hears the game's state only that way.
-   */
-  private followTimeline(message: ServerMessage): void {
-    if (message.type === "hello" || message.type === "game-state") {
-      this.adoptRun(message.bootId);
-      this.absorbWireEpoch(message.timelineEpoch ?? 0);
-      return;
-    }
-    if (message.type === "event" && message.name === "timeline-reset") {
-      this.absorbWireEpoch(message.meta.timelineEpoch ?? 0);
-    }
-  }
-
-  /** A new run counts its epochs from zero again, so nothing kept from the old one can be compared with them. */
-  private adoptRun(bootId: string | undefined): void {
-    if (!bootId || bootId === this.wireBootId) return;
-    const restarted = this.wireBootId !== "";
-    this.wireBootId = bootId;
-    if (!restarted) return;
-    this.lastWireEpoch = 0;
-    this.epochShift = 0;
-    this.notifyTimeline();
-  }
-
-  /** Takes a wire epoch, absorbing a rewind the client had inferred for itself into the shift so the two never add up. */
-  private absorbWireEpoch(wire: number): void {
-    if (wire <= this.lastWireEpoch) return;
-    this.epochShift = Math.max(
-      0,
-      this.epochShift - (wire - this.lastWireEpoch),
-    );
-    this.lastWireEpoch = wire;
-    this.notifyTimeline();
-  }
-
-  private notifyTimeline(): void {
-    for (const listener of this.timelineListeners) listener();
-  }
-
-  /** The raw timeline epoch this screen last received from the mod, as a command sends it. */
-  get wireEpoch(): number {
-    return this.lastWireEpoch;
-  }
-
-  /** Calls `listener` whenever {@link wireEpoch} changes. Returns a function that stops it. */
-  onTimelineChange(listener: () => void): () => void {
-    this.timelineListeners.add(listener);
-    return () => {
-      this.timelineListeners.delete(listener);
-    };
-  }
-
-  /** What this screen has last received from the mod, as a command frame carries it. */
-  private seen(): CommandSeen {
-    return {
-      seenBootId: this.wireBootId,
-      seenEpoch: this.lastWireEpoch,
-      ...seenVessel(
-        this.lastValues.get("vessel.identity"),
-        this.lastValues.has("vessel.identity"),
-      ),
-    };
   }
 
   /** Holds the game's UT still from the moment a load starts and lets it run again from there when it ends. */

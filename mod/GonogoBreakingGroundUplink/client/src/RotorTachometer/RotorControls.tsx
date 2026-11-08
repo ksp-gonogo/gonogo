@@ -1,8 +1,4 @@
-import {
-  type AnyBoundCommand,
-  type ValueCommand,
-  value,
-} from "@ksp-gonogo/sitrep-sdk";
+import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
   Cluster,
@@ -11,7 +7,9 @@ import {
   type ReckoningMarking,
   Section,
   Stepper,
+  Text,
   ToggleButton,
+  Unit,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
@@ -19,11 +17,10 @@ import { lockStateText, motorStateText } from "../unreadLabels";
 import { ROTOR_MAX_RPM, type RotorInfo, RPM_STEP, TORQUE_STEP } from "./rotors";
 
 /**
- * The container width in px below which the RPM cap and torque steppers no
- * longer fit on one row with their captions, each stepper drawn at its widest
- * figure, so each takes a row with its caption above.
+ * The container width in px below which a caption no longer fits beside its
+ * stepper, measured with the widest caption and the widest figure.
  */
-const STEPPER_ROW_MIN_PX = 440;
+const STEPPER_ROW_MIN_PX = 140;
 
 const STEPPER_ROWS_NARROW: CSSProperties = {
   display: "grid",
@@ -85,18 +82,12 @@ export interface RotorControlsProps {
     lastSeen: number | null;
     lastSeenCaption?: string;
   };
-  /** The command the RPM cap stepper sends, given the cap stepped to. */
-  rpmStepCommand: ValueCommand<number, unknown, unknown>;
-  /** The command the torque stepper sends, given the limit stepped to. */
-  torqueStepCommand: ValueCommand<number, unknown, unknown>;
-  /** The command the brake control sends, given true to apply the brake. */
-  brakeCommand: ValueCommand<boolean, unknown, unknown>;
-  /** The command the motor control sends, given true to engage the motor. */
-  motorCommand: ValueCommand<boolean, unknown, unknown>;
-  /** The command the lock control sends, given true to lock the rotor. */
-  lockCommand: ValueCommand<boolean, unknown, unknown>;
-  /** The command the reverse button sends. */
-  reverseCommand: AnyBoundCommand;
+  setRpmLimit: (id: string, rpm: number) => void;
+  setTorqueLimit: (id: string, pct: number) => void;
+  setBrake: (id: string, pct: number) => void;
+  setMotor: (id: string, engaged: boolean) => void;
+  setLock: (id: string, locked: boolean) => void;
+  reverse: (id: string) => void;
   /** The held marking of the read behind the toggles' flags and the heading, while it is held. */
   flagsMarked?: ReckoningMarking | null;
 }
@@ -106,12 +97,12 @@ export function RotorControls({
   selected,
   rpmCommand,
   torqueCommand,
-  rpmStepCommand,
-  torqueStepCommand,
-  brakeCommand,
-  motorCommand,
-  lockCommand,
-  reverseCommand,
+  setRpmLimit,
+  setTorqueLimit,
+  setBrake,
+  setMotor,
+  setLock,
+  reverse,
   flagsMarked = null,
 }: RotorControlsProps) {
   return (
@@ -135,12 +126,9 @@ export function RotorControls({
             max={ROTOR_MAX_RPM}
             step={RPM_STEP}
             format={(v) => writeQuantity(value("rpm", v), { decimals: 0 })}
-            command={rpmStepCommand}
-            unavailable={
-              rpmCommand.commanded === null
-                ? "The RPM cap is not reported"
-                : null
-            }
+            disabled={rpmCommand.commanded === null}
+            disabledReason="The RPM cap is not reported"
+            onChange={(v) => setRpmLimit(selected.partId, v)}
           />
           <CaptionCell>Torque</CaptionCell>
           <Stepper
@@ -154,12 +142,9 @@ export function RotorControls({
             max={100}
             step={TORQUE_STEP}
             format={(v) => writeQuantity(value("%", v), { decimals: 0 })}
-            command={torqueStepCommand}
-            unavailable={
-              torqueCommand.commanded === null
-                ? "The torque limit is not reported"
-                : null
-            }
+            disabled={torqueCommand.commanded === null}
+            disabledReason="The torque limit is not reported"
+            onChange={(v) => setTorqueLimit(selected.partId, v)}
           />
         </ContainerBreak>
       </div>
@@ -168,61 +153,56 @@ export function RotorControls({
         {/* An unread flag gets a third, disabled state rather than defaulting to off or unlocked. */}
         <ToggleButton
           size="sm"
+          pressed={selected.motorEngaged === true}
           tone="go"
-          command={motorCommand}
-          state={selected.motorEngaged}
-          name="Motor"
-          unavailable={
-            selected.motorEngaged === null
-              ? "The motor state is not reported"
-              : null
+          disabled={selected.motorEngaged === null}
+          disabledReason="The motor state is not reported"
+          marked={flagsMarked}
+          onClick={() =>
+            selected.motorEngaged !== null &&
+            setMotor(selected.partId, !selected.motorEngaged)
           }
-          marking={flagsMarked}
         >
-          {(shown) =>
-            `Motor ${motorStateText(typeof shown === "boolean" ? shown : null)}`
-          }
+          Motor {motorStateText(selected.motorEngaged)}
         </ToggleButton>
         <ToggleButton
           size="sm"
+          pressed={selected.locked === true}
           tone="warn"
-          command={lockCommand}
-          state={selected.locked}
-          name="Lock"
-          unavailable={
-            selected.locked === null ? "The lock state is not reported" : null
+          disabled={selected.locked === null}
+          disabledReason="The lock state is not reported"
+          marked={flagsMarked}
+          onClick={() =>
+            selected.locked !== null &&
+            setLock(selected.partId, !selected.locked)
           }
-          marking={flagsMarked}
         >
-          {(shown) => lockStateText(typeof shown === "boolean" ? shown : null)}
+          {lockStateText(selected.locked)}
         </ToggleButton>
         {/* The brake sends an absolute percentage inverted from the current one, so an unread brake disables it. */}
         <ToggleButton
           size="sm"
+          pressed={
+            selected.brakePercentage !== null && selected.brakePercentage > 0
+          }
           tone="warn"
-          command={brakeCommand}
-          state={
-            selected.brakePercentage === null
-              ? null
-              : selected.brakePercentage > 0
+          disabled={selected.brakePercentage === null}
+          disabledReason="The brake is not reported"
+          marked={flagsMarked}
+          onClick={() =>
+            selected.brakePercentage !== null &&
+            setBrake(selected.partId, selected.brakePercentage > 0 ? 0 : 100)
           }
-          name="Brake"
-          unavailable={
-            selected.brakePercentage === null
-              ? "The brake is not reported"
-              : null
-          }
-          marking={flagsMarked}
         >
-          {(shown) =>
-            `Brake ${brakeStateText(typeof shown === "boolean" ? (shown ? 100 : 0) : null)}`
-          }
+          Brake {brakeStateText(selected.brakePercentage)}
         </ToggleButton>
         {/* Reverse stays available on an unread heading; only the heading it prints is withheld. */}
         <Button
           size="sm"
+          type="button"
           aria-label={reverseLabel(selected.counterClockwise)}
-          command={reverseCommand}
+          marked={flagsMarked}
+          onClick={() => reverse(selected.partId)}
         >
           {directionText(selected.counterClockwise)}
         </Button>

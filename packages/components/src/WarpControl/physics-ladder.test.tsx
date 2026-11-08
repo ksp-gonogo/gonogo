@@ -1,11 +1,7 @@
-import { createFakeCommand } from "@ksp-gonogo/sitrep-sdk/testing";
 import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import { isDisabled } from "../test/isDisabled";
 import { WarpControlView, type WarpControlViewProps } from "./WarpControlView";
-
-const setWarp = createFakeCommand();
-const setPaused = createFakeCommand();
 
 const base: WarpControlViewProps = {
   cols: 8,
@@ -24,8 +20,8 @@ const base: WarpControlViewProps = {
   nextAlarm: null,
   createAlarm: null,
   events: [],
-  warpCommand: (index) => setWarp.handle.with({ index }),
-  pauseCommand: setPaused.handle.toArgs((paused: boolean) => ({ paused })),
+  onSetWarp: vi.fn(),
+  onTogglePause: vi.fn(),
   onOpenAlarms: vi.fn(),
 };
 
@@ -43,9 +39,10 @@ describe("WarpControl in physics warp", () => {
   });
 
   it("sends the physics index behind the rung pressed", () => {
-    render(<WarpControlView {...base} />);
+    const onSetWarp = vi.fn();
+    render(<WarpControlView {...base} onSetWarp={onSetWarp} />);
     fireEvent.click(screen.getByRole("button", { name: "2×" }));
-    expect(setWarp.sent.map((s) => s.args)).toEqual([{ index: 1 }]);
+    expect(onSetWarp).toHaveBeenCalledWith(1);
   });
 
   it("keeps the high ladder in high warp", () => {

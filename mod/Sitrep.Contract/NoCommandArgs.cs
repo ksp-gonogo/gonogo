@@ -48,7 +48,6 @@ namespace Sitrep.Contract;
 [SitrepCommand("ksp.recover", Delay = DelayRole.TrueNow, Summary = "Recover the active vessel.", AllowMetaVantage = true)]
 [SitrepCommand("ksp.revertToLaunch", Delay = DelayRole.TrueNow, Summary = "Revert the flight to its launch.", AllowMetaVantage = true)]
 [SitrepCommand("ksp.toTrackingStation", Delay = DelayRole.TrueNow, Summary = "Leave the flight for the Tracking Station.", AllowMetaVantage = true)]
-[SitrepCommand("ksp.quicksave", Payload = typeof(SaveWritten), Delay = DelayRole.TrueNow, Summary = "Save the flight to the quicksave slot.", AllowMetaVantage = true)]
 [SitrepCommand("ksp.toSpaceCenter", Delay = DelayRole.TrueNow, Summary = "Leave the flight for the Space Center.", AllowMetaVantage = true)]
 public class NoCommandArgs
 {

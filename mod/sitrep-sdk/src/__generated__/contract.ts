@@ -3962,21 +3962,6 @@ export interface CommandRequest<Args>
 	* active vessel ignore it.
 	*/
 	seenVesselId?: string;
-	/**
-	* The run of the mod the sending screen last heard from: the `Hello.bootId` it
-	* holds. Required. A delayed command or a scene change sent from another run,
-	* or with this empty, is refused with `undoneByLoad`; a command that is about
-	* the game rather than the flight, such as a pause, ignores it. A station
-	* forwarded through a host sends its own, not the host's.
-	*/
-	seenBootId: string;
-	/**
-	* The raw `Meta.timelineEpoch` the sending screen last received from the mod.
-	* A delayed command or a scene change sent from any other epoch is refused
-	* with `undoneByLoad`, because a game load replaced the timeline it was aimed
-	* at. Commands that ignore `CommandRequest.seenBootId` ignore this too.
-	*/
-	seenEpoch: number;
 	/** The command's arguments, in the command's own argument type. */
 	args: Args;
 	/**
@@ -4295,12 +4280,6 @@ export interface Hello
 	*/
 	bootId: string;
 	/**
-	* The timeline the game is on as this connection opens: the
-	* `Meta.timelineEpoch` a client sends back on a command as
-	* `CommandRequest.seenEpoch`.
-	*/
-	timelineEpoch: number;
-	/**
 	* The mod's release label: `v1.4.0` for a release, `rc-<sha>` for a release
 	* candidate. Absent from the frame for a build that carries no label, such as
 	* one built from source.
@@ -4353,18 +4332,6 @@ export interface GameState
 	* `"SPACECENTER"`, `"TRACKSTATION"`, `"EDITOR"` or `"MAINMENU"`.
 	*/
 	scene: string;
-	/**
-	* The run of the mod this frame is from, the same value as `Hello.bootId`. A
-	* station relayed through a host hears this frame and not the mod's `hello`.
-	*/
-	bootId: string;
-	/**
-	* The timeline the game is on: the `Meta.timelineEpoch` a client sends back on
-	* a command as `CommandRequest.seenEpoch`. Sent again whenever a game load
-	* starts a new timeline, so a connection that is subscribed to nothing still
-	* learns it.
-	*/
-	timelineEpoch: number;
 }
 /**
 * Asks for a `Pong`, to tell a connection that is quiet from one that is dead.
@@ -4856,27 +4823,6 @@ export interface SwitchVesselArgs
 	* `trackingStation.catalog` carries it.
 	*/
 	vesselId: string;
-}
-/**
-* Quickload a save: the quicksave slot or the save it replaced. It runs after
-* a short hold, once, against the save the operator confirmed, and takes the
-* whole game back to that save. What became of it arrives on `ksp.gameLoaded`;
-* the reply only says it was scheduled.
-*
-* @category Command arguments
-*/
-export interface QuickloadArgs
-{
-	/**
-	* The `SaveSummary.saveId` the operator confirmed. A file rewritten since then
-	* is refused with `CommandErrorCode.WrongState`.
-	*/
-	saveId: string;
-	/**
-	* The name of the screen asking, shown on `GameLoaded.requestedBy`. A
-	* station's host fills it in; send `""` otherwise.
-	*/
-	requestedBy: string;
 }
 /**
 * Recover a vessel standing at the Space Center by id, the way the Space
@@ -7160,100 +7106,6 @@ export interface RotorReverseArgs
 	* carries.
 	*/
 	partId: string;
-}
-/**
-* What a quicksave wrote: the save it made and the universal time it holds.
-* The reply to `ksp.quicksave`.
-*
-* @category Flights
-*/
-export interface SaveWritten
-{
-	/** Identifies the save, the value `SaveSummary.saveId` carries. */
-	saveId: string;
-	/** The universal time the save holds. */
-	ut: Value<"ut">;
-}
-/**
-* A quickload the game has accepted and will carry out after a short hold. The
-* reply to `ksp.quickload`; what became of it arrives on `ksp.gameLoaded`
-* under the same `LoadScheduled.loadId`.
-*
-* @category Flights
-*/
-export interface LoadScheduled
-{
-	/** Identifies the save, the value `SaveSummary.saveId` carries. */
-	saveId: string;
-	/** The universal time the save holds. */
-	saveUt: Value<"ut">;
-	/** Matches this load to its `GameLoaded.loadId`. */
-	loadId: string;
-}
-/**
-* One save on disk, as file facts only: nothing about the craft it holds.
-*
-* @category Flights
-*/
-export interface SaveSummary
-{
-	/**
-	* Identifies this file on disk at this moment. A file that has been rewritten
-	* since has another id.
-	*/
-	saveId: string;
-	/** The universal time the save holds. */
-	ut: Value<"ut">;
-}
-/**
-* The quicksave slot of the loaded game and the save it replaced. Null when no
-* game is loaded. Useful for showing the operator what a quickload would
-* return to and for offering the previous save after a stray quicksave. Sent
-* only when it changes, and at no delay at any command centre: a save is a
-* file outside the universe.
-*
-* @category Flights
-*/
-export interface SaveSlots
-{
-	/** The quicksave slot, or null when this game has none. */
-	quicksave?: SaveSummary | null;
-	/**
-	* The slot as it stood before the last quicksave from mission control, or null
-	* when there has been none.
-	*/
-	previousQuicksave?: SaveSummary | null;
-}
-/**
-* A quickload ending, one way or the other. Useful for telling every screen
-* what just happened to the game and who asked for it. Delivered at no delay,
-* on every connection subscribed when it happens.
-*
-* @category Flights
-*/
-export interface GameLoaded
-{
-	/** The `LoadScheduled.loadId` this answers. */
-	loadId: string;
-	/**
-	* GameLoaded.Loaded, GameLoaded.Failed or GameLoaded.Cancelled. Treat a value
-	* you do not know as a load that did not happen.
-	*/
-	outcome: string;
-	/** Why a load failed. Null unless `GameLoaded.outcome` is GameLoaded.Failed. */
-	failReason?: string | null;
-	/** The universal time the save holds. */
-	saveUt: Value<"ut">;
-	/**
-	* The universal time the game had reached when the load was asked for, which a
-	* screen compares with `GameLoaded.saveUt` to say how far it moved.
-	*/
-	fromUt: Value<"ut">;
-	/**
-	* The screen that asked for it, as `QuickloadArgs.requestedBy` said. Empty
-	* when the main screen asked.
-	*/
-	requestedBy: string;
 }
 /**
 * Which kind of condition a SCET alarm watches for.

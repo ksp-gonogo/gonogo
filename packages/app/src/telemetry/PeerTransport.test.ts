@@ -384,8 +384,6 @@ describe("PeerTransport", () => {
 
     const frame: ServerMessage = {
       type: "game-state",
-      bootId: "run-a",
-      timelineEpoch: 0,
       state: "loading",
       scene: "FLIGHT",
     };
@@ -583,8 +581,6 @@ describe("PeerTransport", () => {
 
     transport.send({
       type: "command-request",
-      seenBootId: "run-a",
-      seenEpoch: 0,
       requestId: "c3",
       command: "vessel.control.setSas",
       label: "",
@@ -609,8 +605,6 @@ describe("PeerTransport", () => {
     const transport = new PeerTransport(asService(client));
     const member = (requestId: string, group: number) => ({
       type: "command-request" as const,
-      seenBootId: "run-a",
-      seenEpoch: 0,
       requestId,
       command: "vessel.control.setActionGroup",
       label: "",
@@ -647,8 +641,6 @@ describe("PeerTransport", () => {
     transport.onMessage((m) => received.push(m));
     const member = (requestId: string) => ({
       type: "command-request" as const,
-      seenBootId: "run-a",
-      seenEpoch: 0,
       requestId,
       command: "vessel.control.setSas",
       label: "",
@@ -677,8 +669,6 @@ describe("PeerTransport", () => {
 
     transport.send({
       type: "command-request",
-      seenBootId: "run-a",
-      seenEpoch: 0,
       requestId: "c4",
       command: "kos.run",
       label: "Run boot script",
@@ -907,8 +897,6 @@ describe("PeerTransport", () => {
 
     transport.send({
       type: "command-request",
-      seenBootId: "run-a",
-      seenEpoch: 0,
       requestId: "c9",
       command: "vessel.control.setSas",
       label: "",
@@ -1056,8 +1044,6 @@ describe("PeerTransport", () => {
   describe("the game's state, told once when the link opens", () => {
     const noGame: ServerMessage = {
       type: "game-state",
-      bootId: "run-a",
-      timelineEpoch: 0,
       state: "no-game",
       scene: "MAINMENU",
     };
@@ -1079,8 +1065,6 @@ describe("PeerTransport", () => {
       const transport = new PeerTransport(asService(client));
       const loading: ServerMessage = {
         type: "game-state",
-        bootId: "run-a",
-        timelineEpoch: 0,
         state: "loading",
         scene: "TRACKSTATION",
       };
@@ -1148,8 +1132,6 @@ describe("PeerTransport follows the host's stream to the mod", () => {
 
     transport.send({
       type: "command-request",
-      seenBootId: "run-a",
-      seenEpoch: 0,
       requestId: "a",
       command: "vessel.stage",
       label: "",
@@ -1167,8 +1149,6 @@ describe("PeerTransport follows the host's stream to the mod", () => {
     fake.emitLink(true);
     transport.send({
       type: "command-request",
-      seenBootId: "run-a",
-      seenEpoch: 0,
       requestId: "b",
       command: "vessel.stage",
       label: "",
@@ -1186,8 +1166,6 @@ describe("PeerTransport while the main screen has not approved the station", () 
   const stage = (requestId: string) =>
     ({
       type: "command-request",
-      seenBootId: "run-a",
-      seenEpoch: 0,
       requestId,
       command: "vessel.stage",
       label: "",

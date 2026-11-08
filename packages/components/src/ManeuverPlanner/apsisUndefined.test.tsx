@@ -52,7 +52,7 @@ function preview(over: Partial<ManeuverPreviewProps>) {
       triggerEditorOpen={false}
       setTriggerEditorOpen={() => {}}
       numericKeys={[]}
-      commitCommand={null}
+      onCommit={() => {}}
       onArm={() => {}}
       {...over}
     />,

@@ -3,7 +3,7 @@ import {
   dispatchAction,
   getComponent,
 } from "@ksp-gonogo/core";
-import { CommandErrorCode, GateOutcome, value } from "@ksp-gonogo/sitrep-sdk";
+import { CommandErrorCode, GateOutcome } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
@@ -162,80 +162,7 @@ describe("LaunchDirector actions", () => {
       "revert-to-editor",
       "tracking-station",
       "space-center",
-      "quicksave",
-      "quickload",
-      "quickload-previous",
     ]);
-  });
-
-  describe("the quicksave and quickload actions", () => {
-    async function emitFlight(saves: unknown) {
-      act(() => {
-        stream.emit("spaceCenter.scene", { scene: "Flight", launchSite: "" });
-      });
-      await screen.findByRole("button", { name: "Quicksave" });
-      act(() => {
-        stream.emit("ksp.saves", saves);
-      });
-    }
-    const slot = (saveId: string, ut: number) => ({
-      saveId,
-      ut: value("ut", ut),
-    });
-
-    it("sends one quicksave on one press", async () => {
-      renderWidget();
-      await emitFlight({ quicksave: null, previousQuicksave: null });
-      press("quicksave");
-      await waitFor(() => expect(sent("ksp.quicksave")).toHaveLength(1));
-    });
-
-    it("loads the quicksave only on the second press", async () => {
-      renderWidget();
-      await emitFlight({
-        quicksave: slot("save-a", 8),
-        previousQuicksave: null,
-      });
-      await screen.findByRole("button", { name: "Quickload" });
-      press("quickload");
-      expect(sent("ksp.quickload")).toHaveLength(0);
-      await screen.findByRole("button", { name: "Confirm quickload" });
-      press("quickload");
-      await waitFor(() =>
-        expect(sent("ksp.quickload")[0]?.args).toMatchObject({
-          saveId: "save-a",
-        }),
-      );
-    });
-
-    it("loads the previous quicksave by its own id", async () => {
-      renderWidget();
-      await emitFlight({
-        quicksave: slot("save-a", 8),
-        previousQuicksave: slot("save-b", 5),
-      });
-      await screen.findByRole("button", { name: "Load previous" });
-      press("quickload-previous");
-      await screen.findByRole("button", { name: "Confirm load previous" });
-      press("quickload-previous");
-      await waitFor(() =>
-        expect(sent("ksp.quickload")[0]?.args).toMatchObject({
-          saveId: "save-b",
-        }),
-      );
-    });
-
-    it("offers no previous quicksave when there is none", async () => {
-      renderWidget();
-      await emitFlight({
-        quicksave: slot("save-a", 8),
-        previousQuicksave: null,
-      });
-      await screen.findByRole("button", { name: "Quickload" });
-      expect(
-        screen.queryByRole("button", { name: "Load previous" }),
-      ).toBeNull();
-    });
   });
 
   it("launch arms on the first press and launches the selected craft and crew on the second", async () => {

@@ -1,7 +1,6 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
 import {
-  commandSet,
   dehydrateArgs,
   type Reading,
   type Value,
@@ -41,6 +40,7 @@ export function useNodeCommands(
 ) {
   const [committing, setCommitting] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const removingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   /*
    * The node count the plan reaches once the nodes the game accepted are
@@ -109,125 +109,86 @@ export function useNodeCommands(
     burnContext,
   );
 
-  /*
-   * The press that adds the plan's burns. Each is sent after the last is
-   * answered, and the first refusal stops the rest, so a partly added sequence
-   * is reported with how far it got.
-   */
-  const burns = plan === null ? [] : isSequence(plan) ? plan.burns : [plan];
-  const commitCommand =
-    burns.length === 0
-      ? null
-      : commandSet(
-          burns.map((b, index) => {
-            // The planned instant is typed; the command's own args carry it as UT seconds.
-            const args = dehydrateArgs({
-              ut: b.ut,
-              radialOut: b.radial,
-              normal: b.normal,
-              prograde: b.prograde,
-            });
-            const label = "Add maneuver node";
-            return addNodeCmd.with(args, {
-              label,
-              before: () => {
-                if (index > 0) return;
-                setCommitting(true);
-                setError(null);
-              },
-              onRejected: (err) => {
-                // Only here are both counts known: what KSP confirmed and what the plan asked for.
-                setError(
-                  describePartialDispatch({
-                    confirmed: index,
-                    total: burns.length,
-                    err,
-                    dispatch: { command: ADD_NODE, args, label },
-                  }),
-                );
-              },
-            });
+  async function dispatchPlanBurns(toDispatch: PlanResult): Promise<number> {
+    const burns = isSequence(toDispatch) ? toDispatch.burns : [toDispatch];
+    let confirmed = 0;
+    for (const b of burns) {
+      // The planned instant is typed; the command's own args carry it as UT seconds.
+      const args = dehydrateArgs({
+        ut: b.ut,
+        radialOut: b.radial,
+        normal: b.normal,
+        prograde: b.prograde,
+      });
+      const label = "Add maneuver node";
+      try {
+        await addNodeCmd.dangerouslySendWithoutInput(args, { label });
+      } catch (err) {
+        // Only here are both counts known: what KSP confirmed and what the plan asked for.
+        throw new Error(
+          describePartialDispatch({
+            confirmed,
+            total: burns.length,
+            err,
+            dispatch: { command: ADD_NODE, args, label },
           }),
-          {
-            order: "one-at-a-time",
-            stopAtFirstFailure: true,
-            onSettled: ({ confirmed, total }) => {
-              setCommitting(false);
-              if (confirmed === total) {
-                setExpectedNodes(nodeCountRef.current + confirmed);
-              }
-            },
-          },
         );
+      }
+      confirmed += 1;
+    }
+    return confirmed;
+  }
+
+  async function handleCommit() {
+    if (!plan) return;
+    setCommitting(true);
+    setError(null);
+    try {
+      const added = await dispatchPlanBurns(plan);
+      setExpectedNodes(nodeCountRef.current + added);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setCommitting(false);
+    }
+  }
 
   // One removal at a time: a second would address a node by an id the first is about to retire.
-  const removalUnavailable = removing ? "Another node is being removed" : null;
+  async function whileRemoving(run: () => Promise<void>): Promise<void> {
+    if (removingRef.current) return;
+    removingRef.current = true;
+    setRemoving(true);
+    try {
+      await run();
+    } finally {
+      removingRef.current = false;
+      setRemoving(false);
+    }
+  }
 
-  const removeCommand = (nodeId: string) => {
+  async function handleDelete(nodeId: string) {
+    if (!nodeId) {
+      setError(UNADDRESSABLE);
+      return;
+    }
     const label = "Remove maneuver node";
-    return removeNodeCmd.with(
-      { nodeId },
-      {
-        label,
-        before: () => {
-          removalSentRef.current.add(nodeId);
-          setRemoving(true);
-        },
-        onConfirmed: () => setRemoving(false),
-        onRejected: (err) => {
-          removalSentRef.current.delete(nodeId);
-          setRemoving(false);
-          setError(
-            describeNodeRejection(err, {
-              command: REMOVE_NODE,
-              args: { nodeId },
-              label,
-            }),
-          );
-        },
-      },
-    );
-  };
-  const removeUnavailable = (nodeId: string) =>
-    !nodeId
-      ? UNADDRESSABLE
-      : removalSentRef.current.has(nodeId)
-        ? "This node is already being removed"
-        : removalUnavailable;
-
-  // A node with no id cannot be named to the game, which would take "" for a node.
-  const removable = nodes.filter((n) => n.id);
-  const notAddressable = nodes.length - removable.length;
-  const clearAllCommand =
-    removable.length === 0
-      ? null
-      : commandSet(
-          // Last node first, so the plan empties from the far end inward as the operator expects.
-          removable
-            .map((n) =>
-              removeNodeCmd.with(
-                { nodeId: n.id },
-                {
-                  label: "Remove maneuver node",
-                  before: () => setRemoving(true),
-                },
-              ),
-            )
-            .reverse(),
-          {
-            order: "one-at-a-time",
-            onSettled: ({ failed }) => {
-              setRemoving(false);
-              // The refusal is drawn on the command's own rail; the rest of the plan is still cleared.
-              const notRemoved = failed + notAddressable;
-              if (notRemoved > 0) {
-                setError(
-                  `${notRemoved} of ${nodes.length} nodes could not be removed.`,
-                );
-              }
-            },
-          },
+    if (removalSentRef.current.has(nodeId)) return;
+    await whileRemoving(async () => {
+      removalSentRef.current.add(nodeId);
+      try {
+        await removeNodeCmd.dangerouslySendWithoutInput({ nodeId }, { label });
+      } catch (err) {
+        removalSentRef.current.delete(nodeId);
+        setError(
+          describeNodeRejection(err, {
+            command: REMOVE_NODE,
+            args: { nodeId },
+            label,
+          }),
         );
+      }
+    });
+  }
 
   async function handleEdit(nodeId: string, patch: NodeEditPatch) {
     if (!nodeId) {
@@ -260,6 +221,35 @@ export function useNodeCommands(
     }
   }
 
+  function handleClearAll(): Promise<void> {
+    return whileRemoving(clearAllNodes);
+  }
+
+  async function clearAllNodes() {
+    let notRemoved = 0;
+    // Last node first, so the plan empties from the far end inward as the operator expects.
+    for (let i = nodes.length - 1; i >= 0; i--) {
+      const nodeId = nodes[i].id;
+      // A node with no id cannot be named to the game, which would take "" for a node.
+      if (!nodeId) {
+        notRemoved += 1;
+        continue;
+      }
+      try {
+        await removeNodeCmd.dangerouslySendWithoutInput(
+          { nodeId },
+          { label: "Remove maneuver node" },
+        );
+      } catch {
+        // The refusal is drawn on the command's own rail; the rest of the plan is still cleared.
+        notRemoved += 1;
+      }
+    }
+    if (notRemoved > 0) {
+      setError(`${notRemoved} of ${nodes.length} nodes could not be removed.`);
+    }
+  }
+
   // The light time a node crosses, for the send control to state beside itself.
   const sendDelay: SendDelay = {
     oneWaySeconds: addNodeCmd.effectiveDelaySeconds,
@@ -275,10 +265,9 @@ export function useNodeCommands(
     setError,
     completedNodes,
     watches,
-    commitCommand,
-    removeCommand,
-    removeUnavailable,
-    clearAllCommand,
+    handleCommit,
+    handleDelete,
     handleEdit,
+    handleClearAll,
   };
 }

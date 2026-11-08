@@ -21,7 +21,7 @@ export interface SwitchBaseProps {
  *
  * @category Form
  */
-export type PlainSwitchProps = {
+export interface PlainSwitchProps {
   /** Whether the switch is on. The switch is controlled: it shows this value and changes only when the caller changes it. */
   checked: boolean;
   /** Called with the new state when the operator flips the switch. */
@@ -29,7 +29,7 @@ export type PlainSwitchProps = {
   /** Renders dimmed and non-interactive; `onChange` never fires. For a toggle whose effective state is controlled elsewhere, such as a sub-setting inert while its parent setting is off. */
   disabled?: boolean;
   command?: never;
-};
+}
 
 /**
  * The props of a {@link Switch} that sends a command. The switch shows the

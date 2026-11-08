@@ -113,7 +113,6 @@
     <!-- Which FACILITY authorises a maneuver write, carved out beside it and for
          the same reason. Sitrep.Contract only, no KSP type. -->
     <Compile Include="..\Gonogo.KSP\ManeuverWriteAuthority.cs" />
-    <Compile Include="..\Gonogo.KSP\PatchedConicsAttachRule.cs" />
     <!-- What a command answers when the craft gonogo reports is not the one KSP
          is flying. The write-side half of the active-vessel seam, which the seam
          itself cannot cover: the stock calls underneath take no vessel and

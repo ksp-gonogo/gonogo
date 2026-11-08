@@ -1,9 +1,5 @@
 import { useCommand } from "@ksp-gonogo/sitrep-client";
-import {
-  type AnyBoundCommand,
-  classifyCommandRejection,
-  type ValueCommand,
-} from "@ksp-gonogo/sitrep-sdk";
+import { classifyCommandRejection } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useRef, useState } from "react";
 
 /**
@@ -35,12 +31,6 @@ export function useFlyByWire(
   fbwState: FbwState;
   armFbw: () => void;
   disarmFbw: () => void;
-  /** Arms the override, for the control that shows what became of the press. */
-  armFbwCommand: AnyBoundCommand;
-  /** Disarms the override, for the control that shows what became of the press. */
-  disarmFbwCommand: AnyBoundCommand;
-  /** Disarms the override from a toggle that is pressed while it is armed. */
-  disarmFbwToggle: ValueCommand<boolean, unknown, unknown>;
 } {
   const fbwCmd = useCommand("vessel.control.setFlyByWire");
   const holdCmd = useCommand("vessel.control.holdFlyByWire");
@@ -93,62 +83,38 @@ export function useFlyByWire(
     };
   }, [fbwCmd.dangerouslySendWithoutInput]);
 
-  const begin = (enabled: boolean) => {
+  const dispatch = (enabled: boolean) => {
     const seq = ++latest.current;
     travelling.current = true;
     setArmedHere(enabled);
     setFbwState(enabled ? "arming" : "disarming");
-    return seq;
-  };
-  const confirm = (seq: number, enabled: boolean) => {
-    if (seq !== latest.current) return;
-    travelling.current = false;
-    settled.current = enabled ? "armed" : "off";
-    setFbwState(settled.current);
-  };
-  const reject = (seq: number, err: unknown) => {
-    if (seq !== latest.current) return;
-    travelling.current = false;
-    // A refusal or a failed send left the craft as it was; only a loss leaves it unknown.
-    if (classifyCommandRejection(err).kind === "lost") {
-      settled.current = "unconfirmed";
-    }
-    setFbwState(settled.current);
-  };
-  const labelOf = (enabled: boolean) => (enabled ? "Arm FBW" : "Disarm FBW");
-  const dispatch = (enabled: boolean) => {
-    const seq = begin(enabled);
     fbwCmd
-      .dangerouslySendWithoutInput({ enabled }, { label: labelOf(enabled) })
+      .dangerouslySendWithoutInput(
+        { enabled },
+        { label: enabled ? "Arm FBW" : "Disarm FBW" },
+      )
       .then(
-        () => confirm(seq, enabled),
-        (err: unknown) => reject(seq, err),
+        () => {
+          if (seq !== latest.current) return;
+          travelling.current = false;
+          settled.current = enabled ? "armed" : "off";
+          setFbwState(settled.current);
+        },
+        (err: unknown) => {
+          if (seq !== latest.current) return;
+          travelling.current = false;
+          // A refusal or a failed send left the craft as it was; only a loss leaves it unknown.
+          if (classifyCommandRejection(err).kind === "lost") {
+            settled.current = "unconfirmed";
+          }
+          setFbwState(settled.current);
+        },
       );
   };
-
-  /* The press that starts a command sets the sequence its answer is matched to. */
-  const pressSeq = useRef(0);
-  const options = (enabled: boolean) => ({
-    label: labelOf(enabled),
-    before: () => {
-      pressSeq.current = begin(enabled);
-    },
-    onConfirmed: () => confirm(pressSeq.current, enabled),
-    onRejected: (err: unknown) => reject(pressSeq.current, err),
-  });
-  const armFbwCommand = fbwCmd.with({ enabled: true }, options(true));
-  const disarmFbwCommand = fbwCmd.with({ enabled: false }, options(false));
-  const disarmFbwToggle = fbwCmd.toArgs(
-    (_pressed: boolean) => ({ enabled: false }),
-    options(false),
-  );
 
   return {
     fbwState,
     armFbw: () => dispatch(true),
     disarmFbw: () => dispatch(false),
-    armFbwCommand,
-    disarmFbwCommand,
-    disarmFbwToggle,
   };
 }

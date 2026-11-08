@@ -60,7 +60,6 @@ import type {
   FlightVesselChanged,
   GameAlarmList,
   GameDlc,
-  GameLoaded,
   HostRecordModel,
   InstrumentEntry,
   IsruConverterEntry,
@@ -74,7 +73,6 @@ import type {
   RecoveryReport,
   RevertAvailability,
   RoboticsAvailability,
-  SaveSlots,
   SavedShipEntry,
   ScetAddressableTopic,
   ScetAlarm,
@@ -201,12 +199,8 @@ export interface GeneratedTopicPayloadMap {
   "isru.converters": IsruConverterEntry[];
   /** One drill (resource harvester) on the active vessel. */
   "isru.drills": IsruDrillEntry[];
-  /** A quickload ending, one way or the other. */
-  "ksp.gameLoaded": GameLoaded;
   /** Whether the two stock in-flight revert actions are available right now, so a widget can enable its Revert to Launch and Revert to Editor controls exactly when KSP's own pause menu shows them. */
   "ksp.revertAvailability": RevertAvailability;
-  /** The quicksave slot of the loaded game and the save it replaced. */
-  "ksp.saves": SaveSlots;
   /** The Making History mission that is running, or has just ended, in the current game. */
   "missions.active": MissionStatus;
   /** The active vessel's rolled-up electric-charge production. */
@@ -350,9 +344,7 @@ export const GENERATED_TOPIC_IDS = [
   "host.record",
   "isru.converters",
   "isru.drills",
-  "ksp.gameLoaded",
   "ksp.revertAvailability",
-  "ksp.saves",
   "missions.active",
   "parts.power",
   "recovery.hasRecent",

@@ -254,11 +254,7 @@ namespace Gonogo.KSP
         private void OnCareerContract(Contract contract) => CareerMoved();
         private void OnCareerParameter(Contract contract, ContractParameter parameter) => CareerMoved();
         private void OnCareerVoid() => CareerMoved();
-        private void OnCareerFacility(Upgradeables.UpgradeableFacility facility, int level)
-        {
-            CareerMoved();
-            KspVesselActuator.EnsurePatchedConicsSolver();
-        }
+        private void OnCareerFacility(Upgradeables.UpgradeableFacility facility, int level) => CareerMoved();
         private void OnCareerScene(GameScenes scene) => CareerMoved();
 
         private void HookCareerEvents(bool add)

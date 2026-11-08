@@ -1,7 +1,6 @@
 import { type ComponentPropsWithoutRef, type ReactNode, useId } from "react";
 import styled, { css } from "styled-components";
-import { Button, IconButton } from "./Button";
-import type { CommandInput } from "./CommandButton/CommandedButton";
+import { Button } from "./Button";
 import { SendIcon } from "./Icons";
 import { Tooltip } from "./Tooltip";
 import { VisuallyHidden } from "./VisuallyHidden";
@@ -33,6 +32,22 @@ export interface ComposerBarProps extends ComponentPropsWithoutRef<"div"> {
    */
   prompt?: string;
   /**
+   * Commit what is composed. Given, the row grows a send button at its far end;
+   * omitted, the only send is whatever key the composer binds.
+   *
+   * The button is an addition to that key, for a touch screen with no keyboard
+   * up. Wire it to the same entry point the key handler calls, not a second
+   * copy of the send path. It carries the verb and nothing else, so it never
+   * reflows the composer.
+   */
+  onSend?: () => void;
+  /**
+   * Refuse the press. Distinct from `blocked`, which is about the row as a
+   * whole: a composer with nothing typed in it is perfectly able to accept
+   * input and still has nothing to send.
+   */
+  sendDisabled?: boolean;
+  /**
    * The verb. Defaults to "Send". It is the button's accessible name whichever
    * way the button is drawn.
    */
@@ -50,34 +65,6 @@ export interface ComposerBarProps extends ComponentPropsWithoutRef<"div"> {
    * operator's choice.
    */
   sendTooltip?: string;
-  /**
-   * Commit what is composed, for a send that is not a game command, such as a
-   * note kept on this screen. Given, the row grows a send button at its far
-   * end; omitted, the only send is whatever key the composer binds. Give this
-   * or `command`, not both.
-   *
-   * The button is an addition to that key, for a touch screen with no keyboard
-   * up. Wire it to the same entry point the key handler calls, not a second
-   * copy of the send path. It carries the verb and nothing else, so it never
-   * reflows the composer.
-   */
-  onSend?: () => void;
-  /**
-   * Refuse the press of an `onSend` button. Distinct from `blocked`, which is
-   * about the row as a whole: a composer with nothing typed in it is perfectly
-   * able to accept input and still has nothing to send.
-   */
-  sendDisabled?: boolean;
-  /**
-   * The command the send button sends, made with `with` on a `useCommand`
-   * handle from what the operator has composed (its arguments may be a function
-   * read at the press). The button then shows what became of the press as any
-   * command control does: sent, refused, no reply, blocked. Give this or
-   * `onSend`, not both.
-   */
-  command?: CommandInput;
-  /** Why a `command` send cannot be pressed now, such as an empty draft. The button is drawn dimmed with this as its tip and a press sends nothing. */
-  sendUnavailable?: string | null;
   /** The input the operator types into, drawn between the prompt and the send button. */
   children?: ReactNode;
 }
@@ -103,14 +90,12 @@ export function ComposerBar({
   blocked = false,
   flag,
   prompt,
+  onSend,
+  sendDisabled = false,
   sendLabel = "Send",
   sendVariant = "icon",
   sendTooltip,
   children,
-  onSend,
-  sendDisabled = false,
-  command,
-  sendUnavailable,
   ...rest
 }: ComposerBarProps) {
   const described = useId();
@@ -120,26 +105,6 @@ export function ComposerBar({
         <ComposerBar__Prompt aria-hidden="true">{prompt}</ComposerBar__Prompt>
       )}
       {children}
-      {command !== undefined &&
-        (sendVariant === "icon" ? (
-          <ComposerBar__SendGlyph
-            command={command}
-            unavailable={sendUnavailable}
-            aria-label={sendLabel}
-            tip={sendTooltip}
-          >
-            <SendIcon size={16} />
-          </ComposerBar__SendGlyph>
-        ) : (
-          <ComposerBar__SendWord
-            command={command}
-            unavailable={sendUnavailable}
-            size="sm"
-            tip={sendTooltip}
-          >
-            {sendLabel}
-          </ComposerBar__SendWord>
-        ))}
       {onSend !== undefined && (
         <>
           {/* aria-disabled rather than disabled, so the button keeps focus after the draft it sent empties and its tooltip stays reachable by keyboard. */}
@@ -246,18 +211,6 @@ const ComposerBar__Send = styled(Button)<{ $icon: boolean }>`
         padding: var(--inset-icon-button-touch);
       }
     `}
-`;
-
-const ComposerBar__SendGlyph = styled(IconButton)`
-  flex: 0 0 auto;
-  margin-left: auto;
-  color: var(--console-tone-fg, var(--color-accent-fg));
-`;
-
-const ComposerBar__SendWord = styled(Button)`
-  flex: 0 0 auto;
-  margin-left: auto;
-  font-size: var(--font-size-compact);
 `;
 
 const ComposerBar__Flag = styled.div<{ $blocked: boolean }>`

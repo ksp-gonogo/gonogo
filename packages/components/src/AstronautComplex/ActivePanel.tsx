@@ -5,7 +5,6 @@ import {
   Card,
   Cluster,
   type CommandButtonHandle,
-  type CommandControlState,
   Stack,
   type TabDescriptor,
   Tabs,
@@ -33,7 +32,6 @@ export function ActivePanel({
   fireCmd,
   highlightedName,
   armed,
-  highlightedFire,
 }: {
   crew: CrewRosterRow[];
   /** The shared fire handle; see `ApplicantsPanel`'s `hireCmd`. */
@@ -42,8 +40,6 @@ export function ActivePanel({
   highlightedName: string | null;
   /** Whether that crew member's fire is armed: the next `fire-highlighted` press sends it. */
   armed: boolean;
-  /** The control running the highlighted crew member's fire, which the button on that row draws. */
-  highlightedFire: CommandControlState;
 }) {
   // Filters on the `isApplicant` flag: an absent roster ordinal is a field that did not arrive, not an applicant.
   const active = crew.filter((c) => !c.isApplicant);
@@ -94,15 +90,7 @@ export function ActivePanel({
                           </Badge>
                         )}
                         {fireable && (
-                          <FireButton
-                            kerbalName={m.name}
-                            fireCmd={fireCmd}
-                            control={
-                              m.name === highlightedName
-                                ? highlightedFire
-                                : undefined
-                            }
-                          />
+                          <FireButton kerbalName={m.name} fireCmd={fireCmd} />
                         )}
                       </Cluster>
                     }

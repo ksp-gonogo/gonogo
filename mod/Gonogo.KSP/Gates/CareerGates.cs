@@ -140,18 +140,6 @@ namespace Gonogo.KSP.Gates
             Kind = KspGateEvaluators.Kinds.ClearToSave,
         };
 
-        /// <summary>Whether the game would take a quicksave now, as one nonspecific fact.</summary>
-        public static CommandRequirement QuicksaveReady => new CommandRequirement
-        {
-            Kind = KspGateEvaluators.Kinds.QuicksaveReady,
-        };
-
-        /// <summary>Whether the game would take a quickload now.</summary>
-        public static CommandRequirement QuickloadReady => new CommandRequirement
-        {
-            Kind = KspGateEvaluators.Kinds.QuickloadReady,
-        };
-
         /// <summary>
         /// One of the <c>PreFlightTests</c> that needs no built ship, against a
         /// launch site. The call's own <c>site</c> argument picks the site, so a

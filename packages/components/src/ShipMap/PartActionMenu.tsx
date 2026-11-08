@@ -1,4 +1,3 @@
-import type { AnyBoundCommand } from "@ksp-gonogo/sitrep-sdk";
 import type { ActionMenuItem } from "@ksp-gonogo/ui-kit";
 import { ActionMenu } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
@@ -49,16 +48,14 @@ export interface PartActionMenuProps {
   flightId: number;
   /** The part's display title, for the menu's accessible name and each item's. */
   partTitle: string;
-  /** The command one action sends. The widget owns the `useCommand` handle so it outlives the popover, which closes on choice. */
-  commandFor: (eventName: string, actionLabel: string) => AnyBoundCommand;
+  /** Fires one action. The widget owns the `useCommand` handle so it outlives the popover, which closes on fire. */
+  onInvoke: (eventName: string, actionLabel: string) => void;
   /** Escape, Tab, an outside press, or a fired action: the caller restores focus to the part. */
   onDismiss: () => void;
   /** Buttons contributed to `ship-map.part-actions` for this part, listed after the game's own. */
   contributed?: readonly ShipMapPartActionEntry[];
-  /** The command one contributed button sends, or null where its handle is not mounted. Owned by the widget, like `commandFor`, so its delay row outlives the menu. */
-  contributedCommandFor?: (
-    entry: ShipMapPartActionEntry,
-  ) => AnyBoundCommand | null;
+  /** Fires one contributed button. Owned by the widget, like `onInvoke`, so its delay row outlives the menu. */
+  onInvokeContributed?: (entry: ShipMapPartActionEntry) => void;
   /** Anchoring, owned by the caller (the diagram knows where the part is). */
   style?: CSSProperties;
 }
@@ -72,10 +69,10 @@ export interface PartActionMenuProps {
 export function PartActionMenu({
   flightId,
   partTitle,
-  commandFor,
+  onInvoke,
   onDismiss,
   contributed = NO_CONTRIBUTED,
-  contributedCommandFor,
+  onInvokeContributed,
   style,
 }: Readonly<PartActionMenuProps>) {
   const { actions, pending } = usePartActions(flightId);
@@ -86,7 +83,6 @@ export function PartActionMenu({
       label: action.label || action.name,
       group: action.group ?? undefined,
       disabled: !action.active,
-      command: commandFor(action.name, action.label || action.name),
       // The accessible name carries the part, which the item's own text does not.
       "aria-label": `${action.label || action.name} on ${partTitle}`,
     })),
@@ -95,7 +91,6 @@ export function PartActionMenu({
       label: entry.label,
       group: entry.group,
       disabled: !entry.active,
-      command: contributedCommandFor?.(entry) ?? undefined,
       "aria-label": `${entry.label} on ${partTitle}`,
     })),
   ];
@@ -111,8 +106,20 @@ export function PartActionMenu({
           ? "Awaiting actions..."
           : "No actions"
       }
-      // The item sends its own command; the choice closes the menu, as a PAW click does, and re-opening re-reads the live list.
-      onSelect={onDismiss}
+      onSelect={(eventName) => {
+        if (eventName.startsWith(CONTRIBUTED_KEY_PREFIX)) {
+          const entry = contributed.find(
+            (c) => CONTRIBUTED_KEY_PREFIX + c.name === eventName,
+          );
+          if (entry) onInvokeContributed?.(entry);
+          onDismiss();
+          return;
+        }
+        const action = actions?.find((a) => a.name === eventName);
+        onInvoke(eventName, action?.label || eventName);
+        // Dismiss on fire, like a PAW click; re-opening re-reads the live list.
+        onDismiss();
+      }}
       onDismiss={onDismiss}
     />
   );

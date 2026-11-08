@@ -378,13 +378,6 @@ export class PeerTransport implements Transport {
         message.label,
         message.topic,
         message.vantage,
-        {
-          seenBootId: message.seenBootId,
-          seenEpoch: message.seenEpoch,
-          ...(message.seenVesselId
-            ? { seenVesselId: message.seenVesselId }
-            : {}),
-        },
       );
       return;
     }
@@ -436,9 +429,6 @@ export class PeerTransport implements Transport {
           command: member.command,
           label: member.label,
           topic: member.topic,
-          seenBootId: member.seenBootId,
-          seenEpoch: member.seenEpoch,
-          ...(member.seenVesselId ? { seenVesselId: member.seenVesselId } : {}),
           args: member.args,
         })),
         message.members[0]?.vantage,

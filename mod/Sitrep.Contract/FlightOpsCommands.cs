@@ -56,29 +56,6 @@ public class SwitchVesselArgs
 }
 
 /// <summary>
-/// Quickload a save: the quicksave slot or the save it replaced. It runs after a
-/// short hold, once, against the save the operator confirmed, and takes the
-/// whole game back to that save. What became of it arrives on
-/// <c>ksp.gameLoaded</c>; the reply only says it was scheduled.
-/// </summary>
-/// <category>Command arguments</category>
-[SitrepContract]
-#if SITREP_CODEGEN
-[TsInterface]
-#endif
-[SitrepCommand("ksp.quickload", Payload = typeof(LoadScheduled), Delay = DelayRole.TrueNow, Summary = "Load the quicksave, or the save it replaced.", AllowMetaVantage = true)]
-public class QuickloadArgs
-{
-    /// <summary>The <see cref="SaveSummary.SaveId"/> the operator confirmed. A file rewritten since then is refused with <see cref="CommandErrorCode.WrongState"/>.</summary>
-    [SitrepUnit(Units.Id)]
-    public string SaveId { get; set; } = "";
-
-    /// <summary>The name of the screen asking, shown on <see cref="GameLoaded.RequestedBy"/>. A station's host fills it in; send <c>""</c> otherwise.</summary>
-    [SitrepUnit(Units.Text)]
-    public string RequestedBy { get; set; } = "";
-}
-
-/// <summary>
 /// Recover a vessel standing at the Space Center by id, the way the Space
 /// Center's own Recover button does: the game books the recovery refund, the
 /// science and the crew's return exactly as it does for a flight recovery. A

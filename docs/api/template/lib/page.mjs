@@ -385,8 +385,6 @@ ${button}
       command: "time.setPaused",
       label: "time.setPaused",
       topic: "",
-      seenBootId: "4d3a1f0c9b7e4c21a6f58e2d7c1b0a93",
-      seenEpoch: 0,
       args: { paused: true },
       sentAt: 0,
     };

@@ -41,7 +41,8 @@ export type ToggleButtonProps = PlainToggleButtonProps | CommandedToggleProps;
  *
  * @category Button
  */
-export type PlainToggleButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+export interface PlainToggleButtonProps
+  extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** Set `command` to make the toggle send a command; see {@link CommandedToggleProps}. */
   command?: undefined;
   /** Whether the toggle is on. Drives `aria-pressed` and the filled look. Defaults to `false`. */
@@ -54,7 +55,7 @@ export type PlainToggleButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   disabledReason?: string;
   /** Marks the state shown as held or modelled; the button stays pressable. As for {@link Button}. */
   marked?: ReckoningMarking | null;
-};
+}
 
 /**
  * A two-state toggle: a real `<button>` whose `aria-pressed` follows `pressed`,
