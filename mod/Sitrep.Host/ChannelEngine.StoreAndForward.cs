@@ -551,7 +551,9 @@ namespace Sitrep.Host
                 MemberCommands = job.GroupMembers?.Select(member => member.Command).ToList() ?? new List<string> { job.Command },
             });
             // No arrival predicted: the centre's plan knows no route to the craft, whatever the live link says, so the command waits here with no release time.
-            var noRoute = prediction.ArrivalUt == null
+            /* A centre that holds no plan yet has said nothing about a route: its first plan is under a second away. */
+            var planHeld = !SenderPlans.Reckons || SenderPlans.PlanOf(lane.Vantage) != null;
+            var noRoute = prediction.ArrivalUt == null && planHeld
                 ? NoRoutePlannedWarning(message.DeleteAtUt)
                 : null;
             if (job.OnAcceptedHeld != null)
