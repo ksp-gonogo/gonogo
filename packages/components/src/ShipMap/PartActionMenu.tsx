@@ -9,6 +9,9 @@ const NO_CONTRIBUTED: readonly ShipMapPartActionEntry[] = [];
 /** The key a contributed button carries in the menu, kept apart from the game's own event names. */
 const CONTRIBUTED_KEY_PREFIX = "contributed:";
 const TRANSFER_KEY_PREFIX = "transfer:";
+const GAME_WINDOW_KEY_PREFIX = "game-window:";
+const NEEDS_THE_GAME_SCREEN = "needs someone at the game's screen";
+const OPENS_ON_GAME_SCREEN = "opens on the game's screen";
 const NO_RESOURCES: readonly TransferResourceOption[] = [];
 
 /** A resource this part could move, as a menu offers it. */
@@ -89,7 +92,7 @@ export function PartActionMenu({
   onPickTransfer,
   style,
 }: Readonly<PartActionMenuProps>) {
-  const { actions, pending } = usePartActions(flightId);
+  const { actions, gameWindows, pending } = usePartActions(flightId);
 
   const items: ActionMenuItem[] = [
     ...(actions ?? []).map((action) => ({
@@ -97,8 +100,17 @@ export function PartActionMenu({
       label: action.label || action.name,
       group: action.group ?? undefined,
       disabled: !action.active,
+      tip: action.opensGameWindow ? OPENS_ON_GAME_SCREEN : undefined,
       // The accessible name carries the part, which the item's own text does not.
       "aria-label": `${action.label || action.name} on ${partTitle}`,
+    })),
+    ...gameWindows.map((action) => ({
+      key: `${GAME_WINDOW_KEY_PREFIX}${action.moduleName ?? ""}:${action.name}`,
+      label: action.label || action.name,
+      group: action.group ?? undefined,
+      disabled: true,
+      tip: NEEDS_THE_GAME_SCREEN,
+      "aria-label": `${action.label || action.name} on ${partTitle}, ${NEEDS_THE_GAME_SCREEN}`,
     })),
     ...contributed.map((entry) => ({
       key: CONTRIBUTED_KEY_PREFIX + entry.name,

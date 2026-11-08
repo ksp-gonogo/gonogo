@@ -159,6 +159,54 @@ namespace Sitrep.Host.Tests
 
             Assert.Single(actions);
             Assert.Equal("Deploy", actions[0]["name"]);
+            var windows = (List<object?>)publications[0].Payload!["gameWindows"]!;
+            Assert.Equal(eventName, ((Dictionary<string, object?>)Assert.Single(windows)!)["name"]);
+        }
+
+        [Fact]
+        public void AButtonThatOpensAWindowWithoutLockingStaysPressableAndIsMarked()
+        {
+            var actuator = new FakePartActionActuator();
+            actuator.ActionsByPartId["1"] = new List<PartActionEntry> { Entry("OpenKerbNet"), Entry("Deploy") };
+
+            var actions = WireActions(PartActionsViewProvider.Build(actuator, new[] { "1" }, "guid-1")[0]);
+
+            Assert.Equal(true, actions[0]["opensGameWindow"]);
+            Assert.Equal(false, actions[1]["opensGameWindow"]);
+        }
+
+        [Fact]
+        public void AButtonLearnedToLockIsListedApartForItsOwnModuleOnly()
+        {
+            InGameOnlyPartActions.ForgetLearned();
+            InGameOnlyPartActions.Learn("Activate", "ModMenuThing");
+            try
+            {
+                var actuator = new FakePartActionActuator();
+                actuator.ActionsByPartId["1"] = new List<PartActionEntry>
+                {
+                    Entry("Activate", moduleName: "ModMenuThing"),
+                    Entry("Activate", moduleName: "ModuleEngines"),
+                };
+
+                var publication = PartActionsViewProvider.Build(actuator, new[] { "1" }, "guid-1")[0];
+
+                Assert.Equal("ModuleEngines", Assert.Single(WireActions(publication))["moduleName"]);
+                Assert.Single((List<object?>)publication.Payload!["gameWindows"]!);
+            }
+            finally
+            {
+                InGameOnlyPartActions.ForgetLearned();
+            }
+        }
+
+        [Fact]
+        public void NewLocksAreOnlyThoseThePressAdded()
+        {
+            Assert.Equal(
+                new[] { "c" },
+                InGameOnlyPartActions.NewLocks(new[] { "a", "b" }, new[] { "a", "b", "c" }));
+            Assert.Empty(InGameOnlyPartActions.NewLocks(new[] { "a", "b" }, new[] { "a" }));
         }
 
         /// <summary>A mod module that subclasses a stock one inherits the button under its own module name.</summary>

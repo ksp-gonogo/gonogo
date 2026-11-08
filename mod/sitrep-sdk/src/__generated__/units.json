@@ -1157,6 +1157,7 @@
       "label": "text",
       "moduleName": "id",
       "name": "id",
+      "opensGameWindow": "flag",
       "requireFullControl": "flag"
     },
     "PartActions": {
@@ -2999,6 +3000,7 @@
     },
     "PartActions": {
       "actions": "PartActionEntry[]",
+      "gameWindows": "PartActionEntry[]",
       "meta": "PayloadMeta"
     },
     "PartShape": {

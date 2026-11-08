@@ -1197,6 +1197,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     label: "text",
     moduleName: "id",
     name: "id",
+    opensGameWindow: "flag",
     requireFullControl: "flag",
   },
   "PartActions": {
@@ -3073,6 +3074,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "PartActions": {
     actions: "PartActionEntry[]",
+    gameWindows: "PartActionEntry[]",
     meta: "PayloadMeta",
   },
   "PartShape": {

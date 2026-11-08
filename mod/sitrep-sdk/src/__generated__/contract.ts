@@ -6422,6 +6422,11 @@ export interface PartActionEntry
 	* partially crewed or probe-limited state) to fire.
 	*/
 	requireFullControl: boolean;
+	/**
+	* The button can be pressed from a console but opens a window on the game's
+	* own screen, without locking the craft.
+	*/
+	opensGameWindow: boolean;
 }
 /**
 * The payload of one `vessel.partActions.<flightId>` channel: the PAW buttons
@@ -6458,6 +6463,12 @@ export interface PartActions
 	* list is missing.
 	*/
 	actions: PartActionEntry[];
+	/**
+	* The part's buttons that only someone at the game's own screen can finish.
+	* They cannot be pressed from a console and `vessel.invokePartAction` refuses
+	* them, so draw them disabled. Always present, possibly empty.
+	*/
+	gameWindows: PartActionEntry[];
 	/**
 	* Payload provenance. `Source` is `"vessel:<guid>"` for the active vessel, or
 	* `""` when no vessel id was known.

@@ -19865,6 +19865,10 @@
         "note": "a menu item may send a command and shows what became of it"
       },
       {
+        "key": "ui-kit . ActionMenuItem#tip?",
+        "note": "Part menus: buttons only the game can finish are listed apart, and a menu item can carry a tip"
+      },
+      {
         "key": "ui-kit . ActionMenuItem#unavailable?",
         "note": "a menu item may send a command and shows what became of it"
       },
