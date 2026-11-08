@@ -48,16 +48,18 @@ export function SearchBox({
         onChange={(event) => onChange(event.target.value)}
       />
       {value !== "" && (
-        <SearchBox__Clear
-          type="button"
-          aria-label={clearLabel}
-          onClick={() => {
-            onChange("");
-            field.current?.focus();
-          }}
-        >
-          <CloseIcon size="var(--icon-size-control)" />
-        </SearchBox__Clear>
+        <SearchBox__ClearSlot>
+          <IconButton
+            type="button"
+            aria-label={clearLabel}
+            onClick={() => {
+              onChange("");
+              field.current?.focus();
+            }}
+          >
+            <CloseIcon size="var(--icon-size-control)" />
+          </IconButton>
+        </SearchBox__ClearSlot>
       )}
     </SearchBox__Root>
   );
@@ -75,10 +77,8 @@ const SearchBox__Field = styled(Input)`
   }
 `;
 
-const SearchBox__Clear = styled(IconButton)`
+const SearchBox__ClearSlot = styled.span`
   position: absolute;
   right: 0;
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
 `;
