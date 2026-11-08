@@ -2,6 +2,7 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
   CloseIcon,
+  IconButton,
   useTooltip,
 } from "@ksp-gonogo/ui-kit";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
@@ -9,11 +10,9 @@ import { NoteRenderedText } from "./NoteRenderedText";
 import type { NotesActions } from "./NotesView";
 import {
   Body,
-  DeleteBtn,
   EditorSlot,
   Item,
   RenderedBody,
-  ReorderBtn,
   ReorderColumn,
   RowActions,
 } from "./notesStyles";
@@ -125,7 +124,7 @@ export function NoteRow({
   return (
     <Item>
       <ReorderColumn>
-        <ReorderBtn
+        <IconButton
           type="button"
           aria-label="Move up"
           disabled={isFirst || blocked || gone}
@@ -136,8 +135,8 @@ export function NoteRow({
           }}
         >
           <ChevronUpIcon size={12} />
-        </ReorderBtn>
-        <ReorderBtn
+        </IconButton>
+        <IconButton
           type="button"
           aria-label="Move down"
           disabled={isLast || blocked || gone}
@@ -147,7 +146,7 @@ export function NoteRow({
           }}
         >
           <ChevronDownIcon size={12} />
-        </ReorderBtn>
+        </IconButton>
       </ReorderColumn>
       <Body>
         {editing ? (
@@ -178,7 +177,7 @@ export function NoteRow({
         )}
       </Body>
       <RowActions>
-        <DeleteBtn
+        <IconButton
           type="button"
           aria-label="Delete note"
           aria-invalid={deleteHeld || undefined}
@@ -192,7 +191,7 @@ export function NoteRow({
           }}
         >
           <CloseIcon size={12} />
-        </DeleteBtn>
+        </IconButton>
         {deleteTip.tip}
       </RowActions>
     </Item>

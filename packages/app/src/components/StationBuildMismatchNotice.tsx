@@ -1,5 +1,6 @@
 import { compareVersions, parseSemver } from "@ksp-gonogo/core";
 import { BannerPill } from "@ksp-gonogo/ui";
+import { IconButton } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import type { PeerHostService } from "../peer/PeerHostService";
@@ -100,7 +101,7 @@ export function StationBuildMismatchNotice({
                   Upgrade
                 </Link>
               )}
-              <Dismiss
+              <IconButton
                 type="button"
                 aria-label={`Dismiss the build notice for ${s.name}`}
                 onClick={() =>
@@ -108,7 +109,7 @@ export function StationBuildMismatchNotice({
                 }
               >
                 ×
-              </Dismiss>
+              </IconButton>
             </>
           }
         >
@@ -125,20 +126,6 @@ export function StationBuildMismatchNotice({
 const Link = styled.a`
   color: inherit;
   text-decoration: underline;
-
-  &:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
-`;
-
-const Dismiss = styled.button`
-  background: none;
-  border: none;
-  color: inherit;
-  cursor: pointer;
-  font: inherit;
-  padding: 0 var(--gap-sub-readout);
 
   &:focus-visible {
     outline: 2px solid var(--color-focus);
