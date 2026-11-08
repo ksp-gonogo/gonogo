@@ -646,6 +646,7 @@
     },
     "CrewMember": {
       "experienceLevel": "count",
+      "movesLeavingNoControl": "id",
       "name": "text",
       "packedVolumeLimit": "1",
       "packedVolumeUsed": "1",
@@ -675,6 +676,11 @@
       "stupidity": "ratio",
       "trait": "text",
       "unavailableReason": "text"
+    },
+    "CrewTransferArgs": {
+      "fromPartId": "id",
+      "kerbalName": "text",
+      "toPartId": "id"
     },
     "CrossfeedSet": {
       "id": "id",
@@ -1186,6 +1192,11 @@
       "nominalFlow": "units/s",
       "transferable": "flag",
       "unratedProcess": "flag"
+    },
+    "PartSeats": {
+      "capacity": "count",
+      "isExternalSeat": "flag",
+      "transferAvailable": "flag"
     },
     "PartShape": {
       "name": "text",
@@ -3150,6 +3161,7 @@
       "fairing": "FairingShell",
       "moduleStates": "PartModuleState[]",
       "resources": "*PartResourceFlow",
+      "seats": "PartSeats",
       "shapePoses": "PartShapePose[]"
     },
     "VesselParts": {

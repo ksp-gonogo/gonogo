@@ -686,6 +686,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "CrewMember": {
     experienceLevel: "count",
+    movesLeavingNoControl: "id",
     name: "text",
     packedVolumeLimit: "1",
     packedVolumeUsed: "1",
@@ -715,6 +716,11 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     stupidity: "ratio",
     trait: "text",
     unavailableReason: "text",
+  },
+  "CrewTransferArgs": {
+    fromPartId: "id",
+    kerbalName: "text",
+    toPartId: "id",
   },
   "CrossfeedSet": {
     id: "id",
@@ -1226,6 +1232,11 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     nominalFlow: "units/s",
     transferable: "flag",
     unratedProcess: "flag",
+  },
+  "PartSeats": {
+    capacity: "count",
+    isExternalSeat: "flag",
+    transferAvailable: "flag",
   },
   "PartShape": {
     name: "text",
@@ -3224,6 +3235,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     fairing: "FairingShell",
     moduleStates: "PartModuleState[]",
     resources: "*PartResourceFlow",
+    seats: "PartSeats",
     shapePoses: "PartShapePose[]",
   },
   "VesselParts": {

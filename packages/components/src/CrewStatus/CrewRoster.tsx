@@ -13,6 +13,7 @@ import {
   Stack,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
+import { CrewMoveControl } from "./CrewMoveControl";
 import { EvaKerbalRow } from "./EvaKerbalRow";
 
 /** Avatar cell bounds. Sized off the roster's measured width, not the viewport, since a tile's width has no fixed relation to the window. */
@@ -142,7 +143,10 @@ export function renderRoster({
             }
           >
             {seats.has(name) && (
-              <ReadoutCaption>{seats.get(name)}</ReadoutCaption>
+              <Inline>
+                <ReadoutCaption>{seats.get(name)}</ReadoutCaption>
+                <CrewMoveControl name={name} />
+              </Inline>
             )}
             <Contribution
               slot="meters"

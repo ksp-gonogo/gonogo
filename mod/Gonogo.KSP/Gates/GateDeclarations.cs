@@ -55,6 +55,7 @@ namespace Gonogo.KSP.Gates
             ScienceCommandProvider.StopLabCommand,
             ConverterCommandProvider.StartCommand,
             ConverterCommandProvider.StopCommand,
+            CrewTransferRule.Command,
             ResourceTransferWire.StartCommand,
             ResourceTransferWire.StopCommand,
             RoboticsCommandProvider.ServoSetAngleCommand,

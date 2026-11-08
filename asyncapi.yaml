@@ -3,8 +3,8 @@ info:
   title: Gonogo WebSocket API
   version: 51.0.0
   description: |-
-    The WebSocket API of the Gonogo mod: 94 telemetry channels a client
-    subscribes to and 84 commands it sends, each with its payload and what it
+    The WebSocket API of the Gonogo mod: 96 telemetry channels a client
+    subscribes to and 87 commands it sends, each with its payload and what it
     means, all over one socket.
 
     ## Frames the mod sends
@@ -3621,6 +3621,28 @@ channels:
         $ref: "#/components/messages/streamData.vessel.crew"
       event:
         $ref: "#/components/messages/event"
+  vessel.crew.transfer:
+    address: vessel.crew.transfer
+    description: |-
+      Move a kerbal to another part of the active vessel (`vessel.crew.transfer`).
+      Docked craft are one vessel, so this also moves a kerbal between them. Parts
+      are named by flight id, the id `vessel.parts` carries.
+
+      A kerbal no longer in `CrewTransferArgs.fromPartId` is refused with
+      `CommandErrorCode.WrongState`. A full destination is refused with
+      `CommandErrorCode.LimitReached`. A part crew cannot use is refused with
+      `CommandErrorCode.CapabilityMismatch`, and a move a mod keeps out with
+      `CommandErrorCode.NotClearToProceed`.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: true
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.vessel.crew.transfer"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.vessel.crew.transfer"
+      commandAccepted:
+        $ref: "#/components/messages/commandAccepted"
   vessel.dock:
     address: vessel.dock
     title: Active vessel docking
@@ -5388,6 +5410,21 @@ operations:
       messages:
         - $ref: "#/channels/vessel.converter.stop/messages/commandResponse"
         - $ref: "#/channels/vessel.converter.stop/messages/commandAccepted"
+  dispatch:vessel.crew.transfer:
+    action: send
+    channel:
+      $ref: "#/channels/vessel.crew.transfer"
+    title: Dispatch vessel.crew.transfer
+    tags:
+      - name: vessel
+    messages:
+      - $ref: "#/channels/vessel.crew.transfer/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/vessel.crew.transfer"
+      messages:
+        - $ref: "#/channels/vessel.crew.transfer/messages/commandResponse"
+        - $ref: "#/channels/vessel.crew.transfer/messages/commandAccepted"
   dispatch:vessel.invokePartAction:
     action: send
     channel:
@@ -7791,6 +7828,21 @@ components:
                 const: vessel.converter.stop
               args:
                 $ref: "#/components/schemas/ConverterSwitchArgs"
+    commandRequest.vessel.crew.transfer:
+      name: command-request
+      title: Dispatch vessel.crew.transfer
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `vessel.crew.transfer`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: vessel.crew.transfer
+              args:
+                $ref: "#/components/schemas/CrewTransferArgs"
     commandRequest.vessel.invokePartAction:
       name: command-request
       title: Dispatch vessel.invokePartAction
@@ -9068,6 +9120,19 @@ components:
                         anyOf:
                           - $ref: "#/components/schemas/RunStateChange"
                           - type: "null"
+    commandResponse.vessel.crew.transfer:
+      name: command-response
+      title: Reply to vessel.crew.transfer
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `vessel.crew.transfer`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                $ref: "#/components/schemas/CommandResult"
     commandResponse.vessel.invokePartAction:
       name: command-response
       title: Reply to vessel.invokePartAction
@@ -15933,6 +15998,17 @@ components:
           description: |-
             The `flightID` of the part this kerbal is seated in, as a string, the same
             id `vessel.parts` carries. Null when the seat could not be read.
+        movesLeavingNoControl:
+          type:
+            - array
+            - "null"
+          items:
+            type: string
+            x-sitrep-unit: id
+          description: |-
+            Parts this kerbal could move into that would leave the craft with no
+            control. The move is still allowed, since moving back restores control.
+            Empty when no move costs control. Null when it could not be worked out.
         partTitle:
           type:
             - string
@@ -16243,6 +16319,35 @@ components:
           description: |-
             Missing: KSP's own `Missing` roster status, kept separate from
             `CrewStanding.Dead`.
+    CrewTransferArgs:
+      type: object
+      description: |-
+        Move a kerbal to another part of the active vessel (`vessel.crew.transfer`).
+        Docked craft are one vessel, so this also moves a kerbal between them. Parts
+        are named by flight id, the id `vessel.parts` carries.
+
+        A kerbal no longer in `CrewTransferArgs.fromPartId` is refused with
+        `CommandErrorCode.WrongState`. A full destination is refused with
+        `CommandErrorCode.LimitReached`. A part crew cannot use is refused with
+        `CommandErrorCode.CapabilityMismatch`, and a move a mod keeps out with
+        `CommandErrorCode.NotClearToProceed`.
+      required:
+        - kerbalName
+        - fromPartId
+        - toPartId
+      properties:
+        kerbalName:
+          type: string
+          x-sitrep-unit: text
+          description: The kerbal's name, as `vessel.crew` gives it.
+        fromPartId:
+          type: string
+          x-sitrep-unit: id
+          description: The part the kerbal was last seen in.
+        toPartId:
+          type: string
+          x-sitrep-unit: id
+          description: The part to move the kerbal into.
     CrossfeedSet:
       type: object
       description: One group of parts that can draw from each other by crossfeed.
@@ -20278,6 +20383,26 @@ components:
             The player's flow lock on this tank. It stops engines and consumers drawing
             from the tank, and does not stop a transfer. Null on topics that do not
             report it.
+    PartSeats:
+      type: object
+      description: A part's seats, on `vessel.parts`.
+      required:
+        - capacity
+        - transferAvailable
+        - isExternalSeat
+      properties:
+        capacity:
+          type: number
+          x-sitrep-unit: count
+          description: How many kerbals the part can hold now. Some habitats change this in flight.
+        transferAvailable:
+          type: boolean
+          x-sitrep-unit: flag
+          description: False for a part the game keeps crew from moving into or out of.
+        isExternalSeat:
+          type: boolean
+          x-sitrep-unit: flag
+          description: True for an external command seat, which is never a source or destination.
     PartShapePose:
       type: object
       description: |-
@@ -26437,6 +26562,13 @@ components:
             `BaseAction.actionGroup` Flags bitmask decodes to). Per action, not per
             part. Empty when no action on the part is bound to any group. Derive an
             action group's human-readable caption from this.
+        seats:
+          description: |-
+            The part's seats. Null for a part with no seats, and on topics that do not
+            report them.
+          anyOf:
+            - $ref: "#/components/schemas/PartSeats"
+            - type: "null"
     VesselParts:
       type: object
       description: |-
