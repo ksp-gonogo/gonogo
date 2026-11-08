@@ -264,8 +264,9 @@ export interface PlainIconButtonProps
 }
 
 /**
- * An icon-only `button` with no chrome, just the glyph. Useful for compact
- * controls whose meaning an icon carries, such as closing a panel. Used by the
+ * An icon-only `button`: the glyph alone at rest, with a fill and an edge
+ * drawn around it under the pointer. Useful for compact controls whose meaning
+ * an icon carries, such as closing a panel. Used by the
  * maneuver node rows and the connection settings. Give it an `aria-label`,
  * since the icon inside is decorative; the name is also its tip, so a glyph is
  * never unexplained. As a toggle, with `pressed`, it sets

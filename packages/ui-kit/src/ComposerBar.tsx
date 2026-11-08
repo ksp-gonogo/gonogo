@@ -1,6 +1,6 @@
 import { type ComponentPropsWithoutRef, type ReactNode, useId } from "react";
 import styled, { css } from "styled-components";
-import { Button } from "./Button";
+import { Button, IconButton } from "./Button";
 import { SendIcon } from "./Icons";
 import { Tooltip } from "./Tooltip";
 import { VisuallyHidden } from "./VisuallyHidden";
@@ -108,18 +108,30 @@ export function ComposerBar({
       {onSend !== undefined && (
         <>
           {/* aria-disabled rather than disabled, so the button keeps focus after the draft it sent empties and its tooltip stays reachable by keyboard. */}
-          <Tooltip text={sendTooltip} announce={false}>
-            <ComposerBar__Send
-              type="button"
-              aria-disabled={sendDisabled || undefined}
-              onClick={sendDisabled ? undefined : onSend}
-              $icon={sendVariant === "icon"}
-              {...(sendTooltip ? { "aria-describedby": described } : {})}
-              {...(sendVariant === "icon" ? { "aria-label": sendLabel } : {})}
-            >
-              {sendVariant === "icon" ? <SendIcon size={16} /> : sendLabel}
-            </ComposerBar__Send>
-          </Tooltip>
+          <ComposerBar__Send>
+            <Tooltip text={sendTooltip} announce={false}>
+              {sendVariant === "icon" ? (
+                <IconButton
+                  type="button"
+                  aria-disabled={sendDisabled || undefined}
+                  onClick={sendDisabled ? undefined : onSend}
+                  aria-label={sendLabel}
+                  {...(sendTooltip ? { "aria-describedby": described } : {})}
+                >
+                  <SendIcon size={16} />
+                </IconButton>
+              ) : (
+                <Button
+                  type="button"
+                  aria-disabled={sendDisabled || undefined}
+                  onClick={sendDisabled ? undefined : onSend}
+                  {...(sendTooltip ? { "aria-describedby": described } : {})}
+                >
+                  {sendLabel}
+                </Button>
+              )}
+            </Tooltip>
+          </ComposerBar__Send>
           {sendTooltip && (
             <VisuallyHidden id={described}>
               {sendTooltip.replaceAll("\n", ". ")}
@@ -186,31 +198,10 @@ const ComposerBar__Prompt = styled.span`
  * pitch on the row.
  */
 
-const ComposerBar__Send = styled(Button)<{ $icon: boolean }>`
+const ComposerBar__Send = styled.span`
   flex: 0 0 auto;
   margin-left: auto;
-  font-size: var(--font-size-compact);
-
-  &[aria-disabled="true"] {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
-  ${({ $icon }) =>
-    $icon &&
-    css`
-      /* The glyph centres in the box, and the inset is squared so the button is a square. */
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: var(--inset-icon-button);
-      /* The row's own outline tone, so the control reads as belonging to the row. */
-      color: var(--console-tone-fg, var(--color-accent-fg));
-
-      @media (pointer: coarse) {
-        padding: var(--inset-icon-button-touch);
-      }
-    `}
+  display: inline-flex;
 `;
 
 const ComposerBar__Flag = styled.div<{ $blocked: boolean }>`

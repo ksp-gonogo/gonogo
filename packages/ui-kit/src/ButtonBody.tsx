@@ -193,7 +193,11 @@ export const Button__Body = styled.button<{
   ${({ $variant }) => ($variant === "text" ? TEXT_TOUCH : "")}
 `;
 
-/** The bare glyph a {@link IconButton} draws, with no box until it is pressed. */
+/**
+ * The glyph a {@link IconButton} draws: nothing around it at rest, a fill and an
+ * edge together under the pointer, the go fill while pressed. The edge is an
+ * inset shadow, so the box is the same size in every state.
+ */
 export const IconButton__Body = styled.button`
   background: none;
   border: none;
@@ -202,7 +206,8 @@ export const IconButton__Body = styled.button`
   font-size: var(--font-size-base);
   line-height: var(--line-height-flush);
   padding: var(--inset-glyph-button);
-  transition: color var(--duration-fast);
+  border-radius: var(--radius-regular);
+  transition: background var(--duration-fast), box-shadow var(--duration-fast), color var(--duration-fast);
 
   /* A target of at least 24 by 24 on a fine pointer, whatever size the caller draws the glyph at; a coarse pointer already gets the touch target. */
   @media (pointer: fine) {
@@ -211,9 +216,14 @@ export const IconButton__Body = styled.button`
   }
 
   @media (hover: hover) {
-    &:hover:not([aria-disabled="true"]) {
+    &:hover:not(:disabled):not([aria-disabled="true"]):not([aria-pressed="true"]) {
+      background: var(--color-surface-raised);
+      box-shadow: inset 0 0 0 1px var(--color-border-strong);
       color: var(--color-text-primary);
     }
+  }
+  &:active:not(:disabled):not([aria-disabled="true"]) {
+    ${filledLook("go")}
   }
   /* A command that was refused, got no reply or never left tints the glyph in the warning colour. */
   &[data-command-edge="warn"] {
@@ -242,7 +252,6 @@ export const IconButton__Body = styled.button`
     outline-color: currentColor;
   }
   &[aria-pressed="true"] {
-    border-radius: var(--radius-regular);
     ${filledLook("go")}
   }
   ${focusRing}

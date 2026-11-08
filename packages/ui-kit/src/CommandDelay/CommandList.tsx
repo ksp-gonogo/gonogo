@@ -1,5 +1,6 @@
 import { commandRefusalSubject, type Tone } from "@ksp-gonogo/sitrep-sdk";
 import styled, { css } from "styled-components";
+import { IconButton } from "../Button";
 import { focusRing } from "../focusRing";
 import { LiveRegion } from "../LiveRegion";
 import { TONE_MARK, TONE_TEXT } from "../tone";
@@ -221,7 +222,7 @@ export function CommandList(props: Readonly<CommandListProps>) {
       )}
       <CommandList__Text>{box.sentence}</CommandList__Text>
       {onDismiss && (
-        <CommandList__Dismiss
+        <IconButton
           type="button"
           data-dismiss=""
           onClick={(event) => {
@@ -231,7 +232,7 @@ export function CommandList(props: Readonly<CommandListProps>) {
           aria-label={box.dismissLabel}
         >
           ✕
-        </CommandList__Dismiss>
+        </IconButton>
       )}
     </CommandList__Box>
   ));
@@ -324,22 +325,4 @@ const CommandList__Text = styled.span`
   line-height: var(--line-height-body);
   /* Wraps, never truncates: the numbers are at the end of the sentence. */
   overflow-wrap: anywhere;
-`;
-
-const CommandList__Dismiss = styled.button`
-  flex: 0 0 auto;
-  appearance: none;
-  padding: var(--inset-glyph);
-  border: 0;
-  background: transparent;
-  color: var(--color-text-muted);
-  font: inherit;
-  font-size: var(--font-size-xs);
-  cursor: pointer;
-
-  &:hover,
-  &:focus-visible {
-    color: var(--color-text-primary);
-  }
-  ${focusRing}
 `;

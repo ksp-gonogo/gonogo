@@ -11,7 +11,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import styled from "styled-components";
-import { Button } from "./Button";
+import { Button, IconButton } from "./Button";
 import { DelayRailProvider } from "./CommandDelay/DelayRailContext";
 import { FOCUS_RESTORE_ATTRIBUTE } from "./focusRestore";
 import { CloseIcon } from "./Icons";
@@ -299,9 +299,14 @@ function ModalDialog({ entry, isTop, onClose }: Readonly<ModalDialogProps>) {
               {entry.title && (
                 <DialogTitle id={titleId}>{entry.title}</DialogTitle>
               )}
-              <CloseButton onClick={requestClose} aria-label="Close">
+              {/* Takes focus when the dialog opens, so a tip of its own would take the first Escape; the empty data-tooltip tells the button to draw none. */}
+              <IconButton
+                onClick={requestClose}
+                aria-label="Close"
+                data-tooltip=""
+              >
                 <CloseIcon size={16} />
-              </CloseButton>
+              </IconButton>
             </DialogHeader>
             <DialogBody>
               {/* Content opened here sits outside every widget tile, so it needs its own command rail */}
@@ -383,28 +388,6 @@ const DialogHeader = styled.div`
 const DialogTitle = styled.h2`
   margin: 0;
   ${titleText}
-`;
-
-const CloseButton = styled.button`
-  background: none;
-  border: none;
-  color: var(--color-text-faint);
-  cursor: pointer;
-  line-height: var(--line-height-flush);
-  padding: var(--inset-glyph-button);
-
-  @media (hover: hover) {
-    &:hover {
-      color: var(--color-text-primary);
-    }
-  }
-  @media (pointer: coarse) {
-    min-width: var(--touch-target);
-    min-height: var(--touch-target);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
 `;
 
 const DialogBody = styled(ScrollArea)`

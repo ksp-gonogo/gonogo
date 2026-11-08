@@ -209,7 +209,9 @@ describe("ComposerBar", () => {
       </ComposerBar>,
     );
     expect(
-      getComputedStyle(screen.getByRole("button", { name: "Send" })).marginLeft,
+      getComputedStyle(
+        screen.getByRole("button", { name: "Send" }).parentElement as Element,
+      ).marginLeft,
     ).toBe("auto");
   });
 

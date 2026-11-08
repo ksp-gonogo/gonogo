@@ -260,7 +260,7 @@ function CommandedButtonFace({
   ...rest
 }: Omit<CommandedButtonProps, "command" | "unavailable"> & {
   control: CommandControlState;
-  /** Draws the button as a bare glyph, as an icon button does. */
+  /** Draws the button as an icon button does: the glyph alone at rest, edged and filled under the pointer. */
   glyph?: boolean;
 }) {
   const {
