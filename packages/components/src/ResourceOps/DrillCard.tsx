@@ -2,7 +2,6 @@ import type { IsruDrillEntry } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Card,
-  Grid,
   Inline,
   ReadoutCaption,
   resourceColor,
@@ -11,8 +10,8 @@ import {
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import {
-  RESOURCE_TABLE_COLS,
   ResourceCells,
+  ResourceTable,
   RunStateBadge,
   WithheldOr,
 } from "./ProcessCells";
@@ -62,13 +61,13 @@ export function DrillCard({
       }
     >
       <Stack>
-        <Grid cols={RESOURCE_TABLE_COLS} rowGap="readout-row" align="baseline">
+        <ResourceTable>
           <ResourceCells
             flow={{ resource: drill.resource, rate: drill.rate }}
             direction="extract"
             ratesHeld={drillHeld || reportedStarved(drill)}
           />
-        </Grid>
+        </ResourceTable>
         <Inline>
           <ReadoutCaption>abundance</ReadoutCaption>
           {/* Abundance belongs to where the drill stands, and it can be driven elsewhere while the link is down. */}
