@@ -60,7 +60,6 @@ import type {
   CommcastSendReceipt,
   ContractActionArgs,
   ConverterSwitchArgs,
-  CrewTransferArgs,
   DeactivateStrategyArgs,
   ExperimentActionArgs,
   FireCrewArgs,
@@ -81,9 +80,6 @@ import type {
   RecentLogArgs,
   RecoverVesselArgs,
   RemoveManeuverNodeArgs,
-  ResourceTransferStartArgs,
-  ResourceTransferStarted,
-  ResourceTransferStopArgs,
   RevertToEditorArgs,
   RotorReverseArgs,
   RotorSetBrakeArgs,
@@ -272,8 +268,6 @@ export interface GeneratedCommandArgsMap {
   "vessel.converter.start": ConverterSwitchArgs;
   /** Switch a converter, drill or fuel cell off. */
   "vessel.converter.stop": ConverterSwitchArgs;
-  /** Move a kerbal to another part of the vessel. */
-  "vessel.crew.transfer": CrewTransferArgs;
   /** Fire one button of one part's right-click Part Action Window, the remote-control equivalent of the player clicking it in-game. */
   "vessel.invokePartAction": InvokePartActionArgs;
   /** Add a manoeuvre node. */
@@ -282,10 +276,6 @@ export interface GeneratedCommandArgsMap {
   "vessel.maneuver.remove": RemoveManeuverNodeArgs;
   /** Replace an existing node's time and delta-v. */
   "vessel.maneuver.update": UpdateManeuverNodeArgs;
-  /** Move a resource between tanks of the vessel. */
-  "vessel.resource.transfer.start": ResourceTransferStartArgs;
-  /** Stop a resource transfer, or every one. */
-  "vessel.resource.transfer.stop": ResourceTransferStopArgs;
   /** Clear the active vessel's target. */
   "vessel.target.clear": NoCommandArgs;
   /** Set the active vessel's target. */
@@ -445,8 +435,6 @@ export interface GeneratedCommandReplyMap {
   "vessel.converter.start": CommandResultOf<RunStateChange>;
   /** Switch a converter, drill or fuel cell off. */
   "vessel.converter.stop": CommandResultOf<RunStateChange>;
-  /** Move a kerbal to another part of the vessel. */
-  "vessel.crew.transfer": CommandResult;
   /** Fire one button of one part's right-click Part Action Window, the remote-control equivalent of the player clicking it in-game. */
   "vessel.invokePartAction": CommandResult;
   /** Add a manoeuvre node. */
@@ -455,10 +443,6 @@ export interface GeneratedCommandReplyMap {
   "vessel.maneuver.remove": CommandResult;
   /** Replace an existing node's time and delta-v. */
   "vessel.maneuver.update": CommandResult;
-  /** Move a resource between tanks of the vessel. */
-  "vessel.resource.transfer.start": CommandResultOf<ResourceTransferStarted>;
-  /** Stop a resource transfer, or every one. */
-  "vessel.resource.transfer.stop": CommandResult;
   /** Clear the active vessel's target. */
   "vessel.target.clear": CommandResult;
   /** Set the active vessel's target. */
@@ -552,13 +536,10 @@ export const GENERATED_COMMAND_REPLY_TYPES = {
   "vessel.control.stage": "CommandResultOf<number>",
   "vessel.converter.start": "CommandResultOf<RunStateChange>",
   "vessel.converter.stop": "CommandResultOf<RunStateChange>",
-  "vessel.crew.transfer": "CommandResult",
   "vessel.invokePartAction": "CommandResult",
   "vessel.maneuver.add": "CommandResultOf<string>",
   "vessel.maneuver.remove": "CommandResult",
   "vessel.maneuver.update": "CommandResult",
-  "vessel.resource.transfer.start": "CommandResultOf<ResourceTransferStarted>",
-  "vessel.resource.transfer.stop": "CommandResult",
   "vessel.target.clear": "CommandResult",
   "vessel.target.set": "CommandResult",
 } as const satisfies Record<string, string>;
@@ -685,13 +666,10 @@ export const GENERATED_COMMAND_RAIL = {
   "vessel.control.stage": { replies: true, delayed: true },
   "vessel.converter.start": { replies: true, delayed: true },
   "vessel.converter.stop": { replies: true, delayed: true },
-  "vessel.crew.transfer": { replies: true, delayed: true },
   "vessel.invokePartAction": { replies: true, delayed: true },
   "vessel.maneuver.add": { replies: true, delayed: true, arriveBefore: "ut" },
   "vessel.maneuver.remove": { replies: true, delayed: true },
   "vessel.maneuver.update": { replies: true, delayed: true, arriveBefore: "ut" },
-  "vessel.resource.transfer.start": { replies: true, delayed: true },
-  "vessel.resource.transfer.stop": { replies: true, delayed: true },
   "vessel.target.clear": { replies: true, delayed: true },
   "vessel.target.set": { replies: true, delayed: true },
 } as const satisfies Record<string, GeneratedCommandRail>;
@@ -773,13 +751,10 @@ export const GENERATED_COMMAND_IDS = [
   "vessel.control.stage",
   "vessel.converter.start",
   "vessel.converter.stop",
-  "vessel.crew.transfer",
   "vessel.invokePartAction",
   "vessel.maneuver.add",
   "vessel.maneuver.remove",
   "vessel.maneuver.update",
-  "vessel.resource.transfer.start",
-  "vessel.resource.transfer.stop",
   "vessel.target.clear",
   "vessel.target.set",
 ] as const;

@@ -57,10 +57,6 @@ const SEND_WITHOUT_INPUT: Record<string, Entry> = {
     reads: 2,
     why: "background log poll, no press",
   },
-  "packages/components/src/shared/StopTransfersAction.tsx": {
-    reads: 1,
-    why: "a serial input's stop-all, no on-screen control",
-  },
   "packages/app/src/logs/GithubIssueForm.tsx": {
     reads: 1,
     why: "log fetch while composing a report, no press",

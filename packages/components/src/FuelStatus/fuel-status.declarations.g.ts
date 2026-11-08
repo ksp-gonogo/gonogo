@@ -5,12 +5,9 @@ export default {
     "dv.currentStageResourceMax",
     "dv.stages",
     "dv.summary",
-    "vessel.parts",
     "vessel.propulsion",
-    "vessel.resourceTransfers",
     "vessel.structure",
-    "vessel.transferReach",
   ],
   optionalChannelFamilies: [],
-  commands: ["vessel.resource.transfer.start", "vessel.resource.transfer.stop"],
+  commands: [],
 } as const;

@@ -46,14 +46,6 @@ public class CrewMember
     [SitrepUnit(Units.Id)]
     public string? PartId { get; set; }
 
-    /// <summary>
-    /// Parts this kerbal could move into that would leave the craft with no
-    /// control. The move is still allowed, since moving back restores control.
-    /// Empty when no move costs control. Null when it could not be worked out.
-    /// </summary>
-    [SitrepUnit(Units.Id)]
-    public List<string>? MovesLeavingNoControl { get; set; }
-
     /// <summary>The title of the part this kerbal is seated in, such as <c>"Mk1-3 Command Pod"</c>, so a transfer between two pods shows as a move. Null when the seat could not be read.</summary>
     [SitrepUnit(Units.Text)]
     public string? PartTitle { get; set; }

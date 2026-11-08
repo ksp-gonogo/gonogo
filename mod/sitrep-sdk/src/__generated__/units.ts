@@ -684,7 +684,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "CrewMember": {
     experienceLevel: "count",
-    movesLeavingNoControl: "id",
     name: "text",
     packedVolumeLimit: "1",
     packedVolumeUsed: "1",
@@ -714,15 +713,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     stupidity: "ratio",
     trait: "text",
     unavailableReason: "text",
-  },
-  "CrewTransferArgs": {
-    fromPartId: "id",
-    kerbalName: "text",
-    toPartId: "id",
-  },
-  "CrossfeedSet": {
-    id: "id",
-    partIds: "id",
   },
   "DataRateTierEntry": {
     samplesPerSecond: "1",
@@ -1185,7 +1175,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     label: "text",
     moduleName: "id",
     name: "id",
-    opensGameWindow: "flag",
     requireFullControl: "flag",
   },
   "PartActions": {
@@ -1208,17 +1197,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "PartResourceFlow": {
     amount: "units",
     flow: "units/s",
-    flowMode: "enum",
-    locked: "flag",
     maxAmount: "units",
     nominalFlow: "units/s",
-    transferable: "flag",
     unratedProcess: "flag",
-  },
-  "PartSeats": {
-    capacity: "count",
-    isExternalSeat: "flag",
-    transferAvailable: "flag",
   },
   "PartShape": {
     name: "text",
@@ -1379,34 +1360,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     active: "flag",
     current: "units",
     max: "units",
-  },
-  "ResourceTransferJob": {
-    endReason: "enum",
-    endedUt: "ut",
-    fromPartIds: "id",
-    id: "id",
-    moved: "units",
-    rate: "units/s",
-    requested: "units",
-    resource: "text",
-    startedUt: "ut",
-    state: "enum",
-    toPartIds: "id",
-    untilFull: "flag",
-  },
-  "ResourceTransferStartArgs": {
-    amount: "units",
-    fromPartIds: "id",
-    resource: "text",
-    toPartIds: "id",
-    untilFull: "flag",
-  },
-  "ResourceTransferStarted": {
-    transferId: "id",
-  },
-  "ResourceTransferStopArgs": {
-    all: "flag",
-    transferId: "id",
   },
   "RevertAvailability": {
     canRevertToEditor: "flag",
@@ -1726,10 +1679,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "SwitchVesselArgs": {
     vesselId: "id",
   },
-  "TankReach": {
-    drawsFromSet: "id",
-    partId: "id",
-  },
   "TargetListEntry": {
     asOfUt: "ut",
     bodyIndex: "id",
@@ -1773,9 +1722,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "TrackingStationVesselLink": {
     connected: "flag",
     oneWaySeconds: "s",
-  },
-  "TransferReach": {
-    obeysCrossfeed: "flag",
   },
   "UnlockTechArgs": {
     techId: "id",
@@ -2733,9 +2679,6 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     maxInternalTempRatio: "ratio",
     maxSkinTempRatio: "ratio",
   },
-  "vessel.transferReach": {
-    obeysCrossfeed: "flag",
-  },
 };
 
 /**
@@ -3047,7 +2990,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "PartActions": {
     actions: "PartActionEntry[]",
-    gameWindows: "PartActionEntry[]",
     meta: "PayloadMeta",
   },
   "PartShape": {
@@ -3078,10 +3020,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "ResolveResult": {
     notices: "ResolutionNotice[]",
-  },
-  "ResourceTransfers": {
-    meta: "PayloadMeta",
-    transfers: "ResourceTransferJob[]",
   },
   "SaveSettingsArgs": {
     changes: "SettingsChange[]",
@@ -3131,10 +3069,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "TrackingStationVesselResources": {
     resources: "*ResourceAmount",
-  },
-  "TransferReach": {
-    meta: "PayloadMeta",
-    sets: "CrossfeedSet[]",
   },
   "UplinkDelayReport": {
     elsewhere: "UplinkDelay[]",
@@ -3193,7 +3127,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     fairing: "FairingShell",
     moduleStates: "PartModuleState[]",
     resources: "*PartResourceFlow",
-    seats: "PartSeats",
     shapePoses: "PartShapePose[]",
   },
   "VesselParts": {
@@ -3399,10 +3332,6 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "vessel.propulsion": {
     meta: "PayloadMeta",
   },
-  "vessel.resourceTransfers": {
-    meta: "PayloadMeta",
-    transfers: "ResourceTransferJob[]",
-  },
   "vessel.resources": {
     meta: "PayloadMeta",
     resources: "*ResourceAmount",
@@ -3421,10 +3350,6 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "vessel.thermal": {
     hottestPart: "ThermalHottestPart",
     meta: "PayloadMeta",
-  },
-  "vessel.transferReach": {
-    meta: "PayloadMeta",
-    sets: "CrossfeedSet[]",
   },
 };
 
@@ -3558,19 +3483,12 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   "OrbitPayloadMeta": {
     quality: "Quality",
   },
-  "PartResourceFlow": {
-    flowMode: "KspTankFlowMode",
-  },
   "PropagationHorizon": {
     kind: "PropagationHorizonKind",
     trajectoryKind: "TrajectoryKind",
   },
   "ReputationLossEvent": {
     cause: null,
-  },
-  "ResourceTransferJob": {
-    endReason: "TransferEndReason",
-    state: "TransferJobState",
   },
   "SavedShipEntry": {
     facilityOrdinal: "KspEditorFacility",
@@ -3940,12 +3858,6 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
     7: "SpaceplaneHangar",
     8: "VehicleAssemblyBuilding",
   },
-  "KspTankFlowMode": {
-    0: "None",
-    1: "Out",
-    2: "In",
-    3: "Both",
-  },
   "ManeuverFrame": {
     0: "RadialNormalPrograde",
     1: "Unknown",
@@ -4081,19 +3993,6 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
     0: "Unspecified",
     1: "Analytic",
     2: "Integrated",
-  },
-  "TransferEndReason": {
-    0: "AmountMoved",
-    1: "DestinationsFull",
-    2: "SourcesEmpty",
-    3: "Stopped",
-    4: "PartsLeft",
-    5: "VesselLeft",
-    6: "SceneLeft",
-  },
-  "TransferJobState": {
-    0: "Running",
-    1: "Ended",
   },
   "TransitionType": {
     0: "Initial",
@@ -4264,13 +4163,11 @@ export const GENERATED_CONTRACT_TAGS = {
     "vessel.orbit.truth": "Active vessel orbit (true)",
     "vessel.physics.mode": "Active vessel physics",
     "vessel.propulsion": "Active vessel propulsion",
-    "vessel.resourceTransfers": "Resource transfers",
     "vessel.resources": "Active vessel resources",
     "vessel.structure": "Active vessel structure",
     "vessel.surface": "Active vessel surface",
     "vessel.target": "Active vessel target",
     "vessel.thermal": "Active vessel heat",
-    "vessel.transferReach": "Transfer reach",
   },
   reckonable: [
     { topic: "comms.delay", field: "oneWaySeconds", basis: "kepler-propagation", inputs: [ { topic: "", path: "source" }, { topic: "comms.path", path: "" }, { topic: "vessel.orbit", path: "" }, { topic: "trackingStation.bodies", path: "" }, { topic: "commandCentre.roster", path: "" }, { topic: "trackingStation.catalog", path: "" } ] },

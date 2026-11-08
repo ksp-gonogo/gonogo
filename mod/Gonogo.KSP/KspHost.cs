@@ -1735,7 +1735,6 @@ namespace Gonogo.KSP
                     {
                         crewRow["partId"] = seat.Id;
                         crewRow["partTitle"] = seat.Title;
-                        crewRow["movesLeavingNoControl"] = KspCrewTransfer.MovesLeavingNoControl(vessel, member);
                     }
                     /*
                      * What this kerbal is personally carrying, read from their
@@ -8333,7 +8332,6 @@ namespace Gonogo.KSP
                 ["resources"] = resources,
                 ["moduleStates"] = moduleStates,
                 ["actionBindings"] = actionBindings,
-                ["seats"] = KspCrewTransfer.SeatsWire(part),
             };
         }
 
@@ -8495,9 +8493,6 @@ namespace Gonogo.KSP
                         ["maxAmount"] = (double)res.maxAmount,
                         ["flow"] = null,
                         ["nominalFlow"] = null,
-                        ["transferable"] = KspResourceTransfers.IsTransferable(res),
-                        ["flowMode"] = (int)res.flowMode,
-                        ["locked"] = !res.flowState,
                     };
                 }
             }

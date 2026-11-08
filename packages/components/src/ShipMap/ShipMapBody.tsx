@@ -6,7 +6,6 @@ import {
 import { FramedDisplay, Section } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode } from "react";
 import { DestroyedCraft } from "./DestroyedCraft";
-import type { TransferResourceOption } from "./PartActionMenu";
 import { ShipDiagram } from "./ShipDiagram";
 import { StageColumn } from "./StageColumn";
 import type {
@@ -17,7 +16,6 @@ import type {
 } from "./shipTopology";
 import type { ShipMapOverlayContext } from "./slots";
 import type { StageEntry } from "./stageStack";
-import type { TransferDrawing } from "./TransferLayer";
 
 export type InvokePartAction = (
   flightId: number,
@@ -47,11 +45,6 @@ export function shipMapSections({
   stages,
   stagesOnly,
   destroyed,
-  transferTray,
-  transferDrawing,
-  onPickTank,
-  transferResourcesOf,
-  onStartTransferPick,
 }: {
   topology: VesselTopology | undefined;
   parts: ShipMapPart[];
@@ -80,14 +73,6 @@ export function shipMapSections({
   stagesOnly: boolean;
   /** The crash report of the craft this map showed, once that craft is destroyed. */
   destroyed: CrashReportOfEnding | undefined;
-  /** The transfer tray: the pick in progress and running transfers. Null when neither. */
-  transferTray: ReactNode;
-  transferDrawing?: TransferDrawing;
-  onPickTank?: (part: ShipMapPart) => void;
-  transferResourcesOf?: (
-    part: ShipMapPart,
-  ) => readonly TransferResourceOption[];
-  onStartTransferPick?: (part: ShipMapPart, resource: string) => void;
 }): ReactNode[] {
   const listOnly = stagesOnly && stages.length > 0;
   if (!topology) {
@@ -143,10 +128,6 @@ export function shipMapSections({
             onInvokePartAction={onInvokePartAction}
             turn={turn}
             onTurn={onTurn}
-            transferDrawing={transferDrawing}
-            onPickTank={onPickTank}
-            transferResourcesOf={transferResourcesOf}
-            onStartTransferPick={onStartTransferPick}
           />
           {overlayContext && (
             <div style={OVERLAY_LAYER}>
@@ -156,11 +137,6 @@ export function shipMapSections({
         </div>
       </FramedDisplay>
     </Section>,
-    transferTray != null && (
-      <Section key="transfer" full>
-        {transferTray}
-      </Section>
-    ),
   ];
 }
 

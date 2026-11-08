@@ -104,11 +104,9 @@ export const GENERATED_CHANNEL_KINDS = {
   "vessel.parts": "discrete",
   "vessel.physics.mode": "discrete",
   "vessel.propulsion": "continuous",
-  "vessel.resourceTransfers": "continuous",
   "vessel.resources": "continuous",
   "vessel.structure": "discrete",
   "vessel.surface": "continuous",
   "vessel.target": "continuous",
   "vessel.thermal": "continuous",
-  "vessel.transferReach": "continuous",
 } as const satisfies Record<string, "continuous" | "discrete" | "event">;
