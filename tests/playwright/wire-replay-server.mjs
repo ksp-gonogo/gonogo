@@ -18,7 +18,10 @@
  * bundle at a CDN. A folder under `tests/fixtures/uplink-bundles/<id>/` holding
  * `<id>.client.txt` (the client, stored as text) and its `gonogo-uplink.json` sidecar is served here instead,
  * at `/uplink-bundles/<id>/<file>`, and the roster a screen is sent points at
- * it with `expectedClientHash` set to that bundle's own hash. An installed
+ * it with `expectedClientHash` set to that bundle's own hash. The sidecar is
+ * served with `apiVersion` set to the sdk's current `EXTENSION_API_VERSION`,
+ * so the fixture stands for a release built against this tree's surface and
+ * still loads after a release moves that version. An installed
  * Uplink with no folder is sent with no client, so a screen never goes to the
  * network for it and never reads it as an Uplink that failed to load.
  *
@@ -47,6 +50,29 @@ const REPO_ROOT = resolve(fileURLToPath(import.meta.url), "../../..");
 const UPLINKS_TOPIC = "system.uplinks";
 const BUNDLE_DIR = resolve(REPO_ROOT, "tests/fixtures/uplink-bundles");
 const BUNDLE_ROUTE = /^\/uplink-bundles\/([\w-]+)\/([\w.-]+)$/;
+const EXTENSION_API_FILE = resolve(
+  REPO_ROOT,
+  "mod/sitrep-sdk/src/compat-versions.ts",
+);
+const EXTENSION_API_LINE =
+  /^export const EXTENSION_API_VERSION(?:: string)? = "(\d+\.\d+\.\d+)";$/m;
+
+/** The extension API version this tree's sdk declares, read from its source. */
+function extensionApiVersion() {
+  const match = EXTENSION_API_LINE.exec(
+    readFileSync(EXTENSION_API_FILE, "utf8"),
+  );
+  if (!match) {
+    throw new Error(`${EXTENSION_API_FILE} has no EXTENSION_API_VERSION line`);
+  }
+  return match[1];
+}
+
+/** A fixture sidecar as served: the stored manifest claiming the tree's extension API. */
+function servedManifest(file) {
+  const manifest = JSON.parse(readFileSync(file, "utf8"));
+  return JSON.stringify({ ...manifest, apiVersion: extensionApiVersion() });
+}
 
 /** The `sha256-` plus hex form of a bundle's bytes, as the app's loader computes it. */
 function sha256Integrity(bytes) {
@@ -202,13 +228,12 @@ export function startWireReplayServer({ port = PORT } = {}) {
         if (!file.startsWith(`${BUNDLE_DIR}/`) || !existsSync(file)) {
           return reply(404, { error: "no such bundle file" });
         }
+        const isManifest = bundle[2].endsWith(".json");
         res.writeHead(200, {
-          "Content-Type": bundle[2].endsWith(".json")
-            ? "application/json"
-            : "text/javascript",
+          "Content-Type": isManifest ? "application/json" : "text/javascript",
           "Access-Control-Allow-Origin": "*",
         });
-        return res.end(readFileSync(file));
+        return res.end(isManifest ? servedManifest(file) : readFileSync(file));
       }
       if (req.url === "/health") return reply(200, { ok: true });
       if (req.url === "/replay/state") return reply(200, state());

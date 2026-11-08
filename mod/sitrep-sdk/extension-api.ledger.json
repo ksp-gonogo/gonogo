@@ -11236,7 +11236,7 @@
       },
       {
         "key": "ui-kit . CommandButton",
-        "note": "its active prop is now pressed, the name Button and ToggleButton use"
+        "note": "removed: a Button given a command sends it and shows what became of it"
       },
       {
         "key": "ui-kit . CommandButtonHandle#dangerouslySendWithoutInput",
