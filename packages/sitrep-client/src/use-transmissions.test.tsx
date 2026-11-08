@@ -68,7 +68,7 @@ function setup() {
       wall.advanceBy(seconds);
       vi.advanceTimersByTime(seconds * 1000);
     });
-  return { oneWay, elapse };
+  return { oneWay, elapse, transport };
 }
 
 describe("useTransmissions", () => {
@@ -100,6 +100,22 @@ describe("useTransmissions", () => {
     expect(screen.getByRole("listitem").textContent).toContain("reach:1");
 
     elapse(2);
+    expect(screen.queryByRole("listitem")).toBeNull();
+  });
+
+  it("takes the row off the rail when a load starts a new timeline", () => {
+    const { oneWay, transport } = setup();
+    oneWay(4);
+    act(() => screen.getByText("sent").click());
+    expect(screen.getByRole("listitem")).toBeTruthy();
+
+    act(() => {
+      transport.emit(
+        "comms.delay",
+        { source: 1, oneWaySeconds: 4 },
+        { validAt: 90, deliveredAt: 90, timelineEpoch: 1 },
+      );
+    });
     expect(screen.queryByRole("listitem")).toBeNull();
   });
 

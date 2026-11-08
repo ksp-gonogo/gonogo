@@ -185,6 +185,8 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
   // (cleared only when the client is rebuilt) so a station reconnecting after a gap
   // still gets the last-known value immediately.
   const cacheRef = useRef(new Map<string, StreamData<unknown>[]>());
+  /** The highest timeline epoch any cached frame carried, which the run of a quiet topic is held to. */
+  const newestEpochRef = useRef(0);
   /*
    * The newest `subscribed` ack per topic that declared a keyframe interval.
    * It is sent once, when the host subscribes, so a station that joins later
@@ -305,6 +307,7 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
     // A rebuilt client is a new game process, whose frames carry a lower epoch than anything cached from the last: replaying those would make a station's fresh store refuse the new game.
     if (previousClient.current && previousClient.current !== client) {
       cacheRef.current.clear();
+      newestEpochRef.current = 0;
       acksRef.current.clear();
       supersededRef.current.clear();
       gameStateRef.current = undefined;
@@ -324,6 +327,7 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
          * that joins would take it as the topic's history.
          */
         const epoch = message.meta.timelineEpoch ?? 0;
+        newestEpochRef.current = Math.max(newestEpochRef.current, epoch);
         const last = run[run.length - 1];
         if (last && (last.meta.timelineEpoch ?? 0) < epoch) {
           run.length = 0;
@@ -393,7 +397,14 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
       },
       cachedFrames: (topic) => {
         const ack = acksRef.current.get(topic);
-        const run = cacheRef.current.get(topic) ?? [];
+        /*
+         * A topic with nothing new since a quickload still holds the run from
+         * the timeline before it, and a station's store refuses an epoch older
+         * than the one it has taken from any other topic.
+         */
+        const run = (cacheRef.current.get(topic) ?? []).filter(
+          (frame) => (frame.meta.timelineEpoch ?? 0) >= newestEpochRef.current,
+        );
         /*
          * A replay sends its first frame and its newest at once and the rest
          * later. Through a blackout the newest `comms.delay` reports no delay,

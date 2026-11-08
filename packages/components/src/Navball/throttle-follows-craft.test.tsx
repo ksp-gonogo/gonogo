@@ -205,4 +205,17 @@ describe("Navball throttle under signal delay", () => {
     press("+10%");
     await waitFor(() => expect(lastSent()).toBeCloseTo(0.1));
   });
+
+  it("follows the craft again after the game clock goes back to a quickload", async () => {
+    mount();
+    press("FULL");
+    await waitFor(() => expect(lastSent()).toBe(1));
+    act(() => {
+      fixture.scrubTo(T0 - 100);
+      craftReports(0, T0 - 100);
+    });
+    expect(slider()).toHaveValue("0");
+    press("+10%");
+    await waitFor(() => expect(lastSent()).toBeCloseTo(0.1));
+  });
 });

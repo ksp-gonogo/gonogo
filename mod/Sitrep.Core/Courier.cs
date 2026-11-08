@@ -1671,6 +1671,67 @@ namespace Sitrep.Core
             }
         }
 
+        /// <summary>
+        /// Sends every subscriber the newest sample it already holds for each topic,
+        /// stamped with the current epoch. Called right after
+        /// <see cref="ResetTimeline"/>: a client marks every topic cold when the epoch
+        /// rises, and a topic that publishes only on change has nothing new to send,
+        /// so without this its subscribers stay blank until the value next moves.
+        /// What survived the reset is true on the timeline now current, so it goes out
+        /// again under that epoch. A topic with a sticky keyframe sends that instead of
+        /// the newest sample, as a late subscriber's catch-up does.
+        /// </summary>
+        public void ReissueRetainedAfterReset()
+        {
+            var now = _clock.Now();
+            foreach (var nodeEntry in _subscribers.ToList())
+            {
+                var node = nodeEntry.Key;
+                foreach (var topicEntry in nodeEntry.Value.ToList())
+                {
+                    var topic = topicEntry.Key;
+                    var subs = topicEntry.Value;
+                    if (subs.Count == 0)
+                    {
+                        continue;
+                    }
+                    var archived = ArchiveFor(node).Samples(topic);
+                    foreach (var subscriber in subs.ToList())
+                    {
+                        ArchiveSample? held = null;
+                        if (_stickyKeyframes.TryGetValue(node, out var stickyByTopic) && stickyByTopic.TryGetValue(topic, out var sticky))
+                        {
+                            held = sticky;
+                        }
+                        else
+                        {
+                            var liveDelay = _network.DelayTo(subscriber.Vantage, node);
+                            var arrivedAt = double.NegativeInfinity;
+                            foreach (var sample in archived)
+                            {
+                                if (LostInFlight(node, topic, sample.ValidAt))
+                                {
+                                    continue;
+                                }
+                                var at = ArrivalOf(sample.ValidAt, sample.ValidAt + DelayOf(sample, subscriber.Vantage, liveDelay));
+                                if (at <= now && at >= arrivedAt)
+                                {
+                                    held = sample;
+                                    arrivedAt = at;
+                                }
+                            }
+                        }
+                        if (held == null)
+                        {
+                            continue;
+                        }
+                        var current = new ArchiveSample(held.Value.Value, held.Value.ValidAt, _epoch, held.Value.Stamp, held.Value.SampleId);
+                        subscriber.OnData(StreamDataFor(node, topic, subscriber.Vantage, current, now, isCatchUp: false));
+                    }
+                }
+            }
+        }
+
         /*
          * The (node, vantage) pairs a sweep found with no route, so the sweep that finds
          * the route back knows to send what was missed. Courier-thread-only.

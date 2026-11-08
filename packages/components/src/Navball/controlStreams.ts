@@ -1,6 +1,7 @@
 import { PerfBudget, useTelemetry } from "@ksp-gonogo/core";
 import {
   type ControlStream,
+  getActiveTimelineEpoch,
   useControlStream,
   useLatestValue,
   useUtNow,
@@ -37,7 +38,8 @@ const IN_FLIGHT_SLACK_SECONDS = 2;
  * The commanded throttle tracks the readback until the operator first touches
  * it, and the stream commands nothing until then: neither a 0 seeded from an
  * unread readback nor, under delay, a round-trip-old readback sent back at the
- * craft. A vessel switch re-arms the latch.
+ * craft. A vessel switch, a rise of the timeline epoch or the game clock going
+ * back (a quickload or revert) re-arms the latch.
  *
  * What the operator reads is the craft's throttle. A step (±10%, a bound key)
  * works from the newest input still on its way to the craft, from this screen
@@ -82,6 +84,24 @@ export function useThrottleCommand(throttle: number | null): {
     // Re-seed here: the new vessel's throttle may have landed in the same frame, so the `throttle` effect may not fire again.
     setThrottleCmdState(throttle ?? 0);
   }, [activeVesselId, throttle]);
+  const epochRef = useRef(getActiveTimelineEpoch());
+  useEffect(() => {
+    const active = getActiveTimelineEpoch();
+    const prior = epochRef.current;
+    epochRef.current = active;
+    const epochRose =
+      active !== undefined &&
+      prior !== undefined &&
+      active.store === prior.store &&
+      active.epoch > prior.epoch;
+    const clockWentBack =
+      changedAtUtRef.current !== null && nowUt < changedAtUtRef.current;
+    if (!epochRose && !clockWentBack) return;
+    throttleTouchedRef.current = false;
+    changedAtUtRef.current = null;
+    setThrottleTouched(false);
+    setThrottleCmdState(throttle ?? 0);
+  }, [nowUt, throttle]);
   const throttleStream = useControlStream(
     "vessel.control.throttle",
     throttleTouched ? throttleCmd : null,

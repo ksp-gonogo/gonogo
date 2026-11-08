@@ -44,6 +44,12 @@ export interface UseTransmissionsResult {
   expect(transmission: SentTransmission): void;
 }
 
+/** A crossing with the timeline epoch it was expected under; a load that starts a new epoch undoes it. */
+interface EpochedCrossing {
+  crossing: RailCrossing;
+  epoch: number;
+}
+
 const TRANSMISSION_TAGS = railTagsForTelemetry("event");
 const NO_IN_FLIGHT: InFlightCommand[] = [];
 const REREAD_MS = 1000;
@@ -64,25 +70,31 @@ export function useTransmissions(): UseTransmissionsResult {
   const oneWay = liveOneWaySeconds(commsDelay);
   const oneWayRef = useRef(oneWay);
   oneWayRef.current = oneWay;
-  const [crossings, setCrossings] = useState<RailCrossing[]>([]);
+  const [crossings, setCrossings] = useState<EpochedCrossing[]>([]);
   const nextId = useRef(0);
   const [, setReread] = useState(0);
 
-  const expect = useCallback((transmission: SentTransmission) => {
-    const oneWaySeconds = oneWayRef.current;
-    if (oneWaySeconds === null) return;
-    nextId.current += 1;
-    const crossing: RailCrossing = {
-      id: `transmission-${nextId.current}`,
-      label: transmission.label,
-      command: transmission.subject,
-      topic: "",
-      tags: TRANSMISSION_TAGS,
-      sentAt: transmission.sentAt,
-      oneWaySeconds: value("s", oneWaySeconds),
-    };
-    setCrossings((prev) => [...prev, crossing]);
-  }, []);
+  const expect = useCallback(
+    (transmission: SentTransmission) => {
+      const oneWaySeconds = oneWayRef.current;
+      if (oneWaySeconds === null) return;
+      nextId.current += 1;
+      const crossing: RailCrossing = {
+        id: `transmission-${nextId.current}`,
+        label: transmission.label,
+        command: transmission.subject,
+        topic: "",
+        tags: TRANSMISSION_TAGS,
+        sentAt: transmission.sentAt,
+        oneWaySeconds: value("s", oneWaySeconds),
+      };
+      setCrossings((prev) => [
+        ...prev,
+        { crossing, epoch: store?.clock.getEpoch() ?? 0 },
+      ]);
+    },
+    [store],
+  );
 
   // Nothing else re-renders this hook when a row arrives, so it re-reads the clock while anything is crossing.
   const crossing = crossings.length > 0;
@@ -90,8 +102,12 @@ export function useTransmissions(): UseTransmissionsResult {
     if (!crossing) return;
     const timer = setInterval(() => {
       const now = store?.clock.utNowEstimate() ?? 0;
+      const epoch = store?.clock.getEpoch() ?? 0;
       setCrossings((prev) => {
-        const keep = prev.filter((c) => deriveRailEntry(c, now) !== undefined);
+        const keep = prev.filter(
+          (c) =>
+            c.epoch === epoch && deriveRailEntry(c.crossing, now) !== undefined,
+        );
         return keep.length === prev.length ? prev : keep;
       });
       setReread((n) => n + 1);
@@ -100,7 +116,10 @@ export function useTransmissions(): UseTransmissionsResult {
   }, [crossing, store]);
 
   const nowUt = store?.clock.utNowEstimate() ?? 0;
-  const rows = crossings.flatMap((c) => deriveRailEntry(c, nowUt) ?? []);
+  const epoch = store?.clock.getEpoch() ?? 0;
+  const rows = crossings.flatMap((c) =>
+    c.epoch === epoch ? (deriveRailEntry(c.crossing, nowUt) ?? []) : [],
+  );
   return {
     inFlight: rows.length > 0 ? rows : NO_IN_FLIGHT,
     tags: TRANSMISSION_TAGS,

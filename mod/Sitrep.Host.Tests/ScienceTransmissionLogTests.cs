@@ -183,5 +183,22 @@ namespace Sitrep.Host.Tests
             Assert.Single(log.ToWire("probe")!);
             Assert.Single(log.ToWire("pod")!);
         }
+
+        [Fact]
+        public void ALoadForgetsTransmissionsItUndidAndKeepsTheOnesBeforeIt()
+        {
+            var log = new ScienceTransmissionLog();
+            log.Expect("v1", "before", "Before", 1, 100, 101);
+            log.Release(102);
+            log.Expect("v1", "undoneArrived", "Undone", 1, 200, 201);
+            log.Release(202);
+            log.Expect("v1", "undonePending", "Pending", 1, 210, 400);
+
+            Assert.True(log.ForgetStartedAfter(150));
+
+            var wire = Assert.Single(log.ToWire("v1")!);
+            Assert.Equal("before", wire["subjectId"]);
+            Assert.Null(log.Release(1000));
+        }
     }
 }

@@ -205,6 +205,8 @@ namespace Gonogo.KSP
         /// (see <see cref="_vanilla"/>).</summary>
         public UplinkHealth Health() => UplinkHealth.Healthy;
 
+        private volatile bool _forgetUndoneTransmissions;
+
         public void Register(IUplinkHost host)
         {
             _kernel = host.Kernel;
@@ -224,6 +226,9 @@ namespace Gonogo.KSP
             host.AddChannelSource(ScienceViewProvider.ArchiveTopic, ScienceViewProvider.BuildArchive);
 
             var arrivals = host.Publisher(ScienceViewProvider.TransmissionsTopic);
+
+            // The reset carries no UT, so the next poll's clock says how far back the load went.
+            (host as Sitrep.Host.Comms.ICraftStateHost)?.OnTimelineReset(() => _forgetUndoneTransmissions = true);
             host.AddSampledSource(
                 snapshot => snapshot == null ? null : TransmitterPoll.CaptureOnMain(snapshot.Ut, _watch.HasRuns),
                 captured =>
@@ -249,6 +254,12 @@ namespace Gonogo.KSP
                     foreach (var given in _watch.Abandoned)
                     {
                         changed |= ScienceTransmissions.Log.Cancel(vesselId, given.SubjectId, given.StartedAt);
+                    }
+
+                    if (_forgetUndoneTransmissions)
+                    {
+                        _forgetUndoneTransmissions = false;
+                        changed |= ScienceTransmissions.Log.ForgetStartedAfter(poll.Ut);
                     }
 
                     var released = ScienceTransmissions.Log.Release(poll.Ut);

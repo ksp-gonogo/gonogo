@@ -10365,6 +10365,7 @@ namespace Sitrep.Host
                 _failedCommands.Clear();
                 _recoveryWithdrawalPending = false;
                 BroadcastTimelineReset();
+                _courier.ReissueRetainedAfterReset();
                 SendKeptAfterTimelineReset();
                 TimelineResetChangedSave = folderChanged;
                 NotifyTimelineResetListeners();

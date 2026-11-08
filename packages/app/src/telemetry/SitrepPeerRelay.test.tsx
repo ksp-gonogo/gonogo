@@ -389,6 +389,35 @@ describe("SitrepPeerRelay", () => {
     view.unmount();
   });
 
+  it("replays nothing from before a quickload for a topic that has sent nothing since", async () => {
+    const peerHost = makeFakeHost();
+    const { transport, view } = renderRelay(peerHost);
+
+    act(() => peerHost.connectPeer("station-a"));
+    act(() => peerHost.claim("vessel.flight"));
+    act(() => peerHost.claim("vessel.identity"));
+    await waitFor(() =>
+      expect(transport.isSubscribed("vessel.identity")).toBe(true),
+    );
+    act(() => {
+      transport.emit(
+        "vessel.flight",
+        { altitude: 5 },
+        { validAt: 1, timelineEpoch: 1 },
+      );
+      transport.emit(
+        "vessel.identity",
+        { vesselName: "Old" },
+        { validAt: 2, timelineEpoch: 2 },
+      );
+    });
+
+    expect(peerHost.cachedFrames("vessel.flight")).toEqual([]);
+    expect(peerHost.cachedFrames("vessel.identity")).toHaveLength(1);
+
+    view.unmount();
+  });
+
   it("drops vessel.landing's terrain from frames older than the one on the main screen, and keeps every other field", async () => {
     const peerHost = makeFakeHost();
     const { transport, view } = renderRelay(peerHost);

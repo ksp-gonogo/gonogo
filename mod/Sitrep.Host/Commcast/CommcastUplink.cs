@@ -102,6 +102,7 @@ namespace Sitrep.Host.Commcast
         {
             public string Author = "";
             public HashSet<string> To = null!;
+            public double Ut;
         }
 
         private sealed class Transmission
@@ -190,8 +191,8 @@ namespace Sitrep.Host.Commcast
             _streams.OnAddressedSubscribed(TrafficTopic, SayGroupsKnownAt);
 
             /* Groups, messages and keyings are stamped with the UT they were said
-               at, so a rewound or replaced timeline leaves them describing
-               speech that has not happened. */
+               at, so a reset keeps what was said up to the loaded UT and drops
+               what was said after it. */
             (host as Sitrep.Host.Comms.ICraftStateHost)?.OnTimelineReset(ForgetTheTimeline);
 
             host.AddVantageCommandHandler<CommcastGroupOpenArgs, CommandResult>(OpenCommand, HandleOpen);
@@ -203,11 +204,35 @@ namespace Sitrep.Host.Commcast
 
         private void ForgetTheTimeline()
         {
-            _groups.Clear();
-            _messages.Clear();
-            _messageOrder.Clear();
-            _transmissions.Clear();
-            _transmissionOrder.Clear();
+            var loadedAt = Now();
+            foreach (var id in _groups.Keys.ToList())
+            {
+                _groups[id].RemoveAll(change => change.Ut > loadedAt);
+                if (_groups[id].Count == 0)
+                {
+                    _groups.Remove(id);
+                }
+            }
+            foreach (var id in _messages.Where(m => m.Value.Ut > loadedAt).Select(m => m.Key).ToList())
+            {
+                _messages.Remove(id);
+            }
+            KeepOnly(_messageOrder, _messages.ContainsKey);
+            foreach (var id in _transmissions.Where(t => t.Value.StartedUt > loadedAt).Select(t => t.Key).ToList())
+            {
+                _transmissions.Remove(id);
+            }
+            KeepOnly(_transmissionOrder, _transmissions.ContainsKey);
+        }
+
+        private static void KeepOnly(Queue<string> order, Func<string, bool> kept)
+        {
+            var survivors = order.Where(kept).ToList();
+            order.Clear();
+            foreach (var id in survivors)
+            {
+                order.Enqueue(id);
+            }
         }
 
         private double Now() => _host!.NowUt();
@@ -309,7 +334,7 @@ namespace Sitrep.Host.Commcast
             var meant = named.Count == 0 ? known : named;
             var to = Addressed(from, meant);
             var unreached = meant.Where(id => !to.Contains(id)).OrderBy(id => id, StringComparer.Ordinal).ToList();
-            Remember(args.Id, from, to);
+            Remember(args.Id, from, to, now);
             var text = new CommcastTraffic
             {
                 Kind = "text",
@@ -640,7 +665,7 @@ namespace Sitrep.Host.Commcast
         /// its author, to anyone, it stays addressed to everyone it ever left for:
         /// a member who had it from the first send can still acknowledge it.
         /// </summary>
-        private void Remember(string id, string author, List<string> to)
+        private void Remember(string id, string author, List<string> to, double ut)
         {
             if (_messages.TryGetValue(id, out var sent) && sent.Author == author)
             {
@@ -651,7 +676,7 @@ namespace Sitrep.Host.Commcast
             {
                 _messageOrder.Enqueue(id);
             }
-            _messages[id] = new SentMessage { Author = author, To = new HashSet<string>(to, StringComparer.Ordinal) };
+            _messages[id] = new SentMessage { Author = author, To = new HashSet<string>(to, StringComparer.Ordinal), Ut = ut };
             while (_messageOrder.Count > MessageMemory)
             {
                 _messages.Remove(_messageOrder.Dequeue());

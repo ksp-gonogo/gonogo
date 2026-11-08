@@ -92,6 +92,21 @@ namespace Sitrep.Host
             }
         }
 
+        /// <summary>
+        /// Drops every transmission that started after <paramref name="ut"/>, expected or arrived:
+        /// a load back to <paramref name="ut"/> undid it. One without a start time goes by when it
+        /// finishes. True when an arrived one was dropped, so the caller republishes the list.
+        /// </summary>
+        public bool ForgetStartedAfter(double ut)
+        {
+            lock (_gate)
+            {
+                Predicate<Entry> undone = e => (e.StartedAt ?? e.CompletedAt) > ut;
+                _pending.RemoveAll(undone);
+                return _arrived.RemoveAll(undone) > 0;
+            }
+        }
+
         /// <summary>The wire payload: the transmissions <paramref name="vesselId"/> has sent that have arrived, oldest first, or null when none has.</summary>
         public List<Dictionary<string, object?>>? ToWire(string vesselId)
         {

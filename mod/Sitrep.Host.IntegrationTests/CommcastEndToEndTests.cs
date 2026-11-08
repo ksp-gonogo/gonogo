@@ -131,6 +131,25 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
+        public async Task ARewoundTimelineKeepsTheGroupsAndMessagesFromBeforeTheLoadedTime()
+        {
+            await using var scene = await Scene.StartAsync();
+            scene.Tick(50);
+            await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, Open("early", B));
+            await scene.CommandAsync(scene.A, CommcastUplink.SendCommand, Send("m-early", "early", "before"));
+            scene.Tick(100);
+            await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, Open("late", B));
+            await scene.CommandAsync(scene.A, CommcastUplink.SendCommand, Send("m-late", "early", "after"));
+
+            scene.Tick(70);
+
+            Assert.False((await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, Open("early", B))).Success);
+            Assert.True((await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, Open("late", B))).Success);
+            await scene.CommandAsync(scene.B, CommcastUplink.AckCommand, new Dictionary<string, object?> { ["messageId"] = "m-early" });
+            Assert.False((await scene.CommandAsync(scene.B, CommcastUplink.AckCommand, new Dictionary<string, object?> { ["messageId"] = "m-late" })).Success);
+        }
+
+        [Fact]
         public async Task ANonMemberCannotSpeakToAGroup()
         {
             await using var scene = await Scene.StartAsync();
