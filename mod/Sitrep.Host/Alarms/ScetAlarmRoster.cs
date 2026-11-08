@@ -191,16 +191,6 @@ namespace Sitrep.Host.Alarms
             /// found after the game renames it.
             /// </summary>
             public int? ParameterPosition;
-
-            /// <summary>
-            /// A row made by <see cref="RecordDeletedInGame"/> for an alarm the
-            /// roster no longer held, so there is no client-armed alarm behind it
-            /// for a disarm to remove.
-            /// </summary>
-            public bool Recorded;
-
-            /// <summary>A recorded row that has been published, so the next tick drops it.</summary>
-            public bool Announced;
         }
 
         /// <summary>Insertion-ordered so the roster, and the notices off it, keep the order the operator armed things in.</summary>
@@ -474,31 +464,6 @@ namespace Sitrep.Host.Alarms
         }
 
         /// <summary>
-        /// The copy of an alarm the roster no longer holds was deleted in the
-        /// game's clock. A row in <see cref="ScetAlarmState.DeletedInGame"/> is
-        /// added when none is held, so a client that still shows the alarm as
-        /// fired learns to drop it.
-        /// </summary>
-        public bool RecordDeletedInGame(string id)
-        {
-            if (string.IsNullOrEmpty(id))
-            {
-                return false;
-            }
-            if (IndexOf(id) >= 0)
-            {
-                return MarkDeletedInGame(id);
-            }
-            _entries.Add(new Entry
-            {
-                Alarm = new ScetAlarm { Id = id, State = ScetAlarmState.DeletedInGame, Condition = null },
-                Recorded = true,
-            });
-            _pendingChange = true;
-            return true;
-        }
-
-        /// <summary>
         /// The player edited the alarm's copy in the game's clock: the alarm takes
         /// the copy's title and time. An empty title leaves the name as it is.
         /// </summary>
@@ -616,7 +581,6 @@ namespace Sitrep.Host.Alarms
         {
             var tick = new ScetAlarmTick { RosterChanged = _pendingChange };
             _pendingChange = false;
-            tick.RosterChanged |= _entries.RemoveAll(e => e.Announced) > 0;
 
             if (double.IsNaN(nowUt) || double.IsInfinity(nowUt))
             {
@@ -719,24 +683,6 @@ namespace Sitrep.Host.Alarms
 
         /// <summary>Close the tick and answer what it decided, over every pass.</summary>
         public ScetAlarmTick EndTick(ScetAlarmTickState state) => state.Tick;
-
-        /// <summary>
-        /// Tell the roster the current <see cref="Snapshot"/> went out to its
-        /// audience. A row made by <see cref="RecordDeletedInGame"/> is dropped on
-        /// the next tick after that, never before: a tick the audience gate held
-        /// back has not told anyone, and a client that subscribes later still has
-        /// to see the row.
-        /// </summary>
-        public void MarkPublished()
-        {
-            foreach (var entry in _entries)
-            {
-                if (entry.Recorded && entry.Alarm.State == ScetAlarmState.DeletedInGame)
-                {
-                    entry.Announced = true;
-                }
-            }
-        }
 
         /// <summary>
         /// The real seconds of game time one capture may be allowed to cover on the

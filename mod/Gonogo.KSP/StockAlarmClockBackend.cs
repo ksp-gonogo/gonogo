@@ -57,11 +57,13 @@ namespace Gonogo.KSP
                 title = string.IsNullOrEmpty(title) ? "Gonogo alarm" : title,
                 description = "",
                 ut = ut,
-                // Gonogo's own alarm stops the warp with its own lead; the
-                // game's copy must not stop it a second time on its own ramp.
+                // Gonogo's own alarm stops the warp with its own lead and tells
+                // the operator, so the game's copy neither stops the warp on
+                // its own ramp nor opens the modal popup, which nothing at the
+                // dashboard can close and which takes the game's keys while open.
                 actions = new AlarmActions(
                     AlarmActions.WarpEnum.DoNothing,
-                    AlarmActions.MessageEnum.Yes,
+                    AlarmActions.MessageEnum.No,
                     PlaySound: false,
                     DeleteWhenDone: true),
             };

@@ -91,21 +91,33 @@ namespace Gonogo.KSP.Tests
         }
 
         [Fact]
-        public void a_fired_alarm_whose_copy_the_player_deleted_reaches_the_roster_after_the_client_took_it_off()
-        {
-            var sync = CurrencyDelaySourceText.MethodBody(Uplink(), "private GameAlarmPublishes? SyncGameClock(double ut)");
-
-            Assert.Contains("outcome.DeletedAfterRelease", sync, StringComparison.Ordinal);
-            Assert.Contains("_roster.RecordDeletedInGame(id)", sync, StringComparison.Ordinal);
-        }
-
-        [Fact]
         public void the_copy_leaves_time_warp_to_gonogo()
         {
             var backend = CurrencyDelaySourceText.ReadRelative("StockAlarmClockBackend.cs");
             var create = CurrencyDelaySourceText.MethodBody(backend, "public long? CreateAtUt(string title, double ut)");
 
             Assert.Contains("AlarmActions.WarpEnum.DoNothing", create, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void a_fired_alarm_is_shown_on_the_game_screen_without_a_modal()
+        {
+            var capture = CurrencyDelaySourceText.MethodBody(Uplink(), "private object? CaptureOnMain(KspSnapshot? snapshot)");
+
+            Assert.Contains("GameAlarmNotice.Texts(", capture, StringComparison.Ordinal);
+            Assert.Contains("ScreenMessages.PostScreenMessage(", capture, StringComparison.Ordinal);
+            Assert.Contains("ScreenMessageStyle.UPPER_CENTER", capture, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void the_copy_raises_no_message_in_the_game()
+        {
+            var backend = CurrencyDelaySourceText.ReadRelative("StockAlarmClockBackend.cs");
+            var create = CurrencyDelaySourceText.MethodBody(backend, "public long? CreateAtUt(string title, double ut)");
+
+            Assert.Contains("AlarmActions.MessageEnum.No", create, StringComparison.Ordinal);
+            Assert.DoesNotContain("AlarmActions.MessageEnum.Yes", create, StringComparison.Ordinal);
+            Assert.Contains("DeleteWhenDone: true", create, StringComparison.Ordinal);
         }
     }
 }

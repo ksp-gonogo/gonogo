@@ -884,23 +884,6 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void ARecordedDeleteIsPublishedOnceThenDropped()
-        {
-            var roster = new ScetAlarmRoster();
-            roster.RecordDeletedInGame("gone");
-
-            var first = roster.Evaluate(100);
-            Assert.True(first.RosterChanged);
-            roster.MarkPublished();
-            Assert.Equal(ScetAlarmState.DeletedInGame, roster.Snapshot().Single().State);
-
-            var second = roster.Evaluate(101);
-            Assert.True(second.RosterChanged);
-            Assert.Empty(roster.Snapshot());
-            Assert.False(roster.Evaluate(102).RosterChanged);
-        }
-
-        [Fact]
         public void ADeleteMarkedOnAHeldAlarmStays()
         {
             var roster = new ScetAlarmRoster();
@@ -911,37 +894,6 @@ namespace Sitrep.Host.Tests
             roster.Evaluate(101);
 
             Assert.True(roster.IsDeletedInGame("a"));
-        }
-
-        [Fact]
-        public void ARecordedDeleteSurvivesTicksNobodyWasSubscribedFor()
-        {
-            var roster = new ScetAlarmRoster();
-            var audience = new ScetRosterAudience();
-            roster.RecordDeletedInGame("gone");
-
-            Assert.False(TickLikeTheUplink(roster, audience, 100, hasAudience: false));
-            Assert.False(TickLikeTheUplink(roster, audience, 101, hasAudience: false));
-            Assert.Equal(ScetAlarmState.DeletedInGame, roster.Snapshot().Single().State);
-
-            Assert.True(TickLikeTheUplink(roster, audience, 102, hasAudience: true));
-            Assert.Equal(ScetAlarmState.DeletedInGame, roster.Snapshot().Single().State);
-
-            TickLikeTheUplink(roster, audience, 103, hasAudience: true);
-            Assert.Empty(roster.Snapshot());
-        }
-
-        /// <summary>One tick as the uplink runs it: the roster is published only when the audience gate allows, and the roster is told so.</summary>
-        private static bool TickLikeTheUplink(ScetAlarmRoster roster, ScetRosterAudience audience, double ut, bool hasAudience)
-        {
-            var state = roster.BeginTick(ut);
-            var tick = roster.EndTick(state);
-            var publishing = audience.ShouldPublish(hasAudience, tick.RosterChanged);
-            if (publishing)
-            {
-                roster.MarkPublished();
-            }
-            return publishing;
         }
     }
 }

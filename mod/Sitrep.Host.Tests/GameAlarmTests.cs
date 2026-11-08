@@ -50,6 +50,9 @@ namespace Sitrep.Host.Tests
             /// <summary>The player deleting an alarm in the game's own window.</summary>
             public void PlayerDeletes(long id) => Held.Remove(id);
 
+            /// <summary>The game removing a copy that was made to delete itself once due.</summary>
+            public void RemovesItselfWhenDue(long id) => Held.Remove(id);
+
             /// <summary>The player editing an alarm's title and time in the game's own window.</summary>
             public void PlayerEdits(long id, string title, double ut)
             {
@@ -107,10 +110,6 @@ namespace Sitrep.Host.Tests
             foreach (var id in outcome.DeletedInGame)
             {
                 roster.MarkDeletedInGame(id);
-            }
-            foreach (var id in outcome.DeletedAfterRelease)
-            {
-                roster.RecordDeletedInGame(id);
             }
             foreach (var edit in outcome.EditedInGame)
             {
@@ -221,14 +220,14 @@ namespace Sitrep.Host.Tests
             var (roster, mirror, clock, links) = World();
             roster.Arm(TimeAlarm("b", 200), "KSC");
             Sync(roster, mirror, clock, 102);
-            var copy = Assert.Single(clock.Held.Values);
+            Assert.Single(clock.Held.Values);
             roster.Evaluate(200);
             clock.Deleted.Clear();
 
             Sync(roster, mirror, clock, 200);
 
             Assert.Empty(clock.Deleted);
-            Assert.Equal(copy.Id, links["b"]);
+            Assert.Empty(links);
         }
 
         [Fact]
@@ -311,75 +310,45 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void deleting_the_copy_of_a_fired_alarm_in_the_game_deletes_the_gonogo_alarm()
+        public void a_fired_alarm_is_announced_on_the_game_screen_by_its_own_name()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(TimeAlarm("a", 5000, "Burn"), "KSC");
+            roster.Arm(TimeAlarm("b", 9000, ""), "KSC");
+            var tick = roster.Evaluate(5000);
+
+            var texts = GameAlarmNotice.Texts(roster.Snapshot(), tick.Fired);
+
+            Assert.Equal(new[] { "Burn" }, texts);
+        }
+
+        [Fact]
+        public void an_alarm_that_names_nothing_on_the_roster_is_not_announced()
+        {
+            var texts = GameAlarmNotice.Texts(new List<ScetAlarm>(), new[] { new ScetAlarmFired { Id = "gone" } });
+
+            Assert.Empty(texts);
+        }
+
+        [Fact]
+        public void a_fired_alarm_whose_copy_removed_itself_is_not_a_delete()
         {
             var (roster, mirror, clock, links) = World();
             roster.Arm(TimeAlarm("a", 5000), "KSC");
             Sync(roster, mirror, clock, 100);
             roster.Evaluate(5000);
-            Sync(roster, mirror, clock, 5000);
+            clock.RemovesItselfWhenDue(clock.Held.Keys.Single());
+
+            var outcome = Sync(roster, mirror, clock, 5000);
+
+            Assert.Empty(outcome.DeletedInGame);
+            Assert.False(roster.IsDeletedInGame("a"));
             Assert.Equal(ScetAlarmState.Fired, roster.Snapshot().Single().State);
-
-            clock.PlayerDeletes(clock.Held.Keys.Single());
-            var outcome = Sync(roster, mirror, clock, 5001);
-
-            Assert.Equal(new[] { "a" }, outcome.DeletedInGame);
-            Assert.True(roster.IsDeletedInGame("a"));
             Assert.Empty(links);
         }
 
         [Fact]
-        public void a_fired_alarm_whose_copy_the_game_keeps_stays_fired()
-        {
-            var (roster, mirror, clock, links) = World();
-            roster.Arm(TimeAlarm("a", 5000), "KSC");
-            Sync(roster, mirror, clock, 100);
-            var copy = clock.Held.Keys.Single();
-            roster.Evaluate(5000);
-
-            var first = Sync(roster, mirror, clock, 5000);
-            var second = Sync(roster, mirror, clock, 5010);
-
-            Assert.Empty(first.DeletedInGame);
-            Assert.Empty(second.DeletedInGame);
-            var row = roster.Snapshot().Single();
-            Assert.Equal(ScetAlarmState.Fired, row.State);
-            Assert.Equal(copy, row.GameAlarmId);
-            Assert.Equal(copy, links["a"]);
-            Assert.Empty(clock.Deleted);
-        }
-
-        [Fact]
-        public void deleting_the_copy_of_an_alarm_a_client_already_took_off_the_roster_still_reaches_the_client()
-        {
-            var (roster, mirror, clock, links) = World();
-            roster.Arm(TimeAlarm("a", 5000), "KSC");
-            Sync(roster, mirror, clock, 100);
-            var copy = clock.Held.Keys.Single();
-            roster.Evaluate(5000);
-            Sync(roster, mirror, clock, 5000);
-
-            roster.Disarm("a");
-            mirror.Disarmed("a");
-            var released = Sync(roster, mirror, clock, 5001);
-
-            Assert.Empty(released.DeletedAfterRelease);
-            Assert.Empty(clock.Deleted);
-            Assert.Empty(links);
-            Assert.Empty(roster.Snapshot());
-
-            clock.PlayerDeletes(copy);
-            var outcome = Sync(roster, mirror, clock, 5002);
-
-            Assert.Equal(new[] { "a" }, outcome.DeletedAfterRelease);
-            var row = Assert.Single(roster.Snapshot());
-            Assert.Equal("a", row.Id);
-            Assert.Equal(ScetAlarmState.DeletedInGame, row.State);
-            Assert.Empty(Sync(roster, mirror, clock, 5003).DeletedAfterRelease);
-        }
-
-        [Fact]
-        public void a_due_copy_the_game_keeps_after_the_client_took_the_alarm_off_the_roster_reports_nothing()
+        public void a_fired_alarm_the_client_took_off_the_roster_reports_nothing_when_its_copy_is_gone()
         {
             var (roster, mirror, clock, _) = World();
             roster.Arm(TimeAlarm("a", 5000), "KSC");
@@ -388,10 +357,12 @@ namespace Sitrep.Host.Tests
             Sync(roster, mirror, clock, 5000);
             roster.Disarm("a");
             mirror.Disarmed("a");
+            clock.RemovesItselfWhenDue(clock.Held.Keys.SingleOrDefault());
 
             for (var ut = 5001; ut < 5010; ut++)
             {
-                Assert.Empty(Sync(roster, mirror, clock, ut).DeletedAfterRelease);
+                var outcome = Sync(roster, mirror, clock, ut);
+                Assert.Empty(outcome.DeletedInGame);
             }
             Assert.Empty(roster.Snapshot());
         }

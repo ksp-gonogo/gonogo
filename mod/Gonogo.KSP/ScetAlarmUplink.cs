@@ -668,10 +668,6 @@ namespace Gonogo.KSP
             {
                 _roster.MarkDeletedInGame(id);
             }
-            foreach (var id in outcome.DeletedAfterRelease)
-            {
-                _roster.RecordDeletedInGame(id);
-            }
             foreach (var edit in outcome.EditedInGame)
             {
                 _roster.EditFromGame(edit.Key, edit.Value.Title, edit.Value.Ut);
@@ -722,6 +718,7 @@ namespace Gonogo.KSP
                 var flown = ActiveVesselScope.Current;
                 var game = CommandDeliveryScenario.GameKey;
                 GameAlarmPublishes? gamePublishes = null;
+                List<string> firedNames;
                 lock (_gate)
                 {
                     _roster.ObserveGame(game);
@@ -744,6 +741,10 @@ namespace Gonogo.KSP
                     {
                         GonogoLog.ErrorLimited("game alarm clock sync failed", ex);
                     }
+                    var fired = _roster.EndTick(tick).Fired;
+                    firedNames = fired.Count > 0
+                        ? GameAlarmNotice.Texts(_roster.Snapshot(), fired)
+                        : new List<string>();
                     stopWarp = tick.StopWarp;
                     maxWarpRate = tick.MaxWarpRate;
                     actionsDue = new List<ScetAlarmActionsDue>(tick.ActionsDue);
@@ -751,6 +752,11 @@ namespace Gonogo.KSP
                     {
                         finishedContracts = state.FinishedContracts("game");
                     }
+                }
+
+                foreach (var name in firedNames)
+                {
+                    ScreenMessages.PostScreenMessage(name, 5f, ScreenMessageStyle.UPPER_CENTER);
                 }
 
                 if (stopWarp)
@@ -878,10 +884,6 @@ namespace Gonogo.KSP
                             _subscriptions.Reconcile(rows);
                         }
                         roster = publishing ? rows : null;
-                        if (publishing)
-                        {
-                            _roster.MarkPublished();
-                        }
                     }
                 }
 
