@@ -12,6 +12,7 @@ import {
   rendezvousActions,
 } from "./config";
 import { DockingCircle } from "./DockingCircle";
+import { recallPortName, rememberPortName } from "./dockedName";
 import { DRAWN_PICTURE, dockEdgeCue, dockMarkCues } from "./edgeCue";
 import { LEVEL_NAMES } from "./LensStack";
 import { DOCKING_ENTER_M } from "./levels";
@@ -78,7 +79,12 @@ function RendezvousComponent({
   const joined = reading.dockJoined;
   const wasJoined = useRef(false);
   const lastName = useRef("");
-  if (tarName !== undefined) lastName.current = tarName;
+  if (tarName !== undefined) {
+    lastName.current = tarName;
+    if (reading.dockTargetPort !== undefined) {
+      rememberPortName(reading.dockTargetPort, tarName);
+    }
+  }
   useEffect(() => {
     if (joined) {
       wasJoined.current = true;
@@ -191,7 +197,10 @@ function RendezvousComponent({
             figures={(layout, box, ask) => (
               <ReadoutFigures
                 level={shownLevel}
-                name={tarName ?? lastName.current}
+                name={
+                  tarName ??
+                  (lastName.current || recallPortName(reading.dockTargetPort))
+                }
                 reading={reading}
                 craft={geometry.craft}
                 periapsis={geometry.periapsis}
