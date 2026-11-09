@@ -1,5 +1,4 @@
 import { AugmentSlot } from "@ksp-gonogo/core";
-import type { AnyBoundCommand, ValueCommand } from "@ksp-gonogo/sitrep-sdk";
 import { DimmedOverlay, ToggleButton } from "@ksp-gonogo/ui";
 import {
   Button,
@@ -9,6 +8,7 @@ import {
   PlayIcon,
   ReadoutCaption,
   Section,
+  Tooltip,
   Unit,
   type UnitValue,
 } from "@ksp-gonogo/ui-kit";
@@ -59,11 +59,8 @@ export interface WarpControlViewProps {
   createAlarm: AlarmCreator<TimeTrigger> | null;
   /** The event targets the warp-to row offers, each with the instant its Topic publishes or null. */
   events: readonly WarpEventTarget[];
-  /** The command that sets the warp rung `index`, for the ladder and stepper buttons. */
-  warpCommand: (index: number) => AnyBoundCommand;
-  /** The command that sets the pause state, given `true` to pause. */
-  // biome-ignore lint/suspicious/noExplicitAny: a pause command of any argument and reply types
-  pauseCommand: ValueCommand<boolean, any, any>;
+  onSetWarp: (index: number) => void;
+  onTogglePause: () => void;
   onOpenAlarms: () => void;
 }
 
@@ -84,8 +81,8 @@ export function WarpControlView({
   nextAlarm,
   createAlarm,
   events,
-  warpCommand,
-  pauseCommand,
+  onSetWarp,
+  onTogglePause,
   onOpenAlarms,
 }: Readonly<WarpControlViewProps>) {
   // Content-priority decisions only: auto-fit handles whether the ladder ends up 8x1, 4x2 or 2x4.
@@ -128,9 +125,9 @@ export function WarpControlView({
     const root = controlsRef.current;
     const target =
       root?.querySelector<HTMLElement>('[aria-label="Warp up"]') ??
-      root
-        ?.querySelector('[role="group"]')
-        ?.querySelectorAll<HTMLElement>("button")[upRung.current];
+      (root?.querySelector('[role="group"]')?.children[upRung.current] as
+        | HTMLElement
+        | undefined);
     target?.focus({ preventScroll: true });
   }, [refusedPresses]);
   const upBlockedBecause = !indexKnown
@@ -148,22 +145,23 @@ export function WarpControlView({
             <div style={BODY_STYLE}>
               <div style={RATE_ROW_STYLE}>
                 {showPause && (
-                  <ToggleButton
-                    command={pauseCommand}
-                    state={paused === true}
-                    name="Pause"
-                    tone="warn"
-                    size="sm"
-                    tip={paused === true ? "Resume" : "Pause"}
-                    icon={
-                      paused === true ? (
+                  <Tooltip text={paused === true ? "Resume" : "Pause"}>
+                    <ToggleButton
+                      pressed={paused === true}
+                      tone="warn"
+                      size="sm"
+                      onClick={onTogglePause}
+                      aria-label={
+                        paused === true ? "Resume game" : "Pause game"
+                      }
+                    >
+                      {paused === true ? (
                         <PlayIcon size={12} />
                       ) : (
                         <PauseIcon size={12} />
-                      )
-                    }
-                    aria-label={paused === true ? "Resume game" : "Pause game"}
-                  ></ToggleButton>
+                      )}
+                    </ToggleButton>
+                  </Tooltip>
                 )}
                 <div style={rateStyle(rateTone)}>
                   <span
@@ -204,14 +202,12 @@ export function WarpControlView({
                         return (
                           <WarpButton
                             key={lvl.index}
+                            type="button"
                             $active={active}
-                            toggles
-                            command={warpCommand(lvl.index)}
-                            unavailable={
-                              alarmRequired && lvl.index > idx
-                                ? "Under signal delay, warping faster needs an alarm set first"
-                                : null
-                            }
+                            aria-pressed={active}
+                            disabled={alarmRequired && lvl.index > idx}
+                            disabledReason="Under signal delay, warping faster needs an alarm set first"
+                            onClick={() => onSetWarp(lvl.index)}
                           >
                             {lvl.label}
                           </WarpButton>
@@ -228,35 +224,36 @@ export function WarpControlView({
                       aria-label="Time warp controls"
                     >
                       <WarpButton
+                        type="button"
                         $active={false}
-                        command={warpCommand(downIdx)}
-                        unavailable={
-                          !indexKnown
-                            ? "The warp level is not reported"
-                            : idx === 0
-                              ? "Already at the slowest warp"
-                              : null
+                        disabled={!indexKnown || idx === 0}
+                        disabledReason={
+                          indexKnown
+                            ? "Already at the slowest warp"
+                            : "The warp level is not reported"
                         }
+                        onClick={() => onSetWarp(downIdx)}
                         aria-label="Warp down"
                       >
                         −
                       </WarpButton>
                       <WarpButton
+                        type="button"
                         $active={indexKnown && idx === 0}
-                        toggles
-                        command={warpCommand(0)}
+                        aria-pressed={indexKnown && idx === 0}
+                        onClick={() => onSetWarp(0)}
                         aria-label="Drop to realtime"
                       >
                         1×
                       </WarpButton>
                       <WarpButton
+                        type="button"
                         $active={false}
-                        command={warpCommand(upIdx)}
-                        unavailable={
+                        disabled={
                           !indexKnown || alarmRequired || idx === topIdx
-                            ? upBlockedBecause
-                            : null
                         }
+                        disabledReason={upBlockedBecause}
+                        onClick={() => onSetWarp(upIdx)}
                         aria-label="Warp up"
                       >
                         +

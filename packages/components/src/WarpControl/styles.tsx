@@ -1,5 +1,5 @@
-import { Button, type CommandInput } from "@ksp-gonogo/ui-kit";
-import type { CSSProperties, ReactNode } from "react";
+import { Button } from "@ksp-gonogo/ui-kit";
+import type { ButtonHTMLAttributes, CSSProperties } from "react";
 
 export const BODY_STYLE = {
   display: "flex",
@@ -39,7 +39,7 @@ export const RATE_ROW_STYLE = {
   flex: "1 1 70px",
   display: "flex",
   alignItems: "center",
-  justifyContent: "flex-start",
+  justifyContent: "center",
   gap: "var(--gap-related)",
   minWidth: "min-content",
 } as const;
@@ -117,41 +117,24 @@ export const ALARM_NAME_STYLE = {
 export function WarpButton({
   $active,
   style,
-  command,
-  unavailable,
-  toggles = false,
-  children,
   ...rest
-}: Readonly<{
-  $active: boolean;
-  /** Whether the button is one of several rungs, so it states `aria-pressed` whether lit or not. */
-  toggles?: boolean;
-  command: CommandInput;
-  /** Why the button cannot be pressed now, or null when it can. */
-  unavailable?: string | null;
-  style?: CSSProperties;
-  children: ReactNode;
-  "aria-label"?: string;
-}>) {
+}: Readonly<
+  ButtonHTMLAttributes<HTMLButtonElement> & {
+    $active: boolean;
+    disabledReason?: string;
+    style?: CSSProperties;
+  }
+>) {
   return (
     <Button
-      command={command}
-      unavailable={unavailable}
-      pressed={toggles ? $active : $active ? true : undefined}
-      /* A button that cannot be pressed keeps its own word as its name; the reason is its tip. */
-      blockedAriaLabel={
-        rest["aria-label"] ??
-        (typeof children === "string" ? children : undefined)
-      }
+      pressed={$active ? true : undefined}
       style={{
         ...WARP_BUTTON_GEOMETRY,
         ...($active ? WARP_BUTTON_ACTIVE : WARP_BUTTON_REST),
         ...style,
       }}
       {...rest}
-    >
-      {children}
-    </Button>
+    />
   );
 }
 

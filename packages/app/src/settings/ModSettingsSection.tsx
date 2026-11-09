@@ -8,7 +8,6 @@ import {
   type ModSettingRow,
   dynamicValue as quantity,
   SettingKind,
-  type ValueCommand,
 } from "@ksp-gonogo/sitrep-sdk";
 import { useModSettings } from "@ksp-gonogo/sitrep-sdk/spine";
 import { Switch } from "@ksp-gonogo/ui";
@@ -130,24 +129,6 @@ export function ModSettingsSection({
       pending={pending[row.id]}
       canWrite={canWrite}
       onWrite={(text) => void onWrite(row, text)}
-      writeBool={write.toArgs(
-        (next: boolean) => ({
-          uplink: uplinkId,
-          id: row.id,
-          value: next ? "True" : "False",
-        }),
-        {
-          before: (args) => {
-            if (args === undefined) return;
-            setPending((current) => ({ ...current, [row.id]: args.value }));
-            setOutcome(null);
-          },
-          onRejected: (rejected) => {
-            setPending(({ [row.id]: _dropped, ...rest }) => rest);
-            setOutcome(refusalOf(row, rejected));
-          },
-        },
-      )}
     />
   );
   const grouped = bucketBy(
@@ -176,14 +157,11 @@ function ModSettingLine({
   pending,
   canWrite,
   onWrite,
-  writeBool,
 }: {
   row: ModSettingRow;
   pending: string | undefined;
   canWrite: boolean;
   onWrite: (text: string) => void;
-  /** The command the switch sends, given true to set the setting to "True". */
-  writeBool: ValueCommand<boolean, unknown, unknown>;
 }) {
   const known = row.value !== null && row.value !== undefined;
   if (!row.writable || !known) {
@@ -208,15 +186,9 @@ function ModSettingLine({
       </RowText>
       {row.kind === SettingKind.Bool ? (
         <Switch
-          state={shown === "True"}
-          command={writeBool}
-          unavailable={
-            !canWrite
-              ? "Settings cannot be changed now"
-              : busy
-                ? "Writing"
-                : null
-          }
+          checked={shown === "True"}
+          onChange={(next) => onWrite(next ? "True" : "False")}
+          disabled={!canWrite || busy}
           aria-label={row.label}
         />
       ) : (

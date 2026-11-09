@@ -17,6 +17,7 @@ import {
   SelectableRow,
   Unit,
   UnitSharedFormat,
+  writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import { emptyStateText } from "../robotics";
@@ -108,6 +109,21 @@ function RotorTachometerComponent({
       { label: `RPM cap ${value}`, topic: id },
     );
   };
+  const setTorqueLimit = (id: string, pct: number) => {
+    const value = Math.round(clamp(pct, 0, 100));
+    setOwnTorque({ partId: id, value, atUt: nowUt });
+    void torqueCmd.dangerouslySendWithoutInput(
+      { partId: id, percent: value },
+      { label: `Torque ${writeQuantity(quantity("%", value))}`, topic: id },
+    );
+  };
+  const setBrake = (id: string, pct: number) => {
+    const value = Math.round(clamp(pct, 0, 200));
+    void brakeCmd.dangerouslySendWithoutInput(
+      { partId: id, percent: value },
+      { label: `Brake ${writeQuantity(quantity("%", value))}` },
+    );
+  };
   const setMotor = (id: string, engaged: boolean) =>
     void motorCmd.dangerouslySendWithoutInput(
       { partId: id, enabled: engaged },
@@ -123,48 +139,6 @@ function RotorTachometerComponent({
       { partId: id },
       { label: "Reverse" },
     );
-
-  const partId = selected?.partId ?? "";
-  const rpmStepCommand = rpmCmd.toArgs(
-    (v: number) => ({
-      partId,
-      rpm: Math.round(clamp(v, 0, ROTOR_MAX_RPM)),
-    }),
-    {
-      label: "RPM cap",
-      topic: partId,
-      before: (args) => {
-        if (args !== undefined) {
-          setOwnRpm({ partId, value: args.rpm, atUt: nowUt });
-        }
-      },
-    },
-  );
-  const torqueStepCommand = torqueCmd.toArgs(
-    (v: number) => ({ partId, percent: Math.round(clamp(v, 0, 100)) }),
-    {
-      label: "Torque",
-      topic: partId,
-      before: (args) => {
-        if (args !== undefined) {
-          setOwnTorque({ partId, value: args.percent, atUt: nowUt });
-        }
-      },
-    },
-  );
-  const brakeCommand = brakeCmd.toArgs(
-    (applied: boolean) => ({ partId, percent: applied ? 100 : 0 }),
-    { label: "Brake" },
-  );
-  const motorCommand = motorCmd.toArgs(
-    (engaged: boolean) => ({ partId, enabled: engaged }),
-    { label: "Motor" },
-  );
-  const lockCommand = lockCmd.toArgs(
-    (locked: boolean) => ({ partId, enabled: locked }),
-    { label: "Lock" },
-  );
-  const reverseCommand = reverseCmd.with({ partId }, { label: "Reverse" });
 
   useActionInput<RotorTachometerActions>({
     // The steppers are relative, so they dispatch nothing while the cap is unread.
@@ -263,12 +237,12 @@ function RotorTachometerComponent({
                 : selected.torqueLimit,
             lastSeenCaption: flagsMarked?.caption,
           }}
-          rpmStepCommand={rpmStepCommand}
-          torqueStepCommand={torqueStepCommand}
-          brakeCommand={brakeCommand}
-          motorCommand={motorCommand}
-          lockCommand={lockCommand}
-          reverseCommand={reverseCommand}
+          setRpmLimit={setRpmLimit}
+          setTorqueLimit={setTorqueLimit}
+          setBrake={setBrake}
+          setMotor={setMotor}
+          setLock={setLock}
+          reverse={reverse}
           flagsMarked={flagsMarked}
         />,
         rotors.length > 1 && (

@@ -1,16 +1,7 @@
-import {
-  act,
-  fireEvent,
-  render,
-  renderHook,
-  screen,
-  waitFor,
-} from "@ksp-gonogo/test-utils";
-import { Button } from "@ksp-gonogo/ui-kit";
+import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import type { PlanResult } from "./planning";
 import { useNodeCommands } from "./useNodeCommands";
 import { usePlan } from "./usePlan";
 import type { PlannerInputs } from "./usePlannerInputs";
@@ -38,45 +29,22 @@ function burnIn(seconds: number): PlannerInputs {
   };
 }
 
-/** The planner's own hooks with the Add control they feed, whose latest values the test reads from `out`. */
-function Harness({
-  inputs,
-  out,
-}: {
-  inputs: PlannerInputs;
-  out: { current: { plan: PlanResult | null; commands: Commands } | null };
-}) {
-  const telemetry = usePlannerTelemetry();
-  const { plan } = usePlan(inputs, telemetry);
-  const commands = useNodeCommands([], plan, telemetry.burnContext);
-  out.current = { plan, commands };
-  return commands.commitCommand === null ? null : (
-    <Button command={commands.commitCommand}>Add node</Button>
-  );
-}
-
-type Commands = ReturnType<typeof useNodeCommands>;
-
-function pressAdd() {
-  fireEvent.click(screen.getByRole("button", { name: /Add node/ }));
-}
-
 function mountPlanner(inputs: PlannerInputs) {
   const fixture = setupStreamFixture({
     delaySeconds: OWLT,
     suspendFrames: true,
   });
-  const out: Parameters<typeof Harness>[0]["out"] = { current: null };
-  const view = render(
-    <fixture.Provider>
-      <Harness inputs={inputs} out={out} />
-    </fixture.Provider>,
-  );
-  const result = {
-    get current() {
-      return out.current as NonNullable<typeof out.current>;
+  const view = renderHook(
+    () => {
+      const telemetry = usePlannerTelemetry();
+      const { plan } = usePlan(inputs, telemetry);
+      return {
+        plan,
+        commands: useNodeCommands([], plan, telemetry.burnContext),
+      };
     },
-  };
+    { wrapper: fixture.Provider },
+  );
   const meta = { validAt: UT_NOW - OWLT, deliveredAt: UT_NOW };
   act(() => {
     fixture.emit(
@@ -107,7 +75,7 @@ function mountPlanner(inputs: PlannerInputs) {
     );
     fixture.emitFrame();
   });
-  return { fixture, ...view, result };
+  return { fixture, ...view };
 }
 
 function addedNodes(fixture: ReturnType<typeof mountPlanner>["fixture"]) {
@@ -130,15 +98,13 @@ describe("sending a maneuver plan under signal delay", () => {
     await waitFor(() => expect(result.current.plan).not.toBeNull());
 
     await act(async () => {
-      pressAdd();
+      await result.current.commands.handleCommit();
     });
 
     expect(addedNodes(fixture)).toHaveLength(0);
-    expect(
-      screen.getByRole("button", {
-        name: /would reach the craft at or after the time it acts at/,
-      }),
-    ).toBeTruthy();
+    expect(result.current.commands.error).toMatch(
+      /would reach the craft at or after the time it acts at/,
+    );
   });
 
   it("sends a node that lands before its own time, with no margin asked beyond that", async () => {
@@ -146,7 +112,7 @@ describe("sending a maneuver plan under signal delay", () => {
     await waitFor(() => expect(result.current.plan).not.toBeNull());
 
     await act(async () => {
-      pressAdd();
+      void result.current.commands.handleCommit();
     });
 
     await waitFor(() => expect(addedNodes(fixture)).toHaveLength(1));
@@ -158,7 +124,7 @@ describe("sending a maneuver plan under signal delay", () => {
     // The reply is a delay away, so the press is still unanswered when the second widget mounts.
     fixture.transport.holdCommands();
     await act(async () => {
-      pressAdd();
+      void result.current.commands.handleCommit();
     });
     await waitFor(() => expect(addedNodes(fixture)).toHaveLength(1));
     const [sent] = addedNodes(fixture);

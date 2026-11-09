@@ -1,9 +1,5 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
-import type {
-  AnyBoundCommand,
-  CarriedCurrency,
-  Value,
-} from "@ksp-gonogo/sitrep-sdk";
+import type { CarriedCurrency, Value } from "@ksp-gonogo/sitrep-sdk";
 import { EmptyState } from "@ksp-gonogo/ui";
 import { Button, Stack } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
@@ -25,16 +21,12 @@ interface ManeuverNodeListProps {
   thrust?: ThrustObservation;
   /** What the plan was last reported by. */
   from?: readonly CarriedCurrency[];
-  /** The command that removes the node `nodeId`. */
-  removeCommand: (nodeId: string) => AnyBoundCommand;
-  /** Why the node `nodeId` cannot be removed now, or null when it can. */
-  removeUnavailable: (nodeId: string) => string | null;
   /** Failures surface through the orchestrator's `error` state, not here. */
+  onDelete: (nodeId: string) => Promise<void> | void;
   onEdit: (nodeId: string, patch: NodeEditPatch) => Promise<void> | void;
-  /** The command that removes every node, or null when none can be named. */
-  clearAllCommand: AnyBoundCommand | null;
-  /** Why every node cannot be removed now, or null when they can. */
-  clearAllUnavailable: string | null;
+  onClearAll: () => Promise<void> | void;
+  /** True while a removal is in flight; the controls that remove nodes are held until it settles. */
+  removing: boolean;
 }
 
 interface DisplayedNode {
@@ -52,11 +44,10 @@ export function ManeuverNodeList({
   availableDv,
   thrust,
   from,
-  removeCommand,
-  removeUnavailable,
+  onDelete,
   onEdit,
-  clearAllCommand,
-  clearAllUnavailable,
+  onClearAll,
+  removing,
 }: ManeuverNodeListProps) {
   // A completed node already gone from the live list stays as an inert phantom until its hold expires.
   const displayedNodes = useMemo<DisplayedNode[]>(() => {
@@ -105,10 +96,8 @@ export function ManeuverNodeList({
               thrust={thrust}
               from={from}
               completed={d.completed}
-              removeCommand={d.phantom ? undefined : removeCommand(d.node.id)}
-              removeUnavailable={
-                d.phantom ? null : removeUnavailable(d.node.id)
-              }
+              deleteDisabled={removing}
+              onDelete={d.phantom ? undefined : () => void onDelete(d.node.id)}
               onEdit={
                 d.phantom ? undefined : (patch) => onEdit(d.node.id, patch)
               }
@@ -116,14 +105,15 @@ export function ManeuverNodeList({
           ))}
         </Stack>
       )}
-      {nodes.length > 1 && clearAllCommand !== null && (
+      {nodes.length > 1 && (
         <div style={CLEAR_ALL_ROW_STYLE}>
           <Button
             variant="ghost"
             size="sm"
-            command={clearAllCommand}
-            unavailable={clearAllUnavailable}
-            blockedAriaLabel="Clear all"
+            type="button"
+            disabled={removing}
+            disabledReason="A node is being removed"
+            onClick={() => void onClearAll()}
           >
             Clear all
           </Button>

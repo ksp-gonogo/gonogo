@@ -1,6 +1,5 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
 import {
-  type AnyBoundCommand,
   type CarriedCurrency,
   classifyCommandRejection,
   datedFrom,
@@ -8,7 +7,13 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { CloseIcon, PencilIcon } from "@ksp-gonogo/ui";
-import { Countdown, IconButton, Tooltip, Unit } from "@ksp-gonogo/ui-kit";
+import {
+  Button,
+  Countdown,
+  IconButton,
+  Tooltip,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
 import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
 import { useEffect, useState } from "react";
 import type { BurnInstants } from "./burnFlown";
@@ -40,9 +45,9 @@ interface NodeRowProps {
   /** The propulsion latch, so a burn still running past its planned cutoff is not called passed. */
   thrust?: ThrustObservation;
   /** Omitted on phantom rows (the underlying node is already gone from KSP). */
-  removeCommand?: AnyBoundCommand;
-  /** Why the delete control cannot be pressed now, such as another removal being in flight, or null when it can. */
-  removeUnavailable?: string | null;
+  onDelete?: () => void;
+  /** Holds the delete control while another removal is in flight. */
+  deleteDisabled?: boolean;
   /** Omitted on phantom rows; omitted to hide the edit affordance entirely. */
   onEdit?: (patch: NodeEditPatch) => Promise<void> | void;
 }
@@ -54,8 +59,8 @@ export function NodeRow({
   from,
   completed = false,
   thrust,
-  removeCommand,
-  removeUnavailable = null,
+  onDelete,
+  deleteDisabled = false,
   onEdit,
 }: NodeRowProps) {
   const [editing, setEditing] = useState(false);
@@ -170,16 +175,16 @@ export function NodeRow({
             <PencilIcon size={12} />
           </StepButton>
         )}
-        {removeCommand && (
-          <IconButton
-            style={DELETE_STYLE}
-            command={removeCommand}
-            unavailable={removeUnavailable}
+        {onDelete && (
+          <Button
+            type="button"
+            onClick={onDelete}
+            disabled={deleteDisabled}
+            disabledReason="Another node is being removed"
             aria-label="Delete node"
-            blockedAriaLabel="Delete node"
           >
             <CloseIcon size={12} />
-          </IconButton>
+          </Button>
         )}
       </div>
       {editing && editable && onEdit && (
@@ -343,8 +348,8 @@ function StepButton({
 const STEP_BUTTON_BASE: CSSProperties = {
   border: "1px solid var(--color-border-subtle)",
   color: "var(--color-text-muted)",
-  width: 28,
-  height: 28,
+  width: 22,
+  height: 22,
   borderRadius: "var(--radius-regular)",
   display: "inline-flex",
   alignItems: "center",
@@ -360,16 +365,6 @@ const STEP_BUTTON_ACTIVE: CSSProperties = {
 const STEP_BUTTON_INACTIVE: CSSProperties = {
   ...STEP_BUTTON_BASE,
   background: "transparent",
-};
-
-/*
- * The edit control's box, 28 by 28 CSS px so both clear the 24 px target size
- * and the send arrow standing in for the x never resizes the control. The
- * colour is left to the kit, which tints the glyph after a refusal.
- */
-const DELETE_STYLE: CSSProperties = {
-  ...STEP_BUTTON_INACTIVE,
-  color: undefined,
 };
 
 const EDIT_PANEL_STYLE: CSSProperties = {

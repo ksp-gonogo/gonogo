@@ -645,7 +645,7 @@ export function useCommandControl<Result = CommandReplyLike, Args = unknown>({
         options.before?.(sendArgs);
         sent = target.handle.dangerouslySendWithoutInput(
           sendArgs,
-          label || options.topic ? { label, topic: options.topic } : undefined,
+          label ? { label } : undefined,
         ) as Promise<Result>;
       }
       sent.then(

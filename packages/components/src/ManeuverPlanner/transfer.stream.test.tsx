@@ -270,11 +270,9 @@ describe("Maneuver Planner adding a node", () => {
     await waitFor(() => expect(previewValue("Mun Pe")).not.toBeNull());
     await user.click(screen.getByRole("button", { name: "Add node" }));
     await waitFor(() => expect(commandHandler).toHaveBeenCalledTimes(1));
-    await waitFor(() =>
-      expect(document.querySelector("[data-add-node]")).toHaveAttribute(
-        "aria-disabled",
-        "true",
-      ),
+    expect(screen.getByRole("button", { name: "Adding..." })).toHaveAttribute(
+      "aria-disabled",
+      "true",
     );
     expect(screen.getByText("Adding maneuver node")).toBeInTheDocument();
     emitNode(fixture, []);

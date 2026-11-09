@@ -9,6 +9,7 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
+  ARM_TIMEOUT_MS,
   Badge,
   Grid,
   NULL_DISPLAY,
@@ -20,11 +21,10 @@ import {
   Tabs,
   Tooltip,
   Unit,
-  useCommandControl,
   useSlotBound,
   useSlotLabel,
 } from "@ksp-gonogo/ui-kit";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { magnitudeOf } from "../shared/magnitude";
 import { ActivePanel } from "./ActivePanel";
 import { ApplicantsPanel } from "./ApplicantsPanel";
@@ -137,18 +137,25 @@ export function AstronautComplexComponent(
     [crewRoster],
   );
   const [highlightedName, setHighlightedName] = useState<string | null>(null);
+  const [armedName, setArmedName] = useState<string | null>(null);
+  // Names a fire was sent for that the roster still lists, so a repeat press cannot send a second fire for the same kerbal.
+  const firedRef = useRef(new Set<string>());
+  useEffect(() => {
+    for (const name of firedRef.current) {
+      if (!sackableCrew.some((c) => c.name === name)) {
+        firedRef.current.delete(name);
+      }
+    }
+  }, [sackableCrew]);
+  // An arm from a bound input lapses as the click path's does, so a stray press cannot fire minutes later.
+  useEffect(() => {
+    if (armedName === null) return;
+    const id = setTimeout(() => setArmedName(null), ARM_TIMEOUT_MS);
+    return () => clearTimeout(id);
+  }, [armedName]);
   // By name, so the highlight follows its kerbal through a reorder and falls to the first fireable one when it leaves.
   const highlighted =
     sackableCrew.find((c) => c.name === highlightedName) ?? sackableCrew[0];
-
-  // The highlighted row's button draws this control, so a fire from a bound key shows what became of it on that row.
-  const highlightedFire = useCommandControl({
-    command: fireCmd.with(
-      { kerbalName: highlighted?.name ?? "" },
-      { label: `Fire ${highlighted?.name ?? "crew member"}` },
-    ),
-  });
-  const armed = highlightedFire.phase === "armed";
 
   useActionInput<AstronautComplexActions>({
     "highlight-next-available": (payload) => {
@@ -160,14 +167,24 @@ export function AstronautComplexComponent(
           (sackableCrew.indexOf(highlighted) + 1) % sackableCrew.length
         ];
       setHighlightedName(next.name);
+      setArmedName(null);
       return { highlighted: next.name };
     },
     "fire-highlighted": (payload) => {
       if (payload.kind === "button" && payload.value !== true) return undefined;
-      // A blocked control is drawn dark and a bound key leaves it alone too.
-      if (!highlighted || highlightedFire.isBlocked) return undefined;
-      highlightedFire.press(true);
-      return armed ? { fired: highlighted.name } : { armed: highlighted.name };
+      if (!highlighted) return undefined;
+      if (firedRef.current.has(highlighted.name)) return undefined;
+      if (armedName !== highlighted.name) {
+        setArmedName(highlighted.name);
+        return { armed: highlighted.name };
+      }
+      setArmedName(null);
+      const name = highlighted.name;
+      firedRef.current.add(name);
+      fireCmd.dangerouslySendWithoutInput({ kerbalName: name }).catch(() => {
+        firedRef.current.delete(name);
+      });
+      return { fired: highlighted.name };
     },
   });
 
@@ -312,8 +329,9 @@ export function AstronautComplexComponent(
                     crew={crewRoster}
                     fireCmd={fireCmd}
                     highlightedName={highlighted?.name ?? null}
-                    armed={armed}
-                    highlightedFire={highlightedFire}
+                    armed={
+                      armedName !== null && armedName === highlighted?.name
+                    }
                   />
                 ),
               },
