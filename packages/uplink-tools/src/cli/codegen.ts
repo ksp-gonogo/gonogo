@@ -37,8 +37,9 @@ import { parseFlags } from "./flags";
 export const CODEGEN_USAGE = `uplink-tools codegen [options]
 
   Generate client/src/__generated__/ (contract.ts and the topic and unit maps)
-  from the C# contract slice in mod-contract/. Run it after changing a wire
-  type, and commit what it writes. Needs the .NET SDK.
+  from the C# contract slice in mod-contract/. An Uplink with no client/ writes
+  types/src/__generated__/ instead, the types-only package. Run it after
+  changing a wire type, and commit what it writes. Needs the .NET SDK.
 
   --check            generate to a scratch directory and fail if the committed
                      files differ, writing nothing. For CI
@@ -402,7 +403,8 @@ export function generate(inputs: CodegenInputs): CodegenResult {
     );
   }
 
-  const committed = join(uplinkDir, "client", "src", "__generated__");
+  const typesHome = existsSync(join(uplinkDir, "client")) ? "client" : "types";
+  const committed = join(uplinkDir, typesHome, "src", "__generated__");
   const outDir = inputs.check
     ? mkdtempSync(join(tmpdir(), "uplink-codegen-"))
     : committed;
@@ -416,7 +418,7 @@ export function generate(inputs: CodegenInputs): CodegenResult {
       env[variable] = join(outDir, file);
     }
     dotnet(
-      "generate the client's types",
+      `generate the ${typesHome === "client" ? "client" : "types package"}'s types`,
       [
         rtcliPath(twinDir),
         `DocumentationFilePath=${documentation}`,
@@ -464,7 +466,7 @@ export function generate(inputs: CodegenInputs): CodegenResult {
           "\nRun `uplink-tools codegen` and commit what it writes.",
       );
     }
-    console.log(`${id}: client/src/__generated__ is current`);
+    console.log(`${id}: ${typesHome}/src/__generated__ is current`);
     return "current";
   } finally {
     if (inputs.check) rmSync(outDir, { recursive: true, force: true });

@@ -696,7 +696,12 @@ describe("uplink-tools new", () => {
     const repo = workdir();
     vi.spyOn(console, "log").mockImplementation(() => {});
 
-    expect(await newUplink(["solo", "--no-client", ...BARE], repo)).toBe(0);
+    expect(
+      await newUplink(
+        ["solo", "--no-client", "--topics", "core", ...BARE],
+        repo,
+      ),
+    ).toBe(0);
 
     const read = (path: string) => readFileSync(join(repo, path), "utf8");
     for (const absent of [
@@ -740,12 +745,67 @@ describe("uplink-tools new", () => {
     );
   });
 
-  it("with --no-client, refuses a Topics answer of its own and writes nothing", async () => {
+  it("with --no-client and Topics of its own, keeps the contract slice and writes a types-only package instead of a client", async () => {
     const repo = workdir();
-    await expect(
-      newUplink(["solo", "--no-client", "--topics", "own", ...BARE], repo),
-    ).rejects.toThrow(/cannot go with --no-client/);
-    expect(existsSync(join(repo, "uplink.json"))).toBe(false);
+    vi.spyOn(console, "log").mockImplementation(() => {});
+
+    expect(
+      await newUplink(
+        ["solo", "--no-client", "--topics", "own", ...BARE],
+        repo,
+      ),
+    ).toBe(0);
+
+    const read = (path: string) => readFileSync(join(repo, path), "utf8");
+    expect(existsSync(join(repo, "client"))).toBe(false);
+    for (const present of [
+      "mod-contract",
+      "mod-contract-codegen",
+      "types/package.json",
+      "types/tsconfig.json",
+      "types/tsconfig.build.json",
+      "types/src/index.ts",
+    ]) {
+      expect(existsSync(join(repo, present)), present).toBe(true);
+    }
+    const declared = JSON.parse(read("uplink.json"));
+    expect(declared.client).toBeUndefined();
+    expect(declared.codegen).toBeDefined();
+    expect(read("mod/SoloUplink.cs")).toContain("Channels =");
+    expect(read("mod/SoloUplink.cs")).not.toMatch(
+      /ClientSource|ExpectedClientHash/,
+    );
+    const types = JSON.parse(read("types/package.json"));
+    expect(types.name).toBe("@your-github-owner/gonogo-solo-uplink-types");
+    expect(types.version).toBe("0.0.0-development");
+    expect(types.scripts.codegen).toBe("uplink-tools codegen");
+    expect(types.peerDependencies["@ksp-gonogo/sitrep-sdk"]).toBeDefined();
+    expect(read("types/src/index.ts")).toContain("__generated__/contract.js");
+  });
+
+  it("with --no-client and Topics of its own, the workflows check the generated types and publish the package", async () => {
+    const repo = workdir();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    await newUplink(
+      ["solo", "--no-client", "--topics", "own", "--workflows", ...BARE],
+      repo,
+    );
+    const ci = readFileSync(join(repo, ".github/workflows/ci.yml"), "utf8");
+    expect(ci).toContain("npm run codegen:check");
+    expect(ci).not.toContain("working-directory: client");
+    const release = readFileSync(
+      join(repo, ".github/workflows/release.yml"),
+      "utf8",
+    );
+    expect(release).toContain("npm publish dist/*.tgz");
+    expect(release).toContain("@ksp-gonogo/uplink-tools version");
+  });
+
+  it("with --no-client and core Topics, writes no types package", async () => {
+    const repo = workdir();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    await newUplink(["solo", "--no-client", "--topics", "core", ...BARE], repo);
+    expect(existsSync(join(repo, "types"))).toBe(false);
   });
 
   it("with --no-client, writes workflows that build the plugin alone", async () => {
@@ -765,7 +825,7 @@ describe("uplink-tools new", () => {
     ).toContain("GONOGO_UPLINK_VERSION");
   });
 
-  it("asks whether it has a client on a terminal, and does not ask about Topics when the answer is no", async () => {
+  it("asks whether it has a client on a terminal, and still asks about Topics when the answer is no", async () => {
     const repo = workdir();
     vi.spyOn(console, "log").mockImplementation(() => {});
     const asked: string[] = [];
@@ -800,6 +860,7 @@ describe("uplink-tools new", () => {
     expect(code).toBe(0);
     expect(asked).toEqual([
       "Does it have a client, widgets the app draws? (no: a plugin alone, for an Uplink that wraps another mod)",
+      "Which Topics will its widgets read?",
     ]);
     expect(existsSync(join(repo, "client"))).toBe(false);
   });

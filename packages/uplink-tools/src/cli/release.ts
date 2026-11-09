@@ -10,7 +10,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { prereleasePinFault } from "../deps/pins";
 import {
@@ -25,6 +25,52 @@ import { parseFlags } from "./flags";
 import { packageMod } from "./package";
 import { tagFault } from "./publish";
 
+/**
+ * Builds the types-only package of an Uplink with no client and packs it into
+ * \`outDir\`, or returns \`undefined\` for an Uplink with none. It refuses a
+ * package whose version is not the one this release is, since a stale one would
+ * publish types that describe another release.
+ */
+function packTypesPackage(
+  uplinkDir: string,
+  outDir: string,
+  version: string,
+): string | undefined {
+  const typesDir = join(uplinkDir, "types");
+  const manifestFile = join(typesDir, "package.json");
+  if (!existsSync(manifestFile)) return undefined;
+  const declared = JSON.parse(readFileSync(manifestFile, "utf8")).version;
+  if (declared !== version) {
+    throw new Error(
+      `types/package.json says ${declared} and this release is ${version}. Run uplink-tools version to stamp it, or set GONOGO_UPLINK_VERSION to it, so the types package is published at the version of the release.`,
+    );
+  }
+  if (!existsSync(join(typesDir, "node_modules"))) {
+    throw new Error(
+      `${typesDir} has no node_modules, and the types package is built with TypeScript from there. Run npm install in ${typesDir}.`,
+    );
+  }
+  const run = (args: string[]) => {
+    const ran = spawnSync("npm", args, {
+      cwd: typesDir,
+      encoding: "utf8",
+      shell: process.platform === "win32",
+    });
+    if (ran.status !== 0) {
+      process.stdout.write(ran.stdout ?? "");
+      process.stderr.write(ran.stderr ?? "");
+      throw new Error(`npm ${args.join(" ")} failed in ${typesDir}`);
+    }
+    return ran.stdout.trim();
+  };
+  run(["run", "build"]);
+  mkdirSync(outDir, { recursive: true });
+  const packed = run(["pack", "--pack-destination", outDir, "--silent"])
+    .split("\n")
+    .pop();
+  return join(outDir, packed ?? "");
+}
+
 export const RELEASE_USAGE = `uplink-tools release [options]
 
   Build both halves for release: bundle the client, bake its hash into the
@@ -38,7 +84,9 @@ export const RELEASE_USAGE = `uplink-tools release [options]
   never listed on CKAN.
 
   The client lands in client/dist/<id>/ and the mod zip in dist/, or both
-  under --out: <out>/<id>/ for the client and <out>/ for the zip.
+  under --out: <out>/<id>/ for the client and <out>/ for the zip. An Uplink with
+  no client/ but a types/ package also builds that and packs it with npm pack
+  into the same folder as the zip, at the version GONOGO_UPLINK_VERSION names.
 
   --dev-path <url>      bake a dev server URL for the bundle. The loader prefers
                         it over the released URL, so the result is a dev build
@@ -311,11 +359,18 @@ export async function release(
 
   step("package the mod");
   const packaged = packageMod(uplinkDir, outDir);
+  let typesTarball: string | undefined;
+  if (!existsSync(clientDir)) {
+    const typesStep = existsSync(join(uplinkDir, "types", "package.json"));
+    if (typesStep) step("pack the types package");
+    typesTarball = packTypesPackage(uplinkDir, outDir, version);
+  }
   console.log(
     `\n${id}: both halves built.\n` +
       (bundlePath
         ? `  client  ${bundlePath} (and gonogo-uplink.json beside it)\n`
         : "") +
+      (typesTarball ? `  types   ${typesTarball}\n` : "") +
       `  mod     ${packaged.zip}\n` +
       packaged.files.map((file) => `          ${file}`).join("\n") +
       (baked.hash ? `\n  hash    ${baked.hash}, baked into the plugin` : "") +

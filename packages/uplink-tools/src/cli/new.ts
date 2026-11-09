@@ -961,13 +961,85 @@ namespace ${ns}.Tests
 }
 
 /**
- * Turns the core-Topics seed into an Uplink with no client half: no client
- * folder, no client in uplink.json, a plugin that announces none, and tests
- * that no longer ask for one. Its version is the one the release gives it, which
- * the plugin reads from what \`bake\` writes.
+ * The types-only package of an Uplink that has Topics of its own and no client:
+ * what codegen writes from the contract slice, published as a package so another
+ * Uplink's client can read these Topics with their types. It holds nothing
+ * hand-written but its index.
+ */
+function addTypesPackage(files: Map<string, string>, o: SeedOptions): void {
+  const owner =
+    /github\.com\/([^/]+)\//.exec(o.repo)?.[1] ?? "your-github-owner";
+  const pins = { ...o.dependencies, ...o.devDependencies };
+  const pin = (name: string): string => pins[name] ?? "latest";
+  const json = (value: unknown): string =>
+    `${JSON.stringify(value, null, 2)}\n`;
+  files.set(
+    "types/package.json",
+    json({
+      name: `@${owner}/gonogo-${o.id}-uplink-types`,
+      license: "MIT",
+      version: PLACEHOLDER_VERSION,
+      type: "module",
+      main: "./dist/index.js",
+      types: "./dist/index.d.ts",
+      exports: {
+        ".": { types: "./dist/index.d.ts", default: "./dist/index.js" },
+      },
+      files: ["dist"],
+      scripts: {
+        build: "tsc -p tsconfig.build.json",
+        typecheck: "tsc --noEmit -p tsconfig.json",
+        codegen: "uplink-tools codegen",
+        "codegen:check": "uplink-tools codegen --check",
+      },
+      peerDependencies: {
+        "@ksp-gonogo/sitrep-sdk": pin("@ksp-gonogo/sitrep-sdk"),
+      },
+      devDependencies: {
+        "@ksp-gonogo/sitrep-sdk": pin("@ksp-gonogo/sitrep-sdk"),
+        "@ksp-gonogo/uplink-tools": pin("@ksp-gonogo/uplink-tools"),
+        typescript: pin("typescript"),
+      },
+    }),
+  );
+  files.set(
+    "types/tsconfig.json",
+    json({
+      extends: "@ksp-gonogo/sitrep-sdk/tsconfig.base.json",
+      compilerOptions: { noEmit: true },
+      include: ["src"],
+    }),
+  );
+  files.set(
+    "types/tsconfig.build.json",
+    json({
+      extends: "./tsconfig.json",
+      compilerOptions: {
+        noEmit: false,
+        declaration: true,
+        outDir: "dist",
+        rootDir: "src",
+      },
+    }),
+  );
+  files.set(
+    "types/src/index.ts",
+    `export * from "./__generated__/contract.js";
+export * from "./__generated__/topic-map.js";
+export * from "./__generated__/command-map.js";
+export * from "./__generated__/units.js";
+`,
+  );
+}
+
+/**
+ * Turns a seed into an Uplink with no client half: no client folder, no client
+ * in uplink.json, a plugin that announces none, and tests that no longer ask for
+ * one. With Topics of its own it gains the types-only package. Its version is the
+ * one the release gives it, which the plugin reads from what \`bake\` writes.
  *
- * It starts from the core-Topics seed and takes away, so the shapes cannot
- * drift in the files they share.
+ * It starts from the seed of its Topics shape and takes away, so the shapes
+ * cannot drift in the files they share.
  */
 function applyNoClient(files: Map<string, string>, o: SeedOptions): void {
   const Id = pascal(o.id);
@@ -985,6 +1057,7 @@ function applyNoClient(files: Map<string, string>, o: SeedOptions): void {
   for (const path of [...files.keys()]) {
     if (path.startsWith("client/")) files.delete(path);
   }
+  if (o.topics === "own") addTypesPackage(files, o);
   edit("uplink.json", (text) => {
     const { client: _client, ...rest } = JSON.parse(text);
     return `${JSON.stringify(rest, null, 2)}\n`;
@@ -1553,7 +1626,9 @@ export const NEW_USAGE = `uplink-tools new [<id>] [options]
   Topics of its own), then its generators. After writing the files it bakes
   what the plugin announces, generates the client's types (needs the .NET SDK),
   installs the client's dependencies and writes the generated page. With
-  --no-client it writes the plugin and its tests alone, and runs none of those.
+  --no-client it writes the plugin and its tests, and no client: nothing is
+  bundled or paged, and with Topics of its own it also writes a types-only
+  package in types/.
 
   It asks what it was not told. Every question is one of these flags, so with
   all of them given, or with --yes, it asks nothing. With no terminal it never
@@ -1662,7 +1737,7 @@ const SINGLE_REPO_BUILD_TARGETS = `<Project>
  * runs, and nothing of ours beyond them.
  */
 function ciWorkflow(topics: Answers["topics"], client: boolean): string {
-  if (!client) return ciWorkflowNoClient();
+  if (!client) return ciWorkflowNoClient(topics);
   return `name: ci
 
 # Checks both halves of this Uplink on every push, with the commands you run
@@ -1729,8 +1804,8 @@ ${
 `;
 }
 
-/** The CI of a lone Uplink with no client half: the plugin's tests and its release build. */
-function ciWorkflowNoClient(): string {
+/** The CI of a lone Uplink with no client half: its types package when it has Topics of its own, the plugin's tests and its release build. */
+function ciWorkflowNoClient(topics: Answers["topics"]): string {
   return `name: ci
 
 # Checks this Uplink's plugin on every push, with the commands you run
@@ -1753,7 +1828,23 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
-      - name: Test the plugin
+${
+  topics === "own"
+    ? `      - name: Install the types package
+        working-directory: types
+        run: npm install
+
+      - name: The generated types are current
+        working-directory: types
+        run: npm run codegen:check
+
+      - name: Typecheck the types package
+        working-directory: types
+        run: npm run typecheck
+
+`
+    : ""
+}      - name: Test the plugin
         run: dotnet test mod-tests
 
       - name: Build the plugin for release
@@ -1771,8 +1862,12 @@ jobs:
  * commands, in the order they run them. The zip is attached with the runner's
  * `gh`, the one step that is not an uplink-tools command.
  */
-function releaseWorkflow(id: string, client: boolean): string {
-  if (!client) return releaseWorkflowNoClient(id);
+function releaseWorkflow(
+  id: string,
+  client: boolean,
+  topics: Answers["topics"],
+): string {
+  if (!client) return releaseWorkflowNoClient(id, topics);
   return `name: release
 
 # Publishes a version when its tag is pushed: tag any commit ${id}-v0.0.1 for
@@ -1825,7 +1920,10 @@ jobs:
 }
 
 /** What a lone repo with no client half runs when a release tag is pushed: the plugin built at the tag's version, and its zip attached. */
-function releaseWorkflowNoClient(id: string): string {
+function releaseWorkflowNoClient(
+  id: string,
+  topics: Answers["topics"],
+): string {
   return `name: release
 
 # Publishes a version when its tag is pushed: tag any commit ${id}-v0.0.1 for
@@ -1847,22 +1945,44 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
-          node-version: "24"
+          node-version: "24"${topics === "own" ? '\n          registry-url: "https://registry.npmjs.org"' : ""}
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "10.0.x"
 
       - name: Take the version from the tag
         run: echo "GONOGO_UPLINK_VERSION=\${GITHUB_REF_NAME#${id}-v}" >> "$GITHUB_ENV"
+${
+  topics === "own"
+    ? `
+      - name: Install the types package
+        working-directory: types
+        run: npm install
 
-      - name: Build the plugin for release
+      - name: Stamp the version from the tag
+        run: npx --yes @ksp-gonogo/uplink-tools version "$GONOGO_UPLINK_VERSION"
+`
+    : ""
+}
+      - name: Build for release
         run: npx --yes @ksp-gonogo/uplink-tools release --tag "$GITHUB_REF_NAME"
 
       - name: Attach the plugin to the tag's release
         env:
           GH_TOKEN: \${{ github.token }}
         run: gh release create "$GITHUB_REF_NAME" dist/*.zip --verify-tag --title "$GITHUB_REF_NAME"
-`;
+${
+  topics === "own"
+    ? `
+      # The types package, packed by release beside the zip, for other Uplinks'
+      # clients to depend on. Needs an npm token in the NPM_TOKEN secret.
+      - name: Publish the types package
+        env:
+          NODE_AUTH_TOKEN: \${{ secrets.NPM_TOKEN }}
+        run: npm publish dist/*.tgz --access public
+`
+    : ""
+}`;
 }
 
 /** Runs one of the scaffold's follow-on steps, and reports a failure as something left to do rather than as a crash. */
@@ -2011,7 +2131,7 @@ export async function newUplink(
       );
       files.set(
         ".github/workflows/release.yml",
-        releaseWorkflow(id, answers.client),
+        releaseWorkflow(id, answers.client, answers.topics),
       );
     }
     if (answers.ksp !== null) {
@@ -2055,14 +2175,63 @@ export async function newUplink(
   console.log(describeBake(bakeUplink({ uplinkDir: target })));
 
   if (!answers.client) {
-    const tests = relative(cwd, join(target, "mod-tests")) || ".";
+    const rel = (path: string) => relative(cwd, join(target, path)) || ".";
+    const inTypes = (command: string) => `cd ${rel("types")} && ${command}`;
+    const typed: string[] = [];
+    const typesFailures: string[] = [];
+    if (answers.topics === "own") {
+      const generatedTypes =
+        !switches.has("--no-generate") &&
+        attempt(
+          "generate the types package's types",
+          inTypes("npx uplink-tools codegen"),
+          () => {
+            generate({ uplinkDir: target });
+          },
+        ) === undefined;
+      const installedTypes =
+        !switches.has("--no-install") &&
+        attempt(
+          "install the types package's dependencies",
+          inTypes("npm install"),
+          () => shell("npm", ["install"], join(target, "types")),
+        ) === undefined;
+      if (generatedTypes && installedTypes) {
+        const failure = attempt(
+          "typecheck the types package",
+          inTypes("npm run typecheck"),
+          () => shell("npm", ["run", "typecheck"], join(target, "types")),
+        );
+        if (failure !== undefined) typesFailures.push(failure);
+      }
+      if (switches.has("--no-generate")) {
+        typed.push(
+          `generate the types: ${inTypes("npx uplink-tools codegen")}`,
+        );
+      }
+      if (switches.has("--no-install")) {
+        typed.push(
+          `install the types package's dependencies: ${inTypes("npm install")}`,
+        );
+      }
+      if (!generatedTypes && !switches.has("--no-generate")) {
+        typesFailures.push(
+          `generate the types: ${inTypes("npx uplink-tools codegen")}`,
+        );
+      }
+    }
     console.log(
-      `\nNext:\n  - say what it wraps: the plugin is mod/${pascal(id)}Uplink.cs, and Register is where it reaches that mod\n` +
-        `  - prove it: dotnet test ${tests}\n` +
+      `${typesFailures.length > 0 ? `\nDid not finish:\n${typesFailures.map((l) => `  - ${l}`).join("\n")}\n` : ""}` +
+        `${typed.length > 0 ? `\nSkipped, as asked:\n${typed.map((l) => `  - ${l}`).join("\n")}\n` : ""}` +
+        `\nNext:\n  - say what it wraps: the plugin is mod/${pascal(id)}Uplink.cs, and Register is where it reaches that mod\n` +
+        (answers.topics === "own"
+          ? "  - declare your Topics in mod-contract/, then regenerate the types in types/ with npx uplink-tools codegen. release packs that package beside the zip, for other Uplinks' clients to depend on and read your Topics typed\n"
+          : "") +
+        `  - prove it: dotnet test ${rel("mod-tests")}\n` +
         "  - when it is ready to install in a game: npx uplink-tools release, which compiles and zips the plugin. " +
         "Its version is GONOGO_UPLINK_VERSION when that is set\n",
     );
-    return 0;
+    return typesFailures.length > 0 ? 1 : 0;
   }
 
   const clientDir = join(target, "client");
