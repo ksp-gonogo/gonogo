@@ -1,5 +1,6 @@
 import {
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -10,6 +11,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { add, addCommand, addToUplink } from "./add";
 import { newUplink } from "./new";
+import type { Prompter } from "./questions";
 
 const scratch: string[] = [];
 let dir = "";
@@ -100,7 +102,9 @@ describe("uplink-tools add", () => {
   });
 
   it("adds a contribution through the Uplink's own handle", () => {
-    addToUplink(dir, "contribution", "full cabin");
+    addToUplink(dir, "contribution", "full cabin", {
+      slot: "crew-status.badges",
+    });
     const text = read("client/src/contributions/full-cabin.ts");
     expect(text).toContain("SOLO.registerContribution({");
     expect(text).toContain('contributes: "crew-status.badges"');
@@ -137,7 +141,14 @@ describe("uplink-tools add", () => {
       ["unit", "e"],
       ["processor", "f"],
     ] as const) {
-      addToUplink(dir, kind, `${name}${name}`);
+      addToUplink(dir, kind, `${name}${name}`, {
+        slot:
+          kind === "augment"
+            ? "crew-status.actions"
+            : kind === "contribution"
+              ? "crew-status.badges"
+              : undefined,
+      });
     }
     const sources = [
       "client/src/Aa/index.tsx",
@@ -157,26 +168,208 @@ describe("uplink-tools add", () => {
     }
   });
 
-  it("refuses a name it cannot use, a client that is not there, and a slot on the wrong kind", () => {
+  it("refuses a name it cannot use, a client that is not there, and a slot on the wrong kind", async () => {
     expect(() => addToUplink(dir, "widget", "9 lives")).toThrow(/not a name/);
     const bare = mkdtempSync(join(tmpdir(), "gonogo-add-"));
     scratch.push(bare);
     expect(() => addToUplink(bare, "widget", "x")).toThrow();
-    expect(() =>
-      add(["widget", "x", "--slot", "a.b", "--uplink", dir], dir),
-    ).toThrow(/--slot is for/);
+    await expect(
+      add(["widget", "x", "crew-status.actions", "--uplink", dir], dir),
+    ).rejects.toThrow(/slot is for/);
   });
 
-  it("writes the page afterwards only when the client is installed", () => {
+  it("writes the page afterwards only when the client is installed", async () => {
     const pages: string[] = [];
-    add(["setting", "one", "--uplink", dir], dir, (c) => pages.push(c));
+    await add(["setting", "one", "--uplink", dir], dir, {
+      runPage: (c) => pages.push(c),
+    });
     expect(pages).toEqual([]);
     const said: string[] = [];
     vi.mocked(console.log).mockImplementation((l: string) => {
       said.push(String(l));
     });
-    add(["setting", "two", "--uplink", dir], dir);
+    await add(["setting", "two", "--uplink", dir], dir);
     expect(said.join("\n")).toContain("npm install && npm run page");
+  });
+
+  describe("the slot an augment or a contribution joins", () => {
+    /** A stand-in for the installed sdk's declarations, with the slots the tests name. */
+    const installSdk = () => {
+      const api = join(
+        dir,
+        "client/node_modules/@ksp-gonogo/sitrep-sdk/dist/api",
+      );
+      mkdirSync(api, { recursive: true });
+      writeFileSync(
+        join(api, "slots.d.ts"),
+        `declare module "./types" {
+  interface SlotRegistry {
+    /** The {@link Avatar} of a kerbal. */
+    "crew-status.avatar": Record<string, never>;
+  }
+}
+declare module "./types" {
+  interface ContributionRegistry {
+    "ship-map.part-meters": { entry: PartMeterEntry };
+  }
+}
+`,
+      );
+    };
+    const noTerminal = { interactive: false };
+    const answering = (yes: boolean): Prompter => ({
+      text: async () => "",
+      select: async () => "",
+      confirm: async () => yes,
+      isCancel: (v): v is symbol => typeof v === "symbol",
+    });
+
+    it("needs the slot, and a slot shaped as a widget id and a segment", async () => {
+      await expect(add(["augment", "x", "--uplink", dir], dir)).rejects.toThrow(
+        /joins a slot/,
+      );
+      await expect(
+        add(["augment", "x", "Crew Status", "--uplink", dir], dir),
+      ).rejects.toThrow(/not a slot id/);
+      expect(existsSync(join(dir, "client/src/augments/x.tsx"))).toBe(false);
+    });
+
+    it("writes into a slot the sdk declares, and into a standard segment of a widget it knows", async () => {
+      installSdk();
+      await add(
+        ["augment", "avatar mark", "crew-status.avatar", "--uplink", dir],
+        dir,
+        noTerminal,
+      );
+      await add(
+        ["augment", "roster", "crew-status.actions", "--uplink", dir],
+        dir,
+        noTerminal,
+      );
+      await add(
+        ["contribution", "meter", "ship-map.part-meters", "--uplink", dir],
+        dir,
+        noTerminal,
+      );
+      await add(
+        ["contribution", "badge", "crew-status.badges", "--uplink", dir],
+        dir,
+        noTerminal,
+      );
+      expect(read("client/src/augments/avatar-mark.tsx")).toContain(
+        'augments: "crew-status.avatar"',
+      );
+      expect(read("client/src/augments/avatar-mark.tsx")).toContain(
+        "slot of the crew-status widget",
+      );
+      expect(existsSync(join(dir, "client/src/slots"))).toBe(false);
+    });
+
+    it("names an unknown slot, lists the known ones and writes nothing with no terminal", async () => {
+      installSdk();
+      const said: string[] = [];
+      vi.spyOn(console, "error").mockImplementation((l: string) => {
+        said.push(String(l));
+      });
+      await expect(
+        add(
+          ["augment", "x", "crew-status.cabin", "--uplink", dir],
+          dir,
+          noTerminal,
+        ),
+      ).rejects.toThrow(/--declare-slot/);
+      await expect(
+        add(
+          ["augment", "x", "crew-status.cabin", "--uplink", dir],
+          dir,
+          noTerminal,
+        ),
+      ).rejects.toThrow(/crew-status\.avatar/);
+      expect(existsSync(join(dir, "client/src/augments/x.tsx"))).toBe(false);
+      expect(existsSync(join(dir, "client/src/slots"))).toBe(false);
+    });
+
+    it("writes the declaration beside the augment when --declare-slot says so", async () => {
+      installSdk();
+      await add(
+        [
+          "augment",
+          "x",
+          "otheruplink.panel",
+          "--declare-slot",
+          "--uplink",
+          dir,
+        ],
+        dir,
+        noTerminal,
+      );
+      const declaration = read("client/src/slots/otheruplink-panel.ts");
+      expect(declaration).toContain("interface SlotRegistry");
+      expect(declaration).toContain(
+        '"otheruplink.panel": Record<string, unknown>;',
+      );
+      expect(read("client/src/index.ts")).toContain(
+        'import "./slots/otheruplink-panel.js";',
+      );
+      expect(read("client/src/augments/x.tsx")).toContain(
+        'augments: "otheruplink.panel"',
+      );
+    });
+
+    it("declares a contribution's slot in the contribution registry", async () => {
+      await add(
+        [
+          "contribution",
+          "y",
+          "otheruplink.rows",
+          "--declare-slot",
+          "--uplink",
+          dir,
+        ],
+        dir,
+        noTerminal,
+      );
+      expect(read("client/src/slots/otheruplink-rows.ts")).toContain(
+        '"otheruplink.rows": { entry: Record<string, unknown> };',
+      );
+    });
+
+    it("asks on a terminal, and writes the declaration only on a yes", async () => {
+      installSdk();
+      await add(["augment", "yes one", "otheruplink.a", "--uplink", dir], dir, {
+        interactive: true,
+        loadPrompter: async () => answering(true),
+      });
+      expect(existsSync(join(dir, "client/src/slots/otheruplink-a.ts"))).toBe(
+        true,
+      );
+
+      const code = await add(
+        ["augment", "no one", "otheruplink.b", "--uplink", dir],
+        dir,
+        {
+          interactive: true,
+          loadPrompter: async () => answering(false),
+        },
+      );
+      expect(code).toBe(1);
+      expect(existsSync(join(dir, "client/src/slots/otheruplink-b.ts"))).toBe(
+        false,
+      );
+      expect(existsSync(join(dir, "client/src/augments/no-one.tsx"))).toBe(
+        false,
+      );
+    });
+
+    it("says when the sdk's declarations could not be read", async () => {
+      await expect(
+        add(
+          ["augment", "x", "crew-status.actions", "--uplink", dir],
+          dir,
+          noTerminal,
+        ),
+      ).rejects.toThrow(/dependencies are not installed/);
+    });
   });
 
   describe("command", () => {

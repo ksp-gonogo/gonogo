@@ -9,7 +9,18 @@ import { dirname, join, relative, resolve } from "node:path";
 import { findUplinkDir } from "./bake";
 import { generate } from "./codegen";
 import { parseFlags } from "./flags";
-import { renderSeed } from "./new";
+import { loadPrompter, renderSeed } from "./new";
+import type { Prompter } from "./questions";
+import {
+  declarationFor,
+  declarationPath,
+  isKnownSlot,
+  isSlotShape,
+  knownSlots,
+  type SlotKind,
+  suggestionsFor,
+  widgetOf,
+} from "./slots";
 
 const KINDS = [
   "widget",
@@ -22,7 +33,7 @@ const KINDS = [
 ] as const;
 type Kind = (typeof KINDS)[number];
 
-export const ADD_USAGE = `uplink-tools add <kind> <name> [options]
+export const ADD_USAGE = `uplink-tools add <kind> <name> [<slot>] [options]
 
   Add one thing to the Uplink's client, from the templates \`new\` writes, and
   import it from client/src/index.ts. It never overwrites a file, and it writes
@@ -49,10 +60,15 @@ export const ADD_USAGE = `uplink-tools add <kind> <name> [options]
 
   <name>  words, kebab-case or PascalCase: "fuel gauge", fuel-gauge and
           FuelGauge are the same name
+  <slot>  augment and contribution, required: the slot id it joins, a widget id
+          and a segment such as crew-status.actions. The sdk and this Uplink
+          declare the slots it knows. A slot another Uplink declares is not
+          known, so add says so and asks whether to write a type declaration
+          for it in client/src/slots/
 
-  --slot <slot>    augment and contribution: the slot it joins (default:
-                   crew-status.actions for an augment, crew-status.badges for a
-                   contribution)
+  --declare-slot   augment and contribution: write the type declaration for a
+                   slot that is not known, without asking. Without it and
+                   without a terminal, an unknown slot writes nothing
   --delay <role>   command: true-now (the default: it runs on arrival, for a
                    command about the plugin or the ground) or delayed (it
                    travels with a vessel's delay and needs --subject)
@@ -145,7 +161,7 @@ function augmentFiles(
 import { Text } from "@ksp-gonogo/ui-kit";
 import { ${upper} } from "../uplink.js";
 
-/** What ${n.title} adds to \`${slot}\`. Replace it with what the operator should see there. */
+/** What ${n.title} adds to the \`${slot}\` slot of the ${widgetOf(slot)} widget. Replace it with what the operator should see there. */
 function ${n.pascal}() {
   return <Text>${n.title}</Text>;
 }
@@ -214,8 +230,8 @@ function contributionFiles(
 import { ${upper} } from "../uplink.js";
 
 /**
- * What ${n.title} contributes to \`${slot}\`: a badge when the vessel has crew
- * aboard. Replace the Topic, the condition and the entry with your own. Return
+ * What ${n.title} contributes to the \`${slot}\` slot of the ${widgetOf(slot)} widget:
+ * a badge when the vessel has crew aboard. Replace the Topic, the condition and the entry with your own. Return
  * \`null\` for nothing.
  */
 ${upper}.registerContribution({
@@ -359,7 +375,7 @@ export function addToUplink(
   uplinkDir: string,
   kind: Exclude<Kind, "command">,
   name: string,
-  options: { slot?: string } = {},
+  options: { slot?: string; declareSlot?: boolean } = {},
 ): string[] {
   const clientDir = join(uplinkDir, "client");
   if (!existsSync(join(clientDir, "package.json"))) {
@@ -380,23 +396,36 @@ export function addToUplink(
     );
   }
   const n = namesOf(name);
+  const slotKind: SlotKind | undefined =
+    kind === "augment" || kind === "contribution" ? kind : undefined;
+  if (slotKind) {
+    if (!options.slot || !isSlotShape(options.slot)) {
+      throw new Error(
+        `${options.slot ? `"${options.slot}" is not a slot id. ` : ""}An ${slotKind} joins a slot, named as the widget's id and a segment: uplink-tools add ${slotKind} <name> <slot>, such as crew-status.${slotKind === "augment" ? "actions" : "badges"}.`,
+      );
+    }
+  } else if (options.slot) {
+    throw new Error("A slot is for an augment or a contribution.");
+  }
   const files: Files =
     kind === "widget"
       ? widgetFiles(id, uplinkName, n)
       : kind === "augment"
-        ? augmentFiles(upper, id, n, options.slot ?? "crew-status.actions")
+        ? augmentFiles(upper, id, n, options.slot ?? "")
         : kind === "contribution"
-          ? contributionFiles(
-              upper,
-              id,
-              n,
-              options.slot ?? "crew-status.badges",
-            )
+          ? contributionFiles(upper, id, n, options.slot ?? "")
           : kind === "processor"
             ? processorFiles(upper, n)
             : kind === "setting"
               ? settingFiles(id, n)
               : unitFiles(id, n);
+
+  if (slotKind && options.declareSlot && options.slot) {
+    files.set(
+      declarationPath(options.slot),
+      declarationFor(slotKind, options.slot),
+    );
+  }
 
   const clashes = [...files.keys()].filter((path) =>
     existsSync(join(uplinkDir, path)),
@@ -409,6 +438,9 @@ export function addToUplink(
   const indexPath = join(clientDir, "src", "index.ts");
   const index = readFileSync(indexPath, "utf8");
   const lines = indexLines(kind, n);
+  if (slotKind && options.declareSlot && options.slot) {
+    lines.unshift(`import "./slots/${options.slot.replaceAll(".", "-")}.js";`);
+  }
   if (lines.every((line) => index.includes(line))) {
     throw new Error(`client/src/index.ts already imports ${n.kebab}.`);
   }
@@ -623,19 +655,32 @@ public sealed class ${args}
   return { changed: [...edits.keys()], byHand, commandId };
 }
 
-export function add(
+export interface AddRuntime {
+  /** Whether there is a terminal to ask on. Defaults to whether stdin is one. */
+  interactive?: boolean;
+  /** Supplies the prompts. Defaults to `@clack/prompts`, loaded on first use. */
+  loadPrompter?: () => Promise<Prompter>;
+  /** Writes the generated page of a client. */
+  runPage?: (clientDir: string) => void;
+}
+
+/** Thrown when a question is unanswered and nothing can be asked. The command exits 2 on it and writes nothing. */
+class Unanswered extends Error {}
+
+export async function add(
   argv: readonly string[],
   cwd: string = process.cwd(),
-  runPage: (clientDir: string) => void = () => {},
-): number {
+  runtime: AddRuntime = {},
+): Promise<number> {
+  const runPage = runtime.runPage ?? (() => {});
   const { values, switches, positionals } = parseFlags(argv, {
     verb: "add",
     usage: ADD_USAGE,
-    values: ["--slot", "--uplink", "--delay", "--subject"],
-    switches: ["--no-page", "--no-generate"],
-    positionals: 2,
+    values: ["--uplink", "--delay", "--subject"],
+    switches: ["--no-page", "--no-generate", "--declare-slot"],
+    positionals: 3,
   });
-  const [kind, name] = positionals;
+  const [kind, name, slot] = positionals;
   if (!kind || !name || !(KINDS as readonly string[]).includes(kind)) {
     throw new Error(
       `add needs a kind and a name: uplink-tools add <${KINDS.join("|")}> <name>\n\n${ADD_USAGE}`,
@@ -648,8 +693,17 @@ export function add(
       `no uplink.json in ${cwd} or any directory above it. Run add inside an Uplink, or name one with --uplink <dir>.`,
     );
   }
-  if (values.get("--slot") && kind !== "augment" && kind !== "contribution") {
-    throw new Error("--slot is for an augment or a contribution.");
+  const joinsSlot = kind === "augment" || kind === "contribution";
+  if (slot && !joinsSlot) {
+    throw new Error("A slot is for an augment or a contribution.");
+  }
+  if (switches.has("--declare-slot") && !joinsSlot) {
+    throw new Error("--declare-slot is for an augment or a contribution.");
+  }
+  if (joinsSlot && !slot) {
+    throw new Error(
+      `An ${kind} joins a slot, so add needs its id: uplink-tools add ${kind} <name> <slot>, such as crew-status.${kind === "augment" ? "actions" : "badges"}.\n\n${ADD_USAGE}`,
+    );
   }
   if (kind === "command") {
     const { changed, byHand, commandId } = addCommand(uplinkDir, name, {
@@ -677,13 +731,48 @@ export function add(
   if (values.get("--delay") || values.get("--subject")) {
     throw new Error("--delay and --subject are for a command.");
   }
+
+  let declareSlot = false;
+  if (joinsSlot && slot) {
+    if (!isSlotShape(slot)) {
+      throw new Error(
+        `"${slot}" is not a slot id. A slot is named as the widget's id and a segment, such as crew-status.${kind === "augment" ? "actions" : "badges"}.\n\n${ADD_USAGE}`,
+      );
+    }
+    const known = knownSlots(uplinkDir);
+    if (!isKnownSlot(known, kind as SlotKind, slot)) {
+      const notFound = `The slot ${slot} was not found among the slots the sdk${known.sdkRead ? "" : " (its declarations could not be read: the client's dependencies are not installed)"} and this Uplink declare. ${suggestionsFor(known, kind as SlotKind, slot)}`;
+      const where = declarationPath(slot);
+      if (switches.has("--declare-slot")) {
+        console.log(
+          `${notFound}\n  Writing a type declaration for it in ${where}, as --declare-slot says.`,
+        );
+        declareSlot = true;
+      } else if (runtime.interactive ?? process.stdin.isTTY === true) {
+        console.log(notFound);
+        const prompter = await (runtime.loadPrompter ?? loadPrompter)();
+        const answer = await prompter.confirm({
+          message: `Is ${slot} a slot another Uplink declares? Write a type declaration for it in ${where}, so the ${kind} typechecks against it`,
+          initialValue: false,
+        });
+        if (prompter.isCancel(answer) || answer !== true) {
+          console.log("Nothing was written.");
+          return 1;
+        }
+        declareSlot = true;
+      } else {
+        throw new Unanswered(
+          `${notFound}\n  Nothing can be asked without a terminal, so nothing was written. If ${slot} is a slot another Uplink declares, run it again with --declare-slot to write a type declaration for it in ${where}.`,
+        );
+      }
+    }
+  }
+
   const written = addToUplink(
     uplinkDir,
     kind as Exclude<Kind, "command">,
     name,
-    {
-      slot: values.get("--slot"),
-    },
+    { slot, declareSlot },
   );
   console.log(
     `${kind} ${namesOf(name).kebab}: wrote ${written
@@ -701,3 +790,5 @@ export function add(
   }
   return 0;
 }
+
+export { Unanswered };

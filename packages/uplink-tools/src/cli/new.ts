@@ -2237,7 +2237,7 @@ function shell(command: string, args: readonly string[], cwd: string): void {
 }
 
 /** `@clack/prompts`, loaded only once a question is really going to be asked on a terminal. */
-async function loadPrompter(): Promise<Prompter> {
+export async function loadPrompter(): Promise<Prompter> {
   const clack = await import("@clack/prompts");
   return {
     text: (options) => clack.text(options),

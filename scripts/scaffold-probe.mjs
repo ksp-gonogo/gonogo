@@ -1204,18 +1204,50 @@ if (!published) {
   }
   passesOwnCheck(coreClient, join(coreClient, "src/Vessel/index.tsx"));
   console.log("scaffold-probe: uplink-tools add, one of each kind");
-  for (const [kind, name] of [
+  for (const [kind, name, slot] of [
     ["widget", "fuel gauge"],
-    ["augment", "open roster"],
-    ["contribution", "full cabin"],
+    ["augment", "open roster", "crew-status.actions"],
+    ["contribution", "full cabin", "crew-status.badges"],
     ["processor", "descent rate"],
     ["setting", "show days"],
     ["unit", "snack crate"],
   ]) {
-    must(`uplink-tools add ${kind} "${name}"`, bin, ["add", kind, name], {
-      cwd: coreClient,
-    });
+    must(
+      `uplink-tools add ${kind} "${name}"${slot ? ` ${slot}` : ""}`,
+      bin,
+      ["add", kind, name, ...(slot ? [slot] : [])],
+      { cwd: coreClient },
+    );
   }
+  mustFail(
+    "add augment with no slot",
+    /joins a slot/,
+    bin,
+    ["add", "augment", "lonely"],
+    { cwd: coreClient },
+  );
+  mustFail(
+    "add augment to a slot nothing declares, with no terminal to ask on",
+    /--declare-slot/,
+    bin,
+    ["add", "augment", "partner panel", "partneruplink.panel"],
+    { cwd: coreClient },
+  );
+  if (existsSync(join(coreClient, "src/slots"))) {
+    fail("add wrote a slot declaration with nothing to say it should");
+  }
+  must(
+    "uplink-tools add augment to another Uplink's slot, with --declare-slot",
+    bin,
+    [
+      "add",
+      "augment",
+      "partner panel",
+      "partneruplink.panel",
+      "--declare-slot",
+    ],
+    { cwd: coreClient },
+  );
   for (const script of ["typecheck", "test", "page"]) {
     must(`npm run ${script}, after add`, "npm", ["run", script], {
       cwd: coreClient,
