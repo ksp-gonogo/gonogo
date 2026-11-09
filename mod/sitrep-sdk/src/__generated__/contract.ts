@@ -10016,22 +10016,26 @@ export interface CatalogEntry
 	* Whether this vessel has a live control link home, as the receiving centre
 	* has heard it: an outage shows one of the centre's signal delays after the
 	* vessel's last light, and its return when its light arrives again. Read for
-	* every roster vessel, loaded or not. This is stock CommNet's reading
-	* (`Vessel.connection.IsConnected`), not the active vessel's `comms.*`
-	* channels, which a comms mod may provide.
+	* every roster vessel, loaded or not. For the loaded vessel it is the game's
+	* own live connection; for any other vessel it is whether the active comms
+	* backend finds a route from the vessel to a ground station on the network as
+	* it stands now.
 	*
 	* Null means unknown, not "no link". Three causes: the vessel's own link
 	* report has not reached this centre yet; rarely, a scene transition; and
 	* always, for the `Debris`, `SpaceObject` (asteroids and comets) and `Unknown`
 	* vessel types, which CommNet never gives a connection
 	* (`CommNet.CommNetVessel.OnStart`). A debris or asteroid entry carries null
-	* here on every sample.
+	* here on every sample. A vessel that is not loaded also reads null when no
+	* comms backend is active yet or its route could not be asked for.
 	*/
 	commsConnected?: boolean | null;
 	/**
 	* The same connection's control level. Null under the same condition as
 	* `CatalogEntry.commsConnected`, including the permanent Debris, SpaceObject
-	* and Unknown vessel-type case described there.
+	* and Unknown vessel-type case described there, and for every vessel that is
+	* not loaded, since the game recomputes the level only while the vessel is
+	* loaded.
 	*/
 	commsControlSource?: RosterCommsControlSource | null;
 	/**

@@ -166,34 +166,6 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// A vessel's connectivity alone, by the same rules as
-        /// <see cref="ReadVessel"/>'s flag, without walking its control path.
-        /// Cheap enough to ask of every vessel in the save on every tick, which
-        /// is what the fleet's ungated link capture does. Null when the link
-        /// could not be read.
-        /// </summary>
-        internal static bool? ReadConnected(Vessel vessel, SignalDelayConfig config)
-        {
-            try
-            {
-                if (vessel == null)
-                {
-                    return null;
-                }
-                if (config != null && config.CutForNoCommsModel)
-                {
-                    return true;
-                }
-                return vessel.connection != null && vessel.connection.IsConnected;
-            }
-            catch (Exception ex)
-            {
-                GonogoLog.WarnLimited("FleetCommsReader.ReadConnected failed (link unread)", ex);
-                return null;
-            }
-        }
-
-        /// <summary>
         /// Whether a vessel's route ends at a ground station, any ground station:
         /// every one carries the home command's ledger, so this is what reaching it
         /// means. Null when it cannot be read.
