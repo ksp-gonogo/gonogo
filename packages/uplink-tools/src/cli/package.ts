@@ -2,7 +2,7 @@
  * `uplink-tools package`: the mod half as a GameData tree and the zip of it.
  *
  * The zip holds the plugin and its own contract slice and nothing else of
- * Gonogo's: `Sitrep.Contract.dll` is GonogoCore's to provide, and a second copy
+ * Gonogo's: `Sitrep.Contract.dll` is Gonogo's to provide, and a second copy
  * in another GameData folder is a second set of types that do not compare equal
  * to the first.
  *

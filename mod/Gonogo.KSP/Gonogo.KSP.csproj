@@ -52,7 +52,7 @@
     </Reference>
   </ItemGroup>
 
-  <!-- Harmony 2 is a required install of Gonogo (GonogoCore.netkan depends on
+  <!-- Harmony 2 is a required install of Gonogo (Gonogo.netkan depends on
        Harmony2): the contract objective delay patches stock methods no game
        event lets anything hold. It ships in an install's GameData/000_Harmony:
        found under KspGameData when that is passed, else beside the Managed/

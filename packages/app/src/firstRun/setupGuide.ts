@@ -102,7 +102,7 @@ export const ADDRESS_COMMAND = {
 } as const;
 
 /** The CKAN identifier every Uplink depends on, and so the one a search for Uplinks names. */
-export const CKAN_CORE_IDENTIFIER = "GonogoCore";
+export const CKAN_CORE_IDENTIFIER = "Gonogo";
 
 /** Typed into CKAN's search box, this lists every mod that depends on Gonogo: the Uplinks. */
 export const CKAN_UPLINK_FILTER = `dep:${CKAN_CORE_IDENTIFIER}`;

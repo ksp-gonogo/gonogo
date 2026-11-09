@@ -72,7 +72,7 @@ namespace Sitrep.Core.Tests
 
             // Private to an Uplink PLUGIN, and only to one: see
             // ShippedToTestProjects. A plugin that carried its own copy would
-            // shadow the one GonogoCore has already loaded into KSP's shared
+            // shadow the one Gonogo has already loaded into KSP's shared
             // AppDomain.
             "Sitrep.Core",
 

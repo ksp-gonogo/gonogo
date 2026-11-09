@@ -28,7 +28,7 @@ const ROOT = join(__dirname, "../../..");
 const FIXTURES = join(ROOT, "scripts/__fixtures__");
 const NETKAN_SCHEMA = join(FIXTURES, "NetKAN.schema");
 const CKAN_SCHEMA = join(FIXTURES, "CKAN.schema");
-const CORE_NETKAN = join(ROOT, "mod/Gonogo.KSP/GonogoCore.netkan");
+const CORE_NETKAN = join(ROOT, "mod/Gonogo.KSP/Gonogo.netkan");
 const BUILD = readFileSync(
   join(ROOT, ".github/workflows/_build-uplink-mod.yml"),
   "utf8",
@@ -155,7 +155,7 @@ describe("the netkan", () => {
     ckanSchema: CKAN_SCHEMA,
   };
 
-  it("GonogoCore.netkan validates against CKAN's NetKAN schema", () => {
+  it("Gonogo.netkan validates against CKAN's NetKAN schema", () => {
     expect(checkNetkan({ netkan: CORE_NETKAN, ...options })).toEqual([]);
   });
 
@@ -241,7 +241,7 @@ describe("the build workflow", () => {
       join(ROOT, ".github/workflows/publish-mods.yml"),
       "utf8",
     );
-    expect(matrix).toMatch(/netkan: mod\/Gonogo\.KSP\/GonogoCore\.netkan/);
+    expect(matrix).toMatch(/netkan: mod\/Gonogo\.KSP\/Gonogo\.netkan/);
     expect(matrix).toMatch(/netkan: \$\{\{ matrix\.netkan \}\}/);
   });
 });

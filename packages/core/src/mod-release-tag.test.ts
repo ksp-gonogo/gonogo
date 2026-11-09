@@ -126,7 +126,7 @@ describe("every path that puts a mod zip in front of a player asks the rule", ()
   });
 
   it("the netkan lists no prerelease", () => {
-    expect(read("mod/Gonogo.KSP/GonogoCore.netkan")).toMatch(
+    expect(read("mod/Gonogo.KSP/Gonogo.netkan")).toMatch(
       /"prereleases": false/,
     );
   });

@@ -151,7 +151,7 @@ describe("uplink-tools new", () => {
     const slice =
       files.get("mod-contract/GonogoWidgetsUplink.Contract.csproj") ?? "";
     const tests = files.get("mod-tests/GonogoWidgetsUplink.Tests.csproj") ?? "";
-    // Compiled against and never copied: GonogoCore provides the assembly in the game.
+    // Compiled against and never copied: Gonogo provides the assembly in the game.
     for (const shipped of [plugin, slice]) {
       expect(shipped).toContain(
         `${exact} IncludeAssets="compile" PrivateAssets="all" />`,

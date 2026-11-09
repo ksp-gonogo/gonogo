@@ -18,7 +18,7 @@
  *      Uplink plugin resolves the net472 assets and must see neither of them
  *      and restore no xunit; get the grouping wrong and a test framework lands
  *      in GameData, or a plugin ships a second Sitrep.Core that shadows the
- *      one GonogoCore already loaded into the shared AppDomain.
+ *      one Gonogo already loaded into the shared AppDomain.
  *   3. MAINTAINER PROSE IS PUBLISHED. A contract doc comment's `<internal>`
  *      subtree is for whoever maintains the type, not for an Uplink author's
  *      IntelliSense. `RtDocText` drops it

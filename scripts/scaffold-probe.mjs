@@ -959,7 +959,7 @@ const expectedZip = [
 if (zipped.join("\n") !== expectedZip.join("\n")) {
   fail(
     `the mod zip holds [${zipped.join(", ")}], expected exactly [${expectedZip.join(", ")}]. ` +
-      "Sitrep.Contract.dll in particular is GonogoCore's to provide.",
+      "Sitrep.Contract.dll in particular is Gonogo's to provide.",
   );
 }
 console.log(

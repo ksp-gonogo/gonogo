@@ -539,7 +539,7 @@ describe("the generated Uplink page", () => {
     <RootNamespace>${ns}</RootNamespace>
   </PropertyGroup>
 
-  <!-- IncludeAssets="compile": GonogoCore provides Sitrep.Contract.dll at runtime, and two
+  <!-- IncludeAssets="compile": Gonogo provides Sitrep.Contract.dll at runtime, and two
        copies of one assembly identity are two sets of types that do not compare equal. -->
   <ItemGroup>
     ${contractPackage(' IncludeAssets="compile" PrivateAssets="all"')}
@@ -696,7 +696,7 @@ public static class ${Id}RtConfig
   </PropertyGroup>
 
   <!-- IncludeAssets="compile": compiled against and never copied to the output,
-       because GonogoCore provides Sitrep.Contract.dll at runtime. -->
+       because Gonogo provides Sitrep.Contract.dll at runtime. -->
   <ItemGroup>
     ${contractPackage(' IncludeAssets="compile" PrivateAssets="all"')}
     ${referenceAssemblies}
@@ -727,7 +727,7 @@ public static class ${Id}RtConfig
       author: o.author,
       license: "MIT",
       release_status: "development",
-      depends: [{ name: "GonogoCore" }],
+      depends: [{ name: "Gonogo" }],
       install: [{ file: `GameData/${ns}`, install_to: "GameData" }],
     }),
   );

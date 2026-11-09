@@ -317,7 +317,7 @@ describe("uplink-tools package", () => {
     mkdirSync(join(dir, "mod-contract"));
     writeFileSync(join(bin, "GonogoXUplink.dll"), "plugin bytes");
     writeFileSync(join(bin, "GonogoXUplink.Contract.dll"), "slice bytes");
-    // GonogoCore provides this one in the game, so it must never be zipped.
+    // Gonogo provides this one in the game, so it must never be zipped.
     writeFileSync(join(bin, "Sitrep.Contract.dll"), "not ours to ship");
     writeFileSync(join(dir, "mod", "LICENSE"), "MIT");
     writeFileSync(join(dir, "mod", "NOTICE-X.txt"), "notice");

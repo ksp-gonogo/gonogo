@@ -6,7 +6,7 @@ Gonogo needs KSP 1.12 and the Gonogo mod. Everything after that is set up in the
 
 Install **Gonogo** with CKAN, or download it from SpaceDock. CKAN installs its dependencies for you.
 
-Uplinks are optional add-ons that connect Gonogo to other mods. Find them in CKAN by searching for `dep:GonogoCore`.
+Uplinks are optional add-ons that connect Gonogo to other mods. Find them in CKAN by searching for `dep:Gonogo`.
 
 ### Installing by hand
 

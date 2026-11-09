@@ -968,7 +968,7 @@ build_gonogoscansatuplink() {
   # (ScanningVesselEntry/ScanSensorEntry/ScanTrackColor/ScanScienceEntry/
   # ScanAnomalyEntry) into their own contract-slice project (Private="true",
   # the default, so `dotnet build` DOES copy it into $out_dir, unlike the
-  # references below). Sitrep.Contract.dll (provided by GonogoCore) and
+  # references below). Sitrep.Contract.dll (provided by Gonogo) and
   # SCANsat.dll/SCANsat.Unity.dll (provided by the user's SCANsat install) are
   # reference-only (Private="false") and must NOT be copied here. Every Uplink with a contract
   # slice of its own needs both copies: a single-DLL copy here
