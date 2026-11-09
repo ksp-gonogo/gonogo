@@ -1150,6 +1150,37 @@ if (!published) {
     must(`npm run ${script}`, "npm", ["run", script], { cwd: coreClient });
   }
   passesOwnCheck(coreClient, join(coreClient, "src/Vessel/index.tsx"));
+  console.log("scaffold-probe: uplink-tools add, one of each kind");
+  for (const [kind, name] of [
+    ["widget", "fuel gauge"],
+    ["augment", "open roster"],
+    ["contribution", "full cabin"],
+    ["processor", "descent rate"],
+    ["setting", "show days"],
+    ["unit", "snack crate"],
+  ]) {
+    must(`uplink-tools add ${kind} "${name}"`, bin, ["add", kind, name], {
+      cwd: coreClient,
+    });
+  }
+  for (const script of ["typecheck", "test", "page"]) {
+    must(`npm run ${script}, after add`, "npm", ["run", script], {
+      cwd: coreClient,
+    });
+  }
+  drawsReadably(coreClient, join(coreClient, "src/FuelGauge/index.tsx"));
+  // The client changed, so the hash baked into the plugin is stale until the release builds both halves again, which is what `check` compares.
+  must("npm run release, after add", "npm", ["run", "release"], {
+    cwd: coreClient,
+  });
+  passesOwnCheck(coreClient, join(coreClient, "src/FuelGauge/index.tsx"));
+  mustFail(
+    "add over a name that is taken",
+    /never overwrites/,
+    bin,
+    ["add", "setting", "show days"],
+    { cwd: coreClient },
+  );
   must("dotnet test mod-tests", "dotnet", [
     "test",
     join(core, "mod-tests", `${coreNs}.Tests.csproj`),

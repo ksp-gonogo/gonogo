@@ -31,6 +31,7 @@ import {
 import { CHECK_USAGE, check } from "../check/command";
 import { DEPS_USAGE, deps } from "../deps/command";
 import { usageOf } from "../render/usage";
+import { ADD_USAGE, add } from "./add";
 import { BAKE_USAGE, bake } from "./bake";
 import { CODEGEN_USAGE, codegen } from "./codegen";
 import { parseFlags, wantsHelp } from "./flags";
@@ -44,12 +45,19 @@ import { serveDir } from "./serve";
 import { staleInstallFault } from "./stale-install";
 import { VERSION_USAGE, version } from "./version";
 
+/** Writes the generated page of the client in `clientDir`, as `add` does after it writes a registration. */
+const writePageIn = (clientDir: string): void => {
+  page(["--client", clientDir], dirname(clientDir));
+};
+
 /** Beside the bundle: what a watch last did, for the app's dev server to read. */
 const WATCH_STATUS_FILE = "watch-status.json";
 
 const USAGE = `uplink-tools <command>
 
   new      scaffold a fresh Uplink: the hand-written seed, then its generators
+  add      add a widget, augment, contribution, processor, setting or unit to
+           the client
   codegen  generate the client's types from the C# contract slice
   check    read the client and report what is stale or unresolved, with the fix
   bundle   build the client bundle the app loads, and its gonogo-uplink.json
@@ -431,6 +439,7 @@ export async function run(argv: readonly string[]): Promise<number> {
       string,
       [string, (argv: readonly string[]) => number | Promise<number>]
     > = {
+      add: [ADD_USAGE, (rest) => add(rest, process.cwd(), writePageIn)],
       bake: [BAKE_USAGE, bake],
       check: [CHECK_USAGE, check],
       codegen: [CODEGEN_USAGE, codegen],
