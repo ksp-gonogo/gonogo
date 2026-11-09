@@ -31,7 +31,7 @@ import {
 import { CHECK_USAGE, check } from "../check/command";
 import { DEPS_USAGE, deps } from "../deps/command";
 import { usageOf } from "../render/usage";
-import { ADD_USAGE, add } from "./add";
+import { ADD_USAGE, add, Unanswered } from "./add";
 import { BAKE_USAGE, bake } from "./bake";
 import { CODEGEN_USAGE, codegen } from "./codegen";
 import { parseFlags, wantsHelp } from "./flags";
@@ -49,6 +49,19 @@ import { VERSION_USAGE, version } from "./version";
 const writePageIn = (clientDir: string): void => {
   page(["--client", clientDir], dirname(clientDir));
 };
+
+/** Runs `add`, exiting 2 for a question nothing could ask, as `new` does. */
+async function runAdd(rest: readonly string[]): Promise<number> {
+  try {
+    return await add(rest, process.cwd(), { runPage: writePageIn });
+  } catch (err) {
+    if (err instanceof Unanswered) {
+      console.error(err.message);
+      return 2;
+    }
+    throw err;
+  }
+}
 
 /** Beside the bundle: what a watch last did, for the app's dev server to read. */
 const WATCH_STATUS_FILE = "watch-status.json";
@@ -439,7 +452,7 @@ export async function run(argv: readonly string[]): Promise<number> {
       string,
       [string, (argv: readonly string[]) => number | Promise<number>]
     > = {
-      add: [ADD_USAGE, (rest) => add(rest, process.cwd(), writePageIn)],
+      add: [ADD_USAGE, runAdd],
       bake: [BAKE_USAGE, bake],
       check: [CHECK_USAGE, check],
       codegen: [CODEGEN_USAGE, codegen],
