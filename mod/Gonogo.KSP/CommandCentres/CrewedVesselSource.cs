@@ -44,8 +44,22 @@ namespace Gonogo.KSP.CommandCentres
                 }
 
                 var comm = vessel.connection?.Comm;
-                if (comm == null || !comm.isControlSource)
+                var isActive = ReferenceEquals(vessel, FlightGlobals.ActiveVessel);
+
+                // CommNet has no node for a craft in the first seconds after a flight loads. The seat of the craft being flown does not wait for one.
+                if (comm == null)
                 {
+                    if (CrewedSeatRule.QualifiesAsSeat(false, isActive, isActive ? vessel.GetCrewCount() : 0, false, false))
+                    {
+                        yield return new KspCommandCentre(
+                            "vessel:" + vessel.id,
+                            GameWords.VesselName(vessel),
+                            CommandCentreKind.CrewedVessel,
+                            BodyIndexOf(vessel.mainBody),
+                            null,
+                            vessel.GetWorldPos3D(),
+                            active: true);
+                    }
                     continue;
                 }
 
@@ -54,11 +68,16 @@ namespace Gonogo.KSP.CommandCentres
                 // CommNet can never route to is not a command centre. See
                 // CommandCentreReach for stock's own gate and for why the antenna
                 // parts are asked as well as the node's powers.
-                if (!CommandCentreReach.CanBeReached(
+                var reachable = comm.isControlSource
+                    && CommandCentreReach.CanBeReached(
                         comm.antennaTransmit?.power ?? 0.0,
                         comm.antennaRelay?.power ?? 0.0,
                         AntennaCandidateParts(vessel),
-                        CarriesCommAntenna))
+                        CarriesCommAntenna);
+
+                // The craft being flown with crew aboard is a seat whatever it carries: the crew need no route to command it.
+                var crewAboard = isActive ? vessel.GetCrewCount() : 0;
+                if (!CrewedSeatRule.QualifiesAsSeat(isActive, crewAboard, comm.isControlSource, reachable))
                 {
                     continue;
                 }
@@ -85,7 +104,7 @@ namespace Gonogo.KSP.CommandCentres
                     BodyIndexOf(vessel.mainBody),
                     comm,
                     comm.precisePosition,
-                    active: comm.isControlSource,
+                    active: true,
                     latitude: latitude,
                     longitude: longitude);
             }

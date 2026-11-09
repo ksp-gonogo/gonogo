@@ -11383,6 +11383,16 @@ namespace Sitrep.Host
                 return;
             }
 
+            // The seat of the craft itself is no distance from it: a continuous input from there runs at once, with or without a link.
+            if (IsOwnSeat(job.Vantage, node) && IsContinuousInput(job))
+            {
+                var seated = InvokeCommandHandler(job.Command, job.Args, job.Vantage);
+                job.Carried = true;
+                Deliver(job, seated);
+                job.Done?.Set();
+                return;
+            }
+
             // Comms-loss uplink gate: honest silence. A DELAYED command (a kOS
             // keystroke, a vessel actuation) dispatched while the link to its
             // subject is DOWN must be DROPPED (no execute, no response),
@@ -11649,6 +11659,13 @@ namespace Sitrep.Host
         }
 
         private IReadOnlyDictionary<string, string> _controlChannelValueKeys;
+
+        /// <summary>Whether <paramref name="vantage"/> is the seat of the craft <paramref name="node"/> stands for, the craft's own id.</summary>
+        private bool IsOwnSeat(string vantage, string node)
+        {
+            var craft = CraftIdFor(node);
+            return craft != null && string.Equals(vantage, craft, StringComparison.Ordinal);
+        }
 
         /// <summary>
         /// Whether <paramref name="job"/> writes a continuous input: a throttle

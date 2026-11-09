@@ -199,6 +199,57 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal(1, world.Uplink.LitCount);
         }
 
+        private static CommandResult? ThrottleFrom(ReckonedVantageWorld world, string vantage)
+        {
+            CommandResult? result = null;
+            world.Engine.DispatchCommandAndWait(
+                ScriptedContactUplink.AxesCommand,
+                new Dictionary<string, object?> { ["pitch"] = 0.5 },
+                vantage,
+                r => result = r as CommandResult,
+                TestBudgets.Op);
+            return result;
+        }
+
+        /// <summary>
+        /// The crew aboard are no distance from their craft: a throttle sent from the
+        /// craft's own vantage runs at once even when no link or route exists to it.
+        /// </summary>
+        [Fact]
+        public async Task AThrottleFromTheCraftsOwnSeatRunsAtOnceWithNoLink()
+        {
+            await using var world = await RisingAsync();
+            world.Game.ActiveConnected = false;
+            world.Tick(1002.0);
+            await world.SettleAsync();
+
+            var result = ThrottleFrom(world, ScriptedContactGame.Active);
+            world.Tick(1001.0);
+            await world.SettleAsync();
+
+            Assert.True(result?.Success ?? true);
+            Assert.Equal(1, world.Uplink.SteeredCount);
+        }
+
+        /// <summary>
+        /// A continuous input that goes nowhere is never silent: from a vantage with
+        /// no plan and no link it is refused as no connection.
+        /// </summary>
+        [Fact]
+        public async Task AContinuousInputThatCannotBeSentIsRefusedWithAReasonNotDroppedInSilence()
+        {
+            await using var world = await RisingAsync();
+            world.Game.ActiveConnected = false;
+            world.Tick(1002.0);
+            await world.SettleAsync();
+
+            var result = ThrottleFrom(world, ScriptedContactGame.Relay);
+
+            Assert.False(Assert.IsType<CommandResult>(result).Success);
+            Assert.Equal(CommandErrorCode.NoConnection, result.ErrorCode);
+            Assert.Equal(0, world.Uplink.SteeredCount);
+        }
+
         /// <summary>
         /// Sent together with a switch, a throttle is part of one message the
         /// operator chose to keep whole, so it is held and forwarded with it
