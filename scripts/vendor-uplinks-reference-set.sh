@@ -110,6 +110,9 @@ if [ "$SHA" = "$(git -C "$ROOT" rev-parse HEAD)" ]; then
 fi
 # A package that lost a group or its codegen folder restores cleanly and fails
 # later in every Uplink at once, so what it must hold is checked here by name.
+# grep -q exits at the first match, which kills unzip with SIGPIPE under pipefail
+# and reads as a missing member, so the listing is captured before it is searched.
+LISTING="$(unzip -Z1 "$NUPKG")"
 for member in \
   lib/net472/Sitrep.Contract.dll \
   lib/netstandard2.0/Sitrep.Contract.dll \
@@ -118,7 +121,7 @@ for member in \
   lib/net10.0/Sitrep.Core.dll \
   codegen/Sitrep.Contract.dll \
   codegen/CodegenTwin.props; do
-  if ! unzip -Z1 "$NUPKG" | grep -qx "$member"; then
+  if ! grep -qx "$member" <<<"$LISTING"; then
     echo "✖ vendor: the package packed from $SHA holds no $member"
     exit 1
   fi

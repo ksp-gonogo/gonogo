@@ -31,6 +31,9 @@ const ROOM_ABOVE_PX = 48;
 /** How long the pointer may spend crossing from an anchor to its tip before the tip closes. */
 const CROSSING_MS = 120;
 
+/** The tips showing now, each with the element it describes, so a tip can give way to one on an element inside its own. */
+const openTips = new Set<{ anchor: Element; close: () => void }>();
+
 /** A name or description reduced to its words, so punctuation cannot make two phrasings of one thing differ. */
 const words = (text: string): string =>
   text
@@ -130,6 +133,7 @@ function useTooltipAt(
   // Set by a finger's tap on the anchor, which holds the tip open until a tap elsewhere.
   const [tapped, setTapped] = useState(false);
   const anchorRef = useRef<Element | null>(null);
+  const placedOn = useRef<Element | null>(null);
   const tipRef = useRef<HTMLDivElement | null>(null);
   const holding = useRef(false);
   const pressed = useRef(false);
@@ -151,6 +155,26 @@ function useTooltipAt(
     setTapped(false);
     holding.current = false;
   }, [cancelLeave]);
+
+  // Only the innermost tip shows: a tip on a control inside a tipped cell replaces the cell's tip rather than sitting under it.
+  useEffect(() => {
+    const anchor = placedOn.current;
+    if (!open || anchor === null) return;
+    const entry = { anchor, close };
+    for (const other of openTips) {
+      if (other.anchor === anchor) continue;
+      if (other.anchor.contains(anchor)) other.close();
+      // Both opened in one batch, and the inner one's effect ran first.
+      if (anchor.contains(other.anchor)) {
+        close();
+        return;
+      }
+    }
+    openTips.add(entry);
+    return () => {
+      openTips.delete(entry);
+    };
+  }, [open, close]);
 
   // Lets go once the press is over and no text of the tip is selected any more.
   useEffect(() => {
@@ -232,6 +256,7 @@ function useTooltipAt(
   if (shown === null) return { anchor: {}, tip: null };
 
   const place = (element: Element) => {
+    placedOn.current = element;
     const box = element.getBoundingClientRect();
     setAt({
       top: box.bottom,

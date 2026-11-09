@@ -460,3 +460,60 @@ describe("Tooltip on a touch screen", () => {
     expect(tipIn(document.body)).toBeNull();
   });
 });
+
+describe("Tooltip nested in a tipped element", () => {
+  it("shows only the inner tip while the pointer is over the inner element", async () => {
+    const user = userEvent.setup();
+    render(
+      <Tooltip text="Launch Pad tiers">
+        <div data-testid="cell">
+          <Tooltip text="Upgrade unavailable: another vessel is on the launch site.">
+            <button type="button" aria-disabled="true">
+              Upgrade
+            </button>
+          </Tooltip>
+        </div>
+      </Tooltip>,
+    );
+
+    await user.hover(screen.getByTestId("cell"));
+    expect(
+      [...document.querySelectorAll("[data-tooltip-tip]")].map(
+        (t) => t.textContent,
+      ),
+    ).toEqual(["Launch Pad tiers"]);
+
+    await user.hover(screen.getByRole("button", { name: "Upgrade" }));
+    await waitFor(() =>
+      expect(
+        [...document.querySelectorAll("[data-tooltip-tip]")].map(
+          (t) => t.textContent,
+        ),
+      ).toEqual(["Upgrade unavailable: another vessel is on the launch site."]),
+    );
+  });
+
+  it("shows only the inner tip when the pointer arrives straight on the inner element", async () => {
+    const user = userEvent.setup();
+    render(
+      <Tooltip text="Launch Pad tiers">
+        <div>
+          <Tooltip text="Upgrade unavailable">
+            <button type="button" aria-disabled="true">
+              Upgrade
+            </button>
+          </Tooltip>
+        </div>
+      </Tooltip>,
+    );
+
+    await user.hover(screen.getByRole("button", { name: "Upgrade" }));
+    await waitFor(() =>
+      expect(
+        [...document.querySelectorAll("[data-tooltip-tip]")].map(
+          (t) => t.textContent,
+        ),
+      ).toEqual(["Upgrade unavailable"]),
+    );
+  });
+});
