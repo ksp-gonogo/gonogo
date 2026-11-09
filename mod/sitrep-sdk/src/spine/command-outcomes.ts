@@ -18,6 +18,8 @@ export interface CommandOutcomeSet {
 
 type Listener = () => void;
 
+const UNDONE_BY_LOAD = "undoneByLoad";
+
 export const NO_OUTCOMES: CommandOutcomeSet = {
   refusals: [],
   losses: [],
@@ -30,15 +32,22 @@ export const NO_OUTCOMES: CommandOutcomeSet = {
  * Outcomes held for one client, keyed by command id, so an outcome outlives the
  * widget that sent the command. A reader sees every outcome of its command id,
  * whichever control sent it, and tells its own apart by args and label.
+ *
+ * A game load that starts a new timeline drops every outcome except those
+ * saying that load undid the command, which are dropped at the load after it.
  */
 export class CommandOutcomeStore {
   private readonly byCommand = new Map<string, CommandOutcomeSet>();
   private readonly listeners = new Set<Listener>();
   private localSeq = 0;
   private readonly stopSweep: () => void;
+  private readonly stopTimeline: () => void;
+  /** The ids of the outcomes the last load kept. */
+  private keptByLastLoad = new Set<string>();
 
   constructor(private readonly client: TelemetryClient) {
     this.stopSweep = client.subscribeStore(() => this.sweep());
+    this.stopTimeline = client.onTimelineChange(() => this.followLoad());
   }
 
   subscribe = (cb: Listener): (() => void) => {
@@ -99,7 +108,31 @@ export class CommandOutcomeStore {
 
   dispose(): void {
     this.stopSweep();
+    this.stopTimeline();
     this.listeners.clear();
+  }
+
+  /*
+   * An outcome the load undid can be answered just before the frame that says
+   * the timeline changed, so it is kept through one load and its news is not
+   * lost. Everything else belongs to the flight the load abandoned.
+   */
+  private followLoad(): void {
+    if (this.byCommand.size === 0) return;
+    const kept = new Set<string>();
+    for (const [command, outcomes] of [...this.byCommand]) {
+      const failures = outcomes.failures.filter(
+        (f) => f.code === UNDONE_BY_LOAD && !this.keptByLastLoad.has(f.id),
+      );
+      for (const f of failures) kept.add(f.id);
+      if (failures.length === 0) {
+        this.byCommand.delete(command);
+      } else {
+        this.byCommand.set(command, { ...NO_OUTCOMES, failures });
+      }
+    }
+    this.keptByLastLoad = kept;
+    this.notify();
   }
 
   private notify(): void {

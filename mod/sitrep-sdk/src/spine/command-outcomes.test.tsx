@@ -1,12 +1,14 @@
 // @vitest-environment jsdom
 
 import { describe, expect, it } from "vitest";
+import type { CommandErrorCode } from "../__generated__/error-codes";
 import type { Transport, TransportStatus } from "../api/transport";
 import type { ClientMessage, ServerMessage } from "../envelope";
 import { act, render, screen } from "../testing";
 import { makeMeta } from "../testing/stub-transport";
 import { TelemetryClient } from "./client";
 import type { Clock } from "./clock";
+import { commandOutcomesOf } from "./command-outcomes";
 import { TelemetryProvider } from "./context";
 import { useCommand } from "./use-command";
 
@@ -107,13 +109,34 @@ const lastRequestId = (transport: ModTransport) =>
     }
   ).requestId;
 
-const refuse = (transport: ModTransport, requestId: string) =>
+const refuse = (
+  transport: ModTransport,
+  requestId: string,
+  errorCode = "wrongState",
+) =>
   transport.deliver({
     type: "command-response",
     requestId,
-    result: { success: false, errorCode: "wrongState" },
+    result: { success: false, errorCode },
     meta: makeMeta(),
   });
+
+const loadStarts = (transport: ModTransport, timelineEpoch: number) =>
+  transport.deliver({
+    type: "hello",
+    bootId: "boot-a",
+    timelineEpoch,
+    contractMajor: 1,
+    contractMinor: 0,
+  });
+
+const refusalOf = (id: string, errorCode: string) => ({
+  id,
+  command: "x.y",
+  args: {},
+  label: id,
+  errorCode: errorCode as CommandErrorCode,
+});
 
 describe("command outcomes held on the client", () => {
   it("shows a refusal to a widget mounted after the one that sent the command is gone", async () => {
@@ -193,5 +216,63 @@ describe("command outcomes held on the client", () => {
       screen.getByRole("button", { name: "dismiss b" }).click();
     });
     expect(screen.getByLabelText("refusals a").textContent).toBe("");
+  });
+});
+
+describe("command outcomes across a game load", () => {
+  it("forgets a refusal of the flight a load abandoned", async () => {
+    const { transport, client } = setup();
+    loadStarts(transport, 1);
+    render(
+      <TelemetryProvider client={client}>
+        <Outcomes command="x.y" name="a" />
+      </TelemetryProvider>,
+    );
+    act(() => {
+      screen.getByRole("button", { name: "send a" }).click();
+    });
+    const id = lastRequestId(transport);
+    await act(async () => refuse(transport, id));
+    expect(screen.getByLabelText("refusals a").textContent).toBe("a");
+
+    act(() => loadStarts(transport, 2));
+
+    expect(screen.getByLabelText("refusals a").textContent).toBe("");
+  });
+
+  it("keeps what a load undid through that load, and forgets it at the next", () => {
+    const { transport, client } = setup();
+    loadStarts(transport, 1);
+    const store = commandOutcomesOf(client);
+    store.edit("x.y", "refusals", () => [refusalOf("refused", "wrongState")]);
+    store.edit("x.y", "failures", () => [
+      {
+        id: "carried",
+        command: "x.y",
+        args: {},
+        label: "carried",
+        code: "undoneByLoad",
+        reason: "",
+      },
+    ]);
+
+    loadStarts(transport, 2);
+    expect(store.get("x.y").refusals).toEqual([]);
+    expect(store.get("x.y").failures.map((f) => f.id)).toEqual(["carried"]);
+
+    loadStarts(transport, 3);
+    expect(store.get("x.y").refusals).toEqual([]);
+    expect(store.get("x.y").failures).toEqual([]);
+  });
+
+  it("keeps everything while the game stays on one timeline", () => {
+    const { transport, client } = setup();
+    loadStarts(transport, 1);
+    const store = commandOutcomesOf(client);
+    store.edit("x.y", "refusals", () => [refusalOf("kept", "wrongState")]);
+
+    loadStarts(transport, 1);
+
+    expect(store.get("x.y").refusals.map((r) => r.id)).toEqual(["kept"]);
   });
 });
