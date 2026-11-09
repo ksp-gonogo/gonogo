@@ -315,7 +315,6 @@ namespace Sitrep.Propagation.Visibility
                 occluderPositions[i] = _propagator
                     .Solve(PropagationTarget.Body(_occluders[i].BodyIndex), _frame, ut).Position;
             }
-            // Accurate: the sweep that owns this geometry holds it to the span the provider vouches for.
             return _propagator.Solve(_vessel, _frame, ut).Position;
         }
 

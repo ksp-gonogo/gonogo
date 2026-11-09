@@ -134,8 +134,8 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// One object's position and velocity at one instant, relative to a centre body
-    /// the enclosing reply names, in a non-rotating, Z-up inertial frame centred on that body.
+    /// One body's position and velocity at one instant, relative to the request's
+    /// centre body, in a non-rotating, Z-up inertial frame centred on that body.
     ///
     /// <para>Flat keys rather than nested vectors, because these arrive in
     /// bulk.</para>
@@ -147,7 +147,7 @@ namespace Sitrep.Contract
 #endif
     public class BodyState
     {
-        /// <summary>The instant this state is at.</summary>
+        /// <summary>The instant this state is at, echoing the request.</summary>
         [SitrepUnit(Units.UniversalTime)]
         public double Ut { get; set; }
 

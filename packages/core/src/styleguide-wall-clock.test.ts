@@ -66,11 +66,6 @@ const SKIP_FILE = /\.(test|test-d)\.tsx?$/;
 // that legitimately reads a wall clock, with the count and the reason. A file
 // scoring 0 has no entry.
 const ALLOWED_WALL_CLOCK: Record<string, number> = {
-  // Pacing asks to a propagation provider by real time, because under time warp
-  // game seconds pass far faster than it can answer. Nothing here describes how
-  // current a telemetry value is. 2 reads.
-  "packages/components/src/shared/useLastKnownTrajectory.ts": 2,
-
   // A UI dwell: `completedAt` holds the "burn complete" marker on screen for
   // COMPLETED_HOLD_MS after the fact, and the remaining hold is wall-time
   // arithmetic on that same wall-time stamp. Nothing here describes how

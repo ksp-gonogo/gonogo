@@ -1049,18 +1049,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     storedScience: "science",
     valueModel: "id",
   },
-  "LastKnownPathReply": {
-    refusal: "text",
-    seededAtUt: "ut",
-    solved: "flag",
-    stillWorking: "flag",
-    vantage: "id",
-  },
-  "LastKnownPathRequest": {
-    certification: "enum",
-    maxPoints: "count",
-    toUt: "ut",
-  },
   "LaunchArgs": {
     crew: "text",
     facility: "text",
@@ -1304,14 +1292,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "Pong": {
     nonce: "id",
     type: "id",
-  },
-  "PropagatedPath": {
-    centreBodyIndex: "id",
-    kind: "enum",
-    reachedUt: "ut",
-    refusal: "text",
-    solved: "flag",
-    stillWorking: "flag",
   },
   "PropagationDepartureKnot": {
     metres: "m",
@@ -3030,9 +3010,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "Kernel": {
     lastNotices: "ResolutionNotice[]",
   },
-  "LastKnownPathReply": {
-    path: "PropagatedPath",
-  },
   "LockedValue": {
     locked: "MissingUnlock[]",
   },
@@ -3060,14 +3037,8 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     pending: "PendingUplink[]",
     settled: "SettledUplink[]",
   },
-  "PropagatedPath": {
-    states: "BodyState[]",
-  },
   "PropagationHorizon": {
     departure: "PropagationDepartureKnot[]",
-  },
-  "PropagationSeed": {
-    state: "StateVector",
   },
   "PropagationTarget": {
     osculating: "OrbitElements",
@@ -3532,9 +3503,6 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   "GateVerdict": {
     outcome: "GateOutcome",
   },
-  "LastKnownPathRequest": {
-    certification: "PropagationCertification",
-  },
   "ManeuverNode": {
     frame: "ManeuverFrame",
   },
@@ -3560,9 +3528,6 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   },
   "OrbitPayloadMeta": {
     quality: "Quality",
-  },
-  "PropagatedPath": {
-    kind: "TrajectoryKind",
   },
   "PropagationHorizon": {
     kind: "PropagationHorizonKind",

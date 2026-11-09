@@ -13325,26 +13325,6 @@
         "note": "New: a contract's prestige tier as a name table and its name type"
       },
       {
-        "key": "sitrep-sdk . LAST_KNOWN_PATH_COMMAND",
-        "note": "The path a craft follows from the state its command centre last heard."
-      },
-      {
-        "key": "sitrep-sdk . LastKnownPathQuery",
-        "note": "The path a craft follows from the state its command centre last heard."
-      },
-      {
-        "key": "sitrep-sdk . LastKnownPathQuery#pending",
-        "note": "The path a craft follows from the state its command centre last heard."
-      },
-      {
-        "key": "sitrep-sdk . LastKnownPathQuery#reply",
-        "note": "The path a craft follows from the state its command centre last heard."
-      },
-      {
-        "key": "sitrep-sdk . LastKnownPathQuery#solve",
-        "note": "The path a craft follows from the state its command centre last heard."
-      },
-      {
         "key": "sitrep-sdk . LiftoffCountdown",
         "note": "New: the countdown to the liftoff of the active craft from the launch pad"
       },
@@ -14439,10 +14419,6 @@
       {
         "key": "sitrep-sdk . useGoNoGoCountdown",
         "note": "New: read the countdown of the GO/NO-GO poll"
-      },
-      {
-        "key": "sitrep-sdk . useLastKnownPath",
-        "note": "The path a craft follows from the state its command centre last heard."
       },
       {
         "key": "sitrep-sdk . useLiftoffCountdown",
@@ -17137,26 +17113,6 @@
         "note": "New: the vessel.identity topic the delay authority reads to see a change of craft"
       },
       {
-        "key": "sitrep-sdk ./spine LAST_KNOWN_PATH_COMMAND",
-        "note": "The path a craft follows from the state its command centre last heard."
-      },
-      {
-        "key": "sitrep-sdk ./spine LastKnownPathQuery",
-        "note": "The path a craft follows from the state its command centre last heard."
-      },
-      {
-        "key": "sitrep-sdk ./spine LastKnownPathQuery#pending",
-        "note": "The path a craft follows from the state its command centre last heard."
-      },
-      {
-        "key": "sitrep-sdk ./spine LastKnownPathQuery#reply",
-        "note": "The path a craft follows from the state its command centre last heard."
-      },
-      {
-        "key": "sitrep-sdk ./spine LastKnownPathQuery#solve",
-        "note": "The path a craft follows from the state its command centre last heard."
-      },
-      {
         "key": "sitrep-sdk ./spine LockScopeRegistry#observe?",
         "note": "New: an optional hook that hears a claim made in a scope nested inside, without counting it toward the lock"
       },
@@ -17623,10 +17579,6 @@
       {
         "key": "sitrep-sdk ./spine trueAnomalyFromHyperbolic",
         "note": "New: converts a hyperbolic anomaly to a true one, the open-orbit twin of trueAnomalyFromEccentric"
-      },
-      {
-        "key": "sitrep-sdk ./spine useLastKnownPath",
-        "note": "The path a craft follows from the state its command centre last heard."
       },
       {
         "key": "sitrep-sdk ./spine useLivePhaseAngles",
