@@ -13781,6 +13781,10 @@
         "note": "StatEntry carries the reading it was drawn from, so the host widget draws a held value as held"
       },
       {
+        "key": "sitrep-sdk . StationBroker#onLinkReset?",
+        "note": "A station broker tells its Uplink when the station's link to the main screen comes back, so a bridged media connection is rebuilt at once"
+      },
+      {
         "key": "sitrep-sdk . StoredStreamBackedSettingOf",
         "note": "StoredStreamBackedSettingOf is exported from the root, since it is named in an author-facing signature"
       },
@@ -16447,6 +16451,10 @@
       {
         "key": "sitrep-sdk ./registry ~StatEntry#held?",
         "note": "StatEntry carries the reading it was drawn from, so the host widget draws a held value as held"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~StationBroker#onLinkReset?",
+        "note": "The same reset callback on the type the registry hands a station broker"
       },
       {
         "key": "sitrep-sdk ./registry ~SystemDataRatesTopicPayloadMap",
@@ -19195,6 +19203,10 @@
       {
         "key": "sitrep-sdk ./testing ~StationBroker#iceServers",
         "note": "The type a watcher on the testing subpath receives from watchStationBrokers; always empty, kept so an Uplink that still reads it builds"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~StationBroker#onLinkReset?",
+        "note": "The same reset callback on the type a watcher on the testing subpath receives"
       },
       {
         "key": "sitrep-sdk ./testing ~StationBroker#relay",

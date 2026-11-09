@@ -3468,7 +3468,10 @@ export class PeerHostService {
     this.heartbeatTimer = setInterval(() => {
       for (const conn of [...this.connections, ...this.waiting]) {
         if (!conn.open) continue;
-        conn.send({ type: "host-heartbeat" } satisfies PeerMessage);
+        const beat = { type: "host-heartbeat" } satisfies PeerMessage;
+        // Ahead of what the endpoint holds, so a station on a full link still hears the main screen.
+        if (conn instanceof EndpointConnection) conn.sendAhead(beat);
+        else conn.send(beat);
       }
     }, HOST_HEARTBEAT_MS);
   }

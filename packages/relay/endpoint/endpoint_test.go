@@ -556,3 +556,14 @@ func (tb *fakeTab) nextQueued(t *testing.T, match func(float64) bool) map[string
 		}
 	}
 }
+
+func TestAFrameMarkedAheadReachesItsStation(t *testing.T) {
+	_, url := startEndpoint(t, Config{})
+	tb := dialTab(t, url)
+	s := newStation(t)
+	join(t, tb, s, 3, "station-a")
+	tb.sendData(3|aheadBit, []byte("heartbeat"))
+	if got := s.nextMessage(t); got != "heartbeat" {
+		t.Fatalf("station got %q, wanted the heartbeat sent ahead", got)
+	}
+}

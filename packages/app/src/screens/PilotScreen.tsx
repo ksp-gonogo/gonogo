@@ -12,6 +12,7 @@ import { StationInfoBroadcaster } from "../peer/StationInfoBroadcaster";
 import { StationApprovalNotice } from "../stationApproval/StationApprovalNotice";
 import { ScopedStationIdentity, StationNameEditor } from "../stationIdentity";
 import { PeerTransport } from "../telemetry/PeerTransport";
+import { useStationBrokers } from "../uplinks/useStationBrokers";
 import { MainScreen } from "./MainScreen";
 
 const HOST_ID_KEY = "gonogo-station-host-id";
@@ -65,6 +66,7 @@ export function PilotScreen() {
   }, []);
 
   useFollowHostAnalytics(client);
+  useStationBrokers(client);
 
   const connect = (code: string) => {
     const trimmed = code.trim().toUpperCase();

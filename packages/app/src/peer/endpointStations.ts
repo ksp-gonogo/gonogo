@@ -1,4 +1,6 @@
 import { logger } from "@ksp-gonogo/logger";
+import type { Packable } from "peerjs-js-binarypack";
+import { encodeFrames } from "./endpointFraming";
 import { FramedLink } from "./framedLink";
 import { TypedListeners } from "./typedListeners";
 
@@ -19,7 +21,11 @@ export class EndpointConnection extends FramedLink {
     /** The station's broker peer id, which approvals and every per-station record are keyed by. */
     peer: string,
     readonly sid: number,
-    private readonly sendTo: (sid: number, frame: Uint8Array) => void,
+    private readonly sendTo: (
+      sid: number,
+      frame: Uint8Array,
+      ahead?: boolean,
+    ) => void,
     private readonly sendClose: (sid: number) => void,
   ) {
     super(peer);
@@ -34,6 +40,17 @@ export class EndpointConnection extends FramedLink {
 
   protected sendFrame(frame: Uint8Array<ArrayBuffer>): void {
     this.sendTo(this.sid, frame);
+  }
+
+  /**
+   * Sends a message to the station ahead of everything the endpoint already
+   * holds for it, media and messages, where the endpoint can. For a small
+   * message that says the main screen is there, such as its heartbeat.
+   */
+  sendAhead(message: Packable): void {
+    if (!this.open) return;
+    for (const frame of encodeFrames(message))
+      this.sendTo(this.sid, frame, true);
   }
 
   /** @internal */
@@ -63,8 +80,12 @@ export interface EndpointStatus {
   publicIp: string | null;
 }
 
+/** Set in a data frame's session id, it asks the endpoint to send the frame ahead of everything it holds for that station. */
+const AHEAD_BIT = 0x80000000;
+
 interface ControlFrame {
   type?: unknown;
+  ahead?: unknown;
   bid?: unknown;
   port?: unknown;
   publicIp?: unknown;
@@ -109,6 +130,8 @@ const BUSY_RETRY_MS = 10_000;
 export class EndpointStations {
   private socket: WebSocket | null = null;
   private up = false;
+  /** Whether the endpoint said it reads `AHEAD_BIT`; one that does not would take the marked id as an unknown station. */
+  private readsAhead = false;
   private current: EndpointStatus | null = null;
   private stopped = true;
   private attempt = 0;
@@ -195,7 +218,7 @@ export class EndpointStations {
     const conn = new EndpointConnection(
       peerId,
       sid,
-      (s, frame) => this.sendData(s, frame),
+      (s, frame, ahead) => this.sendData(s, frame, ahead === true),
       (s) => this.sendControl({ type: "close", sid: s }),
     );
     if (!this.up || !this.socket) {
@@ -360,6 +383,7 @@ export class EndpointStations {
       bytes: field("bytes"),
       port: field("port"),
       publicIp: field("publicIp"),
+      ahead: field("ahead"),
     };
     const sid = typeof f.sid === "number" ? f.sid : -1;
     const bid = typeof f.bid === "number" ? f.bid : -1;
@@ -401,6 +425,7 @@ export class EndpointStations {
         return;
       case "status":
         this.setBusy(false);
+        this.readsAhead = f.ahead === true;
         this.current = {
           port: typeof f.port === "number" ? f.port : 0,
           publicIp:
@@ -463,11 +488,14 @@ export class EndpointStations {
     }
   }
 
-  private sendData(sid: number, frame: Uint8Array): void {
+  private sendData(sid: number, frame: Uint8Array, ahead: boolean): void {
     const socket = this.socket;
     if (socket?.readyState !== WebSocket.OPEN) return;
     const out = new Uint8Array(4 + frame.byteLength);
-    new DataView(out.buffer).setUint32(0, sid);
+    new DataView(out.buffer).setUint32(
+      0,
+      ahead && this.readsAhead ? (sid | AHEAD_BIT) >>> 0 : sid,
+    );
     out.set(frame, 4);
     socket.send(out);
   }

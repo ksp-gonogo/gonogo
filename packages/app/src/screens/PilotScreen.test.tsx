@@ -1,4 +1,8 @@
 import { clearRegistry, ErrorBoundary } from "@ksp-gonogo/core";
+import {
+  clearStationBrokers,
+  registerStationBroker,
+} from "@ksp-gonogo/sitrep-sdk";
 import { render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
 import userEvent from "@testing-library/user-event";
@@ -37,6 +41,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  clearStationBrokers();
   clearRegistry();
   localStorage.clear();
 });
@@ -54,6 +59,17 @@ describe("PilotScreen", () => {
     await userEvent.type(input, "5RML48");
 
     expect(screen.getByLabelText("Join code")).toHaveValue("5RML48");
+  });
+
+  it("hands each Uplink a broker through the host, as a station screen does", async () => {
+    const attach = vi.fn();
+    registerStationBroker("probe", attach);
+    localStorage.setItem(HOST_ID_KEY, "5RML48");
+    renderPilot();
+    await waitFor(() => expect(attach).toHaveBeenCalledTimes(1));
+    expect(attach.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({ relay: expect.any(Function) }),
+    );
   });
 
   it("lets a saved host code be changed from the page", async () => {
