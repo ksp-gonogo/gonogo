@@ -14,7 +14,7 @@ import styled from "styled-components";
 const VISIBLE_MS = 10_000;
 
 /** How far behind the view clock a load may be and still count as news. */
-const STALE_AFTER_SECONDS = 30;
+const STALE_AFTER_SECONDS = 10;
 
 /** The player-facing words for a finished quickload, written in one place so their wording can be reviewed. */
 export function QuickloadSentence({ event }: { event: GameLoaded }): ReactNode {
@@ -42,10 +42,12 @@ export function QuickloadSentence({ event }: { event: GameLoaded }): ReactNode {
 /** Whether a finished load is news at `viewUt`, and not a replay of one the screen was not there for. */
 export function isNews(event: GameLoaded, viewUt: Value<"ut">): boolean {
   const fresh = value("s", STALE_AFTER_SECONDS);
-  return !(
-    viewUt.minus(event.saveUt).greaterThan(fresh) &&
-    viewUt.minus(event.fromUt).greaterThan(fresh)
-  );
+  const none = value("s", 0);
+  const recent = (since: Value<"ut">) => {
+    const age = viewUt.minus(since);
+    return !age.lessThan(none) && !age.greaterThan(fresh);
+  };
+  return recent(event.saveUt) || recent(event.fromUt);
 }
 
 /**

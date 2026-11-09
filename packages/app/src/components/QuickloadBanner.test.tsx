@@ -58,4 +58,12 @@ describe("which loads are news", () => {
   it("is a replay when the view clock is far past the load", () => {
     expect(isNews(event({}), value("ut", 700))).toBe(false);
   });
+
+  it("is a replay when the view clock sits between the rewound save and the load's own time", () => {
+    expect(isNews(event({}), value("ut", 120))).toBe(false);
+  });
+
+  it("is news when the view clock has just reached the save", () => {
+    expect(isNews(event({}), value("ut", 103))).toBe(true);
+  });
 });
