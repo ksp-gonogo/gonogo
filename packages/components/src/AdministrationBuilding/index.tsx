@@ -135,8 +135,7 @@ function useAdministrationBuildingEssentials(): readonly TinyEssential[] {
 registerComponent<AdministrationBuildingConfig>({
   id: "administration-building",
   name: "Administration Building",
-  description:
-    "Career strategies from the Administration Building: the ones you have running and their effects, and the ones you could start, with what each costs at the commitment you choose. Start and stop strategies from here.",
+  description: "View, start and stop career strategies.",
   tags: ["career"],
   defaultSize: { w: 5, h: 9 },
   // Three columns and four rows hold a full balance over the tally.

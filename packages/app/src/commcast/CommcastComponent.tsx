@@ -295,7 +295,7 @@ registerComponent({
   id: "commcast",
   name: "Commcast",
   description:
-    "Messages and push-to-talk radio between the command centres and craft on this mission, always addressed to a group. An inbox of group threads, each message crossing whatever signal delay there is to every member and acknowledged back, so your own words appear only once that acknowledgement returns and the wait you feel is the wait that is really there. Anyone in a group can add somebody to it; they hear from the moment word of it reaches them.",
+    "Messages and push-to-talk radio between command centres and craft.",
   tags: ["mission-control", "comms"],
   // The bar wraps to two rows under about 300 px, and below this the thread has no room for two messages beside it and the composer.
   defaultSize: { w: 10, h: 10 },

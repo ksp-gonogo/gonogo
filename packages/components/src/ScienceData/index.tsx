@@ -191,8 +191,7 @@ function ScienceDataComponent({
 registerComponent<ScienceDataConfig>({
   id: "science-data",
   name: "Science Data",
-  description:
-    "Your science in two tabs. Aboard lists what your vessel has collected for each subject and what is left to gain where you are; Archive lists everything your career has ever returned, by body, experiment and biome, and works at the Space Center with nothing in flight.",
+  description: "Science aboard your vessel and in your career archive.",
   tags: ["telemetry", "science"],
   defaultSize: { w: 8, h: 10 },
   // Below five columns the Archive tab falls off the end of the strip.

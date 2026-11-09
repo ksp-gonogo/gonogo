@@ -1122,8 +1122,7 @@ const OVERLAY_LAYER: CSSProperties = {
 registerComponent<TrackingStationConfig>({
   id: "tracking-station",
   name: "Tracking Station",
-  description:
-    "Solar-system diagram of every body orbiting a chosen parent, highlighting the vessel's current body and any selected target.",
+  description: "A solar-system diagram of the bodies orbiting a chosen parent.",
   tags: ["telemetry", "navigation"],
   defaultSize: { w: 10, h: 12 },
   // Below six columns the view pills clip and the labels collide with the values.

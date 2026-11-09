@@ -408,7 +408,7 @@ registerComponent<ShipMapConfig>({
   id: "ship-map",
   name: "Vessel Schematic",
   description:
-    "A view of your vessel part by part, side-on for a rocket and from above for a plane, turnable in steps, each part tinted by its heat, with fill bars on tanks and boosters and the hottest part picked out.",
+    "Your vessel part by part, with each part's heat and fill level.",
   tags: ["telemetry", "ship", "staging", "stages"],
   defaultSize: { w: 12, h: 10 },
   minSize: { w: 5, h: 5 },

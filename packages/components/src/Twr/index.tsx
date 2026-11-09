@@ -390,8 +390,7 @@ const SPARK_PLOT_STYLE = { position: "absolute", inset: 0 } as const;
 registerComponent<TwrConfig>({
   id: "twr",
   name: "TWR",
-  description:
-    "The vessel's thrust-to-weight ratio right now: its current thrust over its weight at the surface gravity of the body you are at, so the same craft reads higher on the Mun than at Kerbin. It is a dial running 0 to 3 that pins at 3, with a small line chart (a sparkline) of the last minute. The dial is red below 1, where thrust is less than the vessel's weight at that body, amber from 1 to 1.5, and green above. The dial shows a dash when the body's gravity is not known.",
+  description: "Your vessel's current thrust-to-weight ratio.",
   tags: ["telemetry", "stages"],
   defaultSize: { w: 4, h: 5 },
   // Below four columns or four rows the frame, caption and trend strip give way to the kit's tiny arc.

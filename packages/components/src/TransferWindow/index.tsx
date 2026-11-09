@@ -451,8 +451,7 @@ function TransferWindowComponent({
 registerComponent<TransferWindowConfig>({
   id: "transfer-window",
   name: "Transfer Window",
-  description:
-    "Plan transfers to other planets and moons: a live phase angle dial, a list of upcoming transfer windows, and a map of the Δv each pair of departure and arrival dates costs. With the craft's Δv budget known, each destination reads GO, ONE WAY, MARGINAL or NO.",
+  description: "Transfer windows and Δv to other planets and moons.",
   tags: ["telemetry", "planning"],
   defaultSize: { w: 12, h: 20 },
   minSize: { w: 6, h: 10 },

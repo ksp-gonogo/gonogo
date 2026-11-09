@@ -116,8 +116,7 @@ function useResearchAndDevelopmentEssentials(): readonly TinyEssential[] {
 registerComponent<ResearchAndDevelopmentConfig>({
   id: "research-and-development",
   name: "Research and Development",
-  description:
-    "Browse and research career tech. On a wide tile it draws the tech tree as the game does, coloured by what you own, can research and cannot reach yet; on a narrow one it becomes a searchable list with every part each node unlocks.",
+  description: "Browse and research the tech tree.",
   tags: ["career", "tech"],
   defaultSize: { w: 12, h: 12 },
   // Three columns and rows hold the two essentials the tiny form draws.

@@ -115,8 +115,7 @@ function describePad(
 registerComponent<SpaceCenterStatusConfig>({
   id: "space-center-status",
   name: "Space Center Status",
-  description:
-    "The level of each space centre building, with the price of its next upgrade and a button to buy it that asks you to confirm.",
+  description: "Space Center building levels and upgrades.",
   tags: ["career", "kc"],
   defaultSize: { w: 6, h: 7 },
   // A real balance does not fit two columns, and the pad word needs a fourth row under it.

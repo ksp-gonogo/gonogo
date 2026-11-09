@@ -26,8 +26,7 @@ function useCrewEssentials(): readonly TinyEssential[] {
 registerComponent<CrewStatusConfig>({
   id: "crew-status",
   name: "Crew Status",
-  description:
-    "The kerbals aboard your active vessel and how many seats are filled, including the kerbal you are flying on EVA.",
+  description: "The kerbals aboard your active vessel.",
   tags: ["telemetry", "crew"],
   defaultSize: { w: 7, h: 8 },
   minSize: { w: 4, h: 5 },

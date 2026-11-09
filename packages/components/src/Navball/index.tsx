@@ -678,7 +678,7 @@ registerComponent<NavballConfig>({
   id: "navball",
   name: "Navball",
   description:
-    "Your vessel's heading, pitch and roll, measured at the root part, or at the centre of mass if the widget's settings say so. The settings can also switch on controls for every SAS mode, throttle, pitch, yaw, roll, RCS translation and trim. Bind a joystick or keyboard key to them on the Inputs tab of the widget's settings to fly the vessel from it. Under signal delay, a strip for each control shows the commands still crossing to the craft and the values it has confirmed back.",
+    "Your vessel's heading, pitch and roll, with optional flight controls.",
   tags: ["telemetry", "control"],
   // Fifteen rows hold the control surface with its sections folded beside a dial as large as the plain default gives.
   defaultSize: { w: 8, h: 15 },
