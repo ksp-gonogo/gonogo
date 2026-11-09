@@ -131,6 +131,7 @@ namespace Gonogo.KSP
         /// </summary>
         private static Refusal? ManeuverWriteRefusal(bool plans)
         {
+            EnsurePatchedConicsSolver();
             var vessel = ActiveVesselScope.Current;
 
             // WHICH saves have no facility tiers is decided in one place, shared
@@ -164,6 +165,32 @@ namespace Gonogo.KSP
                 plans: plans,
                 trackingStationName: FacilityName(SpaceCenterFacility.TrackingStation),
                 missionControlName: missionControlName);
+        }
+
+        /// <summary>
+        /// Attaches the active vessel's patched-conics solver when the Tracking
+        /// Station's tier allows one and the vessel has none, which is what an
+        /// upgrade made in flight leaves behind. The game's own
+        /// <c>AttachPatchedConicsSolver</c> checks the tier, so below it this does
+        /// nothing. Called on the main thread.
+        /// </summary>
+        internal static void EnsurePatchedConicsSolver()
+        {
+            try
+            {
+                var vessel = ActiveVesselScope.Current;
+                if (PatchedConicsAttachRule.ShouldAttach(
+                    vessel != null,
+                    ActiveVesselScope.SubstitutedForEva,
+                    vessel?.patchedConicSolver != null))
+                {
+                    vessel!.AttachPatchedConicsSolver();
+                }
+            }
+            catch (Exception)
+            {
+                // The refusal that follows reads the solver as it stands.
+            }
         }
 
         /// <summary>The facility as the game names it, through <c>Localizer</c>.</summary>
