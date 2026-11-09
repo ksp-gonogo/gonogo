@@ -404,7 +404,8 @@ export function addToUplink(
         `${options.slot ? `"${options.slot}" is not a slot id. ` : ""}An ${slotKind} joins a slot, named as the widget's id and a segment: uplink-tools add ${slotKind} <name> <slot>, such as crew-status.${slotKind === "augment" ? "actions" : "badges"}.`,
       );
     }
-  } else if (options.slot) {
+  }
+  if (!slotKind && options.slot) {
     throw new Error("A slot is for an augment or a contribution.");
   }
   const files: Files =
@@ -667,6 +668,43 @@ export interface AddRuntime {
 /** Thrown when a question is unanswered and nothing can be asked. The command exits 2 on it and writes nothing. */
 class Unanswered extends Error {}
 
+interface UnknownSlot {
+  notFound: string;
+  where: string;
+  slot: string;
+  kind: string;
+  declareFlag: boolean;
+  runtime: AddRuntime;
+}
+
+/** Settles whether an unknown slot gets a type declaration: by flag, by asking, or by refusing without a terminal. */
+async function resolveUnknownSlot(
+  u: UnknownSlot,
+): Promise<"declare" | "declined"> {
+  if (u.declareFlag) {
+    console.log(
+      `${u.notFound}\n  Writing a type declaration for it in ${u.where}, as --declare-slot says.`,
+    );
+    return "declare";
+  }
+  if (!(u.runtime.interactive ?? process.stdin.isTTY === true)) {
+    throw new Unanswered(
+      `${u.notFound}\n  Nothing can be asked without a terminal, so nothing was written. If ${u.slot} is a slot another Uplink declares, run it again with --declare-slot to write a type declaration for it in ${u.where}.`,
+    );
+  }
+  console.log(u.notFound);
+  const prompter = await (u.runtime.loadPrompter ?? loadPrompter)();
+  const answer = await prompter.confirm({
+    message: `Is ${u.slot} a slot another Uplink declares? Write a type declaration for it in ${u.where}, so the ${u.kind} typechecks against it`,
+    initialValue: false,
+  });
+  if (prompter.isCancel(answer) || answer !== true) {
+    console.log("Nothing was written.");
+    return "declined";
+  }
+  return "declare";
+}
+
 export async function add(
   argv: readonly string[],
   cwd: string = process.cwd(),
@@ -743,28 +781,16 @@ export async function add(
     if (!isKnownSlot(known, kind as SlotKind, slot)) {
       const notFound = `The slot ${slot} was not found among the slots the sdk${known.sdkRead ? "" : " (its declarations could not be read: the client's dependencies are not installed)"} and this Uplink declare. ${suggestionsFor(known, kind as SlotKind, slot)}`;
       const where = declarationPath(slot);
-      if (switches.has("--declare-slot")) {
-        console.log(
-          `${notFound}\n  Writing a type declaration for it in ${where}, as --declare-slot says.`,
-        );
-        declareSlot = true;
-      } else if (runtime.interactive ?? process.stdin.isTTY === true) {
-        console.log(notFound);
-        const prompter = await (runtime.loadPrompter ?? loadPrompter)();
-        const answer = await prompter.confirm({
-          message: `Is ${slot} a slot another Uplink declares? Write a type declaration for it in ${where}, so the ${kind} typechecks against it`,
-          initialValue: false,
-        });
-        if (prompter.isCancel(answer) || answer !== true) {
-          console.log("Nothing was written.");
-          return 1;
-        }
-        declareSlot = true;
-      } else {
-        throw new Unanswered(
-          `${notFound}\n  Nothing can be asked without a terminal, so nothing was written. If ${slot} is a slot another Uplink declares, run it again with --declare-slot to write a type declaration for it in ${where}.`,
-        );
-      }
+      const decided = await resolveUnknownSlot({
+        notFound,
+        where,
+        slot,
+        kind,
+        declareFlag: switches.has("--declare-slot"),
+        runtime,
+      });
+      if (decided === "declined") return 1;
+      declareSlot = true;
     }
   }
 

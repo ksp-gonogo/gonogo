@@ -28,6 +28,8 @@ const REGISTRY: Record<SlotKind, string> = {
   contribution: "ContributionRegistry",
 };
 
+const BRACE_DELTA: Record<string, number> = { "{": 1, "}": -1 };
+
 /** The quoted keys at the top level of every `interface <name> { ... }` body in `text`, comments removed. */
 function interfaceKeys(text: string, name: string): string[] {
   const bare = text
@@ -41,9 +43,9 @@ function interfaceKeys(text: string, name: string): string[] {
     let body = "";
     while (i < bare.length && depth > 0) {
       const c = bare[i];
-      if (c === "{") depth++;
-      else if (c === "}") depth--;
-      else if (depth === 1) body += c;
+      const delta = BRACE_DELTA[c] ?? 0;
+      depth += delta;
+      if (delta === 0 && depth === 1) body += c;
       i++;
     }
     for (const m of body.matchAll(/"([^"]+)"\s*\??:/g)) keys.push(m[1]);
@@ -57,8 +59,11 @@ function filesUnder(dir: string, test: (file: string) => boolean): string[] {
   for (const entry of readdirSync(dir)) {
     if (entry === "node_modules" || entry === "__generated__") continue;
     const path = join(dir, entry);
-    if (statSync(path).isDirectory()) out.push(...filesUnder(path, test));
-    else if (test(path)) out.push(path);
+    if (statSync(path).isDirectory()) {
+      out.push(...filesUnder(path, test));
+      continue;
+    }
+    if (test(path)) out.push(path);
   }
   return out;
 }
