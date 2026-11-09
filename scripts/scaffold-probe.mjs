@@ -912,6 +912,59 @@ must("npm test, with the pictures drawn", "npm", ["test"], { cwd: client });
 const testsProject = join(uplink, "mod-tests", `${NS}.Tests.csproj`);
 must("dotnet test mod-tests", "dotnet", ["test", testsProject, ...dotnetQuiet]);
 
+console.log("scaffold-probe: uplink-tools add command");
+must("uplink-tools add command", bin, ["add", "command", "reset counter"], {
+  cwd: client,
+});
+if (
+  !readFileSync(
+    join(client, "src/__generated__/command-map.ts"),
+    "utf8",
+  ).includes(`${ID}.resetCounter`)
+) {
+  fail("add command did not regenerate the client's command map");
+}
+must(
+  "uplink-tools add command, delayed with a subject",
+  bin,
+  [
+    "add",
+    "command",
+    "nudge vessel",
+    "--delay",
+    "delayed",
+    "--subject",
+    `${ID}.heartbeat`,
+  ],
+  { cwd: client },
+);
+mustFail(
+  "add command, delayed with no subject",
+  /Subject/,
+  bin,
+  ["add", "command", "stage", "--delay", "delayed"],
+  { cwd: client },
+);
+for (const script of ["page", "typecheck", "test"]) {
+  must(`npm run ${script}, after add command`, "npm", ["run", script], {
+    cwd: client,
+  });
+}
+must("dotnet test mod-tests, after add command", "dotnet", [
+  "test",
+  testsProject,
+  ...dotnetQuiet,
+]);
+mustFail(
+  "add command over a name that is taken",
+  /already declares/,
+  bin,
+  ["add", "command", "reset counter"],
+  {
+    cwd: client,
+  },
+);
+
 // What an author commits holds the placeholder; a release stamps its version over it before anything is built.
 must(
   "uplink-tools version stamps the release's version",

@@ -7,6 +7,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { findUplinkDir } from "./bake";
+import { generate } from "./codegen";
 import { parseFlags } from "./flags";
 import { renderSeed } from "./new";
 
@@ -14,6 +15,7 @@ const KINDS = [
   "widget",
   "augment",
   "contribution",
+  "command",
   "processor",
   "setting",
   "unit",
@@ -35,6 +37,10 @@ export const ADD_USAGE = `uplink-tools add <kind> <name> [options]
                    drawn into a slot
     contribution   a computed entry another widget lists, in
                    client/src/contributions/<name>.ts
+    command        a command the app can send the plugin: its arguments class
+                   in mod-contract/, its declaration and handler in the plugin,
+                   a test in mod-tests/, and the client's types regenerated.
+                   Needs an Uplink with a contract slice (new --topics own)
     processor      a shared compute step several widgets read as one source,
                    in client/src/processors/<name>.ts with a test
     setting        an operator setting, in client/src/settings/<name>.ts
@@ -47,6 +53,13 @@ export const ADD_USAGE = `uplink-tools add <kind> <name> [options]
   --slot <slot>    augment and contribution: the slot it joins (default:
                    crew-status.actions for an augment, crew-status.badges for a
                    contribution)
+  --delay <role>   command: true-now (the default: it runs on arrival, for a
+                   command about the plugin or the ground) or delayed (it
+                   travels with a vessel's delay and needs --subject)
+  --subject <topic>
+                   command: the Topic describing the vessel a delayed command
+                   is about, which the mod refuses a delayed command without
+  --no-generate    command: do not regenerate the client's types afterwards
   --uplink <dir>   the Uplink's directory, the one holding uplink.json
                    (default: found by walking up from the current directory)
   --no-page        do not write the generated page afterwards`;
@@ -326,8 +339,8 @@ registerUnit({
 }
 
 /** The lines `index.ts` gains, so the registration runs when the client loads. */
-function indexLines(kind: Kind, n: Names): string[] {
-  const folder: Record<Kind, string> = {
+function indexLines(kind: Exclude<Kind, "command">, n: Names): string[] {
+  const folder: Record<Exclude<Kind, "command">, string> = {
     widget: `./${n.pascal}/index.js`,
     augment: `./augments/${n.kebab}.js`,
     contribution: `./contributions/${n.kebab}.js`,
@@ -344,7 +357,7 @@ function indexLines(kind: Kind, n: Names): string[] {
  */
 export function addToUplink(
   uplinkDir: string,
-  kind: Kind,
+  kind: Exclude<Kind, "command">,
   name: string,
   options: { slot?: string } = {},
 ): string[] {
@@ -422,6 +435,194 @@ export function addToUplink(
   return [...files.keys(), "client/src/index.ts"];
 }
 
+/**
+ * Adds a command to the plugin of the Uplink holding `uplinkDir`: the arguments
+ * class in the contract slice and its line in the codegen config, the
+ * declaration, handler and registration in the plugin, and a test. Returns the
+ * files it changed. A file whose text no longer matches what `new` writes is
+ * named with the lines to add by hand and nothing in it is changed.
+ */
+export function addCommand(
+  uplinkDir: string,
+  name: string,
+  options: { delay?: string; subject?: string } = {},
+): { changed: string[]; byHand: string[]; commandId: string } {
+  const declared = JSON.parse(
+    readFileSync(join(uplinkDir, "uplink.json"), "utf8"),
+  );
+  const id = String(declared.id ?? "");
+  if (!declared.codegen) {
+    throw new Error(
+      "a command's arguments are a class in the contract slice, and this Uplink has none (its uplink.json declares no codegen). Scaffold it with new --topics own, or write the slice by hand.",
+    );
+  }
+  const delay = options.delay ?? "true-now";
+  if (delay !== "delayed" && delay !== "true-now") {
+    throw new Error(`--delay is "delayed" or "true-now", not "${delay}".`);
+  }
+  if (delay === "delayed" && !options.subject) {
+    throw new Error(
+      "a delayed command is about a vessel, and the mod refuses one that names no Subject Topic. Give it with --subject <topic>, such as --subject vessel.flight, or use --delay true-now.",
+    );
+  }
+  if (delay === "true-now" && options.subject) {
+    throw new Error("--subject is for a delayed command.");
+  }
+  const n = namesOf(name);
+  const Id = id[0].toUpperCase() + id.slice(1);
+  const commandId = `${id}.${n.camel}`;
+  const args = `${Id}${n.pascal}Args`;
+  const constant = `${n.pascal}Command`;
+  const plugin = `${Id}Uplink`;
+
+  const targets = {
+    payloads: `mod-contract/${Id}Payloads.cs`,
+    config: `mod-contract/${Id}RtConfig.cs`,
+    plugin: `mod/${plugin}.cs`,
+    tests: `mod-tests/${plugin}Tests.cs`,
+  };
+  const texts = new Map<string, string>();
+  for (const path of Object.values(targets)) {
+    const file = join(uplinkDir, path);
+    if (!existsSync(file)) {
+      throw new Error(
+        `${path} does not exist, and a command is written into it.`,
+      );
+    }
+    texts.set(path, readFileSync(file, "utf8"));
+  }
+  if ((texts.get(targets.payloads) ?? "").includes(`class ${args}`)) {
+    throw new Error(
+      `${targets.payloads} already declares ${args}. Pick another name.`,
+    );
+  }
+
+  const byHand: string[] = [];
+  const edits = new Map<string, string>();
+  const edit = (
+    path: string,
+    handText: string,
+    change: (before: string) => string | undefined,
+  ) => {
+    const before = texts.get(path) ?? "";
+    const after = change(before);
+    if (after === undefined || after === before) {
+      byHand.push(`${path}: ${handText}`);
+      return;
+    }
+    edits.set(path, after);
+  };
+
+  const argsClass = `
+/// <summary>
+/// The arguments of <c>${commandId}</c>. It takes none yet: add a property for each argument the app sends, and the client's types follow from <c>uplink-tools codegen</c>.
+/// </summary>
+[SitrepContract]
+[SitrepCommand("${commandId}"${delay === "true-now" ? ", Delay = DelayRole.TrueNow" : ""})]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class ${args}
+{
+}
+`;
+  edit(
+    targets.payloads,
+    `append:\n${argsClass}`,
+    (before) => `${before.trimEnd()}\n${argsClass}`,
+  );
+  edit(
+    targets.config,
+    `add typeof(${args}) to the wireTypes array`,
+    (before) =>
+      /var wireTypes = new\[\] \{[^}]*\};/.test(before)
+        ? before.replace(
+            /(var wireTypes = new\[\] \{[^}]*?)( \};)/,
+            `$1, typeof(${args})$2`,
+          )
+        : undefined,
+  );
+
+  const declaration = `new CommandDeclaration { Command = ${constant}${options.subject ? `, Subject = "${options.subject}"` : ""} },`;
+  const handler = `
+        /// <summary>
+        /// Runs on the game's main thread when the app sends <c>${commandId}</c>. Return <c>CommandResult.Fail(code, detail)</c> with the <c>CommandErrorCode</c> that names why it was refused.
+        /// </summary>
+        internal CommandResult ${n.pascal}(${args} args)
+        {
+            return CommandResult.Ok();
+        }
+`;
+  edit(
+    targets.plugin,
+    `add the constant, the declaration \`${declaration}\` to Manifest.Commands, \`host.AddCommandHandler<${args}, CommandResult>(${constant}, ${n.pascal});\` to Register, and the handler:${handler}`,
+    (before) => {
+      let text = before;
+      const constAt = /public const string \w+Topic = "[^"]*";\n/.exec(text);
+      const registerAt =
+        /public void Register\(IUplinkHost host\)\s*\{[\s\S]*?\n {8}\}/.exec(
+          text,
+        );
+      const healthAt = text.indexOf(
+        "        /// <summary>\n        /// Mandatory. An Uplink wrapping",
+      );
+      if (!constAt || !registerAt || healthAt < 0) return undefined;
+      text = text.replace(
+        constAt[0],
+        `${constAt[0]}\n        /// <summary>The command that ${n.title.toLowerCase()}. Its arguments are <see cref="${args}"/>.</summary>\n        public const string ${constant} = "${commandId}";\n`,
+      );
+      if (text.includes("Commands = new List<CommandDeclaration>")) {
+        text = text.replace(
+          /(Commands = new List<CommandDeclaration>\s*\{\n)/,
+          `$1                ${declaration}\n`,
+        );
+      } else {
+        const close = text.indexOf(
+          "\n        };\n\n        /// <summary>Called once at startup",
+        );
+        if (close < 0) return undefined;
+        text = `${text.slice(0, close)}\n            Commands = new List<CommandDeclaration>\n            {\n                ${declaration}\n            },${text.slice(close)}`;
+      }
+      text = text.replace(
+        /(public void Register\(IUplinkHost host\)\s*\{[\s\S]*?)(\n {8}\})/,
+        `$1\n            host.AddCommandHandler<${args}, CommandResult>(${constant}, ${n.pascal});$2`,
+      );
+      const health = text.indexOf(
+        "        /// <summary>\n        /// Mandatory. An Uplink wrapping",
+      );
+      return `${text.slice(0, health)}${handler.slice(1)}\n${text.slice(health)}`;
+    },
+  );
+
+  const tests = `
+        [Fact]
+        public void Declares${n.pascal}Command()
+        {
+            Assert.Contains(
+                new ${plugin}().Manifest.Commands,
+                command => command.Command == ${plugin}.${constant});
+        }
+
+        [Fact]
+        public void ${n.pascal}Succeeds()
+        {
+            Assert.True(new ${plugin}().${n.pascal}(new ${args}()).Success);
+        }
+`;
+  edit(targets.tests, `add:${tests}`, (before) => {
+    const close = before.lastIndexOf("    }\n}");
+    if (close < 0) return undefined;
+    return `${before.slice(0, close).trimEnd()}\n${tests}${before.slice(close)}`;
+  });
+
+  // Nothing is written until every file can take its edit, so a half-written command is never left behind.
+  if (byHand.length > 0) {
+    return { changed: [], byHand, commandId };
+  }
+  for (const [path, text] of edits) writeFileSync(join(uplinkDir, path), text);
+  return { changed: [...edits.keys()], byHand, commandId };
+}
+
 export function add(
   argv: readonly string[],
   cwd: string = process.cwd(),
@@ -430,8 +631,8 @@ export function add(
   const { values, switches, positionals } = parseFlags(argv, {
     verb: "add",
     usage: ADD_USAGE,
-    values: ["--slot", "--uplink"],
-    switches: ["--no-page"],
+    values: ["--slot", "--uplink", "--delay", "--subject"],
+    switches: ["--no-page", "--no-generate"],
     positionals: 2,
   });
   const [kind, name] = positionals;
@@ -450,9 +651,40 @@ export function add(
   if (values.get("--slot") && kind !== "augment" && kind !== "contribution") {
     throw new Error("--slot is for an augment or a contribution.");
   }
-  const written = addToUplink(uplinkDir, kind as Kind, name, {
-    slot: values.get("--slot"),
-  });
+  if (kind === "command") {
+    const { changed, byHand, commandId } = addCommand(uplinkDir, name, {
+      delay: values.get("--delay"),
+      subject: values.get("--subject"),
+    });
+    if (byHand.length > 0) {
+      console.log(
+        `command ${namesOf(name).kebab}: nothing was written, because a file no longer matches what the scaffold writes. Add by hand:\n${byHand.map((line) => `  - ${line}`).join("\n")}`,
+      );
+      return 1;
+    }
+    console.log(`command ${commandId}: changed ${changed.join(", ")}`);
+    const hasTypes =
+      existsSync(join(uplinkDir, "client")) ||
+      existsSync(join(uplinkDir, "types", "package.json"));
+    if (hasTypes && !switches.has("--no-generate")) {
+      generate({ uplinkDir });
+    }
+    console.log(
+      `  send it from a widget with useCommand("${commandId}"), whose arguments and reply are typed by what codegen wrote`,
+    );
+    return 0;
+  }
+  if (values.get("--delay") || values.get("--subject")) {
+    throw new Error("--delay and --subject are for a command.");
+  }
+  const written = addToUplink(
+    uplinkDir,
+    kind as Exclude<Kind, "command">,
+    name,
+    {
+      slot: values.get("--slot"),
+    },
+  );
   console.log(
     `${kind} ${namesOf(name).kebab}: wrote ${written
       .map((path) => relative(cwd, join(uplinkDir, path)) || path)
