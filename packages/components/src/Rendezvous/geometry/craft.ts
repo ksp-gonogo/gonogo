@@ -91,12 +91,28 @@ export function craftGeometry(input: {
   ut: number;
   approach?: Approach | null;
   bodyRadius?: number;
+  /**
+   * Where you are relative to the target in the target's frame, measured
+   * between the two ports. It stands in for the figure the two orbits give,
+   * which is centre of mass to centre of mass, and the predicted track moves
+   * with it so it still starts at your mark.
+   */
+  relative?: Vec3 | null;
 }): CraftGeometry | null {
   const { chaser, target, ut } = input;
   const c = stateAt(chaser, ut);
   const t = stateAt(target, ut);
-  const relative = relativeInTargetFrame(chaser, target, ut);
-  if (c === null || t === null || relative === null) return null;
+  const fromOrbits = relativeInTargetFrame(chaser, target, ut);
+  if (c === null || t === null || fromOrbits === null) return null;
+  const relative = input.relative ?? fromOrbits;
+  const shift = (p: Vec3): Vec3 =>
+    input.relative
+      ? [
+          p[0] + relative[0] - fromOrbits[0],
+          p[1] + relative[1] - fromOrbits[1],
+          p[2] + relative[2] - fromOrbits[2],
+        ]
+      : p;
   const { e1, e2 } = planeBasis(target);
   const chaserOrbit = project(orbitPoints(chaser, 120), e1, e2);
   const targetOrbit = project(orbitPoints(target, 120), e1, e2);
@@ -128,9 +144,12 @@ export function craftGeometry(input: {
     relativeInclination: relativeInclination(chaser, target, ut),
     relative,
     range: norm(relative),
-    track: relativeTrack(chaser, target, ut, horizon, 60),
+    track: relativeTrack(chaser, target, ut, horizon, 60)?.map(shift) ?? null,
     approachRelative: approachAhead
-      ? relativeInTargetFrame(chaser, target, approachAhead.time)
+      ? (() => {
+          const at = relativeInTargetFrame(chaser, target, approachAhead.time);
+          return at === null ? null : shift(at);
+        })()
       : null,
     approach: approachAhead,
   };
