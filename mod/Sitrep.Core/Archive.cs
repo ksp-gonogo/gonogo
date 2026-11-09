@@ -112,6 +112,14 @@ namespace Sitrep.Core
         private readonly Dictionary<string, List<Sample>> _samplesByTopic =
             new Dictionary<string, List<Sample>>();
 
+        /*
+         * topic -> the instant from which the topic's record is whole again after a
+         * prune dropped samples between its first and its newest-at-the-cutoff. A
+         * rewind to an earlier instant has only the birth sample left, which is not
+         * what was current there.
+         */
+        private readonly Dictionary<string, double> _wholeFrom = new Dictionary<string, double>();
+
         // topic -> vantage -> last clamped sceneUt used for that cursor.
         private readonly Dictionary<string, Dictionary<string, double>> _cursors =
             new Dictionary<string, Dictionary<string, double>>();
@@ -129,6 +137,7 @@ namespace Sitrep.Core
         public void ForgetTopic(string topic)
         {
             _samplesByTopic.Remove(topic);
+            _wholeFrom.Remove(topic);
             _cursors.Remove(topic);
             _readSincePrune.RemoveWhere(read => read.Topic == topic);
         }
@@ -143,7 +152,7 @@ namespace Sitrep.Core
         {
             if (_samplesByTopic.TryGetValue(topic, out var list))
             {
-                RetainFrom(list, cutoffUt);
+                RetainFrom(topic, list, cutoffUt);
             }
         }
 
@@ -457,7 +466,7 @@ namespace Sitrep.Core
         /// channels re-record continuously; the alternative is keeping every sample
         /// forever against a rewind that may never come.</para>
         /// </summary>
-        private static void RetainFrom(List<Sample> list, double cutoffUt)
+        private void RetainFrom(string topic, List<Sample> list, double cutoffUt)
         {
             if (list.Count < 3)
             {
@@ -479,20 +488,22 @@ namespace Sitrep.Core
             // Index 0 is the birth sample and is kept, so the drop starts at 1.
             if (keepFrom > 1)
             {
+                var wholeFrom = list[keepFrom].ValidAt;
                 list.RemoveRange(1, keepFrom - 1);
+                _wholeFrom[topic] = _wholeFrom.TryGetValue(topic, out var earlier) ? Math.Max(earlier, wholeFrom) : wholeFrom;
             }
         }
 
         public void PruneBefore(double cutoffUt)
         {
-            foreach (var list in _samplesByTopic.Values)
+            foreach (var entry in _samplesByTopic)
             {
-                if (list.Count == 0)
+                if (entry.Value.Count == 0)
                 {
                     continue;
                 }
 
-                RetainFrom(list, cutoffUt);
+                RetainFrom(entry.Key, entry.Value, cutoffUt);
             }
         }
 
@@ -529,7 +540,8 @@ namespace Sitrep.Core
         /// </summary>
         public void PruneToVantageCursors(
             IDictionary<string, double>? owedFloorByTopic = null,
-            Func<string, string, bool>? stillReading = null)
+            Func<string, string, bool>? stillReading = null,
+            double historyFloorUt = double.NegativeInfinity)
         {
             if (stillReading != null)
             {
@@ -554,8 +566,16 @@ namespace Sitrep.Core
                         oldest = scene;
                     }
                 }
+                /*
+                 * A save the game can still load rewinds the timeline to its UT, and
+                 * the sample current there is older than any cursor by then.
+                 */
+                if (!double.IsNegativeInfinity(historyFloorUt) && historyFloorUt < oldest)
+                {
+                    oldest = historyFloorUt;
+                }
 
-                RetainFrom(entry.Value, oldest);
+                RetainFrom(entry.Key, entry.Value, oldest);
             }
         }
 
@@ -625,14 +645,22 @@ namespace Sitrep.Core
         /// </summary>
         public void ResetTimeline(double ut)
         {
-            foreach (var list in _samplesByTopic.Values)
+            foreach (var entry in _samplesByTopic)
             {
-                list.RemoveAll(s => s.ValidAt > ut);
+                entry.Value.RemoveAll(s => s.ValidAt > ut);
             }
 
             _cursors.Clear();
             _readSincePrune.Clear();
         }
+
+        /// <summary>
+        /// Whether a prune has dropped the samples that described <paramref name="topic"/>
+        /// at <paramref name="ut"/>, so that the birth sample is all that is left from
+        /// before it and is not what was current then.
+        /// </summary>
+        public bool HistoryMissingAt(string topic, double ut) =>
+            _wholeFrom.TryGetValue(topic, out var wholeFrom) && ut < wholeFrom;
 
         /// <summary>
         /// C#-ONLY addition, for the M2 "archive-derived birth" rewind fix,

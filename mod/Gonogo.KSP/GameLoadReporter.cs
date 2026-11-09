@@ -77,7 +77,11 @@ namespace Gonogo.KSP
         /// never on a scene change. The save itself reaches the engine through
         /// <see cref="CommandDeliveryScenario"/> once the next scene loads it.
         /// </summary>
-        private void OnGameLoaded(ConfigNode node) => _engine.NoteLoadStarted();
+        private void OnGameLoaded(ConfigNode node)
+        {
+            KspQuicksaves.NoteLoadedInGame(node);
+            _engine.NoteLoadStarted();
+        }
 
         /// <summary>Whether <see cref="CommandDeliveryScenario"/> loads in <paramref name="scene"/>, and so answers a load mark there.</summary>
         private static bool HostsCommandDelivery(GameScenes scene) =>
