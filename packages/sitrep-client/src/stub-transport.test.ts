@@ -24,6 +24,8 @@ describe("StubTransport", () => {
     t.onMessage((m) => seen.push(m));
     t.send({
       type: "command-request",
+      seenBootId: "run-a",
+      seenEpoch: 0,
       requestId: "r1",
       command: "deploy",
       label: "",

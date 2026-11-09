@@ -25,7 +25,7 @@ import {
   samplesPerSecondOf,
   tierSamplesPerSecondOf,
 } from "@ksp-gonogo/sitrep-sdk";
-import type { Seat } from "@ksp-gonogo/sitrep-sdk/spine";
+import type { CommandSeen, Seat } from "@ksp-gonogo/sitrep-sdk/spine";
 import Peer, { type DataConnection } from "peerjs";
 import type { HostJobs } from "../hosting/HostJobs";
 import type { RunningUplink } from "../uplinks/loaderState";
@@ -128,10 +128,29 @@ export type CommandRoute = Pick<
  */
 const FOLLOW_ACTIVE_CRAFT = "active-craft";
 
+const QUICKLOAD_COMMAND = "ksp.quickload";
+
 const UNSENDABLE_VANTAGE =
   "this connection's vantage is not a command centre a command can leave from";
 
 /** Whether `vantage` is a command centre's id in the `commandCentre.roster` vocabulary. */
+/**
+ * What a station's command says the station had last received from the mod. A
+ * station that sends none reads as an empty run, which the mod refuses for the
+ * commands a game load can undo, rather than borrowing this host's.
+ */
+function stationSeen(sent: {
+  seenBootId?: string;
+  seenEpoch?: number;
+  seenVesselId?: string;
+}): CommandSeen {
+  return {
+    seenBootId: sent.seenBootId ?? "",
+    seenEpoch: sent.seenEpoch ?? 0,
+    ...(sent.seenVesselId ? { seenVesselId: sent.seenVesselId } : {}),
+  };
+}
+
 function isCentreId(vantage: string): boolean {
   return vantage.startsWith("ground:") || vantage.startsWith("vessel:");
 }
@@ -3096,9 +3115,20 @@ export class PeerHostService {
           code: FaultCode.UnknownVantage,
         });
       }
+      /* A station cannot be trusted to name itself, and only the host knows which connection sent this. */
+      const args =
+        msg.command === QUICKLOAD_COMMAND &&
+        typeof msg.args === "object" &&
+        msg.args !== null
+          ? {
+              ...msg.args,
+              requestedBy:
+                this.stationPaths.get(conn.peer)?.name ?? "A station",
+            }
+          : msg.args;
       return client.dispatch(
         msg.command,
-        msg.args,
+        args,
         msg.label ?? "",
         msg.topic ?? "",
         vantage,
@@ -3109,6 +3139,7 @@ export class PeerHostService {
          * collide.
          */
         msg.requestId,
+        stationSeen(msg),
       ).result;
     });
   }
@@ -3151,6 +3182,7 @@ export class PeerHostService {
           label: member.label,
           topic: member.topic,
           requestId: member.requestId,
+          seen: stationSeen(member),
         })),
         vantage,
         msg.groupId,

@@ -201,6 +201,16 @@ namespace Gonogo.KSP.Gates
                 CareerGates.ClearToSave,
             };
 
+            table[FlightOpsCommandProvider.QuicksaveCommand] = new[]
+            {
+                CareerGates.Scene(GameScenes.FLIGHT),
+                CareerGates.QuicksaveReady,
+            };
+            table[FlightOpsCommandProvider.QuickloadCommand] = new[]
+            {
+                CareerGates.QuickloadReady,
+            };
+
             // A vessel parked at the Space Center is recovered by id from the
             // Space Center itself: FlightGlobals.ClearToSave judges the active
             // flight, and there is none to judge here.

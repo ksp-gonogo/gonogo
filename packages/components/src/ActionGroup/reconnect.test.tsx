@@ -73,6 +73,8 @@ describe("ActionGroup across a reconnect that meets a booting game", () => {
     act(() => {
       fixture.transport.emitRaw({
         type: "game-state",
+        bootId: "run-a",
+        timelineEpoch: 0,
         state: "ready",
         scene: "LOADING",
       });

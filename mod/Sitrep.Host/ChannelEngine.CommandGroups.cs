@@ -122,6 +122,11 @@ namespace Sitrep.Host
                     RefuseGroup(group, job, "\"" + job.Command + "\" could not be read");
                     return;
                 }
+                if (RefuseIfFromAnotherTimeline(job))
+                {
+                    RefuseGroup(group, job, "a game load replaced the timeline it was sent on");
+                    return;
+                }
                 var gate = EvaluateGates(job.Command, new GateArguments(GateSubject(job.Command, job.Args)), job.Vantage);
                 if (gate.Outcome == GateOutcome.Fail)
                 {

@@ -281,6 +281,8 @@ describe("Sitrep stream recovers across a game restart without a reload", () => 
       connections[1].client.send(
         JSON.stringify({
           type: "game-state",
+          bootId: "run-a",
+          timelineEpoch: 0,
           state: "loading",
           scene: "FLIGHT",
         }),
@@ -289,7 +291,13 @@ describe("Sitrep stream recovers across a game restart without a reload", () => 
     await advance(1_000);
     await act(async () => {
       connections[1].client.send(
-        JSON.stringify({ type: "game-state", state: "ready", scene: "FLIGHT" }),
+        JSON.stringify({
+          type: "game-state",
+          state: "ready",
+          scene: "FLIGHT",
+          bootId: "run-a",
+          timelineEpoch: 0,
+        }),
       );
       connections[1].client.send(controlFrame(false, 0, 10));
     });

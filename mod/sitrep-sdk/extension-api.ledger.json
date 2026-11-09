@@ -9867,6 +9867,10 @@
         "note": "New: the rate tier the live claims on a Topic ask for"
       },
       {
+        "key": "sitrep-sdk ./spine TelemetryClient#dispatch",
+        "note": "Gains an optional argument: the run, timeline and vessel the sending screen had seen, so a host can send a station's own view"
+      },
+      {
         "key": "sitrep-sdk ./spine TelemetryClient#dispatchGroup",
         "note": "New: sends several commands as one command-group frame"
       },
@@ -9875,12 +9879,20 @@
         "note": "New: asks the mod to keep the connection at the active craft, moved by the mod when the craft changes"
       },
       {
+        "key": "sitrep-sdk ./spine TelemetryClient#get wireEpoch",
+        "note": "New: the raw timeline epoch this screen last received from the mod"
+      },
+      {
         "key": "sitrep-sdk ./spine TelemetryClient#getCarriedCommand",
         "note": "New: the status of a command this client or a client it carries dispatched, for the rows a main screen draws for its stations' commands"
       },
       {
         "key": "sitrep-sdk ./spine TelemetryClient#holdCommands",
         "note": "New: keeps the records of named commands past the sweep of answered ones, so a command group keeps reading its members' answers"
+      },
+      {
+        "key": "sitrep-sdk ./spine TelemetryClient#onTimelineChange",
+        "note": "New: tells a listener when the wire timeline epoch moves"
       },
       {
         "key": "sitrep-sdk ./spine TelemetryClient#requestRate",
@@ -10353,6 +10365,14 @@
       {
         "key": "sitrep-sdk ./spine ~Transport#onMessage",
         "note": "Gains an optional delivery argument, so a transport can mark a message as a replay of the past; a listener that ignores it is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./testing SentCommand#seenBootId",
+        "note": "New: what the sender said it had seen from the mod"
+      },
+      {
+        "key": "sitrep-sdk ./testing SentCommand#seenEpoch",
+        "note": "New: what the sender said it had seen from the mod"
       },
       {
         "key": "sitrep-sdk ./testing StubTransport#sentGroups",
@@ -11067,6 +11087,10 @@
         "note": "New: the rate tier the live claims on a Topic ask for"
       },
       {
+        "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#dispatch",
+        "note": "Gains an optional argument: the run, timeline and vessel the sending screen had seen, so a host can send a station's own view"
+      },
+      {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#dispatchGroup",
         "note": "New: sends several commands as one command-group frame"
       },
@@ -11075,12 +11099,20 @@
         "note": "New: asks the mod to keep the connection at the active craft, moved by the mod when the craft changes"
       },
       {
+        "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#get wireEpoch",
+        "note": "New: the raw timeline epoch this screen last received from the mod"
+      },
+      {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#getCarriedCommand",
         "note": "New: the status of a command this client or a client it carries dispatched, for the rows a main screen draws for its stations' commands"
       },
       {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#holdCommands",
         "note": "New: keeps the records of named commands past the sweep of answered ones, so a command group keeps reading its members' answers"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#onTimelineChange",
+        "note": "New: tells a listener when the wire timeline epoch moves"
       },
       {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#requestRate",
@@ -16889,6 +16921,22 @@
         "note": "whether the command is sent from the meta vantage, read off the mod's own [SitrepCommand] declaration"
       },
       {
+        "key": "sitrep-sdk ./spine CommandSeen",
+        "note": "New: the run, timeline and vessel a command's sending screen had last received"
+      },
+      {
+        "key": "sitrep-sdk ./spine CommandSeen#seenBootId",
+        "note": "New: the run, timeline and vessel a command's sending screen had last received"
+      },
+      {
+        "key": "sitrep-sdk ./spine CommandSeen#seenEpoch",
+        "note": "New: the run, timeline and vessel a command's sending screen had last received"
+      },
+      {
+        "key": "sitrep-sdk ./spine CommandSeen#seenVesselId?",
+        "note": "New: the run, timeline and vessel a command's sending screen had last received"
+      },
+      {
         "key": "sitrep-sdk ./spine CommandWarning",
         "note": "A dispatch the mod accepted with a warning, as useCommand lists it"
       },
@@ -17043,6 +17091,10 @@
       {
         "key": "sitrep-sdk ./spine GroupMember#requestId?",
         "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
+      },
+      {
+        "key": "sitrep-sdk ./spine GroupMember#seen?",
+        "note": "New: what a member's sending screen had seen"
       },
       {
         "key": "sitrep-sdk ./spine GroupMember#topic?",
@@ -17559,6 +17611,10 @@
       {
         "key": "sitrep-sdk ./spine useTopicClock",
         "note": "A clock and link state that follow one Topic's own arrivals, so a feed is released at the delay of the site it stands at"
+      },
+      {
+        "key": "sitrep-sdk ./spine useWireTimelineEpoch",
+        "note": "New: the timeline epoch this screen last received, re-rendering when a load starts a new one"
       },
       {
         "key": "sitrep-sdk ./spine wrap180",
@@ -18325,6 +18381,10 @@
         "note": "New: a banner recorded under the test host"
       },
       {
+        "key": "sitrep-sdk ./testing SentCommand#seenVesselId?",
+        "note": "New: what the sender said it had seen from the mod"
+      },
+      {
         "key": "sitrep-sdk ./testing clearRaisedBanners",
         "note": "New: test helper for the banners an Uplink raised"
       },
@@ -18515,6 +18575,22 @@
       {
         "key": "sitrep-sdk ./testing ~CommandHold#outbound",
         "note": "Added with CommandHold: how far along the way out a held command is, which places its rail mark"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandSeen",
+        "note": "New: the run, timeline and vessel a command's sending screen had last received"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandSeen#seenBootId",
+        "note": "New: the run, timeline and vessel a command's sending screen had last received"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandSeen#seenEpoch",
+        "note": "New: the run, timeline and vessel a command's sending screen had last received"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~CommandSeen#seenVesselId?",
+        "note": "New: the run, timeline and vessel a command's sending screen had last received"
       },
       {
         "key": "sitrep-sdk ./testing ~CommandSetOptions",
@@ -18747,6 +18823,10 @@
       {
         "key": "sitrep-sdk ./testing ~GroupMember#requestId?",
         "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~GroupMember#seen?",
+        "note": "New: what a member's sending screen had seen"
       },
       {
         "key": "sitrep-sdk ./testing ~GroupMember#topic?",

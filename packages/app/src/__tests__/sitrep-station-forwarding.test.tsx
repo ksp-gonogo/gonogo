@@ -177,7 +177,7 @@ import {
   useTelemetryStore,
 } from "@ksp-gonogo/sitrep-client";
 import { Quality, Staleness, useUplinkRelay } from "@ksp-gonogo/sitrep-sdk";
-import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
+import { makeMeta, StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { type ReactNode, useEffect, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -747,6 +747,83 @@ describe("station Sitrep-stream forwarding: two-screen proof", () => {
       args: { enabled: true },
     });
 
+    stationTransport.dispose();
+    stationClient.dispose();
+  });
+
+  it("a command sent from a station after a load names the timeline the mod is on", async () => {
+    const { peerHost, hostTransport } = setupHost();
+    hostTransport.setCommandHandler((command) => ({ command }));
+    await peerHost.start();
+    await waitForHostPeerId(peerHost);
+
+    const clientSvc = await connectStationService(peerHost);
+    stationServices.push(clientSvc);
+    const stationTransport = new PeerTransport(clientSvc);
+    const stationClient = new TelemetryClient(stationTransport);
+    let latest: unknown;
+    const stopReading = stationClient.subscribe("vessel.orbit", (value) => {
+      latest = value;
+    });
+
+    const sample = (marker: number, ut: number, timelineEpoch: number) =>
+      hostTransport.emit(
+        "vessel.orbit",
+        { marker },
+        { validAt: ut, deliveredAt: ut, timelineEpoch },
+      );
+    const gameState = (state: string, timelineEpoch: number) =>
+      hostTransport.emitRaw({
+        type: "game-state",
+        state,
+        scene: "FLIGHT",
+        bootId: "run-a",
+        timelineEpoch,
+      });
+
+    await emitUntilArrived(
+      () => {
+        gameState("ready", 0);
+        sample(1, 1000, 0);
+      },
+      () => expect(latest).toMatchObject({ marker: 1 }),
+      8000,
+    );
+
+    /* The order a load reaches the host in: the first sample of the new timeline can still read the game's old, later UT. */
+    act(() => {
+      gameState("loading", 0);
+      hostTransport.emitRaw({
+        type: "event",
+        topic: "vessel.orbit",
+        name: "timeline-reset",
+        meta: makeMeta({ timelineEpoch: 1 }),
+      });
+      sample(2, 1030, 1);
+      sample(3, 1000, 1);
+      gameState("ready", 1);
+    });
+    let marker = 4;
+    await emitUntilArrived(
+      () => {
+        marker += 1;
+        sample(marker, 1000 + marker, 1);
+      },
+      () => expect(latest).toMatchObject({ marker }),
+      8000,
+    );
+
+    const { result } = stationClient.dispatch("vessel.control.setSas", {
+      enabled: true,
+    });
+    await result;
+
+    expect(hostTransport.sentCommands.at(-1)).toMatchObject({
+      seenBootId: "run-a",
+      seenEpoch: 1,
+    });
+
+    stopReading();
     stationTransport.dispose();
     stationClient.dispose();
   });
