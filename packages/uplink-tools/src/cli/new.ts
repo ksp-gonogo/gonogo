@@ -54,6 +54,8 @@ export interface SeedOptions {
   contractVersion: string;
   /** `own`: a contract slice, generated client types and a Topic the plugin publishes. `core`: none of those, and a widget that reads a Topic Gonogo already publishes. */
   topics: Answers["topics"];
+  /** `false`: the plugin alone, with no client folder and nothing in the plugin or its tests that announces one. */
+  client: boolean;
   dependencies: Readonly<Record<string, string>>;
   devDependencies: Readonly<Record<string, string>>;
 }
@@ -954,7 +956,102 @@ namespace ${ns}.Tests
   );
 
   if (o.topics === "core") applyCoreTopics(files, o);
+  if (!o.client) applyNoClient(files, o);
   return files;
+}
+
+/**
+ * Turns the core-Topics seed into an Uplink with no client half: no client
+ * folder, no client in uplink.json, a plugin that announces none, and tests
+ * that no longer ask for one. Its version is the one the release gives it, which
+ * the plugin reads from what \`bake\` writes.
+ *
+ * It starts from the core-Topics seed and takes away, so the shapes cannot
+ * drift in the files they share.
+ */
+function applyNoClient(files: Map<string, string>, o: SeedOptions): void {
+  const Id = pascal(o.id);
+  const ns = `Gonogo${Id}Uplink`;
+  const edit = (path: string, change: (text: string) => string) => {
+    const before = files.get(path);
+    if (before === undefined) throw new Error(`the seed has no ${path}`);
+    const after = change(before);
+    if (after === before) {
+      throw new Error(`the no-client seed found nothing to change in ${path}`);
+    }
+    files.set(path, after);
+  };
+
+  for (const path of [...files.keys()]) {
+    if (path.startsWith("client/")) files.delete(path);
+  }
+  edit("uplink.json", (text) => {
+    const { client: _client, ...rest } = JSON.parse(text);
+    return `${JSON.stringify(rest, null, 2)}\n`;
+  });
+  edit(`mod/${Id}Uplink.cs`, (text) =>
+    text
+      .replace(
+        /\s*\/\/ The app loads a client only for a plugin that says where[^\n]*\n\s*ExpectedClientHash = [^;]*?: ExpectedClientHash\.Value,/,
+        "",
+      )
+      .replace(/\s*ClientSource = new UplinkClientSource\s*\{[^}]*\},/, "")
+      .replace(
+        /\/\/ Provenance, ClientSource and ExpectedClientHash are written/,
+        "// Provenance is written",
+      )
+      .replace(
+        /one version covers both halves of the Uplink\./,
+        "its version is the one the release gives it.",
+      )
+      .replace(
+        /Publishes nothing of its own\. It is here so the mod can tell the app that\s*\n\s*\/\/\/ this Uplink is installed and where its client lives: the app loads a\s*\n\s*\/\/\/ client only for an Uplink a plugin announces\. Its widgets read Topics\s*\n\s*\/\/\/ Gonogo already publishes\. To publish/,
+        "Publishes nothing of its own yet. It is here so the mod knows this Uplink\n    /// is installed, and it has no client. To publish",
+      )
+      .replace(
+        "who it is and where its\n        /// client lives. It declares no channels.",
+        "who it is. It declares\n        /// no channels and no client.",
+      ),
+  );
+  edit(`mod/${ns}.csproj`, (text) =>
+    text.replace(
+      /\s*<!-- Provenance, ClientSource and ExpectedClientHash[\s\S]*?<\/Target>/,
+      `
+  <!-- Provenance is generated and kept out of git, because it can name the machine that baked it. -->
+  <Target Name="RequireBakedProvenance" BeforeTargets="CoreCompile">
+    <Error
+      Condition="!Exists('$(MSBuildProjectDirectory)\\Provenance.g.cs')"
+      Text="mod/ is missing the file that carries this plugin's version. Write it with: npx uplink-tools bake" />
+  </Target>`,
+    ),
+  );
+  edit(`mod-tests/${ns}.Tests.csproj`, (text) =>
+    text.replace(
+      /\s*<Target Name="RequireBakedClientSource"[\s\S]*?<\/Target>/,
+      `
+  <Target Name="RequireBakedProvenance" BeforeTargets="CoreCompile">
+    <Error
+      Condition="!Exists('$(MSBuildProjectDirectory)\\..\\mod\\Provenance.g.cs')"
+      Text="mod/ is missing the file that carries this plugin's version. Write it with: npx uplink-tools bake" />
+  </Target>`,
+    ),
+  );
+  edit(`mod-tests/${Id}UplinkTests.cs`, (text) =>
+    text.replace(
+      /\s*\[Fact\]\s*public void AnnouncesItsClientSoTheAppCanFindIt\(\)[\s\S]*?StartsWith\("sha256-"\)\);\s*\}\n/,
+      `
+        [Fact]
+        public void AnnouncesNoClient()
+        {
+            var manifest = new ${Id}Uplink().Manifest;
+
+            Assert.Null(manifest.ClientSource);
+            Assert.Null(manifest.ExpectedClientHash);
+            Assert.NotEqual("", manifest.Version);
+        }
+`,
+    ),
+  );
 }
 
 /**
@@ -1455,7 +1552,8 @@ export const NEW_USAGE = `uplink-tools new [<id>] [options]
   tests, a minimal widget and its fixture, and a contract slice when it has
   Topics of its own), then its generators. After writing the files it bakes
   what the plugin announces, generates the client's types (needs the .NET SDK),
-  installs the client's dependencies and writes the generated page.
+  installs the client's dependencies and writes the generated page. With
+  --no-client it writes the plugin and its tests alone, and runs none of those.
 
   It asks what it was not told. Every question is one of these flags, so with
   all of them given, or with --yes, it asks nothing. With no terminal it never
@@ -1563,7 +1661,8 @@ const SINGLE_REPO_BUILD_TARGETS = `<Project>
  * The CI a lone Uplink's repo runs on every push: the same commands its author
  * runs, and nothing of ours beyond them.
  */
-function ciWorkflow(topics: Answers["topics"]): string {
+function ciWorkflow(topics: Answers["topics"], client: boolean): string {
+  if (!client) return ciWorkflowNoClient();
   return `name: ci
 
 # Checks both halves of this Uplink on every push, with the commands you run
@@ -1630,12 +1729,50 @@ ${
 `;
 }
 
+/** The CI of a lone Uplink with no client half: the plugin's tests and its release build. */
+function ciWorkflowNoClient(): string {
+  return `name: ci
+
+# Checks this Uplink's plugin on every push, with the commands you run
+# yourself. A plugin that references the game's own assemblies cannot build
+# here: they are not yours or ours to put in a repository, so a public runner
+# has none. One that reaches its mod by reflection, as the scaffold does, can.
+on:
+  push:
+  pull_request:
+
+jobs:
+  uplink:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Test the plugin
+        run: dotnet test mod-tests
+
+      - name: Build the plugin for release
+        run: npx --yes @ksp-gonogo/uplink-tools release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: uplink
+          path: dist
+`;
+}
+
 /**
  * What a lone repo runs when a release tag is pushed: the author's own
  * commands, in the order they run them. The zip is attached with the runner's
  * `gh`, the one step that is not an uplink-tools command.
  */
-function releaseWorkflow(id: string): string {
+function releaseWorkflow(id: string, client: boolean): string {
+  if (!client) return releaseWorkflowNoClient(id);
   return `name: release
 
 # Publishes a version when its tag is pushed: tag any commit ${id}-v0.0.1 for
@@ -1679,6 +1816,47 @@ jobs:
       - name: Publish the client
         working-directory: client
         run: npx uplink-tools publish --push --purge --tag "$GITHUB_REF_NAME"
+
+      - name: Attach the plugin to the tag's release
+        env:
+          GH_TOKEN: \${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/*.zip --verify-tag --title "$GITHUB_REF_NAME"
+`;
+}
+
+/** What a lone repo with no client half runs when a release tag is pushed: the plugin built at the tag's version, and its zip attached. */
+function releaseWorkflowNoClient(id: string): string {
+  return `name: release
+
+# Publishes a version when its tag is pushed: tag any commit ${id}-v0.0.1 for
+# 0.0.1. The plugin reports the version in the tag, which it reads from
+# GONOGO_UPLINK_VERSION when it is built.
+on:
+  push:
+    tags: ["${id}-v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Take the version from the tag
+        run: echo "GONOGO_UPLINK_VERSION=\${GITHUB_REF_NAME#${id}-v}" >> "$GITHUB_ENV"
+
+      - name: Build the plugin for release
+        run: npx --yes @ksp-gonogo/uplink-tools release --tag "$GITHUB_REF_NAME"
 
       - name: Attach the plugin to the tag's release
         env:
@@ -1815,6 +1993,7 @@ export async function newUplink(
     clientUrl: named ? derivedUrl : (inheritedUrl ?? derivedUrl),
     contractVersion: sibling?.contractVersion ?? ownVersion(),
     topics: answers.topics,
+    client: answers.client,
     dependencies: sibling?.dependencies ?? fallbackDependencies(ownVersion()),
     devDependencies:
       sibling?.devDependencies ?? fallbackDevDependencies(ownVersion()),
@@ -1826,8 +2005,14 @@ export async function newUplink(
     files.set("Directory.Build.props", SINGLE_REPO_BUILD_PROPS);
     files.set("Directory.Build.targets", SINGLE_REPO_BUILD_TARGETS);
     if (answers.workflows) {
-      files.set(".github/workflows/ci.yml", ciWorkflow(answers.topics));
-      files.set(".github/workflows/release.yml", releaseWorkflow(id));
+      files.set(
+        ".github/workflows/ci.yml",
+        ciWorkflow(answers.topics, answers.client),
+      );
+      files.set(
+        ".github/workflows/release.yml",
+        releaseWorkflow(id, answers.client),
+      );
     }
     if (answers.ksp !== null) {
       files.set(
@@ -1868,6 +2053,17 @@ export async function newUplink(
     );
   }
   console.log(describeBake(bakeUplink({ uplinkDir: target })));
+
+  if (!answers.client) {
+    const tests = relative(cwd, join(target, "mod-tests")) || ".";
+    console.log(
+      `\nNext:\n  - say what it wraps: the plugin is mod/${pascal(id)}Uplink.cs, and Register is where it reaches that mod\n` +
+        `  - prove it: dotnet test ${tests}\n` +
+        "  - when it is ready to install in a game: npx uplink-tools release, which compiles and zips the plugin. " +
+        "Its version is GONOGO_UPLINK_VERSION when that is set\n",
+    );
+    return 0;
+  }
 
   const clientDir = join(target, "client");
   const client = relative(cwd, clientDir) || ".";

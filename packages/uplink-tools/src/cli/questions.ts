@@ -30,7 +30,9 @@ export interface Answers {
   author: string;
   /** `null` when it has no repository yet: the client URL is then a placeholder that `release` refuses. */
   repo: Repository | null;
-  /** `own`: the Uplink publishes Topics of its own. `core`: it only reads the ones Gonogo already publishes. */
+  /** Whether the Uplink has a client half (widgets). `false`: a plugin alone, which wraps a mod and ships no bundle. */
+  client: boolean;
+  /** `own`: the Uplink publishes Topics of its own. `core`: it only reads the ones Gonogo already publishes. An Uplink with no client is always `core`. */
   topics: "own" | "core";
   workflows: boolean;
   /** The KSP install to build against, or `null` to leave that for later. */
@@ -86,6 +88,8 @@ interface Question<Key extends keyof Answers> {
   switches?: readonly string[];
   /** The answer the flags gave, or `undefined` when they gave none. Throws on an answer that cannot be used. */
   read(flags: ParsedFlags): Answers[Key] | undefined;
+  /** The answer an earlier answer already fixes, which is taken without asking and without a flag. */
+  implied?(context: AskContext): Answers[Key] | undefined;
   /** The answer `--yes` takes, or `undefined` when there is nothing sensible to assume. */
   fallback(context: AskContext): Answers[Key] | undefined;
   ask(prompter: Prompter, context: AskContext): Promise<Answers[Key] | symbol>;
@@ -305,10 +309,32 @@ export const QUESTIONS = [
     },
   }),
   question({
+    key: "client",
+    flag: "--client | --no-client",
+    help: "whether it has a client half: widgets the app loads. --no-client writes the plugin alone, for an Uplink that wraps another mod and has nothing to draw: no client/ folder, no client in uplink.json, and a plugin that announces none (default: a client)",
+    switches: ["--client", "--no-client"],
+    read: (flags) => {
+      const yes = flags.switches.has("--client");
+      const no = flags.switches.has("--no-client");
+      if (yes && no) {
+        throw new Error("--client and --no-client answer the same question.");
+      }
+      return yes ? true : no ? false : undefined;
+    },
+    fallback: () => true,
+    ask: (prompter) =>
+      prompter.confirm({
+        message:
+          "Does it have a client, widgets the app draws? (no: a plugin alone, for an Uplink that wraps another mod)",
+        initialValue: true,
+      }),
+  }),
+  question({
     key: "topics",
     flag: "--topics own | core",
-    help: "own: it publishes Topics of its own, so it gets a C# contract slice and generated client types. core: it only reads Topics Gonogo already publishes (default: own)",
+    help: "own: it publishes Topics of its own, so it gets a C# contract slice and generated client types. core: it only reads Topics Gonogo already publishes (default: own, and core with --no-client, which cannot publish Topics of its own)",
     values: ["--topics"],
+    implied: ({ settled }) => (settled.client === false ? "core" : undefined),
     read: (flags) => {
       const value = flags.values.get("--topics");
       if (value === undefined) return undefined;
@@ -479,6 +505,16 @@ export async function resolveAnswers(
     q: Question<Key>,
   ): Promise<void> => {
     const given = q.read(options.flags);
+    const implied = q.implied?.(context);
+    if (implied !== undefined) {
+      if (given !== undefined && given !== implied) {
+        throw new Error(
+          `${q.flag.split(" ")[0]} ${String(given)} cannot go with --no-client: an Uplink with no client has no client types to generate, so it publishes no Topics of its own here.`,
+        );
+      }
+      context.settled[q.key] = implied;
+      return;
+    }
     if (given !== undefined) {
       context.settled[q.key] = given;
       return;
@@ -507,6 +543,7 @@ export async function resolveAnswers(
   await resolveOne(QUESTIONS[4]);
   await resolveOne(QUESTIONS[5]);
   await resolveOne(QUESTIONS[6]);
+  await resolveOne(QUESTIONS[7]);
 
   if (missing.length > 0) {
     const list = missing.map((flag) => `  ${flag}`).join("\n");
@@ -518,12 +555,14 @@ export async function resolveAnswers(
     );
   }
 
-  const { id, name, author, repo, topics, workflows, ksp } = context.settled;
+  const { id, name, author, repo, client, topics, workflows, ksp } =
+    context.settled;
   if (
     id === undefined ||
     name === undefined ||
     author === undefined ||
     repo === undefined ||
+    client === undefined ||
     topics === undefined ||
     workflows === undefined ||
     ksp === undefined
@@ -535,6 +574,7 @@ export async function resolveAnswers(
     name,
     author,
     repo,
+    client,
     topics,
     workflows,
     ksp: ksp === null ? null : readKsp(ksp, options.cwd),

@@ -18,6 +18,7 @@ import {
   describeBake,
   devPathPastPublishedVersion,
   findUplinkDir,
+  modOnlyVersion,
 } from "./bake";
 import { dotnet } from "./codegen";
 import { parseFlags } from "./flags";
@@ -184,7 +185,9 @@ export async function release(
   const versionFile = join(clientDir, "package.json");
   const version = existsSync(versionFile)
     ? str(field(JSON.parse(readFileSync(versionFile, "utf8")), "version"))
-    : "";
+    : existsSync(clientDir)
+      ? ""
+      : modOnlyVersion();
 
   const candidatePin = prereleasePinFault(uplinkDir, version);
   if (candidatePin) throw new Error(candidatePin);
