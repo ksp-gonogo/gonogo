@@ -1112,7 +1112,10 @@ export function useCommand(
       labelsRef.current.set(newRequestId, label);
       ownIdsRef.current.add(newRequestId);
       result.then(
-        () => ranRef.current.add(newRequestId),
+        () => {
+          ranRef.current.add(newRequestId);
+          outcomeStore?.supersedeFailures(command);
+        },
         () => undefined,
       );
       setDispatchedIds((prev) => [...prev, newRequestId]);
@@ -1213,7 +1216,14 @@ export function useCommand(
       // something.
       return result as Promise<AnyCommandReply>;
     },
-    [command, setLosses, setUndelivered, setFailures, setRefusals],
+    [
+      command,
+      outcomeStore,
+      setLosses,
+      setUndelivered,
+      setFailures,
+      setRefusals,
+    ],
   );
 
   // Commands an earlier page of this screen sent under this id and is still waiting on, taken once so their answers show as a send's own do.

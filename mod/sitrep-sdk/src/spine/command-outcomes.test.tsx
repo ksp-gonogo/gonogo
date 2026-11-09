@@ -162,6 +162,33 @@ describe("command outcomes held on the client", () => {
     expect(screen.getByLabelText("refusals b").textContent).toBe("a");
   });
 
+  it("clears a recorded refusal when a later press of the same command is confirmed", async () => {
+    const { transport, client } = setup();
+    render(
+      <TelemetryProvider client={client}>
+        <Outcomes command="x.y" name="a" />
+      </TelemetryProvider>,
+    );
+    act(() => {
+      screen.getByRole("button", { name: "send a" }).click();
+    });
+    await act(async () => refuse(transport, lastRequestId(transport)));
+    expect(screen.getByLabelText("refusals a").textContent).toBe("a");
+
+    act(() => {
+      screen.getByRole("button", { name: "send a" }).click();
+    });
+    await act(async () =>
+      transport.deliver({
+        type: "command-response",
+        requestId: lastRequestId(transport),
+        result: { success: true },
+        meta: makeMeta(),
+      }),
+    );
+    expect(screen.getByLabelText("refusals a").textContent).toBe("");
+  });
+
   it("promotes a loss to a found with no widget mounted", async () => {
     const { clock, transport, client } = setup();
     const first = render(

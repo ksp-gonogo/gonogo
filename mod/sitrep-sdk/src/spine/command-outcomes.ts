@@ -106,6 +106,26 @@ export class CommandOutcomeStore {
     this.notify();
   }
 
+  /* A confirmed press supersedes what an earlier press of the same command recorded as refused, undelivered or failed. */
+  supersedeFailures(command: string): void {
+    const current = this.byCommand.get(command);
+    if (!current) return;
+    if (
+      current.refusals.length === 0 &&
+      current.undelivered.length === 0 &&
+      current.failures.length === 0
+    ) {
+      return;
+    }
+    this.byCommand.set(command, {
+      ...current,
+      refusals: [],
+      undelivered: [],
+      failures: [],
+    });
+    this.notify();
+  }
+
   dispose(): void {
     this.stopSweep();
     this.stopTimeline();
