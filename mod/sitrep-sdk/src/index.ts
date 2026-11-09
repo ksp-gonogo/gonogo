@@ -562,6 +562,11 @@ export type {
   UplinkHealthStateName,
 } from "./spine/uplink-health";
 export { HEALTH_STATE_NAMES } from "./spine/uplink-health";
+export {
+  LAST_KNOWN_PATH_COMMAND,
+  type LastKnownPathQuery,
+  useLastKnownPath,
+} from "./spine/use-last-known-path";
 export { useSystemInstant } from "./system-instant";
 export * from "./timeline";
 export {

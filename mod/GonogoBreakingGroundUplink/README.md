@@ -85,7 +85,7 @@ Live RPM vs commanded cap for Breaking Ground robotic rotors, with motor, lock, 
 | --- | --- |
 | Uplink id | `breakingGround` |
 | Version | `0.0.1` |
-| Built against | contract 51.0, extension API 6.0.0 |
+| Built against | contract 51.1, extension API 6.0.0 |
 
 </details>
 

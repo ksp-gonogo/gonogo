@@ -1,3 +1,4 @@
+// Analytic accepted: a transfer plan is a two-body question about instants nobody has reached.
 /**
  * The Maneuver Planner's transfer to another body, from the game's body catalogue and the craft's own orbit.
  *

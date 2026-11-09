@@ -348,6 +348,136 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
+        /// The seed for a path from the last known state comes off the archive, which
+        /// holds exactly what this channel's source produced. Handing the reader a
+        /// contract type instead passed while every ask in the real game was refused.
+        /// </summary>
+        [Fact]
+        public void WhatTheOrbitChannelRecordsSeedsAPropagationAtTheStateTheElementsDescribe()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                orbit: new Dictionary<string, object?>
+                {
+                    ["sma"] = 700_000.0,
+                    ["ecc"] = 0.01,
+                    ["inc"] = 5.0,
+                    ["lan"] = 10.0,
+                    ["argPe"] = 20.0,
+                    ["meanAnomalyAtEpoch"] = 1.2,
+                    ["epoch"] = 90.0,
+                    ["mu"] = 3.5316e12,
+                    ["referenceBody"] = "Kerbin",
+                    ["encounter"] = null,
+                },
+                bodies: KerbinAndMun());
+            var archive = new Sitrep.Core.Archive();
+            archive.Record(VesselViewProvider.OrbitTopic, VesselViewProvider.BuildOrbitWire(snapshot), 100);
+
+            OrbitElements? heard = null;
+            var body = -1;
+            var observed = Sitrep.Core.DelayedStateReader.Read(
+                archive,
+                VesselViewProvider.OrbitTopic,
+                "ksc",
+                60,
+                1000,
+                payload => ChannelEngine.OrbitPayloadToState(payload, out heard, out body));
+
+            Assert.True(observed.Established, observed.Reason);
+            Assert.Equal(100, observed.ObservedAtUt);
+            Assert.Equal(1, body);
+
+            // Angles on the wire are degrees and elements are radians, so a seed read
+            // without converting them is a craft in the wrong plane.
+            var expected = OrbitElements.FromKspDegrees(700_000.0, 0.01, 5.0, 10.0, 20.0, 1.2, 90.0, 3.5316e12);
+            Assert.Equal(expected.Inc, heard!.Value.Inc, 12);
+            var state = Sitrep.Propagation.KeplerProvider.StateFrom(heard.Value, 90.0);
+            var want = Sitrep.Propagation.KeplerProvider.StateFrom(expected, 90.0);
+            Assert.Equal(want.Position.X, state.Position.X, 3);
+            Assert.Equal(want.Position.Z, state.Position.Z, 3);
+            Assert.True(System.Math.Abs(state.Position.Z) > 1.0, "an inclined orbit should leave the plane here");
+        }
+
+        [Fact]
+        public void APathsFirstPointIsWhereAKnownOrbitInDegreesPutsTheCraft()
+        {
+            // Inclination 90 and argument of periapsis 90 put periapsis over the pole, so
+            // a circular craft at mean anomaly zero is exactly at (0, 0, r). Read as
+            // radians those same numbers place it about a thousand kilometres away.
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                orbit: new Dictionary<string, object?>
+                {
+                    ["sma"] = 700_000.0,
+                    ["ecc"] = 0.0,
+                    ["inc"] = 90.0,
+                    ["lan"] = 0.0,
+                    ["argPe"] = 90.0,
+                    ["meanAnomalyAtEpoch"] = 0.0,
+                    ["epoch"] = 100.0,
+                    ["mu"] = 3.5316e12,
+                    ["referenceBody"] = "Kerbin",
+                    ["encounter"] = null,
+                },
+                bodies: KerbinAndMun());
+
+            var state = ChannelEngine.OrbitPayloadToState(
+                VesselViewProvider.BuildOrbitWire(snapshot), out var heard, out var body);
+            Assert.NotNull(state);
+
+            var seed = new PropagationSeed(state!.Value.State, body, 100.0, heard!.Value.Mu);
+            IPropagationFromState provider = new Sitrep.Propagation.KeplerProvider();
+            var first = provider.PropagateFromState(seed, 1000.0, 4, PropagationCertification.CertifiedOnly).States[0];
+
+            Assert.Equal(0.0, first.X, 3);
+            Assert.Equal(0.0, first.Y, 3);
+            Assert.Equal(700_000.0, first.Z, 3);
+        }
+
+        [Fact]
+        public void HalfAPhysicsStepOfGravityBringsTheVelocityToThePositionsInstant()
+        {
+            // Measured on a live game: 0.072 m/s at 100 km, which is 7.2 m/s2 times 0.01 s.
+            var read = new StateVector(new Vector3d(700_000.0, 0.0, 0.0), new Vector3d(0.0, 2246.0, 0.0));
+
+            var underPhysics = ChannelEngine.AtTheSameInstant(read, 3.5316e12, 0.02);
+
+            Assert.Equal(0.07207, underPhysics.Velocity.X, 4);
+            Assert.Equal(2246.0, underPhysics.Velocity.Y, 9);
+            Assert.Equal(700_000.0, underPhysics.Position.X, 9);
+        }
+
+        [Fact]
+        public void OnlyASampleReadUnderPhysicsNeedsTheCorrection()
+        {
+            Dictionary<string, object?> Sample(Quality quality) => new Dictionary<string, object?>
+            {
+                ["meta"] = new Dictionary<string, object?> { ["quality"] = (int)quality },
+            };
+
+            Assert.Equal(0.02, ChannelEngine.PhysicsStepOf(Sample(Quality.Loaded)));
+            Assert.Null(ChannelEngine.PhysicsStepOf(Sample(Quality.OnRails)));
+            Assert.Null(ChannelEngine.PhysicsStepOf(null));
+        }
+
+        [Fact]
+        public void ACraftOnRailsKeepsTheVelocityItWasReadWith()
+        {
+            var read = new StateVector(new Vector3d(700_000.0, 0.0, 0.0), new Vector3d(0.0, 2246.0, 0.0));
+
+            Assert.Equal(0.0, ChannelEngine.AtTheSameInstant(read, 3.5316e12, null).Velocity.X);
+        }
+
+        [Fact]
+        public void AnOrbitSampleWithNoConicInItSeedsNothing()
+        {
+            Assert.Null(ChannelEngine.OrbitPayloadToState(null, out _, out _));
+            Assert.Null(ChannelEngine.OrbitPayloadToState(
+                new Dictionary<string, object?> { ["sma"] = 0.0, ["ecc"] = 1.0 }, out _, out _));
+        }
+
+        /// <summary>
         /// The horizon reaches a client through a hand-written dictionary, so a field
         /// added to the contract class and not to that dictionary is dropped without
         /// a sound and the client sees null for ever.

@@ -863,6 +863,13 @@ namespace Sitrep.Host
         /// </summary>
         internal const string BodyStatesAtCommand = "trackingStation.bodies.statesAt";
 
+        /// <summary>
+        /// The command asking where the active craft goes from what the asking
+        /// command centre last heard. The engine's own, because the answer comes from
+        /// the elected propagation provider and the seed from the Courier.
+        /// </summary>
+        internal const string LastKnownPathCommand = "vessel.trajectory.fromLastKnown";
+
         // The ground-side pending-uplink queue self-report channel (see
         // Sitrep.Contract.PendingUplink's doc comment for the prediction-only
         // invariant this carries). Same "engine declares/sources it directly"
@@ -1853,6 +1860,13 @@ namespace Sitrep.Host
             _vantageCommandHandlers[BodyStatesAtCommand] =
                 (args, _) => BodyStatesAt(args);
             _commandArgTypes[BodyStatesAtCommand] = typeof(BodyStatesRequest);
+
+            _commandDeclarations[LastKnownPathCommand] = new CommandDeclaration
+            {
+                Command = LastKnownPathCommand,
+            };
+            _vantageCommandHandlers[LastKnownPathCommand] = LastKnownPath;
+            _commandArgTypes[LastKnownPathCommand] = typeof(LastKnownPathRequest);
 
             // The settings model and its one write path. Declared here rather
             // than by an uplink because settings belong to the mod as a whole
@@ -6776,6 +6790,227 @@ namespace Sitrep.Host
                 ProviderId = provider.ProviderId,
             });
         }
+
+        /// <summary>
+        /// Answer <see cref="LastKnownPathCommand"/>: the path from the newest
+        /// <c>vessel.orbit</c> sample that has reached <paramref name="vantage"/>.
+        ///
+        /// <para>The seed comes off the Courier and never from the live game, so the
+        /// answer holds nothing that command centre has not been told. The state is
+        /// taken at the sample's own instant, because the elements' epoch can be older
+        /// and under n-body physics they only touch the path at the sample.</para>
+        /// </summary>
+        private object? LastKnownPath(object? args, string vantage)
+        {
+            if (!(BindCommandArgs(args, typeof(LastKnownPathRequest)) is LastKnownPathRequest bound))
+            {
+                return ToWire(LastKnownPathReply.Refused("This request could not be read."));
+            }
+
+            var provider = Propagation.PropagationElection.Elected(_kernel);
+            if (provider == null)
+            {
+                return ToWire(LastKnownPathReply.Refused(
+                    "No propagation provider is elected, so nothing can say where the craft goes."));
+            }
+
+            const string topic = VesselViewProvider.OrbitTopic;
+            OrbitElements? heard = null;
+            int heardBody = 0;
+            double? physicsStep = null;
+            var observed = _courier.ObserveAtVantage(NodeFor(topic), topic, vantage, _clock.Now(), payload =>
+            {
+                var state = OrbitPayloadToState(payload, out var elements, out var body);
+                heard = elements;
+                heardBody = body;
+                physicsStep = PhysicsStepOf(payload);
+                return state;
+            });
+            if (!observed.Established || heard == null || observed.ObservedAtUt == null)
+            {
+                return ToWire(LastKnownPathReply.Refused(
+                    observed.Reason ?? "Nothing this command centre has heard says where the craft is."));
+            }
+
+            var seededAt = observed.ObservedAtUt.Value;
+            var path = FromState(
+                provider,
+                Propagation.PropagationElection.ElectedIntegrates(_kernel),
+                new PropagationSeed(
+                    AtTheSameInstant(KeplerProvider.StateFrom(heard.Value, seededAt), heard.Value.Mu, physicsStep),
+                    heardBody,
+                    seededAt,
+                    heard.Value.Mu),
+                bound.ToUt,
+                bound.MaxPoints,
+                bound.Certification);
+            return ToWire(path.Solved
+                ? new LastKnownPathReply { Solved = true, Path = path, SeededAtUt = seededAt, Vantage = vantage }
+                : new LastKnownPathReply
+                {
+                    Solved = false,
+                    StillWorking = path.StillWorking,
+                    Refusal = path.Refusal ?? "No path could be computed.",
+                });
+        }
+
+        /// <summary>
+        /// Whether a propagate-from-state ask accepts the analytic answer: only
+        /// <see cref="PropagationCertification.Unbounded"/> does, so a request that names
+        /// no setting, or one this build does not know, asks for the accurate answer.
+        /// </summary>
+        internal static bool AcceptsAnalytic(PropagationCertification certification) =>
+            certification == PropagationCertification.Unbounded;
+
+        /// <summary>
+        /// The path from <paramref name="seed"/>: the elected provider's own answer when it
+        /// answers from a given state, else the two-body answer where that is the right
+        /// one, which is an analytic ask, or an accurate one with no integrating provider
+        /// elected.
+        /// </summary>
+        internal static PropagatedPath FromState(
+            IPropagationProvider elected,
+            bool electedIntegrates,
+            PropagationSeed seed,
+            double toUt,
+            int maxPoints,
+            PropagationCertification certification)
+        {
+            var analytic = AcceptsAnalytic(certification);
+            var asked = analytic ? PropagationCertification.Unbounded : PropagationCertification.CertifiedOnly;
+            if (elected is IPropagationFromState answers)
+            {
+                return answers.PropagateFromState(seed, toUt, maxPoints, asked);
+            }
+            if (!analytic && electedIntegrates)
+            {
+                return PropagatedPath.Refused(
+                    "The elected propagation provider integrates, and cannot predict from a given state.");
+            }
+            return TwoBody.PropagateFromState(seed, toUt, maxPoints, asked);
+        }
+
+        /// <summary>The two-body answer an ask falls back to when the elected provider gives none of its own.</summary>
+        private static readonly KeplerProvider TwoBody = new KeplerProvider();
+
+        /// <summary>
+        /// A recorded <c>vessel.orbit</c> sample as a state a propagation can start from,
+        /// or null when it holds no conic the two-body solve can read. The archive holds
+        /// the wire form, a dictionary with its angles in degrees, and never a
+        /// <see cref="VesselOrbit"/>.
+        /// </summary>
+        internal static StateAboutBody? OrbitPayloadToState(object? payload, out OrbitElements? elements, out int bodyIndex)
+        {
+            elements = null;
+            bodyIndex = 0;
+            if (!(payload is IDictionary<string, object?> wire)
+                || WireNumber(wire, "sma") is not double sma
+                || WireNumber(wire, "ecc") is not double ecc
+                || WireNumber(wire, "inc") is not double inc
+                || WireNumber(wire, "meanAnomalyAtEpoch") is not double meanAnomaly
+                || WireNumber(wire, "epoch") is not double epoch
+                || WireNumber(wire, "mu") is not double mu
+                || WireNumber(wire, "referenceBodyIndex") is not double body)
+            {
+                return null;
+            }
+
+            var closed = sma > 0 && ecc >= 0 && ecc < 1;
+            var open = sma < 0 && ecc > 1;
+            if (!(closed || open) || !(mu > 0))
+            {
+                return null;
+            }
+
+            var read = OrbitElements.FromKspDegrees(
+                sma, ecc, inc, WireNumber(wire, "lan") ?? 0.0, WireNumber(wire, "argPe") ?? 0.0, meanAnomaly, epoch, mu);
+            elements = read;
+            bodyIndex = (int)body;
+            return new StateAboutBody(KeplerProvider.StateFrom(read, epoch), bodyIndex);
+        }
+
+        /// <summary>KSP's physics step at normal speed. A craft under physics warp steps longer, which this does not follow.</summary>
+        private const double PhysicsStepSeconds = 0.02;
+
+        /// <summary>The physics step a recorded orbit sample was read under, or null when the craft was on rails.</summary>
+        internal static double? PhysicsStepOf(object? payload) =>
+            payload is IDictionary<string, object?> wire
+            && wire.TryGetValue("meta", out var meta)
+            && meta is IDictionary<string, object?> metaWire
+            && WireNumber(metaWire, "quality") == (int)Quality.Loaded
+                ? PhysicsStepSeconds
+                : (double?)null;
+
+        /// <summary>
+        /// A state read from a craft under physics, with its velocity brought to the
+        /// instant of its position. The physics engine moves a craft with the velocity at
+        /// the end of a step, so the position it reports is half a step behind that
+        /// velocity. Half a step of gravity is too small to see on a conic and is enough to
+        /// start an integrated path on the wrong ellipse: 0.07 m/s in low orbit, 90 m half
+        /// an orbit later. Null means the craft is on rails, where the two already agree.
+        /// </summary>
+        internal static StateVector AtTheSameInstant(StateVector read, double mu, double? physicsStep)
+        {
+            if (physicsStep is not double step || !(step > 0.0))
+            {
+                return read;
+            }
+            var r = read.Position;
+            var radius = r.Magnitude();
+            if (!(radius > 0.0))
+            {
+                return read;
+            }
+            // Back half a step from the velocity's instant to the position's: gravity is
+            // undone, so the kick points away from the body.
+            var kick = mu * step / (2.0 * radius * radius * radius);
+            return new StateVector(
+                r,
+                new Vector3d(
+                    read.Velocity.X + (kick * r.X),
+                    read.Velocity.Y + (kick * r.Y),
+                    read.Velocity.Z + (kick * r.Z)));
+        }
+
+        private static double? WireNumber(IDictionary<string, object?> wire, string key)
+        {
+            if (!wire.TryGetValue(key, out var value))
+            {
+                return null;
+            }
+            switch (value)
+            {
+                case double d: return double.IsNaN(d) || double.IsInfinity(d) ? (double?)null : d;
+                case int i: return i;
+                case long l: return l;
+                case float f: return f;
+                default: return null;
+            }
+        }
+
+        /// <summary>The last-known path reply's wire shape, named so the coverage gate can read it.</summary>
+        private static Dictionary<string, object?> ToWire(LastKnownPathReply reply) =>
+            new Dictionary<string, object?>
+            {
+                ["solved"] = reply.Solved,
+                ["path"] = reply.Path == null ? null : ToWire(reply.Path),
+                ["seededAtUt"] = reply.SeededAtUt,
+                ["vantage"] = reply.Vantage,
+                ["stillWorking"] = reply.StillWorking,
+                ["refusal"] = reply.Refusal,
+            };
+
+        private static Dictionary<string, object?> ToWire(PropagatedPath path) =>
+            new Dictionary<string, object?>
+            {
+                ["solved"] = path.Solved,
+                ["kind"] = (int)path.Kind,
+                ["centreBodyIndex"] = path.CentreBodyIndex,
+                ["states"] = path.States.Select(ToWire).ToList<object?>(),
+                ["reachedUt"] = path.ReachedUt,
+                ["stillWorking"] = path.StillWorking,
+                ["refusal"] = path.Refusal,
+            };
 
         /// <summary>
         /// The body-states reply's wire shape. A named method taking the type

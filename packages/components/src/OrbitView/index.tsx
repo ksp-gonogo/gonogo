@@ -31,6 +31,7 @@ import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { orbitSpread } from "../shared/orbitSpread";
 import { useBodyName } from "../shared/useBodyName";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
+import { useLastKnownTrajectory } from "../shared/useLastKnownTrajectory";
 import { useOrbitPlaneTrajectory } from "../shared/useOrbitPlaneTrajectory";
 import { usePastTrack } from "../shared/usePastTrack";
 import { useStreamBody } from "../shared/useStreamBody";
@@ -150,7 +151,11 @@ function OrbitViewComponent({
   const periapsisR = apsisShape?.periapsisRadius;
 
   // The trajectory shape comes from the propagation seam, never from `sma` and `ecc` here, so an integrating provider changes what is drawn.
-  const trajectory: OrbitTrajectory | null = useOrbitPlaneTrajectory(orbit);
+  const trajectory: OrbitTrajectory | null = useLastKnownTrajectory(
+    orbit,
+    useOrbitPlaneTrajectory(orbit),
+    { inOrbitPlane: true },
+  );
 
   const { isOrbiting } = useIsOrbiting(orbitHeld ? apsisShape : undefined);
   // Single-body subscription, avoiding the all-bodies fanout of useCelestialBodies.

@@ -52,6 +52,7 @@ import { craftOnOrbit } from "../shared/craftOnOrbit";
 import { orbitSpread } from "../shared/orbitSpread";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { useEncounterIn } from "../shared/useEncounterIn";
+import { useLastKnownTrajectory } from "../shared/useLastKnownTrajectory";
 import { AlmanacPanel } from "./AlmanacPanel";
 import {
   ContactCaption,
@@ -362,7 +363,11 @@ function TrackingStationComponent({
    * Asked with no read frame; the diagram lifts the answer into the projection's frame.
    * A read frame would reframe every conic into points at animation-frame rate, past the trajectory transform budget, and would turn the conic answer the predicted SOI chain needs into an arc.
    */
-  const vesselTrajectory: OrbitTrajectory | null = useOrbitTrajectory(orbit);
+  const vesselTrajectory: OrbitTrajectory | null = useLastKnownTrajectory(
+    orbit,
+    useOrbitTrajectory(orbit),
+    { inOrbitPlane: false },
+  );
   const trajectoryWithheld =
     vesselTrajectory !== null && vesselTrajectory.shape === "withheld"
       ? vesselTrajectory
