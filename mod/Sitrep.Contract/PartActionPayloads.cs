@@ -83,6 +83,10 @@ public class PartActionEntry
     /// fire.</summary>
     [SitrepUnit(Units.Flag)]
     public bool RequireFullControl { get; set; }
+
+    /// <summary>The button can be pressed from a console but opens a window on the game's own screen, without locking the craft.</summary>
+    [SitrepUnit(Units.Flag)]
+    public bool OpensGameWindow { get; set; }
 }
 
 /// <summary>
@@ -129,6 +133,14 @@ public class PartActions
     /// actions, not that the list is missing.
     /// </summary>
     public List<PartActionEntry> Actions { get; set; } = new();
+
+    /// <summary>
+    /// The part's buttons that only someone at the game's own screen can finish.
+    /// They cannot be pressed from a console and
+    /// <c>vessel.invokePartAction</c> refuses them, so draw them disabled. Always
+    /// present, possibly empty.
+    /// </summary>
+    public List<PartActionEntry> GameWindows { get; set; } = new();
 
     /// <summary>
     /// Payload provenance. <c>Source</c> is <c>"vessel:&lt;guid&gt;"</c> for the

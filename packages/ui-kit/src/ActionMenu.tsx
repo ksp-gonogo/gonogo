@@ -1,5 +1,5 @@
 import type { AnyBoundCommand } from "@ksp-gonogo/sitrep-sdk";
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import styled from "styled-components";
 import { groupComboboxOptions } from "./Combobox";
@@ -26,6 +26,8 @@ export interface ActionMenuItem {
   group?: string;
   /** Present but not currently firable: rendered dimmed and inert, still reachable. */
   disabled?: boolean;
+  /** Text shown as the item's tip and read as its description, such as why it is disabled. */
+  tip?: string;
   /** Overrides the accessible name when `label` alone is ambiguous out of context. */
   "aria-label"?: string;
   /**
@@ -251,22 +253,23 @@ export function ActionMenu({
                 );
               }
               return (
-                <MenuItem
-                  key={item.key}
-                  type="button"
-                  role="menuitem"
-                  aria-label={item["aria-label"]}
-                  // aria-disabled, not `disabled`: a natively disabled button cannot take focus and drops out of the arrow-key walk.
-                  aria-disabled={item.disabled}
-                  $disabled={item.disabled}
-                  tabIndex={index === activeIndex ? 0 : -1}
-                  onFocus={() => setActiveIndex(index)}
-                  onClick={() => {
-                    if (!item.disabled) onSelect(item.key);
-                  }}
-                >
-                  {item.label}
-                </MenuItem>
+                <TipIfAny key={item.key} tip={item.tip}>
+                  <MenuItem
+                    type="button"
+                    role="menuitem"
+                    aria-label={item["aria-label"]}
+                    // aria-disabled, not `disabled`: a natively disabled button cannot take focus and drops out of the arrow-key walk.
+                    aria-disabled={item.disabled}
+                    $disabled={item.disabled}
+                    tabIndex={index === activeIndex ? 0 : -1}
+                    onFocus={() => setActiveIndex(index)}
+                    onClick={() => {
+                      if (!item.disabled) onSelect(item.key);
+                    }}
+                  >
+                    {item.label}
+                  </MenuItem>
+                </TipIfAny>
               );
             })}
           </div>
@@ -275,6 +278,13 @@ export function ActionMenu({
       {footer}
     </Menu>
   );
+}
+
+function TipIfAny({
+  tip,
+  children,
+}: Readonly<{ tip?: string; children: ReactElement }>) {
+  return tip ? <Tooltip text={tip}>{children}</Tooltip> : children;
 }
 
 /* A command item holds the menu's choice until the command has gone, so an outcome never lands on a menu that has closed. */
@@ -309,7 +319,7 @@ function CommandedMenuItem({
   const word = input.word ?? (control.isArmed ? item.confirmLabel : null);
   return (
     <>
-      <Tooltip text={input.tip}>
+      <Tooltip text={input.tip ?? item.tip}>
         <MenuItem
           type="button"
           role="menuitem"

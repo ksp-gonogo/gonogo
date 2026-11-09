@@ -55,6 +55,9 @@ namespace Gonogo.KSP.Gates
             ScienceCommandProvider.StopLabCommand,
             ConverterCommandProvider.StartCommand,
             ConverterCommandProvider.StopCommand,
+            CrewTransferRule.Command,
+            ResourceTransferWire.StartCommand,
+            ResourceTransferWire.StopCommand,
             RoboticsCommandProvider.ServoSetAngleCommand,
             RoboticsCommandProvider.ServoSetExtensionCommand,
             RoboticsCommandProvider.ServoSetMotorCommand,
@@ -147,6 +150,12 @@ namespace Gonogo.KSP.Gates
             // Mission Control's active-contract cap, which stock enforces only
             // by greying its own Accept button, so every caller that is not that
             // screen walks past it.
+            table[ResourceTransferWire.StartCommand] = new[]
+            {
+                CareerGates.FacilityLimit(
+                    SpaceCenterFacility.ResearchAndDevelopment, KspGateEvaluators.Quantities.FuelTransfer),
+            };
+
             table[CareerCommandProvider.AcceptContractCommand] = new[]
             {
                 CareerGates.CareerMode,

@@ -57,6 +57,13 @@ namespace Sitrep.Host
                 return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
             }
 
+            if (InGameOnlyPartActions.IsInGameOnly(args.EventName))
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.CapabilityMismatch,
+                    "that action needs someone at the game's screen");
+            }
+
             return actuator.Invoke(args.PartId, args.EventName);
         }
     }

@@ -157,6 +157,14 @@ namespace Sitrep.Host
                 Resources = MapResources(raw),
                 ModuleStates = MapModuleStates(raw),
                 ActionBindings = MapActionBindings(raw),
+                Seats = raw.TryGetValue("seats", out var rawSeats) && rawSeats is IDictionary<string, object?> seats
+                    ? new PartSeats
+                    {
+                        Capacity = seats["capacity"] is int capacity ? capacity : 0,
+                        TransferAvailable = seats["transferAvailable"] is true,
+                        IsExternalSeat = seats["isExternalSeat"] is true,
+                    }
+                    : null,
             };
         }
 
@@ -207,6 +215,9 @@ namespace Sitrep.Host
                             Flow = GetDouble(row, "flow"),
                             NominalFlow = GetDouble(row, "nominalFlow"),
                             UnratedProcess = GetBool(row, "unratedProcess") == true ? true : (bool?)null,
+                            Transferable = GetBool(row, "transferable"),
+                            FlowMode = row.TryGetValue("flowMode", out var flowMode) && flowMode is int mode ? (KspTankFlowMode)mode : (KspTankFlowMode?)null,
+                            Locked = GetBool(row, "locked"),
                         };
                     }
                 }
@@ -367,6 +378,7 @@ namespace Sitrep.Host
             ["fuelLineTargetId"] = part.FuelLineTargetId,
             ["resources"] = part.Resources.ToDictionary(kvp => kvp.Key, kvp => (object?)ToWire(kvp.Value)),
             ["moduleStates"] = part.ModuleStates.Select(m => (object?)ToWire(m)).ToList(),
+            ["seats"] = part.Seats != null ? ToWire(part.Seats) : null,
             ["actionBindings"] = part.ActionBindings.Select(b => (object?)ToWire(b)).ToList(),
         };
 
@@ -384,6 +396,16 @@ namespace Sitrep.Host
             ["flow"] = row.Flow,
             ["nominalFlow"] = row.NominalFlow,
             ["unratedProcess"] = row.UnratedProcess,
+            ["transferable"] = row.Transferable,
+            ["flowMode"] = row.FlowMode is { } mode ? (int)mode : (int?)null,
+            ["locked"] = row.Locked,
+        };
+
+        private static Dictionary<string, object?> ToWire(PartSeats seats) => new Dictionary<string, object?>
+        {
+            ["capacity"] = seats.Capacity,
+            ["transferAvailable"] = seats.TransferAvailable,
+            ["isExternalSeat"] = seats.IsExternalSeat,
         };
 
         private static Dictionary<string, object?> ToWire(PartModuleState module) => new Dictionary<string, object?>

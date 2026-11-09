@@ -104,10 +104,12 @@ namespace Sitrep.Host
                     continue;
                 }
 
+                var normalized = Normalize(actuator.List(partId));
                 var payload = new PartActions
                 {
                     PartId = partId,
-                    Actions = Normalize(actuator.List(partId)),
+                    Actions = normalized.Where(e => !IsGameWindow(e)).ToList(),
+                    GameWindows = normalized.Where(IsGameWindow).ToList(),
                     Meta = BuildMeta(vesselId),
                 };
 
@@ -168,11 +170,15 @@ namespace Sitrep.Host
                     continue;
                 }
 
+                entry.OpensGameWindow = InGameOnlyPartActions.OpensGameWindow(entry.Name);
                 normalized.Add(entry);
             }
 
             return normalized;
         }
+
+        private static bool IsGameWindow(PartActionEntry entry) =>
+            InGameOnlyPartActions.IsInGameOnly(entry.Name, entry.ModuleName);
 
         /// <summary>
         /// A deterministic content fingerprint of one part's shaped payload, the
@@ -201,7 +207,7 @@ namespace Sitrep.Host
         {
             var sb = new StringBuilder();
             sb.Append(payload.Meta.Source).Append(FieldSeparator).Append(payload.PartId);
-            foreach (var a in payload.Actions)
+            foreach (var a in payload.Actions.Concat(payload.GameWindows))
             {
                 sb.Append(FieldSeparator)
                   .Append(a.Name).Append(FieldSeparator)
@@ -211,7 +217,8 @@ namespace Sitrep.Host
                   .Append(a.Active ? '1' : '0')
                   .Append(a.GuiActiveUnfocused ? '1' : '0')
                   .Append(a.AdvancedTweakable ? '1' : '0')
-                  .Append(a.RequireFullControl ? '1' : '0');
+                  .Append(a.RequireFullControl ? '1' : '0')
+                  .Append(a.OpensGameWindow ? '1' : '0');
             }
             return sb.ToString();
         }
@@ -238,6 +245,7 @@ namespace Sitrep.Host
         {
             ["partId"] = payload.PartId,
             ["actions"] = payload.Actions.Select(a => (object?)ToWire(a)).ToList(),
+            ["gameWindows"] = payload.GameWindows.Select(a => (object?)ToWire(a)).ToList(),
             ["meta"] = ToWire(payload.Meta),
         };
 
@@ -251,6 +259,7 @@ namespace Sitrep.Host
             ["guiActiveUnfocused"] = entry.GuiActiveUnfocused,
             ["advancedTweakable"] = entry.AdvancedTweakable,
             ["requireFullControl"] = entry.RequireFullControl,
+            ["opensGameWindow"] = entry.OpensGameWindow,
         };
 
         private static Dictionary<string, object?> ToWire(PayloadMeta meta) => new Dictionary<string, object?>

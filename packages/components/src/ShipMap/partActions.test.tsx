@@ -77,6 +77,37 @@ function partElement(): HTMLElement {
 }
 
 describe("ShipMap: PAW part actions", () => {
+  it("shows a button only the game can finish as disabled and sends nothing", async () => {
+    const { fixture } = await renderDiagram();
+    await userEvent.click(partElement());
+    act(() => {
+      fixture.emit(partActionsTopic(PART_FLIGHT_ID), {
+        partId: String(PART_FLIGHT_ID),
+        actions: [],
+        gameWindows: [
+          {
+            name: "RenameVessel",
+            label: "Rename Vessel",
+            moduleName: "ModuleCommand",
+            active: true,
+            guiActiveUnfocused: false,
+            advancedTweakable: false,
+            requireFullControl: false,
+            opensGameWindow: false,
+          },
+        ],
+        meta: { source: "vessel:guid-1", quality: 0 },
+      });
+    });
+
+    const item = await screen.findByRole("menuitem", {
+      name: /Rename Vessel .*needs someone at the game's screen/,
+    });
+    expect(item).toHaveAttribute("aria-disabled", "true");
+    await userEvent.click(item);
+    expect(fixture.transport.sentCommands).toEqual([]);
+  });
+
   it("opens a part's action menu on click and lists its buttons", async () => {
     const user = userEvent.setup();
     const { fixture } = await renderDiagram();

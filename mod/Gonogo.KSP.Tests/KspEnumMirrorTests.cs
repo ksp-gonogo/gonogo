@@ -236,6 +236,7 @@ namespace Gonogo.KSP.Tests
                 (typeof(EditorFacility), typeof(KspEditorFacility)),
                 (typeof(SpaceCenterFacility), typeof(KspSpaceCenterFacility)),
                 (typeof(ResourceFlowMode), typeof(KspResourceFlowMode)),
+                (typeof(PartResource.FlowMode), typeof(KspTankFlowMode)),
             })
             {
                 var emitted = Enum.GetValues(kspEnum)

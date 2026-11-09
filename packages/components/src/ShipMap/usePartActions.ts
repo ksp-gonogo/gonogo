@@ -9,9 +9,13 @@ export function partActionsTopic(flightId: number | string): string {
   return `${PART_ACTIONS_TOPIC_PREFIX}${flightId}`;
 }
 
+const NO_WINDOWS: readonly PartActionEntry[] = [];
+
 export interface PartActionsRead {
   /** The part's PAW buttons, or `undefined` until the first frame lands. */
   actions: readonly PartActionEntry[] | undefined;
+  /** Buttons only someone at the game's own screen can finish, drawn disabled. */
+  gameWindows: readonly PartActionEntry[];
   /** True while the subscription is unanswered: a real wait under signal delay, and not the same as no actions. */
   pending: boolean;
 }
@@ -35,6 +39,7 @@ export function usePartActions(flightId: number): PartActionsRead {
 
   return {
     actions: payload?.actions,
+    gameWindows: payload?.gameWindows ?? NO_WINDOWS,
     pending: reading.state === "pending" || reading.state === "unowned",
   };
 }

@@ -1,21 +1,23 @@
-import type { IsruConverterEntry, Tone } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type IsruConverterEntry,
+  type Tone,
+  transferResourceLabel,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
+  Button,
   Card,
-  Grid,
   Inline,
   resourceColor,
   Stack,
   Text,
   Tooltip,
 } from "@ksp-gonogo/ui-kit";
-import {
-  RESOURCE_TABLE_COLS,
-  ResourceCells,
-  RunStateBadge,
-} from "./ProcessCells";
+import { ResourceCells, ResourceTable, RunStateBadge } from "./ProcessCells";
 import { ProcessSwitch, type ProcessSwitchHandles } from "./ProcessSwitch";
 import { isStarved, reportedStarved } from "./rates";
+
+const NO_RESOURCES: readonly string[] = [];
 
 function converterTone(
   starved: boolean,
@@ -40,7 +42,13 @@ export function ConverterCard({
   highlighted,
   held: converterHeld,
   switchHandles,
+  transferable = NO_RESOURCES,
+  onTransfer,
 }: Readonly<{
+  /** The resources this converter handles that the craft could transfer between tanks. */
+  transferable?: readonly string[];
+  /** Opens the transfer picker for a resource. */
+  onTransfer?: (resource: string) => void;
   switchHandles: ProcessSwitchHandles;
   converter: IsruConverterEntry;
   highlighted: boolean;
@@ -79,7 +87,7 @@ export function ConverterCard({
     >
       <Stack>
         {/* Either recipe side can be genuinely empty, and reads as a "none" row. */}
-        <Grid cols={RESOURCE_TABLE_COLS} rowGap="readout-row" align="baseline">
+        <ResourceTable>
           {converter.inputs.length === 0 && <NoFlows />}
           {converter.inputs.map((flow, index) => (
             <ResourceCells
@@ -98,7 +106,21 @@ export function ConverterCard({
               ratesHeld={converterHeld || reportedStarved(converter)}
             />
           ))}
-        </Grid>
+        </ResourceTable>
+        {onTransfer && transferable.length > 0 && (
+          <Inline wrap>
+            {transferable.map((resource) => (
+              <Button
+                key={resource}
+                size="sm"
+                variant="ghost"
+                onClick={() => onTransfer(resource)}
+              >
+                Transfer {transferResourceLabel(resource)}
+              </Button>
+            ))}
+          </Inline>
+        )}
         <ProcessSwitch
           handles={switchHandles}
           partId={converter.partId}

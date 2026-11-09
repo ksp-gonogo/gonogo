@@ -9,6 +9,17 @@ const NO_CONTRIBUTED: readonly ShipMapPartActionEntry[] = [];
 
 /** The key a contributed button carries in the menu, kept apart from the game's own event names. */
 const CONTRIBUTED_KEY_PREFIX = "contributed:";
+const TRANSFER_KEY_PREFIX = "transfer:";
+const GAME_WINDOW_KEY_PREFIX = "game-window:";
+const NEEDS_THE_GAME_SCREEN = "needs someone at the game's screen";
+const OPENS_ON_GAME_SCREEN = "opens on the game's screen";
+const NO_RESOURCES: readonly TransferResourceOption[] = [];
+
+/** A resource this part could move, as a menu offers it. */
+export interface TransferResourceOption {
+  resource: string;
+  label: string;
+}
 
 /** The mod command that fires one PAW button. Must match `PartActionCommandProvider.InvokePartActionCommand`, which `partActions.cs-sync.test.ts` reads out of the C# source. */
 export const INVOKE_PART_ACTION_COMMAND = "vessel.invokePartAction";
@@ -59,6 +70,10 @@ export interface PartActionMenuProps {
   contributedCommandFor?: (
     entry: ShipMapPartActionEntry,
   ) => AnyBoundCommand | null;
+  /** Resources held in this tank that could be transferred, each offered as an entry. */
+  transferResources?: readonly TransferResourceOption[];
+  /** Starts picking tanks for a transfer of the resource, beginning with this part. */
+  onPickTransfer?: (resource: string) => void;
   /** Anchoring, owned by the caller (the diagram knows where the part is). */
   style?: CSSProperties;
 }
@@ -76,9 +91,11 @@ export function PartActionMenu({
   onDismiss,
   contributed = NO_CONTRIBUTED,
   contributedCommandFor,
+  transferResources = NO_RESOURCES,
+  onPickTransfer,
   style,
 }: Readonly<PartActionMenuProps>) {
-  const { actions, pending } = usePartActions(flightId);
+  const { actions, gameWindows, pending } = usePartActions(flightId);
 
   const items: ActionMenuItem[] = [
     ...(actions ?? []).map((action) => ({
@@ -87,8 +104,17 @@ export function PartActionMenu({
       group: action.group ?? undefined,
       disabled: !action.active,
       command: commandFor(action.name, action.label || action.name),
+      tip: action.opensGameWindow ? OPENS_ON_GAME_SCREEN : undefined,
       // The accessible name carries the part, which the item's own text does not.
       "aria-label": `${action.label || action.name} on ${partTitle}`,
+    })),
+    ...gameWindows.map((action) => ({
+      key: `${GAME_WINDOW_KEY_PREFIX}${action.moduleName ?? ""}:${action.name}`,
+      label: action.label || action.name,
+      group: action.group ?? undefined,
+      disabled: true,
+      tip: NEEDS_THE_GAME_SCREEN,
+      "aria-label": `${action.label || action.name} on ${partTitle}, ${NEEDS_THE_GAME_SCREEN}`,
     })),
     ...contributed.map((entry) => ({
       key: CONTRIBUTED_KEY_PREFIX + entry.name,
@@ -97,6 +123,12 @@ export function PartActionMenu({
       disabled: !entry.active,
       command: contributedCommandFor?.(entry) ?? undefined,
       "aria-label": `${entry.label} on ${partTitle}`,
+    })),
+    ...transferResources.map(({ resource, label }) => ({
+      key: TRANSFER_KEY_PREFIX + resource,
+      label: `${label}...`,
+      group: "Transfer",
+      "aria-label": `Transfer ${label} from or to ${partTitle}`,
     })),
   ];
 
@@ -107,12 +139,17 @@ export function PartActionMenu({
       style={style}
       // An unanswered subscription (a real wait under delay) is not a part with no buttons.
       emptyLabel={
-        pending && contributed.length === 0
+        pending && contributed.length === 0 && transferResources.length === 0
           ? "Awaiting actions..."
           : "No actions"
       }
-      // The item sends its own command; the choice closes the menu, as a PAW click does, and re-opening re-reads the live list.
-      onSelect={onDismiss}
+      // A game or contributed item sends its own command; any choice closes the menu, as a PAW click does, and re-opening re-reads the live list.
+      onSelect={(key) => {
+        if (key.startsWith(TRANSFER_KEY_PREFIX)) {
+          onPickTransfer?.(key.slice(TRANSFER_KEY_PREFIX.length));
+        }
+        onDismiss();
+      }}
       onDismiss={onDismiss}
     />
   );

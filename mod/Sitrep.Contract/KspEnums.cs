@@ -293,3 +293,24 @@ public enum KspResourceFlowMode
     /// <summary>No flow mode set.</summary>
     NULL = 8,
 }
+
+/// <summary>
+/// KSP's <c>PartResource.FlowMode</c>: which way a single tank lets a resource
+/// move. Behind <c>vessel.parts</c> tank rows.
+/// </summary>
+/// <category>Parts</category>
+#if SITREP_CODEGEN
+[TsEnum]
+#endif
+[SitrepContract]
+public enum KspTankFlowMode
+{
+    /// <summary>The tank neither gives nor takes.</summary>
+    None = 0,
+    /// <summary>The tank only gives.</summary>
+    Out = 1,
+    /// <summary>The tank only takes.</summary>
+    In = 2,
+    /// <summary>The tank gives and takes.</summary>
+    Both = 3,
+}

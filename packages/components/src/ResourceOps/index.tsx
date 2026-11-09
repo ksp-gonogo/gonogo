@@ -5,15 +5,23 @@ import {
   useActionInput,
 } from "@ksp-gonogo/core";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
-import { hasAnswered, stillTrue } from "@ksp-gonogo/sitrep-sdk";
+import {
+  hasAnswered,
+  stillTrue,
+  transferResourceLabel,
+  useTransferPick,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   EmptyState,
   FilterList,
   type FilterRow,
   Panel,
+  ReadoutCaption,
+  ResourceTransferPicker,
   Section,
 } from "@ksp-gonogo/ui-kit";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useResourceTransfer } from "../shared/useResourceTransfer";
 import { ConverterCard } from "./ConverterCard";
 import {
   type ResourceOpsActions,
@@ -24,6 +32,7 @@ import { DrillCard } from "./DrillCard";
 import { ResourceOpsStats } from "./ResourceOpsStats";
 import { converterResources, netElectricChargeDraw } from "./rates";
 import read from "./resource-ops.declarations.g";
+import { TransferCard } from "./TransferCard";
 
 export type { ResourceOpsActions } from "./config";
 
@@ -80,6 +89,18 @@ function ResourceOpsComponent(
     () => ({ start: startCmd, stop: stopCmd }),
     [startCmd, stopCmd],
   );
+  const transfer = useResourceTransfer();
+  const pickState = useTransferPick();
+  const { reset: resetPick } = pickState;
+  const [picking, setPicking] = useState(false);
+  const stopPicking = useCallback(() => setPicking(false), []);
+  const onTransfer = useCallback(
+    (resource: string) => {
+      resetPick(resource);
+      setPicking(true);
+    },
+    [resetPick],
+  );
   const drillsHeld = drillsReading.state === "held";
   const convertersHeld = convertersReading.state === "held";
 
@@ -91,7 +112,8 @@ function ResourceOpsComponent(
     () => stillTrue(convertersReading, EMPTY_LIST) ?? EMPTY_LIST,
     [convertersReading],
   );
-  const anything = allDrills.length + allConverters.length > 0;
+  const anything =
+    allDrills.length + allConverters.length + transfer.running.length > 0;
   // "None on this vessel" is a claim about the craft, so it waits for both channels to have said so.
   const bothAnswered =
     hasAnswered(drillsReading) && hasAnswered(convertersReading);
@@ -171,11 +193,25 @@ function ResourceOpsComponent(
           highlighted={allDrills.length + index === current}
           held={convertersHeld}
           switchHandles={switchHandles}
+          transferable={converter.outputs
+            .map((f) => f.resource)
+            .filter(
+              (name): name is string =>
+                name != null && transfer.resources.includes(name),
+            )}
+          onTransfer={onTransfer}
         />
       ),
     }));
-    return [...drillRows, ...converterRows];
+    const transferRows = transfer.running.map((job) => ({
+      id: `transfer-${job.id}`,
+      searchText: `${job.resource} transfer`,
+      node: <TransferCard job={job} transfer={transfer} />,
+    }));
+    return [...transferRows, ...drillRows, ...converterRows];
   }, [
+    transfer,
+    onTransfer,
     allDrills,
     allConverters,
     current,
@@ -216,6 +252,20 @@ function ResourceOpsComponent(
             location={location}
           />
         </Section>,
+        picking && (
+          <Section key="transfer" full>
+            <ReadoutCaption>
+              Transfer {transferResourceLabel(pickState.pick.resource)}
+            </ReadoutCaption>
+            <ResourceTransferPicker
+              transfer={transfer}
+              state={pickState}
+              form="list"
+              onCancel={stopPicking}
+              onStarted={stopPicking}
+            />
+          </Section>
+        ),
         /* No `ScrollArea` here: Panel's body is already the scroller. */
         <Section key="processes" full>
           <FilterList
@@ -235,7 +285,7 @@ registerComponent<ResourceOpsConfig>({
     "Run your vessel's drills and converters and see what they produce.",
   tags: ["telemetry", "resources"],
   defaultSize: { w: 6, h: 8 },
-  minSize: { w: 3, h: 4 },
+  minSize: { w: 5, h: 5 },
   component: ResourceOpsComponent,
   channels: topics.channels,
   fields: topics.fields,
