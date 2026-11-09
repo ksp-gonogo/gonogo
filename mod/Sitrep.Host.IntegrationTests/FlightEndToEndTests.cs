@@ -584,7 +584,7 @@ namespace Sitrep.Host.IntegrationTests
             };
 
             private static ChannelDeclaration EventChannel(string topic) => new ChannelDeclaration
-            { Kind = SampleKind.Continuous,
+            { Kind = SampleKind.Event,
                 Topic = topic,
                 Delay = DelayRole.Delayed,
                 Delivery = Delivery.ReliableOrdered,
