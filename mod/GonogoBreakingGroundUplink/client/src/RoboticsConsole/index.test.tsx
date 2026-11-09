@@ -235,7 +235,7 @@ describe("RoboticsConsoleComponent", () => {
     expect(motor).toHaveAttribute("data-predicted", "at-risk");
     expect(motor).toHaveAttribute(
       "data-tooltip",
-      "Likely to be refused: this part has no motor.",
+      "Motor likely to be refused: this part has no motor.",
     );
     await user.click(motor);
     await waitFor(() => {
@@ -272,7 +272,10 @@ describe("RoboticsConsoleComponent", () => {
     const motor = await screen.findByRole("button", { name: /Motor on/i });
     await waitFor(() => expect(motor).toHaveAttribute("aria-disabled", "true"));
     expect(motor).not.toHaveAttribute("data-predicted");
-    expect(motor).toHaveAttribute("data-tooltip", "This part has no motor");
+    expect(motor).toHaveAttribute(
+      "data-tooltip",
+      "Motor unavailable: this part has no motor.",
+    );
     await user.click(motor);
     expect(
       fixture.transport.sentCommands.filter(
