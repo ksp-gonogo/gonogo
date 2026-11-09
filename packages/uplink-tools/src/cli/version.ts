@@ -37,8 +37,9 @@ export const VERSION_USAGE = `uplink-tools version [<version> | --bump <kind> --
   fails every file is put back as it was.
 
   An Uplink with no client directory (a mod-only Uplink) commits its version
-  nowhere: the plugin takes it from the release tag. For one, this works out the
-  version, checks it sorts above --from, and writes nothing.
+  nowhere but in the package.json of its types-only package, when it has one: the
+  plugin takes it from the release tag. For one, this works out the version,
+  checks it sorts above --from, and stamps that package.
 
   <version>        X.Y.Z or X.Y.Z-rc.N. Above --from when that is given
   --from <version> the Uplink's latest released version, the one its newest
@@ -233,7 +234,7 @@ export function targetVersion(
 /**
  * The move for an Uplink with no client half. Its version is written in no
  * committed file: the plugin takes it from the release tag at build time, so
- * the move only works out the version and names nothing to stamp.
+ * the move only works out the version and stamps the types package if there is one.
  */
 function modOnlyMove(
   uplinkDir: string,
@@ -253,11 +254,21 @@ function modOnlyMove(
     ...request,
     level: changes ? levelOf(changes) : undefined,
   });
+  // The one file such an Uplink commits a version in, when it has the types-only package.
+  const typesManifest = join(uplinkDir, "types", "package.json");
+  const files: string[] = [];
+  if (existsSync(typesManifest)) {
+    const text = readFileSync(typesManifest, "utf8");
+    const manifest = JSON.parse(text);
+    manifest.version = to;
+    writeJson(typesManifest, text, manifest);
+    files.push(typesManifest);
+  }
   return {
     id: asString(Reflect.get(Object(declaration), "id")),
     from: request.from ?? PLACEHOLDER_VERSION,
     to,
-    files: [],
+    files,
   };
 }
 

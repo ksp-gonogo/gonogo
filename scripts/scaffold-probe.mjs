@@ -1170,10 +1170,17 @@ if (!published) {
 
 // ── The third shape: a plugin with no client half ───────────────────────────
 
-if (!published) {
-  console.log("scaffold-probe: a mod-only Uplink, scaffolded with --no-client");
-  const modId = "probemod";
-  const modNs = "GonogoProbemodUplink";
+for (const shape of published
+  ? []
+  : [
+      { id: "probemod", topics: "core" },
+      { id: "probetypes", topics: "own" },
+    ]) {
+  console.log(
+    `scaffold-probe: a mod-only Uplink scaffolded with --no-client --topics ${shape.topics}`,
+  );
+  const modId = shape.id;
+  const modNs = `Gonogo${modId[0].toUpperCase()}${modId.slice(1)}Uplink`;
   const modOnly = join(work, modId);
   mkdirSync(modOnly);
   must(
@@ -1184,7 +1191,11 @@ if (!published) {
       modId,
       "--yes",
       "--no-client",
+      "--topics",
+      shape.topics,
       "--workflows",
+      "--no-install",
+      "--no-generate",
       "--author",
       "Scaffold Probe",
       "--repo",
@@ -1192,10 +1203,16 @@ if (!published) {
     ],
     { cwd: modOnly },
   );
-  for (const absent of ["client", "mod-contract", "mod/ClientSource.g.cs"]) {
+  for (const absent of ["client", "mod/ClientSource.g.cs"]) {
     if (existsSync(join(modOnly, absent))) {
       fail(`--no-client still wrote ${absent}`);
     }
+  }
+  if (existsSync(join(modOnly, "mod-contract")) !== (shape.topics === "own")) {
+    fail(`--topics ${shape.topics} wrote the wrong contract slice`);
+  }
+  if (existsSync(join(modOnly, "types")) !== (shape.topics === "own")) {
+    fail(`--topics ${shape.topics} wrote the wrong types package`);
   }
   if (JSON.parse(readFileSync(join(modOnly, "uplink.json"), "utf8")).client) {
     fail("--no-client left a client entry in uplink.json");
@@ -1204,6 +1221,50 @@ if (!published) {
     join(modOnly, "nuget.config"),
     readFileSync(join(uplink, "nuget.config"), "utf8"),
   );
+  if (shape.topics === "own") {
+    const typesDir = join(modOnly, "types");
+    const typesManifest = join(typesDir, "package.json");
+    const manifest = JSON.parse(readFileSync(typesManifest, "utf8"));
+    for (const name of SCOPED) {
+      if (manifest.devDependencies?.[name]) {
+        manifest.devDependencies[name] = `file:${tarballs[name]}`;
+      }
+    }
+    writeFileSync(typesManifest, `${JSON.stringify(manifest, null, 2)}\n`);
+    must(
+      "npm install, in the types package",
+      "npm",
+      ["install", "--no-package-lock"],
+      {
+        cwd: typesDir,
+      },
+    );
+    must("uplink-tools codegen, in the types package", bin, ["codegen"], {
+      cwd: modOnly,
+    });
+    must(
+      "npm run codegen:check, in the types package",
+      "npm",
+      ["run", "codegen:check"],
+      {
+        cwd: typesDir,
+      },
+    );
+    must(
+      "npm run typecheck, in the types package",
+      "npm",
+      ["run", "typecheck"],
+      {
+        cwd: typesDir,
+      },
+    );
+    must("npm run build, in the types package", "npm", ["run", "build"], {
+      cwd: typesDir,
+    });
+    if (!existsSync(join(typesDir, "dist/index.d.ts"))) {
+      fail("the types package built no dist/index.d.ts");
+    }
+  }
   must("git init", "git", ["init", "-q", "-b", "main"], { cwd: modOnly });
   must("git add", "git", ["add", "-A"], { cwd: modOnly });
   must(
@@ -1221,21 +1282,32 @@ if (!published) {
     ],
     { cwd: modOnly },
   );
-  must(
-    "uplink-tools version for an Uplink with no client",
-    bin,
-    ["version", "--bump", "patch", "--from", "0.0.1"],
-    { cwd: modOnly },
-  );
+  const typesVersion = () =>
+    JSON.parse(readFileSync(join(modOnly, "types/package.json"), "utf8"))
+      .version;
   must(
     "uplink-tools release prepare for an Uplink with no client",
     bin,
     ["release", "prepare", "--bump", "patch", "--from", "0.0.1"],
     { cwd: modOnly },
   );
+  if (shape.topics === "own" && typesVersion() !== "0.0.2") {
+    fail(
+      `release prepare left the types package at ${typesVersion()}, expected 0.0.2`,
+    );
+  }
+  must(
+    "uplink-tools version for an Uplink with no client",
+    bin,
+    ["version", "--bump", "patch", "--from", "0.0.2"],
+    { cwd: modOnly },
+  );
+  if (shape.topics === "own" && typesVersion() !== "0.0.3") {
+    fail(`version left the types package at ${typesVersion()}, expected 0.0.3`);
+  }
   must("uplink-tools release for an Uplink with no client", bin, ["release"], {
     cwd: modOnly,
-    env: { ...env, GONOGO_UPLINK_VERSION: "7.8.9" },
+    env: { ...env, GONOGO_UPLINK_VERSION: "0.0.3" },
   });
   must("dotnet test mod-tests, with no client", "dotnet", [
     "test",
@@ -1258,11 +1330,36 @@ if (!published) {
       `the mod-only zip holds [${modZipped.join(", ")}], expected the plugin in it`,
     );
   }
+  if (shape.topics === "own") {
+    const tarballName = readdirSync(join(modOnly, "dist")).find((file) =>
+      file.endsWith(".tgz"),
+    );
+    if (!tarballName) fail("release packed no types package beside the zip");
+    const listed = must("list the types package", "tar", [
+      "-tzf",
+      join(modOnly, "dist", tarballName),
+    ]);
+    if (!listed.includes("package/dist/index.d.ts")) {
+      fail("the packed types package holds no dist/index.d.ts");
+    }
+    // A generated file edited by hand, which codegen --check must see as stale, or the check cannot see a drifted types package.
+    const generated = join(modOnly, "types/src/__generated__/contract.ts");
+    const pristine = readFileSync(generated, "utf8");
+    writeFileSync(generated, `${pristine}\nexport const planted = 1;\n`);
+    const planted = run(bin, ["codegen", "--check"], { cwd: modOnly });
+    writeFileSync(generated, pristine);
+    if (planted.ok) {
+      fail("codegen --check passed over a types package edited by hand: BLIND");
+    }
+    console.log(
+      "  ✓ plant, a generated type edited by hand, seen by codegen --check: refused",
+    );
+  }
   const modBytes = readFileSync(modDll);
   if (modBytes.includes(Buffer.from("client.js", "utf16le"))) {
     fail("the mod-only plugin announces a client");
   }
-  if (!modBytes.includes(Buffer.from("7.8.9", "utf16le"))) {
+  if (!modBytes.includes(Buffer.from("0.0.3", "utf16le"))) {
     fail("the mod-only plugin does not carry the version the release named");
   }
 }
