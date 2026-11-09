@@ -3,6 +3,7 @@ import {
   type CrashReportOfEnding,
   type VesselTopology,
 } from "@ksp-gonogo/core";
+import type { AnyBoundCommand } from "@ksp-gonogo/sitrep-sdk";
 import { FramedDisplay, Section } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode } from "react";
 import { DestroyedCraft } from "./DestroyedCraft";
@@ -17,12 +18,12 @@ import type {
 import type { ShipMapOverlayContext } from "./slots";
 import type { StageEntry } from "./stageStack";
 
-export type InvokePartAction = (
+export type PartActionCommand = (
   flightId: number,
   eventName: string,
   actionLabel: string,
   partTitle: string,
-) => void;
+) => AnyBoundCommand;
 
 /** The Panel sections of the map: the tinted diagram in its frame with its overlay slot, or a placeholder until there are parts to draw. */
 export function shipMapSections({
@@ -38,8 +39,8 @@ export function shipMapSections({
   partMeters,
   partMeta,
   partActions,
-  onInvokeContributedAction,
-  onInvokePartAction,
+  contributedActionCommand,
+  partActionCommand,
   turn,
   onTurn,
   stages,
@@ -58,11 +59,11 @@ export function shipMapSections({
   partMeters: Map<string, ShipMapPartMeterEntry[]>;
   partMeta: Map<string, ShipMapPartMetaEntry[]>;
   partActions: Map<string, ShipMapPartActionEntry[]>;
-  onInvokeContributedAction: (
+  contributedActionCommand: (
     entry: ShipMapPartActionEntry,
     partTitle: string,
-  ) => void;
-  onInvokePartAction: InvokePartAction;
+  ) => AnyBoundCommand | null;
+  partActionCommand: PartActionCommand;
   /** Presses of the rotate control the view is turned from its default. */
   turn: number;
   /** Sets the number of presses the view is turned from its default. */
@@ -124,8 +125,8 @@ export function shipMapSections({
             partMeters={partMeters}
             partMeta={partMeta}
             partActions={partActions}
-            onInvokeContributedAction={onInvokeContributedAction}
-            onInvokePartAction={onInvokePartAction}
+            contributedActionCommand={contributedActionCommand}
+            partActionCommand={partActionCommand}
             turn={turn}
             onTurn={onTurn}
           />

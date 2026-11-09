@@ -13,6 +13,10 @@ import {
 import { useWireTimelineEpoch } from "@ksp-gonogo/sitrep-sdk/spine";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+
+/** How long a confirmed press keeps showing the state it asked for while the reading has not yet moved. */
+const CONFIRMED_STATE_HOLD_MS = 5000;
+
 import styled, { css, keyframes } from "styled-components";
 import { Button__Body, type ButtonTone } from "../Button";
 import type { CommandDelayHandle } from "../CommandDelay/CommandDelay";
@@ -646,7 +650,7 @@ export function useCommandControl<Result = CommandReplyLike, Args = unknown>({
         options.before?.(sendArgs);
         sent = target.handle.dangerouslySendWithoutInput(
           sendArgs,
-          label ? { label } : undefined,
+          label || options.topic ? { label, topic: options.topic } : undefined,
         ) as Promise<Result>;
       }
       sent.then(
@@ -717,7 +721,7 @@ export function useCommandControl<Result = CommandReplyLike, Args = unknown>({
         toggle.modelled,
       )
     : null;
-  const shown = toggle
+  const modelledShown = toggle
     ? shownToggleState(
         toggle.state,
         confirmation,
@@ -731,6 +735,43 @@ export function useCommandControl<Result = CommandReplyLike, Args = unknown>({
   const askedRef = useRef<boolean | undefined>(undefined);
   // The reading a press was made against: while a confirmed press has not moved it, the press still stands as the state asked for.
   const askedFromRef = useRef<ToggleState>(undefined);
+  /*
+   * The reply reaches the app before the frame that carries the new state, so a
+   * confirmed press keeps showing the state it asked for until the reading
+   * moves or this long has passed, instead of flashing the old state back.
+   */
+  const [heldPast, setHeldPast] = useState<string | null>(null);
+  const heldRequestId = status?.phase === "confirmed" ? status.requestId : null;
+  useEffect(() => {
+    if (heldRequestId === null) return;
+    const timer = setTimeout(
+      () => setHeldPast(heldRequestId),
+      CONFIRMED_STATE_HOLD_MS,
+    );
+    return () => clearTimeout(timer);
+  }, [heldRequestId]);
+  // The press whose asked state this control was already drawing as a prediction: only that one is held past its reply.
+  const predictedForRef = useRef<string | null>(null);
+  if (
+    toggle !== undefined &&
+    confirmation === "modelled" &&
+    status !== undefined &&
+    status.phase !== "idle" &&
+    askedRef.current !== undefined &&
+    modelledShown === askedRef.current
+  ) {
+    predictedForRef.current = status.requestId;
+  }
+  const holdsAsked =
+    toggle !== undefined &&
+    heldRequestId !== null &&
+    predictedForRef.current === heldRequestId &&
+    confirmation !== "modelled" &&
+    heldRequestId !== null &&
+    heldRequestId !== heldPast &&
+    askedRef.current !== undefined &&
+    toggle.state === askedFromRef.current;
+  const shown = holdsAsked ? askedRef.current : modelledShown;
   const outstanding =
     pressOutstanding(status, handle.inFlight) ||
     (status?.phase === "confirmed" &&
@@ -847,6 +888,7 @@ export function useCommandControl<Result = CommandReplyLike, Args = unknown>({
     pressWith: (bound) => {
       if (streamDown) return;
       askedRef.current = askedToggleValue(argsOf(bound));
+      askedFromRef.current = toggle?.state;
       dispatch(bound);
     },
     toggleView: toggle

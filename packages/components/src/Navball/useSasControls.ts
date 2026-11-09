@@ -1,14 +1,13 @@
 import { useCommand } from "@ksp-gonogo/sitrep-client";
 import type { TopicPayload } from "@ksp-gonogo/sitrep-sdk";
 import {
-  commandOutcomes,
   NULL_DISPLAY,
   type ReckoningMarking,
   type ToggleState,
   useCommandControl,
 } from "@ksp-gonogo/ui-kit";
 import { showsToggle } from "../shared/showsToggle";
-import { SAS_MODES, type SasMode, sasModeOrdinal } from "./sasModes";
+import { type SasMode, sasModeOrdinal } from "./sasModes";
 
 /**
  * The SAS, RCS and precision control toggles and the SAS mode command, off the
@@ -140,17 +139,11 @@ export function useSasControls(
     );
   };
 
-  /*
-   * A mode command with no reply is echoed on the button that issued it,
-   * matched back by the label `setSasMode` stamps; dismissing there or in the
-   * Panel queue clears both.
-   */
-  const sasOutcomes = commandOutcomes(sasModeCmd);
-  const unconfirmedSasModes = new Map<SasMode, string>();
-  for (const f of sasOutcomes.unconfirmed) {
-    const mode = SAS_MODES.find((m) => f.label === `SAS mode: ${m}`);
-    if (mode) unconfirmedSasModes.set(mode, f.id);
-  }
+  const sasModeCommand = (mode: SasMode) =>
+    sasModeCmd.with(
+      { mode: sasModeOrdinal(mode) },
+      { label: `SAS mode: ${mode}` },
+    );
 
   return {
     sasRaw,
@@ -168,8 +161,7 @@ export function useSasControls(
     sasCmd,
     rcsCmd,
     precisionCmd,
-    unconfirmedSasModes,
-    dismissSasUnconfirmed: sasOutcomes.dismiss,
+    sasModeCommand,
   };
 }
 

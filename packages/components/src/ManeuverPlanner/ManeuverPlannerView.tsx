@@ -91,10 +91,11 @@ export function ManeuverPlannerComponent({
     setError,
     completedNodes,
     watches,
-    handleCommit,
-    handleDelete,
+    commitCommand,
+    removeCommand,
+    removeUnavailable,
+    clearAllCommand,
     handleEdit,
-    handleClearAll,
   } = useNodeCommands(nodes, plan, telemetry.burnContext);
 
   const triggerService = usePlannerTriggerService();
@@ -154,10 +155,11 @@ export function ManeuverPlannerComponent({
         availableDv={availableDeltaV}
         thrust={telemetry.thrustLatch}
         from={planCurrency}
-        onDelete={handleDelete}
+        removeCommand={removeCommand}
+        removeUnavailable={removeUnavailable}
         onEdit={handleEdit}
-        onClearAll={handleClearAll}
-        removing={removing}
+        clearAllCommand={clearAllCommand}
+        clearAllUnavailable={removing ? "A node is being removed" : null}
       />
       {usesBodyTransfer(inputs.preset) && inputs.transferBody !== "" && (
         <TransferCheck
@@ -233,7 +235,7 @@ export function ManeuverPlannerComponent({
       triggerEditorOpen={triggerEditorOpen}
       setTriggerEditorOpen={setTriggerEditorOpen}
       numericKeys={numericKeys}
-      onCommit={handleCommit}
+      commitCommand={commitCommand}
       onArm={handleArmTrigger}
       triggersAccepted={triggersAccepted}
       triggersBlockedReason={triggersBlockedReason}

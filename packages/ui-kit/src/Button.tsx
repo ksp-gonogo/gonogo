@@ -74,8 +74,7 @@ export type ButtonProps = PlainButtonProps | CommandedButtonProps;
  *
  * @category Button
  */
-export interface PlainButtonProps
-  extends ButtonHTMLAttributes<HTMLButtonElement> {
+export type PlainButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   /** Set `command` to make the button send a command; see {@link CommandedButtonProps}. */
   command?: undefined;
   /** How prominent the button is. Defaults to `default`. */
@@ -118,7 +117,7 @@ export interface PlainButtonProps
    * the label and shown as its tip, so nothing is drawn beside it.
    */
   marked?: ReckoningMarking | null;
-}
+};
 
 /**
  * The kit's button: one family whose `variant` says how prominent it is and
@@ -253,15 +252,14 @@ export type IconButtonProps =
  *
  * @category Button
  */
-export interface PlainIconButtonProps
-  extends ButtonHTMLAttributes<HTMLButtonElement> {
+export type PlainIconButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   /** Set `command` to make the button send a command; give it `state` too if the command sets a value. */
   command?: undefined;
   /** Makes the button a toggle: sets `aria-pressed` and, while true, draws the pressed look. */
   pressed?: boolean;
   /** Why the button is disabled, shown as its tip. As for {@link Button}. */
   disabledReason?: string;
-}
+};
 
 /**
  * An icon-only `button`: the glyph alone at rest, with a fill and an edge

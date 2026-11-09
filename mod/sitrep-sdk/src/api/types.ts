@@ -2118,6 +2118,8 @@ export interface UseCommandOptions<Args = unknown> {
 export interface BoundCommandOptions<Args = unknown, Reply = AnyCommandReply> {
   /** The operator-facing description of this dispatch, which a refusal or loss sentence is named after. */
   label?: string;
+  /** Addresses the command to one part or route on the craft, such as one robotic joint, so a value the control shows can be matched to the commands sent to that part alone. */
+  topic?: string;
   /** Runs at the real dispatch, after an arm and never for a press the game has already said it will refuse. */
   before?(args: Args | undefined): void;
   /** Runs with the reply once the command has run. */

@@ -145,10 +145,9 @@ export function InFlightPanel({
           distanceOf={distanceOf}
           showSpaceObjects={showSpaceObjects}
           onToggleSpaceObjects={() => setShowSpaceObjects((v) => !v)}
-          onSwitch={(vesselId) => {
-            setSwitchOpen(false);
-            void switchCmd.dangerouslySendWithoutInput({ vesselId });
-          }}
+          switchCommand={(vesselId, name) =>
+            switchCmd.with({ vesselId }, { label: `Fly ${name}` })
+          }
         />
       )}
     </InFlightWrap>

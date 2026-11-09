@@ -232,7 +232,7 @@ describe("ModSettingsSection", () => {
 
     expect(
       await screen.findByRole("checkbox", { name: "Throttle KSP main render" }),
-    ).toBeDisabled();
+    ).toHaveAttribute("aria-disabled", "true");
   });
 
   it("says why the Uplink could not list its settings", async () => {

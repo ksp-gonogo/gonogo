@@ -218,10 +218,33 @@ export function GonogoSettings({
             </Button>
             <Button
               variant="primary"
-              type="button"
-              onClick={() => void onSave()}
-              disabled={
-                !canEdit || pending === 0 || invalid.length > 0 || saving
+              command={save.with(
+                {
+                  changes: Object.entries(draft).map(([path, value]) => ({
+                    path,
+                    value,
+                  })),
+                },
+                {
+                  before: () => {
+                    setSaving(true);
+                    setOutcome(null);
+                  },
+                  onConfirmed: () => setSaving(false),
+                  onRejected: (rejected) => {
+                    setSaving(false);
+                    setOutcome(refusalOf(rejected));
+                  },
+                },
+              )}
+              unavailable={
+                !canEdit
+                  ? "Settings cannot be changed now"
+                  : pending === 0
+                    ? "Nothing has changed"
+                    : invalid.length > 0
+                      ? "A value is not of the kind its setting holds"
+                      : null
               }
             >
               {saving
