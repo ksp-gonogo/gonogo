@@ -1673,12 +1673,12 @@ namespace Sitrep.Core
 
         /// <summary>
         /// Sends every subscriber the newest sample it already holds for each topic,
-        /// stamped with the current epoch. Called right after
-        /// <see cref="ResetTimeline"/>: a client marks every topic cold when the epoch
-        /// rises, and a topic that publishes only on change has nothing new to send,
-        /// so without this its subscribers stay blank until the value next moves.
-        /// What survived the reset is true on the timeline now current, so it goes out
-        /// again under that epoch. A topic with a sticky keyframe sends that instead of
+        /// stamped with the current epoch. Called after <see cref="ResetTimeline"/>,
+        /// once the world the reset describes can be read: a client marks every topic
+        /// cold when the epoch rises, and a topic that publishes only on change has
+        /// nothing new to send, so without this its subscribers stay blank until the
+        /// value next moves. What survived the reset is true on the timeline now
+        /// current, so it goes out again under that epoch. A topic with a sticky keyframe sends that instead of
         /// the newest sample, as a late subscriber's catch-up does.
         /// <paramref name="reissues"/> names the topics worth sending again; an event
         /// stream is left out, since a client would take the last event as a new one.

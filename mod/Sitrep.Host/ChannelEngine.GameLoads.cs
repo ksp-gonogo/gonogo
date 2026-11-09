@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Core.StoreAndForward;
 
@@ -50,6 +51,103 @@ namespace Sitrep.Host
 
         private int _timelineResets;
         private double _lastTimelineResetUt = double.NaN;
+
+        /// <summary>Where the channels stand after a timeline reset, on the way to their first frames of the new timeline.</summary>
+        private enum WorldWait
+        {
+            /// <summary>No reset is being settled.</summary>
+            None,
+
+            /// <summary>The game is still building the loaded world, so no state channel may speak.</summary>
+            Loading,
+
+            /// <summary>The world stands. Sampled channels are reading it; what is left is settled on the next tick.</summary>
+            Settling,
+        }
+
+        /// <summary>Set by <see cref="SetGameState"/>, read when a tick is captured.</summary>
+        private volatile bool _gameLoading;
+
+        /// <summary>Courier thread: this timeline's progress towards its first frames.</summary>
+        private WorldWait _worldWait = WorldWait.None;
+
+        /// <summary>Courier thread: the newest publish each state topic made while the world was loading.</summary>
+        private readonly Dictionary<string, PublishJob> _heldUntilWorldStands = new Dictionary<string, PublishJob>(StringComparer.Ordinal);
+
+        /// <summary>Courier thread: the pushed topics that have published since the world stood.</summary>
+        private readonly HashSet<string> _publishedSinceWorldStood = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// Courier thread, from a timeline reset: holds every state channel's first
+        /// frame until the loaded world can be read. What the archive retained and a
+        /// reading taken mid-load both describe something other than that world.
+        /// </summary>
+        private void AwaitLoadedWorld()
+        {
+            _worldWait = WorldWait.Loading;
+            _heldUntilWorldStands.Clear();
+            _publishedSinceWorldStood.Clear();
+        }
+
+        /*
+         * Courier thread, once per tick after the reset test. The settling happens a
+         * tick after the world stood because a sampler's publish from that tick is
+         * queued behind it, and a topic that has just read the loaded world must not
+         * be sent anything older first.
+         */
+        private void AdvanceWorldWait(bool gameLoading)
+        {
+            if (_worldWait == WorldWait.Loading && !gameLoading)
+            {
+                _worldWait = WorldWait.Settling;
+                return;
+            }
+            if (_worldWait == WorldWait.Settling)
+            {
+                SettleFirstFrames();
+                _worldWait = WorldWait.None;
+            }
+        }
+
+        /*
+         * A sampled channel is left out because its forced keyframe has already read
+         * the loaded world, or has said by staying silent that it has nothing to read.
+         * A pushed channel that publishes only on change would otherwise stay blank
+         * until its value next moved.
+         */
+        private void SettleFirstFrames()
+        {
+            foreach (var held in _heldUntilWorldStands.Values.ToList())
+            {
+                ProcessPublish(held);
+            }
+            _heldUntilWorldStands.Clear();
+            _courier.ReissueRetainedAfterReset(topic =>
+                !_channelSources.ContainsKey(topic)
+                && DeclarationOf(topic)?.Kind != SampleKind.Event
+                && !_publishedSinceWorldStood.Contains(topic));
+            _publishedSinceWorldStood.Clear();
+        }
+
+        /// <summary>
+        /// Courier thread: whether <paramref name="publish"/> waits for the loaded
+        /// world. An event is news of the moment it happened, so it is never held.
+        /// </summary>
+        private bool HoldUntilWorldStands(PublishJob publish)
+        {
+            if (_worldWait == WorldWait.None)
+            {
+                return false;
+            }
+            if (_worldWait == WorldWait.Loading && DeclarationOf(publish.Topic)?.Kind != SampleKind.Event)
+            {
+                _heldUntilWorldStands[publish.Topic] = publish;
+                return true;
+            }
+            _heldUntilWorldStands.Remove(publish.Topic);
+            _publishedSinceWorldStood.Add(publish.Topic);
+            return false;
+        }
 
         internal int TimelineResetsForTests => Volatile.Read(ref _timelineResets);
 

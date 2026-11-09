@@ -2102,7 +2102,12 @@ export class TelemetryClient {
       this.epochShift - (wire - this.lastWireEpoch),
     );
     this.lastWireEpoch = wire;
-    /* The mod has announced this load, so a sample behind the UT its new timeline opened on is not a further rewind. */
+    /*
+     * The mod has announced the timeline the load started, so the load needs no
+     * inferring. Left set, a frame delayed to an earlier UT than another on the
+     * new epoch reads as a second rewind and the client ends one epoch ahead of
+     * every frame the mod sends.
+     */
     this.loadSinceLastSample = false;
     this.notifyTimeline();
   }

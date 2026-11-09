@@ -7804,6 +7804,7 @@ namespace Sitrep.Host
             return new TickJob(ut, snapshot, captures, signalDelay, connectivity, pathBreak, done)
             {
                 Save = _saveOnMain,
+                GameLoading = _gameLoading,
                 CaptureStopwatchTicks = mark - started,
                 CaptureTiming = timing,
             };
@@ -10399,7 +10400,7 @@ namespace Sitrep.Host
                 _recoveryWithdrawalPending = false;
                 BroadcastTimelineReset();
                 AnnounceTimelineEpoch();
-                _courier.ReissueRetainedAfterReset(topic => DeclarationOf(topic)?.Kind != SampleKind.Event);
+                AwaitLoadedWorld();
                 SendKeptAfterTimelineReset();
                 TimelineResetChangedSave = folderChanged;
                 NotifyTimelineResetListeners();
@@ -10408,6 +10409,7 @@ namespace Sitrep.Host
             {
                 _lowestTickWhileMarked = double.PositiveInfinity;
             }
+            AdvanceWorldWait(tick.GameLoading);
 
             var activeVesselId = VesselViewProvider.TryGetActiveVesselId(tick.Snapshot);
             if (activeVesselId != null)
@@ -10586,6 +10588,11 @@ namespace Sitrep.Host
                 var topic = channelSource.Key;
                 timing.EndOne(ref timing.Channels, ref timing.SlowestChannel, timing.Topic);
                 timing.Topic = topic;
+                // Ahead of the cadence and Decide, so the keyframe the reset forced is still owed when the world stands.
+                if (_worldWait == WorldWait.Loading)
+                {
+                    continue;
+                }
                 if (!IsChannelAvailable(topic))
                 {
                     // IMPORTANT-A: the owning uplink went Unavailable
@@ -10915,7 +10922,7 @@ namespace Sitrep.Host
         private void ProcessPublish(PublishJob publish, double nowUt)
         {
             NoteRecoveryAnnounced(publish);
-            if (!_subscriptions.IsSubscribed(publish.Topic))
+            if (!_subscriptions.IsSubscribed(publish.Topic) || HoldUntilWorldStands(publish))
             {
                 return;
             }
@@ -12281,6 +12288,7 @@ namespace Sitrep.Host
          */
         public void SetGameState(GamePhase phase, string scene)
         {
+            _gameLoading = phase == GamePhase.Loading;
             lock (_gameStateLock)
             {
                 if (phase == GamePhase.Ready)
@@ -12860,6 +12868,9 @@ namespace Sitrep.Host
 
             /// <summary>The save this tick belongs to, as <see cref="NoteSave"/> last named it, or null when unknown.</summary>
             public string? Save;
+
+            /// <summary>Whether the game said it was loading a scene when this tick was captured, so its snapshot is of a world still being built.</summary>
+            public bool GameLoading;
 
             /// <summary>Real time the main-thread captures above took, in stopwatch ticks.</summary>
             public long CaptureStopwatchTicks;
