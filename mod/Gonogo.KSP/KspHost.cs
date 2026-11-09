@@ -2549,8 +2549,11 @@ namespace Gonogo.KSP
                 var conn = vessel.connection;
                 if (conn != null)
                 {
-                    connected = conn.IsConnected;
-                    controlSource = RosterControlSource.For(conn.GetControlLevel());
+                    connected = FleetLinkReader.Shared.Read(vessel, CommsCoreUplink.SignalDelayConfig, Planetarium.GetUniversalTime());
+                    /* The control level is the craft's persisted control state, which
+                       the game recomputes only while the craft is loaded, so for any
+                       other craft it is a stale value and is left absent. */
+                    controlSource = vessel.loaded ? RosterControlSource.For(conn.GetControlLevel()) : null;
                 }
             }
             catch (Exception ex)
