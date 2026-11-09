@@ -76,6 +76,7 @@ export function useDialFit({
   const yieldedRef = useRef(false);
   const controlRowWantedRef = useRef(false);
   const dialPossibleRef = useRef(false);
+  const dialShownRef = useRef(false);
   const controlRowPxRef = useRef(0);
   const refutedRef = useRef<{ w: number; h: number; attempts: number } | null>(
     null,
@@ -91,6 +92,7 @@ export function useDialFit({
   throttleReservedRef.current = reserveThrottle;
   controlRowWantedRef.current = controlRowWanted;
   dialPossibleRef.current = dialPossible;
+  dialShownRef.current = dialPossible && dialFit >= MIN_DIAL_PX;
   /*
    * The column is measured with or without the control row, so the fit is
    * worked out both ways from the row's last measured height. The row yields
@@ -120,11 +122,18 @@ export function useDialFit({
       const fitNow = Math.min(across, column.h - ATTITUDE_CHROME_PX);
       let yielded: boolean;
       if (yieldedRef.current) {
+        /*
+         * Under the numeric readout the column cannot be shorter than the
+         * readout, so its height overstates the room the tile has. Only a
+         * column measured with the dial drawn says whether the row fits back
+         * beside it; judging from the readout's height takes the row back, the
+         * dial drops out under it, the row yields again, and the tile cycles.
+         */
         const fitWithRow = Math.min(
           across,
           column.h - reclaim - ATTITUDE_CHROME_PX,
         );
-        yielded = fitWithRow < MIN_DIAL_PX;
+        yielded = dialShownRef.current ? fitWithRow < MIN_DIAL_PX : true;
         if (fitNow < MIN_DIAL_PX) {
           /*
            * Leaving the row out did not free a dial: the column is held up by
