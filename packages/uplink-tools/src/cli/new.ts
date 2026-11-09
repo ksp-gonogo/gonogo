@@ -24,9 +24,9 @@ import {
   readFileSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { bakeUplink, describeBake } from "./bake";
+import { bakeUplink, describeBake, findUplinkDir } from "./bake";
 import { generate } from "./codegen";
 import { parseFlags } from "./flags";
 import {
@@ -1619,6 +1619,214 @@ function siblingPins(uplinksDir: string | undefined) {
   return undefined;
 }
 
+/**
+ * Turns an Uplink that has no client into one that has: writes client/ from the
+ * seed, restores what a plugin with a client announces, and leaves everything
+ * else the author wrote alone. A line it cannot place in the author's edited
+ * files is reported with the text to add by hand, never guessed at.
+ */
+function addClient(flags: ReturnType<typeof parseFlags>, cwd: string): number {
+  const { values, switches } = flags;
+  if (flags.positionals.length > 0) {
+    throw new Error(
+      "--add-client works on an Uplink that exists, so it takes no id. Run it inside the Uplink, or name it with --uplink <dir>.",
+    );
+  }
+  const named = values.get("--uplink");
+  const uplinkDir = named ? resolve(cwd, named) : findUplinkDir(cwd);
+  if (!uplinkDir) {
+    throw new Error(
+      `no uplink.json in ${cwd} or any directory above it. Run --add-client inside the Uplink, or name it with --uplink <dir>.`,
+    );
+  }
+  if (existsSync(join(uplinkDir, "client"))) {
+    throw new Error(
+      `${join(uplinkDir, "client")} already exists, so this Uplink has a client. --add-client never overwrites.`,
+    );
+  }
+  const declarationPath = join(uplinkDir, "uplink.json");
+  const declared = asRecord(JSON.parse(readFileSync(declarationPath, "utf8")));
+  const text = (key: string): string => String(declared[key] ?? "");
+  const id = text("id");
+  const gamedata = text("gamedata");
+  if (!id || !gamedata || !text("repo")) {
+    throw new Error(
+      `${declarationPath} must declare "id", "gamedata" and "repo", which the client is written from.`,
+    );
+  }
+  const topics: Answers["topics"] = declared.codegen ? "own" : "core";
+  const parent = dirname(uplinkDir);
+  const uplinksDir = basename(parent) === "uplinks" ? parent : undefined;
+  const sibling = siblingPins(uplinksDir);
+  const repoMatch = /github\.com\/([^/]+)\/([^/]+?)\/?$/.exec(text("repo"));
+  const owner = repoMatch?.[1] ?? PLACEHOLDER_OWNER;
+  const repoName = repoMatch?.[2] ?? id;
+  const releasesPath = uplinksDir ? "uplinks/releases" : "releases";
+  const clientUrl = `https://cdn.jsdelivr.net/gh/${owner}/${repoName}@releases/${releasesPath}/${id}/${PLACEHOLDER_VERSION}/${id}.client.js`;
+  const seed = renderSeed({
+    id,
+    name: text("name") || pascal(id),
+    author: text("author"),
+    repo: text("repo"),
+    clientUrl,
+    contractVersion: sibling?.contractVersion ?? ownVersion(),
+    topics,
+    client: true,
+    dependencies: sibling?.dependencies ?? fallbackDependencies(ownVersion()),
+    devDependencies:
+      sibling?.devDependencies ?? fallbackDevDependencies(ownVersion()),
+  });
+
+  const Id = pascal(id);
+  const byHand: string[] = [];
+  const editFile = (
+    path: string,
+    label: string,
+    change: (before: string) => string | undefined,
+  ) => {
+    const file = join(uplinkDir, path);
+    if (!existsSync(file)) {
+      byHand.push(`${path} is not where the scaffold puts it, so ${label}`);
+      return;
+    }
+    const before = readFileSync(file, "utf8");
+    const after = change(before);
+    if (after === undefined || after === before) {
+      byHand.push(`${path}: ${label}`);
+      return;
+    }
+    writeFileSync(file, after);
+  };
+  const fromSeed = (path: string): string => seed.get(path) ?? "";
+
+  const clientFiles = [...seed.keys()].filter((path) =>
+    path.startsWith("client/"),
+  );
+  for (const path of clientFiles) {
+    const out = join(uplinkDir, path);
+    mkdirSync(dirname(out), { recursive: true });
+    writeFileSync(out, fromSeed(path));
+  }
+
+  declared.client = { url: clientUrl };
+  writeFileSync(declarationPath, `${JSON.stringify(declared, null, 2)}\n`);
+
+  const announcement =
+    /\n[ \t]*\/\/ The app loads a client only for a plugin that says where[\s\S]*?ClientSource = new UplinkClientSource\s*\{[^}]*\},/.exec(
+      fromSeed(`mod/${Id}Uplink.cs`),
+    )?.[0];
+  editFile(
+    `mod/${Id}Uplink.cs`,
+    `add ExpectedClientHash and ClientSource to the UplinkManifest, as the scaffold writes them:\n${announcement ?? ""}`,
+    (before) =>
+      announcement && /Repo = Provenance\.Repo,/.test(before)
+        ? before.replace(
+            /(Repo = Provenance\.Repo,)/,
+            (anchor) => `${anchor}${announcement}`,
+          )
+        : undefined,
+  );
+  const guard = (path: string) =>
+    /[ \t]*<Target Name="RequireBakedClientSource"[\s\S]*?<\/Target>/.exec(
+      fromSeed(path),
+    )?.[0];
+  for (const project of [
+    `mod/${gamedata}.csproj`,
+    `mod-tests/${gamedata}.Tests.csproj`,
+  ]) {
+    const restored = guard(project);
+    editFile(
+      project,
+      "replace the RequireBakedProvenance target with the RequireBakedClientSource one the scaffold writes",
+      (before) =>
+        restored
+          ? before.replace(
+              /[ \t]*<Target Name="RequireBakedProvenance"[\s\S]*?<\/Target>/,
+              restored,
+            )
+          : undefined,
+    );
+  }
+  const clientTest =
+    /\n[ \t]*\[Fact\]\s*public void AnnouncesItsClientSoTheAppCanFindIt\(\)[\s\S]*?StartsWith\("sha256-"\)\);\s*\}\n/.exec(
+      fromSeed(`mod-tests/${Id}UplinkTests.cs`),
+    )?.[0];
+  editFile(
+    `mod-tests/${Id}UplinkTests.cs`,
+    "replace the AnnouncesNoClient test with the one that asks for a client",
+    (before) =>
+      clientTest
+        ? before.replace(
+            /\n[ \t]*\[Fact\]\s*public void AnnouncesNoClient\(\)[\s\S]*?Assert\.NotEqual\("", manifest\.Version\);\s*\}\n/,
+            clientTest,
+          )
+        : undefined,
+  );
+
+  console.log(
+    `${id}: wrote ${clientFiles.length} files to ${join(uplinkDir, "client")}`,
+  );
+  console.log(describeBake(bakeUplink({ uplinkDir })));
+  const clientDir = join(uplinkDir, "client");
+  const inClient = (command: string) =>
+    `cd ${relative(cwd, clientDir) || "."} && ${command}`;
+  const unfinished: string[] = [];
+  const note = (failure: string | undefined) => {
+    if (failure !== undefined) unfinished.push(failure);
+    return failure === undefined;
+  };
+  const generated =
+    topics !== "own" ||
+    (!switches.has("--no-generate") &&
+      note(
+        attempt("generate the types", "npx uplink-tools codegen", () => {
+          generate({ uplinkDir });
+        }),
+      ));
+  const installed = switches.has("--no-install")
+    ? false
+    : note(
+        attempt(
+          "install the client's dependencies",
+          inClient("npm install"),
+          () => shell("npm", ["install"], clientDir),
+        ),
+      );
+  const paged =
+    generated &&
+    installed &&
+    note(
+      attempt("write the generated page", inClient("npm run page"), () =>
+        shell("npm", ["run", "page"], clientDir),
+      ),
+    );
+  const section = (title: string, lines: readonly string[]) =>
+    lines.length === 0
+      ? ""
+      : `\n${title}\n${lines.map((line) => `  - ${line}`).join("\n")}\n`;
+  console.log(
+    section("Did not finish:", unfinished) +
+      section(
+        "Do by hand, because the file no longer matches what the scaffold wrote:",
+        byHand,
+      ) +
+      section("Next:", [
+        ...(paged
+          ? []
+          : [`write the generated page: ${inClient("npm run page")}`]),
+        "make the placeholder widget yours: it lives in client/src/ and reads the Topics this Uplink publishes",
+        `prove both halves: ${inClient("npm test")}, and dotnet test ${relative(cwd, join(uplinkDir, "mod-tests")) || "."}`,
+        ...(existsSync(join(uplinkDir, "types", "package.json"))
+          ? [
+              "types/ is kept: codegen writes it and the client's types together, and release packs it beside the zip",
+            ]
+          : []),
+        'set "repo" and "client.url" in uplink.json to where the client will be published, if they are still the scaffold\'s: release refuses a placeholder',
+      ]),
+  );
+  return unfinished.length === 0 && byHand.length === 0 ? 0 : 1;
+}
+
 export const NEW_USAGE = `uplink-tools new [<id>] [options]
 
   Scaffold a fresh Uplink and leave it building: the hand-written seed (plugin,
@@ -1636,6 +1844,13 @@ export const NEW_USAGE = `uplink-tools new [<id>] [options]
 
 ${questionHelp()}
 
+  --add-client           add a client to an Uplink that has none: run it inside
+                         the Uplink, or name it with --uplink <dir>. It writes
+                         client/, gives the plugin and its tests back their
+                         client announcement and puts client.url in
+                         uplink.json. An existing types/ package stays and is
+                         still generated. It asks nothing and never overwrites
+  --uplink <dir>         the Uplink --add-client works on
   --yes                  take the default for every question not answered above
   --dir <dir>            put it in <dir>/<id>, beside any Uplinks already there
   --no-generate          do not generate the client's types
@@ -2054,11 +2269,18 @@ export async function newUplink(
   const flags = parseFlags(argv, {
     verb: "new",
     usage: NEW_USAGE,
-    values: ["--dir", ...QUESTION_VALUES],
-    switches: ["--no-generate", "--no-install", "--yes", ...QUESTION_SWITCHES],
+    values: ["--dir", "--uplink", ...QUESTION_VALUES],
+    switches: [
+      "--add-client",
+      "--no-generate",
+      "--no-install",
+      "--yes",
+      ...QUESTION_SWITCHES,
+    ],
     positionals: 1,
   });
   const { values, switches } = flags;
+  if (switches.has("--add-client")) return addClient(flags, cwd);
 
   const uplinksDir = siblingsFolder(cwd, values.get("--dir"));
   const sibling = siblingPins(uplinksDir);
