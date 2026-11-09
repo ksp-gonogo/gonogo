@@ -101,8 +101,6 @@ describe("Administration Building: what a card claims activating it costs", () =
     emit([PROGRAM]);
 
     await screen.findByText("High Altitude Survey");
-    expect(container.textContent).toContain(
-      "No funds, science or rep cost on this record",
-    );
+    expect(container.textContent).toContain("None listed");
   });
 });

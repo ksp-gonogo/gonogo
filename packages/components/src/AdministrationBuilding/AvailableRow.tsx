@@ -10,7 +10,6 @@ import {
   type CommandButtonHandle,
   DataLine,
   ExpandableText,
-  Notice,
   NULL_DISPLAY,
   Slider,
   Unit,
@@ -90,11 +89,11 @@ export function StrategyCost({
     afford === "no" ? ("nogo" as const) : undefined;
 
   if (noListedCost) {
-    // Three zeros say nothing about a currency this record has no field for, such as a career mod's own currency. A plain note, so a list of them is not announced.
+    // Three zeros say nothing about a currency this record has no field for, such as a career mod's own currency, so the readout says "listed" rather than calling the strategy free.
     return (
-      <Notice tone="neutral" role="note">
-        No funds, science or rep cost on this record
-      </Notice>
+      <CostReadout>
+        <DataLine label="Cost">None listed</DataLine>
+      </CostReadout>
     );
   }
 
@@ -127,7 +126,7 @@ export function StrategyCost({
   );
 }
 
-/** True when the record lists a price in at least one currency, so a price readout draws rather than the no-cost note. */
+/** True when the record lists a price in at least one currency, so the readout carries figures rather than the none-listed line. */
 export function hasListedCost(s: Strategy): boolean {
   return !(
     s.initialCostFunds === 0 &&
@@ -181,7 +180,6 @@ export function AvailableRow({
 }) {
   const slider = factorSliderOf(s);
   const sentFactor = activationFactor(s, factor);
-  const priceInFooter = !drawsOwnActions && hasListedCost(s);
   const cost = (
     <StrategyCost
       strategy={s}
@@ -213,10 +211,9 @@ export function AvailableRow({
         ) : undefined
       }
       footer={
-        drawsOwnActions ||
-        (!priceInFooter && sentFactor === null) ? undefined : (
+        drawsOwnActions ? undefined : (
           <>
-            {priceInFooter && cost}
+            {cost}
             {sentFactor !== null && (
               <Button
                 command={activateCmd.with(
@@ -244,7 +241,6 @@ export function AvailableRow({
         </EffectList>
       )}
       {note && <BlockedNote>{note}</BlockedNote>}
-      {!drawsOwnActions && !priceInFooter && cost}
       {!drawsOwnActions && slider !== null && factor !== null && (
         <FactorRow>
           <FactorLabel>Factor</FactorLabel>

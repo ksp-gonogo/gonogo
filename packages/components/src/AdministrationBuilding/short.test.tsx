@@ -132,12 +132,12 @@ describe("Administration Building short form", () => {
     expect(within(row).getByText(/factor/)).toBeInTheDocument();
   });
 
-  it("never nests the no-cost note inside an inline span", async () => {
+  it("never nests the none-listed readout inside an inline span", async () => {
     await renderShort(5, [
       { ...OPEN, id: "free", title: "Free Lunch", initialCostFunds: 0 },
     ]);
-    const note = screen.getByRole("note");
-    expect(note.closest("span")).toBeNull();
+    const readout = screen.getByText("Cost").closest("div");
+    expect(readout?.parentElement?.closest("span")).toBeNull();
   });
 
   it("shows the science balance beside a science price on a narrow tile", async () => {
