@@ -1,3 +1,4 @@
+import type { AnyBoundCommand } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
   Floating,
@@ -42,22 +43,22 @@ interface Props {
   partMeta?: ReadonlyMap<string, readonly ShipMapPartMetaEntry[]>;
   /** Per-part buttons contributed to `ship-map.part-actions`, same keying as `partMeters`. Listed in the part's menu after the game's own and counted in its tooltip. */
   partActions?: ReadonlyMap<string, readonly ShipMapPartActionEntry[]>;
-  /** Fires one contributed button. The widget owns the command handle so it outlives the menu. */
-  onInvokeContributedAction?: (
+  /** The command one contributed button sends, or null where its command has no handle mounted. The widget owns the handle so it outlives the menu. */
+  contributedActionCommand?: (
     entry: ShipMapPartActionEntry,
     partTitle: string,
-  ) => void;
+  ) => AnyBoundCommand | null;
   /**
-   * Fires one PAW action on one part. The widget owns the `useCommand` handle
-   * so it outlives this popover. Omitted, the part-action affordances do not
-   * appear.
+   * The command one PAW action on one part sends. The widget owns the
+   * `useCommand` handle so it outlives this popover. Omitted, the part-action
+   * affordances do not appear.
    */
-  onInvokePartAction?: (
+  partActionCommand?: (
     flightId: number,
     eventName: string,
     actionLabel: string,
     partTitle: string,
-  ) => void;
+  ) => AnyBoundCommand;
   /** Presses of the rotate control the view is turned from its default. */
   turn?: number;
   /** Sets the turn. Omitted, the rotate control does not appear. */
@@ -78,8 +79,8 @@ export function ShipDiagram({
   partMeters,
   partMeta,
   partActions,
-  onInvokeContributedAction,
-  onInvokePartAction,
+  contributedActionCommand,
+  partActionCommand,
   turn = 0,
   onTurn,
 }: Readonly<Props>) {
@@ -207,7 +208,7 @@ export function ShipDiagram({
         }}
         // Only with a command surface; a static render passes none.
         onPartActivate={
-          onInvokePartAction
+          partActionCommand
             ? (part, anchor) => {
                 triggerRef.current = document.activeElement;
                 setOpenPart({ part, anchor });
@@ -225,20 +226,20 @@ export function ShipDiagram({
           meters={hoveredMeters}
           meta={hoveredMeta}
           pointer={pointer}
-          showActionCount={Boolean(onInvokePartAction)}
+          showActionCount={Boolean(partActionCommand)}
           contributedActions={
             partActions?.get(String(hovered.flightId)) ?? NO_ACTIONS
           }
         />
       )}
 
-      {openPart && onInvokePartAction && (
+      {openPart && partActionCommand && (
         <Floating anchor={menuAnchor}>
           <PartActionMenu
             flightId={openPart.part.flightId}
             partTitle={openPart.part.title || openPart.part.name}
-            onInvoke={(eventName, actionLabel) =>
-              onInvokePartAction(
+            commandFor={(eventName, actionLabel) =>
+              partActionCommand(
                 openPart.part.flightId,
                 eventName,
                 actionLabel,
@@ -248,11 +249,11 @@ export function ShipDiagram({
             contributed={
               partActions?.get(String(openPart.part.flightId)) ?? NO_ACTIONS
             }
-            onInvokeContributed={(entry) =>
-              onInvokeContributedAction?.(
+            contributedCommandFor={(entry) =>
+              contributedActionCommand?.(
                 entry,
                 openPart.part.title || openPart.part.name,
-              )
+              ) ?? null
             }
             onDismiss={dismissMenu}
             // The floating layer positions; the menu goes back in flow so the layer can be measured.

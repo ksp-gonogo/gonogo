@@ -1,5 +1,10 @@
 import { type HeldGrade, useViewUt } from "@ksp-gonogo/sitrep-client";
-import type { Reading, TargetListEntry, Value } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  AnyBoundCommand,
+  Reading,
+  TargetListEntry,
+  Value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   HeldFigure,
   heldWord,
@@ -19,7 +24,7 @@ export function TargetRow({
   distance,
   listHeld,
   isPending,
-  onPick,
+  command,
 }: Readonly<{
   entry: TargetListEntry;
   /** The entry's range as a reading of the roster, so a held roster marks it. */
@@ -27,7 +32,8 @@ export function TargetRow({
   /** The grade the roster is held at while it has stopped arriving, so a row with no range of its own still says so. */
   listHeld?: HeldGrade;
   isPending: boolean;
-  onPick: (entry: TargetListEntry) => void;
+  /** What pressing the row sends; null for an entry the mod cannot be told to target, which draws as a row that does nothing. */
+  command: AnyBoundCommand | null;
 }>) {
   const subtitle = entrySubtitle(entry);
   return (
@@ -36,7 +42,7 @@ export function TargetRow({
       interactive
       type="button"
       selected={entry.isCurrent}
-      onClick={() => onPick(entry)}
+      command={command ?? undefined}
     >
       <RowMain>
         <Tooltip text={entry.name} announce={false}>

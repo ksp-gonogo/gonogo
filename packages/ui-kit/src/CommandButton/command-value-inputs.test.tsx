@@ -326,7 +326,7 @@ describe("Row and menu item given a command", () => {
       el.querySelectorAll<HTMLElement>('span[aria-hidden="true"]'),
     ).pop();
 
-  it("a Row holds the room of its longest word at rest and while sent", async () => {
+  it("a Row draws its word over the row, taking no width, at rest and while sent", async () => {
     const user = userEvent.setup();
     const fake = createFakeCommand({ answer: "hold" });
     render(
@@ -337,15 +337,15 @@ describe("Row and menu item given a command", () => {
     const row = screen.getByRole("button");
     const rest = slotOf(row);
     expect(rest).toBeDefined();
-    expect(getComputedStyle(rest as HTMLElement).minWidth).toBe("10ch");
+    expect(getComputedStyle(rest as HTMLElement).position).toBe("absolute");
     expect(rest).toHaveTextContent("");
     await user.click(row);
     const sent = slotOf(row);
     expect(sent).toHaveTextContent("SENT");
-    expect(getComputedStyle(sent as HTMLElement).minWidth).toBe("10ch");
+    expect(getComputedStyle(sent as HTMLElement).position).toBe("absolute");
   });
 
-  it("a menu item holds the same room, and draws its warning edge on its own border", async () => {
+  it("a menu item draws its word over the item, taking no width, and draws its warning edge on its own border", async () => {
     const user = userEvent.setup();
     const fake = createFakeCommand({ answer: "hold" });
     render(
@@ -363,7 +363,9 @@ describe("Row and menu item given a command", () => {
       />,
     );
     const item = screen.getByRole("menuitem", { name: /Cut chute/ });
-    expect(getComputedStyle(slotOf(item) as HTMLElement).minWidth).toBe("10ch");
+    expect(getComputedStyle(slotOf(item) as HTMLElement).position).toBe(
+      "absolute",
+    );
     expect(getComputedStyle(item).borderTopWidth).toBe("1px");
     await user.click(item);
     await act(async () => {

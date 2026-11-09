@@ -4,7 +4,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import styled from "styled-components";
 import { groupComboboxOptions } from "./Combobox";
 import { useBoundCommandInput } from "./CommandButton/commandInput";
-import { COMMAND_WORD_ROOM, commandEdge } from "./commandEdge";
+import { commandEdge } from "./commandEdge";
 import { EmptyState } from "./EmptyState";
 import { focusRingInset } from "./focusRing";
 import { LiveRegion } from "./LiveRegion";
@@ -344,10 +344,18 @@ const MenuItemLabel = styled.span`
   flex: 1;
 `;
 
-/* Holds the room of the longest word at rest too, so the menu never changes width. */
+/* Drawn over the end of the item, taking no width, so the menu is the same size at rest and in every phase. */
 const MenuItemWord = styled.span`
-  min-width: ${COMMAND_WORD_ROOM};
-  text-align: end;
+  position: absolute;
+  inset-inline-end: var(--gap-related);
+  top: 50%;
+  transform: translateY(-50%);
+  padding-inline: var(--gap-related-dense);
+  background: var(--color-surface-raised);
+  pointer-events: none;
+  &:empty {
+    display: none;
+  }
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   letter-spacing: 0.08em;
@@ -376,6 +384,7 @@ const GroupHeader = styled.div`
 `;
 
 const MenuItem = styled.button<{ $disabled?: boolean }>`
+  position: relative;
   /* A border of its own, clear at rest, so the state edges of a command are drawn on the item's box as on every other input. */
   border: 1px solid transparent;
   display: flex;

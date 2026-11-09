@@ -1,5 +1,12 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
-import { act, renderHook } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  fireEvent,
+  render,
+  renderHook,
+  screen,
+} from "@ksp-gonogo/test-utils";
+import { Button } from "@ksp-gonogo/ui-kit";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { COMPLETED_HOLD_MS } from "./BurnCompletionTracker";
@@ -62,8 +69,16 @@ describe("a flown burn's node under signal delay", () => {
     });
     expect(view.result.current.completedNodes.size).toBe(1);
 
+    const remove = view.result.current.removeCommand("n1");
+    render(
+      <fixture.Provider>
+        <Button command={remove} aria-label="Delete node">
+          x
+        </Button>
+      </fixture.Provider>,
+    );
     await act(async () => {
-      void view.result.current.handleDelete("n1");
+      fireEvent.click(screen.getByRole("button", { name: "Delete node" }));
     });
     await act(async () => {
       vi.advanceTimersByTime(COMPLETED_HOLD_MS + 1);

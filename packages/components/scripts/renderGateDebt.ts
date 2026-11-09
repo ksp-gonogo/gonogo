@@ -31,13 +31,9 @@ export const RENDER_GATE_DEBT: ReadonlySet<string> = new Set<string>([
   "ground-track|stress-modded-label|hitTargets",
   "maneuver-planner|hitTargets",
   "navball|hitTargets",
-  "navball|stress-landed|hitTargets",
   "navball|stress-landed|svgHtmlOverlaps",
-  "navball|stress-long-labels|hitTargets",
   "navball|stress-long-labels|svgHtmlOverlaps",
-  "navball|stress-modded-label|hitTargets",
   "navball|stress-modded-label|svgHtmlOverlaps",
-  "navball|stress-no-craft|hitTargets",
   "navball|svgHtmlOverlaps",
   "power-systems|hitTargets",
   "power-systems|stress-long-labels|hitTargets",
@@ -54,10 +50,6 @@ export const RENDER_GATE_DEBT: ReadonlySet<string> = new Set<string>([
   "tracking-station|svgHtmlOverlaps",
   "vessel-catalog|hitTargets",
   "warp-control|hitTargets",
-  "warp-control|stress-landed|hitTargets",
-  "warp-control|stress-long-labels|hitTargets",
-  "warp-control|stress-modded-label|hitTargets",
-  "warp-control|stress-no-craft|hitTargets",
 ]);
 
 /**

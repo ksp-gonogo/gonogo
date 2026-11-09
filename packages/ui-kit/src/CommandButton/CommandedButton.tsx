@@ -310,8 +310,13 @@ function CommandedButtonFace({
   };
   const resolved = resolveBody();
   const fitWord = icon !== undefined && typeof resolved === "string";
+  /* A word standing in for a label that cannot hold it (a node label, or a narrow cell) is held to one line and clipped, so it never wraps and grows the control. */
+  const clipsWord =
+    !glyph && !fitWord && typeof resolved === "string" && resolved !== label;
   const body = fitWord ? (
     <FitLabel label={resolved} icon={isArmed ? (confirmIcon ?? icon) : icon} />
+  ) : clipsWord ? (
+    <CommandButton__Word>{resolved}</CommandButton__Word>
   ) : (
     resolved
   );
@@ -563,7 +568,8 @@ function OwnedCommandedToggle({
       state,
       name: name ?? "",
       word: wordOf,
-      words: [...new Set([wordOf(true), wordOf(false), wordOf(null)])],
+      /* The on and off words only: the word for a state not yet read is a one-off the width is not held for. */
+      words: [...new Set([wordOf(true), wordOf(false)])],
       sentWord,
       rows,
       modelled,
@@ -720,8 +726,20 @@ const armedPulse = keyframes`
   50% { opacity: 0.65; }
 `;
 
+const CommandButton__Word = styled.span`
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+`;
+
 const CommandButton__Face = styled.span`
   grid-area: 1 / 1;
+  /* A face never grows past the button, so a word wider than the button is clipped inside it instead of spilling out. */
+  min-width: 0;
+  max-width: 100%;
   /* First in the cell's order, so the button's baseline is the face's and not an invisible sizer's. */
   order: -1;
   display: inline-flex;

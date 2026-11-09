@@ -7,7 +7,7 @@ import {
   useCommandInput,
 } from "./CommandButton/commandInput";
 import { MarkedFigure } from "./CommandValue/CommandValue";
-import { COMMAND_WORD_ROOM, commandEdge } from "./commandEdge";
+import { commandEdge } from "./commandEdge";
 import { focusRing } from "./focusRing";
 import { LiveRegion } from "./LiveRegion";
 import { NULL_DISPLAY } from "./NullValue";
@@ -214,12 +214,22 @@ function CommandedStepper<Option>(props: CommandedStepperProps<Option>) {
   );
 }
 
-/* Holds the room of the longest word at rest too, so the group never changes width. */
+/*
+ * Drawn over the end of the value box rather than beside the figure, so the
+ * stepper is the same size at rest and in every phase without reserving a
+ * word's width, which doubled a narrow field in a tight row.
+ */
 const StepperWord = styled.span`
-  display: inline-block;
-  min-width: ${COMMAND_WORD_ROOM};
-  text-align: start;
-  margin-inline-start: var(--gap-related);
+  position: absolute;
+  inset-inline-end: var(--gap-related);
+  top: 50%;
+  transform: translateY(-50%);
+  padding-inline: var(--gap-related-dense);
+  background: var(--color-surface-sunken);
+  pointer-events: none;
+  &:empty {
+    display: none;
+  }
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   letter-spacing: 0.08em;
@@ -419,6 +429,7 @@ const Stepper__Body = styled.div`
 `;
 
 const Stepper__Value = styled.div`
+  position: relative;
   text-align: center;
   font-family: var(--font-family-mono);
   font-size: var(--font-size-value);

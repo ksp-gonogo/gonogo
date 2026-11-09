@@ -169,8 +169,7 @@ function useNavball({
     toggleRcs,
     togglePrecision,
     setSasMode,
-    unconfirmedSasModes,
-    dismissSasUnconfirmed,
+    sasModeCommand,
   } = useSasControls(
     control,
     derivedMarking(controlReading) !== null,
@@ -179,10 +178,14 @@ function useNavball({
     isControllable,
   );
   const identity = stillTrue(topics.useTelemetry("vessel.identity"), undefined);
-  const { fbwState, armFbw, disarmFbw } = useFlyByWire(
-    identity?.vesselId,
-    control?.flyByWire ?? undefined,
-  );
+  const {
+    fbwState,
+    armFbw,
+    disarmFbw,
+    armFbwCommand,
+    disarmFbwCommand,
+    disarmFbwToggle,
+  } = useFlyByWire(identity?.vesselId, control?.flyByWire ?? undefined);
 
   // Trim has no readback to anchor a control stream, so it sends `setAxes` one field at a time, never clobbering a live axis.
   const trimCmd = useCommand("vessel.control.setAxes");
@@ -258,11 +261,11 @@ function useNavball({
     toggleRcs,
     togglePrecision,
     setSasMode,
-    unconfirmedSasModes,
-    dismissSasUnconfirmed,
+    sasModeCommand,
     fbwState,
-    armFbw,
-    disarmFbw,
+    armFbwCommand,
+    disarmFbwCommand,
+    disarmFbwToggle,
     showFbwDelayWarning,
     delaySeconds,
     oneWayDelay,
@@ -282,10 +285,15 @@ function navballEssentials({
   roll,
   attitudeReading,
   fbwState,
-  disarmFbw,
+  disarmFbwToggle,
 }: Pick<
   ReturnType<typeof useNavball>,
-  "heading" | "pitch" | "roll" | "attitudeReading" | "fbwState" | "disarmFbw"
+  | "heading"
+  | "pitch"
+  | "roll"
+  | "attitudeReading"
+  | "fbwState"
+  | "disarmFbwToggle"
 >): readonly TinyEssential[] {
   const degrees = (angle: number | null) =>
     angle === null ? null : readingOf(attitudeReading, () => value("°", angle));
@@ -301,7 +309,7 @@ function navballEssentials({
               active: fbwState === "armed",
               title: "Disarm fly-by-wire",
               hint: `${fbw.hint}. Press to disarm`,
-              onPress: disarmFbw,
+              command: disarmFbwToggle,
             },
           },
         ]),
@@ -349,12 +357,11 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
     sasCmd,
     rcsCmd,
     precisionCmd,
-    setSasMode,
-    unconfirmedSasModes,
-    dismissSasUnconfirmed,
+    sasModeCommand,
     fbwState,
-    armFbw,
-    disarmFbw,
+    armFbwCommand,
+    disarmFbwCommand,
+    disarmFbwToggle,
     showFbwDelayWarning,
     delaySeconds,
     oneWayDelay,
@@ -505,7 +512,11 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
                 />
                 {/* Inside the readout's own section, since a compact tile has no room for the gap and inset of a section of its own. */}
                 {fbwOutsideSurface && compactReadout && (
-                  <FbwBanner fbwState={fbwState} onDisarm={disarmFbw} compact />
+                  <FbwBanner
+                    fbwState={fbwState}
+                    disarm={disarmFbwCommand}
+                    compact
+                  />
                 )}
               </div>
             )}
@@ -514,7 +525,7 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
         showControlRow || (fbwOutsideSurface && !compactReadout) ? (
           <Section key="controls" full>
             {fbwOutsideSurface && !compactReadout && (
-              <FbwBanner fbwState={fbwState} onDisarm={disarmFbw} />
+              <FbwBanner fbwState={fbwState} disarm={disarmFbwCommand} />
             )}
             {showControlRow && (
               <div ref={attachControlRow} style={CONTROL_ROW}>
@@ -558,11 +569,9 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
               }
               onSetThrottleCmd={setThrottleCmd}
               fbwState={fbwState}
-              onArmFbw={armFbw}
-              onDisarmFbw={disarmFbw}
-              onSetSasMode={setSasMode}
-              unconfirmedSasModes={unconfirmedSasModes}
-              onDismissSasUnconfirmed={dismissSasUnconfirmed}
+              armFbwCommand={armFbwCommand}
+              disarmFbwCommand={disarmFbwCommand}
+              sasModeCommand={sasModeCommand}
               showFbwDelayWarning={showFbwDelayWarning}
               delaySeconds={delaySeconds}
               oneWayDelay={oneWayDelay}
