@@ -864,4 +864,75 @@ describe("uplink-tools new", () => {
     ]);
     expect(existsSync(join(repo, "client"))).toBe(false);
   });
+
+  it("--add-client gives a no-client Uplink a client and keeps its types package", async () => {
+    const repo = workdir();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    await newUplink(["solo", "--no-client", "--topics", "own", ...BARE], repo);
+    const read = (path: string) => readFileSync(join(repo, path), "utf8");
+    const typesBefore = read("types/package.json");
+
+    expect(
+      await newUplink(["--add-client", "--no-generate", "--no-install"], repo),
+    ).toBe(0);
+
+    expect(existsSync(join(repo, "client/src/index.ts"))).toBe(true);
+    expect(existsSync(join(repo, "client/package.json"))).toBe(true);
+    expect(read("types/package.json")).toBe(typesBefore);
+    expect(JSON.parse(read("uplink.json")).client.url).toContain(
+      "/solo/0.0.0-development/solo.client.js",
+    );
+    expect(read("mod/SoloUplink.cs")).toContain(
+      "ClientSource = new UplinkClientSource",
+    );
+    expect(read("mod/SoloUplink.cs")).toContain("ExpectedClientHash");
+    expect(read("mod/GonogoSoloUplink.csproj")).toContain(
+      "RequireBakedClientSource",
+    );
+    expect(read("mod-tests/GonogoSoloUplink.Tests.csproj")).toContain(
+      "RequireBakedClientSource",
+    );
+    expect(read("mod-tests/SoloUplinkTests.cs")).toContain(
+      "AnnouncesItsClientSoTheAppCanFindIt",
+    );
+    expect(read("mod-tests/SoloUplinkTests.cs")).not.toContain(
+      "AnnouncesNoClient",
+    );
+    expect(existsSync(join(repo, "mod/ClientSource.g.cs"))).toBe(true);
+  });
+
+  it("--add-client never overwrites a client, and takes no id", async () => {
+    const repo = workdir();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    await newUplink(["solo", ...BARE], repo);
+    await expect(newUplink(["--add-client"], repo)).rejects.toThrow(
+      /already exists/,
+    );
+    await expect(newUplink(["other", "--add-client"], repo)).rejects.toThrow(
+      /takes no id/,
+    );
+  });
+
+  it("--add-client names what to add by hand when the plugin no longer matches the scaffold", async () => {
+    const repo = workdir();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    await newUplink(["solo", "--no-client", "--topics", "core", ...BARE], repo);
+    const plugin = join(repo, "mod/SoloUplink.cs");
+    writeFileSync(
+      plugin,
+      readFileSync(plugin, "utf8").replace(
+        "Repo = Provenance.Repo,",
+        'Repo = "x",',
+      ),
+    );
+    const said: string[] = [];
+    vi.mocked(console.log).mockImplementation((line: string) => {
+      said.push(String(line));
+    });
+    expect(
+      await newUplink(["--add-client", "--no-generate", "--no-install"], repo),
+    ).toBe(1);
+    expect(said.join("\n")).toContain("Do by hand");
+    expect(said.join("\n")).toContain("ClientSource = new UplinkClientSource");
+  });
 });

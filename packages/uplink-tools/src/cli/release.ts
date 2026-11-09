@@ -85,8 +85,8 @@ export const RELEASE_USAGE = `uplink-tools release [options]
 
   The client lands in client/dist/<id>/ and the mod zip in dist/, or both
   under --out: <out>/<id>/ for the client and <out>/ for the zip. An Uplink with
-  no client/ but a types/ package also builds that and packs it with npm pack
-  into the same folder as the zip, at the version GONOGO_UPLINK_VERSION names.
+  a types/ package also builds that and packs it with npm pack into the same
+  folder as the zip, at the version of the release.
 
   --dev-path <url>      bake a dev server URL for the bundle. The loader prefers
                         it over the released URL, so the result is a dev build
@@ -360,9 +360,8 @@ export async function release(
   step("package the mod");
   const packaged = packageMod(uplinkDir, outDir);
   let typesTarball: string | undefined;
-  if (!existsSync(clientDir)) {
-    const typesStep = existsSync(join(uplinkDir, "types", "package.json"));
-    if (typesStep) step("pack the types package");
+  if (existsSync(join(uplinkDir, "types", "package.json"))) {
+    step("pack the types package");
     typesTarball = packTypesPackage(uplinkDir, outDir, version);
   }
   console.log(

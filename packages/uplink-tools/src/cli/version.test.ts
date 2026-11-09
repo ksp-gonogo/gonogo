@@ -339,4 +339,18 @@ describe("an Uplink with no client", () => {
       JSON.parse(readFileSync(join(dir, "types/package.json"), "utf8")).version,
     ).toBe("1.4.0");
   });
+
+  it("stamps a types package beside a client", () => {
+    const dir = fixture();
+    put(
+      dir,
+      "types/package.json",
+      `${JSON.stringify({ name: "t", version: PLACEHOLDER_VERSION }, null, 2)}\n`,
+    );
+    const result = move(dir, { explicit: "2.0.0", rc: false });
+    expect(result.files).toContain(join(dir, "types/package.json"));
+    expect(
+      JSON.parse(readFileSync(join(dir, "types/package.json"), "utf8")).version,
+    ).toBe("2.0.0");
+  });
 });

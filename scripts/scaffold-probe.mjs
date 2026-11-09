@@ -1362,6 +1362,111 @@ for (const shape of published
   if (!modBytes.includes(Buffer.from("0.0.3", "utf16le"))) {
     fail("the mod-only plugin does not carry the version the release named");
   }
+  if (shape.topics === "own") {
+    // The no-client Uplink then wants a widget: --add-client, with the types package kept beside the new client.
+    console.log(
+      "scaffold-probe: the same Uplink, given a client with --add-client",
+    );
+    must("git add", "git", ["add", "-A"], { cwd: modOnly });
+    must(
+      "git commit",
+      "git",
+      [
+        "-c",
+        "user.name=probe",
+        "-c",
+        "user.email=probe@example.com",
+        "commit",
+        "-q",
+        "-m",
+        "chore: stamped",
+      ],
+      { cwd: modOnly },
+    );
+    must(
+      "uplink-tools new --add-client",
+      bin,
+      ["new", "--add-client", "--no-install", "--no-generate"],
+      { cwd: modOnly },
+    );
+    pointAtPacked(modOnly);
+    const clientDir = join(modOnly, "client");
+    must(
+      "npm install, in the new client",
+      "npm",
+      ["install", "--no-package-lock"],
+      {
+        cwd: clientDir,
+      },
+    );
+    must(
+      "uplink-tools codegen, with a client and a types package",
+      bin,
+      ["codegen"],
+      {
+        cwd: modOnly,
+      },
+    );
+    must(
+      "uplink-tools codegen --check, with a client and a types package",
+      bin,
+      ["codegen", "--check"],
+      {
+        cwd: modOnly,
+      },
+    );
+    const both = ["client", "types"].map((home) =>
+      readFileSync(
+        join(modOnly, home, "src/__generated__/contract.ts"),
+        "utf8",
+      ),
+    );
+    if (both[0] !== both[1]) {
+      fail("codegen wrote different types to client/ and types/");
+    }
+    for (const script of ["page", "typecheck", "test"]) {
+      must(`npm run ${script}, in the new client`, "npm", ["run", script], {
+        cwd: clientDir,
+      });
+    }
+    must("dotnet test mod-tests, after --add-client", "dotnet", [
+      "test",
+      join(modOnly, "mod-tests", `${modNs}.Tests.csproj`),
+      ...dotnetQuiet,
+    ]);
+    must(
+      "uplink-tools version, with a client and a types package",
+      bin,
+      ["version", "0.0.4"],
+      {
+        cwd: modOnly,
+      },
+    );
+    if (typesVersion() !== "0.0.4") {
+      fail(
+        `version left the types package at ${typesVersion()}, expected 0.0.4`,
+      );
+    }
+    must(
+      "npm run release, with a client and a types package",
+      "npm",
+      ["run", "release"],
+      { cwd: clientDir },
+    );
+    const graduated = readdirSync(join(modOnly, "dist"));
+    if (!graduated.some((file) => file.endsWith(".tgz"))) {
+      fail(
+        "release stopped packing the types package once the Uplink had a client",
+      );
+    }
+    if (
+      !readFileSync(modDll).includes(
+        Buffer.from(`${modId}.client.js`, "utf16le"),
+      )
+    ) {
+      fail("after --add-client the plugin does not announce its client");
+    }
+  }
 }
 
 if (published) {
