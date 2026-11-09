@@ -75,7 +75,7 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] FleetLinkReader failed (no reading): " + ex.Message);
+                GonogoLog.WarnLimited("FleetLinkReader failed (no reading)", ex);
                 return null;
             }
         }
@@ -119,7 +119,7 @@ namespace Gonogo.KSP
             }
             _traced[id] = state;
 
-            var line = new StringBuilder("[Gonogo] link trace ").Append(vessel.vesselName).Append(' ').Append(id.Substring(0, Math.Min(8, id.Length))).Append(" (unloaded): ");
+            var line = new StringBuilder().Append(vessel.vesselName).Append(' ').Append(id.Substring(0, Math.Min(8, id.Length))).Append(" (unloaded): ");
             if (solve.Connected == true && solve.Hops != null)
             {
                 var metres = 0.0;
@@ -133,7 +133,7 @@ namespace Gonogo.KSP
             {
                 line.Append(state).Append("; its own state reads connected=").Append(vessel.connection?.IsConnected).Append("; antennas: ").Append(AntennasOf(vessel));
             }
-            Debug.Log(line.ToString());
+            GonogoLog.Info("link trace", line.ToString());
         }
 
         private static string AntennasOf(Vessel vessel)
