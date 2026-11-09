@@ -9,7 +9,13 @@ import {
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { levelOf, parseSubject } from "./commits";
-import { fixture, put, scratch, writePage } from "./uplink-fixture";
+import {
+  fixture,
+  modOnlyFixture,
+  put,
+  scratch,
+  writePage,
+} from "./uplink-fixture";
 import {
   moveVersion,
   nextVersion,
@@ -278,5 +284,45 @@ describe("the command", () => {
       console.log = log;
     }
     expect(lines).toEqual(["demo: 1.0.0-rc.4 -> 1.0.0-rc.5"]);
+  });
+});
+
+describe("an Uplink with no client", () => {
+  it("works out the version and writes nothing", () => {
+    const dir = modOnlyFixture();
+    const before = filesNaming(dir, "demo");
+    const result = moveVersion(dir, {
+      bump: "minor",
+      rc: false,
+      from: "1.2.3",
+    });
+    expect(result).toEqual({
+      id: "demo",
+      from: "1.2.3",
+      to: "1.3.0",
+      files: [],
+    });
+    expect(filesNaming(dir, "demo")).toEqual(before);
+    expect(existsSync(join(dir, "client"))).toBe(false);
+  });
+
+  it("still refuses a version that does not sort above the last release", () => {
+    const dir = modOnlyFixture();
+    expect(() =>
+      moveVersion(dir, { explicit: "1.0.0", rc: false, from: "1.2.3" }),
+    ).toThrow(/does not sort above/);
+  });
+
+  it("names the Uplink and both versions from the command", () => {
+    const dir = modOnlyFixture();
+    const lines: string[] = [];
+    const log = console.log;
+    console.log = (line: string) => lines.push(line);
+    try {
+      version(["--bump", "patch", "--from", "1.0.0", "--uplink", dir], dir);
+    } finally {
+      console.log = log;
+    }
+    expect(lines).toEqual(["demo: 1.0.0 -> 1.0.1"]);
   });
 });

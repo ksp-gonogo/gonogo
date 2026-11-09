@@ -36,6 +36,10 @@ export const VERSION_USAGE = `uplink-tools version [<version> | --bump <kind> --
   checkout that is not committed back. Nothing is committed. When any step
   fails every file is put back as it was.
 
+  An Uplink with no client directory (a mod-only Uplink) commits its version
+  nowhere: the plugin takes it from the release tag. For one, this works out the
+  version, checks it sorts above --from, and writes nothing.
+
   <version>        X.Y.Z or X.Y.Z-rc.N. Above --from when that is given
   --from <version> the Uplink's latest released version, the one its newest
                    tag <id>-v<version> names. --bump works from it
@@ -227,6 +231,37 @@ export function targetVersion(
 }
 
 /**
+ * The move for an Uplink with no client half. Its version is written in no
+ * committed file: the plugin takes it from the release tag at build time, so
+ * the move only works out the version and names nothing to stamp.
+ */
+function modOnlyMove(
+  uplinkDir: string,
+  request: BumpRequest & { commits?: string; from?: string },
+): VersionResult {
+  const declarationFile = join(uplinkDir, "uplink.json");
+  if (!existsSync(declarationFile)) {
+    throw new Error(
+      `${declarationFile} does not exist, and it is what makes a directory an Uplink`,
+    );
+  }
+  const declaration: unknown = JSON.parse(
+    readFileSync(declarationFile, "utf8"),
+  );
+  const changes = request.commits ? readChanges(request.commits) : undefined;
+  const to = targetVersion({
+    ...request,
+    level: changes ? levelOf(changes) : undefined,
+  });
+  return {
+    id: asString(Reflect.get(Object(declaration), "id")),
+    from: request.from ?? PLACEHOLDER_VERSION,
+    to,
+    files: [],
+  };
+}
+
+/**
  * Stamps the Uplink holding `uplinkDir` with the version `request` names, in
  * the four places it is a source and then through `page` for the three that
  * quote it. Every file touched is put back when any step fails.
@@ -241,6 +276,7 @@ export function moveVersion(
   const lockFile = join(clientDir, "package-lock.json");
   const sourceFile = join(clientDir, "src", "uplink.ts");
   const declarationFile = join(uplinkDir, "uplink.json");
+  if (!existsSync(clientDir)) return modOnlyMove(uplinkDir, request);
   for (const file of [manifestFile, sourceFile, declarationFile]) {
     if (!existsSync(file)) {
       throw new Error(

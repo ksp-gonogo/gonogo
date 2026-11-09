@@ -65,3 +65,16 @@ export function writePage(clientDir: string) {
   put(clientDir, "docs/spec.json", `{"version":"${v}"}\n`);
   put(clientDir, "../README.md", `| Version | ${v} |\n`);
 }
+
+/** An Uplink with no client half: a plugin project and a declaration with no client URL. */
+export function modOnlyFixture(): string {
+  const dir = mkdtempSync(join(tmpdir(), "gonogo-version-"));
+  scratch.push(dir);
+  put(
+    dir,
+    "uplink.json",
+    `${JSON.stringify({ id: "demo", gamedata: "GonogoDemoUplink" }, null, 2)}\n`,
+  );
+  put(dir, "mod/GonogoDemoUplink.csproj", "<Project />\n");
+  return dir;
+}

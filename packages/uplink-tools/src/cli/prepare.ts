@@ -7,7 +7,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { findUplinkDir } from "./bake";
@@ -123,7 +123,9 @@ export async function prepareRelease(
     );
   }
   const clientDir = join(uplinkDir, "client");
-  const run = (args: readonly string[]) => deps.run(args, clientDir);
+  const hasClient = existsSync(clientDir);
+  const run = (args: readonly string[]) =>
+    deps.run(args, hasClient ? clientDir : uplinkDir);
   const read = (file: string): unknown =>
     JSON.parse(readFileSync(file, "utf8"));
   const str = (value: unknown, key: string): string => {
@@ -195,39 +197,44 @@ export async function prepareRelease(
       str(read(join(uplinkDir, "uplink.json")), "gamedata") && hasClientUrl,
     );
     const checkBundle = join(scratch, "check-bundle");
-    const steps: [string, () => Promise<boolean>][] = [
-      [
-        "codegen --check",
-        async () => (await run(["codegen", "--check"])) === 0,
-      ],
-      ...(bakesAClient
-        ? ([
-            [
-              "bundle the client for the check",
-              async () => (await run(["bundle", "--out", checkBundle])) === 0,
-            ],
-            [
-              "bake it for the check",
-              async () =>
-                (await run([
-                  "bake",
-                  "--bundle",
-                  join(checkBundle, id, `${id}.client.js`),
-                ])) === 0,
-            ],
-          ] as [string, () => Promise<boolean>][])
-        : []),
-      ["check", async () => (await run(["check"])) === 0],
-      [
-        "the client's tests",
-        async () => (deps.runTests ?? clientTests)(clientDir),
-      ],
-      ["docs --check", async () => (await run(["docs", "--check"])) === 0],
-      [
-        "release into a scratch folder",
-        async () => (await run(["release", "--out", scratch])) === 0,
-      ],
+    const releaseStep: [string, () => Promise<boolean>] = [
+      "release into a scratch folder",
+      async () => (await run(["release", "--out", scratch])) === 0,
     ];
+    // Codegen, check, the client's tests and the page all read a client, so a mod-only Uplink has only its release to prove.
+    const steps: [string, () => Promise<boolean>][] = !hasClient
+      ? [releaseStep]
+      : [
+          [
+            "codegen --check",
+            async () => (await run(["codegen", "--check"])) === 0,
+          ],
+          ...(bakesAClient
+            ? ([
+                [
+                  "bundle the client for the check",
+                  async () =>
+                    (await run(["bundle", "--out", checkBundle])) === 0,
+                ],
+                [
+                  "bake it for the check",
+                  async () =>
+                    (await run([
+                      "bake",
+                      "--bundle",
+                      join(checkBundle, id, `${id}.client.js`),
+                    ])) === 0,
+                ],
+              ] as [string, () => Promise<boolean>][])
+            : []),
+          ["check", async () => (await run(["check"])) === 0],
+          [
+            "the client's tests",
+            async () => (deps.runTests ?? clientTests)(clientDir),
+          ],
+          ["docs --check", async () => (await run(["docs", "--check"])) === 0],
+          releaseStep,
+        ];
     for (const [label, step] of steps) {
       console.log(`\n== ${label}`);
       if (!(await step())) {

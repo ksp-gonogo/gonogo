@@ -4,7 +4,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { prepareRelease } from "./prepare";
-import { fixture, put, scratch, writePage } from "./uplink-fixture";
+import {
+  fixture,
+  modOnlyFixture,
+  put,
+  scratch,
+  writePage,
+} from "./uplink-fixture";
 import { PLACEHOLDER_VERSION } from "./version";
 
 afterEach(() => {
@@ -181,5 +187,35 @@ describe("release prepare with a client the plugin vouches for", () => {
       "docs",
       "release",
     ]);
+  });
+});
+
+describe("release prepare on an Uplink with no client", () => {
+  it("proves the release alone, from the Uplink's own directory", async () => {
+    const dir = modOnlyFixture();
+    git(dir, "init", "-q", "-b", "main");
+    git(dir, "config", "user.email", "t@example.com");
+    git(dir, "config", "user.name", "t");
+    git(dir, "add", "-A");
+    git(dir, "commit", "-q", "-m", "chore: seed");
+    const asked: { argv: string; cwd: string }[] = [];
+    const result = await prepareRelease(
+      ["--bump", "patch", "--from", "1.0.0"],
+      {
+        run: async (argv, cwd) => {
+          asked.push({ argv: argv.join(" "), cwd });
+          return 0;
+        },
+      },
+      dir,
+    );
+    expect(result).toEqual({
+      id: "demo",
+      version: "1.0.1",
+      tag: "demo-v1.0.1",
+    });
+    expect(asked.map((a) => a.argv.split(" ")[0])).toEqual(["release"]);
+    expect(asked[0].cwd).toBe(dir);
+    expect(git(dir, "status", "--porcelain")).toBe("");
   });
 });
