@@ -188,5 +188,43 @@ namespace Gonogo.KSP.Tests
             track.Add("b", 130.0, new[] { 1.0, 0.0, 0.0 });
             Assert.Null(track.Velocity());
         }
+
+        [Fact]
+        public void The_dock_slope_of_recorded_positions_reads_the_closing_the_reported_velocity_missed()
+        {
+            // Three vessel.dock rows from a recorded run, in scene axes: position, then the velocity
+            // the game reported. The reported velocity is square to the line of sight and about the
+            // orbital rate times the range, so it reads no closing at all.
+            var rows = new[]
+            {
+                new[] { 105022.46, 80.78665518760681, 0.020476661273278296, -55.67657619714737, 0.0535888671875, 0.0002565524241593814, 0.07769775390625 },
+                new[] { 105095.24, 27.67499530315399, 0.03907242766581476, -16.246380031108856, 0.0172119140625, 0.0005620242608852521, 0.02899169921875 },
+                new[] { 105129.28, 8.857226014137268, 0.02534080226905644, -4.637490391731262, 0.0069580078125, 0.00031200689999300035, 0.0125732421875 },
+            };
+            for (var segment = 0; segment < 2; segment++)
+            {
+                var from = rows[segment];
+                var to = rows[segment + 1];
+                var span = to[0] - from[0];
+                var track = new ApproachTrack();
+                for (var i = 0; i <= 8; i++)
+                {
+                    var t = (double)i;
+                    var w = t / span;
+                    track.Add("pair", from[0] + t, new[] { from[1] + (to[1] - from[1]) * w, from[2] + (to[2] - from[2]) * w, from[3] + (to[3] - from[3]) * w });
+                }
+                var slope = track.Velocity()!;
+                var range = System.Math.Sqrt(from[1] * from[1] + from[2] * from[2] + from[3] * from[3]);
+                double Closing(double[] v) => -(from[1] * v[0] + from[2] * v[1] + from[3] * v[2]) / range;
+
+                var fromPositions = Closing(slope);
+                var reported = Closing(new[] { from[4], from[5], from[6] });
+                var truth = (System.Math.Sqrt(from[1] * from[1] + from[2] * from[2] + from[3] * from[3]) - System.Math.Sqrt(to[1] * to[1] + to[2] * to[2] + to[3] * to[3])) / span;
+
+                Assert.Equal(segment == 0 ? 0.91 : 0.65, truth, 2);
+                Assert.Equal(truth, fromPositions, 2);
+                Assert.InRange(System.Math.Abs(reported), 0.0, 0.01);
+            }
+        }
     }
 }

@@ -2806,7 +2806,21 @@ namespace Gonogo.KSP
             var worldPos = (Vector3d)targetTransform.position - (Vector3d)ownTransform.position;
             var worldVel = (Vector3d)targetPort.GetObtVelocity() - (Vector3d)ownPort.GetObtVelocity();
             var relPos = ToPortFrame(ownTransform, worldPos);
-            var relVel = ToPortFrame(ownTransform, worldVel);
+            // The velocity the game reports for the pair is sampled at one instant and runs several
+            // times under the real closing rate, so the slope of the ports' positions over a window
+            // is used once it holds enough samples, taken in world axes and turned into the port's.
+            DockHistory.Add(
+                LoadedApproach.TrackKey(
+                    vessel.id.ToString(),
+                    ownTransform.GetInstanceID(),
+                    targetPort.vessel != null ? targetPort.vessel.id.ToString() : null,
+                    targetPort.part != null ? (uint?)targetPort.part.persistentId : null),
+                Planetarium.GetUniversalTime(),
+                new[] { worldPos.x, worldPos.y, worldPos.z });
+            var slope = DockHistory.Velocity();
+            var relVel = slope != null
+                ? ToPortFrame(ownTransform, new Vector3d(slope[0], slope[1], slope[2]))
+                : ToPortFrame(ownTransform, worldVel);
             var forwardDot = (double)Vector3.Dot(ownPort.GetFwdVector(), targetPort.GetFwdVector());
 
             return new Dictionary<string, object?>
@@ -2821,6 +2835,8 @@ namespace Gonogo.KSP
                 ["targetPortPersistentId"] = targetPort.part != null ? (double?)targetPort.part.persistentId : null,
             };
         }
+
+        private static readonly ApproachTrack DockHistory = new ApproachTrack();
 
         private static readonly DockPairMemory<ModuleDockingNode> DockPairs = new DockPairMemory<ModuleDockingNode>();
 
