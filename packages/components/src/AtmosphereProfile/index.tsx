@@ -181,8 +181,7 @@ function pressureAt(
 registerComponent<AtmosphereProfileConfig>({
   id: "atmosphere-profile",
   name: "Atmosphere Profile",
-  description:
-    "How air pressure falls with altitude on the current body, with a marker at your vessel's altitude.",
+  description: "Air pressure against altitude on the current body.",
   tags: ["telemetry", "graph", "atmosphere"],
   defaultSize: { w: 8, h: 8 },
   minSize: { w: 5, h: 4 },

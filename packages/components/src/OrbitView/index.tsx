@@ -360,8 +360,7 @@ function restingSituationLabel(situation: Situation | undefined) {
 registerComponent<OrbitViewConfig>({
   id: "orbit-view",
   name: "Orbit View",
-  description:
-    "Your current orbit: apoapsis, periapsis, the time to each, inclination, eccentricity and period, and from a larger tile a diagram with your vessel's position, apoapsis and periapsis marked.",
+  description: "Your current orbit, as figures and a diagram.",
   tags: ["telemetry"],
   defaultSize: { w: 9, h: 18 },
   // The body name, the regime badge and Ap and Pe stack to 131 px, which a four-row tile (112 px) crops.

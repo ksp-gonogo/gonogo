@@ -306,8 +306,7 @@ function RotorTachometerComponent({
 registerComponent<RotorTachometerConfig>({
   id: "rotor-tachometer",
   name: "Rotor Tachometer",
-  description:
-    "Live RPM vs commanded cap for Breaking Ground robotic rotors, with motor, lock, brake and direction controls. Select a rotor to drive it from the dial or a mapped input.",
+  description: "RPM and controls for Breaking Ground rotors.",
   tags: ["telemetry", "robotics"],
   defaultSize: { w: 6, h: 10 },
   minSize: { w: 4, h: 4 },

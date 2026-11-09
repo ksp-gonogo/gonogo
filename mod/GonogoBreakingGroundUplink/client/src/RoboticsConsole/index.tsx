@@ -251,8 +251,7 @@ function RoboticsConsoleComponent({
 registerComponent<RoboticsConsoleConfig>({
   id: "robotics-console",
   name: "Robotics Console",
-  description:
-    "Current-vs-target position, at-target state and motor/lock controls for Breaking Ground robotic hinges, rotation servos and pistons. Select a joint to drive it from the stepper or a mapped input.",
+  description: "Drive Breaking Ground hinges, rotation servos and pistons.",
   tags: ["telemetry", "robotics"],
   defaultSize: { w: 5, h: 8 },
   minSize: { w: 4, h: 4 },

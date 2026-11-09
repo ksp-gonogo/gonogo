@@ -37,8 +37,7 @@ function GraphComponent({
 registerComponent<GraphConfig>({
   id: "graph",
   name: "Graph",
-  description:
-    "Line chart of one or more live telemetry series over time. The widget's settings choose the values to plot, how each is drawn (as a line, a step, scattered points or a band between two values) and which axis it uses, and how many seconds of history to keep.",
+  description: "Live telemetry plotted over time.",
   tags: ["telemetry", "graph"],
   defaultSize: { w: 10, h: 8 },
   minSize: { w: 5, h: 4 },

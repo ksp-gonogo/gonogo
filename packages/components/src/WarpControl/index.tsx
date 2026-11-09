@@ -363,8 +363,7 @@ function WarpControlComponent({
 registerComponent<WarpControlConfig>({
   id: "warp-control",
   name: "Warp Control",
-  description:
-    "Set KSP time warp from the dashboard. Shows the current warp rate and mode, with a button for each warp level, a pause button, and buttons that warp to the next sunrise, sunset, loss of signal, return of signal or sphere-of-influence change. When the craft's one-way signal delay is over 5 seconds, warping up in flight needs an alarm set first, unless \"Require an alarm to warp under delay\" is switched off in the widget's settings.",
+  description: "Set time warp, or warp to an upcoming event.",
   tags: ["control", "time"],
   // Nine rows hold the rate readout, both rows of the rails ladder, the alarm button and delay line under delay, and the warp-to row.
   defaultSize: { w: 6, h: 9 },

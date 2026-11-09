@@ -179,8 +179,7 @@ function EscapeProfileComponent({
 registerComponent<EscapeProfileConfig>({
   id: "escape-profile",
   name: "Escape Profile",
-  description:
-    "Your orbital speed plotted against altitude, beside the speed needed to escape the body. When your trace reaches the curve, you are on an escape trajectory.",
+  description: "Your orbital speed against escape speed, by altitude.",
   tags: ["telemetry", "graph"],
   defaultSize: { w: 10, h: 8 },
   minSize: { w: 5, h: 4 },
