@@ -38,6 +38,7 @@ const seed = () =>
     clientUrl: "https://elsewhere.test/widgets.js",
     contractVersion: "4.5.6",
     topics: "own",
+    client: true,
     dependencies: {},
     devDependencies: {},
   });
@@ -203,6 +204,7 @@ describe("uplink-tools new", () => {
       clientUrl: "https://elsewhere.test/widgets.js",
       contractVersion: "4.5.6",
       topics: "own",
+      client: true,
       dependencies: {},
       devDependencies: {},
     });
@@ -491,6 +493,7 @@ describe("uplink-tools new", () => {
     for (const flag of [
       "--author <name>",
       "--repo <owner>/<name> | --no-repo",
+      "--client | --no-client",
       "--topics own | core",
       "--workflows | --no-workflows",
       "--ksp <path> | --no-ksp",
@@ -515,6 +518,7 @@ describe("uplink-tools new", () => {
         "--author",
         "Tester",
         "--no-repo",
+        "--client",
         "--topics",
         "own",
         "--no-workflows",
@@ -560,7 +564,7 @@ describe("uplink-tools new", () => {
 
     expect(code).toBe(0);
     // The id and the name came from the command line.
-    expect(asked).toHaveLength(5);
+    expect(asked).toHaveLength(6);
     const declared = JSON.parse(
       readFileSync(join(repo, "uplink.json"), "utf8"),
     );
@@ -686,5 +690,117 @@ describe("uplink-tools new", () => {
     await expect(
       newUplink(["other", "--ksp", workdir(), ...BARE], workdir()),
     ).rejects.toThrow(/not a KSP install/);
+  });
+
+  it("with --no-client writes the plugin alone: no client folder, no client in uplink.json, a plugin and tests that announce none", async () => {
+    const repo = workdir();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+
+    expect(await newUplink(["solo", "--no-client", ...BARE], repo)).toBe(0);
+
+    const read = (path: string) => readFileSync(join(repo, path), "utf8");
+    for (const absent of [
+      "client",
+      "mod-contract",
+      "mod/ClientSource.g.cs",
+      "mod/ExpectedClientHash.g.cs",
+    ]) {
+      expect(existsSync(join(repo, absent)), absent).toBe(false);
+    }
+    expect(JSON.parse(read("uplink.json")).client).toBeUndefined();
+    expect(read("mod/SoloUplink.cs")).not.toMatch(
+      /ClientSource|ExpectedClientHash/,
+    );
+    expect(read("mod/GonogoSoloUplink.csproj")).not.toMatch(
+      /ClientSource|ExpectedClientHash/,
+    );
+    expect(read("mod/GonogoSoloUplink.csproj")).toContain("Provenance.g.cs");
+    expect(read("mod-tests/GonogoSoloUplink.Tests.csproj")).not.toMatch(
+      /ClientSource|ExpectedClientHash/,
+    );
+    expect(read("mod-tests/SoloUplinkTests.cs")).toContain(
+      "Assert.Null(manifest.ClientSource)",
+    );
+    expect(read("mod/Provenance.g.cs")).toContain(
+      'Version = "0.0.0-development"',
+    );
+  });
+
+  it("with --no-client, takes a version from GONOGO_UPLINK_VERSION when a release names one", async () => {
+    const repo = workdir();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.stubEnv("GONOGO_UPLINK_VERSION", "2.3.4");
+    try {
+      await newUplink(["solo", "--no-client", ...BARE], repo);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+    expect(readFileSync(join(repo, "mod/Provenance.g.cs"), "utf8")).toContain(
+      'Version = "2.3.4"',
+    );
+  });
+
+  it("with --no-client, refuses a Topics answer of its own and writes nothing", async () => {
+    const repo = workdir();
+    await expect(
+      newUplink(["solo", "--no-client", "--topics", "own", ...BARE], repo),
+    ).rejects.toThrow(/cannot go with --no-client/);
+    expect(existsSync(join(repo, "uplink.json"))).toBe(false);
+  });
+
+  it("with --no-client, writes workflows that build the plugin alone", async () => {
+    const repo = workdir();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    await newUplink(["solo", "--no-client", "--workflows", ...BARE], repo);
+    for (const file of [
+      ".github/workflows/ci.yml",
+      ".github/workflows/release.yml",
+    ]) {
+      const text = readFileSync(join(repo, file), "utf8");
+      expect(text).not.toContain("working-directory: client");
+      expect(text).toContain("dotnet");
+    }
+    expect(
+      readFileSync(join(repo, ".github/workflows/release.yml"), "utf8"),
+    ).toContain("GONOGO_UPLINK_VERSION");
+  });
+
+  it("asks whether it has a client on a terminal, and does not ask about Topics when the answer is no", async () => {
+    const repo = workdir();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const asked: string[] = [];
+    const prompter: Prompter = {
+      text: async ({ initialValue }) => initialValue ?? "",
+      select: async ({ message }) => {
+        asked.push(message);
+        return "own";
+      },
+      confirm: async ({ message }) => {
+        asked.push(message);
+        return false;
+      },
+      isCancel: (value): value is symbol => typeof value === "symbol",
+    };
+    const code = await newUplink(
+      [
+        "solo",
+        "--name",
+        "Solo",
+        "--author",
+        "T",
+        "--no-repo",
+        "--no-ksp",
+        "--no-workflows",
+        "--no-generate",
+        "--no-install",
+      ],
+      repo,
+      { interactive: true, loadPrompter: async () => prompter },
+    );
+    expect(code).toBe(0);
+    expect(asked).toEqual([
+      "Does it have a client, widgets the app draws? (no: a plugin alone, for an Uplink that wraps another mod)",
+    ]);
+    expect(existsSync(join(repo, "client"))).toBe(false);
   });
 });

@@ -356,6 +356,7 @@ const newArgs = [
   "Scaffold Probe",
   "--repo",
   "ksp-gonogo/probe",
+  "--client",
   "--topics",
   "own",
   "--workflows",
@@ -1170,71 +1171,39 @@ if (!published) {
 // ── The third shape: a plugin with no client half ───────────────────────────
 
 if (!published) {
-  console.log(
-    "scaffold-probe: a mod-only Uplink, the plugin of a scaffold with its client half removed",
-  );
-  /*
-   * `new` has no flag that writes a mod-only Uplink, so the shape an author
-   * reaches by deleting client/, the client entry of uplink.json and the
-   * plugin's client announcement is made the same way here.
-   */
+  console.log("scaffold-probe: a mod-only Uplink, scaffolded with --no-client");
   const modId = "probemod";
   const modNs = "GonogoProbemodUplink";
   const modOnly = join(work, modId);
   mkdirSync(modOnly);
   must(
-    "uplink-tools new --yes --topics core, to take the client half from",
+    "uplink-tools new --no-client",
     bin,
     [
       "new",
       modId,
       "--yes",
-      "--topics",
-      "core",
+      "--no-client",
+      "--workflows",
       "--author",
       "Scaffold Probe",
       "--repo",
       "you/example",
-      "--no-install",
     ],
     { cwd: modOnly },
   );
-  pointAtPacked(modOnly);
-  rmSync(join(modOnly, "client"), { recursive: true, force: true });
-  const modDeclaration = join(modOnly, "uplink.json");
-  const modDeclared = JSON.parse(readFileSync(modDeclaration, "utf8"));
-  delete modDeclared.client;
-  writeFileSync(modDeclaration, `${JSON.stringify(modDeclared, null, 2)}\n`);
-  // What a hand-written mod-only plugin does not say: where a client is, its hash, and the project's demand for the files that carry them.
-  const modPlugin = join(
-    modOnly,
-    "mod",
-    readdirSync(join(modOnly, "mod")).find(
-      (file) =>
-        file.endsWith(".cs") &&
-        !file.endsWith(".g.cs") &&
-        readFileSync(join(modOnly, "mod", file), "utf8").includes(
-          "ISitrepUplink",
-        ),
-    ) ?? fail("the scaffold wrote no plugin source in mod/"),
-  );
-  const modProject = join(modOnly, "mod", `${modNs}.csproj`);
-  const pluginSource = readFileSync(modPlugin, "utf8");
-  const projectSource = readFileSync(modProject, "utf8");
-  const withoutClient = pluginSource
-    .replace(/\s*ExpectedClientHash = [^;]*?: ExpectedClientHash\.Value,/s, "")
-    .replace(/\s*ClientSource = new UplinkClientSource\s*\{[^}]*\},/s, "");
-  const withoutGuard = projectSource.replace(
-    /\s*<Target Name="RequireBakedClientSource"[\s\S]*?<\/Target>/,
-    "",
-  );
-  if (withoutClient === pluginSource || withoutGuard === projectSource) {
-    fail(
-      "the scaffold's plugin or project no longer has the client lines this probe removes to make a mod-only Uplink",
-    );
+  for (const absent of ["client", "mod-contract", "mod/ClientSource.g.cs"]) {
+    if (existsSync(join(modOnly, absent))) {
+      fail(`--no-client still wrote ${absent}`);
+    }
   }
-  writeFileSync(modPlugin, withoutClient);
-  writeFileSync(modProject, withoutGuard);
+  if (JSON.parse(readFileSync(join(modOnly, "uplink.json"), "utf8")).client) {
+    fail("--no-client left a client entry in uplink.json");
+  }
+  writeFileSync(
+    join(modOnly, "nuget.config"),
+    readFileSync(join(uplink, "nuget.config"), "utf8"),
+  );
   must("git init", "git", ["init", "-q", "-b", "main"], { cwd: modOnly });
   must("git add", "git", ["add", "-A"], { cwd: modOnly });
   must(
@@ -1266,7 +1235,13 @@ if (!published) {
   );
   must("uplink-tools release for an Uplink with no client", bin, ["release"], {
     cwd: modOnly,
+    env: { ...env, GONOGO_UPLINK_VERSION: "7.8.9" },
   });
+  must("dotnet test mod-tests, with no client", "dotnet", [
+    "test",
+    join(modOnly, "mod-tests", `${modNs}.Tests.csproj`),
+    ...dotnetQuiet,
+  ]);
   const modDll = join(modOnly, "mod/bin/Release", `${modNs}.dll`);
   const modZip = join(modOnly, "dist", `${modNs}.zip`);
   for (const artifact of [modDll, modZip]) {
@@ -1283,8 +1258,12 @@ if (!published) {
       `the mod-only zip holds [${modZipped.join(", ")}], expected the plugin in it`,
     );
   }
-  if (readFileSync(modDll).includes(Buffer.from("client.js", "utf16le"))) {
+  const modBytes = readFileSync(modDll);
+  if (modBytes.includes(Buffer.from("client.js", "utf16le"))) {
     fail("the mod-only plugin announces a client");
+  }
+  if (!modBytes.includes(Buffer.from("7.8.9", "utf16le"))) {
+    fail("the mod-only plugin does not carry the version the release named");
   }
 }
 

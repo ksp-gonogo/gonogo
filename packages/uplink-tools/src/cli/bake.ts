@@ -30,6 +30,15 @@ import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { parseFlags } from "./flags";
 
+/**
+ * The version of an Uplink with no client half, which has no package.json to
+ * hold it: the release names it in GONOGO_UPLINK_VERSION, and a tree built
+ * outside a release carries the placeholder.
+ */
+export function modOnlyVersion(env: NodeJS.ProcessEnv = process.env): string {
+  return env.GONOGO_UPLINK_VERSION || "0.0.0-development";
+}
+
 /** The port `bundle --serve` is given for a build baked past its published version. */
 export const DEV_SERVE_PORT = 5390;
 
@@ -184,7 +193,11 @@ export function bakeUplink(inputs: BakeInputs): BakeResult {
 
   // An Uplink with no client half has no client package to take a version from, and its plugin states its own.
   const pkgPath = join(uplinkDir, "client", "package.json");
-  const version = existsSync(pkgPath) ? text(readJson(pkgPath).version) : "";
+  const version = existsSync(pkgPath)
+    ? text(readJson(pkgPath).version)
+    : existsSync(join(uplinkDir, "client"))
+      ? ""
+      : modOnlyVersion();
   if (!version && existsSync(join(uplinkDir, "client"))) {
     throw new Error(
       `${pkgPath} carries no version. An Uplink has one version for both halves, and the ` +
@@ -219,8 +232,8 @@ export function bakeUplink(inputs: BakeInputs): BakeResult {
     "Provenance.g.cs",
     `//
 // Who wrote this Uplink and which version it is, from uplink.json and
-// client/package.json. The app shows it when it asks the operator whether to
-// load the client.
+// client/package.json (GONOGO_UPLINK_VERSION for an Uplink with no client).
+// The app shows it when it asks the operator whether to load the client.
 namespace ${namespace}
 {
     internal static class Provenance
