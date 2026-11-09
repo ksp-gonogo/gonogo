@@ -45,6 +45,8 @@ namespace Gonogo.KSP.Tests.ActiveVessel
         /// </summary>
         private static readonly Dictionary<string, int> Allowed = new Dictionary<string, int>
         {
+            // The crew's own seat is whatever KSP is flying, a kerbal on EVA included, where the seam would name the craft they left.
+            ["CommandCentres/CrewedVesselSource.cs"] = 1,
             ["CurrencyEventUplink.cs"] = 1,
             ["Gates/KspGateEvaluators.cs"] = 1,
             ["KspFlightOpsActuator.cs"] = 2,
