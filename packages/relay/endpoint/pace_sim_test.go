@@ -199,7 +199,7 @@ func runSim(cfg simConfig) simResult {
 	dataDelivered := 0
 	if cfg.paced {
 		for left := cfg.snapshot; left > 0; left -= 16 << 10 {
-			p.pushData(make([]byte, min(left, 16<<10)))
+			p.pushData(now, make([]byte, min(left, 16<<10)))
 		}
 		dataLeft = 0
 	}
@@ -547,9 +547,13 @@ func TestTheFirstPictureIsNotQueuedBehindTheJoinSnapshot(t *testing.T) {
 		if after.first[f] < 0 || after.first[f] > 2*time.Second {
 			t.Errorf("feed %d's first picture came at %v through the pacer, wanted within 2 s", f+1, after.first[f])
 		}
-		if got := after.framesShownBetween(f, 10, 60); got < 50*simFPS*8/10 {
-			t.Errorf("feed %d showed %d frames from 10 s while the snapshot crossed, wanted nearly %d\n%s", f+1, got, 50*simFPS, after.timeline("after"))
-		}
+	}
+	if got := after.framesShownBetween(0, 10, 60); got < 50*simFPS*8/10 {
+		t.Errorf("the top feed showed %d frames from 10 s while the snapshot crossed, wanted nearly %d\n%s", got, 50*simFPS, after.timeline("after"))
+	}
+	// The snapshot waits longer than a data channel message may, so the second feed gives way to it, and is back once it is sent.
+	if got := after.framesShownBetween(1, 40, 60); got < 20*simFPS*8/10 {
+		t.Errorf("the second feed showed %d frames after the snapshot was sent, wanted nearly %d\n%s", got, 20*simFPS, after.timeline("after"))
 	}
 	t.Logf("first picture before %v %v, after %v %v; snapshot done before %v after %v", before.first[0], before.first[1], after.first[0], after.first[1], before.dataDone, after.dataDone)
 }

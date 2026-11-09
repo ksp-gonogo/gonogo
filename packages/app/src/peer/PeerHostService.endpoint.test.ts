@@ -114,6 +114,7 @@ import {
   HOST_RECLAIM_INTERVAL_MS,
   PeerHostService,
 } from "./PeerHostService";
+import { HOST_HEARTBEAT_MS } from "./protocol";
 
 const link = ws.link("ws://localhost:3002/stations");
 const server = setupServer();
@@ -130,8 +131,16 @@ afterAll(() => server.close());
  * answers and no station ever reaches it, as for a station on another
  * network with no port forwarded.
  */
-function endpoint({ opens = true }: { opens?: boolean } = {}) {
+function endpoint({
+  opens = true,
+  readsAhead = false,
+}: {
+  opens?: boolean;
+  readsAhead?: boolean;
+} = {}) {
   const offers: Array<{ sid: number; peerId: string; sdp: string }> = [];
+  /** Messages the main screen marked to go ahead, by session. */
+  const aheadOf = new Map<number, unknown[]>();
   const closes: number[] = [];
   const toStation = new Map<number, unknown[]>();
   const bridges: Array<Record<string, unknown>> = [];
@@ -147,6 +156,7 @@ function endpoint({ opens = true }: { opens?: boolean } = {}) {
           type: "status",
           port: 47100,
           publicIp: "203.0.113.7",
+          ...(readsAhead ? { ahead: true } : {}),
         }),
       );
       const readers = new Map<number, FrameReader>();
@@ -192,12 +202,15 @@ function endpoint({ opens = true }: { opens?: boolean } = {}) {
           return;
         }
         const buf = new Uint8Array(m.data as ArrayBuffer);
-        const sid = new DataView(buf.buffer, buf.byteOffset).getUint32(0);
+        const marked = new DataView(buf.buffer, buf.byteOffset).getUint32(0);
+        const sid = marked & 0x7fffffff;
         const reader = readers.get(sid) ?? new FrameReader();
         readers.set(sid, reader);
         const msg = reader.push(buf.slice(4));
-        if (msg !== undefined)
-          toStation.set(sid, [...(toStation.get(sid) ?? []), msg]);
+        if (msg === undefined) return;
+        toStation.set(sid, [...(toStation.get(sid) ?? []), msg]);
+        if (marked !== sid)
+          aheadOf.set(sid, [...(aheadOf.get(sid) ?? []), msg]);
       });
     }),
   );
@@ -205,6 +218,7 @@ function endpoint({ opens = true }: { opens?: boolean } = {}) {
     offers,
     closes,
     toStation,
+    aheadOf,
     bridges,
     /** Deliver a message from a station on session `sid` to the main screen. */
     fromStation(sid: number, message: Packable) {
@@ -276,6 +290,23 @@ describe("a station joining through the endpoint", () => {
     );
     expect(direct.closed).toBe(true);
     expect(direct.sent).toEqual([]);
+    host.stop();
+  });
+
+  it("sends its heartbeat ahead of what the endpoint holds for the station, and nothing else", async () => {
+    const ep = endpoint({ readsAhead: true });
+    const { host, peer } = await startedHost();
+    await vi.waitFor(() => expect(host.endpoint.available).toBe(true));
+    join(peer, "station-a", "gne-1");
+    await vi.waitFor(() => expect(ep.offers).toHaveLength(1));
+    const sid = ep.offers[0]?.sid ?? -1;
+    await vi.waitFor(
+      () =>
+        expect(ep.aheadOf.get(sid)).toContainEqual({ type: "host-heartbeat" }),
+      { timeout: HOST_HEARTBEAT_MS * 2 },
+    );
+    for (const m of ep.aheadOf.get(sid) ?? [])
+      expect(m).toEqual({ type: "host-heartbeat" });
     host.stop();
   });
 

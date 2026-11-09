@@ -69,7 +69,16 @@ type controlFrame struct {
 	Port     int    `json:"port,omitempty"`
 	// Bytes is how much waits to go out to the station, on a queued frame only.
 	Bytes *uint64 `json:"bytes,omitempty"`
+	// Ahead, on the status frame, says the endpoint reads aheadBit on a data frame's session id.
+	Ahead bool `json:"ahead,omitempty"`
 }
+
+/*
+aheadBit set in a data frame's session id asks for the frame to go to the station ahead of
+everything already waiting for it, media and messages. The main screen sets it on its heartbeat,
+so a station on a full link still hears that the main screen is there. Session ids never reach it.
+*/
+const aheadBit = 1 << 31
 
 // queueReportInterval is how often the tab is told of a change in what waits to go out to each station.
 const queueReportInterval = 500 * time.Millisecond
@@ -225,7 +234,7 @@ func (e *Endpoint) serveTab(t *tab) {
 	log.Printf("main screen connected; stations are offered %s", advertised(e.cfg.PublicIP, e.cfg.LANIP, e.port, e.cfg.OmitUDP))
 	e.keepAlive(t)
 	defer t.stopPings()
-	status, _ := json.Marshal(controlFrame{Type: "status", PublicIP: e.cfg.PublicIP, Port: e.port})
+	status, _ := json.Marshal(controlFrame{Type: "status", PublicIP: e.cfg.PublicIP, Port: e.port, Ahead: true})
 	t.write(websocket.TextMessage, status)
 
 	stopReports := make(chan struct{})
@@ -447,10 +456,16 @@ func (e *Endpoint) forward(frame []byte) {
 		return
 	}
 	sid := binary.BigEndian.Uint32(frame)
+	ahead := sid&aheadBit != 0
+	sid &^= aheadBit
 	e.mu.Lock()
 	s := e.sessions[sid]
 	e.mu.Unlock()
 	if s == nil || !s.open {
+		return
+	}
+	if ahead {
+		s.link.sendAhead(frame[4:])
 		return
 	}
 	if s.dc.BufferedAmount()+s.link.held() > e.cfg.MaxBuffered {
