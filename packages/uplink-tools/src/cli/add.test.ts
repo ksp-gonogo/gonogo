@@ -1,8 +1,14 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { add, addToUplink } from "./add";
+import { add, addCommand, addToUplink } from "./add";
 import { newUplink } from "./new";
 
 const scratch: string[] = [];
@@ -171,5 +177,111 @@ describe("uplink-tools add", () => {
     });
     add(["setting", "two", "--uplink", dir], dir);
     expect(said.join("\n")).toContain("npm install && npm run page");
+  });
+
+  describe("command", () => {
+    const own = async () => {
+      const repo = mkdtempSync(join(tmpdir(), "gonogo-add-"));
+      scratch.push(repo);
+      await newUplink(
+        [
+          "mine",
+          "--yes",
+          "--topics",
+          "own",
+          "--author",
+          "T",
+          "--no-repo",
+          "--no-ksp",
+          "--no-generate",
+          "--no-install",
+        ],
+        repo,
+      );
+      return repo;
+    };
+    const at = (repo: string, path: string) =>
+      readFileSync(join(repo, path), "utf8");
+
+    it("declares the arguments, the handler and a test, and wires them together", async () => {
+      const repo = await own();
+      const result = addCommand(repo, "reset counter");
+
+      expect(result.commandId).toBe("mine.resetCounter");
+      expect(result.byHand).toEqual([]);
+      const payloads = at(repo, "mod-contract/MinePayloads.cs");
+      expect(payloads).toContain(
+        '[SitrepCommand("mine.resetCounter", Delay = DelayRole.TrueNow)]',
+      );
+      expect(payloads).toContain("public sealed class MineResetCounterArgs");
+      expect(at(repo, "mod-contract/MineRtConfig.cs")).toContain(
+        "typeof(MineHeartbeat), typeof(MineResetCounterArgs) }",
+      );
+      const plugin = at(repo, "mod/MineUplink.cs");
+      expect(plugin).toContain(
+        'public const string ResetCounterCommand = "mine.resetCounter";',
+      );
+      expect(plugin).toContain(
+        "new CommandDeclaration { Command = ResetCounterCommand },",
+      );
+      expect(plugin).toContain(
+        "host.AddCommandHandler<MineResetCounterArgs, CommandResult>(ResetCounterCommand, ResetCounter);",
+      );
+      expect(plugin).toContain(
+        "internal CommandResult ResetCounter(MineResetCounterArgs args)",
+      );
+      const tests = at(repo, "mod-tests/MineUplinkTests.cs");
+      expect(tests).toContain("DeclaresResetCounterCommand");
+      expect(tests).toContain("ResetCounterSucceeds");
+    });
+
+    it("takes a second command beside the first, and a delay", async () => {
+      const repo = await own();
+      addCommand(repo, "reset counter");
+      addCommand(repo, "stop now", {
+        delay: "delayed",
+        subject: "vessel.flight",
+      });
+
+      const plugin = at(repo, "mod/MineUplink.cs");
+      expect(plugin.match(/new CommandDeclaration/g)).toHaveLength(2);
+      expect(plugin.match(/host\.AddCommandHandler/g)).toHaveLength(2);
+      expect(at(repo, "mod-contract/MinePayloads.cs")).toContain(
+        '[SitrepCommand("mine.stopNow")]',
+      );
+      expect(plugin).toContain(
+        'new CommandDeclaration { Command = StopNowCommand, Subject = "vessel.flight" },',
+      );
+      expect(at(repo, "mod-contract/MineRtConfig.cs")).toContain(
+        "typeof(MineResetCounterArgs), typeof(MineStopNowArgs) }",
+      );
+    });
+
+    it("writes nothing, and says what to add, when a file no longer matches the scaffold", async () => {
+      const repo = await own();
+      const pluginPath = join(repo, "mod/MineUplink.cs");
+      const edited = readFileSync(pluginPath, "utf8").replace(
+        "public void Register(IUplinkHost host)",
+        "public void Register(IUplinkHost h)",
+      );
+      writeFileSync(pluginPath, edited);
+      const payloadsBefore = at(repo, "mod-contract/MinePayloads.cs");
+
+      const result = addCommand(repo, "reset counter");
+
+      expect(result.changed).toEqual([]);
+      expect(result.byHand.join("\n")).toContain("mod/MineUplink.cs");
+      expect(at(repo, "mod-contract/MinePayloads.cs")).toBe(payloadsBefore);
+    });
+
+    it("refuses an Uplink with no contract slice, a name that is taken and a delay it does not know", async () => {
+      expect(() => addCommand(dir, "reset")).toThrow(/no codegen/);
+      const repo = await own();
+      addCommand(repo, "reset");
+      expect(() => addCommand(repo, "reset")).toThrow(/already declares/);
+      expect(() => addCommand(repo, "other", { delay: "soon" })).toThrow(
+        /--delay/,
+      );
+    });
   });
 });
