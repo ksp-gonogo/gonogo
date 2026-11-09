@@ -2352,6 +2352,14 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    * a rail reads it, so an outcome is never left with nobody to say it.
    */
   railed: boolean;
+  /**
+   * Whether a blocked gate stops the press. True for a command the mod declares
+   * instant, and for a delayed command whose verdict is held for under five
+   * seconds, since a verdict that fresh is as good as the game's answer. At five
+   * seconds or more, or when the delay is not known, a blocked gate is advice: the command
+   * is sent and the game decides on arrival.
+   */
+  gateStopsPress?: boolean;
   /** Dispatches the game refused, newest last, each with its reason. */
   refusals: CommandRefusal[];
   /**
@@ -2382,9 +2390,14 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
   failures: CommandFailure[];
   /**
    * Whether the command can be sent right now, as the mod reports it before
-   * anything is pressed, with the reason when it cannot. While it is blocked,
-   * `send` refuses at once with that reason. `undefined` when nothing is
+   * anything is pressed, with the reason when it cannot. `undefined` when nothing is
    * known in advance.
+   *
+   * Blocked on a command whose verdict is held more than a few seconds, the gate
+   * is advice that the game is likely to refuse it: the command is still sent
+   * when pressed, and the game decides when it arrives. Blocked on an instant
+   * command, or one held only a few seconds, `send` refuses at once with that
+   * reason.
    */
   gate?: CommandGateStatus;
   /**

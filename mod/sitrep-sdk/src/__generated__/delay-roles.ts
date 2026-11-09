@@ -69,6 +69,7 @@ export const GENERATED_HELD_AT_HOME_TOPICS = [
   "spaceCenter.partsAvailable",
   "spaceCenter.pois",
   "spaceCenter.savedShips",
+  "system.uplink.gates.home",
 ] as const;
 
 /**

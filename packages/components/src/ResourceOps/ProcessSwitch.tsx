@@ -11,8 +11,8 @@ export type ProcessSwitchHandles = Readonly<{
  * state it is in. Drawn only for a unit that has a part id and a run state
  * that is current, so a held channel or an unread state offers neither. A
  * unit carrying a provider extension bag comes from a modelling mod's own
- * backend, whose units the stock converter command cannot resolve, so it
- * offers neither either.
+ * backend, whose units the stock converter command is likely not to resolve,
+ * so its control is advised and the press is still sent.
  */
 export function ProcessSwitch({
   handles,
@@ -31,12 +31,13 @@ export function ProcessSwitch({
   held: boolean;
   extensions?: Readonly<Record<string, unknown>> | null;
 }>) {
-  if (extensions != null && Object.keys(extensions).length > 0) {
-    return null;
-  }
   if (held || !partId || running === null || running === undefined) {
     return null;
   }
+  const advise =
+    extensions != null && Object.keys(extensions).length > 0
+      ? "a modelling mod owns this unit, so the stock command is likely not to resolve it"
+      : undefined;
   const args = { partId, converterName: converterName || undefined };
   return (
     <Inline>
@@ -45,6 +46,7 @@ export function ProcessSwitch({
           size="sm"
           variant="ghost"
           command={handles.stop.with(args, { label: `Stop ${title}` })}
+          advise={advise}
         >
           Stop
         </Button>
@@ -53,6 +55,7 @@ export function ProcessSwitch({
           size="sm"
           variant="ghost"
           command={handles.start.with(args, { label: `Start ${title}` })}
+          advise={advise}
         >
           Start
         </Button>

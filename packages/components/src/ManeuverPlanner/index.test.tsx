@@ -7,7 +7,12 @@ import {
 } from "@ksp-gonogo/core";
 import { ManeuverFrame, Situation } from "@ksp-gonogo/sitrep-sdk";
 import { commandArgs } from "@ksp-gonogo/sitrep-sdk/testing";
-import { act, render as rtlRender, screen } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  render as rtlRender,
+  screen,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
@@ -230,7 +235,7 @@ describe("ManeuverPlannerComponent", () => {
     expect(screen.getByRole("button", { name: /delete/i })).toBeInTheDocument();
   });
 
-  it("raises a role=status shortfall banner and disables Add node when ΔV is insufficient", async () => {
+  it("raises a role=status shortfall banner and advises on Add node when ΔV is insufficient", async () => {
     render(
       <utFixture.Provider>
         <ManeuverPlannerComponent id="mnv" config={{}} />
@@ -282,11 +287,16 @@ describe("ManeuverPlannerComponent", () => {
     expect(visibleText(banner)).toMatch(/short\.?$/i);
 
     const addBtn = screen.getByRole("button", { name: /^add node$/i });
-    expect(isDisabled(addBtn)).toBe(true);
+    expect(isDisabled(addBtn)).toBe(false);
+    expect(addBtn).toHaveAttribute("data-predicted", "at-risk");
+    expect(addBtn).toHaveAttribute(
+      "data-tooltip",
+      "Likely to be refused: the vessel does not have the delta-v for this plan.",
+    );
   });
 
   // Its own fixture: topic values on the shared one are sticky, and a zero budget would block every later dispatch.
-  it("refuses the commit for a craft whose budget reports genuinely zero delta-v", async () => {
+  it("advises on Add node for a craft whose budget reports genuinely zero delta-v, and still sends the press", async () => {
     const spent = setupStreamFixture({
       pinnedUt: UT_FIXTURE_VALUE,
       suspendFrames: true,
@@ -341,9 +351,85 @@ describe("ManeuverPlannerComponent", () => {
       .closest('[role="status"]') as HTMLElement;
     expect(banner).not.toBeNull();
     expect(visibleText(banner)).toMatch(/short\.?$/i);
+    const addBtn = screen.getByRole("button", { name: /^add node$/i });
+    expect(isDisabled(addBtn)).toBe(false);
+    expect(addBtn).toHaveAttribute("data-predicted", "at-risk");
+    await userEvent.setup().click(addBtn);
+    await waitFor(() =>
+      expect(
+        spent.transport.sentCommands.some(
+          (c) => c.command === "vessel.maneuver.add",
+        ),
+      ).toBe(true),
+    );
+  });
+
+  it("stops Add node for a craft with no delta-v while the verdict is fresh, and sends nothing", async () => {
+    const spent = setupStreamFixture({
+      pinnedUt: UT_FIXTURE_VALUE,
+      suspendFrames: true,
+    });
+
+    render(
+      <spent.Provider>
+        <ManeuverPlannerComponent id="mnv-spent-fresh" config={{}} />
+      </spent.Provider>,
+    );
+    act(() => {
+      spent.emit("comms.delay", { oneWaySeconds: 1 });
+      spent.emit("system.uplink.delays", {
+        activeVessel: ["vessel.maneuver.add"],
+        elsewhere: [],
+      });
+      spent.emit("vessel.orbit", {
+        ...VESSEL_ORBIT_STREAM_FIXTURE,
+        sma: 850000,
+        ecc: 0.1765,
+      });
+      spent.emit("trackingStation.bodies", {
+        bodies: [{ name: "Kerbin", index: 1, radius: 600_000 }],
+      });
+      spent.emit("dv.stages", [
+        {
+          stage: 0,
+          dryMass: 500,
+          fuelMass: 0,
+          startMass: 500,
+          endMass: 500,
+          burnTime: 0,
+          dvVac: 0,
+          dvAsl: 0,
+          dvActual: 0,
+          twrVac: 0,
+          twrAsl: 0,
+          twrActual: 0,
+          thrustVac: 0,
+          thrustAsl: 0,
+          thrustActual: 0,
+        },
+      ]);
+      spent.emit("dv.summary", {
+        stageCount: 1,
+        totalDvVac: 0,
+        totalDvAsl: 0,
+        totalDvActual: 0,
+      });
+    });
+    await flushViewUt();
+
+    const addBtn = screen.getByRole("button", { name: /^add node$/i });
+    await waitFor(() => expect(isDisabled(addBtn)).toBe(true));
+    expect(addBtn).not.toHaveAttribute("data-predicted");
+    expect(addBtn).toHaveAttribute(
+      "data-tooltip",
+      "Unavailable: the vessel does not have the delta-v for this plan.",
+    );
+    await userEvent.setup().click(addBtn);
     expect(
-      isDisabled(screen.getByRole("button", { name: /^add node$/i })),
-    ).toBe(true);
+      spent.transport.sentCommands.filter(
+        (c) => c.command === "vessel.maneuver.add",
+      ),
+    ).toHaveLength(0);
   });
 
   it("arms a conditional trigger and dispatches the burn when the condition holds", async () => {

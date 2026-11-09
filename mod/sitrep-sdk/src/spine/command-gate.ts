@@ -48,6 +48,26 @@ export interface CommandGateStatus {
 }
 
 /**
+ * The gate reports of the live and the two delayed gate topics as one, so a
+ * command is looked up in whichever carries it. `undefined` while none has
+ * arrived. Used by {@link useCommand}.
+ *
+ * @internal
+ */
+export function mergeGateReports(
+  ...reports: readonly (CommandGateReport | undefined)[]
+): CommandGateReport | undefined {
+  const present = reports.filter(
+    (report): report is CommandGateReport => report !== undefined,
+  );
+  if (present.length <= 1) return present[0];
+  return {
+    gates: present.flatMap((report) => report.gates),
+    channels: present.flatMap((report) => report.channels),
+  };
+}
+
+/**
  * This command's entry in the published gate set, or `undefined` when there is
  * none.
  *

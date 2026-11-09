@@ -252,7 +252,46 @@ describe("AdministrationBuildingComponent", () => {
     });
     expect(
       await findButtonDescribedBy(/minimum commitment has not elapsed/),
-    ).toHaveAttribute("aria-disabled", "true");
+    ).toHaveAttribute("data-predicted", "at-risk");
+  });
+
+  it.each([
+    [4.9, "true", null],
+    [5, null, "at-risk"],
+    [10, null, "at-risk"],
+  ])("at %s s of delay Deactivate for a gate-refused strategy is stopped or advised by how fresh the verdict is", async (seconds, disabled, predicted) => {
+    renderWidget();
+    act(() => {
+      emitCareer(stream, [{ ...SAMPLE_ACTIVE, canDeactivate: false }], {
+        funds: 289848,
+        reputation: 976,
+        science: 0,
+      });
+      stream.emit("system.uplink.delays", {
+        activeVessel: [],
+        elsewhere: [
+          {
+            command: "career.strategy.deactivate",
+            centre: "ground:Cape",
+            oneWaySeconds: seconds,
+          },
+        ],
+      });
+      stream.emit(
+        "system.uplink.gates",
+        perItemGateReport("career.strategy.deactivate", "strategyId", {
+          AgressiveNegotiations: {
+            errorCode: "wrongState",
+            detail: "the minimum commitment has not elapsed",
+          },
+        }),
+      );
+    });
+    const button = await findButtonDescribedBy(
+      /minimum commitment has not elapsed/,
+    );
+    expect(button.getAttribute("aria-disabled")).toBe(disabled);
+    expect(button.getAttribute("data-predicted")).toBe(predicted);
   });
 
   it("groups soft-blocked strategies under Available with a hint", async () => {
@@ -313,9 +352,34 @@ describe("AdministrationBuildingComponent", () => {
 
     const locked = await openTab("Locked");
     expect(within(locked).getByText("Patriotism Drive")).toBeInTheDocument();
-    expect(
-      within(locked).getByText(/Requires more reputation/i),
-    ).toBeInTheDocument();
+    const activate = within(locked).getByRole("button", { name: "Activate" });
+    expect(activate).toHaveAttribute("data-predicted", "at-risk");
+    expect(activate).toHaveAccessibleDescription(
+      /Activate Patriotism Drive likely to be refused: requires more reputation/i,
+    );
+  });
+
+  it("sends a locked strategy's activation anyway and lets the game decide", async () => {
+    const user = userEvent.setup();
+    renderWidget();
+    act(() => {
+      emitCareer(stream, [SAMPLE_LOCKED], {
+        funds: 289848,
+        reputation: 100,
+        science: 0,
+      });
+    });
+
+    const locked = await openTab("Locked");
+    await user.click(within(locked).getByRole("button", { name: "Activate" }));
+    await user.click(screen.getByRole("button", { name: /Confirm activate/i }));
+
+    await waitFor(() => {
+      const sent = stream.transport.sentCommands.find(
+        (c) => c.command === "career.strategy.activate",
+      );
+      expect(sent?.command).toBe("career.strategy.activate");
+    });
   });
 
   it("draws no price once the commitment moves off the factor the price was reported at", async () => {

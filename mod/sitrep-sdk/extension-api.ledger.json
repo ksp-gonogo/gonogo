@@ -14289,6 +14289,10 @@
         "note": "a check of the telemetry for what one dispatch set; with it a ran dispatch stays in inFlight until the telemetry shows it, due then overdue a minute of game time after its reply"
       },
       {
+        "key": "sitrep-sdk . UseCommandResult#gateStopsPress?",
+        "note": "whether a predicted refusal stops the press, which it does under five seconds of delay, or only advises"
+      },
+      {
         "key": "sitrep-sdk . ValueCommand",
         "note": "part of the bound command a kit input takes in its command prop"
       },
@@ -14679,6 +14683,22 @@
       {
         "key": "sitrep-sdk . ~SystemUplinkDelaysTopicPayloadMap#\"system.uplink.delays\"",
         "note": "New: system.uplink.delays, where each delayed command goes and its delay when that is not the active craft"
+      },
+      {
+        "key": "sitrep-sdk . ~SystemUplinkGatesCraftTopicPayloadMap",
+        "note": "the gate verdicts of delayed commands, on the topic whose delay matches the node the command acts on"
+      },
+      {
+        "key": "sitrep-sdk . ~SystemUplinkGatesCraftTopicPayloadMap#\"system.uplink.gates.craft\"",
+        "note": "the gate verdicts of delayed commands, on the topic whose delay matches the node the command acts on"
+      },
+      {
+        "key": "sitrep-sdk . ~SystemUplinkGatesHomeTopicPayloadMap",
+        "note": "the gate verdicts of delayed commands, on the topic whose delay matches the node the command acts on"
+      },
+      {
+        "key": "sitrep-sdk . ~SystemUplinkGatesHomeTopicPayloadMap#\"system.uplink.gates.home\"",
+        "note": "the gate verdicts of delayed commands, on the topic whose delay matches the node the command acts on"
       },
       {
         "key": "sitrep-sdk . ~Vec3Tuple",
@@ -16709,6 +16729,22 @@
         "note": "New: system.uplink.delays, where each delayed command goes and its delay when that is not the active craft"
       },
       {
+        "key": "sitrep-sdk ./registry ~SystemUplinkGatesCraftTopicPayloadMap",
+        "note": "the gate verdicts of delayed commands, on the topic whose delay matches the node the command acts on"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SystemUplinkGatesCraftTopicPayloadMap#\"system.uplink.gates.craft\"",
+        "note": "the gate verdicts of delayed commands, on the topic whose delay matches the node the command acts on"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SystemUplinkGatesHomeTopicPayloadMap",
+        "note": "the gate verdicts of delayed commands, on the topic whose delay matches the node the command acts on"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SystemUplinkGatesHomeTopicPayloadMap#\"system.uplink.gates.home\"",
+        "note": "the gate verdicts of delayed commands, on the topic whose delay matches the node the command acts on"
+      },
+      {
         "key": "sitrep-sdk ./registry ~ThemeColors",
         "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
       },
@@ -16895,6 +16931,10 @@
       {
         "key": "sitrep-sdk ./registry ~UseCommandResult#gateFor",
         "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UseCommandResult#gateStopsPress?",
+        "note": "whether a predicted refusal stops the press, which it does under five seconds of delay, or only advises"
       },
       {
         "key": "sitrep-sdk ./registry ~UseCommandResult#inFlight",
@@ -17261,6 +17301,10 @@
         "note": "New: how long a load must run before it is shown"
       },
       {
+        "key": "sitrep-sdk ./spine GATE_STOPS_PRESS_BELOW_SECONDS",
+        "note": "the one-way delay below which a predicted refusal stops the press"
+      },
+      {
         "key": "sitrep-sdk ./spine GameStatus",
         "note": "New: what the game is doing and the scene it names"
       },
@@ -17613,6 +17657,10 @@
         "note": "Asks the mod what a command's gate says about a call with these arguments from this centre, debounced; the answer lands in gateFor for the same arguments"
       },
       {
+        "key": "sitrep-sdk ./spine UseCommandResult#gateStopsPress?",
+        "note": "whether a predicted refusal stops the press, which it does under five seconds of delay, or only advises"
+      },
+      {
         "key": "sitrep-sdk ./spine UsePatchChainInput",
         "note": "New: what usePatchChain is asked"
       },
@@ -17699,6 +17747,10 @@
       {
         "key": "sitrep-sdk ./spine keplerAdmissibilityAcrossPatches",
         "note": "the orbit admissibility answer that also says which patch the craft is on past a sphere-of-influence change"
+      },
+      {
+        "key": "sitrep-sdk ./spine mergeGateReports",
+        "note": "one gate report made from the reports of several topics"
       },
       {
         "key": "sitrep-sdk ./spine openCommandGroup",
@@ -18357,6 +18409,22 @@
         "note": "New: system.uplink.delays, where each delayed command goes and its delay when that is not the active craft"
       },
       {
+        "key": "sitrep-sdk ./spine ~SystemUplinkGatesCraftTopicPayloadMap",
+        "note": "the gate verdicts of delayed commands, on the topic whose delay matches the node the command acts on"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~SystemUplinkGatesCraftTopicPayloadMap#\"system.uplink.gates.craft\"",
+        "note": "the gate verdicts of delayed commands, on the topic whose delay matches the node the command acts on"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~SystemUplinkGatesHomeTopicPayloadMap",
+        "note": "the gate verdicts of delayed commands, on the topic whose delay matches the node the command acts on"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~SystemUplinkGatesHomeTopicPayloadMap#\"system.uplink.gates.home\"",
+        "note": "the gate verdicts of delayed commands, on the topic whose delay matches the node the command acts on"
+      },
+      {
         "key": "sitrep-sdk ./spine ~TrackingStationProjection",
         "note": "The Tracking Station widget's name for SystemViewProjection"
       },
@@ -18451,6 +18519,10 @@
       {
         "key": "sitrep-sdk ./spine ~UseCommandResult#gateFor",
         "note": "reachable through the handle of a bound command"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~UseCommandResult#gateStopsPress?",
+        "note": "whether a predicted refusal stops the press, which it does under five seconds of delay, or only advises"
       },
       {
         "key": "sitrep-sdk ./spine ~UseCommandResult#inFlight",
@@ -19441,6 +19513,22 @@
         "note": "New: system.uplink.delays, where each delayed command goes and its delay when that is not the active craft"
       },
       {
+        "key": "sitrep-sdk ./testing ~SystemUplinkGatesCraftTopicPayloadMap",
+        "note": "the gate verdicts of delayed commands, on the topic whose delay matches the node the command acts on"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemUplinkGatesCraftTopicPayloadMap#\"system.uplink.gates.craft\"",
+        "note": "the gate verdicts of delayed commands, on the topic whose delay matches the node the command acts on"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemUplinkGatesHomeTopicPayloadMap",
+        "note": "the gate verdicts of delayed commands, on the topic whose delay matches the node the command acts on"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SystemUplinkGatesHomeTopicPayloadMap#\"system.uplink.gates.home\"",
+        "note": "the gate verdicts of delayed commands, on the topic whose delay matches the node the command acts on"
+      },
+      {
         "key": "sitrep-sdk ./testing ~TelemetryClientOptions#outstanding?",
         "note": "New option: the store a client keeps its outstanding commands in"
       },
@@ -19623,6 +19711,10 @@
       {
         "key": "sitrep-sdk ./testing ~UseCommandOptions#confirmedBy?",
         "note": "a check of the telemetry for what one dispatch set; with it a ran dispatch stays in inFlight until the telemetry shows it, due then overdue a minute of game time after its reply"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UseCommandResult#gateStopsPress?",
+        "note": "whether a predicted refusal stops the press, which it does under five seconds of delay, or only advises"
       },
       {
         "key": "sitrep-sdk ./testing ~ValueCommand",
@@ -19889,6 +19981,10 @@
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
       {
+        "key": "ui-kit . ActionMenuItem#advise?",
+        "note": "the reason the game is likely to refuse an item, shown as its tip while the item stays selectable"
+      },
+      {
         "key": "ui-kit . ActionMenuItem#command?",
         "note": "a menu item may send a command and shows what became of it"
       },
@@ -20069,6 +20165,10 @@
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
       {
+        "key": "ui-kit . CommandButtonHandle#gateStopsPress?",
+        "note": "whether a predicted refusal stops the press, which it does under five seconds of delay, or only advises"
+      },
+      {
         "key": "ui-kit . CommandButtonHandle#railed?",
         "note": "Optional: a handle from useCommand reports it; a hand-built handle without it makes the control announce its own outcomes"
       },
@@ -20089,6 +20189,10 @@
         "note": "the renamed useCommandButton and its types"
       },
       {
+        "key": "ui-kit . CommandControlState#adviceText",
+        "note": "the sentence for a command the game is likely to refuse, which the operator may still send"
+      },
+      {
         "key": "ui-kit . CommandControlState#command",
         "note": "the bound command the control sends, for a face to read its handle from"
       },
@@ -20103,6 +20207,10 @@
       {
         "key": "ui-kit . CommandControlState#hasUnconfirmed",
         "note": "the renamed useCommandButton and its types"
+      },
+      {
+        "key": "ui-kit . CommandControlState#isAdvised",
+        "note": "true while the game is likely to refuse the command and the press is still sent"
       },
       {
         "key": "ui-kit . CommandControlState#isArmed",
@@ -20247,6 +20355,10 @@
       {
         "key": "ui-kit . CommandedButtonProps",
         "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedButtonProps#advise?",
+        "note": "the reason the game is likely to refuse the command, so the control stays pressable and says why"
       },
       {
         "key": "ui-kit . CommandedButtonProps#blockedAriaLabel?",
@@ -20399,6 +20511,10 @@
       {
         "key": "ui-kit . CommandedToggleProps",
         "note": "the props of a button or toggle given a command, replacing those of CommandButton"
+      },
+      {
+        "key": "ui-kit . CommandedToggleProps#advise?",
+        "note": "the reason the game is likely to refuse the command, so the control stays pressable and says why"
       },
       {
         "key": "ui-kit . CommandedToggleProps#children?",
@@ -21189,6 +21305,26 @@
         "note": "colour of the pips"
       },
       {
+        "key": "ui-kit . PlainAdvice",
+        "note": "what adviceFor returns for a plain control to spread onto its button"
+      },
+      {
+        "key": "ui-kit . PlainAdvice#disabled",
+        "note": "what adviceFor returns for a plain control to spread onto its button"
+      },
+      {
+        "key": "ui-kit . PlainAdvice#disabledReason",
+        "note": "what adviceFor returns for a plain control to spread onto its button"
+      },
+      {
+        "key": "ui-kit . PlainAdvice#predictedOutcome",
+        "note": "what adviceFor returns for a plain control to spread onto its button"
+      },
+      {
+        "key": "ui-kit . PlainAdvice#tip",
+        "note": "what adviceFor returns for a plain control to spread onto its button"
+      },
+      {
         "key": "ui-kit . PlotCrosshair",
         "note": "a crosshair for an SVG plot: a line at an instant, a dot per trace and a readout of every row's value"
       },
@@ -21677,6 +21813,10 @@
         "note": "the renamed useCommandButton and its types"
       },
       {
+        "key": "ui-kit . UseCommandControlOptions#advise?",
+        "note": "the reason the game is likely to refuse the command, so the control stays pressable and says why"
+      },
+      {
         "key": "ui-kit . UseCommandControlOptions#command",
         "note": "the renamed useCommandButton and its types"
       },
@@ -21827,6 +21967,10 @@
       {
         "key": "ui-kit . WidgetTopicDeclaration#optionalChannelFamilies?",
         "note": "Reads the optional families off a widget definition"
+      },
+      {
+        "key": "ui-kit . adviceFor",
+        "note": "what adviceFor returns for a plain control to spread onto its button"
       },
       {
         "key": "ui-kit . commandValueMarks",

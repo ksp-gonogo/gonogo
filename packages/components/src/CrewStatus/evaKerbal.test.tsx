@@ -110,21 +110,27 @@ describe("Crew Status: a kerbal outside shows helmet, kit and lamp", () => {
     ).toHaveAttribute("aria-disabled", "true");
   });
 
-  it("disables the lamp of a kerbal the game is not flying and sends nothing when pressed", async () => {
+  it("advises on the lamp of a kerbal the game is not flying and still sends the press", async () => {
     const fixture = mount();
     act(() => {
       fixture.emit(`eva.kerbal.${BOB}.state`, { ...BOB_STATE, focused: false });
     });
     const lamp = await screen.findByRole("button", { name: "Bob Kerman lamp" });
-    expect(lamp).toHaveAttribute("aria-disabled", "true");
+    expect(lamp).not.toHaveAttribute("aria-disabled", "true");
+    expect(lamp).toHaveAttribute("data-predicted", "at-risk");
+    expect(lamp.getAttribute("data-tooltip")).toContain(
+      "Bob Kerman lamp likely to be refused: this kerbal is not the one being flown.",
+    );
 
     await userEvent.click(lamp);
 
-    expect(
-      fixture.transport.sentCommands.filter(
-        (sent) => sent.command === "eva.kerbal.setLamp",
-      ),
-    ).toHaveLength(0);
+    await waitFor(() =>
+      expect(
+        fixture.transport.sentCommands.filter(
+          (sent) => sent.command === "eva.kerbal.setLamp",
+        ),
+      ).toHaveLength(1),
+    );
   });
 
   it("leaves the lamp of the kerbal the game is flying pressable", async () => {

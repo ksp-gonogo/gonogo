@@ -52,10 +52,12 @@ export interface CommandInputState<Value> {
 export function useCommandInput<Value>({
   command,
   unavailable,
+  advise,
 }: {
   // biome-ignore lint/suspicious/noExplicitAny: a value command of any argument and reply types
   command: ValueCommand<Value, any, any>;
   unavailable?: string | null;
+  advise?: string | null;
 }): CommandInputState<Value> {
   const control = useCommandControl({
     command: {
@@ -65,6 +67,7 @@ export function useCommandInput<Value>({
       options: command.options,
     },
     unavailable,
+    advise,
   });
   const railSpeaks = useRailSpeaks(control);
   const inert =
@@ -99,11 +102,13 @@ export function useCommandInput<Value>({
 export function useBoundCommandInput({
   command,
   unavailable,
+  advise,
 }: {
   command: AnyBoundCommand;
   unavailable?: string | null;
+  advise?: string | null;
 }): CommandInputState<void> {
-  const control = useCommandControl({ command, unavailable });
+  const control = useCommandControl({ command, unavailable, advise });
   const railSpeaks = useRailSpeaks(control);
   const inert =
     control.isBlocked ||
@@ -153,7 +158,9 @@ function inputState<Value>(
       ? "Sent, not yet received"
       : control.isOffline
         ? STREAM_DOWN_TIP
-        : (unavailable ?? restTip));
+        : (unavailable ??
+          ([control.adviceText, restTip].filter(Boolean).join("\n") ||
+            undefined)));
   return {
     control,
     send,
@@ -171,7 +178,10 @@ function inputState<Value>(
           : undefined,
       "data-command-phase": control.phase,
       "data-stream": control.isOffline ? "down" : undefined,
-      "data-predicted": gated ? undefined : predictedOutcomeOf(sendStatus),
+      "data-predicted": gated
+        ? undefined
+        : (predictedOutcomeOf(sendStatus) ??
+          (control.isAdvised ? "at-risk" : undefined)),
       "aria-disabled": inert ? true : undefined,
     },
     // A mounted rail that carries this command already speaks what became of it.

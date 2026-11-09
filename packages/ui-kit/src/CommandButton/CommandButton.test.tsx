@@ -1067,7 +1067,7 @@ describe("CommandButton: representing state as well as acting", () => {
   });
 });
 
-describe("CommandButton: the blocked phase", () => {
+describe("CommandButton: the blocked phase, for an instant command", () => {
   /** A gate the mod has already decided, in the shape `useCommand.gate` returns. */
   function blockedGate(over: Record<string, unknown> = {}) {
     return {
@@ -1083,7 +1083,10 @@ describe("CommandButton: the blocked phase", () => {
     const send = vi.fn(() => Promise.resolve(OK));
     render(
       <Button
-        command={makeHandle(send, { gate: blockedGate() })}
+        command={makeHandle(send, {
+          gateStopsPress: true,
+          gate: blockedGate(),
+        })}
         variant="ghost"
       >
         Launch
@@ -1099,6 +1102,7 @@ describe("CommandButton: the blocked phase", () => {
     const user = userEvent.setup();
     const send = vi.fn(() => Promise.resolve(OK));
     const handle = makeHandle(send, {
+      gateStopsPress: true,
       gateFor: (args) =>
         typeof args === "object" &&
         args !== null &&
@@ -1145,6 +1149,7 @@ describe("CommandButton: the blocked phase", () => {
     render(
       <Button
         command={makeHandle(() => Promise.resolve(OK), {
+          gateStopsPress: true,
           gate: blockedGate(),
         }).with(undefined, { label: "Launch Kerbal I" })}
         variant="ghost"
@@ -1162,6 +1167,7 @@ describe("CommandButton: the blocked phase", () => {
     render(
       <Button
         command={makeHandle(() => Promise.resolve(OK), {
+          gateStopsPress: true,
           gate: blockedGate(),
         }).with(undefined, { label: "Launch Kerbal I" })}
         variant="ghost"
@@ -1182,6 +1188,7 @@ describe("CommandButton: the blocked phase", () => {
     render(
       <Button
         command={makeHandle(() => Promise.resolve(OK), {
+          gateStopsPress: true,
           gate: blockedGate({
             // CommandErrorCode.LimitReached
             errorCode: CommandErrorCode.LimitReached,
@@ -1215,7 +1222,10 @@ describe("CommandButton: the blocked phase", () => {
     const send = vi.fn(() => Promise.resolve(OK));
     render(
       <Button
-        command={makeHandle(send, { gate: blockedGate() }).with(undefined, {
+        command={makeHandle(send, {
+          gateStopsPress: true,
+          gate: blockedGate(),
+        }).with(undefined, {
           label: "Launch Kerbal I",
         })}
         variant="ghost"
@@ -1243,7 +1253,10 @@ describe("CommandButton: the blocked phase", () => {
     const send = vi.fn(() => Promise.resolve(OK));
     const { rerender } = render(
       <Button
-        command={makeHandle(send, { gate: blockedGate() })}
+        command={makeHandle(send, {
+          gateStopsPress: true,
+          gate: blockedGate(),
+        })}
         variant="ghost"
       >
         Launch
@@ -1299,7 +1312,10 @@ describe("CommandButton: the blocked phase", () => {
     // The gate shuts behind the command that is already sent.
     rerender(
       <Button
-        command={makeHandle(() => d.promise, { gate: blockedGate() })}
+        command={makeHandle(() => d.promise, {
+          gateStopsPress: true,
+          gate: blockedGate(),
+        })}
         variant="ghost"
       >
         Launch
@@ -1352,7 +1368,131 @@ describe("CommandButton: the blocked phase", () => {
     const { container } = render(
       <Button
         command={makeHandle(() => Promise.resolve(OK), {
+          gateStopsPress: true,
           gate: blockedGate(),
+        }).with(undefined, { label: "Launch Kerbal I" })}
+        variant="ghost"
+      >
+        Launch
+      </Button>,
+    );
+
+    await expectNoA11yViolations(container);
+  });
+});
+
+describe("CommandButton: the advised phase, for a delayed command", () => {
+  const advisedGate = {
+    blocked: true,
+    errorCode: CommandErrorCode.SiteOccupied,
+    detail: "Launch Pad is occupied",
+  };
+
+  it("sends the press anyway, for the game to decide on arrival", async () => {
+    const user = userEvent.setup();
+    const send = vi.fn(() => Promise.resolve(OK));
+    render(
+      <Button
+        command={makeHandle(send, { gate: advisedGate, gateStopsPress: false })}
+        variant="ghost"
+      >
+        Launch
+      </Button>,
+    );
+
+    await user.click(screen.getByRole("button"));
+
+    expect(send).toHaveBeenCalledOnce();
+  });
+
+  it("stays live and says the command is likely to be refused, in its tip and on its edge", () => {
+    render(
+      <Button
+        command={makeHandle(() => Promise.resolve(OK), {
+          gate: advisedGate,
+          gateStopsPress: false,
+        }).with(undefined, { label: "Launch Kerbal I" })}
+        variant="ghost"
+      >
+        Launch
+      </Button>,
+    );
+
+    const button = screen.getByRole("button");
+    expect(button).not.toHaveAttribute("aria-disabled");
+    expect(button).toHaveAttribute("data-gate", "advised");
+    expect(button).toHaveAttribute("data-predicted", "at-risk");
+    expect(button).toHaveAccessibleDescription(
+      "Launch Kerbal I likely to be refused: Launch Pad is occupied.",
+    );
+  });
+
+  it("treats a handle that does not say it is instant as delayed", async () => {
+    const user = userEvent.setup();
+    const send = vi.fn(() => Promise.resolve(OK));
+    render(
+      <Button command={makeHandle(send, { gate: advisedGate })} variant="ghost">
+        Launch
+      </Button>,
+    );
+
+    await user.click(screen.getByRole("button"));
+
+    expect(send).toHaveBeenCalledOnce();
+  });
+
+  it("advises from the caller's own reason and still sends", async () => {
+    const user = userEvent.setup();
+    const send = vi.fn(() => Promise.resolve(OK));
+    render(
+      <Button
+        command={makeHandle(send)}
+        advise="the craft reports no SAS"
+        variant="ghost"
+      >
+        SAS
+      </Button>,
+    );
+
+    const button = screen.getByRole("button");
+    expect(button).toHaveAttribute("data-predicted", "at-risk");
+    expect(button).toHaveAccessibleDescription(
+      "Likely to be refused: the craft reports no SAS.",
+    );
+    await user.click(button);
+    expect(send).toHaveBeenCalledOnce();
+  });
+
+  it("stops the press with the caller's reason in the control's own words when the command goes through within a few seconds", async () => {
+    const user = userEvent.setup();
+    const send = vi.fn(() => Promise.resolve(OK));
+    render(
+      <Button
+        command={makeHandle(send, { gateStopsPress: true }).with(undefined, {
+          label: "Toggle SAS",
+        })}
+        advise="the craft reports no SAS"
+        variant="ghost"
+      >
+        SAS
+      </Button>,
+    );
+
+    const button = screen.getByRole("button");
+    expect(button).toHaveAttribute("aria-disabled", "true");
+    expect(button).toHaveAccessibleDescription(
+      "Toggle SAS unavailable: the craft reports no SAS.",
+    );
+    await user.click(button);
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("has no axe violations while advised", async () => {
+    const { container } = render(
+      <Button
+        command={makeHandle(() => Promise.resolve(OK), {
+          gate: advisedGate,
+          gateStopsPress: false,
         }).with(undefined, { label: "Launch Kerbal I" })}
         variant="ghost"
       >
@@ -1618,6 +1758,7 @@ describe("CommandButton warning text", () => {
     render(
       <Button
         command={makeHandle(() => Promise.resolve(OK), {
+          gateStopsPress: true,
           gate: {
             blocked: true,
             errorCode: CommandErrorCode.NoConnection,

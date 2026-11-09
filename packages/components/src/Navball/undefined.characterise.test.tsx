@@ -157,7 +157,7 @@ describe("Navball control surface: what undefined means today", () => {
     );
   });
 
-  it("banners and disables the surface only on a CONFIRMED uncontrollable vessel", async () => {
+  it("banners and advises on the surface only on a CONFIRMED uncontrollable vessel, and still sends", async () => {
     // Contrast case: the widget does banner, so the fail-open above is absence routed to controllable.
     mount("nb-undef-controls-confirmed", {
       w: 10,
@@ -171,12 +171,15 @@ describe("Navball control surface: what undefined means today", () => {
 
     await waitFor(() =>
       expect(screen.getByRole("note")).toHaveTextContent(
-        "Vessel not controllable: buttons disabled.",
+        "Vessel not controllable.",
       ),
     );
-    expect(
-      isDisabled(screen.getByRole("button", { name: `SAS ${NULL_DISPLAY}` })),
-    ).toBe(true);
+    const sas = screen.getByRole("button", { name: `SAS ${NULL_DISPLAY}` });
+    expect(isDisabled(sas)).toBe(false);
+    expect(sas).toHaveAttribute("data-predicted", "at-risk");
+    expect(sas).toHaveAccessibleDescription(
+      "Toggle SAS likely to be refused: the vessel is not controllable.",
+    );
   });
 
   it("refuses to dispatch a SAS or RCS toggle when vessel.control has never arrived", async () => {

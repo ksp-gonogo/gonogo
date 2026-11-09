@@ -164,12 +164,11 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
               data-add-node=""
               command={props.commitCommand}
               blockedAriaLabel="Add node"
-              unavailable={
-                props.committing
-                  ? "The node is being added"
-                  : props.feasible === false
-                    ? "The vessel does not have the delta-v for this plan"
-                    : null
+              unavailable={props.committing ? "The node is being added" : null}
+              advise={
+                props.feasible === false
+                  ? "the vessel does not have the delta-v for this plan"
+                  : null
               }
             >
               Add node

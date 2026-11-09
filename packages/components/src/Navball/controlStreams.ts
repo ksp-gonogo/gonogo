@@ -2,6 +2,7 @@ import { PerfBudget, useTelemetry } from "@ksp-gonogo/core";
 import {
   type ControlStream,
   getActiveTimelineEpoch,
+  useCommand,
   useControlStream,
   useLatestValue,
   useUtNow,
@@ -55,6 +56,8 @@ export function useThrottleCommand(throttle: number | null): {
   /** With neither a readback nor a command, a 10% step would be a step from a guess. */
   throttleKnown: boolean;
   throttleStream: ControlStream;
+  /** The throttle command's handle, which the stream sends through but does not expose; for a control's predicted-refusal rule. */
+  throttleGate: { gateStopsPress?: boolean };
 } {
   const [throttleCmd, setThrottleCmdState] = useState(throttle ?? 0);
   const throttleCmdRef = useRef(throttleCmd);
@@ -102,6 +105,7 @@ export function useThrottleCommand(throttle: number | null): {
     setThrottleTouched(false);
     setThrottleCmdState(throttle ?? 0);
   }, [nowUt, throttle]);
+  const throttleGate = useCommand("vessel.control.setThrottle");
   const throttleStream = useControlStream(
     "vessel.control.throttle",
     throttleTouched ? throttleCmd : null,
@@ -182,6 +186,7 @@ export function useThrottleCommand(throttle: number | null): {
     throttleExpected,
     throttleKnown: throttleTouched || throttle !== null,
     throttleStream,
+    throttleGate,
   };
 }
 

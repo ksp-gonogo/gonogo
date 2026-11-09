@@ -108,7 +108,10 @@ describe("useCommandControl with a bound command", () => {
     const user = userEvent.setup();
     const a = createFakeCommand();
     const b = createFakeCommand();
-    b.patch({ gate: { blocked: true, reason: "Out of range" } as never });
+    b.patch({
+      gate: { blocked: true, reason: "Out of range" } as never,
+      gateStopsPress: true,
+    });
     render(
       <Control command={commandSet([a.handle.with(), b.handle.with()])} />,
     );
@@ -116,6 +119,19 @@ describe("useCommandControl with a bound command", () => {
     expect(a.sent).toHaveLength(0);
     expect(b.sent).toHaveLength(0);
     expect(screen.getAllByRole("status")[0]).toHaveTextContent("blocked");
+  });
+
+  it("sends a delayed set whose member the game is likely to refuse, as advice", async () => {
+    const user = userEvent.setup();
+    const a = createFakeCommand();
+    const b = createFakeCommand();
+    b.patch({ gate: { blocked: true, reason: "Out of range" } as never });
+    render(
+      <Control command={commandSet([a.handle.with(), b.handle.with()])} />,
+    );
+    await user.click(screen.getByRole("button", { name: "press" }));
+    expect(a.sent).toHaveLength(1);
+    expect(b.sent).toHaveLength(1);
   });
 
   it("does not block a set for a delay or a held send status", async () => {

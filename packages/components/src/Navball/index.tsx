@@ -150,6 +150,7 @@ function useNavball({
     throttleExpected,
     throttleKnown,
     throttleStream,
+    throttleGate,
   } = useThrottleCommand(throttle);
   const { axisStreams, setAxis } = useAxisStreams();
 
@@ -246,6 +247,7 @@ function useNavball({
     throttleExpected,
     throttleKnown,
     throttleStream,
+    throttleGate,
     axisStreams,
     sasRaw,
     sasUnavailableReason,
@@ -346,6 +348,7 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
     throttleBase,
     throttleExpected,
     throttleStream,
+    throttleGate,
     axisStreams,
     sasRaw,
     sasUnavailableReason,
@@ -553,6 +556,7 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
           <Section key="control">
             <ControlSurface
               disabled={!isControllable}
+              throttleGate={throttleGate}
               sasMode={sasMode ?? null}
               availableSasModes={availableSasModes}
               throttleBase={throttleBase}

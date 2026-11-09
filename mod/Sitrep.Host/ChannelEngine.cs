@@ -892,6 +892,19 @@ namespace Sitrep.Host
         // sampler last wrote.
         internal const string UplinkGatesTopic = "system.uplink.gates";
 
+        /// <summary>
+        /// The gate verdicts of delayed commands whose subject is held at the home
+        /// command (the career orders), delivered to each vantage after its delay
+        /// to home, like the figures those commands act on.
+        /// </summary>
+        internal const string UplinkGatesHomeTopic = "system.uplink.gates.home";
+
+        /// <summary>
+        /// The gate verdicts of every other delayed command, delivered after the
+        /// delay to the active craft, like the telemetry those commands act on.
+        /// </summary>
+        internal const string UplinkGatesCraftTopic = "system.uplink.gates.craft";
+
         // The contract's unit knowledge, served so the stream describes
         // itself. Everything else the unit system knows is a TypeScript
         // artifact and none of it survives the wire: a consumer that is not
@@ -1623,7 +1636,7 @@ namespace Sitrep.Host
         {
             _subscribedTopics[topic] = 0;
             RequestSample();
-            if (topic == UplinkGatesTopic || _fieldRequirements.ContainsKey(topic))
+            if (IsGateTopic(topic) || _fieldRequirements.ContainsKey(topic))
             {
                 Volatile.Write(ref _gateSampleDue, 1);
             }
@@ -1955,9 +1968,43 @@ namespace Sitrep.Host
             // main thread and this runs on the Courier thread; the reference
             // swap is the whole synchronisation, since each report is built
             // fresh and never mutated after publication.
-            _channelSources[UplinkGatesTopic] = _ =>
-                Volatile.Read(ref _gateReportStale) ? null : Volatile.Read(ref _commandGateReport);
+            _channelSources[UplinkGatesTopic] = _ => GateReportFor(UplinkGatesTopic);
             _engineStateTopics.Add(UplinkGatesTopic);
+
+            // A delayed command's verdict is a fact about the game the operator
+            // is reading through the same delay as the figures beside it, so a
+            // remote centre learns of a clear pad when it learns the pad is
+            // clear, and not before. Two topics, one per subject node, because a
+            // topic has one delay: career orders ride the home command's, every
+            // other delayed command rides the active craft's. The instant
+            // commands stay on UplinkGatesTopic, which is live.
+            _channelDeclarations[UplinkGatesHomeTopic] = new ChannelDeclaration
+            {
+                Kind = SampleKind.Discrete,
+                Requires = Requirement.None,
+                Topic = UplinkGatesHomeTopic,
+                Delivery = Delivery.LossyLatest,
+                Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                Delay = DelayRole.Delayed,
+                HeldAtHome = true,
+                NullIsUnreadable = true,
+            };
+            _heldAtHomeTopics.Add(UplinkGatesHomeTopic);
+            _channelSources[UplinkGatesHomeTopic] = _ => GateReportFor(UplinkGatesHomeTopic);
+            _engineStateTopics.Add(UplinkGatesHomeTopic);
+
+            _channelDeclarations[UplinkGatesCraftTopic] = new ChannelDeclaration
+            {
+                Kind = SampleKind.Discrete,
+                Requires = Requirement.None,
+                Topic = UplinkGatesCraftTopic,
+                Delivery = Delivery.LossyLatest,
+                Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                Delay = DelayRole.Delayed,
+                NullIsUnreadable = true,
+            };
+            _channelSources[UplinkGatesCraftTopic] = _ => GateReportFor(UplinkGatesCraftTopic);
+            _engineStateTopics.Add(UplinkGatesCraftTopic);
             DeclareGateCheck();
             DeclareUplinkDelays();
             _commandGateBudget = new PerfBudget(
@@ -4849,6 +4896,41 @@ namespace Sitrep.Host
             (requirement.Kind ?? "") + "\u001f" + (requirement.Facility ?? "")
                 + "\u001f" + (requirement.Quantity ?? "");
 
+        private static bool IsGateTopic(string topic) =>
+            topic == UplinkGatesTopic || topic == UplinkGatesHomeTopic || topic == UplinkGatesCraftTopic;
+
+        private bool GateTopicsSubscribed() =>
+            _subscribedTopics.ContainsKey(UplinkGatesTopic)
+            || _subscribedTopics.ContainsKey(UplinkGatesHomeTopic)
+            || _subscribedTopics.ContainsKey(UplinkGatesCraftTopic);
+
+        /// <summary>The gate topic a command's verdict is published on: live for an instant command, else by the node its subject lives on.</summary>
+        internal string GateTopicOf(string command)
+        {
+            if (!ResolveCommandDelay(command))
+            {
+                return UplinkGatesTopic;
+            }
+            return string.Equals(ResolveSubjectNode(command, null), HomeCommandNode, StringComparison.Ordinal)
+                ? UplinkGatesHomeTopic
+                : UplinkGatesCraftTopic;
+        }
+
+        /// <summary>The slice of the last gate sample that belongs on <paramref name="topic"/>; the channel locks ride the live topic.</summary>
+        private object? GateReportFor(string topic)
+        {
+            if (Volatile.Read(ref _gateReportStale))
+            {
+                return null;
+            }
+            var full = Volatile.Read(ref _commandGateReport);
+            return new CommandGateReport
+            {
+                Gates = full.Gates.Where(g => GateTopicOf(g.Command) == topic).ToList(),
+                Channels = topic == UplinkGatesTopic ? full.Channels : new List<ChannelGate>(),
+            };
+        }
+
         /// <summary>
         /// Re-read every gated command's requirements with an empty argument bag
         /// and publish the answers to <c>system.uplink.gates</c>, so a control
@@ -4896,7 +4978,7 @@ namespace Sitrep.Host
             // with neither subscribed nothing here has a reader, and the cost
             // would be set by the save (its stations, strategies, tech nodes)
             // rather than by anything on screen.
-            var reportWanted = _subscribedTopics.ContainsKey(UplinkGatesTopic);
+            var reportWanted = GateTopicsSubscribed();
             if (!reportWanted) ForgetItemState();
 
             // Every frame, not every pass: an item is asked again in the frame
@@ -11015,6 +11097,22 @@ namespace Sitrep.Host
         }
 
         /// <summary>
+        /// Whether a gate verdict that blocks a command is left to the arrival
+        /// check rather than refused where the command was sent.
+        ///
+        /// <para>A delayed command reaches its subject after the signal delay, so
+        /// the state a gate read at the press may no longer hold when it lands,
+        /// and the sender's view may be older still. The verdict is advice to the
+        /// operator, who may send anyway, and <see cref="RunArrived"/> reads the
+        /// gates again on arrival, where the game decides. A verdict of
+        /// <see cref="GateOutcome.Abstain"/> is a malformed call and is still
+        /// refused. An instant command has no arrival to wait for, so its gate
+        /// decides at the press.</para>
+        /// </summary>
+        private static bool GateDecidesOnArrival(bool delayed, GateVerdict gate) =>
+            delayed && (gate.Outcome == GateOutcome.Fail || gate.Outcome == GateOutcome.Unknown);
+
+        /// <summary>
         /// The node <paramref name="job"/> addresses: its declared
         /// <see cref="CommandDeclaration.Subject"/>, with every
         /// <c>"{args.X}"</c> segment filled from <paramref name="job"/>'s own
@@ -11216,7 +11314,12 @@ namespace Sitrep.Host
             //
             // Inert until a command declares a requirement: Requires defaults
             // empty, so EvaluateGates returns Pass on the first check.
+            var delayed = ResolveCommandDelay(job.Command);
             var gate = EvaluateGates(job.Command, new GateArguments(GateSubject(job.Command, job.Args)), job.Vantage);
+            if (GateDecidesOnArrival(delayed, gate))
+            {
+                gate = GateVerdict.Pass();
+            }
             if (gate.Outcome == GateOutcome.Fail)
             {
                 // A DECIDED refusal: the gate looked at live state and the answer
@@ -11250,8 +11353,6 @@ namespace Sitrep.Host
                 job.Done?.Set();
                 return;
             }
-
-            var delayed = ResolveCommandDelay(job.Command);
 
             if (!delayed)
             {
@@ -12267,7 +12368,7 @@ namespace Sitrep.Host
             {
                 return;
             }
-            if (topic == UplinkGatesTopic)
+            if (IsGateTopic(topic))
             {
                 Volatile.Write(ref _gateReportStale, true);
             }

@@ -13,6 +13,7 @@ import {
   Slider,
   Unit,
 } from "@ksp-gonogo/ui-kit";
+import type { ReactNode } from "react";
 import { activationFactor, factorSliderOf, parseEffectLines } from "./parsing";
 import {
   BlockedNote,
@@ -163,6 +164,8 @@ export function AvailableRow({
   expanded,
   onToggleExpanded,
   note,
+  advise,
+  badge,
 }: {
   strategy: Strategy;
   showDepartment: boolean;
@@ -185,6 +188,10 @@ export function AvailableRow({
   onToggleExpanded: () => void;
   /** A standing account of this card's own state, on screen above the price. */
   note?: string;
+  /** Why the game is likely to refuse this activation; the button stays and the press is sent. */
+  advise?: string;
+  /** A fact about the strategy drawn beside its description, such as that it is locked. */
+  badge?: ReactNode;
 }) {
   const slider = factorSliderOf(s);
   const sentFactor = activationFactor(s, factor);
@@ -212,6 +219,7 @@ export function AvailableRow({
             )}
             variant="ghost"
             confirmLabel="Confirm activate"
+            advise={advise}
           >
             Activate
           </Button>
@@ -227,6 +235,7 @@ export function AvailableRow({
           ))}
         </EffectList>
       )}
+      {badge}
       {note && <BlockedNote>{note}</BlockedNote>}
       {!drawsOwnActions && (
         <StrategyCost

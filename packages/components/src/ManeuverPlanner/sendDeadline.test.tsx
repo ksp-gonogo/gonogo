@@ -125,20 +125,23 @@ describe("sending a maneuver plan under signal delay", () => {
     expect(result.current.commands.sendDelay.reading?.state).toBe("observed");
   });
 
-  it("refuses a node that would reach the craft after its own time, and sends nothing", async () => {
+  it("advises on a node that would reach the craft after its own time, and still sends it", async () => {
     const { fixture, result } = mountPlanner(burnIn(60));
     await waitFor(() => expect(result.current.plan).not.toBeNull());
+
+    const add = screen.getByRole("button", { name: /Add node/ });
+    await waitFor(() =>
+      expect(add).toHaveAttribute("data-predicted", "at-risk"),
+    );
+    expect(add).toHaveAccessibleDescription(
+      /likely to be refused: .*would reach the craft at or after the time it acts at/,
+    );
 
     await act(async () => {
       pressAdd();
     });
 
-    expect(addedNodes(fixture)).toHaveLength(0);
-    expect(
-      screen.getByRole("button", {
-        name: /would reach the craft at or after the time it acts at/,
-      }),
-    ).toBeTruthy();
+    await waitFor(() => expect(addedNodes(fixture)).toHaveLength(1));
   });
 
   it("sends a node that lands before its own time, with no margin asked beyond that", async () => {

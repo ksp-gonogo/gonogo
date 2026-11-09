@@ -133,7 +133,7 @@ describe("ShipMap: contributed part actions", () => {
     ]);
   });
 
-  it("draws an inactive contributed button disabled rather than dropping it", async () => {
+  it("keeps an inactive contributed button selectable and marks it as likely to be refused", async () => {
     contribute(false);
     const user = userEvent.setup();
     await renderDiagram();
@@ -143,7 +143,8 @@ describe("ShipMap: contributed part actions", () => {
     const item = await screen.findByRole("menuitem", {
       name: /Start Mystery Goo Observation/,
     });
-    expect(item.getAttribute("aria-disabled")).toBe("true");
+    expect(item.getAttribute("aria-disabled")).toBeNull();
+    expect(item.getAttribute("data-predicted")).toBe("at-risk");
   });
 
   it("counts a contributed button in the hover tooltip", async () => {

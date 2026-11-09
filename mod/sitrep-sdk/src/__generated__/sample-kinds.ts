@@ -83,6 +83,8 @@ export const GENERATED_CHANNEL_KINDS = {
   "system.units": "discrete",
   "system.uplink.delays": "discrete",
   "system.uplink.gates": "discrete",
+  "system.uplink.gates.craft": "discrete",
+  "system.uplink.gates.home": "discrete",
   "system.uplink.pending": "discrete",
   "system.uplinks": "discrete",
   "target.available": "continuous",

@@ -110,7 +110,7 @@ describe("Resource Ops start and stop", () => {
     expect(screen.queryByRole("button", { name: "Start" })).toBeNull();
   });
 
-  it("offers neither control on a unit from a modelling mod backend the core command cannot drive", async () => {
+  it("advises the control on a unit from a modelling mod backend and still sends the press", async () => {
     const { fixture } = renderWidget();
     act(() => {
       fixture.emit("isru.drills", []);
@@ -119,9 +119,17 @@ describe("Resource Ops start and stop", () => {
       ]);
     });
 
-    await screen.findByText("Convert-O-Tron 250");
-    expect(screen.queryByRole("button", { name: "Stop" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Start" })).toBeNull();
+    const stop = await screen.findByRole("button", { name: "Stop" });
+    expect(stop).toHaveAttribute("data-predicted", "at-risk");
+    expect(stop).toHaveAccessibleDescription(
+      "Stop Convert-O-Tron 250 likely to be refused: a modelling mod owns this unit, so the stock command is likely not to resolve it.",
+    );
+
+    await userEvent.click(stop);
+
+    await waitFor(() => {
+      expect(sentOf(fixture, "vessel.converter.stop")).toHaveLength(1);
+    });
   });
 
   it("has no accessibility violations with the controls drawn", async () => {

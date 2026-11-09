@@ -170,6 +170,15 @@ export function commandGateSentence(gate: CommandRefusalLike): string {
   return sentence(gate, "unavailable");
 }
 
+/**
+ * The sentence for a command the mod expects the game to refuse, which the
+ * operator may still send: "Upgrade Launch Pad likely to be refused: vessels are
+ * on this facility: Kerbal X." Used by a command control for its tip.
+ */
+export function commandAdviceSentence(gate: CommandRefusalLike): string {
+  return sentence(gate, "likely to be refused");
+}
+
 function sentence(refusal: CommandRefusalLike, verb: string): string {
   const subject = commandRefusalSubject(refusal);
   const clause =

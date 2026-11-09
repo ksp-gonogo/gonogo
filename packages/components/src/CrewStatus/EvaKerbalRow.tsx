@@ -80,6 +80,10 @@ export function EvaKerbalRow({
   const lampLabel = `${name} lamp`;
   const lampButton = useCommandControl({
     command: lamp.with(undefined, { label: lampLabel }),
+    advise:
+      state?.focused === false
+        ? "this kerbal is not the one being flown"
+        : null,
     toggle: {
       state: lampOn,
       name: lampLabel,
@@ -90,9 +94,7 @@ export function EvaKerbalRow({
       unavailable:
         lampOn === undefined || !kerbalVesselId
           ? "Lamp state not reported"
-          : state?.focused === false
-            ? "Switch to this kerbal to use the lamp"
-            : null,
+          : null,
       args: (base) =>
         kerbalVesselId && typeof base === "boolean"
           ? { kerbalVesselId, enabled: !base }

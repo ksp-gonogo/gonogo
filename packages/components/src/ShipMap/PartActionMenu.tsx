@@ -21,6 +21,8 @@ export interface TransferResourceOption {
   label: string;
 }
 
+const GAME_GREYS_THIS = "the game greys this action";
+
 /** The mod command that fires one PAW button. Must match `PartActionCommandProvider.InvokePartActionCommand`, which `partActions.cs-sync.test.ts` reads out of the C# source. */
 export const INVOKE_PART_ACTION_COMMAND = "vessel.invokePartAction";
 
@@ -81,8 +83,8 @@ export interface PartActionMenuProps {
 /**
  * A part's right-click Part Action Window, as an anchored APG menu. Nothing
  * flips optimistically: the delay rail reports a fired action and the list
- * re-renders when the part's live actions change. An inactive action renders
- * disabled rather than dropped, as KSP greys it.
+ * re-renders when the part's live actions change. An inactive action stays
+ * selectable and says the game is likely to refuse it, as KSP greys it.
  */
 export function PartActionMenu({
   flightId,
@@ -102,7 +104,7 @@ export function PartActionMenu({
       key: action.name,
       label: action.label || action.name,
       group: action.group ?? undefined,
-      disabled: !action.active,
+      advise: action.active ? undefined : GAME_GREYS_THIS,
       command: commandFor(action.name, action.label || action.name),
       tip: action.opensGameWindow ? OPENS_ON_GAME_SCREEN : undefined,
       // The accessible name carries the part, which the item's own text does not.
@@ -120,7 +122,7 @@ export function PartActionMenu({
       key: CONTRIBUTED_KEY_PREFIX + entry.name,
       label: entry.label,
       group: entry.group,
-      disabled: !entry.active,
+      advise: entry.active ? undefined : GAME_GREYS_THIS,
       command: contributedCommandFor?.(entry) ?? undefined,
       "aria-label": `${entry.label} on ${partTitle}`,
     })),

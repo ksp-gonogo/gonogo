@@ -14,6 +14,8 @@ export const FRAMEWORK_READS = {
   useCommand: [
     "system.uplink.pending",
     "system.uplink.gates",
+    "system.uplink.gates.home",
+    "system.uplink.gates.craft",
     "system.uplink.delays",
     "commandCentre.activeVesselDelay",
     "vessel.identity",

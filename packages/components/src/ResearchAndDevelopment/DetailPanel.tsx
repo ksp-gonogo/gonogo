@@ -62,7 +62,7 @@ export function DetailPanel({
       )}
       <NodeRequires node={node} />
       {/* Above the parts list so the control stays in view however long the list is. */}
-      {unlock.isResearchable && (
+      {node.state !== "Available" && (
         <UnlockControl
           node={node}
           unlockCmd={unlockCmd}

@@ -201,7 +201,7 @@ describe("SpaceCenterStatusComponent", () => {
     expect((upgradeButtons[0] as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it("leaves upgrade live on a short balance until the facility's gate refuses it", async () => {
+  it("leaves upgrade live on a short balance, and advises once the facility's gate says it will be refused", async () => {
     renderWidget();
     act(() => {
       stream.emit("spaceCenter.scene", { scene: "SpaceCenter" });
@@ -239,7 +239,8 @@ describe("SpaceCenterStatusComponent", () => {
       );
     });
     const refused = await findButtonDescribedBy(/short of funds/);
-    expect(refused.getAttribute("aria-disabled")).toBe("true");
+    expect(refused.getAttribute("aria-disabled")).toBeNull();
+    expect(refused.getAttribute("data-predicted")).toBe("at-risk");
   });
 
   it("renders with an empty augment slot when nothing is registered", () => {

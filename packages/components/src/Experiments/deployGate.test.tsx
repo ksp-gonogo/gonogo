@@ -26,7 +26,7 @@ const instrument = (experimentId: string, title: string) => ({
 });
 
 describe("Experiments: Deploy follows the mod's gate for that experiment", () => {
-  it("darkens Deploy for the one experiment the gate refuses and leaves its sibling on the same part live", async () => {
+  it("advises on Deploy for the one experiment the gate refuses and leaves its sibling on the same part unadvised", async () => {
     const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
     const { unmount } = render(
       <fixture.Provider>
@@ -54,12 +54,12 @@ describe("Experiments: Deploy follows the mod's gate for that experiment", () =>
     });
 
     await waitFor(() =>
-      expect(
-        document.querySelectorAll('[data-command-phase="blocked"]'),
-      ).toHaveLength(1),
+      expect(document.querySelectorAll('[data-gate="advised"]')).toHaveLength(
+        1,
+      ),
     );
     const blocked = document.querySelector(
-      '[data-command-phase="blocked"]',
+      '[data-gate="advised"]',
     ) as HTMLElement;
     expect(blocked.closest("li")?.textContent).toContain(
       "Atmospheric Pressure Scan",
@@ -72,7 +72,7 @@ describe("Experiments: Deploy follows the mod's gate for that experiment", () =>
 });
 
 describe("Experiments: Transmit follows the mod's gate while the link reads up", () => {
-  it("draws Transmit blocked with the game's reason when nothing aboard can carry the result, whatever the link says", async () => {
+  it("advises on Transmit with the game's reason when nothing aboard can carry the result, whatever the link says", async () => {
     const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
     const { unmount } = render(
       <fixture.Provider>
@@ -109,12 +109,12 @@ describe("Experiments: Transmit follows the mod's gate while the link reads up",
 
     await waitFor(() =>
       expect(
-        document.querySelectorAll('[data-command-phase="blocked"]'),
+        document.querySelectorAll('[data-gate="advised"]'),
       ).not.toHaveLength(0),
     );
     const transmit = screen
       .getByText("Transmit")
       .closest("button") as HTMLElement;
-    expect(transmit).toHaveAttribute("data-command-phase", "blocked");
+    expect(transmit).toHaveAttribute("data-gate", "advised");
   });
 });

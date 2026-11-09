@@ -126,6 +126,7 @@ export {
   groupComboboxOptions,
   moveComboboxActiveIndex,
 } from "./Combobox";
+export { adviceFor, type PlainAdvice } from "./CommandButton/adviceFor";
 export type {
   CommandedButtonProps,
   CommandedToggleProps,

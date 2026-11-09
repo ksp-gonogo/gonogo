@@ -210,6 +210,36 @@ describe("ResearchAndDevelopmentComponent", () => {
     });
   });
 
+  it("offers Unlock on a node whose parents are locked, advised and still sent", async () => {
+    const user = userEvent.setup();
+    const fixture = setupStreamFixture({
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
+
+    renderTree(fixture);
+    act(() => {
+      fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 100));
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Advanced Rocketry")).toBeInTheDocument(),
+    );
+    await user.click(screen.getByText("Advanced Rocketry"));
+    const unlock = screen.getByRole("button", { name: "Unlock" });
+    expect(unlock).toHaveAttribute("data-predicted", "at-risk");
+    expect(unlock).toHaveAccessibleDescription(
+      /Unlock Advanced Rocketry likely to be refused: its parent nodes are not unlocked\./,
+    );
+    await user.click(unlock);
+    await user.click(screen.getByRole("button", { name: /Confirm unlock/i }));
+    await waitFor(() => {
+      const sent = fixture.transport.sentCommands.find(
+        (c) => c.command === "career.tech.unlock",
+      );
+      expect(sent).toMatchObject({ args: { techId: "advRocketry" } });
+    });
+  });
+
   it("renders the tiered graph at wide sizes and opens a detail pane on click", async () => {
     const user = userEvent.setup();
     const fixture = setupStreamFixture({
@@ -269,8 +299,8 @@ describe("ResearchAndDevelopmentComponent", () => {
     });
     await waitFor(() =>
       expect(getButtonDescribedBy(/not enough science/)).toHaveAttribute(
-        "aria-disabled",
-        "true",
+        "data-predicted",
+        "at-risk",
       ),
     );
   });

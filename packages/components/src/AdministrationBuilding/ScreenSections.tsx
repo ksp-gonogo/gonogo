@@ -20,11 +20,22 @@ import {
   Unit,
   useSlotBound,
 } from "@ksp-gonogo/ui-kit";
-import { type Dispatch, type SetStateAction, useState } from "react";
+import {
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+  useState,
+} from "react";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 import { AvailableRow, StrategyDescription } from "./AvailableRow";
 import { factorSliderOf, parseEffectLines } from "./parsing";
-import { capReason, inferCap, partition, sharedReason } from "./partition";
+import {
+  adviceClause,
+  capReason,
+  inferCap,
+  partition,
+  sharedReason,
+} from "./partition";
 import { ShortRow, type ShortState } from "./ShortForm";
 import {
   BlockedNote,
@@ -111,7 +122,11 @@ export function ScreenSections({
   );
   const bodyBound = useSlotBound("administration-building.screen-body");
   // The available card and the unanswered one are the same card; only the note differs.
-  const strategyRow = (s: Strategy, note?: string) => (
+  const strategyRow = (
+    s: Strategy,
+    note?: string,
+    extra?: { advise?: string; badge?: ReactNode },
+  ) => (
     <AvailableRow
       key={s.id}
       strategy={s}
@@ -127,6 +142,8 @@ export function ScreenSections({
       expanded={expandedId === s.id}
       onToggleExpanded={() => setExpandedId(expandedId === s.id ? null : s.id)}
       note={note}
+      advise={extra?.advise}
+      badge={extra?.badge}
     />
   );
   const shortRow = (s: Strategy, state: ShortState) => {
@@ -331,21 +348,16 @@ export function ScreenSections({
           ) : (
             <>
               {available.map((s) => strategyRow(s))}
-              {softBlocked.map((s) => (
-                <StrategyCard
-                  key={s.id}
-                  title={s.title}
-                  titleRight={
-                    showDepartment ? (
-                      <CardDept>{s.departmentName}</CardDept>
-                    ) : undefined
-                  }
-                >
-                  <Tooltip text={blockedByCap} focusable>
-                    <Badge>LOCKED</Badge>
-                  </Tooltip>
-                </StrategyCard>
-              ))}
+              {softBlocked.map((s) =>
+                strategyRow(s, undefined, {
+                  advise: adviceClause(blockedByCap),
+                  badge: (
+                    <Tooltip text={blockedByCap} focusable>
+                      <Badge>LOCKED</Badge>
+                    </Tooltip>
+                  ),
+                }),
+              )}
             </>
           )}
         </Stack>
@@ -358,19 +370,16 @@ export function ScreenSections({
             label: "Locked",
             content: (
               <Stack gap="related-comfortable">
-                {ineligible.map((s) => (
-                  <StrategyCard
-                    key={s.id}
-                    title={s.title}
-                    titleRight={
-                      showDepartment ? (
-                        <CardDept>{s.departmentName}</CardDept>
-                      ) : undefined
-                    }
-                  >
-                    <BlockedNote>{s.activateBlockedReason}</BlockedNote>
-                  </StrategyCard>
-                ))}
+                {ineligible.map((s) =>
+                  strategyRow(s, undefined, {
+                    advise: adviceClause(s.activateBlockedReason),
+                    badge: (
+                      <Tooltip text={s.activateBlockedReason} focusable>
+                        <Badge>LOCKED</Badge>
+                      </Tooltip>
+                    ),
+                  }),
+                )}
               </Stack>
             ),
           },

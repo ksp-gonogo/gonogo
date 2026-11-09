@@ -213,6 +213,74 @@ describe("RoboticsConsoleComponent", () => {
     });
   });
 
+  it("advises on the motor toggle of a part with no motor and still sends the press", async () => {
+    const user = userEvent.setup();
+    const fixture = setupStreamFixture({
+      pinnedUt: 10,
+    });
+
+    renderConsole(fixture);
+    act(() => {
+      fixture.emit("robotics.available", { available: true });
+      fixture.emit("robotics.servos", [
+        servo({
+          partId: "11",
+          servoMotorIsEngaged: true,
+          servoIsMotorized: false,
+        }),
+      ]);
+    });
+
+    const motor = await screen.findByRole("button", { name: /Motor on/i });
+    expect(motor).toHaveAttribute("data-predicted", "at-risk");
+    expect(motor).toHaveAttribute(
+      "data-tooltip",
+      "Likely to be refused: this part has no motor.",
+    );
+    await user.click(motor);
+    await waitFor(() => {
+      const sent = fixture.transport.sentCommands.find(
+        (c) => c.command === "robotics.servo.setMotor",
+      );
+      expect(sent?.args).toEqual({ partId: "11", enabled: false });
+    });
+  });
+
+  it("stops the motor toggle of a part with no motor while the verdict is fresh and sends nothing", async () => {
+    const user = userEvent.setup();
+    const fixture = setupStreamFixture({
+      pinnedUt: 10,
+    });
+
+    renderConsole(fixture);
+    act(() => {
+      fixture.emit("comms.delay", { oneWaySeconds: 1 });
+      fixture.emit("system.uplink.delays", {
+        activeVessel: ["robotics.servo.setMotor"],
+        elsewhere: [],
+      });
+      fixture.emit("robotics.available", { available: true });
+      fixture.emit("robotics.servos", [
+        servo({
+          partId: "11",
+          servoMotorIsEngaged: true,
+          servoIsMotorized: false,
+        }),
+      ]);
+    });
+
+    const motor = await screen.findByRole("button", { name: /Motor on/i });
+    await waitFor(() => expect(motor).toHaveAttribute("aria-disabled", "true"));
+    expect(motor).not.toHaveAttribute("data-predicted");
+    expect(motor).toHaveAttribute("data-tooltip", "This part has no motor");
+    await user.click(motor);
+    expect(
+      fixture.transport.sentCommands.filter(
+        (c) => c.command === "robotics.servo.setMotor",
+      ),
+    ).toHaveLength(0);
+  });
+
   it("selects a joint from the list and targets it", async () => {
     const user = userEvent.setup();
     const fixture = setupStreamFixture({

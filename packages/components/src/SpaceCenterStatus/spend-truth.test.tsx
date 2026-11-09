@@ -133,8 +133,48 @@ describe("SpaceCenterStatus: what the upgrade control claims about money", () =>
     const refused = await findButtonDescribedBy(
       /costs more than the career holds/,
     );
-    expect(refused.getAttribute("data-gate")).toBe("blocked");
-    expect(refused.getAttribute("aria-disabled")).toBe("true");
+    expect(refused.getAttribute("data-gate")).toBe("advised");
+    expect(refused.getAttribute("aria-disabled")).toBeNull();
+  });
+
+  /**
+   * Whether a refused Upgrade is stopped or advised is decided by how long the
+   * verdict has been held: under five seconds it is as good as the game's
+   * answer, at five or more it is advice and the press is sent.
+   */
+  it.each([
+    [0, "blocked", "true"],
+    [4.9, "blocked", "true"],
+    [5, "advised", null],
+    [10, "advised", null],
+  ])("at %s s of delay the refused Upgrade is %s", async (seconds, gate, disabled) => {
+    const fixture = setupStreamFixture({ pinnedUt: 10 });
+    mount(fixture, `scs-delay-${seconds}`);
+    emitCareer(fixture, LAUNCH_PAD_SHORT);
+    act(() => {
+      fixture.emit("system.uplink.delays", {
+        activeVessel: [],
+        elsewhere: [
+          {
+            command: "career.facility.upgrade",
+            centre: "ground:Cape",
+            oneWaySeconds: seconds,
+          },
+        ],
+      });
+      fixture.emit(
+        "system.uplink.gates",
+        perItemGateReport("career.facility.upgrade", "facilityId", {
+          LaunchPad: {
+            errorCode: "siteOccupied",
+            detail: "vessels are on this facility: Kerbal X",
+          },
+        }),
+      );
+    });
+    const button = await findButtonDescribedBy(/vessels are on this facility/);
+    expect(button.getAttribute("data-gate")).toBe(gate);
+    expect(button.getAttribute("aria-disabled")).toBe(disabled);
   });
 
   /** A refusal for one facility darkens that facility's control only. */
@@ -182,7 +222,7 @@ describe("SpaceCenterStatus: what the upgrade control claims about money", () =>
     blockFacilityUpgrade(fixture);
 
     await waitFor(() => {
-      expect(container.querySelector('[data-gate="blocked"]')).not.toBeNull();
+      expect(container.querySelector('[data-gate="advised"]')).not.toBeNull();
     });
     // The price stays on screen; only the verdict over it goes.
     expect(container.textContent).toMatch(/11[23](\.5)?kf/);
@@ -190,7 +230,7 @@ describe("SpaceCenterStatus: what the upgrade control claims about money", () =>
   });
 
   /** A dark button with nothing to say reads like a maxed facility or a short balance. */
-  it("names the gate's own reason rather than going quietly dark", async () => {
+  it("advises with the gate's own reason and stays live", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
     });
@@ -199,13 +239,14 @@ describe("SpaceCenterStatus: what the upgrade control claims about money", () =>
     blockFacilityUpgrade(fixture);
 
     const button = await findButtonDescribedBy(/planted\.facility\.upgrade/);
-    // aria-disabled, not disabled, so a screen reader still finds it and a press surfaces the reason.
-    expect(button.getAttribute("aria-disabled")).toBe("true");
+    // Advice only: the control stays live and a press is sent, for the game to decide on arrival.
+    expect(button.getAttribute("aria-disabled")).toBeNull();
+    expect(button.getAttribute("data-predicted")).toBe("at-risk");
     expect((button as HTMLButtonElement).disabled).toBe(false);
   });
 
   /** An affordable tier is the one the operator would press, and under a blocking career mod the press cannot land. */
-  it("does not offer an affordable tier as a live purchase the game will refuse", async () => {
+  it("advises that the game will likely refuse an affordable tier, and still lets it be sent", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
     });
@@ -214,6 +255,7 @@ describe("SpaceCenterStatus: what the upgrade control claims about money", () =>
     blockFacilityUpgrade(fixture);
 
     const button = await findButtonDescribedBy(/planted\.facility\.upgrade/);
-    expect(button.getAttribute("aria-disabled")).toBe("true");
+    expect(button.getAttribute("aria-disabled")).toBeNull();
+    expect(button.getAttribute("data-gate")).toBe("advised");
   });
 });

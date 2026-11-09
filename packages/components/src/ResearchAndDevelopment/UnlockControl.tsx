@@ -33,6 +33,9 @@ export function UnlockControl({
   scienceShown,
   chargesScience,
 }: Readonly<UnlockControlProps>) {
+  const advise = unlock.isResearchable
+    ? undefined
+    : "its parent nodes are not unlocked";
   const short = unlock.moneyDecides && !unlock.canAfford;
   return (
     <Stack>
@@ -55,6 +58,7 @@ export function UnlockControl({
           )}
           variant="ghost"
           size="sm"
+          advise={advise}
           confirmLabel={
             <>
               Confirm unlock: {node.scienceCost ?? NULL_DISPLAY}

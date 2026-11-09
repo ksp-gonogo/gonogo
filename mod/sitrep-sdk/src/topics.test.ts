@@ -30,6 +30,9 @@ const HAND_DECLARED_TOPICS = [
   // declaration and every gate evaluator at once, so no one Uplink could
   // own it and there is no [SitrepTopic] to reflect.
   "system.uplink.gates",
+  /* The same verdicts for the delayed commands, each on the topic whose delay matches the node the command acts on: the home command, or the active craft. */
+  "system.uplink.gates.home",
+  "system.uplink.gates.craft",
   // The delay from the session's centre to each delayed command's own target. Engine-declared because only ChannelEngine resolves every command's target and holds the delay ledger.
   "system.uplink.delays",
   // The contract's own unit descriptor, so the stream describes itself. Same

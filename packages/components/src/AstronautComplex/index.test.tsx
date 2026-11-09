@@ -569,7 +569,7 @@ describe("AstronautComplexComponent", () => {
     });
   });
 
-  it("never renders a Fire control on Assigned/Dead/Missing rows", async () => {
+  it("draws an advised Fire control on Assigned/Dead/Missing rows and sends the press anyway", async () => {
     const user = userEvent.setup();
     renderWidget();
     act(() => {
@@ -591,10 +591,29 @@ describe("AstronautComplexComponent", () => {
     ] as const) {
       await user.click(await screen.findByRole("tab", { name: tabLabel }));
       await screen.findByText(kerbalName);
-      expect(
-        screen.queryByRole("button", { name: /^Fire / }),
-      ).not.toBeInTheDocument();
+      const fire = screen.getByRole("button", { name: /^Fire / });
+      expect(fire).toHaveAttribute("data-predicted", "at-risk");
+      expect(fire).toHaveAccessibleDescription(
+        new RegExp(
+          `likely to be refused: the game does not allow this kerbal to be fired while ${tabLabel.split(" ")[0].toLowerCase()}\\.`,
+        ),
+      );
     }
+
+    await user.click(await screen.findByRole("tab", { name: "Dead (1)" }));
+    await user.click(screen.getByRole("button", { name: /^Fire Val Kerman/ }));
+    await user.click(
+      await screen.findByRole("button", {
+        name: /^Confirm fire of Val Kerman/,
+      }),
+    );
+    await waitFor(() =>
+      expect(
+        fixture.transport.sentCommands.find(
+          (c) => c.command === "career.crew.fire",
+        )?.args,
+      ).toEqual({ kerbalName: "Val Kerman" }),
+    );
   });
 
   /** Decisions read the standing, never a `situation` spelling this build has not seen; tab labels come from the standing too. */
@@ -652,13 +671,14 @@ describe("AstronautComplexComponent", () => {
     await screen.findByText("Ludsy Kerman");
     expect(
       await screen.findByRole("button", { name: /^Fire / }),
-    ).toBeInTheDocument();
+    ).not.toHaveAttribute("data-predicted");
 
     await user.click(await screen.findByRole("tab", { name: "Dead (1)" }));
     await screen.findByText("Sherbald Kerman");
-    expect(
-      screen.queryByRole("button", { name: /^Fire / }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Fire / })).toHaveAttribute(
+      "data-predicted",
+      "at-risk",
+    );
     const deceasedClass = (await screen.findByText("Deceased")).className;
 
     await user.click(await screen.findByRole("tab", { name: "Assigned (1)" }));
@@ -1331,10 +1351,10 @@ describe("AstronautComplexComponent", () => {
       );
     });
     const hire = await findButtonDescribedBy(
-      /Hire Desdin Kerman unavailable: short of funds/,
+      /Hire Desdin Kerman likely to be refused: short of funds/,
     );
-    expect(hire).toHaveAttribute("aria-disabled", "true");
-    expect(hire).toHaveAttribute("data-gate", "blocked");
+    expect(hire).toHaveAttribute("data-predicted", "at-risk");
+    expect(hire).toHaveAttribute("data-gate", "advised");
   });
 
   it("marks the roster full, and Hire takes the cap refusal from the command's gate", async () => {
@@ -1356,9 +1376,9 @@ describe("AstronautComplexComponent", () => {
 
     expect(await screen.findByText(/FULL/)).toBeInTheDocument();
     const hire = await findButtonDescribedBy(
-      /Hire Desdin Kerman unavailable: the roster is full/,
+      /Hire Desdin Kerman likely to be refused: the roster is full/,
     );
-    expect(hire).toHaveAttribute("aria-disabled", "true");
+    expect(hire).toHaveAttribute("data-predicted", "at-risk");
   });
 
   it("renders the crew cap as unlimited (never the raw int.MaxValue sentinel) and never marks the roster full", async () => {

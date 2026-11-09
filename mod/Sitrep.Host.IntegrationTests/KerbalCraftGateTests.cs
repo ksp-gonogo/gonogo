@@ -8,9 +8,9 @@ using Xunit;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// A vessel command refused because a kerbal is the craft is refused when it is sent, with one
-    /// reason: it is not held at the command centre for a craft that is not there and run when
-    /// that craft loads again.
+    /// A vessel command whose gate says a kerbal is the craft is sent anyway and refused when it
+    /// arrives, with one reason, so it never runs against the kerbal. The refusal is the game
+    /// deciding on arrival, not the sender deciding for the operator.
     /// </summary>
     public class KerbalCraftGateTests
     {
@@ -19,7 +19,7 @@ namespace Sitrep.Host.IntegrationTests
         private const string Reason = "no vessel in range";
 
         [Fact]
-        public void ACommandIsRefusedAtOnceWithTheReasonAndNeverRunsWhenTheLinkOrTheCraftReturns()
+        public void ACommandIsSentAndRefusedOnArrivalWithTheReasonAndNeverRuns()
         {
             var uplink = new GatedVesselUplink { KerbalIsTheCraft = true };
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
@@ -27,23 +27,48 @@ namespace Sitrep.Host.IntegrationTests
             engine.Start();
             try
             {
-                engine.TickAndWait(0.0, FreezeGateTestUplink.Snapshot(0.0, connected: false), Timeout);
+                engine.TickAndWait(0.0, FreezeGateTestUplink.Snapshot(0.0, connected: true), Timeout);
 
                 object? answer = null;
                 engine.DispatchCommandAndWait(
                     GatedVesselUplink.Command, "x", "vantage-1",
                     r => answer = r,
                     Timeout);
+                engine.TickAndWait(5.0, FreezeGateTestUplink.Snapshot(5.0, connected: true), Timeout);
 
                 var result = Assert.IsType<CommandResult>(answer);
                 Assert.False(result.Success);
                 Assert.Equal(CommandErrorCode.NoVessel, result.ErrorCode);
                 Assert.Contains(Reason, result.Detail ?? "");
-
-                // The craft loads again and the link returns: nothing was held to run.
-                uplink.KerbalIsTheCraft = false;
-                engine.TickAndWait(20.0, FreezeGateTestUplink.Snapshot(20.0, connected: true), Timeout);
                 Assert.Equal(0, uplink.HandledCount);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
+        public void ACommandSentWhileTheGateBlocksRunsWhenTheGateHasClearedByArrival()
+        {
+            var uplink = new GatedVesselUplink { KerbalIsTheCraft = true };
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                engine.TickAndWait(0.0, FreezeGateTestUplink.Snapshot(0.0, connected: true), Timeout);
+
+                object? answer = null;
+                engine.DispatchCommandAndWait(
+                    GatedVesselUplink.Command, "x", "vantage-1",
+                    r => answer = r,
+                    Timeout);
+                uplink.KerbalIsTheCraft = false;
+                engine.TickAndWait(5.0, FreezeGateTestUplink.Snapshot(5.0, connected: true), Timeout);
+
+                Assert.Equal(1, uplink.HandledCount);
+                Assert.True(answer is not CommandResult refused || refused.Success);
             }
             finally
             {

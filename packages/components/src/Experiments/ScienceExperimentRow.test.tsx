@@ -359,7 +359,7 @@ describe("ScienceExperimentRow", () => {
     expect(screen.getByRole("button", { name: "Deploy" })).toBeInTheDocument();
   });
 
-  it("draws Deploy dark with the mod's reason, and sends nothing, when the gate for this experiment blocks it", async () => {
+  it("advises on Deploy with the mod's reason, and still sends it, when the gate for this experiment blocks it", async () => {
     const send = vi.fn(() => Promise.resolve(OK));
     renderRow(
       <ScienceExperimentRow
@@ -386,16 +386,16 @@ describe("ScienceExperimentRow", () => {
     );
 
     const deploy = screen.getByText("Deploy").closest("button") as HTMLElement;
-    expect(deploy).toHaveAttribute("data-command-phase", "blocked");
-    expect(deploy).toHaveAttribute("aria-disabled", "true");
-    await userEvent.click(deploy);
-    expect(send).not.toHaveBeenCalled();
+    expect(deploy).toHaveAttribute("data-gate", "advised");
+    expect(deploy).not.toHaveAttribute("aria-disabled");
     expect(deploy).toHaveAccessibleDescription(
       /the experiment has already been run/,
     );
     expect(
       screen.queryByText(/the experiment has already been run/),
     ).toBeNull();
+    await userEvent.click(deploy);
+    expect(send).toHaveBeenCalled();
   });
 
   it("leaves Deploy live when the gate has nothing to say about this experiment", () => {

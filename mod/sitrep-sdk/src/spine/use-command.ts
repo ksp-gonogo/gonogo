@@ -67,6 +67,7 @@ import {
 import {
   type CommandGateStatus,
   hasItemVerdict,
+  mergeGateReports,
   selectCommandGate,
   toGateStatus,
 } from "./command-gate";
@@ -146,6 +147,16 @@ const MOD_FAULTS: ReadonlySet<string> = new Set(
 function isModFault(code: string): boolean {
   return MOD_FAULTS.has(code);
 }
+
+/**
+ * The delay, in seconds, below which a likely refusal stops the press at the
+ * control. A verdict held for less than this is as good as the game's own
+ * answer; one held for this long or longer is advice and the press is sent. Zero
+ * delay counts as below it. Used by {@link useCommand}.
+ *
+ * @internal
+ */
+export const GATE_STOPS_PRESS_BELOW_SECONDS = 5;
 
 /**
  * The dispatch handle: send the command, read its status, and see the commands
@@ -288,6 +299,15 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    * a rail reads it, so an outcome is never left with nobody to say it.
    */
   railed: boolean;
+  /**
+   * Whether a blocked gate stops the press. True for a command the mod declares
+   * instant, and for a delayed command whose verdict is held for less than
+   * {@link GATE_STOPS_PRESS_BELOW_SECONDS} seconds, since a verdict that fresh is
+   * as good as the game's answer. At that limit or above, or when the delay is
+   * not known, a blocked gate is advice: the command is sent and the game decides on
+   * arrival.
+   */
+  gateStopsPress?: boolean;
   /** Dispatches the game refused, newest last, each with its reason. */
   refusals: CommandRefusal[];
   /**
@@ -332,10 +352,11 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    * control was before the channel existed, so a control that ignores this
    * field behaves exactly as it did.
    *
-   * A `blocked` gate is a reason to draw the control dark and say why. It is
-   * not a reason to make it unpressable and silent: see a command `Button`.
-   * While it blocks, `dangerouslySendWithoutInput` refuses locally with the gate's own reason and
-   * dispatches nothing.
+   * A `blocked` gate on a delayed command is advice that the game is likely to
+   * refuse it: the control says why and the command is sent when pressed, for
+   * the game to decide on arrival. On an instant command, which has no arrival,
+   * `dangerouslySendWithoutInput` refuses locally with the gate's own reason
+   * and dispatches nothing.
    */
   gate?: CommandGateStatus;
   /**
@@ -345,7 +366,10 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    *
    * A control that sends arguments draws itself from this rather than from
    * `gate`, so the one facility the career cannot afford goes dark while the
-   * rest stay live. `dangerouslySendWithoutInput` refuses locally on the same answer.
+   * rest stay live. For an instant command `dangerouslySendWithoutInput`
+   * refuses locally on the same answer. For a delayed command that would
+   * reach the vessel at or after the UT it acts at, the answer is a blocked
+   * verdict of advice only.
    */
   // A method rather than a function-valued property, so a typed handle stays assignable to the bare one.
   gateFor(args: Args): CommandGateStatus | undefined;
@@ -554,7 +578,17 @@ export function useCommand(
   // Memoised on the report identity so a control does not re-render on every
   // unrelated render of its widget. The report is republished whole at the
   // engine's gate cadence, and every `useCommand` in the tree reads the same one.
-  const gateReport = useLatestValue<CommandGateReport>("system.uplink.gates");
+  const liveGates = useLatestValue<CommandGateReport>("system.uplink.gates");
+  const homeGates = useLatestValue<CommandGateReport>(
+    "system.uplink.gates.home",
+  );
+  const craftGates = useLatestValue<CommandGateReport>(
+    "system.uplink.gates.craft",
+  );
+  const gateReport = useMemo(
+    () => mergeGateReports(liveGates, homeGates, craftGates),
+    [liveGates, homeGates, craftGates],
+  );
   const gate = useMemo(
     () => selectCommandGate(gateReport, command),
     [gateReport, command],
@@ -590,9 +624,25 @@ export function useCommand(
       const superseded =
         checked?.report !== gateReport &&
         hasItemVerdict(gateReport, command, args);
-      return answered?.blocked && !superseded
-        ? answered
-        : (published ?? answered);
+      const verdict =
+        answered?.blocked && !superseded ? answered : (published ?? answered);
+      if (verdict?.blocked) return verdict;
+      // Advice only: the command still goes, and the game decides on arrival.
+      const clock = storeRef.current?.clock;
+      const arrivalUt = !clock
+        ? undefined
+        : isInstantRef.current || toActiveVesselRef.current
+          ? arrivalUtOf(clock, !isInstantRef.current)
+          : arrivalUtAfter(clock, effectiveDelayRef.current);
+      return arrivesTooLate(command, args, arrivalUt)
+        ? {
+            command,
+            blocked: true,
+            undetermined: false,
+            errorCode: LATE_ARRIVAL_ERROR_CODE,
+            detail: LATE_ARRIVAL_DETAIL,
+          }
+        : verdict;
     },
     [gateReport, command, checked],
   );
@@ -745,6 +795,29 @@ export function useCommand(
   const isInstant = !commandDelayed(command) || vantage === META_VANTAGE;
   const isInstantRef = useRef(isInstant);
   isInstantRef.current = isInstant;
+  /*
+   * Whether the verdict this handle holds is live. The mod publishes a delayed
+   * command's verdict after its delay, whichever vantage the press is sent from,
+   * so a command sent from the meta-vantage (no delay of its own) still reads an
+   * old verdict and the press is advised rather than stopped.
+   */
+  const declaredInstant = !commandDelayed(command);
+  const verdictTarget = declaredInstant
+    ? null
+    : commandTargetOf(uplinkDelays, command, undefined);
+  const verdictDelaySeconds = delayToTarget(
+    declaredInstant,
+    verdictTarget,
+    () =>
+      delayAuthority
+        ? delayAuthority.commandDelaySeconds(undefined)
+        : liveOneWaySeconds(commsDelay),
+  );
+  const gateStopsPress =
+    verdictDelaySeconds !== null &&
+    verdictDelaySeconds < GATE_STOPS_PRESS_BELOW_SECONDS;
+  const gateStopsPressRef = useRef(gateStopsPress);
+  gateStopsPressRef.current = gateStopsPress;
   const sentFrom =
     vantage === undefined || vantage === "" ? undefined : vantage;
   const target = isInstant
@@ -1297,22 +1370,30 @@ export function useCommand(
         refused.catch(() => undefined);
         return refused;
       };
+      /*
+       * A gate stops the press only when its verdict is fresh enough to stand for
+       * the game's answer: the command is declared instant, or its verdict is held
+       * a few seconds at most. Past that the command goes and the mod reads the
+       * gates again when it arrives.
+       */
       const standing = selectCommandGate(gateReportRef.current, command, args);
-      if (standing?.blocked) {
+      if (standing?.blocked && gateStopsPressRef.current) {
         return refuseLocally(standing, "its gate refuses it");
       }
-      // A command that acts at a UT and would land at or after it is refused before it leaves.
-      const clock = storeRef.current?.clock;
-      const arrivalUt = !clock
-        ? undefined
-        : isInstantRef.current || toActiveVesselRef.current
-          ? arrivalUtOf(clock, !isInstantRef.current)
-          : arrivalUtAfter(clock, effectiveDelayRef.current);
-      if (arrivesTooLate(command, args, arrivalUt)) {
-        return refuseLocally(
-          { errorCode: LATE_ARRIVAL_ERROR_CODE, detail: LATE_ARRIVAL_DETAIL },
-          LATE_ARRIVAL_DETAIL,
-        );
+      // A command that acts at a UT and would land at or after it is stopped before it leaves, on the same terms.
+      if (gateStopsPressRef.current) {
+        const clock = storeRef.current?.clock;
+        const arrivalUt = !clock
+          ? undefined
+          : isInstantRef.current || toActiveVesselRef.current
+            ? arrivalUtOf(clock, !isInstantRef.current)
+            : arrivalUtAfter(clock, effectiveDelayRef.current);
+        if (arrivesTooLate(command, args, arrivalUt)) {
+          return refuseLocally(
+            { errorCode: LATE_ARRIVAL_ERROR_CODE, detail: LATE_ARRIVAL_DETAIL },
+            LATE_ARRIVAL_DETAIL,
+          );
+        }
       }
       const track = (
         newRequestId: string,
@@ -1381,6 +1462,7 @@ export function useCommand(
     gateFor,
     check,
     railed: railed && rail !== null,
+    gateStopsPress,
     ...outcome,
     with: (args, options) => bindCommand(handle, args, options),
     toArgs: (toArgs, options) => bindValue(handle, toArgs, options),

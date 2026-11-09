@@ -1,11 +1,13 @@
 import { type AnyBoundCommand, value } from "@ksp-gonogo/sitrep-sdk";
 import {
+  adviceFor,
   Button,
   Countdown,
   Disclosure,
   MARKER_ICONS,
   Slider,
   StatusIndicator,
+  Tooltip,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import {
@@ -27,6 +29,8 @@ import type { FbwState } from "./useFlyByWire";
 
 interface ControlSurfaceProps {
   disabled: boolean;
+  /** The throttle command's handle, whose `gateStopsPress` says whether a predicted refusal stops the press. */
+  throttleGate: { gateStopsPress?: boolean };
   sasMode: string | null;
   /** The SAS modes the craft can hold right now; `null` while it does not say, when every mode is offered. */
   availableSasModes: ReadonlySet<SasMode> | null;
@@ -73,11 +77,14 @@ export const FBW_VIEW: Record<
   },
 };
 
-/** Why every control of the surface is dark while the vessel cannot be flown. */
-const NOT_CONTROLLABLE = "The vessel is not controllable";
+/** Why a control of the surface may be refused while the vessel cannot be flown. */
+const NOT_CONTROLLABLE = "the vessel is not controllable";
+
+const THROTTLE_NOT_REPORTED = "The throttle command is not reported";
 
 export function ControlSurface({
   disabled,
+  throttleGate,
   sasMode,
   availableSasModes,
   throttleBase,
@@ -133,9 +140,12 @@ export function ControlSurface({
       reportOpen(false);
     };
   }, [reportOpen]);
-  const throttleBlockedBecause = disabled
-    ? NOT_CONTROLLABLE
-    : "The throttle command is not reported";
+  const throttleAdvice = adviceFor(
+    throttleGate,
+    disabled ? NOT_CONTROLLABLE : null,
+  );
+  // With nothing to step from the button is disabled and its own reason is the tip.
+  const stepsBlind = throttleBase === null;
   return (
     <div ref={wrapRef} style={CONTROL_WRAP} onClickCapture={reportPress}>
       <Disclosure
@@ -152,11 +162,11 @@ export function ControlSurface({
                 key={mode}
                 pressed={sasMode === mode}
                 command={sasModeCommand(mode)}
-                unavailable={
+                advise={
                   disabled
                     ? NOT_CONTROLLABLE
                     : cannotHold
-                      ? "The craft cannot hold this mode"
+                      ? "the craft cannot hold this mode"
                       : null
                 }
               >
@@ -180,52 +190,75 @@ export function ControlSurface({
         aria-label="Throttle controls"
       >
         <div style={GROUP}>
-          <Slider
-            min={0}
-            max={1}
-            step={0.01}
-            value={throttleBase}
-            expected={throttleExpected}
-            lastSeen={throttleLastSeen?.value ?? null}
-            lastSeenCaption={throttleLastSeen?.caption}
-            onChange={(e) => onSetThrottleCmd(Number(e.target.value))}
-            figure={(v) => <Unit value={value("%", v * 100)} decimals={0} />}
-            disabled={disabled}
-            aria-label="Throttle"
-          />
+          <Tooltip text={throttleAdvice.tip ?? throttleAdvice.disabledReason}>
+            <Slider
+              data-predicted={throttleAdvice.predictedOutcome}
+              disabled={throttleAdvice.disabled}
+              min={0}
+              max={1}
+              step={0.01}
+              value={throttleBase}
+              expected={throttleExpected}
+              lastSeen={throttleLastSeen?.value ?? null}
+              lastSeenCaption={throttleLastSeen?.caption}
+              onChange={(e) => onSetThrottleCmd(Number(e.target.value))}
+              figure={(v) => <Unit value={value("%", v * 100)} decimals={0} />}
+              aria-label="Throttle"
+            />
+          </Tooltip>
           <div style={BUTTON_GRID}>
-            <Button
-              type="button"
-              onClick={() => onSetThrottleCmd(0)}
-              disabled={disabled}
-              disabledReason={NOT_CONTROLLABLE}
-            >
-              ZERO
-            </Button>
-            <Button
-              type="button"
-              onClick={() => onSetThrottleCmd((v) => clamp(v - 0.1, 0, 1))}
-              disabled={disabled || throttleBase === null}
-              disabledReason={throttleBlockedBecause}
-            >
-              −10%
-            </Button>
-            <Button
-              type="button"
-              onClick={() => onSetThrottleCmd((v) => clamp(v + 0.1, 0, 1))}
-              disabled={disabled || throttleBase === null}
-              disabledReason={throttleBlockedBecause}
-            >
-              +10%
-            </Button>
-            <Button
-              type="button"
-              onClick={() => onSetThrottleCmd(1)}
-              disabled={disabled}
-              disabledReason={NOT_CONTROLLABLE}
-            >
-              FULL
-            </Button>
+            <Tooltip text={throttleAdvice.tip}>
+              <Button
+                type="button"
+                onClick={() => onSetThrottleCmd(0)}
+                disabled={throttleAdvice.disabled}
+                disabledReason={throttleAdvice.disabledReason}
+                predictedOutcome={throttleAdvice.predictedOutcome}
+              >
+                ZERO
+              </Button>
+            </Tooltip>
+            <Tooltip text={stepsBlind ? null : throttleAdvice.tip}>
+              <Button
+                type="button"
+                onClick={() => onSetThrottleCmd((v) => clamp(v - 0.1, 0, 1))}
+                disabled={stepsBlind || throttleAdvice.disabled}
+                disabledReason={
+                  stepsBlind
+                    ? THROTTLE_NOT_REPORTED
+                    : throttleAdvice.disabledReason
+                }
+                predictedOutcome={throttleAdvice.predictedOutcome}
+              >
+                −10%
+              </Button>
+            </Tooltip>
+            <Tooltip text={stepsBlind ? null : throttleAdvice.tip}>
+              <Button
+                type="button"
+                onClick={() => onSetThrottleCmd((v) => clamp(v + 0.1, 0, 1))}
+                disabled={stepsBlind || throttleAdvice.disabled}
+                disabledReason={
+                  stepsBlind
+                    ? THROTTLE_NOT_REPORTED
+                    : throttleAdvice.disabledReason
+                }
+                predictedOutcome={throttleAdvice.predictedOutcome}
+              >
+                +10%
+              </Button>
+            </Tooltip>
+            <Tooltip text={throttleAdvice.tip}>
+              <Button
+                type="button"
+                onClick={() => onSetThrottleCmd(1)}
+                disabled={throttleAdvice.disabled}
+                disabledReason={throttleAdvice.disabledReason}
+                predictedOutcome={throttleAdvice.predictedOutcome}
+              >
+                FULL
+              </Button>
+            </Tooltip>
           </div>
         </div>
       </Disclosure>
@@ -240,7 +273,7 @@ export function ControlSurface({
                 ? armFbwCommand
                 : disarmFbwCommand
             }
-            unavailable={disabled ? NOT_CONTROLLABLE : null}
+            advise={disabled ? NOT_CONTROLLABLE : null}
           >
             {FBW_VIEW[fbwState].label}
           </Button>

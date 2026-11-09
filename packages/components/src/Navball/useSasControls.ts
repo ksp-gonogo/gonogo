@@ -50,17 +50,25 @@ export function useSasControls(
           caption: `${readingMarking.caption}. The press sends the opposite of the state shown`,
         };
 
-  // Only turning SAS on is refused, so a SAS that is already on can still be switched off.
+  // Only turning SAS on is predicted to be refused, so a SAS that is already on is not advised against.
   const sasUnavailableReason =
     control?.sasAvailable === false && sasRaw !== true
       ? (control.sasUnavailableReason ?? "No SAS available")
       : null;
 
   const notControllable = controllable ? null : NOT_CONTROLLABLE;
+  const sasAdvice =
+    notControllable ??
+    (sasUnavailableReason === null
+      ? null
+      : control?.sasUnavailableReason
+        ? control.sasUnavailableReason.replace(/\.$/, "")
+        : "the craft reports no SAS");
   const invert = (base: ToggleState) =>
     typeof base === "boolean" ? { enabled: !base } : undefined;
   const sasButton = useCommandControl({
     command: sasCmd.with(undefined, { label: "Toggle SAS" }),
+    advise: sasAdvice,
     toggle: {
       state: sasRaw,
       name: "SAS",
@@ -71,15 +79,13 @@ export function useSasControls(
         armLabel("SAS", null),
       ],
       sentWord: "SAS SENT",
-      unavailable: sasUnavailableReason ?? notControllable,
-      // Only turning SAS on is refused, so a SAS that is already on can still be switched off.
-      args: (base) =>
-        base !== true && sasUnavailableReason ? undefined : invert(base),
+      args: invert,
       marking,
     },
   });
   const rcsButton = useCommandControl({
     command: rcsCmd.with(undefined, { label: "Toggle RCS" }),
+    advise: notControllable,
     toggle: {
       state: rcsRaw,
       name: "RCS",
@@ -90,7 +96,6 @@ export function useSasControls(
         armLabel("RCS", null),
       ],
       sentWord: "RCS SENT",
-      unavailable: notControllable,
       args: invert,
       marking,
     },
@@ -99,13 +104,13 @@ export function useSasControls(
     command: precisionCmd.with(undefined, {
       label: "Toggle precision control",
     }),
+    advise: notControllable,
     toggle: {
       state: precisionRaw,
       name: "Precision",
       word: () => "PRECISION",
       words: ["PRECISION"],
       sentWord: "SENT",
-      unavailable: notControllable,
       args: invert,
       marking,
     },
@@ -159,14 +164,15 @@ export function useSasControls(
     rcsButton,
     precisionButton,
     sasCmd,
+    sasModeCmd,
     rcsCmd,
     precisionCmd,
     sasModeCommand,
   };
 }
 
-/** Why every control of the toggle row is dark while the vessel cannot be flown. */
-const NOT_CONTROLLABLE = "The vessel is not controllable";
+/** Why a control of the toggle row may be refused while the vessel cannot be flown. */
+export const NOT_CONTROLLABLE = "the vessel is not controllable";
 
 /**
  * One arm's toggle label: `SAS: PRO` / `RCS ON` when on, `SAS OFF` when

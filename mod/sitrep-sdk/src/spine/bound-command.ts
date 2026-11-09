@@ -103,8 +103,14 @@ function foldStatus(
 function foldHandles(members: readonly AnyBoundCommand[]): UseCommandResult {
   const handles: UseCommandResult[] = members.map((m) => m.handle);
   const first = handles[0];
-  const gates = handles.map((h) => h.gate);
+  // Each member's verdict for the arguments it sends, so a burn that would arrive late blocks the set.
+  const gates = members.map((m) => {
+    const handle = m.handle;
+    return handle.gateFor ? handle.gateFor(argsOf(m)) : handle.gate;
+  });
   const blockedGate = gates.find((g) => g?.blocked === true);
+  // The gate that blocks the set decides whether the block stops it: only a member whose verdict is fresh does.
+  const blockingHandle = handles[gates.findIndex((g) => g?.blocked === true)];
   const concat = <
     Key extends
       | "inFlight"
@@ -138,6 +144,9 @@ function foldHandles(members: readonly AnyBoundCommand[]): UseCommandResult {
       for (const h of handles) h.dismiss(id);
     },
     railed: handles.length > 0 && handles.every((h) => h.railed),
+    gateStopsPress: blockingHandle
+      ? blockingHandle.gateStopsPress === true
+      : handles.every((h) => h.gateStopsPress === true),
     refusals: concat("refusals"),
     losses: concat("losses"),
     founds: concat("founds"),

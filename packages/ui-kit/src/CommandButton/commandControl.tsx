@@ -3,6 +3,7 @@ import {
   type BoundCommand,
   type BoundCommandOptions,
   bindCommand,
+  CommandErrorCode,
   type CommandStatus,
   classifyCommandRejection,
   runSet,
@@ -28,6 +29,7 @@ import { commandLossSentence } from "../CommandDelay/commandLossSentence";
 import { commandOutcomes } from "../CommandDelay/commandOutcomes";
 import {
   type CommandRefusalLike,
+  commandAdviceSentence,
   commandGateSentence,
   commandRefusalSentence,
 } from "../CommandDelay/commandRefusalSentence";
@@ -253,6 +255,14 @@ export interface CommandButtonHandle<Result = CommandReplyLike, Args = unknown>
    * supplies it.
    */
   streamDown?: boolean;
+  /**
+   * Whether a blocked gate stops the press, as `useCommand` reports: true for
+   * a command that takes no signal delay and for one whose verdict is held only
+   * a few seconds. When this is false or absent the gate is advice: the control
+   * says the command is likely to be refused and a press sends it, for the game
+   * to decide on arrival.
+   */
+  gateStopsPress?: boolean;
 }
 
 /**
@@ -354,6 +364,14 @@ export interface UseCommandControlOptions<
    * press sends nothing. Null or absent when it can be pressed.
    */
   unavailable?: string | null;
+  /**
+   * Why the game is likely to refuse this command, from what the caller can
+   * see and the command's own declaration cannot know. The control stays
+   * pressable and the press is sent: the reason is shown as advice in its tip
+   * and on its edge, and the game decides on arrival. Null or absent when
+   * nothing says it will be refused.
+   */
+  advise?: string | null;
 }
 
 /**
@@ -377,7 +395,9 @@ export interface CommandControlState<Args = unknown> {
   /** A command this control lost has since replied. `foundText` says what the reply was. */
   isFound: boolean;
   /**
-   * The game will refuse this if it is pressed, and said so in advance.
+   * The game will refuse this command if it is pressed, and said so in advance,
+   * from a verdict fresh enough to stop the press. A verdict held longer is
+   * advice: see `isAdvised`.
    * `refusalText` carries the reason here too, so a caller renders one string
    * whichever side of the press it is on.
    */
@@ -390,6 +410,14 @@ export interface CommandControlState<Args = unknown> {
    * caller's reason, and dimmed with a dashed warning edge for the game's.
    */
   isUnavailable: boolean;
+  /**
+   * The game is likely to refuse this command, by its gate or the caller's
+   * `advise`, and a press sends it anyway. `adviceText` carries the reason. Never
+   * true together with `isBlocked`.
+   */
+  isAdvised: boolean;
+  /** The advice, composed ("... likely to be refused: ..."), or `null` when nothing says the game will refuse it. */
+  adviceText: string | null;
   /** The command this control sends, with its handle: what a face reads the command's standing state from. */
   command: BoundControlCommand<Args>;
   /**
@@ -446,7 +474,8 @@ export interface CommandControlState<Args = unknown> {
   /**
    * The control was pressed. Advances the machine: arm, then dispatch; a press
    * is always sent, however many are outstanding; a press while refused, lost or found clears that
-   * outcome; a press while blocked dispatches nothing and shows the reason
+   * outcome; a press while blocked (a command the game will refuse by a fresh verdict, or
+   * the caller's `unavailable`) dispatches nothing and shows the reason
    * instead. `armable` says whether there is a confirm step, which only the
    * caller knows.
    */
@@ -486,6 +515,7 @@ export function useCommandControl<Result = CommandReplyLike, Args = unknown>({
   command,
   toggle,
   unavailable,
+  advise,
 }: UseCommandControlOptions<Result, Args>): CommandControlState<Args> {
   const handle = command.handle;
   const args = command.members ? undefined : argsOf(command);
@@ -503,8 +533,28 @@ export function useCommandControl<Result = CommandReplyLike, Args = unknown>({
   const streamDown = handle.streamDown === true;
   const gate = standingGate(handle, args);
   // An undetermined gate is NOT a refusal and must not darken anything.
-  const toggleBlocked = toggle?.unavailable ?? unavailable ?? null;
-  const gateBlocks = gate?.blocked === true || toggleBlocked !== null;
+  /*
+   * A prediction stops the press only when it is fresh enough to stand for the
+   * game's answer: the command takes no signal delay, or its delay is a few
+   * seconds. Past that the control advises and the press is sent.
+   */
+  const stopsOnGate = handle.gateStopsPress === true;
+  const toggleBlocked =
+    toggle?.unavailable ??
+    unavailable ??
+    (stopsOnGate && advise
+      ? commandGateSentence({
+          errorCode: CommandErrorCode.ModeUnavailable,
+          detail: advise,
+          label: commandLabel,
+          args,
+        })
+      : null) ??
+    null;
+  const gateBlocks =
+    (gate?.blocked === true && stopsOnGate) || toggleBlocked !== null;
+  const gateAdvises =
+    gate?.blocked === true && !stopsOnGate && toggleBlocked === null;
 
   // A late reply must not set state after unmount or overwrite a newer dispatch's outcome.
   const mountedRef = useRef(true);
@@ -857,6 +907,24 @@ export function useCommandControl<Result = CommandReplyLike, Args = unknown>({
           ? "blocked"
           : phase;
 
+  const adviceText =
+    effectivePhase === "blocked" || toggleBlocked !== null
+      ? null
+      : gateAdvises && gate
+        ? commandAdviceSentence({
+            ...gate,
+            label: gate.label ?? commandLabel,
+            args: gate.args ?? args,
+          })
+        : advise
+          ? commandAdviceSentence({
+              errorCode: CommandErrorCode.ModeUnavailable,
+              detail: advise,
+              label: commandLabel,
+              args,
+            })
+          : null;
+
   return {
     phase: effectivePhase,
     isSent: effectivePhase === "sent",
@@ -867,6 +935,8 @@ export function useCommandControl<Result = CommandReplyLike, Args = unknown>({
     isBlocked: effectivePhase === "blocked",
     isOffline: streamDown && effectivePhase !== "sent",
     isUnavailable: toggleBlocked !== null,
+    isAdvised: adviceText !== null,
+    adviceText,
     command,
     refusalText: refusal
       ? commandRefusalSentence(refusal)

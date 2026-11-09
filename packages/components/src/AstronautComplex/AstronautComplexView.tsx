@@ -2,7 +2,7 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import { useActionInput } from "@ksp-gonogo/core";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
 import {
-  canBeSacked,
+  crewStandingLabel,
   GameMode,
   readingOf,
   stillTrue,
@@ -29,6 +29,7 @@ import { magnitudeOf } from "../shared/magnitude";
 import { ActivePanel } from "./ActivePanel";
 import { ApplicantsPanel } from "./ApplicantsPanel";
 import { AugmentTab } from "./AugmentTab";
+import { fireAdvice } from "./CrewButtons";
 import type { AstronautComplexActions, AstronautComplexConfig } from "./config";
 import { readApplicants, readCrewRoster } from "./roster";
 import {
@@ -132,12 +133,13 @@ export function AstronautComplexComponent(
   // Firing is the same kind of KSC ground action: instant and free.
   const fireCmd = useCommand("career.crew.fire");
 
+  // Every active kerbal is reachable: a standing the game is likely to refuse is advice on the Fire control, not a reason to skip the row.
   const sackableCrew = useMemo(
-    () => crewRoster.filter((c) => !c.isApplicant && canBeSacked(c.standing)),
+    () => crewRoster.filter((c) => !c.isApplicant),
     [crewRoster],
   );
   const [highlightedName, setHighlightedName] = useState<string | null>(null);
-  // By name, so the highlight follows its kerbal through a reorder and falls to the first fireable one when it leaves.
+  // By name, so the highlight follows its kerbal through a reorder and falls to the first one when it leaves.
   const highlighted =
     sackableCrew.find((c) => c.name === highlightedName) ?? sackableCrew[0];
 
@@ -147,6 +149,14 @@ export function AstronautComplexComponent(
       { kerbalName: highlighted?.name ?? "" },
       { label: `Fire ${highlighted?.name ?? "crew member"}` },
     ),
+    advise: highlighted
+      ? fireAdvice(
+          highlighted.standing,
+          crewStandingLabel(highlighted.standing) ??
+            highlighted.situation ??
+            "",
+        )
+      : undefined,
   });
   const armed = highlightedFire.phase === "armed";
 

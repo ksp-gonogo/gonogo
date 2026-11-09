@@ -181,7 +181,7 @@ describe("ShipMap: PAW part actions", () => {
     expect(sent[0].label).toContain("Extend Solar Panel");
   });
 
-  it("renders an inactive action disabled rather than hiding it", async () => {
+  it("keeps an inactive action selectable, advises on it, and sends the press", async () => {
     const user = userEvent.setup();
     const { fixture } = await renderDiagram();
 
@@ -194,10 +194,43 @@ describe("ShipMap: PAW part actions", () => {
     });
 
     const item = await screen.findByRole("menuitem", { name: /Deploy/ });
-    // aria-disabled, not the native attribute, so the item stays in the keyboard walk.
-    expect(item.getAttribute("aria-disabled")).toBe("true");
+    expect(item.getAttribute("aria-disabled")).toBeNull();
+    expect(item).toHaveAttribute("data-predicted", "at-risk");
+    expect(item).toHaveAccessibleDescription(
+      /likely to be refused: the game greys this action\./i,
+    );
 
-    // Firing it does nothing, as in-game.
+    // The game decides when the press arrives.
+    await user.click(item);
+    await waitFor(() => expect(fixture.transport.sentCommands).toHaveLength(1));
+  });
+
+  it("stops an inactive action while the verdict is fresh and sends nothing", async () => {
+    const user = userEvent.setup();
+    const { fixture } = await renderDiagram();
+    act(() => {
+      fixture.emit("comms.delay", { oneWaySeconds: 1 });
+      fixture.emit("system.uplink.delays", {
+        activeVessel: [INVOKE_PART_ACTION_COMMAND],
+        elsewhere: [],
+      });
+    });
+
+    await user.click(partElement());
+    act(() => {
+      fixture.emit(
+        partActionsTopic(PART_FLIGHT_ID),
+        partActionsWire([{ name: "Deploy", label: "Deploy", active: false }]),
+      );
+    });
+
+    const item = await screen.findByRole("menuitem", { name: /Deploy/ });
+    await waitFor(() => expect(item).toHaveAttribute("aria-disabled", "true"));
+    expect(item).not.toHaveAttribute("data-predicted");
+    expect(item).toHaveAccessibleDescription(
+      "Deploy on Mk1 Command Pod unavailable: the game greys this action.",
+    );
+
     await user.click(item);
     expect(fixture.transport.sentCommands).toHaveLength(0);
   });

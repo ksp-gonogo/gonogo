@@ -117,7 +117,7 @@ export function NodeRow({
           <NodeDescription node={node} />
           <NodeRequires node={node} />
           <NodeParts node={node} showEntryCost />
-          {display === "researchable" && (
+          {display !== "researched" && (
             <UnlockControl
               node={node}
               unlockCmd={unlockCmd}

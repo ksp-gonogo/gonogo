@@ -128,6 +128,10 @@ namespace Sitrep.Host
                     return;
                 }
                 var gate = EvaluateGates(job.Command, new GateArguments(GateSubject(job.Command, job.Args)), job.Vantage);
+                if (GateDecidesOnArrival(ResolveCommandDelay(job.Command), gate))
+                {
+                    gate = GateVerdict.Pass();
+                }
                 if (gate.Outcome == GateOutcome.Fail)
                 {
                     job.OnResult(GateRefusalResult(gate));

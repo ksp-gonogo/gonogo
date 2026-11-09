@@ -102,6 +102,14 @@ export interface CommandedButtonProps extends NativeButtonProps {
    */
   unavailable?: string | null;
   /**
+   * Why the game is likely to refuse this command, for what the command's own
+   * declaration cannot know. The control stays pressable and a press is sent;
+   * the reason is its tip and its edge shows the command may be refused, and the
+   * game decides on arrival. Null or absent when nothing says it will be
+   * refused. A control given as a `useCommandControl` states its own.
+   */
+  advise?: string | null;
+  /**
    * The armed label. Supplying it makes this an arm-then-confirm control: the
    * first click puts it in the armed phase, the second dispatches, and an armed
    * control left alone returns to rest after {@link ARM_TIMEOUT_MS}. Omit it for
@@ -188,7 +196,7 @@ export interface CommandedButtonProps extends NativeButtonProps {
  * `command`.
  */
 export function CommandedButton(props: CommandedButtonProps) {
-  const { command, unavailable, ...rest } = props;
+  const { command, unavailable, advise, ...rest } = props;
   if (isControl(command)) {
     return <CommandedButtonFace {...rest} control={command} />;
   }
@@ -197,6 +205,7 @@ export function CommandedButton(props: CommandedButtonProps) {
       {...rest}
       command={command}
       unavailable={unavailable}
+      advise={advise}
     />
   );
 }
@@ -207,7 +216,7 @@ export function CommandedButton(props: CommandedButtonProps) {
  * its size. Rendered by {@link IconButton} when it has a `command`.
  */
 export function CommandedIconButton(props: CommandedButtonProps) {
-  const { command, unavailable, ...rest } = props;
+  const { command, unavailable, advise, ...rest } = props;
   if (isControl(command)) {
     return <CommandedButtonFace {...rest} glyph control={command} />;
   }
@@ -217,6 +226,7 @@ export function CommandedIconButton(props: CommandedButtonProps) {
       glyph
       command={command}
       unavailable={unavailable}
+      advise={advise}
     />
   );
 }
@@ -224,6 +234,7 @@ export function CommandedIconButton(props: CommandedButtonProps) {
 function OwnedCommandedButton({
   command,
   unavailable,
+  advise,
   ...rest
 }: Omit<CommandedButtonProps, "command"> & {
   command: BoundCommand | CommandButtonHandle<unknown, unknown>;
@@ -232,6 +243,7 @@ function OwnedCommandedButton({
   const control = useCommandControl({
     command: boundOf(command),
     unavailable,
+    advise,
   });
   return <CommandedButtonFace {...rest} control={control} />;
 }
@@ -272,6 +284,8 @@ function CommandedButtonFace({
     isFound,
     isBlocked,
     isUnavailable,
+    isAdvised,
+    adviceText,
     isOffline,
     refusalText,
     foundText,
@@ -373,13 +387,16 @@ function CommandedButtonFace({
       : undefined;
   const Body = glyph ? CommandGlyph__Body : CommandButton__Body;
   const sendStatus = handle.sendStatus;
-  const restTip =
-    sendStatus === undefined
-      ? tip
-      : [tip, describeSendStatus(sendStatus)].filter(Boolean).join("\n");
+  const restTip = [
+    tip,
+    adviceText,
+    sendStatus === undefined ? null : describeSendStatus(sendStatus),
+  ]
+    .filter(Boolean)
+    .join("\n");
   const tipText = isOffline
     ? [tip, STREAM_DOWN_TIP].filter(Boolean).join("\n")
-    : restTip;
+    : restTip || undefined;
 
   return (
     <>
@@ -408,14 +425,21 @@ function CommandedButtonFace({
           data-failed={hasFailure ? "true" : undefined}
           data-command-phase={phase}
           data-stream={isOffline ? "down" : undefined}
-          data-predicted={gated ? undefined : predictedOutcomeOf(sendStatus)}
+          data-predicted={
+            gated
+              ? undefined
+              : (predictedOutcomeOf(sendStatus) ??
+                (isAdvised ? "at-risk" : undefined))
+          }
           // A diagnostic hook only: an undetermined gate renders as an ordinary control.
           data-gate={
             gated
               ? "blocked"
-              : standingGate(handle, args)?.undetermined
-                ? "undetermined"
-                : undefined
+              : isAdvised
+                ? "advised"
+                : standingGate(handle, args)?.undetermined
+                  ? "undetermined"
+                  : undefined
           }
           /*
            * The accessible name tracks the phase: an outcome's full sentence while
@@ -482,6 +506,14 @@ export interface CommandedToggleProps extends NativeButtonProps {
    * be pressed. Not used with a control.
    */
   unavailable?: string | null;
+  /**
+   * Why the game is likely to refuse this command, for what the command's own
+   * declaration cannot know. The control stays pressable and a press is sent;
+   * the reason is its tip and its edge shows the command may be refused, and the
+   * game decides on arrival. Null or absent when nothing says it will be
+   * refused. Not used with a control.
+   */
+  advise?: string | null;
   /** The fill while on. Defaults to `go`. */
   tone?: "go" | "nogo" | "warn";
   /** Defaults to `md`. */
@@ -539,6 +571,7 @@ function OwnedCommandedToggle({
   state,
   name,
   unavailable,
+  advise,
   children,
   sentWord,
   rows,
@@ -581,6 +614,7 @@ function OwnedCommandedToggle({
           ? undefined
           : command.toArgs(!(typeof base === "number" ? base > 0 : base)),
     },
+    advise,
   });
   return <CommandedToggleFace {...rest} glyph={glyph} control={control} />;
 }
@@ -600,6 +634,7 @@ function CommandedToggleFace({
   | "state"
   | "name"
   | "unavailable"
+  | "advise"
   | "children"
   | "sentWord"
   | "rows"
@@ -613,6 +648,8 @@ function CommandedToggleFace({
     isLost,
     isBlocked,
     isUnavailable,
+    isAdvised,
+    adviceText,
     refusalText,
     lossText,
     toggleView,
@@ -632,7 +669,9 @@ function CommandedToggleFace({
       ? refusalText
       : isLost
         ? lossText
-        : ((markCarriesIt ? null : sentence) ?? tip);
+        : ((markCarriesIt ? null : sentence) ??
+            [tip, adviceText].filter(Boolean).join("\n")) ||
+          undefined;
   /*
    * A refusal, a silence or an undelivered command edges the control in the
    * warning colour over the state's own fill, so "on, and your press was
@@ -657,6 +696,7 @@ function CommandedToggleFace({
             data-command-phase={phase}
             data-stream={isOffline ? "down" : undefined}
             data-command-edge={edge}
+            data-predicted={isAdvised ? "at-risk" : undefined}
             onClick={() => press(false)}
             {...rest}
           >
@@ -680,6 +720,7 @@ function CommandedToggleFace({
             data-command-phase={phase}
             data-stream={isOffline ? "down" : undefined}
             data-command-edge={edge}
+            data-predicted={isAdvised ? "at-risk" : undefined}
             onClick={() => press(false)}
             {...rest}
           >

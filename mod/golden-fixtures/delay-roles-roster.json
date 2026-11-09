@@ -14,7 +14,7 @@
       "system.uplink.pending",
       "system.uplinks"
     ],
-    "heldAtHome": ["uplinktest.ledger"],
+    "heldAtHome": ["system.uplink.gates.home", "uplinktest.ledger"],
     "trueNowPrefixes": ["uplinktest.live."],
     "heldAtHomePrefixes": ["uplinktest.craftfile."],
     "addressed": ["comms.journey", "uplinktest.said"]

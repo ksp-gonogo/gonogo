@@ -1,4 +1,4 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { canBeSacked, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
   type CommandButtonHandle,
@@ -37,20 +37,34 @@ export function HireButton({
   );
 }
 
+/** Why the game is likely to refuse a fire for a kerbal in this standing, or `undefined` when the roster accepts it. A resting kerbal can be fired though not flown. */
+export function fireAdvice(
+  standing: Parameters<typeof canBeSacked>[0],
+  label: string,
+): string | undefined {
+  if (canBeSacked(standing)) return undefined;
+  return `the game does not allow this kerbal to be fired ${
+    label === "" ? "in their current state" : `while ${label.toLowerCase()}`
+  }`;
+}
+
 /**
  * Fire: no cost, but the same two-step commit, since a fire is destructive
- * even though a re-hire restores the kerbal. Renders only on a row whose
- * standing `career.crew.fire` accepts.
+ * even though a re-hire restores the kerbal. A row whose standing
+ * `career.crew.fire` is likely to refuse still draws it, advised.
  */
 export function FireButton({
   kerbalName,
   fireCmd,
   control,
+  advise,
 }: {
   kerbalName: string;
   fireCmd: CommandButtonHandle;
   /** A control already running for this kerbal's fire, which a bound key presses as well; absent, the button runs its own. */
   control?: CommandControlState;
+  /** Why the game is likely to refuse this fire; the button stays and the press is sent. Used when the button runs its own control. */
+  advise?: string;
 }) {
   const who = kerbalName || "crew member";
   return (
@@ -62,6 +76,7 @@ export function FireButton({
       size="sm"
       confirmLabel="Confirm"
       confirmTone="nogo"
+      advise={advise}
       aria-label={`Fire ${who}`}
       confirmAriaLabel={`Confirm fire of ${who}`}
     >

@@ -266,8 +266,25 @@ export function useNodeCommands(
     reading: addNodeCmd.delayReading,
   };
 
+  // A burn whose time the node would reach the craft at or after is advice only: the press is sent and the game decides on arrival.
+  const arrivesLate =
+    plan !== null &&
+    (isSequence(plan) ? plan.burns : [plan]).some(
+      (b) =>
+        addNodeCmd.gateFor(
+          dehydrateArgs({
+            ut: b.ut,
+            radialOut: b.radial,
+            normal: b.normal,
+            prograde: b.prograde,
+          }),
+        )?.blocked === true,
+    );
+
   return {
     sendDelay,
+    arrivesLate,
+    addGateStopsPress: addNodeCmd.gateStopsPress,
     committing: committing || adding || addOnItsWay,
     adding,
     removing,

@@ -122,7 +122,7 @@ describe("ResearchAndDevelopment spend truth", () => {
     await waitFor(() =>
       expect(
         screen.getByRole("button", { name: /^Unlock( |$)/ }),
-      ).toHaveAttribute("aria-disabled", "true"),
+      ).toHaveAttribute("data-predicted", "at-risk"),
     );
     expect(
       screen.getByRole("button", { name: /^Unlock( |$)/ }),

@@ -1,5 +1,5 @@
 import { AugmentSlot } from "@ksp-gonogo/core";
-import { canBeSacked, crewStandingLabel } from "@ksp-gonogo/sitrep-sdk";
+import { crewStandingLabel } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Card,
@@ -11,7 +11,7 @@ import {
   Tabs,
 } from "@ksp-gonogo/ui-kit";
 import { KerbalBadges, KerbalName, KerbalStats } from "../shared/KerbalStats";
-import { FireButton } from "./CrewButtons";
+import { FireButton, fireAdvice } from "./CrewButtons";
 import {
   type CrewRosterRow,
   crewRowKeys,
@@ -56,9 +56,8 @@ export function ActivePanel({
     (standing) => {
       const members = groups.get(standing) ?? [];
       const keys = crewRowKeys(members);
-      // Whether the roster accepts a sacking, which is not whether the kerbal can fly: a resting kerbal can be fired.
-      const fireable = canBeSacked(standing);
       const label = crewStandingLabel(standing) ?? members[0]?.situation ?? "";
+      const advise = fireAdvice(standing, label);
       return {
         // Named after the standing: stable across re-renders and legible in a test failure.
         id: `standing-${standing}`,
@@ -71,9 +70,7 @@ export function ActivePanel({
                 <Card
                   as="li"
                   key={keys[i]}
-                  aria-current={
-                    fireable && m.name === highlightedName ? "true" : undefined
-                  }
+                  aria-current={m.name === highlightedName ? "true" : undefined}
                 >
                   {/* The sack control sits at the END of the identity line: firing is rare, and a column of its own would take width off the schedule. The corner is where an Uplink's mark is read WITH the name. */}
                   <Card.TitleRow
@@ -88,22 +85,21 @@ export function ActivePanel({
                             isApplicant: false,
                           }}
                         />
-                        {fireable && m.name === highlightedName && (
+                        {m.name === highlightedName && (
                           <Badge tone={armed ? "nogo" : undefined} size="sm">
                             {armed ? "ARMED" : "SELECTED"}
                           </Badge>
                         )}
-                        {fireable && (
-                          <FireButton
-                            kerbalName={m.name}
-                            fireCmd={fireCmd}
-                            control={
-                              m.name === highlightedName
-                                ? highlightedFire
-                                : undefined
-                            }
-                          />
-                        )}
+                        <FireButton
+                          kerbalName={m.name}
+                          fireCmd={fireCmd}
+                          advise={advise}
+                          control={
+                            m.name === highlightedName
+                              ? highlightedFire
+                              : undefined
+                          }
+                        />
                       </Cluster>
                     }
                   >

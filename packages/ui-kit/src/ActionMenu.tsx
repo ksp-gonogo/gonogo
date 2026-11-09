@@ -26,8 +26,6 @@ export interface ActionMenuItem {
   group?: string;
   /** Present but not currently firable: rendered dimmed and inert, still reachable. */
   disabled?: boolean;
-  /** Text shown as the item's tip and read as its description, such as why it is disabled. */
-  tip?: string;
   /** Overrides the accessible name when `label` alone is ambiguous out of context. */
   "aria-label"?: string;
   /**
@@ -38,8 +36,16 @@ export interface ActionMenuItem {
    * outcome, else when the press has been answered.
    */
   command?: AnyBoundCommand;
+  /** Text shown as the plain item's tip on hover and keyboard focus and read as its description, such as why it is disabled. */
+  tip?: string;
   /** Why a command item cannot be chosen now. It is drawn dimmed with this as its tip and a choice sends nothing. */
   unavailable?: string;
+  /**
+   * Why the game is likely to refuse this item, as a plain lowercase clause. The
+   * item stays selectable and the choice is sent; the clause is its tip, after
+   * "Likely to be refused:", and its edge is drawn as at risk.
+   */
+  advise?: string;
   /** The word the item shows after the first choice, which asks for a second to send. Absent, the first choice sends. */
   confirmLabel?: string;
 }
@@ -253,11 +259,12 @@ export function ActionMenu({
                 );
               }
               return (
-                <TipIfAny key={item.key} tip={item.tip}>
+                <TipIfAny key={item.key} tip={plainTip(item)}>
                   <MenuItem
                     type="button"
                     role="menuitem"
                     aria-label={item["aria-label"]}
+                    data-predicted={item.advise ? "at-risk" : undefined}
                     // aria-disabled, not `disabled`: a natively disabled button cannot take focus and drops out of the arrow-key walk.
                     aria-disabled={item.disabled}
                     $disabled={item.disabled}
@@ -278,6 +285,10 @@ export function ActionMenu({
       {footer}
     </Menu>
   );
+}
+
+function plainTip(item: ActionMenuItem): string | undefined {
+  return item.advise ? `Likely to be refused: ${item.advise}.` : item.tip;
 }
 
 function TipIfAny({
@@ -304,6 +315,7 @@ function CommandedMenuItem({
   const input = useBoundCommandInput({
     command,
     unavailable: item.unavailable,
+    advise: item.advise,
   });
   const { control } = input;
   const pending = useRef(false);

@@ -1927,7 +1927,7 @@ describe("useCommand gate", () => {
     });
   });
 
-  it("refuses locally, sending nothing, while the command's own gate blocks it", async () => {
+  it("sends a delayed command while its own gate blocks it, for the game to decide on arrival", async () => {
     const fixture = setupFixture();
     const captured: {
       handle?: ReturnType<typeof useCommand<unknown, unknown>>;
@@ -1935,12 +1935,7 @@ describe("useCommand gate", () => {
     function Captured() {
       const handle = useCommand("deploy");
       captured.handle = handle;
-      return (
-        <div>
-          <span>refusals:{handle.refusals.length}</span>
-          <CommandDelay handle={handle} />
-        </div>
-      );
+      return <CommandDelay handle={handle} />;
     }
     render(
       <fixture.Provider>
@@ -1968,34 +1963,245 @@ describe("useCommand gate", () => {
     await waitFor(() => {
       expect(captured.handle?.gate?.blocked).toBe(true);
     });
+    expect(captured.handle?.gateStopsPress).toBe(false);
+
+    act(() => {
+      // biome-ignore lint/style/noNonNullAssertion: asserted by the waitFor above
+      void captured
+        .handle!.dangerouslySendWithoutInput(1, { label: "Deploy" })
+        .catch(() => undefined);
+    });
+
+    expect(fixture.transport.sentCommands).toHaveLength(1);
+    expect(captured.handle?.refusals).toHaveLength(0);
+    // Holds the scope open across the stub's answer, which settles after the body.
+    await act(async () => {});
+  });
+
+  it.each([
+    "system.uplink.gates.home",
+    "system.uplink.gates.craft",
+  ])("reads a delayed command's verdict from %s as it reads the live topic", async (topic) => {
+    const fixture = setupFixture();
+    const captured: {
+      handle?: ReturnType<typeof useCommand<unknown, unknown>>;
+    } = {};
+    function Captured() {
+      const handle = useCommand("deploy");
+      captured.handle = handle;
+      return <CommandDelay handle={handle} />;
+    }
+    render(
+      <fixture.Provider>
+        <Captured />
+      </fixture.Provider>,
+    );
+    expect(captured.handle?.gate).toBeUndefined();
+
+    act(() => {
+      fixture.transport.emit(
+        topic,
+        {
+          gates: [
+            {
+              command: "deploy",
+              verdict: { outcome: 1, errorCode: "wrongScene", detail: topic },
+            },
+          ],
+        },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+    await waitFor(() => {
+      expect(captured.handle?.gate?.detail).toBe(topic);
+    });
+    expect(captured.handle?.gate?.blocked).toBe(true);
+  });
+
+  it("sends a career command from the meta-vantage while its gate blocks it, since the verdict it holds is delayed", async () => {
+    const fixture = setupFixture();
+    const captured: {
+      handle?: ReturnType<typeof useCommand<unknown, unknown>>;
+    } = {};
+    function Captured() {
+      const handle = useCommand("career.tech.unlock");
+      captured.handle = handle;
+      return <CommandDelay handle={handle} />;
+    }
+    render(
+      <fixture.Provider>
+        <Captured />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.transport.emit(
+        "system.uplink.gates.home",
+        {
+          gates: [
+            {
+              command: "career.tech.unlock",
+              verdict: {
+                outcome: 1,
+                errorCode: "insufficientScience",
+                detail: "short",
+              },
+            },
+          ],
+        },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+    await waitFor(() => {
+      expect(captured.handle?.gate?.blocked).toBe(true);
+    });
+    expect(captured.handle?.gateStopsPress).toBe(false);
+
+    act(() => {
+      // biome-ignore lint/style/noNonNullAssertion: asserted by the waitFor above
+      void captured
+        // biome-ignore lint/suspicious/noExplicitAny: the args of an arbitrary command
+        .handle!.dangerouslySendWithoutInput({ techId: "x" } as any)
+        .catch(() => undefined);
+    });
+    expect(fixture.transport.sentCommands).toHaveLength(1);
+    await act(async () => {});
+  });
+
+  it.each([
+    [0, true],
+    [4.9, true],
+    [5, false],
+    [10, false],
+    [null, false],
+  ])("stops a blocked press only when the verdict is held under five seconds (%s s)", async (seconds, stops) => {
+    const fixture = setupFixture();
+    const captured: {
+      handle?: ReturnType<typeof useCommand<unknown, unknown>>;
+    } = {};
+    function Captured() {
+      const handle = useCommand("career.tech.unlock");
+      captured.handle = handle;
+      return <CommandDelay handle={handle} />;
+    }
+    render(
+      <fixture.Provider>
+        <Captured />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.transport.emit(
+        "system.uplink.delays",
+        {
+          activeVessel: [],
+          elsewhere: [
+            {
+              command: "career.tech.unlock",
+              centre: "ground:Cape",
+              oneWaySeconds: seconds,
+            },
+          ],
+        },
+        { validAt: 0, deliveredAt: 0 },
+      );
+      fixture.transport.emit(
+        "system.uplink.gates.home",
+        {
+          gates: [
+            {
+              command: "career.tech.unlock",
+              verdict: {
+                outcome: 1,
+                errorCode: "insufficientScience",
+                detail: "short",
+              },
+            },
+          ],
+        },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+    await waitFor(() => {
+      expect(captured.handle?.gate?.blocked).toBe(true);
+    });
+    expect(captured.handle?.gateStopsPress).toBe(stops);
+
+    let sent: Promise<unknown> | undefined;
+    act(() => {
+      sent = captured.handle
+        // biome-ignore lint/suspicious/noExplicitAny: the args of an arbitrary command
+        ?.dangerouslySendWithoutInput({ techId: "x" } as any);
+      sent?.catch(() => undefined);
+    });
+    expect(fixture.transport.sentCommands).toHaveLength(stops ? 0 : 1);
+    await act(async () => {});
+  });
+
+  it("refuses an instant command locally, sending nothing, while its own gate blocks it", async () => {
+    const fixture = setupFixture();
+    const captured: {
+      handle?: ReturnType<typeof useCommand<unknown, unknown>>;
+    } = {};
+    function Captured() {
+      const handle = useCommand("time.setWarpIndex");
+      captured.handle = handle;
+      return (
+        <div>
+          <span>refusals:{handle.refusals.length}</span>
+          <CommandDelay handle={handle} />
+        </div>
+      );
+    }
+    render(
+      <fixture.Provider>
+        <Captured />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.transport.emit(
+        "system.uplink.gates",
+        {
+          gates: [
+            {
+              command: "time.setWarpIndex",
+              verdict: {
+                outcome: 1,
+                errorCode: "wrongScene",
+                detail: "throttled up",
+              },
+            },
+          ],
+        },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+    await waitFor(() => {
+      expect(captured.handle?.gate?.blocked).toBe(true);
+    });
+    expect(captured.handle?.gateStopsPress).toBe(true);
 
     let sent: Promise<unknown> | undefined;
     act(() => {
       // biome-ignore lint/style/noNonNullAssertion: asserted by the waitFor above
-      sent = captured.handle!.dangerouslySendWithoutInput(1, {
-        label: "Deploy",
-      });
+      sent = captured.handle!.dangerouslySendWithoutInput(
+        // biome-ignore lint/suspicious/noExplicitAny: the args of an arbitrary command
+        { index: 1 } as any,
+        { label: "Warp" },
+      );
     });
 
     await expect(sent).rejects.toMatchObject({
       code: "E_REFUSED",
       errorCode: "wrongScene",
-      command: "deploy",
+      command: "time.setWarpIndex",
       detail: "throttled up",
     });
     expect(fixture.transport.sentCommands).toHaveLength(0);
     await waitFor(() => {
       expect(screen.getByText("refusals:1")).toBeTruthy();
     });
-    expect(captured.handle?.refusals[0]).toMatchObject({
-      command: "deploy",
-      label: "Deploy",
-      errorCode: "wrongScene",
-      detail: "throttled up",
-    });
   });
 
-  it("refuses only the call naming the item its gate refuses, and sends the rest", async () => {
+  it("sends the call naming the item its gate refuses, as advice, and the rest as usual", async () => {
     const fixture = setupFixture();
     const captured: {
       handle?: ReturnType<typeof useCommand<unknown, unknown>>;
@@ -2049,19 +2255,13 @@ describe("useCommand gate", () => {
       false,
     );
 
-    let refused: Promise<unknown> | undefined;
     act(() => {
       // biome-ignore lint/style/noNonNullAssertion: asserted by the waitFor above
-      refused = captured.handle!.dangerouslySendWithoutInput({
-        facilityId: "LaunchPad",
-      });
+      void captured
+        .handle!.dangerouslySendWithoutInput({ facilityId: "LaunchPad" })
+        .catch(() => undefined);
     });
-    await expect(refused).rejects.toMatchObject({
-      code: "E_REFUSED",
-      errorCode: "insufficientFunds",
-      detail: "short of funds",
-    });
-    expect(fixture.transport.sentCommands).toHaveLength(0);
+    expect(fixture.transport.sentCommands).toHaveLength(1);
 
     act(() => {
       // biome-ignore lint/style/noNonNullAssertion: asserted by the waitFor above
@@ -2069,7 +2269,7 @@ describe("useCommand gate", () => {
         .handle!.dangerouslySendWithoutInput({ facilityId: "Runway" })
         .catch(() => undefined);
     });
-    expect(fixture.transport.sentCommands).toHaveLength(1);
+    expect(fixture.transport.sentCommands).toHaveLength(2);
     // Holds the scope open across the stub's answer, which settles after the body.
     await act(async () => {});
   });

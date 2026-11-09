@@ -153,8 +153,10 @@ describe("Administration Building with an eligibility it could not read", () => 
     const locked = await openTab("Locked");
     expect(within(locked).getByText("Patriotism Drive")).toBeInTheDocument();
     expect(
-      within(locked).getByText(/Requires more reputation/i),
-    ).toBeInTheDocument();
+      within(locked).getByRole("button", { name: "Activate" }),
+    ).toHaveAccessibleDescription(
+      /likely to be refused: requires more reputation/i,
+    );
   });
 
   it("keeps an unanswered strategy OUT of Locked", async () => {
@@ -299,8 +301,10 @@ describe("Administration Building with a verdict derived off-screen", () => {
     const locked = await openTab("Locked");
     expect(within(locked).getByText("Patriotism Drive")).toBeInTheDocument();
     expect(
-      within(locked).getByText("You cannot afford this strategy."),
-    ).toBeInTheDocument();
+      within(locked).getByRole("button", { name: "Activate" }),
+    ).toHaveAccessibleDescription(
+      /likely to be refused: you cannot afford this strategy/i,
+    );
     expect(visibleText()).not.toContain("Eligibility unknown");
   });
 
@@ -325,8 +329,8 @@ describe("Administration Building with a verdict derived off-screen", () => {
     refuseActivation(fixture, "DerivedYes", "the strategy is not eligible");
     await waitFor(() =>
       expect(getButtonDescribedBy(/not eligible/)).toHaveAttribute(
-        "aria-disabled",
-        "true",
+        "data-predicted",
+        "at-risk",
       ),
     );
   });
@@ -379,10 +383,10 @@ describe("Administration Building committing a strategy the roster left unanswer
     const activate = await findButtonDescribedBy(
       /another mod changes how a strategy activates/,
     );
-    expect(activate).toHaveAttribute("aria-disabled", "true");
+    expect(activate).toHaveAttribute("data-predicted", "at-risk");
   });
 
-  it("keeps a derived refusal dark whatever the roster says", async () => {
+  it("keeps a derived refusal advised, never withheld, whatever the roster says", async () => {
     const fixture = newFixture();
     renderStrategies(fixture);
     emitCareer(
@@ -400,7 +404,9 @@ describe("Administration Building committing a strategy the roster left unanswer
 
     const locked = await openTab("Locked");
     expect(within(locked).getByText("Orbital Logistics")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Activate" })).toBeNull();
+    expect(
+      within(locked).getByRole("button", { name: "Activate" }),
+    ).toHaveAttribute("data-predicted", "at-risk");
   });
 
   it("marks the price short on a row the career cannot afford, and leaves the factor's cost to the command", async () => {

@@ -16,7 +16,7 @@ interface ControlTogglesProps {
     control: CommandControlState;
     handle: CommandButtonHandle;
   } | null;
-  /** Why SAS cannot be turned on, or null when it can; the toggle is held and says so. */
+  /** Why SAS is likely to refuse being turned on, or null when it is not; the toggle says so and still sends. */
   sasUnavailableReason: string | null;
 }
 
@@ -34,7 +34,7 @@ export function ControlToggles({
 }: ControlTogglesProps) {
   return (
     <>
-      {disabled && <Notice>Vessel not controllable: buttons disabled.</Notice>}
+      {disabled && <Notice>Vessel not controllable.</Notice>}
       <div style={TOGGLE_ROW}>
         <ToggleButton command={sas.control} size="sm" style={TOGGLE_CELL} />
         <ToggleButton command={rcs.control} size="sm" style={TOGGLE_CELL} />

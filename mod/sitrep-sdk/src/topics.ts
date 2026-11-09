@@ -205,8 +205,33 @@ export interface SystemUplinkPendingTopicPayloadMap {
  * control that would be refused.
  */
 export interface SystemUplinkGatesTopicPayloadMap {
-  /** Each gated command and whether it would be accepted now. */
+  /** Each instant gated command and whether it would be accepted now, and each gated channel. */
   "system.uplink.gates": CommandGateReport;
+}
+
+/**
+ * `system.uplink.gates.home`: the verdicts of the delayed commands that act on
+ * what the home command holds, the career orders. They reach a command centre
+ * after its delay to home, as the career figures beside them do, so a control
+ * never knows more than the figures it sits next to. `ChannelEngine` declares it
+ * directly, so like `system.uplink.gates` it is hand-mapped here. Useful for
+ * advising the operator that a delayed career command is likely to be refused.
+ */
+export interface SystemUplinkGatesHomeTopicPayloadMap {
+  /** Each delayed career command and whether it would be accepted, as the home command stood. */
+  "system.uplink.gates.home": CommandGateReport;
+}
+
+/**
+ * `system.uplink.gates.craft`: the verdicts of every other delayed command,
+ * which reach a command centre after its delay to the active craft, as the
+ * telemetry those commands act on does. `ChannelEngine` declares it directly, so
+ * like `system.uplink.gates` it is hand-mapped here. Useful for advising the
+ * operator that a delayed vessel command is likely to be refused.
+ */
+export interface SystemUplinkGatesCraftTopicPayloadMap {
+  /** Each delayed vessel command and whether it would be accepted, as the craft stood. */
+  "system.uplink.gates.craft": CommandGateReport;
 }
 
 /**
@@ -296,6 +321,8 @@ interface SdkOwnedTopicPayloadMap
     SystemUplinksTopicPayloadMap,
     SystemUplinkPendingTopicPayloadMap,
     SystemUplinkGatesTopicPayloadMap,
+    SystemUplinkGatesHomeTopicPayloadMap,
+    SystemUplinkGatesCraftTopicPayloadMap,
     SystemUplinkDelaysTopicPayloadMap,
     SystemUnitsTopicPayloadMap,
     SystemChannelsTopicPayloadMap,
@@ -366,6 +393,8 @@ export const TOPIC_IDS = [
   "system.uplinks",
   "system.uplink.pending",
   "system.uplink.gates",
+  "system.uplink.gates.home",
+  "system.uplink.gates.craft",
   "system.uplink.delays",
   "system.units",
   "system.channels",

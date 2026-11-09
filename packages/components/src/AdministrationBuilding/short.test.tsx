@@ -96,9 +96,13 @@ describe("Administration Building short form", () => {
     expect(
       screen.getByRole("button", { name: /^Deactivate$/ }),
     ).toBeInTheDocument();
+    // The available row's Activate and the locked row's advised one.
+    expect(screen.getAllByRole("button", { name: /^Activate$/ })).toHaveLength(
+      2,
+    );
     expect(
-      screen.getByRole("button", { name: /^Activate$/ }),
-    ).toBeInTheDocument();
+      document.querySelectorAll('[data-predicted="at-risk"]'),
+    ).toHaveLength(1);
     // The effects wait behind the name.
     expect(screen.queryByText(/Funds Off on Launch Costs/)).toBeNull();
   });

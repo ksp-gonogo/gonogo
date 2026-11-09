@@ -77,3 +77,9 @@ export function capReason(
     names.length === 1 ? last : `${names.slice(0, -1).join(", ")} or ${last}`;
   return `${limit} is reached. Deactivate ${list} to make room.`;
 }
+
+/** A blocked reason as the clause a control's advice carries: lower case at the start, no closing full stop. */
+export function adviceClause(reason: string): string {
+  const trimmed = reason.trim().replace(/\.+$/, "");
+  return trimmed === "" ? trimmed : trimmed[0].toLowerCase() + trimmed.slice(1);
+}

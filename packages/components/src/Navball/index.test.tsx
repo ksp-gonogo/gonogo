@@ -137,7 +137,7 @@ describe("NavballComponent", () => {
     ).toBeInTheDocument();
   });
 
-  it("holds the SAS toggle and says why when the craft cannot engage SAS", async () => {
+  it("advises on the SAS toggle and still sends when the craft cannot engage SAS", async () => {
     const { fixture } = renderNavball();
     emitReads(fixture, {
       control: {
@@ -148,13 +148,22 @@ describe("NavballComponent", () => {
       },
     });
     const toggle = await screen.findByRole("button", { name: "SAS OFF" });
-    expect(isDisabled(toggle)).toBe(true);
+    expect(isDisabled(toggle)).toBe(false);
+    expect(toggle).toHaveAttribute("data-predicted", "at-risk");
     expect(toggle).toHaveAttribute(
       "data-tooltip",
-      "No SAS: needs a Pilot aboard or a probe core with SAS",
+      "Toggle SAS likely to be refused: No SAS: needs a Pilot aboard or a probe core with SAS.",
     );
     expect(screen.getByRole("note")).toHaveTextContent(
       "No SAS: needs a Pilot aboard",
+    );
+    await userEvent.setup().click(toggle);
+    await waitFor(() =>
+      expect(
+        fixture.transport.sentCommands.find(
+          (c) => c.command === "vessel.control.setSas",
+        )?.args,
+      ).toEqual({ enabled: true }),
     );
   });
 
@@ -185,7 +194,7 @@ describe("NavballComponent", () => {
     });
   });
 
-  it("holds a SAS mode button the craft cannot hold and sends nothing on a press", async () => {
+  it("advises on a SAS mode button the craft cannot hold and still sends on a press", async () => {
     const user = userEvent.setup();
     const { fixture } = renderNavball({ controlMode: true }, CONTROL_SIZE);
     openSections();
@@ -195,16 +204,22 @@ describe("NavballComponent", () => {
       control: { sas: true, sasMode: 0, sasModesAvailable: [0, 1, 2] },
     });
     const maneuver = await screen.findByRole("button", { name: /^MNV$/ });
-    expect(isDisabled(maneuver)).toBe(true);
-    expect(isDisabled(screen.getByRole("button", { name: /^PRO$/ }))).toBe(
-      false,
+    expect(isDisabled(maneuver)).toBe(false);
+    expect(maneuver).toHaveAttribute("data-predicted", "at-risk");
+    expect(maneuver).toHaveAttribute(
+      "data-tooltip",
+      "SAS mode: Maneuver likely to be refused: the craft cannot hold this mode.",
     );
+    const pro = screen.getByRole("button", { name: /^PRO$/ });
+    expect(pro).not.toHaveAttribute("data-predicted");
     await user.click(maneuver);
-    expect(
-      fixture.transport.sentCommands.find(
-        (c) => c.command === "vessel.control.setSasMode",
-      ),
-    ).toBeUndefined();
+    await waitFor(() =>
+      expect(
+        fixture.transport.sentCommands.find(
+          (c) => c.command === "vessel.control.setSasMode",
+        )?.args,
+      ).toEqual({ mode: 9 }),
+    );
   });
 
   it("offers every SAS mode while the craft does not say which it can hold", async () => {
@@ -219,7 +234,8 @@ describe("NavballComponent", () => {
     ).toBe(false);
   });
 
-  it("disables control buttons when isControllable is false", async () => {
+  it("advises on control buttons and still sends when isControllable is false", async () => {
+    const user = userEvent.setup();
     const { fixture } = renderNavball({ controlMode: true }, CONTROL_SIZE);
     openSections();
     // ControlState.None (0) collapses to not-controllable.
@@ -228,7 +244,29 @@ describe("NavballComponent", () => {
       /Vessel not controllable/i,
     );
     const proButton = screen.getByRole("button", { name: /^PRO$/ });
-    expect(isDisabled(proButton)).toBe(true);
+    expect(isDisabled(proButton)).toBe(false);
+    expect(proButton).toHaveAttribute("data-predicted", "at-risk");
+    expect(proButton).toHaveAttribute(
+      "data-tooltip",
+      "SAS mode: Prograde likely to be refused: the vessel is not controllable.",
+    );
+    for (const name of [/^ZERO$/, /^FULL$/, /Arm FBW/]) {
+      const button = screen.getByRole("button", { name });
+      expect(isDisabled(button)).toBe(false);
+      expect(button).toHaveAttribute("data-predicted", "at-risk");
+    }
+    expect(screen.getByRole("slider", { name: "Throttle" })).toHaveAttribute(
+      "data-predicted",
+      "at-risk",
+    );
+    await user.click(proButton);
+    await waitFor(() =>
+      expect(
+        fixture.transport.sentCommands.find(
+          (c) => c.command === "vessel.control.setSasMode",
+        )?.args,
+      ).toEqual({ mode: 1 }),
+    );
   });
 
   it("arms FBW on click and disarms on unmount", async () => {

@@ -112,6 +112,7 @@ describe("NodeRow delete control, in every phase", () => {
   it("when the game will refuse it keeps its name, gives the reason to focus and to a screen reader, and is not pressable", async () => {
     const { container, remove, redraw } = mount("hold");
     remove.patch({
+      gateStopsPress: true,
       gate: {
         blocked: true,
         undetermined: false,

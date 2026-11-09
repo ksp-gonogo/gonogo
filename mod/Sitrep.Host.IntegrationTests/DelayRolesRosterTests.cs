@@ -59,7 +59,7 @@ namespace Sitrep.Host.IntegrationTests
                 var heldAtHome = Strings(roles.RootElement, "heldAtHome");
                 Assert.Contains(DelayRolesTestUplink.LinkTrueNowTopic, trueNow);
                 Assert.Contains(DelayRolesTestUplink.SecondTrueNowTopic, trueNow);
-                Assert.Equal(new[] { DelayRolesTestUplink.HeldAtHomeTopic }, heldAtHome);
+                Assert.Equal(new[] { ChannelEngine.UplinkGatesHomeTopic, DelayRolesTestUplink.HeldAtHomeTopic }, heldAtHome);
                 Assert.Equal(new[] { DelayRolesTestUplink.HeldPrefix }, Strings(roles.RootElement, "heldAtHomePrefixes"));
                 Assert.DoesNotContain(DelayRolesTestUplink.HeldAtHomeTopic, trueNow);
                 Assert.DoesNotContain(DelayRolesTestUplink.DelayedTopic, trueNow.Concat(heldAtHome));

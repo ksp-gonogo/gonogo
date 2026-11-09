@@ -172,9 +172,10 @@ export function RoboticsConsoleView({
                 unavailable={
                   selected.motorEngaged === null
                     ? "The motor state is not reported"
-                    : selected.motorized === false
-                      ? "This part has no motor"
-                      : null
+                    : null
+                }
+                advise={
+                  selected.motorized === false ? "this part has no motor" : null
                 }
                 marking={flagsMarked}
               >

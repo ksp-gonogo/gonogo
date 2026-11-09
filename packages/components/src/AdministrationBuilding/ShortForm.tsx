@@ -11,6 +11,7 @@ import {
 import type { ReactNode } from "react";
 import { StrategyCost } from "./AvailableRow";
 import { activationFactor } from "./parsing";
+import { adviceClause } from "./partition";
 import { StrategyName } from "./styles";
 import type { Strategy } from "./types";
 
@@ -118,19 +119,24 @@ export function ShortRow({
           />
         )}
       </Row>
-      {!drawsOwnActions && offersActivate && sentFactor !== null && (
-        <Button
-          command={activateCmd.with(
-            { strategyId: s.id, factor: sentFactor },
-            { label: `Activate ${s.title}` },
-          )}
-          variant="ghost"
-          size="sm"
-          confirmLabel="Confirm activate"
-        >
-          Activate
-        </Button>
-      )}
+      {!drawsOwnActions &&
+        (offersActivate || state.kind === "locked") &&
+        sentFactor !== null && (
+          <Button
+            command={activateCmd.with(
+              { strategyId: s.id, factor: sentFactor },
+              { label: `Activate ${s.title}` },
+            )}
+            variant="ghost"
+            size="sm"
+            confirmLabel="Confirm activate"
+            advise={
+              state.kind === "locked" ? adviceClause(state.reason) : undefined
+            }
+          >
+            Activate
+          </Button>
+        )}
       {!drawsOwnActions && state.kind === "active" && (
         <Button
           command={deactivateCmd.with(
