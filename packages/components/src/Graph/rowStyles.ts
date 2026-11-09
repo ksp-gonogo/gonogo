@@ -7,3 +7,11 @@ export const ROW: CSSProperties = {
   alignItems: "center",
   marginBottom: "var(--gap-related-compact)",
 };
+
+export const REMOVE_BUTTON: CSSProperties = {
+  color: "var(--color-text-dim)",
+  fontSize: "var(--font-size-lg)",
+  lineHeight: "var(--line-height-flush)",
+  padding: "var(--inset-glyph)",
+  flexShrink: 0,
+};

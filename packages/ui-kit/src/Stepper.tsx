@@ -1,7 +1,6 @@
 import type { ValueCommand } from "@ksp-gonogo/sitrep-sdk";
 import { type ReactNode, useId } from "react";
 import styled from "styled-components";
-import { IconButton } from "./Button";
 import {
   type CommandEdgeAttributes,
   useCommandInput,
@@ -312,14 +311,14 @@ function StepperView<Option>({
   return (
     <Tooltip text={tip}>
       <Stepper__Body data-testid={testId}>
-        <IconButton
+        <Stepper__Step
           type="button"
           aria-label={`Decrease ${label}`}
           onClick={() => land(toward(-1))}
           {...stepState(disabled || atStart, reasonId, tip)}
         >
           −
-        </IconButton>
+        </Stepper__Step>
         <Stepper__Value
           {...edge}
           role="spinbutton"
@@ -392,14 +391,14 @@ function StepperView<Option>({
           )}
           {trailing}
         </Stepper__Value>
-        <IconButton
+        <Stepper__Step
           type="button"
           aria-label={`Increase ${label}`}
           onClick={() => land(toward(1))}
           {...stepState(disabled || atEnd, reasonId, tip)}
         >
           +
-        </IconButton>
+        </Stepper__Step>
         {tip !== undefined && (
           <VisuallyHidden id={reasonId}>{tip}</VisuallyHidden>
         )}
@@ -416,6 +415,42 @@ const Stepper__Body = styled.div`
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: var(--gap-stepper);
+`;
+
+const Stepper__Step = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--size-stepper-button);
+  font-family: inherit;
+  font-size: var(--font-size-compact);
+  font-weight: 600;
+  line-height: var(--line-height-flush);
+  padding: var(--inset-stepper);
+  border-radius: var(--radius-regular);
+  cursor: pointer;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-muted);
+
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      border-color: var(--color-text-faint);
+      color: var(--color-text-primary);
+    }
+  }
+
+  ${focusRing}
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  @media (pointer: coarse) {
+    min-height: var(--touch-target);
+    min-width: var(--touch-target);
+  }
 `;
 
 const Stepper__Value = styled.div`

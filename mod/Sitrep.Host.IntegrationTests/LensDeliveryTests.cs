@@ -198,7 +198,6 @@ namespace Sitrep.Host.IntegrationTests
                 {
                     Kind = SampleKind.Continuous,
                     Delivery = Delivery.LossyLatest,
-                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.Delayed,
                     PerLensNode = true,
                     LensSiteForKey = key => key switch

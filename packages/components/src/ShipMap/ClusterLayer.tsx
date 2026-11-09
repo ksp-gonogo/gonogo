@@ -412,11 +412,13 @@ function ClusterPopover({
         ))}
       </svg>
       {pinned && (
-        <span style={{ position: "absolute", top: 4 * k, right: 6 * k }}>
-          <IconButton aria-label="Close the expanded parts" onClick={onClose}>
-            <CloseIcon />
-          </IconButton>
-        </span>
+        <IconButton
+          aria-label="Close the expanded parts"
+          onClick={onClose}
+          style={{ position: "absolute", top: 4 * k, right: 6 * k }}
+        >
+          <CloseIcon />
+        </IconButton>
       )}
     </Floating>
   );

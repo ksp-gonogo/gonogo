@@ -1,6 +1,6 @@
 import { useCommand } from "@ksp-gonogo/sitrep-client";
 import { CloseIcon } from "@ksp-gonogo/ui";
-import { IconButton } from "@ksp-gonogo/ui-kit";
+import { Button } from "@ksp-gonogo/ui-kit";
 import { type FleetVessel, hasEnded } from "./fleet";
 
 /** What takes a destroyed craft off this command centre's catalog. */
@@ -26,12 +26,14 @@ export function DismissEnded({
 }) {
   if (!hasEnded(vessel) || onDismiss === undefined) return null;
   return (
-    <IconButton
+    <Button
       type="button"
+      size="sm"
+      variant="ghost"
       onClick={() => onDismiss(vessel)}
       aria-label={`Dismiss ${vessel.name} from the catalog`}
     >
       <CloseIcon size={12} />
-    </IconButton>
+    </Button>
   );
 }

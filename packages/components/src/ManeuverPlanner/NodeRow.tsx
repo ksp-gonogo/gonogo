@@ -7,8 +7,14 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { CloseIcon, PencilIcon } from "@ksp-gonogo/ui";
-import { Countdown, IconButton, Tooltip, Unit } from "@ksp-gonogo/ui-kit";
-import type { CSSProperties } from "react";
+import {
+  Button,
+  Countdown,
+  IconButton,
+  Tooltip,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
+import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
 import { useEffect, useState } from "react";
 import type { BurnInstants } from "./burnFlown";
 import type { ThrustObservation } from "./conformance";
@@ -160,16 +166,17 @@ export function NodeRow({
       </div>
       <div style={ROW_ACTIONS_STYLE}>
         {editable && (
-          <IconButton
+          <StepButton
             type="button"
+            $active={editing}
             onClick={() => setEditing((v) => !v)}
             aria-label={editing ? "Close editor" : "Edit node"}
           >
             <PencilIcon size={12} />
-          </IconButton>
+          </StepButton>
         )}
         {onDelete && (
-          <IconButton
+          <Button
             type="button"
             onClick={onDelete}
             disabled={deleteDisabled}
@@ -177,7 +184,7 @@ export function NodeRow({
             aria-label="Delete node"
           >
             <CloseIcon size={12} />
-          </IconButton>
+          </Button>
         )}
       </div>
       {editing && editable && onEdit && (
@@ -319,6 +326,45 @@ const ROW_ACTIONS_STYLE: CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: "var(--gap-related)",
+};
+
+function StepButton({
+  $active,
+  ...rest
+}: Readonly<
+  ButtonHTMLAttributes<HTMLButtonElement> & {
+    $active: boolean;
+    children?: ReactNode;
+  }
+>) {
+  return (
+    <IconButton
+      style={$active ? STEP_BUTTON_ACTIVE : STEP_BUTTON_INACTIVE}
+      {...rest}
+    />
+  );
+}
+
+const STEP_BUTTON_BASE: CSSProperties = {
+  border: "1px solid var(--color-border-subtle)",
+  color: "var(--color-text-muted)",
+  width: 22,
+  height: 22,
+  borderRadius: "var(--radius-regular)",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: 0,
+};
+
+const STEP_BUTTON_ACTIVE: CSSProperties = {
+  ...STEP_BUTTON_BASE,
+  background: "var(--color-surface-raised)",
+};
+
+const STEP_BUTTON_INACTIVE: CSSProperties = {
+  ...STEP_BUTTON_BASE,
+  background: "transparent",
 };
 
 const EDIT_PANEL_STYLE: CSSProperties = {

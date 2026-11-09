@@ -1,9 +1,9 @@
 import { railTagsForCommand } from "@ksp-gonogo/sitrep-sdk";
 import { ArrowRightIcon, CloseIcon } from "@ksp-gonogo/ui";
 import {
+  Button,
   CommandList,
   type CommandLossEntry,
-  IconButton,
   Row,
   Stack,
   Text,
@@ -51,7 +51,7 @@ export function ArmedTriggersList({
               {t.failure && <FiredTriggerFailure failure={t.failure} />}
             </div>
             {!t.sent && (
-              <IconButton
+              <Button
                 type="button"
                 disabled={disabledReason !== undefined}
                 disabledReason={disabledReason}
@@ -61,7 +61,7 @@ export function ArmedTriggersList({
                 }
               >
                 <CloseIcon size={12} />
-              </IconButton>
+              </Button>
             )}
           </Row>
         );

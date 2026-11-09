@@ -7,7 +7,6 @@ import {
   useState,
 } from "react";
 import styled from "styled-components";
-import { IconButton } from "./Button";
 import {
   ComboboxListbox,
   type ComboboxOption,
@@ -257,18 +256,16 @@ export function DataKeyPicker({
         </RetiredNote>
       )}
       {clearable && value && !open && (
-        <ClearSlot>
-          <IconButton
-            type="button"
-            aria-label={`Clear ${subjectNoun}`}
-            onClick={() => {
-              onChange(null);
-              closePicker();
-            }}
-          >
-            ×
-          </IconButton>
-        </ClearSlot>
+        <ClearButton
+          type="button"
+          aria-label={`Clear ${subjectNoun}`}
+          onClick={() => {
+            onChange(null);
+            closePicker();
+          }}
+        >
+          ×
+        </ClearButton>
       )}
       {open && (
         <ComboboxListbox
@@ -330,22 +327,36 @@ const PickerInput = styled.input<{ $hasValue: boolean; $retired?: boolean }>`
   }
 `;
 
-/**
- * Sits under the input rather than replacing its text, so the operator can
- * still read which key went missing.
- */
-const ClearSlot = styled.span`
+const ClearButton = styled.button`
   position: absolute;
   right: 6px;
   top: 50%;
   transform: translateY(-50%);
-  display: inline-flex;
+  background: none;
+  border: none;
+  color: var(--color-text-dim);
+  cursor: pointer;
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-flush);
+  padding: var(--inset-glyph-tight);
+
+  &:hover {
+    color: var(--color-text-primary);
+  }
+
+  ${focusRing}
 
   @media (pointer: coarse) {
+    min-width: var(--touch-target);
+    min-height: var(--touch-target);
     right: 0;
   }
 `;
 
+/**
+ * Sits under the input rather than replacing its text, so the operator can
+ * still read which key went missing.
+ */
 const RetiredNote = styled.div`
   color: var(--color-nogo-text);
   font-size: var(--font-size-compact);

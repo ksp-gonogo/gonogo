@@ -28,7 +28,6 @@ import {
 import {
   Card,
   Cluster,
-  IconButton,
   MissionDate,
   SectionTitle,
   Stack,
@@ -803,7 +802,7 @@ export function AlarmsModal({
                         // biome-ignore lint/suspicious/noArrayIndexKey: action keys can repeat (operator may queue the same action twice); position is the only stable identity
                         <FireChip key={`${fx.action}-${i}`}>
                           <code>{fx.action}</code>
-                          <IconButton
+                          <FireRemoveButton
                             type="button"
                             aria-label={`Remove ${fx.action} from ${a.name}`}
                             onClick={() => {
@@ -814,7 +813,7 @@ export function AlarmsModal({
                             }}
                           >
                             ×
-                          </IconButton>
+                          </FireRemoveButton>
                         </FireChip>
                       ))}
                     </FireList>
@@ -1468,13 +1467,13 @@ function OnFireEditor({
               <FireChip key={`${fx.action}-${i}`}>
                 <code>{fx.action}</code>
                 {meta && <FireMeta>{meta.name}</FireMeta>}
-                <IconButton
+                <FireRemoveButton
                   type="button"
                   aria-label={`Remove ${fx.action}`}
                   onClick={() => onRemove(i)}
                 >
                   ×
-                </IconButton>
+                </FireRemoveButton>
               </FireChip>
             );
           })}
@@ -1728,6 +1727,25 @@ const FireChip = styled.span`
 const FireMeta = styled.span`
   color: var(--color-text-dim);
   font-size: var(--font-size-compact);
+`;
+
+const FireRemoveButton = styled.button`
+  background: transparent;
+  border: none;
+  color: var(--color-text-dim);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-flush);
+  padding: var(--inset-glyph-tight);
+  cursor: pointer;
+  &:hover {
+    color: var(--color-nogo-text);
+  }
+  &:focus-visible {
+    /* 1px, not the 2px house value, and off the spacing ladder either way:
+       this is WCAG indicator geometry, not an inconsistency to normalise. */
+    outline: 2px solid var(--color-nogo-mark);
+    outline-offset: 1px;
+  }
 `;
 
 const PickerRow = styled.div`

@@ -82,43 +82,6 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void A_channel_with_no_emission_is_refused_and_never_registers()
-        {
-            var engine = new ChannelEngine("ws://127.0.0.1:0");
-            var channel = Channel("quiet.topic");
-            channel.Emission = null!;
-            var uplink = new TestUplink(new UplinkManifest
-            {
-                Id = "quiet",
-                Version = "1.0.0",
-                Channels = new List<ChannelDeclaration> { channel },
-                Commands = new List<CommandDeclaration>(),
-            });
-
-            engine.RegisterUplink(uplink);
-
-            var refused = engine.AvailabilityOf("quiet");
-            Assert.False(refused.IsAvailable);
-            Assert.Contains("channel \"quiet.topic\" declares no Emission", refused.Reason);
-            Assert.False(uplink.Registered);
-        }
-
-        [Fact]
-        public void A_namespace_with_no_emission_is_refused_when_it_is_declared()
-        {
-            var engine = new ChannelEngine("ws://127.0.0.1:0");
-            var template = Channel("");
-            template.Emission = null!;
-            var uplink = new TestUplink(Manifest("quiet"), host => host.RegisterDynamicNamespace("quiet.", template));
-
-            engine.RegisterUplink(uplink);
-
-            var refused = engine.AvailabilityOf("quiet");
-            Assert.False(refused.IsAvailable);
-            Assert.Contains("namespace \"quiet.\" declares no Emission", refused.Reason);
-        }
-
-        [Fact]
         public void A_topic_the_engine_declares_itself_is_refused_to_an_uplink()
         {
             var engine = new ChannelEngine("ws://127.0.0.1:0");

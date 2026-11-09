@@ -1,4 +1,5 @@
 import { IconButton, InfoIcon, Tooltip } from "@ksp-gonogo/ui-kit";
+import styled from "styled-components";
 import { requestSettings } from "./settingsRequest";
 
 /**
@@ -10,14 +11,30 @@ import { requestSettings } from "./settingsRequest";
 export function HelpButton() {
   return (
     <Tooltip text="Help and keyboard shortcuts (Ctrl/Cmd+/)">
-      <IconButton
+      <HelpButton__Button
         type="button"
         aria-label="Help and keyboard shortcuts"
         aria-keyshortcuts="Control+/ Meta+/"
         onClick={() => requestSettings("help")}
       >
         <InfoIcon />
-      </IconButton>
+      </HelpButton__Button>
     </Tooltip>
   );
 }
+
+const HelpButton__Button = styled(IconButton)`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-primary);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-regular);
+
+  @media (hover: hover) {
+    &:hover {
+      background: var(--color-border-subtle);
+    }
+  }
+`;

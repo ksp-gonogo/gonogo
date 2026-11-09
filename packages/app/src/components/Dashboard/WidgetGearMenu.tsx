@@ -7,7 +7,7 @@ import {
   useSerialDeviceService,
 } from "@ksp-gonogo/serial";
 import { SettingsIcon, Tabs, useModal } from "@ksp-gonogo/ui";
-import { IconButton, Tooltip } from "@ksp-gonogo/ui-kit";
+import { Tooltip } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
 import type { DashboardItem } from "./index";
@@ -82,13 +82,13 @@ export function GearButton({
 
   return (
     <Tooltip text="Configure">
-      <IconButton
+      <GearBtn
         onMouseDown={handleMouseDown}
         onClick={handleClick}
         aria-label={`Configure ${def.name}`}
       >
         <SettingsIcon size="var(--icon-size-control)" />
-      </IconButton>
+      </GearBtn>
     </Tooltip>
   );
 }
@@ -170,3 +170,17 @@ export const GearWrapper = styled.div``;
    --control-height the full inset name is defined against. Its horizontal
    grows a rung to join them, 2 to 4, so the tray reads as one set. See the
    note over RemoveBtn in shared.tsx. */
+const GearBtn = styled.button`
+  pointer-events: all;
+  background: none;
+  border: none;
+  color: var(--color-text-faint);
+  cursor: pointer;
+  line-height: var(--line-height-flush);
+  padding: var(--inset-control-compact);
+  ${touchTarget}
+
+  &:hover {
+    color: var(--color-text-muted);
+  }
+`;

@@ -335,35 +335,34 @@ export function ContractsObjectiveSource({ Section }: ObjectiveSourceContext) {
             : `Alarm me when "${o.title}" completes`
         }
       >
-        <span style={ALARM_BELL}>
-          <IconButton
-            type="button"
-            aria-pressed={isSet}
-            aria-label={
-              isSet
-                ? `Clear alarm for ${o.title}`
-                : `Set alarm for ${o.title} completion`
+        <IconButton
+          type="button"
+          style={ALARM_BELL}
+          aria-pressed={isSet}
+          aria-label={
+            isSet
+              ? `Clear alarm for ${o.title}`
+              : `Set alarm for ${o.title} completion`
+          }
+          onClick={() => {
+            if (isSet && existingId && alarmManager) {
+              alarmManager.remove(existingId);
+              return;
             }
-            onClick={() => {
-              if (isSet && existingId && alarmManager) {
-                alarmManager.remove(existingId);
-                return;
-              }
-              createAlarm({
-                name: `${o.title} → Complete`,
-                trigger: {
-                  kind: "contract-parameter",
-                  contractId,
-                  parameterTitle: o.title,
-                  targetState: "Complete",
-                  sustainSeconds: 0,
-                },
-              });
-            }}
-          >
-            <BellIcon size={12} />
-          </IconButton>
-        </span>
+            createAlarm({
+              name: `${o.title} → Complete`,
+              trigger: {
+                kind: "contract-parameter",
+                contractId,
+                parameterTitle: o.title,
+                targetState: "Complete",
+                sustainSeconds: 0,
+              },
+            });
+          }}
+        >
+          <BellIcon size={12} />
+        </IconButton>
       </Tooltip>
     );
   };

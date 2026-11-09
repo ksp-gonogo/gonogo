@@ -161,7 +161,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/serial/src/InputTester/index.tsx": 2,
   },
   /**
-   * 59 across 31 files. Two thirds are display-tier sizes above the
+   * 61 across 33 files. Two thirds are display-tier sizes above the
    * scale's `lg` ceiling (18/20/22/24/28px readouts) and fluid `clamp()`
    * readouts, both of which the scale stops short of on purpose. The rest
    * are sizes locked into a fixed box or a coarse-pointer calculation
@@ -185,6 +185,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/ResearchAndDevelopment/styles.ts": 3,
     "packages/components/src/WarpControl/styles.tsx": 1,
     "packages/serial/src/SerialDevicesMenu/CalibrateWizard.tsx": 1,
+    "packages/serial/src/SerialDevicesMenu/ProtocolReferenceModal.tsx": 1,
     "packages/serial/src/VirtualDevice/index.tsx": 1,
     "packages/ui-kit/src/Form.tsx": 1,
     // The FLOOR under a relative size, not a size: a time-context qualifier is
@@ -198,6 +199,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/ui-kit/src/MissionDate.tsx": 1,
     "packages/ui-kit/src/Readout.tsx": 3,
     "packages/ui-kit/src/status/PanelStatusDot.tsx": 1,
+    "packages/ui/src/FabPrompt.tsx": 1,
   },
   /**
    * 4 across 4 files. Values between the four role rungs, each paired with a

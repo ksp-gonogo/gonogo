@@ -27,7 +27,6 @@ import {
   Box,
   Button,
   CheckIcon,
-  IconButton,
   LayersIcon,
   Tooltip,
   useSizeDeltaFor,
@@ -437,9 +436,9 @@ export function ComponentOverlay({
                 }
                 aria-label="Search widgets"
               />
-              <IconButton onClick={closeOverlay} aria-label="Close">
+              <CloseBtn onClick={closeOverlay} aria-label="Close">
                 <CloseIcon size={16} />
-              </IconButton>
+              </CloseBtn>
             </SearchRow>
             {tagCounts.length > 0 && (
               <ChipRow
@@ -628,6 +627,27 @@ const SearchRow = styled.div`
   padding: var(--inset-overlay-band);
   border-bottom: 1px solid var(--color-surface-raised);
   flex-shrink: 0;
+`;
+
+const CloseBtn = styled.button`
+  background: none;
+  border: none;
+  color: var(--color-text-faint);
+  cursor: pointer;
+  padding: var(--inset-control);
+  border-radius: var(--radius-regular);
+  &:hover {
+    color: var(--color-text-primary);
+    background: var(--color-surface-raised);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-fg);
+    outline-offset: 2px;
+  }
+  @media (pointer: coarse) {
+    min-width: 44px;
+    min-height: 44px;
+  }
 `;
 
 const SearchInput = styled.input`

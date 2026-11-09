@@ -17,6 +17,28 @@ export const ReorderColumn = styled.div`
   gap: var(--gap-line);
 `;
 
+// Stacked in pairs beside a one-line note, so a full control inset would make the glyphs taller than the note they act on.
+export const ReorderBtn = styled.button`
+  background: none;
+  border: none;
+  color: var(--color-text-faint);
+  cursor: pointer;
+  padding: var(--inset-control-compact);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+  @media (hover: hover) {
+    &:not(:disabled):hover {
+      color: var(--color-text-primary);
+    }
+  }
+`;
+
 export const Body = styled.div`
   min-width: 0;
   font-size: var(--font-size-compact);
@@ -60,6 +82,22 @@ export const RowActions = styled.div`
   flex-direction: column;
   gap: var(--gap-related);
   align-items: center;
+`;
+
+export const DeleteBtn = styled.button`
+  background: none;
+  border: none;
+  color: var(--color-text-faint);
+  cursor: pointer;
+  padding: var(--inset-control-compact);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  @media (hover: hover) {
+    &:hover {
+      color: var(--color-nogo-text);
+    }
+  }
 `;
 
 export const AddRow = styled.div`
