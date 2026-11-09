@@ -3,8 +3,8 @@ info:
   title: Gonogo WebSocket API
   version: 51.0.0
   description: |-
-    The WebSocket API of the Gonogo mod: 96 telemetry channels a client
-    subscribes to and 87 commands it sends, each with its payload and what it
+    The WebSocket API of the Gonogo mod: 94 telemetry channels a client
+    subscribes to and 84 commands it sends, each with its payload and what it
     means, all over one socket.
 
     ## Frames the mod sends
@@ -3621,28 +3621,6 @@ channels:
         $ref: "#/components/messages/streamData.vessel.crew"
       event:
         $ref: "#/components/messages/event"
-  vessel.crew.transfer:
-    address: vessel.crew.transfer
-    description: |-
-      Move a kerbal to another part of the active vessel (`vessel.crew.transfer`).
-      Docked craft are one vessel, so this also moves a kerbal between them. Parts
-      are named by flight id, the id `vessel.parts` carries.
-
-      A kerbal no longer in `CrewTransferArgs.fromPartId` is refused with
-      `CommandErrorCode.WrongState`. A full destination is refused with
-      `CommandErrorCode.LimitReached`. A part crew cannot use is refused with
-      `CommandErrorCode.CapabilityMismatch`, and a move a mod keeps out with
-      `CommandErrorCode.NotClearToProceed`.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delayed: true
-    messages:
-      commandRequest:
-        $ref: "#/components/messages/commandRequest.vessel.crew.transfer"
-      commandResponse:
-        $ref: "#/components/messages/commandResponse.vessel.crew.transfer"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
   vessel.dock:
     address: vessel.dock
     title: Active vessel docking
@@ -4024,65 +4002,6 @@ channels:
         $ref: "#/components/messages/streamData.vessel.propulsion"
       event:
         $ref: "#/components/messages/event"
-  vessel.resource.transfer.start:
-    address: vessel.resource.transfer.start
-    description: |-
-      Start moving one resource between tanks of the active vessel
-      (`vessel.resource.transfer.start`), at the pace of the game's own transfer:
-      each destination fills at a twentieth of its capacity per second of game
-      time. Tanks are named by part flight id, the same id `vessel.parts` carries.
-
-      Set exactly one of `ResourceTransferStartArgs.untilFull` or
-      `ResourceTransferStartArgs.amount`. `ResourceTransferStartArgs.fromPartIds`
-      and `ResourceTransferStartArgs.toPartIds` must both be non-empty and share
-      no part, or the command fails with `CommandErrorCode.Range`. A tank that
-      cannot take part, out of `vessel.transferReach` for example, fails with
-      `CommandErrorCode.CapabilityMismatch`; a tank already in a running transfer
-      of the resource fails with `CommandErrorCode.WrongState`.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delayed: true
-    messages:
-      commandRequest:
-        $ref: "#/components/messages/commandRequest.vessel.resource.transfer.start"
-      commandResponse:
-        $ref: "#/components/messages/commandResponse.vessel.resource.transfer.start"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
-  vessel.resource.transfer.stop:
-    address: vessel.resource.transfer.stop
-    description: |-
-      Stop one resource transfer, or every one on the vessel
-      (`vessel.resource.transfer.stop`). A transfer that has already ended answers
-      success with no change. An id that was never issued fails with
-      `CommandErrorCode.NotFound`.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delayed: true
-    messages:
-      commandRequest:
-        $ref: "#/components/messages/commandRequest.vessel.resource.transfer.stop"
-      commandResponse:
-        $ref: "#/components/messages/commandResponse.vessel.resource.transfer.stop"
-      commandAccepted:
-        $ref: "#/components/messages/commandAccepted"
-  vessel.resourceTransfers:
-    address: vessel.resourceTransfers
-    title: Resource transfers
-    description: |-
-      The active vessel's resource transfers: running ones, then the last eight
-      ended, newest first. Empty when there are none.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delivery: lossy-latest
-    x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
-    x-sitrep-keyframe-interval-ut: 30
-    messages:
-      streamData:
-        $ref: "#/components/messages/streamData.vessel.resourceTransfers"
-      event:
-        $ref: "#/components/messages/event"
   vessel.resources:
     address: vessel.resources
     title: Active vessel resources
@@ -4252,27 +4171,6 @@ channels:
     messages:
       streamData:
         $ref: "#/components/messages/streamData.vessel.thermal"
-      event:
-        $ref: "#/components/messages/event"
-  vessel.transferReach:
-    address: vessel.transferReach
-    title: Transfer reach
-    description: |-
-      Which tanks of the active vessel can exchange each resource. When
-      `TransferReach.obeysCrossfeed` is false any two transferable tanks of a
-      resource can exchange. When it is true, a resource absent from
-      `TransferReach.resources` is vessel-wide; otherwise a destination can take
-      from a source only when the set the destination draws from contains the
-      source. Sets are directional, so the rule is not symmetric.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delivery: lossy-latest
-    x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
-    x-sitrep-keyframe-interval-ut: 30
-    messages:
-      streamData:
-        $ref: "#/components/messages/streamData.vessel.transferReach"
       event:
         $ref: "#/components/messages/event"
 operations:
@@ -5410,21 +5308,6 @@ operations:
       messages:
         - $ref: "#/channels/vessel.converter.stop/messages/commandResponse"
         - $ref: "#/channels/vessel.converter.stop/messages/commandAccepted"
-  dispatch:vessel.crew.transfer:
-    action: send
-    channel:
-      $ref: "#/channels/vessel.crew.transfer"
-    title: Dispatch vessel.crew.transfer
-    tags:
-      - name: vessel
-    messages:
-      - $ref: "#/channels/vessel.crew.transfer/messages/commandRequest"
-    reply:
-      channel:
-        $ref: "#/channels/vessel.crew.transfer"
-      messages:
-        - $ref: "#/channels/vessel.crew.transfer/messages/commandResponse"
-        - $ref: "#/channels/vessel.crew.transfer/messages/commandAccepted"
   dispatch:vessel.invokePartAction:
     action: send
     channel:
@@ -5485,36 +5368,6 @@ operations:
       messages:
         - $ref: "#/channels/vessel.maneuver.update/messages/commandResponse"
         - $ref: "#/channels/vessel.maneuver.update/messages/commandAccepted"
-  dispatch:vessel.resource.transfer.start:
-    action: send
-    channel:
-      $ref: "#/channels/vessel.resource.transfer.start"
-    title: Dispatch vessel.resource.transfer.start
-    tags:
-      - name: vessel
-    messages:
-      - $ref: "#/channels/vessel.resource.transfer.start/messages/commandRequest"
-    reply:
-      channel:
-        $ref: "#/channels/vessel.resource.transfer.start"
-      messages:
-        - $ref: "#/channels/vessel.resource.transfer.start/messages/commandResponse"
-        - $ref: "#/channels/vessel.resource.transfer.start/messages/commandAccepted"
-  dispatch:vessel.resource.transfer.stop:
-    action: send
-    channel:
-      $ref: "#/channels/vessel.resource.transfer.stop"
-    title: Dispatch vessel.resource.transfer.stop
-    tags:
-      - name: vessel
-    messages:
-      - $ref: "#/channels/vessel.resource.transfer.stop/messages/commandRequest"
-    reply:
-      channel:
-        $ref: "#/channels/vessel.resource.transfer.stop"
-      messages:
-        - $ref: "#/channels/vessel.resource.transfer.stop/messages/commandResponse"
-        - $ref: "#/channels/vessel.resource.transfer.stop/messages/commandAccepted"
   dispatch:vessel.target.clear:
     action: send
     channel:
@@ -6524,17 +6377,6 @@ operations:
     messages:
       - $ref: "#/channels/vessel.propulsion/messages/streamData"
       - $ref: "#/channels/vessel.propulsion/messages/event"
-  read:vessel.resourceTransfers:
-    action: receive
-    channel:
-      $ref: "#/channels/vessel.resourceTransfers"
-    title: Read vessel.resourceTransfers
-    description: Delivered only after `subscribe` names `vessel.resourceTransfers` on the session channel, which the mod answers here with an `event` named `subscribed`.
-    tags:
-      - name: vessel
-    messages:
-      - $ref: "#/channels/vessel.resourceTransfers/messages/streamData"
-      - $ref: "#/channels/vessel.resourceTransfers/messages/event"
   read:vessel.resources:
     action: receive
     channel:
@@ -6590,17 +6432,6 @@ operations:
     messages:
       - $ref: "#/channels/vessel.thermal/messages/streamData"
       - $ref: "#/channels/vessel.thermal/messages/event"
-  read:vessel.transferReach:
-    action: receive
-    channel:
-      $ref: "#/channels/vessel.transferReach"
-    title: Read vessel.transferReach
-    description: Delivered only after `subscribe` names `vessel.transferReach` on the session channel, which the mod answers here with an `event` named `subscribed`.
-    tags:
-      - name: vessel
-    messages:
-      - $ref: "#/channels/vessel.transferReach/messages/streamData"
-      - $ref: "#/channels/vessel.transferReach/messages/event"
   session.control:
     action: send
     channel:
@@ -7828,21 +7659,6 @@ components:
                 const: vessel.converter.stop
               args:
                 $ref: "#/components/schemas/ConverterSwitchArgs"
-    commandRequest.vessel.crew.transfer:
-      name: command-request
-      title: Dispatch vessel.crew.transfer
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-request` envelope for `vessel.crew.transfer`, with its typed `args`.
-        allOf:
-          - $ref: "#/components/schemas/CommandRequest"
-          - properties:
-              command:
-                const: vessel.crew.transfer
-              args:
-                $ref: "#/components/schemas/CrewTransferArgs"
     commandRequest.vessel.invokePartAction:
       name: command-request
       title: Dispatch vessel.invokePartAction
@@ -7903,36 +7719,6 @@ components:
                 const: vessel.maneuver.update
               args:
                 $ref: "#/components/schemas/UpdateManeuverNodeArgs"
-    commandRequest.vessel.resource.transfer.start:
-      name: command-request
-      title: Dispatch vessel.resource.transfer.start
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-request` envelope for `vessel.resource.transfer.start`, with its typed `args`.
-        allOf:
-          - $ref: "#/components/schemas/CommandRequest"
-          - properties:
-              command:
-                const: vessel.resource.transfer.start
-              args:
-                $ref: "#/components/schemas/ResourceTransferStartArgs"
-    commandRequest.vessel.resource.transfer.stop:
-      name: command-request
-      title: Dispatch vessel.resource.transfer.stop
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-request` envelope for `vessel.resource.transfer.stop`, with its typed `args`.
-        allOf:
-          - $ref: "#/components/schemas/CommandRequest"
-          - properties:
-              command:
-                const: vessel.resource.transfer.stop
-              args:
-                $ref: "#/components/schemas/ResourceTransferStopArgs"
     commandRequest.vessel.target.clear:
       name: command-request
       title: Dispatch vessel.target.clear
@@ -9120,19 +8906,6 @@ components:
                         anyOf:
                           - $ref: "#/components/schemas/RunStateChange"
                           - type: "null"
-    commandResponse.vessel.crew.transfer:
-      name: command-response
-      title: Reply to vessel.crew.transfer
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-response` envelope for `vessel.crew.transfer`, with its typed `result`.
-        allOf:
-          - $ref: "#/components/schemas/CommandResponse"
-          - properties:
-              result:
-                $ref: "#/components/schemas/CommandResult"
     commandResponse.vessel.invokePartAction:
       name: command-response
       title: Reply to vessel.invokePartAction
@@ -9193,45 +8966,6 @@ components:
         $ref: "#/components/correlationIds/requestId"
       payload:
         description: The `command-response` envelope for `vessel.maneuver.update`, with its typed `result`.
-        allOf:
-          - $ref: "#/components/schemas/CommandResponse"
-          - properties:
-              result:
-                $ref: "#/components/schemas/CommandResult"
-    commandResponse.vessel.resource.transfer.start:
-      name: command-response
-      title: Reply to vessel.resource.transfer.start
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-response` envelope for `vessel.resource.transfer.start`, with its typed `result`.
-        allOf:
-          - $ref: "#/components/schemas/CommandResponse"
-          - properties:
-              result:
-                description: |-
-                  A `CommandResult` that also returns a value in `payload`:
-                  `vessel.control.stage` returns the new current stage index, and
-                  `vessel.maneuver.add` returns the created node's id. `payload` is absent
-                  when `CommandResult.success` is false.
-                allOf:
-                  - $ref: "#/components/schemas/CommandResult"
-                  - type: object
-                    properties:
-                      payload:
-                        description: The value the command returns; absent on a refusal.
-                        anyOf:
-                          - $ref: "#/components/schemas/ResourceTransferStarted"
-                          - type: "null"
-    commandResponse.vessel.resource.transfer.stop:
-      name: command-response
-      title: Reply to vessel.resource.transfer.stop
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-response` envelope for `vessel.resource.transfer.stop`, with its typed `result`.
         allOf:
           - $ref: "#/components/schemas/CommandResponse"
           - properties:
@@ -10509,19 +10243,6 @@ components:
                 const: vessel.propulsion
               payload:
                 $ref: "#/components/schemas/VesselPropulsion"
-    streamData.vessel.resourceTransfers:
-      name: stream-data
-      title: A frame on vessel.resourceTransfers
-      contentType: application/json
-      payload:
-        description: The `stream-data` envelope carrying `vessel.resourceTransfers`.
-        allOf:
-          - $ref: "#/components/schemas/StreamData"
-          - properties:
-              topic:
-                const: vessel.resourceTransfers
-              payload:
-                $ref: "#/components/schemas/ResourceTransfers"
     streamData.vessel.resources:
       name: stream-data
       title: A frame on vessel.resources
@@ -10587,19 +10308,6 @@ components:
                 const: vessel.thermal
               payload:
                 $ref: "#/components/schemas/VesselThermal"
-    streamData.vessel.transferReach:
-      name: stream-data
-      title: A frame on vessel.transferReach
-      contentType: application/json
-      payload:
-        description: The `stream-data` envelope carrying `vessel.transferReach`.
-        allOf:
-          - $ref: "#/components/schemas/StreamData"
-          - properties:
-              topic:
-                const: vessel.transferReach
-              payload:
-                $ref: "#/components/schemas/TransferReach"
     subscribe:
       name: subscribe
       title: Open delivery on a topic
@@ -15998,17 +15706,6 @@ components:
           description: |-
             The `flightID` of the part this kerbal is seated in, as a string, the same
             id `vessel.parts` carries. Null when the seat could not be read.
-        movesLeavingNoControl:
-          type:
-            - array
-            - "null"
-          items:
-            type: string
-            x-sitrep-unit: id
-          description: |-
-            Parts this kerbal could move into that would leave the craft with no
-            control. The move is still allowed, since moving back restores control.
-            Empty when no move costs control. Null when it could not be worked out.
         partTitle:
           type:
             - string
@@ -16319,52 +16016,6 @@ components:
           description: |-
             Missing: KSP's own `Missing` roster status, kept separate from
             `CrewStanding.Dead`.
-    CrewTransferArgs:
-      type: object
-      description: |-
-        Move a kerbal to another part of the active vessel (`vessel.crew.transfer`).
-        Docked craft are one vessel, so this also moves a kerbal between them. Parts
-        are named by flight id, the id `vessel.parts` carries.
-
-        A kerbal no longer in `CrewTransferArgs.fromPartId` is refused with
-        `CommandErrorCode.WrongState`. A full destination is refused with
-        `CommandErrorCode.LimitReached`. A part crew cannot use is refused with
-        `CommandErrorCode.CapabilityMismatch`, and a move a mod keeps out with
-        `CommandErrorCode.NotClearToProceed`.
-      required:
-        - kerbalName
-        - fromPartId
-        - toPartId
-      properties:
-        kerbalName:
-          type: string
-          x-sitrep-unit: text
-          description: The kerbal's name, as `vessel.crew` gives it.
-        fromPartId:
-          type: string
-          x-sitrep-unit: id
-          description: The part the kerbal was last seen in.
-        toPartId:
-          type: string
-          x-sitrep-unit: id
-          description: The part to move the kerbal into.
-    CrossfeedSet:
-      type: object
-      description: One group of parts that can draw from each other by crossfeed.
-      required:
-        - id
-        - partIds
-      properties:
-        id:
-          type: number
-          x-sitrep-unit: id
-          description: Identifies this set within `TransferReach.sets`.
-        partIds:
-          type: array
-          items:
-            type: string
-            x-sitrep-unit: id
-          description: The parts in this set, as flight ids.
     DeactivateStrategyArgs:
       type: object
       description: |-
@@ -18996,25 +18647,6 @@ components:
         - const: 8
           title: VehicleAssemblyBuilding
           description: The Vehicle Assembly Building.
-    KspTankFlowMode:
-      type: integer
-      description: |-
-        KSP's `PartResource.FlowMode`: which way a single tank lets a resource move.
-        Behind `vessel.parts` tank rows.
-      x-sitrep-enum-kind: ordinal
-      oneOf:
-        - const: 0
-          title: None
-          description: The tank neither gives nor takes.
-        - const: 1
-          title: Out
-          description: The tank only gives.
-        - const: 2
-          title: In
-          description: The tank only takes.
-        - const: 3
-          title: Both
-          description: The tank gives and takes.
     LabEntry:
       type: object
       description: |-
@@ -20356,53 +19988,6 @@ components:
             cell or ISRU unit, a drill's harvest, or a generator. Never true on a row
             with a non-zero `PartResourceFlow.flow` or `PartResourceFlow.nominalFlow`,
             nor for storage alone. Absent otherwise.
-        transferable:
-          type:
-            - boolean
-            - "null"
-          x-sitrep-unit: flag
-          description: |-
-            Whether a resource transfer can move this resource in this tank: the
-            resource allows transfer, and the tank is visible and has capacity. Null on
-            topics that do not report it.
-        flowMode:
-          description: |-
-            The tank's direction limit. A tank set to `Out` cannot be filled by a
-            transfer and one set to `In` cannot be drawn from. Null on topics that do
-            not report it.
-          anyOf:
-            - $ref: "#/components/schemas/KspTankFlowMode"
-              x-sitrep-unit: enum
-            - type: "null"
-        locked:
-          type:
-            - boolean
-            - "null"
-          x-sitrep-unit: flag
-          description: |-
-            The player's flow lock on this tank. It stops engines and consumers drawing
-            from the tank, and does not stop a transfer. Null on topics that do not
-            report it.
-    PartSeats:
-      type: object
-      description: A part's seats, on `vessel.parts`.
-      required:
-        - capacity
-        - transferAvailable
-        - isExternalSeat
-      properties:
-        capacity:
-          type: number
-          x-sitrep-unit: count
-          description: How many kerbals the part can hold now. Some habitats change this in flight.
-        transferAvailable:
-          type: boolean
-          x-sitrep-unit: flag
-          description: False for a part the game keeps crew from moving into or out of.
-        isExternalSeat:
-          type: boolean
-          x-sitrep-unit: flag
-          description: True for an external command seat, which is never a source or destination.
     PartShapePose:
       type: object
       description: |-
@@ -21281,183 +20866,6 @@ components:
             distinguishable from one that is not reported. Treat a missing or `false`
             entry as "not reported", never as a zero reading. This is presence only: it
             says nothing about flow or rate.
-    ResourceTransferJob:
-      type: object
-      description: One resource transfer, running or recently ended.
-      required:
-        - id
-        - resource
-        - fromPartIds
-        - toPartIds
-        - untilFull
-        - moved
-        - state
-        - startedUt
-      properties:
-        id:
-          type: string
-          x-sitrep-unit: id
-          description: Identifies this transfer to `vessel.resource.transfer.stop`.
-        resource:
-          type: string
-          x-sitrep-unit: text
-          description: The resource's name.
-        fromPartIds:
-          type: array
-          items:
-            type: string
-            x-sitrep-unit: id
-          description: The tanks drawn from, as part flight ids.
-        toPartIds:
-          type: array
-          items:
-            type: string
-            x-sitrep-unit: id
-          description: The tanks being filled, as part flight ids.
-        untilFull:
-          type: boolean
-          x-sitrep-unit: flag
-          description: True when it runs until the destinations are full or the sources empty.
-        requested:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: units
-          description: |-
-            The amount asked for. Null exactly when `ResourceTransferJob.untilFull` is
-            true.
-        moved:
-          type: number
-          x-sitrep-unit: units
-          description: The amount the destinations have taken so far.
-        rate:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: units/s
-          description: |-
-            Total into all destinations per second of game time at the last step. Null
-            once ended.
-        state:
-          description: Whether it is still moving.
-          allOf:
-            - $ref: "#/components/schemas/TransferJobState"
-              x-sitrep-unit: enum
-        endReason:
-          description: Why it ended. Null while running.
-          anyOf:
-            - $ref: "#/components/schemas/TransferEndReason"
-              x-sitrep-unit: enum
-            - type: "null"
-        startedUt:
-          type: number
-          x-sitrep-unit: ut
-          description: The universal time it started.
-        endedUt:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: ut
-          description: The universal time it ended. Null while running.
-    ResourceTransferStartArgs:
-      type: object
-      description: |-
-        Start moving one resource between tanks of the active vessel
-        (`vessel.resource.transfer.start`), at the pace of the game's own transfer:
-        each destination fills at a twentieth of its capacity per second of game
-        time. Tanks are named by part flight id, the same id `vessel.parts` carries.
-
-        Set exactly one of `ResourceTransferStartArgs.untilFull` or
-        `ResourceTransferStartArgs.amount`. `ResourceTransferStartArgs.fromPartIds`
-        and `ResourceTransferStartArgs.toPartIds` must both be non-empty and share
-        no part, or the command fails with `CommandErrorCode.Range`. A tank that
-        cannot take part, out of `vessel.transferReach` for example, fails with
-        `CommandErrorCode.CapabilityMismatch`; a tank already in a running transfer
-        of the resource fails with `CommandErrorCode.WrongState`.
-      required:
-        - resource
-        - fromPartIds
-        - toPartIds
-        - untilFull
-      properties:
-        resource:
-          type: string
-          x-sitrep-unit: text
-          description: The resource's name, as the keys of `vessel.parts` resources give it.
-        fromPartIds:
-          type: array
-          items:
-            type: string
-            x-sitrep-unit: id
-          description: The tanks to draw from, as part flight ids.
-        toPartIds:
-          type: array
-          items:
-            type: string
-            x-sitrep-unit: id
-          description: The tanks to fill, as part flight ids.
-        untilFull:
-          type: boolean
-          x-sitrep-unit: flag
-          description: Run until the destinations are full or the sources are empty.
-        amount:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: units
-          description: |-
-            The amount to move. Required when `ResourceTransferStartArgs.untilFull` is
-            false, refused when it is true.
-    ResourceTransferStarted:
-      type: object
-      description: What `vessel.resource.transfer.start` answers with.
-      required:
-        - transferId
-      properties:
-        transferId:
-          type: string
-          x-sitrep-unit: id
-          description: The new transfer's `ResourceTransferJob.id`.
-    ResourceTransferStopArgs:
-      type: object
-      description: |-
-        Stop one resource transfer, or every one on the vessel
-        (`vessel.resource.transfer.stop`). A transfer that has already ended answers
-        success with no change. An id that was never issued fails with
-        `CommandErrorCode.NotFound`.
-      required:
-        - all
-      properties:
-        all:
-          type: boolean
-          x-sitrep-unit: flag
-          description: |-
-            Stop every running transfer. `ResourceTransferStopArgs.transferId` must then
-            be absent.
-        transferId:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: id
-          description: The transfer to stop. Required when `ResourceTransferStopArgs.all` is false.
-    ResourceTransfers:
-      type: object
-      description: |-
-        The active vessel's resource transfers: running ones, then the last eight
-        ended, newest first. Empty when there are none.
-      required:
-        - transfers
-        - meta
-      properties:
-        transfers:
-          type: array
-          items:
-            $ref: "#/components/schemas/ResourceTransferJob"
-          description: Running transfers, then recently ended ones.
-        meta:
-          description: Provenance.
-          allOf:
-            - $ref: "#/components/schemas/PayloadMeta"
     RevertAvailability:
       type: object
       description: |-
@@ -24220,24 +23628,6 @@ components:
           items:
             $ref: "#/components/schemas/BodyEntry"
           description: Every body. The tree is expressed through `BodyEntry.parentIndex`.
-    TankReach:
-      type: object
-      description: Which set one tank can draw from.
-      required:
-        - partId
-      properties:
-        partId:
-          type: string
-          x-sitrep-unit: id
-          description: The tank's part, as a flight id.
-        drawsFromSet:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: id
-          description: |-
-            The `CrossfeedSet.id` this tank can draw from. Null when it can draw only
-            from itself.
     TargetAvailable:
       type: object
       description: |-
@@ -24734,78 +24124,6 @@ components:
             snapshot of it, true at the sample instant and never the path itself, so a
             client that draws a closed ellipse from it is drawing something the craft
             will not fly.
-    TransferEndReason:
-      type: integer
-      description: Why a `ResourceTransferJob` ended.
-      x-sitrep-enum-kind: ordinal
-      oneOf:
-        - const: 0
-          title: AmountMoved
-          description: The requested amount has moved.
-        - const: 1
-          title: DestinationsFull
-          description: Every destination is full.
-        - const: 2
-          title: SourcesEmpty
-          description: Every source is empty.
-        - const: 3
-          title: Stopped
-          description: A stop command arrived.
-        - const: 4
-          title: PartsLeft
-          description: No source or no destination remains on the vessel.
-        - const: 5
-          title: VesselLeft
-          description: The active vessel no longer holds the transfer's tanks.
-        - const: 6
-          title: SceneLeft
-          description: The game left the flight scene.
-    TransferJobState:
-      type: integer
-      description: Whether a `ResourceTransferJob` is still moving.
-      x-sitrep-enum-kind: ordinal
-      oneOf:
-        - const: 0
-          title: Running
-          description: Moving now.
-        - const: 1
-          title: Ended
-          description: Finished; `ResourceTransferJob.endReason` says why.
-    TransferReach:
-      type: object
-      description: |-
-        Which tanks of the active vessel can exchange each resource. When
-        `TransferReach.obeysCrossfeed` is false any two transferable tanks of a
-        resource can exchange. When it is true, a resource absent from
-        `TransferReach.resources` is vessel-wide; otherwise a destination can take
-        from a source only when the set the destination draws from contains the
-        source. Sets are directional, so the rule is not symmetric.
-      required:
-        - obeysCrossfeed
-        - sets
-        - resources
-        - meta
-      properties:
-        obeysCrossfeed:
-          type: boolean
-          x-sitrep-unit: flag
-          description: Whether this save makes a transfer obey crossfeed.
-        sets:
-          type: array
-          items:
-            $ref: "#/components/schemas/CrossfeedSet"
-          description: Each distinct crossfeed set once.
-        resources:
-          type: object
-          additionalProperties:
-            type: array
-            items:
-              $ref: "#/components/schemas/TankReach"
-          description: By resource name, for resources whose flow limits reach.
-        meta:
-          description: Provenance.
-          allOf:
-            - $ref: "#/components/schemas/PayloadMeta"
     TransitionType:
       type: integer
       description: |-
@@ -26562,13 +25880,6 @@ components:
             `BaseAction.actionGroup` Flags bitmask decodes to). Per action, not per
             part. Empty when no action on the part is bound to any group. Derive an
             action group's human-readable caption from this.
-        seats:
-          description: |-
-            The part's seats. Null for a part with no seats, and on topics that do not
-            report them.
-          anyOf:
-            - $ref: "#/components/schemas/PartSeats"
-            - type: "null"
     VesselParts:
       type: object
       description: |-

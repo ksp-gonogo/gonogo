@@ -13321,16 +13321,8 @@
         "note": "New: a contract's prestige tier as a name table and its name type"
       },
       {
-        "key": "sitrep-sdk . KSP_TANK_FLOW_MODE_NAMES",
-        "note": "The name table for a tank's direction limit on vessel.parts"
-      },
-      {
         "key": "sitrep-sdk . KspContractPrestigeName",
         "note": "New: a contract's prestige tier as a name table and its name type"
-      },
-      {
-        "key": "sitrep-sdk . KspTankFlowModeName",
-        "note": "The name table for a tank's direction limit on vessel.parts"
       },
       {
         "key": "sitrep-sdk . LiftoffCountdown",
@@ -13627,70 +13619,6 @@
       {
         "key": "sitrep-sdk . ResolvedDeps",
         "note": "ResolvedDeps is exported from the root, since it is named in an author-facing signature"
-      },
-      {
-        "key": "sitrep-sdk . ResourceTransferModel",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . ResourceTransferModel#blockReason",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . ResourceTransferModel#held",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . ResourceTransferModel#resources",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . ResourceTransferModel#running",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . ResourceTransferModel#start",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . ResourceTransferModel#stop",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . ResourceTransferModel#tanks",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . ResourceTransferModel#titleOf",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . ResourceTransferSources",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . ResourceTransferSources#held",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . ResourceTransferSources#parts",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . ResourceTransferSources#reach",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . ResourceTransferSources#start",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . ResourceTransferSources#stop",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . ResourceTransferSources#transfers",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
       },
       {
         "key": "sitrep-sdk . SYSTEM_POSES",
@@ -14081,74 +14009,6 @@
         "note": "The Tracking Station widget's name for SystemViewVesselStatusEntry#tooltip?"
       },
       {
-        "key": "sitrep-sdk . TransferPartSource",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . TransferPick",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . TransferPick#from",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . TransferPick#resource",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . TransferPick#to",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . TransferPickState",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . TransferPickState#pick",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . TransferPickState#reset",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . TransferPickState#setRole",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . TransferRole",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . TransferTank",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . TransferTank#amount",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . TransferTank#capacity",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . TransferTank#flowMode",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . TransferTank#locked",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . TransferTank#partId",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . TransferTank#title",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
         "key": "sitrep-sdk . Transport#claimsAnswers?",
         "note": "New: a transport that is the mod's own connection says it can send a claim"
       },
@@ -14425,10 +14285,6 @@
         "note": "builds, reads or runs a bound command, for the kit's command inputs"
       },
       {
-        "key": "sitrep-sdk . canTransferBetween",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
         "key": "sitrep-sdk . clearUplinkBanner",
         "note": "New: a banner an Uplink raises in the operator's banner stack"
       },
@@ -14505,10 +14361,6 @@
         "note": "Replaces registerBarePrimitiveTopic under a name that matches what it accepts, beside registerUplinkCommand and registerUplinkHandle"
       },
       {
-        "key": "sitrep-sdk . resourceTransferModel",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
         "key": "sitrep-sdk . rotatePerifocalToInertial",
         "note": "Rotates a perifocal-frame vector into the inertial frame, now reachable from the root barrel"
       },
@@ -14557,34 +14409,6 @@
         "note": "Whether a Topic id is a member of a family, segment by segment"
       },
       {
-        "key": "sitrep-sdk . transferBlockReason",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . transferPickProblem",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . transferResourceLabel",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . transferSideLabel",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . transferStartArgs",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . transferTanks",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
-        "key": "sitrep-sdk . transferableResources",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
-      },
-      {
         "key": "sitrep-sdk . trueAnomalyFromEccentric",
         "note": "Converts an eccentric anomaly to a true one, now reachable from the root barrel"
       },
@@ -14611,10 +14435,6 @@
       {
         "key": "sitrep-sdk . useTopicClock",
         "note": "A clock and link state that follow one Topic's own arrivals, so a feed is released at the delay of the site it stands at"
-      },
-      {
-        "key": "sitrep-sdk . useTransferPick",
-        "note": "The shared rule and model for offering a resource transfer from any widget"
       },
       {
         "key": "sitrep-sdk . useValueCommand",
@@ -19865,16 +19685,8 @@
         "note": "a menu item may send a command and shows what became of it"
       },
       {
-        "key": "ui-kit . ActionMenuItem#tip?",
-        "note": "Part menus: buttons only the game can finish are listed apart, and a menu item can carry a tip"
-      },
-      {
         "key": "ui-kit . ActionMenuItem#unavailable?",
         "note": "a menu item may send a command and shows what became of it"
-      },
-      {
-        "key": "ui-kit . ArrowLeftRightIcon",
-        "note": "A small control on a row meter, and the two-way arrow it uses for transfers"
       },
       {
         "key": "ui-kit . AugmentDefinition#sizeDelta?",
@@ -20539,22 +20351,6 @@
       {
         "key": "ui-kit . EdgeCueTone",
         "note": "the two tones an edge cue's arc can take, accent or warn"
-      },
-      {
-        "key": "ui-kit . FlowChevrons",
-        "note": "FlowChevrons, the moving chevrons a flow is drawn with"
-      },
-      {
-        "key": "ui-kit . FlowChevronsProps",
-        "note": "FlowChevrons, the moving chevrons a flow is drawn with"
-      },
-      {
-        "key": "ui-kit . FlowChevronsProps#children",
-        "note": "FlowChevrons, the moving chevrons a flow is drawn with"
-      },
-      {
-        "key": "ui-kit . FlowChevronsProps#stride",
-        "note": "FlowChevrons, the moving chevrons a flow is drawn with"
       },
       {
         "key": "ui-kit . FormatQuantityOptions",
@@ -21493,50 +21289,6 @@
         "note": "the text drawn"
       },
       {
-        "key": "ui-kit . ResourceFlowRow",
-        "note": "ResourceTransferPicker and ResourceFlowRow, the shared control for moving resources between tanks"
-      },
-      {
-        "key": "ui-kit . ResourceFlowRowProps",
-        "note": "ResourceTransferPicker and ResourceFlowRow, the shared control for moving resources between tanks"
-      },
-      {
-        "key": "ui-kit . ResourceFlowRowProps#job",
-        "note": "ResourceTransferPicker and ResourceFlowRow, the shared control for moving resources between tanks"
-      },
-      {
-        "key": "ui-kit . ResourceFlowRowProps#transfer",
-        "note": "ResourceTransferPicker and ResourceFlowRow, the shared control for moving resources between tanks"
-      },
-      {
-        "key": "ui-kit . ResourceTransferPicker",
-        "note": "ResourceTransferPicker and ResourceFlowRow, the shared control for moving resources between tanks"
-      },
-      {
-        "key": "ui-kit . ResourceTransferPickerProps",
-        "note": "ResourceTransferPicker and ResourceFlowRow, the shared control for moving resources between tanks"
-      },
-      {
-        "key": "ui-kit . ResourceTransferPickerProps#form",
-        "note": "ResourceTransferPicker and ResourceFlowRow, the shared control for moving resources between tanks"
-      },
-      {
-        "key": "ui-kit . ResourceTransferPickerProps#onCancel?",
-        "note": "ResourceTransferPicker and ResourceFlowRow, the shared control for moving resources between tanks"
-      },
-      {
-        "key": "ui-kit . ResourceTransferPickerProps#onStarted?",
-        "note": "ResourceTransferPicker and ResourceFlowRow, the shared control for moving resources between tanks"
-      },
-      {
-        "key": "ui-kit . ResourceTransferPickerProps#state",
-        "note": "ResourceTransferPicker and ResourceFlowRow, the shared control for moving resources between tanks"
-      },
-      {
-        "key": "ui-kit . ResourceTransferPickerProps#transfer",
-        "note": "ResourceTransferPicker and ResourceFlowRow, the shared control for moving resources between tanks"
-      },
-      {
         "key": "ui-kit . RotateAnticlockwiseIcon",
         "note": "a circular arrow running anticlockwise, for a control that turns a view a step"
       },
@@ -21755,10 +21507,6 @@
       {
         "key": "ui-kit . UiKitThemeProviderProps#theme",
         "note": "New: props of UiKitThemeProvider"
-      },
-      {
-        "key": "ui-kit . UiResourceTransferModel",
-        "note": "ResourceTransferPicker and ResourceFlowRow, the shared control for moving resources between tanks"
       },
       {
         "key": "ui-kit . UnitProps#elsewhere?",
@@ -22043,10 +21791,6 @@
       {
         "key": "ui-kit . ~ContributedSlot",
         "note": "Helper type of Contribution, referenced by its props"
-      },
-      {
-        "key": "ui-kit . ~MeterCommonProps#rowAction?",
-        "note": "A small control on a row meter, and the two-way arrow it uses for transfers"
       },
       {
         "key": "ui-kit . ~MeterCommonProps#wrapLabel?",

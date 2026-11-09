@@ -328,7 +328,6 @@ export {
   type FitLabelButtonProps,
 } from "./FitLabelButton";
 export { Floating, type FloatingProps } from "./Floating";
-export { FlowChevrons, type FlowChevronsProps } from "./FlowChevrons";
 export {
   type CommandedSelectProps,
   ConfigForm,
@@ -388,7 +387,6 @@ export { HoverCard, type HoverCardProps } from "./HoverCard";
 export {
   ArrowDownIcon,
   ArrowLeftIcon,
-  ArrowLeftRightIcon,
   ArrowRightIcon,
   ArrowUpIcon,
   BellIcon,
@@ -581,14 +579,6 @@ export {
   type ReadoutSize,
 } from "./Readout";
 export { ReservedText, type ReservedTextProps } from "./ReservedText";
-export {
-  ResourceFlowRow,
-  type ResourceFlowRowProps,
-} from "./ResourceFlowRow";
-export {
-  ResourceTransferPicker,
-  type ResourceTransferPickerProps,
-} from "./ResourceTransferPicker";
 export { Row, RowName, type RowProps } from "./Row";
 export {
   type CurrencyOptions,
@@ -615,7 +605,6 @@ export {
   type ReckoningKind,
 } from "./reckoningMarkSpec";
 export { resourceColor } from "./resourceColor";
-export type { UiResourceTransferModel } from "./resourceTransferModel";
 export { SearchBox, type SearchBoxProps } from "./SearchBox";
 export { Section, type SectionProps, SectionTitle } from "./Section";
 export {

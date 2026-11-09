@@ -1,41 +1,23 @@
 import type { IsruResourceFlow } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
-  ContainerBreak,
   NULL_DISPLAY,
   ReadoutCaption,
   Text,
+  Tooltip,
+  Truncate,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { rateDecimals } from "./rates";
 
-/* The narrowest card that holds ElectricCharge beside a three-decimal rate and its direction. */
-const STACK_BELOW_PX = 380;
-const CARD_WIDTH_CONTAINER = { containerType: "inline-size" } as const;
-const TABLE_BASE = {
-  display: "grid",
-  alignItems: "baseline",
-  rowGap: "var(--gap-readout-row)",
-  columnGap: "var(--gap-related)",
-} as const;
-const TABLE_STACKED = {
-  ...TABLE_BASE,
-  gridTemplateColumns: "auto auto",
-  justifyContent: "space-between",
-} as const;
-const TABLE_ONE_LINE = {
-  gridTemplateColumns: "minmax(0, 1fr) auto auto",
-  justifyContent: "normal",
-} as const;
-const NAME_ON_ITS_OWN_LINE = { gridColumn: "1 / -1" } as const;
-const NAME_IN_ITS_COLUMN = { gridColumn: "auto" } as const;
+/** Resource | rate | flow-direction, shared by every process card's table. */
+export const RESOURCE_TABLE_COLS = "minmax(0, 1fr) auto auto";
 const RIGHT_ALIGN = { textAlign: "right" } as const;
-/** `Value` typography for a resource name, which wraps rather than being cut. */
+/** `Value` typography for `Truncate`, which a long resource name needs to ellipsize inside a grid cell. */
 const RESOURCE_NAME_STYLE = {
   fontSize: "var(--font-size-value)",
   color: "var(--color-text-primary)",
-  overflowWrap: "anywhere",
 } as const;
 
 /** A figure withheld because its channel is held, drawn apart from one that never arrived. */
@@ -65,14 +47,9 @@ export function ResourceCells({
 }>) {
   return (
     <>
-      <ContainerBreak
-        at={STACK_BELOW_PX}
-        narrow={NAME_ON_ITS_OWN_LINE}
-        wide={NAME_IN_ITS_COLUMN}
-        style={RESOURCE_NAME_STYLE}
-      >
-        {flow.resource ?? "?"}
-      </ContainerBreak>
+      <Tooltip text={flow.resource ?? undefined} announce={false}>
+        <Truncate style={RESOURCE_NAME_STYLE}>{flow.resource ?? "?"}</Truncate>
+      </Tooltip>
       <Text size="sm" style={RIGHT_ALIGN}>
         <WithheldOr
           withheld={ratesHeld}
@@ -85,24 +62,6 @@ export function ResourceCells({
       </Text>
       <ReadoutCaption style={RIGHT_ALIGN}>{direction}</ReadoutCaption>
     </>
-  );
-}
-
-/**
- * A process's table of resources. On a card too narrow to hold a resource's full
- * name beside its rate, each rate and direction take the line below the name.
- */
-export function ResourceTable({ children }: Readonly<{ children: ReactNode }>) {
-  return (
-    <div style={CARD_WIDTH_CONTAINER}>
-      <ContainerBreak
-        at={STACK_BELOW_PX}
-        narrow={TABLE_STACKED}
-        wide={TABLE_ONE_LINE}
-      >
-        {children}
-      </ContainerBreak>
-    </div>
   );
 }
 

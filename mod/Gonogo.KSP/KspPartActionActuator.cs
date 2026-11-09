@@ -39,8 +39,6 @@ namespace Gonogo.KSP
     /// </summary>
     public sealed class KspPartActionActuator : IPartActionActuator
     {
-        private const string NeedsSomeoneAtTheGame = "that action needs someone at the game's screen";
-
         public IReadOnlyList<PartActionEntry> List(string partId)
         {
             var entries = new List<PartActionEntry>();
@@ -106,7 +104,7 @@ namespace Gonogo.KSP
                 return CommandResult.Fail(CommandErrorCode.NotFound);
             }
 
-            var found = FindEvent(part, eventName, out var moduleName);
+            var found = FindEvent(part, eventName);
             if (found == null)
             {
                 // The part is there but exposes no such button (a mode change
@@ -128,13 +126,6 @@ namespace Gonogo.KSP
                         : "that action is not active on this part");
             }
 
-            if (InGameOnlyPartActions.IsInGameOnly(eventName, moduleName))
-            {
-                return CommandResult.Fail(CommandErrorCode.CapabilityMismatch, NeedsSomeoneAtTheGame);
-            }
-
-            var locksBefore = new List<string>(InputLockManager.lockStack.Keys);
-            var dialogsBefore = new HashSet<PopupDialog>(UnityEngine.Object.FindObjectsOfType<PopupDialog>());
             try
             {
                 found.Invoke();
@@ -145,26 +136,6 @@ namespace Gonogo.KSP
                     CommandErrorCode.CapabilityMismatch,
                     ThirdPartyFault.Describe("that part's action", ex));
             }
-
-            var locksAdded = InGameOnlyPartActions.NewLocks(locksBefore, InputLockManager.lockStack.Keys);
-            if (locksAdded.Count > 0)
-            {
-                /* A button no list knew about has locked the craft with nobody at the console able to release it. Undo exactly what this press took. A mod removing a lock already gone later is harmless, since RemoveControlLock returns on an absent key. */
-                foreach (var key in locksAdded)
-                {
-                    InputLockManager.RemoveControlLock(key);
-                }
-                foreach (var dialog in UnityEngine.Object.FindObjectsOfType<PopupDialog>())
-                {
-                    if (!dialogsBefore.Contains(dialog))
-                    {
-                        dialog.Dismiss();
-                    }
-                }
-                InGameOnlyPartActions.Learn(eventName, moduleName);
-                return CommandResult.Fail(CommandErrorCode.CapabilityMismatch, NeedsSomeoneAtTheGame);
-            }
-
             return CommandResult.Ok();
         }
 
@@ -234,9 +205,8 @@ namespace Gonogo.KSP
         /// more useful than the NotFound-shaped answer a filtered lookup would
         /// give.
         /// </summary>
-        private static BaseEvent? FindEvent(Part part, string eventName, out string? moduleName)
+        private static BaseEvent? FindEvent(Part part, string eventName)
         {
-            moduleName = null;
             var own = FindIn(part.Events, eventName);
             if (own != null)
             {
@@ -257,7 +227,6 @@ namespace Gonogo.KSP
                 var found = FindIn(module.Events, eventName);
                 if (found != null)
                 {
-                    moduleName = module.moduleName;
                     return found;
                 }
             }

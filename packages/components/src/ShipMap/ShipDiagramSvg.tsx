@@ -7,7 +7,6 @@ import { anyMeterHeld, HeldHatchPattern, NO_METERS } from "./partMeters";
 import { ShipPartGroup } from "./ShipPartGroup";
 import { computeShipBaseScale, paintOrder, project } from "./shipLayout";
 import type { ShipMapPart, ShipMapPartMeterEntry } from "./shipTopology";
-import { type TransferDrawing, TransferLayer } from "./TransferLayer";
 
 export {
   computeShipLayout,
@@ -62,8 +61,6 @@ export interface ShipDiagramSvgProps {
   openClusterId?: string | null;
   /** Fired when the expand icon beside a cluster is pressed, with its id, or null to close. Omit for a static render, which still draws the icon and any open box. */
   onToggleCluster?: (id: string | null) => void;
-  /** Tanks being picked for a transfer, and transfers running. Omit when there are none. */
-  transferDrawing?: TransferDrawing;
 }
 
 /**
@@ -86,7 +83,6 @@ export function ShipDiagramSvg({
   maxScale,
   openClusterId = null,
   onToggleCluster,
-  transferDrawing,
 }: Readonly<ShipDiagramSvgProps>) {
   const { projected, bounds, stages, edges } = useMemo(
     () => project(parts),
@@ -240,15 +236,6 @@ export function ShipDiagramSvg({
             />
           );
         })}
-
-        {transferDrawing && (
-          <TransferLayer
-            drawing={transferDrawing}
-            partsById={partsById}
-            toBase={toBase}
-            zoom={cam.zoom}
-          />
-        )}
       </g>
       {clusters.length > 0 && (
         <ClusterLayer

@@ -105,7 +105,6 @@ export function ShipPartGroup({
         tabIndex: 0,
         role: "button",
         "aria-label": partAriaLabel(p, meters),
-        "data-flight-id": p.flightId,
         onPointerEnter: () => onPartHover?.(p),
         onPointerLeave: () => onPartHover?.(null),
         onFocus: () => {

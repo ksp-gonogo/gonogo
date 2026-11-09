@@ -7,7 +7,6 @@ import {
   KspResourceFlowMode,
   KspRosterStatus,
   KspSpaceCenterFacility,
-  KspTankFlowMode,
 } from "./__generated__/contract";
 import { namesByValue } from "./enum-names";
 
@@ -173,23 +172,6 @@ export const KSP_RESOURCE_FLOW_MODE_NAMES = namesByValue(KspResourceFlowMode);
 export type KspResourceFlowModeName = keyof typeof KspResourceFlowMode;
 
 /**
- * KSP's `PartResource.FlowMode`, as a tank row of `vessel.parts` carries it. A map from each value to
- * its member name. Useful for showing the operator which way a tank lets a
- * resource move.
- *
- * @intent an Uplink showing a tank's direction limit names it with this
- * @category Enum names
- */
-export const KSP_TANK_FLOW_MODE_NAMES = namesByValue(KspTankFlowMode);
-/**
- * The name of a `KspTankFlowMode` member. Useful for typing a comparison
- * against a tank's direction limit.
- *
- * @category Enum names
- */
-export type KspTankFlowModeName = keyof typeof KspTankFlowMode;
-
-/**
  * Every name table for one of KSP's own enums in this file, such as
  * {@link KSP_ROSTER_STATUS_NAMES}, each with the enum it names. Useful for code that checks or lists all the
  * tables at once.
@@ -244,11 +226,6 @@ export const KSP_ENUM_NAME_TABLES: ReadonlyArray<{
     label: "KSP_RESOURCE_FLOW_MODE_NAMES",
     members: KspResourceFlowMode,
     names: KSP_RESOURCE_FLOW_MODE_NAMES,
-  },
-  {
-    label: "KSP_TANK_FLOW_MODE_NAMES",
-    members: KspTankFlowMode,
-    names: KSP_TANK_FLOW_MODE_NAMES,
   },
 ];
 

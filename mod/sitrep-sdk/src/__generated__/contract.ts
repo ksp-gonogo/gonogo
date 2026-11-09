@@ -3695,42 +3695,6 @@ export enum CrewStanding {
 	Missing = 6
 }
 /**
-* Move a kerbal to another part of the active vessel (`vessel.crew.transfer`).
-* Docked craft are one vessel, so this also moves a kerbal between them. Parts
-* are named by flight id, the id `vessel.parts` carries.
-*
-* A kerbal no longer in `CrewTransferArgs.fromPartId` is refused with
-* `CommandErrorCode.WrongState`. A full destination is refused with
-* `CommandErrorCode.LimitReached`. A part crew cannot use is refused with
-* `CommandErrorCode.CapabilityMismatch`, and a move a mod keeps out with
-* `CommandErrorCode.NotClearToProceed`.
-*
-* @category Command arguments
-*/
-export interface CrewTransferArgs
-{
-	/** The kerbal's name, as `vessel.crew` gives it. */
-	kerbalName: string;
-	/** The part the kerbal was last seen in. */
-	fromPartId: string;
-	/** The part to move the kerbal into. */
-	toPartId: string;
-}
-/**
-* A part's seats, on `vessel.parts`.
-*
-* @category Parts
-*/
-export interface PartSeats
-{
-	/** How many kerbals the part can hold now. Some habitats change this in flight. */
-	capacity: Value<"count">;
-	/** False for a part the game keeps crew from moving into or out of. */
-	transferAvailable: boolean;
-	/** True for an external command seat, which is never a source or destination. */
-	isExternalSeat: boolean;
-}
-/**
 * One science credit, attributed to the vessel that earned it.
 *
 * Stock credits science in a lump the moment a transmit stream finishes;
@@ -5776,22 +5740,6 @@ export enum KspResourceFlowMode {
 	NULL = 8
 }
 /**
-* KSP's `PartResource.FlowMode`: which way a single tank lets a resource move.
-* Behind `vessel.parts` tank rows.
-*
-* @category Parts
-*/
-export enum KspTankFlowMode {
-	/** The tank neither gives nor takes. */
-	None = 0,
-	/** The tank only gives. */
-	Out = 1,
-	/** The tank only takes. */
-	In = 2,
-	/** The tank gives and takes. */
-	Both = 3
-}
-/**
 * Ask for the mod's most recent log lines. Args for `system.log.recent`: how
 * many of the newest `[Gonogo]` lines the game logged to `KSP.log` to return,
 * so a bug report can carry them. Lines are returned with file paths, IP
@@ -6458,11 +6406,6 @@ export interface PartActionEntry
 	* partially crewed or probe-limited state) to fire.
 	*/
 	requireFullControl: boolean;
-	/**
-	* The button can be pressed from a console but opens a window on the game's
-	* own screen, without locking the craft.
-	*/
-	opensGameWindow: boolean;
 }
 /**
 * The payload of one `vessel.partActions.<flightId>` channel: the PAW buttons
@@ -6499,12 +6442,6 @@ export interface PartActions
 	* list is missing.
 	*/
 	actions: PartActionEntry[];
-	/**
-	* The part's buttons that only someone at the game's own screen can finish.
-	* They cannot be pressed from a console and `vessel.invokePartAction` refuses
-	* them, so draw them disabled. Always present, possibly empty.
-	*/
-	gameWindows: PartActionEntry[];
 	/**
 	* Payload provenance. `Source` is `"vessel:<guid>"` for the active vessel, or
 	* `""` when no vessel id was known.
@@ -7063,197 +7000,6 @@ export interface RecoveryRecent
 	* to read.
 	*/
 	recent: boolean;
-}
-/**
-* Start moving one resource between tanks of the active vessel
-* (`vessel.resource.transfer.start`), at the pace of the game's own transfer:
-* each destination fills at a twentieth of its capacity per second of game
-* time. Tanks are named by part flight id, the same id `vessel.parts` carries.
-*
-* Set exactly one of `ResourceTransferStartArgs.untilFull` or
-* `ResourceTransferStartArgs.amount`. `ResourceTransferStartArgs.fromPartIds`
-* and `ResourceTransferStartArgs.toPartIds` must both be non-empty and share
-* no part, or the command fails with `CommandErrorCode.Range`. A tank that
-* cannot take part, out of `vessel.transferReach` for example, fails with
-* `CommandErrorCode.CapabilityMismatch`; a tank already in a running transfer
-* of the resource fails with `CommandErrorCode.WrongState`.
-*
-* @category Command arguments
-*/
-export interface ResourceTransferStartArgs
-{
-	/** The resource's name, as the keys of `vessel.parts` resources give it. */
-	resource: string;
-	/** The tanks to draw from, as part flight ids. */
-	fromPartIds: string[];
-	/** The tanks to fill, as part flight ids. */
-	toPartIds: string[];
-	/** Run until the destinations are full or the sources are empty. */
-	untilFull: boolean;
-	/**
-	* The amount to move. Required when `ResourceTransferStartArgs.untilFull` is
-	* false, refused when it is true.
-	*/
-	amount?: number;
-}
-/**
-* What `vessel.resource.transfer.start` answers with.
-*
-* @category Command arguments
-*/
-export interface ResourceTransferStarted
-{
-	/** The new transfer's `ResourceTransferJob.id`. */
-	transferId: string;
-}
-/**
-* Stop one resource transfer, or every one on the vessel
-* (`vessel.resource.transfer.stop`). A transfer that has already ended answers
-* success with no change. An id that was never issued fails with
-* `CommandErrorCode.NotFound`.
-*
-* @category Command arguments
-*/
-export interface ResourceTransferStopArgs
-{
-	/**
-	* Stop every running transfer. `ResourceTransferStopArgs.transferId` must then
-	* be absent.
-	*/
-	all: boolean;
-	/** The transfer to stop. Required when `ResourceTransferStopArgs.all` is false. */
-	transferId?: string;
-}
-/**
-* Whether a `ResourceTransferJob` is still moving.
-*
-* @category Parts
-*/
-export enum TransferJobState {
-	/** Moving now. */
-	Running = 0,
-	/** Finished; `ResourceTransferJob.endReason` says why. */
-	Ended = 1
-}
-/**
-* Why a `ResourceTransferJob` ended.
-*
-* @category Parts
-*/
-export enum TransferEndReason {
-	/** The requested amount has moved. */
-	AmountMoved = 0,
-	/** Every destination is full. */
-	DestinationsFull = 1,
-	/** Every source is empty. */
-	SourcesEmpty = 2,
-	/** A stop command arrived. */
-	Stopped = 3,
-	/** No source or no destination remains on the vessel. */
-	PartsLeft = 4,
-	/** The active vessel no longer holds the transfer's tanks. */
-	VesselLeft = 5,
-	/** The game left the flight scene. */
-	SceneLeft = 6
-}
-/**
-* One resource transfer, running or recently ended.
-*
-* @category Parts
-*/
-export interface ResourceTransferJob
-{
-	/** Identifies this transfer to `vessel.resource.transfer.stop`. */
-	id: string;
-	/** The resource's name. */
-	resource: string;
-	/** The tanks drawn from, as part flight ids. */
-	fromPartIds: string[];
-	/** The tanks being filled, as part flight ids. */
-	toPartIds: string[];
-	/** True when it runs until the destinations are full or the sources empty. */
-	untilFull: boolean;
-	/**
-	* The amount asked for. Null exactly when `ResourceTransferJob.untilFull` is
-	* true.
-	*/
-	requested?: Value<"units"> | null;
-	/** The amount the destinations have taken so far. */
-	moved: Value<"units">;
-	/**
-	* Total into all destinations per second of game time at the last step. Null
-	* once ended.
-	*/
-	rate?: Value<"units/s"> | null;
-	/** Whether it is still moving. */
-	state: TransferJobState;
-	/** Why it ended. Null while running. */
-	endReason?: TransferEndReason | null;
-	/** The universal time it started. */
-	startedUt: Value<"ut">;
-	/** The universal time it ended. Null while running. */
-	endedUt?: Value<"ut"> | null;
-}
-/**
-* The active vessel's resource transfers: running ones, then the last eight
-* ended, newest first. Empty when there are none.
-*
-* @category Parts
-*/
-export interface ResourceTransfers
-{
-	/** Running transfers, then recently ended ones. */
-	transfers: ResourceTransferJob[];
-	/** Provenance. */
-	meta: PayloadMeta;
-}
-/**
-* One group of parts that can draw from each other by crossfeed.
-*
-* @category Parts
-*/
-export interface CrossfeedSet
-{
-	/** Identifies this set within `TransferReach.sets`. */
-	id: number;
-	/** The parts in this set, as flight ids. */
-	partIds: string[];
-}
-/**
-* Which set one tank can draw from.
-*
-* @category Parts
-*/
-export interface TankReach
-{
-	/** The tank's part, as a flight id. */
-	partId: string;
-	/**
-	* The `CrossfeedSet.id` this tank can draw from. Null when it can draw only
-	* from itself.
-	*/
-	drawsFromSet?: number | null;
-}
-/**
-* Which tanks of the active vessel can exchange each resource. When
-* `TransferReach.obeysCrossfeed` is false any two transferable tanks of a
-* resource can exchange. When it is true, a resource absent from
-* `TransferReach.resources` is vessel-wide; otherwise a destination can take
-* from a source only when the set the destination draws from contains the
-* source. Sets are directional, so the rule is not symmetric.
-*
-* @category Parts
-*/
-export interface TransferReach
-{
-	/** Whether this save makes a transfer obey crossfeed. */
-	obeysCrossfeed: boolean;
-	/** Each distinct crossfeed set once. */
-	sets: CrossfeedSet[];
-	/** By resource name, for resources whose flow limits reach. */
-	resources: { [key:string]: TankReach[] };
-	/** Provenance. */
-	meta: PayloadMeta;
 }
 /**
 * Whether the two stock in-flight revert actions are available right now, so a
@@ -11792,12 +11538,6 @@ export interface CrewMember
 	*/
 	partId?: string | null;
 	/**
-	* Parts this kerbal could move into that would leave the craft with no
-	* control. The move is still allowed, since moving back restores control.
-	* Empty when no move costs control. Null when it could not be worked out.
-	*/
-	movesLeavingNoControl?: string[] | null;
-	/**
 	* The title of the part this kerbal is seated in, such as `"Mk1-3 Command
 	* Pod"`, so a transfer between two pods shows as a move. Null when the seat
 	* could not be read.
@@ -13209,11 +12949,6 @@ export interface VesselPart
 	* action group's human-readable caption from this.
 	*/
 	actionBindings: ActionBinding[];
-	/**
-	* The part's seats. Null for a part with no seats, and on topics that do not
-	* report them.
-	*/
-	seats?: PartSeats | null;
 }
 /**
 * One action-group binding in `VesselPart.actionBindings`: a single part
@@ -13293,24 +13028,6 @@ export interface PartResourceFlow
 	* nor for storage alone. Absent otherwise.
 	*/
 	unratedProcess?: boolean | null;
-	/**
-	* Whether a resource transfer can move this resource in this tank: the
-	* resource allows transfer, and the tank is visible and has capacity. Null on
-	* topics that do not report it.
-	*/
-	transferable?: boolean | null;
-	/**
-	* The tank's direction limit. A tank set to `Out` cannot be filled by a
-	* transfer and one set to `In` cannot be drawn from. Null on topics that do
-	* not report it.
-	*/
-	flowMode?: KspTankFlowMode | null;
-	/**
-	* The player's flow lock on this tank. It stops engines and consumers drawing
-	* from the tank, and does not stop a transfer. Null on topics that do not
-	* report it.
-	*/
-	locked?: boolean | null;
 }
 /**
 * One module's behavioural state in `VesselPart.moduleStates`.

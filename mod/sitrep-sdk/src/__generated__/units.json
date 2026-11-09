@@ -646,7 +646,6 @@
     },
     "CrewMember": {
       "experienceLevel": "count",
-      "movesLeavingNoControl": "id",
       "name": "text",
       "packedVolumeLimit": "1",
       "packedVolumeUsed": "1",
@@ -676,15 +675,6 @@
       "stupidity": "ratio",
       "trait": "text",
       "unavailableReason": "text"
-    },
-    "CrewTransferArgs": {
-      "fromPartId": "id",
-      "kerbalName": "text",
-      "toPartId": "id"
-    },
-    "CrossfeedSet": {
-      "id": "id",
-      "partIds": "id"
     },
     "DataRateTierEntry": {
       "samplesPerSecond": "1",
@@ -1163,7 +1153,6 @@
       "label": "text",
       "moduleName": "id",
       "name": "id",
-      "opensGameWindow": "flag",
       "requireFullControl": "flag"
     },
     "PartActions": {
@@ -1186,17 +1175,9 @@
     "PartResourceFlow": {
       "amount": "units",
       "flow": "units/s",
-      "flowMode": "enum",
-      "locked": "flag",
       "maxAmount": "units",
       "nominalFlow": "units/s",
-      "transferable": "flag",
       "unratedProcess": "flag"
-    },
-    "PartSeats": {
-      "capacity": "count",
-      "isExternalSeat": "flag",
-      "transferAvailable": "flag"
     },
     "PartShape": {
       "name": "text",
@@ -1361,34 +1342,6 @@
       "active": "flag",
       "current": "units",
       "max": "units"
-    },
-    "ResourceTransferJob": {
-      "endReason": "enum",
-      "endedUt": "ut",
-      "fromPartIds": "id",
-      "id": "id",
-      "moved": "units",
-      "rate": "units/s",
-      "requested": "units",
-      "resource": "text",
-      "startedUt": "ut",
-      "state": "enum",
-      "toPartIds": "id",
-      "untilFull": "flag"
-    },
-    "ResourceTransferStartArgs": {
-      "amount": "units",
-      "fromPartIds": "id",
-      "resource": "text",
-      "toPartIds": "id",
-      "untilFull": "flag"
-    },
-    "ResourceTransferStarted": {
-      "transferId": "id"
-    },
-    "ResourceTransferStopArgs": {
-      "all": "flag",
-      "transferId": "id"
     },
     "RevertAvailability": {
       "canRevertToEditor": "flag",
@@ -1716,10 +1669,6 @@
     "SwitchVesselArgs": {
       "vesselId": "id"
     },
-    "TankReach": {
-      "drawsFromSet": "id",
-      "partId": "id"
-    },
     "TargetListEntry": {
       "asOfUt": "ut",
       "bodyIndex": "id",
@@ -1763,9 +1712,6 @@
     "TrackingStationVesselLink": {
       "connected": "flag",
       "oneWaySeconds": "s"
-    },
-    "TransferReach": {
-      "obeysCrossfeed": "flag"
     },
     "UnlockTechArgs": {
       "techId": "id"
@@ -2725,9 +2671,6 @@
       "hottestEngineTempRatio": "ratio",
       "maxInternalTempRatio": "ratio",
       "maxSkinTempRatio": "ratio"
-    },
-    "vessel.transferReach": {
-      "obeysCrossfeed": "flag"
     }
   },
   "typeShapes": {
@@ -3011,7 +2954,6 @@
     },
     "PartActions": {
       "actions": "PartActionEntry[]",
-      "gameWindows": "PartActionEntry[]",
       "meta": "PayloadMeta"
     },
     "PartShape": {
@@ -3042,10 +2984,6 @@
     },
     "ResolveResult": {
       "notices": "ResolutionNotice[]"
-    },
-    "ResourceTransfers": {
-      "meta": "PayloadMeta",
-      "transfers": "ResourceTransferJob[]"
     },
     "SaveSettingsArgs": {
       "changes": "SettingsChange[]"
@@ -3099,10 +3037,6 @@
     },
     "TrackingStationVesselResources": {
       "resources": "*ResourceAmount"
-    },
-    "TransferReach": {
-      "meta": "PayloadMeta",
-      "sets": "CrossfeedSet[]"
     },
     "UplinkDelayReport": {
       "elsewhere": "UplinkDelay[]"
@@ -3161,7 +3095,6 @@
       "fairing": "FairingShell",
       "moduleStates": "PartModuleState[]",
       "resources": "*PartResourceFlow",
-      "seats": "PartSeats",
       "shapePoses": "PartShapePose[]"
     },
     "VesselParts": {
@@ -3369,10 +3302,6 @@
     "vessel.propulsion": {
       "meta": "PayloadMeta"
     },
-    "vessel.resourceTransfers": {
-      "meta": "PayloadMeta",
-      "transfers": "ResourceTransferJob[]"
-    },
     "vessel.resources": {
       "meta": "PayloadMeta",
       "resources": "*ResourceAmount"
@@ -3391,10 +3320,6 @@
     "vessel.thermal": {
       "hottestPart": "ThermalHottestPart",
       "meta": "PayloadMeta"
-    },
-    "vessel.transferReach": {
-      "meta": "PayloadMeta",
-      "sets": "CrossfeedSet[]"
     }
   },
   "typeEnums": {
@@ -3519,19 +3444,12 @@
     "OrbitPayloadMeta": {
       "quality": "Quality"
     },
-    "PartResourceFlow": {
-      "flowMode": "KspTankFlowMode"
-    },
     "PropagationHorizon": {
       "kind": "PropagationHorizonKind",
       "trajectoryKind": "TrajectoryKind"
     },
     "ReputationLossEvent": {
       "cause": null
-    },
-    "ResourceTransferJob": {
-      "endReason": "TransferEndReason",
-      "state": "TransferJobState"
     },
     "SavedShipEntry": {
       "facilityOrdinal": "KspEditorFacility"
@@ -3864,12 +3782,6 @@
       "7": "SpaceplaneHangar",
       "8": "VehicleAssemblyBuilding"
     },
-    "KspTankFlowMode": {
-      "0": "None",
-      "1": "Out",
-      "2": "In",
-      "3": "Both"
-    },
     "ManeuverFrame": {
       "0": "RadialNormalPrograde",
       "1": "Unknown"
@@ -4005,19 +3917,6 @@
       "0": "Unspecified",
       "1": "Analytic",
       "2": "Integrated"
-    },
-    "TransferEndReason": {
-      "0": "AmountMoved",
-      "1": "DestinationsFull",
-      "2": "SourcesEmpty",
-      "3": "Stopped",
-      "4": "PartsLeft",
-      "5": "VesselLeft",
-      "6": "SceneLeft"
-    },
-    "TransferJobState": {
-      "0": "Running",
-      "1": "Ended"
     },
     "TransitionType": {
       "0": "Initial",
@@ -4167,12 +4066,10 @@
     "vessel.orbit.truth": "Active vessel orbit (true)",
     "vessel.physics.mode": "Active vessel physics",
     "vessel.propulsion": "Active vessel propulsion",
-    "vessel.resourceTransfers": "Resource transfers",
     "vessel.resources": "Active vessel resources",
     "vessel.structure": "Active vessel structure",
     "vessel.surface": "Active vessel surface",
     "vessel.target": "Active vessel target",
-    "vessel.thermal": "Active vessel heat",
-    "vessel.transferReach": "Transfer reach"
+    "vessel.thermal": "Active vessel heat"
   }
 }

@@ -392,16 +392,6 @@ public static class RtConfig
                 typeof(InventoryItem),
                 // vessel.parts channel payload + nested value shapes
                 typeof(VesselParts),
-                typeof(CrewTransferArgs),
-                typeof(PartSeats),
-                typeof(ResourceTransfers),
-                typeof(ResourceTransferJob),
-                typeof(ResourceTransferStartArgs),
-                typeof(ResourceTransferStarted),
-                typeof(ResourceTransferStopArgs),
-                typeof(TransferReach),
-                typeof(CrossfeedSet),
-                typeof(TankReach),
                 typeof(VesselPart),
                 typeof(PartBounds),
                 typeof(PartShapePose),
@@ -586,9 +576,6 @@ public static class RtConfig
                 typeof(KspEditorFacility),
                 typeof(KspSpaceCenterFacility),
                 typeof(KspResourceFlowMode),
-                typeof(KspTankFlowMode),
-                typeof(TransferJobState),
-                typeof(TransferEndReason),
             });
 
         // The topic -> payload map, the single source of truth for the SDK registry.
