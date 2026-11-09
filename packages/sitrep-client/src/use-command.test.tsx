@@ -2133,7 +2133,9 @@ describe("useCommand gate", () => {
       sent?.catch(() => undefined);
     });
     expect(fixture.transport.sentCommands).toHaveLength(stops ? 0 : 1);
-    await act(async () => {});
+    await act(async () => {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    });
   });
 
   it("refuses an instant command locally, sending nothing, while its own gate blocks it", async () => {
