@@ -74,9 +74,6 @@ namespace Sitrep.Host
         /// <summary>Courier thread: the newest publish each state topic made while the world was loading.</summary>
         private readonly Dictionary<string, PublishJob> _heldUntilWorldStands = new Dictionary<string, PublishJob>(StringComparer.Ordinal);
 
-        /// <summary>Courier thread: the pushed topics that have published since the world stood.</summary>
-        private readonly HashSet<string> _publishedSinceWorldStood = new HashSet<string>(StringComparer.Ordinal);
-
         /// <summary>
         /// Courier thread, from a timeline reset: holds every state channel's first
         /// frame until the loaded world can be read. What the archive retained and a
@@ -86,7 +83,6 @@ namespace Sitrep.Host
         {
             _worldWait = WorldWait.Loading;
             _heldUntilWorldStands.Clear();
-            _publishedSinceWorldStood.Clear();
         }
 
         /*
@@ -110,8 +106,10 @@ namespace Sitrep.Host
         }
 
         /*
-         * A sampled channel is left out because its forced keyframe has already read
-         * the loaded world, or has said by staying silent that it has nothing to read.
+         * A sampled channel is sent what its vantage had heard at the save only when
+         * the vantage is a delay away: its forced keyframe has read the loaded world,
+         * and that frame is still crossing. With no delay the frame is already there,
+         * or the channel has said by staying silent that it has nothing to read.
          * A pushed channel that publishes only on change would otherwise stay blank
          * until its value next moved.
          */
@@ -122,11 +120,9 @@ namespace Sitrep.Host
                 ProcessPublish(held);
             }
             _heldUntilWorldStands.Clear();
-            _courier.ReissueRetainedAfterReset(topic =>
-                !_channelSources.ContainsKey(topic)
-                && DeclarationOf(topic)?.Kind != SampleKind.Event
-                && !_publishedSinceWorldStood.Contains(topic));
-            _publishedSinceWorldStood.Clear();
+            _courier.ReissueRetainedAfterReset(
+                topic => DeclarationOf(topic)?.Kind != SampleKind.Event,
+                topic => _channelSources.ContainsKey(topic));
         }
 
         /// <summary>
@@ -145,7 +141,6 @@ namespace Sitrep.Host
                 return true;
             }
             _heldUntilWorldStands.Remove(publish.Topic);
-            _publishedSinceWorldStood.Add(publish.Topic);
             return false;
         }
 
@@ -200,6 +195,7 @@ namespace Sitrep.Host
             lock (_ownSavesGate)
             {
                 _ownSaves[token] = ut;
+                KeepHistoryFromOldestOwnSave();
             }
         }
 
@@ -212,8 +208,13 @@ namespace Sitrep.Host
                 {
                     _ownSaves.Remove(token);
                 }
+                KeepHistoryFromOldestOwnSave();
             }
         }
+
+        /// <summary>Under <see cref="_ownSavesGate"/>: the archive keeps what a load of any save it holds would rewind to.</summary>
+        private void KeepHistoryFromOldestOwnSave() =>
+            _courier.RetainHistoryFrom(_ownSaves.Count == 0 ? double.NegativeInfinity : _ownSaves.Values.Min());
 
         private bool TakeGameRewound() => Interlocked.Exchange(ref _gameRewound, 0) == 1;
 

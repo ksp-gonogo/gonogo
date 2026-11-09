@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Sitrep.Contract;
 
 // Sitrep.Core has no reason to carry the TS StreamData<T>/CommandResponse<TResult>
@@ -215,6 +216,9 @@ namespace Sitrep.Core
         // it was actually recorded under (not whatever epoch happens to be
         // current at delivery/catch-up time).
         private int _epoch;
+
+        // Where the newest reset put the clock: what ReissueRetainedAfterReset answers as of.
+        private double _lastResetUt = double.NegativeInfinity;
 
         /// <summary>The current timeline generation -- see <see cref="Meta.TimelineEpoch"/>.</summary>
         public int CurrentEpoch => _epoch;
@@ -445,6 +449,7 @@ namespace Sitrep.Core
             // announcements built from CurrentEpoch right after this call
             // returns must already see it too.
             _epoch++;
+            _lastResetUt = ut;
             lock (_commandsGate)
             {
                 _pendingCommands.Clear();
@@ -1107,8 +1112,48 @@ namespace Sitrep.Core
             // present at the time it ran): a permanent miss. "Arrived"
             // (<= now, handled by the catch-up above) and "in flight" (> now,
             // handled here) are disjoint, so this never double-delivers.
+            ScheduleInFlight(node, topic, subs, subscriber, archived, liveDelay, now);
+
+            if (_addressed.TryGetValue(node, out var addressedByTopic)
+                && addressedByTopic.TryGetValue(topic, out var inFlight))
+            {
+                foreach (var addressed in inFlight)
+                {
+                    // Arrived before this subscriber was listening: missed, as on a radio.
+                    if (addressed.Sample.ValidAt + addressed.Sample.Stamp!.For(vantage) <= now)
+                    {
+                        continue;
+                    }
+                    ScheduleAddressed(node, topic, subs, subscriber, addressed);
+                }
+            }
+
+            return () => subs.Remove(subscriber);
+        }
+
+        /// <summary>
+        /// Schedules delivery to <paramref name="subscriber"/> of every sample in
+        /// <paramref name="archived"/> that has not reached its vantage by
+        /// <paramref name="now"/>, each at its own record-time delay.
+        /// </summary>
+        private void ScheduleInFlight(
+            string node,
+            string topic,
+            HashSet<Subscriber> subs,
+            Subscriber subscriber,
+            IReadOnlyList<ArchiveSample> archived,
+            double liveDelay,
+            double now,
+            int? asEpoch = null,
+            double maxValidAt = double.PositiveInfinity)
+        {
+            var vantage = subscriber.Vantage;
             foreach (var sample in archived)
             {
+                if (sample.ValidAt > maxValidAt)
+                {
+                    continue;
+                }
                 var sampleDelay = DelayOf(sample, vantage, liveDelay);
                 var stampedFireUt = sample.ValidAt + sampleDelay;
                 if (double.IsPositiveInfinity(stampedFireUt))
@@ -1130,25 +1175,9 @@ namespace Sitrep.Core
                     {
                         return;
                     }
-                    Deliver(node, topic, subscriber, fireAt, sampleDelay, sampleInstant: owedScene);
+                    Deliver(node, topic, subscriber, fireAt, sampleDelay, sampleInstant: owedScene, asEpoch: asEpoch);
                 });
             }
-
-            if (_addressed.TryGetValue(node, out var addressedByTopic)
-                && addressedByTopic.TryGetValue(topic, out var inFlight))
-            {
-                foreach (var addressed in inFlight)
-                {
-                    // Arrived before this subscriber was listening: missed, as on a radio.
-                    if (addressed.Sample.ValidAt + addressed.Sample.Stamp!.For(vantage) <= now)
-                    {
-                        continue;
-                    }
-                    ScheduleAddressed(node, topic, subs, subscriber, addressed);
-                }
-            }
-
-            return () => subs.Remove(subscriber);
         }
 
         /// <summary>
@@ -1219,7 +1248,8 @@ namespace Sitrep.Core
             double fireUt,
             double? stampedDelaySeconds,
             bool isCatchUp = false,
-            double? sampleInstant = null)
+            double? sampleInstant = null,
+            int? asEpoch = null)
         {
             var archive = ArchiveFor(node);
             var sample = stampedDelaySeconds != null
@@ -1243,7 +1273,10 @@ namespace Sitrep.Core
             {
                 return;
             }
-            subscriber.OnData(StreamDataFor(node, topic, subscriber.Vantage, sample.Value, fireUt, isCatchUp));
+            var served = asEpoch == null
+                ? sample.Value
+                : new ArchiveSample(sample.Value.Value, sample.Value.ValidAt, asEpoch.Value, sample.Value.Stamp, sample.Value.SampleId);
+            subscriber.OnData(StreamDataFor(node, topic, subscriber.Vantage, served, fireUt, isCatchUp));
         }
 
         /// <summary>
@@ -1512,6 +1545,48 @@ namespace Sitrep.Core
         /// </summary>
         private const double PruneIntervalUt = 60;
 
+        /// <summary>How far behind now a kept save's history may reach, so a save nobody loads does not pin the archive for the whole session.</summary>
+        private const double HistoryKeptUt = 900;
+
+        private double _historyFloorUt = double.NegativeInfinity;
+
+        /// <summary>
+        /// Keeps every topic's history from the sample current at <paramref name="ut"/>
+        /// onward, for a quickload to that instant to rebuild from. Callable from any
+        /// thread; negative infinity releases it. The reach is capped at
+        /// <see cref="HistoryKeptUt"/> behind the clock.
+        /// </summary>
+        public void RetainHistoryFrom(double ut) => Volatile.Write(ref _historyFloorUt, ut);
+
+        /*
+         * What a vantage had heard at the save was recorded a delay earlier, so the
+         * floor reaches back by the longest delay any subscriber of the node has now.
+         */
+        private double HistoryFloorFor(string node)
+        {
+            var floor = Volatile.Read(ref _historyFloorUt);
+            if (double.IsNegativeInfinity(floor))
+            {
+                return floor;
+            }
+            var longest = 0.0;
+            if (_subscribers.TryGetValue(node, out var byTopic))
+            {
+                foreach (var subs in byTopic.Values)
+                {
+                    foreach (var subscriber in subs)
+                    {
+                        var delay = _network.DelayTo(subscriber.Vantage, node);
+                        if (!double.IsNaN(delay) && !double.IsInfinity(delay) && delay > longest)
+                        {
+                            longest = delay;
+                        }
+                    }
+                }
+            }
+            return Math.Max(floor - longest, _clock.Now() - HistoryKeptUt);
+        }
+
         private double _nextPruneUt = double.NegativeInfinity;
 
         /// <summary>
@@ -1682,8 +1757,10 @@ namespace Sitrep.Core
         /// the newest sample, as a late subscriber's catch-up does.
         /// <paramref name="reissues"/> names the topics worth sending again; an event
         /// stream is left out, since a client would take the last event as a new one.
+        /// <paramref name="onlyWithDelay"/> names the topics sent again only to a vantage
+        /// whose delay is above zero.
         /// </summary>
-        public void ReissueRetainedAfterReset(Func<string, bool>? reissues = null)
+        public void ReissueRetainedAfterReset(Func<string, bool>? reissues = null, Func<string, bool>? onlyWithDelay = null)
         {
             var now = _clock.Now();
             foreach (var nodeEntry in _subscribers.ToList())
@@ -1697,10 +1774,15 @@ namespace Sitrep.Core
                     {
                         continue;
                     }
+                    if (ArchiveFor(node).HistoryMissingAt(topic, _lastResetUt))
+                    {
+                        continue;
+                    }
                     var archived = ArchiveFor(node).Samples(topic);
                     foreach (var subscriber in subs.ToList())
                     {
                         ArchiveSample? held = null;
+                        var toldSinceReset = false;
                         if (_stickyKeyframes.TryGetValue(node, out var stickyByTopic) && stickyByTopic.TryGetValue(topic, out var sticky))
                         {
                             held = sticky;
@@ -1720,15 +1802,26 @@ namespace Sitrep.Core
                                 {
                                     held = sample;
                                     arrivedAt = at;
+                                    toldSinceReset = sample.Epoch >= _epoch;
                                 }
                             }
                         }
-                        if (held == null)
+                        // A reading of the new timeline has already reached this vantage, which is newer than anything a reset kept.
+                        if (toldSinceReset)
                         {
                             continue;
                         }
-                        var current = new ArchiveSample(held.Value.Value, held.Value.ValidAt, _epoch, held.Value.Stamp, held.Value.SampleId);
-                        subscriber.OnData(StreamDataFor(node, topic, subscriber.Vantage, current, now, isCatchUp: false));
+                        // A topic read from the loaded world has nothing older to say to a vantage the load reaches at once.
+                        if (onlyWithDelay != null && onlyWithDelay(topic) && !(_network.DelayTo(subscriber.Vantage, node) > 0))
+                        {
+                            continue;
+                        }
+                        if (held != null)
+                        {
+                            var current = new ArchiveSample(held.Value.Value, held.Value.ValidAt, _epoch, held.Value.Stamp, held.Value.SampleId);
+                            subscriber.OnData(StreamDataFor(node, topic, subscriber.Vantage, current, now, isCatchUp: false));
+                        }
+                        ScheduleInFlight(node, topic, subs, subscriber, archived, _network.DelayTo(subscriber.Vantage, node), now, _epoch, _lastResetUt);
                     }
                 }
             }
@@ -1860,7 +1953,7 @@ namespace Sitrep.Core
             foreach (var entry in _archives)
             {
                 var node = entry.Key;
-                entry.Value.PruneToVantageCursors(OwedFloorsFor(node), (topic, vantage) => Subscribed(node, topic, vantage));
+                entry.Value.PruneToVantageCursors(OwedFloorsFor(node), (topic, vantage) => Subscribed(node, topic, vantage), HistoryFloorFor(node));
             }
         }
 
