@@ -38,13 +38,9 @@ again from the first packet of that keyframe, renumbered so the station sees no 
 in the order their media first arrived, so the feed the station has had longest is kept longest,
 and the top-ranked video feed is never shed.
 
-Data channel messages share the same ceiling once one is known. They are given a floor of it
-ahead of the media, and otherwise go when no media waits. They do not go at all while a feed
-waits for its first keyframe, so a join snapshot never queues ahead of the first picture. A
-message that has waited longer than dataOverloadDelay counts as overload, which sheds the
-lowest-ranked feed the same way media that does not fit does, so the station keeps hearing the
-main screen. A message pushed ahead, such as the main screen's heartbeat, goes before everything,
-keyframe wait included. A pacer is not safe for concurrent use; stationLink holds its lock.
+Data channel messages go after any media, under the same ceiling once one is known, and not at
+all while a feed waits for its first keyframe, so a join snapshot never queues ahead of the
+first picture. A pacer is not safe for concurrent use; stationLink holds its lock.
 */
 type pacer struct {
 	feeds []*feed
@@ -60,10 +56,7 @@ type pacer struct {
 	media      []pacedPacket
 	mediaBytes int
 	data       [][]byte
-	dataAt     []time.Time
 	dataBytes  int
-	// ahead are messages sent before anything else waiting, such as the main screen's heartbeat.
-	ahead [][]byte
 	// sent is every byte handed on to the station, media and data, which a loss report is measured against.
 	sent rateMeter
 	// dataSent is the data channel's part of sent.
@@ -189,11 +182,6 @@ const (
 	firstKeyframeHold = 3 * time.Second
 	keyframeGap       = time.Second
 	maxMediaQueue     = 2 << 20
-	// dataFloorShare of the ceiling, and at least minDataFloor bytes a second (64 kbit/s), go to the data channel before any media while it has messages waiting.
-	dataFloorShare = 0.1
-	minDataFloor   = 8_000
-	// dataOverloadDelay is how long a data channel message may wait before the feeds are taken to be more than the ceiling.
-	dataOverloadDelay = time.Second
 	dataWindow        = 256 << 10
 	videoDataWindow   = 32 << 10
 )
@@ -263,15 +251,9 @@ func (p *pacer) packet(now time.Time, f *feed, pkt *rtp.Packet) {
 }
 
 // pushData queues one message for the station's data channel.
-func (p *pacer) pushData(now time.Time, msg []byte) {
+func (p *pacer) pushData(msg []byte) {
 	p.data = append(p.data, msg)
-	p.dataAt = append(p.dataAt, now)
 	p.dataBytes += len(msg)
-}
-
-// pushAhead queues one message for the station's data channel ahead of every other message and of any media.
-func (p *pacer) pushAhead(msg []byte) {
-	p.ahead = append(p.ahead, msg)
 }
 
 // report takes one receiver report block from the station for a feed: the fraction of its packets lost since the last.
@@ -294,7 +276,7 @@ func (p *pacer) report(now time.Time, f *feed, loss float64) {
 			return
 		}
 		media := p.incoming(now)
-		dataFlowing := p.dataSent.rate(now) > (dataYield-1)*media || len(p.data) > 0
+		dataFlowing := p.dataSent.rate(now) > (dataYield-1)*media
 		if !storm && !dataFlowing {
 			return
 		}
@@ -389,16 +371,11 @@ func (p *pacer) look(now time.Time, force bool) {
 	p.lastLook = now
 	c := p.limit()
 	sum := p.incoming(now)
-	staleData := p.dataDelay(now) > dataOverloadDelay && !p.holdingData(now)
-	overloaded := (sum > c && (force || p.queueDelay(now) > overloadDelay)) || staleData
+	overloaded := sum > c && (force || p.queueDelay(now) > overloadDelay)
 	if c > 0 && overloaded && now.Sub(p.lastShed) >= downGap {
 		if victim := p.lowestSheddable(); victim != nil {
 			p.lastShed = now
-			why := fmt.Sprintf("the feeds' %s does not fit under the %s ceiling", kbps(sum), kbps(c))
-			if staleData {
-				why = fmt.Sprintf("data channel messages have waited %d ms under the %s ceiling", p.dataDelay(now).Milliseconds(), kbps(c))
-			}
-			p.shed(now, victim, victim.in.rate(now), why)
+			p.shed(now, victim, victim.in.rate(now), fmt.Sprintf("the feeds' %s does not fit under the %s ceiling", kbps(sum), kbps(c)))
 		}
 	}
 	for _, f := range p.feeds {
@@ -530,36 +507,6 @@ func (p *pacer) pull(now time.Time, room int) ([]pacedPacket, [][]byte, time.Dur
 	}
 	p.filledAt = now
 
-	var msgs [][]byte
-	for _, m := range p.ahead {
-		p.sent.add(now, len(m))
-		p.dataSent.add(now, len(m))
-		msgs = append(msgs, m)
-	}
-	p.ahead = nil
-
-	held := p.holdingData(now)
-	limited := p.limit() > 0 && p.hasVideo()
-	takeData := func() {
-		m := p.data[0]
-		p.data[0] = nil
-		p.data = p.data[1:]
-		p.dataAt = p.dataAt[1:]
-		p.dataBytes -= len(m)
-		room -= len(m)
-		if limited {
-			p.tokens -= float64(len(m))
-		}
-		p.sent.add(now, len(m))
-		p.dataSent.add(now, len(m))
-		msgs = append(msgs, m)
-	}
-	if limited && !held {
-		for len(p.data) > 0 && room > 0 && p.dataSent.rate(now) < p.dataFloor() {
-			takeData()
-		}
-	}
-
 	var out []pacedPacket
 	for len(p.media) > 0 && p.tokens > 0 {
 		q := p.media[0]
@@ -571,9 +518,22 @@ func (p *pacer) pull(now time.Time, room int) ([]pacedPacket, [][]byte, time.Dur
 		out = append(out, q)
 	}
 
+	var msgs [][]byte
+	held := p.holdingData(now)
+	limited := p.limit() > 0 && p.hasVideo()
 	if !held {
 		for len(p.data) > 0 && room > 0 && (!limited || (len(p.media) == 0 && p.tokens > 0)) {
-			takeData()
+			m := p.data[0]
+			p.data[0] = nil
+			p.data = p.data[1:]
+			p.dataBytes -= len(m)
+			room -= len(m)
+			if limited {
+				p.tokens -= float64(len(m))
+			}
+			p.sent.add(now, len(m))
+			p.dataSent.add(now, len(m))
+			msgs = append(msgs, m)
 		}
 	}
 
@@ -585,19 +545,6 @@ func (p *pacer) pull(now time.Time, room int) ([]pacedPacket, [][]byte, time.Dur
 		wait = lookEvery
 	}
 	return out, msgs, wait
-}
-
-// dataFloor is the data channel's share of the ceiling, in bytes a second, which it is given ahead of the media.
-func (p *pacer) dataFloor() float64 {
-	return math.Max(minDataFloor, dataFloorShare*p.ceiling)
-}
-
-// dataDelay is how long the oldest data channel message still in the pacer has waited.
-func (p *pacer) dataDelay(now time.Time) time.Duration {
-	if len(p.dataAt) == 0 {
-		return 0
-	}
-	return now.Sub(p.dataAt[0])
 }
 
 // queueDelay is how long the oldest queued media packet has waited.

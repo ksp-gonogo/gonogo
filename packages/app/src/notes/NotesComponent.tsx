@@ -114,7 +114,7 @@ registerComponent({
   id: "notes",
   name: "Notes",
   description:
-    "Mission notes shared by a command centre's screens, with live telemetry inline.",
+    "Mission notes shared by the screens at one command centre. Use {{key.path}} to embed live telemetry, values update as the data feed ticks.",
   tags: ["mission-control"],
   defaultSize: { w: 6, h: 8 },
   // Six columns so the composer's field has room beside the Add button; five rows because four cannot show one note.

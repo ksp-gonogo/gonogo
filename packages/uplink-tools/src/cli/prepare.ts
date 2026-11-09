@@ -26,10 +26,6 @@ export const PREPARE_USAGE = `uplink-tools release prepare [options]
     4. release, into a scratch folder: the exact bundle, bake, compile and zip
        a published release is rebuilt from
 
-  An Uplink with no client/ runs only codegen --check (when it has a types/
-  package) and the release, with the version named to the plugin and the types
-  package.
-
   The stamped files are left in the tree for the build that follows, and the
   tree is not committed: run this in a checkout that is thrown away. A failure
   at any step puts every file back as it was.
@@ -186,12 +182,6 @@ export async function prepareRelease(
   // 2. The move, then 3 and 4, with every file put back on a failure.
   const scratch = mkdtempSync(join(tmpdir(), "uplink-release-"));
   let moved: string[] = [];
-  /*
-   * An Uplink with no client keeps its version in no committed file, so the
-   * release it proves is told which version it is, as a release workflow tells it.
-   */
-  const outerVersion = process.env.GONOGO_UPLINK_VERSION;
-  if (!hasClient) process.env.GONOGO_UPLINK_VERSION = target;
   try {
     const result = moveVersion(uplinkDir, request, deps);
     moved = result.files;
@@ -211,20 +201,9 @@ export async function prepareRelease(
       "release into a scratch folder",
       async () => (await run(["release", "--out", scratch])) === 0,
     ];
-    // Codegen, check, the client's tests and the page all read a client, so a mod-only Uplink has its release to prove, and its generated types when it has a types package.
-    const hasTypes = existsSync(join(uplinkDir, "types", "package.json"));
+    // Codegen, check, the client's tests and the page all read a client, so a mod-only Uplink has only its release to prove.
     const steps: [string, () => Promise<boolean>][] = !hasClient
-      ? [
-          ...(hasTypes
-            ? ([
-                [
-                  "codegen --check",
-                  async () => (await run(["codegen", "--check"])) === 0,
-                ],
-              ] as [string, () => Promise<boolean>][])
-            : []),
-          releaseStep,
-        ]
+      ? [releaseStep]
       : [
           [
             "codegen --check",
@@ -268,8 +247,6 @@ export async function prepareRelease(
     revert(repo, uplinkDir, moved);
     throw err;
   } finally {
-    if (outerVersion === undefined) delete process.env.GONOGO_UPLINK_VERSION;
-    else process.env.GONOGO_UPLINK_VERSION = outerVersion;
     rmSync(scratch, { recursive: true, force: true });
   }
 

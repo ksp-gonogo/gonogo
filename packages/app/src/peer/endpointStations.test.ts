@@ -25,16 +25,14 @@ type Client = Parameters<
 >[0]["client"];
 
 /** An endpoint that sends its status, then records what the main screen sends it. */
-function fakeEndpoint(status: Record<string, unknown> = {}) {
+function fakeEndpoint() {
   const control: Record<string, unknown>[] = [];
   const data: { sid: number; bytes: Uint8Array }[] = [];
   let client: Client | null = null;
   server.use(
     link.addEventListener("connection", (event) => {
       client = event.client;
-      event.client.send(
-        JSON.stringify({ type: "status", port: 47100, ...status }),
-      );
+      event.client.send(JSON.stringify({ type: "status", port: 47100 }));
       event.client.addEventListener("message", (m) => {
         if (typeof m.data === "string") {
           control.push(JSON.parse(m.data));
@@ -285,33 +283,6 @@ describe("the main screen's endpoint socket", () => {
       type: "hello",
       version: "1",
     });
-    stations.stop();
-  });
-
-  it.each([
-    [true, 0x80000000],
-    [false, 0],
-  ])("sends a message ahead only to an endpoint that reads the mark (ahead %s)", async (ahead, mark) => {
-    const endpoint = fakeEndpoint(ahead ? { ahead: true } : {});
-    const stations = await started();
-    const s = stations.join("station-a", "v=a");
-    await vi.waitFor(() => expect(endpoint.control).toHaveLength(1));
-    const sid = Number(endpoint.control[0]?.sid);
-    endpoint.send({ type: "answer", sid, sdp: "x" });
-    await s.answer;
-    endpoint.send({ type: "open", sid, path: "internet" });
-    await vi.waitFor(() => expect(s.conn.open).toBe(true));
-
-    s.conn.sendAhead({ type: "host-heartbeat" });
-    s.conn.send({ type: "hello", version: "1" });
-    await vi.waitFor(() => expect(endpoint.data).toHaveLength(2));
-    expect(endpoint.data.map((d) => d.sid >>> 0)).toEqual([
-      (sid | mark) >>> 0,
-      sid,
-    ]);
-    expect(
-      new FrameReader().push(endpoint.data[0]?.bytes ?? new Uint8Array()),
-    ).toEqual({ type: "host-heartbeat" });
     stations.stop();
   });
 

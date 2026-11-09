@@ -1,7 +1,9 @@
-import { type ValueCommand, value } from "@ksp-gonogo/sitrep-sdk";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
+  Button,
   Cluster,
+  Inline,
   Panel,
   ReadoutCaption,
   type ReckoningMarking,
@@ -46,12 +48,9 @@ export interface RoboticsConsoleViewProps {
   /** Grid rows; below six only the readout and target stepper fit. */
   rows: number;
   onSelect: (partId: string) => void;
-  /** The command the stepper sends, given the position stepped to. */
-  stepCommand: ValueCommand<number, unknown, unknown>;
-  /** The command the motor control sends, given true to engage the motor. */
-  motorCommand: ValueCommand<boolean, unknown, unknown>;
-  /** The command the lock control sends, given true to lock the joint. */
-  lockCommand: ValueCommand<boolean, unknown, unknown>;
+  setTarget: (id: string, type: ServoInfo["type"], value: number) => void;
+  setMotor: (id: string, engaged: boolean) => void;
+  setLock: (id: string, locked: boolean) => void;
 }
 
 /** One of a joint's positions for the list; a withheld figure is "unknown" rather than a drawn zero. */
@@ -91,9 +90,9 @@ export function RoboticsConsoleView({
   targetCommand,
   rows,
   onSelect,
-  stepCommand,
-  motorCommand,
-  lockCommand,
+  setTarget,
+  setMotor,
+  setLock,
 }: RoboticsConsoleViewProps) {
   const decimals = positionDecimals(selected.type);
   const readings = positionReadings(selected);
@@ -150,12 +149,9 @@ export function RoboticsConsoleView({
                 format={(v) =>
                   writeQuantity(value(unitFor(selected.type), v), { decimals })
                 }
-                command={stepCommand}
-                unavailable={
-                  targetCommand.commanded === null
-                    ? "The target is not reported"
-                    : null
-                }
+                disabled={targetCommand.commanded === null}
+                disabledReason="The target is not reported"
+                onChange={(v) => setTarget(selected.partId, selected.type, v)}
               />
             </Cluster>
           </Cluster>
@@ -165,39 +161,37 @@ export function RoboticsConsoleView({
             <Cluster justify="start" wrap>
               <ToggleButton
                 size="sm"
+                pressed={selected.motorEngaged === true}
                 tone="go"
-                command={motorCommand}
-                state={selected.motorEngaged}
-                name="Motor"
-                unavailable={
+                disabled={
+                  selected.motorEngaged === null || selected.motorized === false
+                }
+                disabledReason={
                   selected.motorEngaged === null
                     ? "The motor state is not reported"
-                    : selected.motorized === false
-                      ? "This part has no motor"
-                      : null
+                    : "This part has no motor"
                 }
-                marking={flagsMarked}
+                marked={flagsMarked}
+                onClick={() =>
+                  selected.motorEngaged !== null &&
+                  setMotor(selected.partId, !selected.motorEngaged)
+                }
               >
-                {(shown) =>
-                  `Motor ${motorStateText(typeof shown === "boolean" ? shown : null)}`
-                }
+                Motor {motorStateText(selected.motorEngaged)}
               </ToggleButton>
               <ToggleButton
                 size="sm"
+                pressed={selected.locked === true}
                 tone="warn"
-                command={lockCommand}
-                state={selected.locked}
-                name="Lock"
-                unavailable={
-                  selected.locked === null
-                    ? "The lock state is not reported"
-                    : null
+                disabled={selected.locked === null}
+                disabledReason="The lock state is not reported"
+                marked={flagsMarked}
+                onClick={() =>
+                  selected.locked !== null &&
+                  setLock(selected.partId, !selected.locked)
                 }
-                marking={flagsMarked}
               >
-                {(shown) =>
-                  lockStateText(typeof shown === "boolean" ? shown : null)
-                }
+                {lockStateText(selected.locked)}
               </ToggleButton>
             </Cluster>
           )}

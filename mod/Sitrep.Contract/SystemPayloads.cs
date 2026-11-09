@@ -626,26 +626,16 @@ public class CatalogEntry
     /// Whether this vessel has a live control link home, as the receiving
     /// centre has heard it: an outage shows one of the centre's signal delays
     /// after the vessel's last light, and its return when its light arrives
-    /// again. Read for every roster vessel, loaded or not. For the loaded vessel
-    /// it is the game's own live connection; for any other vessel it is whether
-    /// the active comms backend finds a route from the vessel to a ground
-    /// station on the network as it stands now.
+    /// again. Read for every roster vessel, loaded or not. This is stock
+    /// CommNet's reading (<c>Vessel.connection.IsConnected</c>), not the active
+    /// vessel's <c>comms.*</c> channels, which a comms mod may provide.
     ///
     /// <para>Null means unknown, not "no link". Three causes: the vessel's own
     /// link report has not reached this centre yet; rarely, a scene
     /// transition; and always, for the <c>Debris</c>, <c>SpaceObject</c>
     /// (asteroids and comets) and <c>Unknown</c> vessel types, which CommNet
     /// never gives a connection (<c>CommNet.CommNetVessel.OnStart</c>). A
-    /// debris or asteroid entry carries null here on every sample. A vessel
-    /// that is not loaded also reads null when no comms backend is active yet
-    /// or its route could not be asked for.</para>
-    /// <internal>
-    /// The game recomputes a vessel's own connected flag and control path for a
-    /// vessel that is not loaded only when it starts and when it is focused on a
-    /// map, so that flag reads false for a vessel the network reaches. A fresh
-    /// route solve per vessel, kept a few seconds, replaces it; the delivery ledger
-    /// reads the same answer so the roster and the ledger cannot disagree.
-    /// </internal>
+    /// debris or asteroid entry carries null here on every sample.</para>
     /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool? CommsConnected { get; set; }
@@ -653,9 +643,7 @@ public class CatalogEntry
     /// <summary>
     /// The same connection's control level. Null under the same condition as
     /// <see cref="CommsConnected"/>, including the permanent Debris,
-    /// SpaceObject and Unknown vessel-type case described there, and for every
-    /// vessel that is not loaded, since the game recomputes the level only while
-    /// the vessel is loaded.
+    /// SpaceObject and Unknown vessel-type case described there.
     /// </summary>
     [SitrepUnit(Units.Enumeration)]
     public RosterCommsControlSource? CommsControlSource { get; set; }

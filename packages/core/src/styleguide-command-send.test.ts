@@ -42,12 +42,16 @@ const SEND_WITHOUT_INPUT: Record<string, Entry> = {
     why: "robotics controls, awaiting a kit input command",
   },
   "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/index.tsx": {
-    reads: 4,
-    why: "bound-key rotor cap, motor, lock and reverse, awaiting a control press",
+    reads: 6,
+    why: "rotor steppers and brake, awaiting a kit input command",
   },
   "mod/sitrep-sdk/src/spine/use-body-states.ts": {
     reads: 3,
     why: "solver query, no control",
+  },
+  "packages/app/src/alarms/GameAlarmRows.tsx": {
+    reads: 1,
+    why: "alarm delete control, awaiting a kit input command",
   },
   "packages/app/src/analytics/ModLogForwarder.tsx": {
     reads: 2,
@@ -65,9 +69,25 @@ const SEND_WITHOUT_INPUT: Record<string, Entry> = {
     reads: 1,
     why: "mod setting write, awaiting a kit input command",
   },
+  "packages/components/src/AstronautComplex/AstronautComplexView.tsx": {
+    reads: 1,
+    why: "fire from a bound key, awaiting a control press",
+  },
+  "packages/components/src/LaunchDirector/FlyVesselMenu.tsx": {
+    reads: 1,
+    why: "menu item, awaiting a kit input command",
+  },
+  "packages/components/src/LaunchDirector/InFlightPanel.tsx": {
+    reads: 1,
+    why: "vessel switch row, awaiting a kit input command",
+  },
+  "packages/components/src/LaunchDirector/PadSection.tsx": {
+    reads: 1,
+    why: "vessel switch button, awaiting a kit input command",
+  },
   "packages/components/src/ManeuverPlanner/useNodeCommands.ts": {
-    reads: 3,
-    why: "completed-node auto-remove, no press, and the node editor's save, which is a form submit with no command prop",
+    reads: 6,
+    why: "node add and remove, awaiting a command set",
   },
   "packages/components/src/Navball/index.tsx": {
     reads: 1,
@@ -81,9 +101,25 @@ const SEND_WITHOUT_INPUT: Record<string, Entry> = {
     reads: 1,
     why: "SAS mode from a bound key, awaiting a control press",
   },
+  "packages/components/src/ShipMap/index.tsx": {
+    reads: 2,
+    why: "part action and bound-key command from the map, awaiting a kit input command",
+  },
+  "packages/components/src/TargetPicker/TargetPickerView.tsx": {
+    reads: 2,
+    why: "target rows, awaiting a kit input command",
+  },
+  "packages/components/src/TargetPicker/useClearTarget.ts": {
+    reads: 1,
+    why: "clear target from a bound key, awaiting a control press",
+  },
+  "packages/components/src/VesselCatalog/DismissEnded.tsx": {
+    reads: 1,
+    why: "dismiss control, awaiting a kit input command",
+  },
   "packages/components/src/WarpControl/index.tsx": {
     reads: 2,
-    why: "bound-key warp and pause, and the tiny form reset, which has no command prop",
+    why: "warp ladder and pause, awaiting a kit input command",
   },
   "packages/sitrep-client/src/auto-command.ts": {
     reads: 3,

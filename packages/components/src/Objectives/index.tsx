@@ -59,7 +59,8 @@ function ObjectivesComponent(_: Readonly<ComponentProps<ObjectivesConfig>>) {
 registerComponent<ObjectivesConfig>({
   id: "objectives",
   name: "Objectives",
-  description: "The goals you are working towards, with an alarm on each.",
+  description:
+    "Everything you are working towards right now, such as the goals of each active contract. A bell on each pending goal sets an alarm that rings when it is met. Accept and manage contracts in the Contract Manager widget.",
   tags: ["contracts", "career"],
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 6, h: 4 },

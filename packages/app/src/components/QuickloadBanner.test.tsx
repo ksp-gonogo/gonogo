@@ -2,7 +2,7 @@ import { TelemetryProvider } from "@ksp-gonogo/sitrep-client";
 import { type GameLoaded, value } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
-import { isNews, QuickloadSentence } from "./QuickloadBanner";
+import { QuickloadSentence } from "./QuickloadBanner";
 
 function event(over: Partial<GameLoaded>): GameLoaded {
   return {
@@ -23,9 +23,9 @@ describe("the quickload banner's words", () => {
     expect(document.body.textContent).toContain("moved");
   });
 
-  it("says a game load with no requester plainly", () => {
+  it("omits the name for the main screen", () => {
     render(<QuickloadSentence event={event({})} />);
-    expect(document.body.textContent).toContain("Game loaded ·");
+    expect(document.body.textContent).toContain("Quickloaded ·");
   });
 
   it("says why a load failed", () => {
@@ -47,15 +47,5 @@ describe("the quickload banner's words", () => {
     expect(document.body.textContent).toBe(
       "Quickload cancelled: the scene changed first",
     );
-  });
-});
-
-describe("which loads are news", () => {
-  it("is news when the view clock is at the load", () => {
-    expect(isNews(event({}), value("ut", 510))).toBe(true);
-  });
-
-  it("is a replay when the view clock is far past the load", () => {
-    expect(isNews(event({}), value("ut", 700))).toBe(false);
   });
 });

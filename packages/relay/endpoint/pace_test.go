@@ -125,7 +125,7 @@ func TestTheDataChannelWaitsForANewFeedsFirstKeyframe(t *testing.T) {
 	var asked int
 	f := videoFeed("bridge 1 section 0", &asked)
 	p.addFeed(now, f)
-	p.pushData(now, []byte("snapshot"))
+	p.pushData([]byte("snapshot"))
 	if _, msgs, _ := p.pull(now.Add(100*time.Millisecond), 1<<20); len(msgs) != 0 {
 		t.Fatal("the data channel was sent a message before the feed's first keyframe")
 	}
@@ -134,7 +134,7 @@ func TestTheDataChannelWaitsForANewFeedsFirstKeyframe(t *testing.T) {
 		t.Fatalf("after the keyframe the data channel was sent %d messages, wanted 1", len(msgs))
 	}
 
-	p.pushData(now, []byte("more"))
+	p.pushData([]byte("more"))
 	g := videoFeed("bridge 2 section 0", &asked)
 	p.addFeed(now.Add(time.Second), g)
 	if _, msgs, _ := p.pull(now.Add(time.Second+firstKeyframeHold), 1<<20); len(msgs) != 1 {
@@ -146,7 +146,7 @@ func TestADataChannelWithNoVideoIsHandedMessagesUpToItsWindow(t *testing.T) {
 	var logs []string
 	p := newTestPacer(&logs)
 	for i := 0; i < 10; i++ {
-		p.pushData(time.Unix(0, 0), make([]byte, 64<<10))
+		p.pushData(make([]byte, 64<<10))
 	}
 	_, msgs, _ := p.pull(time.Unix(0, 0), p.dataWindow())
 	if len(msgs) != 4 {

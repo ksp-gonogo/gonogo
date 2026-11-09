@@ -1,5 +1,4 @@
 import {
-  type AnyBoundCommand,
   type Reading,
   type TargetListEntry,
   type Value,
@@ -23,7 +22,7 @@ export function VesselSwitchList({
   distanceOf,
   showSpaceObjects,
   onToggleSpaceObjects,
-  switchCommand,
+  onSwitch,
 }: {
   vessels: readonly TargetListEntry[];
   /** Each vessel's range as a reading of the roster, so a held roster marks it. */
@@ -31,8 +30,7 @@ export function VesselSwitchList({
   /** Held by the caller, so the choice survives the list closing. */
   showSpaceObjects: boolean;
   onToggleSpaceObjects: () => void;
-  /** The command that switches to the vessel with this id and name. */
-  switchCommand: (vesselId: string, name: string) => AnyBoundCommand;
+  onSwitch: (vesselId: string) => void;
 }) {
   const spaceObjectCount = useMemo(
     () => vessels.filter((e) => e.vesselType === VesselType.SpaceObject).length,
@@ -50,7 +48,7 @@ export function VesselSwitchList({
     });
   }, [vessels, showSpaceObjects]);
   return (
-    <VesselSwitchPanel role="group" aria-label="Switch active vessel">
+    <VesselSwitchPanel role="listbox" aria-label="Switch active vessel">
       {spaceObjectCount > 0 && (
         <Cluster justify="start">
           <Tooltip
@@ -81,11 +79,10 @@ export function VesselSwitchList({
             interactive
             key={entry.vesselId ?? entry.name}
             type="button"
-            command={
-              entry.vesselId
-                ? switchCommand(entry.vesselId, entry.name)
-                : undefined
-            }
+            onClick={() => {
+              if (!entry.vesselId) return;
+              onSwitch(entry.vesselId);
+            }}
           >
             <VesselSwitchName>
               <span>{entry.name}</span>

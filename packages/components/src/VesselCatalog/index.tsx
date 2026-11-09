@@ -90,7 +90,8 @@ function VesselCatalogComponent({
 registerComponent<VesselCatalogConfig>({
   id: "vessel-catalog",
   name: "Vessel Catalog",
-  description: "Your craft, with each one's body, crew and comms link.",
+  description:
+    "Every craft you have out there, with the body it is at, its crew and its comms link (direct, relay or none), plus how much of your fleet is in contact. Debris, asteroids, comets, flags and kerbals on EVA are left out.",
   tags: ["telemetry"],
   /* Declared, not merely rendered: the picker and search tags find extending Uplinks by walking this list. */
   augmentSlots: ["vessel-catalog.updates"],

@@ -391,7 +391,7 @@ registerComponent<ExperimentsConfig>({
   id: "experiments",
   name: "Experiments",
   description:
-    "Run your vessel's science instruments and transmit the results.",
+    "Every science instrument on your vessel, listed under its part, and the status of any Mobile Processing Lab. Shows which instruments hold data, which have run, which work only once and which are broken, and lets you run them and transmit their results.",
   tags: ["telemetry", "science"],
   defaultSize: { w: 6, h: 7 },
   minSize: { w: 6, h: 4 },

@@ -3,7 +3,7 @@
     {
       "id": "deployed-science",
       "name": "Deployed Science",
-      "description": "Science, power and last contact of Breaking Ground deployed stations.",
+      "description": "Whether each Breaking Ground deployed station's science is reaching home and when it was last heard, with its power balance and per-experiment science progress, reported even while you fly something else. Read-only.",
       "tags": [
         "telemetry",
         "science"
@@ -42,7 +42,7 @@
     {
       "id": "robotics-console",
       "name": "Robotics Console",
-      "description": "Drive Breaking Ground hinges, rotation servos and pistons.",
+      "description": "Current-vs-target position, at-target state and motor/lock controls for Breaking Ground robotic hinges, rotation servos and pistons. Select a joint to drive it from the stepper or a mapped input.",
       "tags": [
         "telemetry",
         "robotics"
@@ -101,7 +101,7 @@
     {
       "id": "rotor-tachometer",
       "name": "Rotor Tachometer",
-      "description": "RPM and controls for Breaking Ground rotors.",
+      "description": "Live RPM vs commanded cap for Breaking Ground robotic rotors, with motor, lock, brake and direction controls. Select a rotor to drive it from the dial or a mapped input.",
       "tags": [
         "telemetry",
         "robotics"

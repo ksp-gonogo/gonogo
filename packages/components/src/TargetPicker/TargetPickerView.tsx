@@ -79,7 +79,7 @@ export function TargetPickerComponent({
   );
   /** Setting or clearing the target is subject to signal delay; every kind sets through `vessel.target.set`, keyed by `entry.kind`. */
   const setTargetCmd = useCommand("vessel.target.set");
-  const clearTargetControl = useClearTarget(() => setPendingTarget(null));
+  const clearTargetCmd = useClearTarget();
 
   const [filter, setFilter] = useState("");
   const [showSpaceObjects, setShowSpaceObjects] = useState(false);
@@ -103,13 +103,21 @@ export function TargetPickerComponent({
     return () => clearTimeout(id);
   }, [pendingTarget, tarName]);
 
-  const targetCommandFor = (entry: TargetListEntry) => {
+  const dispatchTarget = (entry: TargetListEntry) => {
     const args = targetArgsFor(entry);
-    if (args === null) return null;
-    return setTargetCmd.with(args, {
+    if (args === null) return;
+    setPendingTarget({
+      id: entryId(entry),
+      expectedName: entry.name,
+    });
+    void setTargetCmd.dangerouslySendWithoutInput(args, {
       label: `Target ${entry.name}`,
-      before: () =>
-        setPendingTarget({ id: entryId(entry), expectedName: entry.name }),
+    });
+  };
+  const clearTarget = () => {
+    setPendingTarget(null);
+    void clearTargetCmd.dangerouslySendWithoutInput(undefined, {
+      label: "Clear target",
     });
   };
 
@@ -167,7 +175,7 @@ export function TargetPickerComponent({
       distance={distanceOf(entry)}
       listHeld={heldGrade(availableReading)}
       isPending={pendingTarget?.id === entryId(entry)}
-      command={targetCommandFor(entry)}
+      onPick={dispatchTarget}
     />
   );
 
@@ -186,7 +194,7 @@ export function TargetPickerComponent({
             tarRelVel={tarRelVel}
             rangeR={rangeR}
             closingRateR={closingRateR}
-            clearControl={clearTargetControl}
+            onClear={clearTarget}
           />
           <FilterBox
             placeholder="Filter targets"

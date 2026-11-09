@@ -356,7 +356,6 @@ const newArgs = [
   "Scaffold Probe",
   "--repo",
   "ksp-gonogo/probe",
-  "--client",
   "--topics",
   "own",
   "--workflows",
@@ -912,59 +911,6 @@ must("npm test, with the pictures drawn", "npm", ["test"], { cwd: client });
 const testsProject = join(uplink, "mod-tests", `${NS}.Tests.csproj`);
 must("dotnet test mod-tests", "dotnet", ["test", testsProject, ...dotnetQuiet]);
 
-console.log("scaffold-probe: uplink-tools add command");
-must("uplink-tools add command", bin, ["add", "command", "reset counter"], {
-  cwd: client,
-});
-if (
-  !readFileSync(
-    join(client, "src/__generated__/command-map.ts"),
-    "utf8",
-  ).includes(`${ID}.resetCounter`)
-) {
-  fail("add command did not regenerate the client's command map");
-}
-must(
-  "uplink-tools add command, delayed with a subject",
-  bin,
-  [
-    "add",
-    "command",
-    "nudge vessel",
-    "--delay",
-    "delayed",
-    "--subject",
-    `${ID}.heartbeat`,
-  ],
-  { cwd: client },
-);
-mustFail(
-  "add command, delayed with no subject",
-  /Subject/,
-  bin,
-  ["add", "command", "stage", "--delay", "delayed"],
-  { cwd: client },
-);
-for (const script of ["page", "typecheck", "test"]) {
-  must(`npm run ${script}, after add command`, "npm", ["run", script], {
-    cwd: client,
-  });
-}
-must("dotnet test mod-tests, after add command", "dotnet", [
-  "test",
-  testsProject,
-  ...dotnetQuiet,
-]);
-mustFail(
-  "add command over a name that is taken",
-  /already declares/,
-  bin,
-  ["add", "command", "reset counter"],
-  {
-    cwd: client,
-  },
-);
-
 // What an author commits holds the placeholder; a release stamps its version over it before anything is built.
 must(
   "uplink-tools version stamps the release's version",
@@ -1203,69 +1149,6 @@ if (!published) {
     must(`npm run ${script}`, "npm", ["run", script], { cwd: coreClient });
   }
   passesOwnCheck(coreClient, join(coreClient, "src/Vessel/index.tsx"));
-  console.log("scaffold-probe: uplink-tools add, one of each kind");
-  for (const [kind, name, slot] of [
-    ["widget", "fuel gauge"],
-    ["augment", "open roster", "crew-status.actions"],
-    ["contribution", "full cabin", "crew-status.badges"],
-    ["processor", "descent rate"],
-    ["setting", "show days"],
-    ["unit", "snack crate"],
-  ]) {
-    must(
-      `uplink-tools add ${kind} "${name}"${slot ? ` ${slot}` : ""}`,
-      bin,
-      ["add", kind, name, ...(slot ? [slot] : [])],
-      { cwd: coreClient },
-    );
-  }
-  mustFail(
-    "add augment with no slot",
-    /joins a slot/,
-    bin,
-    ["add", "augment", "lonely"],
-    { cwd: coreClient },
-  );
-  mustFail(
-    "add augment to a slot nothing declares, with no terminal to ask on",
-    /--declare-slot/,
-    bin,
-    ["add", "augment", "partner panel", "partneruplink.panel"],
-    { cwd: coreClient },
-  );
-  if (existsSync(join(coreClient, "src/slots"))) {
-    fail("add wrote a slot declaration with nothing to say it should");
-  }
-  must(
-    "uplink-tools add augment to another Uplink's slot, with --declare-slot",
-    bin,
-    [
-      "add",
-      "augment",
-      "partner panel",
-      "partneruplink.panel",
-      "--declare-slot",
-    ],
-    { cwd: coreClient },
-  );
-  for (const script of ["typecheck", "test", "page"]) {
-    must(`npm run ${script}, after add`, "npm", ["run", script], {
-      cwd: coreClient,
-    });
-  }
-  drawsReadably(coreClient, join(coreClient, "src/FuelGauge/index.tsx"));
-  // The client changed, so the hash baked into the plugin is stale until the release builds both halves again, which is what `check` compares.
-  must("npm run release, after add", "npm", ["run", "release"], {
-    cwd: coreClient,
-  });
-  passesOwnCheck(coreClient, join(coreClient, "src/FuelGauge/index.tsx"));
-  mustFail(
-    "add over a name that is taken",
-    /never overwrites/,
-    bin,
-    ["add", "setting", "show days"],
-    { cwd: coreClient },
-  );
   must("dotnet test mod-tests", "dotnet", [
     "test",
     join(core, "mod-tests", `${coreNs}.Tests.csproj`),
@@ -1286,101 +1169,72 @@ if (!published) {
 
 // ── The third shape: a plugin with no client half ───────────────────────────
 
-for (const shape of published
-  ? []
-  : [
-      { id: "probemod", topics: "core" },
-      { id: "probetypes", topics: "own" },
-    ]) {
+if (!published) {
   console.log(
-    `scaffold-probe: a mod-only Uplink scaffolded with --no-client --topics ${shape.topics}`,
+    "scaffold-probe: a mod-only Uplink, the plugin of a scaffold with its client half removed",
   );
-  const modId = shape.id;
-  const modNs = `Gonogo${modId[0].toUpperCase()}${modId.slice(1)}Uplink`;
+  /*
+   * `new` has no flag that writes a mod-only Uplink, so the shape an author
+   * reaches by deleting client/, the client entry of uplink.json and the
+   * plugin's client announcement is made the same way here.
+   */
+  const modId = "probemod";
+  const modNs = "GonogoProbemodUplink";
   const modOnly = join(work, modId);
   mkdirSync(modOnly);
   must(
-    "uplink-tools new --no-client",
+    "uplink-tools new --yes --topics core, to take the client half from",
     bin,
     [
       "new",
       modId,
       "--yes",
-      "--no-client",
       "--topics",
-      shape.topics,
-      "--workflows",
-      "--no-install",
-      "--no-generate",
+      "core",
       "--author",
       "Scaffold Probe",
       "--repo",
       "you/example",
+      "--no-install",
     ],
     { cwd: modOnly },
   );
-  for (const absent of ["client", "mod/ClientSource.g.cs"]) {
-    if (existsSync(join(modOnly, absent))) {
-      fail(`--no-client still wrote ${absent}`);
-    }
-  }
-  if (existsSync(join(modOnly, "mod-contract")) !== (shape.topics === "own")) {
-    fail(`--topics ${shape.topics} wrote the wrong contract slice`);
-  }
-  if (existsSync(join(modOnly, "types")) !== (shape.topics === "own")) {
-    fail(`--topics ${shape.topics} wrote the wrong types package`);
-  }
-  if (JSON.parse(readFileSync(join(modOnly, "uplink.json"), "utf8")).client) {
-    fail("--no-client left a client entry in uplink.json");
-  }
-  writeFileSync(
-    join(modOnly, "nuget.config"),
-    readFileSync(join(uplink, "nuget.config"), "utf8"),
+  pointAtPacked(modOnly);
+  rmSync(join(modOnly, "client"), { recursive: true, force: true });
+  const modDeclaration = join(modOnly, "uplink.json");
+  const modDeclared = JSON.parse(readFileSync(modDeclaration, "utf8"));
+  delete modDeclared.client;
+  writeFileSync(modDeclaration, `${JSON.stringify(modDeclared, null, 2)}\n`);
+  // What a hand-written mod-only plugin does not say: where a client is, its hash, and the project's demand for the files that carry them.
+  const modPlugin = join(
+    modOnly,
+    "mod",
+    readdirSync(join(modOnly, "mod")).find(
+      (file) =>
+        file.endsWith(".cs") &&
+        !file.endsWith(".g.cs") &&
+        readFileSync(join(modOnly, "mod", file), "utf8").includes(
+          "ISitrepUplink",
+        ),
+    ) ?? fail("the scaffold wrote no plugin source in mod/"),
   );
-  if (shape.topics === "own") {
-    const typesDir = join(modOnly, "types");
-    const typesManifest = join(typesDir, "package.json");
-    const manifest = JSON.parse(readFileSync(typesManifest, "utf8"));
-    for (const name of SCOPED) {
-      if (manifest.devDependencies?.[name]) {
-        manifest.devDependencies[name] = `file:${tarballs[name]}`;
-      }
-    }
-    writeFileSync(typesManifest, `${JSON.stringify(manifest, null, 2)}\n`);
-    must(
-      "npm install, in the types package",
-      "npm",
-      ["install", "--no-package-lock"],
-      {
-        cwd: typesDir,
-      },
+  const modProject = join(modOnly, "mod", `${modNs}.csproj`);
+  const pluginSource = readFileSync(modPlugin, "utf8");
+  const projectSource = readFileSync(modProject, "utf8");
+  const withoutClient = pluginSource
+    .replace(/\s*ExpectedClientHash = [^;]*?: ExpectedClientHash\.Value,/s, "")
+    .replace(/\s*ClientSource = new UplinkClientSource\s*\{[^}]*\},/s, "");
+  const withoutGuard = projectSource.replace(
+    /\s*<Target Name="RequireBakedClientSource"[\s\S]*?<\/Target>/,
+    "",
+  );
+  if (withoutClient === pluginSource || withoutGuard === projectSource) {
+    fail(
+      "the scaffold's plugin or project no longer has the client lines this probe removes to make a mod-only Uplink",
     );
-    must("uplink-tools codegen, in the types package", bin, ["codegen"], {
-      cwd: modOnly,
-    });
-    must(
-      "npm run codegen:check, in the types package",
-      "npm",
-      ["run", "codegen:check"],
-      {
-        cwd: typesDir,
-      },
-    );
-    must(
-      "npm run typecheck, in the types package",
-      "npm",
-      ["run", "typecheck"],
-      {
-        cwd: typesDir,
-      },
-    );
-    must("npm run build, in the types package", "npm", ["run", "build"], {
-      cwd: typesDir,
-    });
-    if (!existsSync(join(typesDir, "dist/index.d.ts"))) {
-      fail("the types package built no dist/index.d.ts");
-    }
   }
+  writeFileSync(modPlugin, withoutClient);
+  writeFileSync(modProject, withoutGuard);
   must("git init", "git", ["init", "-q", "-b", "main"], { cwd: modOnly });
   must("git add", "git", ["add", "-A"], { cwd: modOnly });
   must(
@@ -1398,38 +1252,21 @@ for (const shape of published
     ],
     { cwd: modOnly },
   );
-  const typesVersion = () =>
-    JSON.parse(readFileSync(join(modOnly, "types/package.json"), "utf8"))
-      .version;
+  must(
+    "uplink-tools version for an Uplink with no client",
+    bin,
+    ["version", "--bump", "patch", "--from", "0.0.1"],
+    { cwd: modOnly },
+  );
   must(
     "uplink-tools release prepare for an Uplink with no client",
     bin,
     ["release", "prepare", "--bump", "patch", "--from", "0.0.1"],
     { cwd: modOnly },
   );
-  if (shape.topics === "own" && typesVersion() !== "0.0.2") {
-    fail(
-      `release prepare left the types package at ${typesVersion()}, expected 0.0.2`,
-    );
-  }
-  must(
-    "uplink-tools version for an Uplink with no client",
-    bin,
-    ["version", "--bump", "patch", "--from", "0.0.2"],
-    { cwd: modOnly },
-  );
-  if (shape.topics === "own" && typesVersion() !== "0.0.3") {
-    fail(`version left the types package at ${typesVersion()}, expected 0.0.3`);
-  }
   must("uplink-tools release for an Uplink with no client", bin, ["release"], {
     cwd: modOnly,
-    env: { ...env, GONOGO_UPLINK_VERSION: "0.0.3" },
   });
-  must("dotnet test mod-tests, with no client", "dotnet", [
-    "test",
-    join(modOnly, "mod-tests", `${modNs}.Tests.csproj`),
-    ...dotnetQuiet,
-  ]);
   const modDll = join(modOnly, "mod/bin/Release", `${modNs}.dll`);
   const modZip = join(modOnly, "dist", `${modNs}.zip`);
   for (const artifact of [modDll, modZip]) {
@@ -1446,142 +1283,8 @@ for (const shape of published
       `the mod-only zip holds [${modZipped.join(", ")}], expected the plugin in it`,
     );
   }
-  if (shape.topics === "own") {
-    const tarballName = readdirSync(join(modOnly, "dist")).find((file) =>
-      file.endsWith(".tgz"),
-    );
-    if (!tarballName) fail("release packed no types package beside the zip");
-    const listed = must("list the types package", "tar", [
-      "-tzf",
-      join(modOnly, "dist", tarballName),
-    ]);
-    if (!listed.includes("package/dist/index.d.ts")) {
-      fail("the packed types package holds no dist/index.d.ts");
-    }
-    // A generated file edited by hand, which codegen --check must see as stale, or the check cannot see a drifted types package.
-    const generated = join(modOnly, "types/src/__generated__/contract.ts");
-    const pristine = readFileSync(generated, "utf8");
-    writeFileSync(generated, `${pristine}\nexport const planted = 1;\n`);
-    const planted = run(bin, ["codegen", "--check"], { cwd: modOnly });
-    writeFileSync(generated, pristine);
-    if (planted.ok) {
-      fail("codegen --check passed over a types package edited by hand: BLIND");
-    }
-    console.log(
-      "  ✓ plant, a generated type edited by hand, seen by codegen --check: refused",
-    );
-  }
-  const modBytes = readFileSync(modDll);
-  if (modBytes.includes(Buffer.from("client.js", "utf16le"))) {
+  if (readFileSync(modDll).includes(Buffer.from("client.js", "utf16le"))) {
     fail("the mod-only plugin announces a client");
-  }
-  if (!modBytes.includes(Buffer.from("0.0.3", "utf16le"))) {
-    fail("the mod-only plugin does not carry the version the release named");
-  }
-  if (shape.topics === "own") {
-    // The no-client Uplink then wants a widget: --add-client, with the types package kept beside the new client.
-    console.log(
-      "scaffold-probe: the same Uplink, given a client with --add-client",
-    );
-    must("git add", "git", ["add", "-A"], { cwd: modOnly });
-    must(
-      "git commit",
-      "git",
-      [
-        "-c",
-        "user.name=probe",
-        "-c",
-        "user.email=probe@example.com",
-        "commit",
-        "-q",
-        "-m",
-        "chore: stamped",
-      ],
-      { cwd: modOnly },
-    );
-    must(
-      "uplink-tools new --add-client",
-      bin,
-      ["new", "--add-client", "--no-install", "--no-generate"],
-      { cwd: modOnly },
-    );
-    pointAtPacked(modOnly);
-    const clientDir = join(modOnly, "client");
-    must(
-      "npm install, in the new client",
-      "npm",
-      ["install", "--no-package-lock"],
-      {
-        cwd: clientDir,
-      },
-    );
-    must(
-      "uplink-tools codegen, with a client and a types package",
-      bin,
-      ["codegen"],
-      {
-        cwd: modOnly,
-      },
-    );
-    must(
-      "uplink-tools codegen --check, with a client and a types package",
-      bin,
-      ["codegen", "--check"],
-      {
-        cwd: modOnly,
-      },
-    );
-    const both = ["client", "types"].map((home) =>
-      readFileSync(
-        join(modOnly, home, "src/__generated__/contract.ts"),
-        "utf8",
-      ),
-    );
-    if (both[0] !== both[1]) {
-      fail("codegen wrote different types to client/ and types/");
-    }
-    for (const script of ["page", "typecheck", "test"]) {
-      must(`npm run ${script}, in the new client`, "npm", ["run", script], {
-        cwd: clientDir,
-      });
-    }
-    must("dotnet test mod-tests, after --add-client", "dotnet", [
-      "test",
-      join(modOnly, "mod-tests", `${modNs}.Tests.csproj`),
-      ...dotnetQuiet,
-    ]);
-    must(
-      "uplink-tools version, with a client and a types package",
-      bin,
-      ["version", "0.0.4"],
-      {
-        cwd: modOnly,
-      },
-    );
-    if (typesVersion() !== "0.0.4") {
-      fail(
-        `version left the types package at ${typesVersion()}, expected 0.0.4`,
-      );
-    }
-    must(
-      "npm run release, with a client and a types package",
-      "npm",
-      ["run", "release"],
-      { cwd: clientDir },
-    );
-    const graduated = readdirSync(join(modOnly, "dist"));
-    if (!graduated.some((file) => file.endsWith(".tgz"))) {
-      fail(
-        "release stopped packing the types package once the Uplink had a client",
-      );
-    }
-    if (
-      !readFileSync(modDll).includes(
-        Buffer.from(`${modId}.client.js`, "utf16le"),
-      )
-    ) {
-      fail("after --add-client the plugin does not announce its client");
-    }
   }
 }
 

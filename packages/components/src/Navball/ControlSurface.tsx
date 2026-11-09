@@ -1,4 +1,4 @@
-import { type AnyBoundCommand, value } from "@ksp-gonogo/sitrep-sdk";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
   Countdown,
@@ -6,6 +6,7 @@ import {
   MARKER_ICONS,
   Slider,
   StatusIndicator,
+  ToggleButton,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import {
@@ -38,13 +39,12 @@ interface ControlSurfaceProps {
   throttleLastSeen: { value: number; caption: string } | null;
   onSetThrottleCmd: (next: number | ((v: number) => number)) => void;
   fbwState: FbwState;
-  /** The command that arms fly-by-wire. */
-  armFbwCommand: AnyBoundCommand;
-  /** The command that disarms fly-by-wire. */
-  disarmFbwCommand: AnyBoundCommand;
-  /** The command that sets a SAS mode. */
-  sasModeCommand: (mode: SasMode) => AnyBoundCommand;
+  onArmFbw: () => void;
+  onDisarmFbw: () => void;
+  onSetSasMode: (mode: SasMode) => void;
   /** SAS modes whose command is overdue or lost, mapped to that command's id so the button can dismiss it. */
+  unconfirmedSasModes: Map<SasMode, string>;
+  onDismissSasUnconfirmed: (id: string) => void;
   showFbwDelayWarning: boolean;
   delaySeconds: number | null;
   /** The one-way delay as read, so a held figure is marked. */
@@ -85,9 +85,11 @@ export function ControlSurface({
   throttleLastSeen,
   onSetThrottleCmd,
   fbwState,
-  armFbwCommand,
-  disarmFbwCommand,
-  sasModeCommand,
+  onArmFbw,
+  onDisarmFbw,
+  onSetSasMode,
+  unconfirmedSasModes,
+  onDismissSasUnconfirmed,
   showFbwDelayWarning,
   delaySeconds,
   oneWayDelay,
@@ -146,19 +148,27 @@ export function ControlSurface({
       >
         <div style={BUTTON_GRID}>
           {SAS_MODES.map((mode) => {
+            const unconfirmedId = unconfirmedSasModes.get(mode);
+            const isUnconfirmed = unconfirmedId !== undefined;
             const cannotHold = availableSasModes?.has(mode) === false;
             return (
-              <Button
+              <ToggleButton
                 key={mode}
+                type="button"
                 pressed={sasMode === mode}
-                command={sasModeCommand(mode)}
-                unavailable={
-                  disabled
-                    ? NOT_CONTROLLABLE
-                    : cannotHold
-                      ? "The craft cannot hold this mode"
-                      : null
+                data-unconfirmed={isUnconfirmed ? "true" : undefined}
+                aria-label={
+                  isUnconfirmed
+                    ? `SAS ${mode} command unconfirmed, may have run, activate to dismiss`
+                    : undefined
                 }
+                onClick={() =>
+                  isUnconfirmed
+                    ? onDismissSasUnconfirmed(unconfirmedId)
+                    : onSetSasMode(mode)
+                }
+                disabled={disabled || (cannotHold && !isUnconfirmed)}
+                disabledReason={disabled ? NOT_CONTROLLABLE : undefined}
               >
                 {(() => {
                   const markerId = SAS_MODE_MARKERS[mode];
@@ -167,7 +177,7 @@ export function ControlSurface({
                   return <Marker size="var(--icon-size-control)" />;
                 })()}
                 {modeShort(mode)}
-              </Button>
+              </ToggleButton>
             );
           })}
         </div>
@@ -233,17 +243,17 @@ export function ControlSurface({
       <div style={GROUP}>
         <div style={GROUP_LABEL}>Fly-by-wire</div>
         <div style={FBW_ROW}>
-          <Button
+          <ToggleButton
+            type="button"
             pressed={fbwState === "armed"}
-            command={
-              FBW_VIEW[fbwState].press === "arm"
-                ? armFbwCommand
-                : disarmFbwCommand
+            onClick={
+              FBW_VIEW[fbwState].press === "arm" ? onArmFbw : onDisarmFbw
             }
-            unavailable={disabled ? NOT_CONTROLLABLE : null}
+            disabled={disabled}
+            disabledReason={NOT_CONTROLLABLE}
           >
             {FBW_VIEW[fbwState].label}
-          </Button>
+          </ToggleButton>
           <span style={FBW_HINT}>{FBW_VIEW[fbwState].hint}</span>
         </div>
         {showFbwDelayWarning && delaySeconds !== null && (

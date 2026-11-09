@@ -1,11 +1,6 @@
 import { useTelemetry } from "@ksp-gonogo/core";
 import { useViewUt } from "@ksp-gonogo/sitrep-client";
-import {
-  type GameLoaded,
-  stillTrue,
-  type Value,
-  value,
-} from "@ksp-gonogo/sitrep-sdk";
+import { type GameLoaded, stillTrue, value } from "@ksp-gonogo/sitrep-sdk";
 import { BannerRow } from "@ksp-gonogo/ui";
 import { MissionDate, Unit } from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useEffect, useRef, useState } from "react";
@@ -24,27 +19,16 @@ export function QuickloadSentence({ event }: { event: GameLoaded }): ReactNode {
   if (event.outcome === "cancelled") {
     return "Quickload cancelled: the scene changed first";
   }
-  const lead = event.requestedBy
-    ? `Quickloaded by ${event.requestedBy}`
-    : "Game loaded";
+  const by = event.requestedBy ? ` by ${event.requestedBy}` : "";
   const behind = event.fromUt.minus(event.saveUt);
   const movedBack = behind.greaterThan(value("s", 0));
   return (
     <span>
-      {`${lead} \u00b7 `}
+      {`Quickloaded${by} \u00b7 `}
       <MissionDate value={event.saveUt} />
       {` (moved ${movedBack ? "\u2212" : "+"}`}
       <Unit value={movedBack ? behind : behind.times(-1)} />)
     </span>
-  );
-}
-
-/** Whether a finished load is news at `viewUt`, and not a replay of one the screen was not there for. */
-export function isNews(event: GameLoaded, viewUt: Value<"ut">): boolean {
-  const fresh = value("s", STALE_AFTER_SECONDS);
-  return !(
-    viewUt.minus(event.saveUt).greaterThan(fresh) &&
-    viewUt.minus(event.fromUt).greaterThan(fresh)
   );
 }
 
@@ -62,10 +46,14 @@ export function QuickloadBanner() {
 
   useEffect(() => {
     if (!event?.loadId || event.loadId === seenRef.current) return;
-    // A fresh connection is replayed the last load before the view clock has a time, so the load cannot be judged yet.
-    if (viewUt === undefined || viewUt === null) return;
     seenRef.current = event.loadId;
-    if (!isNews(event, viewUt)) return;
+    const fresh = value("s", STALE_AFTER_SECONDS);
+    if (
+      viewUt?.minus(event.saveUt).greaterThan(fresh) &&
+      viewUt.minus(event.fromUt).greaterThan(fresh)
+    ) {
+      return;
+    }
     setAnnouncement(event);
   }, [event, viewUt]);
 

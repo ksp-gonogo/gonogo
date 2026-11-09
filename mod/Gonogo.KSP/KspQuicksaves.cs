@@ -128,7 +128,6 @@ namespace Gonogo.KSP
             }
             var saved = new FileInfo(SlotPath(folder, SaveFiles.Quicksave));
             _slotsDirty = true;
-            _publishNow = true;
             return CommandResult<SaveWritten>.Ok(new SaveWritten
             {
                 SaveId = SaveFiles.IdOf(folder, SaveFiles.Quicksave, saved.Length, saved.LastWriteTimeUtc),
@@ -278,36 +277,6 @@ namespace Gonogo.KSP
         private static float _loadedAt;
 
         /// <summary>
-        /// A save loaded in the game itself (a quickload key, a revert or the load menu),
-        /// which no command asked for. It is announced at the reset like a requested
-        /// quickload, with no requester, and a requested load is left to its own record.
-        /// </summary>
-        internal static void NoteLoadedInGame(ConfigNode node)
-        {
-            if (LoadScheduled)
-            {
-                return;
-            }
-            var fromUt = Planetarium.GetUniversalTime();
-            var pending = new PendingLoad
-            {
-                LoadId = Guid.NewGuid().ToString("N"),
-                SaveUt = SavedUt(node) ?? fromUt,
-                FromUt = fromUt,
-            };
-            _loadedAt = Time.realtimeSinceStartup;
-            Volatile.Write(ref _loadedAwaitingReset, pending);
-        }
-
-        private static double? SavedUt(ConfigNode node)
-        {
-            var text = node.GetNode("GAME")?.GetNode("FLIGHTSTATE")?.GetValue("UT");
-            return double.TryParse(text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var ut)
-                ? ut
-                : (double?)null;
-        }
-
-        /// <summary>
         /// Runs once the new timeline exists, on the courier thread. A frame published
         /// any earlier belongs to the old timeline and the reset discards it, so a
         /// finished load is announced here and the slots are read again, which a game
@@ -316,7 +285,6 @@ namespace Gonogo.KSP
         internal static void OnTimelineReset()
         {
             _slotsDirty = true;
-            _publishNow = true;
             AnnounceLoaded();
         }
 
@@ -379,9 +347,6 @@ namespace Gonogo.KSP
         private static SaveSlots? _slots;
         private static string? _slotsFolder;
         private static volatile bool _slotsDirty = true;
-
-        /// <summary>Set by a save or a reset: the next tick reads the slots on the main thread and publishes them at once, instead of waiting out the one-second check and a background read.</summary>
-        private static volatile bool _publishNow;
         private static float _nextCheck;
         private static Task<SaveSlots?>? _reading;
 
@@ -392,10 +357,6 @@ namespace Gonogo.KSP
             if (Volatile.Read(ref _loadedAwaitingReset) != null && Time.realtimeSinceStartup - _loadedAt > ResetWaitSeconds)
             {
                 AnnounceLoaded();
-            }
-            if (_publishNow && PublishSlotsNow(publisher))
-            {
-                return;
             }
             if (_reading != null)
             {
@@ -440,39 +401,6 @@ namespace Gonogo.KSP
             _slotStat = slotStat;
             _previousStat = previousStat;
             _reading = Task.Run(() => ReadSlotsFromDisk(folder));
-        }
-
-        /// <summary>Reads both slots here and publishes them. False when there is no game or a read failed, which leaves the ordinary check to retry.</summary>
-        private static bool PublishSlotsNow(IChannelPublisher publisher)
-        {
-            _publishNow = false;
-            var folder = HighLogic.CurrentGame == null ? null : HighLogic.SaveFolder;
-            if (folder == null)
-            {
-                return false;
-            }
-            try
-            {
-                var slotStat = StatOf(SlotPath(folder, SaveFiles.Quicksave));
-                var previousStat = StatOf(SlotPath(folder, SaveFiles.PreviousQuicksave));
-                var slots = ReadSlotsFromDisk(folder);
-                // A background read begun before this one may hold older slots.
-                _reading = null;
-                _slotsDirty = false;
-                _slotsFolder = folder;
-                _slotStat = slotStat;
-                _previousStat = previousStat;
-                _slots = slots;
-                var readAtUt = Planetarium.GetUniversalTime();
-                publisher.Publish(slots, readAtUt);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                GonogoLog.Error("could not read the quicksave slots", ex);
-                _slotsDirty = true;
-                return false;
-            }
         }
 
         private static (long Size, DateTime Written)? StatOf(string path)

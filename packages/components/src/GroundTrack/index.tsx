@@ -491,7 +491,8 @@ function GroundTrackComponent({
 registerComponent<GroundTrackConfig>({
   id: "ground-track",
   name: "Ground Track",
-  description: "Your vessel's ground track on a map of the current body.",
+  description:
+    "A flat map of the current body with your vessel's position and ground track. You can show another body instead, and Uplinks can add surface maps and markers.",
   tags: ["telemetry"],
   defaultSize: { w: 12, h: 18 },
   minSize: { w: 3, h: 4 },

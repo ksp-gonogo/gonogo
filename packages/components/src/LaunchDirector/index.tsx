@@ -26,7 +26,8 @@ export type {
 registerComponent<LaunchDirectorConfig>({
   id: "launch-director",
   name: "Launch & Recovery",
-  description: "Launch, recover and revert vessels, and switch between them.",
+  description:
+    "Launch from any pad or runway: pick a craft and crew and launch, or recover or revert what is already there. It also takes you between flight, the Space Center and the Tracking Station, and switches to another vessel. Launches and recoveries always ask you to confirm.",
   tags: ["career", "launch"],
   defaultSize: { w: 7, h: 10 },
   minSize: { w: 4, h: 6 },

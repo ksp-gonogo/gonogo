@@ -535,8 +535,7 @@ export function ReadoutFigures(props: Readonly<ReadoutFiguresProps>) {
     () => setChosen({ key: choiceKey, bands: true }),
     [choiceKey],
   );
-  // A docked pair has no target to name any more; its figures still draw.
-  const named = name !== "" || props.docked;
+  const named = name !== "";
   const banded =
     named &&
     !layout.overlay &&

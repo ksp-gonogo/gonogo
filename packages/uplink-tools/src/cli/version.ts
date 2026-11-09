@@ -37,10 +37,8 @@ export const VERSION_USAGE = `uplink-tools version [<version> | --bump <kind> --
   fails every file is put back as it was.
 
   An Uplink with no client directory (a mod-only Uplink) commits its version
-  nowhere but in the package.json of its types-only package, when it has one: the
-  plugin takes it from the release tag. For one, this works out the version,
-  checks it sorts above --from, and stamps that package. An Uplink with a client
-  and a types/ package has that stamped too.
+  nowhere: the plugin takes it from the release tag. For one, this works out the
+  version, checks it sorts above --from, and writes nothing.
 
   <version>        X.Y.Z or X.Y.Z-rc.N. Above --from when that is given
   --from <version> the Uplink's latest released version, the one its newest
@@ -232,21 +230,10 @@ export function targetVersion(
   return versionText(parseVersion(request.explicit));
 }
 
-/** Writes `to` into the types-only package's manifest when the Uplink has one, and returns the files it wrote. */
-function stampTypesPackage(uplinkDir: string, to: string): string[] {
-  const manifestFile = join(uplinkDir, "types", "package.json");
-  if (!existsSync(manifestFile)) return [];
-  const text = readFileSync(manifestFile, "utf8");
-  const manifest = JSON.parse(text);
-  manifest.version = to;
-  writeJson(manifestFile, text, manifest);
-  return [manifestFile];
-}
-
 /**
  * The move for an Uplink with no client half. Its version is written in no
  * committed file: the plugin takes it from the release tag at build time, so
- * the move only works out the version and stamps the types package if there is one.
+ * the move only works out the version and names nothing to stamp.
  */
 function modOnlyMove(
   uplinkDir: string,
@@ -266,13 +253,11 @@ function modOnlyMove(
     ...request,
     level: changes ? levelOf(changes) : undefined,
   });
-  // The one file such an Uplink commits a version in, when it has the types-only package.
-  const files = stampTypesPackage(uplinkDir, to);
   return {
     id: asString(Reflect.get(Object(declaration), "id")),
     from: request.from ?? PLACEHOLDER_VERSION,
     to,
-    files,
+    files: [],
   };
 }
 
@@ -345,7 +330,6 @@ export function moveVersion(
     lockFile,
     sourceFile,
     declarationFile,
-    join(uplinkDir, "types", "package.json"),
     ...outputs,
   ];
   const snapshot = new Map(
@@ -391,8 +375,6 @@ export function moveVersion(
         declarationText.replace(url, url.replace(`/${committed}/`, `/${to}/`)),
       );
     }
-
-    stampTypesPackage(uplinkDir, to);
 
     (deps.writePage ?? writeThePage)(clientDir);
 

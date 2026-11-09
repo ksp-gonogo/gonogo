@@ -451,9 +451,7 @@ func (b *bridge) askForKeyframe(mid string, track *webrtc.TrackRemote) {
 pipeChannel mirrors a data channel one side opened onto the other connection, under the same
 label and ordering, and copies messages both ways. What arrives before the mirror opens is
 held and sent once it does. `from` and `to` name the two legs in the log, which records each
-channel opening and closing and which leg closed first, because closing one closes the other,
-and the size of the first messages each way, every failed send and the totals at close, which
-together say whether a channel that opened ever carried what its ends expect.
+channel opening and closing and which leg closed first, because closing one closes the other.
 */
 func (b *bridge) pipeChannel(dc *webrtc.DataChannel, other *webrtc.PeerConnection, from, to string) {
 	log.Printf("bridge %d %s opened data channel %q", b.serial, from, dc.Label())
@@ -473,35 +471,21 @@ func (b *bridge) pipeChannel(dc *webrtc.DataChannel, other *webrtc.PeerConnectio
 	var mu sync.Mutex
 	open := false
 	var held []webrtc.DataChannelMessage
-	var forward, back atomic.Int64
-	label := dc.Label()
-	send := func(to *webrtc.DataChannel, m webrtc.DataChannelMessage, count *atomic.Int64, way string) {
-		var err error
+	send := func(to *webrtc.DataChannel, m webrtc.DataChannelMessage) {
 		if m.IsString {
-			err = to.SendText(string(m.Data))
+			_ = to.SendText(string(m.Data))
 		} else {
-			err = to.Send(m.Data)
-		}
-		if n := count.Add(1); n <= loggedChannelMessages || err != nil {
-			why := ""
-			if err != nil {
-				why = ", not sent: " + err.Error()
-			}
-			log.Printf("bridge %d %s on %q: message %d, %d bytes%s", b.serial, way, label, n, len(m.Data), why)
+			_ = to.Send(m.Data)
 		}
 	}
-	ahead, behind := from+" to "+to, to+" to "+from
 	mirror.OnOpen(func() {
 		mu.Lock()
 		open = true
 		pending := held
 		held = nil
 		mu.Unlock()
-		if len(pending) > 0 {
-			log.Printf("bridge %d %s held %d messages on %q until its copy opened", b.serial, ahead, len(pending), label)
-		}
 		for _, m := range pending {
-			send(mirror, m, &forward, ahead)
+			send(mirror, m)
 		}
 	})
 	dc.OnMessage(func(m webrtc.DataChannelMessage) {
@@ -512,29 +496,18 @@ func (b *bridge) pipeChannel(dc *webrtc.DataChannel, other *webrtc.PeerConnectio
 			return
 		}
 		mu.Unlock()
-		send(mirror, m, &forward, ahead)
+		send(mirror, m)
 	})
-	mirror.OnMessage(func(m webrtc.DataChannelMessage) { send(dc, m, &back, behind) })
-	var totals sync.Once
-	logTotals := func() {
-		totals.Do(func() {
-			log.Printf("bridge %d data channel %q carried %d messages %s and %d %s", b.serial, label, forward.Load(), ahead, back.Load(), behind)
-		})
-	}
+	mirror.OnMessage(func(m webrtc.DataChannelMessage) { send(dc, m) })
 	dc.OnClose(func() {
-		log.Printf("bridge %d %s leg closed data channel %q, closing its copy on the %s leg", b.serial, from, label, to)
-		logTotals()
+		log.Printf("bridge %d %s leg closed data channel %q, closing its copy on the %s leg", b.serial, from, dc.Label(), to)
 		mirror.Close()
 	})
 	mirror.OnClose(func() {
-		log.Printf("bridge %d %s leg closed data channel %q, closing its copy on the %s leg", b.serial, to, label, from)
-		logTotals()
+		log.Printf("bridge %d %s leg closed data channel %q, closing its copy on the %s leg", b.serial, to, dc.Label(), from)
 		dc.Close()
 	})
 }
-
-// loggedChannelMessages is how many messages each way a piped data channel logs, from its first, before it logs only failed sends and its totals at close.
-const loggedChannelMessages = 8
 
 // dropBridge closes one bridge and both its connections, and tells the tab unless the tab asked for it (reason empty).
 func (e *Endpoint) dropBridge(bid uint32, reason string) {

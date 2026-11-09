@@ -202,42 +202,9 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        [Fact]
-        public async Task WithADelayAboveZeroASampledChannelIsServedWhatWasHeardAtTheSaveBeforeTheLoadedWorldsFrameArrives()
+        private static ChannelEngine NewEngine(out LoadWorldUplink uplink)
         {
-            using var engine = NewEngine(out _, delaySeconds: 1);
-            try
-            {
-                await using var client = await Subscribed(engine, LoadWorldUplink.Sampled);
-                Tick(engine, 0.5, value: "before the save");
-                Tick(engine, 1.0, value: "at the save");
-                Tick(engine, 5.0, value: "abandoned");
-                await DrainAllStreamDataAsync(client, Quiet);
-
-                engine.SetGameState(GamePhase.Loading, "FLIGHT");
-                Tick(engine, 2.0, value: null);
-                engine.SetGameState(GamePhase.Ready, "FLIGHT");
-                Tick(engine, 2.1, value: "loaded world");
-                Tick(engine, 2.2, value: "loaded world");
-
-                var heard = Assert.Single(await DrainAllStreamDataAsync(client, Quiet));
-                Assert.Equal("at the save", heard.Payload);
-                Assert.Equal(1, heard.Meta.TimelineEpoch);
-
-                Tick(engine, 4.0, value: "loaded world");
-                var later = await DrainAllStreamDataAsync(client, Quiet);
-                Assert.Contains(later, f => (string?)f.Payload == "loaded world" && f.Meta.TimelineEpoch == 1);
-                Assert.DoesNotContain(later, f => (string?)f.Payload == "abandoned");
-            }
-            finally
-            {
-                engine.Stop();
-            }
-        }
-
-        private static ChannelEngine NewEngine(out LoadWorldUplink uplink, double delaySeconds = 0)
-        {
-            var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: delaySeconds);
+            var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             uplink = new LoadWorldUplink();
             engine.RegisterUplink(uplink);
             engine.Start();

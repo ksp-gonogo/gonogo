@@ -1,5 +1,10 @@
-import type { AnyBoundCommand } from "@ksp-gonogo/sitrep-sdk";
-import { Button, Cluster, StatusIndicator, Tooltip } from "@ksp-gonogo/ui-kit";
+import {
+  Button,
+  Cluster,
+  StatusIndicator,
+  ToggleButton,
+  Tooltip,
+} from "@ksp-gonogo/ui-kit";
 import { FBW_VIEW } from "./ControlSurface";
 import type { FbwState } from "./useFlyByWire";
 
@@ -8,12 +13,11 @@ import type { FbwState } from "./useFlyByWire";
  */
 export function FbwBanner({
   fbwState,
-  disarm,
+  onDisarm,
   compact = false,
 }: Readonly<{
   fbwState: FbwState;
-  /** The command that disarms the override. */
-  disarm: AnyBoundCommand;
+  onDisarm: () => void;
   /** One toggle naming the state and disarming on a press, the hint in a tooltip, for a tile too small for the sentence. */
   compact?: boolean;
 }>) {
@@ -21,9 +25,14 @@ export function FbwBanner({
   if (compact) {
     return (
       <Tooltip text={`${view.hint}. Press to disarm`}>
-        <Button size="sm" pressed={fbwState === "armed"} command={disarm}>
+        <ToggleButton
+          type="button"
+          size="sm"
+          pressed={fbwState === "armed"}
+          onClick={onDisarm}
+        >
           {view.label}
-        </Button>
+        </ToggleButton>
       </Tooltip>
     );
   }
@@ -35,7 +44,7 @@ export function FbwBanner({
         </span>{" "}
         ({view.hint.toLowerCase()})
       </StatusIndicator>
-      <Button size="sm" command={disarm}>
+      <Button type="button" size="sm" onClick={onDisarm}>
         Disarm FBW
       </Button>
     </Cluster>

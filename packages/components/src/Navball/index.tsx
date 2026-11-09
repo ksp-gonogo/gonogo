@@ -169,7 +169,8 @@ function useNavball({
     toggleRcs,
     togglePrecision,
     setSasMode,
-    sasModeCommand,
+    unconfirmedSasModes,
+    dismissSasUnconfirmed,
   } = useSasControls(
     control,
     derivedMarking(controlReading) !== null,
@@ -178,14 +179,10 @@ function useNavball({
     isControllable,
   );
   const identity = stillTrue(topics.useTelemetry("vessel.identity"), undefined);
-  const {
-    fbwState,
-    armFbw,
-    disarmFbw,
-    armFbwCommand,
-    disarmFbwCommand,
-    disarmFbwToggle,
-  } = useFlyByWire(identity?.vesselId, control?.flyByWire ?? undefined);
+  const { fbwState, armFbw, disarmFbw } = useFlyByWire(
+    identity?.vesselId,
+    control?.flyByWire ?? undefined,
+  );
 
   // Trim has no readback to anchor a control stream, so it sends `setAxes` one field at a time, never clobbering a live axis.
   const trimCmd = useCommand("vessel.control.setAxes");
@@ -261,11 +258,11 @@ function useNavball({
     toggleRcs,
     togglePrecision,
     setSasMode,
-    sasModeCommand,
+    unconfirmedSasModes,
+    dismissSasUnconfirmed,
     fbwState,
-    armFbwCommand,
-    disarmFbwCommand,
-    disarmFbwToggle,
+    armFbw,
+    disarmFbw,
     showFbwDelayWarning,
     delaySeconds,
     oneWayDelay,
@@ -285,15 +282,10 @@ function navballEssentials({
   roll,
   attitudeReading,
   fbwState,
-  disarmFbwToggle,
+  disarmFbw,
 }: Pick<
   ReturnType<typeof useNavball>,
-  | "heading"
-  | "pitch"
-  | "roll"
-  | "attitudeReading"
-  | "fbwState"
-  | "disarmFbwToggle"
+  "heading" | "pitch" | "roll" | "attitudeReading" | "fbwState" | "disarmFbw"
 >): readonly TinyEssential[] {
   const degrees = (angle: number | null) =>
     angle === null ? null : readingOf(attitudeReading, () => value("°", angle));
@@ -309,7 +301,7 @@ function navballEssentials({
               active: fbwState === "armed",
               title: "Disarm fly-by-wire",
               hint: `${fbw.hint}. Press to disarm`,
-              command: disarmFbwToggle,
+              onPress: disarmFbw,
             },
           },
         ]),
@@ -357,11 +349,12 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
     sasCmd,
     rcsCmd,
     precisionCmd,
-    sasModeCommand,
+    setSasMode,
+    unconfirmedSasModes,
+    dismissSasUnconfirmed,
     fbwState,
-    armFbwCommand,
-    disarmFbwCommand,
-    disarmFbwToggle,
+    armFbw,
+    disarmFbw,
     showFbwDelayWarning,
     delaySeconds,
     oneWayDelay,
@@ -512,11 +505,7 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
                 />
                 {/* Inside the readout's own section, since a compact tile has no room for the gap and inset of a section of its own. */}
                 {fbwOutsideSurface && compactReadout && (
-                  <FbwBanner
-                    fbwState={fbwState}
-                    disarm={disarmFbwCommand}
-                    compact
-                  />
+                  <FbwBanner fbwState={fbwState} onDisarm={disarmFbw} compact />
                 )}
               </div>
             )}
@@ -525,7 +514,7 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
         showControlRow || (fbwOutsideSurface && !compactReadout) ? (
           <Section key="controls" full>
             {fbwOutsideSurface && !compactReadout && (
-              <FbwBanner fbwState={fbwState} disarm={disarmFbwCommand} />
+              <FbwBanner fbwState={fbwState} onDisarm={disarmFbw} />
             )}
             {showControlRow && (
               <div ref={attachControlRow} style={CONTROL_ROW}>
@@ -569,9 +558,11 @@ function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
               }
               onSetThrottleCmd={setThrottleCmd}
               fbwState={fbwState}
-              armFbwCommand={armFbwCommand}
-              disarmFbwCommand={disarmFbwCommand}
-              sasModeCommand={sasModeCommand}
+              onArmFbw={armFbw}
+              onDisarmFbw={disarmFbw}
+              onSetSasMode={setSasMode}
+              unconfirmedSasModes={unconfirmedSasModes}
+              onDismissSasUnconfirmed={dismissSasUnconfirmed}
               showFbwDelayWarning={showFbwDelayWarning}
               delaySeconds={delaySeconds}
               oneWayDelay={oneWayDelay}
@@ -678,7 +669,7 @@ registerComponent<NavballConfig>({
   id: "navball",
   name: "Navball",
   description:
-    "Your vessel's heading, pitch and roll, with optional flight controls.",
+    "Your vessel's heading, pitch and roll, measured at the root part, or at the centre of mass if the widget's settings say so. The settings can also switch on controls for every SAS mode, throttle, pitch, yaw, roll, RCS translation and trim. Bind a joystick or keyboard key to them on the Inputs tab of the widget's settings to fly the vessel from it. Under signal delay, a strip for each control shows the commands still crossing to the craft and the values it has confirmed back.",
   tags: ["telemetry", "control"],
   // Fifteen rows hold the control surface with its sections folded beside a dial as large as the plain default gives.
   defaultSize: { w: 8, h: 15 },

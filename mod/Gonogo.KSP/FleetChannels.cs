@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Host;
-using Sitrep.Host.Comms;
 using UnityEngine;
 
 namespace Gonogo.KSP
@@ -69,7 +68,6 @@ namespace Gonogo.KSP
 
         private IDynamicChannelSource? _vesselSource;
         private IUplinkHost? _host;
-        private Kernel? _kernel;
 
         /// <summary>
         /// The same host, when it can also take a route's hops rather than only
@@ -95,8 +93,6 @@ namespace Gonogo.KSP
         public void Register(IUplinkHost host)
         {
             _host = host;
-            _kernel = host.Kernel;
-            FleetLinkReader.Shared.Backend = ElectedBackend;
             _journeyWriter = host as IVesselJourneyWriter;
             _vesselSource = host.RegisterDynamicNamespace(SystemViewProvider.VesselPrefix, new ChannelDeclaration
             {
@@ -128,7 +124,6 @@ namespace Gonogo.KSP
             }
 
             var config = CommsCoreUplink.SignalDelayConfig;
-            var ut = Planetarium.GetUniversalTime();
             var links = new List<VesselLinkCapture>(all.Count);
             foreach (var vessel in all)
             {
@@ -137,7 +132,7 @@ namespace Gonogo.KSP
                     continue;
                 }
                 var id = vessel.id.ToString();
-                var connected = FleetLinkReader.Shared.Read(vessel, config, ut);
+                var connected = FleetCommsReader.ReadConnected(vessel, config);
                 links.Add(new VesselLinkCapture { Id = id, Connected = connected });
             }
             return links;
@@ -168,9 +163,6 @@ namespace Gonogo.KSP
                 }
             }
         }
-
-        /// <summary>The active comms backend, null before the election.</summary>
-        private ICommsBackend? ElectedBackend() => _kernel != null ? CommsElection.Elected(_kernel) : null;
 
         /* Courier-thread-only: the last link each vessel was reported at. The engine
            counts a vessel on the roster only on the tick it is told a link, so a link
@@ -210,8 +202,7 @@ namespace Gonogo.KSP
                 {
                     continue;
                 }
-                var (oneWay, _) = FleetCommsReader.ReadVessel(vessel, config);
-                var connected = FleetLinkReader.Shared.Read(vessel, config, ut);
+                var (oneWay, connected) = FleetCommsReader.ReadVessel(vessel, config);
                 var journey = FleetCommsReader.ReadVesselJourney(vessel, config);
                 var id = vessel.id.ToString();
                 captures.Add(new FleetVesselCapture

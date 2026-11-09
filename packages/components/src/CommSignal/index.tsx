@@ -9,7 +9,8 @@ import "./badge";
 registerComponent<CommSignalConfig>({
   id: "comm-signal",
   name: "CommNet Signal",
-  description: "Your vessel's CommNet signal, control and delay.",
+  description:
+    "Your vessel's CommNet (KSP's communication network) connection: signal strength, how much control you have over a probe, and the signal delay. At larger sizes it shows each relay on the route home.",
   tags: ["telemetry", "comms"],
   defaultSize: { w: 6, h: 6 },
   // A tile this small shows the bars and the figure; the caption and the detail grid need four columns.

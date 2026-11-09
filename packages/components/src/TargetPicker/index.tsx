@@ -12,7 +12,8 @@ export { SPACE_OBJECT_VESSEL_TYPE } from "./entries";
 registerComponent<TargetPickerConfig>({
   id: "target-picker",
   name: "Target Picker",
-  description: "Set or clear your target.",
+  description:
+    "Pick a target from a suggested list or browse bodies, vessels and parts, or see your current target's type, distance and closing speed and clear it.",
   tags: ["telemetry", "navigation"],
   defaultSize: { w: 6, h: 11 },
   // Below four columns the target's name and range are the tiny form's, with the title behind a hover.

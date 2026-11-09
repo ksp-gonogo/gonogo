@@ -171,12 +171,9 @@ export async function runSet(
   const send = (member: AnyBoundCommand) => {
     const args = argsOf(member);
     member.options.before?.(args);
-    const { label, topic } = member.options;
+    const label = member.options.label;
     return member.handle
-      .dangerouslySendWithoutInput(
-        args,
-        label || topic ? { label, topic } : undefined,
-      )
+      .dangerouslySendWithoutInput(args, label ? { label } : undefined)
       .then(
         (reply: unknown) => {
           result.confirmed++;

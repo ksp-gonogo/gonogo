@@ -37,10 +37,8 @@ import { parseFlags } from "./flags";
 export const CODEGEN_USAGE = `uplink-tools codegen [options]
 
   Generate client/src/__generated__/ (contract.ts and the topic and unit maps)
-  from the C# contract slice in mod-contract/. An Uplink that has a types/
-  package also gets types/src/__generated__/, and one with no client/ gets only
-  that. Run it after
-  changing a wire type, and commit what it writes. Needs the .NET SDK.
+  from the C# contract slice in mod-contract/. Run it after changing a wire
+  type, and commit what it writes. Needs the .NET SDK.
 
   --check            generate to a scratch directory and fail if the committed
                      files differ, writing nothing. For CI
@@ -404,89 +402,72 @@ export function generate(inputs: CodegenInputs): CodegenResult {
     );
   }
 
-  /*
-   * Every home the types live in: the client's folder and the types-only
-   * package's. An Uplink that grew a client keeps its types package, and the
-   * package's dependants keep getting current types, so both are written.
-   */
-  const homes = [
-    ...(existsSync(join(uplinkDir, "client")) ? ["client"] : []),
-    ...(existsSync(join(uplinkDir, "types", "package.json")) ? ["types"] : []),
-  ];
-  let result: CodegenResult = "none";
-  for (const home of homes.length > 0 ? homes : ["client"]) {
-    result = generateInto(home);
-  }
-  return result;
-
-  function generateInto(typesHome: string): CodegenResult {
-    const committed = join(uplinkDir, typesHome, "src", "__generated__");
-    const outDir = inputs.check
-      ? mkdtempSync(join(tmpdir(), "uplink-codegen-"))
-      : committed;
-    try {
-      mkdirSync(outDir, { recursive: true });
-      const env: NodeJS.ProcessEnv = {
-        ...process.env,
-        DOTNET_ROLL_FORWARD: "LatestMajor",
-      };
-      for (const [variable, file] of Object.entries(block.emits)) {
-        env[variable] = join(outDir, file);
-      }
-      dotnet(
-        `generate the ${typesHome === "client" ? "client" : "types package"}'s types`,
-        [
-          rtcliPath(twinDir),
-          `DocumentationFilePath=${documentation}`,
-          `SourceAssemblies=${assembly}`,
-          `TargetFile=${join(outDir, "contract.ts")}`,
-          `ConfigurationMethod=${block.configurationMethod}`,
-        ],
-        env,
-      );
-
-      const expected = ["contract.ts", ...Object.values(block.emits)];
-      const unwritten = expected.filter(
-        (file) => !existsSync(join(outDir, file)),
-      );
-      if (unwritten.length > 0) {
-        throw new Error(
-          `codegen ran and did not write ${unwritten.join(", ")}. The slice's RtConfig decides what ` +
-            "is emitted, from the environment variables the codegen block's emits names.",
-        );
-      }
-
-      if (!inputs.check) {
-        removeStrayGenerated(committed, expected);
-        console.log(`${id}: generated ${expected.join(", ")} in ${committed}`);
-        return "written";
-      }
-
-      const read = (dir: string, file: string) =>
-        existsSync(join(dir, file))
-          ? readFileSync(join(dir, file), "utf8")
-          : undefined;
-      const stale = expected.filter(
-        (file) => read(outDir, file) !== read(committed, file),
-      );
-      const stray = existsSync(committed)
-        ? readdirSync(committed).filter((file) => !expected.includes(file))
-        : [];
-      if (stale.length > 0 || stray.length > 0) {
-        throw new Error(
-          `${committed} is not what the contract slice generates.\n` +
-            [
-              ...stale.map((file) => `  stale or missing: ${file}`),
-              ...stray.map((file) => `  no longer generated: ${file}`),
-            ].join("\n") +
-            "\nRun `uplink-tools codegen` and commit what it writes.",
-        );
-      }
-      console.log(`${id}: ${typesHome}/src/__generated__ is current`);
-      return "current";
-    } finally {
-      if (inputs.check) rmSync(outDir, { recursive: true, force: true });
+  const committed = join(uplinkDir, "client", "src", "__generated__");
+  const outDir = inputs.check
+    ? mkdtempSync(join(tmpdir(), "uplink-codegen-"))
+    : committed;
+  try {
+    mkdirSync(outDir, { recursive: true });
+    const env: NodeJS.ProcessEnv = {
+      ...process.env,
+      DOTNET_ROLL_FORWARD: "LatestMajor",
+    };
+    for (const [variable, file] of Object.entries(block.emits)) {
+      env[variable] = join(outDir, file);
     }
+    dotnet(
+      "generate the client's types",
+      [
+        rtcliPath(twinDir),
+        `DocumentationFilePath=${documentation}`,
+        `SourceAssemblies=${assembly}`,
+        `TargetFile=${join(outDir, "contract.ts")}`,
+        `ConfigurationMethod=${block.configurationMethod}`,
+      ],
+      env,
+    );
+
+    const expected = ["contract.ts", ...Object.values(block.emits)];
+    const unwritten = expected.filter(
+      (file) => !existsSync(join(outDir, file)),
+    );
+    if (unwritten.length > 0) {
+      throw new Error(
+        `codegen ran and did not write ${unwritten.join(", ")}. The slice's RtConfig decides what ` +
+          "is emitted, from the environment variables the codegen block's emits names.",
+      );
+    }
+
+    if (!inputs.check) {
+      removeStrayGenerated(committed, expected);
+      console.log(`${id}: generated ${expected.join(", ")} in ${committed}`);
+      return "written";
+    }
+
+    const read = (dir: string, file: string) =>
+      existsSync(join(dir, file))
+        ? readFileSync(join(dir, file), "utf8")
+        : undefined;
+    const stale = expected.filter(
+      (file) => read(outDir, file) !== read(committed, file),
+    );
+    const stray = existsSync(committed)
+      ? readdirSync(committed).filter((file) => !expected.includes(file))
+      : [];
+    if (stale.length > 0 || stray.length > 0) {
+      throw new Error(
+        `${committed} is not what the contract slice generates.\n` +
+          [
+            ...stale.map((file) => `  stale or missing: ${file}`),
+            ...stray.map((file) => `  no longer generated: ${file}`),
+          ].join("\n") +
+          "\nRun `uplink-tools codegen` and commit what it writes.",
+      );
+    }
+    console.log(`${id}: client/src/__generated__ is current`);
+    return "current";
+  } finally {
+    if (inputs.check) rmSync(outDir, { recursive: true, force: true });
   }
 }
 

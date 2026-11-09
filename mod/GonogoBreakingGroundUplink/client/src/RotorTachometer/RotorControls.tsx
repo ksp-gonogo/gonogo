@@ -1,51 +1,50 @@
-import {
-  type AnyBoundCommand,
-  type ValueCommand,
-  value,
-} from "@ksp-gonogo/sitrep-sdk";
+import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
   Cluster,
+  ContainerBreak,
   ReadoutCaption,
   type ReckoningMarking,
   Section,
   Stepper,
+  Text,
   ToggleButton,
+  Unit,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { lockStateText, motorStateText } from "../unreadLabels";
 import { ROTOR_MAX_RPM, type RotorInfo, RPM_STEP, TORQUE_STEP } from "./rotors";
 
-/*
- * Each caption sits beside its stepper, and the two pairs share a row, only
- * where they fit: a pair that does not fit wraps under the one before it, and a
- * stepper that does not fit beside its caption wraps under it. The captions
- * share a width so the steppers of stacked pairs line up.
+/**
+ * The container width in px below which a caption no longer fits beside its
+ * stepper, measured with the widest caption and the widest figure.
  */
-const STEPPER_PAIRS: CSSProperties = {
-  display: "flex",
-  flexWrap: "wrap",
-  alignItems: "center",
-  columnGap: "var(--gap-related)",
-  rowGap: "var(--gap-related-dense)",
-};
+const STEPPER_ROW_MIN_PX = 140;
 
-const STEPPER_PAIR: CSSProperties = {
-  display: "flex",
-  flexWrap: "wrap",
+const STEPPER_ROWS_NARROW: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "auto auto auto",
+  justifyContent: "start",
   alignItems: "center",
   gap: "var(--gap-related-dense)",
 };
 
-const CAPTION_WIDTH: CSSProperties = { minWidth: "9ch" };
+const STEPPER_ROWS_WIDE: CSSProperties = {
+  gridTemplateColumns: "1fr auto auto auto",
+  justifyContent: "normal",
+};
 
-/** A stepper row's caption, held to a width the other caption shares. */
+/** A stepper row's caption: beside its stepper in the shared columns, or on a line of its own above it. */
 function CaptionCell({ children }: { children: string }) {
   return (
-    <span style={CAPTION_WIDTH}>
+    <ContainerBreak
+      at={STEPPER_ROW_MIN_PX}
+      narrow={{ gridColumn: "1 / -1" }}
+      wide={{ gridColumn: "auto" }}
+    >
       <ReadoutCaption>{children}</ReadoutCaption>
-    </span>
+    </ContainerBreak>
   );
 }
 
@@ -83,18 +82,12 @@ export interface RotorControlsProps {
     lastSeen: number | null;
     lastSeenCaption?: string;
   };
-  /** The command the RPM cap stepper sends, given the cap stepped to. */
-  rpmStepCommand: ValueCommand<number, unknown, unknown>;
-  /** The command the torque stepper sends, given the limit stepped to. */
-  torqueStepCommand: ValueCommand<number, unknown, unknown>;
-  /** The command the brake control sends, given true to apply the brake. */
-  brakeCommand: ValueCommand<boolean, unknown, unknown>;
-  /** The command the motor control sends, given true to engage the motor. */
-  motorCommand: ValueCommand<boolean, unknown, unknown>;
-  /** The command the lock control sends, given true to lock the rotor. */
-  lockCommand: ValueCommand<boolean, unknown, unknown>;
-  /** The command the reverse button sends. */
-  reverseCommand: AnyBoundCommand;
+  setRpmLimit: (id: string, rpm: number) => void;
+  setTorqueLimit: (id: string, pct: number) => void;
+  setBrake: (id: string, pct: number) => void;
+  setMotor: (id: string, engaged: boolean) => void;
+  setLock: (id: string, locked: boolean) => void;
+  reverse: (id: string) => void;
   /** The held marking of the read behind the toggles' flags and the heading, while it is held. */
   flagsMarked?: ReckoningMarking | null;
 }
@@ -104,19 +97,23 @@ export function RotorControls({
   selected,
   rpmCommand,
   torqueCommand,
-  rpmStepCommand,
-  torqueStepCommand,
-  brakeCommand,
-  motorCommand,
-  lockCommand,
-  reverseCommand,
+  setRpmLimit,
+  setTorqueLimit,
+  setBrake,
+  setMotor,
+  setLock,
+  reverse,
   flagsMarked = null,
 }: RotorControlsProps) {
   return (
     <Section gap="related-dense">
       {/* Relative to the value beside them, so an unread figure disables them. One grid, so both rows' steppers share their columns. */}
-      <div style={STEPPER_PAIRS}>
-        <div style={STEPPER_PAIR}>
+      <div style={{ containerType: "inline-size", width: "100%" }}>
+        <ContainerBreak
+          at={STEPPER_ROW_MIN_PX}
+          narrow={STEPPER_ROWS_NARROW}
+          wide={STEPPER_ROWS_WIDE}
+        >
           <CaptionCell>RPM cap</CaptionCell>
           <Stepper
             label="RPM cap"
@@ -129,15 +126,10 @@ export function RotorControls({
             max={ROTOR_MAX_RPM}
             step={RPM_STEP}
             format={(v) => writeQuantity(value("rpm", v), { decimals: 0 })}
-            command={rpmStepCommand}
-            unavailable={
-              rpmCommand.commanded === null
-                ? "The RPM cap is not reported"
-                : null
-            }
+            disabled={rpmCommand.commanded === null}
+            disabledReason="The RPM cap is not reported"
+            onChange={(v) => setRpmLimit(selected.partId, v)}
           />
-        </div>
-        <div style={STEPPER_PAIR}>
           <CaptionCell>Torque</CaptionCell>
           <Stepper
             label="Torque limit"
@@ -150,75 +142,67 @@ export function RotorControls({
             max={100}
             step={TORQUE_STEP}
             format={(v) => writeQuantity(value("%", v), { decimals: 0 })}
-            command={torqueStepCommand}
-            unavailable={
-              torqueCommand.commanded === null
-                ? "The torque limit is not reported"
-                : null
-            }
+            disabled={torqueCommand.commanded === null}
+            disabledReason="The torque limit is not reported"
+            onChange={(v) => setTorqueLimit(selected.partId, v)}
           />
-        </div>
+        </ContainerBreak>
       </div>
 
       <Cluster justify="start" wrap>
         {/* An unread flag gets a third, disabled state rather than defaulting to off or unlocked. */}
         <ToggleButton
           size="sm"
+          pressed={selected.motorEngaged === true}
           tone="go"
-          command={motorCommand}
-          state={selected.motorEngaged}
-          name="Motor"
-          unavailable={
-            selected.motorEngaged === null
-              ? "The motor state is not reported"
-              : null
+          disabled={selected.motorEngaged === null}
+          disabledReason="The motor state is not reported"
+          marked={flagsMarked}
+          onClick={() =>
+            selected.motorEngaged !== null &&
+            setMotor(selected.partId, !selected.motorEngaged)
           }
-          marking={flagsMarked}
         >
-          {(shown) =>
-            `Motor ${motorStateText(typeof shown === "boolean" ? shown : null)}`
-          }
+          Motor {motorStateText(selected.motorEngaged)}
         </ToggleButton>
         <ToggleButton
           size="sm"
+          pressed={selected.locked === true}
           tone="warn"
-          command={lockCommand}
-          state={selected.locked}
-          name="Lock"
-          unavailable={
-            selected.locked === null ? "The lock state is not reported" : null
+          disabled={selected.locked === null}
+          disabledReason="The lock state is not reported"
+          marked={flagsMarked}
+          onClick={() =>
+            selected.locked !== null &&
+            setLock(selected.partId, !selected.locked)
           }
-          marking={flagsMarked}
         >
-          {(shown) => lockStateText(typeof shown === "boolean" ? shown : null)}
+          {lockStateText(selected.locked)}
         </ToggleButton>
         {/* The brake sends an absolute percentage inverted from the current one, so an unread brake disables it. */}
         <ToggleButton
           size="sm"
+          pressed={
+            selected.brakePercentage !== null && selected.brakePercentage > 0
+          }
           tone="warn"
-          command={brakeCommand}
-          state={
-            selected.brakePercentage === null
-              ? null
-              : selected.brakePercentage > 0
+          disabled={selected.brakePercentage === null}
+          disabledReason="The brake is not reported"
+          marked={flagsMarked}
+          onClick={() =>
+            selected.brakePercentage !== null &&
+            setBrake(selected.partId, selected.brakePercentage > 0 ? 0 : 100)
           }
-          name="Brake"
-          unavailable={
-            selected.brakePercentage === null
-              ? "The brake is not reported"
-              : null
-          }
-          marking={flagsMarked}
         >
-          {(shown) =>
-            `Brake ${brakeStateText(typeof shown === "boolean" ? (shown ? 100 : 0) : null)}`
-          }
+          Brake {brakeStateText(selected.brakePercentage)}
         </ToggleButton>
         {/* Reverse stays available on an unread heading; only the heading it prints is withheld. */}
         <Button
           size="sm"
+          type="button"
           aria-label={reverseLabel(selected.counterClockwise)}
-          command={reverseCommand}
+          marked={flagsMarked}
+          onClick={() => reverse(selected.partId)}
         >
           {directionText(selected.counterClockwise)}
         </Button>

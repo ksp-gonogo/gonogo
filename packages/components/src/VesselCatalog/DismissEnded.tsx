@@ -1,16 +1,19 @@
 import { useCommand } from "@ksp-gonogo/sitrep-client";
 import { CloseIcon } from "@ksp-gonogo/ui";
-import { type BoundControlCommand, IconButton } from "@ksp-gonogo/ui-kit";
+import { IconButton } from "@ksp-gonogo/ui-kit";
 import { type FleetVessel, hasEnded } from "./fleet";
 
-/** The command that takes a destroyed craft off this command centre's catalog. */
-export type DismissVessel = (vessel: FleetVessel) => BoundControlCommand;
+/** What takes a destroyed craft off this command centre's catalog. */
+export type DismissVessel = (vessel: FleetVessel) => void;
 
 /** The dismissal a widget hands to every place it shows a destroyed craft, set up once in the widget's own body. */
 export function useDismissEnded(): DismissVessel {
   const dismiss = useCommand("trackingStation.catalog.dismiss");
   return (vessel) =>
-    dismiss.with({ vesselId: vessel.id }, { label: `Dismiss ${vessel.name}` });
+    void dismiss.dangerouslySendWithoutInput(
+      { vesselId: vessel.id },
+      { label: `Dismiss ${vessel.name}` },
+    );
 }
 
 /** Takes a destroyed craft off this command centre's catalog; draws nothing for a craft still flying, or with no dismissal to call. */
@@ -24,7 +27,8 @@ export function DismissEnded({
   if (!hasEnded(vessel) || onDismiss === undefined) return null;
   return (
     <IconButton
-      command={onDismiss(vessel)}
+      type="button"
+      onClick={() => onDismiss(vessel)}
       aria-label={`Dismiss ${vessel.name} from the catalog`}
     >
       <CloseIcon size={12} />

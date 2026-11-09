@@ -1,7 +1,6 @@
 import type { BodyDefinition, CurrentOrbit, DataKey } from "@ksp-gonogo/core";
 import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
 import {
-  type AnyBoundCommand,
   type CarriedCurrency,
   delayVisibility,
   type Value,
@@ -79,8 +78,7 @@ export interface ManeuverPreviewProps {
   triggerEditorOpen: boolean;
   setTriggerEditorOpen: (next: boolean | ((prev: boolean) => boolean)) => void;
   numericKeys: DataKey[];
-  /** The command that adds the plan's burns as nodes, or null when there is no plan. */
-  commitCommand: AnyBoundCommand | null;
+  onCommit: () => void | Promise<void>;
   onArm: (input: { dataKey: string; op: ThresholdOp; value: number }) => void;
   triggersAccepted: boolean;
   triggersBlockedReason?: string;
@@ -159,22 +157,18 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
               delayReading={props.sendDelay.reading}
             />
           )}
-          {props.commitCommand !== null && (
-            <Button
-              data-add-node=""
-              command={props.commitCommand}
-              blockedAriaLabel="Add node"
-              unavailable={
-                props.committing
-                  ? "The node is being added"
-                  : props.feasible === false
-                    ? "The vessel does not have the delta-v for this plan"
-                    : null
-              }
-            >
-              Add node
-            </Button>
-          )}
+          <Button
+            data-add-node=""
+            onClick={() => void props.onCommit()}
+            disabled={props.committing || props.feasible === false}
+            disabledReason={
+              props.committing
+                ? "The node is being added"
+                : "The vessel does not have the delta-v for this plan"
+            }
+          >
+            {props.committing ? "Adding..." : "Add node"}
+          </Button>
         </SendGroup>
       </CommitRow>
     </Stack>

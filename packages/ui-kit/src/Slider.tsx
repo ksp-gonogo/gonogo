@@ -19,7 +19,7 @@ import {
   TRACK,
   TrackMark,
 } from "./CommandValue/CommandValue";
-import { commandOutlineEdge } from "./commandEdge";
+import { COMMAND_WORD_ROOM, commandOutlineEdge } from "./commandEdge";
 import { focusRing } from "./focusRing";
 import { LiveRegion } from "./LiveRegion";
 import { NULL_DISPLAY } from "./NullValue";
@@ -225,7 +225,7 @@ function MarkedSlider({
           )}
         </div>
       </Tooltip>
-      <span style={{ ...FIGURE, position: "relative" }}>
+      <span style={FIGURE}>
         {shown === null ? NULL_DISPLAY : figure(shown)}
         {input && <SliderWord aria-hidden="true">{input.word}</SliderWord>}
       </span>
@@ -234,18 +234,11 @@ function MarkedSlider({
   );
 }
 
-/* Drawn over the end of the figure, taking no width, so the track never changes length. */
+/* Holds the room of the longest word at rest too, so the track never changes length. */
 const SliderWord = styled.span`
-  position: absolute;
-  inset-inline-end: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  padding-inline: var(--gap-related-dense);
-  background: var(--color-surface-sunken);
-  pointer-events: none;
-  &:empty {
-    display: none;
-  }
+  display: inline-block;
+  min-width: ${COMMAND_WORD_ROOM};
+  margin-inline-start: var(--gap-related);
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   letter-spacing: 0.08em;

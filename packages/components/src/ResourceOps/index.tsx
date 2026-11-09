@@ -232,7 +232,7 @@ registerComponent<ResourceOpsConfig>({
   id: "resource-ops",
   name: "Resource Ops",
   description:
-    "Run your vessel's drills and converters and see what they produce.",
+    "Every drill and converter on your vessel: what it mines or makes, how much is there and how fast it comes out, whether it is deployed and running, and each converter's inputs and outputs. A summary shows how many are running and how much electric charge they draw.",
   tags: ["telemetry", "resources"],
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 3, h: 4 },

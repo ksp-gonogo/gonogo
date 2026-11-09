@@ -389,15 +389,16 @@ function FlyOccupant({
   if (!vessel) return null;
   return (
     <Button
+      type="button"
       variant="primary"
-      tone="go"
       data-fly-occupant
-      command={switchCmd.with(
-        { vesselId: vessel.vesselId },
-        { label: `Fly ${vessel.name}` },
-      )}
+      onClick={() =>
+        void switchCmd.dangerouslySendWithoutInput({
+          vesselId: vessel.vesselId,
+        })
+      }
     >
-      {`Fly ${vessel.name}`}
+      Fly {vessel.name}
     </Button>
   );
 }

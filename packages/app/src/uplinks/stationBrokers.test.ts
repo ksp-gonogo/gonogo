@@ -4,7 +4,6 @@ import {
   type StationBroker,
 } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ConnStatus } from "../peer/PeerClientService";
 import { asClientService, idlePeerClient } from "../test/peerFakes";
 import { attachStationBrokers } from "./stationBrokers";
 
@@ -70,61 +69,6 @@ describe("attachStationBrokers", () => {
       attachStationBrokers(asClientService(idlePeerClient())),
     ).not.toThrow();
     expect(attach).toHaveBeenCalledTimes(1);
-  });
-
-  it("tells an Uplink each time the station's link to the main screen comes back, and not on its first connect", () => {
-    let emit: (status: ConnStatus) => void = () => {};
-    const client = asClientService({
-      ...idlePeerClient(),
-      getConnStatus: () => "connecting",
-      onConnectionStatus: (cb: (status: ConnStatus) => void) => {
-        emit = cb;
-        return () => {};
-      },
-    });
-    const { broker } = capture();
-    attachStationBrokers(client);
-    const reset = vi.fn();
-    broker().onLinkReset?.(reset);
-
-    emit("connected");
-    expect(reset).not.toHaveBeenCalled();
-    emit("reconnecting");
-    emit("connecting");
-    emit("connected");
-    expect(reset).toHaveBeenCalledTimes(1);
-    emit("connected");
-    expect(reset).toHaveBeenCalledTimes(1);
-    emit("disconnected");
-    emit("connected");
-    expect(reset).toHaveBeenCalledTimes(2);
-  });
-
-  it("stops telling an Uplink of resets once it unsubscribes or the station unmounts", () => {
-    let emit: (status: ConnStatus) => void = () => {};
-    const client = asClientService({
-      ...idlePeerClient(),
-      onConnectionStatus: (cb: (status: ConnStatus) => void) => {
-        emit = cb;
-        return () => {
-          emit = () => {};
-        };
-      },
-    });
-    const { broker } = capture();
-    const stop = attachStationBrokers(client);
-    const kept = vi.fn();
-    const dropped = vi.fn();
-    broker().onLinkReset?.(kept);
-    broker().onLinkReset?.(dropped)();
-    emit("reconnecting");
-    emit("connected");
-    expect(kept).toHaveBeenCalledTimes(1);
-    expect(dropped).not.toHaveBeenCalled();
-    stop();
-    emit("reconnecting");
-    emit("connected");
-    expect(kept).toHaveBeenCalledTimes(1);
   });
 
   it("stops attaching once the station unmounts", () => {

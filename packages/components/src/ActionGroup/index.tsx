@@ -78,7 +78,8 @@ function StageActionGroup({
 registerComponent<ActionGroupConfig>({
   id: "action-group",
   name: "Action Group",
-  description: "Toggle one action group or system.",
+  description:
+    "Toggle one KSP action group or system: SAS, RCS, gear, brakes, lights, abort, stage or a custom group (AG1 to AG10), or show the state of precision control, which this widget only displays and the Navball toggles. One widget controls one group, chosen in the widget's settings, which can also replace the group's name on the button.",
   tags: ["control", "telemetry"],
   defaultSize: { w: 6, h: 6 },
   minSize: { w: 5, h: 4 },

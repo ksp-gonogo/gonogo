@@ -1,10 +1,4 @@
-import {
-  act,
-  createFakeCommand,
-  fireEvent,
-  render,
-  screen,
-} from "@ksp-gonogo/sitrep-sdk/testing";
+import { act, fireEvent, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { ComposerBar } from "./ComposerBar";
 import { expectNoA11yViolations } from "./expectNoA11yViolations";
@@ -239,51 +233,5 @@ describe("ComposerBar", () => {
       </ComposerBar>,
     );
     await expectNoA11yViolations(container);
-  });
-});
-
-describe("ComposerBar given a command", () => {
-  it("sends the command from its button and reads SENT until the mod answers", async () => {
-    const fake = createFakeCommand<{ chars: string }>({ answer: "hold" });
-    render(
-      <ComposerBar command={fake.handle.with({ chars: "\r" })}>
-        <input aria-label="Line" />
-      </ComposerBar>,
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Send" }));
-    expect(fake.sent).toEqual([{ args: { chars: "\r" }, label: undefined }]);
-    expect(screen.getByRole("button")).toHaveAccessibleName(/sent/i);
-  });
-
-  it("sends nothing and says why while the caller marks it unavailable", () => {
-    const fake = createFakeCommand<{ chars: string }>();
-    render(
-      <ComposerBar
-        command={fake.handle.with({ chars: "\r" })}
-        sendUnavailable="Nothing typed"
-        sendVariant="text"
-      >
-        <input aria-label="Line" />
-      </ComposerBar>,
-    );
-    fireEvent.click(screen.getByRole("button", { name: /Send/ }));
-    expect(fake.sent).toEqual([]);
-  });
-
-  it("shows a refusal on the button", async () => {
-    const fake = createFakeCommand<{ chars: string }>({ answer: "hold" });
-    render(
-      <ComposerBar
-        command={fake.handle.with({ chars: "x" })}
-        sendVariant="text"
-      >
-        <input aria-label="Line" />
-      </ComposerBar>,
-    );
-    fireEvent.click(screen.getByRole("button", { name: /Send/ }));
-    await act(async () => {
-      fake.refuse("no CPU");
-    });
-    expect(screen.getByRole("button")).toHaveTextContent("Refused");
   });
 });

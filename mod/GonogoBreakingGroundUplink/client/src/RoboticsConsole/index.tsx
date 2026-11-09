@@ -122,59 +122,6 @@ function RoboticsConsoleComponent({
       { label: locked ? "Lock" : "Unlock" },
     );
 
-  const stepCommand = selected
-    ? selected.type === "piston"
-      ? extensionCmd.toArgs(
-          (v: number) => ({
-            partId: selected.partId,
-            metres: Number(formatPos(selected.type, v)),
-          }),
-          {
-            label: "Set target",
-            topic: selected.partId,
-            before: (args) => {
-              if (args !== undefined) {
-                setOwnTarget({
-                  partId: selected.partId,
-                  value: args.metres,
-                  atUt: nowUt,
-                });
-              }
-            },
-          },
-        )
-      : angleCmd.toArgs(
-          (v: number) => ({
-            partId: selected.partId,
-            degrees: Number(formatPos(selected.type, v)),
-          }),
-          {
-            label: "Set target",
-            topic: selected.partId,
-            before: (args) => {
-              if (args !== undefined) {
-                setOwnTarget({
-                  partId: selected.partId,
-                  value: args.degrees,
-                  atUt: nowUt,
-                });
-              }
-            },
-          },
-        )
-    : angleCmd.toArgs((_v: number) => undefined);
-  const motorCommand = motorCmd.toArgs(
-    (engaged: boolean) => ({
-      partId: selected?.partId ?? "",
-      enabled: engaged,
-    }),
-    { label: "Motor" },
-  );
-  const lockCommand = lockCmd.toArgs(
-    (locked: boolean) => ({ partId: selected?.partId ?? "", enabled: locked }),
-    { label: "Lock" },
-  );
-
   useActionInput<RoboticsConsoleActions>({
     // The nudges are relative, so they dispatch nothing while the target is unread.
     "target-up": (p) => {
@@ -241,9 +188,9 @@ function RoboticsConsoleComponent({
       }}
       rows={h ?? 8}
       onSelect={setSelectedId}
-      stepCommand={stepCommand}
-      motorCommand={motorCommand}
-      lockCommand={lockCommand}
+      setTarget={setTarget}
+      setMotor={setMotor}
+      setLock={setLock}
     />
   );
 }
@@ -251,7 +198,8 @@ function RoboticsConsoleComponent({
 registerComponent<RoboticsConsoleConfig>({
   id: "robotics-console",
   name: "Robotics Console",
-  description: "Drive Breaking Ground hinges, rotation servos and pistons.",
+  description:
+    "Current-vs-target position, at-target state and motor/lock controls for Breaking Ground robotic hinges, rotation servos and pistons. Select a joint to drive it from the stepper or a mapped input.",
   tags: ["telemetry", "robotics"],
   defaultSize: { w: 5, h: 8 },
   minSize: { w: 4, h: 4 },

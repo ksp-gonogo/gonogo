@@ -84,7 +84,7 @@ registerComponent<DeployedScienceConfig>({
   id: "deployed-science",
   name: "Deployed Science",
   description:
-    "Science, power and last contact of Breaking Ground deployed stations.",
+    "Whether each Breaking Ground deployed station's science is reaching home and when it was last heard, with its power balance and per-experiment science progress, reported even while you fly something else. Read-only.",
   tags: ["telemetry", "science"],
   defaultSize: { w: 5, h: 9 },
   // Five columns hold an experiment's figure beside its collecting badge, and seven rows keep a station's header, contact line, send and power badges and first experiment on screen with the held badge wrapped onto its own line.

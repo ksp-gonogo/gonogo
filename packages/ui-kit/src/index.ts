@@ -102,6 +102,8 @@ export {
   type ButtonVariant,
   IconButton,
   type IconButtonProps,
+  type PlainButtonProps,
+  type PlainIconButtonProps,
   TextButton,
 } from "./Button";
 export {
@@ -335,6 +337,7 @@ export {
   FieldRow,
   FormActions,
   Input,
+  type PlainSelectProps,
   Select,
   Textarea,
 } from "./Form";
@@ -615,6 +618,7 @@ export {
 } from "./SendStatus/predictedOutcome";
 export {
   type MarkedSliderProps,
+  type PlainSliderProps,
   Slider,
   type SliderProps,
 } from "./Slider";
@@ -633,6 +637,7 @@ export {
 // Numeric input over a small closed set, beside `UnitInput` (a free quantity) and `JogWheel` (tuned by feel).
 export {
   type CommandedStepperProps,
+  type PlainStepperProps,
   Stepper,
   type StepperBaseProps,
   type StepperMarks,
@@ -649,6 +654,7 @@ export {
 } from "./SubjectHeading";
 export {
   type CommandedSwitchProps,
+  type PlainSwitchProps,
   Switch,
   type SwitchBaseProps,
   type SwitchProps,
@@ -705,6 +711,7 @@ export {
 } from "./Text";
 export {
   type CommandedTextFieldProps,
+  type PlainTextFieldProps,
   TextField,
   type TextFieldBaseProps,
   type TextFieldProps,
@@ -717,6 +724,7 @@ export {
 } from "./TinyEssentials";
 // A row of alternatives is a ToggleButton; a single labelled setting is a Switch.
 export {
+  type PlainToggleButtonProps,
   ToggleButton,
   type ToggleButtonProps,
   type ToggleButtonSize,

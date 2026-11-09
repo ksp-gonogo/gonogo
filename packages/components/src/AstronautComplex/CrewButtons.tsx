@@ -2,7 +2,6 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
   type CommandButtonHandle,
-  type CommandControlState,
   speakQuantity,
 } from "@ksp-gonogo/ui-kit";
 
@@ -45,19 +44,14 @@ export function HireButton({
 export function FireButton({
   kerbalName,
   fireCmd,
-  control,
 }: {
   kerbalName: string;
   fireCmd: CommandButtonHandle;
-  /** A control already running for this kerbal's fire, which a bound key presses as well; absent, the button runs its own. */
-  control?: CommandControlState;
 }) {
   const who = kerbalName || "crew member";
   return (
     <Button
-      command={
-        control ?? fireCmd.with({ kerbalName }, { label: `Fire ${who}` })
-      }
+      command={fireCmd.with({ kerbalName }, { label: `Fire ${who}` })}
       variant="ghost"
       size="sm"
       confirmLabel="Confirm"

@@ -15,7 +15,7 @@ The Breaking Ground Uplink comes with Gonogo, so there is nothing separate to in
 
 ### Deployed Science
 
-Science, power and last contact of Breaking Ground deployed stations.
+Whether each Breaking Ground deployed station's science is reaching home and when it was last heard, with its power balance and per-experiment science progress, reported even while you fly something else. Read-only.
 
 <a href="client/docs/assets/mun-and-minmus-stations--default.png"><img src="client/docs/assets/mun-and-minmus-stations--default.png" width="185" alt="A Mun station in contact above a Minmus station out of contact, with the time it was last heard and its unsent data"></a>
 
@@ -36,7 +36,7 @@ Science, power and last contact of Breaking Ground deployed stations.
 
 ### Robotics Console
 
-Drive Breaking Ground hinges, rotation servos and pistons.
+Current-vs-target position, at-target state and motor/lock controls for Breaking Ground robotic hinges, rotation servos and pistons. Select a joint to drive it from the stepper or a mapped input.
 
 <a href="client/docs/assets/servos--default.png"><img src="client/docs/assets/servos--default.png" width="185" alt="A hinge driving towards its target, a piston already at one, and a locked rotor the console leaves to the tachometer"></a>
 
@@ -57,7 +57,7 @@ Drive Breaking Ground hinges, rotation servos and pistons.
 
 ### Rotor Tachometer
 
-RPM and controls for Breaking Ground rotors.
+Live RPM vs commanded cap for Breaking Ground robotic rotors, with motor, lock, brake and direction controls. Select a rotor to drive it from the dial or a mapped input.
 
 <a href="client/docs/assets/rotors--default.png"><img src="client/docs/assets/rotors--default.png" width="226" alt="Main rotor turning near its commanded cap, tail rotor stopped with the brake full on and the servo locked"></a>
 

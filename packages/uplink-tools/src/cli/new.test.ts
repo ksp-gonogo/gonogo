@@ -38,7 +38,6 @@ const seed = () =>
     clientUrl: "https://elsewhere.test/widgets.js",
     contractVersion: "4.5.6",
     topics: "own",
-    client: true,
     dependencies: {},
     devDependencies: {},
   });
@@ -204,7 +203,6 @@ describe("uplink-tools new", () => {
       clientUrl: "https://elsewhere.test/widgets.js",
       contractVersion: "4.5.6",
       topics: "own",
-      client: true,
       dependencies: {},
       devDependencies: {},
     });
@@ -493,7 +491,6 @@ describe("uplink-tools new", () => {
     for (const flag of [
       "--author <name>",
       "--repo <owner>/<name> | --no-repo",
-      "--client | --no-client",
       "--topics own | core",
       "--workflows | --no-workflows",
       "--ksp <path> | --no-ksp",
@@ -518,7 +515,6 @@ describe("uplink-tools new", () => {
         "--author",
         "Tester",
         "--no-repo",
-        "--client",
         "--topics",
         "own",
         "--no-workflows",
@@ -564,7 +560,7 @@ describe("uplink-tools new", () => {
 
     expect(code).toBe(0);
     // The id and the name came from the command line.
-    expect(asked).toHaveLength(6);
+    expect(asked).toHaveLength(5);
     const declared = JSON.parse(
       readFileSync(join(repo, "uplink.json"), "utf8"),
     );
@@ -690,249 +686,5 @@ describe("uplink-tools new", () => {
     await expect(
       newUplink(["other", "--ksp", workdir(), ...BARE], workdir()),
     ).rejects.toThrow(/not a KSP install/);
-  });
-
-  it("with --no-client writes the plugin alone: no client folder, no client in uplink.json, a plugin and tests that announce none", async () => {
-    const repo = workdir();
-    vi.spyOn(console, "log").mockImplementation(() => {});
-
-    expect(
-      await newUplink(
-        ["solo", "--no-client", "--topics", "core", ...BARE],
-        repo,
-      ),
-    ).toBe(0);
-
-    const read = (path: string) => readFileSync(join(repo, path), "utf8");
-    for (const absent of [
-      "client",
-      "mod-contract",
-      "mod/ClientSource.g.cs",
-      "mod/ExpectedClientHash.g.cs",
-    ]) {
-      expect(existsSync(join(repo, absent)), absent).toBe(false);
-    }
-    expect(JSON.parse(read("uplink.json")).client).toBeUndefined();
-    expect(read("mod/SoloUplink.cs")).not.toMatch(
-      /ClientSource|ExpectedClientHash/,
-    );
-    expect(read("mod/GonogoSoloUplink.csproj")).not.toMatch(
-      /ClientSource|ExpectedClientHash/,
-    );
-    expect(read("mod/GonogoSoloUplink.csproj")).toContain("Provenance.g.cs");
-    expect(read("mod-tests/GonogoSoloUplink.Tests.csproj")).not.toMatch(
-      /ClientSource|ExpectedClientHash/,
-    );
-    expect(read("mod-tests/SoloUplinkTests.cs")).toContain(
-      "Assert.Null(manifest.ClientSource)",
-    );
-    expect(read("mod/Provenance.g.cs")).toContain(
-      'Version = "0.0.0-development"',
-    );
-  });
-
-  it("with --no-client, takes a version from GONOGO_UPLINK_VERSION when a release names one", async () => {
-    const repo = workdir();
-    vi.spyOn(console, "log").mockImplementation(() => {});
-    vi.stubEnv("GONOGO_UPLINK_VERSION", "2.3.4");
-    try {
-      await newUplink(["solo", "--no-client", ...BARE], repo);
-    } finally {
-      vi.unstubAllEnvs();
-    }
-    expect(readFileSync(join(repo, "mod/Provenance.g.cs"), "utf8")).toContain(
-      'Version = "2.3.4"',
-    );
-  });
-
-  it("with --no-client and Topics of its own, keeps the contract slice and writes a types-only package instead of a client", async () => {
-    const repo = workdir();
-    vi.spyOn(console, "log").mockImplementation(() => {});
-
-    expect(
-      await newUplink(
-        ["solo", "--no-client", "--topics", "own", ...BARE],
-        repo,
-      ),
-    ).toBe(0);
-
-    const read = (path: string) => readFileSync(join(repo, path), "utf8");
-    expect(existsSync(join(repo, "client"))).toBe(false);
-    for (const present of [
-      "mod-contract",
-      "mod-contract-codegen",
-      "types/package.json",
-      "types/tsconfig.json",
-      "types/tsconfig.build.json",
-      "types/src/index.ts",
-    ]) {
-      expect(existsSync(join(repo, present)), present).toBe(true);
-    }
-    const declared = JSON.parse(read("uplink.json"));
-    expect(declared.client).toBeUndefined();
-    expect(declared.codegen).toBeDefined();
-    expect(read("mod/SoloUplink.cs")).toContain("Channels =");
-    expect(read("mod/SoloUplink.cs")).not.toMatch(
-      /ClientSource|ExpectedClientHash/,
-    );
-    const types = JSON.parse(read("types/package.json"));
-    expect(types.name).toBe("@your-github-owner/gonogo-solo-uplink-types");
-    expect(types.version).toBe("0.0.0-development");
-    expect(types.scripts.codegen).toBe("uplink-tools codegen");
-    expect(types.peerDependencies["@ksp-gonogo/sitrep-sdk"]).toBeDefined();
-    expect(read("types/src/index.ts")).toContain("__generated__/contract.js");
-  });
-
-  it("with --no-client and Topics of its own, the workflows check the generated types and publish the package", async () => {
-    const repo = workdir();
-    vi.spyOn(console, "log").mockImplementation(() => {});
-    await newUplink(
-      ["solo", "--no-client", "--topics", "own", "--workflows", ...BARE],
-      repo,
-    );
-    const ci = readFileSync(join(repo, ".github/workflows/ci.yml"), "utf8");
-    expect(ci).toContain("npm run codegen:check");
-    expect(ci).not.toContain("working-directory: client");
-    const release = readFileSync(
-      join(repo, ".github/workflows/release.yml"),
-      "utf8",
-    );
-    expect(release).toContain("npm publish dist/*.tgz");
-    expect(release).toContain("@ksp-gonogo/uplink-tools version");
-  });
-
-  it("with --no-client and core Topics, writes no types package", async () => {
-    const repo = workdir();
-    vi.spyOn(console, "log").mockImplementation(() => {});
-    await newUplink(["solo", "--no-client", "--topics", "core", ...BARE], repo);
-    expect(existsSync(join(repo, "types"))).toBe(false);
-  });
-
-  it("with --no-client, writes workflows that build the plugin alone", async () => {
-    const repo = workdir();
-    vi.spyOn(console, "log").mockImplementation(() => {});
-    await newUplink(["solo", "--no-client", "--workflows", ...BARE], repo);
-    for (const file of [
-      ".github/workflows/ci.yml",
-      ".github/workflows/release.yml",
-    ]) {
-      const text = readFileSync(join(repo, file), "utf8");
-      expect(text).not.toContain("working-directory: client");
-      expect(text).toContain("dotnet");
-    }
-    expect(
-      readFileSync(join(repo, ".github/workflows/release.yml"), "utf8"),
-    ).toContain("GONOGO_UPLINK_VERSION");
-  });
-
-  it("asks whether it has a client on a terminal, and still asks about Topics when the answer is no", async () => {
-    const repo = workdir();
-    vi.spyOn(console, "log").mockImplementation(() => {});
-    const asked: string[] = [];
-    const prompter: Prompter = {
-      text: async ({ initialValue }) => initialValue ?? "",
-      select: async ({ message }) => {
-        asked.push(message);
-        return "own";
-      },
-      confirm: async ({ message }) => {
-        asked.push(message);
-        return false;
-      },
-      isCancel: (value): value is symbol => typeof value === "symbol",
-    };
-    const code = await newUplink(
-      [
-        "solo",
-        "--name",
-        "Solo",
-        "--author",
-        "T",
-        "--no-repo",
-        "--no-ksp",
-        "--no-workflows",
-        "--no-generate",
-        "--no-install",
-      ],
-      repo,
-      { interactive: true, loadPrompter: async () => prompter },
-    );
-    expect(code).toBe(0);
-    expect(asked).toEqual([
-      "Does it have a client, widgets the app draws? (no: a plugin alone, for an Uplink that wraps another mod)",
-      "Which Topics will its widgets read?",
-    ]);
-    expect(existsSync(join(repo, "client"))).toBe(false);
-  });
-
-  it("--add-client gives a no-client Uplink a client and keeps its types package", async () => {
-    const repo = workdir();
-    vi.spyOn(console, "log").mockImplementation(() => {});
-    await newUplink(["solo", "--no-client", "--topics", "own", ...BARE], repo);
-    const read = (path: string) => readFileSync(join(repo, path), "utf8");
-    const typesBefore = read("types/package.json");
-
-    expect(
-      await newUplink(["--add-client", "--no-generate", "--no-install"], repo),
-    ).toBe(0);
-
-    expect(existsSync(join(repo, "client/src/index.ts"))).toBe(true);
-    expect(existsSync(join(repo, "client/package.json"))).toBe(true);
-    expect(read("types/package.json")).toBe(typesBefore);
-    expect(JSON.parse(read("uplink.json")).client.url).toContain(
-      "/solo/0.0.0-development/solo.client.js",
-    );
-    expect(read("mod/SoloUplink.cs")).toContain(
-      "ClientSource = new UplinkClientSource",
-    );
-    expect(read("mod/SoloUplink.cs")).toContain("ExpectedClientHash");
-    expect(read("mod/GonogoSoloUplink.csproj")).toContain(
-      "RequireBakedClientSource",
-    );
-    expect(read("mod-tests/GonogoSoloUplink.Tests.csproj")).toContain(
-      "RequireBakedClientSource",
-    );
-    expect(read("mod-tests/SoloUplinkTests.cs")).toContain(
-      "AnnouncesItsClientSoTheAppCanFindIt",
-    );
-    expect(read("mod-tests/SoloUplinkTests.cs")).not.toContain(
-      "AnnouncesNoClient",
-    );
-    expect(existsSync(join(repo, "mod/ClientSource.g.cs"))).toBe(true);
-  });
-
-  it("--add-client never overwrites a client, and takes no id", async () => {
-    const repo = workdir();
-    vi.spyOn(console, "log").mockImplementation(() => {});
-    await newUplink(["solo", ...BARE], repo);
-    await expect(newUplink(["--add-client"], repo)).rejects.toThrow(
-      /already exists/,
-    );
-    await expect(newUplink(["other", "--add-client"], repo)).rejects.toThrow(
-      /takes no id/,
-    );
-  });
-
-  it("--add-client names what to add by hand when the plugin no longer matches the scaffold", async () => {
-    const repo = workdir();
-    vi.spyOn(console, "log").mockImplementation(() => {});
-    await newUplink(["solo", "--no-client", "--topics", "core", ...BARE], repo);
-    const plugin = join(repo, "mod/SoloUplink.cs");
-    writeFileSync(
-      plugin,
-      readFileSync(plugin, "utf8").replace(
-        "Repo = Provenance.Repo,",
-        'Repo = "x",',
-      ),
-    );
-    const said: string[] = [];
-    vi.mocked(console.log).mockImplementation((line: string) => {
-      said.push(String(line));
-    });
-    expect(
-      await newUplink(["--add-client", "--no-generate", "--no-install"], repo),
-    ).toBe(1);
-    expect(said.join("\n")).toContain("Do by hand");
-    expect(said.join("\n")).toContain("ClientSource = new UplinkClientSource");
   });
 });

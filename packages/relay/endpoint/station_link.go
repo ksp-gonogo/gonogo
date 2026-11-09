@@ -55,15 +55,7 @@ func (l *stationLink) attach(dc *webrtc.DataChannel) {
 // send queues one message for the station's data channel.
 func (l *stationLink) send(msg []byte) {
 	l.mu.Lock()
-	l.p.pushData(time.Now(), msg)
-	l.mu.Unlock()
-	l.kick()
-}
-
-// sendAhead queues one message for the station's data channel ahead of everything else waiting.
-func (l *stationLink) sendAhead(msg []byte) {
-	l.mu.Lock()
-	l.p.pushAhead(msg)
+	l.p.pushData(msg)
 	l.mu.Unlock()
 	l.kick()
 }

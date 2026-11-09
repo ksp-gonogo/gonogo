@@ -12,7 +12,7 @@ registerComponent<PowerSystemsConfig>({
   id: "power-systems",
   name: "Power Systems",
   description:
-    "What makes and uses electric charge on your vessel, part by part.",
+    "What makes and uses electric charge (EC) on your vessel, part by part: solar panels, RTGs, generators, drills, engines and more. Shows the net rate and the totals, and can switch to any other resource that is flowing.",
   tags: ["telemetry", "ship"],
   defaultSize: { w: 8, h: 12 },
   // Below four columns the net rate is the tiny form's, with the title behind a hover.

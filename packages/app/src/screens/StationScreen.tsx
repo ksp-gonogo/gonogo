@@ -87,10 +87,10 @@ import { PeerTransport } from "../telemetry/PeerTransport";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
 import type { HostUplinkFailure } from "../uplinks/loadFailures";
 import { StationUplinkLoader } from "../uplinks/StationUplinkLoader";
+import { attachStationBrokers } from "../uplinks/stationBrokers";
 import { UplinkBanners } from "../uplinks/UplinkBanners";
 import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
 import { UplinkLoadFailureScreen } from "../uplinks/UplinkLoadFailureScreen";
-import { useStationBrokers } from "../uplinks/useStationBrokers";
 
 const HOST_ID_KEY = "gonogo-station-host-id";
 
@@ -222,7 +222,8 @@ export function StationScreen() {
     [client],
   );
 
-  useStationBrokers(client);
+  // Each Uplink that registered a station broker gets one relaying through this station's link; a registration arriving later, as a bundle loads, is attached then.
+  useEffect(() => attachStationBrokers(client), [client]);
 
   function attemptConnect(hostId: string) {
     const trimmed = hostId.trim().toUpperCase();

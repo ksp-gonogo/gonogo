@@ -339,21 +339,3 @@ func TestABridgeClosesWhenItsStationLeaves(t *testing.T) {
 		t.Fatalf("got %v", got)
 	}
 }
-
-func TestABridgeLogsTheFirstMessagesEachWayOnAControlChannelAndItsTotalsAtClose(t *testing.T) {
-	logs := captureLog(t)
-	tb, _ := joinedStation(t)
-	side := newSidecar(t, 1)
-	m := newMediaStation(t, 1)
-	opened := make(chan struct{})
-	m.dc.OnOpen(func() { close(opened) })
-	bridgeThrough(t, tb, 1, 1, m, side)
-	waitFor(t, opened, "the station's control channel opening")
-	waitForLog(t, logs, `bridge 1 upstream to station on "control": message 1, 18 bytes`)
-	if err := m.dc.SendText("subscribe 3"); err != nil {
-		t.Fatal(err)
-	}
-	waitForLog(t, logs, `bridge 1 station to upstream on "control": message 1, 11 bytes`)
-	m.dc.Close()
-	waitForLog(t, logs, `bridge 1 data channel "control" carried 1 messages station to upstream and 1 upstream to station`)
-}

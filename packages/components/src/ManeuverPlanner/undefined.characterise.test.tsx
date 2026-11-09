@@ -264,14 +264,14 @@ describe("ManeuverPlanner: an absent node id refuses instead of guessing", () =>
       );
       if (!point) throw new Error("vessel.maneuver frame not ready");
     });
-    expect(deleteBtn).toHaveAttribute("aria-disabled", "true");
-    expect(deleteBtn).toHaveAttribute(
-      "data-tooltip",
-      expect.stringMatching(/arrived without an id/i),
-    );
     act(() => {
       deleteBtn.click();
     });
+    await waitFor(() =>
+      expect(screen.getByRole("note")).toHaveTextContent(
+        /arrived without an id/i,
+      ),
+    );
     expect(dispatched).toEqual([]);
   });
 });

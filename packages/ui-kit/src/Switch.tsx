@@ -1,7 +1,7 @@
 import type { ValueCommand } from "@ksp-gonogo/sitrep-sdk";
 import styled from "styled-components";
 import { useCommandInput } from "./CommandButton/commandInput";
-import { commandEdge } from "./commandEdge";
+import { COMMAND_WORD_ROOM, commandEdge } from "./commandEdge";
 import { LiveRegion } from "./LiveRegion";
 import { Tooltip } from "./Tooltip";
 
@@ -21,7 +21,7 @@ export interface SwitchBaseProps {
  *
  * @category Form
  */
-export type PlainSwitchProps = {
+export interface PlainSwitchProps {
   /** Whether the switch is on. The switch is controlled: it shows this value and changes only when the caller changes it. */
   checked: boolean;
   /** Called with the new state when the operator flips the switch. */
@@ -29,7 +29,7 @@ export type PlainSwitchProps = {
   /** Renders dimmed and non-interactive; `onChange` never fires. For a toggle whose effective state is controlled elsewhere, such as a sub-setting inert while its parent setting is off. */
   disabled?: boolean;
   command?: never;
-};
+}
 
 /**
  * The props of a {@link Switch} that sends a command. The switch shows the
@@ -158,7 +158,6 @@ function CommandedSwitch({
 }
 
 const SwitchLabel = styled.label<{ $disabled?: boolean }>`
-  position: relative;
   display: inline-flex;
   align-items: center;
   gap: var(--gap-glyph-control);
@@ -186,18 +185,9 @@ const SwitchTrack = styled.div<{ $checked: boolean; $disabled?: boolean }>`
   ${commandEdge}
 `;
 
-/* Drawn over the end of the switch, taking no width, so a press never moves the row. */
+/* Holds the room of the longest word the switch can show, so a press never moves the row. */
 const SwitchWord = styled.span`
-  position: absolute;
-  inset-inline-end: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  padding-inline: var(--gap-related-dense);
-  background: var(--color-surface-sunken);
-  pointer-events: none;
-  &:empty {
-    display: none;
-  }
+  min-width: ${COMMAND_WORD_ROOM};
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
   letter-spacing: 0.08em;

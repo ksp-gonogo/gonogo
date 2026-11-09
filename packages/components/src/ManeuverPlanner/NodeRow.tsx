@@ -1,6 +1,5 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
 import {
-  type AnyBoundCommand,
   type CarriedCurrency,
   classifyCommandRejection,
   datedFrom,
@@ -40,9 +39,9 @@ interface NodeRowProps {
   /** The propulsion latch, so a burn still running past its planned cutoff is not called passed. */
   thrust?: ThrustObservation;
   /** Omitted on phantom rows (the underlying node is already gone from KSP). */
-  removeCommand?: AnyBoundCommand;
-  /** Why the delete control cannot be pressed now, such as another removal being in flight, or null when it can. */
-  removeUnavailable?: string | null;
+  onDelete?: () => void;
+  /** Holds the delete control while another removal is in flight. */
+  deleteDisabled?: boolean;
   /** Omitted on phantom rows; omitted to hide the edit affordance entirely. */
   onEdit?: (patch: NodeEditPatch) => Promise<void> | void;
 }
@@ -54,8 +53,8 @@ export function NodeRow({
   from,
   completed = false,
   thrust,
-  removeCommand,
-  removeUnavailable = null,
+  onDelete,
+  deleteDisabled = false,
   onEdit,
 }: NodeRowProps) {
   const [editing, setEditing] = useState(false);
@@ -169,12 +168,13 @@ export function NodeRow({
             <PencilIcon size={12} />
           </IconButton>
         )}
-        {removeCommand && (
+        {onDelete && (
           <IconButton
-            command={removeCommand}
-            unavailable={removeUnavailable}
+            type="button"
+            onClick={onDelete}
+            disabled={deleteDisabled}
+            disabledReason="Another node is being removed"
             aria-label="Delete node"
-            blockedAriaLabel="Delete node"
           >
             <CloseIcon size={12} />
           </IconButton>

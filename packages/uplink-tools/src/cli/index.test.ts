@@ -600,7 +600,6 @@ describe("uplink-tools new, run with no terminal", () => {
       "--name <name>",
       "--author <name>",
       "--repo <owner>/<name> | --no-repo",
-      "--client | --no-client",
       "--topics own | core",
       "--workflows | --no-workflows",
       "--ksp <path> | --no-ksp",

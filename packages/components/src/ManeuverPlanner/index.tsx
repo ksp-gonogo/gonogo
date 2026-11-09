@@ -16,7 +16,8 @@ export type ManeuverPlannerSectionsSlotProps = Record<string, never>;
 registerComponent<ManeuverPlannerConfig>({
   id: "maneuver-planner",
   name: "Maneuver Planner",
-  description: "Plan maneuver nodes with a preview of the new orbit.",
+  description:
+    "Plan a maneuver node at the next apoapsis or periapsis, to circularise or with a burn of your own, with a preview of the new orbit and a check that your vessel has the Δv for it. While a burn is flown it compares the orbit the plan called for with the orbit the vessel is on now, and says whether the difference is the burn still in progress, a burn cut off early, or the plan itself.",
   tags: ["telemetry", "planning"],
   defaultSize: { w: 14, h: 22 },
   // Seven columns so the preset picker shows its longest label in full.

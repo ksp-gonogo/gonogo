@@ -61,10 +61,12 @@ export function FlyVesselMenu({
               interactive
               key={v.vesselId}
               type="button"
-              command={switchCmd.with(
-                { vesselId: v.vesselId },
-                { label: `Fly ${v.name}` },
-              )}
+              onClick={() => {
+                setFlyOpen(false);
+                void switchCmd.dangerouslySendWithoutInput({
+                  vesselId: v.vesselId,
+                });
+              }}
             >
               <VesselSwitchName>
                 <span>{v.name}</span>

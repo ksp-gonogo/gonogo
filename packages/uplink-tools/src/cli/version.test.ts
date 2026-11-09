@@ -325,32 +325,4 @@ describe("an Uplink with no client", () => {
     }
     expect(lines).toEqual(["demo: 1.0.0 -> 1.0.1"]);
   });
-
-  it("stamps the types-only package, the one file such an Uplink commits a version in", () => {
-    const dir = modOnlyFixture();
-    put(
-      dir,
-      "types/package.json",
-      `${JSON.stringify({ name: "t", version: PLACEHOLDER_VERSION }, null, 2)}\n`,
-    );
-    const result = moveVersion(dir, { explicit: "1.4.0", rc: false });
-    expect(result.files).toEqual([join(dir, "types/package.json")]);
-    expect(
-      JSON.parse(readFileSync(join(dir, "types/package.json"), "utf8")).version,
-    ).toBe("1.4.0");
-  });
-
-  it("stamps a types package beside a client", () => {
-    const dir = fixture();
-    put(
-      dir,
-      "types/package.json",
-      `${JSON.stringify({ name: "t", version: PLACEHOLDER_VERSION }, null, 2)}\n`,
-    );
-    const result = move(dir, { explicit: "2.0.0", rc: false });
-    expect(result.files).toContain(join(dir, "types/package.json"));
-    expect(
-      JSON.parse(readFileSync(join(dir, "types/package.json"), "utf8")).version,
-    ).toBe("2.0.0");
-  });
 });
