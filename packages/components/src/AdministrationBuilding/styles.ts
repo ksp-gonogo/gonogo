@@ -1,4 +1,4 @@
-import { Badge, Block, Button, Row } from "@ksp-gonogo/ui-kit";
+import { Block, Button, Row } from "@ksp-gonogo/ui-kit";
 // biome-ignore lint/style/noRestrictedImports: type and card treatments not yet expressed in kit primitives
 import styled from "styled-components";
 
@@ -57,7 +57,7 @@ export const EffectList = styled.ul`
 
 /**
  * One line of the game's own effect prose, relayed verbatim rather than judged
- * (see `CostChip` below for the other half of that distinction). Built on
+ * (unlike the price readout, which is our own verdict). Built on
  * `Row`, ui-kit's list-row primitive, for the padded, gapped `<li>` shape;
  * left unwrapped in `RowName` since that truncates, and this text wraps.
  */
@@ -109,26 +109,12 @@ export const Description = styled.p`
   line-height: var(--line-height-body);
 `;
 
-export const CostRow = styled.div`
+/** The price figures, one labelled readout per currency, wrapping as a group beside the control that spends them. */
+export const CostReadout = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: var(--gap-related);
-  margin-top: var(--gap-caption);
-`;
-
-/**
- * Our own verdict about a record (what a currency costs, whether the career
- * can currently cover it), not the game's words, unlike `EffectLine` above.
- * Built on `Badge` for its tone vocabulary and pill; the caps/weight/tracking
- * a status word carries is dropped, since a chip here holds a formatted
- * amount rather than a one-word state.
- */
-export const CostChip = styled(Badge)`
-  text-transform: none;
-  font-weight: 400;
-  letter-spacing: normal;
-  font-variant-numeric: tabular-nums;
-  border-radius: var(--radius-pill);
+  align-items: baseline;
+  gap: var(--gap-related) var(--gap-actions);
 `;
 
 export const FactorRow = styled.div`

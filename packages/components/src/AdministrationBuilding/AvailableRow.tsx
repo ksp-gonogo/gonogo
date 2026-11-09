@@ -6,7 +6,9 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
+  Cluster,
   type CommandButtonHandle,
+  DataLine,
   ExpandableText,
   Notice,
   NULL_DISPLAY,
@@ -18,8 +20,7 @@ import { activationFactor, factorSliderOf, parseEffectLines } from "./parsing";
 import {
   BlockedNote,
   CardDept,
-  CostChip,
-  CostRow,
+  CostReadout,
   Description,
   EffectLine,
   EffectList,
@@ -68,10 +69,7 @@ export function StrategyCost({
     atRecordFactor ? cost : null;
   const scaledFunds = priced(s.initialCostFunds);
   // Only a record that states every price as zero is free; a price it left out is unknown.
-  const noListedCost =
-    s.initialCostFunds === 0 &&
-    s.initialCostScience === 0 &&
-    s.initialCostReputation === 0;
+  const noListedCost = !hasListedCost(s);
   const scaledScience = priced(s.initialCostScience);
   const scaledRep = priced(s.initialCostReputation);
 
@@ -87,66 +85,54 @@ export function StrategyCost({
     return overBudget(cost, balance) ? "no" : "yes";
   };
 
-  // A cost chip carries the kit's `nogo` tone only once the verdict is actually "no"; an unknown balance stays untoned rather than reading as either afford or refusal.
+  // Only a verdict of "no" tones the figure; an unknown balance reads as neither afford nor refusal.
   const costTone = (afford: "yes" | "no" | undefined) =>
     afford === "no" ? ("nogo" as const) : undefined;
 
+  if (noListedCost) {
+    // Three zeros say nothing about a currency this record has no field for, such as a career mod's own currency. A plain note, so a list of them is not announced.
+    return (
+      <Notice tone="neutral" role="note">
+        No funds, science or rep cost on this record
+      </Notice>
+    );
+  }
+
+  const figure = (
+    label: string,
+    cost: number | null,
+    balance: number | null,
+    unit: "funds" | "science" | "rep",
+  ) => {
+    const afford = affordVerdict(cost, balance);
+    return (
+      <DataLine label={label} tone={costTone(afford)} data-afford={afford}>
+        {cost === null ? (
+          NULL_DISPLAY
+        ) : (
+          <Unit value={datedFrom(rosterFrom, value(unit, cost))} />
+        )}
+      </DataLine>
+    );
+  };
+
   return (
-    <>
-      {!noListedCost && (
-        <CostRow>
-          {s.initialCostFunds !== 0 && (
-            <CostChip
-              size="sm"
-              tone={costTone(affordVerdict(scaledFunds, funds))}
-              data-afford={affordVerdict(scaledFunds, funds)}
-            >
-              {scaledFunds === null ? (
-                NULL_DISPLAY
-              ) : (
-                <Unit
-                  value={datedFrom(rosterFrom, value("funds", scaledFunds))}
-                />
-              )}
-            </CostChip>
-          )}
-          {s.initialCostScience !== 0 && (
-            <CostChip
-              size="sm"
-              tone={costTone(affordVerdict(scaledScience, science))}
-              data-afford={affordVerdict(scaledScience, science)}
-            >
-              {scaledScience === null ? (
-                NULL_DISPLAY
-              ) : (
-                <Unit
-                  value={datedFrom(rosterFrom, value("science", scaledScience))}
-                />
-              )}
-            </CostChip>
-          )}
-          {s.initialCostReputation !== 0 && (
-            <CostChip
-              size="sm"
-              tone={costTone(affordVerdict(scaledRep, reputation))}
-              data-afford={affordVerdict(scaledRep, reputation)}
-            >
-              {scaledRep === null ? (
-                NULL_DISPLAY
-              ) : (
-                <Unit value={datedFrom(rosterFrom, value("rep", scaledRep))} />
-              )}
-            </CostChip>
-          )}
-        </CostRow>
-      )}
-      {noListedCost && (
-        // Three zeros say nothing about a currency this record has no field for, such as a career mod's own currency. A plain note, so a list of them is not announced.
-        <Notice tone="neutral" role="note">
-          No funds, science or rep cost on this record
-        </Notice>
-      )}
-    </>
+    <CostReadout>
+      {s.initialCostFunds !== 0 && figure("Funds", scaledFunds, funds, "funds")}
+      {s.initialCostScience !== 0 &&
+        figure("Science", scaledScience, science, "science")}
+      {s.initialCostReputation !== 0 &&
+        figure("Rep", scaledRep, reputation, "rep")}
+    </CostReadout>
+  );
+}
+
+/** True when the record lists a price in at least one currency, so a price readout draws rather than the no-cost note. */
+export function hasListedCost(s: Strategy): boolean {
+  return !(
+    s.initialCostFunds === 0 &&
+    s.initialCostScience === 0 &&
+    s.initialCostReputation === 0
   );
 }
 
@@ -190,11 +176,22 @@ export function AvailableRow({
   note?: string;
   /** Why the game is likely to refuse this activation; the button stays and the press is sent. */
   advise?: string;
-  /** A fact about the strategy drawn beside its description, such as that it is locked. */
+  /** The strategy's whole-card status, drawn at the end of its title row beside the department, such as that it is locked. */
   badge?: ReactNode;
 }) {
   const slider = factorSliderOf(s);
   const sentFactor = activationFactor(s, factor);
+  const priceInFooter = !drawsOwnActions && hasListedCost(s);
+  const cost = (
+    <StrategyCost
+      strategy={s}
+      funds={funds}
+      reputation={reputation}
+      science={science}
+      rosterFrom={rosterFrom}
+      factor={factor}
+    />
+  );
   return (
     <StrategyCard
       title={
@@ -208,21 +205,32 @@ export function AvailableRow({
         </StrategyName>
       }
       titleRight={
-        showDepartment ? <CardDept>{s.departmentName}</CardDept> : undefined
+        showDepartment || badge ? (
+          <Cluster justify="end" gap="related-packed" wrap>
+            {showDepartment && <CardDept>{s.departmentName}</CardDept>}
+            {badge}
+          </Cluster>
+        ) : undefined
       }
       footer={
-        drawsOwnActions || sentFactor === null ? undefined : (
-          <Button
-            command={activateCmd.with(
-              { strategyId: s.id, factor: sentFactor },
-              { label: `Activate ${s.title}` },
+        drawsOwnActions ||
+        (!priceInFooter && sentFactor === null) ? undefined : (
+          <>
+            {priceInFooter && cost}
+            {sentFactor !== null && (
+              <Button
+                command={activateCmd.with(
+                  { strategyId: s.id, factor: sentFactor },
+                  { label: `Activate ${s.title}` },
+                )}
+                variant="ghost"
+                confirmLabel="Confirm activate"
+                advise={advise}
+              >
+                Activate
+              </Button>
             )}
-            variant="ghost"
-            confirmLabel="Confirm activate"
-            advise={advise}
-          >
-            Activate
-          </Button>
+          </>
         )
       }
     >
@@ -235,18 +243,8 @@ export function AvailableRow({
           ))}
         </EffectList>
       )}
-      {badge}
       {note && <BlockedNote>{note}</BlockedNote>}
-      {!drawsOwnActions && (
-        <StrategyCost
-          strategy={s}
-          funds={funds}
-          reputation={reputation}
-          science={science}
-          rosterFrom={rosterFrom}
-          factor={factor}
-        />
-      )}
+      {!drawsOwnActions && !priceInFooter && cost}
       {!drawsOwnActions && slider !== null && factor !== null && (
         <FactorRow>
           <FactorLabel>Factor</FactorLabel>
