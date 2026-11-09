@@ -138,6 +138,8 @@ describe("getUndescribedTopics()", () => {
         // longer the reason: the split resolves a Topic of any depth now, and
         // its sibling `system.uplink.pending` is described.
         "system.uplink.gates",
+        "system.uplink.gates.craft",
+        "system.uplink.gates.home",
         // Two lists, a command name per entry and a row per command and centre, so its only quantity sits inside a row and no field names the Topic itself.
         "system.uplink.delays",
         // A row per declared channel, keyed by TOPIC NAME, so there is no fixed
