@@ -116,6 +116,9 @@ namespace Gonogo.KSP.Tests.Career
             Assert.Contains(
                 byCommand["ksp.recover"],
                 r => r.Kind == KspGateEvaluators.Kinds.ClearToSave);
+            Assert.Contains(
+                byCommand["ksp.recover"],
+                r => r.Kind == KspGateEvaluators.Kinds.Recoverable);
             // A parked vessel is recovered from the Space Center, where no flight exists for ClearToSave to judge.
             Assert.Contains(
                 byCommand["ksp.recoverVessel"],

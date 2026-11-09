@@ -55,5 +55,28 @@ namespace Gonogo.KSP.Tests.FlightOps
             var save = body.IndexOf("GamePersistence.SaveGame(", System.StringComparison.Ordinal);
             Assert.True(save > recover, "the save is written after the vessel has left the flight state");
         }
+
+        [Fact]
+        public void RecoverOnTheActiveVesselAsksTheGamesOwnRecoverabilityBeforeFiring()
+        {
+            var body = CurrencyDelaySourceText.MethodBody(
+                CurrencyDelaySourceText.ReadRelative("KspFlightOpsActuator.cs"),
+                "public CommandResult Recover()");
+
+            var fire = body.IndexOf("OnVesselRecoveryRequested.Fire(", System.StringComparison.Ordinal);
+            var guard = body.IndexOf("IsRecoverable", System.StringComparison.Ordinal);
+            Assert.True(guard >= 0, "an orbiting craft passes ClearToSave, so the vessel's own IsRecoverable must be asked");
+            Assert.True(guard < fire, "IsRecoverable must be checked before the recovery fires");
+        }
+
+        [Fact]
+        public void TheRecoverControlIsGatedOnTheVesselsOwnRecoverability()
+        {
+            var declarations = CurrencyDelaySourceText.ReadRelative("Gates/GateDeclarations.cs");
+            var at = declarations.IndexOf("table[FlightOpsCommandProvider.RecoverCommand]", System.StringComparison.Ordinal);
+            Assert.True(at >= 0);
+            var end = declarations.IndexOf("};", at, System.StringComparison.Ordinal);
+            Assert.Contains("CareerGates.Recoverable", declarations.Substring(at, end - at));
+        }
     }
 }

@@ -462,6 +462,11 @@ namespace Gonogo.KSP
                 return CommandResult.Fail(CommandErrorCode.NotClearToProceed, GameWords.Phrase(clear));
             }
 
+            if (!vessel.IsRecoverable)
+            {
+                return CommandResult.Fail(CommandErrorCode.NotClearToProceed, GameWords.NotRecoverable);
+            }
+
             var game = HighLogic.CurrentGame;
             if (game?.Parameters?.Flight != null && !game.Parameters.Flight.CanLeaveToSpaceCenter)
             {

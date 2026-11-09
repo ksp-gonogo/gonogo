@@ -140,6 +140,12 @@ namespace Gonogo.KSP.Gates
             Kind = KspGateEvaluators.Kinds.ClearToSave,
         };
 
+        /// <summary>The active vessel is one the game would recover: landed or splashed at home, or on the pad (<c>Vessel.IsRecoverable</c>).</summary>
+        public static CommandRequirement Recoverable => new CommandRequirement
+        {
+            Kind = KspGateEvaluators.Kinds.Recoverable,
+        };
+
         /// <summary>Whether the game would take a quicksave now, as one nonspecific fact.</summary>
         public static CommandRequirement QuicksaveReady => new CommandRequirement
         {

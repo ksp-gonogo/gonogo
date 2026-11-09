@@ -58,6 +58,7 @@ namespace Gonogo.KSP.Gates
             yield return new FacilityLimitGate();
             yield return new FacilityUnlockedGate();
             yield return new ClearToSaveGate();
+            yield return new RecoverableGate();
             yield return new QuicksaveReadyGate();
             yield return new QuickloadReadyGate();
             yield return new PreFlightGate();
@@ -79,6 +80,7 @@ namespace Gonogo.KSP.Gates
             public const string FacilityLimit = "facility-limit";
             public const string FacilityUnlocked = "facility-unlocked";
             public const string ClearToSave = "clear-to-save";
+            public const string Recoverable = "recoverable";
             public const string QuicksaveReady = "quicksave-ready";
             public const string QuickloadReady = "quickload-ready";
             public const string PreFlight = "preflight";
@@ -480,6 +482,36 @@ namespace Gonogo.KSP.Gates
             catch (Exception ex)
             {
                 return GateVerdict.Unknown("could not ask whether the flight is clear: " + ex.Message);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Authority: <c>Vessel.IsRecoverable</c> on the vessel KSP has active, which
+    /// is true only for a craft landed or splashed at home or still on the pad.
+    /// A craft in orbit passes <c>ClearToSave</c>, so this is the question that
+    /// keeps recovery to a craft the game would recover.
+    /// </summary>
+    internal sealed class RecoverableGate : ICommandGateEvaluator
+    {
+        public string Kind => KspGateEvaluators.Kinds.Recoverable;
+
+        public GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments)
+        {
+            try
+            {
+                var vessel = ActiveVesselScope.Current;
+                if (vessel == null)
+                {
+                    return GateVerdict.Unknown("there is no flight to judge");
+                }
+                return vessel.IsRecoverable
+                    ? GateVerdict.Pass()
+                    : GateVerdict.Fail(CommandErrorCode.NotClearToProceed, GameWords.NotRecoverable);
+            }
+            catch (Exception ex)
+            {
+                return GateVerdict.Unknown("could not ask whether the vessel is recoverable: " + ex.Message);
             }
         }
     }

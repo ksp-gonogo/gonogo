@@ -208,6 +208,7 @@ namespace Gonogo.KSP.Gates
             table[FlightOpsCommandProvider.RecoverCommand] = new[]
             {
                 CareerGates.ClearToSave,
+                CareerGates.Recoverable,
             };
 
             table[FlightOpsCommandProvider.QuicksaveCommand] = new[]

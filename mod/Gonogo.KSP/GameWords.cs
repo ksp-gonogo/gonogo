@@ -71,6 +71,9 @@ namespace Gonogo.KSP
         /// </summary>
         public const string CantSaveNow = "Can't save right now";
 
+        /// <summary>The refusal for recovering a vessel that is not landed, splashed or on the pad.</summary>
+        public const string NotRecoverable = "Only a landed or splashed vessel can be recovered";
+
         public static string Phrase(Enum member)
         {
             if (member == null) return "";
