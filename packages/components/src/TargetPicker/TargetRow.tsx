@@ -16,7 +16,14 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { entrySubtitle } from "./entries";
 import { knowledgeCaption, seenAsItIs, unchangedSinceHeard } from "./knowledge";
-import { EntryName, RowDistance, RowMain, RowSubtitle, RowTag } from "./styles";
+import {
+  EntryName,
+  RowDistance,
+  RowMain,
+  RowSubtitle,
+  RowTag,
+  RowTrailing,
+} from "./styles";
 
 /** One pickable roster row: name and subtitle, range, and a spinner while its set awaits the readback. */
 export function TargetRow({
@@ -50,15 +57,17 @@ export function TargetRow({
         </Tooltip>
         {subtitle && <RowSubtitle>{subtitle}</RowSubtitle>}
       </RowMain>
-      <RowDistance>
-        {seenAsItIs(entry) ? (
-          <SeenRange entry={entry} distance={distance} />
-        ) : (
-          <KnownOnly entry={entry} distance={distance} listHeld={listHeld} />
-        )}
-      </RowDistance>
-      {isPending && <Spinner aria-label="Setting target" />}
-      {!isPending && entry.isCurrent && <RowTag>TARGET</RowTag>}
+      <RowTrailing>
+        <RowDistance>
+          {seenAsItIs(entry) ? (
+            <SeenRange entry={entry} distance={distance} />
+          ) : (
+            <KnownOnly entry={entry} distance={distance} listHeld={listHeld} />
+          )}
+        </RowDistance>
+        {isPending && <Spinner aria-label="Setting target" />}
+        {!isPending && entry.isCurrent && <RowTag>TARGET</RowTag>}
+      </RowTrailing>
     </Row>
   );
 }
