@@ -20,9 +20,8 @@ export interface RoleConnection {
  *
  * `waiting` until the mod has published the record and answered the first
  * claim. `hosting` while this screen holds the role; `takeover` is true when it
- * took the role over from a host it had joined, or from one that still held
- * the role when this screen claimed it, and `generation` is the mod's grant
- * count at its latest claim. `joined` while another screen
+ * took the role over from a host it had joined or from an earlier host it never saw, and `generation` is the mod's
+ * grant count at its latest claim. `joined` while another screen
  * holds it, or nobody does and the mod has not yet let this one claim.
  */
 export type HostRoleState =
@@ -200,7 +199,6 @@ export class HostRole {
     if (this.claiming || this.disposed || this.released || !this.connection)
       return;
     this.claiming = true;
-    const before = this.record;
     void this.send("host.claim", {}).then((result) => {
       this.claiming = false;
       if (this.disposed) return;
@@ -212,7 +210,7 @@ export class HostRole {
       this.heartbeatMs = answer.heartbeatSeconds * 1000;
       this.answered = true;
       if (answer.holds) {
-        this.takeRole(answer.holderId, answer.generation, before);
+        this.takeRole(answer.holderId, answer.generation);
       } else {
         if (this.holds) this.loseRole();
         if (this.record && !this.record.held) this.scheduleRetry();
@@ -229,24 +227,11 @@ export class HostRole {
     }, this.heartbeatMs);
   }
 
-  private takeRole(
-    holderId: string,
-    generation: number,
-    before: HostRecordView | undefined,
-  ): void {
-    /*
-     * The mod's grant count outlasts the game, so a count above one only says
-     * some screen hosted this save once. A role still held by another screen
-     * when this one claimed is a host that was live and is being replaced; a
-     * free role is a first start, however many hosts came before.
-     */
+  private takeRole(holderId: string, generation: number): void {
     if (!this.holds) {
       this.takeover =
         this.current.kind === "joined" ||
-        (generation > 1 &&
-          !this.heldBefore() &&
-          before?.held === true &&
-          before.holderId !== holderId);
+        (generation > 1 && !this.heldBefore());
     }
     this.markHeld();
     this.holds = true;

@@ -23,11 +23,13 @@ vi.mock("peerjs", () => {
   return { default: FakePeer, Peer: FakePeer };
 });
 
+const HOST_ID_KEY = "gonogo-station-host-id";
+
 function renderPilot() {
   return render(
     <ErrorBoundary>
       <ModalProvider>
-        <PilotScreen code="5RML48" />
+        <PilotScreen />
       </ModalProvider>
     </ErrorBoundary>,
   );
@@ -45,16 +47,24 @@ afterEach(() => {
 });
 
 describe("PilotScreen", () => {
-  it("waits on the join view, naming its code, until the host approves it", () => {
+  it("asks for the host code when none is saved", () => {
     renderPilot();
-    expect(screen.getByText("Reaching the host")).toBeInTheDocument();
-    expect(screen.getByText("5RML48")).toBeInTheDocument();
-    expect(screen.queryByRole("main", { name: "Mission control" })).toBeNull();
+    expect(screen.getByLabelText("Join code")).toBeInTheDocument();
+  });
+
+  it("keeps the join code field open while the code is typed", async () => {
+    renderPilot();
+
+    const input = await screen.findByLabelText("Join code");
+    await userEvent.type(input, "5RML48");
+
+    expect(screen.getByLabelText("Join code")).toHaveValue("5RML48");
   });
 
   it("hands each Uplink a broker through the host, as a station screen does", async () => {
     const attach = vi.fn();
     registerStationBroker("probe", attach);
+    localStorage.setItem(HOST_ID_KEY, "5RML48");
     renderPilot();
     await waitFor(() => expect(attach).toHaveBeenCalledTimes(1));
     expect(attach.mock.calls[0]?.[0]).toEqual(
@@ -62,17 +72,20 @@ describe("PilotScreen", () => {
     );
   });
 
-  it("offers the way back to the seats on the join page", async () => {
-    const assign = vi.fn();
-    vi.stubGlobal("location", { ...window.location, assign });
-    try {
-      renderPilot();
-      await userEvent.click(
-        screen.getByRole("button", { name: "Choose another seat" }),
-      );
-      expect(assign).toHaveBeenCalledWith("/join?5RML48");
-    } finally {
-      vi.unstubAllGlobals();
-    }
+  it("lets a saved host code be changed from the page", async () => {
+    localStorage.setItem(HOST_ID_KEY, "OLDCODE");
+    renderPilot();
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Change code" }),
+    );
+
+    const input = await screen.findByLabelText("Join code");
+    expect(input).toBeInTheDocument();
+    await userEvent.clear(input);
+    await userEvent.type(input, "newcode{enter}");
+    await waitFor(() =>
+      expect(localStorage.getItem(HOST_ID_KEY)).toBe("NEWCODE"),
+    );
   });
 });

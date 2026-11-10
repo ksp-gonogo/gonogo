@@ -114,9 +114,7 @@ describe("FirstRunSetupHost", () => {
     await user.click(
       screen.getByRole("button", { name: say("health.advance") }),
     );
-    await user.click(
-      screen.getByRole("button", { name: say("done.startMain") }),
-    );
+    await user.click(screen.getByRole("button", { name: say("done.advance") }));
 
     await waitFor(() =>
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),

@@ -1,5 +1,4 @@
 import { render, screen } from "@ksp-gonogo/test-utils";
-import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import {
   type PeerClient,
@@ -11,14 +10,10 @@ import { PushButton } from "./shared";
 
 const item = { i: "w1", componentId: "c", x: 0, y: 0, w: 2, h: 2 };
 
-function pushButton(
-  approval: ReturnType<PeerClient["getApproval"]>,
-  hostSeat: ReturnType<PeerClient["getHostSeat"]> = "main",
-) {
+function pushButton(approval: ReturnType<PeerClient["getApproval"]>) {
   const client: PeerClient = {
     ...idlePeerClient(),
     getApproval: () => approval,
-    getHostSeat: () => hostSeat,
   };
   render(
     <PeerClientProvider client={client}>
@@ -37,12 +32,5 @@ describe("PushButton on a station", () => {
 
   it("is live once approved", () => {
     expect((pushButton("approved") as HTMLButtonElement).disabled).toBe(false);
-  });
-
-  it("is dark in a game hosted by a pilot, which has no main screen", async () => {
-    const button = pushButton("approved", "pilot") as HTMLButtonElement;
-    expect(button.disabled).toBe(true);
-    await userEvent.setup({ pointerEventsCheck: 0 }).hover(button);
-    expect(await screen.findByText("No main screen")).toBeInTheDocument();
   });
 });

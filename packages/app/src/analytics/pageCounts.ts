@@ -31,9 +31,9 @@ export function isLocalHost(hostname: string): boolean {
 }
 
 /**
- * The listing path for a page: `/app/...` and `/rc/...` stay as they are, and
- * any local address gets `/local` in front of the app path. Only the path is
- * listed, never the query, so a join code stays on the device.
+ * The listing path for a page: `/app/...` and `/rc/...` stay as they are, a
+ * pilot page on either becomes `/pilot...`, and any local address gets `/local`
+ * in front of the app path.
  */
 export function listingPath(
   pathname: string,
@@ -43,12 +43,13 @@ export function listingPath(
   const relative = pathname.startsWith(base)
     ? `/${pathname.slice(base.length)}`
     : pathname;
+  const isPilot = relative === "/pilot" || relative.startsWith("/pilot/");
   const trimmed = (value: string) =>
     value.length > 1 ? value.replace(/\/+$/, "") : value;
   if (isLocalHost(hostname)) {
     return trimmed(`/local${relative === "/" ? "" : relative}`) || "/local";
   }
-  return trimmed(pathname);
+  return isPilot ? trimmed(relative) : trimmed(pathname);
 }
 
 /** Is `site` a usable GoatCounter site code, not the placeholder or a template token. */

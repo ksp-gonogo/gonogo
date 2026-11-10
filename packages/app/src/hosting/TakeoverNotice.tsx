@@ -28,10 +28,9 @@ export function TakeoverNotice({
   );
 }
 
-/* At the top edge: the bottom edge is the banner stack's, where a join request waits for an answer. */
 const TakeoverNotice__Banner = styled.div`
   position: fixed;
-  top: 0;
+  bottom: var(--gutter-screen);
   left: 50%;
   transform: translateX(-50%);
   z-index: var(--z-sticky);
@@ -43,6 +42,5 @@ const TakeoverNotice__Banner = styled.div`
   padding: var(--inset-surface);
   background: var(--color-surface-raised);
   border: 1px solid var(--color-info-mark);
-  border-top: none;
-  border-radius: 0 0 var(--radius-regular) var(--radius-regular);
+  border-radius: var(--radius-regular);
 `;

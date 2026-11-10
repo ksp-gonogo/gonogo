@@ -3,7 +3,7 @@ name: RC
 # Builds the release-candidate channel from the head of `staging`, every night
 # and on demand:
 #
-#   Pages app       ksp-gonogo.github.io/rc/ (joins: /rc/join)  deploy.yml
+#   Pages app       ksp-gonogo.github.io/rc/ (stations: /rc/station)  deploy.yml
 #   images          ghcr.io/ksp-gonogo/gonogo{,-relay}:rc         publish-images.yml
 #   mod zips        build artifacts                               publish-mods.yml
 #   version         one label for all of them, see below

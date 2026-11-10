@@ -33,6 +33,7 @@ import {
 import { PORTS } from "../../playwright.config";
 
 const MAIN_URL = "/";
+const STATION_URL = "/station";
 
 function sitrepConfig(port: number = PORTS.sitrepReplay): string {
   return JSON.stringify({ port });
@@ -126,9 +127,6 @@ export async function seedContext(
         );
         // Mark the first-run setup auto-open as seen so it doesn't pop the Settings modal over the dashboard on a fresh boot.
         localStorage.setItem("gonogo.uplinkHubWizard.firstRunSeen", "1");
-        // A local screen opens at the seat the setup chose, so a pilot's dashboard needs a pilot seat.
-        if (screen === "pilot")
-          localStorage.setItem("gonogo-start-seat", "pilot");
       } catch {
         /* private mode / quota: ignore; the seed just won't apply */
       }
@@ -317,8 +315,7 @@ export async function bootstrapPair(
   const peerId = await getHostPeerId(main);
 
   const station = await stationContext.newPage();
-  await joinAs(station, peerId, "station");
-  await station.goto(`${origin}/join?${peerId}&${loaderQuery}`);
+  await station.goto(`${origin}${STATION_URL}?host=${peerId}&${loaderQuery}`);
   if (loadIds.length > 0) {
     await seedUplinkConsent(station);
     await station.reload();
@@ -427,27 +424,5 @@ export async function expectVisibleText(
     },
     text,
     { timeout, polling: 250 },
-  );
-}
-
-/**
- * Have `page` remember it joined the game under `code` at `seat`, so opening
- * `/join?CODE` goes straight to that seat as a reload of a joined screen does,
- * with no card to pick. Call before the page's first navigation.
- */
-export async function joinAs(
-  page: Page,
-  code: string,
-  seat: "station" | "pilot",
-): Promise<void> {
-  await page.addInitScript(
-    ({ code, seat }) => {
-      try {
-        localStorage.setItem("gonogo-joined", JSON.stringify({ code, seat }));
-      } catch {
-        /* private mode: the page shows the cards instead */
-      }
-    },
-    { code, seat },
   );
 }

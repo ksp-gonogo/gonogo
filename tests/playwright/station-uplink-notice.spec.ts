@@ -14,14 +14,14 @@
  */
 import { expect, type Page, test } from "@playwright/test";
 import { PORTS } from "../../playwright.config";
-import { getHostPeerId, joinAs } from "./helpers";
+import { getHostPeerId } from "./helpers";
 import { dashboardOf, postReplay, seedScreen } from "./mission-control";
 
 const PREVIEW = `http://localhost:${PORTS.preview}`;
 const PAD = "tests/fixtures/wire/pad-idle.jsonl";
 
 async function expectLoaded(page: Page) {
-  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: "Dashboard controls" }).click();
   await page.getByRole("button", { name: /^Settings(?: \(.*\))?$/ }).click();
   await page.getByRole("tab", { name: "Uplinks", exact: true }).click();
   await page.getByRole("tab", { name: "Kerbalism", exact: true }).click();
@@ -68,8 +68,7 @@ test("a station replaying a recording loads the roster's Uplink with its notice 
   const stationContext = await browser.newContext();
   await seedScreen(stationContext, "station", dashboard);
   const station = await stationContext.newPage();
-  await joinAs(station, shareCode, "station");
-  await station.goto(`${PREVIEW}/join?${shareCode}`);
+  await station.goto(`${PREVIEW}/station?host=${shareCode}`);
 
   // The station is told, with nothing to answer: no Skip, no Load, only Continue.
   await expect(

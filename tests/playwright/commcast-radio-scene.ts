@@ -4,7 +4,7 @@ import { dirname } from "node:path";
 import { promisify } from "node:util";
 import type { Browser, BrowserContext, Page, TestInfo } from "@playwright/test";
 import { expect } from "@playwright/test";
-import { joinAs, seedContext } from "./helpers";
+import { seedContext } from "./helpers";
 
 /**
  * The machinery the radio scenes share: three real screens talking through the mod,
@@ -682,8 +682,7 @@ export interface OpenScreenOptions {
    * The mission-control page this screen joins the mesh through, for a peer
    * screen. Set, the screen is not returned until that host holds its link.
    */
-  host?: Page /** The seat a page opened at `/join?CODE` already took, so it opens straight at that seat. */;
-  joinedAs?: "station" | "pilot";
+  host?: Page;
 }
 
 export async function openScreen(
@@ -717,10 +716,6 @@ export async function openScreen(
   page.on("pageerror", (err) =>
     console.error(`[${opts.name}] page error:`, err.message),
   );
-  const joinCode = /^\/join\?([^&]+)/.exec(opts.url)?.[1];
-  if (opts.joinedAs && joinCode) {
-    await joinAs(page, decodeURIComponent(joinCode), opts.joinedAs);
-  }
   await page.goto(opts.url);
   await expect(page.getByText("Commcast").first()).toBeVisible({
     timeout: 45_000,

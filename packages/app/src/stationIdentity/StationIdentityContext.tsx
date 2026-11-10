@@ -30,11 +30,6 @@ export function useStationIdentityService(): StationIdentityService {
   return svc;
 }
 
-/** The identity service, or `null` where no identity provider is mounted. */
-export function useStationIdentityServiceOptional(): StationIdentityService | null {
-  return useContext(StationIdentityContext);
-}
-
 /**
  * The name, or `undefined` where no identity provider is mounted. For a
  * surface that renders on every screen and cannot assume one, such as a widget

@@ -1,5 +1,5 @@
 /**
- * A station asks to join while the Invite panel is open: Approve and
+ * A station asks to join while the Add station panel is open: Approve and
  * Refuse answer with a real pointer click, because the modal's overlay covers
  * everything outside the dialog.
  */
@@ -18,7 +18,7 @@ async function ask(page: import("@playwright/test").Page, name: string) {
   }, name);
 }
 
-test.describe("station approval with the Invite panel open", () => {
+test.describe("station approval with the Add station panel open", () => {
   test("Approve and Refuse take a click", async ({ browser }, info) => {
     const context = await browser.newContext({
       viewport: { width: 1280, height: 800 },
@@ -30,10 +30,10 @@ test.describe("station approval with the Invite panel open", () => {
     );
     const page = await context.newPage();
     await page.goto("/?uplinkLoaderIds=");
-    const toggle = page.getByRole("button", { name: "Menu" });
+    const toggle = page.getByRole("button", { name: "Dashboard controls" });
     await expect(toggle).toBeVisible({ timeout: 30_000 });
     await toggle.hover();
-    await page.getByRole("button", { name: "Invite" }).click();
+    await page.getByRole("button", { name: "Add station" }).click();
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible({ timeout: 30_000 });
 

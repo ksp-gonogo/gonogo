@@ -242,25 +242,19 @@ export interface StationUplinkLoaderProps {
    * blob URL the default builds, so a test that needs an Uplink to load passes one.
    */
   importBundle?: (bytes: ArrayBuffer, url: string) => Promise<unknown>;
-  /**
-   * Shown beside the loading screen while `children` wait, such as the menu
-   * that holds Settings and Invite, so a screen still loading can still be
-   * left or reconfigured.
-   */
-  whileLoading?: ReactNode;
 }
 
 /**
- * Gates `children` on every Uplink the host runs being loaded on this
- * screen at the host's version. A screen that is missing one cannot
- * show the host's dashboard faithfully, so until then it shows one row
+ * Gates `children` on every Uplink the main screen runs being loaded on this
+ * station at the main screen's version. A station that is missing one cannot
+ * show the main screen's dashboard faithfully, so until then it shows one row
  * per Uplink with how far it has got, and a failed Uplink keeps that screen up
- * with its reason and a Retry. A later set from the host that adds an
+ * with its reason and a Retry. A later set from the main screen that adds an
  * Uplink brings the screen back until the addition loads.
  *
  * Waits for the peer `TelemetryClient` and the `PeerClientService`, then for
- * the host to say which Uplinks it runs, and loads exactly that set.
- * From then on every set the host sends is followed with
+ * the main screen to say which Uplinks it runs, and loads exactly that set.
+ * From then on every set the main screen sends is followed with
  * {@link followHostUplinks}, one at a time.
  *
  * Starts exactly once per mounted instance: `startedRef` latches before the
@@ -271,7 +265,6 @@ export function StationUplinkLoader({
   rosterTimeoutMs,
   reload = () => window.location.reload(),
   importBundle,
-  whileLoading,
 }: StationUplinkLoaderProps) {
   const telemetryClient = useTelemetryClientOptional();
   const peerClient = usePeerClient();
@@ -379,36 +372,35 @@ export function StationUplinkLoader({
   }
 
   return (
-    <>
-      <StationUplinkGate>
-        <StationUplinkGate__Title>Loading widgets</StationUplinkGate__Title>
-        <Text level="muted" size="sm">
-          This screen opens once it has every Uplink the host runs.
-        </Text>
-        <StationUplinkGate__List
-          role="status"
-          aria-live="polite"
-          aria-label="Uplinks"
-        >
-          {hostSet === null ? (
-            <StationUplinkGate__Row>
-              <Text level="muted">Waiting for the host's Uplink list</Text>
-            </StationUplinkGate__Row>
-          ) : (
-            hostSet.map((uplink) => (
-              <UplinkGateRow
-                key={uplink.id}
-                uplink={uplink}
-                outcome={byId.get(uplink.id)}
-                firstLoadDone={firstLoadDone}
-                onRetry={retry}
-              />
-            ))
-          )}
-        </StationUplinkGate__List>
-      </StationUplinkGate>
-      {whileLoading}
-    </>
+    <StationUplinkGate>
+      <StationUplinkGate__Title>
+        Loading station widgets
+      </StationUplinkGate__Title>
+      <Text level="muted" size="sm">
+        This station opens once it has every Uplink the main screen runs.
+      </Text>
+      <StationUplinkGate__List
+        role="status"
+        aria-live="polite"
+        aria-label="Uplinks"
+      >
+        {hostSet === null ? (
+          <StationUplinkGate__Row>
+            <Text level="muted">Waiting for the main screen's Uplink list</Text>
+          </StationUplinkGate__Row>
+        ) : (
+          hostSet.map((uplink) => (
+            <UplinkGateRow
+              key={uplink.id}
+              uplink={uplink}
+              outcome={byId.get(uplink.id)}
+              firstLoadDone={firstLoadDone}
+              onRetry={retry}
+            />
+          ))
+        )}
+      </StationUplinkGate__List>
+    </StationUplinkGate>
   );
 }
 

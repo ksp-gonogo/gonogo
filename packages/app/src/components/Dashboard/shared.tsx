@@ -1,10 +1,7 @@
 import { CloseIcon, PushUpIcon, RecallIcon } from "@ksp-gonogo/ui";
 import { IconButton, Tooltip } from "@ksp-gonogo/ui-kit";
 import styled, { css, keyframes } from "styled-components";
-import {
-  NO_MAIN_SCREEN,
-  usePushClient,
-} from "../../pushToMain/PushClientContext";
+import { usePushClient } from "../../pushToMain/PushClientContext";
 import { useStationApproved } from "../../stationApproval/useStationApproved";
 import type { DashboardItem } from "./index";
 import { handleMouseDown } from "./mouseHandlers";
@@ -69,15 +66,14 @@ export function PushButton({
       });
     }
   };
-  const label = pushed ? "Recall from main" : "Push to main";
   return (
-    <Tooltip text={client.hasMainScreen ? label : NO_MAIN_SCREEN}>
+    <Tooltip text={pushed ? "Recall from main" : "Push to main"}>
       <IconButton
         type="button"
         onMouseDown={handleMouseDown}
         onClick={handleClick}
-        aria-label={label}
-        disabled={!approved || !client.hasMainScreen}
+        aria-label={pushed ? "Recall from main" : "Push to main"}
+        disabled={!approved}
       >
         {pushed ? (
           <RecallIcon size="var(--icon-size-control)" />

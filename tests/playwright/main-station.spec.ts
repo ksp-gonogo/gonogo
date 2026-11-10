@@ -9,9 +9,10 @@
  * `replay-parity.spec.ts`.
  */
 import { type BrowserContext, expect, type Page, test } from "@playwright/test";
-import { joinAs, seedApprovedStation } from "./helpers";
+import { seedApprovedStation } from "./helpers";
 
 const MAIN_URL = "/";
+const STATION_URL = "/station";
 
 /**
  * The same boot seed `helpers.ts`'s bootstrapPair applies, kept local because
@@ -106,8 +107,7 @@ test.describe("station connects directly via the share code", () => {
     expect(shareCode).not.toBe(peerId);
 
     const station = await stationContext.newPage();
-    await joinAs(station, shareCode, "station");
-    await station.goto(`/join?${shareCode}&uplinkLoaderIds=`);
+    await station.goto(`${STATION_URL}?host=${shareCode}&uplinkLoaderIds=`);
 
     // Reaching the dashboard means the station derived the host's id from the share code, connected over the broker, and completed the data handshake.
     await expect(
@@ -144,12 +144,11 @@ test.describe("main + station co-resident", () => {
 
     const shareCode = await getHostShareCode(main);
 
-    /* Station opens the join page for the main's share code at a seat it
-       already took, so it connects at once (the station derives
-       `gonogo-host-<code>` and connects directly). */
+    // Station opens with the main's share code in the URL. Skips the
+    // "Connect" form: the host param triggers auto-connect (the station
+    // derives `gonogo-host-<code>` and connects directly).
     const station = await stationContext.newPage();
-    await joinAs(station, shareCode, "station");
-    await station.goto(`/join?${shareCode}&uplinkLoaderIds=`);
+    await station.goto(`${STATION_URL}?host=${shareCode}&uplinkLoaderIds=`);
 
     // The schema-arrival flip is the cleanest "we're connected" signal.
     // Until the host's schema lands, the station sits on the connection

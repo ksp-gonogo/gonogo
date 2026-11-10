@@ -6,10 +6,7 @@ import {
   Tooltip,
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useRef, useState } from "react";
-import {
-  NO_MAIN_SCREEN,
-  usePushClient,
-} from "../../pushToMain/PushClientContext";
+import { usePushClient } from "../../pushToMain/PushClientContext";
 import { useStationApproved } from "../../stationApproval/useStationApproved";
 import type { DashboardItem } from "./index";
 import { touchTarget } from "./touchTarget";
@@ -86,7 +83,6 @@ export function TileMenu({
             key: "push",
             label: pushed ? "Recall from main" : "Push to main",
             disabled: !approved,
-            unavailable: pushClient.hasMainScreen ? undefined : NO_MAIN_SCREEN,
           },
         ]
       : []),

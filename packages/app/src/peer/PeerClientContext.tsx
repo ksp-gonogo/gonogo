@@ -15,8 +15,6 @@ export type PeerClient = Pick<
   | "getHostVersion"
   | "onHostRestart"
   | "getHostCommandCentre"
-  | "getHostSeat"
-  | "onHostSeatChange"
   | "onHostCommandCentreChange"
   | "onHostUplinksChange"
   | "sendGonogoVote"

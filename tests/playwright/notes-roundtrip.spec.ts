@@ -16,9 +16,10 @@
  */
 import { type BrowserContext, expect, type Page, test } from "@playwright/test";
 import { PORTS } from "../../playwright.config";
-import { joinAs, seedApprovedStation } from "./helpers";
+import { seedApprovedStation } from "./helpers";
 
 const MAIN_URL = "/";
+const STATION_URL = "/station";
 
 const SITREP_CONFIG = JSON.stringify({
   port: PORTS.sitrepReplay,
@@ -124,8 +125,7 @@ test.describe("notes widget round-trip", () => {
     const peerId = await getHostPeerId(main);
 
     const station = await stationContext.newPage();
-    await joinAs(station, peerId, "station");
-    await station.goto(`/join?${peerId}&uplinkLoaderIds=`);
+    await station.goto(`${STATION_URL}?host=${peerId}&uplinkLoaderIds=`);
     await expect(station.getByLabel(NOTES_INPUT_LABEL)).toBeVisible({
       timeout: 30_000,
     });

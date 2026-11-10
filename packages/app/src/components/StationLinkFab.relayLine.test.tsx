@@ -34,7 +34,7 @@ vi.mock("peerjs", () => ({ default: Hub.Peer }));
 
 import { peerHostService } from "../peer/PeerHostService";
 import { onSettingsRequested } from "../settings/settingsRequest";
-import { InviteFab } from "./InviteFab";
+import { StationLinkFab } from "./StationLinkFab";
 
 const stationsSocket = ws.link("ws://localhost:3002/stations");
 const server = setupServer();
@@ -76,14 +76,14 @@ async function openPanel() {
   });
   render(
     <ModalProvider>
-      <InviteFab />
+      <StationLinkFab />
     </ModalProvider>,
   );
-  await user.click(screen.getByRole("button", { name: "Invite" }));
+  await user.click(screen.getByRole("button", { name: "Add station" }));
   return { user, dialog: screen.getByRole("dialog") };
 }
 
-describe("Invite relay line", () => {
+describe("Add station relay line", () => {
   it("says only this network can join while the relay is not running", async () => {
     const { dialog } = await openPanel();
     expect(

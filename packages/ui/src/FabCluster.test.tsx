@@ -2,12 +2,7 @@ import { act, fireEvent, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Fab } from "./Fab";
-import {
-  FabClusterProvider,
-  fabsPerColumn,
-  packFab,
-  placeFab,
-} from "./FabCluster";
+import { FabClusterProvider, fabsPerColumn, placeFab } from "./FabCluster";
 import { FabClusterToggle } from "./FabClusterToggle";
 
 function stubPointer(coarse: boolean) {
@@ -92,7 +87,7 @@ describe("FabCluster", () => {
         </FabClusterProvider>,
       );
       return {
-        toggle: screen.getByRole("button", { name: "Menu" }),
+        toggle: screen.getByRole("button", { name: "Dashboard controls" }),
         settings: screen.getByRole("button", { name: "Settings" }),
       };
     }
@@ -140,7 +135,7 @@ describe("FabCluster", () => {
         </FabClusterProvider>,
       );
       return {
-        toggle: screen.getByRole("button", { name: "Menu" }),
+        toggle: screen.getByRole("button", { name: "Dashboard controls" }),
         settings: screen.getByRole("button", { name: "Settings" }),
       };
     }
@@ -216,41 +211,5 @@ describe("placeFab", () => {
 
   it("keeps at least one button per column in a very short window", () => {
     expect(fabsPerColumn(100)).toBe(1);
-  });
-});
-
-describe("packFab", () => {
-  it("stacks the mounted FABs from the first slot with no gap for an absent one", () => {
-    const mounted = [144, 264, 324];
-    expect(packFab(144, mounted)).toBe(84);
-    expect(packFab(264, mounted)).toBe(144);
-    expect(packFab(324, mounted)).toBe(204);
-  });
-
-  it("puts a FAB that asks for less than the first slot next to the toggle", () => {
-    expect(packFab(60, [84, 60, 144])).toBe(84);
-    expect(packFab(84, [84, 60, 144])).toBe(144);
-  });
-
-  it("leaves a FAB nobody registered where it asked to be", () => {
-    expect(packFab(444, [144])).toBe(444);
-  });
-});
-
-describe("a cluster missing a FAB", () => {
-  it("draws the one above it in the gap", async () => {
-    render(
-      <FabClusterProvider>
-        <Fab bottom={84} aria-label="First">
-          a
-        </Fab>
-        <Fab bottom={204} aria-label="Third">
-          c
-        </Fab>
-      </FabClusterProvider>,
-    );
-    await act(async () => {});
-    const third = screen.getByRole("button", { name: "Third", hidden: true });
-    expect(getComputedStyle(third).bottom).toContain("144px");
   });
 });

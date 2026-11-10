@@ -132,7 +132,7 @@ export const HELP_TOPICS: readonly HelpTopic[] = [
         "A station is another device, such as a tablet or a phone, that shows its own dashboard from this screen.",
       ),
       text(
-        "Open the green menu button in the bottom-right corner and press Invite. It shows the address, its QR code and the join code for the other device.",
+        "Open the green menu button in the bottom-right corner and press Add station. That window has the link to open on the other device.",
       ),
     ],
   },

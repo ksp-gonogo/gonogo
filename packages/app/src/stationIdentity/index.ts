@@ -2,7 +2,6 @@ export { ScopedStationIdentity } from "./ScopedStationIdentity";
 export {
   StationIdentityProvider,
   useStationIdentityService,
-  useStationIdentityServiceOptional,
   useStationName,
   useStationNameOptional,
 } from "./StationIdentityContext";

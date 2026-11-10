@@ -38,7 +38,6 @@ const HOST_CODE_MARKERS = [
   /\bonSwitchHost\b/,
   /\bshareCode\b/,
   /\bHOST_ID_KEY\b/,
-  /\bnormaliseCode\b/,
 ];
 
 const MAX_LENGTH_RE = /maxLength=\{(\d+)\}/g;
@@ -148,7 +147,7 @@ describe("share-code inputs", () => {
   it("sees the inputs it judges", () => {
     /*
      * A scan that has stopped matching reports a clean tree. Two fields take a
-     * host code today (the join page and the station's connect view), so
+     * host code today (the first-run join view and the switch-host panel), so
      * a run that judges fewer than two has lost its subjects to a rename, a
      * moved directory or a changed attribute spelling.
      */

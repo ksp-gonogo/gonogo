@@ -18,35 +18,15 @@ function sameStation(a: PendingStation, b: PendingStation): boolean {
 }
 
 /**
- * How a waiting screen is named on the request. A station is its name, with
- * the word "Station" added only when the name does not already start with it;
- * a pilot is its name, which is "Pilot" until someone renames it.
+ * How a waiting station is named on the request: its name, with the word
+ * "Station" added only when the name does not already start with it.
  */
 export function stationLabel(station: PendingStation): string {
-  if (station.seat === "pilot") return station.name;
   return `Station ${station.name.replace(/^station\s+/i, "")}`;
 }
 
-/** What a waiting screen asks for: to join, and as a pilot when that is its seat. */
-function joinRequest(station: PendingStation): string {
-  if (station.seat !== "pilot" || /^pilot$/i.test(station.name.trim())) {
-    return `${stationLabel(station)} wants to join`;
-  }
-  return `${station.name} wants to join as a pilot`;
-}
-
-/** The request's name in a button's accessible name: "station X" or "pilot X". */
-function accessibleName(station: PendingStation): string {
-  if (station.seat === "pilot") {
-    return /^pilot$/i.test(station.name.trim())
-      ? "pilot"
-      : `pilot ${station.name}`;
-  }
-  return stationLabel(station).replace(/^Station/, "station");
-}
-
 /*
- * The Invite panel carries its own copy of the prompt, because the modal's
+ * The Add station panel carries its own copy of the prompt, because the modal's
  * overlay covers the banner strip. The banner copy stays mounted behind the
  * overlay with the same button names, so it steps aside while a panel copy is
  * showing and the operator is left one control that can be pressed.
@@ -73,7 +53,7 @@ function subscribePanelCopies(cb: () => void): () => void {
  * refused. Approval is remembered, so a station is asked about once; Refuse
  * disconnects it. A station that leaves before an answer is named for a few
  * seconds in place of its request. Renders nothing while none is waiting or has
- * just left. `inPanel` marks the copy inside the Invite panel, which the
+ * just left. `inPanel` marks the copy inside the Add station panel, which the
  * banner copy yields to.
  */
 export function StationApprovalPrompt({
@@ -150,20 +130,20 @@ export function StationApprovalPrompt({
             <>
               <Button
                 onClick={() => host.approveStation(station.peerId)}
-                aria-label={`Approve ${accessibleName(station)}`}
+                aria-label={`Approve ${stationLabel(station).replace(/^Station/, "station")}`}
               >
                 Approve
               </Button>
               <Button
                 onClick={() => host.refuseStation(station.peerId)}
-                aria-label={`Refuse ${accessibleName(station)}`}
+                aria-label={`Refuse ${stationLabel(station).replace(/^Station/, "station")}`}
               >
                 Refuse
               </Button>
             </>
           }
         >
-          <span>{joinRequest(station)}</span>
+          <span>{stationLabel(station)} wants to join</span>
         </BannerPill>
       ))}
     </>

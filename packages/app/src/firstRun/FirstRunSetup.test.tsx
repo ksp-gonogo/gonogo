@@ -24,8 +24,6 @@ import {
   it,
   vi,
 } from "vitest";
-import { SEAT_TEXT } from "../screens/SeatCards";
-import { getStartSeat } from "../screens/seatChoice";
 import { SettingsProvider } from "../settings/SettingsContext";
 import { SettingsService } from "../settings/SettingsService";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
@@ -335,18 +333,8 @@ describe("FirstRunSetup: step sequence", () => {
     expect(
       screen.getByText(stepHeading(8, say("done.heading"))),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        `The main screen at mission control. ${SEAT_TEXT.commandCentre}`,
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByText(SEAT_TEXT.pilot)).toBeInTheDocument();
-    expect(screen.getAllByText(say("done.hosts"))).toHaveLength(2);
-    await user.click(
-      screen.getByRole("button", { name: say("done.startPilot") }),
-    );
+    await user.click(screen.getByRole("button", { name: say("done.advance") }));
     expect(onFinish).toHaveBeenCalledTimes(1);
-    expect(getStartSeat()).toBe("pilot");
     await act(async () => {});
   });
 

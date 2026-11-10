@@ -2,7 +2,6 @@ export {
   applyConsoleSettings,
   ConsoleSettingsFromHost,
 } from "./consoleSettings";
-export { JoinedGameProvider, useJoinedGame } from "./JoinedGameContext";
 export {
   MISSION_HISTORY_ENABLED_SETTING,
   MISSION_RECORD_ALL_TOPICS_SETTING,

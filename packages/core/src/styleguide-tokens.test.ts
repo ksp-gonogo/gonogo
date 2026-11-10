@@ -173,8 +173,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
   fontSize: {
     "packages/app/src/components/ComponentOverlay.tsx": 1,
     "packages/app/src/components/StationConnectionFab.tsx": 1,
-    "packages/app/src/components/InviteFab.tsx": 1,
-    "packages/app/src/screens/joinParts.tsx": 3,
+    "packages/app/src/components/StationLinkFab.tsx": 1,
     "packages/components/src/OrbitView/OrbitCells.tsx": 1,
     "packages/components/src/GroundTrack/GroundTrack.styles.ts": 1,
     "packages/components/src/Navball/AttitudeIndicator.tsx": 3,

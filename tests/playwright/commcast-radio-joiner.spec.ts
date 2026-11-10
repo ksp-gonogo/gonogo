@@ -62,10 +62,10 @@ test.describe("commcast radio: a screen joining mid-transmission @chromium-only"
       videoDir,
       clip: { name: "ground to near craft", chunks: CHUNKS },
     });
-    await getHostPeerId(control.page);
+    const shareCode = await getHostPeerId(control.page);
     const near = await openScreen(browser, {
       name: "near-craft",
-      url: "/?uplinkLoaderIds=",
+      url: `/pilot?host=${shareCode}&uplinkLoaderIds=`,
       dashboardKey: "gonogo:dashboard:pilot",
       sitrepPort: PORTS.radioStream.near,
       videoDir,
@@ -83,7 +83,7 @@ test.describe("commcast radio: a screen joining mid-transmission @chromium-only"
       const joiningFrom = Date.now();
       const far = await openScreen(browser, {
         name: "far-craft",
-        url: "/?uplinkLoaderIds=",
+        url: `/pilot?host=${shareCode}&uplinkLoaderIds=`,
         dashboardKey: "gonogo:dashboard:pilot",
         sitrepPort: PORTS.radioStream.far,
         videoDir,

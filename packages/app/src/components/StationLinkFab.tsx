@@ -8,7 +8,6 @@ import {
   useModal,
 } from "@ksp-gonogo/ui";
 import { Cluster, Tooltip } from "@ksp-gonogo/ui-kit";
-import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { SETUP_LINKS } from "../firstRun/setupGuide";
@@ -24,71 +23,56 @@ import { requestSettings } from "../settings/settingsRequest";
 import { ApprovedStations } from "../stationApproval/ApprovedStations";
 import { StationApprovalPrompt } from "../stationApproval/StationApprovalPrompt";
 import { CHANNEL } from "../version";
-import { inviteAddress } from "./inviteAddress";
-
-/** Between Add widget (84) and the next FAB up (144), so Invite sits just above Add widget, or next to the menu toggle on a seat without it. */
-const INVITE_BOTTOM = 114;
+import { StationAddressList } from "./StationAddressList";
+import { stationAddresses } from "./stationAddresses";
 
 /**
- * The Invite button, on every seat: the one address that joins this game,
- * its QR code and the code in large type, so anyone already in can bring in
- * the next person. On the host it also holds what joining depends on: the
- * requests waiting for approval, the stations approved, the path each
- * connection took and a fresh code.
- *
- * `code` is the game's code on a screen that joined by it; a local screen
- * reads it from its host role instead.
+ * Station-link FAB: shows the host's peer ID + a QR code so a station
+ * screen can be pointed at this main screen. Sits above the FlightsFab
+ * at bottom: 204px and opens a modal with the link details.
  */
-export function InviteFab({
-  code,
-  bottom = INVITE_BOTTOM,
-}: {
-  code?: string;
-  bottom?: number;
-}) {
+export function StationLinkFab() {
   const { open } = useModal();
+
+  function handleClick() {
+    open(<StationLinkPanel />, { title: "Add Station" });
+  }
+
   return (
-    <Tooltip text="Invite">
-      <Fab
-        bottom={bottom}
-        onClick={() => open(<InvitePanel code={code} />, { title: "Invite" })}
-        aria-label="Invite"
-      >
+    <Tooltip text="Add station">
+      <Fab bottom={204} onClick={handleClick} aria-label="Add station">
         <BroadcastIcon />
       </Fab>
     </Tooltip>
   );
 }
 
-function InvitePanel({ code }: { code?: string }) {
+function StationLinkPanel() {
   const role = useHostRoleState();
-  if (code) return <InviteBlock code={code} />;
-  if (role.kind === "joined") return <InviteBlock code={role.record.code} />;
+  if (role.kind === "joined")
+    return <JoinedLinkPanel code={role.record.code} />;
   return <HostLinkPanel />;
 }
 
-/** The join address for `code`, its QR code and the code itself. */
-function InviteBlock({ code }: { code: string }) {
-  const address = inviteAddress({
+/**
+ * The join code on a screen that has joined another host, so it can be given
+ * to a remote station from any local screen.
+ */
+function JoinedLinkPanel({ code }: { code: string }) {
+  const { addresses, qr } = stationAddresses({
     code,
     origin: globalThis.location.origin,
     baseUrl: import.meta.env.BASE_URL,
     channel: CHANNEL,
-    override: import.meta.env.VITE_APP_URL,
+    override: import.meta.env.VITE_STATION_URL,
   });
   return (
     <Wrap>
-      <Code aria-label={`Join code ${code.split("").join(" ")}`}>{code}</Code>
-      <QrRow>
-        <QRCodeSVG
-          value={address}
-          size={180}
-          title="QR code for the join address"
-        />
-      </QrRow>
-      <Address href={address} target="_blank" rel="noreferrer">
-        {address}
-      </Address>
+      <Cluster>
+        <Label>Join code</Label>
+        <Code>{code}</Code>
+      </Cluster>
+      <StationAddressList addresses={addresses} qr={qr} />
     </Wrap>
   );
 }
@@ -117,10 +101,9 @@ function HostLinkPanel() {
     };
   }, []);
 
-  /* While reclaiming, the broker has not confirmed the derived id (peerId is
-     null) but the join code is valid, so it is shown with its status and the
-     operator can already share the link; joining screens retry until the host
-     is back. */
+  // While reclaiming the broker hasn't confirmed the derived id (peerId is
+  // null), but the join code IS valid, show it with a clear status so the
+  // operator can already share the link; stations retry until the host's back.
   if (!peerId && !reclaiming) {
     return (
       <Wrap>
@@ -129,6 +112,14 @@ function HostLinkPanel() {
       </Wrap>
     );
   }
+
+  const { addresses, qr } = stationAddresses({
+    code: shareCode,
+    origin: globalThis.location.origin,
+    baseUrl: import.meta.env.BASE_URL,
+    channel: CHANNEL,
+    override: import.meta.env.VITE_STATION_URL,
+  });
 
   return (
     <Wrap>
@@ -140,13 +131,21 @@ function HostLinkPanel() {
           reconnect automatically.
         </StatusIndicator>
       )}
-      <InviteBlock code={shareCode} />
+      <Cluster>
+        <Label>Join code</Label>
+        <Code>{shareCode}</Code>
+      </Cluster>
+      <StationAddressList addresses={addresses} qr={qr} />
       <EndpointState />
       <StationPaths />
       <Cluster>
-        <Label>Approved screens</Label>
+        <Label>Approved stations</Label>
       </Cluster>
       <ApprovedStations />
+      <Hint>
+        Scan to open <code>/station</code> on another device, it&apos;ll
+        auto-connect to this host. Or copy the link above.
+      </Hint>
       <RegenerateRow />
     </Wrap>
   );
@@ -388,34 +387,28 @@ const Label = styled.span`
   color: var(--color-text-dim);
 `;
 
-/* Display tier, read aloud or from across a room: the type scale stops at --font-size-lg, so this is set as a page-scale size. */
 const Code = styled.code`
-  align-self: center;
   color: var(--color-info-text);
-  font-size: 40px;
-  font-weight: 700;
-  letter-spacing: 0.15em;
+  /* Display tier: the type scale stops at --font-size-lg on purpose,
+     everything above 16px in this codebase is a clamp, a JS fit, or locked
+     to a box width. */
+  font-size: 18px;
+  letter-spacing: 0.12em;
 `;
 
-const Address = styled.a`
-  align-self: center;
-  color: var(--color-info-text);
-  font-size: var(--font-size-value);
-  word-break: break-all;
-  text-decoration: underline;
+const Hint = styled.p`
+  margin: 0;
+  font-size: var(--font-size-prose);
+  color: var(--color-text-muted);
+  line-height: var(--line-height-prose);
 
-  &:hover {
+  code {
+    background: var(--color-surface-raised);
+    border: 1px solid var(--color-border-subtle);
+    padding: var(--inset-chip);
+    border-radius: var(--radius-regular);
     color: var(--color-text-primary);
   }
-`;
-
-const QrRow = styled.div`
-  display: flex;
-  justify-content: center;
-  align-self: center;
-  padding: var(--inset-qr);
-  background: var(--color-text-primary);
-  border-radius: var(--radius-regular);
 `;
 
 const Empty = styled.div`

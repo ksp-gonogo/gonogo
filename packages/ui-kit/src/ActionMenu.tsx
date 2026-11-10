@@ -38,7 +38,7 @@ export interface ActionMenuItem {
   command?: AnyBoundCommand;
   /** Text shown as the plain item's tip on hover and keyboard focus and read as its description, such as why it is disabled. */
   tip?: string;
-  /** Why the item cannot be chosen now. It is drawn dimmed with this as its tip and a choice does nothing. */
+  /** Why a command item cannot be chosen now. It is drawn dimmed with this as its tip and a choice sends nothing. */
   unavailable?: string;
   /**
    * Why the game is likely to refuse this item, as a plain lowercase clause. The
@@ -258,7 +258,6 @@ export function ActionMenu({
                   />
                 );
               }
-              const inert = item.disabled || item.unavailable !== undefined;
               return (
                 <TipIfAny key={item.key} tip={plainTip(item)}>
                   <MenuItem
@@ -267,12 +266,12 @@ export function ActionMenu({
                     aria-label={item["aria-label"]}
                     data-predicted={item.advise ? "at-risk" : undefined}
                     // aria-disabled, not `disabled`: a natively disabled button cannot take focus and drops out of the arrow-key walk.
-                    aria-disabled={inert || undefined}
-                    $disabled={inert}
+                    aria-disabled={item.disabled}
+                    $disabled={item.disabled}
                     tabIndex={index === activeIndex ? 0 : -1}
                     onFocus={() => setActiveIndex(index)}
                     onClick={() => {
-                      if (!inert) onSelect(item.key);
+                      if (!item.disabled) onSelect(item.key);
                     }}
                   >
                     {item.label}
@@ -289,8 +288,7 @@ export function ActionMenu({
 }
 
 function plainTip(item: ActionMenuItem): string | undefined {
-  if (item.advise) return `Likely to be refused: ${item.advise}.`;
-  return item.unavailable ?? item.tip;
+  return item.advise ? `Likely to be refused: ${item.advise}.` : item.tip;
 }
 
 function TipIfAny({

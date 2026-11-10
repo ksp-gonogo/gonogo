@@ -26,7 +26,7 @@ test.describe("fab cluster toggle", () => {
     browser,
   }) => {
     const { context, page } = await openMain(browser);
-    const toggle = page.getByRole("button", { name: "Menu" });
+    const toggle = page.getByRole("button", { name: "Dashboard controls" });
     await expect(toggle).toBeVisible({ timeout: 30_000 });
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
 
@@ -48,7 +48,7 @@ test.describe("fab cluster toggle", () => {
     browser,
   }) => {
     const { context, page } = await openMain(browser);
-    const toggle = page.getByRole("button", { name: "Menu" });
+    const toggle = page.getByRole("button", { name: "Dashboard controls" });
     await expect(toggle).toBeVisible({ timeout: 30_000 });
     await toggle.click();
     await page.mouse.move(10, 10);
@@ -77,7 +77,7 @@ test.describe("fab cluster toggle", () => {
     browser,
   }) => {
     const { context, page } = await openMain(browser);
-    const toggle = page.getByRole("button", { name: "Menu" });
+    const toggle = page.getByRole("button", { name: "Dashboard controls" });
     await expect(toggle).toBeVisible({ timeout: 30_000 });
 
     await toggle.focus();

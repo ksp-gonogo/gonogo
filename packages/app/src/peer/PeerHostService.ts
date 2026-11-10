@@ -51,7 +51,7 @@ import { attachIceDiagnostics } from "./iceDiagnostics";
 import { MessageDispatcher } from "./MessageDispatcher";
 import { peerBrokerOptions } from "./peerOptions";
 import { traceBrokerSocket } from "./peerSocketTrace";
-import type { HostSeat, PeerMessage } from "./protocol";
+import type { PeerMessage } from "./protocol";
 import { asPeerMessage, HOST_HEARTBEAT_MS } from "./protocol";
 import { RelayRegistration } from "./RelayRegistration";
 import {
@@ -359,42 +359,11 @@ type NoteReorderListener = (
   msg: Extract<PeerMessage, { type: "note-reorder" }>,
 ) => void;
 
-const APPROVED_SEATS_KEY = "gonogo.host.approvedSeats";
-
-function readApprovedSeats(): Map<string, "station" | "pilot"> {
-  const seats = new Map<string, "station" | "pilot">();
-  try {
-    const raw = globalThis.localStorage?.getItem(APPROVED_SEATS_KEY);
-    const parsed: unknown = raw ? JSON.parse(raw) : null;
-    if (typeof parsed === "object" && parsed !== null) {
-      for (const [id, seat] of Object.entries(parsed)) {
-        if (seat === "station" || seat === "pilot") seats.set(id, seat);
-      }
-    }
-  } catch {
-    /* unreadable or no storage: seats are learned again as screens join */
-  }
-  return seats;
-}
-
-function writeApprovedSeats(seats: Map<string, "station" | "pilot">): void {
-  try {
-    globalThis.localStorage?.setItem(
-      APPROVED_SEATS_KEY,
-      JSON.stringify(Object.fromEntries(seats)),
-    );
-  } catch {
-    /* storage refused: the seats last this page load */
-  }
-}
-
-/** A screen that has joined and is waiting for the host to approve it. */
+/** A station that has joined and is waiting for the main screen to approve it. */
 export interface PendingStation {
   peerId: string;
-  /** The name the screen reported. */
+  /** The name the station reported. */
   name: string;
-  /** Set when the screen joins as a pilot; absent for a station. */
-  seat?: "pilot";
 }
 
 /**
@@ -454,7 +423,6 @@ const STATION_WRITES: ReadonlySet<PeerMessage["type"]> = new Set([
 const WAITING_STATION_MAY_SEND: ReadonlySet<PeerMessage["type"]> = new Set([
   "station-info",
   "station-credential",
-  "game-lookup",
 ]);
 
 /**
@@ -555,13 +523,6 @@ export class PeerHostService {
    */
   private waiting: Set<StationLink> = new Set();
   private approvalBook: ApprovalBook | undefined;
-  /** The seat the hosting screen sits at, told to every peer and to a join page's look-up. */
-  private hostSeat: HostSeat = "main";
-  /** The seat each connection reported in its `station-info`; absent is mission control. */
-  private readonly connSeat = new WeakMap<StationLink, Seat>();
-  private readonly seatListeners = new Set<() => void>();
-  /** The seat each approved screen last joined at, by the id the game names it with, kept in this browser. */
-  private readonly approvedSeats = readApprovedSeats();
   private approvalsUnsub: (() => void) | null = null;
   /** Each connection's approved station id, once its credential was found approved. */
   private readonly connStationId = new Map<StationLink, string>();
@@ -1265,7 +1226,6 @@ export class PeerHostService {
   /** Tell a waiting station it is approved, and serve it. */
   private serveApproved(conn: StationLink, stationId: string): void {
     this.connStationId.set(conn, stationId);
-    this.noteApprovedSeat(conn);
     this.setPending(this.pending.filter((p) => p.peerId !== conn.peer));
     conn.send({
       type: "station-approval",
@@ -1306,7 +1266,6 @@ export class PeerHostService {
       type: "host-command-centre",
       centreId: this.commandCentre,
     } satisfies PeerMessage);
-    conn.send({ type: "host-seat", seat: this.hostSeat } satisfies PeerMessage);
     conn.send({
       type: "host-uplinks",
       uplinks: this.runningUplinks,
@@ -1335,7 +1294,6 @@ export class PeerHostService {
     // subscribe every time), so we gate on a single attach.
     void this.attachFlightListChangeBroadcaster();
     this.events.emit("peerConnect", conn.peer);
-    this.emitSeats();
     this.applyHeldReads(conn);
     this.announceRequestedVantages();
   }
@@ -1482,7 +1440,6 @@ export class PeerHostService {
       `[PeerHost] connection ${why}: peer=${conn.peer}, total=${this.connections.size}`,
     );
     if (hadVantage || wasServed) this.announceRequestedVantages();
-    if (wasServed) this.emitSeats();
     if (wasServed) this.events.emit("peerDisconnect", conn.peer);
   }
 
@@ -1959,62 +1916,6 @@ export class PeerHostService {
   }
 
   /** The command centre this screen stands at, or null before one is known. */
-  /** Record the seat the hosting screen sits at and tell every peer when it changes. */
-  setHostSeat(seat: HostSeat): void {
-    if (this.hostSeat === seat) return;
-    this.hostSeat = seat;
-    this.broadcast({ type: "host-seat", seat });
-    this.emitSeats();
-  }
-
-  getHostSeat(): HostSeat {
-    return this.hostSeat;
-  }
-
-  /**
-   * How many approved peers sit at each seat. `pilots` counts the host screen
-   * when it sits as a pilot, since it is aboard too.
-   */
-  seatCounts(): { stations: number; pilots: number } {
-    let stations = 0;
-    let pilots = this.hostSeat === "pilot" ? 1 : 0;
-    for (const conn of this.connections) {
-      if (this.connSeat.get(conn) === "pilot") pilots += 1;
-      else stations += 1;
-    }
-    return { stations, pilots };
-  }
-
-  /** Called when the host's seat or the seats of its approved peers change. */
-  onSeatsChange(cb: () => void): () => void {
-    this.seatListeners.add(cb);
-    return () => {
-      this.seatListeners.delete(cb);
-    };
-  }
-
-  /**
-   * The seat an approved screen joined at, "station" or "pilot", or undefined
-   * for one this browser has not seen join since it was approved.
-   */
-  approvedSeat(stationId: string): "station" | "pilot" | undefined {
-    return this.approvedSeats.get(stationId);
-  }
-
-  private noteApprovedSeat(conn: StationLink): void {
-    const stationId = this.connStationId.get(conn);
-    if (!stationId) return;
-    const seat = this.connSeat.get(conn) === "pilot" ? "pilot" : "station";
-    if (this.approvedSeats.get(stationId) === seat) return;
-    this.approvedSeats.set(stationId, seat);
-    writeApprovedSeats(this.approvedSeats);
-    this.emitSeats();
-  }
-
-  private emitSeats(): void {
-    for (const cb of [...this.seatListeners]) cb();
-  }
-
   getCommandCentre(): string | null {
     return this.commandCentre;
   }
@@ -2383,14 +2284,7 @@ export class PeerHostService {
         }
         this.peerIdToStationKey.set(conn.peer, msg.stationKey);
       }
-      const seatChanged = this.connSeat.get(conn) !== msg.seat;
-      if (msg.seat) this.connSeat.set(conn, msg.seat);
-      else this.connSeat.delete(conn);
       this.raiseIfUnapproved(conn, msg.name);
-      if (seatChanged) {
-        this.noteApprovedSeat(conn);
-        this.emitSeats();
-      }
       const tracked = this.stationPaths.get(conn.peer);
       if (tracked && tracked.name !== msg.name) {
         tracked.name = msg.name;
@@ -2404,15 +2298,6 @@ export class PeerHostService {
         seat: msg.seat,
         centre: msg.centre,
       });
-    },
-    "game-lookup": (_msg, conn) => {
-      const { stations, pilots } = this.seatCounts();
-      conn.send({
-        type: "game-facts",
-        hostSeat: this.hostSeat,
-        stations,
-        pilots,
-      } satisfies PeerMessage);
     },
     "station-credential": (msg, conn) => {
       if (this.connCredential.has(conn)) return;
@@ -2692,10 +2577,7 @@ export class PeerHostService {
     approvable: boolean,
   ): void {
     if (approvable) {
-      const entry: PendingStation =
-        this.connSeat.get(conn) === "pilot"
-          ? { peerId: conn.peer, name, seat: "pilot" }
-          : { peerId: conn.peer, name };
+      const entry: PendingStation = { peerId: conn.peer, name };
       const known = this.pending.some((p) => p.peerId === conn.peer);
       this.setPending(
         known

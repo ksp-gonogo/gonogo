@@ -25,7 +25,7 @@ import {
  * release app and the RC app. `deploy.yml` writes one channel
  * into it per run, so what this holds is that a channel's run leaves every
  * other tenant's files exactly as they were, and that the redirects from the
- * old project-page URLs keep the state a join link carries.
+ * old project-page URLs keep the state a station link carries.
  */
 
 let work: string;
@@ -69,7 +69,8 @@ describe("the rc channel", () => {
     compose("rc", dist, api, site);
 
     expect(read("rc", "index.html")).toBe("<html>NEW APP</html>");
-    expect(read("rc", "join", "index.html")).toBe("<html>NEW APP</html>");
+    expect(read("rc", "station", "index.html")).toBe("<html>NEW APP</html>");
+    expect(read("rc", "pilot", "index.html")).toBe("<html>NEW APP</html>");
     expect(read("rc", "assets", "_chunk.js")).toBe("new");
     expect(existsSync(join(site, "rc", "assets", "stale.js"))).toBe(false);
   });
@@ -106,7 +107,7 @@ describe("the rc channel before the first release", () => {
     compose("rc", dist, api, site);
 
     expect(read("index.html")).toContain('<code id="run-command">');
-    expect(read("index.html")).toContain("ksp-gonogo.github.io/rc/join");
+    expect(read("index.html")).toContain("ksp-gonogo.github.io/rc/station");
     expect(read("index.html")).not.toContain("ksp-gonogo.github.io/app/");
   });
 
@@ -119,11 +120,13 @@ describe("the rc channel before the first release", () => {
     expect(read("counting.js")).toContain("GonogoLandingCounting");
   });
 
-  it("sends the old /gonogo/ URLs to /rc/, keeping the join route", () => {
+  it("sends the old /gonogo/ URLs to /rc/, keeping the station routes", () => {
     compose("rc", dist, api, site);
 
     expect(read("gonogo", "index.html")).toContain('href="/rc/"');
-    expect(read("gonogo", "join", "index.html")).toContain('href="/rc/join"');
+    expect(read("gonogo", "station", "index.html")).toContain(
+      'href="/rc/station"',
+    );
     expect(existsSync(join(site, "gonogo", "dev"))).toBe(false);
     expect(read("404.html")).toContain("location.replace");
     expect(existsSync(join(site, "app"))).toBe(false);
@@ -179,7 +182,7 @@ describe("the rc channel once a release exists", () => {
       read("404.html"),
       read("gonogo", "index.html"),
     ]).toEqual(before);
-    expect(read("index.html")).toContain("ksp-gonogo.github.io/app/join");
+    expect(read("index.html")).toContain("ksp-gonogo.github.io/app/station");
     expect(read("gonogo", "index.html")).toContain('href="/app/"');
   });
 });
@@ -189,7 +192,8 @@ describe("the release channel", () => {
     compose("release", dist, api, site);
 
     expect(read("app", "index.html")).toBe("<html>NEW APP</html>");
-    expect(read("app", "join", "index.html")).toBe("<html>NEW APP</html>");
+    expect(read("app", "station", "index.html")).toBe("<html>NEW APP</html>");
+    expect(read("app", "pilot", "index.html")).toBe("<html>NEW APP</html>");
     expect(existsSync(join(site, "app", "assets", "stale.js"))).toBe(false);
     expect(read("index.html")).toContain('<code id="run-command">');
     expect(read(".nojekyll")).toBe("");
@@ -276,9 +280,11 @@ describe("the release channel", () => {
 
     for (const old of [
       ["gonogo"],
-      ["gonogo", "join"],
+      ["gonogo", "station"],
+      ["gonogo", "pilot"],
       ["gonogo", "rc"],
-      ["gonogo", "rc", "join"],
+      ["gonogo", "rc", "station"],
+      ["gonogo", "rc", "pilot"],
     ])
       expect(read(...old, "index.html")).toContain("location.replace");
     expect(existsSync(join(site, "gonogo", "dev"))).toBe(false);
@@ -306,17 +312,17 @@ describe("a redirect from an old project-page URL", () => {
   it("maps each old path to its new home", () => {
     expect(follow("https://x.test/gonogo/")).toBe("/app/");
     expect(follow("https://x.test/gonogo")).toBe("/app/");
-    expect(follow("https://x.test/gonogo/join")).toBe("/app/join");
+    expect(follow("https://x.test/gonogo/station")).toBe("/app/station");
     expect(follow("https://x.test/gonogo/rc/")).toBe("/rc/");
-    expect(follow("https://x.test/gonogo/rc/join")).toBe("/rc/join");
+    expect(follow("https://x.test/gonogo/rc/station")).toBe("/rc/station");
   });
 
-  it("keeps the query string and the hash, which is where a join link carries its code", () => {
-    expect(follow("https://x.test/gonogo/join?XK3F#top")).toBe(
-      "/app/join?XK3F#top",
+  it("keeps the query string and the hash, which is where a station link carries its host", () => {
+    expect(follow("https://x.test/gonogo/station?host=XK3F&n=1#join")).toBe(
+      "/app/station?host=XK3F&n=1#join",
     );
-    expect(follow("https://x.test/gonogo/rc/join/?XK3F")).toBe(
-      "/rc/join/?XK3F",
+    expect(follow("https://x.test/gonogo/rc/station/?host=XK3F")).toBe(
+      "/rc/station/?host=XK3F",
     );
   });
 

@@ -9,7 +9,7 @@ import { test } from "@playwright/test";
 import { dashboardWithWidget, expect, seedContext } from "./helpers";
 
 test.describe("fab tower over the dashboard grid", () => {
-  test("Invite is topmost and clickable once the cluster is open, with widgets under it", async ({
+  test("Add station is topmost and clickable once the cluster is open, with widgets under it", async ({
     browser,
   }) => {
     const context = await browser.newContext({
@@ -23,11 +23,11 @@ test.describe("fab tower over the dashboard grid", () => {
     const page = await context.newPage();
     await page.goto("/?uplinkLoaderIds=");
 
-    const toggle = page.getByRole("button", { name: "Menu" });
+    const toggle = page.getByRole("button", { name: "Dashboard controls" });
     await expect(toggle).toBeVisible({ timeout: 30_000 });
     await expect(page.locator(".react-grid-item").first()).toBeVisible();
 
-    const station = page.getByRole("button", { name: "Invite" });
+    const station = page.getByRole("button", { name: "Add station" });
     await expect(station).toHaveCSS("pointer-events", "none");
 
     await toggle.hover();

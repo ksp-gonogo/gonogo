@@ -32,7 +32,7 @@ import { getHostPeerId } from "./helpers";
  * The radio, driven from a station screen rather than from mission control.
  *
  * **A station is a different machine from the host in every way that the radio
- * touches.** It joins at `/join` as a station rather than mounting `/`; its identity is a `stationKey` in
+ * touches.** It mounts `/station`, not `/`; its identity is a `stationKey` in
  * its own `localStorage` rather than the host's; it has no socket to the mod at
  * all, so its telemetry, its roster, its separations, its view clock and every
  * radio frame arrive relayed over PeerJS through `PeerTransport`, and its
@@ -49,10 +49,10 @@ import { getHostPeerId } from "./helpers";
  *
  * ## The three screens
  *
- *   - the station at `ksc`, joined at `/join`, which does all the talking
+ *   - the station at `ksc`, on `/station`, which does all the talking
  *   - mission control at `ksc`, on `/`, hosting the peer link and speaking once at
  *     the end so the craft has two people on top of each other
- *   - a pilot 3 s away at `vessel:near`, on `/` at the pilot seat
+ *   - a pilot 3 s away at `vessel:near`, on `/pilot`
  *
  * ## What the film is asked to show, and where each of it is
  *
@@ -172,8 +172,7 @@ test.describe("commcast radio from a station screen @chromium-only", () => {
      */
     const station = await openScreen(browser, {
       name: "station",
-      url: `/join?${shareCode}&uplinkLoaderIds=`,
-      joinedAs: "station",
+      url: `/station?host=${shareCode}&uplinkLoaderIds=`,
       dashboardKey: "gonogo:dashboard:station",
       sitrepPort: PORTS.radioStream.ksc,
       videoDir,
@@ -182,7 +181,7 @@ test.describe("commcast radio from a station screen @chromium-only", () => {
     });
     const pilot = await openScreen(browser, {
       name: "near-craft",
-      url: "/?uplinkLoaderIds=",
+      url: `/pilot?host=${shareCode}&uplinkLoaderIds=`,
       dashboardKey: "gonogo:dashboard:pilot",
       sitrepPort: PORTS.radioStream.near,
       videoDir,
@@ -201,7 +200,7 @@ test.describe("commcast radio from a station screen @chromium-only", () => {
     const epoch = Date.now();
     await installCaption(station.page, {
       title: "STATION SCREEN",
-      subtitle: "/join · station · peer of the host · at KSC",
+      subtitle: "/station · peer of the host · at KSC",
       accent: "#00ff88",
       epoch,
     });
@@ -213,7 +212,7 @@ test.describe("commcast radio from a station screen @chromium-only", () => {
     });
     await installCaption(pilot.page, {
       title: "NEAR CRAFT",
-      subtitle: `pilot seat · ${NEAR_SECONDS} s from KSC`,
+      subtitle: `/pilot · ${NEAR_SECONDS} s from KSC`,
       accent: "#66d9ff",
       epoch,
     });

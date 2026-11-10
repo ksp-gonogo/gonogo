@@ -1,13 +1,10 @@
-import { type ButtonHTMLAttributes, type ReactNode, useEffect } from "react";
+import type { ButtonHTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
 import { useFabCluster } from "./FabCluster";
 
 interface FabProps
   extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> {
-  /**
-   * Distance from the bottom of the viewport in px. Inside a `FabClusterProvider`
-   * it orders the FAB among the ones mounted, which stack with no gap.
-   */
+  /** Distance from the bottom of the viewport in px. Use to stack FABs. */
   bottom: number;
   children: ReactNode;
 }
@@ -24,8 +21,6 @@ export function Fab({
   ...rest
 }: Readonly<FabProps>) {
   const cluster = useFabCluster();
-  const register = cluster?.register;
-  useEffect(() => register?.(bottom), [register, bottom]);
   const visible = cluster?.active ?? true;
   const placed = cluster?.place(bottom) ?? { bottom, offset: 0 };
   const label =

@@ -41,7 +41,6 @@ import {
 import { FullscreenFab } from "../components/FullscreenFab";
 import { HeaderBadges } from "../components/HeaderBadges";
 import { HomeFallbackNotice } from "../components/HomeFallbackNotice";
-import { InviteFab } from "../components/InviteFab";
 import { MissionBanner } from "../components/MissionBanner";
 import { QuickloadBanner } from "../components/QuickloadBanner";
 import { SceneChangeBanner } from "../components/SceneChangeBanner";
@@ -92,19 +91,15 @@ import { UplinkBanners } from "../uplinks/UplinkBanners";
 import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
 import { UplinkLoadFailureScreen } from "../uplinks/UplinkLoadFailureScreen";
 import { useStationBrokers } from "../uplinks/useStationBrokers";
-import { JoinWaiting } from "./JoinWaiting";
-import { joinPath, leaveGame, normaliseCode, setJoined } from "./seatChoice";
+
+const HOST_ID_KEY = "gonogo-station-host-id";
 
 const DEFAULT_CONFIG: DashboardConfig = {
   items: [],
   layout: [],
 };
 
-/**
- * A station: a screen at mission control that joined the game under `code`
- * from the join page and reads everything through the host.
- */
-export function StationScreen({ code }: { code: string }) {
+export function StationScreen() {
   useEffect(() => {
     document.title = "gonogo - Station";
   }, []);
@@ -115,7 +110,9 @@ export function StationScreen({ code }: { code: string }) {
   const [brokerClosed, setBrokerClosed] = useState(false);
   const [hostChannelFailed, setHostChannelFailed] = useState(false);
   const [progress, setProgress] = useState<ConnectProgress>();
-  const [hostInput, setHostInput] = useState(code);
+  const [hostInput, setHostInput] = useState(
+    localStorage.getItem(HOST_ID_KEY) ?? "",
+  );
   const [client] = useState(() => new PeerClientService());
   const [approval, setApproval] = useState(() => client.getApproval());
   useEffect(() => {
@@ -228,14 +225,12 @@ export function StationScreen({ code }: { code: string }) {
   useStationBrokers(client);
 
   function attemptConnect(hostId: string) {
-    const trimmed = normaliseCode(hostId);
+    const trimmed = hostId.trim().toUpperCase();
     if (!trimmed) return;
-    /* Another code is another game, chosen on its own join page. */
-    if (trimmed !== code) {
-      setJoined(null);
-      globalThis.location.assign(joinPath(trimmed));
-      return;
-    }
+    localStorage.setItem(HOST_ID_KEY, trimmed);
+    // Keep the input state in sync so the StationConnectionFab can read
+    // the live host code even when auto-connect from `?host=` skipped
+    // typing it into the form.
     setHostInput(trimmed);
 
     debugPeer("StationScreen attemptConnect", {
@@ -275,9 +270,10 @@ export function StationScreen({ code }: { code: string }) {
     );
     unsubsRef.current.push(client.onBrokerClosed(setBrokerClosed));
     unsubsRef.current.push(client.onHostChannelFailed(setHostChannelFailed));
-    // The host's broker peer id is derived from the share code
-    // (`gonogo-host-<code>`) and never changes for a given code, so a refresh
-    // re-derives the same target.
+    // `HOST_ID_KEY` holds the stable share-code. The host's broker peer id
+    // is derived from it (`gonogo-host-<code>`) and never changes for a
+    // given code, so a refresh re-derives the same target, no persistence
+    // of any ephemeral id is needed here.
 
     unsubsRef.current.push(
       client.onSchema((sources) => {
@@ -293,7 +289,21 @@ export function StationScreen({ code }: { code: string }) {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: mount-only, attemptConnect and client are captured once at mount; re-running would cause reconnect loops
   useEffect(() => {
-    attemptConnect(code);
+    // QR-code / shared-link path: ?host=<peerId> in the URL takes
+    // precedence over localStorage so a fresh device can land directly
+    // on the right host without typing. Drop the param after consuming
+    // it (history.replaceState) so a refresh doesn't keep a stale host
+    // pinned in the URL bar: localStorage is the authoritative store
+    // from the second load onwards.
+    const params = new URLSearchParams(globalThis.location.search);
+    const hostFromUrl = params.get("host");
+    if (hostFromUrl) {
+      const url = new URL(globalThis.location.href);
+      url.searchParams.delete("host");
+      globalThis.history.replaceState({}, "", url.toString());
+    }
+    const initialHost = hostFromUrl ?? localStorage.getItem(HOST_ID_KEY);
+    if (initialHost) attemptConnect(initialHost);
     return () => {
       unsubsRef.current.forEach((u) => {
         u();
@@ -307,27 +317,13 @@ export function StationScreen({ code }: { code: string }) {
      approved, so the dashboard below never mounts while it waits. The station
      still introduces itself, since its station-info is what raises it on the
      main screen. */
-  const failed =
-    hostNotFound || brokerUnreachable || brokerClosed || hostChannelFailed;
-  const waitingPhase =
-    approval === "refused"
-      ? "refused"
-      : connStatus === "connected" && approval === "pending"
-        ? "pending"
-        : !everConnected && !failed && connStatus !== "disconnected"
-          ? "reaching"
-          : null;
-  if (!connected && waitingPhase) {
+  if (!connected && connStatus === "connected" && approval === "pending") {
     return (
       <ScreenProvider value="station">
         <ScopedStationIdentity>
           <StationInfoBroadcaster client={client} seat="mission-control" />
           <StationSupersededNotice client={client} />
-          <JoinWaiting
-            code={code}
-            phase={waitingPhase}
-            onAskAgain={() => client.askAgain()}
-          />
+          <StationApprovalNotice client={client} />
         </ScopedStationIdentity>
       </ScreenProvider>
     );
@@ -462,20 +458,31 @@ export function StationScreen({ code }: { code: string }) {
                                 </StationUplinkLoader>
                                 <FabClusterProvider>
                                   <ComponentOverlay />
-                                  <InviteFab code={code} />
                                   <FlightsFab />
                                   <SerialPortRecoveryWatcher />
                                   <StationConnectionFab
                                     bottom={204}
                                     hostId={hostInput || null}
                                     connStatus={connStatus}
-                                    onChangeSeat={() => {
-                                      setJoined(null);
+                                    onSwitchHost={(next) => {
+                                      // Hard-navigate so all data sources,
+                                      // listeners, and PeerClient state are
+                                      // dropped cleanly. attemptConnect on
+                                      // the fresh mount re-establishes the
+                                      // connection against the new host.
                                       globalThis.location.assign(
-                                        joinPath(code),
+                                        `/station?host=${encodeURIComponent(
+                                          next,
+                                        )}`,
                                       );
                                     }}
-                                    onLeave={leaveGame}
+                                    onDisconnect={() => {
+                                      // Clear the persisted host so the next
+                                      // mount lands on the connect screen
+                                      // rather than auto-reconnecting.
+                                      localStorage.removeItem(HOST_ID_KEY);
+                                      globalThis.location.assign("/station");
+                                    }}
                                   />
                                   <FullscreenFab bottom={264} />
                                   <SettingsFab bottom={324} />

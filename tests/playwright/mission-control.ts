@@ -15,7 +15,7 @@ import {
   type Page,
 } from "@playwright/test";
 import { PORTS } from "../../playwright.config";
-import { getHostPeerId, joinAs, seedApprovedStation } from "./helpers";
+import { getHostPeerId, seedApprovedStation } from "./helpers";
 
 const REPLAY_URL = `http://localhost:${PORTS.wireReplay}`;
 
@@ -181,8 +181,7 @@ export async function bootMissionControl(
     await seedScreen(context, "station", dashboard);
     const page = await context.newPage();
     screens.push({ name: `station ${n}`, context, page });
-    await joinAs(page, shareCode, "station");
-    await page.goto(`/join?${shareCode}&uplinkLoaderIds=`);
+    await page.goto(`/station?host=${shareCode}&uplinkLoaderIds=`);
     await waitForWidgets(page, opts.widgets);
   }
 

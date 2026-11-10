@@ -1,9 +1,10 @@
 import { DomainAvailabilityProvider } from "@ksp-gonogo/ui-kit";
 import { InjectedRadioBackend } from "./commcast/radio/InjectedRadioBackend";
 import { HostedLanding } from "./screens/HostedLanding";
-import { JoinPage } from "./screens/JoinPage";
+import { currentRoute } from "./screens/isStationRoute";
 import { LocalScreen } from "./screens/LocalScreen";
-import { currentRoute } from "./screens/route";
+import { PilotScreen } from "./screens/PilotScreen";
+import { StationScreen } from "./screens/StationScreen";
 import "./styles/fonts.css";
 import "./styles/global.css";
 
@@ -23,15 +24,19 @@ export default function App() {
 }
 
 function AppRoute() {
-  if (currentRoute() === "join") return <JoinPage />;
+  const route = currentRoute();
+  if (route === "station") return <StationScreen />;
+  if (route === "pilot-station") return <PilotScreen />;
 
   /*
    * A local screen reaches the Gonogo mod over insecure ws://, which a page
    * served over HTTPS cannot open to another machine. The hosted build's front
-   * door says so and points at local setup, and anyone joining a game there
-   * does it through the join page and is fed through the host.
+   * door says so and points at local setup, and a pilot there joins mission
+   * control by its host code and is fed through the host instead.
    */
-  if (globalThis.location.protocol === "https:") return <HostedLanding />;
+  const secure = globalThis.location.protocol === "https:";
+  if (route === "main" && secure) return <HostedLanding />;
+  if (route === "pilot" && secure) return <PilotScreen />;
 
-  return <LocalScreen />;
+  return <LocalScreen seat={route} />;
 }

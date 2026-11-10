@@ -36,15 +36,11 @@ interface FabClusterValue {
   /** Attach to the toggle so Escape can return focus to it. */
   toggleRef: RefObject<HTMLButtonElement>;
   /**
-   * Where a FAB that asked for `bottom` goes. `bottom` orders the cluster's
-   * mounted FABs rather than fixing a spot: they stack from the lowest slot up
-   * with no gap where a screen leaves one out, and wrap into a further column
-   * to the left (`offset` px further from the right edge) once the window is
-   * too short.
+   * Where a FAB asked to sit `bottom` px above the viewport edge goes: the
+   * same spot while the cluster fits the window, otherwise wrapped into a
+   * further column to the left (`offset` px further from the right edge).
    */
   place: (bottom: number) => FabPlacement;
-  /** Record a mounted FAB's `bottom`, so the cluster packs around the ones that are absent. Returns the release. */
-  register: (bottom: number) => () => void;
   /** Attach to every FAB so hovering any of them keeps the cluster open. */
   onMouseEnter: () => void;
   onMouseLeave: () => void;
@@ -73,18 +69,6 @@ export function fabsPerColumn(height: number): number {
     1,
     Math.floor((height - FIRST_BOTTOM - FAB_SIZE - TOP_MARGIN) / PITCH) + 1,
   );
-}
-
-/**
- * Where a FAB that asked for `bottom` goes among the `mounted` ones: the nth
- * distinct `bottom` from the lowest takes the nth slot, so a `bottom` under the
- * first slot puts its FAB next to the toggle. A `bottom` nobody has mounted
- * keeps its own spot.
- */
-export function packFab(bottom: number, mounted: readonly number[]): number {
-  const ranks = [...new Set(mounted)].sort((a, b) => a - b);
-  const rank = ranks.indexOf(bottom);
-  return rank < 0 ? bottom : FIRST_BOTTOM + rank * PITCH;
 }
 
 export function placeFab(bottom: number, height: number): FabPlacement {
@@ -137,18 +121,9 @@ export function FabClusterProvider({
     readHeight,
     serverHeight,
   );
-  const [mounted, setMounted] = useState<readonly number[]>([]);
-  const register = useCallback((bottom: number) => {
-    setMounted((m) => [...m, bottom]);
-    return () =>
-      setMounted((m) => {
-        const at = m.indexOf(bottom);
-        return at < 0 ? m : [...m.slice(0, at), ...m.slice(at + 1)];
-      });
-  }, []);
   const place = useCallback(
-    (bottom: number) => placeFab(packFab(bottom, mounted), height),
-    [height, mounted],
+    (bottom: number) => placeFab(bottom, height),
+    [height],
   );
   const [expanded, setExpanded] = useState(false);
   const active = expanded || (hovered && !coarse);
@@ -223,23 +198,12 @@ export function FabClusterProvider({
       regionId,
       toggleRef,
       place,
-      register,
       onMouseEnter: open,
       onMouseLeave: scheduleClose,
       onFocus: open,
       onBlur: scheduleClose,
     }),
-    [
-      active,
-      expanded,
-      toggle,
-      close,
-      regionId,
-      place,
-      register,
-      open,
-      scheduleClose,
-    ],
+    [active, expanded, toggle, close, regionId, place, open, scheduleClose],
   );
 
   return (

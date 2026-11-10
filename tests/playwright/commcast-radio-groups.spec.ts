@@ -57,10 +57,10 @@ test.describe("commcast groups: delivery only to members @chromium-only", () => 
       videoDir,
       clip: { name: "ground to the near craft", chunks: CHUNKS },
     });
-    await getHostPeerId(control.page);
+    const shareCode = await getHostPeerId(control.page);
     const near = await openScreen(browser, {
       name: "near-craft",
-      url: "/?uplinkLoaderIds=",
+      url: `/pilot?host=${shareCode}&uplinkLoaderIds=`,
       dashboardKey: "gonogo:dashboard:pilot",
       sitrepPort: PORTS.radioStream.near,
       videoDir,
@@ -69,7 +69,7 @@ test.describe("commcast groups: delivery only to members @chromium-only", () => 
     });
     const far = await openScreen(browser, {
       name: "far-craft",
-      url: "/?uplinkLoaderIds=",
+      url: `/pilot?host=${shareCode}&uplinkLoaderIds=`,
       dashboardKey: "gonogo:dashboard:pilot",
       sitrepPort: PORTS.radioStream.far,
       videoDir,
@@ -132,10 +132,10 @@ test.describe("commcast groups: delivery only to members @chromium-only", () => 
       videoDir,
       clip: { name: "ground, then the far craft joins", chunks: CHUNKS },
     });
-    await getHostPeerId(control.page);
+    const shareCode = await getHostPeerId(control.page);
     const near = await openScreen(browser, {
       name: "near-craft",
-      url: "/?uplinkLoaderIds=",
+      url: `/pilot?host=${shareCode}&uplinkLoaderIds=`,
       dashboardKey: "gonogo:dashboard:pilot",
       sitrepPort: PORTS.radioStream.near,
       videoDir,
@@ -144,7 +144,7 @@ test.describe("commcast groups: delivery only to members @chromium-only", () => 
     });
     const far = await openScreen(browser, {
       name: "far-craft",
-      url: "/?uplinkLoaderIds=",
+      url: `/pilot?host=${shareCode}&uplinkLoaderIds=`,
       dashboardKey: "gonogo:dashboard:pilot",
       sitrepPort: PORTS.radioStream.far,
       videoDir,

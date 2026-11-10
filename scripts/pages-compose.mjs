@@ -79,7 +79,7 @@ export const OWNED_PATHS = {
  * only the ROOT 404.html as a fallback, which is the landing site's, so each
  * route is written out as a real file or a direct hit on it never boots the app.
  */
-export const SPA_ROUTES = ["join"];
+export const SPA_ROUTES = ["station", "pilot"];
 
 /**
  * Where the API page goes, relative to the site root. `root` is written with
@@ -105,9 +105,9 @@ const README = "[ksp-gonogo/gonogo](https://github.com/ksp-gonogo/gonogo)\n";
 
 /**
  * A page that sends the browser from an old `/gonogo/...` URL to its new home,
- * keeping the rest of the path, the query string and the hash: a join link
- * or QR code carries its code in the query, and losing it lands on the code
- * entry form. `fallback` is where the visible link points for a browser
+ * keeping the rest of the path, the query string and the hash: a station link
+ * or QR code carries its host in the query, and losing it lands on a blank
+ * connect form. `fallback` is where the visible link points for a browser
  * with scripts off, which cannot carry the query.
  */
 export function redirectPage(
