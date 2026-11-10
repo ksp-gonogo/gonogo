@@ -181,48 +181,15 @@ describe("StationScreen smoke", () => {
     vi.unstubAllGlobals();
   });
 
-  it("mounts without throwing and shows the connect prompt", () => {
-    // With no saved host in localStorage and no connection, StationScreen shows the "Connect to Mission Control" prompt rather than the dashboard.
-    let view: ReturnType<typeof renderScreen> | undefined;
-    expect(() => {
-      view = renderScreen(<StationScreen />);
-    }).not.toThrow();
-    expect(screen.getByText(/Connect to Mission Control/i)).not.toBeNull();
-    view?.unmount();
-  });
-
-  it("does not attempt auto-connect when localStorage is empty", () => {
-    const { unmount } = renderScreen(<StationScreen />);
-    // The connect button's disabled attribute reflects the live connection state: idle means the screen isn't mid-reconnect on mount.
-    const connectButton = screen.getByRole("button", { name: /connect/i });
-    expect(connectButton.getAttribute("disabled")).toBeNull();
-    unmount();
-  });
-
-  it("consumes ?host=<id> from the URL, persists it, and strips the param", async () => {
-    // Land on /station?host=ABC123: the QR-code path. The screen
-    // should pre-fill the input from the URL, drop the param, and (for
-    // the next load) treat localStorage as authoritative.
-    globalThis.history.replaceState({}, "", "/station?host=ABC123");
-    const { unmount } = renderScreen(<StationScreen />);
-
-    expect(localStorage.getItem("gonogo-station-host-id")).toBe("ABC123");
-    expect(globalThis.location.search).toBe("");
-    expect(screen.getByRole("textbox", { name: "Join code" })).toHaveValue(
-      "ABC123",
-    );
-
+  it("mounts with its code and shows that it is reaching the host", async () => {
     /*
-     * The consumed code starts a connect attempt on its own. jsdom has no
-     * WebRTC, so the real peerjs Peer aborts with browser-incompatible and the
-     * station drops into its retry loop, which is the state an operator sees.
+     * jsdom has no WebRTC, so the real peerjs Peer aborts and the station drops
+     * into its retry loop. Before it has ever connected that is still reaching
+     * the host, not a failure.
      */
-    expect(
-      await screen.findByText(/^Reconnecting: the host or broker/),
-    ).toBeInTheDocument();
+    const { unmount } = renderScreen(<StationScreen code="ABC123" />);
+    expect(await screen.findByText("Reaching the host")).toBeInTheDocument();
+    expect(screen.getByText("ABC123")).toBeInTheDocument();
     unmount();
-
-    // Reset for subsequent tests in this file.
-    globalThis.history.replaceState({}, "", "/");
   });
 });

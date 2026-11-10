@@ -1,6 +1,7 @@
 import { Button, Stack } from "@ksp-gonogo/ui-kit";
 import { useCallback, useRef, useState } from "react";
 import styled from "styled-components";
+import { type StartSeat, setStartSeat } from "../screens/seatChoice";
 import { type CopyKey, say } from "./copy";
 import { LeaveGuardContext, type LeaveSave } from "./leaveGuard";
 import { useHasSetupSettings } from "./setupSettings";
@@ -50,9 +51,8 @@ const HEADING = {
 } as const satisfies Record<SetupStep, CopyKey>;
 
 /**
- * The label on the button that leaves each step. The last one is "Finish"
- * rather than "Close" because the modal chrome already has a Close, and two
- * buttons of the same name in one dialog is a keyboard operator's problem.
+ * The label on the button that leaves each step. The last step leaves by the
+ * seat the screen starts at instead, so it has none.
  */
 const ADVANCE_LABEL = {
   welcome: "welcome.advance",
@@ -63,8 +63,7 @@ const ADVANCE_LABEL = {
   uplinks: "uplinks.advance",
   recommended: "recommended.advance",
   health: "health.advance",
-  done: "done.advance",
-} as const satisfies Record<SetupStep, CopyKey>;
+} as const satisfies Record<Exclude<SetupStep, "done">, CopyKey>;
 
 export interface FirstRunSetupProps {
   /**
@@ -119,7 +118,13 @@ export function FirstRunSetup({
   }
 
   function advance() {
-    void leaveTo(step === "done" ? undefined : order[index + 1]);
+    if (step !== "done") void leaveTo(order[index + 1]);
+  }
+
+  /** Leaves the setup at `seat`, which this browser's screen then opens in. */
+  async function start(seat: StartSeat) {
+    setStartSeat(seat);
+    await leaveTo(undefined);
   }
 
   return (
@@ -140,7 +145,9 @@ export function FirstRunSetup({
         {step === "uplinks" && <UplinkReadinessStep />}
         {step === "recommended" && <RecommendedStep />}
         {step === "health" && <HealthStep />}
-        {step === "done" && <DoneStep />}
+        {step === "done" && (
+          <DoneStep onStart={(seat) => void start(seat)} disabled={leaving} />
+        )}
         <Nav>
           {index > 0 && (
             <Button
@@ -152,18 +159,20 @@ export function FirstRunSetup({
               {say("shell.back")}
             </Button>
           )}
-          <Button
-            variant="primary"
-            type="button"
-            onClick={advance}
-            disabled={leaving}
-          >
-            {say(
-              step === "uplinks" && hasRecommended
-                ? "uplinks.advanceToRecommended"
-                : ADVANCE_LABEL[step],
-            )}
-          </Button>
+          {step !== "done" && (
+            <Button
+              variant="primary"
+              type="button"
+              onClick={advance}
+              disabled={leaving}
+            >
+              {say(
+                step === "uplinks" && hasRecommended
+                  ? "uplinks.advanceToRecommended"
+                  : ADVANCE_LABEL[step],
+              )}
+            </Button>
+          )}
         </Nav>
       </Stack>
     </LeaveGuardContext.Provider>

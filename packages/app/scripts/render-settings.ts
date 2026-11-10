@@ -688,7 +688,7 @@ async function main(): Promise<void> {
           .scrollIntoViewIfNeeded();
       }
       if (fab === "open" || fab === "chosen") {
-        await page.getByRole("button", { name: "Dashboard controls" }).tap();
+        await page.getByRole("button", { name: "Menu" }).tap();
       }
       if (fab === "chosen") {
         await page.getByRole("button", { name: "Settings" }).tap();

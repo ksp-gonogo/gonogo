@@ -13,6 +13,7 @@ import {
   UPDATE_REMOVE_COMMAND,
 } from "../firstRun/setupGuide";
 import { VERSION } from "../version";
+import { joinPath } from "./seatChoice";
 
 /**
  * Shown at "/" when the app is served over HTTPS, i.e. the published
@@ -30,7 +31,7 @@ import { VERSION } from "../version";
  * static HTML for the organisation root; keep the two saying the same thing.
  */
 export function HostedLanding() {
-  const stationHref = `${import.meta.env.BASE_URL}station`;
+  const joinHref = joinPath();
   const shell = browserShell();
   const spacedock = spacedockPage(import.meta.env.VITE_SPACEDOCK_MOD_ID);
   return (
@@ -47,7 +48,7 @@ export function HostedLanding() {
         </Header>
 
         <Join>
-          <a href={stationHref}>Join someone else&apos;s game</a>
+          <a href={joinHref}>Join someone else&apos;s game</a>
         </Join>
 
         <SetupTitle>Set it up</SetupTitle>

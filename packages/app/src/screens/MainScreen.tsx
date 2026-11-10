@@ -24,7 +24,11 @@ import {
 } from "@ksp-gonogo/serial";
 import type { Transport } from "@ksp-gonogo/sitrep-client";
 import { RootProviders } from "@ksp-gonogo/sitrep-sdk";
-import { BannerStack, FabClusterProvider } from "@ksp-gonogo/ui";
+import {
+  BannerStack,
+  FabClusterProvider,
+  FabClusterToggle,
+} from "@ksp-gonogo/ui";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
@@ -61,13 +65,13 @@ import {
 import { FullscreenFab } from "../components/FullscreenFab";
 import { HeaderBadges } from "../components/HeaderBadges";
 import { HomeFallbackNotice } from "../components/HomeFallbackNotice";
+import { InviteFab } from "../components/InviteFab";
 import { MissionBanner } from "../components/MissionBanner";
 import { ModVersionBanner } from "../components/ModVersionBanner";
 import { QuickloadBanner } from "../components/QuickloadBanner";
 import { SceneChangeBanner } from "../components/SceneChangeBanner";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
 import { StationBuildMismatchNotice } from "../components/StationBuildMismatchNotice";
-import { StationLinkFab } from "../components/StationLinkFab";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
 import { FirstRunSetupHost } from "../firstRun/FirstRunSetupHost";
 import {
@@ -111,12 +115,13 @@ import {
   SettingsFab,
   SettingsProvider,
   SettingsService,
+  useJoinedGame,
   useMissionHistorySettings,
 } from "../settings";
 import { HelpButton } from "../settings/HelpButton";
 import { initSoundSettings } from "../sound";
 import { StationApprovalPrompt } from "../stationApproval/StationApprovalPrompt";
-import { ScopedStationIdentity } from "../stationIdentity";
+import { ScopedStationIdentity, StationNameEditor } from "../stationIdentity";
 import { AugmentAvailabilityFeeder } from "../telemetry/AugmentAvailabilityFeeder";
 import { syncDataRate } from "../telemetry/dataRate";
 import { PilotVantage } from "../telemetry/PilotVantage";
@@ -128,7 +133,8 @@ import { UplinkHealthLogger } from "../uplinks/UplinkHealthLogger";
 import { UplinkHealthRetry } from "../uplinks/UplinkHealthRetry";
 import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
 import { UplinkLoadGate } from "../uplinks/UplinkLoadGate";
-import { bootsWithoutDirectMod } from "./isStationRoute";
+import { bootsWithoutDirectMod } from "./route";
+import { SeatSwitch } from "./SeatSwitch";
 
 const EMPTY_DASHBOARD: DashboardConfig = { items: [], layout: [] };
 
@@ -230,8 +236,11 @@ export function MainScreen({
   joinedVia,
   hostLink,
   settings,
+  inviteCode,
 }: {
   screen?: Screen;
+  /** The game's code on a screen that joined by it, for its Invite button. */
+  inviteCode?: string;
   /**
    * The client settings this screen reads and writes, when its parent already
    * holds them. A setup opened before the dashboard mounts keeps writing to
@@ -288,6 +297,7 @@ export function MainScreen({
         joinedVia={joinedVia}
         hostLink={hostLink ?? joinedVia}
         settings={settings}
+        inviteCode={inviteCode}
       />
     </HostingProvider>
   );
@@ -305,6 +315,7 @@ function MainScreenDisplay({
   joinedVia,
   hostLink,
   settings,
+  inviteCode,
 }: {
   screen: Screen;
   transport?: Transport;
@@ -312,8 +323,11 @@ function MainScreenDisplay({
   joinedVia?: PeerClientService;
   hostLink?: PeerClientService;
   settings?: SettingsService;
+  inviteCode?: string;
 }) {
   const hosts = useHostingHosts();
+  const joined = useJoinedGame();
+  const loadsThroughHost = screen === "pilot" && bootsWithoutDirectMod();
   const [alarmClient] = useState(() =>
     hostLink ? new AlarmClientService(hostLink) : null,
   );
@@ -390,7 +404,8 @@ function MainScreenDisplay({
       />
       <CommcastLink log={commcastLog} />
       <AugmentAvailabilityFeeder />
-      {screen !== "pilot" && <UplinkHealthRetry />}
+      {/* Every screen that loads its Uplinks itself, a pilot host included, picks up a roster that arrives after startup; the host's Uplink list waits on it. */}
+      {!loadsThroughHost && <UplinkHealthRetry />}
       {/*
        * A pilot is aboard, so their session observes from the craft rather
        * than from KSC. Only this seat: `selectedVantageId` is client-wide, and
@@ -408,7 +423,8 @@ function MainScreenDisplay({
               <ModLogForwarder />
             </>
           )}
-          <FirstRunSetupHost />
+          {/* The setup is for a screen that reads the game itself; one that joined by code has nothing to set up. */}
+          {!joined && <FirstRunSetupHost />}
           <ConsoleSettingsFromHost service={settingsService} />
           {/*
            * Above the replay provider, so it records the live stream. Below
@@ -437,8 +453,11 @@ function MainScreenDisplay({
                     <CommcastLogProviderOrPassthrough log={commcastLog}>
                       <ManeuverTriggerProvider service={maneuverTriggerHost}>
                         <HostUplinks
-                          loadedHere={
-                            screen === "pilot" && bootsWithoutDirectMod()
+                          loadedHere={loadsThroughHost}
+                          whileLoading={
+                            <SerialDeviceProvider service={serialService}>
+                              <LoadingMenu inviteCode={inviteCode} />
+                            </SerialDeviceProvider>
                           }
                         >
                           <RootProviders screen={screen}>
@@ -455,6 +474,7 @@ function MainScreenDisplay({
                                           screen={screen}
                                           hosting={hostsThePeerMesh}
                                           serialService={serialService}
+                                          inviteCode={inviteCode}
                                         />
                                       </UplinkLoadGate>
                                     </SerialDeviceProvider>
@@ -488,13 +508,31 @@ function MainScreenDisplay({
  */
 function HostUplinks({
   loadedHere,
+  whileLoading,
   children,
 }: {
   loadedHere: boolean;
+  whileLoading: ReactNode;
   children: ReactNode;
 }) {
   if (!loadedHere) return children;
-  return <StationUplinkLoader>{children}</StationUplinkLoader>;
+  return (
+    <StationUplinkLoader whileLoading={whileLoading}>
+      {children}
+    </StationUplinkLoader>
+  );
+}
+
+/** The menu a screen keeps while its Uplinks load through the host, so Settings and Invite stay reachable. */
+function LoadingMenu({ inviteCode }: { inviteCode?: string }) {
+  return (
+    <FabClusterProvider>
+      <FabClusterToggle />
+      <MainInviteFab code={inviteCode} />
+      <FullscreenFab bottom={264} />
+      <SettingsFab bottom={324} />
+    </FabClusterProvider>
+  );
 }
 
 /**
@@ -509,10 +547,12 @@ function MainDashboard({
   screen,
   hosting,
   serialService,
+  inviteCode,
 }: {
   screen: Screen;
   hosting: boolean;
   serialService: SerialDeviceService;
+  inviteCode?: string;
 }) {
   const { scene, inFlight, hasGameSignal } = useGameContext();
   const profiles = useMissionProfilesService();
@@ -546,6 +586,7 @@ function MainDashboard({
             }
             actions={
               <>
+                <SeatSwitch />
                 <LayoutHistoryControl dashboard={controller} />
                 <HelpButton />
               </>
@@ -572,9 +613,9 @@ function MainDashboard({
           </ProfileDashboardProvider>
           <FabClusterProvider>
             <ComponentOverlay />
+            <MainInviteFab code={inviteCode} />
             <FlightsFabWithMissionHistory />
             <SerialPortRecoveryWatcher />
-            <LocalLinkFab />
             <FullscreenFab bottom={264} />
             <SettingsFab bottom={324} />
             <MissionProfilesFab bottom={384} dashboard={controller} />
@@ -622,18 +663,23 @@ function MainDashboard({
 }
 
 /**
- * The header's GO/NO-GO: the host's view of the poll at its centre, or on a
+ * The header's centre: the host's view of the GO/NO-GO poll, or on a
  * mission-control screen that joined another host, its own vote. A pilot has
- * no poll.
+ * no poll, so its centre is its name, as a station's is beside its vote.
  */
 function PollCentre({ screen, hosting }: { screen: Screen; hosting: boolean }) {
-  if (screen === "pilot") return null;
+  if (screen === "pilot") return <StationNameEditor bare />;
   return hosting ? <MainPollHeader /> : <StationPollControl />;
 }
 
-/** The join code's button, on a local screen: one that hosts or joins by itself. */
-function LocalLinkFab() {
-  return useHostRole() ? <StationLinkFab /> : null;
+/**
+ * The Invite button: on a screen that joined by code, for that code; on a
+ * local screen, for the game its host role names.
+ */
+function MainInviteFab({ code }: { code?: string }) {
+  const role = useHostRole();
+  if (code) return <InviteFab code={code} />;
+  return role ? <InviteFab /> : null;
 }
 
 /** Provides the notes the host keeps, or nothing on a screen that reads them from a host. */

@@ -401,13 +401,13 @@ describe("StationUplinkLoader", () => {
     render(<Harness client={client} peerClient={peerClient} />);
 
     expect(screen.queryByTestId("dashboard-widgets")).toBeNull();
-    expect(screen.getByText(/Loading station widgets/i)).not.toBeNull();
+    expect(screen.getByText(/Loading widgets/i)).not.toBeNull();
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
     expect(screen.queryByTestId("dashboard-widgets")).toBeNull();
     expect(
-      screen.getByText(/Waiting for the main screen's Uplink list/),
+      screen.getByText(/Waiting for the host's Uplink list/),
     ).not.toBeNull();
 
     await act(async () => peerClient.announce([]));
@@ -503,7 +503,7 @@ describe("StationUplinkLoader", () => {
     );
 
     expect(screen.queryByTestId("dashboard-widgets")).toBeNull();
-    expect(screen.getByText(/Loading station widgets/i)).not.toBeNull();
+    expect(screen.getByText(/Loading widgets/i)).not.toBeNull();
   });
 });
 
@@ -751,12 +751,12 @@ describe("a station opens only once every Uplink its main screen runs has loaded
 
     renderStation(peerClient, client);
     expect(screen.getByTestId("dashboard-widgets")).toBeTruthy();
-    expect(screen.queryByText("Loading station widgets")).toBeNull();
+    expect(screen.queryByText("Loading widgets")).toBeNull();
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 200));
     });
     expect(sendBundleFetch).toHaveBeenCalledTimes(1);
-    expect(screen.queryByText("Loading station widgets")).toBeNull();
+    expect(screen.queryByText("Loading widgets")).toBeNull();
   });
 
   it("shows no dashboard while an Uplink of the set is still downloading", async () => {

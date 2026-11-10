@@ -51,7 +51,8 @@ test.describe("commcast radio: the relay repeats a peer once @chromium-only", ()
     const shareCode = await getHostPeerId(control.page);
     const station = await openScreen(browser, {
       name: "station",
-      url: `/station?host=${shareCode}&uplinkLoaderIds=`,
+      url: `/join?${shareCode}&uplinkLoaderIds=`,
+      joinedAs: "station",
       dashboardKey: "gonogo:dashboard:station",
       sitrepPort: PORTS.radioStream.ksc,
       videoDir,
@@ -60,7 +61,7 @@ test.describe("commcast radio: the relay repeats a peer once @chromium-only", ()
     });
     const pilot = await openScreen(browser, {
       name: "near-craft",
-      url: `/pilot?host=${shareCode}&uplinkLoaderIds=`,
+      url: "/?uplinkLoaderIds=",
       dashboardKey: "gonogo:dashboard:pilot",
       sitrepPort: PORTS.radioStream.near,
       videoDir,

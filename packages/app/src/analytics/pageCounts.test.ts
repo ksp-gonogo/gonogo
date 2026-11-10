@@ -38,25 +38,15 @@ const paths = (sent: string[]) =>
 describe("listingPath", () => {
   it("keeps the release and RC apps under their own prefixes", () => {
     expect(listingPath("/app/", "ksp-gonogo.github.io", "/app/")).toBe("/app");
-    expect(listingPath("/rc/station", "ksp-gonogo.github.io", "/rc/")).toBe(
-      "/rc/station",
-    );
-  });
-
-  it("lists a pilot page as /pilot on either channel", () => {
-    expect(listingPath("/app/pilot", "x.github.io", "/app/")).toBe("/pilot");
-    expect(listingPath("/rc/pilot/station", "x.github.io", "/rc/")).toBe(
-      "/pilot/station",
+    expect(listingPath("/rc/join", "ksp-gonogo.github.io", "/rc/")).toBe(
+      "/rc/join",
     );
   });
 
   it("puts a loopback or home network address under /local with the app path", () => {
     expect(listingPath("/", "localhost", "/")).toBe("/local");
-    expect(listingPath("/station", address(192, 168, 1, 20), "/")).toBe(
-      "/local/station",
-    );
-    expect(listingPath("/pilot", address(172, 20, 0, 3), "/")).toBe(
-      "/local/pilot",
+    expect(listingPath("/join", address(192, 168, 1, 20), "/")).toBe(
+      "/local/join",
     );
     expect(listingPath("/", address(10, 0, 0, 5), "/")).toBe("/local");
   });
@@ -102,7 +92,7 @@ describe("page counting", () => {
 
     for (const referrer of [
       "",
-      "https://ksp-gonogo.github.io/app/station",
+      "https://ksp-gonogo.github.io/app/join",
       "https://example.com/",
       "https://ksp-gonogo.github.io/uplink-dev-docs/",
     ]) {

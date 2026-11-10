@@ -139,7 +139,7 @@ describe("a local screen's part in the host role", () => {
     expect(mod.sent.map((s) => s.command)).toContain("host.release");
   });
 
-  it("claims at once when the holder's connection has closed, and says it took over from a host it never saw", async () => {
+  it("claims at once when the holder's connection has closed, and says it took over from that host", async () => {
     const mod = new FakeHostMod();
     const host = await open(mod, "tab-a");
     host.connection.close();
@@ -150,6 +150,23 @@ describe("a local screen's part in the host role", () => {
     expect(fresh.role.state).toMatchObject({
       kind: "hosting",
       takeover: true,
+    });
+  });
+
+  it("does not say it took over on a save that has been hosted before, once the role is free", async () => {
+    const mod = new FakeHostMod();
+    for (const tab of ["tab-a", "tab-b"]) {
+      const earlier = await open(mod, tab);
+      earlier.role.release();
+      await settle();
+      earlier.role.dispose();
+    }
+
+    const fresh = await open(mod, "tab-c");
+
+    expect(fresh.role.state).toMatchObject({
+      kind: "hosting",
+      takeover: false,
     });
   });
 

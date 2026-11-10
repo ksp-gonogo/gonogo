@@ -27,12 +27,11 @@ interface ImportMetaEnv {
   readonly VITE_AXIOM_URL?: string;
   readonly VITE_AXIOM_ORG_ID?: string;
   /**
-   * Override for the URL the Add Station QR / link points at. Forks can
-   * point this at their own deploy. When unset, the modal falls back to
-   * the page origin for HTTPS deploys and to the canonical github.io
-   * station URL for local-dev origins (localhost, LAN IP).
+   * A fork's own public deploy of the app. When set, the Invite address and
+   * its QR point at its join page in place of this page's own address or the
+   * public build.
    */
-  readonly VITE_STATION_URL?: string;
+  readonly VITE_APP_URL?: string;
   /**
    * Override PeerJS broker host. Production defaults to PeerJS's public
    * broker (0.peerjs.com); tests + self-hosted deploys can point at a

@@ -12,7 +12,7 @@ import {
   pointAtRelay,
   startEndpointRelay,
 } from "./endpoint-relay-fixture";
-import { seedApprovedStation } from "./helpers";
+import { joinAs, seedApprovedStation } from "./helpers";
 
 async function mainScreen(browser: Browser, relay: EndpointRelay) {
   const context = await browser.newContext();
@@ -98,7 +98,8 @@ async function station(
   await keepPeerConnections(context);
   if (!endpointReachable) await cannotReachEndpoint(context);
   const page = await context.newPage();
-  await page.goto(`/station?host=${code}&uplinkLoaderIds=`);
+  await joinAs(page, code, "station");
+  await page.goto(`/join?${code}&uplinkLoaderIds=`);
   return { context, page };
 }
 

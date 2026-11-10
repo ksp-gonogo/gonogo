@@ -21,7 +21,9 @@ import {
 import { BackupManager } from "../backup/BackupManager";
 import { say } from "../firstRun/copy";
 import { LogsManager } from "../logs/LogsManager";
+import { joinPath, leaveGame, setJoined } from "../screens/seatChoice";
 import { ApprovedStations } from "../stationApproval/ApprovedStations";
+import { StationNameEditor } from "../stationIdentity";
 import {
   DATA_RATE_SETTING,
   DEFAULT_DATA_RATE,
@@ -31,6 +33,7 @@ import { AppVersion } from "./AppVersion";
 import { ControlFrameSettings } from "./ControlFrameSettings";
 import { GonogoSettings } from "./GonogoSettings";
 import { HelpSettings } from "./HelpSettings";
+import type { JoinedGame } from "./JoinedGameContext";
 import type { SettingDefinition } from "./registry";
 import { getSettingsForScreen } from "./registry";
 import { bucketBy, CategoryRows } from "./SettingRows";
@@ -51,6 +54,12 @@ export interface SettingsModalProps {
   initialTabId?: string;
   /** Closes this dialog and opens the first-run setup. Without it the Connection tab offers no way to rerun the setup. */
   onRunSetupAgain?: () => void;
+  /**
+   * The game this screen joined by code. A joined station or pilot has only
+   * its own settings: its name and display, its devices, the code it joined
+   * with and Help.
+   */
+  joined?: JoinedGame | null;
 }
 
 /**
@@ -63,6 +72,7 @@ export interface SettingsModalProps {
 export function SettingsModal({
   initialTabId,
   onRunSetupAgain,
+  joined,
 }: SettingsModalProps = {}) {
   const screen = useScreen();
   const settings = getSettingsForScreen(screen).filter(
@@ -98,82 +108,119 @@ export function SettingsModal({
       : false;
 
   const tabs: TabDescriptor[] = [];
-  tabs.push({
-    id: "general",
-    label: "General",
-    content: (
-      <GeneralSettings
-        settings={settings}
-        showConsent={showConsent}
-        showDataRate={screen !== "station"}
-      />
-    ),
-  });
-  tabs.push({
-    id: "gonogo",
-    label: "Gonogo",
-    content: (
-      <SectionStack>
-        <GonogoSettings />
-
-        <Stack as="section" gap="related-comfortable">
-          <SectionTitle as="h3" $rule>
-            Control Frame
-          </SectionTitle>
-          <ControlFrameSettings />
-        </Stack>
-      </SectionStack>
-    ),
-    indicator: gonogoIssue,
-  });
-  if (showConnection) {
+  if (joined) {
+    tabs.push(
+      {
+        id: "general",
+        label: "General",
+        content: (
+          <SectionStack>
+            <Stack as="section" gap="related-comfortable">
+              <SectionTitle as="h3" $rule>
+                Name
+              </SectionTitle>
+              <StationNameEditor bare />
+            </Stack>
+            <GeneralSettings
+              settings={settings}
+              showConsent={false}
+              showDataRate={false}
+            />
+          </SectionStack>
+        ),
+      },
+      {
+        id: "devices",
+        label: "Devices",
+        content: <SerialDevicesMenu />,
+        indicator: serialIssue,
+      },
+      {
+        id: "connection",
+        label: "Connection",
+        content: <JoinedConnectionPanel game={joined} />,
+      },
+      { id: "help", label: "Help", content: <HelpSettings /> },
+    );
+  }
+  if (!joined) {
     tabs.push({
-      id: "connection",
-      label: "Connection",
+      id: "general",
+      label: "General",
       content: (
-        <ConnectionPanel
-          onRunSetupAgain={onRunSetupAgain}
-          hostsStations={screen === "main"}
+        <GeneralSettings
+          settings={settings}
+          showConsent={showConsent}
+          showDataRate={screen !== "station"}
         />
       ),
-      indicator: connectionIssue,
     });
-  }
-  tabs.push({
-    id: "devices",
-    label: "Devices",
-    content: <SerialDevicesMenu />,
-    indicator: serialIssue,
-  });
-  for (const tab of getSettingsTabsForScreen(screen)) {
-    if (tab.uplink !== undefined) continue;
     tabs.push({
-      id: tab.id,
-      label: tab.label,
-      content: <tab.component />,
+      id: "gonogo",
+      label: "Gonogo",
+      content: (
+        <SectionStack>
+          <GonogoSettings />
+
+          <Stack as="section" gap="related-comfortable">
+            <SectionTitle as="h3" $rule>
+              Control Frame
+            </SectionTitle>
+            <ControlFrameSettings />
+          </Stack>
+        </SectionStack>
+      ),
+      indicator: gonogoIssue,
     });
-  }
-  if (uplinkPages.length > 0) {
+    if (showConnection) {
+      tabs.push({
+        id: "connection",
+        label: "Connection",
+        content: (
+          <ConnectionPanel
+            onRunSetupAgain={onRunSetupAgain}
+            hostsStations={screen === "main"}
+          />
+        ),
+        indicator: connectionIssue,
+      });
+    }
     tabs.push({
-      id: "uplinks",
-      label: "Uplinks",
-      content: <UplinksSettings pages={uplinkPages} />,
-      indicator: uplinkPages.some((page) => page.attention),
+      id: "devices",
+      label: "Devices",
+      content: <SerialDevicesMenu />,
+      indicator: serialIssue,
+    });
+    for (const tab of getSettingsTabsForScreen(screen)) {
+      if (tab.uplink !== undefined) continue;
+      tabs.push({
+        id: tab.id,
+        label: tab.label,
+        content: <tab.component />,
+      });
+    }
+    if (uplinkPages.length > 0) {
+      tabs.push({
+        id: "uplinks",
+        label: "Uplinks",
+        content: <UplinksSettings pages={uplinkPages} />,
+        indicator: uplinkPages.some((page) => page.attention),
+      });
+    }
+    tabs.push({
+      id: "backup",
+      label: "Backup & Restore",
+      content: <BackupManager />,
+    });
+    if (showConnection) {
+      tabs.push({ id: "help", label: "Help", content: <HelpSettings /> });
+    }
+    tabs.push({
+      id: "diagnostics",
+      label: "Diagnostics",
+      content: <LogsManager />,
     });
   }
-  tabs.push({
-    id: "backup",
-    label: "Backup & Restore",
-    content: <BackupManager />,
-  });
-  if (showConnection) {
-    tabs.push({ id: "help", label: "Help", content: <HelpSettings /> });
-  }
-  tabs.push({
-    id: "diagnostics",
-    label: "Diagnostics",
-    content: <LogsManager />,
-  });
 
   // An explicit initial tab wins; otherwise the first tab that wants attention, else the first tab.
   const [activeId, setActiveId] = useState(
@@ -220,7 +267,7 @@ function ConnectionPanel({
       {hostsStations && (
         <Stack as="section" gap="related-comfortable">
           <SectionTitle as="h3" $rule>
-            Approved stations
+            Approved screens
           </SectionTitle>
           <ApprovedStations />
         </Stack>
@@ -229,6 +276,56 @@ function ConnectionPanel({
     </SectionStack>
   );
 }
+
+/**
+ * The Connection tab of a screen that joined by code: the code it joined
+ * with, the way back to the two seats, and Leave.
+ */
+function JoinedConnectionPanel({ game }: Readonly<{ game: JoinedGame }>) {
+  return (
+    <SectionStack>
+      <Stack as="section" gap="related-comfortable">
+        <SectionTitle as="h3" $rule>
+          Game
+        </SectionTitle>
+        <SettingLine>
+          <RowText>
+            <RowLabel>Join code</RowLabel>
+            <RowDesc>
+              <JoinedCode>{game.code}</JoinedCode>
+            </RowDesc>
+          </RowText>
+        </SettingLine>
+        <SettingLine>
+          <RowText>
+            <RowLabel>Seat</RowLabel>
+            <RowDesc>{game.seat === "pilot" ? "Pilot" : "Station"}</RowDesc>
+          </RowText>
+          <Button
+            onClick={() => {
+              setJoined(null);
+              globalThis.location.assign(joinPath(game.code));
+            }}
+          >
+            Change seat
+          </Button>
+        </SettingLine>
+        <SettingLine>
+          <RowText>
+            <RowLabel>Leave this game</RowLabel>
+          </RowText>
+          <Button onClick={leaveGame}>Leave</Button>
+        </SettingLine>
+      </Stack>
+    </SectionStack>
+  );
+}
+
+const JoinedCode = styled.code`
+  font-size: var(--font-size-value);
+  letter-spacing: 0.12em;
+  color: var(--color-info-text);
+`;
 
 /** The Connection tab's section offering the first-run setup again. */
 export function RunSetupAgain({

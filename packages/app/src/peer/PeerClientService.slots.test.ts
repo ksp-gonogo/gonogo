@@ -224,3 +224,43 @@ describe("a station finding its host among the ring of broker ids", () => {
     svc.disconnect();
   });
 });
+
+describe("a join page's look-up client", () => {
+  it("asks the host for its facts in place of joining, and hears them", () => {
+    const { svc, peer } = openedStation({ lookupOnly: true });
+    const heard: unknown[] = [];
+    svc.onGameFacts((facts) => heard.push(facts));
+
+    for (const slot of [0, 1, 3]) missing(peer, slot);
+    const live = peer.conns.get(ring(2));
+    live?.emit("open");
+    live?.emit("data", hello(1));
+    live?.emit("data", {
+      type: "game-facts",
+      hostSeat: "pilot",
+      stations: 2,
+      pilots: 1,
+    });
+
+    const sentTypes = (live?.sent ?? []).map((m) => asPeerMessage(m)?.type);
+    expect(sentTypes).toEqual(["game-lookup"]);
+    expect(heard).toEqual([{ hostSeat: "pilot", stations: 2, pilots: 1 }]);
+    svc.disconnect();
+  });
+});
+
+describe("the host's seat as a station hears it", () => {
+  it("is mission control until the host says otherwise", () => {
+    const { svc, peer } = openedStation();
+    const live = peer.conns.get(ring(0));
+    live?.emit("open");
+    live?.emit("data", hello(1));
+    expect(svc.getHostSeat()).toBe("main");
+    const seen: string[] = [];
+    svc.onHostSeatChange((seat) => seen.push(seat));
+    live?.emit("data", { type: "host-seat", seat: "pilot" });
+    expect(svc.getHostSeat()).toBe("pilot");
+    expect(seen).toEqual(["pilot"]);
+    svc.disconnect();
+  });
+});

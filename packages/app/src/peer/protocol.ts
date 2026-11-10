@@ -47,6 +47,9 @@ export interface PeerSchemaSource {
   keys: DataKeyMeta[];
 }
 
+/** The seat a host screen sits at: mission control's main screen, or a pilot. */
+export type HostSeat = "main" | "pilot";
+
 export type PeerMessage =
   // Sent by the host as the first message on every new connection so the
   // station can compare versions and surface a banner on mismatch. Always
@@ -109,6 +112,18 @@ export type PeerMessage =
      flight request, an Uplink call and a note are refused on their own
      reply. `refused` is the refused message's `type`. */
   | { type: "station-write-refused"; refused: string; reason: string }
+  /* Page → host, on a connection that asks to join nothing: what a join page
+     shows on its cards before the visitor picks a seat. Answered with
+     `game-facts` without approval, so it carries nothing a card does not. */
+  | { type: "game-lookup" }
+  /* Host → the page that sent `game-lookup`: the seat the host screen sits
+     at, how many stations are connected and how many pilots are aboard, the
+     host included. */
+  | { type: "game-facts"; hostSeat: HostSeat; stations: number; pilots: number }
+  /* Host → every approved peer, on joining and whenever the host screen
+     switches seat. A game whose host sits as a pilot has no main screen to
+     push widgets to. */
+  | { type: "host-seat"; seat: HostSeat }
   // Station → host: relay a single call through to a host-side handle
   // registered for `uplinkId` (see `@ksp-gonogo/core`'s
   // `registerUplinkHandle`/`getUplinkHandle`). ONE generic pair serves every

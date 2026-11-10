@@ -159,7 +159,10 @@ export const WIZARD_COPY = {
     "Gonogo will still function but some Uplinks need attention before they can work. Each listing comes from an Uplink.",
 
   "done.heading": "Done",
-  "done.advance": "Finish",
+  "done.startMain": "Start as mission control",
+  "done.startPilot": "Start as a pilot",
+  "done.mainScreen": "The main screen at mission control.",
+  "done.hosts": "This screen hosts the game and approves everyone who joins.",
   "done.next":
     "Load your KSP save. Use the green menu button in the bottom right to add widgets, manage layouts, and invite friends to join.",
 

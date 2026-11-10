@@ -52,7 +52,7 @@ import { ModApprovalBook } from "../peer/approvalBook";
 import { peerHostService } from "../peer/PeerHostService";
 import { StationApprovalPrompt } from "../stationApproval/StationApprovalPrompt";
 import { FakeHostMod } from "../test/fakeHostMod";
-import { StationLinkFab } from "./StationLinkFab";
+import { InviteFab } from "./InviteFab";
 
 const stations: InstanceType<typeof Hub.Connection>[] = [];
 
@@ -86,7 +86,7 @@ afterEach(() => {
   stations.length = 0;
 });
 
-describe("Add station panel approved stations", () => {
+describe("Invite panel approved stations", () => {
   it("lists a station approved in the game's record and revokes it there, disconnecting it", async () => {
     const user = userEvent.setup();
     const mod = new FakeHostMod();
@@ -100,10 +100,10 @@ describe("Add station panel approved stations", () => {
     });
     render(
       <ModalProvider>
-        <StationLinkFab />
+        <InviteFab />
       </ModalProvider>,
     );
-    await user.click(screen.getByRole("button", { name: "Add station" }));
+    await user.click(screen.getByRole("button", { name: "Invite" }));
     const flight = await join("p9", "Flight");
     const dialog = screen.getByRole("dialog");
     await user.click(
@@ -143,7 +143,7 @@ describe("Add station panel approved stations", () => {
   });
 });
 
-describe("Add station panel with a join request waiting", () => {
+describe("Invite panel with a join request waiting", () => {
   it("offers Approve and Refuse inside the dialog, where the modal's overlay cannot cover them", async () => {
     const user = userEvent.setup();
     await act(async () => {
@@ -152,10 +152,10 @@ describe("Add station panel with a join request waiting", () => {
     render(
       <ModalProvider>
         <StationApprovalPrompt host={peerHostService} />
-        <StationLinkFab />
+        <InviteFab />
       </ModalProvider>,
     );
-    await user.click(screen.getByRole("button", { name: "Add station" }));
+    await user.click(screen.getByRole("button", { name: "Invite" }));
     const flight = await join("p1", "Flight");
 
     const dialog = screen.getByRole("dialog");
@@ -181,7 +181,7 @@ describe("Add station panel with a join request waiting", () => {
     render(
       <ModalProvider>
         <StationApprovalPrompt host={peerHostService} />
-        <StationLinkFab />
+        <InviteFab />
       </ModalProvider>,
     );
     await join("p3", "Flight");
@@ -189,7 +189,7 @@ describe("Add station panel with a join request waiting", () => {
       screen.getAllByRole("button", { name: /^Approve station Flight/ }),
     ).toHaveLength(1);
 
-    await user.click(screen.getByRole("button", { name: "Add station" }));
+    await user.click(screen.getByRole("button", { name: "Invite" }));
     const buttons = screen.getAllByRole("button", {
       name: /^Approve station Flight/,
     });

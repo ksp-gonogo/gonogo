@@ -128,6 +128,22 @@ describe("StationApprovalPrompt", () => {
 });
 
 describe("StationApprovalPrompt naming", () => {
+  it("names a pilot's request by its seat, never as a station", () => {
+    const host = new FakeHost();
+    render(<StationApprovalPrompt host={host} />);
+    host.set([
+      { peerId: "p1", name: "Pilot", seat: "pilot" },
+      { peerId: "p2", name: "Jeb", seat: "pilot" },
+    ]);
+    expect(screen.getByText("Pilot wants to join")).toBeVisible();
+    expect(screen.getByText("Jeb wants to join as a pilot")).toBeVisible();
+    expect(screen.queryByText(/Station/)).toBeNull();
+    expect(screen.getByRole("button", { name: "Approve pilot" })).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Approve pilot Jeb" }),
+    ).toBeVisible();
+  });
+
   it("does not say Station twice when the name already starts with it", () => {
     const host = new FakeHost();
     render(<StationApprovalPrompt host={host} />);
@@ -203,12 +219,15 @@ async function hostingRole(stations: [string, string][]): Promise<HostRole> {
 }
 
 describe("ApprovedStations", () => {
-  it("lists each station the game has approved, with Remove", async () => {
+  it("lists each screen the game has approved, with its seat where known, and Remove", async () => {
     const role = await hostingRole([
       ["cred-a", "Booster"],
       ["cred-b", "Retro"],
     ]);
-    const host = new FakeHost();
+    const host = Object.assign(new FakeHost(), {
+      approvedSeat: (id: string) =>
+        id === "id-cred-b" ? ("pilot" as const) : undefined,
+    });
     host.role = role;
     const { container } = render(
       <HostRoleProvider role={role}>
@@ -217,10 +236,14 @@ describe("ApprovedStations", () => {
     );
     expect(screen.getByText("Booster")).toBeVisible();
     expect(screen.getByText("Retro")).toBeVisible();
+    expect(screen.getByText("Pilot")).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Remove pilot Retro" }),
+    ).toBeVisible();
     await expectNoA11yViolations(container);
 
     await userEvent.click(
-      screen.getByRole("button", { name: "Remove station Booster" }),
+      screen.getByRole("button", { name: "Remove Booster" }),
     );
     await act(async () => {});
     expect(host.removed).toEqual(["id-cred-a"]);
@@ -235,7 +258,7 @@ describe("ApprovedStations", () => {
         <ApprovedStations host={new FakeHost()} />
       </HostRoleProvider>,
     );
-    expect(screen.getByText("No stations approved yet")).toBeVisible();
+    expect(screen.getByText("No screens approved yet")).toBeVisible();
   });
 });
 
@@ -246,14 +269,12 @@ describe("StationApprovalNotice", () => {
     expect(container).toBeEmptyDOMElement();
     client.set("pending");
     expect(
-      screen.getByText("Waiting for the main screen to approve this station"),
+      screen.getByText("Waiting for the host to approve this screen"),
     ).toBeVisible();
     client.refuse("gonogo-vote");
     expect(screen.getByText("GO/NO-GO vote not sent")).toBeVisible();
     client.set("refused");
-    expect(
-      screen.getByText("The main screen refused this station"),
-    ).toBeVisible();
+    expect(screen.getByText("The host refused this screen")).toBeVisible();
     await expectNoA11yViolations(container);
     await userEvent.click(screen.getByRole("button", { name: "Ask again" }));
     expect(client.asked).toBe(1);

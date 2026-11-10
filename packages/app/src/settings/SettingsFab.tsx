@@ -6,10 +6,20 @@ import {
 } from "@ksp-gonogo/serial";
 import { Fab, SettingsIcon, useModal } from "@ksp-gonogo/ui";
 import { Tooltip } from "@ksp-gonogo/ui-kit";
-import { useEffect } from "react";
+import { type ReactNode, useEffect } from "react";
 import styled from "styled-components";
 import { requestFirstRunSetup } from "../firstRun/firstRunRequest";
+import {
+  StationIdentityProvider,
+  type StationIdentityService,
+  useStationIdentityServiceOptional,
+} from "../stationIdentity";
 import { ModalTelemetryBridge } from "../telemetry/ModalTelemetryBridge";
+import {
+  type JoinedGame,
+  JoinedGameProvider,
+  useJoinedGame,
+} from "./JoinedGameContext";
 import { SettingsProvider, useSettingsService } from "./SettingsContext";
 import { SettingsModal } from "./SettingsModal";
 import { onSettingsRequested } from "./settingsRequest";
@@ -30,6 +40,8 @@ export function SettingsFab({ bottom = 384 }: { bottom?: number } = {}) {
   const service = useSettingsService();
   const serialService = useSerialDeviceService();
   const screen = useScreen();
+  const joined = useJoinedGame();
+  const identity = useStationIdentityServiceOptional();
 
   // Data sources surface in Settings on every screen that holds its own
   // telemetry session, so badge for them there and not on a station. Serial
@@ -37,6 +49,7 @@ export function SettingsFab({ bottom = 384 }: { bottom?: number } = {}) {
   const sources = useDataSources();
   const dataSourceIssue =
     screen !== "station" &&
+    !joined &&
     sources.some((s) => s.status === "disconnected" || s.status === "error");
   const serialStatus = useSerialAggregateStatus();
   const serialIssue = serialStatus === "partial" || serialStatus === "error";
@@ -54,10 +67,15 @@ export function SettingsFab({ bottom = 384 }: { bottom?: number } = {}) {
         <SettingsProvider service={service}>
           <ScreenProvider value={screen}>
             <SerialDeviceProvider service={serialService}>
-              <SettingsModal
-                initialTabId={initialTabId}
-                onRunSetupAgain={runSetupAgain}
-              />
+              <JoinedGameProviderOrPassthrough game={joined}>
+                <IdentityOrPassthrough service={identity}>
+                  <SettingsModal
+                    initialTabId={initialTabId}
+                    onRunSetupAgain={joined ? undefined : runSetupAgain}
+                    joined={joined}
+                  />
+                </IdentityOrPassthrough>
+              </JoinedGameProviderOrPassthrough>
             </SerialDeviceProvider>
           </ScreenProvider>
         </SettingsProvider>
@@ -84,6 +102,32 @@ export function SettingsFab({ bottom = 384 }: { bottom?: number } = {}) {
       </Fab>
     </Tooltip>
   );
+}
+
+function IdentityOrPassthrough({
+  service,
+  children,
+}: {
+  service: StationIdentityService | null;
+  children: ReactNode;
+}) {
+  if (!service) return <>{children}</>;
+  return (
+    <StationIdentityProvider service={service}>
+      {children}
+    </StationIdentityProvider>
+  );
+}
+
+function JoinedGameProviderOrPassthrough({
+  game,
+  children,
+}: {
+  game: JoinedGame | null;
+  children: ReactNode;
+}) {
+  if (!game) return <>{children}</>;
+  return <JoinedGameProvider game={game}>{children}</JoinedGameProvider>;
 }
 
 const StatusDot = styled.span`

@@ -24,8 +24,8 @@
  * different instants, and that needs a third vantage:
  *
  *   - mission control at `ksc`, hosting the peer link, on `/`
- *   - a pilot 3 s away at `vessel:near`, on `/pilot`
- *   - a pilot 9 s away at `vessel:far`, on `/pilot`
+ *   - a pilot 3 s away at `vessel:near`, on `/` at the pilot seat
+ *   - a pilot 9 s away at `vessel:far`, on `/` at the pilot seat
  *
  * A transmission goes to a group and only its members hear it. Mission control
  * opens one with both craft, so keying once is heard by both, six seconds
@@ -160,10 +160,10 @@ test.describe("commcast radio: two screens hearing each other @chromium-only", (
       videoDir,
       clip: CLIP,
     });
-    const shareCode = await getHostPeerId(control.page);
+    await getHostPeerId(control.page);
     const craft = await openScreen(browser, {
       name: "near-craft",
-      url: `/pilot?host=${shareCode}&uplinkLoaderIds=`,
+      url: "/?uplinkLoaderIds=",
       dashboardKey: "gonogo:dashboard:pilot",
       sitrepPort: PORTS.radioStream.near,
       videoDir,
@@ -314,10 +314,10 @@ test.describe("commcast radio: two screens hearing each other @chromium-only", (
       videoDir,
       clip: CLIP,
     });
-    const shareCode = await getHostPeerId(control.page);
+    await getHostPeerId(control.page);
     const near = await openScreen(browser, {
       name: "near-craft",
-      url: `/pilot?host=${shareCode}&uplinkLoaderIds=`,
+      url: "/?uplinkLoaderIds=",
       dashboardKey: "gonogo:dashboard:pilot",
       sitrepPort: PORTS.radioStream.near,
       videoDir,
@@ -326,7 +326,7 @@ test.describe("commcast radio: two screens hearing each other @chromium-only", (
     });
     const far = await openScreen(browser, {
       name: "far-craft",
-      url: `/pilot?host=${shareCode}&uplinkLoaderIds=`,
+      url: "/?uplinkLoaderIds=",
       dashboardKey: "gonogo:dashboard:pilot",
       sitrepPort: PORTS.radioStream.far,
       videoDir,

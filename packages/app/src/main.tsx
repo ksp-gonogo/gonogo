@@ -23,7 +23,7 @@ import App from "./App";
 import { CrashScreen } from "./CrashScreen";
 import { kspHostSeeded } from "./dataSources"; // importing it triggers all data source self-registration
 import { stampBootRole } from "./screens/bootIdentity";
-import { bootsWithoutDirectMod } from "./screens/isStationRoute";
+import { bootsWithoutDirectMod } from "./screens/route";
 import { setConsentBatchPrompt } from "./uplinks/consent";
 import { promptForConsents } from "./uplinks/consentModal";
 import { loaderBootIdsOverride } from "./uplinks/flag";
@@ -103,7 +103,7 @@ function renderApp(): void {
 // main screen over PeerJS. `probeUplinkRoster()` opens its own direct
 // `WebSocketTransport` to KSP and `loadEnabledUplinks`'s default `fetchBytes`
 // is a direct `fetch()` of the bundle bytes, both exactly the station→KSP /
-// station→author-host paths the peer architecture forbids. So on `/station`
+// station→author-host paths the peer architecture forbids. So on `/join`
 // this function skips both entirely and renders straight away; the loader
 // instead runs LATER, inside `StationUplinkLoader`
 // (`./uplinks/StationUplinkLoader.tsx`), mounted by `StationScreen` once the
