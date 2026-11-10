@@ -8,7 +8,7 @@
 // an Uplink calls, this is what the app and an Uplink's test WIRE INTO the host.
 //
 // The largest part of it is the read semantics of a topic. What
-// `useTelemetry("system.state.bodyCount")` MEANS: the published-processor path, the
+// `useTelemetry("system.state.bodyCount")` MEANS: the derived-channel path, the
 // raw-field-subtopic fallback the legacy-key table rides on, epoch handling on a
 // quickload rewind, and the frame-coherent memoisation that makes a re-read within
 // one frame hand back the identical object. A widget depends on all of it while it
@@ -29,9 +29,9 @@
 // evidence about the store, so the reimplementation is not on the table any
 // more: this is a move, and an Uplink's tests run the code the app runs.
 //
-// Deliberately NOT re-exported from the root barrel. Writing an Uplink needs
-// `TimelinePoint`, which the root barrel already publishes, and nothing about
-// it needs `TimelineStore`
+// Deliberately NOT re-exported from the root barrel. Authoring a derived channel
+// needs `DerivedChannelDefinition` and `TimelinePoint`, which the root barrel
+// already publishes; nothing about writing an Uplink needs `TimelineStore`
 // itself. Publishing the class would freeze 1594 lines of evolving internals as
 // third-party API, the same trap `TelemetryClient`-as-a-value was pulled back
 // from. A test reaches it through this subpath; the app reaches it through
@@ -68,6 +68,7 @@ export * from "./comms-route";
 export * from "./connection-error-warning";
 export * from "./connectivity-history";
 export * from "./context";
+export * from "./contributed-channels";
 export * from "./contribution-scope";
 export * from "./contributions";
 export * from "./control-frame-to-read-frame";

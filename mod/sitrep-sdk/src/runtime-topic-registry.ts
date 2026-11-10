@@ -12,8 +12,8 @@
  * right now" has to read.
  *
  * `registerTopicUnits` deliberately does not enrol a Topic here: a
- * published processor declares its fields through it too, and nothing puts a
- * published processor on the wire, so a units declaration is not evidence that
+ * client-derived channel declares its fields through it too, and nothing puts a
+ * derived channel on the wire, so a units declaration is not evidence that
  * anything sends the Topic.
  *
  * Read by the field catalogue every value picker offers from, so an Uplink's

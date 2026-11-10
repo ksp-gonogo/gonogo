@@ -8,8 +8,8 @@ import {
 import { useCommand, useStream } from "@ksp-gonogo/sitrep-client";
 import {
   type ChannelFamily,
+  DERIVED_CHANNEL_IDS,
   getAllKnownTopicIds,
-  PUBLISHED_TOPIC_IDS,
   topicMatchesFamily,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -395,7 +395,7 @@ function claimsOnce(widgetId: string): Promise<Claims> {
   return claims;
 }
 
-const KNOWN = [...getAllKnownTopicIds(), ...PUBLISHED_TOPIC_IDS];
+const KNOWN = [...getAllKnownTopicIds(), ...DERIVED_CHANNEL_IDS];
 
 const noFamilies = { topics: new Set<string>(), families: [] };
 

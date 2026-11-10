@@ -25,7 +25,7 @@ import { describe, expect, it } from "vitest";
  * after the provider mounted.
  *
  * This is the sibling of `StationLateContributedChannels.test.tsx`, which asks
- * the same station-ordering question about a published processor. Every Uplink
+ * the same station-ordering question about a derived channel. Every Uplink
  * registers when its bundle loads, which on a station is post-connect,
  * inside `StationUplinkLoader`.
  *

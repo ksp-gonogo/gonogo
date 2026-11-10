@@ -2,7 +2,7 @@ import type { ServerMessage } from "../envelope";
 import type { MissionMeta } from "../flight/types";
 import { TelemetryClient } from "./client";
 import type { Clock } from "./clock";
-import { publishProcessorsOn } from "./context";
+import { PRODUCTION_DERIVED_CHANNELS } from "./context";
 import { type ReplayFixture, ReplayTransport } from "./replay-transport";
 import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
@@ -52,7 +52,7 @@ function isDataOrEventFrame(message: unknown): message is DataOrEventMessage {
  * `meta.deliveredAt` is rewritten to `targetDeliveredAt` (so they all
  * schedule at offset zero, arriving together, near-instantly, instead of
  * spread across however many real seconds separated their original arrival
- * times); `validAt` is left untouched, since that's what published processors
+ * times); `validAt` is left untouched, since that's what derived channels
  * (e.g. `system.state`) reason about, not scheduling.
  *
  * This is what makes seeking forward correct for slow-changing/keyframed
@@ -139,7 +139,7 @@ type Listener = () => void;
  * banner.
  *
  * It builds a fresh `TelemetryClient` and `TimelineStore` (registering the same
- * published processors the live stream does) from a mission's `ReplayFixture`, and
+ * derived channels the live stream does) from a mission's `ReplayFixture`, and
  * renders through the ordinary `TelemetryProvider` surface
  * (`ReplaySessionProvider`): a replayed widget is the same component reading the
  * same `useTelemetry` hook a live one does, fed from a different client.
@@ -275,7 +275,9 @@ export class ReplaySessionController {
 
     const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
     const store = new TimelineStore(clock);
-    publishProcessorsOn(store);
+    for (const channel of PRODUCTION_DERIVED_CHANNELS) {
+      store.registerDerivedChannel(channel);
+    }
 
     const transportClock = new ScaledRealTimeClock(Math.max(rate, 0.01));
     const transport = new ReplayTransport(fixture, { clock: transportClock });

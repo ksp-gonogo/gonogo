@@ -8,10 +8,8 @@ import {
   type AnyProcessorDefinition,
   type Dep,
   getProcessor,
-  isProcessorDep,
-  isPublishedProcessor,
-  isReadingDep,
   isSubjectDep,
+  type ReadingDep,
 } from "./processors";
 import { subscribeTopicRead } from "./subscribe-read";
 import type { TimelineStore } from "./timeline-store";
@@ -43,11 +41,6 @@ let recordEvaluation: () => void = () => {};
  */
 export function setProcessorEvaluationRecorder(fn: () => void): void {
   recordEvaluation = fn;
-}
-
-/** Counts one evaluation of a published processor, which the store runs rather than the runtime. */
-export function recordPublishedEvaluation(): void {
-  recordEvaluation();
 }
 
 // The fan-out counterpart, and the number a dashboard actually pays: an
@@ -144,6 +137,11 @@ export function setProcessorUncomparableRecorder(
   recordUncomparable = fn ?? (() => {});
 }
 
+/** True for a ProcessorHandle dep (has an `id`), false for a raw TopicId string. */
+function isHandle(dep: Dep): dep is { id: string } {
+  return typeof dep === "object" && dep !== null && "id" in dep;
+}
+
 /** DFS collects `id` + every transitive Processor dep, id-deduped, deps-before-dependents. */
 function topoOrder(
   id: string,
@@ -155,44 +153,35 @@ function topoOrder(
   const def: AnyProcessorDefinition | undefined = getProcessor(id);
   if (!def) return out;
   for (const dep of def.deps) {
-    if (isProcessorDep(dep)) topoOrder(dep.id, seen, out);
+    if (isHandle(dep)) topoOrder(dep.id, seen, out);
   }
   out.push(id);
   return out;
 }
 
-/**
- * The Topics `def` reads, through every processor it depends on. Useful for
- * knowing what a processor needs subscribed and which delay lane its inputs sit
- * in.
- */
-export function processorInputTopics(
-  def: AnyProcessorDefinition,
-  seen = new Set<string>(),
-  out = new Set<string>(),
-): Set<string> {
-  seen.add(def.id);
-  for (const dep of def.deps) {
-    // A reading dep names the same wire topic a bare id does; only what the
-    // processor is HANDED differs. Missing this would add the dep object
-    // itself as a topic and silently starve the subscription, which is the
-    // failure mode `stub-transport`'s subscribed-only delivery exists to
-    // surface.
-    if (isReadingDep(dep)) {
-      out.add(dep.reading);
-      continue;
+/** The transitive raw Topic-id deps of `id` and every Processor it depends on. */
+function collectRawTopicDeps(id: string): string[] {
+  const topics = new Set<string>();
+  for (const procId of topoOrder(id)) {
+    const def = getProcessor(procId);
+    if (!def) continue;
+    for (const dep of def.deps) {
+      // A reading dep names the same wire topic a bare id does; only what the
+      // processor is HANDED differs. Missing this would add the dep object
+      // itself as a topic and silently starve the subscription, which is the
+      // failure mode `stub-transport`'s subscribed-only delivery exists to
+      // surface.
+      if (isReadingDep(dep)) {
+        topics.add(dep.reading);
+        continue;
+      }
+      // A subject dep names no topic until a reckon resolves its subject, and a
+      // processor never will: `resolveDep` throws on one. Skipped here so the
+      // refusal is that throw rather than a dep object landing in a topic set.
+      if (!isHandle(dep) && !isSubjectDep(dep)) topics.add(dep);
     }
-    if (isProcessorDep(dep)) {
-      const nested = seen.has(dep.id) ? undefined : getProcessor(dep.id);
-      if (nested) processorInputTopics(nested, seen, out);
-      continue;
-    }
-    // A subject dep names no topic until a reckon resolves its subject, and a
-    // processor never will: `resolveDep` throws on one. Skipped here so the
-    // refusal is that throw rather than a dep object landing in a topic set.
-    if (!isSubjectDep(dep)) out.add(dep);
   }
-  return out;
+  return [...topics];
 }
 
 /**
@@ -202,6 +191,10 @@ export function processorInputTopics(
  */
 function isCurrency(value: unknown): value is TopicCurrency<unknown> {
   return typeof value === "object" && value !== null && "state" in value;
+}
+
+function isReadingDep(dep: Dep): dep is ReadingDep {
+  return typeof dep === "object" && dep !== null && "reading" in dep;
 }
 
 /**
@@ -440,54 +433,6 @@ function compareResults(previous: unknown, next: unknown): Comparison {
   return verdict;
 }
 
-/**
- * One `compute` of `def` over already-resolved `values`, with its answer dated
- * by whichever of them are readings.
- *
- * `computed` is what `compute` returned; `result` is that answer as a reader of
- * the handle receives it. A derivation whose inputs carry currency answers with
- * it, and one whose inputs do not answers the bare value it always did. The
- * opt-in is the dep list rather than a flag: a processor reading only raw topic
- * ids has nothing to date its answer by, and inventing an instant for it would
- * be a claim nothing supports.
- *
- * `compute` runs either way and runs first. It was handed the readings and has
- * already decided what a missing one means, so the dating is laid over the
- * answer rather than deciding whether there is one. See `datedFrom` for what the
- * resulting state does and does not say.
- */
-export function runProcessorCompute(
-  def: AnyProcessorDefinition,
-  values: readonly unknown[],
-  viewUt: number,
-): { computed: unknown; result: unknown } {
-  const computed = runOutsideContributionScope(() =>
-    def.compute(values as never, { viewUt }),
-  );
-  const carried = def.deps.flatMap((dep, i) => {
-    if (!isReadingDep(dep)) return [];
-    /*
-     * Through `observedAt` rather than reaching `.asOfUt ?? .atUt` by hand. A
-     * reading dep resolves to a WHOLE-TOPIC reading, which maps member access
-     * into field readings, so reaching the instant directly answers a reading
-     * OF the instant instead of the instant.
-     */
-    const reading = values[i];
-    if (!isCurrency(reading)) return [];
-    return [
-      {
-        state: reading.state,
-        instant: observedAt(reading),
-        grade: reading.state === "held" ? reading.grade : undefined,
-      },
-    ];
-  });
-  return {
-    computed,
-    result: carried.length === 0 ? computed : datedFrom(carried, computed),
-  };
-}
-
 interface ProcessorRuntimeEntry {
   refCount: number;
   lastFrameGeneration: number | undefined;
@@ -626,9 +571,7 @@ export class ProcessorRuntime {
     const subscribe = this.subscribeInputTopic;
     if (entry.refCount === 0 || entry.topicUnsubs || !subscribe) return;
     const subscriber = { subscribe: (topic: string) => subscribe(topic) };
-    const def = getProcessor(id);
-    if (!def) return;
-    entry.topicUnsubs = [...processorInputTopics(def)].map((depTopic) =>
+    entry.topicUnsubs = collectRawTopicDeps(id).map((depTopic) =>
       subscribeTopicRead(subscriber, this.store, depTopic),
     );
   }
@@ -646,7 +589,7 @@ export class ProcessorRuntime {
   }
 
   private resolveDep(dep: Dep, token: { generation: number }): unknown {
-    if (isProcessorDep(dep)) {
+    if (isHandle(dep)) {
       this.evaluate(dep.id, token);
       return this.entryFor(dep.id).value;
     }
@@ -680,23 +623,46 @@ export class ProcessorRuntime {
     if (entry.lastFrameGeneration === token.generation) return; // already fresh this frame
     const def = getProcessor(id);
     if (!def) return;
+    const values = def.deps.map((dep) => this.resolveDep(dep, token));
+    // The frame's own frozen view time, so a processor deriving a remaining duration from an instant on the wire has a clock without reaching for a wall clock.
+    const frame = this.store.currentFrame();
+    const computed = runOutsideContributionScope(() =>
+      def.compute(values as never, {
+        viewUt: frame.viewUt,
+      }),
+    );
     /*
-     * A published processor is evaluated by the store, so a handle read and a
-     * Topic read of it in one frame are one evaluation and cannot disagree.
+     * A derivation whose inputs carry currency ANSWERS with it, and one whose
+     * inputs do not answers the bare value it always did. The opt-in is the dep
+     * list rather than a flag: a processor reading only raw topic ids has nothing
+     * to date its answer by, and inventing an instant for it would be a claim
+     * nothing supports.
+     *
+     * `compute` runs either way and runs FIRST. It was handed the readings and
+     * has already decided what a missing one means, so the dating is laid over
+     * the answer rather than deciding whether there is one. See `datedFrom` for
+     * what the resulting state does and does not say.
      */
-    let next: unknown;
-    if (isPublishedProcessor(def)) {
-      next = this.store.evaluateProcessor(
-        def,
-        this.store.currentFrame(),
-      ).result;
-    } else {
-      const values = def.deps.map((dep) => this.resolveDep(dep, token));
-      // The frame's own frozen view time, so a processor deriving a remaining duration from an instant on the wire has a clock without reaching for a wall clock.
-      const frame = this.store.currentFrame();
-      next = runProcessorCompute(def, values, frame.viewUt).result;
-      recordEvaluation();
-    }
+    const carried = def.deps.flatMap((dep, i) => {
+      if (!isReadingDep(dep)) return [];
+      /*
+       * Through `observedAt` rather than reaching `.asOfUt ?? .atUt` by hand. A
+       * reading dep resolves to a WHOLE-TOPIC reading, which maps member access
+       * into field readings, so reaching the instant directly answers a reading
+       * OF the instant instead of the instant.
+       */
+      const reading = values[i];
+      if (!isCurrency(reading)) return [];
+      return [
+        {
+          state: reading.state,
+          instant: observedAt(reading),
+          grade: reading.state === "held" ? reading.grade : undefined,
+        },
+      ];
+    });
+    const next = carried.length === 0 ? computed : datedFrom(carried, computed);
+    recordEvaluation();
     entry.lastFrameGeneration = token.generation;
     // Gated on the RESULT, and on equality rather than identity. Evaluation
     // semantics are untouched (memoised within a frame, re-run across frames);

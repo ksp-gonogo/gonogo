@@ -915,7 +915,7 @@ export function useRouteCommands(topic: string): UseRouteCommandsResult {
 /**
  * Reads a Topic by a string id and returns its {@link TopicReading}, in the
  * same states as {@link useTelemetry}. Useful for showing the operator a Topic
- * that has no {@link TopicId}: a published processor such as `"system.state"`, an
+ * that has no {@link TopicId}: a derived channel such as `"system.state"`, an
  * Uplink's own Topic, or a Topic whose id is built at runtime such as
  * `vessel.partActions.<flightId>`. Used by the space centre status widget, which
  * shows the state of the space centre's buildings.
@@ -997,8 +997,9 @@ export function modSettingDep<
  * Values computed from Topics once and shared: a processor reads its
  * dependencies and returns a derived value each frame, and any Uplink can read
  * one through a handle without depending on the Uplink that implements it.
- * A processor can also be published as a Topic the app computes. Also here is
- * {@link TimelinePoint}, the dated sample a reckoner reads.
+ * Also here are the pieces of a derived channel, a Topic the app computes from
+ * other Topics ({@link DerivedChannelDefinition}), and {@link TimelinePoint},
+ * the dated sample both a derived channel and a reckoner read.
  */
 export function useProcessor<Result, Carried extends boolean>(handle: {
   readonly id: string;

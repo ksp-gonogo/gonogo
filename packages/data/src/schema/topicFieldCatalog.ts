@@ -1,10 +1,10 @@
-// `CORE_PUBLISHED_PROCESSORS` comes through the client barrel rather than the
+// `PRODUCTION_DERIVED_CHANNELS` comes through the client barrel rather than the
 // SDK's: importing it here is also what LOADS those channel modules, and loading
 // one is what registers its hand-declared field metadata. Without that side
-// effect a published processor's fields enumerate without units.
+// effect a derived channel's fields enumerate without units.
 import {
-  CORE_PUBLISHED_PROCESSORS,
-  getPublishedProcessors,
+  getContributedDerivedChannels,
+  PRODUCTION_DERIVED_CHANNELS,
 } from "@ksp-gonogo/sitrep-client";
 import {
   contractTagsGeneration,
@@ -116,7 +116,7 @@ export function fieldLabel(topic: string, path: string): string {
  * whose read lands somewhere else is silent: the picker shows it and nothing
  * ever fills it.
  *
- * A published processor is exempt: its own field subtopics resolve through the
+ * A derived channel is exempt: its own field subtopics resolve through the
  * channel rather than through that split.
  */
 function readLandsOnTopic(
@@ -210,13 +210,13 @@ function buildTopicFieldCatalog(
 }
 
 /**
- * Every published processor a store registers: the first-party list and every
+ * Every derived channel a store registers: the first-party list and every
  * uncontested Uplink contribution.
  */
-export function getPublishedTopicIds(): string[] {
+export function getDerivedTopicIds(): string[] {
   return [
-    ...CORE_PUBLISHED_PROCESSORS.map((c) => c.topic),
-    ...getPublishedProcessors().map((c) => c.topic),
+    ...PRODUCTION_DERIVED_CHANNELS.map((c) => c.topic),
+    ...getContributedDerivedChannels().map((c) => c.topic),
   ];
 }
 
@@ -263,7 +263,7 @@ function builtFor(
  */
 export function getTopicFieldCatalog(
   registered: readonly string[] = getRuntimeRegisteredTopicIds(),
-  derived: readonly string[] = getPublishedTopicIds(),
+  derived: readonly string[] = getDerivedTopicIds(),
 ): TopicFieldKey[] {
   return builtFor(registered, derived).keys;
 }
@@ -344,7 +344,7 @@ export function withEnumName(
  */
 export function getUndescribedTopics(
   registered: readonly string[] = getRuntimeRegisteredTopicIds(),
-  derived: readonly string[] = getPublishedTopicIds(),
+  derived: readonly string[] = getDerivedTopicIds(),
 ): readonly string[] {
   return builtFor(registered, derived).undescribed;
 }
@@ -360,7 +360,7 @@ export function getUndescribedTopics(
  */
 export function getCollectionTopics(
   registered: readonly string[] = getRuntimeRegisteredTopicIds(),
-  derived: readonly string[] = getPublishedTopicIds(),
+  derived: readonly string[] = getDerivedTopicIds(),
 ): readonly string[] {
   return builtFor(registered, derived).collections;
 }

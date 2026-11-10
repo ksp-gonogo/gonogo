@@ -98,7 +98,7 @@ export type WidgetTopicValue<Topic extends TopicId> =
  * through {@link WidgetTopicValue}.
  *
  * The argument is `Extract<..., TopicId>`, narrower than what may be declared. A
- * widget may declare a published processor, but the derived ones are read with
+ * widget may declare a derived channel, but the derived ones are read with
  * `useStream`, which
  * answers with the value rather than a `Reading`. Admitting them here would mean
  * either fabricating a `Reading` for a channel with no reckoning model or

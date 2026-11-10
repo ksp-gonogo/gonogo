@@ -1101,7 +1101,7 @@ export class TelemetryClient {
    * already does, the two delivery paths are independent, neither replaces
    * the other. `point.validAt`/`point.epoch` are read straight off the
    * message's own `meta` (`meta.validAt`/`meta.timelineEpoch`), which is what
-   * makes this feed correct for a published processor's epoch-guard/quality-pick
+   * makes this feed correct for a derived channel's epoch-guard/quality-pick
    * machinery without this class needing to know anything about derivation.
    *
    * Does not replay history: a store attached after samples have already

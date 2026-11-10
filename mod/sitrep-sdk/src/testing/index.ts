@@ -64,6 +64,7 @@ export { clearUplinkHandles } from "../api/uplink-handles";
 // freeze the store's internals as third-party API. A test is a different audience
 // from a widget, and this subpath is where that difference is expressed.
 export {
+  type DerivedGet,
   mapTopic,
   processorRuntimeFor,
   setActiveTelemetryClientForTests,

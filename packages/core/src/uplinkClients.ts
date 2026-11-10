@@ -6,7 +6,7 @@
  * back, both have to be reachable from a published package.
  *
  * Everything it named was already sdk-side: `defineProcessor`, `registerReckoner`,
- * and the contribution registry that moved with it. The
+ * `contributeDerivedChannel` and the contribution registry that moved with it. The
  * loose `UplinkClientHandle` mirror the sdk carried is gone in the same change,
  * since the four spine types it could not name are all there now.
  *

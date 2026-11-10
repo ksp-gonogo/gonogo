@@ -1,6 +1,6 @@
 import {
-  CORE_PUBLISHED_PROCESSORS,
   isKnownFieldPath,
+  PRODUCTION_DERIVED_CHANNELS,
 } from "@ksp-gonogo/sitrep-client";
 import { isTopicId } from "@ksp-gonogo/sitrep-sdk";
 
@@ -25,18 +25,18 @@ export type RequirementKind =
   /** A wire channel the mod publishes (`isTopicId`, generated from the C#
    *  contract, so a typo is not a `TopicId`). */
   | "wire-topic"
-  /** A published processor registered in `CORE_PUBLISHED_PROCESSORS`, named by
+  /** A derived channel registered in `PRODUCTION_DERIVED_CHANNELS`, named by
    *  a widget that reads the whole payload (`useStream("system.state")`). */
-  | "published-topic"
+  | "derived-channel"
   /** A field path inside one of the above, which `isKnownFieldPath` accepts
    *  only where the contract's own generated field metadata declares it under
    *  a known Topic. The walk reads through `unitsForTopic`/`shapesForTopic`
    *  rather than the generated maps directly, which is what lets it see a
-   *  Topic an Uplink or a published processor registered at module load. */
+   *  Topic an Uplink or a derived channel registered at module load. */
   | "field-path";
 
 const DERIVED_CHANNEL_TOPICS: ReadonlySet<string> = new Set(
-  CORE_PUBLISHED_PROCESSORS.map((channel) => channel.topic),
+  PRODUCTION_DERIVED_CHANNELS.map((channel) => channel.topic),
 );
 
 /**
@@ -48,7 +48,7 @@ export function classifyRequirement(
   requirement: string,
 ): RequirementKind | undefined {
   if (isTopicId(requirement)) return "wire-topic";
-  if (DERIVED_CHANNEL_TOPICS.has(requirement)) return "published-topic";
+  if (DERIVED_CHANNEL_TOPICS.has(requirement)) return "derived-channel";
   if (isKnownFieldPath(requirement)) return "field-path";
   return undefined;
 }

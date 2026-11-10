@@ -574,13 +574,14 @@ export {
 } from "./topic-fields";
 export {
   type ChannelFamily,
+  DERIVED_CHANNEL_IDS,
+  type DerivedChannelId,
   familyPrefix,
   getAllKnownTopicIds,
   isCollectionTopic,
+  isDerivedChannelId,
   isTopicId,
   isWidgetChannelId,
-  PUBLISHED_TOPIC_IDS,
-  type PublishedTopicId,
   registerCollectionTopic,
   registerUplinkTopic,
   TOPIC_IDS,

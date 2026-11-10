@@ -1,9 +1,8 @@
 import { Staleness, value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
-import { DV_CURRENT_STAGE_RESOURCE } from "./dv-stage-resources";
-import { publishedDefinitionOf } from "./processors";
+import { dvCurrentStageResourceChannel } from "./dv-stage-resources";
 import { makeMeta } from "./stub-transport";
-import { SYSTEM_STATE } from "./system-state";
+import { systemStateChannel } from "./system-state";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
@@ -359,10 +358,10 @@ describe("TimelineStore.sampleStatus (M2 T4: staleness/absence surface)", () => 
 });
 
 /**
- * A published processor reads the worst status of its declared inputs, through a
+ * A derived channel reads the worst status of its declared inputs, through a
  * real store, for system.state and dv.currentStageResource alike.
  */
-describe("a published processor's default status: worst of its declared inputs, through a real store", () => {
+describe("a derived channel's default status: worst of its declared inputs, through a real store", () => {
   function recordPoint<Payload>(
     validAt: number,
     payload: Payload | null,
@@ -381,7 +380,7 @@ describe("a published processor's default status: worst of its declared inputs, 
   function systemStore(): TimelineStore {
     const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
     const store = new TimelineStore(clock);
-    store.publishProcessor(publishedDefinitionOf(SYSTEM_STATE));
+    store.registerDerivedChannel(systemStateChannel);
     return store;
   }
 
@@ -423,7 +422,7 @@ describe("a published processor's default status: worst of its declared inputs, 
   it("takes the WORST of two inputs, not the first", () => {
     const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
     const store = new TimelineStore(clock);
-    store.publishProcessor(publishedDefinitionOf(DV_CURRENT_STAGE_RESOURCE));
+    store.registerDerivedChannel(dvCurrentStageResourceChannel);
 
     store.ingest("dv.stages", recordPoint(10, [{ stage: 0, resources: {} }]));
     store.ingest(

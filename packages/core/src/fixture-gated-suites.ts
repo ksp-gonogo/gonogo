@@ -51,7 +51,7 @@ export const FIXTURE_GATED_SUITES: readonly FixtureGatedSuite[] = [
     fixture: "local_docs/telemetry-mod/recordings/reference-wire-fixture.json",
     tests: 2,
     covers:
-      "the full TS SDK replayed against genuine engine output: published processors, epoch/ghost handling, staleness and certainty, the ViewClock estimator",
+      "the full TS SDK replayed against genuine engine output: derived channels, epoch/ghost handling, staleness and certainty, the ViewClock estimator",
   },
   {
     file: "packages/components/src/WarpControl/dual-run.test.tsx",

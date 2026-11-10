@@ -15,7 +15,9 @@ import type {
 } from "../api/types";
 import { type ContractTagTable, registerContractTags } from "../contract-tags";
 import type { DepWindows, ReckonerDefinition } from "../reading";
+import type { DerivedChannelDefinition } from "../timeline";
 import type { TopicId, TopicPayload } from "../topics";
+import { contributeDerivedChannel } from "./contributed-channels";
 import { registerContribution } from "./contributions";
 import type {
   CarriesCurrency,
@@ -39,8 +41,9 @@ import { registerReckoner } from "./reckoners";
  * - the methods of this handle (`registerRootProvider`,
  *   `registerRevealedEventSource`, `registerContribution`, `registerProcessor`)
  *   prefix the id they are given with the Uplink's own, `my-uplink:<id>`, so two
- *   Uplinks can use the same local ids without colliding; `registerReckoner` takes
- *   a Topic rather than an id of its own, and records this Uplink as its owner
+ *   Uplinks can use the same local ids without colliding; `registerReckoner` and
+ *   `registerDerivedChannel` take a Topic rather than an id of their own, and
+ *   record this Uplink as its owner
  * - the free functions `registerComponent` and `registerAugment` are not methods
  *   of the handle: they take the handle as `owner` and use the id as written
  * - `registerDataSource` and `registerTheme` take no owner and use the id as
@@ -140,22 +143,6 @@ export interface UplinkClientHandle {
    * time the dashboard's telemetry store publishes a new set of values) and
    * shared by every reader. Returns the handle to read it by, with
    * {@link useProcessor} or as one of a contribution's `deps`.
-   *
-   * With `topic` the processor is also published as a Topic computed in the
-   * app: any reader that takes a Topic id reads it, it has a history a chart can
-   * plot, and with `fields` each field of its result is a Topic of its own, such
-   * as `system.state.bodyCount`. Return `undefined` from `compute` while an input
-   * has not arrived and `null` when the value is confirmed absent, so a reader
-   * shows "waiting" rather than a made-up zero.
-   *
-   * A published processor reads every input at one instant, in the delay lane
-   * of the least current of them. Its status is the worst of theirs. Its history
-   * is built by running `compute` again at each instant an input changed, so the
-   * same inputs must give the same result, and a `{ reading }` dep is handed to a
-   * past instant as observed.
-   *
-   * An Uplink cannot replace a Topic Gonogo already publishes, and when two
-   * Uplinks publish the same Topic, neither is used.
    */
   registerProcessor<
     const Deps extends readonly Dep[],
@@ -165,10 +152,6 @@ export interface UplinkClientHandle {
     id: ProcessorId;
     deps: Deps;
     compute: (values: ResolvedDeps<Deps>, frame: ProcessorFrame) => Result;
-    /** The Topic to also publish this processor under. */
-    topic?: string;
-    /** With `topic`, also publishes each field of the result as `<topic>.<field>`. */
-    fields?: boolean;
   }): ProcessorHandle<
     Result,
     `${string}:${ProcessorId}`,
@@ -198,6 +181,15 @@ export interface UplinkClientHandle {
       Windows
     >,
   ): void;
+  /**
+   * Adds a derived channel: a Topic whose value is computed from other Topics
+   * in the app rather than sent by the mod. See {@link DerivedChannelDefinition}
+   * for how its `derive` reads the inputs.
+   *
+   * An Uplink cannot replace a Topic Gonogo already derives, and when two
+   * Uplinks derive the same Topic, neither is used.
+   */
+  registerDerivedChannel<Payload>(def: DerivedChannelDefinition<Payload>): void;
 }
 
 /**
@@ -287,8 +279,6 @@ export function defineUplinkClient(
       id: ProcessorId;
       deps: Deps;
       compute: (values: ResolvedDeps<Deps>, frame: ProcessorFrame) => Result;
-      topic?: string;
-      fields?: boolean;
     }): ProcessorHandle<
       Result,
       `${string}:${ProcessorId}`,
@@ -311,6 +301,11 @@ export function defineUplinkClient(
       >,
     ): void {
       registerReckoner(topic, cfg.id, reckoner);
+    },
+    registerDerivedChannel<Payload>(
+      def: DerivedChannelDefinition<Payload>,
+    ): void {
+      contributeDerivedChannel(def, cfg.id);
     },
   });
   clients().set(handle.id, handle);

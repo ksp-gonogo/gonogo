@@ -1,11 +1,11 @@
-import { onPublishedProcessorsChange } from "@ksp-gonogo/sitrep-client";
+import { onContributedChannelsChange } from "@ksp-gonogo/sitrep-client";
 import {
   getRuntimeRegisteredTopicIds,
   subscribeRuntimeTopicRegistry,
 } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo, useSyncExternalStore } from "react";
 import {
-  getPublishedTopicIds,
+  getDerivedTopicIds,
   getTopicFieldCatalog,
   isNumericField,
   isPrintableField,
@@ -14,7 +14,7 @@ import {
 
 /** A string, so the snapshot compares by value and a re-read that changed nothing is not a change. */
 function derivedTopicsSnapshot(): string {
-  return getPublishedTopicIds().join(",");
+  return getDerivedTopicIds().join(",");
 }
 
 /**
@@ -32,7 +32,7 @@ export function useTopicFieldCatalog(): TopicFieldKey[] {
     getRuntimeRegisteredTopicIds,
   );
   const derived = useSyncExternalStore(
-    onPublishedProcessorsChange,
+    onContributedChannelsChange,
     derivedTopicsSnapshot,
     derivedTopicsSnapshot,
   );

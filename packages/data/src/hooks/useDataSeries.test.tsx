@@ -1,6 +1,5 @@
 import {
-  DV_CURRENT_STAGE_RESOURCE,
-  publishedDefinitionOf,
+  dvCurrentStageResourceChannel,
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
@@ -17,8 +16,8 @@ import { useDataSeries } from "./useDataSeries";
 
 /**
  * `useDataSeries` builds its `SeriesRange` off the `TimelineStore`: straight
- * off `sampleRange` for a raw topic, or off `sampleProcessorRange` (a replay of
- * the processor's own `compute` across its raw inputs' buffered ranges) for a
+ * off `sampleRange` for a raw topic, or off `sampleDerivedRange` (a replay of
+ * the channel's own `derive()` across its raw inputs' buffered ranges) for a
  * derived one.
  */
 
@@ -70,10 +69,10 @@ function buildStreamFixture(opts: { pinnedUt?: number }) {
   });
   const store = new TimelineStore(clock);
   /* A caller-provided `store` (as opposed to `TelemetryProvider`'s auto-built
-     default) registers NO published processors on its own, so the DERIVED-topic
+     default) registers NO derived channels on its own, so the DERIVED-topic
      test below registers the one it reads, or it would silently fall through
      `resolveRawFieldSubtopic`. */
-  store.publishProcessor(publishedDefinitionOf(DV_CURRENT_STAGE_RESOURCE));
+  store.registerDerivedChannel(dvCurrentStageResourceChannel);
   if (opts.pinnedUt !== undefined) clock.scrubTo(opts.pinnedUt);
 
   function Provider({ children }: { children: ReactNode }) {
@@ -325,7 +324,7 @@ describe("useDataSeries: a DERIVED field path streams a REAL series computed fro
    * `dv.currentStageResource` joins `dv.stages` to `vessel.structure`.
    * `TimelineStore.sampleRange` still returns `undefined` for a derived
    * topic (by design: nothing is ever stored for one), but
-   * `sampleProcessorRange` replays the channel's `derive` at every UT either
+   * `sampleDerivedRange` replays the channel's `derive` at every UT either
    * raw input changed within the window, off `sampleRange` reads of those raw
    * topics' own buffered ranges.
    *
@@ -333,7 +332,7 @@ describe("useDataSeries: a DERIVED field path streams a REAL series computed fro
    * the value with no new `dv.stages` sample at all, so a replay that walked
    * only one input's instants would miss a point.
    */
-  it("sampleProcessorRange replays derive at every instant either input changed", async () => {
+  it("sampleDerivedRange replays derive at every instant either input changed", async () => {
     const fixture = buildStreamFixture({
       pinnedUt: 100,
     });
@@ -346,7 +345,7 @@ describe("useDataSeries: a DERIVED field path streams a REAL series computed fro
 
     expect(readProbe()).toBe("t:|v:|breaks:");
     /* Real subscriptions must have happened for StubTransport (subscription-
-       gated) to deliver at all, and the published processor resolves to its raw
+       gated) to deliver at all, and the derived channel resolves to its raw
        inputs, so those are what a subscription must land on. */
     expect(fixture.transport.isSubscribed("dv.stages")).toBe(true);
     expect(fixture.transport.isSubscribed("vessel.structure")).toBe(true);

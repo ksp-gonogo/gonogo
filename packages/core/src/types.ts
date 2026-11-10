@@ -248,9 +248,9 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    * promise about what has arrived. Typed as
    * `readonly WidgetChannelId[]`: the same typed token the read hook is keyed
    * by, so there is no drift between declaration and read. The union's other
-   * arm is the published processors, which a widget consumes exactly as
+   * arm is the client-side derived channels, which a widget consumes exactly as
    * it consumes a wire Topic and which are not `TopicId`s; see
-   * `PUBLISHED_TOPIC_IDS`. Authored via {@link defineTopicManifest}
+   * `DERIVED_CHANNEL_IDS`. Authored via {@link defineTopicManifest}
    * (`channels`), which also yields the bound `useTelemetry` hook. Coexists
    * with the legacy `dataRequirements` during migration.
    */

@@ -1,7 +1,8 @@
-import { CORE_UPLINK_CLIENT } from "./uplink-clients";
+import type { DerivedChannelDefinition, DerivedGet } from "./timeline-store";
+import type { SystemBodiesPayload } from "./wire-payloads";
 
 /**
- * The `system.state` published processor: facts about the solar system that do not
+ * The `system.state` derived channel: facts about the solar system that do not
  * depend on any one vessel. Useful for knowing how many bodies exist.
  *
  * Today it carries a single field, `bodyCount`. `trackingStation.bodies` on the wire is the
@@ -15,29 +16,30 @@ export interface SystemState {
 }
 
 /**
- * Works out `system.state` from the `trackingStation.bodies` payload. Useful for
- * knowing how many bodies the game has. Used by {@link SYSTEM_STATE}. The result
- * is `undefined` while `trackingStation.bodies` has not arrived (still
- * resyncing), `null` when it is a confirmed tombstone, and otherwise the array
- * length. Never throws.
+ * Derives `system.state` from `trackingStation.bodies`. Useful for knowing how many bodies
+ * the game has. Used by {@link systemStateChannel}. The result is `undefined`
+ * while `trackingStation.bodies` has not arrived (still resyncing), `null` when it is a
+ * confirmed tombstone, and otherwise the array length. Never throws.
  */
 export function deriveSystemState(
-  bodies: { bodies: readonly unknown[] } | null | undefined,
+  get: DerivedGet,
 ): SystemState | null | undefined {
-  if (bodies === undefined) return undefined;
-  if (bodies === null) return null;
-  return { bodyCount: bodies.bodies.length };
+  const bodiesPoint = get<SystemBodiesPayload>("trackingStation.bodies");
+  if (!bodiesPoint) return undefined;
+  if (bodiesPoint.payload === null) return null;
+  return { bodyCount: bodiesPoint.payload.bodies.length };
 }
 
 /**
- * The processor published as `system.state`. Useful for making the body count
- * readable by widgets. `fields` exposes `system.state.bodyCount`. Its status is
- * its single `trackingStation.bodies` input's.
+ * The derived channel definition for `system.state`, ready to register with
+ * `store.registerDerivedChannel(systemStateChannel)`. Useful for making the body
+ * count readable by widgets. Registered by the telemetry context provider.
+ * `fields: true` exposes `system.state.bodyCount`. Its status is its single
+ * `trackingStation.bodies` input's.
  */
-export const SYSTEM_STATE = CORE_UPLINK_CLIENT.registerProcessor({
-  id: "system-state",
+export const systemStateChannel: DerivedChannelDefinition<SystemState> = {
   topic: "system.state",
+  inputs: ["trackingStation.bodies"],
+  derive: deriveSystemState,
   fields: true,
-  deps: ["trackingStation.bodies"],
-  compute: ([bodies]) => deriveSystemState(bodies),
-});
+};

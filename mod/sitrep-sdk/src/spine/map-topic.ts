@@ -4,7 +4,7 @@
  * `isKnownFieldPath` / `resolveValueTopic` say whether a dotted path names a
  * field the contract declares, and which Topic a caller should sample for it.
  * Both read the contract's own generated metadata through
- * `unitsForTopic`/`shapesForTopic`, so a Topic an Uplink or a published processor
+ * `unitsForTopic`/`shapesForTopic`, so a Topic an Uplink or a derived channel
  * registered at module load resolves alongside a first-party one.
  *
  * `mapTopic` vouches for a key in a dynamic namespace, which no generated
@@ -108,7 +108,7 @@ function isEmpty(record: Readonly<Record<string, unknown>>): boolean {
 
 /**
  * Whether the contract declares `topic` as a Topic at all, including a Topic
- * registered at module load such as an Uplink's own or a published processor.
+ * registered at module load such as an Uplink's own or a client-derived channel.
  * Useful for checking a Topic the operator or a widget names before reading it.
  *
  * It differs from {@link isKnownFieldPath}: reads keyed by a whole Topic (a
@@ -125,7 +125,7 @@ export function isKnownTopic(topic: string): boolean {
 /**
  * Whether `path` names a field the contract declares under one of its Topics,
  * including a Topic registered at module load such as an Uplink's own payload
- * type or a published processor. Useful for checking a field path the
+ * type or a client-derived channel. Useful for checking a field path the
  * operator picked before reading it. Used by the core when it classifies what a
  * widget declares it reads.
  */

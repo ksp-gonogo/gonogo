@@ -13,7 +13,7 @@ describe("getTopicFieldCatalog()", () => {
     expect(keys.has("vessel.orbit.sma")).toBe(true);
   });
 
-  it("includes the published processors, which no generated map describes", () => {
+  it("includes the client-derived channels, which no generated map describes", () => {
     /* The whole of the declaration rather than a sample of it: a regression
        that dropped one field would leave the catalogue looking merely shorter
        rather than broken. */
@@ -147,7 +147,7 @@ describe("getUndescribedTopics()", () => {
         // entries above rather than the awaiting-a-declaration ones below: this
         // one cannot have a field declaration, it is not missing one.
         "system.channels",
-        // Published processors still awaiting a field declaration of their own, the way `spaceCenter.state` has one.
+        // Derived channels still awaiting a field declaration of their own, the way `spaceCenter.state` has one.
         "system.state",
         "system.uplinkHealth",
         "system.uplinks",
@@ -219,7 +219,7 @@ describe("every catalogue key is readable", () => {
   });
 });
 
-describe("a published processor is offered like any other Topic", () => {
+describe("a derived channel is offered like any other Topic", () => {
   it("offers spaceCenter.state", () => {
     const topics = new Set(getTopicFieldCatalog().map((entry) => entry.topic));
     expect(topics.has("spaceCenter.state")).toBe(true);

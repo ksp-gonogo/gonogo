@@ -45,6 +45,7 @@ import {
   reckonableInputSpelling,
   reckonableValuesOf,
 } from "../reckonability";
+import type { DerivedChannelDefinition, DerivedGet } from "../timeline";
 import { dynamicValue, isValue, type Value } from "../unit-system/value";
 import {
   type ReckonerFor,
@@ -56,27 +57,16 @@ import {
   type ClientTimelineOptions,
   type TimelinePoint,
 } from "./client-timeline";
+/**
+ * The derived-channel authoring types moved to `@ksp-gonogo/sitrep-sdk` so an Uplink
+ * can write a channel without importing this package. Re-exported here unchanged.
+ */
 import {
   HeartbeatTracker,
   type HeartbeatTrackerOptions,
 } from "./heartbeat-tracker";
-import {
-  processorInputTopics,
-  processorRuntimeFor,
-  recordPublishedEvaluation,
-  runProcessorCompute,
-} from "./processorEvaluator";
-import {
-  type AnyProcessorDefinition,
-  type Dep,
-  getProcessor,
-  isProcessorDep,
-  isReadingDep,
-  isSubjectDep,
-  type ProcessorFrame,
-  type PublishedProcessorDefinition,
-  type SubjectDep,
-} from "./processors";
+import { processorRuntimeFor } from "./processorEvaluator";
+import { type Dep, isSubjectDep, type SubjectDep } from "./processors";
 import { reckonerGeneration } from "./reckoner-generation";
 import {
   CORE_RECKONER_OWNER,
@@ -87,6 +77,8 @@ import { shareEqual } from "./share-equal";
 import type { StreamStatusValue } from "./stream-status";
 import { worstStatus } from "./stream-status";
 import type { Certainty, ViewClock } from "./view-clock";
+
+export type { DerivedChannelDefinition, DerivedGet } from "../timeline";
 
 /**
  * The frozen view-time token for one frame or read cycle. Useful for making every
@@ -248,51 +240,31 @@ function walkFieldPath(value: unknown, fieldPath: readonly string[]): unknown {
 }
 
 /**
- * Which lane a published processor is read in: the most conservative of its
+ * Which lane a derived channel is read in: the most conservative of its
  * declared inputs.
  *
- * A processor with no inputs is as current as the frame either way, so it takes
- * the delayed lane with everything else rather than being special-cased into the
- * one that can run ahead.
+ * A channel with no declared inputs derives from constants and is as current as
+ * the frame either way, so it takes the delayed lane with everything else
+ * rather than being special-cased into the one that can run ahead.
  *
- * Reads its declared deps and not what `compute` consulted, because the lane has
- * to be decided before `compute` runs. A processor that consults a subset of its
- * deps is therefore read no more current than the input it declared and skipped,
- * which is the safe direction of that inaccuracy.
+ * Reads `def.inputs` and not what `derive` actually consulted, because the lane
+ * has to be decided before `derive` runs. A channel that consults a subset of
+ * its declared inputs is therefore read no more current than the input it
+ * declared and skipped, which is the safe direction of that inaccuracy.
  */
-function processorLane(
-  def: AnyProcessorDefinition,
+function derivedLane(
+  def: DerivedChannelDefinition<unknown>,
   declaredLane: (topic: string) => DelayLane,
 ): DelayLane {
-  const inputs = [...processorInputTopics(def)];
+  const inputs = def.inputs ?? [];
   return inputs.length > 0 &&
     inputs.every((topic) => declaredLane(topic) === "true-now")
     ? "true-now"
     : "delayed";
 }
 
-/**
- * What a processor's dependencies resolve against: a live frame, or one instant
- * of a replay over stored history.
- */
-interface ProcessorDepSource {
-  viewUt: number;
-  point(topic: string): TimelinePoint<unknown> | undefined;
-  reading(topic: string): TopicReading<unknown>;
-  processor(id: string): ProcessorRun;
-  /** Whether this run counts against the evaluation budget. A replay of history does not, so a chart rebuild cannot trip it. */
-  live: boolean;
-}
-
-/** One processor evaluated, and the oldest input instant it consumed. */
-interface ProcessorRun {
-  computed: unknown;
-  result: unknown;
-  oldest: number;
-}
-
-/** Synthetic envelope `Meta` stamped on a published processor's point. Status is read through `sampleStatus`, so this only has to satisfy the `Meta` shape every `TimelinePoint` carries. */
-function processorMeta(viewUt: number, epoch: number): Meta {
+/** Synthetic envelope `Meta` stamped on a derived-channel read. Real staleness/quality propagation from inputs (derived channels ultimately should propagate the worst input staleness) is not yet implemented, this is intentionally minimal, just enough to satisfy the `Meta` shape every `TimelinePoint` carries. */
+function derivedMeta(viewUt: number, epoch: number): Meta {
   return {
     source: "derived",
     validAt: viewUt,
@@ -818,7 +790,7 @@ function interpolatedRead<Payload>(
  * - In a drawing loop of your own, pass `sample(topic, token)` the token from
  *   `currentFrame()`, or one you made with `beginFrame()`
  *
- * Published processors are read through
+ * Derived Topics, registered with `registerDerivedChannel`, are read through
  * `sample` the same way.
  *
  * @category Stream fixture
@@ -826,16 +798,16 @@ function interpolatedRead<Payload>(
 export class TimelineStore {
   private readonly timelines = new Map<string, ClientTimeline<unknown>>();
   /* Every revision counted in `dataRevision` only ever grows and no timeline is ever removed, so the sum moves on every change. */
-  private publishedRegistrations = 0;
+  private derivedRegistrations = 0;
   /**
    * Samples a game second each Topic above one arrives at, from the latest
    * `system.dataRates`. A Topic's timeline keeps its point bound times this, so
    * it spans the same game time at any rate.
    */
   private readonly topicRates = new Map<string, number>();
-  private readonly publishedProcessors = new Map<
+  private readonly derivedChannels = new Map<
     string,
-    PublishedProcessorDefinition
+    DerivedChannelDefinition<unknown>
   >();
   private readonly frameListeners = new Set<() => void>();
   /* Seconds each raw Topic's readers draw, one entry per live hold. Only read while a history source is set. */
@@ -902,20 +874,20 @@ export class TimelineStore {
    * (including as `currentToken`), its cache entry is collected too. The
    * first `sample(topic, token)` read for a given `(token, topic)` pair is
    * authoritative for that token's whole lifetime; a mid-frame `ingest`
-   * cannot flip it. Also the seam published processors reuse instead of
+   * cannot flip it. Also the seam derived channels reuse instead of
    * building their own per-frame cache.
    */
   private readonly frameCache = new WeakMap<FrameToken, Map<string, unknown>>();
 
   /**
-   * What each published processor answered last, and the point served for each of
-   * its field subtopics. A frame whose `compute` comes out structurally equal
+   * What each derived channel answered last, and the point served for each of
+   * its field subtopics. A frame whose `derive` comes out structurally equal
    * hands back these same objects, so a reader comparing by reference sees a
    * change only when the record really moved. Keyed by definition, so a
    * channel re-registered under the same topic starts clean.
    */
-  private readonly publishedCarry = new WeakMap<
-    AnyProcessorDefinition,
+  private readonly derivedCarry = new WeakMap<
+    DerivedChannelDefinition<unknown>,
     { value: unknown; points: Map<string, TimelinePoint<unknown>> }
   >();
 
@@ -1355,49 +1327,37 @@ export class TimelineStore {
   }
 
   /**
-   * Publish a processor as a Topic on this store. From this point on,
+   * Register a derived channel. From this point on,
    * `sample(def.topic, token)`, and every reactive read built on it,
-   * transparently returns the processor's value for the frame instead of reading
-   * a raw `ClientTimeline`, so a caller never needs to know whether a topic is
-   * raw or computed. If `def.fields` is set, `"<topic>.<field>"` subtopics are
-   * resolved too (`resolvePublishedTopic`).
+   * transparently returns the memoized derived
+   * value instead of reading a raw `ClientTimeline`, callers never need to
+   * know whether a topic is raw or derived ("raw-vs-derived
+   * invisible" to consumers). If `def.fields` is set, `"<topic>.<field>"` subtopics are
+   * resolved too (`resolveDerivedTopic`).
    *
-   * `id` and `owner` are optional for a processor that is not in the registry,
-   * and `deps` may name a Topic no generated list knows. Publishing the same
-   * `topic` twice replaces the previous definition, useful for hot-reload and
-   * test setup, not a guarded no-op.
+   * Registering the same `topic` twice replaces the previous definition,
+   * useful for hot-reload/test setup, not a guarded no-op.
    */
-  publishProcessor<Values extends readonly unknown[], Payload>(def: {
-    id?: string;
-    owner?: string;
-    topic: string;
-    fields?: boolean;
-    deps: readonly (Dep | string)[];
-    compute: (
-      values: Values,
-      frame: ProcessorFrame,
-    ) => Payload | null | undefined;
-  }): void {
-    this.publishedRegistrations++;
-    this.publishedProcessors.set(def.topic, {
-      ...def,
-      id: def.id ?? def.topic,
-      owner: def.owner ?? CORE_RECKONER_OWNER,
-      deps: def.deps as readonly Dep[],
-      compute: def.compute as PublishedProcessorDefinition["compute"],
-    });
+  registerDerivedChannel<Payload>(
+    def: DerivedChannelDefinition<Payload>,
+  ): void {
+    this.derivedRegistrations++;
+    this.derivedChannels.set(
+      def.topic,
+      def as DerivedChannelDefinition<unknown>,
+    );
   }
 
   /**
    * A number that changes whenever anything a read of history rests on changes:
-   * a sample stored, evicted or rewound away on any Topic, or a model or
-   * published processor registered. Useful for a reader that rebuilds a window of history on
+   * a sample stored, evicted or rewound away on any Topic, or a model or derived
+   * channel registered. Useful for a reader that rebuilds a window of history on
    * every frame to skip the rebuild while the view time and this number both
    * stand still, since nothing it reads can have moved. Used by the series hook
    * behind charts and sparklines.
    */
   dataRevision(): number {
-    let revision = reckonerGeneration() + this.publishedRegistrations;
+    let revision = reckonerGeneration() + this.derivedRegistrations;
     for (const timeline of this.timelines.values()) {
       revision += timeline.revision;
     }
@@ -1405,13 +1365,13 @@ export class TimelineStore {
   }
 
   /**
-   * Whether a processor is already published under `topic`. Lets a caller adding
-   * processors after construction leave an existing one alone, so a topic keeps
+   * Whether a channel is already registered for `topic`. Lets a caller adding
+   * channels after construction leave an existing one alone, so a topic keeps
    * the model it was built with rather than the model whichever import landed
    * last.
    */
-  hasPublishedProcessor(topic: string): boolean {
-    return this.publishedProcessors.has(topic);
+  hasDerivedChannel(topic: string): boolean {
+    return this.derivedChannels.has(topic);
   }
 
   /**
@@ -1511,13 +1471,15 @@ export class TimelineStore {
   /**
    * The raw wire topics that must actually be subscribed (via
    * `TelemetryClient.subscribe`) to keep `topic` resolvable, the
-   * published-processor input ref-counting mechanism. A published processor's own
+   * derived-input ref-counting mechanism. A derived channel's own
    * topic (or one of its `"<topic>.<field>"` subtopics) is never itself a
    * subscribable wire topic; no server channel produces it, so a caller
    * that naively subscribed to the derived topic name would never receive
    * any data and the channel would silently stay "not whole yet" forever.
    * This resolves `topic` down to the declared `inputs` it actually needs,
-   * recursively (a published processor can depend on another one), de-duplicated, and defended against a malformed cyclical
+   * recursively (a derived channel's own `inputs` can themselves be derived,
+   * per `DerivedGet`'s doc: `derive` can read another derived channel as an
+   * input), de-duplicated, and defended against a malformed cyclical
    * declaration (an authoring bug, never expected in practice) via a
    * visited-set guard rather than an infinite loop.
    *
@@ -1538,7 +1500,7 @@ export class TimelineStore {
    * A model declares its inputs and `registeredReckoning` refuses to run it
    * with one of them missing, which is the whole point of declaring them. But
    * nothing was holding those inputs up. A read subscribed the topic it was
-   * reading and a published processor's deps, and a raw topic's reckoner deps
+   * reading and a derived channel's `inputs`, and a raw topic's reckoner deps
    * are neither, so a lone plot of `vessel.flight.altitudeAsl` declined with
    * `input-absent` for ever and drew no tail, while the same plot beside a
    * widget reading `vessel.orbit` drew one. Whether a model runs is not
@@ -1591,7 +1553,7 @@ export class TimelineStore {
     out: Set<string>,
     visiting: Set<string>,
   ): void {
-    const resolved = this.resolvePublishedTopic(topic);
+    const resolved = this.resolveDerivedTopic(topic);
     if (!resolved) {
       // Raw record field-subtopic: the raw wire topic that must
       // actually be subscribed is the record itself (`"time.warp"`), never
@@ -1605,22 +1567,22 @@ export class TimelineStore {
     const parentTopic = resolved.def.topic;
     if (visiting.has(parentTopic)) return; // cyclical declaration, break, don't loop forever
     visiting.add(parentTopic);
-    for (const input of processorInputTopics(resolved.def)) {
+    for (const input of resolved.def.inputs) {
       this.collectSubscriptionTopics(input, out, visiting);
     }
   }
 
   /**
    * True when `topic` names a `"<parent>.<field>"` subtopic whose parent
-   * resolved to a whole, non-tombstoned computed record (the processor
+   * resolved to a whole, non-tombstoned derived record (the derivation
    * genuinely ran) but `field` is not a key on the record it produced, a
    * structurally dead mapping (e.g. a stale migration-table entry pointing
-   * at a field a `compute` never emits), as opposed to ordinary
+   * at a field a `derive()` function never emits), as opposed to ordinary
    * "not whole yet" loading (parent has no point at all yet) or a confirmed
    * absence (parent tombstoned): both of which return `false` here, same as
    * a healthy field that just hasn't arrived.
    *
-   * `sample()` alone can't make this distinction: `samplePublished`'s field
+   * `sample()` alone can't make this distinction: `sampleDerived`'s field
    * lookup collapses "unknown field name" and "not whole yet" onto the same
    * `undefined` return, deliberately (see its own doc comment). This is a
    * separate diagnostic read for a caller that needs to tell "still loading, keep waiting" apart
@@ -1636,7 +1598,7 @@ export class TimelineStore {
    * failure into an empty gauge). The second branch below applies the exact
    * same "whole-but-missing-field = unresolvable" check to a raw parent,
    * walking the full fieldpath (which may be 1+ segments, unlike the
-   * single-segment published-processor case above) via the same walk
+   * single-segment derived-channel case above) via the same walk
    * `sampleRawFieldSubtopic`/`sampleRange` use.
    */
   isUnresolvableField(
@@ -1648,7 +1610,7 @@ export class TimelineStore {
     const parentTopic = topic.slice(0, dot);
     const field = topic.slice(dot + 1);
 
-    if (this.publishedProcessors.has(parentTopic)) {
+    if (this.derivedChannels.has(parentTopic)) {
       const parentPoint = this.sample<Record<string, unknown>>(
         parentTopic,
         token,
@@ -1681,20 +1643,20 @@ export class TimelineStore {
   }
 
   /**
-   * `true` when `topic` names a registered published processor, its own topic
+   * `true` when `topic` names a registered derived channel, its own topic
    * or one of its `"<topic>.<field>"` subtopics (`resolveDerivedTopic`).
    * `false` for a raw topic, including a raw record field-subtopic
    * (`resolveRawFieldSubtopic`, e.g. `"vessel.orbit.sma"`), that string
    * looks derived-shaped (it has dots) but resolves to a real wire record's
-   * timeline, not a published processor. What `sampleRange`
+   * timeline, not a registered `derive()` function. What `sampleRange`
    * consults to decide "there's a stored history to range over" (a raw
-   * topic always has one, a published processor's never does, it's a per-frame
+   * topic always has one, a derived topic never does, it's a per-frame
    * computed value, see `sampleRange`'s own doc) versus `isUnresolvableField`
    * above, which asks a narrower question (a specific field name on an
    * otherwise-whole derived record) for a different caller.
    */
-  isProcessorTopic(topic: string): boolean {
-    return this.resolvePublishedTopic(topic) !== undefined;
+  isDerivedTopic(topic: string): boolean {
+    return this.resolveDerivedTopic(topic) !== undefined;
   }
 
   /**
@@ -1706,9 +1668,9 @@ export class TimelineStore {
    * hold-last read.
    *
    * Returns `undefined`, not an empty array, when `topic` resolves to a
-   * registered published processor (`isProcessorTopic`): a computed value is
+   * registered derived channel (`isDerivedTopic`): a derived value is
    * computed fresh per frame from whatever its inputs currently hold
-   * (`samplePublished`), never stored as its own buffered history, so there is
+   * (`sampleDerived`), never stored as its own buffered history, so there is
    * structurally nothing to range over. This is the caller's "give up,
    * permanently, on this topic" signal: distinct from an empty array,
    * which means "genuinely nothing landed in the window yet" and may fill
@@ -1731,7 +1693,7 @@ export class TimelineStore {
     fromUt: number,
     toUt: number,
   ): TimelinePoint<Payload>[] | undefined {
-    if (this.resolvePublishedTopic(topic)) return undefined;
+    if (this.resolveDerivedTopic(topic)) return undefined;
 
     const epoch = this.clock.getEpoch();
     const rawField = this.resolveRawFieldSubtopic(topic);
@@ -1774,33 +1736,41 @@ export class TimelineStore {
   }
 
   /**
-   * Windowed series for a published processor: the counterpart to `sampleRange`
-   * (which structurally can't serve one: nothing is ever stored for a computed
-   * Topic). Useful for plotting one as a series, as a graph widget does.
+   * Windowed series for a derived topic: the counterpart to `sampleRange`
+   * (which structurally can't serve one: a derived value is computed fresh
+   * per frame, nothing is ever stored). Useful for plotting a derived channel
+   * as a series, as a graph widget does.
    *
-   * Runs `compute` again at every UT any of its input Topics actually changed at
-   * within `[fromUt, toUt]` (a change-gated raw timeline only ever carries a point
-   * when something changed, so this is exactly the set of instants the result
-   * could have changed too), its deps resolved by hold-last lookup over each
-   * input's own buffered range (queried from `-Infinity` through `toUt`, so an
-   * input that last changed before `fromUt` still resolves correctly at the first
-   * in-window instant; `ClientTimeline`'s own retention window bounds this, not an
-   * unbounded scan). A processor dep is replayed at the same instant.
+   * Replays `def.derive` at every UT any of its raw `inputs` actually
+   * changed at within `[fromUt, toUt]` (a change-gated raw timeline only
+   * ever carries a point when something changed, so this is exactly the set
+   * of instants the derived value could have changed too), a synthetic
+   * `get` built by hold-last lookup over each raw input's own buffered range
+   * (queried from `-Infinity` through `toUt`, so an input that last changed
+   * before `fromUt` still resolves correctly at the first in-window
+   * instant; `ClientTimeline`'s own retention window bounds this, not an
+   * unbounded scan).
    *
-   * No status is recorded for a past instant, so a `{ reading }` dep is handed in
-   * as observed at its last sample, and as pending before its first.
+   * Declared `inputs` are assumed raw (not another derived topic), true of
+   * every channel in `PRODUCTION_DERIVED_CHANNELS` today, even though `get`
+   * itself resolves derived-on-derived inputs transparently at the live-frame
+   * layer (`sample()`'s own doc comment). A derived-on-derived input here
+   * degrades to "no point at that instant" (`sampleRange` already returns
+   * `undefined` for a derived topic, folded into an empty array below)
+   * rather than recursing: safe, just sparser, and nothing registered
+   * exercises it today.
    *
-   * Returns `undefined` when `topic` doesn't resolve to a published processor at
-   * all (mirrors `sampleRange`'s contract): callers are expected to gate on
-   * `isProcessorTopic` first, same as `sampleRange`'s own callers gate the other
-   * way.
+   * Returns `undefined` when `topic` doesn't resolve to a registered derived
+   * channel at all (mirrors `sampleRange`'s contract): callers are expected
+   * to gate on `isDerivedTopic` first, same as `sampleRange`'s own callers
+   * gate the other way.
    */
-  sampleProcessorRange<Payload>(
+  sampleDerivedRange<Payload>(
     topic: string,
     fromUt: number,
     toUt: number,
   ): TimelinePoint<Payload>[] | undefined {
-    const resolved = this.resolvePublishedTopic(topic);
+    const resolved = this.resolveDerivedTopic(topic);
     if (!resolved) return undefined;
     const { def, field } = resolved;
 
@@ -1808,7 +1778,7 @@ export class TimelineStore {
 
     const inputRanges = new Map<string, TimelinePoint<unknown>[]>();
     const changeUts = new Set<number>();
-    for (const inputTopic of processorInputTopics(def)) {
+    for (const inputTopic of def.inputs) {
       const points =
         this.sampleRange<unknown>(inputTopic, -Infinity, toUt) ?? [];
       inputRanges.set(inputTopic, points);
@@ -1823,33 +1793,20 @@ export class TimelineStore {
     const out: TimelinePoint<Payload>[] = [];
 
     for (const ut of sortedUts) {
-      const point = (
+      const get: DerivedGet = <InputPayload>(
         inputTopic: string,
-      ): TimelinePoint<unknown> | undefined => {
+      ): TimelinePoint<InputPayload> | undefined => {
         const points = inputRanges.get(inputTopic);
         if (!points || points.length === 0) return undefined;
         let last: TimelinePoint<unknown> | undefined;
-        for (const candidate of points) {
-          if (candidate.validAt <= ut) last = candidate;
+        for (const point of points) {
+          if (point.validAt <= ut) last = point;
           else break;
         }
-        return last;
-      };
-      const source: ProcessorDepSource = {
-        viewUt: ut,
-        point,
-        reading: (inputTopic) => {
-          const at = point(inputTopic);
-          return readingFrom(at, at ? "live" : "resyncing", {
-            reckonUt: ut,
-            receivedUt: ut,
-          });
-        },
-        processor: (id) => this.runNestedProcessor(id, source),
-        live: false,
+        return last as TimelinePoint<InputPayload> | undefined;
       };
 
-      const { computed: value } = this.runProcessor(def, source);
+      const value = def.derive(get, ut);
       if (value === undefined) continue; // not whole yet at this instant
 
       if (value !== null && field && !(field in (value as object))) continue; // unknown field name
@@ -1864,7 +1821,7 @@ export class TimelineStore {
       out.push({
         validAt: ut,
         payload: payload as Payload,
-        meta: processorMeta(ut, epoch),
+        meta: derivedMeta(ut, epoch),
         epoch,
       });
     }
@@ -1876,7 +1833,7 @@ export class TimelineStore {
    * The part of a series nobody measured: what the topic's own forward model
    * says the quantity did between the last observation and `toUt`.
    *
-   * `sampleProcessorRange` above emits a point only where a declared input
+   * `sampleDerivedRange` above emits a point only where a declared input
    * changed, which is exactly right for history and is why a chart of a
    * modelled quantity simply stopped at the last thing that arrived. During a
    * blackout no input changes, so the trace ended and said nothing about
@@ -1894,7 +1851,7 @@ export class TimelineStore {
    * A reckoned instant is a presentation-time projection, so it must never be
    * reachable as an observation. Keeping it in its own return type and its own
    * method is what makes that structural rather than a convention: nothing
-   * stores one, the mission-history replay reaches for `sampleProcessorRange` and
+   * stores one, the mission-history replay reaches for `sampleDerivedRange` and
    * never this, and a recording exported later cannot contain one. The one
    * caller that wants both halves joins them at the boundary that draws them,
    * and says which indices came from here.
@@ -2319,10 +2276,10 @@ export class TimelineStore {
    *   lifetime, so a mid-frame `ingest` can't flip the answer mid-read-cycle
    *   (tearing): the change only surfaces once a new `beginFrame()` mints a
    *   new token. **Except across an epoch bump**:
-   *   the memo key folds in `clock.getEpoch()`, same as the published-processor
+   *   the memo key folds in `clock.getEpoch()`, same as the derived-topic
    *   path below, so a mid-token quickload rewind is a cache miss rather
-   *   than a replayed pre-bump ghost: including to a published processor's
-   *   dep reading this same topic through this same token.
+   *   than a replayed pre-bump ghost: including to a derived channel's
+   *   `get()` reading this same topic through this same token.
    */
   sample<Payload>(
     topic: string,
@@ -2335,10 +2292,10 @@ export class TimelineStore {
    * {@link sample}, with the delay lane pinned rather than taken from the
    * topic's own declaration.
    *
-   * Only a published processor pins one, and only to its own lane: a processor whose
+   * Only a derived channel pins one, and only to its own lane: a channel whose
    * inputs are a mix reads all of them delayed, so its output is never stamped
    * more current than its most delayed input and never blends two instants a
-   * signal delay apart into one value. See {@link evaluateProcessor}.
+   * signal delay apart into one value. See {@link sampleDerived}.
    */
   private sampleInLane<Payload>(
     topic: string,
@@ -2350,13 +2307,13 @@ export class TimelineStore {
     const lane = laneOverride ?? this.laneForTopic(topic);
     const viewUt = this.viewUtFor(effectiveToken, lane);
 
-    const resolved = this.resolvePublishedTopic(topic);
+    const resolved = this.resolveDerivedTopic(topic);
     if (resolved) {
       // Outer memoize keyed by the EXACT requested topic (parent or a field
       // subtopic): this is what gives a re-read within the same frame back
       // the identical `TimelinePoint` object (referential stability for
       // React bail-out, mirroring the raw-topic path below), on top of the
-      // inner memoize inside `evaluateProcessor` that keeps `compute` itself
+      // inner memoize inside `sampleDerived` that keeps `derive` itself
       // running only once per frame regardless of how many field subtopics
       // of the same parent are read.
       //
@@ -2366,17 +2323,17 @@ export class TimelineStore {
       // value must NOT survive a mid-frame epoch bump
       // (quickload rewind) for the rest of the frame. Folding epoch into the
       // key makes a post-bump read a fresh cache miss, so it falls through to
-      // `samplePublished` and recomputes against the new epoch instead of
+      // `sampleDerived` and recomputes against the new epoch instead of
       // serving pre-reset output.
       const epoch = this.clock.getEpoch();
       return this.memoize(
         effectiveToken,
         `${topic}\0epoch\0${epoch}\0lane\0${lane}`,
-        () => this.samplePublished<Payload>(resolved, effectiveToken, epoch),
+        () => this.sampleDerived<Payload>(resolved, effectiveToken, epoch),
       );
     }
 
-    // Folds in the CURRENT epoch: exactly like the published-processor key above,
+    // Folds in the CURRENT epoch: exactly like the derived-topic key above,
     // guarding against the same class of stale-epoch ghost. Without this, the
     // first read of a given (token, topic) pair is authoritative for the
     // token's whole lifetime (frame-coherence, intentional for an
@@ -2385,7 +2342,7 @@ export class TimelineStore {
     // sweep (`ingest`) already propagates to every `ClientTimeline`
     // immediately. An unkeyed cache would keep replaying the pre-bump
     // `TimelinePoint` object for the rest of the token's life, including to
-    // any published processor's dep that reads this same topic through this
+    // any derived channel's `get()` that reads this same topic through this
     // same token: defeating the epoch guard below and the sweep that just
     // ran. Folding epoch into the key makes a post-bump read a fresh cache
     // miss, so it falls through to the guard/`timeline.at` again instead.
@@ -2404,7 +2361,7 @@ export class TimelineStore {
     // Raw record field-subtopic fallback, which is what the retired flat key
     // vocabulary used to depend on and what a dotted read still uses:
     // `topic` is a `"<domain>.<channel>.<field...>"` string with no
-    // registered-published-processor match: e.g. `"time.warp.warpRate"`. No
+    // registered-derived-channel match: e.g. `"time.warp.warpRate"`. No
     // wire message is EVER published to that literal string; the real wire
     // topic is `"time.warp"`, a whole record `{ warpRate, warpRateIndex,
     // warpMode, paused }`. See `resolveRawFieldSubtopic`'s own doc for the
@@ -2440,16 +2397,16 @@ export class TimelineStore {
    * Which lane `topic` is read in, for every shape of topic this store serves
    * rather than only the declared ones.
    *
-   * A published processor takes the most conservative of its inputs
-   * ({@link processorLane}). A raw field subtopic takes its parent record's lane,
+   * A derived channel takes the most conservative of its inputs
+   * ({@link derivedLane}). A raw field subtopic takes its parent record's lane,
    * because `time.warp.warpRate` is the same wire frame as `time.warp` and
    * reading the two at different instants would be the same record disagreeing
    * with itself. Anything else is its own declaration, and an undeclared
    * topic is delayed.
    */
   private laneForTopic(topic: string): DelayLane {
-    const derived = this.resolvePublishedTopic(topic);
-    if (derived) return processorLane(derived.def, this.declaredLane);
+    const derived = this.resolveDerivedTopic(topic);
+    if (derived) return derivedLane(derived.def, this.declaredLane);
     /* The whole topic is asked first because a topic under a TrueNow dynamic
        namespace is its own wire topic, and the generic field split would
        otherwise cut it into a parent no prefix matches. A field subtopic of a
@@ -2531,10 +2488,10 @@ export class TimelineStore {
    * differs, or either side is a tombstone); never fabricates a value it
    * can't justify.
    *
-   * A published processor already computed its own record at the frozen
+   * A derived topic already computed its own record at the frozen
    * `viewUt`: propagation (or the channel's own basis-appropriate
    * handling) is its past-horizon/interpolation story, so this falls
-   * through to the ordinary computed read (`sample`) rather than
+   * through to the ordinary derived read (`sample`) rather than
    * interpolating the output record after the fact.
    */
   sampleInterpolated<Payload>(
@@ -2546,7 +2503,7 @@ export class TimelineStore {
       token.generation === this.generation ? token : this.currentToken;
     const lane = laneOverride ?? this.laneForTopic(topic);
 
-    if (this.resolvePublishedTopic(topic)) {
+    if (this.resolveDerivedTopic(topic)) {
       return this.sampleInLane<Payload>(topic, effectiveToken, laneOverride);
     }
 
@@ -2738,7 +2695,7 @@ export class TimelineStore {
    *
    * The three answers are distinct and the caller needs all three: a model to
    * offer, a refusal to render, or nothing at all, which is what lets the
-   * remaining ladder rungs (a published processor's label, a field read borrowing
+   * remaining ladder rungs (a derived channel's label, a field read borrowing
    * its record's model) still be tried.
    *
    * ## A declared input that did not arrive declines before the model runs
@@ -3219,7 +3176,7 @@ export class TimelineStore {
         anchor.validAt - window.spanUt,
         anchor.validAt,
       );
-      // A published processor has no stored history to range over (`sampleRange` answers `undefined` for one), so its window is the point it computed.
+      // A derived topic has no stored history to range over (`sampleRange` answers `undefined` for one), so its window is the point it computed.
       if (!raw || raw.length === 0) {
         return { points: [anchor], truncatedAtBreak: false };
       }
@@ -3380,26 +3337,21 @@ export class TimelineStore {
   sampleReading<Payload>(
     topic: string,
     token: FrameToken = this.currentToken,
-    laneOverride?: DelayLane,
   ): TopicReading<Payload> {
     const effectiveToken =
       token.generation === this.generation ? token : this.currentToken;
     // Epoch-folded like every sibling read: a reading memoized before a mid-frame epoch bump (quickload rewind) must not survive it.
     const epoch = this.clock.getEpoch();
-    const lane = laneOverride ?? this.laneForTopic(topic);
-    // Only a read in the topic's own lane is the reading a widget holds, so only that one may take part in its identity.
-    const ownLane = lane === this.laneForTopic(topic);
     return this.memoize(
       effectiveToken,
-      `\0reading\0${topic}\0epoch\0${epoch}${ownLane ? "" : `\0lane\0${lane}`}`,
+      `\0reading\0${topic}\0epoch\0${epoch}`,
       () => {
-        const point = this.sampleInLane<Payload>(
-          topic,
-          effectiveToken,
-          laneOverride,
-        );
+        const point = this.sample<Payload>(topic, effectiveToken);
         const status = this.sampleStatus(topic, effectiveToken);
-        const receivedUt = this.viewUtFor(effectiveToken, lane);
+        const receivedUt = this.viewUtFor(
+          effectiveToken,
+          this.laneForTopic(topic),
+        );
         // A true-now lane can sit a fraction of a second past a sub-second SCET, and a model is never asked for an instant behind its own observation.
         const reckonUt = Math.max(effectiveToken.scetUt, receivedUt);
         /*
@@ -3449,7 +3401,7 @@ export class TimelineStore {
         const declineKey = declined
           ? `${declined.reason}\0${declined.input ?? ""}`
           : undefined;
-        const previous = ownLane ? this.readings.get(topic) : undefined;
+        const previous = this.readings.get(topic);
         const sameInputs =
           previous !== undefined &&
           previous.point === point &&
@@ -3511,7 +3463,6 @@ export class TimelineStore {
         ) {
           return previous.reading as TopicReading<Payload>;
         }
-        if (!ownLane) return reading as TopicReading<Payload>;
         this.readings.set(topic, {
           point,
           status,
@@ -3535,7 +3486,7 @@ export class TimelineStore {
    * per-`(token, key)` cache) so a status read and a value read for the
    * same topic in the same frame always agree about which frame they
    * describe. Field subtopics (`"<topic>.<field>"`) share their parent
-   * published processor's status outright: a field is just one slice of the
+   * derived channel's status outright: a field is just one slice of the
    * one memoized record, staleness applies to the whole record.
    */
   sampleStatus(
@@ -3545,11 +3496,11 @@ export class TimelineStore {
     const effectiveToken =
       token.generation === this.generation ? token : this.currentToken;
 
-    const resolved = this.resolvePublishedTopic(topic);
+    const resolved = this.resolveDerivedTopic(topic);
     if (resolved) {
       const parentTopic = resolved.def.topic;
       // Fold epoch into the key exactly like the derived-VALUE path in
-      // sample(). A published processor's status must NOT survive a mid-frame epoch bump
+      // sample(). A derived status must NOT survive a mid-frame epoch bump
       // (quickload rewind) for the rest of the frame, or a status read and a
       // value read for the same topic in the same frame could disagree about
       // which epoch they describe.
@@ -3557,7 +3508,7 @@ export class TimelineStore {
       return this.memoize(
         effectiveToken,
         `\0status\0${parentTopic}\0epoch\0${epoch}`,
-        () => this.samplePublishedStatus(resolved.def, effectiveToken),
+        () => this.sampleDerivedStatus(resolved.def, effectiveToken),
       );
     }
 
@@ -3724,36 +3675,34 @@ export class TimelineStore {
     return Number.isFinite(gap) && gap > 0 ? gap : 0;
   }
 
-  /** A published processor's own status: the worst of every input's. */
-  private samplePublishedStatus(
-    def: AnyProcessorDefinition,
+  /** A derived channel's own status: the worst of every declared input's. */
+  private sampleDerivedStatus(
+    def: DerivedChannelDefinition<unknown>,
     token: FrameToken,
   ): StreamStatusValue {
-    return worstStatus(
-      [...processorInputTopics(def)].map((input) =>
-        this.sampleStatus(input, token),
-      ),
-    );
+    const getStatus = (inputTopic: string) =>
+      this.sampleStatus(inputTopic, token);
+    return worstStatus(def.inputs.map(getStatus));
   }
 
   /**
-   * `topic` is either a published processor's own topic, or (when that processor
-   * opted into `fields: true`) a `"<topic>.<field>"` subtopic of one. Anything
-   * else (including a raw topic that happens to contain a dot, e.g.
-   * `"vessel.orbit"` itself) resolves to `undefined` here and falls through to the
-   * raw-timeline path in `sample()`.
+   * `topic` is either a registered derived channel's own topic, or (when
+   * that channel opted into `fields: true`) a `"<topic>.<field>"` subtopic
+   * of one. Anything else (including a raw topic that happens to contain a
+   * dot, e.g. `"vessel.orbit"` itself) resolves to `undefined` here and
+   * falls through to the raw-timeline path in `sample()`.
    */
-  private resolvePublishedTopic(
+  private resolveDerivedTopic(
     topic: string,
-  ): { def: PublishedProcessorDefinition; field?: string } | undefined {
-    const exact = this.publishedProcessors.get(topic);
+  ): { def: DerivedChannelDefinition<unknown>; field?: string } | undefined {
+    const exact = this.derivedChannels.get(topic);
     if (exact) return { def: exact };
 
     const dot = topic.lastIndexOf(".");
     if (dot === -1) return undefined;
     const parentTopic = topic.slice(0, dot);
     const field = topic.slice(dot + 1);
-    const parent = this.publishedProcessors.get(parentTopic);
+    const parent = this.derivedChannels.get(parentTopic);
     if (!parent?.fields) return undefined;
     return { def: parent, field };
   }
@@ -3782,7 +3731,7 @@ export class TimelineStore {
    * so has no member in any generated list to match against.
    *
    * Never consulted for a topic `resolveDerivedTopic` already matched
-   * (checked first at every call site): a registered published processor's own
+   * (checked first at every call site): a registered derived channel's own
    * `fields: true` subtopics keep using that mechanism unchanged.
    */
   private resolveRawFieldSubtopic(
@@ -3801,10 +3750,10 @@ export class TimelineStore {
 
   /**
    * Reads `parsed.rawTopic` (a real raw topic, recurses through the ordinary
-   * `sample()` path, including its own published-processor/epoch/frame-coherence
+   * `sample()` path, including its own derived-channel/epoch/frame-coherence
    * handling) and walks `parsed.fieldPath` into its payload.
    *
-   * Mirrors `samplePublished`'s two "nothing" cases (never conflated):
+   * Mirrors `sampleDerived`'s two "nothing" cases (never conflated):
    * no point on the parent at all yet -> `undefined` ("not whole
    * yet": the raw topic's own not-arrived-yet case, propagated as-is,
    * intentionally not re-classified). A tombstoned parent (`payload: null`)
@@ -3812,13 +3761,13 @@ export class TimelineStore {
    * record is gone, so every field of it is too). A field name not present
    * on an otherwise-whole, non-null record -> `undefined` (the phantom-
    * mapping case `TimelineStore.isUnresolvableField`'s doc describes for the
-   * published-processor analog; not extended to this raw path, every raw-field
+   * derived-channel analog; not extended to this raw path, every raw-field
    * key that vocabulary shipped was checked against the real wire fixture
    * before it was retired, so there is no known-dead mapping this needs to
    * catch yet).
    *
    * Reuses the parent point's own `meta`/`validAt`/`epoch` verbatim, unlike
-   * a published processor (which fabricates its own `processorMeta`), a raw field
+   * a derived channel (which fabricates its own `derivedMeta`), a raw field
    * subtopic isn't a new computation, it's the same measured/received record
    * narrowed to one field, so its staleness/quality/provenance genuinely are
    * the whole record's.
@@ -3879,133 +3828,92 @@ export class TimelineStore {
   }
 
   /**
-   * One processor's dependencies resolved against `source` and its `compute`
-   * run. Reading deps and processor deps carry their own instant into `oldest`:
-   * a published processor's age is the oldest input it was handed, so a value
-   * twenty minutes into a blackout does not look as fresh as one reporting now.
+   * Compute (or reuse the frame-memoized) value for a derived channel, the
+   * same `memoize` seam raw `sample()` reads use, keyed by the channel's own
+   * topic so N field-subtopic reads (`system.state.bodyCount`, ...) in one
+   * frame still call `derive` exactly
+   * once (memoized to once per `(topic, frame)`). `get`
+   * (passed to `derive`) is `sample` bound to this same `token`, the
+   * structural single-view-time invariant: there is no other way for
+   * a `derive` implementation to read a UT. `epoch` is threaded in from the
+   * caller (rather than re-read via `this.clock.getEpoch()`) so the value
+   * used to build the memo key and the value stamped on the resulting point
+   * are guaranteed to agree, even though `derive` itself may cause further
+   * ingests via side effects it has no business having.
    */
-  private runProcessor(
-    def: AnyProcessorDefinition,
-    source: ProcessorDepSource,
-  ): ProcessorRun {
-    let oldest = Number.POSITIVE_INFINITY;
-    const values = def.deps.map((dep) => {
-      if (isProcessorDep(dep)) {
-        const nested = source.processor(dep.id);
-        oldest = Math.min(oldest, nested.oldest);
-        return nested.result;
-      }
-      if (isReadingDep(dep)) {
-        const reading = source.reading(dep.reading);
-        const point = source.point(dep.reading);
-        if (point) oldest = Math.min(oldest, point.validAt);
-        return reading;
-      }
-      if (isSubjectDep(dep)) {
-        throw new Error(
-          "A processor cannot declare a per-subject dep: the subject is read from " +
-            "a reckoner's point, and a processor has none. Resolve the subject in " +
-            "the reckoner that owns it and declare the resulting topic here.",
-        );
-      }
-      const point = source.point(dep);
-      if (point) oldest = Math.min(oldest, point.validAt);
-      return point ? point.payload : undefined;
-    });
-    const run = runProcessorCompute(def, values, source.viewUt);
-    if (source.live) recordPublishedEvaluation();
-    return { ...run, oldest };
-  }
-
-  private runNestedProcessor(
-    id: string,
-    source: ProcessorDepSource,
-  ): ProcessorRun {
-    const def = getProcessor(id);
-    if (!def) {
-      return {
-        computed: undefined,
-        result: undefined,
-        oldest: Number.POSITIVE_INFINITY,
-      };
-    }
-    return this.runProcessor(def, source);
-  }
-
-  /**
-   * One evaluation of a published processor for the frame, the same `memoize`
-   * seam raw `sample()` reads use, so N field-subtopic reads
-   * (`system.state.bodyCount`, ...) and a `useProcessor` read in one frame still
-   * call `compute` exactly once. Inputs are resolved through this same token in
-   * the processor's own lane, the structural single-view-time invariant: a
-   * `compute` has no other way to read a UT, and one value is never assembled
-   * from two instants a signal delay apart. The lane is true-now only when every
-   * input is, and delayed the moment one is not, so a record is never stamped
-   * more current than the most delayed thing it read.
-   *
-   * Keyed by id, with a `\0`-prefix so it can never collide with a topic's own
-   * outer memo in `sample()`. The epoch is folded in so a mid-frame epoch bump
-   * recomputes rather than serving pre-reset output.
-   */
-  evaluateProcessor(
-    def: AnyProcessorDefinition,
+  private sampleDerived<Payload>(
+    resolved: { def: DerivedChannelDefinition<unknown>; field?: string },
     token: FrameToken,
-  ): { value: unknown; result: unknown; observedAt: number } {
-    const lane = processorLane(def, this.declaredLane);
-    const epoch = this.clock.getEpoch();
-    return this.memoize(
+    epoch: number,
+  ): TimelinePoint<Payload> | undefined {
+    const { def, field } = resolved;
+
+    // Keyed distinctly from `def.topic` itself (a `\0`-prefixed key can
+    // never collide with a real topic string), the OUTER `memoize` call in
+    // `sample()` also uses `def.topic` as its key when the parent topic
+    // (not a field subtopic) is what's requested, so sharing the same key
+    // here would let that outer wrapped `TimelinePoint` clobber this raw
+    // derive() value in the shared per-token cache. Also folds in `epoch`
+    // (see `sample()`'s matching comment): this is the memo that actually
+    // calls `derive`, so it's the one that must recompute on a mid-frame
+    // epoch bump; the outer memoize in `sample()` only needs a matching key
+    // so it doesn't short-circuit before ever reaching this one.
+    // The channel's own lane: TRUE-NOW only when every declared input is, and
+    // DELAYED the moment one is not. Both halves matter. A derived record must
+    // not be stamped more current than the most delayed thing it read, and its
+    // inputs are pinned to the same lane so one value is never assembled from
+    // two instants a light-time apart. A channel reading a delayed vessel
+    // channel and the true-now `trackingStation.bodies` stays delayed, and reads the body
+    // catalogue at the delayed instant.
+    const lane = derivedLane(def, this.declaredLane);
+
+    const { value, observedAt } = this.memoize(
       token,
-      `\0processor\0${def.id}\0epoch\0${epoch}\0lane\0${lane}`,
+      `\0derived\0${def.topic}\0epoch\0${epoch}`,
       () => {
-        const viewUt = this.viewUtFor(token, lane);
-        const source: ProcessorDepSource = {
-          viewUt,
-          point: (topic) => this.sampleInLane(topic, token, lane),
-          reading: (topic) => this.sampleReading(topic, token, lane),
-          processor: (id) =>
-            this.memoize(
-              token,
-              `\0nested\0${id}\0epoch\0${epoch}\0lane\0${lane}`,
-              () => this.runNestedProcessor(id, source),
-            ),
-          live: true,
+        // The oldest input this record actually CONSUMED, which is how current
+        // it really is. Stamping `token.viewUt` instead would make every derived
+        // read report an age of zero, so a record twenty minutes into a blackout
+        // would look exactly as fresh as one reporting now. Tracked here rather
+        // than declared per channel because `get` is the only way in and the
+        // store owns it: a channel cannot forget to say what it read, and a
+        // channel that consults a subset of its declared `inputs` comes out
+        // right without special-casing.
+        let oldest = Number.POSITIVE_INFINITY;
+        const note = <Noted>(
+          point: TimelinePoint<Noted> | undefined,
+        ): TimelinePoint<Noted> | undefined => {
+          if (point) oldest = Math.min(oldest, point.validAt);
+          return point;
         };
-        const { computed, result, oldest } = this.runProcessor(def, source);
+        const viewUt = this.viewUtFor(token, lane);
+        const get: DerivedGet = (inputTopic) =>
+          note(this.sampleInLane(inputTopic, token, lane));
+        const derived = def.derive(get, viewUt);
         const carry = this.carryFor(def);
-        carry.value = shareEqual(carry.value, computed);
+        carry.value = shareEqual(carry.value, derived);
         return {
           value: carry.value,
-          result,
-          // A processor that read nothing is as current as the frame; nothing can be older than the moment being asked about.
+          // Nothing read (a channel deriving from constants) is as current as the frame; nothing can be older than the moment being asked about.
           observedAt: Number.isFinite(oldest)
             ? Math.min(oldest, viewUt)
             : viewUt,
         };
       },
     );
-  }
-
-  /** A published processor's value as a point on its Topic or one of its field Topics. */
-  private samplePublished<Payload>(
-    resolved: { def: PublishedProcessorDefinition; field?: string },
-    token: FrameToken,
-    epoch: number,
-  ): TimelinePoint<Payload> | undefined {
-    const { def, field } = resolved;
-    const { value, observedAt: at } = this.evaluateProcessor(def, token);
 
     if (value === undefined) {
-      // Not whole yet: an input has no point at-or-before the view time in the
+      // Not whole yet: an input has no point at-or-before `viewUt` in the
       // current epoch (cold start, or resynchronizing after an epoch reset).
-      // There is no point to serve at all here, NOT a tombstone: propagates
-      // through field subtopics too, since there's nothing to extract a field
-      // from yet.
+      // There is no point to serve at all here, NOT a
+      // tombstone: propagates through field subtopics too, since there's
+      // nothing to extract a field from yet.
       return undefined;
     }
 
     if (value === null) {
-      // Confirmed absence, a required input tombstoned or the processor itself returning null: a real point carrying `payload: null`, per the tombstone model.
-      return this.carryPoint(def, field, null as Payload, at, epoch);
+      // Confirmed absence, a required input tombstoned or the channel itself returning null: a real point carrying `payload: null`, per the tombstone model.
+      return this.carryPoint(def, field, null as Payload, observedAt, epoch);
     }
 
     if (field && !(field in (value as object))) return undefined; // unknown field name, nothing to serve
@@ -4014,24 +3922,24 @@ export class TimelineStore {
       ? (Reflect.get(value as object, field) as Payload)
       : (value as Payload);
 
-    return this.carryPoint(def, field, payload, at, epoch);
+    return this.carryPoint(def, field, payload, observedAt, epoch);
   }
 
-  private carryFor(def: AnyProcessorDefinition): {
+  private carryFor(def: DerivedChannelDefinition<unknown>): {
     value: unknown;
     points: Map<string, TimelinePoint<unknown>>;
   } {
-    let carry = this.publishedCarry.get(def);
+    let carry = this.derivedCarry.get(def);
     if (!carry) {
       carry = { value: undefined, points: new Map() };
-      this.publishedCarry.set(def, carry);
+      this.derivedCarry.set(def, carry);
     }
     return carry;
   }
 
   /** The point last served for this field when it describes the same thing, else a new one. */
   private carryPoint<Payload>(
-    def: AnyProcessorDefinition,
+    def: DerivedChannelDefinition<unknown>,
     field: string | undefined,
     payload: Payload,
     observedAt: number,
@@ -4051,7 +3959,7 @@ export class TimelineStore {
     const point: TimelinePoint<Payload> = {
       validAt: observedAt,
       payload,
-      meta: processorMeta(observedAt, epoch),
+      meta: derivedMeta(observedAt, epoch),
       epoch,
     };
     points.set(key, point as TimelinePoint<unknown>);
@@ -4063,7 +3971,7 @@ export class TimelineStore {
    * `(token, key)` pair wins for that token's lifetime; subsequent calls
    * return the cached result even if the underlying data changes in
    * between. Private for now, exposed indirectly via `sample()`, but
-   * deliberately generic so published processors can reuse the same
+   * deliberately generic so derived channels can reuse the same
    * per-frame cache instead of building their own.
    */
   private memoize<Memoized>(

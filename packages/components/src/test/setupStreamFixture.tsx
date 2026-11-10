@@ -3,8 +3,8 @@ import {
   PROCESSOR_NOTIFY_BUDGET,
 } from "@ksp-gonogo/core";
 import {
-  CORE_PUBLISHED_PROCESSORS,
   DYNAMIC_WHOLE_TOPIC_PREFIXES,
+  PRODUCTION_DERIVED_CHANNELS,
   setProcessorEvaluationRecorder,
   setProcessorNotificationRecorder,
   TelemetryClient,
@@ -43,7 +43,7 @@ export interface StreamFixtureOptions {
   delaySeconds?: number;
   /** Stop the view clock's frame loop before anything subscribes, leaving `emitFrame()` the only frame source. */
   suspendFrames?: boolean;
-  /** Published processors not to register, by topic: an address on one then resolves to a topic nothing publishes. */
+  /** Derived channels not to register, by topic: an address on one then resolves to a topic nothing publishes. */
   withoutDerivedChannels?: readonly string[];
   /** Have the stub answer for topic ownership: a subscribe the test never acks reads as a topic nothing publishes. */
   decidesTopicOwnership?: boolean;
@@ -87,11 +87,11 @@ export function setupStreamFixture(
   const store = new TimelineStore(clock, {
     dynamicWholeTopicPrefixes: DYNAMIC_WHOLE_TOPIC_PREFIXES,
   });
-  // The production published-processor list, so a channel added there is available here by construction.
+  // The production derived-channel list, so a channel added there is available here by construction.
   const omitted = new Set(opts.withoutDerivedChannels ?? []);
-  for (const channel of CORE_PUBLISHED_PROCESSORS) {
+  for (const channel of PRODUCTION_DERIVED_CHANNELS) {
     if (omitted.has(channel.topic)) continue;
-    store.publishProcessor(channel);
+    store.registerDerivedChannel(channel);
   }
   if (opts.pinnedUt !== undefined) {
     clock.scrubTo(opts.pinnedUt);

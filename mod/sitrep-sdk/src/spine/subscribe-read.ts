@@ -7,7 +7,7 @@ import type { TimelineStore } from "./timeline-store";
  * as `useTelemetry` and `useStream`.
  *
  * Two sets are held: the Topics that feed the read (itself for a raw Topic, the
- * parent record for a field subtopic, a published processor's inputs resolved
+ * parent record for a field subtopic, a derived channel's inputs resolved
  * recursively), and the Topics the read's elected reckoner declared as deps. The
  * set resolves when the read subscribes, so a reckoner registered after a read
  * mounts is not picked up until the subscription rebuilds.
@@ -22,7 +22,7 @@ export function subscribeTopicRead(
    * Two things have to be up:
    *
    * - the topics that feed the read (`resolveSubscriptionTopics`): itself for a
-   *   raw topic, the parent record for a raw field subtopic, a published processor's
+   *   raw topic, the parent record for a raw field subtopic, a derived channel's
    *   declared `inputs` resolved recursively
    * - the topics the read's elected reckoner declared (`reckonerDepTopics`).
    *   `registeredReckoning` declines outright with one declared dep missing, so

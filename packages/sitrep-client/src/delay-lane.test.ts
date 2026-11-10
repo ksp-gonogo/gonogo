@@ -119,29 +119,33 @@ describe("a channel's declared delay role", () => {
     expect(store.sampleCertainty(DELAYED_TOPIC)).toBe("predicted");
   });
 
-  it("keeps a published processor mixing roles on the delayed lane", () => {
+  it("keeps a derived channel mixing roles on the delayed lane", () => {
     const { store } = startStore();
     /* `trackingStation.bodies` is TrueNow and `vessel.flight` is not. The output must
        not be stamped more current than the most delayed thing it read. */
     store.ingest("trackingStation.bodies", point(UT_NOW, { bodies: [] }));
-    store.publishProcessor({
+    store.registerDerivedChannel({
       topic: "mixed.state",
-      deps: ["trackingStation.bodies", DELAYED_TOPIC],
-      compute: ([, flight]: readonly [unknown, unknown]) =>
-        flight ? { present: true } : undefined,
+      inputs: ["trackingStation.bodies", DELAYED_TOPIC],
+      derive: (get) => {
+        const flight = get(DELAYED_TOPIC);
+        return flight ? { at: flight.validAt } : undefined;
+      },
     });
     store.beginFrame();
     expect(store.sample("mixed.state")?.validAt).toBe(UT_NOW - OWLT);
   });
 
-  it("lets an all-TrueNow published processor run at true now", () => {
+  it("lets an all-TrueNow derived channel run at true now", () => {
     const { store } = startStore();
     store.ingest("trackingStation.bodies", point(UT_NOW, { bodies: [] }));
-    store.publishProcessor({
+    store.registerDerivedChannel({
       topic: "ground.state",
-      deps: ["trackingStation.bodies", TRUE_NOW_TOPIC],
-      compute: ([, dlc]: readonly [unknown, unknown]) =>
-        dlc ? { present: true } : undefined,
+      inputs: ["trackingStation.bodies", TRUE_NOW_TOPIC],
+      derive: (get) => {
+        const dlc = get(TRUE_NOW_TOPIC);
+        return dlc ? { at: dlc.validAt } : undefined;
+      },
     });
     store.beginFrame();
     expect(store.sample("ground.state")?.validAt).toBe(UT_NOW);

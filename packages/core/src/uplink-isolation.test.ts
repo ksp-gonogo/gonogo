@@ -371,7 +371,7 @@ describe("uplink isolation", () => {
    * could no longer express a failure and would have reported success forever.
    *
    * It is not hypothetical either. When the harness first moved, a bulk re-point put
-   * a processor definition into `resourceProjection.ts` (since deleted), a
+   * `DerivedChannelDefinition` into `resourceProjection.ts` (since deleted), a
    * production file,
    * because the script sorted by symbol and not by who was importing.
    */

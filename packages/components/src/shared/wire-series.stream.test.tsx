@@ -1,6 +1,6 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { plotColumnsOf } from "@ksp-gonogo/data";
-import { CORE_PUBLISHED_PROCESSORS } from "@ksp-gonogo/sitrep-client";
+import { PRODUCTION_DERIVED_CHANNELS } from "@ksp-gonogo/sitrep-client";
 import { act, render, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -41,14 +41,14 @@ function fixtureWithoutDerivedChannels() {
   return setupStreamFixture({
     pinnedUt: 10,
     suspendFrames: true,
-    withoutDerivedChannels: CORE_PUBLISHED_PROCESSORS.map((c) => c.topic),
+    withoutDerivedChannels: PRODUCTION_DERIVED_CHANNELS.map((c) => c.topic),
   });
 }
 
 const PLOTTED_LINE =
   'svg[aria-label="Telemetry line chart"] path[d][fill="none"]';
 
-describe("series computed from the wire, with no published processor in the store", () => {
+describe("series computed from the wire, with no derived channel in the store", () => {
   beforeEach(stubSizedResizeObserver);
   afterEach(() => vi.unstubAllGlobals());
 

@@ -171,7 +171,7 @@ export const NEVER_RECKONABLE = [
   // why, and making the model cheaper is what moves it back out.
   //
   // Deliberately EMPTY. Provider-supplied compute on the frame path is what this
-  // whole pipeline already is (a mapper runs every tick, a published processor and a
+  // whole pipeline already is (a mapper runs every tick, a derived channel and a
   // processor every frame), so a reckoning is not special and nothing here has
   // earned an exemption yet. An entry needs evidence of a real per-frame cost,
   // named in its comment.

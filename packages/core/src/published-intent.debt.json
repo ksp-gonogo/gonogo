@@ -9,6 +9,7 @@
     ".:KSP_RESOURCE_FLOW_MODE_NAMES",
     ".:KSP_ROSTER_STATUS_NAMES",
     ".:getAllKnownCommandIds",
+    ".:isDerivedChannelId",
     ".:isWidgetChannelId"
   ],
   "@ksp-gonogo/ui-kit": [

@@ -6,9 +6,8 @@ import {
 import { describe, expect, it } from "vitest";
 import type { OrbitElements } from "./kepler";
 import { solveAnomalies } from "./kepler";
-import { publishedDefinitionOf } from "./processors";
 import { makeMeta, type WireOf, wrapWire } from "./stub-transport";
-import { SYSTEM_STATE } from "./system-state";
+import { systemStateChannel } from "./system-state";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
 import { VISIBLE_GAP_SECONDS, ViewClock } from "./view-clock";
@@ -325,7 +324,7 @@ describe("raw frame-cache defeats the epoch guard: the LENS-4 ghost (M2 T5 close
       delaySeconds: () => 0,
     });
     const store = new TimelineStore(clock);
-    store.publishProcessor(publishedDefinitionOf(SYSTEM_STATE));
+    store.registerDerivedChannel(systemStateChannel);
 
     store.ingest("trackingStation.bodies", {
       validAt: 100,

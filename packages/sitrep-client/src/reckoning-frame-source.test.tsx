@@ -26,7 +26,7 @@ import type { TimelineStore } from "./timeline-store";
  * A frame per animation frame is also what `TimelineStore.beginFrame`'s own doc
  * asks for ("call once per animation frame / read cycle"); coalescing to ingest
  * was the optimisation, and it was wrong for a quiet link. It costs little:
- * `beginFrame` bumps a generation and clears a memo, published processors re-derive
+ * `beginFrame` bumps a generation and clears a memo, derived channels re-derive
  * lazily on read, and `sampleReading`'s identity cache means a topic nobody
  * models hands back the same object and re-renders nothing.
  */

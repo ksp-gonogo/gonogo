@@ -208,7 +208,7 @@ import { approveStation } from "../test/approveStation";
  *
  * Captured from inside the tree rather than by handing the providers a store the
  * test built, because how a provider builds its own store (the delay authority
- * it wires into the clock, the published processors it registers) is part of what
+ * it wires into the clock, the derived channels it registers) is part of what
  * this file is proving works across the peer hop.
  */
 const liveStores = new Set<TimelineStore>();

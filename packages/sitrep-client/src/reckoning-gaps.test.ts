@@ -2,12 +2,11 @@ import { declareTestReckonable } from "@ksp-gonogo/sitrep-sdk/testing";
 import "./reckoner-test-topics";
 import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { beforeEach, describe, expect, it } from "vitest";
-import { publishedDefinitionOf } from "./processors";
 import type { ReckonerDefinition } from "./reading";
 import { observedAt } from "./reading";
 import { clearReckoners, registerReckoner } from "./reckoners";
 import { makeMeta, observedPayload } from "./stub-transport";
-import { SYSTEM_STATE } from "./system-state";
+import { systemStateChannel } from "./system-state";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
@@ -85,14 +84,14 @@ function numberPoint(validAt: number, payload: number): TimelinePoint<number> {
 beforeEach(clearReckoners);
 
 describe("a derived reading must not claim the frame's own SCET as its observation", () => {
-  it("a published processor twenty minutes into a blackout reports the age of its INPUT's observation, not zero", () => {
+  it("a derived channel twenty minutes into a blackout reports the age of its INPUT's observation, not zero", () => {
     // A derived record is recomputed every frame, so stamping it with the
     // frame's own SCET would make a widget asking how old it is get 0
     // however long the craft has been dark. The store tracks the oldest input
     // the derivation consumed instead, which is how current the record is.
     const wall = fakeWall();
     const { store } = delayedStore(wall);
-    store.publishProcessor(publishedDefinitionOf(SYSTEM_STATE));
+    store.registerDerivedChannel(systemStateChannel);
 
     store.ingest("trackingStation.bodies", bodiesPoint(100));
     wall.advanceBy(1200);
@@ -104,7 +103,7 @@ describe("a derived reading must not claim the frame's own SCET as its observati
 
     const reading = store.sampleReading<unknown>("system.state");
     expect(reading.state).toBe("held");
-    // The age at the craft's present, as the subtraction it is: twenty minutes and a light-time since the bodies were observed, not zero because the published processor was recomputed this frame.
+    // The age at the craft's present, as the subtraction it is: twenty minutes and a light-time since the bodies were observed, not zero because the derived channel was recomputed this frame.
     expect(
       value("ut", scetUt).minus(observedAt(reading) as Value<"ut">),
     ).toEqual(value("s", 1210));

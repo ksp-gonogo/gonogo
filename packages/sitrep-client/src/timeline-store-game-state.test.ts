@@ -2,9 +2,8 @@ import { parseServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TelemetryClient } from "./client";
-import { publishedDefinitionOf } from "./processors";
 import { makeMeta } from "./stub-transport";
-import { SYSTEM_STATE } from "./system-state";
+import { systemStateChannel } from "./system-state";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
@@ -22,7 +21,7 @@ function store(): TimelineStore {
   const s = new TimelineStore(
     new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 }),
   );
-  s.publishProcessor(publishedDefinitionOf(SYSTEM_STATE));
+  s.registerDerivedChannel(systemStateChannel);
   return s;
 }
 
@@ -88,7 +87,7 @@ describe("the game's own state, held on the store", () => {
     expect(s.sampleReading("trackingStation.bodies").state).toBe("pending");
   });
 
-  it("makes a published processor inherit the grade", () => {
+  it("makes a derived channel inherit the grade", () => {
     const s = store();
     s.ingest("trackingStation.bodies", point(10, BODIES));
     s.setGameState("loading", "FLIGHT");

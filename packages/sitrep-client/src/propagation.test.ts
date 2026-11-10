@@ -10,7 +10,7 @@ import { type OrbitElements, solve } from "./kepler";
  * `Sitrep.Propagation.Tests` asserts `KeplerProvider` against. Both
  * languages conforming to one shared fixture set is how we prove the C#
  * server and the TS SDK derive positions identically (spec-streaming-delay-model.md
- * §4/§5's published-processor requirement).
+ * §4/§5's derived-channel requirement).
  *
  * Per-case `tolerance` in the fixture distinguishes:
  *  - "csharp-generated" cases: KeplerProvider's own (near machine-precision)

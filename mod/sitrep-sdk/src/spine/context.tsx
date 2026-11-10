@@ -31,32 +31,31 @@ import {
   LATE_ARRIVAL_ERROR_CODE,
 } from "./arrival-deadline";
 import type { TelemetryClient } from "./client";
+import {
+  getContributedDerivedChannels,
+  onContributedChannelsChange,
+} from "./contributed-channels";
 import { noteUndeclaredRead } from "./contribution-scope";
 import { registerCoreReckoners } from "./core-reckoners";
 import { DelayAuthority } from "./delay-authority";
 import { DelayAuthorityContext } from "./delay-authority-context";
 import {
-  DV_CURRENT_STAGE_RESOURCE,
-  DV_CURRENT_STAGE_RESOURCE_MAX,
+  dvCurrentStageResourceChannel,
+  dvCurrentStageResourceMaxChannel,
 } from "./dv-stage-resources";
 import { commandDelayed } from "./map-command";
 import { DYNAMIC_WHOLE_TOPIC_PREFIXES, resolveValueTopic } from "./map-topic";
 import { type OrbitalSolve, solveSelfOrbit } from "./orbital-solve";
 import { OwnCraftDelayGate } from "./own-craft-vantage";
 import { processorRuntimeFor } from "./processorEvaluator";
-import {
-  getPublishedProcessors,
-  onPublishedProcessorsChange,
-  type PublishedProcessorDefinition,
-  publishedDefinitionOf,
-} from "./processors";
 import { StreamRecorder, type StreamRecorderOptions } from "./replay-recorder";
-import { SPACE_CENTER_STATE } from "./space-center-state";
+import { spaceCenterStateChannel } from "./space-center-state";
 import { type ReadTopicResolver, subscribeTopicRead } from "./subscribe-read";
-import { SYSTEM_STATE } from "./system-state";
+import { systemStateChannel } from "./system-state";
+import type { DerivedChannelDefinition } from "./timeline-store";
 import { TimelineStore } from "./timeline-store";
 import { installUnownedTopicWarning } from "./unowned-warning";
-import { SYSTEM_UPLINK_HEALTH } from "./uplink-health";
+import { systemUplinkHealthChannel } from "./uplink-health";
 import { ViewClock, type ViewClockOptions } from "./view-clock";
 
 const TelemetryClientContext = createContext<TelemetryClient | undefined>(
@@ -99,7 +98,7 @@ export interface TelemetryProviderProps {
   children: ReactNode;
   /**
    * Advanced override: supply a pre-built `TimelineStore` (e.g. one with
-   * extra published processors registered, or non-default `ViewClock` options,
+   * extra derived channels registered, or non-default `ViewClock` options,
    * a scrub UI, a fixed replay delay) instead of the default one this
    * provider builds. When omitted, `TelemetryProvider` builds one itself,
    * see this component's own doc comment.
@@ -167,7 +166,9 @@ export function TelemetryProvider({
       // A topic under a dynamic namespace is one whole raw topic, never a `<domain.channel>.<field>` split.
       { dynamicWholeTopicPrefixes: DYNAMIC_WHOLE_TOPIC_PREFIXES },
     );
-    publishProcessorsOn(built);
+    for (const channel of PRODUCTION_DERIVED_CHANNELS) {
+      built.registerDerivedChannel(channel);
+    }
     /*
      * Core's own forward models, through the same registry an Uplink's go
      * through. Idempotent, and re-asserted here rather than left to the module
@@ -175,24 +176,31 @@ export function TelemetryProvider({
      * the vanilla back with its store.
      */
     registerCoreReckoners();
+    // Uplink-contributed channels register AFTER the first-party ones, so a
+    // topic core already owns cannot be taken over by an Uplink importing
+    // itself later. Contributions are per (topic, owner) and a contested topic
+    // arrives from nobody: see `contributed-channels.ts`.
+    for (const channel of getContributedDerivedChannels()) {
+      built.registerDerivedChannel(channel);
+    }
     return { store: built, delayAuthority: authority, warp: warpSlope };
   }, [providedStore, client]);
 
-  // A store is built with the processors published so far, which on a station
+  // A store is built with the channels contributed so far, which on a station
   // is none of them: its Uplink bundles cannot load until there is a
   // peer-backed client to read the roster off, so `StationScreen` mounts the
-  // provider as the parent of the loader. Keep draining as they arrive,
-  // skipping any topic the store already has so a Topic never changes meaning
-  // under a widget that is already reading it.
+  // provider as the parent of the loader. Keep draining as contributions
+  // arrive, skipping any topic the store already has so a channel never
+  // changes meaning under a widget that is already reading it.
   useEffect(() => {
     const drain = () => {
-      for (const processor of getPublishedProcessors()) {
-        if (store.hasPublishedProcessor(processor.topic)) continue;
-        store.publishProcessor(processor);
+      for (const channel of getContributedDerivedChannels()) {
+        if (store.hasDerivedChannel(channel.topic)) continue;
+        store.registerDerivedChannel(channel);
       }
     };
     drain();
-    return onPublishedProcessorsChange(drain);
+    return onContributedChannelsChange(drain);
   }, [store]);
 
   useEffect(() => client.attachStore(store), [client, store]);
@@ -376,37 +384,23 @@ export function TelemetryProvider({
 }
 
 /**
- * Gonogo's own published processors, registered on the default store a
- * `TelemetryProvider` builds. A caller that needs a Topic missing from this
+ * The first-party derived channels registered on the default store a
+ * `TelemetryProvider` builds. A caller that needs a channel missing from this
  * list, or wants to omit one, passes its own pre-built `store` prop.
  *
- * An Uplink publishes a processor with `registerProcessor` and `topic`, never by
- * editing this list: it is added alongside these when the store is built.
+ * An Uplink adds a derived channel with
+ * `defineUplinkClient(...).registerDerivedChannel` and never by editing this
+ * list: its channel is registered alongside these when the store is built. A
+ * derived channel is the only way to join two Topics.
  */
-export const CORE_PUBLISHED_PROCESSORS: PublishedProcessorDefinition[] = [
-  SYSTEM_STATE,
-  SYSTEM_UPLINK_HEALTH,
-  SPACE_CENTER_STATE,
-  DV_CURRENT_STAGE_RESOURCE,
-  DV_CURRENT_STAGE_RESOURCE_MAX,
-].map(publishedDefinitionOf);
-
-/**
- * Publishes Gonogo's own processors on `store`, then every Uplink's that no other
- * Uplink also claims. Useful for building a store that answers every computed
- * Topic, as the telemetry provider and a replay do. Uplinks go on after Gonogo's
- * own and never over them, so a topic core already owns cannot be taken over by
- * an Uplink importing itself later.
- */
-export function publishProcessorsOn(store: TimelineStore): void {
-  for (const processor of CORE_PUBLISHED_PROCESSORS) {
-    store.publishProcessor(processor);
-  }
-  for (const processor of getPublishedProcessors()) {
-    if (store.hasPublishedProcessor(processor.topic)) continue;
-    store.publishProcessor(processor);
-  }
-}
+export const PRODUCTION_DERIVED_CHANNELS: DerivedChannelDefinition<unknown>[] =
+  [
+    systemStateChannel as DerivedChannelDefinition<unknown>,
+    systemUplinkHealthChannel as DerivedChannelDefinition<unknown>,
+    spaceCenterStateChannel as DerivedChannelDefinition<unknown>,
+    dvCurrentStageResourceChannel as DerivedChannelDefinition<unknown>,
+    dvCurrentStageResourceMaxChannel as DerivedChannelDefinition<unknown>,
+  ];
 
 /**
  * The `TelemetryClient` supplied by the nearest `TelemetryProvider`, the

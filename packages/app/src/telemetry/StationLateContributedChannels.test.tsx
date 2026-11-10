@@ -1,19 +1,19 @@
 import {
-  defineProcessor,
+  contributeDerivedChannel,
   TelemetryClient,
   TelemetryProvider,
   useStream,
 } from "@ksp-gonogo/sitrep-client";
-import type { TopicId } from "@ksp-gonogo/sitrep-sdk";
+import type { DerivedChannelDefinition } from "@ksp-gonogo/sitrep-sdk";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { type ReactNode, useEffect, useState } from "react";
 import { describe, expect, it } from "vitest";
 
 /**
- * A processor published as a Topic can join two Topics into something every
- * reader can use, so an Uplink that models a quantity across a split contract
- * publishes one. Whether it reaches the store depends on when the Uplink's module graph runs
+ * A derived channel is the only mechanism that can join two Topics, so an
+ * Uplink that models a quantity across a split contract has to contribute one.
+ * Whether that channel survives depends on when the Uplink's module graph runs
  * relative to the store being built, and the two screens answer that
  * differently.
  *
@@ -32,6 +32,17 @@ import { describe, expect, it } from "vitest";
 
 const RAW_TOPIC = "lateuplink.raw";
 const DERIVED_TOPIC = "lateuplink.doubled";
+
+const LATE_CHANNEL: DerivedChannelDefinition<number> = {
+  topic: DERIVED_TOPIC,
+  inputs: [RAW_TOPIC],
+  derive: (get) => {
+    const point = get<{ n: number }>(RAW_TOPIC);
+    if (!point) return undefined;
+    if (point.payload === null) return null;
+    return point.payload.n * 2;
+  },
+};
 
 function Probe() {
   const valueReading = useStream<number>(DERIVED_TOPIC);
@@ -52,25 +63,14 @@ function Probe() {
 function LateLoader({ children }: { children: ReactNode }) {
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
-    defineProcessor({
-      id: "doubled",
-      owner: "lateuplink",
-      topic: DERIVED_TOPIC,
-      deps: [RAW_TOPIC as TopicId],
-      compute: ([raw]) => {
-        const payload = raw as { n: number } | null | undefined;
-        if (payload === undefined) return undefined;
-        if (payload === null) return null;
-        return payload.n * 2;
-      },
-    });
+    contributeDerivedChannel(LATE_CHANNEL, "lateuplink");
     setLoaded(true);
   }, []);
   return loaded ? children : null;
 }
 
 describe("a station's Uplink loads after its store is built", () => {
-  it("resolves a published processor contributed after the provider mounted", async () => {
+  it("resolves a derived channel contributed after the provider mounted", async () => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
     render(

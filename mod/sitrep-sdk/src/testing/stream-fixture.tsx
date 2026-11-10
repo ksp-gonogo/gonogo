@@ -1,8 +1,8 @@
 import type { JSX, ReactNode } from "react";
 import type { Meta } from "../__generated__/contract";
 import {
-  CORE_PUBLISHED_PROCESSORS,
   DYNAMIC_WHOLE_TOPIC_PREFIXES,
+  PRODUCTION_DERIVED_CHANNELS,
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
@@ -103,8 +103,8 @@ export function setupStreamFixture(
   // of the other four got `undefined` from a store the app would have answered
   // from, and the test agreed with itself. Registering the same list the provider
   // registers is the only version of this that stays true as the list grows.
-  for (const processor of CORE_PUBLISHED_PROCESSORS) {
-    store.publishProcessor(processor);
+  for (const channel of PRODUCTION_DERIVED_CHANNELS) {
+    store.registerDerivedChannel(channel);
   }
   if (opts.pinnedUt !== undefined) clock.scrubTo(opts.pinnedUt);
 

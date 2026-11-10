@@ -1,6 +1,6 @@
 import type { VesselTarget } from "../__generated__/contract";
 import type { ReckonerDefinition } from "../reading";
-import type { PublishedTopicId } from "../topics";
+import type { DerivedChannelId } from "../topics";
 import { registerReckoner } from "./reckoners";
 
 /**
@@ -118,19 +118,19 @@ registerReckoner("vessel.flight", "core", {
 /*
  * A DERIVED channel is not a Topic, and this registry will not take one.
  *
- * `spaceCenter.state` is a production published processor, so it is a member of
- * `PUBLISHED_TOPIC_IDS`: a deliberately separate union from `TopicId`, with no
+ * `spaceCenter.state` is a production derived channel, so it is a member of
+ * `DERIVED_CHANNEL_IDS`: a deliberately separate union from `TopicId`, with no
  * wire payload for `TopicPayload` to resolve. This parameter is `TopicId`, so
  * the id is refused here while it stays a valid `WidgetChannelId` for a read.
  *
  * The directive is the gate, not the prose: widening this parameter to
  * `WidgetChannelId` leaves it unused and fails typecheck. The assignment first
- * is its control: were the id to leave `PUBLISHED_TOPIC_IDS`, the directive
+ * is its control: were the id to leave `DERIVED_CHANNEL_IDS`, the directive
  * would pass on an id that names nothing, and this line fails instead.
  */
-const derivedChannel: PublishedTopicId = "spaceCenter.state";
+const derivedChannel: DerivedChannelId = "spaceCenter.state";
 void derivedChannel;
-// @ts-expect-error `spaceCenter.state` is a published processor, not a Topic.
+// @ts-expect-error `spaceCenter.state` is a derived channel, not a Topic.
 registerReckoner("spaceCenter.state", "core", {
   deps: [],
   reckon: () => ({ declined: { reason: "model-inapplicable" } }),
@@ -147,7 +147,7 @@ registerReckoner("spaceCenter.state", "core", {
  * typecheck fails, which is when the reasons in `solveLanding.ts`, `clocks.ts`,
  * `descentLayers.ts` and `descent.ts` want re-reading.
  */
-// @ts-expect-error `vessel.landingSolution` names no Topic and no published processor.
+// @ts-expect-error `vessel.landingSolution` names no Topic and no derived channel.
 registerReckoner("vessel.landingSolution", "core", {
   deps: [],
   reckon: () => ({ declined: { reason: "model-inapplicable" } }),

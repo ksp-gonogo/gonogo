@@ -2,8 +2,8 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  CORE_PUBLISHED_PROCESSORS,
   DYNAMIC_WHOLE_TOPIC_PREFIXES,
+  PRODUCTION_DERIVED_CHANNELS,
   TelemetryClient,
   TimelineStore,
   ViewClock,
@@ -72,8 +72,8 @@ function statusesAfterTheLinkFrame(keyframes: boolean): Map<string, string> {
   const store = new TimelineStore(clock, {
     dynamicWholeTopicPrefixes: DYNAMIC_WHOLE_TOPIC_PREFIXES,
   });
-  for (const processor of CORE_PUBLISHED_PROCESSORS) {
-    store.publishProcessor(processor);
+  for (const channel of PRODUCTION_DERIVED_CHANNELS) {
+    store.registerDerivedChannel(channel);
   }
   clock.suspendFrames();
   // biome-ignore lint/suspicious/noExplicitAny: the replay feeds the transport the way a socket does

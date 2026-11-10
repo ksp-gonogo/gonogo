@@ -7,7 +7,7 @@
  * rotation (argument of periapsis, then inclination, then longitude of
  * ascending node -- the Vallado/AIAA convention).
  *
- * This is the published-processor foundation for the streaming delay model: the mod
+ * This is the derived-channel foundation for the streaming delay model: the mod
  * transmits sparse orbital
  * elements over the wire, and each consumer -- the mod itself, and this SDK
  * -- derives position on demand rather than streaming dense position

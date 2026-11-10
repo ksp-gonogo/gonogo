@@ -4,7 +4,7 @@ import { isKnownFieldPath } from "./spine/map-topic";
 // Imported for the module-load side effect as much as for the value: this is
 // what registers `spaceCenter.state`'s hand-declared field metadata, and the
 // enumeration below can only see it once that module has run.
-import { SPACE_CENTER_STATE } from "./spine/space-center-state";
+import { spaceCenterStateChannel } from "./spine/space-center-state";
 import { enumerateTopicFields } from "./topic-fields";
 import { TOPIC_IDS } from "./topics";
 
@@ -112,13 +112,13 @@ describe("isKnownFieldPath plurality", () => {
   });
 });
 
-describe("enumerateTopicFields on a published processor", () => {
+describe("enumerateTopicFields on a client-derived channel", () => {
   it("describes spaceCenter.state, which no generated map knows about", () => {
     // The channel is computed client-side, so this can only work through the
     // hand declaration in `space-center-state.ts`. An empty result here means
     // that declaration stopped being registered, which would silently drop
     // every client-derived field from the picker's vocabulary.
-    expect(enumerateTopicFields("spaceCenter.state")).toEqual([
+    expect(enumerateTopicFields(spaceCenterStateChannel.topic)).toEqual([
       { path: "padOccupied", unit: "flag", kind: "flag" },
       { path: "padVesselTitle", unit: "text", kind: "text" },
     ]);
@@ -126,17 +126,17 @@ describe("enumerateTopicFields on a published processor", () => {
 });
 
 describe("isKnownFieldPath on a registered topic", () => {
-  it("accepts a published processor's field that no legacy table ever named", () => {
+  it("accepts a derived channel's field that no legacy table ever named", () => {
     // `spaceCenter.state` appears in no contract type, so the only thing that
     // can vouch for its fields is the metadata the channel registers for
     // itself. A judgement that read the generated maps directly would be blind
     // to that, and to every Uplink-registered Topic with it.
-    void SPACE_CENTER_STATE;
+    void spaceCenterStateChannel;
     expect(isKnownFieldPath("spaceCenter.state.padVesselTitle")).toBe(true);
   });
 
   it("still refuses a field the channel does not declare", () => {
-    void SPACE_CENTER_STATE;
+    void spaceCenterStateChannel;
     expect(isKnownFieldPath("spaceCenter.state.notAField")).toBe(false);
   });
 });

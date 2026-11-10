@@ -6,7 +6,7 @@ import type { StreamStatusValue } from "../api/types";
  *
  * The SDK already mirrored it (`api/types.ts`) because it cannot depend on this
  * package without forming a build cycle, and a conformance test in core kept the two
- * copies honest. An Uplink writing a published processor has to name the type, so the
+ * copies honest. An Uplink writing a derived channel has to name the type, so the
  * SDK's copy is the one an author can reach and this package defers to it. One
  * declaration, no conformance needed.
  */
@@ -30,7 +30,7 @@ export type { StreamStatusValue } from "../api/types";
  * exact: it came off the subject's own recorder, stamped with the instant it
  * was taken, so it is a stronger claim than `held`'s "may have changed,
  * cannot tell" and stronger than anything below it. What it is not is current,
- * which is why it must never rank equal to `live`: a published processor joining a
+ * which is why it must never rank equal to `live`: a derived channel joining a
  * recorded input with a live one has to propagate the recorded grade, or a
  * widget reads a replayed outage as the state of the craft now.
  */
@@ -49,9 +49,9 @@ const STATUS_SEVERITY: Record<StreamStatusValue, number> = {
 /**
  * The worst (highest-severity) status among a set of inputs. Useful for showing
  * the operator the least current of the inputs a value was built from, since
- * published processors take the worst input staleness as their own status. Used by the
+ * derived channels take the worst input staleness as their own status. Used by the
  * widget stream status hook and the timeline store. An empty list is `"live"`,
- * though no published processor should declare zero inputs and rely on that.
+ * though no derived channel should declare zero inputs and rely on that.
  */
 export function worstStatus(statuses: StreamStatusValue[]): StreamStatusValue {
   let worst: StreamStatusValue = "live";

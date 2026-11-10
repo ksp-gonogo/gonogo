@@ -166,8 +166,8 @@ export const _optionalAssignable: ComponentDefinition["optionalChannels"] =
   asConstManifest.optionalChannels;
 
 // ── A DERIVED channel is declarable, a legacy flat key is not ───────────────────────
-// The declaration union is `TopicId | PublishedTopicId`, closed on both arms. The
-// first assignment is the whole point of widening it: a published processor is
+// The declaration union is `TopicId | DerivedChannelId`, closed on both arms. The
+// first assignment is the whole point of widening it: a derived channel is
 // something a widget mounts on, and no widget could name one while `channels`
 // was `TopicId[]`. The `@ts-expect-error` lines are the negative controls, and they
 // FAIL THE BUILD IF THEY START COMPILING: a legacy flat key that typechecks again is
@@ -183,7 +183,7 @@ export const _derivedChannelsAssignable: ComponentDefinition["channels"] =
 export const _derivedOptionalAssignable: ComponentDefinition["optionalChannels"] =
   derivedManifest.optionalChannels;
 
-// A published processor is DECLARED but not read through the manifest hook: it is read
+// A derived channel is DECLARED but not read through the manifest hook: it is read
 // with `useStream`, which answers the value rather than a `Reading`. The wire arm of
 // the same manifest still is.
 type _DerivedArg = Parameters<typeof derivedManifest.useTelemetry>[0];
