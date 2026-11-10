@@ -8,8 +8,9 @@ using Sitrep.Contract;
 namespace Sitrep.Propagation.Tests
 {
     /// <summary>
-    /// The two-body vanilla may not expose a way in that
-    /// <see cref="IPropagationProvider"/> does not have.
+    /// The two-body vanilla may not expose a way in that the seams it implements,
+    /// <see cref="IPropagationProvider"/> and <see cref="IPropagationFromState"/>,
+    /// do not have.
     ///
     /// <para>This is the check that makes "orbits are conics is assumed in exactly one
     /// place" literally true rather than nearly true. The arithmetic living in one class
@@ -59,7 +60,7 @@ namespace Sitrep.Propagation.Tests
 
             Assert.True(
                 beside.Count == 0,
-                "KeplerProvider must be reachable only through IPropagationProvider, and these are "
+                "KeplerProvider must be reachable only through the seams it implements, and these are "
                 + "reachable without it: " + string.Join(", ", beside));
         }
 
@@ -100,6 +101,7 @@ namespace Sitrep.Propagation.Tests
                 nameof(IPropagationProvider.CharacteristicCycleSeconds),
                 nameof(IPropagationProvider.CanPropagate),
                 nameof(IPropagationProvider.SolveClosestApproach),
+                nameof(IPropagationFromState.PropagateFromState),
             })
             {
                 Assert.Contains(expected, seam);
@@ -107,7 +109,7 @@ namespace Sitrep.Propagation.Tests
         }
 
         /// <summary>
-        /// The seam including what it inherits. An interface's own
+        /// The seams the vanilla implements, including what they inherit. An interface's own
         /// <c>GetMembers</c> stops at itself, so once <c>ProviderId</c> moved onto
         /// <see cref="ISitrepProvider"/> the checks above stopped seeing a member
         /// every provider still has to write: the surface check would have called
@@ -118,7 +120,7 @@ namespace Sitrep.Propagation.Tests
         /// </summary>
         private static IEnumerable<MemberInfo> SeamMembers()
         {
-            var interfaces = new List<Type> { typeof(IPropagationProvider) };
+            var interfaces = new List<Type> { typeof(IPropagationProvider), typeof(IPropagationFromState) };
             interfaces.AddRange(typeof(IPropagationProvider).GetInterfaces());
             return interfaces.SelectMany(
                 t => t.GetMembers(BindingFlags.Public | BindingFlags.Instance));

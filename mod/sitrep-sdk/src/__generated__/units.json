@@ -1019,6 +1019,18 @@
       "storedScience": "science",
       "valueModel": "id"
     },
+    "LastKnownPathReply": {
+      "refusal": "text",
+      "seededAtUt": "ut",
+      "solved": "flag",
+      "stillWorking": "flag",
+      "vantage": "id"
+    },
+    "LastKnownPathRequest": {
+      "certification": "enum",
+      "maxPoints": "count",
+      "toUt": "ut"
+    },
     "LaunchArgs": {
       "crew": "text",
       "facility": "text",
@@ -1271,6 +1283,14 @@
     "Pong": {
       "nonce": "id",
       "type": "id"
+    },
+    "PropagatedPath": {
+      "centreBodyIndex": "id",
+      "kind": "enum",
+      "reachedUt": "ut",
+      "refusal": "text",
+      "solved": "flag",
+      "stillWorking": "flag"
     },
     "PropagationDepartureKnot": {
       "metres": "m",
@@ -2993,6 +3013,9 @@
     "Kernel": {
       "lastNotices": "ResolutionNotice[]"
     },
+    "LastKnownPathReply": {
+      "path": "PropagatedPath"
+    },
     "LockedValue": {
       "locked": "MissingUnlock[]"
     },
@@ -3021,8 +3044,14 @@
       "pending": "PendingUplink[]",
       "settled": "SettledUplink[]"
     },
+    "PropagatedPath": {
+      "states": "BodyState[]"
+    },
     "PropagationHorizon": {
       "departure": "PropagationDepartureKnot[]"
+    },
+    "PropagationSeed": {
+      "state": "StateVector"
     },
     "PropagationTarget": {
       "osculating": "OrbitElements"
@@ -3493,6 +3522,9 @@
     "GateVerdict": {
       "outcome": "GateOutcome"
     },
+    "LastKnownPathRequest": {
+      "certification": "PropagationCertification"
+    },
     "ManeuverNode": {
       "frame": "ManeuverFrame"
     },
@@ -3521,6 +3553,9 @@
     },
     "PartResourceFlow": {
       "flowMode": "KspTankFlowMode"
+    },
+    "PropagatedPath": {
+      "kind": "TrajectoryKind"
     },
     "PropagationHorizon": {
       "kind": "PropagationHorizonKind",

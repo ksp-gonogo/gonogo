@@ -26,6 +26,8 @@ import { exitStatus } from "./ratchetBaseRef";
  * file's count fails, so a removed opt-out cannot leave room for a new one.
  */
 const RAIL_OPT_OUTS: Record<string, number> = {
+  // A question, not a command to a craft, and its caller draws the reply or refusal.
+  "mod/sitrep-sdk/src/spine/use-last-known-path.ts": 1,
   // Draws its stream on its own ControlDelayStream.
   "packages/sitrep-client/src/use-control-stream.tsx": 1,
   // The settings modal mounts no rail; each form states its write's outcome.

@@ -3963,6 +3963,7 @@ namespace Gonogo.KSP
             double? limit = null;
             if (onGround)
             {
+                // Either setting: an instant at the present, where the conic is exact.
                 var position = provider.Solve(subject, frame, ut).Position;
                 var spin = parent.rotationPeriod;
                 if (!(Math.Abs(spin) > 0.0) || !(parent.Radius > 0.0) || !(position.Magnitude() > 0.0))

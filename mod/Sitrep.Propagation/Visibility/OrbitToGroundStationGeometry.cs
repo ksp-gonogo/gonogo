@@ -99,6 +99,7 @@ namespace Sitrep.Propagation.Visibility
 
         public double MarginAt(double ut)
         {
+            // Accurate: the sweep that owns this geometry holds it to the span the provider vouches for.
             Vector3d vessel = _propagator.Solve(_vessel, ut).Position;
             Vector3d station = _station.PositionAt(ut);
             return ChordOcclusion.HorizonMargin(vessel, station, BodyCentre, _occludingRadiusMeters);

@@ -89,6 +89,7 @@ public sealed class CapturedOrbit
     /// reports the same number the mod would act on, including when the answer is
     /// that there is no period.
     /// </summary>
+    // Analytic accepted: analysis of a recorded capture, not a prediction anyone acts on.
     public double? PeriodSeconds => Propagator.CharacteristicCycleSeconds(Target);
 
     /// <summary>

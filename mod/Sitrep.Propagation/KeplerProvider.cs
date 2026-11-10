@@ -29,7 +29,7 @@ namespace Sitrep.Propagation
     /// own parent frame, which is what the overwhelming majority of callers want and
     /// what the elements alone describe. Asked for any other frame it refuses.</para>
     /// </summary>
-    public class KeplerProvider : IPropagationProvider
+    public class KeplerProvider : IPropagationProvider, IPropagationFromState
     {
         private const int MaxNewtonIterations = 50;
         private const double NewtonTolerance = 1e-12;
@@ -458,19 +458,138 @@ namespace Sitrep.Propagation
         }
 
         /// <summary>
-        /// One conic, solved. Private, and that is the whole of what makes "orbits are
-        /// conics is assumed in exactly one place" literally true rather than nearly true.
-        ///
-        /// <para>While it was public it was a door beside the seam: a caller could take a
-        /// position straight out of the two-body solver without a target, a frame or an
-        /// election being involved, and sixteen tests across six files did. The class
-        /// holding the arithmetic is not the same thing as the arithmetic being reachable
-        /// only one way.</para>
-        ///
-        /// <para>The <see cref="ArgumentOutOfRangeException"/> below is now an internal
-        /// invariant rather than a contract: every path in reaches this through
-        /// <see cref="CanPropagate"/>, which declines an unbound orbit first.</para>
+        /// The conic through the seed, sampled evenly. Under two-body physics there is
+        /// one answer, so the certification changes nothing.
         /// </summary>
+        public PropagatedPath PropagateFromState(
+            PropagationSeed seed,
+            double toUt,
+            int maxPoints,
+            PropagationCertification certification)
+        {
+            if (!(toUt > seed.Ut) || double.IsInfinity(toUt))
+            {
+                return PropagatedPath.Refused("The path has to end after the state it starts from.");
+            }
+
+            var orbit = ElementsThrough(seed);
+            if (orbit == null)
+            {
+                return PropagatedPath.Refused("That state does not lie on a conic this solver can follow.");
+            }
+
+            var count = maxPoints > 1 ? maxPoints : maxPoints == 1 ? 2 : PropagatedPath.DefaultPoints;
+            var path = new PropagatedPath
+            {
+                Solved = true,
+                Kind = TrajectoryKind.Analytic,
+                CentreBodyIndex = seed.ParentBodyIndex,
+                ReachedUt = toUt,
+            };
+            path.States.Capacity = count;
+            for (var i = 0; i < count; i++)
+            {
+                var ut = i == count - 1 ? toUt : seed.Ut + ((toUt - seed.Ut) * i / (count - 1));
+                var state = Solve(orbit.Value, ut);
+                path.States.Add(new BodyState
+                {
+                    Ut = ut,
+                    X = state.Position.X,
+                    Y = state.Position.Y,
+                    Z = state.Position.Z,
+                    Vx = state.Velocity.X,
+                    Vy = state.Velocity.Y,
+                    Vz = state.Velocity.Z,
+                });
+            }
+            return path;
+        }
+
+        /// <summary>
+        /// The elements of the conic through a state, or null when it is not one the
+        /// solver follows: a parabola, a degenerate radial path, or non-finite input.
+        /// The inverse of <see cref="Solve(OrbitElements, double)"/>.
+        /// </summary>
+        internal static OrbitElements? ElementsThrough(PropagationSeed seed)
+        {
+            var mu = seed.Mu;
+            var r = seed.State.Position;
+            var v = seed.State.Velocity;
+            var radius = r.Magnitude();
+            if (!(mu > 0.0) || !(radius > 0.0) || double.IsInfinity(mu))
+            {
+                return null;
+            }
+
+            var hx = (r.Y * v.Z) - (r.Z * v.Y);
+            var hy = (r.Z * v.X) - (r.X * v.Z);
+            var hz = (r.X * v.Y) - (r.Y * v.X);
+            var h = Math.Sqrt((hx * hx) + (hy * hy) + (hz * hz));
+            if (!(h > 0.0) || double.IsInfinity(h))
+            {
+                return null;
+            }
+
+            var speedSquared = (v.X * v.X) + (v.Y * v.Y) + (v.Z * v.Z);
+            var radialDot = (r.X * v.X) + (r.Y * v.Y) + (r.Z * v.Z);
+            var ex = (((speedSquared - (mu / radius)) * r.X) - (radialDot * v.X)) / mu;
+            var ey = (((speedSquared - (mu / radius)) * r.Y) - (radialDot * v.Y)) / mu;
+            var ez = (((speedSquared - (mu / radius)) * r.Z) - (radialDot * v.Z)) / mu;
+            var ecc = Math.Sqrt((ex * ex) + (ey * ey) + (ez * ez));
+            var energy = (speedSquared / 2.0) - (mu / radius);
+            if (!(Math.Abs(energy) > 0.0) || Math.Abs(ecc - 1.0) < 1e-12)
+            {
+                return null;
+            }
+
+            var inc = Math.Acos(Math.Max(-1.0, Math.Min(1.0, hz / h)));
+            var nodeX = -hy;
+            var nodeY = hx;
+            var nodeLength = Math.Sqrt((nodeX * nodeX) + (nodeY * nodeY));
+            var equatorial = nodeLength < h * 1e-12;
+            var lan = equatorial ? 0.0 : WrapTwoPi(Math.Atan2(nodeY, nodeX));
+
+            // The in-plane axes the 3-1-3 rotation puts the ascending node and its
+            // perpendicular on, so an angle measured against them is the one that
+            // rotation reproduces.
+            var cosLan = Math.Cos(lan);
+            var sinLan = Math.Sin(lan);
+            var cosInc = Math.Cos(inc);
+            var sinInc = Math.Sin(inc);
+            double AlongNode(double x, double y) => (cosLan * x) + (sinLan * y);
+            double AcrossNode(double x, double y, double z) =>
+                (-sinLan * cosInc * x) + (cosLan * cosInc * y) + (sinInc * z);
+
+            var circular = ecc < 1e-12;
+            var argPe = circular ? 0.0 : WrapTwoPi(Math.Atan2(AcrossNode(ex, ey, ez), AlongNode(ex, ey)));
+            var latitude = Math.Atan2(AcrossNode(r.X, r.Y, r.Z), AlongNode(r.X, r.Y));
+            var trueAnomaly = latitude - argPe;
+
+            var sma = -mu / (2.0 * energy);
+            double meanAnomaly;
+            if (ecc < 1.0)
+            {
+                var eccentric = 2.0 * Math.Atan2(
+                    Math.Sqrt(1.0 - ecc) * Math.Sin(trueAnomaly / 2.0),
+                    Math.Sqrt(1.0 + ecc) * Math.Cos(trueAnomaly / 2.0));
+                meanAnomaly = WrapTwoPi(eccentric - (ecc * Math.Sin(eccentric)));
+            }
+            else
+            {
+                var tanHalf = Math.Tan(trueAnomaly / 2.0) * Math.Sqrt((ecc - 1.0) / (ecc + 1.0));
+                if (!(Math.Abs(tanHalf) < 1.0))
+                {
+                    return null;
+                }
+                var hyperbolic = 2.0 * Atanh(tanHalf);
+                meanAnomaly = (ecc * Math.Sinh(hyperbolic)) - hyperbolic;
+            }
+
+            return new OrbitElements(sma, ecc, inc, lan, argPe, meanAnomaly, seed.Ut, mu);
+        }
+
+        private static double Atanh(double x) => 0.5 * Math.Log((1.0 + x) / (1.0 - x));
+
         /// <summary>
         /// The same two-body solve, from elements a caller holds rather than from
         /// elements read out of the game.
@@ -484,6 +603,20 @@ namespace Sitrep.Propagation
         public static StateVector StateFrom(OrbitElements orbit, double ut) =>
             new KeplerProvider().Solve(orbit, ut);
 
+        /// <summary>
+        /// One conic, solved. Private, and that is the whole of what makes "orbits are
+        /// conics is assumed in exactly one place" literally true rather than nearly true.
+        ///
+        /// <para>While it was public it was a door beside the seam: a caller could take a
+        /// position straight out of the two-body solver without a target, a frame or an
+        /// election being involved, and sixteen tests across six files did. The class
+        /// holding the arithmetic is not the same thing as the arithmetic being reachable
+        /// only one way.</para>
+        ///
+        /// <para>The <see cref="ArgumentOutOfRangeException"/> below is now an internal
+        /// invariant rather than a contract: every path in reaches this through
+        /// <see cref="CanPropagate"/>, which declines an unbound orbit first.</para>
+        /// </summary>
         private StateVector Solve(OrbitElements orbit, double ut)
         {
             if (!IsSolvableConic(orbit))
