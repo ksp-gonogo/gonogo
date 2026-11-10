@@ -158,6 +158,17 @@ namespace Sitrep.Core.Tests
         private static readonly Dictionary<string, UiReach> GameUiReachExemptions =
             new Dictionary<string, UiReach>(StringComparer.Ordinal)
             {
+                ["Gonogo.KSP/GameWindows/UguiCapture.cs"] = new UiReach(
+                    "Reads the game's open dialogs (the dialog and popup canvases) so a part's window, "
+                    + "such as Rename Vessel, can be shown as a form on the dashboard. It reads a dialog "
+                    + "only while that dialog exists and publishes nothing otherwise: a closed window is "
+                    + "absent from vessel.gameWindows, never a held last value. The channel is declared "
+                    + "delayed and stamped with the capture's own UT, so a dialog reaches the dashboard "
+                    + "only after the signal delay. Looked for an interop route and found none: a "
+                    + "dialog's fields and buttons live only in its Unity hierarchy, and the game keeps "
+                    + "no model of an arbitrary dialog, least of all one a mod opened, to read instead.",
+                    "KSP.UI", "UnityEngine.UI"),
+
                 ["Gonogo.KSP/RecoveryUplink.cs"] = new UiReach(
                     "Reads the itemised recovery breakdown off the MissionRecoveryDialog instance "
                     + "the game passes to onVesselRecoveryProcessingComplete. Not gated on a panel "

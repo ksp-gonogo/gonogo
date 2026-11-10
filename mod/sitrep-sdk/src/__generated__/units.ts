@@ -926,6 +926,34 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     timelineEpoch: "id",
     type: "id",
   },
+  "GameWindow": {
+    id: "id",
+    technology: "enum",
+    title: "text",
+  },
+  "GameWindowNode": {
+    bool: "flag",
+    columns: "n/a",
+    dir: "enum",
+    enabled: "flag",
+    id: "id",
+    image: "text",
+    kind: "enum",
+    max: "n/a",
+    min: "n/a",
+    num: "n/a",
+    options: "text",
+    text: "text",
+    tone: "enum",
+    tooltip: "text",
+    variant: "enum",
+  },
+  "GameWindowOpener": {
+    event: "text",
+    label: "text",
+    module: "text",
+    partId: "id",
+  },
   "GateCheckRequest": {
     command: "id",
   },
@@ -1311,6 +1339,13 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "Pong": {
     nonce: "id",
     type: "id",
+  },
+  "PressGameWindowControlArgs": {
+    bool: "flag",
+    controlId: "id",
+    num: "n/a",
+    text: "text",
+    windowId: "id",
   },
   "PropagationDepartureKnot": {
     metres: "m",
@@ -3035,6 +3070,16 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "GameAlarmList": {
     alarms: "GameAlarm[]",
   },
+  "GameWindow": {
+    openedBy: "GameWindowOpener",
+    root: "GameWindowNode",
+  },
+  "GameWindowNode": {
+    children: "GameWindowNode[]",
+  },
+  "GameWindows": {
+    windows: "GameWindow[]",
+  },
   "GateVerdict": {
     breach: "LimitBreach",
     missing: "MissingUnlock[]",
@@ -3413,6 +3458,9 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "vessel.flight": {
     meta: "PayloadMeta",
   },
+  "vessel.gameWindows": {
+    windows: "GameWindow[]",
+  },
   "vessel.identity": {
     meta: "PayloadMeta",
   },
@@ -3574,6 +3622,15 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   "GameAlarm": {
     kind: "GameAlarmKind",
     warp: "GameAlarmWarp",
+  },
+  "GameWindow": {
+    technology: null,
+  },
+  "GameWindowNode": {
+    dir: null,
+    kind: null,
+    tone: null,
+    variant: null,
   },
   "GateVerdict": {
     outcome: "GateOutcome",

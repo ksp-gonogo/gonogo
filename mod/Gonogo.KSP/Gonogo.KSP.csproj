@@ -44,6 +44,15 @@
     <Reference Include="UnityEngine.PhysicsModule" Private="false">
       <HintPath>$(KspManaged)\UnityEngine.PhysicsModule.dll</HintPath>
     </Reference>
+    <Reference Include="UnityEngine.IMGUIModule" Private="false">
+      <HintPath>$(KspManaged)\UnityEngine.IMGUIModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UI" Private="false">
+      <HintPath>$(KspManaged)\UnityEngine.UI.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule" Private="false">
+      <HintPath>$(KspManaged)\UnityEngine.UIModule.dll</HintPath>
+    </Reference>
     <Reference Include="Assembly-CSharp" Private="false">
       <HintPath>$(KspManaged)\Assembly-CSharp.dll</HintPath>
     </Reference>

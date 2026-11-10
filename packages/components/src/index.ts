@@ -1,5 +1,7 @@
 // Components self-register on import. Themes live in @ksp-gonogo/ui.
 
+import "./PartPanels";
+
 export * from "./ActionGroup";
 export * from "./AdministrationBuilding";
 export * from "./AstronautComplex";

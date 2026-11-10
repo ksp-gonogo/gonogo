@@ -8807,6 +8807,10 @@
         "note": "A slot listed in ContributionRegistry types compute from that slot's entry, so a literal such as tone: \"info\" returned from compute is checked against the slot's entry and no longer widens to a string; a component slot id keeps the earlier form"
       },
       {
+        "key": "sitrep-sdk . UplinkClientHandle#registerPartPanel",
+        "note": "An Uplink's handle registers part panels under its own prefixed id"
+      },
+      {
         "key": "sitrep-sdk . UplinkHealthEntry#bundled",
         "note": "required, true for an Uplink compiled into the Gonogo mod and false for an installed one, so a hand-built roster entry must now carry it"
       },
@@ -9579,6 +9583,10 @@
         "note": "A slot listed in ContributionRegistry types compute from that slot's entry, so a literal such as tone: \"info\" returned from compute is checked against the slot's entry and no longer widens to a string; a component slot id keeps the earlier form"
       },
       {
+        "key": "sitrep-sdk ./registry ~UplinkClientHandle#registerPartPanel",
+        "note": "An Uplink's handle registers part panels under its own prefixed id"
+      },
+      {
         "key": "sitrep-sdk ./spine BODY_STATES_COMMAND",
         "note": "Names trackingStation.bodies.statesAt, the command's new name"
       },
@@ -9973,6 +9981,10 @@
       {
         "key": "sitrep-sdk ./spine UplinkClientHandle#registerContribution",
         "note": "A slot listed in ContributionRegistry types compute from that slot's entry, so a literal such as tone: \"info\" returned from compute is checked against the slot's entry and no longer widens to a string; a component slot id keeps the earlier form"
+      },
+      {
+        "key": "sitrep-sdk ./spine UplinkClientHandle#registerPartPanel",
+        "note": "An Uplink's handle registers part panels under its own prefixed id"
       },
       {
         "key": "sitrep-sdk ./spine UplinkHealthEntry#bundled",
@@ -11147,6 +11159,10 @@
         "note": "A slot listed in ContributionRegistry types compute from that slot's entry, so a literal such as tone: \"info\" returned from compute is checked against the slot's entry and no longer widens to a string; a component slot id keeps the earlier form"
       },
       {
+        "key": "sitrep-sdk ./testing ~UplinkClientHandle#registerPartPanel",
+        "note": "An Uplink's handle registers part panels under its own prefixed id"
+      },
+      {
         "key": "sitrep-sdk ./testing ~UseCommandOptions",
         "note": "takes the command's argument type, so confirmedBy is checked against the args each dispatch was sent with"
       },
@@ -11833,6 +11849,10 @@
       {
         "key": "ui-kit . Row",
         "note": "now takes a command, so its props are a union of the plain and the commanded form"
+      },
+      {
+        "key": "ui-kit . ScrollArea",
+        "note": "ScrollArea takes ScrollAreaProps, adding a framed mode whose border and inset the region owns"
       },
       {
         "key": "ui-kit . Select",
@@ -13413,6 +13433,82 @@
         "note": "A reckonable row with the owner whose contract declared it"
       },
       {
+        "key": "sitrep-sdk . PartPanelDefinition",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk . PartPanelDefinition#component",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk . PartPanelDefinition#id",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk . PartPanelDefinition#owner?",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk . PartPanelDefinition#replaces?",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk . PartPanelDefinition#requires?",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk . PartPanelDefinition#title",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk . PartPanelDefinition#titleAdornment?",
+        "note": "Optional content drawn beside a part panel or modal dialog heading"
+      },
+      {
+        "key": "sitrep-sdk . PartPanelDefinition#width?",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk . PartPanelFallback",
+        "note": "A function that may offer a panel for a game button no panel names"
+      },
+      {
+        "key": "sitrep-sdk . PartPanelFallbackButton",
+        "note": "What a part panel fallback is told about a button"
+      },
+      {
+        "key": "sitrep-sdk . PartPanelFallbackButton#label",
+        "note": "What a part panel fallback is told about a button"
+      },
+      {
+        "key": "sitrep-sdk . PartPanelGameButton",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk . PartPanelGameButton#event",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk . PartPanelGameButton#module",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk . PartPanelProps",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk . PartPanelProps#close",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk . PartPanelProps#partId",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk . PartPanelProps#partTitle",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
         "key": "sitrep-sdk . PendingEntry#memberCommands?",
         "note": "New optional field: the command of each member a group's one entry carries"
       },
@@ -13806,31 +13902,31 @@
       },
       {
         "key": "sitrep-sdk . ShipMapPartActionEntry#active",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk . ShipMapPartActionEntry#args",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk . ShipMapPartActionEntry#command",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk . ShipMapPartActionEntry#group?",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk . ShipMapPartActionEntry#label",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk . ShipMapPartActionEntry#name",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk . ShipMapPartActionEntry#partId",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk . SizeDelta",
@@ -14445,6 +14541,10 @@
         "note": "The shared rule and model for offering a resource transfer from any widget"
       },
       {
+        "key": "sitrep-sdk . clearPartPanels",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
         "key": "sitrep-sdk . clearUplinkBanner",
         "note": "New: a banner an Uplink raises in the operator's banner stack"
       },
@@ -14497,12 +14597,24 @@
         "note": "The payload fields of a Topic the mod sends a connection only when they change, so a relay to another screen can leave them out the same way."
       },
       {
+        "key": "sitrep-sdk . getPartPanelFallbacks",
+        "note": "Lists the fallbacks a part menu consults"
+      },
+      {
+        "key": "sitrep-sdk . getPartPanels",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
         "key": "sitrep-sdk . hasSupersededFields",
         "note": "New: whether a Topic's history drops some fields from samples no longer on screen"
       },
       {
         "key": "sitrep-sdk . keplerAdmissibilityAcrossPatches",
         "note": "the orbit admissibility answer that also says which patch the craft is on past a sphere-of-influence change"
+      },
+      {
+        "key": "sitrep-sdk . onPartPanelsChange",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
       },
       {
         "key": "sitrep-sdk . phaseAngleBetween",
@@ -14515,6 +14627,14 @@
       {
         "key": "sitrep-sdk . raiseUplinkBanner",
         "note": "New: a banner an Uplink raises in the operator's banner stack"
+      },
+      {
+        "key": "sitrep-sdk . registerPartPanel",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk . registerPartPanelFallback",
+        "note": "Adds a part panel fallback"
       },
       {
         "key": "sitrep-sdk . registerUplinkTopic",
@@ -16073,6 +16193,70 @@
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
       },
       {
+        "key": "sitrep-sdk ./registry ~PartPanelDefinition",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PartPanelDefinition#component",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PartPanelDefinition#id",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PartPanelDefinition#owner?",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PartPanelDefinition#replaces?",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PartPanelDefinition#requires?",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PartPanelDefinition#title",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PartPanelDefinition#titleAdornment?",
+        "note": "Optional content drawn beside a part panel or modal dialog heading"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PartPanelDefinition#width?",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PartPanelGameButton",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PartPanelGameButton#event",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PartPanelGameButton#module",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PartPanelProps",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PartPanelProps#close",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PartPanelProps#partId",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PartPanelProps#partTitle",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
         "key": "sitrep-sdk ./registry ~PlotEntry#held?",
         "note": "PlotEntry carries the reading it was drawn from, so the host widget draws a held value as held"
       },
@@ -16430,31 +16614,31 @@
       },
       {
         "key": "sitrep-sdk ./registry ~ShipMapPartActionEntry#active",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk ./registry ~ShipMapPartActionEntry#args",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk ./registry ~ShipMapPartActionEntry#command",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk ./registry ~ShipMapPartActionEntry#group?",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk ./registry ~ShipMapPartActionEntry#label",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk ./registry ~ShipMapPartActionEntry#name",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk ./registry ~ShipMapPartActionEntry#partId",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk ./registry ~ShipMapPartStateModule",
@@ -16891,6 +17075,22 @@
       {
         "key": "sitrep-sdk ./registry ~UiKitTheme#typography",
         "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UplinkClientIdentity",
+        "note": "Reachable as the owner of a part panel"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UplinkClientIdentity#id",
+        "note": "Reachable as the owner of a part panel"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UplinkClientIdentity#name",
+        "note": "Reachable as the owner of a part panel"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UplinkClientIdentity#version",
+        "note": "Reachable as the owner of a part panel"
       },
       {
         "key": "sitrep-sdk ./registry ~UseCommandResult",
@@ -18189,6 +18389,70 @@
         "note": "A reckonable row with the owner whose contract declared it"
       },
       {
+        "key": "sitrep-sdk ./spine ~PartPanelDefinition",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PartPanelDefinition#component",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PartPanelDefinition#id",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PartPanelDefinition#owner?",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PartPanelDefinition#replaces?",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PartPanelDefinition#requires?",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PartPanelDefinition#title",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PartPanelDefinition#titleAdornment?",
+        "note": "Optional content drawn beside a part panel or modal dialog heading"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PartPanelDefinition#width?",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PartPanelGameButton",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PartPanelGameButton#event",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PartPanelGameButton#module",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PartPanelProps",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PartPanelProps#close",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PartPanelProps#partId",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PartPanelProps#partTitle",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
         "key": "sitrep-sdk ./spine ~PendingCommand#awaitingDelay?",
         "note": "The dispatch time of a command sent while the delay was unknown, kept to time its loss deadline"
       },
@@ -18322,31 +18586,31 @@
       },
       {
         "key": "sitrep-sdk ./spine ~ShipMapPartActionEntry#active",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk ./spine ~ShipMapPartActionEntry#args",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk ./spine ~ShipMapPartActionEntry#command",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk ./spine ~ShipMapPartActionEntry#group?",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk ./spine ~ShipMapPartActionEntry#label",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk ./spine ~ShipMapPartActionEntry#name",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk ./spine ~ShipMapPartActionEntry#partId",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk ./spine ~SizeDelta",
@@ -18479,6 +18743,22 @@
       {
         "key": "sitrep-sdk ./spine ~Transport#requestHistory?",
         "note": "a transport can answer a request for older points of a topic"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~UplinkClientIdentity",
+        "note": "Reachable as the owner of a part panel"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~UplinkClientIdentity#id",
+        "note": "Reachable as the owner of a part panel"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~UplinkClientIdentity#name",
+        "note": "Reachable as the owner of a part panel"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~UplinkClientIdentity#version",
+        "note": "Reachable as the owner of a part panel"
       },
       {
         "key": "sitrep-sdk ./spine ~UseCommandResult",
@@ -19201,6 +19481,70 @@
         "note": "A reckonable row with the owner whose contract declared it"
       },
       {
+        "key": "sitrep-sdk ./testing ~PartPanelDefinition",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PartPanelDefinition#component",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PartPanelDefinition#id",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PartPanelDefinition#owner?",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PartPanelDefinition#replaces?",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PartPanelDefinition#requires?",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PartPanelDefinition#title",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PartPanelDefinition#titleAdornment?",
+        "note": "Optional content drawn beside a part panel or modal dialog heading"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PartPanelDefinition#width?",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PartPanelGameButton",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PartPanelGameButton#event",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PartPanelGameButton#module",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PartPanelProps",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PartPanelProps#close",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PartPanelProps#partId",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PartPanelProps#partTitle",
+        "note": "Part panels: dialogs the Vessel Schematic opens for one part, in place of a game button"
+      },
+      {
         "key": "sitrep-sdk ./testing ~PendingCommand#awaitingDelay?",
         "note": "The dispatch time of a command sent while the delay was unknown, kept to time its loss deadline"
       },
@@ -19402,31 +19746,31 @@
       },
       {
         "key": "sitrep-sdk ./testing ~ShipMapPartActionEntry#active",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk ./testing ~ShipMapPartActionEntry#args",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk ./testing ~ShipMapPartActionEntry#command",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk ./testing ~ShipMapPartActionEntry#group?",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk ./testing ~ShipMapPartActionEntry#label",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk ./testing ~ShipMapPartActionEntry#name",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk ./testing ~ShipMapPartActionEntry#partId",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "note": "A field of a button added to the Vessel Schematic part menu"
       },
       {
         "key": "sitrep-sdk ./testing ~SizeDelta",
@@ -19707,6 +20051,22 @@
       {
         "key": "sitrep-sdk ./testing ~UplinkClientConfig#version",
         "note": "The config defineUplinkClient takes, named so the host and the facade share it; tags carries the Uplink's generated value tags"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UplinkClientIdentity",
+        "note": "Reachable as the owner of a part panel"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UplinkClientIdentity#id",
+        "note": "Reachable as the owner of a part panel"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UplinkClientIdentity#name",
+        "note": "Reachable as the owner of a part panel"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UplinkClientIdentity#version",
+        "note": "Reachable as the owner of a part panel"
       },
       {
         "key": "sitrep-sdk ./testing ~UseCommandOptions#confirmedBy?",
@@ -21201,6 +21561,10 @@
         "note": "exported, since a published component's props or return type already names it"
       },
       {
+        "key": "ui-kit . ModalOpenOptions#titleAdornment?",
+        "note": "Optional content drawn beside a part panel or modal dialog heading"
+      },
+      {
         "key": "ui-kit . ModalOpenOptions#width?",
         "note": "exported, since a published component's props or return type already names it"
       },
@@ -21603,6 +21967,18 @@
       {
         "key": "ui-kit . STREAM_DOWN_TIP",
         "note": "The words a command control shows while the stream to the mod is down, for a control of an author's own that follows the same state"
+      },
+      {
+        "key": "ui-kit . ScrollAreaProps",
+        "note": "The props of ScrollArea: any div attribute, plus whether it frames itself"
+      },
+      {
+        "key": "ui-kit . ScrollAreaProps#framed?",
+        "note": "Draws a border and keeps the content inset, so the scroll glow always meets the edge"
+      },
+      {
+        "key": "ui-kit . ScrollAreaProps#maxHeight?",
+        "note": "The tallest a framed ScrollArea grows before it scrolls"
       },
       {
         "key": "ui-kit . SeriesType",

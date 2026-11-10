@@ -5186,6 +5186,148 @@ export interface GameDlc
 	makingHistory: boolean;
 }
 /**
+* The windows that a part's menu has opened on the game's screen, each read as
+* a tree of controls. A window is listed from the moment it is seen open until
+* it closes.
+*
+* @category Parts
+*/
+export interface GameWindows
+{
+	/** Every window currently open. Empty when none is. */
+	windows: GameWindow[];
+}
+/**
+* One window a part's menu opened on the game's screen.
+*
+* @category Parts
+*/
+export interface GameWindow
+{
+	/**
+	* The window's id, passed back as `PressGameWindowControlArgs.windowId`. Valid
+	* only while the window stays open.
+	*/
+	id: string;
+	/**
+	* How the game draws the window: `imgui` for an immediate-mode window, `ugui`
+	* for a retained dialog.
+	*/
+	technology: string;
+	/** The window's own title, or a dialog's first label. */
+	title: string;
+	/** The part menu button that opened the window. */
+	openedBy: GameWindowOpener;
+	/** The window's controls, as a tree whose root is a group. */
+	root: GameWindowNode;
+}
+/**
+* The part menu button that opened a `GameWindow`.
+*
+* @category Parts
+*/
+export interface GameWindowOpener
+{
+	/** The part's flight id, as a string. */
+	partId: string;
+	/** The module that owns the button, or `null` for a button on the part itself. */
+	module?: string | null;
+	/** The button's event name. */
+	event: string;
+	/** The button's label as the game shows it. */
+	label: string;
+}
+/**
+* One element of a `GameWindow`. `GameWindowNode.kind` says which of the other
+* fields apply: `group` and `scroll` hold `GameWindowNode.children`, laid out
+* as `GameWindowNode.dir` says; `label` and `box` show `GameWindowNode.text`;
+* `button` shows `GameWindowNode.text`; `toggle` and `radio` hold
+* `GameWindowNode.bool`; `textfield` and `textarea` hold
+* `GameWindowNode.text`; `slider` holds `GameWindowNode.num` between
+* `GameWindowNode.min` and `GameWindowNode.max`; `grid` holds the selected
+* index in `GameWindowNode.num` and its `GameWindowNode.options`.
+*
+* @category Parts
+*/
+export interface GameWindowNode
+{
+	/**
+	* The element's id within its window, passed back as
+	* `PressGameWindowControlArgs.controlId`.
+	*/
+	id: string;
+	/**
+	* What the element is: `group`, `scroll`, `label`, `box`, `button`, `toggle`,
+	* `radio`, `textfield`, `textarea`, `slider` or `grid`.
+	*/
+	kind: string;
+	/** The element's text, or `null` where it has none. */
+	text?: string | null;
+	/** Whether a `toggle` is on. */
+	bool?: boolean | null;
+	/** A `slider`'s value, or a `grid`'s selected index. */
+	num?: number | null;
+	/** A `slider`'s lowest value. */
+	min?: number | null;
+	/** A `slider`'s highest value. */
+	max?: number | null;
+	/** How a group lays out its children: `h` or `v`. */
+	dir?: string | null;
+	/**
+	* `false` when the game shows the control greyed out and will not take a
+	* press. Omitted otherwise.
+	*/
+	enabled?: boolean | null;
+	/** The element's tooltip in the game, or `null` where it has none. */
+	tooltip?: string | null;
+	/**
+	* The state the game's colouring gives the element: `go`, `nogo` or `warn`.
+	* Omitted when the game draws it uncoloured.
+	*/
+	tone?: string | null;
+	/**
+	* How a `toggle` is drawn: `button` when the game draws it as a button.
+	* Omitted for a plain toggle.
+	*/
+	variant?: string | null;
+	/**
+	* How many columns a `grid` or a grid-laid `group` draws, or `null` for a
+	* group that is not a grid.
+	*/
+	columns?: number | null;
+	/**
+	* The name of the picture a `button`, `toggle` or `label` shows, or `null`
+	* where it has none.
+	*/
+	image?: string | null;
+	/** A `grid`'s choices. */
+	options?: string[] | null;
+	/** A group's elements, in the order the window draws them. */
+	children?: GameWindowNode[] | null;
+}
+/**
+* Presses one control of a `GameWindow`. A press rides the signal delay as any
+* command does, and acts on the window as it is when the press arrives. It
+* fails with `CommandErrorCode.NotFound`, naming the reason in its detail,
+* when the window has closed, the control is no longer in it, or the game has
+* the control greyed out.
+*
+* @category Command arguments
+*/
+export interface PressGameWindowControlArgs
+{
+	/** The `GameWindow.id` of the window. */
+	windowId: string;
+	/** The `GameWindowNode.id` of the control. */
+	controlId: string;
+	/** The state to set a `toggle` to. */
+	bool?: boolean;
+	/** The value for a `slider`, or the index for a `grid`. */
+	num?: number;
+	/** The text for a `textfield`. */
+	text?: string;
+}
+/**
 * Which screen hosts this game, the code a remote station joins with, and the
 * remote stations the host has approved. One screen per game hosts: the others
 * join it, and the game mod is the referee because every local screen on every
