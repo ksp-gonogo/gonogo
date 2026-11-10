@@ -22,7 +22,6 @@ import { titleText } from "./titleText";
 interface ModalEntry {
   id: string;
   title?: string;
-  titleAdornment?: ReactNode;
   "aria-label"?: string;
   width?: string;
   content: ReactNode;
@@ -38,8 +37,6 @@ interface ModalEntry {
 export interface ModalOpenOptions {
   /** The dialog's visible heading, which also names it for assistive technology. Without one, give `aria-label`. */
   title?: string;
-  /** Drawn beside the `title`, outside the name it gives the dialog. Ignored without a `title`. */
-  titleAdornment?: ReactNode;
   /** Names a dialog that has no visible `title`. Ignored when `title` is given. */
   "aria-label"?: string;
   /** CSS length for the dialog max-width. Defaults to 560px. */
@@ -99,7 +96,6 @@ export function ModalProvider({ children }: Readonly<{ children: ReactNode }>) {
         {
           id,
           title: options?.title,
-          titleAdornment: options?.titleAdornment,
           "aria-label": options?.["aria-label"],
           width: options?.width,
           content,
@@ -271,12 +267,7 @@ function ModalDialog({ entry, isTop, onClose }: Readonly<ModalDialogProps>) {
    */
   useEffect(() => {
     if (!confirming) {
-      /* A focusable picture in the heading is there for its tooltip, which opening the dialog should not pop open. */
-      Array.from(
-        dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? [],
-      )
-        .find((element) => !element.matches('[role="img"]'))
-        ?.focus();
+      dialogRef.current?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
     }
   }, [confirming]);
 
@@ -306,10 +297,7 @@ function ModalDialog({ entry, isTop, onClose }: Readonly<ModalDialogProps>) {
           >
             <DialogHeader>
               {entry.title && (
-                <DialogTitleRow>
-                  <DialogTitle id={titleId}>{entry.title}</DialogTitle>
-                  {entry.titleAdornment}
-                </DialogTitleRow>
+                <DialogTitle id={titleId}>{entry.title}</DialogTitle>
               )}
               {/* Takes focus when the dialog opens, so a tip of its own would take the first Escape; the empty data-tooltip tells the button to draw none. */}
               <IconButton
@@ -395,13 +383,6 @@ const DialogHeader = styled.div`
   padding: var(--inset-modal-bar);
   border-bottom: 1px solid var(--color-border-subtle);
   flex-shrink: 0;
-`;
-
-const DialogTitleRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--gap-related);
-  min-width: 0;
 `;
 
 const DialogTitle = styled.h2`

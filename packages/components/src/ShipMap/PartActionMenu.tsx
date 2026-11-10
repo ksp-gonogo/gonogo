@@ -1,12 +1,7 @@
-import type {
-  AnyBoundCommand,
-  PartPanelDefinition,
-} from "@ksp-gonogo/sitrep-sdk";
+import type { AnyBoundCommand } from "@ksp-gonogo/sitrep-sdk";
 import type { ActionMenuItem } from "@ksp-gonogo/ui-kit";
 import { ActionMenu } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
-import { isGameWindowPanel } from "../PartPanels/GameWindowPanel";
-import { usePartPanelRoutes } from "./partPanels";
 import type { ShipMapPartActionEntry } from "./shipTopology";
 import { usePartActions } from "./usePartActions";
 
@@ -81,20 +76,8 @@ export interface PartActionMenuProps {
   transferResources?: readonly TransferResourceOption[];
   /** Starts picking tanks for a transfer of the resource, beginning with this part. */
   onPickTransfer?: (resource: string) => void;
-  /** Opens a part panel for this part, as the button's command is sent. Without it, a button that has a panel only sends its command. */
-  onOpenPanel?: (panel: PartPanelDefinition) => void;
   /** Anchoring, owned by the caller (the diagram knows where the part is). */
   style?: CSSProperties;
-}
-
-/** A game button is pressed unless a console panel stands in for it; a form read from the window it opens needs the press. */
-function sendsPress(panel: PartPanelDefinition | undefined): boolean {
-  return panel === undefined || isGameWindowPanel(panel);
-}
-
-/** A button that opens a console panel ends in an ellipsis, as one that opens a dialog does elsewhere. */
-function withPanelMark(label: string, opensPanel: boolean): string {
-  return opensPanel ? `${label}...` : label;
 }
 
 /**
@@ -112,36 +95,17 @@ export function PartActionMenu({
   contributedCommandFor,
   transferResources = NO_RESOURCES,
   onPickTransfer,
-  onOpenPanel,
   style,
 }: Readonly<PartActionMenuProps>) {
   const { actions, gameWindows, pending } = usePartActions(flightId);
-  const routes = usePartPanelRoutes();
-  const panelOfAction = (action: {
-    moduleName?: string | null;
-    name: string;
-    label: string;
-  }) =>
-    onOpenPanel
-      ? routes.forGameButton(
-          action.moduleName,
-          action.name,
-          action.label || action.name,
-        )
-      : undefined;
 
   const items: ActionMenuItem[] = [
     ...(actions ?? []).map((action) => ({
       key: action.name,
-      label: withPanelMark(
-        action.label || action.name,
-        panelOfAction(action) !== undefined,
-      ),
+      label: action.label || action.name,
       group: action.group ?? undefined,
       advise: action.active ? undefined : GAME_GREYS_THIS,
-      command: sendsPress(panelOfAction(action))
-        ? commandFor(action.name, action.label || action.name)
-        : undefined,
+      command: commandFor(action.name, action.label || action.name),
       tip: action.opensGameWindow ? OPENS_ON_GAME_SCREEN : undefined,
       // The accessible name carries the part, which the item's own text does not.
       "aria-label": `${action.label || action.name} on ${partTitle}`,
@@ -181,12 +145,9 @@ export function PartActionMenu({
           ? "Awaiting actions..."
           : "No actions"
       }
-      // A game or contributed item sends its own command, and a game button that has a panel also opens it. Any choice closes the menu, as a PAW click does, and re-opening re-reads the live list.
+      // A game or contributed item sends its own command; any choice closes the menu, as a PAW click does, and re-opening re-reads the live list.
       onSelect={(key) => {
-        const action = actions?.find((a) => a.name === key);
-        const panel = action && panelOfAction(action);
-        if (panel) onOpenPanel?.(panel);
-        if (!panel && key.startsWith(TRANSFER_KEY_PREFIX)) {
+        if (key.startsWith(TRANSFER_KEY_PREFIX)) {
           onPickTransfer?.(key.slice(TRANSFER_KEY_PREFIX.length));
         }
         onDismiss();

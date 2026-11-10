@@ -22,17 +22,6 @@ function glows(container: HTMLElement): HTMLElement[] {
 }
 
 describe("ScrollArea", () => {
-  it("frames itself and caps its height when framed, so the glow meets its border", () => {
-    const { container } = render(
-      <ScrollArea framed maxHeight="10rem">
-        <p>row</p>
-      </ScrollArea>,
-    );
-    const root = container.firstElementChild as HTMLElement;
-    expect(root).toHaveStyle({ maxHeight: "10rem", overflow: "hidden" });
-    expect(root).toHaveStyle({ marginInline: "0px" });
-  });
-
   it("shows the glow on whichever side there is more to scroll to", () => {
     const { container } = render(
       <ScrollArea>

@@ -1,8 +1,33 @@
 # @ksp-gonogo/ui-kit
 
-The design system behind [Gonogo](https://github.com/ksp-gonogo/gonogo), a mission control app for Kerbal Space Program. It is the set of components the app's own widgets are drawn with, published so that the widgets of an Uplink, the extension that connects a KSP mod to the app, look like they belong on the same screen. Compose them and a widget takes the host's theme, spacing and type scale without any CSS of its own.
+The design system behind [Gonogo](https://github.com/ksp-gonogo/gonogo), a mission-control
+dashboard for Kerbal Space Program. It's the same set of primitives the built-in widgets are
+made of, published so that widgets and Uplinks written outside the Gonogo repository look like they belong
+on the same screen. Compose them and your widget picks up the host's theme, spacing and type
+scale without you writing CSS for any of it. Import `@ksp-gonogo/ui-kit/tokens.css` once, or every
+colour and size is unset.
 
-**The [Uplink developer docs](https://ksp-gonogo.github.io/uplink-dev-docs/) are the reference for this package.** The [guide](https://ksp-gonogo.github.io/uplink-dev-docs/guide/) takes you from an empty directory to an Uplink a player can install, and the [ui-kit reference](https://ksp-gonogo.github.io/uplink-dev-docs/reference/ui-kit/) has a page for each component. This page has no component reference, and holds what you need before the docs are any use: install, and what the environment must provide.
+A widget ships inside an **Uplink**, the extension unit that pairs a KSP mod with a client
+bundle. This package is one of its two halves; the other is `@ksp-gonogo/sitrep-sdk`, which
+carries the registration and the telemetry hooks.
+
+## The documentation lives elsewhere
+
+**[Gonogo Uplink developer documentation](https://ksp-gonogo.github.io/uplink-dev-docs/)** is the
+reference for this package, and for everything around it:
+
+- [the guide](https://ksp-gonogo.github.io/uplink-dev-docs/guide/), start to finish, if you have
+  not written an Uplink before
+- [the ui-kit reference](https://ksp-gonogo.github.io/uplink-dev-docs/reference/ui-kit/), a page
+  per primitive
+
+Every snippet on that site is transcluded from a source file that is compiled in CI, so a
+signature that drifts fails the build instead of reading correctly and being wrong. This file
+deliberately carries no component reference of its own: a second, unchecked copy would drift,
+and it did.
+
+What follows is only what you need before the docs are any use to you: how to install the
+package, and the three environment constraints that will otherwise stop you at the first import.
 
 ## Install
 
@@ -12,29 +37,25 @@ Until the first release, `latest` is a placeholder, so install the release candi
 npm install @ksp-gonogo/ui-kit@rc
 ```
 
-An Uplink installs this package with `@ksp-gonogo/sitrep-sdk` and `@ksp-gonogo/uplink-tools` under the same tag, at one version. The kit names the sdk of its release as an exact peer, so one beside another release fails to resolve. `uplink-tools new` writes that set for you, and [Building against a release candidate](https://ksp-gonogo.github.io/uplink-dev-docs/guide/release-candidate) covers adding it by hand.
+An Uplink installs this package together with `@ksp-gonogo/sitrep-sdk` and `@ksp-gonogo/uplink-tools`,
+all under the same tag, because one beside a release of another fails to resolve; `uplink-tools new`
+writes that set for you.
 
-React 18 and styled-components 6 are peer dependencies:
+React 18 and styled-components 6 are peer dependencies; install them if you don't have them:
 
 ```sh
 npm install react@^18 styled-components@^6
 ```
 
-They are peers because the app must hold exactly one copy of each: styled-components keeps its `ThemeContext` in module state, so a second copy would not see the host's `ThemeProvider`. React 19 is not supported.
+They're peers rather than dependencies because there has to be exactly one copy of each in the
+final app. styled-components keeps its `ThemeContext` in module state, so a second copy would
+give your components a different context than the host's `ThemeProvider` populates, and your
+`theme` would come back empty. React has the same problem one layer down. As peers, they
+resolve to whatever the host already installed.
 
-## Entry points
-
-| Entry | What it is |
-|---|---|
-| `@ksp-gonogo/ui-kit` | the components, hooks and the theme contract |
-| `@ksp-gonogo/ui-kit/tokens.css` | the colour, spacing and type variables the components read |
-| `@ksp-gonogo/ui-kit/testing` | helpers for a widget's tests, such as `expectNoA11yViolations` and `renderWidget` |
-| `@ksp-gonogo/ui-kit/grid` | the dashboard grid's units |
-| `@ksp-gonogo/ui-kit/guards` | checks an Uplink runs against its own source from a test file; it reads the filesystem, so it is Node only |
-
-## Theme and tokens
-
-Import `@ksp-gonogo/ui-kit/tokens.css` once, or every colour and size is unset. Components read `theme.space` and `theme.colors` and need a `ThemeProvider` in scope. Inside the Gonogo dashboard the host has mounted one. For a test or a preview outside the app:
+Primitives read `theme.space` and `theme.colors`, so they need a `ThemeProvider` in scope and
+will throw without one. Inside a Gonogo dashboard the host has already mounted it. Standing the
+kit up yourself, for a test or a preview outside the app:
 
 ```tsx
 import "@ksp-gonogo/ui-kit/tokens.css";
@@ -45,11 +66,10 @@ import { DefaultThemeProvider } from "@ksp-gonogo/ui-kit";
 </DefaultThemeProvider>;
 ```
 
-Importing the package also types styled-components' `DefaultTheme` with the theme contract, so `theme.space.bogus` is a compile error. That is a global module augmentation, so a project that augments `DefaultTheme` itself will conflict with it.
+## Testing with vitest: the kit must be inlined
 
-## Testing with vitest
-
-Inline the kit in `vitest.config.ts`, or every test file that touches it fails on import:
+Add this to your `vitest.config.ts`, or every test file that touches the kit dies on import
+before a single assertion runs:
 
 ```ts
 export default defineConfig({
@@ -59,21 +79,79 @@ export default defineConfig({
 });
 ```
 
-The scaffold's `client/vitest.config.ts` already has it. Without it the first import fails with:
+Vitest hands `node_modules` dependencies to Node's ESM loader rather than transforming them, and
+`styled-components@6` publishes no `exports` map, only `main` (CommonJS) and `module` (ESM).
+Node therefore loads the CommonJS half, and its interop makes the default export the module
+namespace object rather than the `styled` factory. The kit evaluates `styled.span` at module
+scope, so you get:
 
 ```
 TypeError: styled.span is not a function
 ```
 
-styled-components 6 publishes no `exports` map, so vitest hands it to Node's ESM loader, which takes the CommonJS build, whose default export is the module namespace and not the `styled` factory. Inlining makes Vite process the kit itself, which uses the ESM build. The kit's `/testing` entry needs the same setting.
+before any of your code runs. Inlining makes Vite process the kit itself, which honours `module`
+and resolves the factory. This is not specific to this kit, it is what any styled-components
+library needs from vitest, and it is why you will not see the problem in a monorepo where the kit
+is a workspace symlink: Vite never pre-bundles a linked dependency.
 
-A green vitest run does not show that a `@ksp-gonogo` package loads in Node, because inlining also does the file-extension search Node refuses to. `uplink-tools check --only loadable` imports each entry point in a bare `node` to test that.
+The same setting is what the kit's `/testing`, `/render-probe` and `/page-check` entry points
+need, and it is the reason `expectNoA11yViolations` will otherwise appear not to exist.
+
+**Do not read a green vitest run as proof a `@ksp-gonogo` package is loadable.** Inlining also
+performs the module-extension search Node refuses to, so it hides an unloadable emit rather than
+reporting it. That is a real bug this project shipped for six weeks.
+
+## Build against `moduleResolution: "bundler"`
+
+`deps.inline` is a bundler setting. `tsc` is not a bundler, so under
+`moduleResolution: "nodenext"` the missing `exports` map bites again at the type level:
+
+```
+error TS2339: Property 'div' does not exist on type
+  'typeof import(".../styled-components/dist/index")'
+```
+
+That is two lines of code with no `@ksp-gonogo` package involved:
+`import styled from "styled-components"` followed by `styled.div`. Nothing in this kit can fix it
+for you, and no shim in your own source fixes it cleanly either (unwrapping `.default` satisfies
+`nodenext` and then breaks `bundler`, which resolves the ESM half where the default IS the factory).
+
+So: build against `"bundler"`, which is what `@ksp-gonogo/sitrep-sdk/tsconfig.base.json` sets and
+why it sets it. An Uplink whose widgets use `styled` cannot pass a `nodenext` typecheck until
+styled-components ships an `exports` map, and that is a statement about styled-components rather
+than about your code.
+
+The kit's own declarations are unaffected in practice because the shipped baseline sets
+`skipLibCheck: true`, which suppresses errors inside `.d.ts` files. Turning it off surfaces roughly
+sixty of them, none actionable from a consumer's side.
+
+## The theme is typed for you, everywhere
+
+Importing the package binds the theme contract onto styled-components' `DefaultTheme`. You get
+autocomplete and type errors in theme callbacks without writing your own `declare module`, so
+`theme.space.bogus` is a compile error rather than `any`.
+
+This is a global augmentation, it's how module augmentation works, and there's no scoped version.
+Importing the kit anywhere in a project types `DefaultTheme` everywhere in it. If you already
+augment `DefaultTheme` yourself, expect a conflict.
+
+## One convention worth knowing
+
+Widgets here carry close to no CSS of their own. Spacing, surfaces, borders and type all come
+from the kit, which is what keeps twenty-odd widgets from twenty-odd authors reading as one
+instrument panel. If you find yourself reaching for a bespoke `styled.div` to do something the
+kit almost does, that's usually a gap in the kit worth
+[raising](https://github.com/ksp-gonogo/gonogo/issues).
 
 ## Versioning
 
-The kit carries the Gonogo release version, the same one as `@ksp-gonogo/sitrep-sdk`, `@ksp-gonogo/uplink-tools` and the app it shipped with. What its surface promises is held by the extension API version, which the app checks before it loads an Uplink, and not by the package version. Token names are part of that surface: renaming one is a breaking change.
+The kit carries the Gonogo release version, the same one as `@ksp-gonogo/sitrep-sdk`,
+`@ksp-gonogo/uplink-tools` and the app it shipped with, and names the sdk of that release as an
+exact peer. Install them together at one version, and move them together.
 
-Widgets carry almost no CSS of their own, which is what lets widgets from many authors read as one instrument panel. A gap you meet in the kit is worth [raising as an issue](https://github.com/ksp-gonogo/gonogo/issues).
+What the kit's surface promises is held by the extension API version, which the app checks
+before it loads an Uplink, not by the package version. Token names are part of that surface,
+not an implementation detail: renaming one is a break.
 
 ## Licence
 

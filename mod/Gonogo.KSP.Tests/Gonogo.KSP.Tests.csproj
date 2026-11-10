@@ -40,7 +40,6 @@
          KSP is installed. -->
     <Compile Include="..\Gonogo.KSP\LoadedApproach.cs" />
     <Compile Include="..\Gonogo.KSP\PartActionText.cs" />
-    <Compile Include="..\Gonogo.KSP\GameWindows\CapturedNode.cs" />
     <Compile Include="..\Gonogo.KSP\TargetOrbitFreshness.cs" />
     <Compile Include="..\Gonogo.KSP\TerminatedVessels.cs" />
     <Compile Include="..\Gonogo.KSP\RecentCrashWindow.cs" />
@@ -326,7 +325,6 @@
     <Compile Remove="BoundsPathReportTests.cs" />
     <Compile Remove="MeshPiecesTests.cs" />
     <Compile Remove="KspEnumMirrorTests.cs" />
-    <Compile Remove="GameWindowOpenerTests.cs" />
     <!-- The same, for the strategy activation's reflected members and stock's
          Activate() body, both read off Assembly-CSharp. -->
     <Compile Remove="StrategyPrivateFieldsMirrorTests.cs" />
@@ -590,7 +588,6 @@
          Sitrep.Contract's (reached transitively through the Sitrep.Host
          ProjectReference above). -->
     <Compile Include="KspEnumMirrorTests.cs" />
-    <Compile Include="GameWindowOpenerTests.cs" />
     <!-- The two private Strategy fields an off-screen activation writes, and
          the Activate() body it reproduces, held against the installed build:
          reflection resolves at run time, so neither drifts into a compile

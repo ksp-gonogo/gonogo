@@ -98,7 +98,6 @@ export const GENERATED_CHANNEL_KINDS = {
   "vessel.crew": "discrete",
   "vessel.dock": "continuous",
   "vessel.flight": "continuous",
-  "vessel.gameWindows": "discrete",
   "vessel.identity": "discrete",
   "vessel.inventory": "discrete",
   "vessel.landing": "continuous",

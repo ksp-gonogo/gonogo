@@ -47,7 +47,6 @@ namespace Gonogo.KSP.Gates
             VesselCommandProvider.TargetSetCommand,
             VesselCommandProvider.TargetClearCommand,
             PartActionCommandProvider.InvokePartActionCommand,
-            GameWindows.GameWindowIds.PressCommand,
             ScienceCommandProvider.DeployCommand,
             ScienceCommandProvider.TransmitCommand,
             ScienceCommandProvider.StartExperimentCommand,

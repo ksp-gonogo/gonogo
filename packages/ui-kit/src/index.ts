@@ -546,7 +546,6 @@ export {
   type PanelSidebarSide,
   type PanelTitleProps,
   ScrollArea,
-  type ScrollAreaProps,
 } from "./Panel";
 export { type BadgeEntry, PanelBadgesProvider } from "./PanelBadges";
 export { PanZoomViewport } from "./PanZoomViewport";

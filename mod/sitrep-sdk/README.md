@@ -1,10 +1,10 @@
 # @ksp-gonogo/sitrep-sdk
 
-The TypeScript SDK for the Gonogo telemetry mod, whose engineering codename is Sitrep. It is the package an Uplink's client imports to register widgets, read Topics and send commands: `defineUplinkClient`, `registerComponent`, `useTelemetry`, `useCommand`, the generated types of the wire contract and the unit model. The command line is `@ksp-gonogo/uplink-tools`, and the components are `@ksp-gonogo/ui-kit`.
+`@ksp-gonogo/sitrep-*` is the Gonogo telemetry mod, codename Sitrep.
 
-**Writing an Uplink? Start with the [Uplink developer docs](https://ksp-gonogo.github.io/uplink-dev-docs/).** The [guide](https://ksp-gonogo.github.io/uplink-dev-docs/guide/) takes you from an empty directory to an Uplink a player can install, and the [reference](https://ksp-gonogo.github.io/uplink-dev-docs/reference/) documents every export of this package. This page does not repeat either.
-
-## Install
+TypeScript client SDK for the gonogo-native telemetry mod. The wire contract
+(message envelopes, `Meta`, enums) is defined once in C# and generated into
+this package: the SDK never redefines the shape by hand.
 
 Until the first release, `latest` is a placeholder, so install the release candidate with `@rc`.
 
@@ -12,65 +12,110 @@ Until the first release, `latest` is a placeholder, so install the release candi
 npm install @ksp-gonogo/sitrep-sdk@rc
 ```
 
-An Uplink installs this package with `@ksp-gonogo/ui-kit` and `@ksp-gonogo/uplink-tools` under the same tag, at one version, because the packages pin each other exactly. `uplink-tools new` writes that set for you, and [Building against a release candidate](https://ksp-gonogo.github.io/uplink-dev-docs/guide/release-candidate) covers adding it by hand. React 18 and styled-components 6 are peer dependencies, and `@testing-library/react` is a peer for `/testing`.
+**Writing an Uplink? Start with the [Uplink developer docs](https://ksp-gonogo.github.io/uplink-dev-docs/).**
+This package is the authoring surface an Uplink imports (`defineUplinkClient`,
+`registerComponent`, `useTelemetry`, `useCommand`, the generated contract types,
+and the unit model; the command line is `@ksp-gonogo/uplink-tools`), but the README below is written for
+a maintainer of this repo: it covers the codegen, the drift gate and the
+hand-owned seams, not how to build anything with the package. Not every subpath
+here is an author surface; the docs site names the ones that are.
 
-## Entry points
+## Generated code: do not hand-edit
 
-| Entry | What it is |
-|---|---|
-| `@ksp-gonogo/sitrep-sdk` | the authoring surface: registration, the read and send hooks, the wire types, the unit model |
-| `@ksp-gonogo/sitrep-sdk/frames` | reference-frame arithmetic |
-| `@ksp-gonogo/sitrep-sdk/media` | delayed media: playout buffers that follow the operator's view of time |
-| `@ksp-gonogo/sitrep-sdk/testing` | rendering and stream fixtures for a client's tests |
-| `@ksp-gonogo/sitrep-sdk/uplink-manifest` | the types of `uplink.json` and of the manifest a client publishes |
-| `@ksp-gonogo/sitrep-sdk/uplink-externals` | the specifiers a client bundle leaves for the app to resolve at load |
-| `@ksp-gonogo/sitrep-sdk/tsconfig.base.json` | the TypeScript baseline an Uplink extends |
-| `@ksp-gonogo/sitrep-sdk/biome` | a Biome config, below |
+`src/__generated__/contract.ts` is produced by
+[Reinforced.Typings](https://github.com/reinforced/Reinforced.Typings) from
+the C# source of truth in `mod/Sitrep.Contract/`. The file carries its own
+"generated, changes will be lost" header; treat that as load-bearing, not
+boilerplate. If a type needs to change, change the C# class (or
+`mod/Sitrep.Contract/RtConfig.cs` for export configuration) and regenerate;
+never patch the emitted `.ts` directly.
 
-`/spine`, `/registry` and `/uplink-load` are exported for the app and the tools and are not an author's surface. The reference names every export that is.
+Regenerate from the repo root:
 
-## TypeScript baseline
-
-```json
-{ "extends": "@ksp-gonogo/sitrep-sdk/tsconfig.base.json" }
+```bash
+pnpm codegen
 ```
 
-It sets `strict`, the `bundler` module resolution, `react-jsx` and `skipLibCheck`, which is what the scaffold's `tsconfig.json` extends.
+This runs `mod/codegen.sh`, which builds `Sitrep.Contract.csproj` and invokes
+the `rtcli` tool against the compiled assembly to rewrite
+`src/__generated__/contract.ts`.
+
+The same run writes four more maps out of the same reflection, each with a
+hand-owned wrapper beside it that is the surface you actually import:
+
+| Generated | Wrapper | What it answers |
+| --- | --- | --- |
+| `topic-map.ts` | `src/topics.ts` | which Topics exist, and what each one's payload is |
+| `command-map.ts` | `src/commands.ts` | which commands exist, what each one takes, and what a dispatch resolves with |
+| `units.ts` / `units.json` | `src/units.ts` | which field carries which unit |
+| `control-channels.ts` | `src/control-channels.ts` | which read field pairs with which write command |
+
+An Uplink with its own wire types gets its own copy of each, written into its
+own `client/src/__generated__/`, and its client package merges them into these
+same registries. See `src/commands.ts` for how that merge works on the write
+side.
+
+## The drift gate
+
+```bash
+pnpm codegen:check
+```
+
+Regenerates the contract and then runs `git diff --exit-code` against
+`src/__generated__/`. A non-zero exit means one of two things:
+
+- The C# contract changed and the generated output is out of date, commit
+  the regenerated file alongside the C# change.
+- The build is non-deterministic (unexpected member/type ordering from
+  reflection): this should not happen; see `RtConfig.Configure` if it ever
+  does, since RT export order is explicit there rather than left to
+  `GetProperties()` reflection order.
+
+This is the check that should run in CI once dotnet is wired into the CI
+image (tracked separately): for now, run it locally before committing any
+change under `mod/Sitrep.Contract/`.
+
+## The hand-owned seams: `envelope.ts` and `client.ts`
+
+`src/envelope.ts` defines `ServerMessage` and `ClientMessage` as discriminated
+unions over the generated interfaces (`StreamData<unknown> | EventMsg | ...`).
+Reinforced.Typings emits one interface per C# class, it has no way to know
+which subset of those interfaces the transport layer treats as a "server
+message" versus a "client message," so that grouping is authored by hand in
+this file instead of generated. `envelope.ts` is covered by tests
+(`envelope.test.ts`) and is the only source file in this package that isn't
+derived from `__generated__/contract.ts`; everything else (`client.ts`,
+`index.ts`) is built on top of the generated types plus this one seam.
+
+`src/client.ts` has a second, smaller hand-owned seam: `SERVER_TYPE_TAGS`, the
+runtime lookup `parseServerMessage` uses to validate an incoming envelope's
+`type` tag against the `ServerMessage` union. It's a second hand-owned copy of
+the union's membership (a `Set` can't be derived from a type at runtime), but
+it's compile-time-guarded: `SERVER_TYPE_TAGS` is declared `satisfies
+Record<ServerMessage["type"], true>`, so adding a variant to `ServerMessage`
+without adding its tag to `SERVER_TYPE_TAGS` fails `tsc`.
+
+## Usage
+
+```ts
+import { parseServerMessage, type ServerMessage } from "@ksp-gonogo/sitrep-sdk";
+
+const msg: ServerMessage = parseServerMessage(rawJson);
+```
 
 ## Lint config
 
-The package ships a Biome config that reports a reach past the supported API as a lint error, so the mistake shows in the editor and not at runtime:
+This package ships a Biome config you can extend, so a lint error tells you when
+you have reached past the supported API instead of a runtime surprise later:
 
 ```json
 { "extends": ["@ksp-gonogo/sitrep-sdk/biome"] }
 ```
 
-`extends` takes an array and merges from the first entry to the last, so your own config wins and you can combine this one with others. The file is named `biome.shared.json` and not `biome.json` because Biome treats a nested `biome.json` as a project config of its own.
+`extends` takes an array and merges least-relevant-first, with your own config
+winning last, so you can combine this with other shared configs and override any
+rule locally.
 
-## Working on this package
-
-This section is for a maintainer of the Gonogo repository.
-
-`src/__generated__/contract.ts` is written by [Reinforced.Typings](https://github.com/reinforced/Reinforced.Typings) from the C# in `mod/Sitrep.Contract/`, and carries a header saying so. Change the C# class, or `mod/Sitrep.Contract/RtConfig.cs` for what is exported, and regenerate from the repository root:
-
-```sh
-pnpm codegen         # rewrites src/__generated__/
-pnpm codegen:check   # regenerates, then fails if git sees a difference
-```
-
-`codegen` also writes the topic, command, unit and control-channel maps, each with a hand-owned wrapper beside it that is the surface you import:
-
-| Generated | Wrapper | What it answers |
-|---|---|---|
-| `topic-map.ts` | `src/topics.ts` | which Topics exist, and what each one's payload is |
-| `command-map.ts` | `src/commands.ts` | which commands exist, what each one takes, and what a dispatch resolves with |
-| `units.ts` and `units.json` | `src/units.ts` | which field carries which unit |
-| `control-channels.ts` | `src/control-channels.ts` | which read field pairs with which write command |
-
-`src/envelope.ts` groups the generated message interfaces into the `ServerMessage` and `ClientMessage` unions, which a generator cannot know. `SERVER_TYPE_TAGS` in `src/client.ts` holds the same membership at runtime, and `satisfies Record<ServerMessage["type"], true>` makes `tsc` fail when a variant is added to the union without it.
-
-A change to the types this package publishes is declared in `extension-api.ledger.json`, which a test holds to the computed surface.
-
-## Licence
-
-MIT
+It is deliberately named `biome.shared.json` rather than `biome.json`: Biome
+auto-discovers a nested `biome.json` as a *project* config, and a shipped file
+must stand alone rather than inherit from the repo that publishes it.

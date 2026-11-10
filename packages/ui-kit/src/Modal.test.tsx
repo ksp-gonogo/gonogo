@@ -151,38 +151,6 @@ function SparseDefaultOpener({ onSave }: { onSave: () => void }) {
 }
 
 describe("Modal", () => {
-  it("does not give first focus to a focusable picture in the heading", async () => {
-    const user = userEvent.setup();
-    function OpenWithMark() {
-      const { open } = useModal();
-      return (
-        <button
-          type="button"
-          onClick={() =>
-            open(<button type="button">in body</button>, {
-              title: "Demo",
-              titleAdornment: (
-                // biome-ignore lint/a11y/noNoninteractiveTabindex: the mark is focusable so its tooltip is reachable by keyboard.
-                <span role="img" aria-label="Mark" tabIndex={0} />
-              ),
-            })
-          }
-        >
-          open
-        </button>
-      );
-    }
-    render(
-      <ModalProvider>
-        <OpenWithMark />
-      </ModalProvider>,
-    );
-
-    await user.click(screen.getByRole("button", { name: "open" }));
-
-    expect(screen.getByRole("img", { name: "Mark" })).not.toHaveFocus();
-  });
-
   it("closes on Escape: the only keyboard-accessible close path", async () => {
     const user = userEvent.setup();
     const onOpen = vi.fn();

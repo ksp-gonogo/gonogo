@@ -61,7 +61,6 @@ import type {
   GameAlarmList,
   GameDlc,
   GameLoaded,
-  GameWindows,
   HostRecordModel,
   InstrumentEntry,
   IsruConverterEntry,
@@ -278,8 +277,6 @@ export interface GeneratedTopicPayloadMap {
   "vessel.dock": DockAlignment;
   /** Quantities the game measures, either because they cannot be derived from orbital elements (terrain height, aerodynamic state) or because they are the measured value to check a prediction against (speeds). */
   "vessel.flight": VesselFlight;
-  /** The windows that a part's menu has opened on the game's screen, each read as a tree of controls. */
-  "vessel.gameWindows": GameWindows;
   /** Who the active vessel is, what kind of craft it is, and where it is. */
   "vessel.identity": VesselIdentity;
   /** The stock cargo a vessel's parts are carrying: what is aboard, and in which part. */
@@ -396,7 +393,6 @@ export const GENERATED_TOPIC_IDS = [
   "vessel.crew",
   "vessel.dock",
   "vessel.flight",
-  "vessel.gameWindows",
   "vessel.identity",
   "vessel.inventory",
   "vessel.landing",

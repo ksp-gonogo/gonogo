@@ -1504,19 +1504,6 @@ export {
  */
 export { LocalStorageStore } from "./localStorageStore";
 export {
-  clearPartPanels,
-  getPartPanelFallbacks,
-  getPartPanels,
-  onPartPanelsChange,
-  type PartPanelDefinition,
-  type PartPanelFallback,
-  type PartPanelFallbackButton,
-  type PartPanelGameButton,
-  type PartPanelProps,
-  registerPartPanel,
-  registerPartPanelFallback,
-} from "./part-panels";
-export {
   clearRootProviders,
   getRootProviders,
   type RootProviderDefinition,

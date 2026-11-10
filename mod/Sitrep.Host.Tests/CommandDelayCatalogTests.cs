@@ -49,21 +49,6 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// The game-window mirror sends a press and a typed value to a window on
-        /// the vessel's own screen, and acts on the window as it is when the
-        /// command arrives. If either rode no delay, a control would reach the
-        /// vessel before a signal could, so both must wait out the delay.
-        /// </summary>
-        [Theory]
-        [InlineData("vessel.gameWindow.press")]
-        [InlineData("vessel.invokePartAction")]
-        public void TheGameWindowMirrorCommandsRideTheSignalDelay(string command)
-        {
-            Assert.True(CommandDelayCatalog.TryGetDelay(command, out var delay));
-            Assert.Equal(DelayRole.Delayed, delay);
-        }
-
-        /// <summary>
         /// And it answers what the attribute says, rather than a default that
         /// happens to match. Asserted over the whole set rather than a sample:
         /// the defect being guarded against is one command drifting, and a
