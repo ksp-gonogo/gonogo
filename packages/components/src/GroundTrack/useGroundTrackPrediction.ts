@@ -95,7 +95,6 @@ export function useGroundTrackPrediction({
     );
     if (!firstForBody) return [];
     const horizon = loopHorizon(firstForBody.period);
-    // Analytic accepted: a patched-conic preview of the path ahead, gated on the provider saying its path is a conic.
     const samples = predictGroundTrack(
       orbitPatches,
       targetBodyId,

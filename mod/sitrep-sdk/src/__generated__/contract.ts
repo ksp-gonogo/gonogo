@@ -129,9 +129,8 @@ export interface BodyStatesReply
 	Refused(why: string) : BodyStatesReply;
 }
 /**
-* One object's position and velocity at one instant, relative to a centre body
-* the enclosing reply names, in a non-rotating, Z-up inertial frame centred on
-* that body.
+* One body's position and velocity at one instant, relative to the request's
+* centre body, in a non-rotating, Z-up inertial frame centred on that body.
 *
 * Flat keys rather than nested vectors, because these arrive in bulk.
 *
@@ -139,7 +138,7 @@ export interface BodyStatesReply
 */
 export interface BodyState
 {
-	/** The instant this state is at. */
+	/** The instant this state is at, echoing the request. */
 	ut: Value<"ut">;
 	/** Position along the frame's X axis, metres from the centre body. */
 	x: Value<"m">;
@@ -6822,125 +6821,6 @@ export interface PlantedFlag
 	* read, live or saved, and empty when it has none.
 	*/
 	plaque?: string | null;
-}
-/**
-* The path a craft follows from a given state, or why there is none. Useful
-* for drawing where a craft is going from what a command centre last heard.
-*
-* Branch on `PropagatedPath.solved`. `PropagatedPath.kind` says whether the
-* points are a conic or an integrated path, and `PropagatedPath.reachedUt`
-* says how far they go, which can be short of the instant asked for.
-*
-* @category Orbits and trajectories
-*/
-export interface PropagatedPath
-{
-	/**
-	* True when `PropagatedPath.states` holds a path; false when
-	* `PropagatedPath.refusal` says why it does not.
-	*/
-	solved: boolean;
-	/**
-	* What the points are: `TrajectoryKind.Analytic` for a conic,
-	* `TrajectoryKind.Integrated` for an integrated path.
-	* `TrajectoryKind.Unspecified` on a refusal.
-	*/
-	kind: TrajectoryKind;
-	/** The body the points are relative to, by its propagation index. */
-	centreBodyIndex: number;
-	/**
-	* The points in ascending time, first at the seed's instant. Empty on a
-	* refusal.
-	*/
-	states: BodyState[];
-	/** The instant the last point is at. Null on a refusal. */
-	reachedUt?: Value<"ut"> | null;
-	/** Why there is no path, as a sentence. Null when there is one. */
-	refusal?: string | null;
-	/**
-	* True when there is no path yet but asking again shortly will find one,
-	* because the provider is still working on it. Keep drawing what you have.
-	* False on every other refusal and on a path.
-	*/
-	stillWorking: boolean;
-	/**
-	* A path carrying no points.
-	*
-	* @param why Why there is none, as a sentence.
-	*/
-	Refused(why: string) : PropagatedPath;
-	/**
-	* No path yet, and asking again shortly will find one.
-	*
-	* @param why What it is waiting on, as a sentence.
-	*/
-	Working(why: string) : PropagatedPath;
-}
-/**
-* Args for `vessel.trajectory.fromLastKnown`: where the active craft goes from
-* the state this command centre last heard.
-*
-* There is no field for the seed or the command centre: both come from the
-* connection the command arrives on, so a client cannot start a path from
-* anything that centre has not been told.
-*
-* @category Command arguments
-*/
-export interface LastKnownPathRequest
-{
-	/**
-	* Where to stop. May be past the centre's own view of the craft, which is what
-	* a prediction is for.
-	*/
-	toUt: Value<"ut">;
-	/** The most points to return. Zero takes the default. */
-	maxPoints: Value<"count">;
-	/**
-	* Whether the analytic answer will do: only
-	* `PropagationCertification.Unbounded` accepts it. Every other value, the
-	* default `PropagationCertification.Unspecified` included, asks for the
-	* accurate answer, which a provider that integrates gives by integrating, or
-	* refuses.
-	*/
-	certification: PropagationCertification;
-}
-/**
-* The `vessel.trajectory.fromLastKnown` result: the path from what the asking
-* command centre last heard, or why there is none. Read
-* `LastKnownPathReply.seededAtUt` with the path: it is only as current as the
-* state it started from.
-*
-* @category Orbits and trajectories
-*/
-export interface LastKnownPathReply
-{
-	/**
-	* True when `LastKnownPathReply.path` holds a path; false when
-	* `LastKnownPathReply.refusal` says why it does not.
-	*/
-	solved: boolean;
-	/** The path. Null on a refusal. */
-	path?: PropagatedPath | null;
-	/** The instant the starting state was true. Null on a refusal. */
-	seededAtUt?: Value<"ut"> | null;
-	/**
-	* The command centre whose view this came from, so a client that switched
-	* centre can tell whose answer it holds. Null on a refusal.
-	*/
-	vantage?: string | null;
-	/** Why there is no path, as a sentence. Null when there is one. */
-	refusal?: string | null;
-	/**
-	* True when there is no path yet but asking again shortly will find one. Keep
-	* drawing what you have. False on every other refusal and on a path.
-	*/
-	stillWorking: boolean;
-	/**
-	* A reply carrying no path.
-	*
-	* @param why Why there is none, as a sentence.
-	*/
-	Refused(why: string) : LastKnownPathReply;
 }
 /**
 * The payload for the `recovery.lastSummary` channel: the most recent vessel

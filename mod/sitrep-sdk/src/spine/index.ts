@@ -125,7 +125,6 @@ export * from "./use-action-input";
 export * from "./use-body-states";
 export * from "./use-command";
 export * from "./use-data-sources";
-export * from "./use-last-known-path";
 export * from "./use-late-telemetry-subscribe";
 export * from "./use-observed-vantage";
 export * from "./use-orbit-curve";

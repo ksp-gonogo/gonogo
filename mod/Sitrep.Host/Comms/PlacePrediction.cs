@@ -57,7 +57,6 @@ namespace Sitrep.Host.Comms
         /// <summary>How long, in seconds, a craft's measured acceleration is held when it is carried forward: long enough for a gap between captures, short enough that an engine cut or a parachute cut away is not carried on for minutes.</summary>
         public const double MeasuredHoldSeconds = 10.0;
 
-        // Two-body under every install, past any horizon. Where a centre reckons a silent craft to be, so an accurate answer would serve it better under n-body physics.
         private static readonly KeplerProvider Kepler = new KeplerProvider();
 
         /// <summary>

@@ -86,22 +86,6 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void TheLastKnownPathCommandPassesTheDispatchGateAndCannotNameItsSeedOrItsCentre()
-        {
-            // Not started and not disposed: this reads registration state only.
-            var engine = new ChannelEngine("ws://127.0.0.1:0");
-            Assert.True(engine.RecognisesCommandForTests(ChannelEngine.LastKnownPathCommand));
-
-            // A client able to supply either could be shown what its own centre has not been told.
-            var named = typeof(LastKnownPathRequest).GetProperties().Select(p => p.Name).ToArray();
-            Assert.DoesNotContain("Vantage", named);
-            Assert.DoesNotContain("State", named);
-            Assert.DoesNotContain("Seed", named);
-            Assert.Equal(PropagationCertification.Unspecified, new LastKnownPathRequest().Certification);
-        }
-
-
-        [Fact]
         public void ARefusalCarriesNoStates()
         {
             // A caller reading Solved as "did the call work" would plot an empty

@@ -90,7 +90,6 @@ namespace Sitrep.Propagation.Visibility
         /// </summary>
         public bool CanPropagate(double fromUt, double toUt)
         {
-            // Accurate: every target has to be vouched for across the window.
             if (_vessel != null && !_propagator.CanPropagate(_vessel.Value, _frame, fromUt, toUt))
             {
                 return false;
