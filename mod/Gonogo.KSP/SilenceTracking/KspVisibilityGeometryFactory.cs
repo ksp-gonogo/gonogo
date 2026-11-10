@@ -673,6 +673,7 @@ namespace Gonogo.KSP.SilenceTracking
 
             var rel = (stationBody.position - parent.position).xzy;
             var inWorld = new Sitrep.Contract.Vector3d(rel.x, rel.y, rel.z);
+            // Either setting: an instant at the present, where the conic is exact.
             var inPropagation = _propagator.Solve(target, frame, now).Position;
 
             FrameYawRefusal refusal;

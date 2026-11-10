@@ -84,6 +84,7 @@ namespace Sitrep.Host.Comms
             // Null is the honest answer for a trajectory that does not repeat, and
             // it lands on the same ceiling the hyperbolic and degenerate cases
             // already used. The branch predates the provider; only its cause moved.
+            // Analytic accepted: the period scales a timeout clamped from ten minutes to a day, which no n-body variation survives.
             var period = _propagator.CharacteristicCycleSeconds(SilenceSampleTarget.Of(sample));
             if (period == null)
             {

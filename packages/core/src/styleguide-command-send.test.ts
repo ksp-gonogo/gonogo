@@ -49,6 +49,10 @@ const SEND_WITHOUT_INPUT: Record<string, Entry> = {
     reads: 3,
     why: "solver query, no control",
   },
+  "mod/sitrep-sdk/src/spine/use-last-known-path.ts": {
+    reads: 1,
+    why: "path query, no control",
+  },
   "packages/app/src/analytics/ModLogForwarder.tsx": {
     reads: 2,
     why: "background log poll, no press",
