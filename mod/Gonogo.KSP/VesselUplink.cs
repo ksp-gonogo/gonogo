@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Gonogo.KSP.Gates;
+using Gonogo.KSP.GameWindows;
 using Sitrep.Contract;
 using Sitrep.Core;
 using Sitrep.Host;
@@ -397,7 +398,13 @@ namespace Gonogo.KSP
             host.AddCommandHandler<object?, CommandResult>(VesselCommandProvider.TargetClearCommand, args => VesselCommandProvider.HandleTargetClear(_actuator, args));
             host.AddCommandHandler<SetWarpIndexArgs, CommandResult>(VesselCommandProvider.SetWarpIndexCommand, args => VesselCommandProvider.HandleSetWarpIndex(_actuator, args));
             host.AddCommandHandler<SetPausedArgs, CommandResult>(VesselCommandProvider.SetPausedCommand, args => VesselCommandProvider.HandleSetPaused(_actuator, args));
-            host.AddCommandHandler<InvokePartActionArgs, CommandResult>(PartActionCommandProvider.InvokePartActionCommand, args => PartActionCommandProvider.HandleInvoke(_partActionActuator, args));
+            host.AddSessionCommandHandler<InvokePartActionArgs, CommandResult>(PartActionCommandProvider.InvokePartActionCommand, (args, origin) =>
+            {
+                using (OpenerWatch.Pressing(origin))
+                {
+                    return PartActionCommandProvider.HandleInvoke(_partActionActuator, args);
+                }
+            });
             host.AddCommandHandler<SetEvaLampArgs, CommandResult>(EvaKerbalCommandProvider.SetLampCommand, args => EvaKerbalCommandProvider.HandleSetLamp(_evaKerbalActuator, args));
 
             RegisterPartActions(host);

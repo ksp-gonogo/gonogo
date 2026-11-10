@@ -207,6 +207,10 @@ namespace Sitrep.Contract.TestSupport
             string command, Func<TArgs, string, TResult> handler) =>
             CommandsRegistered.Add(command);
 
+        public void AddSessionCommandHandler<TArgs, TResult>(
+            string command, Func<TArgs, CommandOrigin, TResult> handler) =>
+            CommandsRegistered.Add(command);
+
         public void SetAvailability(Availability availability) => Availability = availability;
 
         /// <summary>

@@ -1,3 +1,4 @@
+import { GameWindowAudienceContext } from "@ksp-gonogo/components";
 import { getDataSources, registerDataSource } from "@ksp-gonogo/core";
 import { debugPeer } from "@ksp-gonogo/logger";
 import {
@@ -7,6 +8,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import { hostShowsWindow } from "./gameWindowRouting";
 import { PeerBroadcastingDataSource } from "./PeerBroadcastingDataSource";
 import { peerHostService } from "./PeerHostService";
 
@@ -32,6 +34,10 @@ let pendingStop: ReturnType<typeof setTimeout> | null = null;
  * mod's grant count for the role, which the host announces to stations so they
  * stay with the newest host.
  */
+/** The host's own screen draws the windows its own presses opened, not those a station's did. */
+const hostsOwnWindow = (pressId: string) =>
+  hostShowsWindow(pressId, (id) => peerHostService.isStationWindowPress(id));
+
 export function PeerHostProvider({
   code,
   generation,
@@ -96,7 +102,9 @@ export function PeerHostProvider({
 
   return (
     <PeerHostContext.Provider value={{ peerId }}>
-      {children}
+      <GameWindowAudienceContext.Provider value={hostsOwnWindow}>
+        {children}
+      </GameWindowAudienceContext.Provider>
     </PeerHostContext.Provider>
   );
 }

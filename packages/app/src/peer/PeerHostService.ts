@@ -41,6 +41,7 @@ import { type ConnectionPath, readConnectionPath } from "./connectionPath";
 import { DeliveryMeter, deliveryChannel } from "./DeliveryMeter";
 import { joinMetadata, readJoin } from "./endpointJoin";
 import { EndpointConnection, EndpointStations } from "./endpointStations";
+import { WINDOW_OPENING_COMMANDS, windowsSentTo } from "./gameWindowRouting";
 import { defaultApprovals, defaultShareCode } from "./hostDefaults";
 import {
   deriveHostPeerId,
@@ -66,6 +67,8 @@ import { TypedListeners } from "./typedListeners";
 import { encodeWideNumbers } from "./wideNumbers";
 
 /** How long the connection carrying the endpoint's answer to a station is kept, for a station that never reads it. */
+const NO_PRESSES: ReadonlySet<string> = new Set();
+
 const ANSWER_CARRIER_MS = 15_000;
 
 /**
@@ -668,6 +671,16 @@ export class PeerHostService {
    * entry, so a connection is not held past its own teardown.
    */
   private readonly sitrepSubs = new Map<StationLink, Set<string>>();
+
+  /*
+   * The request ids of the window-opening presses each station sent. The mod
+   * sends every window to the host's session, because a station's commands go
+   * out through it, so this is what decides which station is shown which window.
+   */
+  private readonly windowPresses = new Map<StationLink, Set<string>>();
+
+  /** Every id in `windowPresses`, for the host's own screen to tell a station's window from its own. */
+  private readonly stationWindowPresses = new Set<string>();
   /**
    * Which upstream session each connection reads from, absent until it asks
    * for one. A pilot wants the craft's own vantage so its instruments run at
@@ -1445,6 +1458,10 @@ export class PeerHostService {
     const wasServed = this.connections.delete(conn);
     this.waiting.delete(conn);
     this.heldReads.delete(conn);
+    for (const id of this.windowPresses.get(conn) ?? NO_PRESSES) {
+      this.stationWindowPresses.delete(id);
+    }
+    this.windowPresses.delete(conn);
     if (this.stationPaths.delete(conn.peer)) this.events.emit("stationPaths");
     this.peerIdToStationKey.delete(conn.peer);
     this.connCredential.delete(conn);
@@ -1545,6 +1562,19 @@ export class PeerHostService {
       return this.sitrepSinks.get(vantage)?.command;
     }
     return this.commandClient();
+  }
+
+  /**
+   * What a press that opens a game window from `conn` is dispatched through: the
+   * session that reads for that connection, so the mod ties the window it opens
+   * to the session the station's frames come from. A connection whose session
+   * has no route of its own falls back to the usual one.
+   */
+  private windowCommandRouteFor(conn: StationLink): CommandRoute | undefined {
+    return (
+      this.sitrepSinks.get(this.vantageOf(conn))?.command ??
+      this.commandRouteFor(conn)
+    );
   }
 
   /**
@@ -2075,7 +2105,10 @@ export class PeerHostService {
    * station restores them. A frame that still cannot be sent is logged with its
    * topic rather than dropped silently; any other message keeps throwing.
    */
-  private transmit(conn: StationLink, msg: PeerMessage): void {
+  private transmit(conn: StationLink, original: PeerMessage): void {
+    const msg =
+      windowsSentTo(original, this.windowPresses.get(conn) ?? NO_PRESSES) ??
+      original;
     if (msg.type === "sitrep-frame" && !this.paces(conn, msg)) return;
     let sentOnChange = this.sentOnChange.get(conn);
     if (!sentOnChange) {
@@ -3200,10 +3233,28 @@ export class PeerHostService {
    * `command-response` branch takes the same two args). The field only
    * exists because `CommandResponse<T>`'s wire shape requires it.
    */
+  /** Whether a window that `pressId` opened was opened by a station's press, not the host's own. */
+  isStationWindowPress(pressId: string): boolean {
+    return this.stationWindowPresses.has(pressId);
+  }
+
+  private noteWindowPress(conn: StationLink, requestId: string): void {
+    let ids = this.windowPresses.get(conn);
+    if (!ids) {
+      ids = new Set();
+      this.windowPresses.set(conn, ids);
+    }
+    ids.add(requestId);
+    this.stationWindowPresses.add(requestId);
+  }
+
   private async handleSitrepCommand(
     msg: Extract<PeerMessage, { type: "sitrep-command-request" }>,
     conn: StationLink,
   ): Promise<void> {
+    if (WINDOW_OPENING_COMMANDS.has(msg.command)) {
+      this.noteWindowPress(conn, msg.requestId);
+    }
     await this.relaySitrepCommand(msg, conn, (client) => {
       /*
        * The address the command is dispatched under, in priority order: the
@@ -3390,7 +3441,9 @@ export class PeerHostService {
     conn: StationLink,
     start: (client: CommandRoute) => Promise<unknown>,
   ): Promise<void> {
-    const client = this.commandRouteFor(conn);
+    const client = WINDOW_OPENING_COMMANDS.has(msg.command)
+      ? this.windowCommandRouteFor(conn)
+      : this.commandRouteFor(conn);
     if (!client) {
       conn.send({
         type: "sitrep-command-error",

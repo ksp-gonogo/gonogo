@@ -7,7 +7,9 @@ namespace Sitrep.Host
     /// screen that only someone there can finish, nearly all of them under an
     /// input lock. Fired from a console they lock the craft's controls with nobody
     /// able to release them, so they are listed apart in <c>vessel.partActions</c> and refused by
-    /// <c>vessel.invokePartAction</c>.
+    /// <c>vessel.invokePartAction</c>. A dialog the dashboard reads as a form
+    /// (<see cref="IsMirrored"/>) is not on that list: someone at a console can
+    /// finish it.
     ///
     /// <para>Matched by event name alone, because a mod module that subclasses a
     /// stock one inherits the same button under its own module name.</para>
@@ -22,19 +24,6 @@ namespace Sitrep.Host
          *    or Escape is pressed.
          *  - TransferDataEvent (ModuleScienceExperiment, ModuleScienceContainer):
          *    ExperimentTransfer.Create, the same PartItemTransfer lock.
-         *  - RenameVessel (ModuleCommand): Vessel.RenameVessel opens the rename
-         *    dialog under SetControlLock("vesselRenameDialog"), which locks all
-         *    controls until the dialog is closed.
-         *  - RenameAsteroidEvent (ModuleAsteroid), RenameCometEvent (ModuleComet): a
-         *    rename prompt under SetControlLock("RenameDialog"), the same full lock.
-         *    A grappled asteroid is a part of the active vessel.
-         *  - RenameVessel also exists on KerbalEVA under the same name.
-         *  - SetVesselNaming (ModuleGroundExpControl, and Part's own, which the
-         *    game's vessel naming setting switches on at runtime):
-         *    Part.SetVesselNaming opens the rename dialog under the same
-         *    "vesselRenameDialog" lock.
-         *  - ShowUpgradeStats (Part): a popup with an OK button and no control
-         *    lock, listed because nobody at a console can close it.
          *
          * Buttons that open a window without such a lock (KerbNet, the robotics
          * controller editor, Review Data, a transmitter's partial-data prompt)
@@ -45,6 +34,24 @@ namespace Sitrep.Host
         {
             "SpawnTransferDialog",
             "TransferDataEvent",
+        };
+
+        /*
+         * Buttons that open a pop-up dialog the dashboard reads as a form, so
+         * someone at a console can finish it. They take an input lock the dialog's
+         * own buttons release, which is why a press of one keeps the lock it took:
+         *  - RenameVessel (ModuleCommand, KerbalEVA): Vessel.RenameVessel opens the
+         *    rename dialog under SetControlLock("vesselRenameDialog").
+         *  - RenameAsteroidEvent (ModuleAsteroid), RenameCometEvent (ModuleComet): a
+         *    rename prompt under SetControlLock("RenameDialog"). A grappled
+         *    asteroid is a part of the active vessel.
+         *  - SetVesselNaming (ModuleGroundExpControl, and Part's own, which the
+         *    game's vessel naming setting switches on at runtime): opens the rename
+         *    dialog under the same "vesselRenameDialog" lock.
+         *  - ShowUpgradeStats (Part): a popup with an OK button and no control lock.
+         */
+        private static readonly HashSet<string> MirroredEventNames = new HashSet<string>
+        {
             "RenameVessel",
             "RenameAsteroidEvent",
             "RenameCometEvent",
@@ -104,9 +111,13 @@ namespace Sitrep.Host
             }
         }
 
-        /// <summary>Whether this pressable button opens a window on the game's own screen without locking the craft.</summary>
+        /// <summary>Whether this pressable button opens a window on the game's own screen, one the craft stays controllable under or one the dashboard reads as a form.</summary>
         public static bool OpensGameWindow(string? eventName) =>
-            eventName != null && WindowOnlyEventNames.Contains(eventName);
+            eventName != null && (WindowOnlyEventNames.Contains(eventName) || MirroredEventNames.Contains(eventName));
+
+        /// <summary>Whether this button opens a dialog the dashboard reads as a form, so its press keeps the input lock the dialog takes.</summary>
+        public static bool IsMirrored(string? eventName) =>
+            eventName != null && MirroredEventNames.Contains(eventName);
 
         /// <summary>The input lock ids present after a press that were not there before it.</summary>
         public static List<string> NewLocks(IEnumerable<string> before, IEnumerable<string> after)

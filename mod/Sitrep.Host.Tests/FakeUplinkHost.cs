@@ -89,6 +89,12 @@ namespace Sitrep.Host.Tests
             VantageHandlersRegistered.Add(command);
         }
 
+        public void AddSessionCommandHandler<TArgs, TResult>(
+            string command, Func<TArgs, CommandOrigin, TResult> handler)
+        {
+            VantageHandlersRegistered.Add(command);
+        }
+
         public readonly List<string> VantageHandlersRegistered = new List<string>();
 
         /// <summary>Recorded rather than ignored, so a test can assert an uplink registered one.</summary>

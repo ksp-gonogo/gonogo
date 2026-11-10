@@ -1,12 +1,18 @@
-import type { AnyBoundCommand } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  AnyBoundCommand,
+  PartPanelDefinition,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
   Floating,
   IconButton,
+  LockScope,
+  ModalProvider,
   PanZoomViewport,
   RotateAnticlockwiseIcon,
   RotateClockwiseIcon,
   useElementSize,
+  useModal,
   usePanZoom,
 } from "@ksp-gonogo/ui-kit";
 import type React from "react";
@@ -80,7 +86,21 @@ interface Props {
 /** The diagram is too small to hold the rotate control beside the reset one under this width, in px. */
 export const ROTATE_MIN_WIDTH = 220;
 
-export function ShipDiagram({
+/**
+ * A provider of its own rather than the app's: the app's sits above the
+ * telemetry, screen and Domain providers, and a dialog's content sees the
+ * context around the provider that drew it. Under this one, a part panel reads
+ * the widget's own store, so its figures and their delay match the widget's.
+ */
+export function ShipDiagram(props: Readonly<Props>) {
+  return (
+    <ModalProvider>
+      <ShipDiagramBody {...props} />
+    </ModalProvider>
+  );
+}
+
+function ShipDiagramBody({
   parts,
   highlightPartId,
   highlightColor,
@@ -111,6 +131,40 @@ export function ShipDiagram({
   } | null>(null);
   // Restored on dismiss so Escape returns focus to the part.
   const triggerRef = useRef<Element | null>(null);
+  const { open: openModal, close: closeModal } = useModal();
+  const openPanelRef = useRef<{ modalId: string; flightId: number } | null>(
+    null,
+  );
+  const openPartPanel = (panel: PartPanelDefinition, part: ShipMapPart) => {
+    const partTitle = part.title || part.name;
+    const Content = panel.component;
+    const close = () => {
+      if (openPanelRef.current) closeModal(openPanelRef.current.modalId);
+    };
+    const modalId = openModal(
+      <LockScope>
+        <Content
+          partId={String(part.flightId)}
+          partTitle={partTitle}
+          close={close}
+        />
+      </LockScope>,
+      {
+        title: `${panel.title} \u00b7 ${partTitle}`,
+        titleAdornment: panel.titleAdornment,
+        width: panel.width,
+      },
+    );
+    openPanelRef.current = { modalId, flightId: part.flightId };
+  };
+  // An empty list is a craft not yet known, never a part that has left.
+  useEffect(() => {
+    const opened = openPanelRef.current;
+    if (!opened || parts.length === 0) return;
+    if (parts.some((p) => p.flightId === opened.flightId)) return;
+    closeModal(opened.modalId);
+    openPanelRef.current = null;
+  }, [parts, closeModal]);
 
   const dismissMenu = () => {
     setOpenPart(null);
@@ -278,6 +332,7 @@ export function ShipDiagram({
             onPickTransfer={(resource) =>
               onStartTransferPick?.(openPart.part, resource)
             }
+            onOpenPanel={(panel) => openPartPanel(panel, openPart.part)}
             onDismiss={dismissMenu}
             // The floating layer positions; the menu goes back in flow so the layer can be measured.
             style={MENU_IN_LAYER}

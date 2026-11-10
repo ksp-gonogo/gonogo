@@ -886,6 +886,35 @@
       "timelineEpoch": "id",
       "type": "id"
     },
+    "GameWindow": {
+      "id": "id",
+      "technology": "enum",
+      "title": "text"
+    },
+    "GameWindowNode": {
+      "bool": "flag",
+      "columns": "n/a",
+      "dir": "enum",
+      "enabled": "flag",
+      "id": "id",
+      "image": "text",
+      "kind": "enum",
+      "max": "n/a",
+      "min": "n/a",
+      "num": "n/a",
+      "options": "text",
+      "text": "text",
+      "tone": "enum",
+      "tooltip": "text",
+      "variant": "enum"
+    },
+    "GameWindowOpener": {
+      "event": "text",
+      "label": "text",
+      "module": "text",
+      "partId": "id",
+      "pressId": "id"
+    },
     "GateCheckRequest": {
       "command": "id"
     },
@@ -1283,6 +1312,13 @@
     "Pong": {
       "nonce": "id",
       "type": "id"
+    },
+    "PressGameWindowControlArgs": {
+      "bool": "flag",
+      "controlId": "id",
+      "num": "n/a",
+      "text": "text",
+      "windowId": "id"
     },
     "PropagatedPath": {
       "centreBodyIndex": "id",
@@ -2981,6 +3017,16 @@
     "GameAlarmList": {
       "alarms": "GameAlarm[]"
     },
+    "GameWindow": {
+      "openedBy": "GameWindowOpener",
+      "root": "GameWindowNode"
+    },
+    "GameWindowNode": {
+      "children": "GameWindowNode[]"
+    },
+    "GameWindows": {
+      "windows": "GameWindow[]"
+    },
     "GateVerdict": {
       "breach": "LimitBreach",
       "missing": "MissingUnlock[]"
@@ -3366,6 +3412,9 @@
     "vessel.flight": {
       "meta": "PayloadMeta"
     },
+    "vessel.gameWindows": {
+      "windows": "GameWindow[]"
+    },
     "vessel.identity": {
       "meta": "PayloadMeta"
     },
@@ -3518,6 +3567,15 @@
     "GameAlarm": {
       "kind": "GameAlarmKind",
       "warp": "GameAlarmWarp"
+    },
+    "GameWindow": {
+      "technology": null
+    },
+    "GameWindowNode": {
+      "dir": null,
+      "kind": null,
+      "tone": null,
+      "variant": null
     },
     "GateVerdict": {
       "outcome": "GateOutcome"

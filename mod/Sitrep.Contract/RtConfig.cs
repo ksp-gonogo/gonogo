@@ -268,6 +268,12 @@ public static class RtConfig
                 typeof(ConverterSwitchArgs),
                 // vessel.invokePartAction args (fire one PAW button)
                 typeof(InvokePartActionArgs),
+                // vessel.gameWindows channel payload and vessel.gameWindow.press args
+                typeof(GameWindows),
+                typeof(GameWindow),
+                typeof(GameWindowOpener),
+                typeof(GameWindowNode),
+                typeof(PressGameWindowControlArgs),
                 // vessel.control fly-by-wire command args
                 typeof(SetFlyByWireArgs),
                 typeof(SetControlAxesArgs),

@@ -72,6 +72,35 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
+    /// Where a command came from, as a handler registered with
+    /// <see cref="IUplinkHost.AddSessionCommandHandler{TArgs,TResult}"/> sees it.
+    /// </summary>
+    /// <category>Channels and emission</category>
+    public sealed class CommandOrigin
+    {
+        /// <summary>
+        /// The id of the connection that sent the command, the same value a
+        /// <see cref="ViewerContext.SessionId"/> carries for that connection, or
+        /// empty when the command did not come from a client session.
+        /// </summary>
+        public string SessionId { get; }
+
+        /// <summary>
+        /// The correlation id the sender gave the command, or empty when it gave
+        /// none. The sender chose it, so it identifies the command for the
+        /// sender's own bookkeeping and proves nothing about who sent it.
+        /// </summary>
+        public string RequestId { get; }
+
+        /// <summary>Creates an origin for a command sent by session <paramref name="sessionId"/>.</summary>
+        public CommandOrigin(string sessionId, string requestId)
+        {
+            SessionId = sessionId;
+            RequestId = requestId;
+        }
+    }
+
+    /// <summary>
     /// The session a frame is about to reach, as a
     /// <see cref="ChannelDeclaration.ViewerFilter"/> sees it.
     /// </summary>
@@ -1529,6 +1558,23 @@ namespace Sitrep.Contract
         /// <param name="handler">Runs the command, given its arguments and the sending command centre's id.</param>
         void AddVantageCommandHandler<TArgs, TResult>(
             string command, Func<TArgs, string, TResult> handler);
+
+        /// <summary>
+        /// Register a handler that is told which client session sent the
+        /// command, as well as what it said.
+        ///
+        /// <para>For a command whose effect is meant for the screen that sent it
+        /// alone, such as opening a window only that screen should see. The
+        /// origin is resolved where the command entered, so a client cannot
+        /// claim to be another session. A command that did not come from a
+        /// client session gets an origin with empty ids.</para>
+        /// </summary>
+        /// <typeparam name="TArgs">The command's argument type, decoded from the wire.</typeparam>
+        /// <typeparam name="TResult">The handler's result type.</typeparam>
+        /// <param name="command">The declared command id.</param>
+        /// <param name="handler">Runs the command, given its arguments and where it came from.</param>
+        void AddSessionCommandHandler<TArgs, TResult>(
+            string command, Func<TArgs, CommandOrigin, TResult> handler);
 
         /// <summary>
         /// Register an evaluator for one <see cref="CommandRequirement.Kind"/>.

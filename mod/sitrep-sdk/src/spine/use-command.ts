@@ -455,6 +455,7 @@ export function useCommand(
   // Read through a ref: the caller passes a fresh check each render, over that render's telemetry.
   const confirmedByRef = useRef(options?.confirmedBy);
   confirmedByRef.current = options?.confirmedBy;
+  const scopeTopic = options?.topic;
   useClaimCapability("command", command);
   // Degrade gracefully with no `TelemetryProvider` mounted (disconnected).
   // Status stays IDLE and `send` is a no-op: you can't dispatch a command with
@@ -987,6 +988,7 @@ export function useCommand(
         nowUt,
         pathConnectedDuring,
         statusOf: (id) => client?.getCarriedCommand(id),
+        topic: scopeTopic,
       });
   if (centreRows.length > 0) {
     inFlight = [...inFlight, ...centreRows].sort(
@@ -1031,6 +1033,7 @@ export function useCommand(
         memory: centreMemoryRef.current,
         nowUt: clockSampled ? nowUt : null,
         epoch: store?.clock.getEpoch() ?? 0,
+        topic: scopeTopic,
       });
   const allRefusals =
     centreOutcomes && centreOutcomes.refusals.length > 0
@@ -1407,7 +1410,7 @@ export function useCommand(
           command,
           args,
           label: opts?.label,
-          topic: opts?.topic,
+          topic: opts?.topic ?? scopeTopic,
           vantage,
           instant: isInstantRef.current,
           track,
@@ -1417,12 +1420,20 @@ export function useCommand(
         command,
         args,
         opts?.label,
-        opts?.topic,
+        opts?.topic ?? scopeTopic,
         vantage,
       );
       return track(newRequestId, result);
     },
-    [client, command, vantage, trackDispatch, outcomeStore, setRefusals],
+    [
+      client,
+      command,
+      vantage,
+      scopeTopic,
+      trackDispatch,
+      outcomeStore,
+      setRefusals,
+    ],
   );
 
   const outcome = {

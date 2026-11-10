@@ -382,6 +382,7 @@ export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {
       },
       requestRate: (topic, tier) => requestRateUnderChoice(client, topic, tier),
       dataRates: () => client.getValue("system.dataRates"),
+      command: client,
       history: (topic, fromUt, toUt) => {
         const points = store?.sampleRange<unknown>(topic, fromUt, toUt) ?? [];
         const frames = points.slice(-HISTORY_FRAMES_PER_REQUEST).map(

@@ -72,6 +72,10 @@ namespace Sitrep.Contract.TestSupport
             string command, Func<TArgs, string, TResult> handler)
         { }
 
+        public void AddSessionCommandHandler<TArgs, TResult>(
+            string command, Func<TArgs, CommandOrigin, TResult> handler)
+        { }
+
         public void SetAvailability(Availability availability) { }
 
         public void AddSampler(ISnapshotSampler sampler) { }

@@ -138,13 +138,6 @@ namespace Sitrep.Host.Tests
         [InlineData("SpawnTransferDialog", null)]
         [InlineData("TransferDataEvent", "ModuleScienceExperiment")]
         [InlineData("TransferDataEvent", "ModuleScienceContainer")]
-        [InlineData("RenameVessel", "ModuleCommand")]
-        [InlineData("RenameAsteroidEvent", "ModuleAsteroid")]
-        [InlineData("RenameCometEvent", "ModuleComet")]
-        [InlineData("SetVesselNaming", "ModuleGroundExpControl")]
-        [InlineData("SetVesselNaming", null)]
-        [InlineData("RenameVessel", "KerbalEVA")]
-        [InlineData("ShowUpgradeStats", null)]
         public void BuildDropsAButtonOnlySomeoneAtTheGameCanFinish(string eventName, string? moduleName)
         {
             var actuator = new FakePartActionActuator();
@@ -161,6 +154,32 @@ namespace Sitrep.Host.Tests
             Assert.Equal("Deploy", actions[0]["name"]);
             var windows = (List<object?>)publications[0].Payload!["gameWindows"]!;
             Assert.Equal(eventName, ((Dictionary<string, object?>)Assert.Single(windows)!)["name"]);
+        }
+
+        /// <summary>
+        /// A dialog the dashboard reads as a form is offered as a pressable
+        /// button, marked as opening a game window, so the part menu can open its
+        /// form.
+        /// </summary>
+        [Theory]
+        [InlineData("RenameVessel", "ModuleCommand")]
+        [InlineData("RenameAsteroidEvent", "ModuleAsteroid")]
+        [InlineData("RenameCometEvent", "ModuleComet")]
+        [InlineData("SetVesselNaming", "ModuleGroundExpControl")]
+        [InlineData("SetVesselNaming", null)]
+        [InlineData("RenameVessel", "KerbalEVA")]
+        [InlineData("ShowUpgradeStats", null)]
+        public void ADialogTheDashboardReadsAsAFormStaysPressableAndIsMarked(string eventName, string? moduleName)
+        {
+            var actuator = new FakePartActionActuator();
+            actuator.ActionsByPartId["1"] = new List<PartActionEntry> { Entry(eventName, moduleName: moduleName) };
+
+            var publications = PartActionsViewProvider.Build(actuator, new[] { "1" }, "guid-1");
+            var action = Assert.Single(WireActions(publications[0]));
+
+            Assert.Equal(eventName, action["name"]);
+            Assert.Equal(true, action["opensGameWindow"]);
+            Assert.Empty((List<object?>)publications[0].Payload!["gameWindows"]!);
         }
 
         [Fact]

@@ -3,8 +3,8 @@ info:
   title: Gonogo WebSocket API
   version: 51.1.0
   description: |-
-    The WebSocket API of the Gonogo mod: 96 telemetry channels a client
-    subscribes to and 88 commands it sends, each with its payload and what it
+    The WebSocket API of the Gonogo mod: 97 telemetry channels a client
+    subscribes to and 89 commands it sends, each with its payload and what it
     means, all over one socket.
 
     ## Frames the mod sends
@@ -3697,6 +3697,41 @@ channels:
         $ref: "#/components/messages/streamData.vessel.flight"
       event:
         $ref: "#/components/messages/event"
+  vessel.gameWindow.press:
+    address: vessel.gameWindow.press
+    description: |-
+      Presses one control of a `GameWindow`. A press rides the signal delay as any
+      command does, and acts on the window as it is when the press arrives. It
+      fails with `CommandErrorCode.NotFound`, naming the reason in its detail,
+      when the window has closed, the control is no longer in it, or the game has
+      the control greyed out.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: true
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.vessel.gameWindow.press"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.vessel.gameWindow.press"
+      commandAccepted:
+        $ref: "#/components/messages/commandAccepted"
+  vessel.gameWindows:
+    address: vessel.gameWindows
+    description: |-
+      The windows that a part's menu has opened on the game's screen, each read as
+      a tree of controls. A window is listed from the moment it is seen open until
+      it closes.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: lossy-latest
+    x-sitrep-delay-role: delayed
+    x-sitrep-sample-kind: discrete
+    x-sitrep-keyframe-interval-ut: 30
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.vessel.gameWindows"
+      event:
+        $ref: "#/components/messages/event"
   vessel.identity:
     address: vessel.identity
     title: Active vessel identity
@@ -5442,6 +5477,21 @@ operations:
       messages:
         - $ref: "#/channels/vessel.crew.transfer/messages/commandResponse"
         - $ref: "#/channels/vessel.crew.transfer/messages/commandAccepted"
+  dispatch:vessel.gameWindow.press:
+    action: send
+    channel:
+      $ref: "#/channels/vessel.gameWindow.press"
+    title: Dispatch vessel.gameWindow.press
+    tags:
+      - name: vessel
+    messages:
+      - $ref: "#/channels/vessel.gameWindow.press/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/vessel.gameWindow.press"
+      messages:
+        - $ref: "#/channels/vessel.gameWindow.press/messages/commandResponse"
+        - $ref: "#/channels/vessel.gameWindow.press/messages/commandAccepted"
   dispatch:vessel.invokePartAction:
     action: send
     channel:
@@ -6445,6 +6495,17 @@ operations:
     messages:
       - $ref: "#/channels/vessel.flight/messages/streamData"
       - $ref: "#/channels/vessel.flight/messages/event"
+  read:vessel.gameWindows:
+    action: receive
+    channel:
+      $ref: "#/channels/vessel.gameWindows"
+    title: Read vessel.gameWindows
+    description: Delivered only after `subscribe` names `vessel.gameWindows` on the session channel, which the mod answers here with an `event` named `subscribed`.
+    tags:
+      - name: vessel
+    messages:
+      - $ref: "#/channels/vessel.gameWindows/messages/streamData"
+      - $ref: "#/channels/vessel.gameWindows/messages/event"
   read:vessel.identity:
     action: receive
     channel:
@@ -7874,6 +7935,21 @@ components:
                 const: vessel.crew.transfer
               args:
                 $ref: "#/components/schemas/CrewTransferArgs"
+    commandRequest.vessel.gameWindow.press:
+      name: command-request
+      title: Dispatch vessel.gameWindow.press
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `vessel.gameWindow.press`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: vessel.gameWindow.press
+              args:
+                $ref: "#/components/schemas/PressGameWindowControlArgs"
     commandRequest.vessel.invokePartAction:
       name: command-request
       title: Dispatch vessel.invokePartAction
@@ -9179,6 +9255,19 @@ components:
           - properties:
               result:
                 $ref: "#/components/schemas/CommandResult"
+    commandResponse.vessel.gameWindow.press:
+      name: command-response
+      title: Reply to vessel.gameWindow.press
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `vessel.gameWindow.press`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                $ref: "#/components/schemas/CommandResult"
     commandResponse.vessel.invokePartAction:
       name: command-response
       title: Reply to vessel.invokePartAction
@@ -10438,6 +10527,19 @@ components:
                 const: vessel.flight
               payload:
                 $ref: "#/components/schemas/VesselFlight"
+    streamData.vessel.gameWindows:
+      name: stream-data
+      title: A frame on vessel.gameWindows
+      contentType: application/json
+      payload:
+        description: The `stream-data` envelope carrying `vessel.gameWindows`.
+        allOf:
+          - $ref: "#/components/schemas/StreamData"
+          - properties:
+              topic:
+                const: vessel.gameWindows
+              payload:
+                $ref: "#/components/schemas/GameWindows"
     streamData.vessel.identity:
       name: stream-data
       title: A frame on vessel.identity
@@ -17821,6 +17923,211 @@ components:
             a command as `CommandRequest.seenEpoch`. Sent again whenever a game load
             starts a new timeline, so a connection that is subscribed to nothing still
             learns it.
+    GameWindow:
+      type: object
+      description: One window a part's menu opened on the game's screen.
+      required:
+        - id
+        - technology
+        - title
+        - openedBy
+        - root
+      properties:
+        id:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            The window's id, passed back as `PressGameWindowControlArgs.windowId`. Valid
+            only while the window stays open.
+        technology:
+          type: string
+          x-sitrep-unit: enum
+          description: |-
+            How the game draws the window: `imgui` for an immediate-mode window, `ugui`
+            for a retained dialog.
+        title:
+          type: string
+          x-sitrep-unit: text
+          description: The window's own title, or a dialog's first label.
+        openedBy:
+          description: The part menu button that opened the window.
+          allOf:
+            - $ref: "#/components/schemas/GameWindowOpener"
+        root:
+          description: The window's controls, as a tree whose root is a group.
+          allOf:
+            - $ref: "#/components/schemas/GameWindowNode"
+    GameWindowNode:
+      type: object
+      description: |-
+        One element of a `GameWindow`. `GameWindowNode.kind` says which of the other
+        fields apply: `group` and `scroll` hold `GameWindowNode.children`, laid out
+        as `GameWindowNode.dir` says; `label` and `box` show `GameWindowNode.text`;
+        `button` shows `GameWindowNode.text`; `toggle` and `radio` hold
+        `GameWindowNode.bool`; `textfield` and `textarea` hold
+        `GameWindowNode.text`; `slider` holds `GameWindowNode.num` between
+        `GameWindowNode.min` and `GameWindowNode.max`; `grid` holds the selected
+        index in `GameWindowNode.num` and its `GameWindowNode.options`.
+      required:
+        - id
+        - kind
+      properties:
+        id:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            The element's id within its window, passed back as
+            `PressGameWindowControlArgs.controlId`.
+        kind:
+          type: string
+          x-sitrep-unit: enum
+          description: |-
+            What the element is: `group`, `scroll`, `label`, `box`, `button`, `toggle`,
+            `radio`, `textfield`, `textarea`, `slider` or `grid`.
+        text:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: The element's text, or `null` where it has none.
+        bool:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: Whether a `toggle` is on.
+        num:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: n/a
+          description: A `slider`'s value, or a `grid`'s selected index.
+        min:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: n/a
+          description: A `slider`'s lowest value.
+        max:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: n/a
+          description: A `slider`'s highest value.
+        dir:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: enum
+          description: "How a group lays out its children: `h` or `v`."
+        enabled:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: |-
+            `false` when the game shows the control greyed out and will not take a
+            press. Omitted otherwise.
+        tooltip:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: The element's tooltip in the game, or `null` where it has none.
+        tone:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: enum
+          description: |-
+            The state the game's colouring gives the element: `go`, `nogo` or `warn`.
+            Omitted when the game draws it uncoloured.
+        variant:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: enum
+          description: |-
+            How a `toggle` is drawn: `button` when the game draws it as a button.
+            Omitted for a plain toggle.
+        columns:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: n/a
+          description: |-
+            How many columns a `grid` or a grid-laid `group` draws, or `null` for a
+            group that is not a grid.
+        image:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: |-
+            The name of the picture a `button`, `toggle` or `label` shows, or `null`
+            where it has none.
+        options:
+          type:
+            - array
+            - "null"
+          items:
+            type: string
+            x-sitrep-unit: text
+          description: A `grid`'s choices.
+        children:
+          type:
+            - array
+            - "null"
+          items:
+            $ref: "#/components/schemas/GameWindowNode"
+          description: A group's elements, in the order the window draws them.
+    GameWindowOpener:
+      type: object
+      description: The part menu button that opened a `GameWindow`.
+      required:
+        - partId
+        - event
+        - label
+        - pressId
+      properties:
+        partId:
+          type: string
+          x-sitrep-unit: id
+          description: The part's flight id, as a string.
+        module:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: The module that owns the button, or `null` for a button on the part itself.
+        event:
+          type: string
+          x-sitrep-unit: text
+          description: The button's event name.
+        label:
+          type: string
+          x-sitrep-unit: text
+          description: The button's label as the game shows it.
+        pressId:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            The correlation id the sender gave the press that opened the window, or
+            empty when it gave none.
+    GameWindows:
+      type: object
+      description: |-
+        The windows that a part's menu has opened on the game's screen, each read as
+        a tree of controls. A window is listed from the moment it is seen open until
+        it closes.
+      required:
+        - windows
+      properties:
+        windows:
+          type: array
+          items:
+            $ref: "#/components/schemas/GameWindow"
+          description: Every window currently open. Empty when none is.
     GateCheckRequest:
       type: object
       description: |-
@@ -20794,6 +21101,44 @@ components:
           type: string
           x-sitrep-unit: id
           description: The `Ping.nonce` of the ping this replies to.
+    PressGameWindowControlArgs:
+      type: object
+      description: |-
+        Presses one control of a `GameWindow`. A press rides the signal delay as any
+        command does, and acts on the window as it is when the press arrives. It
+        fails with `CommandErrorCode.NotFound`, naming the reason in its detail,
+        when the window has closed, the control is no longer in it, or the game has
+        the control greyed out.
+      required:
+        - windowId
+        - controlId
+      properties:
+        windowId:
+          type: string
+          x-sitrep-unit: id
+          description: The `GameWindow.id` of the window.
+        controlId:
+          type: string
+          x-sitrep-unit: id
+          description: The `GameWindowNode.id` of the control.
+        bool:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: The state to set a `toggle` to.
+        num:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: n/a
+          description: The value for a `slider`, or the index for a `grid`.
+        text:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: The text for a `textfield`.
     PropagatedPath:
       type: object
       description: |-

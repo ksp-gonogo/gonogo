@@ -64,6 +64,27 @@ describe("centreCommandRows", () => {
     ).toEqual([]);
   });
 
+  it("lists every topic's command when no topic is asked for, and only the asked topic's when one is", () => {
+    const pending = [
+      entry({ clientRequestId: "a:1", topic: "window-a" }),
+      entry({ id: "engine-2", clientRequestId: "b:1", topic: "window-b" }),
+    ];
+    const listed = (topic?: string) =>
+      centreCommandRows({
+        command: "vessel.control.setRcs",
+        queue: { pending },
+        own: new Set(),
+        memory: createCentreCommandMemory(),
+        nowUt: 1005,
+        pathConnectedDuring: () => true,
+        statusOf: () => undefined,
+        topic,
+      }).map((r) => r.id);
+
+    expect(listed()).toEqual(["a:1", "b:1"]);
+    expect(listed("window-a")).toEqual(["a:1"]);
+  });
+
   it("marks a command the route holds at a relay as held", () => {
     const [row] = rows([
       entry({
@@ -206,6 +227,50 @@ describe("centreCommandOutcomes", () => {
         detail: "No RCS thrusters aboard",
       },
     ]);
+  });
+
+  it("lists every topic's outcome when no topic is asked for, and only the asked topic's when one is", () => {
+    const list = [
+      settled({
+        clientRequestId: "a:1",
+        topic: "window-a",
+        outcome: "failed",
+        code: "x",
+        message: "a",
+      }),
+      settled({
+        id: "engine-2",
+        clientRequestId: "b:1",
+        topic: "window-b",
+        outcome: "failed",
+        code: "x",
+        message: "b",
+      }),
+    ];
+    const failed = (topic?: string) => {
+      const memory = createCentreCommandMemory();
+      centreCommandOutcomes({
+        command: "vessel.control.setRcs",
+        queue: { pending: [], settled: [] },
+        own: new Set(),
+        memory,
+        nowUt: 1000,
+        epoch: 0,
+        topic,
+      });
+      return centreCommandOutcomes({
+        command: "vessel.control.setRcs",
+        queue: { pending: [], settled: list },
+        own: new Set(),
+        memory,
+        nowUt: 1041,
+        epoch: 0,
+        topic,
+      }).failures.map((f) => f.id);
+    };
+
+    expect(failed()).toEqual(["a:1", "b:1"]);
+    expect(failed("window-b")).toEqual(["b:1"]);
   });
 
   it("lists a failed one as a failure, with the mod's words", () => {

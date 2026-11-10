@@ -93,12 +93,14 @@ export function centreCommandOutcomes(args: {
   nowUt: number | null;
   /** The timeline epoch the view clock is in; a UT from an earlier epoch says nothing about this one. */
   epoch?: number;
+  /** When set, only outcomes of commands sent with this topic are listed. */
+  topic?: string;
 }): {
   refusals: CommandRefusal[];
   failures: CommandFailure[];
   founds: CommandFound[];
 } {
-  const { command, queue, own, memory, nowUt, epoch = 0 } = args;
+  const { command, queue, own, memory, nowUt, epoch = 0, topic } = args;
   if (memory.sinceEpoch !== epoch) {
     memory.since = null;
     memory.sinceEpoch = epoch;
@@ -111,6 +113,7 @@ export function centreCommandOutcomes(args: {
   const listed = new Set<string>();
   for (const entry of queue?.settled ?? []) {
     if (entry.command !== command || own.has(entry.clientRequestId)) continue;
+    if (topic !== undefined && entry.topic !== topic) continue;
     const id = settledId(entry);
     listed.add(id);
     if (memory.outcomes.has(id) || entry.settledAt.lessThan(since)) {
@@ -216,14 +219,25 @@ export function centreCommandRows(args: {
   nowUt: number;
   pathConnectedDuring: PathConnectedDuring;
   statusOf: (requestId: string) => CommandStatus | undefined;
+  /** When set, only entries sent with this topic are listed. */
+  topic?: string;
 }): InFlightCommand[] {
-  const { command, queue, own, memory, nowUt, pathConnectedDuring, statusOf } =
-    args;
+  const {
+    command,
+    queue,
+    own,
+    memory,
+    nowUt,
+    pathConnectedDuring,
+    statusOf,
+    topic,
+  } = args;
   const present = new Set<string>();
   // A command the centre reports settled is over, however late it was.
   const settled = new Set((queue?.settled ?? []).map(settledId));
   for (const entry of queue?.pending ?? []) {
     if (!carriesCommand(entry, command) || sentBy(entry, own)) continue;
+    if (topic !== undefined && entry.topic !== topic) continue;
     const id = centreRowId(entry);
     present.add(id);
     memory.entries.set(id, { ...entry, id, label: rowLabel(entry) });

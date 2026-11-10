@@ -3,6 +3,10 @@ import {
   registerRevealedEventSource,
 } from "../api/event-reveal";
 import {
+  type PartPanelDefinition,
+  registerPartPanel,
+} from "../api/part-panels";
+import {
   type RootProviderDefinition,
   registerRootProvider,
 } from "../api/root-providers";
@@ -37,10 +41,11 @@ import { registerReckoner } from "./reckoners";
  * There are two ways to register, and each piece uses one of them:
  *
  * - the methods of this handle (`registerRootProvider`,
- *   `registerRevealedEventSource`, `registerContribution`, `registerProcessor`)
- *   prefix the id they are given with the Uplink's own, `my-uplink:<id>`, so two
- *   Uplinks can use the same local ids without colliding; `registerReckoner` takes
- *   a Topic rather than an id of its own, and records this Uplink as its owner
+ *   `registerRevealedEventSource`, `registerContribution`, `registerProcessor`,
+ *   `registerPartPanel`) prefix the id they are given with the Uplink's own,
+ *   `my-uplink:<id>`, so two Uplinks can use the same local ids without
+ *   colliding; `registerReckoner` takes a Topic rather than an id of its own,
+ *   and records this Uplink as its owner
  * - the free functions `registerComponent` and `registerAugment` are not methods
  *   of the handle: they take the handle as `owner` and use the id as written
  * - `registerDataSource` and `registerTheme` take no owner and use the id as
@@ -135,6 +140,11 @@ export interface UplinkClientHandle {
     Slot extends string,
     const Deps extends readonly ContributionDep[] = readonly [],
   >(def: Omit<ContributionDefinition<Slot, Deps>, "owner">): void;
+  /**
+   * Adds a panel the Vessel Schematic opens for one part, in place of a game
+   * button. See {@link PartPanelDefinition}. Returns the panel's prefixed id.
+   */
+  registerPartPanel(def: Omit<PartPanelDefinition, "owner">): string;
   /**
    * Registers a Processor, a value computed from Topics once per frame (each
    * time the dashboard's telemetry store publishes a new set of values) and
@@ -274,6 +284,13 @@ export function defineUplinkClient(
       const Deps extends readonly ContributionDep[] = readonly [],
     >(def: Omit<ContributionDefinition<Slot, Deps>, "owner">): void {
       registerContribution({
+        ...def,
+        id: `${cfg.id}:${def.id}`,
+        owner: handle,
+      });
+    },
+    registerPartPanel(def: Omit<PartPanelDefinition, "owner">): string {
+      return registerPartPanel({
         ...def,
         id: `${cfg.id}:${def.id}`,
         owner: handle,

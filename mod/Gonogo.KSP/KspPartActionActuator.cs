@@ -147,7 +147,7 @@ namespace Gonogo.KSP
             }
 
             var locksAdded = InGameOnlyPartActions.NewLocks(locksBefore, InputLockManager.lockStack.Keys);
-            if (locksAdded.Count > 0)
+            if (locksAdded.Count > 0 && !InGameOnlyPartActions.IsMirrored(eventName))
             {
                 /* A button no list knew about has locked the craft with nobody at the console able to release it. Undo exactly what this press took. A mod removing a lock already gone later is harmless, since RemoveControlLock returns on an absent key. */
                 foreach (var key in locksAdded)

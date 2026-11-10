@@ -2094,6 +2094,16 @@ export interface UseCommandOptions<Args = unknown> {
    */
   rail?: false;
   /**
+   * Addresses every dispatch from this handle to this topic, unless a dispatch
+   * names its own, and lists the commands of other screens and other handles
+   * only when they were sent with this topic. Useful for a control that acts on
+   * one window or one part, so the delay rail shows what was sent to it and
+   * not what another screen sent to another. Omit it and the handle lists every
+   * screen's commands of this command, as for any other widget. A caller that
+   * sets it must send every command it wants listed with the same topic.
+   */
+  topic?: string;
+  /**
    * Whether the craft's telemetry shows what one dispatch set, given that
    * dispatch's args: a light that was switched on reading on. Useful for
    * showing the operator a command as sent until the craft's own readings

@@ -920,7 +920,10 @@ export function contentFits(content: number, box: number): boolean {
   return content <= box;
 }
 
-const ScrollAreaRoot = styled.div`
+const ScrollAreaRoot = styled.div<{
+  $framed?: boolean;
+  $maxHeight?: string;
+}>`
   position: relative;
   display: flex;
   flex-direction: column;
@@ -929,6 +932,19 @@ const ScrollAreaRoot = styled.div`
   min-height: 0;
   /* Out to the panel's edges, its content back on the column, so a strip inside that bleeds is not clipped by this scroller. */
   margin-inline: calc(-1 * var(--bleed-inline));
+  /* A frame owns its edge and its inset, so the glow meets the border and no caller padding can come between them. */
+  ${({ $framed, $maxHeight }) =>
+    $framed
+      ? `
+    flex: 0 1 auto;
+    margin-inline: 0;
+    --bleed-inline: var(--gap-related);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-regular);
+    overflow: hidden;
+    max-height: ${$maxHeight ?? "16rem"};
+  `
+      : ""}
 `;
 
 /**
@@ -994,6 +1010,24 @@ const ScrollOverflowGlow = styled.div<{
 `;
 
 /**
+ * Props for {@link ScrollArea}: any `div` attribute, and whether the region
+ * draws its own bounded frame. Useful for keeping a list the operator scrolls
+ * inside a box of its own within a form. Taken by {@link ScrollArea}.
+ *
+ * @category Panel
+ */
+export interface ScrollAreaProps extends ComponentPropsWithoutRef<"div"> {
+  /**
+   * Draws a border around the region and keeps its content inset inside that
+   * border, so the scroll glow always reaches the edge. Without it, the region
+   * fills a padded parent such as a panel body.
+   */
+  framed?: boolean;
+  /** CSS length for the tallest a `framed` region grows before it scrolls. Defaults to `16rem`. Ignored unless `framed`. */
+  maxHeight?: string;
+}
+
+/**
  * A scrolling region with a glow at the top and bottom edges while there is
  * content to scroll to. A panel body already scrolls and glows; use this for a
  * second scrolling region inside a widget (a sidebar list, a terminal log).
@@ -1008,41 +1042,40 @@ const ScrollOverflowGlow = styled.div<{
  *
  * @category Panel
  */
-export const ScrollArea = forwardRef<
-  HTMLDivElement,
-  ComponentPropsWithoutRef<"div">
->(function ScrollArea({ children, ...rest }, ref) {
-  const innerRef = useRef<HTMLDivElement | null>(null);
-  const [inner, setInner] = useState<HTMLDivElement | null>(null);
-  const attachInner = useCallback((el: HTMLDivElement | null) => {
-    innerRef.current = el;
-    setInner(el);
-  }, []);
+export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(
+  function ScrollArea({ children, framed, maxHeight, ...rest }, ref) {
+    const innerRef = useRef<HTMLDivElement | null>(null);
+    const [inner, setInner] = useState<HTMLDivElement | null>(null);
+    const attachInner = useCallback((el: HTMLDivElement | null) => {
+      innerRef.current = el;
+      setInner(el);
+    }, []);
 
-  useImperativeHandle(ref, () => innerRef.current as HTMLDivElement);
+    useImperativeHandle(ref, () => innerRef.current as HTMLDivElement);
 
-  const overflow = useScrollerMetric(
-    inner,
-    scrollOverflow,
-    sameOverflow,
-    NO_OVERFLOW,
-  );
-  const innerTabIndex = useKeyboardScrollable(inner);
+    const overflow = useScrollerMetric(
+      inner,
+      scrollOverflow,
+      sameOverflow,
+      NO_OVERFLOW,
+    );
+    const innerTabIndex = useKeyboardScrollable(inner);
 
-  return (
-    <ScrollAreaRoot {...rest}>
-      <ScrollAreaInner
-        ref={attachInner}
-        tabIndex={innerTabIndex}
-        data-scroll-area-inner=""
-      >
-        {children}
-      </ScrollAreaInner>
-      <ScrollOverflowGlow $position="top" $visible={overflow.top} />
-      <ScrollOverflowGlow $position="bottom" $visible={overflow.bottom} />
-    </ScrollAreaRoot>
-  );
-});
+    return (
+      <ScrollAreaRoot {...rest} $framed={framed} $maxHeight={maxHeight}>
+        <ScrollAreaInner
+          ref={attachInner}
+          tabIndex={innerTabIndex}
+          data-scroll-area-inner=""
+        >
+          {children}
+        </ScrollAreaInner>
+        <ScrollOverflowGlow $position="top" $visible={overflow.top} />
+        <ScrollOverflowGlow $position="bottom" $visible={overflow.bottom} />
+      </ScrollAreaRoot>
+    );
+  },
+);
 
 /**
  * Where a panel's sidebar sits relative to the body, in logical terms: `end` is

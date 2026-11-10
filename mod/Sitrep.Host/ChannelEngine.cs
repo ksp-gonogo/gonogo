@@ -36,7 +36,7 @@ namespace Sitrep.Host
     /// only ever touches primitives, registered mapper delegates, and the
     /// explicit job queue.
     /// </summary>
-    public sealed partial class ChannelEngine : IUplinkHost, Comms.IDelayModifierSource, IVesselJourneyWriter, CommandCentres.ICommandReachWriter, Comms.ICraftForecastWriter, CommandCentres.ICentreRouteWriter, CommandCentres.IActiveRouteHost, Commcast.IAddressedStreamHost, IDisposable
+    public sealed partial class ChannelEngine : IUplinkHost, ISessionDirectory, Comms.IDelayModifierSource, IVesselJourneyWriter, CommandCentres.ICommandReachWriter, Comms.ICraftForecastWriter, CommandCentres.ICentreRouteWriter, CommandCentres.IActiveRouteHost, Commcast.IAddressedStreamHost, IDisposable
     {
         public const string NodeId = "system";
 
@@ -1724,6 +1724,16 @@ namespace Sitrep.Host
         private readonly HashSet<string> _born = new HashSet<string>();
 
         private string? _currentRegisteringUplinkId;
+
+        /* The subscriptions each session holds, readable from any thread, since the sessions' own dictionaries belong to the Courier thread. */
+        private readonly ConcurrentDictionary<string, byte> _liveSubscriptions = new ConcurrentDictionary<string, byte>(StringComparer.Ordinal);
+
+        private static string LiveSubscriptionKey(string sessionId, string topic) => sessionId + "\n" + topic;
+
+        public bool IsSessionConnected(string sessionId) => _sessions.ContainsKey(sessionId);
+
+        public bool IsSessionSubscribed(string sessionId, string topic) =>
+            _liveSubscriptions.ContainsKey(LiveSubscriptionKey(sessionId, topic));
 
         private readonly ConcurrentDictionary<string, ClientSession> _sessions = new ConcurrentDictionary<string, ClientSession>();
 
@@ -5940,6 +5950,33 @@ namespace Sitrep.Host
                 (args, vantage) => handler((TArgs)BindCommandArgs(args, typeof(TArgs))!, vantage);
             _commandArgTypes[command] = typeof(TArgs);
         }
+
+        /// <summary>
+        /// As <see cref="AddVantageCommandHandler{TArgs,TResult}"/>, for the handlers
+        /// that need the sending session. Stored with the vantage handlers so every
+        /// reader of that store sees it. The origin is looked up by the identity of
+        /// the args object the dispatch carries, because the Courier hands a handler
+        /// the args and nothing else of the request.
+        /// </summary>
+        public void AddSessionCommandHandler<TArgs, TResult>(
+            string command, Func<TArgs, CommandOrigin, TResult> handler)
+        {
+            if (!_commandDeclarations.ContainsKey(command))
+            {
+                throw new InvalidOperationException(
+                    $"AddSessionCommandHandler(\"{command}\") has no matching CommandDeclaration, " +
+                    "declare it in the registering uplink's Manifest.Commands first.");
+            }
+            _sessionCommands.Add(command);
+            _vantageCommandHandlers[command] = (args, _) => handler(
+                (TArgs)BindCommandArgs(args, typeof(TArgs))!,
+                args != null && _originByArgs.TryGetValue(args, out var origin) ? origin : new CommandOrigin("", ""));
+            _commandArgTypes[command] = typeof(TArgs);
+        }
+
+        private readonly HashSet<string> _sessionCommands = new HashSet<string>();
+        private readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, CommandOrigin> _originByArgs =
+            new System.Runtime.CompilerServices.ConditionalWeakTable<object, CommandOrigin>();
 
         /// <summary>
         /// Why <paramref name="args"/> cannot bind to the args type
@@ -11526,6 +11563,12 @@ namespace Sitrep.Host
                 return;
             }
 
+            if (job.Args != null && _sessionCommands.Contains(job.Command))
+            {
+                _originByArgs.Remove(job.Args);
+                _originByArgs.Add(job.Args, new CommandOrigin(job.SessionId ?? "", job.ClientRequestId ?? ""));
+            }
+
             var unbindable = UnbindableArgsReason(job.Command, job.Args);
             if (unbindable != null)
             {
@@ -12560,6 +12603,7 @@ namespace Sitrep.Host
             }
 
             session.Unsubscribers[topic] = unsubscribe;
+            _liveSubscriptions[LiveSubscriptionKey(session.Connection.Id, topic)] = 0;
 
             // Gap A (terminal-integrity adversarial review): notify EVERY
             // individual session subscribe, not just a genuine aggregate
@@ -12810,6 +12854,7 @@ namespace Sitrep.Host
             {
                 unsubscribe();
                 session.Unsubscribers.Remove(topic);
+                _liveSubscriptions.TryRemove(LiveSubscriptionKey(session.Connection.Id, topic), out _);
                 session.RoutedNodes.Remove(topic);
                 if (_subscriptions.Unsubscribe(topic))
                 {
@@ -12899,6 +12944,10 @@ namespace Sitrep.Host
             foreach (var unsubscribe in session.Unsubscribers.Values)
             {
                 unsubscribe();
+            }
+            foreach (var topic in session.Unsubscribers.Keys)
+            {
+                _liveSubscriptions.TryRemove(LiveSubscriptionKey(session.Connection.Id, topic), out _);
             }
             session.Unsubscribers.Clear();
             Cadence.Tiers.ClearCaps(session.Connection.Id);

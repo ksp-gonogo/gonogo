@@ -66,11 +66,6 @@ namespace Sitrep.Host.Tests
         [Theory]
         [InlineData("SpawnTransferDialog")]
         [InlineData("TransferDataEvent")]
-        [InlineData("RenameVessel")]
-        [InlineData("RenameAsteroidEvent")]
-        [InlineData("RenameCometEvent")]
-        [InlineData("SetVesselNaming")]
-        [InlineData("ShowUpgradeStats")]
         public void InvokeRefusesAButtonOnlySomeoneAtTheGameCanFinishWithoutCallingTheActuator(string eventName)
         {
             var actuator = new FakePartActionActuator();
@@ -82,6 +77,25 @@ namespace Sitrep.Host.Tests
             Assert.False(result.Success);
             Assert.Equal(CommandErrorCode.CapabilityMismatch, result.ErrorCode);
             Assert.Null(actuator.LastInvokePartId);
+        }
+
+        /// <summary>A dialog the dashboard reads as a form is a button a console may press.</summary>
+        [Theory]
+        [InlineData("RenameVessel")]
+        [InlineData("RenameAsteroidEvent")]
+        [InlineData("RenameCometEvent")]
+        [InlineData("SetVesselNaming")]
+        [InlineData("ShowUpgradeStats")]
+        public void InvokePassesAMirroredDialogButtonToTheActuator(string eventName)
+        {
+            var actuator = new FakePartActionActuator();
+
+            var result = PartActionCommandProvider.HandleInvoke(
+                actuator,
+                new InvokePartActionArgs { PartId = "1234567", EventName = eventName });
+
+            Assert.True(result.Success);
+            Assert.Equal("1234567", actuator.LastInvokePartId);
         }
 
         [Fact]

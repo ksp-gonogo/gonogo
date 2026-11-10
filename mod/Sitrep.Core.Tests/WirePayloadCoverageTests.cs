@@ -98,6 +98,9 @@ namespace Sitrep.Core.Tests
             // crash.lastCrash: Sitrep.Host.Crash.CrashPayload.Build hand-builds
             // the whole tree, parts-lost rows and flight stats included.
             "CrashReport", "CrashPartLost", "CrashFlightStats",
+            // vessel.gameWindows: CapturedNode.ToWire and the two captures' Wire
+            // methods build the tree; GameWindowCaptureTests holds its fields to this contract.
+            "GameWindows", "GameWindow", "GameWindowOpener", "GameWindowNode",
             // recovery.lastSummary: Sitrep.Host.Recovery.RecoveryPayload.Build,
             // the same shape as the crash payload beside it.
             "RecoveryReport", "RecoveryScienceEntry", "RecoveryPartEntry",

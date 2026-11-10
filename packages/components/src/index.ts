@@ -1,5 +1,7 @@
 // Components self-register on import. Themes live in @ksp-gonogo/ui.
 
+import "./PartPanels";
+
 export * from "./ActionGroup";
 export * from "./AdministrationBuilding";
 export * from "./AstronautComplex";
@@ -26,6 +28,10 @@ export * from "./Navball";
 export * from "./Objectives";
 export * from "./OrbitalAscent";
 export * from "./OrbitView";
+export {
+  type GameWindowAudience,
+  GameWindowAudienceContext,
+} from "./PartPanels/gameWindowAudience";
 export * from "./PowerSystems";
 export * from "./Rendezvous";
 export * from "./ResearchAndDevelopment";
