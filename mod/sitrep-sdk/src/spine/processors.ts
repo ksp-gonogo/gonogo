@@ -1,3 +1,4 @@
+import { CORE_CONTRACT_OWNER } from "../contract-tags";
 import type { TopicId, TopicPayload } from "../index";
 import type { Reading } from "../reading";
 import type { TimelinePoint } from "../timeline";
@@ -151,11 +152,21 @@ export function isSubjectDep(dep: Dep): dep is SubjectDep<unknown> {
   return typeof dep === "object" && dep !== null && "forSubject" in dep;
 }
 
+/** Whether this dep is a processor's handle. */
+export function isProcessorDep(dep: Dep): dep is ProcessorHandle<unknown> {
+  return typeof dep === "object" && dep !== null && "id" in dep;
+}
+
+/** Whether this dep asks for a Topic's reading. */
+export function isReadingDep(dep: Dep): dep is ReadingDep {
+  return typeof dep === "object" && dep !== null && "reading" in dep;
+}
+
 /**
  * The resolved value for one dependency: a nested processor resolves to its
  * result type R; a reading dep resolves to the Topic's `Reading`; a Topic id
- * resolves to its payload (or undefined when that Topic has produced no frame
- * yet).
+ * resolves to its payload, `null` when the game confirmed there is none, or
+ * `undefined` when that Topic has produced no frame yet.
  */
 type ResolvedDep<Dependency extends Dep> =
   Dependency extends ProcessorHandle<infer Result, string, true>
@@ -165,7 +176,7 @@ type ResolvedDep<Dependency extends Dep> =
       : Dependency extends ReadingDep<infer Topic>
         ? TopicReading<TopicPayload<Topic>>
         : Dependency extends TopicId
-          ? TopicPayload<Dependency> | undefined
+          ? TopicPayload<Dependency> | null | undefined
           : never;
 
 /**
@@ -206,12 +217,28 @@ export interface ProcessorDefinition<
   owner: string;
   deps: Deps;
   compute: (values: ResolvedDeps<Deps>, frame: ProcessorFrame) => Result;
+  /** The Topic this processor is also published under. See {@link UplinkClientHandle.registerProcessor}. */
+  topic?: string;
+  /** Whether each field of the result can also be read as its own Topic. Only meaningful with `topic`. */
+  fields?: boolean;
 }
 
 export type AnyProcessorDefinition = ProcessorDefinition<
   readonly Dep[],
   unknown
 >;
+
+/** A processor that is also published as a Topic. */
+export type PublishedProcessorDefinition = AnyProcessorDefinition & {
+  topic: string;
+};
+
+/** Whether `def` is also published as a Topic. */
+export function isPublishedProcessor(
+  def: AnyProcessorDefinition,
+): def is PublishedProcessorDefinition {
+  return def.topic !== undefined;
+}
 
 const processors = new Map<string, AnyProcessorDefinition>();
 
@@ -232,6 +259,8 @@ export function defineProcessor<
   owner: string;
   deps: Deps;
   compute: (values: ResolvedDeps<Deps>, frame: ProcessorFrame) => Result;
+  topic?: string;
+  fields?: boolean;
 }): ProcessorHandle<Result, `${string}:${ProcessorId}`, CarriesCurrency<Deps>> {
   /* Typed rather than inferred: a template expression widens to `string`, and
      the stamped id is what a contribution keys this processor's result by, so
@@ -246,6 +275,9 @@ export function defineProcessor<
       values: ResolvedDeps<readonly Dep[]>,
       frame: ProcessorFrame,
     ) => unknown,
+    ...(def.topic === undefined
+      ? {}
+      : { topic: def.topic, fields: def.fields === true }),
   };
   if (existing !== undefined) {
     if (existing.compute === stamped.compute) return { id: stampedId };
@@ -256,6 +288,7 @@ export function defineProcessor<
     );
   }
   processors.set(stampedId, stamped);
+  if (isPublishedProcessor(stamped)) notifyPublishedChange();
   return { id: stampedId };
 }
 
@@ -334,11 +367,118 @@ export function getProcessor(id: string): AnyProcessorDefinition | undefined {
   return processors.get(id);
 }
 
+/** The definition behind `handle`, which must be a published processor. Useful for putting it on a store directly. */
+export function publishedDefinitionOf(
+  handle: ProcessorHandle<unknown>,
+): PublishedProcessorDefinition {
+  const def = processors.get(handle.id);
+  if (!def || !isPublishedProcessor(def)) {
+    throw new Error(`Processor "${handle.id}" is not published as a Topic.`);
+  }
+  return def;
+}
+
 export function getAllProcessors(): AnyProcessorDefinition[] {
   return Array.from(processors.values());
 }
 
+/**
+ * Every processor published under each Topic, in registration order.
+ *
+ * A Topic is keyed by topic and owner the way `reckoners.ts` keys a model: a
+ * Topic silently overwritten by import order is worse than an absent one, because
+ * a widget goes on reading it and gets another Uplink's answer to a question it
+ * never asked.
+ */
+function claimsByTopic(): Map<string, PublishedProcessorDefinition[]> {
+  const claims = new Map<string, PublishedProcessorDefinition[]>();
+  for (const def of processors.values()) {
+    if (!isPublishedProcessor(def)) continue;
+    const list = claims.get(def.topic) ?? [];
+    list.push(def);
+    claims.set(def.topic, list);
+  }
+  return claims;
+}
+
+/**
+ * The processors to publish on a store: Gonogo's own, and every Uplink's whose
+ * Topic no other Uplink also claims. Gonogo's own wins a Topic it publishes, and a
+ * Topic two Uplinks claim is published by neither, so reads of it stay `pending`.
+ * Useful for building the store a `TelemetryProvider` reads from.
+ */
+export function getPublishedProcessors(): PublishedProcessorDefinition[] {
+  const out: PublishedProcessorDefinition[] = [];
+  for (const claims of claimsByTopic().values()) {
+    const core = claims.find((def) => def.owner === CORE_CONTRACT_OWNER);
+    if (core) {
+      out.push(core);
+      continue;
+    }
+    if (claims.length === 1) out.push(...claims);
+  }
+  return out;
+}
+
+/** A Topic that two or more Uplinks both publish a processor under. Returned by {@link getPublishedTopicConflicts}. */
+export interface PublishedTopicConflict {
+  topic: string;
+  /** The competing owners, sorted, all of them withheld. */
+  owners: string[];
+}
+
+/**
+ * Every Topic more than one Uplink publishes a processor under. Useful for telling
+ * the operator which Uplinks conflict.
+ */
+export function getPublishedTopicConflicts(): PublishedTopicConflict[] {
+  const conflicts: PublishedTopicConflict[] = [];
+  for (const [topic, claims] of claimsByTopic()) {
+    if (
+      claims.length < 2 ||
+      claims.some((def) => def.owner === CORE_CONTRACT_OWNER)
+    ) {
+      continue;
+    }
+    conflicts.push({ topic, owners: claims.map((def) => def.owner).sort() });
+  }
+  return conflicts;
+}
+
+/**
+ * Every Topic a processor is published under, with its owners, including the
+ * contested ones {@link getPublishedProcessors} withholds. Useful for listing what
+ * an Uplink adds, as its generated page does.
+ */
+export function getPublishedTopics(): { topic: string; owners: string[] }[] {
+  return [...claimsByTopic().entries()]
+    .map(([topic, claims]) => ({
+      topic,
+      owners: claims.map((def) => def.owner).sort(),
+    }))
+    .sort((a, b) => a.topic.localeCompare(b.topic));
+}
+
+const publishedListeners = new Set<() => void>();
+
+function notifyPublishedChange(): void {
+  for (const listener of publishedListeners) listener();
+}
+
+/**
+ * Calls `listener` whenever the set of published processors changes, and returns a
+ * function that stops it. Useful for a screen whose Uplink bundles load after its
+ * store exists, as on a station, so the Topics they add appear once loaded. Used by
+ * the telemetry provider and the hook that lists a Topic's fields.
+ */
+export function onPublishedProcessorsChange(listener: () => void): () => void {
+  publishedListeners.add(listener);
+  return () => publishedListeners.delete(listener);
+}
+
 /** Test-only: reset the processor registry to empty. */
 export function clearProcessors(): void {
+  const hadPublished = getPublishedTopics().length > 0;
   processors.clear();
+  if (hadPublished) notifyPublishedChange();
 }

@@ -1,5 +1,5 @@
 import { registerTopicUnits, type SitrepUnit } from "../units";
-import type { DerivedChannelDefinition, DerivedGet } from "./timeline-store";
+import { CORE_UPLINK_CLIENT } from "./uplink-clients";
 
 /**
  * One entry of the `spaceCenter.launchSites` wire array
@@ -13,7 +13,7 @@ interface LaunchSiteWireEntry {
 }
 
 /**
- * The `spaceCenter.state` derived channel: the two pad-occupancy facts, whether
+ * The `spaceCenter.state` published processor: the two pad-occupancy facts, whether
  * the launch pad is occupied and the title of the vessel on it. Useful for
  * showing the operator whether the pad is clear at the space centre. Used by the
  * space centre status widget and the game context hook.
@@ -41,7 +41,7 @@ export interface SpaceCenterState {
 
 /**
  * Derives `spaceCenter.state` from `spaceCenter.launchSites`. Useful for showing
- * the operator whether the pad is occupied. Used by {@link spaceCenterStateChannel}.
+ * the operator whether the pad is occupied. Used by {@link SPACE_CENTER_STATE}.
  *
  * The result is `undefined` while `spaceCenter.launchSites` has not arrived (still
  * resyncing) and `null` when it is a confirmed tombstone; otherwise it is the
@@ -51,13 +51,12 @@ export interface SpaceCenterState {
  * null`. Never throws.
  */
 export function deriveSpaceCenterState(
-  get: DerivedGet,
+  launchSites: readonly LaunchSiteWireEntry[] | null | undefined,
 ): SpaceCenterState | null | undefined {
-  const point = get<LaunchSiteWireEntry[]>("spaceCenter.launchSites");
-  if (!point) return undefined;
-  if (point.payload === null) return null;
+  if (launchSites === undefined) return undefined;
+  if (launchSites === null) return null;
 
-  const sites = Array.isArray(point.payload) ? point.payload : [];
+  const sites = Array.isArray(launchSites) ? launchSites : [];
   // The stock pad is the only entry that reports occupancy (padOccupied non-null); every other site carries null there.
   const pad = sites.find(
     (s) => s && typeof s === "object" && typeof s.padOccupied === "boolean",
@@ -72,24 +71,22 @@ export function deriveSpaceCenterState(
 }
 
 /**
- * The derived channel definition for `spaceCenter.state`, ready to register with
- * `store.registerDerivedChannel(spaceCenterStateChannel)`. Useful for making
- * pad occupancy readable by widgets. Registered by the telemetry context
- * provider. `fields: true` exposes `spaceCenter.state.padOccupied` and
+ * The processor published as `spaceCenter.state`. Useful for making pad occupancy
+ * readable by widgets. `fields` exposes `spaceCenter.state.padOccupied` and
  * `spaceCenter.state.padVesselTitle`. Its status is its single
  * `spaceCenter.launchSites` input's.
  */
-export const spaceCenterStateChannel: DerivedChannelDefinition<SpaceCenterState> =
-  {
-    topic: "spaceCenter.state",
-    inputs: ["spaceCenter.launchSites"],
-    derive: deriveSpaceCenterState,
-    fields: true,
-  };
+export const SPACE_CENTER_STATE = CORE_UPLINK_CLIENT.registerProcessor({
+  id: "space-center-state",
+  topic: "spaceCenter.state",
+  fields: true,
+  deps: ["spaceCenter.launchSites"],
+  compute: ([launchSites]) => deriveSpaceCenterState(launchSites),
+});
 
 /**
  * What each `spaceCenter.state` field means, in the contract's own unit
- * vocabulary. This channel is derived client-side, so the unit-map codegen has
+ * vocabulary. This Topic is computed client-side, so the unit-map codegen has
  * no type to reflect over and a key picker built on the generated maps would
  * find nothing to offer under it.
  *

@@ -6,7 +6,7 @@
  * able to install the real one, and this package is `private: true`.
  *
  * It named nothing above the sdk: `ReplayTransport`, `TelemetryClient`,
- * `TimelineStore`, `ViewClock` and `PRODUCTION_DERIVED_CHANNELS` are all sdk-side,
+ * `TimelineStore`, `ViewClock` and `CORE_PUBLISHED_PROCESSORS` are all sdk-side,
  * `ServerMessage` and `MissionMeta` are types, and replay was already sdk territory
  * (`ReplayFixture`, the replay recorder and the stream fixture all live there).
  *

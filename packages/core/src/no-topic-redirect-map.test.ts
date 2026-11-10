@@ -96,7 +96,7 @@ describe("no topic-redirect map", { timeout: 60_000 }, () => {
       writeFileSync(
         join(dir, "clean.ts"),
         [
-          'const def = { topic: "system.state", inputs: ["trackingStation.bodies"] };',
+          'const def = { topic: "system.state", deps: ["trackingStation.bodies"] };',
           'const units = { "vessel.flight.altitudeAsl": "m" };',
           'const labels = { "vessel.flight": "Flight" };',
           "",
@@ -119,7 +119,7 @@ describe("no topic-redirect map", { timeout: 60_000 }, () => {
 
   it("reaches production sources in both trees, so an empty answer is not a blind one", () => {
     const found = gitGrepLines(
-      "registerDerivedChannel|registerComponent",
+      "publishProcessor|registerComponent",
       PRODUCTION_PATHSPECS,
       { cwd: REPO },
     ).map(fileOf);

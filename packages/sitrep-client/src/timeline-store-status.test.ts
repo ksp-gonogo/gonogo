@@ -1,8 +1,9 @@
 import { Staleness, value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
-import { dvCurrentStageResourceChannel } from "./dv-stage-resources";
+import { DV_CURRENT_STAGE_RESOURCE } from "./dv-stage-resources";
+import { publishedDefinitionOf } from "./processors";
 import { makeMeta } from "./stub-transport";
-import { systemStateChannel } from "./system-state";
+import { SYSTEM_STATE } from "./system-state";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
@@ -358,10 +359,10 @@ describe("TimelineStore.sampleStatus (M2 T4: staleness/absence surface)", () => 
 });
 
 /**
- * A derived channel reads the worst status of its declared inputs, through a
+ * A published processor reads the worst status of its declared inputs, through a
  * real store, for system.state and dv.currentStageResource alike.
  */
-describe("a derived channel's default status: worst of its declared inputs, through a real store", () => {
+describe("a published processor's default status: worst of its declared inputs, through a real store", () => {
   function recordPoint<Payload>(
     validAt: number,
     payload: Payload | null,
@@ -380,7 +381,7 @@ describe("a derived channel's default status: worst of its declared inputs, thro
   function systemStore(): TimelineStore {
     const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
     const store = new TimelineStore(clock);
-    store.registerDerivedChannel(systemStateChannel);
+    store.publishProcessor(publishedDefinitionOf(SYSTEM_STATE));
     return store;
   }
 
@@ -422,7 +423,7 @@ describe("a derived channel's default status: worst of its declared inputs, thro
   it("takes the WORST of two inputs, not the first", () => {
     const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
     const store = new TimelineStore(clock);
-    store.registerDerivedChannel(dvCurrentStageResourceChannel);
+    store.publishProcessor(publishedDefinitionOf(DV_CURRENT_STAGE_RESOURCE));
 
     store.ingest("dv.stages", recordPoint(10, [{ stage: 0, resources: {} }]));
     store.ingest(

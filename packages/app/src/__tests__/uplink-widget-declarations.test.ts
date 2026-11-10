@@ -120,7 +120,7 @@ describe("widget and augment declarations resolve to something real", () => {
    * gate, and the proportion moves that way with each migration.
    *
    * `channels` and `optionalChannels` are typed ids, so the compiler already
-   * rejects a token that is neither a `TopicId` nor a derived-channel id. They
+   * rejects a token that is neither a `TopicId` nor a published-processor id. They
    * are included anyway: the typed union is a build-time claim about the id's
    * spelling, and this asserts the runtime registry resolves it, which is what
    * `useWidgetStreamStatus` and `alarmMatchesWidget` actually do. A widget

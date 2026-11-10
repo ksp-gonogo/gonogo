@@ -60,7 +60,7 @@ function installFakeRaf() {
  * cycle... never once per read"). Calling `store.beginFrame()`
  * synchronously from `client.subscribeStore`'s callback instead would let a
  * burst of 5 ingests produce 5 `beginFrame()` calls, and 5 recomputes of
- * every derived channel read that frame, for what should have been one.
+ * every published processor read that frame, for what should have been one.
  */
 describe("TelemetryProvider coalesces beginFrame() to (at most) once per animation-frame tick", () => {
   let raf: ReturnType<typeof installFakeRaf>;

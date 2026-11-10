@@ -139,7 +139,7 @@ describe("the spec sheet and the contract stamp", () => {
     processorTopicDeps: {},
     reckonedTopics: [],
     reckonerExemptions: [],
-    derivedChannels: [],
+    publishedTopics: [],
     declaredClients: [],
     hosts: [],
   });

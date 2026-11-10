@@ -26,7 +26,7 @@ import { ViewClock } from "./view-clock";
  * in the whole migration table, not just `time.warp`.
  *
  * The fix: `TimelineStore` also resolves a dotted topic (3+ dot-segments, no
- * derived-channel match) against the timeline of the longest known Topic id
+ * published-processor match) against the timeline of the longest known Topic id
  * the key starts with, walking the remaining segments as a nested field path
  * into that record's payload. Exercised here with `time.warp` (WarpControl's
  * own channel) and a synthetic nested example mirroring

@@ -21,7 +21,7 @@ import {
   useContributions,
 } from "./contributionsRuntime";
 
-// A fixture derived channel, declared the way an Uplink declares its own
+// A fixture published processor, declared the way an Uplink declares its own
 // topics: `ContributionDep` is a `TopicId`, so a dep the type system has never
 // heard of cannot be written at all.
 declare module "@ksp-gonogo/sitrep-sdk" {
@@ -497,14 +497,13 @@ describe("a contribution depping on a DERIVED channel", () => {
     const store = new TimelineStore(
       new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 }),
     );
-    store.registerDerivedChannel<{ doubled: number }>({
+    store.publishProcessor({
       topic: "derived.contrib",
-      inputs: ["raw.contrib"],
-      derive: (get) => {
-        const point = get<{ n: number }>("raw.contrib");
-        if (!point) return undefined;
-        if (point.payload === null) return null;
-        return { doubled: point.payload.n * 2 };
+      deps: ["raw.contrib"],
+      compute: ([raw]: readonly [{ n: number } | null | undefined]) => {
+        if (raw === undefined) return undefined;
+        if (raw === null) return null;
+        return { doubled: raw.n * 2 };
       },
     });
 

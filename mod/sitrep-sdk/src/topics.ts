@@ -380,8 +380,8 @@ export type TopicPayload<Topic extends TopicId> = TopicPayloadMap[Topic];
  * {@link getAllKnownTopicIds} and {@link isTopicId} include them. Topics whose
  * id is built at runtime, such as one per celestial body,
  * `vessel.partActions.<flightId>` or an Uplink's own `settings.<uplink id>`, are
- * in neither, and are read with {@link useStream}. Nor are the derived channels
- * in {@link DERIVED_CHANNEL_IDS}, such as `system.uplinkHealth` and
+ * in neither, and are read with {@link useStream}. Nor are the Topics computed in the app,
+ * in {@link PUBLISHED_TOPIC_IDS}, such as `system.uplinkHealth` and
  * `spaceCenter.state`, which the app works out from Topics and a widget reads
  * by id with {@link useTelemetry} like a Topic, or the binary Topic `commcast.radio`, which carries
  * audio rather than a typed payload.
@@ -516,15 +516,15 @@ export function isCollectionTopic(id: string): boolean {
 }
 
 /**
- * The derived channels: values Gonogo computes in the browser from other
+ * The Topics Gonogo itself publishes from processors: values it computes in the browser from other
  * Topics, rather than ones the game publishes. A widget declares and reads one
  * exactly as it does a Topic, but it is not a {@link TopicId}. Useful for
  * listing the channels the operator can read that no Uplink publishes.
  *
  * @category Reading telemetry
  */
-// derived-channel-ids.test.ts holds this list equal to PRODUCTION_DERIVED_CHANNELS, whose ids the `as` cast there erases.
-export const DERIVED_CHANNEL_IDS = [
+// published-topic-ids.test.ts holds this list equal to CORE_PUBLISHED_PROCESSORS.
+export const PUBLISHED_TOPIC_IDS = [
   "system.state",
   "system.uplinkHealth",
   "spaceCenter.state",
@@ -533,36 +533,36 @@ export const DERIVED_CHANNEL_IDS = [
 ] as const;
 
 /**
- * One of the client-side derived channels. See {@link DERIVED_CHANNEL_IDS}.
+ * One of the Topics Gonogo publishes from a processor. See {@link PUBLISHED_TOPIC_IDS}.
  * Useful for telling the Topics the app computes from the Topics the mod sends.
  *
  * @category Reading telemetry
  */
-export type DerivedChannelId = (typeof DERIVED_CHANNEL_IDS)[number];
+export type PublishedTopicId = (typeof PUBLISHED_TOPIC_IDS)[number];
 
-const DERIVED_CHANNEL_ID_SET: ReadonlySet<string> = new Set(
-  DERIVED_CHANNEL_IDS,
+const PUBLISHED_TOPIC_ID_SET: ReadonlySet<string> = new Set(
+  PUBLISHED_TOPIC_IDS,
 );
 
 /**
- * Returns whether `value` is a {@link DerivedChannelId}. Useful for telling a
+ * Returns whether `value` is a {@link PublishedTopicId}. Useful for telling a
  * channel the app computes in the browser from one the mod publishes.
  *
  * @category Reading telemetry
  */
-export function isDerivedChannelId(value: string): value is DerivedChannelId {
-  return DERIVED_CHANNEL_ID_SET.has(value);
+function isPublishedTopicId(value: string): value is PublishedTopicId {
+  return PUBLISHED_TOPIC_ID_SET.has(value);
 }
 
 /**
  * What a widget may list in `channels` and `optionalChannels`: a
- * {@link TopicId} or a {@link DerivedChannelId}. Any other string does not
+ * {@link TopicId} or a {@link PublishedTopicId}. Any other string does not
  * compile, and neither does a field path; list the channel that carries the
  * field. Useful for catching a misspelt channel in a widget's declaration.
  *
  * @category Reading telemetry
  */
-export type WidgetChannelId = TopicId | DerivedChannelId;
+export type WidgetChannelId = TopicId | PublishedTopicId;
 
 /**
  * Returns whether `value` is a {@link WidgetChannelId}. Useful for checking a
@@ -571,7 +571,7 @@ export type WidgetChannelId = TopicId | DerivedChannelId;
  * @category Reading telemetry
  */
 export function isWidgetChannelId(value: string): value is WidgetChannelId {
-  return isTopicId(value) || isDerivedChannelId(value);
+  return isTopicId(value) || isPublishedTopicId(value);
 }
 
 /**

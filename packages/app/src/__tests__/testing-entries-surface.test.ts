@@ -100,9 +100,9 @@ const FUNCTIONS = [
 
 /** Read as data (channel definitions, constants) rather than called. */
 const VALUES = [
-  "spaceCenterStateChannel",
-  "dvCurrentStageResourceChannel",
-  "dvCurrentStageResourceMaxChannel",
+  "SPACE_CENTER_STATE",
+  "DV_CURRENT_STAGE_RESOURCE",
+  "DV_CURRENT_STAGE_RESOURCE_MAX",
 ] as const;
 
 /**

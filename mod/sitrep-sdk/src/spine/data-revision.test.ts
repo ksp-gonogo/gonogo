@@ -39,13 +39,13 @@ describe("TimelineStore.dataRevision", () => {
     client.dispose();
   });
 
-  it("moves when a derived channel is registered", () => {
+  it("moves when a processor is published", () => {
     const { store, client } = setup();
     const before = store.dataRevision();
-    store.registerDerivedChannel({
+    store.publishProcessor({
       topic: "v.derived",
-      inputs: ["v.alt"],
-      derive: () => 0,
+      deps: ["v.alt"],
+      compute: () => 0,
     });
     expect(store.dataRevision()).toBeGreaterThan(before);
     client.dispose();

@@ -17,7 +17,7 @@ import { subscribeTopicRead } from "./subscribe-read";
  *
  * The caller branches on the reading first: `observed` is current, `held` is
  * the last real observation (with its instant and grade), and `pending`,
- * `unowned` and `absent` carry no value. A derived channel computes its
+ * `unowned` and `absent` carry no value. A published processor computes its
  * currency from its inputs. The reading keeps its identity while its point,
  * status and epoch are unchanged, so the caller re-renders only when something
  * about `topic` changed.
@@ -36,7 +36,7 @@ export function useStream<Payload>(topic: string): TopicReading<Payload> {
    * vouching for. The reading makes the caller branch first, exactly as
    * `useTelemetry` does for a typed Topic: `observed` is current, `held` is the
    * last real observation held (with its instant and grade), and `pending`,
-   * `unowned` and `absent` carry no value at all. A derived channel computes its
+   * `unowned` and `absent` carry no value at all. A published processor computes its
    * own currency from its inputs, so its reading is as honest as a raw one.
    *
    * It goes through `store.sampleReading(topic, store.currentFrame())`, never
@@ -107,7 +107,7 @@ const NO_PROVIDER = topicReading<never>({
  * one-way delay between a command centre and a vessel, and by the controls that
  * send commands.
  *
- * Raw Topics only: a derived channel is never visible here. `undefined` with
+ * Raw Topics only: a published processor is never visible here. `undefined` with
  * no `TelemetryProvider` mounted, or before anything has arrived for `topic`.
  */
 export function useLatestValue<Payload>(topic: string): Payload | undefined {
@@ -134,7 +134,7 @@ export function useLatestValue<Payload>(topic: string): Payload | undefined {
    *
    * No derived-topic support (unlike `useStream`): `client.getValue` only
    * ever sees raw `stream-data` frames whose `topic` matches literally, so
-   * this hook is for raw command-centre topics only, never a derived channel.
+   * this hook is for raw command-centre topics only, never a published processor.
    */
   const client = useTelemetryClientOptional();
 

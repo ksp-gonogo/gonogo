@@ -5,8 +5,9 @@ import {
   WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import {
-  dvCurrentStageResourceChannel,
-  dvCurrentStageResourceMaxChannel,
+  DV_CURRENT_STAGE_RESOURCE,
+  DV_CURRENT_STAGE_RESOURCE_MAX,
+  publishedDefinitionOf,
 } from "@ksp-gonogo/sitrep-client";
 import {
   act,
@@ -22,7 +23,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { FuelStatusComponent } from "./index";
 
 /**
- * FuelStatus off the real stream pipeline. The `dv.stages` rows here carry the wire's own `StageDeltaVEntry` names, and the stage-scoped resource channels are registered on the fixture store because a `providedStore` does not register the production derived channels.
+ * FuelStatus off the real stream pipeline. The `dv.stages` rows here carry the wire's own `StageDeltaVEntry` names, and the stage-scoped resource channels are registered on the fixture store because a `providedStore` does not register the production published processors.
  */
 
 // Tracked so afterEach unmounts them before clearing the augment registry; clearing under a mounted AugmentSlot is an update outside act().
@@ -45,8 +46,12 @@ function makeFixture() {
     pinnedUt: 10,
     suspendFrames: true,
   });
-  fixture.store.registerDerivedChannel(dvCurrentStageResourceChannel);
-  fixture.store.registerDerivedChannel(dvCurrentStageResourceMaxChannel);
+  fixture.store.publishProcessor(
+    publishedDefinitionOf(DV_CURRENT_STAGE_RESOURCE),
+  );
+  fixture.store.publishProcessor(
+    publishedDefinitionOf(DV_CURRENT_STAGE_RESOURCE_MAX),
+  );
   return fixture;
 }
 

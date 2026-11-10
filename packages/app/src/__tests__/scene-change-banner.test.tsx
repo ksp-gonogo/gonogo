@@ -19,7 +19,7 @@ import { SceneChangeBanner } from "../components/SceneChangeBanner";
 // `StubTransport`): mirrors `flight-outcome-banner.test.tsx`'s
 // `setupTelemetryStream`, itself mirroring
 // `packages/components/src/test/setupStreamFixture.tsx`. `spaceCenter.scene`
-// is a raw wire topic (no derived channel to register), so a per-scene emit +
+// is a raw wire topic (no published processor to register), so a per-scene emit +
 // a manual `store.beginFrame()` is all that's needed to advance the pinned
 // frame: `beginFrame()` is synchronous, so it works under the fake timers the
 // auto-hide assertion needs.

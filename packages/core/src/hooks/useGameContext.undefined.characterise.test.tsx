@@ -212,7 +212,7 @@ describe("useGameContext characterisation: the padOccupied gate", () => {
    * reads `undefined`, so `!padOccupied` no longer answers the affirmative
    * "the pad is clear" for a gate that never heard anything.
    */
-  it("reports padOccupied undefined when the derived channel has produced nothing", () => {
+  it("reports padOccupied undefined when the published processor has produced nothing", () => {
     const transport = new StubTransport();
     const { result } = renderHook(() => useGameContext(), {
       wrapper: mountedWrapper(transport),

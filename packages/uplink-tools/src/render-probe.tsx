@@ -22,8 +22,8 @@ import { getComponents } from "@ksp-gonogo/sitrep-sdk/registry";
 import {
   clearContributions,
   getAllProcessors,
-  getContributedChannelTopics,
   getContributions,
+  getPublishedTopics,
   getReckonedTopics,
   getReckonerExemptions,
   getUplinkClients,
@@ -492,7 +492,7 @@ export interface InventoryErrorCode {
 
 /**
  * Everything one Uplink registered, as `readInventory` returns it: its widgets,
- * augments, contributions, processors, forward models, derived channels and
+ * augments, contributions, processors, forward models, published Topics and
  * refusal codes. Useful for generating the Uplink's page from what its client
  * registers. Used by the renderer and by the page generator.
  *
@@ -538,8 +538,8 @@ export interface UplinkInventory {
    * page so a reader can see the exceptions to the default reach and band rules.
    */
   reckonerExemptions: InventoryReckonerExemption[];
-  /** The ids of the derived channels it registers. */
-  derivedChannels: string[];
+  /** The Topics its processors are published under. */
+  publishedTopics: string[];
   /**
    * The refusal refinements this Uplink declares, from the generated table its
    * client registers, so the page says what each one reads as.
@@ -698,7 +698,7 @@ export function readInventory(uplinkId?: string): UplinkInventory {
     reckonerExemptions: getReckonerExemptions()
       .filter((e) => e.owner === client.id)
       .map((e) => ({ topic: e.topic, rule: e.rule, reason: e.reason })),
-    derivedChannels: getContributedChannelTopics()
+    publishedTopics: getPublishedTopics()
       .filter((r) => r.owners.includes(client.id))
       .map((r) => r.topic),
   };

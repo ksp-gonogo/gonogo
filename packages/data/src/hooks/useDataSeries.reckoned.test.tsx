@@ -317,7 +317,7 @@ describe("useDataSeries: the inputs the model was promised", () => {
    * A plot of a raw topic holds up its elected reckoner's declared deps for as
    * long as it is mounted.
    *
-   * The plotted topic and a derived channel's inputs were the whole of what a
+   * The plotted topic and a published processor's inputs were the whole of what a
    * series read subscribed, and a raw topic's reckoner deps are neither, so a
    * lone widget plotting `vessel.flight.altitudeAsl` on an otherwise empty
    * screen declined with `input-absent` and drew no tail. It worked only where

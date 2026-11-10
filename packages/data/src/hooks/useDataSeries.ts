@@ -230,8 +230,8 @@ export function plotValue(payload: unknown): unknown {
  * `TimelineStore`. Empty when no `TelemetryProvider` is mounted.
  *
  * A raw Topic or field path reads its window through `sampleRange`. A derived
- * Topic stores no history of its own, so `sampleDerivedRange` replays the
- * channel's `derive()` at every UT its raw inputs changed within the window.
+ * Topic stores no history of its own, so `sampleProcessorRange` replays the
+ * processor's `compute` at every UT its raw inputs changed within the window.
  *
  * `t` is UT seconds. The window closes at `currentFrame().viewUt`, the same
  * frozen view time every other read in the frame uses, which is the confirmed
@@ -260,7 +260,7 @@ export function useDataSeries(key: string, windowSec: number): SeriesRange {
         return () => {};
       }
       // The seam resolves a DERIVED topic to its raw `inputs` (recursively):
-      // the exact same raw topics `sampleDerivedRange` below reads via
+      // the exact same raw topics `sampleProcessorRange` below reads via
       // `sampleRange`, so subscribing here is what keeps those raw timelines
       // populated for the replay. It holds the plotted topic's elected
       // reckoner's declared deps up too, which is what the RECKONED tail below
@@ -309,12 +309,12 @@ function buildSeries(
   const fromUt = toUt - windowSec;
   // A DERIVED topic (`system.state.*` and friends) has no stored range of
   // its own: `sampleRange` always returns `undefined` for it by design
-  // (see that method's own doc). `sampleDerivedRange` is the derived-topic
-  // counterpart: it replays the channel's `derive()` off its raw inputs'
+  // (see that method's own doc). `sampleProcessorRange` is the derived-topic
+  // counterpart: it replays the processor's `compute` off its raw inputs'
   // own buffered ranges instead. Every other (raw / raw-field-subtopic)
   // topic keeps reading straight off `sampleRange`, unchanged.
-  const points = store.isDerivedTopic(topic)
-    ? store.sampleDerivedRange<unknown>(topic, fromUt, toUt)
+  const points = store.isProcessorTopic(topic)
+    ? store.sampleProcessorRange<unknown>(topic, fromUt, toUt)
     : store.sampleRange<unknown>(topic, fromUt, toUt);
   /*
    * The part of the window nobody measured, off the topic's own forward

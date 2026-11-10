@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
-import type { DerivedChannelDefinition } from "./timeline-store";
 import { lerpPayload, TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
 
@@ -235,36 +234,32 @@ describe("TimelineStore", () => {
     });
   });
 
-  describe("derived channels", () => {
-    /** A trivial derived channel: sums two raw numeric inputs at the frozen viewUt. */
-    function sumChannel(spy?: () => void): DerivedChannelDefinition<{
-      sum: number;
-      viewUtSeenByA: number;
-      viewUtSeenByB: number;
-    }> {
+  describe("published processors", () => {
+    /** A trivial published processor: sums two raw numeric inputs at the frozen viewUt. */
+    function sumChannel(spy?: () => void) {
       return {
         topic: "derived.sum",
-        inputs: ["a", "b"],
+        deps: ["a", "b"],
         fields: true,
-        derive: (get, viewUt) => {
+        compute: (
+          [a, b]: readonly [
+            number | null | undefined,
+            number | null | undefined,
+          ],
+          { viewUt }: { viewUt: number },
+        ) => {
           spy?.();
-          const a = get<number>("a");
-          const b = get<number>("b");
-          // A tombstone on either input is an absent sum, not a sum of nothing: `payload` is nullable and this used to add straight through it.
-          if (a?.payload == null || b?.payload == null) return null;
-          return {
-            sum: a.payload + b.payload,
-            viewUtSeenByA: viewUt,
-            viewUtSeenByB: viewUt,
-          };
+          // A tombstone on either input is an absent sum, not a sum of nothing.
+          if (a == null || b == null) return null;
+          return { sum: a + b, viewUtSeenByA: viewUt, viewUtSeenByB: viewUt };
         },
       };
     }
 
-    it("registers a derived channel and reads it through sample() like any raw topic", () => {
+    it("registers a published processor and reads it through sample() like any raw topic", () => {
       const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
       const store = new TimelineStore(clock);
-      store.registerDerivedChannel(sumChannel());
+      store.publishProcessor(sumChannel());
 
       store.ingest("a", point(10, 2));
       store.ingest("b", point(10, 3));
@@ -283,7 +278,7 @@ describe("TimelineStore", () => {
         warpRate: () => 1,
       });
       const store = new TimelineStore(clock);
-      store.registerDerivedChannel(sumChannel());
+      store.publishProcessor(sumChannel());
 
       store.ingest("a", point(0, 1));
       store.ingest("a", point(100, 2));
@@ -307,7 +302,7 @@ describe("TimelineStore", () => {
     it("fields subtopics: a '<topic>.<field>' read exposes one field off the memoized record", () => {
       const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
       const store = new TimelineStore(clock);
-      store.registerDerivedChannel(sumChannel());
+      store.publishProcessor(sumChannel());
 
       store.ingest("a", point(10, 4));
       store.ingest("b", point(10, 5));
@@ -319,7 +314,7 @@ describe("TimelineStore", () => {
     it("missing input -> the derived value is null, not a fabricated zero", () => {
       const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
       const store = new TimelineStore(clock);
-      store.registerDerivedChannel(sumChannel());
+      store.publishProcessor(sumChannel());
 
       store.ingest("a", point(10, 4));
       // "b" never ingested.
@@ -337,15 +332,14 @@ describe("TimelineStore", () => {
           warpRate: () => 1,
         });
         const store = new TimelineStore(clock);
-        store.registerDerivedChannel<{ n: number }>({
+        store.publishProcessor({
           topic: "derived.notWhole",
-          inputs: ["a"],
+          deps: ["a"],
           fields: true,
-          derive: (get) => {
-            const a = get<number>("a");
+          compute: ([a]: readonly [number | null | undefined]) => {
             // Undefined is "not whole yet"; a tombstone is an input that has gone absent, and neither can produce an `n`.
-            if (a?.payload == null) return undefined;
-            return { n: a.payload };
+            if (a == null) return undefined;
+            return { n: a };
           },
         });
 
@@ -363,10 +357,10 @@ describe("TimelineStore", () => {
           warpRate: () => 1,
         });
         const store = new TimelineStore(clock);
-        store.registerDerivedChannel<{ n: number }>({
+        store.publishProcessor<[], { n: number }>({
           topic: "derived.tombstone",
-          inputs: [],
-          derive: () => null,
+          deps: [],
+          compute: () => null,
         });
 
         store.beginFrame();
@@ -386,10 +380,10 @@ describe("TimelineStore", () => {
         const store = new TimelineStore(clock);
         const computeSpy = vi.fn();
         let counter = 0;
-        store.registerDerivedChannel<{ n: number }>({
+        store.publishProcessor<[], { n: number }>({
           topic: "derived.counter",
-          inputs: [],
-          derive: () => {
+          deps: [],
+          compute: () => {
             computeSpy();
             counter += 1;
             return { n: counter };
@@ -422,7 +416,7 @@ describe("TimelineStore", () => {
         });
         const store = new TimelineStore(clock);
         const computeSpy = vi.fn();
-        store.registerDerivedChannel(sumChannel(computeSpy));
+        store.publishProcessor(sumChannel(computeSpy));
 
         store.ingest("a", point(10, 4));
         store.ingest("b", point(10, 5));
@@ -443,7 +437,7 @@ describe("TimelineStore", () => {
         });
         const store = new TimelineStore(clock);
         const computeSpy = vi.fn();
-        store.registerDerivedChannel(sumChannel(computeSpy));
+        store.publishProcessor(sumChannel(computeSpy));
 
         store.ingest("a", point(10, 4));
         store.ingest("b", point(10, 5));
@@ -463,7 +457,7 @@ describe("TimelineStore", () => {
         });
         const store = new TimelineStore(clock);
         const computeSpy = vi.fn();
-        store.registerDerivedChannel(sumChannel(computeSpy));
+        store.publishProcessor(sumChannel(computeSpy));
 
         store.ingest("a", point(10, 4));
         store.ingest("b", point(10, 5));
@@ -500,13 +494,13 @@ describe("TimelineStore.resolveSubscriptionTopics: derived-input ref-counting (M
     ]);
   });
 
-  it("a registered derived channel's own topic resolves to its declared inputs, not itself", () => {
+  it("a registered published processor's own topic resolves to its declared inputs, not itself", () => {
     const store = makeStore();
-    store.registerDerivedChannel({
+    store.publishProcessor({
       topic: "test.derived",
-      inputs: ["vessel.orbit", "vessel.flight"],
+      deps: ["vessel.orbit", "vessel.flight"],
       fields: true,
-      derive: () => null,
+      compute: () => null,
     });
 
     expect(store.resolveSubscriptionTopics("test.derived").sort()).toEqual(
@@ -514,13 +508,13 @@ describe("TimelineStore.resolveSubscriptionTopics: derived-input ref-counting (M
     );
   });
 
-  it("a field subtopic of a derived channel resolves to the PARENT channel's inputs", () => {
+  it("a field subtopic of a published processor resolves to the PARENT channel's inputs", () => {
     const store = makeStore();
-    store.registerDerivedChannel({
+    store.publishProcessor({
       topic: "test.derived",
-      inputs: ["vessel.orbit", "vessel.flight"],
+      deps: ["vessel.orbit", "vessel.flight"],
       fields: true,
-      derive: () => null,
+      compute: () => null,
     });
 
     expect(
@@ -530,15 +524,15 @@ describe("TimelineStore.resolveSubscriptionTopics: derived-input ref-counting (M
 
   it("derived-on-derived: resolves transitively down to genuinely raw topics, deduplicated", () => {
     const store = makeStore();
-    store.registerDerivedChannel({
+    store.publishProcessor({
       topic: "derived.inner",
-      inputs: ["raw.a", "raw.b"],
-      derive: () => null,
+      deps: ["raw.a", "raw.b"],
+      compute: () => null,
     });
-    store.registerDerivedChannel({
+    store.publishProcessor({
       topic: "derived.outer",
-      inputs: ["derived.inner", "raw.b", "raw.c"],
-      derive: () => null,
+      deps: ["derived.inner", "raw.b", "raw.c"],
+      compute: () => null,
     });
 
     expect(store.resolveSubscriptionTopics("derived.outer").sort()).toEqual(
@@ -546,17 +540,17 @@ describe("TimelineStore.resolveSubscriptionTopics: derived-input ref-counting (M
     );
   });
 
-  it("a cyclical derived-channel declaration (author bug) does not infinite-loop", () => {
+  it("a cyclical published-processor declaration (author bug) does not infinite-loop", () => {
     const store = makeStore();
-    store.registerDerivedChannel({
+    store.publishProcessor({
       topic: "derived.x",
-      inputs: ["derived.y"],
-      derive: () => null,
+      deps: ["derived.y"],
+      compute: () => null,
     });
-    store.registerDerivedChannel({
+    store.publishProcessor({
       topic: "derived.y",
-      inputs: ["derived.x", "raw.z"],
-      derive: () => null,
+      deps: ["derived.x", "raw.z"],
+      compute: () => null,
     });
 
     expect(store.resolveSubscriptionTopics("derived.x")).toEqual(["raw.z"]);
@@ -567,15 +561,14 @@ describe("TimelineStore.isUnresolvableField: phantom-field diagnostic (M2 bridge
   function makeStore(): TimelineStore {
     const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
     const store = new TimelineStore(clock);
-    store.registerDerivedChannel<{ real: number }>({
+    store.publishProcessor({
       topic: "derived.thing",
-      inputs: ["raw.input"],
+      deps: ["raw.input"],
       fields: true,
-      derive: (get) => {
-        const input = get<number>("raw.input");
-        if (!input) return undefined;
-        if (input.payload === null) return null;
-        return { real: input.payload };
+      compute: ([input]: readonly [number | null | undefined]) => {
+        if (input === undefined) return undefined;
+        if (input === null) return null;
+        return { real: input };
       },
     });
     return store;
@@ -624,7 +617,7 @@ describe("TimelineStore.isUnresolvableField: RAW-FIELD phantom-mapping diagnosti
    * its raw parent had arrived whole and genuinely lacked the field, so a
    * wrong/drifted raw fieldpath served a permanent `undefined` with no
    * legacy fallback (`use-telemetry.ts`'s belt-and-suspenders check never
-   * fired for it). This mirrors the derived-channel behavior for the raw
+   * fired for it). This mirrors the published-processor behavior for the raw
    * case: `false` while the parent hasn't arrived (ordinary loading) or is
    * tombstoned (confirmed absence), `true` only once the parent is a whole,
    * live record that genuinely doesn't have the field.

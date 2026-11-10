@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { DERIVED_CHANNEL_IDS } from "../topics";
-import { PRODUCTION_DERIVED_CHANNELS } from "./context";
+import { PUBLISHED_TOPIC_IDS } from "../topics";
+import { CORE_PUBLISHED_PROCESSORS } from "./context";
 
 /**
- * `DERIVED_CHANNEL_IDS` is the type-level name for what
- * `PRODUCTION_DERIVED_CHANNELS` registers, and the two are declared in
+ * `PUBLISHED_TOPIC_IDS` is the type-level name for what
+ * `CORE_PUBLISHED_PROCESSORS` registers, and the two are declared in
  * different files because the union has to live somewhere the api types can
  * import without pulling the spine in behind it.
  *
  * That separation is the whole risk. The list cannot be derived from the array:
- * `PRODUCTION_DERIVED_CHANNELS` is typed `DerivedChannelDefinition<unknown>[]`
- * through an `as` cast and `DerivedChannelDefinition.topic` is a plain `string`,
+ * `CORE_PUBLISHED_PROCESSORS` is typed `PublishedProcessorDefinition[]` and a
+ * definition's `topic` is a plain `string`,
  * so every literal is erased before a type could read it. Nothing about a
  * hand-written union fails on its own when the array moves.
  *
@@ -21,11 +21,11 @@ import { PRODUCTION_DERIVED_CHANNELS } from "./context";
  * which is the silent-`undefined` failure the typed vocabulary exists to
  * remove. Neither is visible from the other file.
  */
-describe("the derived-channel union matches what is registered", () => {
-  const registered = PRODUCTION_DERIVED_CHANNELS.map((c) => c.topic).sort();
-  const declared = [...DERIVED_CHANNEL_IDS].sort();
+describe("the published-processor union matches what is registered", () => {
+  const registered = CORE_PUBLISHED_PROCESSORS.map((c) => c.topic).sort();
+  const declared = [...PUBLISHED_TOPIC_IDS].sort();
 
-  it("lists every registered production derived channel", () => {
+  it("lists every registered production published processor", () => {
     expect(declared).toEqual(registered);
   });
 

@@ -2,8 +2,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { StubTransport } from "../testing/stub-transport";
 import { TelemetryClient } from "./client";
 import {
+  CORE_PUBLISHED_PROCESSORS,
   getValue,
-  PRODUCTION_DERIVED_CHANNELS,
   setActiveTelemetryClientForTests,
   setActiveTimelineStoreForTests,
   setActiveViewClockForTests,
@@ -31,8 +31,8 @@ function streamHarness(): (topic: string, payload: unknown) => void {
       delaySeconds: () => 0,
     }),
   );
-  for (const channel of PRODUCTION_DERIVED_CHANNELS) {
-    store.registerDerivedChannel(channel);
+  for (const processor of CORE_PUBLISHED_PROCESSORS) {
+    store.publishProcessor(processor);
   }
   client.attachStore(store);
   setActiveTimelineStoreForTests(store);

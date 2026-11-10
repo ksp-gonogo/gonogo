@@ -464,7 +464,7 @@ function declinedUnderPhysics(
  *
  * `radius` is `Quantityish` because the same field has two shapes in this tree.
  * The store wraps every declared quantity on decode, so a topic read hands back a
- * `Value<"m">`; the client-side `SystemBodiesPayload` the derived channel is typed
+ * `Value<"m">`; the client-side `SystemBodiesPayload` the published processor is typed
  * against declares a plain `number`. `magnitudeOf` is the one place that decides
  * what an absent or non-finite magnitude means.
  */

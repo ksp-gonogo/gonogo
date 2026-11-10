@@ -22,7 +22,7 @@ import { describe, expect, it } from "vitest";
  * nobody measured and why that surface can carry it.
  *
  * The shape of `MissionHistorySource.queryRange` is the case worth naming: it
- * replays a derived channel through `sampleDerivedRange` and must keep doing
+ * replays a published processor through `sampleProcessorRange` and must keep doing
  * exactly that. A recording that grew a modelled tail would export instants the
  * craft never sent, into a file that outlives the frame it was true for.
  */

@@ -5,7 +5,7 @@
  *
  * With the active engine's exhaust velocity and burnout mass it is a rocket-equation burn whose deceleration rises as mass falls, capped at the stage's fuel, so "NO LANDING VECTOR" means no achievable burn lands safely. Without them it falls back to `constantDecelBurn`.
  *
- * Not a reckoner: a reckoner carries a Topic's own value forward past its last observation, and this solves the ignition point of a burn nobody has fired from measurements at the view time. `timeToImpact` and `suicideBurnCountdown` describe an event that has not happened, so they are stale exactly as far as their inputs are, which the inputs' own Readings already label. The outputs also sit on no channel at all, neither a wire Topic nor a derived channel, and `registerReckoner` takes a `TopicId`.
+ * Not a reckoner: a reckoner carries a Topic's own value forward past its last observation, and this solves the ignition point of a burn nobody has fired from measurements at the view time. `timeToImpact` and `suicideBurnCountdown` describe an event that has not happened, so they are stale exactly as far as their inputs are, which the inputs' own Readings already label. The outputs also sit on no channel at all, neither a wire Topic nor a published processor, and `registerReckoner` takes a `TopicId`.
  */
 
 export type LandingSolutionState =

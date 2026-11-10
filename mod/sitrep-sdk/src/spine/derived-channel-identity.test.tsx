@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { Quality } from "../__generated__/contract";
 import { act, render, screen, setupStreamFixture } from "../testing";
-import { PRODUCTION_DERIVED_CHANNELS } from "./context";
+import { CORE_PUBLISHED_PROCESSORS } from "./context";
 import { useStream } from "./use-stream";
 
 const UPLINKS = {
@@ -27,7 +27,7 @@ const UPLINKS = {
 };
 
 /**
- * Wire-shaped inputs that make each production derived channel answer a whole
+ * Wire-shaped inputs that make each production published processor answer a whole
  * record. Keyed by channel topic so a channel added to the production list
  * without an entry here fails below rather than going unchecked.
  */
@@ -71,7 +71,7 @@ const INPUTS: Record<string, Record<string, unknown>> = {
 function streamFor(topic: string) {
   const inputs = INPUTS[topic];
   if (!inputs) {
-    throw new Error(`no wire inputs for derived channel ${topic}`);
+    throw new Error(`no wire inputs for published processor ${topic}`);
   }
   const stream = setupStreamFixture();
   const feed = () => {
@@ -96,9 +96,9 @@ function streamWith(topic: string) {
   return stream;
 }
 
-describe("a derived channel keeps its identity across frames nothing changed in", () => {
+describe("a published processor keeps its identity across frames nothing changed in", () => {
   it.each(
-    PRODUCTION_DERIVED_CHANNELS.map((c) => c.topic),
+    CORE_PUBLISHED_PROCESSORS.map((c) => c.topic),
   )("%s answers the same payload on an idle frame", (topic) => {
     const { store } = streamWith(topic);
 
