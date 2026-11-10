@@ -3,9 +3,9 @@
 Two computers matter in a gonogo session:
 
 - The **KSP computer** runs Kerbal Space Program with the Gonogo mod
-- The **main screen computer** runs gonogo (the container from the [README](../README.md#host-it-yourself)) and the browser tab you open the main screen in
+- The **host computer** runs gonogo (the container from the [README](../README.md#host-it-yourself)) and the browser tab you start the game in
 
-A **station** is any other browser that joins: a tablet, a phone, a friend's laptop. Stations never talk to KSP. They get everything through the main screen tab, so stations only have data while that tab stays open and the computer stays awake.
+The **host** is the screen that started the game. It does not have to be the KSP computer, it only has to reach it. A **station** or a **pilot** is any other browser that joins: a tablet, a phone, a friend's laptop. They never talk to KSP. They get everything through the host's tab, so they only have data while that tab stays open and the computer stays awake.
 
 ## Connecting the main screen to KSP
 
@@ -21,25 +21,25 @@ It usually looks like `192.168.x.x` or `10.x.x.x`. Put it in the run command as 
 
 If it won't connect, a firewall on the KSP computer is the usual cause. It must allow incoming connections on port 8090 (and 8088 for camera feeds).
 
-## Adding stations
+## Inviting people
 
-Open **Add station** on the main screen. It shows a link and a join code. A friend opens the link, enters the code, and you approve them. The link points at the public site for the version you run: `https://ksp-gonogo.github.io/app/station` if you run a release, `https://ksp-gonogo.github.io/rc/station` if you run the release candidate (`:rc`) image.
+Open the round **Menu** button in the corner of any screen, then **Invite**. It shows one address, with a QR code and the code. The address matches the version you run, so use the one shown. A friend opens the address, chooses a seat, and a prompt appears on the host's screen to approve them. The [README](../README.md#joining-a-game) has the steps.
 
-How a station joins depends on whether the relay in the container is running:
+How a screen joins depends on whether the relay in the container is running:
 
-- **With the relay running**, every station joins through it, on one port: friends on your home network and friends over the internet alike. A friend on your home network needs nothing set up. A friend on another network needs that one port open on your router, as described below
-- **Without the relay**, stations connect to the main screen tab directly. That works for friends on your home network only
+- **With the relay running**, everyone joins through it, on one port: friends on your home network and friends over the internet alike. A friend on your home network needs nothing set up. A friend on another network needs that one port open on your router, as described below
+- **Without the relay**, they connect to the host's tab directly. That works for friends on your home network only
 
-The game keeps the join code, so it stays the same whichever screen hosts, until you press **New join code**.
+The game keeps the join code, so it stays the same whichever screen hosts, until you press **New join code** in the Invite panel, after which the old address and code stop working.
 
 ### What the chips mean
 
-Each connected station gets a chip in the Add station panel showing where it joined from:
+Each connected screen gets a chip in the Invite panel showing where it joined from:
 
 | Chip | Meaning |
 | --- | --- |
-| **this network** | The station is on your home network |
-| **internet** | The station joined from another network |
+| **this network** | The screen is on your home network |
+| **internet** | The screen joined from another network |
 | **path unknown** | The connection is up but the browser hasn't reported how yet |
 
 A status line in the panel says when the relay is not running, and points to **Automatic port forwarding** until the relay has opened the port.
@@ -82,11 +82,11 @@ From inside the container the relay cannot see this computer's address on your h
 
 Kerbcast video for a station on another network comes through the same port. The relay fetches each camera from the camera sidecar on the KSP computer over your home network and sends it on to the station, so nothing else needs forwarding. Each friend watching a camera is one copy of that video on your internet upload.
 
-## A station won't connect
+## A screen won't connect
 
 - **Is the main screen tab open and awake?** If it closed or the computer slept, every station stops
-- **Is the join code right?** Copy it from the Add station panel the friend is joining. After **New join code**, the old one stops working
-- **Is the friend on another network?** Check the status line in the Add station panel, and [Friends on other networks](#friends-on-other-networks)
+- **Is the join code right?** Copy it from the Invite panel. After **New join code**, the old one stops working
+- **Is the friend on another network?** Check the status line in the Invite panel, and [Friends on other networks](#friends-on-other-networks)
 - **Is a station on another network slow?** Those stations send everything through your internet upload
 - **Does nothing connect, even on your home network?** Stations need an internet connection to find the main screen, so check that both ends are online
 

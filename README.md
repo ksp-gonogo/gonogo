@@ -25,12 +25,9 @@ A telemetry mod system and mission control dashboard for [Kerbal Space Program](
 
 Gonogo features an _optional_ signal delay, on by default. Signals in the game are modelled under a real propagation system; it takes longer to get flight data from vessels further away, and vessels occluded behind planets and out of range won't be able to communicate. Signals get routed through available relay nodes to command centres, via a model heavily inspired by [NASA's Contact Graph Routing](https://ntrs.nasa.gov/citations/20120006508) system.
 
-### The pilot page
+### Pilots and stations
 
-`/pilot` is a dashboard for whoever is flying. It reads the active craft with no signal delay, as if from the cockpit, while mission control sees the same craft with the delay. It has its own layout and joins mission control's session like a station.
-
-- On your network: open `http://<the computer running Gonogo>:8080/pilot`. If it says Waiting for the game, enter the KSP computer's address there
-- From anywhere else: open `https://ksp-gonogo.github.io/app/pilot` (`/rc/pilot` for the `:rc` image) and type in the join code
+Every screen has a seat. A **station** is a screen at mission control, so it sees the active vessel with the signal delay. A **pilot** is a screen on the active vessel, so it sees the vessel with no delay, as if from the cockpit. Any number of either can join. Pilots share one Commcast name and cannot push widgets to the main screen. See [Starting a game](#starting-a-game) and [Joining a game](#joining-a-game).
 
 ## Uplinks
 
@@ -108,9 +105,42 @@ Podman 5 or later. Type `podman` in place of `docker`, in this command and every
 
 4. Start KSP, load a save, and open [localhost:8080](http://localhost:8080)
 
-The setup wizard opens by itself and checks the container, the connection to KSP and your Uplinks. It explains anything that is wrong, and Settings > Help covers the rest. When its Connect to KSP check turns green you are connected; widgets fill in once you are at a vessel.
+The setup wizard opens by itself and checks the container, the connection to KSP and your Uplinks. It explains anything that is wrong, and Settings > Help covers the rest. When its Connect to KSP check turns green you are connected; widgets fill in once you are at a vessel. If friends will join from other networks, the wizard also has a Friends on other networks step about a router port, explained in the [networking guide](docs/NETWORKING.md#friends-on-other-networks).
 
-Keep this tab open while you play. Friends' screens get their data through it, and stop if it closes or the computer sleeps.
+## Starting a game
+
+The last step of the setup wizard shows two cards, each with a short explanation of the seat it starts you in:
+
+- **Start as mission control**: this screen is the main screen, with the signal delay
+- **Start as a pilot**: this screen is a pilot screen on the active vessel, with no delay
+
+Either way, this screen is the **host** of the game. The host holds the game's one join code and approves everyone who joins. It does not have to be the computer running KSP, it only has to be able to reach it.
+
+- **Next time:** the screen opens in the seat it last used
+- **Switching seat:** the host has a link to switch between mission control and pilot. Switching never changes who hosts, and everyone already connected stays connected
+- **Mission control to pilot:** the game is left with no main screen, so you are asked to confirm first, and told how many stations are connected. With no main screen, the Push icon in a widget's header on a station, which appears when you hover, is disabled with the tooltip "No main screen"
+
+Keep the host's tab open while you play. Everyone else's screen gets its data through it, and stops if it closes or the computer sleeps.
+
+## Inviting people
+
+Open the round **Menu** button in the corner of any screen, then **Invite**. It shows one address, with a QR code and the code in large type. Send that address, show the QR code or read out the code. Use the address Invite shows rather than typing one, because it matches the version you run. Anyone already in the game can invite the next person. The host can make a new code from the Invite panel, and the old address and code stop working
+
+Address, QR code and code all lead to the same place, the join page below.
+
+## Joining a game
+
+Open the address you were sent, scan the QR code, or go to the front page of [the Gonogo site](https://ksp-gonogo.github.io/) and type the code into **Join a game**. The app's own join page also asks for the code when you open it without one. Nothing to install.
+
+1. **The code is checked.** Gonogo looks for the game. If there is none, you see "No game is running on this code". Check that the code is right and that the host is running
+2. **Choose a seat.** Two cards appear, each with live details such as "3 stations connected" or "2 pilots aboard":
+   - **Join as a station**: "A screen at mission control. Your connection is based at the active command centre. You can lose connection to the active vessel, but command centre control is always available."
+   - **Join as a pilot**: "A screen on the active vessel. Your connection is linked to the active vessel. You can lose connection to the command centre, but vessel data is always live and instant."
+3. **Wait for the host to approve you.** Choosing a card sends your request, and a prompt appears on the host's screen, and your screen waits until the host approves it
+
+To change seat later, go back to the join page with the same code and choose the other card. The host approves you again.
+
+A joining station gets a made-up name such as "Station U8R5", and a pilot is named "Pilot". Change either in Settings > General. A joined screen's Settings show only what its seat needs: General (your name), Devices (its own controllers), Connection (the code it joined with, and the **Leave** button) and Help. A host sees everything.
 
 KSP stops sending data when its window loses focus. With KSP and Gonogo on one computer, close KSP, set `SIMULATE_IN_BACKGROUND = True` in `settings.cfg` in the KSP folder, and save.
 
@@ -119,10 +149,6 @@ KSP stops sending data when its window loses focus. With KSP and Gonogo on one c
 - Windows: if asked, tick Private networks and Allow for KSP and Docker
 - Linux with ufw: `sudo ufw allow in on docker0 to any port 8090 proto tcp`, so the container can reach KSP. Ports Docker publishes (`8080`, `47100`) ignore ufw
 - Never forward port 8090 to the internet: it accepts commands to your game with no password
-
-## Joining a friend's game
-
-Open the link from their **Add station** panel, or type in the join code, then wait for your friend to approve you. Nothing to install. The link opens the public Gonogo site that matches the version your friend runs: `https://ksp-gonogo.github.io/app/station` for a release, `https://ksp-gonogo.github.io/rc/station` for the release candidate (`:rc`) image.
 
 ## Upgrading from an earlier version
 

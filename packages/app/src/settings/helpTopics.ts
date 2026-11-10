@@ -126,13 +126,13 @@ export const HELP_TOPICS: readonly HelpTopic[] = [
   },
   {
     id: "stations",
-    title: "Adding a station screen",
+    title: "Inviting people to your game",
     blocks: [
       text(
-        "A station is another device, such as a tablet or a phone, that shows its own dashboard from this screen.",
+        "Anyone can join your game from another device, such as a tablet or a phone, as a station at mission control or as a pilot on the active vessel. You approve each one.",
       ),
       text(
-        "Open the green menu button in the bottom-right corner and press Invite. It shows the address, its QR code and the join code for the other device.",
+        "Open the round Menu button in the corner, then Invite. It shows one address, a QR code and the code. Open the address on the other device, or type the code into Join a game on the front page of the Gonogo site, then pick a seat. A prompt appears on the host's screen to approve it.",
       ),
     ],
   },
