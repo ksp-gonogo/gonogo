@@ -1,10 +1,10 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo WebSocket API
-  version: 51.1.0
+  version: 51.0.0
   description: |-
     The WebSocket API of the Gonogo mod: 96 telemetry channels a client
-    subscribes to and 88 commands it sends, each with its payload and what it
+    subscribes to and 87 commands it sends, each with its payload and what it
     means, all over one socket.
 
     ## Frames the mod sends
@@ -4254,23 +4254,6 @@ channels:
         $ref: "#/components/messages/streamData.vessel.thermal"
       event:
         $ref: "#/components/messages/event"
-  vessel.trajectory.fromLastKnown:
-    address: vessel.trajectory.fromLastKnown
-    description: |-
-      Args for `vessel.trajectory.fromLastKnown`: where the active craft goes from
-      the state this command centre last heard.
-
-      There is no field for the seed or the command centre: both come from the
-      connection the command arrives on, so a client cannot start a path from
-      anything that centre has not been told.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delayed: false
-    messages:
-      commandRequest:
-        $ref: "#/components/messages/commandRequest.vessel.trajectory.fromLastKnown"
-      commandResponse:
-        $ref: "#/components/messages/commandResponse.vessel.trajectory.fromLastKnown"
   vessel.transferReach:
     address: vessel.transferReach
     title: Transfer reach
@@ -5562,20 +5545,6 @@ operations:
       messages:
         - $ref: "#/channels/vessel.target.set/messages/commandResponse"
         - $ref: "#/channels/vessel.target.set/messages/commandAccepted"
-  dispatch:vessel.trajectory.fromLastKnown:
-    action: send
-    channel:
-      $ref: "#/channels/vessel.trajectory.fromLastKnown"
-    title: Dispatch vessel.trajectory.fromLastKnown
-    tags:
-      - name: vessel
-    messages:
-      - $ref: "#/channels/vessel.trajectory.fromLastKnown/messages/commandRequest"
-    reply:
-      channel:
-        $ref: "#/channels/vessel.trajectory.fromLastKnown"
-      messages:
-        - $ref: "#/channels/vessel.trajectory.fromLastKnown/messages/commandResponse"
   read:alarm.activeList:
     action: receive
     channel:
@@ -7994,21 +7963,6 @@ components:
                 const: vessel.target.set
               args:
                 $ref: "#/components/schemas/SetTargetArgs"
-    commandRequest.vessel.trajectory.fromLastKnown:
-      name: command-request
-      title: Dispatch vessel.trajectory.fromLastKnown
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-request` envelope for `vessel.trajectory.fromLastKnown`, with its typed `args`.
-        allOf:
-          - $ref: "#/components/schemas/CommandRequest"
-          - properties:
-              command:
-                const: vessel.trajectory.fromLastKnown
-              args:
-                $ref: "#/components/schemas/LastKnownPathRequest"
     commandResponse.alarm.game.delete:
       name: command-response
       title: Reply to alarm.game.delete
@@ -9309,19 +9263,6 @@ components:
           - properties:
               result:
                 $ref: "#/components/schemas/CommandResult"
-    commandResponse.vessel.trajectory.fromLastKnown:
-      name: command-response
-      title: Reply to vessel.trajectory.fromLastKnown
-      contentType: application/json
-      correlationId:
-        $ref: "#/components/correlationIds/requestId"
-      payload:
-        description: The `command-response` envelope for `vessel.trajectory.fromLastKnown`, with its typed `result`.
-        allOf:
-          - $ref: "#/components/schemas/CommandResponse"
-          - properties:
-              result:
-                $ref: "#/components/schemas/LastKnownPathReply"
     error:
       name: error
       title: A dispatch that could not be carried, or a bad session request
@@ -11271,9 +11212,8 @@ components:
     BodyState:
       type: object
       description: |-
-        One object's position and velocity at one instant, relative to a centre body
-        the enclosing reply names, in a non-rotating, Z-up inertial frame centred on
-        that body.
+        One body's position and velocity at one instant, relative to the request's
+        centre body, in a non-rotating, Z-up inertial frame centred on that body.
 
         Flat keys rather than nested vectors, because these arrive in bulk.
       required:
@@ -11288,7 +11228,7 @@ components:
         ut:
           type: number
           x-sitrep-unit: ut
-          description: The instant this state is at.
+          description: The instant this state is at, echoing the request.
         x:
           type: number
           x-sitrep-unit: m
@@ -19235,88 +19175,6 @@ components:
             The provider-namespaced extension bag, lab half. Same mechanism and same
             rule as `ExperimentEntry.extensions`.
           additionalProperties: true
-    LastKnownPathReply:
-      type: object
-      description: |-
-        The `vessel.trajectory.fromLastKnown` result: the path from what the asking
-        command centre last heard, or why there is none. Read
-        `LastKnownPathReply.seededAtUt` with the path: it is only as current as the
-        state it started from.
-      required:
-        - solved
-        - stillWorking
-      properties:
-        solved:
-          type: boolean
-          x-sitrep-unit: flag
-          description: |-
-            True when `LastKnownPathReply.path` holds a path; false when
-            `LastKnownPathReply.refusal` says why it does not.
-        path:
-          description: The path. Null on a refusal.
-          anyOf:
-            - $ref: "#/components/schemas/PropagatedPath"
-            - type: "null"
-        seededAtUt:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: ut
-          description: The instant the starting state was true. Null on a refusal.
-        vantage:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: id
-          description: |-
-            The command centre whose view this came from, so a client that switched
-            centre can tell whose answer it holds. Null on a refusal.
-        refusal:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: Why there is no path, as a sentence. Null when there is one.
-        stillWorking:
-          type: boolean
-          x-sitrep-unit: flag
-          description: |-
-            True when there is no path yet but asking again shortly will find one. Keep
-            drawing what you have. False on every other refusal and on a path.
-    LastKnownPathRequest:
-      type: object
-      description: |-
-        Args for `vessel.trajectory.fromLastKnown`: where the active craft goes from
-        the state this command centre last heard.
-
-        There is no field for the seed or the command centre: both come from the
-        connection the command arrives on, so a client cannot start a path from
-        anything that centre has not been told.
-      required:
-        - toUt
-        - maxPoints
-        - certification
-      properties:
-        toUt:
-          type: number
-          x-sitrep-unit: ut
-          description: |-
-            Where to stop. May be past the centre's own view of the craft, which is what
-            a prediction is for.
-        maxPoints:
-          type: number
-          x-sitrep-unit: count
-          description: The most points to return. Zero takes the default.
-        certification:
-          description: |-
-            Whether the analytic answer will do: only
-            `PropagationCertification.Unbounded` accepts it. Every other value, the
-            default `PropagationCertification.Unspecified` included, asks for the
-            accurate answer, which a provider that integrates gives by integrating, or
-            refuses.
-          allOf:
-            - $ref: "#/components/schemas/PropagationCertification"
-              x-sitrep-unit: enum
     LaunchArgs:
       type: object
       description: |-
@@ -20794,66 +20652,6 @@ components:
           type: string
           x-sitrep-unit: id
           description: The `Ping.nonce` of the ping this replies to.
-    PropagatedPath:
-      type: object
-      description: |-
-        The path a craft follows from a given state, or why there is none. Useful
-        for drawing where a craft is going from what a command centre last heard.
-
-        Branch on `PropagatedPath.solved`. `PropagatedPath.kind` says whether the
-        points are a conic or an integrated path, and `PropagatedPath.reachedUt`
-        says how far they go, which can be short of the instant asked for.
-      required:
-        - solved
-        - kind
-        - centreBodyIndex
-        - states
-        - stillWorking
-      properties:
-        solved:
-          type: boolean
-          x-sitrep-unit: flag
-          description: |-
-            True when `PropagatedPath.states` holds a path; false when
-            `PropagatedPath.refusal` says why it does not.
-        kind:
-          description: |-
-            What the points are: `TrajectoryKind.Analytic` for a conic,
-            `TrajectoryKind.Integrated` for an integrated path.
-            `TrajectoryKind.Unspecified` on a refusal.
-          allOf:
-            - $ref: "#/components/schemas/TrajectoryKind"
-              x-sitrep-unit: enum
-        centreBodyIndex:
-          type: number
-          x-sitrep-unit: id
-          description: The body the points are relative to, by its propagation index.
-        states:
-          type: array
-          items:
-            $ref: "#/components/schemas/BodyState"
-          description: |-
-            The points in ascending time, first at the seed's instant. Empty on a
-            refusal.
-        reachedUt:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: ut
-          description: The instant the last point is at. Null on a refusal.
-        refusal:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: Why there is no path, as a sentence. Null when there is one.
-        stillWorking:
-          type: boolean
-          x-sitrep-unit: flag
-          description: |-
-            True when there is no path yet but asking again shortly will find one,
-            because the provider is still working on it. Keep drawing what you have.
-            False on every other refusal and on a path.
     PropagationCertification:
       type: integer
       description: |-

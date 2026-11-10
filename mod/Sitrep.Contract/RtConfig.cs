@@ -98,8 +98,6 @@ public static class RtConfig
                 // for a body at instants a planning search chose
                 typeof(BodyStatesRequest),
                 typeof(BodyStatesReply),
-                typeof(LastKnownPathRequest),
-                typeof(LastKnownPathReply),
                 // vessel.* channels
                 typeof(VesselAttitude),
                 typeof(VesselComms),
@@ -376,7 +374,6 @@ public static class RtConfig
                 typeof(PlantedFlag),
                 // trackingStation.bodies.statesAt reply entry
                 typeof(BodyState),
-                typeof(PropagatedPath),
                 // science.instruments / science.sensors entries
                 typeof(InstrumentEntry),
                 typeof(SensorEntry),

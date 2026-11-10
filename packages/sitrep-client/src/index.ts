@@ -489,11 +489,6 @@ export {
 } from "./use-control-stream";
 export { useGameStatus } from "./use-game-status";
 export {
-  LAST_KNOWN_PATH_COMMAND,
-  type LastKnownPathQuery,
-  useLastKnownPath,
-} from "./use-last-known-path";
-export {
   type LateTelemetrySubscribe,
   type Unsubscribe,
   useLateTelemetrySubscribe,
