@@ -191,7 +191,9 @@ function RecipientState({
 }) {
   const phase = deliveryPhaseFor(out, delivery, now);
   const state = recipientWords(phase, delivery, about);
-  const modelled = phase !== "confirmed" && !delivery.neverLeft;
+  // A refusal is the mod's own word, not a worked-out state, so it carries no mark and wraps like any sentence.
+  const modelled =
+    phase !== "confirmed" && !delivery.neverLeft && !delivery.refused;
   return (
     <Text size="xs">
       {name}{" "}

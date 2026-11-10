@@ -10,6 +10,11 @@
  */
 
 const NAME_KEY = "gonogo.station.name";
+
+/** Mission control keeps the original key; the pilot seat has its own, so two seats in one browser never share a name. */
+function nameKeyFor(seat?: string): string {
+  return seat && seat !== "mission-control" ? `${NAME_KEY}.${seat}` : NAME_KEY;
+}
 const SUFFIX_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 function generateSuffix(): string {
@@ -25,6 +30,7 @@ export class StationIdentityService {
   private name: string;
   private listeners = new Set<NameListener>();
   private readonly storage: Storage;
+  private readonly nameKey: string;
 
   /**
    * `defaultName` is what a device that has never been named is called. It
@@ -35,17 +41,19 @@ export class StationIdentityService {
   constructor(
     storage: Storage = globalThis.localStorage,
     defaultName?: string,
+    seat?: string,
   ) {
     this.storage = storage;
+    this.nameKey = nameKeyFor(seat);
 
-    const saved = storage.getItem(NAME_KEY);
+    const saved = storage.getItem(this.nameKey);
     if (saved?.trim()) {
       this.name = saved.trim();
       return;
     }
 
     this.name = defaultName ?? `Station ${generateSuffix()}`;
-    storage.setItem(NAME_KEY, this.name);
+    storage.setItem(this.nameKey, this.name);
   }
 
   getName(): string {
@@ -56,7 +64,7 @@ export class StationIdentityService {
     const trimmed = next.trim();
     if (!trimmed || trimmed === this.name) return;
     this.name = trimmed;
-    this.storage.setItem(NAME_KEY, trimmed);
+    this.storage.setItem(this.nameKey, trimmed);
     for (const listener of this.listeners) listener(trimmed);
   }
 

@@ -105,7 +105,11 @@ export function useLocalParticipant(): {
   const seat = useSeat();
   const named = useStationNameOptional();
   const vantageId = useObservedVantage();
-  const stationKey = useMemo(() => getStationKey(), []);
+  /*
+   * Per seat, so a pilot page and the main screen in one browser keep separate
+   * logs: a shared one would show the pilot the centre's outbox.
+   */
+  const stationKey = useMemo(() => getStationKey(undefined, seat), [seat]);
   // A screen with no identity provider still has a seat, and the seat is a
   // truthful thing to be called. Blank is the one thing it must never be:
   // "from the ground" and "from nobody" must not read the same.

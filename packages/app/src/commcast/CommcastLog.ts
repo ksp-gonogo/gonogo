@@ -103,7 +103,7 @@ export class CommcastLog {
   private awaitingVantage: CommsMessage[] = [];
   private readonly listeners = new Set<Listener>();
   private readonly radioListeners = new Set<(frame: HeardRadioFrame) => void>();
-  private readonly radioRefusalListeners = new Set<() => void>();
+  private readonly radioRefusalListeners = new Set<(reason?: string) => void>();
   private readonly now: () => number;
   private readonly storage: Storage | undefined;
   private readonly key: string;
@@ -145,12 +145,12 @@ export class CommcastLog {
   }
 
   /** The mod refused a radio frame this screen sent, so what was said is not going out. */
-  refuseRadio(): void {
-    for (const listener of this.radioRefusalListeners) listener();
+  refuseRadio(reason?: string): void {
+    for (const listener of this.radioRefusalListeners) listener(reason);
   }
 
   /** Listen for the mod refusing this screen's own radio frames. */
-  onRadioRefused(cb: () => void): () => void {
+  onRadioRefused(cb: (reason?: string) => void): () => void {
     this.radioRefusalListeners.add(cb);
     return () => {
       this.radioRefusalListeners.delete(cb);
@@ -278,7 +278,7 @@ export class CommcastLog {
     const deliveries = found.deliveries.map((d): Delivery => {
       if (!recipients.includes(d.to)) return d;
       const separationSeconds = separations.get(d.to) ?? null;
-      const { refused: _refused, ...kept } = d;
+      const { refused: _refused, refusedReason: _reason, ...kept } = d;
       return {
         ...kept,
         separationSeconds,
@@ -338,11 +338,17 @@ export class CommcastLog {
    * not been answered is marked refused, so the log says it was not sent
    * rather than waiting for an answer that cannot come.
    */
-  recordRefusal(messageId: string): void {
+  recordRefusal(messageId: string, reason?: string): void {
     const found = this.outbox.find((o) => o.msg.id === messageId);
     if (!found || found.deliveries.length === 0) return;
     const deliveries = found.deliveries.map((d) =>
-      d.refused ? d : { ...d, refused: true },
+      d.refused
+        ? d
+        : {
+            ...d,
+            refused: true,
+            ...(reason === undefined ? {} : { refusedReason: reason }),
+          },
     );
     this.outbox = this.outbox.map((o) =>
       o.msg.id === messageId ? { ...o, deliveries } : o,

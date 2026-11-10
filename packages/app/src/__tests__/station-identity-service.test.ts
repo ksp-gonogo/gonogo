@@ -47,6 +47,17 @@ describe("StationIdentityService", () => {
     expect(storage.getItem("gonogo.station.name")).toBe(svc.getName());
   });
 
+  it("keeps a name per seat, so a pilot page and the main screen in one browser do not share one", () => {
+    const main = new StationIdentityService(storage, "Mission Control");
+    const pilot = new StationIdentityService(storage, "Pilot", "pilot");
+    pilot.setName("MKI");
+    expect(storage.getItem("gonogo.station.name.pilot")).toBe("MKI");
+    expect(main.getName()).toBe("Mission Control");
+    expect(
+      new StationIdentityService(storage, "Mission Control").getName(),
+    ).toBe("Mission Control");
+  });
+
   it("setName persists, trims, and notifies listeners", () => {
     const svc = new StationIdentityService(storage);
     const spy = vi.fn();

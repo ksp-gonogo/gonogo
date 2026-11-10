@@ -84,6 +84,8 @@ export interface Held {
   acks?: { from: string; stationKey: string; at: number }[];
   /** Set on an outbound message that was never transmitted. */
   neverLeft?: boolean;
+  /** The mod refused the send; a string is the reason it gave. */
+  refused?: string | true;
   /** The recipients the mod said it could not reach, each never left whatever the rest did. */
   unreached?: string[];
   /** The group it is addressed to. Defaults to one group per set of ends, so a two-way exchange is one thread. */
@@ -543,6 +545,14 @@ function paneTree(pane: Pane, index: number) {
             attempts: msg.attempts,
             neverLeft:
               held.neverLeft === true || held.unreached?.includes(to) === true,
+            ...(held.refused === undefined
+              ? {}
+              : {
+                  refused: true,
+                  ...(held.refused === true
+                    ? {}
+                    : { refusedReason: held.refused }),
+                }),
           }));
         return { msg, acks, deliveries };
       }),

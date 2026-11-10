@@ -83,8 +83,8 @@ export function attachCommcastModLink(
     command: string,
     args: unknown,
     onResult?: (result: unknown) => void,
-    onRefused?: (result: unknown) => void,
-    onRejected?: () => void,
+    onRefused?: (result: unknown, reason: string) => void,
+    onRejected?: (reason: string) => void,
   ) => {
     COMMCAST_COMMAND_BUDGET.record();
     wire
@@ -99,7 +99,7 @@ export function attachCommcastModLink(
           command,
           reason,
         });
-        onRefused?.(result);
+        onRefused?.(result, reason);
       })
       .catch((err) => {
         logger.warn("[commcast] a command did not complete", {
@@ -107,7 +107,9 @@ export function attachCommcastModLink(
           err: String(err),
         });
         // A lost reply may still have run, so only a command that provably did not go is reported.
-        if (classifyCommandRejection(err).kind !== "lost") onRejected?.();
+        if (classifyCommandRejection(err).kind !== "lost") {
+          onRejected?.(rejectionWords(err));
+        }
       });
   };
 
@@ -136,8 +138,8 @@ export function attachCommcastModLink(
         ),
       },
       undefined,
-      () => log.refuseRadio(),
-      () => log.refuseRadio(),
+      (_result, reason) => log.refuseRadio(reason),
+      (reason) => log.refuseRadio(reason),
     );
   };
 
@@ -180,7 +182,7 @@ export function attachCommcastModLink(
               log.recordReceipt(msg.id, receipt.addressed, receipt.unreached);
             }
           },
-          (result) => {
+          (result, reason) => {
             // The mod forgets its conversations when the game restarts and this screen does not, so a stored one is opened again with its members before the words are said again.
             const members = log.membersOfGroup(msg.groupId);
             if (!reopened && isNotFound(result) && members.length > 0) {
@@ -188,12 +190,14 @@ export function attachCommcastModLink(
                 "commcast.group.open",
                 { groupId: msg.groupId, members, author },
                 () => sendMessage(true),
-                () => log.recordRefusal(msg.id),
+                (_result, why) => log.recordRefusal(msg.id, why),
+                (why) => log.recordRefusal(msg.id, why),
               );
               return;
             }
-            log.recordRefusal(msg.id);
+            log.recordRefusal(msg.id, reason);
           },
+          (reason) => log.recordRefusal(msg.id, reason),
         );
       };
       sendMessage(false);
@@ -503,6 +507,12 @@ function receiptOf(
   const addressed = texts(result.payload, "addressed");
   const unreached = texts(result.payload, "unreached");
   return addressed && unreached ? { addressed, unreached } : null;
+}
+
+/** What a command that never completed says for itself, in the words the operator reads. */
+function rejectionWords(err: unknown): string {
+  const message = err instanceof Error ? err.message.trim() : "";
+  return message === "" ? "the command did not go out" : message;
 }
 
 function isNotFound(result: unknown): boolean {

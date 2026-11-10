@@ -446,7 +446,10 @@ function MainScreenDisplay({
                 announce={() => alarmHost.announceWarpIntent()}
               >
                 <OptionalNotesHost service={notesHost}>
-                  <ScopedStationIdentity defaultName={DEFAULT_NAME_FOR[screen]}>
+                  <ScopedStationIdentity
+                    defaultName={DEFAULT_NAME_FOR[screen]}
+                    seat={screen === "pilot" ? "pilot" : "mission-control"}
+                  >
                     {joinedVia && (
                       <JoinedScreenInfo client={joinedVia} screen={screen} />
                     )}

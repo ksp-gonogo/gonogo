@@ -21,7 +21,11 @@ export function recipientWords(
   about: RecipientAbout = {},
 ): string {
   if (phase === "confirmed") return "received";
-  if (delivery.refused) return "not sent, the game refused it";
+  if (delivery.refused) {
+    return delivery.refusedReason === undefined
+      ? "not sent, the game refused it"
+      : `not sent, ${delivery.refusedReason}`;
+  }
   if (delivery.neverLeft) {
     return about.noReachReason === "unpowered"
       ? "never left, no electric charge aboard"

@@ -116,7 +116,7 @@ export function PilotScreen({ code }: { code: string }) {
   if (!everApproved) {
     if (failed && !everConnected) {
       return (
-        <ScopedStationIdentity defaultName="Pilot">
+        <ScopedStationIdentity defaultName="Pilot" seat="pilot">
           <StationConnectView
             hostInput={hostInput}
             connStatus={status}
@@ -142,7 +142,7 @@ export function PilotScreen({ code }: { code: string }) {
       );
     }
     return (
-      <ScopedStationIdentity defaultName="Pilot">
+      <ScopedStationIdentity defaultName="Pilot" seat="pilot">
         <StationInfoBroadcaster client={client} seat="pilot" />
         <StationSupersededNotice client={client} />
         <JoinWaiting
@@ -161,7 +161,7 @@ export function PilotScreen({ code }: { code: string }) {
   }
 
   return (
-    <ScopedStationIdentity defaultName="Pilot">
+    <ScopedStationIdentity defaultName="Pilot" seat="pilot">
       <PeerClientProvider client={client}>
         {/*
          * Tells the host a PILOT is on the link, not another mission-control

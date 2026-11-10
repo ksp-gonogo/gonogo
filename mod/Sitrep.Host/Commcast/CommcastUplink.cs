@@ -243,7 +243,7 @@ namespace Sitrep.Host.Commcast
         /// <summary>A speaker must be standing somewhere: the delay exemption is not a place anything can be said from.</summary>
         private static CommandResult? RefuseNowhere(string from) =>
             string.IsNullOrEmpty(from) || from == ChannelEngine.MetaVantage
-                ? CommandResult.Fail(CommandErrorCode.WrongState, "only a command centre can speak")
+                ? CommandResult.Fail(CommandErrorCode.WrongState, "this screen isn't at a command centre or on a craft")
                 : null;
 
         private CommandResult HandleOpen(CommcastGroupOpenArgs? args, string from)
@@ -499,12 +499,12 @@ namespace Sitrep.Host.Commcast
             known = new List<string>();
             if (string.IsNullOrEmpty(groupId) || !_groups.TryGetValue(groupId, out var changes))
             {
-                return CommandResult.Fail(CommandErrorCode.NotFound, "no group with that id is known");
+                return CommandResult.Fail(CommandErrorCode.NotFound, "this conversation no longer exists");
             }
             known = MembersKnownAt(changes, speaker, now);
             return known.Contains(speaker)
                 ? null
-                : CommandResult.Fail(CommandErrorCode.WrongState, "this centre is not a member of that group as far as it knows");
+                : CommandResult.Fail(CommandErrorCode.WrongState, "this centre isn't part of that conversation");
         }
 
         /// <summary>The group's members as <paramref name="vantage"/> knows them at <paramref name="ut"/>.</summary>

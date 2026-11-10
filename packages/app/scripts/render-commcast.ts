@@ -67,6 +67,8 @@ interface Held {
   separations?: Record<string, number | null>;
   acks?: { from: string; stationKey: string; at: number }[];
   neverLeft?: boolean;
+  /** The mod refused the send; a string is the reason it gave. */
+  refused?: string | true;
   unreached?: string[];
   group?: string;
   members?: string[];
@@ -284,6 +286,52 @@ const STATUS_SENT: Held[] = [
     group: GROUP,
   },
 ];
+
+/** The reasons the mod gives for refusing a send, drawn in the hover card of a message that was not sent. */
+const REFUSALS = [
+  {
+    key: "nowhere",
+    reason: "this screen isn't at a command centre or on a craft",
+  },
+  { key: "no-group", reason: "this conversation no longer exists" },
+  {
+    key: "not-member",
+    reason: "this centre isn't part of that conversation",
+  },
+];
+
+/** The widget's default width, and its smallest. */
+const REFUSAL_WIDTHS = [
+  { size: "default", pxW: 520 },
+  { size: "smallest", pxW: 420 },
+];
+
+function refusedHoverScenes(refusal: (typeof REFUSALS)[number]): Scene[] {
+  return REFUSAL_WIDTHS.map(({ size, pxW }) => ({
+    name: `send-refused-${refusal.key}-${size}`,
+    panes: [
+      {
+        seat: "mission-control",
+        vantage: KSC,
+        name: "Kennedy Flight",
+        openThread: "Ares 4",
+        sent: [
+          {
+            ...toAres("Ares, Kennedy. Do you copy.", -1200),
+            refused: refusal.reason,
+          },
+        ],
+      },
+    ],
+    separation: PAIRS,
+    roster: ROSTER,
+    oneWaySeconds: LIGHT_TIME,
+    settleOn: "Do you copy",
+    hover: "Not sent",
+    pxW,
+    pxH: 420,
+  }));
+}
 
 const SCENES: Scene[] = [
   {
@@ -673,6 +721,39 @@ const SCENES: Scene[] = [
     pxW: 520,
     pxH: 620,
   },
+  {
+    /*
+     * KSP restarted from an earlier save: the one message here was sent 65
+     * minutes of game time ahead of the reloaded clock, in a timeline that no
+     * longer exists.
+     */
+    name: "sent-before-a-reload",
+    panes: [
+      {
+        seat: "mission-control",
+        vantage: KSC,
+        name: "Kennedy Flight",
+        openThread: "Ares 4",
+        sent: [
+          {
+            ...toAres(
+              "Ares, Kennedy. You are go for the insertion burn.",
+              -3000,
+            ),
+            acks: acked(-3000),
+          },
+          toAres("Ares, Kennedy. Do you copy.", 3900),
+        ],
+      },
+    ],
+    separation: PAIRS,
+    roster: ROSTER,
+    oneWaySeconds: LIGHT_TIME,
+    settleOn: "insertion burn",
+    pxW: 520,
+    pxH: 620,
+  },
+  ...REFUSALS.flatMap(refusedHoverScenes),
   {
     /*
      * A vantage owns what reached IT, read off the two INBOXES rather than out

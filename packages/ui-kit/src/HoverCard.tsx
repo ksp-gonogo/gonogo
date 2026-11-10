@@ -162,4 +162,6 @@ const HoverCard__Card = styled.div`
   border-radius: var(--radius-regular);
   background: var(--color-surface-raised);
   color: var(--color-text-primary);
+  max-width: min(22rem, calc(100vw - 2 * var(--inset-popover)));
+  overflow-wrap: anywhere;
 `;

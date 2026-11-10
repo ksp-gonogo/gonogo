@@ -168,6 +168,8 @@ export interface Delivery {
    * same as words that went out and were not acknowledged.
    */
   refused?: boolean;
+  /** What the mod or the link said when the send was refused, when it said anything. */
+  refusedReason?: string;
   /** Set when the mod's receipt for the send names this recipient as one it addressed the words to. */
   delivered?: boolean;
 }

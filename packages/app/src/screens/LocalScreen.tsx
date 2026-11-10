@@ -266,6 +266,7 @@ function JoinedLocalScreen({
   return (
     <ScopedStationIdentity
       defaultName={seat === "pilot" ? "Pilot" : "Mission Control"}
+      seat={seat}
     >
       <PeerClientProvider client={client}>
         <StationSupersededNotice client={client} />

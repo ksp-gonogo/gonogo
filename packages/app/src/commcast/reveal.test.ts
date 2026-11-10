@@ -301,6 +301,22 @@ describe("sentPhaseFor", () => {
   });
 });
 
+describe("a message sent in a timeline the game has left", () => {
+  it("is lost, not a countdown, once the clock is behind its send time", () => {
+    // Sent at 1000; the game was loaded from a save at 400.
+    expect(sentPhaseFor(outbound(), 400)).toBe("lost");
+    expect(legOf(sentPhaseFor(outbound(), 400))).toBeNull();
+  });
+
+  it("tolerates a clock estimate a few seconds behind the send", () => {
+    expect(sentPhaseFor(outbound(), 996)).toBe("in-transit");
+  });
+
+  it("lands in the author's log now, unconfirmed, rather than waiting for the old clock", () => {
+    expect(sentArrivalUtFor(outbound(), 400)).toBe(400);
+  });
+});
+
 describe("isSettled", () => {
   it("keeps a travelling message in the queue and takes a finished one out", () => {
     expect(isSettled("in-transit")).toBe(false);

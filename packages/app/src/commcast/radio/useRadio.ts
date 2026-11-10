@@ -304,7 +304,7 @@ export function useRadio({
     });
     setTransmitter(built);
     const unsubscribe = built.subscribe(setTransmit);
-    const offRefused = log.onRadioRefused(() => built.refuse());
+    const offRefused = log.onRadioRefused((reason) => built.refuse(reason));
     return () => {
       offRefused();
       unsubscribe();

@@ -340,13 +340,16 @@ export class RadioTransmitter {
    * The far end refused what was sent: stop the microphone and show that the
    * words did not go, instead of leaving the key reading as on air.
    */
-  refuse(): void {
+  refuse(reason?: string): void {
     if (!this.state.live && !this.state.opening) return;
     this.generation += 1;
     this.capture?.stop();
     this.capture = null;
     this.current = null;
-    this.set({ ...IDLE, fault: "NOT SENT" });
+    this.set({
+      ...IDLE,
+      fault: reason === undefined ? "NOT SENT" : `NOT SENT, ${reason}`,
+    });
   }
 
   /** Unkey. Safe at any point, including while the microphone is still opening. */

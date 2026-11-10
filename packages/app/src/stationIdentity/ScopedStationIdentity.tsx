@@ -11,14 +11,18 @@ import { StationIdentityService } from "./StationIdentityService";
 export function ScopedStationIdentity({
   children,
   defaultName,
+  seat,
 }: {
   children: ReactNode;
   /** What to call this device before anyone has named it. */
   defaultName?: string;
+  /** Which seat this screen sits in; each seat keeps its own name. */
+  seat?: string;
 }) {
   const service = useMemo(
-    () => new StationIdentityService(globalThis.localStorage, defaultName),
-    [defaultName],
+    () =>
+      new StationIdentityService(globalThis.localStorage, defaultName, seat),
+    [defaultName, seat],
   );
   return (
     <StationIdentityProvider service={service}>

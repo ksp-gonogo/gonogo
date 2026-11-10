@@ -8,8 +8,9 @@ import type {
   RadioFrame,
   RadioTransmission,
 } from "./radio/wire";
+import { recipientWords } from "./recipientWords";
 import { messageStatusFor, separationsTo } from "./reveal";
-import type { OutboundMessage } from "./types";
+import type { Delivery, OutboundMessage } from "./types";
 
 const KSC = "ground:ksc";
 const ARES = "vessel:ares";
@@ -256,7 +257,7 @@ describe("attachCommcastModLink", () => {
   const notFound = {
     success: false,
     errorCode: "notFound",
-    detail: "no group with that id is known",
+    detail: "this conversation no longer exists",
   };
 
   const author = {
@@ -340,6 +341,79 @@ describe("attachCommcastModLink", () => {
     expect(refusing.sent.map((s) => s.command)).toEqual([
       "commcast.message.send",
     ]);
+  });
+
+  it("keeps the reason the mod gave for refusing a send, so the delivery can say why", async () => {
+    const refusing = fakeWire((command) =>
+      command === "commcast.message.send"
+        ? {
+            success: false,
+            errorCode: "wrongState",
+            reason: "this screen isn't at a command centre or on a craft",
+          }
+        : { success: true },
+    );
+    detach();
+    detach = attachCommcastModLink(log, refusing.wire);
+
+    log.send(author, textTo([KSC, ARES]));
+    await vi.advanceTimersByTimeAsync(0);
+
+    const out = log.snapshot().outbox[0];
+    expect(out?.deliveries.map((d) => d.refusedReason)).toEqual([
+      "this screen isn't at a command centre or on a craft",
+    ]);
+    expect(recipientWords("lost", out?.deliveries[0] as Delivery)).toBe(
+      "not sent, this screen isn't at a command centre or on a craft",
+    );
+  });
+
+  it("marks a send the link provably never carried as not sent, with the link's words", async () => {
+    const down: CommcastWire = {
+      dispatch: () => ({
+        result: Promise.reject(
+          Object.assign(new Error("no open connection to the game"), {
+            code: "undelivered",
+          }),
+        ),
+      }),
+      subscribe: () => () => {},
+      onRawMessage: () => () => {},
+    };
+    detach();
+    detach = attachCommcastModLink(log, down);
+
+    log.send(author, textTo([KSC, ARES]));
+    await vi.advanceTimersByTimeAsync(0);
+
+    const out = log.snapshot().outbox[0];
+    expect(out?.deliveries.every((d) => d.refused)).toBe(true);
+    expect(out?.deliveries[0]?.refusedReason).toBe(
+      "no open connection to the game",
+    );
+  });
+
+  it("hands the reason for a refused transmit to whoever listens", async () => {
+    const refusing = fakeWire(() => ({
+      success: false,
+      errorCode: "wrongState",
+      reason: "this screen isn't at a command centre or on a craft",
+    }));
+    const refused = vi.fn();
+    log.onRadioRefused(refused);
+    detach();
+    detach = attachCommcastModLink(log, refusing.wire);
+    log.sendRadio(chunk(0));
+    log.sendRadio({
+      kind: "end",
+      transmissionId: "t1",
+      authorStationKey: "screen-a",
+      ut: 101,
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(refused).toHaveBeenCalledWith(
+      "this screen isn't at a command centre or on a craft",
+    );
   });
 
   it("sends one command for a send to sixty-four members, within the command budget", () => {

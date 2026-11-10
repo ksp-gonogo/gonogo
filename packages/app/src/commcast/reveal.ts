@@ -312,6 +312,22 @@ export function isQuickCrossing(
 }
 
 /**
+ * How far ahead of the clock a delivery's send time may sit before it is read
+ * as belonging to a timeline the game has since left. A send is stamped with
+ * the same clock it is later compared against, so anything beyond estimation
+ * jitter means the game was loaded from an earlier save.
+ */
+const FUTURE_SEND_TOLERANCE_SECONDS = 5;
+
+/** Whether `lastSentUt` lies in the clock's future, which only a reload to an earlier save produces. */
+export function sentInDiscardedTimeline(
+  lastSentUt: number,
+  utNow: number,
+): boolean {
+  return lastSentUt > utNow + FUTURE_SEND_TOLERANCE_SECONDS;
+}
+
+/**
  * One recipient's standing at the author as of `utNow`.
  *
  * The gate on `confirmed` is that recipient's own acknowledgement having
@@ -331,6 +347,8 @@ export function deliveryPhaseFor(
   if (delivery.neverLeft || delivery.refused) return "lost";
   const trip = roundTripFor(delivery);
   if (trip === null) return "lost";
+  // Sent after the game's present: the game was loaded from an earlier save, so no answer will come for it.
+  if (sentInDiscardedTimeline(delivery.lastSentUt, utNow)) return "lost";
   if (utNow < trip.reachUt) return "in-transit";
   if (utNow < trip.replyUt) return "awaiting-reply";
   if (utNow < trip.overdueUt) return "due";
@@ -416,6 +434,8 @@ export function sentArrivalUtFor(
       giveUpUt = trip.overdueUt;
   }
   if (giveUpUt === undefined || crossesFast) return out.msg.lastSentUt;
+  // Nothing will answer a message sent in a timeline the game has left, so it lands now as unconfirmed.
+  if (sentInDiscardedTimeline(out.msg.lastSentUt, utNow)) return utNow;
   const firstAck = firstAckUtFor(out);
   if (firstAck !== undefined && firstAck <= giveUpUt) return firstAck;
   return utNow >= giveUpUt ? giveUpUt : undefined;
