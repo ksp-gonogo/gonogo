@@ -248,7 +248,8 @@ namespace Gonogo.KSP
                 // store-and-forward delivery reads it.
                 var deliveryInputs = new Sitrep.Host.Comms.DeliveryInputs();
                 _engine.SetDeliveryInputs(deliveryInputs);
-                RegisterCoreUplink(_engine, new ContactPlanUplink(ccRegistry, deliveryInputs, () => homeEngine.CurrentHomeCommand));
+                var contactPlans = RegisterCoreUplink(_engine, new ContactPlanUplink(ccRegistry, deliveryInputs, () => homeEngine.CurrentHomeCommand));
+                _engine.Census.Add(string.Empty, contactPlans.CensusDescribe);
                 // Messages and radio between centres, timed by the centre-to-centre
                 // rows the pass above writes.
                 RegisterCoreUplink(_engine, new Sitrep.Host.Commcast.CommcastUplink());
@@ -385,7 +386,8 @@ namespace Gonogo.KSP
         /// Registers an Uplink the plugin ships inside itself and says in
         /// KSP.log that it loaded, as the discovery pass does for the rest.
         /// </summary>
-        private static void RegisterCoreUplink(ChannelEngine engine, ISitrepUplink uplink)
+        private static T RegisterCoreUplink<T>(ChannelEngine engine, T uplink)
+            where T : ISitrepUplink
         {
             engine.RegisterBundledUplink(uplink);
             var manifest = uplink.Manifest;
@@ -393,6 +395,7 @@ namespace Gonogo.KSP
             {
                 GonogoLog.Info("addon", "uplink \"" + manifest.Id + "\" " + manifest.Version + " loaded");
             }
+            return uplink;
         }
 
         /// <summary>

@@ -88,6 +88,9 @@ namespace Sitrep.Core
         /// </summary>
         public double NextDueUt => _pending.Count > 0 ? _pending[0].AtUt : double.PositiveInfinity;
 
+        /// <summary>How many callbacks are scheduled, cancelled ones included until their time comes.</summary>
+        internal int PendingCount => _pending.Count;
+
         public Action Schedule(double atUt, Action fn)
         {
             // A NaN instant has no place in the order, so it is due at once.
