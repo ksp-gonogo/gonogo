@@ -73,6 +73,7 @@ export function useModelledPosition({
     if (lat === undefined || lon === undefined || !targetBodyId) return null;
     const rotationPeriod = body?.rotationPeriod;
     if (body === undefined || rotationPeriod === undefined) return null;
+    let refUt = receivedUt;
     const spreadOf = () => {
       const band =
         reckoning.status === "available"
@@ -95,7 +96,7 @@ export function useModelledPosition({
         bodyId: targetBodyId,
         bodyRadius: body.radius,
         rotationPeriod,
-        ref: { ut: receivedUt, lat, lon },
+        ref: { ut: refUt, lat, lon },
         reckonedUt: carriedTo,
       });
     };
@@ -107,14 +108,29 @@ export function useModelledPosition({
         const reckonedUt = atUt.magnitude;
         const ahead = reckonedUt - receivedUt;
         if (ahead <= 0) return undefined;
+        /*
+         * The orbit and the position are one sample, so when the patch starts
+         * after the received edge (the view clock a frame behind the sample it
+         * is drawing) the position is the craft's place at that start. The walk
+         * steps from there in a single stride to the reckoned instant: a stride
+         * of `ahead` would land its second sample past the horizon, leave the
+         * walk ending at the patch's start, and drop the modelled mark.
+         */
+        refUt = Math.max(
+          receivedUt,
+          patches.find((p) => p.referenceBody === targetBodyId)?.startUt
+            .magnitude ?? receivedUt,
+        );
+        const span = reckonedUt - refUt;
+        if (span <= 0) return undefined;
         const samples = predictGroundTrack(
           patches,
           targetBodyId,
           body.radius,
           rotationPeriod,
-          { ut: receivedUt, lat: lat.magnitude, lon: lon.magnitude },
-          ahead,
-          ahead,
+          { ut: refUt, lat: lat.magnitude, lon: lon.magnitude },
+          span + REACHED_SECONDS / 2,
+          span,
         );
         const last = samples.at(-1);
         return last !== undefined &&
