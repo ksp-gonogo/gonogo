@@ -124,12 +124,20 @@ export const RowSubtitle = styled.span`
   text-transform: uppercase;
 `;
 
+/** The range with the row's marker beneath it, so the marker never takes width from the name. */
+export const RowTrailing = styled.span`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--gap-line);
+  margin-right: var(--gap-trailing-mark);
+  flex-shrink: 0;
+`;
+
 export const RowDistance = styled.span`
   font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
-  margin-right: var(--gap-trailing-mark);
-  flex-shrink: 0;
 `;
 
 export const RowTag = styled.span`
