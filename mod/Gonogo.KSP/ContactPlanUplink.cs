@@ -55,9 +55,6 @@ namespace Gonogo.KSP
 
         public UplinkHealth Health() => _source.Health();
 
-        /// <summary>Courier thread: the contact plan's memory census fragment, see <see cref="ContactPlanSource.CensusDescribe"/>.</summary>
-        public string CensusDescribe() => _source.CensusDescribe();
-
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
             Id = "comms-contacts",

@@ -951,22 +951,6 @@ namespace Sitrep.Host.Comms
             }
         }
 
-        /// <summary>
-        /// Courier thread: the plan grids' kept positions and the knowledge board's
-        /// sight samples, as one fragment of a memory census line.
-        /// </summary>
-        public string CensusDescribe()
-        {
-            var planner = _runner.CensusCounts();
-            var knowledge = Knowledge.CensusCounts();
-            return "plan.positions=" + planner.Positions
-                + " plan.grids=" + planner.Grids
-                + " plan.rounds=" + planner.Rounds
-                + " knowledge.samples=" + knowledge.Samples
-                + " knowledge.pairs=" + knowledge.Pairs
-                + " plans=" + _plans.Count;
-        }
-
         /// <summary>What each centre knows of where each craft is, for the <c>craftKnowledge</c> capability. Any thread.</summary>
         public CraftKnowledgeBoard Knowledge { get; } = new CraftKnowledgeBoard();
 

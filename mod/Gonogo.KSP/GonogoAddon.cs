@@ -248,9 +248,7 @@ namespace Gonogo.KSP
                 // store-and-forward delivery reads it.
                 var deliveryInputs = new Sitrep.Host.Comms.DeliveryInputs();
                 _engine.SetDeliveryInputs(deliveryInputs);
-                var contactPlans = new ContactPlanUplink(ccRegistry, deliveryInputs, () => homeEngine.CurrentHomeCommand);
-                _engine.Census.Add(string.Empty, contactPlans.CensusDescribe);
-                RegisterCoreUplink(_engine, contactPlans);
+                RegisterCoreUplink(_engine, new ContactPlanUplink(ccRegistry, deliveryInputs, () => homeEngine.CurrentHomeCommand));
                 // Messages and radio between centres, timed by the centre-to-centre
                 // rows the pass above writes.
                 RegisterCoreUplink(_engine, new Sitrep.Host.Commcast.CommcastUplink());

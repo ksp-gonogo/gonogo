@@ -307,24 +307,8 @@ namespace Sitrep.Host.Comms
                     plans[entry.Key] = entry.Value.Run(GridFor(entry.Value));
                 }
             }
-            long kept = 0;
-            foreach (var grid in _positions)
-            {
-                kept += grid.Count;
-            }
-            Volatile.Write(ref _keptPositions, kept);
-            Volatile.Write(ref _keptGrids, _positions.Count);
-            Interlocked.Increment(ref _rounds);
             return plans;
         }
-
-        private long _keptPositions;
-        private int _keptGrids;
-        private long _rounds;
-
-        /// <summary>The positions kept over every grid as the last round finished, the grids kept, and how many rounds have run. Any thread.</summary>
-        public (long Positions, int Grids, long Rounds) CensusCounts() =>
-            (Volatile.Read(ref _keptPositions), Volatile.Read(ref _keptGrids), Interlocked.Read(ref _rounds));
 
         /// <summary>The kept grid <paramref name="request"/> would choose for itself, most recently used last.</summary>
         private PlanPositions GridFor(ContactPlanRequest request)

@@ -1913,56 +1913,6 @@ namespace Sitrep.Core
         }
 
         /// <summary>
-        /// One census line's worth of what the Courier holds: archived samples,
-        /// topics and cursors over every node, the node and topic holding the most
-        /// samples, scheduled deliveries, sticky keyframes and addressed samples.
-        /// Courier-thread only, like everything it reads.
-        /// </summary>
-        internal string CensusDescribe()
-        {
-            long samples = 0;
-            var topics = 0;
-            var cursors = 0;
-            string? largest = null;
-            var largestCount = -1;
-            foreach (var entry in _archives)
-            {
-                var counts = entry.Value.CensusCounts();
-                samples += counts.Samples;
-                topics += counts.Topics;
-                cursors += counts.Cursors;
-                var top = entry.Value.CensusLargestTopic();
-                if (top != null && top.Value.Samples > largestCount)
-                {
-                    largestCount = top.Value.Samples;
-                    largest = entry.Key + "/" + top.Value.Topic;
-                }
-            }
-            var sticky = 0;
-            foreach (var byTopic in _stickyKeyframes.Values)
-            {
-                sticky += byTopic.Count;
-            }
-            var addressed = 0;
-            foreach (var byTopic in _addressed.Values)
-            {
-                foreach (var list in byTopic.Values)
-                {
-                    addressed += list.Count;
-                }
-            }
-            return "archive.nodes=" + _archives.Count
-                + " archive.topics=" + topics
-                + " archive.samples=" + samples
-                + " archive.cursors=" + cursors
-                + " archive.largest=" + (largest ?? "none") + ":" + Math.Max(largestCount, 0)
-                + " courier.deliveries=" + _deliveries.Count
-                + " courier.sticky=" + sticky
-                + " courier.addressed=" + addressed
-                + " courier.pendingCommands=" + _pendingCommands.Count;
-        }
-
-        /// <summary>
         /// Drops what <paramref name="topic"/> on <paramref name="node"/> holds that no reader
         /// at or after <paramref name="cutoffUt"/> can reach, for a topic nobody reads.
         /// </summary>
