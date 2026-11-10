@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 
 namespace Sitrep.Host
 {
@@ -25,17 +24,15 @@ namespace Sitrep.Host
     /// the round-trip gap, not just adding a cosmetic read-side id that
     /// still can't be sent back into a command.</para>
     ///
-    /// <para>Keyed by reference identity
-    /// (<see cref="ConditionalWeakTable{TKey, TValue}"/>), not a derived key
+    /// <para>Keyed by reference identity, not a derived key
     /// like UT+ordinal: a node's UT changes when it's dragged/updated
     /// (<c>vessel.maneuver.update</c> exists precisely to do that), and its
     /// ordinal position shifts whenever an earlier sibling is added or
     /// removed (the exact O-4 arg-order/index-shift footgun this whole
     /// capture-add exists to avoid reproducing), neither survives the edits
-    /// this id exists to survive. <see cref="ConditionalWeakTable{TKey, TValue}"/>
-    /// also means a removed/GC'd node's entry is reclaimed automatically,
-    /// no manual eviction needed on <c>RemoveManeuverNode</c>/vessel
-    /// switch/scene change/quickload.</para>
+    /// this id exists to survive. The registry holds the
+    /// <see cref="Capacity"/> instances used most recently; every sample reads
+    /// the live nodes, so the ones forgotten first are long gone.</para>
     ///
     /// <para>Generic and KSP-free on purpose (BCL-only, this assembly's own
     /// invariant, see this project's csproj comment): the type parameter is
@@ -45,17 +42,17 @@ namespace Sitrep.Host
     /// </summary>
     public sealed class ReferenceIdRegistry<T> where T : class
     {
-        private readonly ConditionalWeakTable<T, string> _ids = new ConditionalWeakTable<T, string>();
+        /// <summary>The most instances whose ids are remembered at once.</summary>
+        public const int Capacity = 256;
+
+        private readonly Sitrep.Contract.IdentityRecencyMap<T, string> _ids = new Sitrep.Contract.IdentityRecencyMap<T, string>(Capacity);
 
         /// <summary>
         /// Returns the same id for the same instance every time; assigns a
         /// fresh one (a random GUID) the first time a given instance is
-        /// seen. <see cref="ConditionalWeakTable{TKey,TValue}.GetValue"/>
-        /// has existed since .NET Framework 4.0 / netstandard2.0 alike, so
-        /// this needs no per-TFM branching despite this assembly
-        /// multi-targeting netstandard2.0/net472.
+        /// seen.
         /// </summary>
-        public string GetOrAssign(T item) => _ids.GetValue(item, _ => System.Guid.NewGuid().ToString());
+        public string GetOrAssign(T item) => _ids.GetOrAdd(item, _ => System.Guid.NewGuid().ToString());
 
         /// <summary>
         /// Finds the live instance among <paramref name="candidates"/> whose

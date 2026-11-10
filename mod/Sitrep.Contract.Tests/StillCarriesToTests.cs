@@ -188,6 +188,42 @@ namespace Sitrep.Contract.Tests
         /// break at zero light-seconds out, which dooms every sample the craft
         /// has ever sent.
         /// </summary>
+        /// <summary>
+        /// Route memory is held strongly, so it is bounded by recency instead:
+        /// a session that sees many craft keeps only those remembered lately.
+        /// </summary>
+        [Fact]
+        public void ACraftNotSeenSinceManyOthersFlewIsForgotten()
+        {
+            var backend = new FakeBackend();
+            backend.Fly("relay-a", "home");
+            backend.Strand("relay-a");
+            backend.GoDark();
+
+            for (var i = 0; i < 100; i++)
+            {
+                backend.Fly(new object(), "other-" + i, "relay-b", "home");
+            }
+
+            Assert.Null(backend.StillCarriesTo(Craft, "relay-a"));
+        }
+
+        [Fact]
+        public void ACraftStillFlyingKeepsItsMemoryWhileOthersComeAndGo()
+        {
+            var backend = new FakeBackend();
+            backend.Fly("relay-a", "home");
+            backend.Strand("relay-a");
+
+            for (var i = 0; i < 100; i++)
+            {
+                backend.Fly(new object(), "other-" + i, "relay-b", "home");
+                backend.Fly("relay-c", "home");
+            }
+
+            Assert.False(backend.StillCarriesTo(Craft, "relay-a"));
+        }
+
         [Fact]
         public void TheCraftsOwnNodeIsNeverABreak()
         {

@@ -153,7 +153,7 @@ namespace Gonogo.KSP
         }
 
         /* A transform's place in its model never changes, so each renderer's key is worked out once. */
-        private static readonly ConditionalWeakTable<Transform, string> Keys = new();
+        private static readonly PrunedCache<Transform, string> Keys = new PrunedCache<Transform, string>(transform => transform == null);
 
         /// <summary>
         /// The mesh's name within its part: the transform names from below the
@@ -193,7 +193,7 @@ namespace Gonogo.KSP
             }
             names.Reverse();
             var key = string.Join("/", names);
-            Keys.Add(mesh, key);
+            Keys.Set(mesh, key);
             return key;
         }
 
@@ -203,7 +203,7 @@ namespace Gonogo.KSP
          * changes: walking every vertex again on every sample is most of the cost
          * of a vessel's topology.
          */
-        private static readonly MeshPieceMemo<MeshRenderer> Pieces = new MeshPieceMemo<MeshRenderer>();
+        private static readonly MeshPieceMemo<MeshRenderer> Pieces = new MeshPieceMemo<MeshRenderer>(renderer => renderer == null);
 
         /// <summary>
         /// The matrix carrying <paramref name="mesh"/>'s local space into
@@ -248,7 +248,7 @@ namespace Gonogo.KSP
          * `Mesh.vertices` allocates a new array on every call. A mesh that is
          * not readable is remembered as null and measured by its bounds.
          */
-        private static readonly ConditionalWeakTable<Mesh, Vector3[]?> VertexCache = new();
+        private static readonly PrunedCache<Mesh, Vector3[]?> VertexCache = new PrunedCache<Mesh, Vector3[]?>(mesh => mesh == null);
 
         internal static Vector3[]? VerticesOf(Mesh mesh)
         {
@@ -267,7 +267,7 @@ namespace Gonogo.KSP
                 }
             }
 
-            VertexCache.Add(mesh, vertices);
+            VertexCache.Set(mesh, vertices);
             return vertices;
         }
 

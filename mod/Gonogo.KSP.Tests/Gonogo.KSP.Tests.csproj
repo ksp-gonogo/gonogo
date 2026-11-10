@@ -39,6 +39,7 @@
          powered base as unpowered, which is not a thing to check only where
          KSP is installed. -->
     <Compile Include="..\Gonogo.KSP\LoadedApproach.cs" />
+    <Compile Include="..\Gonogo.KSP\PrunedCache.cs" />
     <Compile Include="..\Gonogo.KSP\PartActionText.cs" />
     <Compile Include="..\Gonogo.KSP\GameWindows\CapturedNode.cs" />
     <Compile Include="..\Gonogo.KSP\GameWindows\WindowAudience.cs" />

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 
 namespace Sitrep.Contract;
 
@@ -216,11 +215,14 @@ public abstract class CommsBackendBase : ICommsBackend
      * RouteBetween needs, and once the node is off the route there is nowhere
      * else to get one.
      *
-     * Keyed by the vessel handle ITSELF, compared by reference and held weakly,
-     * so one vessel's route can never stand in for another's, and a destroyed
-     * vessel's memory goes when the vessel does. A hash of the handle is never
-     * the key: two handles can share one, and a route memory handed to the
-     * wrong vessel names a break that did not happen.
+     * Keyed by the vessel handle ITSELF, compared by reference, so one vessel's
+     * route can never stand in for another's. A hash of the handle is never the
+     * key: two handles can share one, and a route memory handed to the wrong
+     * vessel names a break that did not happen.
+     *
+     * Held strongly and bounded by recency: the vessels used longest ago are
+     * forgotten once more than RoutesKept are held, and a forgotten vessel reads
+     * as never seen.
      *
      * Handles are held across ticks and never dereferenced here. A held handle
      * to a destroyed node is safe by RouteBetween's own contract, which returns
@@ -234,8 +236,9 @@ public abstract class CommsBackendBase : ICommsBackend
         public CommsNodeView? Origin;
     }
 
-    private readonly ConditionalWeakTable<object, RouteMemory> _routes =
-        new ConditionalWeakTable<object, RouteMemory>();
+    private const int RoutesKept = 64;
+
+    private readonly IdentityRecencyMap<object, RouteMemory> _routes = new IdentityRecencyMap<object, RouteMemory>(RoutesKept);
 
     /// <inheritdoc cref="ICommsBackend.StillCarriesTo" path="/summary"/>
     public bool? StillCarriesTo(object? vessel, string nodeId)
@@ -293,7 +296,7 @@ public abstract class CommsBackendBase : ICommsBackend
         {
             return;
         }
-        var memory = _routes.GetOrCreateValue(vessel);
+        var memory = _routes.GetOrAdd(vessel, _ => new RouteMemory());
         memory.Origin = path[0].A;
         foreach (var link in path)
         {

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace Gonogo.KSP
@@ -56,7 +55,13 @@ namespace Gonogo.KSP
             public MeshPiece Piece = null!;
         }
 
-        private readonly ConditionalWeakTable<TOwner, Entry> _entries = new ConditionalWeakTable<TOwner, Entry>();
+        private readonly PrunedCache<TOwner, Entry> _entries;
+
+        /// <param name="gone">Whether an owner is gone for good (for a renderer, destroyed), so its piece can be forgotten. Never, when omitted.</param>
+        public MeshPieceMemo(Func<TOwner, bool>? gone = null)
+        {
+            _entries = new PrunedCache<TOwner, Entry>(gone ?? (_ => false));
+        }
 
         /// <summary>How many pieces have been measured rather than reused.</summary>
         public int Measured { get; private set; }
@@ -75,7 +80,7 @@ namespace Gonogo.KSP
             if (entry == null)
             {
                 entry = new Entry();
-                _entries.Add(owner, entry);
+                _entries.Set(owner, entry);
             }
             entry.Mesh = mesh;
             entry.Piece = piece;

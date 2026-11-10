@@ -57,11 +57,20 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Every ship <see cref="Load"/> has handed out and nobody has released,
-        /// so <see cref="Release"/> can tell one from a foreign object without
-        /// naming <c>ShipConstruct</c>. Weak, so a ship its consumer dropped
-        /// unreleased is not also kept alive here.
+        /// by identity, so <see cref="Release"/> can tell one from a foreign object
+        /// without naming <c>ShipConstruct</c>. A ship its consumer never releases
+        /// stays here, so every ship loaded must be released.
         /// </summary>
-        private readonly ConditionalWeakTable<object, object> _handedOut = new ConditionalWeakTable<object, object>();
+        private readonly HashSet<object> _handedOut = new HashSet<object>(HandedOutIdentity.Instance);
+
+        private sealed class HandedOutIdentity : IEqualityComparer<object>
+        {
+            public static readonly HandedOutIdentity Instance = new HandedOutIdentity();
+
+            public new bool Equals(object? x, object? y) => ReferenceEquals(x, y);
+
+            public int GetHashCode(object obj) => RuntimeHelpers.GetHashCode(obj);
+        }
 
         private List<CraftFileRecord>? _cached;
 
@@ -253,7 +262,7 @@ namespace Gonogo.KSP
                     + "different version or references a part this install does not have");
             }
 
-            _handedOut.Add(ship, ship);
+            _handedOut.Add(ship);
             return CraftLoad.Loaded(
                 ship, Measure(path) ?? new CraftFileRecord { File = file, Facility = facility });
         }

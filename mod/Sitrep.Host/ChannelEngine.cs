@@ -6015,8 +6015,8 @@ namespace Sitrep.Host
         }
 
         private readonly HashSet<string> _sessionCommands = new HashSet<string>();
-        private readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, CommandOrigin> _originByArgs =
-            new System.Runtime.CompilerServices.ConditionalWeakTable<object, CommandOrigin>();
+        /// <summary>Who sent each session command's args, by the args object, for the 1024 commands dispatched most recently.</summary>
+        private readonly IdentityRecencyMap<object, CommandOrigin> _originByArgs = new IdentityRecencyMap<object, CommandOrigin>(1024);
 
         /// <summary>
         /// Why <paramref name="args"/> cannot bind to the args type
@@ -11619,8 +11619,7 @@ namespace Sitrep.Host
 
             if (job.Args != null && _sessionCommands.Contains(job.Command))
             {
-                _originByArgs.Remove(job.Args);
-                _originByArgs.Add(job.Args, new CommandOrigin(job.SessionId ?? "", job.ClientRequestId ?? ""));
+                _originByArgs.Set(job.Args, new CommandOrigin(job.SessionId ?? "", job.ClientRequestId ?? ""));
             }
 
             var unbindable = UnbindableArgsReason(job.Command, job.Args);
