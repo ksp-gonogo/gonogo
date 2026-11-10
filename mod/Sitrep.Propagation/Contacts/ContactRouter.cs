@@ -259,7 +259,7 @@ namespace Sitrep.Propagation.Contacts
                 }
             }
 
-            var adjacency = Adjacency(plan);
+            var adjacency = plan.Adjacency;
             ends.IntersectWith(adjacency.Keys);
             var best = new Dictionary<string, Label>(StringComparer.Ordinal);
             foreach (var source in sources)
@@ -446,33 +446,6 @@ namespace Sitrep.Propagation.Contacts
                 light = meters / PairPlan.SpeedOfLight * lightFactor;
             }
             return (light, meters);
-        }
-
-        /// <summary>Each plan's adjacency, built once: a node holding thousands of messages routes every one of them against the same plan.</summary>
-        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<ContactPlan, Dictionary<string, List<(PairPlan Pair, string Other)>>> Adjacencies =
-            new System.Runtime.CompilerServices.ConditionalWeakTable<ContactPlan, Dictionary<string, List<(PairPlan Pair, string Other)>>>();
-
-        private static Dictionary<string, List<(PairPlan Pair, string Other)>> Adjacency(ContactPlan plan) =>
-            Adjacencies.GetValue(plan, BuildAdjacency);
-
-        private static Dictionary<string, List<(PairPlan Pair, string Other)>> BuildAdjacency(ContactPlan plan)
-        {
-            var adjacency = new Dictionary<string, List<(PairPlan, string)>>(StringComparer.Ordinal);
-            void Add(string from, string to, PairPlan pair)
-            {
-                if (!adjacency.TryGetValue(from, out var list))
-                {
-                    list = new List<(PairPlan, string)>();
-                    adjacency[from] = list;
-                }
-                list.Add((pair, to));
-            }
-            foreach (var pair in plan.Pairs)
-            {
-                Add(pair.A, pair.B, pair);
-                Add(pair.B, pair.A, pair);
-            }
-            return adjacency;
         }
 
         private static bool Better(Label a, Label b)

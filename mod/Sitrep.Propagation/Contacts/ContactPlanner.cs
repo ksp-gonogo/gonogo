@@ -298,6 +298,47 @@ namespace Sitrep.Propagation.Contacts
 
         public IReadOnlyList<PairPlan> Pairs { get; }
 
+        private Dictionary<string, List<(PairPlan Pair, string Other)>>? _adjacency;
+
+        /// <summary>
+        /// Every pair each node is an end of, with the node at its other end, built
+        /// on first use and kept with this plan, so a node routing thousands of
+        /// messages against one plan builds it once. Any thread.
+        /// </summary>
+        internal Dictionary<string, List<(PairPlan Pair, string Other)>> Adjacency
+        {
+            get
+            {
+                var built = System.Threading.Volatile.Read(ref _adjacency);
+                if (built != null)
+                {
+                    return built;
+                }
+                built = BuildAdjacency();
+                return System.Threading.Interlocked.CompareExchange(ref _adjacency, built, null) ?? built;
+            }
+        }
+
+        private Dictionary<string, List<(PairPlan Pair, string Other)>> BuildAdjacency()
+        {
+            var adjacency = new Dictionary<string, List<(PairPlan, string)>>(StringComparer.Ordinal);
+            void Add(string from, string to, PairPlan pair)
+            {
+                if (!adjacency.TryGetValue(from, out var list))
+                {
+                    list = new List<(PairPlan, string)>();
+                    adjacency[from] = list;
+                }
+                list.Add((pair, to));
+            }
+            foreach (var pair in Pairs)
+            {
+                Add(pair.A, pair.B, pair);
+                Add(pair.B, pair.A, pair);
+            }
+            return adjacency;
+        }
+
         /// <summary>
         /// Where the two ends of a hop from <paramref name="from"/> to <paramref name="to"/>
         /// are at <paramref name="ut"/>, or null when the plan holds no positions for the pair.
