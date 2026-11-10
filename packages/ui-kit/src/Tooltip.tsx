@@ -28,9 +28,6 @@ const ROOM_BELOW_PX = 120;
 /** An anchor with less than this much viewport above it puts its tip below, whatever its placement asks. */
 const ROOM_ABOVE_PX = 48;
 
-/** How long the pointer rests on an anchor before its tip opens, so a pointer passing over controls on its way elsewhere opens none. */
-const OPEN_DELAY_MS = 600;
-
 /** How long the pointer may spend crossing from an anchor to its tip before the tip closes. */
 const CROSSING_MS = 120;
 
@@ -52,7 +49,7 @@ const words = (text: string): string =>
  * @category Floating
  */
 export interface TooltipAnchorProps {
-  /** Opens the tip once the pointer has rested on the element for about 0.6 seconds; a finger touching down does not open it. */
+  /** Opens the tip against the element the pointer entered; a finger touching down does not open it. */
   onPointerEnter?: (event: {
     currentTarget: Element;
     pointerType?: string;
@@ -93,7 +90,7 @@ export interface UseTooltipResult {
  * placed below its anchor inside the viewport, so a clipping or scrolling
  * ancestor never cuts it off. Useful for giving the operator the words behind
  * an icon or abbreviation when the tip needs its own placement. Used by the
- * communications addressee control. It opens once the pointer has rested on the anchor for about 0.6 seconds, or at once when
+ * communications addressee control. It opens while the pointer is over the anchor or
  * the anchor has keyboard focus, and closes on a press of the anchor, on Escape (from anywhere on the page), scroll or resize. On a touch screen a tap on the anchor opens it and a second tap on the anchor, a tap anywhere else, Escape or scroll closes it. The pointer can move onto the tip, which stays open while it is hovered and while its text is held or selected, so the operator can copy it.
  *
  * The tip is hidden from the accessibility tree, so the anchor must already
@@ -141,15 +138,12 @@ function useTooltipAt(
   const holding = useRef(false);
   const pressed = useRef(false);
   const leaving = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const entering = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shown = text != null && text !== "" ? text : null;
   const open =
     at !== null && (hovered || focused || tipHovered || pinned || tapped);
   const cancelLeave = useCallback(() => {
     if (leaving.current !== null) clearTimeout(leaving.current);
     leaving.current = null;
-    if (entering.current !== null) clearTimeout(entering.current);
-    entering.current = null;
   }, []);
   const close = useCallback(() => {
     cancelLeave();
@@ -281,12 +275,8 @@ function useTooltipAt(
       onPointerEnter: (event) => {
         if (event.pointerType === "touch") return;
         cancelLeave();
-        const anchor = event.currentTarget;
-        entering.current = setTimeout(() => {
-          entering.current = null;
-          place(anchor);
-          setHovered(true);
-        }, OPEN_DELAY_MS);
+        place(event.currentTarget);
+        setHovered(true);
       },
       onPointerLeave: leaveSoon,
       onPointerDown: (event) => {

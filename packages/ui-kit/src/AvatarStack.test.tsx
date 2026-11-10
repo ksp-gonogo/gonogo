@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
+import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -94,10 +94,8 @@ describe("AvatarStack", () => {
     const user = userEvent.setup();
     render(<AvatarStack items={PEOPLE.slice(0, 2)} />);
     await user.hover(screen.getByRole("img", { name: "Ares 4" }));
-    await waitFor(() =>
-      expect(
-        document.body.querySelector("[data-tooltip-tip]"),
-      ).toHaveTextContent("Ares 4"),
+    expect(document.body.querySelector("[data-tooltip-tip]")).toHaveTextContent(
+      "Ares 4",
     );
   });
 

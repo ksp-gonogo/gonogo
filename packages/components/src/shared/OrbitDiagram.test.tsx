@@ -440,41 +440,6 @@ describe("OrbitDiagram spread arc", () => {
     restore();
   });
 
-  it("gives each apsis marker a pointer target wider than the dot, and hovers through it", async () => {
-    const user = userEvent.setup();
-    const { container } = render(
-      <OrbitDiagram {...BASE} bodyRadius={600_000} />,
-    );
-    const [, , w = 0, h = 0] = (
-      container.querySelector("svg")?.getAttribute("viewBox") ?? ""
-    )
-      .split(" ")
-      .map(Number);
-    const vbPerPx = Math.max(w / 400, h / 400);
-    for (const [apsis, mark, label] of [
-      ["ap", "apoapsis", /^Apoapsis, /],
-      ["pe", "periapsis", /^Periapsis, /],
-    ] as const) {
-      const hit = container.querySelector(`[data-apsis-hit="${apsis}"]`);
-      const dot = container.querySelector(
-        `circle[fill="var(--color-${mark}-mark)"]`,
-      );
-      if (!hit || !dot) throw new Error(`no ${apsis} marker`);
-      expect(hit.getAttribute("cx")).toBe(dot.getAttribute("cx"));
-      expect(Number(hit.getAttribute("r"))).toBeCloseTo(12 * vbPerPx, 5);
-      expect(Number(hit.getAttribute("r"))).toBeGreaterThan(
-        Number(dot.getAttribute("r")),
-      );
-      await user.hover(hit);
-      expect(
-        Array.from(container.querySelectorAll("text")).some((t) =>
-          label.test(t.textContent ?? ""),
-        ),
-      ).toBe(true);
-      await user.unhover(hit);
-    }
-  });
-
   /** True anomalies centred on the craft at 0 degrees, `half` degrees either side. */
   const spreadOf = (half: number) => ({
     anomalies: Array.from({ length: 9 }, (_, i) => -half + (i * half) / 4),

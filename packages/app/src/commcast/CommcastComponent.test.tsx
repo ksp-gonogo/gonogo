@@ -666,10 +666,8 @@ describe("Commcast, rendered", () => {
       expect(send).not.toHaveAttribute("title");
 
       await userEvent.hover(send);
-      await waitFor(() =>
-        expect(document.querySelector("[data-tooltip-tip]")).toHaveTextContent(
-          "No contact · no signal path Likely lost",
-        ),
+      expect(document.querySelector("[data-tooltip-tip]")).toHaveTextContent(
+        "No contact · no signal path Likely lost",
       );
       await userEvent.unhover(send);
       await waitFor(() =>

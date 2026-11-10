@@ -220,15 +220,9 @@ export class WarpControl {
    * to, so a clamped or refused command cannot strand the controller.
    */
   private readingPredatesLastCommand(observedIndex: number): boolean {
-    if (this.commandedIndex === null || this.observedAtCommand === null) {
-      return false;
-    }
-    if (observedIndex === this.observedAtCommand) {
-      return observedIndex !== this.commandedIndex;
-    }
-    /* The reading has moved, so the window is over for good: a later fall back to the pre-command value is a new stop, not the old reading. */
-    this.observedAtCommand = null;
-    return false;
+    if (this.commandedIndex === null) return false;
+    if (observedIndex === this.commandedIndex) return false;
+    return observedIndex === this.observedAtCommand;
   }
 
   /** Clear the session without touching the game's warp. */

@@ -5,6 +5,7 @@ import {
   useSerialDeviceService,
 } from "@ksp-gonogo/serial";
 import { Fab, SettingsIcon, useModal } from "@ksp-gonogo/ui";
+import { Tooltip } from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useEffect } from "react";
 import styled from "styled-components";
 import { requestFirstRunSetup } from "../firstRun/firstRunRequest";
@@ -86,16 +87,20 @@ export function SettingsFab({ bottom = 384 }: { bottom?: number } = {}) {
   useEffect(() => onSettingsRequested(openSettings));
 
   return (
-    <Fab
-      bottom={bottom}
-      onClick={() => openSettings()}
-      aria-label={
-        hasIssue ? "Settings (something needs attention)" : "Settings"
-      }
+    <Tooltip
+      text={hasIssue ? "Something in settings needs attention" : "Settings"}
     >
-      <SettingsIcon />
-      {hasIssue && <StatusDot aria-hidden="true" />}
-    </Fab>
+      <Fab
+        bottom={bottom}
+        onClick={() => openSettings()}
+        aria-label={
+          hasIssue ? "Settings (something needs attention)" : "Settings"
+        }
+      >
+        <SettingsIcon />
+        {hasIssue && <StatusDot aria-hidden="true" />}
+      </Fab>
+    </Tooltip>
   );
 }
 
