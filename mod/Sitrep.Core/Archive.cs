@@ -177,6 +177,36 @@ namespace Sitrep.Core
             return copy;
         }
 
+        /// <summary>How many samples are held across every topic, and on how many topics, for a memory census.</summary>
+        internal (long Samples, int Topics, int Cursors) CensusCounts()
+        {
+            long samples = 0;
+            foreach (var list in _samplesByTopic.Values)
+            {
+                samples += list.Count;
+            }
+            var cursors = 0;
+            foreach (var byVantage in _cursors.Values)
+            {
+                cursors += byVantage.Count;
+            }
+            return (samples, _samplesByTopic.Count, cursors);
+        }
+
+        /// <summary>The topic holding the most samples and how many, or null with nothing held, for a memory census.</summary>
+        internal (string Topic, int Samples)? CensusLargestTopic()
+        {
+            (string, int)? largest = null;
+            foreach (var entry in _samplesByTopic)
+            {
+                if (largest == null || entry.Value.Count > largest.Value.Item2)
+                {
+                    largest = (entry.Key, entry.Value.Count);
+                }
+            }
+            return largest;
+        }
+
         /// <summary>
         /// Record a SCET-stamped sample for <paramref name="topic"/>, valid as
         /// of <paramref name="validAtUt"/>, tagged with <paramref name="epoch"/>

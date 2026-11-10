@@ -48,6 +48,34 @@ namespace Sitrep.Core.Tests
         }
 
         [Fact]
+        public void ATimeAxisMovedBackByMoreThanAWindowStartsTheWindowAfresh()
+        {
+            var warnings = new List<string>();
+            var budget = new PerfBudget("rewound", threshold: 10, windowSec: 1.0, warn: warnings.Add);
+
+            budget.Record(1, at: 500.0);
+            for (var i = 0; i < 30; i++)
+            {
+                budget.Record(1, at: 100.0 + i * 0.5);
+            }
+
+            Assert.Empty(warnings);
+            Assert.Equal(0, budget.ExceedanceCount);
+            Assert.Equal(3, budget.Rate(114.5));
+        }
+
+        [Fact]
+        public void ATimeAxisMovedBackWithinAWindowKeepsTheWindow()
+        {
+            var budget = new PerfBudget("jitter", threshold: 100, windowSec: 1.0);
+
+            budget.Record(1, at: 10.0);
+            budget.Record(1, at: 9.5);
+
+            Assert.Equal(2, budget.Rate(10.0));
+        }
+
+        [Fact]
         public void OldSamplesRollOffTheWindow()
         {
             var budget = new PerfBudget("rolling", threshold: 100, windowSec: 1.0);

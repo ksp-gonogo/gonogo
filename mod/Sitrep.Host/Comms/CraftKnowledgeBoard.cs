@@ -104,6 +104,17 @@ namespace Sitrep.Host.Comms
         /// <param name="centreId">The centre's id.</param>
         public delegate IReadOnlyList<LineChange>? LineCrossing(string objectId, string centreId, double fromUt, double toUt);
 
+        /// <summary>Courier thread: the sight samples held over every centre and craft pair, and how many pairs, for a memory census.</summary>
+        internal (long Samples, int Pairs) CensusCounts()
+        {
+            long samples = 0;
+            foreach (var list in _samples.Values)
+            {
+                samples += list.Count;
+            }
+            return (samples, _samples.Count);
+        }
+
         /// <summary>
         /// Courier thread: forgets everything, on a timeline reset. Every centre
         /// then knows nothing of any craft until the next look rebuilds the board.

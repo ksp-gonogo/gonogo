@@ -1423,6 +1423,9 @@ namespace Sitrep.Host
         /// </summary>
         public TopicCadence Cadence { get; } = new TopicCadence();
 
+        /// <summary>The memory census, logged on an interval once a development tool turns it on. See <see cref="MemoryCensus"/>.</summary>
+        public MemoryCensus Census { get; } = new MemoryCensus();
+
         /// <summary>Per-topic publish cost, logged on an interval once a development tool turns it on. See <see cref="TopicPublishStats"/>.</summary>
         public TopicPublishStats PublishStats { get; } = new TopicPublishStats();
 
@@ -2148,6 +2151,43 @@ namespace Sitrep.Host
                 windowSec: 1.0,
                 unit: "evaluations",
                 warn: LogHost);
+
+            AddEngineCensus();
+        }
+
+        /// <summary>The engine's own long-lived collections, counted on the Courier thread that owns them.</summary>
+        private void AddEngineCensus()
+        {
+            Census.Add(string.Empty, () => _courier.CensusDescribe());
+            Census.Add("clock.pending", () => _clock.PendingCount);
+            Census.Add("channels", () => _channelSources.Count);
+            Census.Add("declarations", () => _channelDeclarations.Count);
+            Census.Add("standing", () => _standingSubscriptions.Count);
+            Census.Add("warm", () => _lastWarmUt.Count);
+            Census.Add("born", () => _born.Count);
+            Census.Add("recordings", () => _recordings.Count);
+            Census.Add("heldBytes", () => HeldTotalBytes);
+            Census.Add("reveal", () =>
+            {
+                long buffered = 0;
+                foreach (var list in _revealBuffer.Values)
+                {
+                    buffered += list.Count;
+                }
+                return buffered;
+            });
+            Census.Add("unknownDelay", () => _heldForUnknownDelay.Count);
+            Census.Add("uplinkDelayHistory", () =>
+            {
+                long entries = 0;
+                foreach (var list in _uplinkDelayHistory.Values)
+                {
+                    entries += list.Count;
+                }
+                return entries;
+            });
+            Census.Add("pendingUplinks", () => _pending.Count + _settled.Count);
+            Census.Add("spans", () => _delivery?.Spans().Count ?? 0);
         }
 
         /// <summary>
@@ -11138,6 +11178,7 @@ namespace Sitrep.Host
             }
             ReportSlowTick(tick, timing);
             ReportPublishStats();
+            ReportCensus();
             // Before the barrier opens: a caller released by it offers the game's UT
             // next, and a stale due time would make that offer queue nothing.
             Volatile.Write(ref _nextDueUt, _clock.NextDueUt);
@@ -11145,6 +11186,19 @@ namespace Sitrep.Host
         }
 
         /// <summary>Log the window of per-topic publish cost that has just closed, when recording is on and the interval has elapsed.</summary>
+        private void ReportCensus()
+        {
+            if (!Census.Enabled)
+            {
+                return;
+            }
+            var line = Census.TryTakeReport(System.Diagnostics.Stopwatch.GetTimestamp());
+            if (line != null)
+            {
+                LogHostInfo(line);
+            }
+        }
+
         private void ReportPublishStats()
         {
             if (!PublishStats.Enabled)

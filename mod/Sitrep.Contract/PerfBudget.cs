@@ -72,6 +72,7 @@ namespace Sitrep.Contract
         /// </summary>
         public void Record(double amount, double at)
         {
+            ForgetIfRewound(at);
             _events.Add((at, amount));
             _currentSum += amount;
             Trim(at);
@@ -92,8 +93,27 @@ namespace Sitrep.Contract
         /// <summary>The windowed total as of <paramref name="at"/>, in the budget's unit.</summary>
         public double Rate(double at)
         {
+            ForgetIfRewound(at);
             Trim(at);
             return _currentSum;
+        }
+
+        /*
+         * Trimming drops from the front while the oldest event is older than the window,
+         * so an event stamped after `at` blocks it. Time that has moved back by more
+         * than a window (a reloaded save, on a UT axis) would otherwise leave every
+         * later event in the window until the axis caught up again, and the total
+         * would climb by one per record the whole way.
+         */
+        private void ForgetIfRewound(double at)
+        {
+            if (_events.Count == 0 || !(at + _windowSec < _events[_events.Count - 1].At))
+            {
+                return;
+            }
+            _events.Clear();
+            _currentSum = 0;
+            _lastWarnAt = double.NegativeInfinity;
         }
 
         private void Trim(double at)
