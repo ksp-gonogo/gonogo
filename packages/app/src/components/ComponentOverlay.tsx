@@ -403,16 +403,14 @@ export function ComponentOverlay({
   return (
     <>
       <FabClusterToggle />
-      <Tooltip text="Add widget (Ctrl/Cmd+K)">
-        <Fab
-          bottom={bottom}
-          onClick={() => setOpen(true)}
-          aria-label="Add widget"
-          aria-keyshortcuts="Control+K Meta+K"
-        >
-          <PlusIcon />
-        </Fab>
-      </Tooltip>
+      <Fab
+        bottom={bottom}
+        onClick={() => setOpen(true)}
+        aria-label="Add widget"
+        aria-keyshortcuts="Control+K Meta+K"
+      >
+        <PlusIcon />
+      </Fab>
 
       {open && (
         <Backdrop onClick={closeOverlay}>

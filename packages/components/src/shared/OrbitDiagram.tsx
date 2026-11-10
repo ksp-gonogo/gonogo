@@ -536,6 +536,8 @@ function OrbitDiagramScene({
   const spreadPath = containerSize
     ? spreadArc(spread, sma, ecc, vbPerPx)
     : null;
+  // Never smaller than the drawn dot, and 24 CSS pixels across so a pointer finds it.
+  const hitR = Math.max(dotR, APSIS_HIT_PX * 0.5 * vbPerPx);
   const labelOffset = Math.max(dotR * 2.5, labelPxSize * 0.7 * vbPerPx);
   // Labels are nudged radially outward, so a marker below the body never puts its label inside it.
   function radialOffset(p: { x: number; y: number }): {
@@ -760,19 +762,37 @@ function OrbitDiagramScene({
               <>
                 {/* A hyperbola has no apoapsis, and a sentinel would put a focus target off-screen. */}
                 {!isHyperbolic && (
-                  <ApsisMarker
-                    cx={-apoapsis}
-                    cy={0}
-                    r={dotR}
-                    fill="var(--color-apoapsis-mark)"
-                    aria-label={`Apoapsis altitude ${formatAltitude(apoapsis, bodyRadius, unitSize)}`}
-                    onMouseEnter={() => setHoveredMarker("ap")}
-                    onMouseLeave={() => setHoveredMarker(null)}
-                    onFocus={() => setHoveredMarker("ap")}
-                    onBlur={() => setHoveredMarker(null)}
-                    tabIndex={0}
-                  />
+                  <>
+                    <ApsisHit
+                      cx={-apoapsis}
+                      cy={0}
+                      r={hitR}
+                      data-apsis-hit="ap"
+                      onMouseEnter={() => setHoveredMarker("ap")}
+                      onMouseLeave={() => setHoveredMarker(null)}
+                    />
+                    <ApsisMarker
+                      cx={-apoapsis}
+                      cy={0}
+                      r={dotR}
+                      fill="var(--color-apoapsis-mark)"
+                      aria-label={`Apoapsis altitude ${formatAltitude(apoapsis, bodyRadius, unitSize)}`}
+                      onMouseEnter={() => setHoveredMarker("ap")}
+                      onMouseLeave={() => setHoveredMarker(null)}
+                      onFocus={() => setHoveredMarker("ap")}
+                      onBlur={() => setHoveredMarker(null)}
+                      tabIndex={0}
+                    />
+                  </>
                 )}
+                <ApsisHit
+                  cx={periapsis}
+                  cy={0}
+                  r={hitR}
+                  data-apsis-hit="pe"
+                  onMouseEnter={() => setHoveredMarker("pe")}
+                  onMouseLeave={() => setHoveredMarker(null)}
+                />
                 <ApsisMarker
                   cx={periapsis}
                   cy={0}
@@ -959,6 +979,14 @@ function formatAltitude(
 ): string {
   return writeQuantity(value("m", (radius - (bodyRadius ?? 0)) * unitSize));
 }
+
+/** Width of the pointer target around an apsis marker, in CSS pixels. */
+const APSIS_HIT_PX = 24;
+
+const ApsisHit = styled.circle.attrs({ "aria-hidden": true })`
+  fill: transparent;
+  pointer-events: all;
+`;
 
 const ApsisMarker = styled.circle.attrs<{ r: number | string }>(({ r }) => ({
   // A bare <circle> may not carry an aria-label; role="img" permits it.

@@ -5,7 +5,7 @@ import {
   StatusIndicator,
   useModal,
 } from "@ksp-gonogo/ui";
-import { Cluster, NULL_DISPLAY, Stack, Tooltip } from "@ksp-gonogo/ui-kit";
+import { Cluster, NULL_DISPLAY, Stack } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import type { ConnStatus } from "../peer/PeerClientService";
 
@@ -29,11 +29,9 @@ export function StationConnectionFab(props: Props) {
     open(<StationConnectionPanel {...props} />, { title: "Connection" });
   };
   return (
-    <Tooltip text="Connection">
-      <Fab bottom={props.bottom} onClick={handleClick} aria-label="Connection">
-        <BroadcastIcon />
-      </Fab>
-    </Tooltip>
+    <Fab bottom={props.bottom} onClick={handleClick} aria-label="Connection">
+      <BroadcastIcon />
+    </Fab>
   );
 }
 

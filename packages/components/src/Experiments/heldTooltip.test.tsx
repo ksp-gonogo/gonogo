@@ -1,5 +1,11 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
-import { act, fireEvent, render, screen } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ExperimentsComponent } from "./index";
@@ -52,7 +58,9 @@ describe("Experiments: the stored-data total's tooltips", () => {
       document.querySelector("[data-figure]") as HTMLElement,
     );
 
-    expect(openTips()).toEqual([expect.stringMatching(/^OFFLINE, as of /)]);
+    await waitFor(() =>
+      expect(openTips()).toEqual([expect.stringMatching(/^OFFLINE, as of /)]),
+    );
   });
 
   it("opens the meaning of the figure while it is current", async () => {
@@ -65,6 +73,8 @@ describe("Experiments: the stored-data total's tooltips", () => {
       ) as HTMLElement,
     );
 
-    expect(openTips()).toEqual(["Total stored science data (mits)"]);
+    await waitFor(() =>
+      expect(openTips()).toEqual(["Total stored science data (mits)"]),
+    );
   });
 });

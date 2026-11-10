@@ -7,7 +7,7 @@ import {
   StatusIndicator,
   useModal,
 } from "@ksp-gonogo/ui";
-import { Cluster, Tooltip } from "@ksp-gonogo/ui-kit";
+import { Cluster } from "@ksp-gonogo/ui-kit";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
@@ -48,15 +48,13 @@ export function InviteFab({
 }) {
   const { open } = useModal();
   return (
-    <Tooltip text="Invite">
-      <Fab
-        bottom={bottom}
-        onClick={() => open(<InvitePanel code={code} />, { title: "Invite" })}
-        aria-label="Invite"
-      >
-        <BroadcastIcon />
-      </Fab>
-    </Tooltip>
+    <Fab
+      bottom={bottom}
+      onClick={() => open(<InvitePanel code={code} />, { title: "Invite" })}
+      aria-label="Invite"
+    >
+      <BroadcastIcon />
+    </Fab>
   );
 }
 
