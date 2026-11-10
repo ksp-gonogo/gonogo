@@ -183,4 +183,26 @@ describe("ActionGroup tiny mode", () => {
     await screen.findByRole("button", { name: "Toggle SAS" });
     expect(document.querySelector("[data-tiny-essential]")).toBeNull();
   });
+
+  it("a Stage tile reads the stage the next press fires, the same number the body draws", async () => {
+    const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
+    renderWidget("action-group", {
+      w: 2,
+      h: 2,
+      config: { actionGroupId: "Stage" },
+      wrapper: fixture.Provider,
+    });
+    act(() => {
+      fixture.emit("vessel.control", {
+        sasMode: 0,
+        throttle: 0,
+        actionGroups: [],
+      });
+      fixture.emit("vessel.structure", { currentStage: 2 });
+      fixture.emit("comms.link", { connected: true });
+      fixture.emit("time.warp", { paused: false });
+    });
+    const button = await screen.findByRole("button", { name: "Toggle Stage" });
+    expect(button).toHaveTextContent("1");
+  });
 });

@@ -4,6 +4,7 @@ import { stillTrue, type TinyEssential } from "@ksp-gonogo/sitrep-sdk";
 import { STREAM_DOWN_TIP, useStatusContribution } from "@ksp-gonogo/ui-kit";
 import type { ActionGroupConfig } from "./config";
 import { groupStateOf, heldPressCaption } from "./groupState";
+import { stagePressValue } from "./stagePressValue";
 import { useGroupToggle } from "./useGroupToggle";
 
 /**
@@ -28,7 +29,7 @@ export function useActionGroupEssentials(
     ...(isStage
       ? {
           ...state,
-          value: stillTrue(structure, undefined)?.currentStage,
+          value: stagePressValue(stillTrue(structure, undefined)?.currentStage),
           valueHeld: false,
           valueLate: false,
           stateUnreadable: false,

@@ -5,12 +5,12 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
-import { stageToFire } from "../shared/stageToFire";
 import { ActionGroupConfigForm } from "./ActionGroupConfigForm";
 import { ActionGroupView } from "./ActionGroupView";
 import read from "./action-group.declarations.g";
 import { type ActionGroupConfig, actionGroupActions } from "./config";
 import { groupStateOf } from "./groupState";
+import { stagePressValue } from "./stagePressValue";
 import "./slots";
 import { useActionGroupEssentials } from "./useActionGroupEssentials";
 
@@ -53,10 +53,6 @@ function ActionGroupComponent(
 }
 
 /** The Stage-only leg: see {@link ActionGroupComponent}. */
-function stagePressValue(currentStage: number | undefined) {
-  return currentStage === undefined ? undefined : stageToFire(currentStage);
-}
-
 function StageActionGroup({
   group,
   ...props
