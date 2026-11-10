@@ -5,6 +5,7 @@ export default {
     "comms.network",
     "system.frame",
     "system.uplink.pending",
+    "system.uplinkHealth",
     "trackingStation.catalog",
     "vessel.comms",
     "vessel.crew",
@@ -13,5 +14,8 @@ export default {
     "vessel.target",
   ],
   optionalChannelFamilies: ["trackingStation.vessel.<guid>.link"],
-  commands: ["trackingStation.catalog.dismiss"],
+  commands: [
+    "trackingStation.catalog.dismiss",
+    "vessel.trajectory.fromLastKnown",
+  ],
 } as const;

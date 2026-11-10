@@ -32,6 +32,7 @@ namespace Sitrep.Propagation
         {
             if (provider == null) throw new ArgumentNullException(nameof(provider));
 
+            // Accurate: an approach past either span the provider vouches for is withheld below.
             var approach = provider.SolveClosestApproach(subject, other, frame, fromUt, toUt);
             if (approach == null)
             {

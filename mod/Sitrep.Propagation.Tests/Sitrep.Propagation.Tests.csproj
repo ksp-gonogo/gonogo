@@ -22,5 +22,6 @@
   <ItemGroup>
     <ProjectReference Include="../Sitrep.Propagation/Sitrep.Propagation.csproj" />
     <ProjectReference Include="../Sitrep.Core/Sitrep.Core.csproj" />
+    <ProjectReference Include="../Sitrep.Contract.TestSupport/Sitrep.Contract.TestSupport.csproj" />
   </ItemGroup>
 </Project>

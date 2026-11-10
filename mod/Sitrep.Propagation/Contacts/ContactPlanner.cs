@@ -658,6 +658,7 @@ namespace Sitrep.Propagation.Contacts
             var carried = new List<PlanNode>(nodes.Count);
             foreach (var node in nodes)
             {
+                // Accurate: a node the provider will not vouch for across the plan is left out.
                 if (node.Orbit == null || propagator.CanPropagate(node.Orbit.Value, frame, fromUt, horizonUt))
                 {
                     carried.Add(node);

@@ -75,6 +75,8 @@ import type {
   HostStationCheckReply,
   HostTokenArgs,
   InvokePartActionArgs,
+  LastKnownPathReply,
+  LastKnownPathRequest,
   LaunchArgs,
   LoadScheduled,
   NoCommandArgs,
@@ -297,6 +299,8 @@ export interface GeneratedCommandArgsMap {
   "vessel.target.clear": NoCommandArgs;
   /** Set the active vessel's target. */
   "vessel.target.set": SetTargetArgs;
+  /** Where the active craft goes from the state this command centre last heard. */
+  "vessel.trajectory.fromLastKnown": LastKnownPathRequest;
 }
 
 export interface GeneratedCommandReplyMap {
@@ -474,6 +478,8 @@ export interface GeneratedCommandReplyMap {
   "vessel.target.clear": CommandResult;
   /** Set the active vessel's target. */
   "vessel.target.set": CommandResult;
+  /** Where the active craft goes from the state this command centre last heard. */
+  "vessel.trajectory.fromLastKnown": LastKnownPathReply;
 }
 
 /**
@@ -574,6 +580,7 @@ export const GENERATED_COMMAND_REPLY_TYPES = {
   "vessel.resource.transfer.stop": "CommandResult",
   "vessel.target.clear": "CommandResult",
   "vessel.target.set": "CommandResult",
+  "vessel.trajectory.fromLastKnown": "LastKnownPathReply",
 } as const satisfies Record<string, string>;
 
 /**
@@ -709,6 +716,7 @@ export const GENERATED_COMMAND_RAIL = {
   "vessel.resource.transfer.stop": { replies: true, delayed: true },
   "vessel.target.clear": { replies: true, delayed: true },
   "vessel.target.set": { replies: true, delayed: true },
+  "vessel.trajectory.fromLastKnown": { replies: true, delayed: false },
 } as const satisfies Record<string, GeneratedCommandRail>;
 
 export const GENERATED_COMMAND_IDS = [
@@ -799,4 +807,5 @@ export const GENERATED_COMMAND_IDS = [
   "vessel.resource.transfer.stop",
   "vessel.target.clear",
   "vessel.target.set",
+  "vessel.trajectory.fromLastKnown",
 ] as const;
