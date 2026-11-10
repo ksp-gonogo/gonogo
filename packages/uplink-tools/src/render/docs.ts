@@ -676,8 +676,8 @@ function modelTable(inputs: DocsInputs): string[] {
       "forward model",
       `\`${id}\``,
     ]),
-    ...inputs.inventory.derivedChannels.map((id) => [
-      "derived channel",
+    ...inputs.inventory.publishedTopics.map((id) => [
+      "published Topic",
       `\`${id}\``,
     ]),
   ];

@@ -46,7 +46,7 @@ function flightFrame(altitudeAsl: number, ut: number): string {
 
 /**
  * Frames in the shape a real `StreamRecorder` capture carries: raw wire
- * topics only. A client-side derived channel such as `spaceCenter.state`
+ * topics only. A client-side published processor such as `spaceCenter.state`
  * never appears in a recording, so a fixture that invents a frame on one
  * exercises the raw-record path and can never reach the derivation the live
  * graph actually uses. `spaceCenter.launchSites` is that derivation's input.
@@ -322,10 +322,10 @@ describe("MissionHistorySource", () => {
     });
 
     /**
-     * `spaceCenter.state` is a derived channel over the raw
+     * `spaceCenter.state` is a published processor over the raw
      * `spaceCenter.launchSites` record. Two things have to hold: the
-     * full-history store must register the production derived channels, and
-     * `queryRange` must read a derived topic through `sampleDerivedRange`
+     * full-history store must register the production published processors, and
+     * `queryRange` must read a derived topic through `sampleProcessorRange`
      * (`sampleRange` returns `undefined` for one by construction). Either
      * failure collapses onto `{ t: [], v: [] }`, the same answer as "this
      * recording holds no data for that key", which is why the graph's "No

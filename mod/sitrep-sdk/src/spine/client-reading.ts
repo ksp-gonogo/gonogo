@@ -226,7 +226,7 @@ export function readingFrom<Payload>(
    * `owner` is which registered owner's model this is, stamped onto the reckoning
    * so a caller can tell core's vanilla from an Uplink's without reading the
    * numbers and guessing. It defaults to `"core"` because every model that
-   * reaches here without one is core's own: a derived channel's label, or a field
+   * reaches here without one is core's own: a published processor's label, or a field
    * read borrowing its record's.
    *
    * `declined` is the caller's answer for a topic whose contract declares a value

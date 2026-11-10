@@ -80,7 +80,7 @@ function formatCommand(command: string, args: unknown): string {
  * `t.currentRateIndex`/`t.currentRate` merge into a running `WarpState` and
  * re-publish the whole `time.warp` record (the wire shape `getWarpState`
  * reads), and every other key routes through `mapTopic` onto its stream
- * topic: emitted as a bare literal topic (no derived-channel machinery
+ * topic: emitted as a bare literal topic (no published-processor machinery
  * needed; `AlarmHostService` never reads orbit fields).
  */
 function fakeTelemetry(): FakeTelemetry {

@@ -140,11 +140,11 @@ export class MissionHistorySource implements DataSource {
     // `undefined` for one by construction. Calling it for every mapped key
     // landing on `spaceCenter.state.*` or `system.state.*` answers with an empty series,
     // which the graph renders as "No recorded samples": the same words it uses for a
-    // recording that genuinely holds nothing. `sampleDerivedRange` replays the
-    // channel's `derive()` over its raw inputs' own buffered ranges instead,
+    // recording that genuinely holds nothing. `sampleProcessorRange` replays the
+    // processor's `compute` over its raw inputs' own buffered ranges instead,
     // the branch `useDataSeries` already takes for the live window.
-    const points = store.isDerivedTopic(topic)
-      ? store.sampleDerivedRange(topic, fromUt, toUt)
+    const points = store.isProcessorTopic(topic)
+      ? store.sampleProcessorRange(topic, fromUt, toUt)
       : store.sampleRange(topic, fromUt, toUt);
     if (!points) return { t: [], v: [] };
     return {

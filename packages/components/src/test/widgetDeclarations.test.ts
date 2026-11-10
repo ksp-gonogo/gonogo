@@ -55,7 +55,7 @@ describe("widget dataRequirements resolve to something real", () => {
       "field-path",
     );
     expect(classifyRequirement("career.status")).toBe("wire-topic");
-    expect(classifyRequirement("spaceCenter.state")).toBe("derived-channel");
+    expect(classifyRequirement("spaceCenter.state")).toBe("published-topic");
     // A retired flat-vocabulary key has nothing to resolve against.
     expect(classifyRequirement("career.funds")).toBeUndefined();
   });

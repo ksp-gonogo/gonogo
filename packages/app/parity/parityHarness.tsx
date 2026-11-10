@@ -9,8 +9,8 @@ import {
   ScreenProvider,
 } from "@ksp-gonogo/core";
 import {
+  CORE_PUBLISHED_PROCESSORS,
   DYNAMIC_WHOLE_TOPIC_PREFIXES,
-  PRODUCTION_DERIVED_CHANNELS,
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
@@ -137,8 +137,8 @@ function buildScreen(
   const store = new TimelineStore(clock, {
     dynamicWholeTopicPrefixes: DYNAMIC_WHOLE_TOPIC_PREFIXES,
   });
-  for (const channel of PRODUCTION_DERIVED_CHANNELS) {
-    store.registerDerivedChannel(channel);
+  for (const processor of CORE_PUBLISHED_PROCESSORS) {
+    store.publishProcessor(processor);
   }
   if (pinnedUt !== undefined) {
     clock.scrubTo(pinnedUt);

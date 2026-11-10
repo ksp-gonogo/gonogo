@@ -50,7 +50,7 @@ function emitCareer(fixture: ReturnType<typeof setupStreamFixture>): void {
       scene: "SpaceCenter",
       launchSite: "LaunchPad",
     });
-    // Occupancy-only launch-site entry feeding the `spaceCenter.state` derived channel.
+    // Occupancy-only launch-site entry feeding the `spaceCenter.state` published processor.
     fixture.emit("spaceCenter.launchSites", [
       { name: "__pad_occupancy__", padOccupied: false, padVesselTitle: null },
     ]);

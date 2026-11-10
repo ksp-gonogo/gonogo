@@ -91,7 +91,7 @@ export * from "./replaySession/ReplaySessionProvider";
 export { registerBuiltinDerivedKeys } from "./schema/builtinDerivedKeys";
 export {
   getCollectionTopics,
-  getDerivedTopicIds,
+  getPublishedTopicIds,
   getTopicFieldCatalog,
   getUndescribedTopics,
   humaniseFieldPath,

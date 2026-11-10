@@ -47,7 +47,7 @@ const INVENTORY: UplinkInventory = {
   processorTopicDeps: {},
   reckonedTopics: [],
   reckonerExemptions: [],
-  derivedChannels: [],
+  publishedTopics: [],
   hosts: [
     {
       id: "probe-host",

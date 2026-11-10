@@ -84,7 +84,7 @@ export interface UplinkSpec {
   models: {
     processors: string[];
     forwardModels: string[];
-    derivedChannels: string[];
+    publishedTopics: string[];
     inputRuleExemptions: InventoryReckonerExemption[];
   };
   /** The refusal refinements it answers with. */
@@ -141,7 +141,7 @@ export function buildUplinkSpec(
     models: {
       processors: [...inventory.processors].sort(),
       forwardModels: [...inventory.reckonedTopics].sort(),
-      derivedChannels: [...inventory.derivedChannels].sort(),
+      publishedTopics: [...inventory.publishedTopics].sort(),
       inputRuleExemptions: [...inventory.reckonerExemptions].sort((a, b) =>
         a.topic.localeCompare(b.topic),
       ),

@@ -12,7 +12,8 @@ import {
   ScreenProvider,
 } from "@ksp-gonogo/core";
 import {
-  systemUplinkHealthChannel,
+  publishedDefinitionOf,
+  SYSTEM_UPLINK_HEALTH,
   TelemetryClient,
   TelemetryProvider,
   TimelineStore,
@@ -183,7 +184,7 @@ function makeOtherSourceStub(id: string, name: string): DataSource {
 
 /**
  * Mounts a real `TelemetryProvider` (a `TimelineStore` with
- * `systemUplinkHealthChannel` registered, over a `StubTransport`) around
+ * `SYSTEM_UPLINK_HEALTH` published, over a `StubTransport`) around
  * `SettingsModal`: mirrors `telemetry-components.test.tsx`'s
  * `setupTelemetryStream` helper. `emit` pushes a raw `system.uplinks`
  * stream-data frame once something mounted has subscribed to it.
@@ -198,7 +199,7 @@ function setupTelemetryStream() {
     delaySeconds: () => 0,
   });
   const store = new TimelineStore(clock);
-  store.registerDerivedChannel(systemUplinkHealthChannel);
+  store.publishProcessor(publishedDefinitionOf(SYSTEM_UPLINK_HEALTH));
 
   function Provider({ children }: { children: ReactNode }) {
     return (

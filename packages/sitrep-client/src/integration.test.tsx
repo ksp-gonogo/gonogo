@@ -85,7 +85,7 @@ describe("sitrep-client end-to-end spine", () => {
    * Written to settle a specific accusation: a channel recorded zero frames in
    * a 20 s live capture where its input delivered, and an enumeration of the
    * mod's emission path narrowed the cause to "no subscriber", leaving open
-   * whether the spine propagates a subscription for a derived channel's input
+   * whether the spine propagates a subscription for a published processor's input
    * at all. It does. The assertions below fail if that stops being true, on
    * the whole chain (provider, client, ref-count, transport) rather than on
    * `resolveSubscriptionTopics` in isolation.

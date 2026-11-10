@@ -121,6 +121,7 @@ export { RealTimeClock } from "./clock";
 export type { CommsLinkLike } from "./connectivity-history";
 export { ConnectivityHistory } from "./connectivity-history";
 export {
+  CORE_PUBLISHED_PROCESSORS,
   type DispatchActiveCommandResult,
   type DispatchCommandRefusal,
   dispatchActiveCommandTopic,
@@ -137,7 +138,6 @@ export {
   getWarpState,
   holdActiveTopicRead,
   onActiveTimelineFrame,
-  PRODUCTION_DERIVED_CHANNELS,
   sampleActiveReading,
   sampleActiveTopic,
   setActiveTelemetryClientForTests,
@@ -159,14 +159,6 @@ export {
   useViewUt,
   type ViewClockView,
 } from "./context";
-export type { ContributedChannelConflict } from "./contributed-channels";
-export {
-  clearContributedDerivedChannels,
-  contributeDerivedChannel,
-  getContributedChannelConflicts,
-  getContributedDerivedChannels,
-  onContributedChannelsChange,
-} from "./contributed-channels";
 export type {
   ControlRange,
   ControlSample,
@@ -211,10 +203,10 @@ export {
 } from "./delta-v-budget";
 export type { ResourceAmountMap } from "./dv-stage-resources";
 export {
+  DV_CURRENT_STAGE_RESOURCE,
+  DV_CURRENT_STAGE_RESOURCE_MAX,
   deriveCurrentStageResourceCurrent,
   deriveCurrentStageResourceMax,
-  dvCurrentStageResourceChannel,
-  dvCurrentStageResourceMaxChannel,
 } from "./dv-stage-resources";
 export { buildFullHistoryStore, InstantClock } from "./full-history-replay";
 export type { HeartbeatTrackerOptions } from "./heartbeat-tracker";
@@ -363,9 +355,16 @@ export {
   defineProcessor,
   getAllProcessors,
   getProcessor,
+  getPublishedProcessors,
+  getPublishedTopicConflicts,
+  getPublishedTopics,
+  onPublishedProcessorsChange,
   type ProcessorDefinition,
   type ProcessorFrame,
   type ProcessorHandle,
+  type PublishedProcessorDefinition,
+  type PublishedTopicConflict,
+  publishedDefinitionOf,
   type ReadingDep,
   type ResolvedDeps,
 } from "./processors";
@@ -420,7 +419,7 @@ export { ReplayTransport } from "./replay-transport";
 export type { SpaceCenterState } from "./space-center-state";
 export {
   deriveSpaceCenterState,
-  spaceCenterStateChannel,
+  SPACE_CENTER_STATE,
 } from "./space-center-state";
 export type { StreamStatusValue } from "./stream-status";
 export { worstStatus } from "./stream-status";
@@ -430,12 +429,10 @@ export type {
 } from "./subscribe-read";
 export { subscribeTopicRead } from "./subscribe-read";
 export type { SystemState } from "./system-state";
-export { deriveSystemState, systemStateChannel } from "./system-state";
+export { deriveSystemState, SYSTEM_STATE } from "./system-state";
 export type { ClientTimelineOptions, TimelinePoint } from "./timeline";
 export { ClientTimeline } from "./timeline";
 export type {
-  DerivedChannelDefinition,
-  DerivedGet,
   FrameToken,
   GapModel,
   ReckonedBound,
@@ -471,7 +468,7 @@ export type {
 } from "./uplink-health";
 export {
   deriveSystemUplinkHealth,
-  systemUplinkHealthChannel,
+  SYSTEM_UPLINK_HEALTH,
 } from "./uplink-health";
 export {
   BODY_STATES_COMMAND,

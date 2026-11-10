@@ -2,6 +2,7 @@ import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { buildFullHistoryStore, InstantClock } from "./full-history-replay";
+import { defineProcessor } from "./processors";
 import type { ReplayFixture } from "./replay-transport";
 import { makeMeta } from "./stub-transport";
 
@@ -69,12 +70,12 @@ describe("buildFullHistoryStore", () => {
     ]);
   });
 
-  it("registers the production derived channels, so a derived read resolves off the raw topics a recording carries", () => {
+  it("registers the production published processors, so a derived read resolves off the raw topics a recording carries", () => {
     // A recording carries raw wire topics only: nothing ever publishes a
     // `system.state` frame. Without the registration this store resolves the
     // topic through the raw-field-subtopic fallback, finds no record, and
     // answers `undefined`: identical to "the recording holds nothing for that
-    // key", which is why the gap survived. `isDerivedTopic` is the distinction
+    // key", which is why the gap survived. `isProcessorTopic` is the distinction
     // the answer alone cannot carry.
     const fixture: ReplayFixture = {
       subscribedTopics: ["trackingStation.bodies"],
@@ -99,8 +100,8 @@ describe("buildFullHistoryStore", () => {
 
     const store = buildFullHistoryStore(fixture);
 
-    expect(store.isDerivedTopic("system.state.bodyCount")).toBe(true);
-    const points = store.sampleDerivedRange<number>(
+    expect(store.isProcessorTopic("system.state.bodyCount")).toBe(true);
+    const points = store.sampleProcessorRange<number>(
       "system.state.bodyCount",
       0,
       400,
@@ -113,6 +114,34 @@ describe("buildFullHistoryStore", () => {
       [0, 1],
       [400, 2],
     ]);
+  });
+
+  it("replays an Uplink's published processor as it does Gonogo's own", () => {
+    defineProcessor({
+      id: "body-sum",
+      owner: "history-uplink",
+      topic: "historyuplink.sum",
+      deps: ["trackingStation.bodies"],
+      compute: ([bodies]) => (bodies ? bodies.bodies.length + 1 : undefined),
+    });
+    const fixture: ReplayFixture = {
+      subscribedTopics: ["trackingStation.bodies"],
+      frames: [
+        frame(
+          "trackingStation.bodies",
+          { bodies: [{ name: "Kerbin", index: 1 }] },
+          0,
+        ),
+      ],
+    };
+
+    const store = buildFullHistoryStore(fixture);
+
+    expect(
+      store
+        .sampleProcessorRange<number>("historyuplink.sum", 0, 10)
+        ?.map((p) => p.payload),
+    ).toEqual([2]);
   });
 
   it("runs synchronously (no pending timers left behind)", () => {

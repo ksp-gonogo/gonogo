@@ -1,28 +1,6 @@
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import type { SystemBodiesPayload } from "@ksp-gonogo/sitrep-sdk/spine";
 import { describe, expect, it } from "vitest";
-import { derivedGetOf } from "./derived-get-fixture";
-import { makeMeta } from "./stub-transport";
 import { deriveSystemState } from "./system-state";
-import type { TimelinePoint } from "./timeline";
-import type { DerivedGet } from "./timeline-store";
-
-function bodiesPoint(
-  payload: SystemBodiesPayload | null,
-): TimelinePoint<SystemBodiesPayload> {
-  return {
-    validAt: 0,
-    payload,
-    meta: makeMeta({ validAt: 0, quality: Quality.OnRails, source: "system" }),
-    epoch: 0,
-  };
-}
-
-function fakeGet(
-  point: TimelinePoint<SystemBodiesPayload> | undefined,
-): DerivedGet {
-  return derivedGetOf({ "trackingStation.bodies": point });
-}
 
 const THREE_BODIES: SystemBodiesPayload = {
   bodies: [
@@ -34,22 +12,22 @@ const THREE_BODIES: SystemBodiesPayload = {
 
 describe("deriveSystemState: bodyCount (batch-2: b.number off the raw trackingStation.bodies array)", () => {
   it("counts the bodies in trackingStation.bodies", () => {
-    expect(deriveSystemState(fakeGet(bodiesPoint(THREE_BODIES)))).toEqual({
+    expect(deriveSystemState(THREE_BODIES)).toEqual({
       bodyCount: 3,
     });
   });
 
   it("reports 0 for an empty (but present) body array, a defined count, not resyncing", () => {
-    expect(deriveSystemState(fakeGet(bodiesPoint({ bodies: [] })))).toEqual({
+    expect(deriveSystemState({ bodies: [] })).toEqual({
       bodyCount: 0,
     });
   });
 
   it("undefined while trackingStation.bodies hasn't arrived (resyncing): never throws", () => {
-    expect(deriveSystemState(fakeGet(undefined))).toBeUndefined();
+    expect(deriveSystemState(undefined)).toBeUndefined();
   });
 
   it("null on a confirmed trackingStation.bodies tombstone", () => {
-    expect(deriveSystemState(fakeGet(bodiesPoint(null)))).toBeNull();
+    expect(deriveSystemState(null)).toBeNull();
   });
 });

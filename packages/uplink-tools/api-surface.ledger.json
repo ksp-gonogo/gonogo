@@ -548,6 +548,14 @@
         "note": "Removed with the manifest field: the inventory no longer reports a ui-kit version"
       },
       {
+        "key": "uplink-tools . ~UplinkInventory#derivedChannels",
+        "note": "The Uplink inventory names the Topics its processors publish, replacing the derived channel list"
+      },
+      {
+        "key": "uplink-tools . ~UplinkInventory#publishedTopics",
+        "note": "The Uplink inventory names the Topics its processors publish, replacing the derived channel list"
+      },
+      {
         "key": "uplink-tools ./render-probe InventoryWidget",
         "note": "InventoryWidget now extends WidgetRecord and adds only modes"
       },
@@ -610,6 +618,14 @@
       {
         "key": "uplink-tools ./render-probe UplinkCompat#uiKitVersion",
         "note": "Removed with the manifest field: the inventory no longer reports a ui-kit version"
+      },
+      {
+        "key": "uplink-tools ./render-probe UplinkInventory#derivedChannels",
+        "note": "The Uplink inventory names the Topics its processors publish, replacing the derived channel list"
+      },
+      {
+        "key": "uplink-tools ./render-probe UplinkInventory#publishedTopics",
+        "note": "The Uplink inventory names the Topics its processors publish, replacing the derived channel list"
       }
     ],
     "additions": [

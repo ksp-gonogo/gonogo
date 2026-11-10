@@ -1,7 +1,7 @@
 // Imported for the module-load side effect as much as for the value: this is what registers `spaceCenter.state`'s hand-declared field metadata.
 
 import { registerDynamicTopicPrefix } from "@ksp-gonogo/sitrep-sdk";
-import { spaceCenterStateChannel } from "@ksp-gonogo/sitrep-sdk/spine";
+import { SPACE_CENTER_STATE } from "@ksp-gonogo/sitrep-sdk/spine";
 import { describe, expect, it } from "vitest";
 import { isKnownFieldPath, mapTopic } from "./map-topic";
 
@@ -18,8 +18,8 @@ describe("isKnownFieldPath", () => {
     expect(isKnownFieldPath("career.status.balances.science")).toBe(true);
   });
 
-  it("still resolves a derived-channel field, which no contract type declares", () => {
-    void spaceCenterStateChannel;
+  it("still resolves a published-processor field, which no contract type declares", () => {
+    void SPACE_CENTER_STATE;
     expect(isKnownFieldPath("spaceCenter.state.padOccupied")).toBe(true);
   });
 

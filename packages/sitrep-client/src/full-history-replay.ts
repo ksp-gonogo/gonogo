@@ -2,7 +2,7 @@ import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { DYNAMIC_WHOLE_TOPIC_PREFIXES } from "@ksp-gonogo/sitrep-sdk";
 import { TelemetryClient } from "./client";
 import type { Clock } from "./clock";
-import { PRODUCTION_DERIVED_CHANNELS } from "./context";
+import { publishProcessorsOn } from "./context";
 import type { ReplayFixture } from "./replay-transport";
 import { ReplayTransport } from "./replay-transport";
 import { TimelineStore } from "./timeline-store";
@@ -126,7 +126,7 @@ export class InstantClock implements Pick<Clock, "now" | "schedule"> {
  *
  * That "zero divergence" has to cover what the store can resolve, not only
  * what it ingests. A recording carries raw wire topics and nothing else, so
- * without `PRODUCTION_DERIVED_CHANNELS` registered here every derived read
+ * without the published processors registered here every derived read
  * off this store (`spaceCenter.state.*`, `system.state.*`, and the rest)
  * answers `undefined`, which is the same answer as "this recording holds
  * nothing for that key".
@@ -141,9 +141,7 @@ export function buildFullHistoryStore(fixture: ReplayFixture): TimelineStore {
     // Match the live store: resolve the injected dynamic namespaces as whole topics so a full-history replay subscribes/samples the same wire strings.
     dynamicWholeTopicPrefixes: DYNAMIC_WHOLE_TOPIC_PREFIXES,
   });
-  for (const channel of PRODUCTION_DERIVED_CHANNELS) {
-    store.registerDerivedChannel(channel);
-  }
+  publishProcessorsOn(store);
 
   const instantClock = new InstantClock();
   // ReplayTransport arms its whole delivery schedule at construction time,

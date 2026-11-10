@@ -1,6 +1,6 @@
 import { isValue } from "../unit-system/value";
 import type { Value } from "../value";
-import type { DerivedChannelDefinition, DerivedGet } from "./timeline-store";
+import { CORE_UPLINK_CLIENT } from "./uplink-clients";
 
 /**
  * One resource's current/max amounts on the `dv.stages` wire array (mirrors
@@ -44,30 +44,29 @@ export type ResourceAmountMap = Record<string, Value<"units">>;
  * `r.resourceCurrentMax[X]` pair meant ("the currently active stage"), since a
  * raw-field-subtopic string can't express a dynamic array lookup keyed by
  * another topic's live value: the lookup has to happen here, in a real
- * `derive()` function, not as a static field path in `map-topic.ts`.
+ * processor, not as a static field path in `map-topic.ts`.
  *
  * `undefined` while `dv.stages` or `vessel.structure` hasn't arrived
  * (propagated from whichever input isn't whole yet); `null` when either is a
  * confirmed tombstone. Never throws.
  */
 function currentStageResources(
-  get: DerivedGet,
+  stagesPayload: readonly StageDeltaVWireEntry[] | null | undefined,
+  structure: VesselStructureWirePayload | null | undefined,
 ):
   | Record<string, StageResourceWireEntry | null | undefined>
   | null
   | undefined {
-  const stagesPoint = get<StageDeltaVWireEntry[]>("dv.stages");
-  if (!stagesPoint) return undefined;
-  if (stagesPoint.payload === null) return null;
+  if (stagesPayload === undefined) return undefined;
+  if (stagesPayload === null) return null;
 
-  const structurePoint = get<VesselStructureWirePayload>("vessel.structure");
-  if (!structurePoint) return undefined;
-  if (structurePoint.payload === null) return null;
+  if (structure === undefined) return undefined;
+  if (structure === null) return null;
 
-  const currentStage = structurePoint.payload.currentStage;
+  const currentStage = structure.currentStage;
   if (typeof currentStage !== "number") return {};
 
-  const stages = Array.isArray(stagesPoint.payload) ? stagesPoint.payload : [];
+  const stages = Array.isArray(stagesPayload) ? stagesPayload : [];
   const entries = stages.filter(
     (s): s is StageDeltaVWireEntry & { stage: number } =>
       !!s && typeof s === "object" && typeof s.stage === "number",
@@ -89,17 +88,18 @@ function currentStageResources(
 
 /**
  * The current amount of each resource in the active stage, keyed by resource
- * name, derived for the `dv.currentStageResource` channel. Useful for showing
+ * name, worked out for the `dv.currentStageResource` Topic. Useful for showing
  * the operator what the stage has left to burn. Used by
- * `dvCurrentStageResourceChannel`.
+ * {@link DV_CURRENT_STAGE_RESOURCE}.
  *
  * An entry whose `current` is not a finite number is left out, never replaced
  * by a `0`.
  */
 export function deriveCurrentStageResourceCurrent(
-  get: DerivedGet,
+  stages: readonly StageDeltaVWireEntry[] | null | undefined,
+  structure: VesselStructureWirePayload | null | undefined,
 ): ResourceAmountMap | null | undefined {
-  const resources = currentStageResources(get);
+  const resources = currentStageResources(stages, structure);
   if (resources === undefined || resources === null) return resources;
 
   const out: ResourceAmountMap = {};
@@ -113,17 +113,18 @@ export function deriveCurrentStageResourceCurrent(
 
 /**
  * The maximum amount of each resource in the active stage, keyed by resource
- * name, derived for the `dv.currentStageResourceMax` channel. Useful for showing
+ * name, worked out for the `dv.currentStageResourceMax` Topic. Useful for showing
  * the operator how full the stage's tanks were. Used by
- * `dvCurrentStageResourceChannel`.
+ * {@link DV_CURRENT_STAGE_RESOURCE_MAX}.
  *
  * An entry whose `max` is not a finite number is left out, as in
  * {@link deriveCurrentStageResourceCurrent}.
  */
 export function deriveCurrentStageResourceMax(
-  get: DerivedGet,
+  stages: readonly StageDeltaVWireEntry[] | null | undefined,
+  structure: VesselStructureWirePayload | null | undefined,
 ): ResourceAmountMap | null | undefined {
-  const resources = currentStageResources(get);
+  const resources = currentStageResources(stages, structure);
   if (resources === undefined || resources === null) return resources;
 
   const out: ResourceAmountMap = {};
@@ -136,27 +137,27 @@ export function deriveCurrentStageResourceMax(
 }
 
 /**
- * The derived channel for `dv.currentStageResource`, ready to register with
- * `store.registerDerivedChannel`. Useful for showing the operator the resources
- * of the active stage. Registered on the default store of `TelemetryProvider`
- * through `PRODUCTION_DERIVED_CHANNELS`.
- *
- * Its `fields: true` exposes `dv.currentStageResource.<name>` for each
- * resource. The channel's status is the worst across `dv.stages` and
- * `vessel.structure`, both of which are read on every call.
+ * The processor published as `dv.currentStageResource`. Useful for showing the
+ * operator the resources of the active stage. `fields` exposes
+ * `dv.currentStageResource.<name>` for each resource. Its status is the worst
+ * across `dv.stages` and `vessel.structure`.
  */
-export const dvCurrentStageResourceChannel: DerivedChannelDefinition<ResourceAmountMap> =
-  {
-    topic: "dv.currentStageResource",
-    inputs: ["dv.stages", "vessel.structure"],
-    derive: deriveCurrentStageResourceCurrent,
-    fields: true,
-  };
+export const DV_CURRENT_STAGE_RESOURCE = CORE_UPLINK_CLIENT.registerProcessor({
+  id: "dv-current-stage-resource",
+  topic: "dv.currentStageResource",
+  fields: true,
+  deps: ["dv.stages", "vessel.structure"],
+  compute: ([stages, structure]) =>
+    deriveCurrentStageResourceCurrent(stages, structure),
+});
 
-export const dvCurrentStageResourceMaxChannel: DerivedChannelDefinition<ResourceAmountMap> =
-  {
+/** The processor published as `dv.currentStageResourceMax`, the maximum amounts beside {@link DV_CURRENT_STAGE_RESOURCE}. */
+export const DV_CURRENT_STAGE_RESOURCE_MAX =
+  CORE_UPLINK_CLIENT.registerProcessor({
+    id: "dv-current-stage-resource-max",
     topic: "dv.currentStageResourceMax",
-    inputs: ["dv.stages", "vessel.structure"],
-    derive: deriveCurrentStageResourceMax,
     fields: true,
-  };
+    deps: ["dv.stages", "vessel.structure"],
+    compute: ([stages, structure]) =>
+      deriveCurrentStageResourceMax(stages, structure),
+  });

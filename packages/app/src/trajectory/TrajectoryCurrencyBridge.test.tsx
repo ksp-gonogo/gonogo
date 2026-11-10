@@ -29,7 +29,7 @@ const VIEW_UT = 1_000;
 /**
  * A real `TelemetryProvider` over a `StubTransport`, with the view clock pinned
  * so `useViewUt` answers `VIEW_UT`. Mirrors `scene-change-banner.test.tsx`:
- * `vessel.orbit` is a raw wire topic with no derived channel, so an emit plus a
+ * `vessel.orbit` is a raw wire topic with no published processor, so an emit plus a
  * synchronous `beginFrame()` is the whole setup.
  */
 function setupOrbitStream() {

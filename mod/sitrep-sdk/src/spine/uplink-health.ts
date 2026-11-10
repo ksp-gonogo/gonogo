@@ -1,7 +1,7 @@
-import type { DerivedChannelDefinition, DerivedGet } from "./timeline-store";
+import { CORE_UPLINK_CLIENT } from "./uplink-clients";
 
 /**
- * The `system.uplinks` derived reader: the client-side half of Uplink
+ * The `system.uplinkHealth` processor: the client-side half of Uplink
  * health self-reporting.
  * Each Uplink reports its own health via the mod-side
  * `Sitrep.Contract.ISitrepUplink.Health()`; the client never infers
@@ -12,7 +12,7 @@ import type { DerivedChannelDefinition, DerivedGet } from "./timeline-store";
  * report for every registered Uplink, self-reporting or not.
  *
  * Named distinctly from the raw wire topic (`system.uplinks` stays the raw
- * wire topic; this derived channel
+ * wire topic; this published processor
  * registers as `system.uplinkHealth`) for the same reason
  * `trackingStation.bodies` -> `system.state` are two different topic names: a derived
  * channel registered under the same name as its own input would recurse
@@ -205,7 +205,7 @@ export interface UplinkHealthEntry {
 /**
  * Every Uplink's health: the value of `system.uplinkHealth`. Useful for listing
  * which Uplinks are working. Used by the Uplinks settings in the Settings window.
- * It is a derived channel, one of {@link DERIVED_CHANNEL_IDS}, which the app works
+ * It is one of the {@link PUBLISHED_TOPIC_IDS}, which the app works
  * out from the `system.uplinks` Topic, so it is not in the list of Topics. Read it
  * with `useStream("system.uplinkHealth")`.
  *
@@ -237,25 +237,24 @@ function readContractVersion(
 /**
  * Derives `system.uplinkHealth` from `system.uplinks`. Useful for turning the
  * mod's health report into a list a widget can read. Used by
- * {@link systemUplinkHealthChannel}. The result is `undefined` while
+ * {@link SYSTEM_UPLINK_HEALTH}. The result is `undefined` while
  * `system.uplinks` has not arrived (still resyncing), `null` when it is a
  * confirmed tombstone, and otherwise the decoded per-Uplink array. Never throws:
  * an out-of-range `health.state` ordinal (a health state added by a newer mod)
  * becomes `"unavailable"` rather than making the whole array `undefined`.
  */
 export function deriveSystemUplinkHealth(
-  get: DerivedGet,
+  raw: RawSystemUplinksPayload | null | undefined,
 ): SystemUplinkHealth | null | undefined {
-  const point = get<RawSystemUplinksPayload>("system.uplinks");
-  if (!point) return undefined;
-  if (point.payload === null) return null;
+  if (raw === undefined) return undefined;
+  if (raw === null) return null;
 
   return {
     coreContract: readContractVersion(
-      point.payload.coreContractMajor,
-      point.payload.coreContractMinor,
+      raw.coreContractMajor,
+      raw.coreContractMinor,
     ),
-    uplinks: point.payload.uplinks.map((entry) => ({
+    uplinks: raw.uplinks.map((entry) => ({
       id: entry.id,
       name: entry.name ?? null,
       version: entry.version,
@@ -279,16 +278,14 @@ export function deriveSystemUplinkHealth(
 }
 
 /**
- * The derived channel definition for `system.uplinkHealth`, ready to register with
- * `store.registerDerivedChannel(systemUplinkHealthChannel)`. Useful for making
- * Uplink health readable by widgets. Registered by the telemetry context provider.
- * `fields: true` exposes `system.uplinkHealth.uplinks`. Its status is its single
- * `system.uplinks` input's.
+ * The processor published as `system.uplinkHealth`. Useful for making Uplink
+ * health readable by widgets. `fields` exposes `system.uplinkHealth.uplinks`. Its
+ * status is its single `system.uplinks` input's.
  */
-export const systemUplinkHealthChannel: DerivedChannelDefinition<SystemUplinkHealth> =
-  {
-    topic: "system.uplinkHealth",
-    inputs: ["system.uplinks"],
-    derive: deriveSystemUplinkHealth,
-    fields: true,
-  };
+export const SYSTEM_UPLINK_HEALTH = CORE_UPLINK_CLIENT.registerProcessor({
+  id: "system-uplink-health",
+  topic: "system.uplinkHealth",
+  fields: true,
+  deps: ["system.uplinks"],
+  compute: ([raw]) => deriveSystemUplinkHealth(raw),
+});

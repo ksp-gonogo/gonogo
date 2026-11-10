@@ -1,9 +1,4 @@
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
-import { derivedGetOf } from "./derived-get-fixture";
-import { makeMeta } from "./stub-transport";
-import type { TimelinePoint } from "./timeline";
-import type { DerivedGet } from "./timeline-store";
 import { deriveSystemUplinkHealth } from "./uplink-health";
 
 interface RawUplinkHealth {
@@ -30,23 +25,6 @@ interface RawSystemUplinksPayload {
   coreContractMinor?: number | null;
 }
 
-function uplinksPoint(
-  payload: RawSystemUplinksPayload | null,
-): TimelinePoint<RawSystemUplinksPayload> {
-  return {
-    validAt: 0,
-    payload,
-    meta: makeMeta({ validAt: 0, quality: Quality.OnRails, source: "system" }),
-    epoch: 0,
-  };
-}
-
-function fakeGet(
-  point: TimelinePoint<RawSystemUplinksPayload> | undefined,
-): DerivedGet {
-  return derivedGetOf({ "system.uplinks": point });
-}
-
 describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
   it("decodes preventsStart as the Uplink reported it, and as false when absent", () => {
     const raw: RawSystemUplinksPayload = {
@@ -71,7 +49,7 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
         },
       ],
     };
-    const decoded = deriveSystemUplinkHealth(fakeGet(uplinksPoint(raw)));
+    const decoded = deriveSystemUplinkHealth(raw);
     expect(decoded?.uplinks.map((u) => u.health.preventsStart)).toEqual([
       true,
       false,
@@ -90,7 +68,7 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
         },
       ],
     };
-    expect(deriveSystemUplinkHealth(fakeGet(uplinksPoint(raw)))).toEqual({
+    expect(deriveSystemUplinkHealth(raw)).toEqual({
       coreContract: null,
       uplinks: [
         {
@@ -126,7 +104,7 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
         },
       ],
     };
-    expect(deriveSystemUplinkHealth(fakeGet(uplinksPoint(raw)))).toEqual({
+    expect(deriveSystemUplinkHealth(raw)).toEqual({
       coreContract: null,
       uplinks: [
         {
@@ -162,7 +140,7 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
         },
       ],
     };
-    expect(deriveSystemUplinkHealth(fakeGet(uplinksPoint(raw)))).toEqual({
+    expect(deriveSystemUplinkHealth(raw)).toEqual({
       coreContract: null,
       uplinks: [
         {
@@ -199,7 +177,7 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
         },
       ],
     };
-    expect(deriveSystemUplinkHealth(fakeGet(uplinksPoint(raw)))).toEqual({
+    expect(deriveSystemUplinkHealth(raw)).toEqual({
       coreContract: null,
       uplinks: [
         {
@@ -248,10 +226,7 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
         },
       ],
     };
-    expect(
-      deriveSystemUplinkHealth(fakeGet(uplinksPoint(raw)))?.uplinks[0]?.health
-        .facts,
-    ).toEqual([
+    expect(deriveSystemUplinkHealth(raw)?.uplinks[0]?.health.facts).toEqual([
       { label: "build", value: "/GameData/Example/native.so" },
       { label: "release", value: null },
     ]);
@@ -270,10 +245,7 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
         },
       ],
     };
-    expect(
-      deriveSystemUplinkHealth(fakeGet(uplinksPoint(raw)))?.uplinks[0]?.health
-        .facts,
-    ).toEqual([]);
+    expect(deriveSystemUplinkHealth(raw)?.uplinks[0]?.health.facts).toEqual([]);
   });
 
   it("defaults ownedPrefixes to an empty array for a pre-Phase-1 mod build (wire field absent)", () => {
@@ -288,10 +260,9 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
         },
       ],
     };
-    expect(
-      deriveSystemUplinkHealth(fakeGet(uplinksPoint(raw)))?.uplinks[0]
-        ?.ownedPrefixes,
-    ).toEqual([]);
+    expect(deriveSystemUplinkHealth(raw)?.uplinks[0]?.ownedPrefixes).toEqual(
+      [],
+    );
   });
 
   it("decodes a contract-refused entry: both version numbers, so the refusal can be named", () => {
@@ -316,7 +287,7 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
         },
       ],
     };
-    const decoded = deriveSystemUplinkHealth(fakeGet(uplinksPoint(raw)));
+    const decoded = deriveSystemUplinkHealth(raw);
     expect(decoded?.coreContract).toEqual({ major: 15, minor: 0 });
     expect(decoded?.uplinks[0]?.contract).toEqual({ major: 14, minor: 5 });
     expect(decoded?.uplinks[0]?.available).toBe(false);
@@ -336,7 +307,7 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
         },
       ],
     };
-    const decoded = deriveSystemUplinkHealth(fakeGet(uplinksPoint(raw)));
+    const decoded = deriveSystemUplinkHealth(raw);
     expect(decoded?.coreContract).toBeNull();
     expect(decoded?.uplinks[0]?.contract).toBeNull();
   });
@@ -353,23 +324,23 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
         },
       ],
     };
-    expect(
-      deriveSystemUplinkHealth(fakeGet(uplinksPoint(raw)))?.uplinks[0]?.health
-        .state,
-    ).toBe("unavailable");
+    expect(deriveSystemUplinkHealth(raw)?.uplinks[0]?.health.state).toBe(
+      "unavailable",
+    );
   });
 
   it("undefined while system.uplinks hasn't arrived (resyncing): never throws", () => {
-    expect(deriveSystemUplinkHealth(fakeGet(undefined))).toBeUndefined();
+    expect(deriveSystemUplinkHealth(undefined)).toBeUndefined();
   });
 
   it("null on a confirmed system.uplinks tombstone", () => {
-    expect(deriveSystemUplinkHealth(fakeGet(uplinksPoint(null)))).toBeNull();
+    expect(deriveSystemUplinkHealth(null)).toBeNull();
   });
 
   it("empty array reads as defined, not resyncing", () => {
-    expect(
-      deriveSystemUplinkHealth(fakeGet(uplinksPoint({ uplinks: [] }))),
-    ).toEqual({ uplinks: [], coreContract: null });
+    expect(deriveSystemUplinkHealth({ uplinks: [] })).toEqual({
+      uplinks: [],
+      coreContract: null,
+    });
   });
 });

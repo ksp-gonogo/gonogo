@@ -19,7 +19,7 @@ const TRAJECTORY_TOPIC = "vessel.orbit";
  * Containment walks down from the declaration into the payload's fields, never
  * up from a derived field to the inputs it was computed from, which is the same
  * direction rule `alarmMatchesWidget` follows and for the same reason. Walking
- * up would light every widget on a derived channel with `vessel.orbit` among
+ * up would light every widget on a published processor with `vessel.orbit` among
  * its inputs, whatever field it reads, so a badge would say past horizon on a
  * reading a trajectory problem cannot touch. A badge that cries wolf is a badge
  * nobody reads, and this one exists to be believed. A widget that draws orbit

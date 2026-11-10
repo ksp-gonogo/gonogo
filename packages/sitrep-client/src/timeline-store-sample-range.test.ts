@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { makeMeta } from "./stub-transport";
-import type { DerivedChannelDefinition } from "./timeline-store";
 import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
 
@@ -121,19 +120,17 @@ describe("TimelineStore.sampleRange: raw record field-subtopics (M3 pilot mechan
 });
 
 describe("TimelineStore.sampleRange: derived topics are unsupported", () => {
-  const doubler: DerivedChannelDefinition<number> = {
+  const doubler = {
     topic: "derived.double",
-    inputs: ["raw.x"],
-    derive: (get) => {
-      const point = get<number>("raw.x");
-      // A tombstone has nothing to double.
-      return point?.payload == null ? undefined : point.payload * 2;
-    },
+    deps: ["raw.x"],
+    // A tombstone has nothing to double.
+    compute: ([x]: readonly [number | null | undefined]) =>
+      x == null ? undefined : x * 2,
   };
 
-  it("returns undefined for a registered derived channel's own topic, no stored history to range over", () => {
+  it("returns undefined for a registered published processor's own topic, no stored history to range over", () => {
     const store = newStore();
-    store.registerDerivedChannel(doubler);
+    store.publishProcessor(doubler);
     store.ingest("raw.x", {
       validAt: 0,
       payload: 5,
@@ -144,12 +141,12 @@ describe("TimelineStore.sampleRange: derived topics are unsupported", () => {
     expect(store.sampleRange("derived.double", 0, 100)).toBeUndefined();
   });
 
-  it("isDerivedTopic reports true for a derived topic and false for a raw one", () => {
+  it("isProcessorTopic reports true for a derived topic and false for a raw one", () => {
     const store = newStore();
-    store.registerDerivedChannel(doubler);
-    expect(store.isDerivedTopic("derived.double")).toBe(true);
-    expect(store.isDerivedTopic("vessel.orbit")).toBe(false);
-    expect(store.isDerivedTopic("vessel.orbit.sma")).toBe(false);
+    store.publishProcessor(doubler);
+    expect(store.isProcessorTopic("derived.double")).toBe(true);
+    expect(store.isProcessorTopic("vessel.orbit")).toBe(false);
+    expect(store.isProcessorTopic("vessel.orbit.sma")).toBe(false);
   });
 });
 

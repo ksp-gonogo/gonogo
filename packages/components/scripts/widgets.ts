@@ -1896,7 +1896,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     // Plots a RAW field-subtopic (`vessel.flight.altitudeTerrain`): a raw
     // topic keeps its stored range, and the per-sample `meta` that carries
     // the gap rides it. A derived topic's series is replayed through
-    // `sampleDerivedRange`, where that meta does not survive.
+    // `sampleProcessorRange`, where that meta does not survive.
     //
     // The X TICK LABELS in these renders are wrong and are not the scene's
     // doing: `Graph`'s default time formatter reads its domain as unix

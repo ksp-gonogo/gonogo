@@ -159,7 +159,7 @@ export function registerTopicUnits(
   registeredTopicStatics.set(topic, statics);
   registeredTopicEnums.set(topic, enums);
   // Changes what the Topic ENUMERATES without vouching that anything sends it:
-  // a client-derived channel declares its fields here too, and nothing puts one
+  // a published processor declares its fields here too, and nothing puts one
   // on the wire. Which Topics are real is `registerUplinkTopic`'s
   // answer; see `runtime-topic-registry.ts`.
   noteRuntimeTopicMetadata();

@@ -1,7 +1,7 @@
 /**
  * `TimelineStore` moved to `@ksp-gonogo/sitrep-sdk` (`src/spine/`).
  *
- * It is the read semantics of a topic: the derived-channel path, the
+ * It is the read semantics of a topic: the published-processor path, the
  * raw-field-subtopic fallback the legacy-key table rides on, epoch handling on
  * a rewind, frame-coherent memoisation. A widget depends on every one of those
  * while it renders, so a test harness that stubbed them would produce tests

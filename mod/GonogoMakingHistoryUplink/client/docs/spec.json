@@ -29,7 +29,7 @@
   "models": {
     "processors": [],
     "forwardModels": [],
-    "derivedChannels": [],
+    "publishedTopics": [],
     "inputRuleExemptions": []
   },
   "errorCodes": []
