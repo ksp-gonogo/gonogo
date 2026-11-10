@@ -1,3 +1,4 @@
+import { Tooltip } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import { useFabCluster } from "./FabCluster";
 import { MenuIcon } from "./Icons";
@@ -14,20 +15,22 @@ export function FabClusterToggle() {
   if (!cluster) return null;
 
   return (
-    <Toggle
-      type="button"
-      ref={cluster.toggleRef}
-      aria-label="Dashboard controls"
-      aria-expanded={cluster.expanded}
-      aria-controls={cluster.regionId}
-      onClick={cluster.toggle}
-      onMouseEnter={cluster.onMouseEnter}
-      onMouseLeave={cluster.onMouseLeave}
-      onFocus={cluster.onFocus}
-      onBlur={cluster.onBlur}
-    >
-      <MenuIcon size={22} />
-    </Toggle>
+    <Tooltip text="Menu">
+      <Toggle
+        type="button"
+        ref={cluster.toggleRef}
+        aria-label="Menu"
+        aria-expanded={cluster.expanded}
+        aria-controls={cluster.regionId}
+        onClick={cluster.toggle}
+        onMouseEnter={cluster.onMouseEnter}
+        onMouseLeave={cluster.onMouseLeave}
+        onFocus={cluster.onFocus}
+        onBlur={cluster.onBlur}
+      >
+        <MenuIcon size={22} />
+      </Toggle>
+    </Tooltip>
   );
 }
 

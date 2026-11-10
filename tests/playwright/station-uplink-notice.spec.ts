@@ -14,14 +14,14 @@
  */
 import { expect, type Page, test } from "@playwright/test";
 import { PORTS } from "../../playwright.config";
-import { getHostPeerId } from "./helpers";
+import { getHostPeerId, joinAs } from "./helpers";
 import { dashboardOf, postReplay, seedScreen } from "./mission-control";
 
 const PREVIEW = `http://localhost:${PORTS.preview}`;
 const PAD = "tests/fixtures/wire/pad-idle.jsonl";
 
 async function expectLoaded(page: Page) {
-  await page.getByRole("button", { name: "Dashboard controls" }).click();
+  await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("button", { name: /^Settings(?: \(.*\))?$/ }).click();
   await page.getByRole("tab", { name: "Uplinks", exact: true }).click();
   await page.getByRole("tab", { name: "Kerbalism", exact: true }).click();
@@ -32,6 +32,21 @@ async function expectLoaded(page: Page) {
   await expect(
     uplinkPage.getByText("quarantined", { exact: true }),
   ).toHaveCount(0);
+}
+
+/* A station's settings have no Uplinks tab, so its load shows as the Uplink's widgets in its widget picker: a quarantined bundle never runs and registers none. */
+async function expectOffersItsWidgets(page: Page) {
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: "Add widget" }).click();
+  const picker = page.getByRole("dialog", { name: "Add a widget" });
+  await picker
+    .getByRole("combobox", { name: "Search widgets" })
+    .fill("Space Weather");
+  await expect(
+    picker.getByRole("option", { name: /Space Weather/ }),
+  ).toBeVisible({
+    timeout: 15_000,
+  });
 }
 
 test("a station replaying a recording loads the roster's Uplink with its notice and no Skip", async ({
@@ -68,7 +83,8 @@ test("a station replaying a recording loads the roster's Uplink with its notice 
   const stationContext = await browser.newContext();
   await seedScreen(stationContext, "station", dashboard);
   const station = await stationContext.newPage();
-  await station.goto(`${PREVIEW}/station?host=${shareCode}`);
+  await joinAs(station, shareCode, "station");
+  await station.goto(`${PREVIEW}/join?${shareCode}`);
 
   // The station is told, with nothing to answer: no Skip, no Load, only Continue.
   await expect(
@@ -78,7 +94,7 @@ test("a station replaying a recording loads the roster's Uplink with its notice 
   await expect(station.getByRole("button", { name: "Skip" })).toHaveCount(0);
   await expect(station.getByRole("button", { name: "Load" })).toHaveCount(0);
   await station.getByRole("button", { name: "Continue" }).click();
-  await expectLoaded(station);
+  await expectOffersItsWidgets(station);
 
   await mainContext.close();
   await stationContext.close();

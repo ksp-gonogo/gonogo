@@ -43,7 +43,7 @@ for (const { name, fixture, vessel } of CASES) {
     }
     await mc.replay.advanceTo(durationMs);
 
-    await mc.main.getByRole("button", { name: "Dashboard controls" }).click();
+    await mc.main.getByRole("button", { name: "Menu" }).click();
     await mc.main.getByRole("button", { name: "Flight history" }).click();
     const dialog = mc.main.getByRole("dialog", { name: "Flight History" });
     await expect(

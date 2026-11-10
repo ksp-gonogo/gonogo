@@ -147,7 +147,7 @@ import { PeerHostService } from "../peer/PeerHostService";
 import { StationScreen } from "../screens/StationScreen";
 import { MemoryApprovalBook } from "../test/approveStation";
 
-const WAITING = "Waiting for the main screen to approve this station";
+const WAITING = "Waiting for the host to approve this screen";
 
 describe("a station waiting for the main screen's approval", () => {
   let host: PeerHostService;
@@ -177,12 +177,11 @@ describe("a station waiting for the main screen's approval", () => {
     host.attachApprovals(new MemoryApprovalBook());
     await host.start();
     await waitFor(() => expect(host.peerId).not.toBeNull());
-    globalThis.history.replaceState({}, "", `/station?host=${host.shareCode}`);
 
     render(
       <ErrorBoundary>
         <ModalProvider>
-          <StationScreen />
+          <StationScreen code={host.shareCode} />
         </ModalProvider>
       </ErrorBoundary>,
     );

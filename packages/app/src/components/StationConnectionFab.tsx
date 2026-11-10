@@ -2,36 +2,26 @@ import {
   BroadcastIcon,
   Button,
   Fab,
-  Input,
   StatusIndicator,
   useModal,
 } from "@ksp-gonogo/ui";
 import { Cluster, NULL_DISPLAY, Stack, Tooltip } from "@ksp-gonogo/ui-kit";
-import { useState } from "react";
 import styled from "styled-components";
 import type { ConnStatus } from "../peer/PeerClientService";
 
 interface Props {
   hostId: string | null;
   connStatus: ConnStatus;
-  /** Called when the user wants to connect to a different host code. */
-  onSwitchHost: (hostId: string) => void;
-  /**
-   * Called when the user wants to drop the current connection and go back
-   * to the connection-input screen. Should clear the persisted host id +
-   * tear down the data channel.
-   */
-  onDisconnect: () => void;
+  /** Goes back to the join page for this code, to pick the other seat. */
+  onChangeSeat: () => void;
+  /** Leaves the game. */
+  onLeave: () => void;
   bottom: number;
 }
 
 /**
- * Station-side equivalent of the main screen's StationLinkFab. Shows
- * the host code the station is currently connected to (which was
- * otherwise invisible post-connect: a real "where am I?" gap when
- * multiple hosts are in play), plus the connection status, and lets
- * the operator either disconnect entirely or switch to a different
- * host without reloading the page.
+ * A joined station's Connection button: the code it joined with, whether its
+ * link to the host is up, and the way back to the seats or out of the game.
  */
 export function StationConnectionFab(props: Props) {
   const { open } = useModal();
@@ -50,11 +40,9 @@ export function StationConnectionFab(props: Props) {
 function StationConnectionPanel({
   hostId,
   connStatus,
-  onSwitchHost,
-  onDisconnect,
+  onChangeSeat,
+  onLeave,
 }: Props) {
-  const [pending, setPending] = useState("");
-
   return (
     <Wrap>
       <Cluster>
@@ -67,50 +55,15 @@ function StationConnectionPanel({
           {statusLabel(connStatus)}
         </StatusIndicator>
       </Cluster>
-
       <SeparatedSection>
-        <Label>Switch host</Label>
-        <SwitchRow>
-          <Input
-            type="text"
-            value={pending}
-            placeholder="ABC3KP"
-            // Wide enough for the code a host mints today (six characters)
-            // plus room for a longer one later. A cap of four silently TRIMMED
-            // a six-character code down to four here, and the station then
-            // reported "couldn't find that code" for a host that was up.
-            maxLength={8}
-            onChange={(e) =>
-              setPending(e.target.value.toUpperCase().slice(0, 8))
-            }
-          />
-          <Button
-            variant="primary"
-            type="button"
-            disabled={pending.length === 0 || pending === hostId}
-            onClick={() => {
-              const next = pending.trim().toUpperCase();
-              if (!next || next === hostId) return;
-              onSwitchHost(next);
-            }}
-          >
-            Connect
+        <Cluster>
+          <Button type="button" onClick={onChangeSeat}>
+            Change seat
           </Button>
-        </SwitchRow>
-        <Hint>
-          Enter the code shown on the new host. The current connection is
-          dropped before the new one is attempted.
-        </Hint>
-      </SeparatedSection>
-
-      <SeparatedSection>
-        <Button variant="ghost" type="button" onClick={onDisconnect}>
-          Disconnect
-        </Button>
-        <Hint>
-          Clears the saved host and returns to the connect screen. Saved
-          dashboard layout, alarms, and coverage data stay on this device.
-        </Hint>
+          <Button variant="ghost" type="button" onClick={onLeave}>
+            Leave
+          </Button>
+        </Cluster>
       </SeparatedSection>
     </Wrap>
   );
@@ -154,19 +107,6 @@ const SeparatedSection = styled(Stack).attrs({
   padding-top: var(--gap-popover-section);
 `;
 
-const SwitchRow = styled.div`
-  display: flex;
-  align-items: stretch;
-  gap: var(--gap-related);
-
-  & > input {
-    flex: 1;
-    text-transform: uppercase;
-    letter-spacing: 0.18em;
-    font-family: inherit;
-  }
-`;
-
 const Label = styled.span`
   font-size: var(--font-size-caption);
   font-weight: 700;
@@ -182,11 +122,4 @@ const Code = styled.code`
      to a box width. */
   font-size: 18px;
   letter-spacing: 0.12em;
-`;
-
-const Hint = styled.p`
-  margin: 0;
-  font-size: var(--font-size-prose);
-  color: var(--color-text-muted);
-  line-height: var(--line-height-prose);
 `;

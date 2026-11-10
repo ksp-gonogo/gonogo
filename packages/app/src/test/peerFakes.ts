@@ -41,6 +41,8 @@ export function idlePeerClient(): PeerClient {
     onHostRestart: () => unsubscribe,
     getHostCommandCentre: () => null,
     onHostCommandCentreChange: () => unsubscribe,
+    getHostSeat: () => "main",
+    onHostSeatChange: () => unsubscribe,
     onHostUplinksChange: () => unsubscribe,
     sendGonogoVote: () => {},
     sendGonogoAbort: () => {},

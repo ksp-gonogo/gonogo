@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 const html = readFileSync(resolve(__dirname, "../index.html"), "utf-8");
 
 describe("index.html asset links", () => {
-  it("are root-absolute so every route, /station included, resolves them against the base path", () => {
+  it("are root-absolute so every route, /join included, resolves them against the base path", () => {
     const hrefs = [...html.matchAll(/<link\b[^>]*\bhref="([^"]+)"/g)].map(
       (m) => m[1],
     );

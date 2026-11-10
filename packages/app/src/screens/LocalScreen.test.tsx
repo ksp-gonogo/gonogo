@@ -19,6 +19,7 @@ import { HostRole } from "../hosting/HostRole";
 import { peerHostService } from "../peer/PeerHostService";
 import { FakeHostMod } from "../test/fakeHostMod";
 import { LocalScreen } from "./LocalScreen";
+import { setStartSeat } from "./seatChoice";
 
 const peerRegistry = vi.hoisted(
   () =>
@@ -209,7 +210,7 @@ async function untilPeerId(peerId: string | null): Promise<void> {
 function renderLocal(
   stub: StubTransport,
   mod?: FakeHostMod,
-  seat: "main" | "pilot" = "main",
+  seat?: "main" | "pilot",
 ) {
   const view = render(
     <ErrorBoundary>
@@ -445,12 +446,13 @@ describe("a local screen", () => {
       ).toHaveLength(1);
     });
 
-    it("leaves a pilot page waiting with no setup", async () => {
-      renderLocal(new StubTransport(), undefined, "pilot");
+    it("opens at the seat this browser remembers", async () => {
+      markFirstRunSetupSeen();
+      setStartSeat("pilot");
+      renderLocal(new StubTransport());
       await settle();
 
-      expect(screen.getByText("Waiting for the game")).toBeVisible();
-      expect(setupDialog()).toBeNull();
+      expect(document.title).toBe("gonogo - Pilot");
     });
   });
 

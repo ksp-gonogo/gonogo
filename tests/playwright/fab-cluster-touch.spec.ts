@@ -34,7 +34,7 @@ test.describe("fab cluster names", () => {
     const page = await context.newPage();
     await page.goto("/?uplinkLoaderIds=");
 
-    const toggle = page.getByRole("button", { name: "Dashboard controls" });
+    const toggle = page.getByRole("button", { name: "Menu" });
     await expect(toggle).toBeVisible({ timeout: 30_000 });
     await expect(settingsLabel(page)).toHaveCSS("opacity", "0");
 
@@ -64,7 +64,7 @@ test.describe("fab cluster names", () => {
     const page = await context.newPage();
     await page.goto("/?uplinkLoaderIds=");
 
-    const toggle = page.getByRole("button", { name: "Dashboard controls" });
+    const toggle = page.getByRole("button", { name: "Menu" });
     await expect(toggle).toBeVisible({ timeout: 30_000 });
     await expect(settingsLabel(page)).toHaveCSS("opacity", "0");
 

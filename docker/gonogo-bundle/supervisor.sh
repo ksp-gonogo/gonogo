@@ -1,6 +1,6 @@
 #!/bin/bash
 # Supervisor for the gonogo bundle image. Runs two long-lived processes:
-#   1. static server : the app SPA on $APP_PORT (history-fallback for /station)
+#   1. static server : the app SPA on $APP_PORT (history-fallback for /join)
 #   2. relay (node)   : consent and bootstrap on $RELAY_PORT; spawns the station endpoint
 #
 # tini is PID 1 (see ENTRYPOINT) so orphan reaping + signal delivery are
@@ -32,7 +32,7 @@ trap term TERM INT
 
 echo "[supervisor] starting static server on :${APP_PORT}"
 # serve -s: single-page-app mode, all unknown routes fall back to index.html
-# so the client-side /station route resolves on a hard refresh / deep link.
+# so the client-side /join route resolves on a hard refresh / deep link.
 serve -s /app/www -l "tcp://0.0.0.0:${APP_PORT}" &
 pids="$pids $!"
 

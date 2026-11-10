@@ -25,8 +25,15 @@ import { SettingsProvider, SettingsService } from "../settings";
 import { StationApprovalNotice } from "../stationApproval/StationApprovalNotice";
 import { ScopedStationIdentity } from "../stationIdentity";
 import { MainScreen } from "./MainScreen";
+import { SeatSwitchProvider } from "./SeatSwitch";
+import {
+  getStartSeat,
+  type StartSeat,
+  setStartSeat,
+  subscribeStartSeat,
+} from "./seatChoice";
 
-type Seat = "main" | "pilot";
+type Seat = StartSeat;
 
 const WAITING: HostRoleState = { kind: "waiting" };
 
@@ -84,8 +91,9 @@ function useHostRoleOver(
 }
 
 /**
- * A screen at `/` or `/pilot`: one that reads the game over its own connection,
- * and hosts the peer mesh or joins the screen that does, by itself.
+ * The screen at `/`: one that reads the game over its own connection, and
+ * hosts the peer mesh or joins the screen that does, by itself. It sits at the
+ * seat this browser chose at the end of the setup, or last switched to.
  *
  * It shows that it is waiting for the game until the mod answers, and never
  * asks for a code. At mission control on a browser that has never been through
@@ -96,16 +104,23 @@ function useHostRoleOver(
  * stops hosting at once and joins.
  */
 export function LocalScreen({
-  seat,
+  seat: fixedSeat,
   openTransport,
   acquireToken = acquireTabToken,
 }: {
-  seat: Seat;
+  /** The seat to sit at instead of the one this browser remembers, for a test. */
+  seat?: Seat;
   /** Opens the screen's connection to the game; a socket to the mod unless a test stands one in. */
   openTransport?: OpenJobsTransport;
   /** This tab's host token; the one kept in this tab's session storage unless a test stands one in. */
   acquireToken?: () => Promise<TabToken>;
 }) {
+  const remembered = useSyncExternalStore(
+    subscribeStartSeat,
+    getStartSeat,
+    getStartSeat,
+  );
+  const seat = fixedSeat ?? remembered;
   const [jobs] = useState(() => new HostJobs());
   const [settings] = useState(() => new SettingsService());
   useHostJobsConnection(jobs, true, openTransport);
@@ -124,7 +139,7 @@ export function LocalScreen({
     return (
       <SettingsProvider service={settings}>
         <WaitingForGame />
-        {seat === "main" && <FirstRunSetupHost />}
+        <FirstRunSetupHost />
       </SettingsProvider>
     );
   }
@@ -176,13 +191,23 @@ function HostingLocalScreen({
     () => peerHostService.attachApprovals(new ModApprovalBook(role)),
     [role],
   );
+  useEffect(() => peerHostService.setHostSeat(seat), [seat]);
   useEffect(() => {
     logger.setIdentity({ role: "host" });
   }, []);
   return (
     <PeerHostProvider code={code} generation={generation}>
       {takenOver && <TakeoverNotice />}
-      <MainScreen screen={seat} hosting jobs={jobs} settings={settings} />
+      <SeatSwitchProvider seat={seat} switchTo={setStartSeat}>
+        {/* Keyed by seat: a switch rebuilds the screen and keeps the mesh above it, so every joined screen stays connected. */}
+        <MainScreen
+          key={seat}
+          screen={seat}
+          hosting
+          jobs={jobs}
+          settings={settings}
+        />
+      </SeatSwitchProvider>
     </PeerHostProvider>
   );
 }

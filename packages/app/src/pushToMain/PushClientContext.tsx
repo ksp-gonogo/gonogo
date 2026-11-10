@@ -25,7 +25,12 @@ interface PushClientValue {
   push: (intent: PushIntent) => void;
   /** Send a widget-recall message and clear local state. */
   recall: (widgetInstanceId: string) => void;
+  /** Whether the game has a main screen to push to: false while the host sits as a pilot. */
+  hasMainScreen: boolean;
 }
+
+/** Why Push is unavailable in a game whose host sits as a pilot. */
+export const NO_MAIN_SCREEN = "No main screen";
 
 const PushClientContext = createContext<PushClientValue | null>(null);
 
@@ -34,6 +39,14 @@ export function PushClientProvider({ children }: { children: ReactNode }) {
   const [pushed, setPushed] = useState<ReadonlyMap<string, PushIntent>>(
     () => new Map(),
   );
+  const [hostSeat, setHostSeat] = useState(
+    () => client?.getHostSeat() ?? "main",
+  );
+  useEffect(() => {
+    if (!client) return;
+    setHostSeat(client.getHostSeat());
+    return client.onHostSeatChange(setHostSeat);
+  }, [client]);
   const pushedRef = useRef(pushed);
   pushedRef.current = pushed;
 
@@ -78,8 +91,9 @@ export function PushClientProvider({ children }: { children: ReactNode }) {
       isPushed: (id) => pushed.has(id),
       push,
       recall,
+      hasMainScreen: hostSeat === "main",
     }),
-    [pushed, push, recall],
+    [pushed, push, recall, hostSeat],
   );
 
   return (

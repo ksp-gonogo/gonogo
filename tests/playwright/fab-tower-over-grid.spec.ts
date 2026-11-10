@@ -9,7 +9,7 @@ import { test } from "@playwright/test";
 import { dashboardWithWidget, expect, seedContext } from "./helpers";
 
 test.describe("fab tower over the dashboard grid", () => {
-  test("Add station is topmost and clickable once the cluster is open, with widgets under it", async ({
+  test("Invite is topmost and clickable once the cluster is open, with widgets under it", async ({
     browser,
   }) => {
     const context = await browser.newContext({
@@ -23,11 +23,11 @@ test.describe("fab tower over the dashboard grid", () => {
     const page = await context.newPage();
     await page.goto("/?uplinkLoaderIds=");
 
-    const toggle = page.getByRole("button", { name: "Dashboard controls" });
+    const toggle = page.getByRole("button", { name: "Menu" });
     await expect(toggle).toBeVisible({ timeout: 30_000 });
     await expect(page.locator(".react-grid-item").first()).toBeVisible();
 
-    const station = page.getByRole("button", { name: "Add station" });
+    const station = page.getByRole("button", { name: "Invite" });
     await expect(station).toHaveCSS("pointer-events", "none");
 
     await toggle.hover();
@@ -43,7 +43,14 @@ test.describe("fab tower over the dashboard grid", () => {
     expect(topmost).toBe(true);
 
     await station.click();
-    await expect(page.getByText("Join code", { exact: true })).toBeVisible();
+    const invite = page.getByRole("dialog", { name: "Invite" });
+    await expect(invite.getByRole("link", { name: /\/join\?/ })).toBeVisible();
+    await expect(
+      invite.locator("svg", {
+        has: page.locator("title", { hasText: "QR code for the join address" }),
+      }),
+    ).toBeVisible();
+    await expect(invite.getByLabel(/^Join code /)).toBeVisible();
     await context.close();
   });
 });

@@ -122,7 +122,7 @@ async function settledCells(page: Page) {
 }
 
 async function openLayouts(page: Page) {
-  await page.getByRole("button", { name: "Dashboard controls" }).click();
+  await page.getByRole("button", { name: "Menu" }).click();
   await page.mouse.move(10, 10);
   await page.getByRole("button", { name: "Dashboard layouts" }).click();
 }
@@ -130,7 +130,7 @@ async function openLayouts(page: Page) {
 async function switchToOther(page: Page) {
   await openLayouts(page);
   await page
-    .getByRole("button", { name: "Switch to", disabled: false })
+    .getByRole("button", { name: "Switch to", exact: true, disabled: false })
     .click();
   await page.waitForTimeout(500);
 }

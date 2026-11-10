@@ -48,6 +48,7 @@ import {
   vi,
 } from "vitest";
 import { say } from "../firstRun/copy";
+import { ScopedStationIdentity } from "../stationIdentity";
 import { resolveUplinkIdentity } from "../uplinks/identity";
 import {
   __resetUplinkOutcomes,
@@ -1358,5 +1359,44 @@ describe("SettingsModal: Data rate", () => {
     expect(
       screen.queryByRole("checkbox", { name: "Faster data rate" }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("SettingsModal on a screen that joined by code", () => {
+  function renderJoined(seat: "station" | "pilot") {
+    const view = render(
+      <ScreenProvider value={seat === "pilot" ? "pilot" : "station"}>
+        <SettingsProvider service={new SettingsService(memoryStorage())}>
+          <ScopedStationIdentity>
+            <SettingsModal joined={{ code: "ABC234", seat }} />
+          </ScopedStationIdentity>
+        </SettingsProvider>
+      </ScreenProvider>,
+    );
+    renderedTrees.push(view.unmount);
+    return view;
+  }
+
+  it.each([
+    "station",
+    "pilot",
+  ] as const)("gives a %s only its own tabs", (seat) => {
+    renderJoined(seat);
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual([
+      "General",
+      "Devices",
+      "Connection",
+      "Help",
+    ]);
+  });
+
+  it("names the code it joined with and offers Leave", async () => {
+    renderJoined("pilot");
+    await userEvent.click(screen.getByRole("tab", { name: "Connection" }));
+    expect(screen.getByText("ABC234")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Leave" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Change seat" }),
+    ).toBeInTheDocument();
   });
 });

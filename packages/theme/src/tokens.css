@@ -908,6 +908,11 @@ textarea {
   --inset-dialog: var(--space-24);
   --inset-modal-bar: var(--space-12) var(--space-16);
   --inset-modal-body: var(--space-16);
+  /* A full-page route (the join page): its edge before any safe-area inset, and the space between its blocks. */
+  --inset-page: var(--space-16);
+  --gap-page: var(--space-24);
+  /* A choice set out as a whole-card button, such as a seat to join or start at. */
+  --inset-choice-card: var(--space-16);
   /* The bands of a full-surface overlay, on one gutter. */
   --gutter-overlay: var(--space-16);
   --inset-overlay-band: var(--space-12) var(--gutter-overlay);

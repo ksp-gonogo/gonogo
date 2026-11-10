@@ -55,7 +55,7 @@ export function StationApprovalNotice({ client }: { client: Client }) {
   if (approval === "pending") {
     return (
       <BannerPill accent="var(--color-warn-mark)" anchor="top" role="status">
-        <span>Waiting for the main screen to approve this station</span>
+        <span>Waiting for the host to approve this screen</span>
         {name && <span>{name}</span>}
         {lastRefused && <span>{lastRefused} not sent</span>}
       </BannerPill>
@@ -70,7 +70,7 @@ export function StationApprovalNotice({ client }: { client: Client }) {
         role="status"
         actions={<Button onClick={() => client.askAgain()}>Ask again</Button>}
       >
-        <span>The main screen refused this station</span>
+        <span>The host refused this screen</span>
       </BannerPill>
     );
   }

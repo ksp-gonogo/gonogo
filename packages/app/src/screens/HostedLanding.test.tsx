@@ -82,7 +82,7 @@ describe("HostedLanding", () => {
     }
   });
 
-  it("hands over to the local app, and still offers a station screen", () => {
+  it("hands over to the local app, and still offers the join page", () => {
     render(<HostedLanding />);
 
     expect(screen.getByRole("link", { name: LOCAL_APP_URL })).toHaveAttribute(
@@ -91,7 +91,7 @@ describe("HostedLanding", () => {
     );
     expect(
       screen.getByRole("link", { name: "Join someone else's game" }),
-    ).toHaveAttribute("href", expect.stringContaining("station"));
+    ).toHaveAttribute("href", "/join");
     expect(screen.getByRole("link", { name: "API docs" })).toHaveAttribute(
       "href",
       SETUP_LINKS.apiDocs,

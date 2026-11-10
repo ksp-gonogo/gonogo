@@ -163,7 +163,33 @@
       .setup { margin-top: 2rem; }
       .setup h2 { margin-bottom: 0.8rem; }
       .fine { margin-top: 2rem; }
-      .join { margin: 1.5rem 0 0; font-weight: 600; }
+      .join { margin: 1.5rem 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+      .join label { font-weight: 600; flex-basis: 100%; }
+      .join input {
+        flex: 1 1 10rem;
+        min-width: 0;
+        padding: 0.45rem 0.7rem;
+        font: inherit;
+        font-size: 1.15rem;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--accent);
+        background: var(--sunken);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+      }
+      .join input::placeholder { letter-spacing: normal; text-transform: none; color: var(--muted); }
+      .join input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      .join button {
+        padding: 0.45rem 1rem;
+        font: inherit;
+        font-weight: 600;
+        color: var(--bg);
+        background: var(--accent);
+        border: 1px solid var(--accent);
+        border-radius: 6px;
+        cursor: pointer;
+      }
 
       .wall {
         height: 100%;
@@ -234,7 +260,11 @@
         <p class="sub">Get rich telemetry from the API, or use the mission control app that supports multiplayer-focused station screens. Expansive mod support provided through the Uplink framework.</p>
         <p class="sub">By default, Gonogo implements an optional signal delay system. All telemetry is modelled as travelling at light speed through the relay network.</p>
         <div class="shot still still-narrow"><img src="img/ground-track.webp" width="1000" height="432" loading="lazy" alt="Ground track of a craft heading for a Mun encounter" /></div>
-        <p class="join"><a href="https://ksp-gonogo.github.io/app/station">Join someone else's game</a></p>
+        <form class="join" id="join" action="https://ksp-gonogo.github.io/app/join" method="get">
+          <label for="join-code">Join a game</label>
+          <input id="join-code" placeholder="Join code" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false" />
+          <button type="submit">Join</button>
+        </form>
         <section class="setup" aria-labelledby="setup">
           <h2 id="setup">Set it up</h2>
       <ol class="steps">
@@ -346,6 +376,13 @@
     <span class="sr-only" id="copy-status" aria-live="polite"></span>
     <script src="counting.js" data-site="__GOATCOUNTER_SITE__"></script>
     <script>
+      /* The join page reads its code as the whole query, /join?CODE, which a plain form cannot write. Without script the form still opens the join page, which asks for the code. */
+      document.getElementById("join").addEventListener("submit", (event) => {
+        const code = document.getElementById("join-code").value.trim().toUpperCase();
+        if (!code) return;
+        event.preventDefault();
+        location.assign(event.target.action + "?" + encodeURIComponent(code));
+      });
       for (const button of document.querySelectorAll("button[data-copy]")) {
         button.addEventListener("click", async () => {
           const status = document.getElementById("copy-status");

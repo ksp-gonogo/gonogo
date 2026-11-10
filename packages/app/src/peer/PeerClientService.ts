@@ -15,7 +15,12 @@ import { deriveHostPeerIds } from "./hostPeerId";
 import { attachIceDiagnostics } from "./iceDiagnostics";
 import { MessageDispatcher } from "./MessageDispatcher";
 import { peerBrokerOptions } from "./peerOptions";
-import type { FlightRpcOp, PeerMessage, PeerSchemaSource } from "./protocol";
+import type {
+  FlightRpcOp,
+  HostSeat,
+  PeerMessage,
+  PeerSchemaSource,
+} from "./protocol";
 import { asPeerMessage, HOST_SILENCE_MS } from "./protocol";
 import { RequestTracker } from "./RequestTracker";
 import { RetryPolicy } from "./RetryPolicy";
@@ -120,6 +125,15 @@ interface HostCandidate {
 /** Re-exported at its historical home so existing importers keep working. */
 export { attachIceDiagnostics };
 
+/** What a join page's look-up learns about the game on a code. */
+export interface GameFacts {
+  hostSeat: HostSeat;
+  /** Approved stations connected, or undefined from a host that does not say. */
+  stations?: number;
+  /** Pilots aboard, the host screen included when it sits as a pilot. */
+  pilots?: number;
+}
+
 export interface PeerClientOptions {
   retryIntervalMs?: number;
   retryTimeoutMs?: number;
@@ -132,6 +146,12 @@ export interface PeerClientOptions {
   peerId?: string;
   /** The seat this page sits at; each seat in one browser has its own station identity. */
   seat?: string;
+  /**
+   * Ask the host what its join cards show and nothing else: the link sends
+   * `game-lookup` in place of the station's credential, so the host never
+   * raises it for approval and serves it nothing.
+   */
+  lookupOnly?: boolean;
 }
 
 /**
@@ -143,6 +163,8 @@ export interface PeerClientOptions {
  * `hostUnavailable`, ...) aren't wire messages.
  */
 type ClientEventMap = {
+  gameFacts: [facts: GameFacts];
+  hostSeat: [seat: HostSeat];
   data: [sourceId: string, key: string, value: unknown];
   sourceStatus: [sourceId: string, status: string];
   connStatus: [status: ConnStatus];
@@ -237,6 +259,9 @@ export class PeerClientService {
   private stationPeerId: string;
   private readonly stationKey: string;
   private readonly seat: string | undefined;
+  private readonly lookupOnly: boolean;
+  /** The host screen's seat, from its `host-seat`; mission control until it says. */
+  private hostSeat: HostSeat = "main";
   /** Override id supplied via constructor opts, used by tests. When set,
    *  every `openPeer()` reuses it; when null we re-roll on each call. */
   private readonly fixedPeerIdOverride: string | null;
@@ -335,7 +360,9 @@ export class PeerClientService {
     attemptDeadlineMs = DEFAULT_ATTEMPT_DEADLINE_MS,
     peerId,
     seat,
+    lookupOnly = false,
   }: PeerClientOptions = {}) {
+    this.lookupOnly = lookupOnly;
     this.attemptDeadlineMs = attemptDeadlineMs;
     this.fixedPeerIdOverride = peerId ?? null;
     this.seat = seat;
@@ -884,6 +911,11 @@ export class PeerClientService {
     this.hostChannelStalls = 0;
     this.setBrokerClosed(false);
     this.enterStage("data");
+    if (this.lookupOnly) {
+      conn.send({ type: "game-lookup" } satisfies PeerMessage);
+      this.emitConnStatus("connected");
+      return;
+    }
     // First, so the host knows whether this station is approved before any request it sends.
     conn.send({
       type: "station-credential",
@@ -1743,6 +1775,20 @@ export class PeerClientService {
     return this.approval;
   }
 
+  /** Fires with the host's answer to a look-up client's `game-lookup`. */
+  onGameFacts(cb: (facts: GameFacts) => void) {
+    return this.events.on("gameFacts", cb);
+  }
+
+  /** The seat the host screen sits at; `"main"` until the host has said. */
+  getHostSeat(): HostSeat {
+    return this.hostSeat;
+  }
+
+  onHostSeatChange(cb: (seat: HostSeat) => void) {
+    return this.events.on("hostSeat", cb);
+  }
+
   onApprovalChange(cb: (approval: StationApproval) => void) {
     return this.events.on("approval", cb);
   }
@@ -2028,6 +2074,17 @@ export class PeerClientService {
       this.events.emit("schema", msg.sources);
     },
     "host-heartbeat": () => {},
+    "game-facts": (msg) => {
+      this.events.emit("gameFacts", {
+        hostSeat: msg.hostSeat,
+        stations: msg.stations,
+        pilots: msg.pilots,
+      });
+    },
+    "host-seat": (msg) => {
+      this.hostSeat = msg.seat;
+      this.events.emit("hostSeat", msg.seat);
+    },
     "station-superseded": () => {
       logger.info("[PeerClient] station taken over by another page");
       // No retry: reconnecting would take the station straight back from the page that now holds it.

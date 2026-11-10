@@ -111,7 +111,7 @@ describe("MainScreen: a pilot that joined through a host", () => {
       async () => BUNDLE_BYTES,
     ),
   ) {
-    window.history.replaceState(null, "", "/pilot/station");
+    window.history.replaceState(null, "", "/join?ABC234");
     stubRegistry(await integrityOf(BUNDLE_BYTES));
     const transport = new StubTransport();
     const view = render(
