@@ -289,8 +289,11 @@ describe("warp at a light-minute", () => {
         nowMs += DT * 1000;
         await vi.advanceTimersByTimeAsync(DT * 1000);
       }
+      const warpToAfterStop = svc.snapshot().warpTo;
       svc.dispose();
 
+      // The banner offers Stop warp for as long as this is non-null.
+      expect(warpToAfterStop).toBeNull();
       // One command, the one that started the session. The stop that follows
       // is not one the controller asked for, so it ends the session instead of
       // reconciling against it.

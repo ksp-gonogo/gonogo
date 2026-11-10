@@ -14,6 +14,17 @@ function Anchored({ text }: { text: string | null }) {
   );
 }
 
+/** Points at an element and keeps the pointer there past the open delay. */
+async function restOn(
+  user: ReturnType<typeof userEvent.setup>,
+  element: Element,
+): Promise<void> {
+  await user.hover(element);
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 650));
+  });
+}
+
 const tipIn = (root: ParentNode) =>
   root.querySelector<HTMLElement>("[data-tooltip-tip]");
 
@@ -24,7 +35,7 @@ describe("useTooltip", () => {
     const anchor = screen.getByTestId("anchor");
     expect(tipIn(document.body)).toBeNull();
 
-    await user.hover(anchor);
+    await restOn(user, anchor);
     const tip = tipIn(document.body);
     expect(tip).toHaveTextContent("Held since Y1 D12");
     expect(tip).toHaveAttribute("aria-hidden", "true");
@@ -32,6 +43,22 @@ describe("useTooltip", () => {
 
     await user.unhover(anchor);
     await waitFor(() => expect(tipIn(document.body)).toBeNull());
+  });
+
+  it("opens only once the pointer has rested on the anchor, and not at all for a pass-through", async () => {
+    const user = userEvent.setup();
+    render(<Anchored text="Held since Y1 D12" />);
+    const anchor = screen.getByTestId("anchor");
+    await user.hover(anchor);
+    expect(tipIn(document.body)).toBeNull();
+    await user.unhover(anchor);
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 700));
+    });
+    expect(tipIn(document.body)).toBeNull();
+
+    await restOn(user, anchor);
+    expect(tipIn(document.body)).not.toBeNull();
   });
 
   it("opens the tip on keyboard focus and closes it on blur", async () => {
@@ -56,7 +83,7 @@ describe("useTooltip", () => {
     render(<Anchored text={null} />);
     const anchor = screen.getByTestId("anchor");
     expect(anchor).not.toHaveAttribute("data-tooltip");
-    await user.hover(anchor);
+    await restOn(user, anchor);
     expect(tipIn(document.body)).toBeNull();
   });
 });
@@ -72,7 +99,7 @@ describe("HeldFigure", () => {
     expect(host.querySelector("[data-held-mark]")).not.toBeNull();
     expect(host).toHaveTextContent("12:00, held, as of Y1 D12");
 
-    await user.hover(host);
+    await restOn(user, host);
     expect(tipIn(document.body)).toHaveTextContent("held, as of Y1 D12");
   });
 });
@@ -90,7 +117,7 @@ describe("Tooltip", () => {
     expect(button).toHaveAttribute("aria-description", "Saves the game first");
     expect(tipIn(document.body)).toBeNull();
 
-    await user.hover(button);
+    await restOn(user, button);
     expect(tipIn(document.body)).toHaveTextContent("Saves the game first");
     await user.unhover(button);
     await waitFor(() => expect(tipIn(document.body)).toBeNull());
@@ -116,7 +143,7 @@ describe("Tooltip", () => {
         <button type="button">Grip</button>
       </Tooltip>,
     );
-    await user.hover(screen.getByRole("button", { name: "Grip" }));
+    await restOn(user, screen.getByRole("button", { name: "Grip" }));
     expect(tipIn(document.body)).toHaveAttribute("data-above");
     unmount();
     spy.mockRestore();
@@ -127,7 +154,7 @@ describe("Tooltip", () => {
         <button type="button">Grip</button>
       </Tooltip>,
     );
-    await user.hover(screen.getByRole("button", { name: "Grip" }));
+    await restOn(user, screen.getByRole("button", { name: "Grip" }));
     expect(tipIn(document.body)).not.toHaveAttribute("data-above");
     near.mockRestore();
   });
@@ -154,11 +181,11 @@ describe("Tooltip", () => {
         <span data-testid="anchor">Alt</span>
       </Tooltip>,
     );
-    await user.hover(screen.getByTestId("anchor"));
+    await restOn(user, screen.getByTestId("anchor"));
     const tip = tipIn(document.body) as HTMLElement;
     expect(getComputedStyle(tip).pointerEvents).not.toBe("none");
 
-    await user.hover(tip);
+    await restOn(user, tip);
     await new Promise((resolve) => setTimeout(resolve, 250));
     expect(tipIn(document.body)).toBe(tip);
 
@@ -173,7 +200,7 @@ describe("Tooltip", () => {
         <button type="button">Add</button>
       </Tooltip>,
     );
-    await user.hover(screen.getByRole("button", { name: "Add" }));
+    await restOn(user, screen.getByRole("button", { name: "Add" }));
     expect(tipIn(document.body)).not.toBeNull();
 
     await user.click(screen.getByRole("button", { name: "Add" }));
@@ -190,7 +217,7 @@ describe("Tooltip", () => {
         <span data-testid="anchor">Alt</span>
       </Tooltip>,
     );
-    await user.hover(screen.getByTestId("anchor"));
+    await restOn(user, screen.getByTestId("anchor"));
     expect(tipIn(document.body)).not.toBeNull();
     await user.keyboard("{Escape}");
     expect(tipIn(document.body)).toBeNull();
@@ -217,7 +244,7 @@ describe("Tooltip", () => {
 
     it("stays open when the press lands in the tip, instead of closing as a press on the anchor does", async () => {
       const { user } = open();
-      await user.hover(screen.getByTestId("anchor"));
+      await restOn(user, screen.getByTestId("anchor"));
       await user.pointer({
         target: tipIn(document.body) as HTMLElement,
         keys: "[MouseLeft>]",
@@ -227,7 +254,7 @@ describe("Tooltip", () => {
 
     it("stays open while a drag carries the pointer off the tip, and while its text is selected afterwards", async () => {
       const { user } = open();
-      await user.hover(screen.getByTestId("anchor"));
+      await restOn(user, screen.getByTestId("anchor"));
       const tip = tipIn(document.body) as HTMLElement;
       await user.pointer({ target: tip, keys: "[MouseLeft>]" });
       await user.unhover(tip);
@@ -246,7 +273,7 @@ describe("Tooltip", () => {
 
     it("closes once the press ends with nothing selected and the pointer is away", async () => {
       const { user } = open();
-      await user.hover(screen.getByTestId("anchor"));
+      await restOn(user, screen.getByTestId("anchor"));
       const tip = tipIn(document.body) as HTMLElement;
       await user.pointer({ target: tip, keys: "[MouseLeft>]" });
       await user.unhover(tip);
@@ -256,7 +283,7 @@ describe("Tooltip", () => {
 
     it("still closes on Escape while its text is selected", async () => {
       const { user } = open();
-      await user.hover(screen.getByTestId("anchor"));
+      await restOn(user, screen.getByTestId("anchor"));
       act(() => selectTipText());
       await user.pointer({
         target: tipIn(document.body) as HTMLElement,
@@ -278,7 +305,7 @@ describe("Tooltip", () => {
           </Tooltip>
         </div>,
       );
-      await user.hover(screen.getByTestId("anchor"));
+      await restOn(user, screen.getByTestId("anchor"));
       await user.click(tipIn(document.body) as HTMLElement);
       expect(onClick).not.toHaveBeenCalled();
     });
@@ -454,7 +481,7 @@ describe("Tooltip on a touch screen", () => {
       </Tooltip>,
     );
     const button = screen.getByRole("button", { name: "Go" });
-    await user.hover(button);
+    await restOn(user, button);
     expect(tipIn(document.body)).not.toBeNull();
     await user.click(button);
     expect(tipIn(document.body)).toBeNull();
@@ -476,14 +503,14 @@ describe("Tooltip nested in a tipped element", () => {
       </Tooltip>,
     );
 
-    await user.hover(screen.getByTestId("cell"));
+    await restOn(user, screen.getByTestId("cell"));
     expect(
       [...document.querySelectorAll("[data-tooltip-tip]")].map(
         (t) => t.textContent,
       ),
     ).toEqual(["Launch Pad tiers"]);
 
-    await user.hover(screen.getByRole("button", { name: "Upgrade" }));
+    await restOn(user, screen.getByRole("button", { name: "Upgrade" }));
     await waitFor(() =>
       expect(
         [...document.querySelectorAll("[data-tooltip-tip]")].map(
@@ -507,7 +534,7 @@ describe("Tooltip nested in a tipped element", () => {
       </Tooltip>,
     );
 
-    await user.hover(screen.getByRole("button", { name: "Upgrade" }));
+    await restOn(user, screen.getByRole("button", { name: "Upgrade" }));
     await waitFor(() =>
       expect(
         [...document.querySelectorAll("[data-tooltip-tip]")].map(

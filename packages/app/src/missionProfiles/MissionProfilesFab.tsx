@@ -4,7 +4,6 @@ import {
   useSerialDeviceService,
 } from "@ksp-gonogo/serial";
 import { Fab, LayersIcon, useModal } from "@ksp-gonogo/ui";
-import { Tooltip } from "@ksp-gonogo/ui-kit";
 import {
   MissionProfilesProvider,
   useMissionProfilesService,
@@ -44,10 +43,8 @@ export function MissionProfilesFab({
   }
 
   return (
-    <Tooltip text="Dashboard layouts">
-      <Fab bottom={bottom} onClick={handleClick} aria-label="Dashboard layouts">
-        <LayersIcon />
-      </Fab>
-    </Tooltip>
+    <Fab bottom={bottom} onClick={handleClick} aria-label="Dashboard layouts">
+      <LayersIcon />
+    </Fab>
   );
 }

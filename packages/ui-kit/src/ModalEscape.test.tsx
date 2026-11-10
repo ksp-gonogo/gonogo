@@ -1,4 +1,4 @@
-import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import { render, screen, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { DataKeyPicker, type KeyOption } from "./DataKeyPicker";
@@ -59,7 +59,9 @@ describe("Escape used by a control inside a dialog", () => {
     );
     await user.click(screen.getByRole("button", { name: "open" }));
     await user.hover(screen.getByLabelText("field"));
-    expect(document.querySelector("[data-tooltip-tip]")).not.toBeNull();
+    await waitFor(() =>
+      expect(document.querySelector("[data-tooltip-tip]")).not.toBeNull(),
+    );
 
     await user.keyboard("{Escape}");
 
