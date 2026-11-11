@@ -1,4 +1,4 @@
-import { CloseIcon, PushUpIcon, RecallIcon } from "@ksp-gonogo/ui";
+import { CloseIcon, PullDownIcon, PushUpIcon } from "@ksp-gonogo/ui";
 import { IconButton, Tooltip } from "@ksp-gonogo/ui-kit";
 import styled, { css, keyframes } from "styled-components";
 import {
@@ -80,7 +80,7 @@ export function PushButton({
         disabled={!approved || !client.hasMainScreen}
       >
         {pushed ? (
-          <RecallIcon size="var(--icon-size-control)" />
+          <PullDownIcon size="var(--icon-size-control)" />
         ) : (
           <PushUpIcon size="var(--icon-size-control)" />
         )}

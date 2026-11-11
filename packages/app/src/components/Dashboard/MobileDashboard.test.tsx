@@ -12,7 +12,14 @@ import {
   useDelayRailStore,
   usePanelStatusStore,
 } from "@ksp-gonogo/ui-kit";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  type PeerClient,
+  PeerClientProvider,
+} from "../../peer/PeerClientContext";
+import { PushClientProvider } from "../../pushToMain/PushClientContext";
+import { idlePeerClient } from "../../test/peerFakes";
 import type { DashboardItem } from "./index";
 import { MobileDashboard } from "./MobileDashboard";
 
@@ -125,5 +132,74 @@ describe("MobileDashboard widget wiring", () => {
     renderList([{ i: "m3", componentId: "mobile-stores" }]);
 
     expect(screen.getByText("rail:yes status:yes")).toBeInTheDocument();
+  });
+});
+
+describe("MobileDashboard push to main", () => {
+  beforeEach(() => {
+    clearRegistry();
+  });
+
+  function registerProbe(id: string, pushable: boolean) {
+    registerComponent({
+      id,
+      name: id,
+      description: "Push probe",
+      tags: [],
+      pushable,
+      component: function PushProbe() {
+        return <div>body</div>;
+      },
+    });
+  }
+
+  function renderOnStation(items: DashboardItem[]) {
+    const client: PeerClient = {
+      ...idlePeerClient(),
+      getApproval: () => "approved",
+      getHostSeat: () => "main",
+    };
+    return render(
+      <PeerClientProvider client={client}>
+        <PushClientProvider>
+          <MobileDashboard
+            items={items}
+            layout={[]}
+            onLayoutChange={vi.fn()}
+            updateItemConfig={vi.fn()}
+            updateItemMappings={vi.fn()}
+            updateItemMobileWidth={vi.fn()}
+            updateItemMobileHeight={vi.fn()}
+            removeItem={vi.fn()}
+            moveItemUp={vi.fn()}
+            moveItemDown={vi.fn()}
+            lastAddedId={null}
+            clearLastAdded={vi.fn()}
+          />
+        </PushClientProvider>
+      </PeerClientProvider>,
+    );
+  }
+
+  it("puts a Push to main button beside the options button of a pushable tile, and recalls on a second press", async () => {
+    registerProbe("push-probe", true);
+    renderOnStation([{ i: "a", componentId: "push-probe" }]);
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
+    await user.click(screen.getByRole("button", { name: "Push to main" }));
+    expect(
+      screen.getByRole("button", { name: "Recall from main" }),
+    ).toBeInTheDocument();
+  });
+
+  it("has no push button on a tile that is not pushable", () => {
+    registerProbe("plain-probe", false);
+    renderOnStation([{ i: "a", componentId: "plain-probe" }]);
+    expect(screen.queryByRole("button", { name: /main$/ })).toBeNull();
+  });
+
+  it("has no push button where no push client is mounted", () => {
+    registerProbe("push-probe", true);
+    renderList([{ i: "a", componentId: "push-probe" }]);
+    expect(screen.queryByRole("button", { name: /main$/ })).toBeNull();
   });
 });

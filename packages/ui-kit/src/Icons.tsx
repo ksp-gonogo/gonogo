@@ -1,5 +1,6 @@
 import {
   ArrowDown,
+  ArrowDownToLine,
   ArrowLeft,
   ArrowLeftRight,
   ArrowRight,
@@ -411,9 +412,16 @@ export const ArrowDownIcon = makeIcon(ArrowDown);
  */
 export const PushUpIcon = makeIcon(ArrowUpToLine);
 /**
- * A curved arrow turning back. Useful for the control that recalls a widget
- * that was pushed away, or undoes the push. Used by the dashboard widget
- * controls.
+ * A downward arrow meeting a line, the opposite of {@link PushUpIcon}. Useful
+ * for the control that recalls a widget that was pushed to another screen.
+ * Used by the dashboard widget controls.
+ *
+ * @category Icons
+ */
+export const PullDownIcon = makeIcon(ArrowDownToLine);
+/**
+ * A curved arrow turning back. Useful for the control that undoes a step, such
+ * as the last layout change. Used by the layout history control.
  *
  * @category Icons
  */
