@@ -187,6 +187,7 @@ function sceneEmits(): Array<{ topic: string; value: unknown }> {
       value: {
         nodes: [
           { id: "home", displayName: "KSC", kind: 0 },
+          { id: "Woomera", displayName: "Woomera Range", kind: 0 },
           { id: "v-relay", displayName: "Comsat Relay-1", kind: 1 },
           { id: "v-active", displayName: "Active Craft", kind: 2 },
           { id: "v-other", displayName: "Munar Transfer Stage", kind: 2 },
@@ -194,6 +195,7 @@ function sceneEmits(): Array<{ topic: string; value: unknown }> {
         edges: [
           { a: "home", b: "v-relay", active: true },
           { a: "v-relay", b: "v-active", active: true },
+          { a: "v-relay", b: "Woomera", active: true },
           { a: "home", b: "v-other", active: true },
         ],
       },
@@ -274,6 +276,7 @@ async function convertToMp4(webmPath: string, mp4Path: string): Promise<void> {
 }
 
 const MESSAGE = "Ares 4: Confirm residuals when you have them.";
+const GROUND = "Woomera: Range is clear for the test.";
 const CANCELLED = "Ares 4: Stand by for a manoeuvre update.";
 
 function messageEntry(id: string, label: string, dispatchedAt: number) {
@@ -355,10 +358,28 @@ async function capture(probeHtmlOut: string): Promise<void> {
     });
     await page.screenshot({ path: join(OUT_DIR, "cancelled.png") });
 
-    await page.waitForTimeout(5_000);
+    await page.waitForTimeout(2_000);
+    const t2 = await evalUtNow(page);
+    mark("ground");
+    const toWoomera = {
+      ...messageEntry("g1", GROUND, t2),
+      craft: "ground:Woomera",
+      vantage: "ground:home",
+    };
+    await evalCaptureEmit(page, "system.uplink.pending", {
+      pending: [messageEntry("m1", MESSAGE, t0), toWoomera],
+    });
+    await page.screenshot({ path: join(OUT_DIR, "ground-to-ground.png") });
+
+    await page.waitForTimeout(3_500);
     mark("delivered");
+    await evalCaptureEmit(page, "system.uplink.pending", {
+      pending: [toWoomera],
+    });
+    await page.waitForTimeout(3_000);
+    mark("groundDone");
     await evalCaptureEmit(page, "system.uplink.pending", { pending: [] });
-    await page.waitForTimeout(2_500);
+    await page.waitForTimeout(2_000);
     mark("end");
     await page.screenshot({ path: join(OUT_DIR, "delivered.png") });
 
