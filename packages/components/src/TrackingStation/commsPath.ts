@@ -121,6 +121,27 @@ export function deriveCommsPath(
   return NO_COMMS_PATH;
 }
 
+/** The route between two named nodes of `comms.network`: active edges first (`"full"`), then every edge (`"partial"`), else `NO_COMMS_PATH`. Two nodes joined by no edge have no route. */
+export function deriveCommsPathBetween(
+  network: CommsNetwork | undefined,
+  fromId: string,
+  toId: string,
+): DerivedCommsPath {
+  if (!network || fromId.length === 0 || toId.length === 0)
+    return NO_COMMS_PATH;
+  const targets = new Set([toId]);
+  const fullPath = shortestPathToAny(
+    network.edges.filter((e) => e.active),
+    fromId,
+    targets,
+  );
+  if (fullPath) return { quality: "full", edgeIds: fullPath.map(edgeEntityId) };
+  const anyPath = shortestPathToAny(network.edges, fromId, targets);
+  if (anyPath)
+    return { quality: "partial", edgeIds: anyPath.map(edgeEntityId) };
+  return NO_COMMS_PATH;
+}
+
 /** Indexed by `commsControlQuality`, not the traversal `quality`; `"none"` is reachable here because a vessel with no control can still be linked to home. */
 export const COMMS_PATH_COLOUR: Readonly<Record<CommsPathQuality, string>> = {
   full: "var(--color-go-mark)",
