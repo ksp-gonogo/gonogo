@@ -70,6 +70,14 @@ namespace Sitrep.Core
                         + "about the observer rather than about the craft.");
             }
 
+            if (archive.FirstSampleStandsInGap(topic, sample.Value, sceneUt))
+            {
+                return DelayedObservation.Refused(
+                    DelayedStateRefusal.BeyondRetainedHistory,
+                    "What was current for '" + topic + "' at this vantage's view is no longer "
+                        + "held, so its first recorded value cannot stand in for it.");
+            }
+
             var converted = toState(sample.Value.Value);
             if (converted == null)
             {

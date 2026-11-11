@@ -37,6 +37,46 @@ namespace Sitrep.Core.Tests
             Assert.Equal(840, observed.AgeSeconds);
         }
 
+        /// <summary>
+        /// A quickload into history the archive no longer holds. Pruning kept the
+        /// topic's first sample and the newest; the reset dropped the newest, so the
+        /// first is all that is at or before the loaded instant, and it is not where
+        /// the craft was then.
+        /// </summary>
+        private static Archive RewoundIntoAPrunedGap()
+        {
+            var archive = new Archive();
+            archive.Record("vessel.orbit", 1.0, 1294.88);
+            archive.Record("vessel.orbit", 2.0, 14000);
+            archive.Record("vessel.orbit", 3.0, 14724);
+            archive.Record("vessel.orbit", 4.0, 15000);
+            archive.Record("vessel.orbit", 5.0, 15082);
+            archive.PruneBefore(15082);
+            archive.ResetTimeline(14724.02);
+            return archive;
+        }
+
+        [Fact]
+        public void ARewindIntoAPrunedGapIsRefusedRatherThanSeededFromTheFirstSample()
+        {
+            var observed = DelayedStateReader.Read(RewoundIntoAPrunedGap(), "vessel.orbit", "ksc", 0, 14728, AsState);
+
+            Assert.False(observed.Established);
+            Assert.Equal(DelayedStateRefusal.BeyondRetainedHistory, observed.Refusal);
+        }
+
+        [Fact]
+        public void ASampleRecordedAfterTheRewindIsReadDespiteTheGap()
+        {
+            var archive = RewoundIntoAPrunedGap();
+            archive.Record("vessel.orbit", 6.0, 14725);
+
+            var observed = DelayedStateReader.Read(archive, "vessel.orbit", "ksc", 0, 14728, AsState);
+
+            Assert.True(observed.Established);
+            Assert.Equal(14725, observed.ObservedAtUt);
+        }
+
         [Fact]
         public void RefusesRatherThanFallingBackToWhatTheGameKnows()
         {

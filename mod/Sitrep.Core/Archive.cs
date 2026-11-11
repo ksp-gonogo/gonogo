@@ -693,6 +693,19 @@ namespace Sitrep.Core
             _wholeFrom.TryGetValue(topic, out var wholeFrom) && ut < wholeFrom;
 
         /// <summary>
+        /// Whether <paramref name="sample"/> is the topic's first sample, read at an
+        /// instant inside the gap a prune left after it. It is then the newest sample at
+        /// or before <paramref name="ut"/> only because what was current there was
+        /// dropped, which a rewind into the gap brings about. A sample recorded since,
+        /// on the new timeline, is never this one.
+        /// </summary>
+        public bool FirstSampleStandsInGap(string topic, ArchiveSample sample, double ut) =>
+            HistoryMissingAt(topic, ut)
+            && _samplesByTopic.TryGetValue(topic, out var list)
+            && list.Count > 0
+            && list[0].Id == sample.SampleId;
+
+        /// <summary>
         /// C#-ONLY addition, for the M2 "archive-derived birth" rewind fix,
         /// see <c>Sitrep.Host.ChannelEngine</c>'s <c>_born</c> field and its
         /// rewind branch in <c>ProcessTick</c>. Whether <paramref name="topic"/>
