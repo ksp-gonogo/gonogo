@@ -19,10 +19,7 @@ import {
 } from "../peer/connectionPath";
 import type { EndpointStatus } from "../peer/endpointStations";
 import { peerHostService } from "../peer/PeerHostService";
-import {
-  type PortForwardState,
-  readPortForward,
-} from "../relay/autoPortForward";
+import { relayBaseUrl } from "../peer/relayAddress";
 import { requestSettings } from "../settings/settingsRequest";
 import { ApprovedStations } from "../stationApproval/ApprovedStations";
 import { StationApprovalPrompt } from "../stationApproval/StationApprovalPrompt";
@@ -201,7 +198,7 @@ function RegenerateRow() {
         </Button>
       )}
       <RegenerateHint>
-        Creates a fresh join code. The old code stops working, anyone who had it
+        Mints a fresh join code. The old code stops working, anyone who had it
         (including connected stations once they drop) needs the new code shown
         above.
       </RegenerateHint>
@@ -249,18 +246,18 @@ function pathText(path: ConnectionPath | null): string {
 }
 
 /**
- * What decides whether stations on other networks can join: the relay not
- * running, another main screen holding it, and the state of automatic port
- * forwarding as the relay reports it (off, waiting on the router, refused, or
- * open). A port forwarded by hand cannot be seen from here, so it reads the
- * same as forwarding off. Read again every 30 s while the window is open.
+ * What stops stations on other networks joining: the relay not running,
+ * another main screen holding it, or its port not opened on the router. Shows nothing once the relay has had the
+ * router open it. A port forwarded by hand cannot be seen from here, so that
+ * case reads the same as no forward. Read again every 30 s while the window is
+ * open.
  */
 function EndpointState() {
   const [status, setStatus] = useState<EndpointStatus | null>(
     peerHostService.endpoint.status,
   );
   const [held, setHeld] = useState(peerHostService.endpoint.heldElsewhere);
-  const forward = usePortForward();
+  const opened = usePortOpened();
   useEffect(
     () =>
       peerHostService.endpoint.onAvailable(() =>
@@ -292,58 +289,46 @@ function EndpointState() {
       </StatusIndicator>
     );
   }
-  const setting = (
-    <SettingLink type="button" onClick={() => requestSettings("general")}>
-      Automatic port forwarding
-    </SettingLink>
-  );
-  if (forward?.enabled && forward.mapping) {
-    const { state, message } = forward.mapping;
-    if (state === "mapped") {
-      return (
-        <StatusIndicator tone="go" live>
-          Automatic port forwarding is on: {message}
-        </StatusIndicator>
-      );
-    }
-    if (state === "checking") {
-      return (
-        <StatusIndicator tone="info" live>
-          Automatic port forwarding is on: {message}
-        </StatusIndicator>
-      );
-    }
-    return (
-      <StatusIndicator tone="warn" live>
-        Automatic port forwarding is on but not working: {message} See {setting}{" "}
-        in Settings, under Relay.
-      </StatusIndicator>
-    );
-  }
+  if (opened) return null;
   return (
     <StatusIndicator tone="info" live>
-      Stations on this network can join. {setting} is off.
+      Stations on this network can join. For other networks, see{" "}
+      <SettingLink type="button" onClick={() => requestSettings("general")}>
+        Automatic port forwarding
+      </SettingLink>{" "}
+      in Settings, under Relay.
     </StatusIndicator>
   );
 }
 
-/** The relay's automatic port forwarding state, read now and every 30 s; null until it answers. */
-function usePortForward(): PortForwardState | null {
-  const [state, setState] = useState<PortForwardState | null>(null);
+/** Whether the relay reports, in `/health`, that the router opened its port. */
+function usePortOpened(): boolean {
+  const [opened, setOpened] = useState(false);
   useEffect(() => {
-    let live = true;
+    const controller = new AbortController();
     const read = () =>
-      void readPortForward().then((next) => {
-        if (live) setState(next);
-      });
-    read();
+      fetch(`${relayBaseUrl()}/health`, { signal: controller.signal })
+        .then((res) => res.json())
+        .then((body: unknown) => {
+          const m =
+            typeof body === "object" && body !== null
+              ? Reflect.get(body, "portMapping")
+              : null;
+          setOpened(
+            !!m &&
+              typeof m === "object" &&
+              Reflect.get(m, "state") === "mapped",
+          );
+        })
+        .catch(() => {});
+    void read();
     const interval = setInterval(read, 30_000);
     return () => {
-      live = false;
       clearInterval(interval);
+      controller.abort();
     };
   }, []);
-  return state;
+  return opened;
 }
 
 const PathList = styled.ul`

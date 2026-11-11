@@ -1,4 +1,4 @@
-import type { DataKeyMeta, SeriesTimeBasis } from "@ksp-gonogo/data";
+import type { DataKeyMeta } from "@ksp-gonogo/data";
 import { type PlotLayer, seriesKeyOf } from "@ksp-gonogo/sitrep-sdk";
 import {
   type ChartSeries,
@@ -38,28 +38,23 @@ export function computeXDomain(
 }
 
 /**
- * X domain for a time graph: `windowSec` wide, ending at the newest plotted sample (or the reckoned window end, when a series carries one). The width is in the series' own clock, UT seconds or wall-clock milliseconds. The left edge therefore moves only as newer samples arrive, never when old ones are dropped, and a sparse or constant series still spans the whole window.
+ * X domain for a time graph: the span the plotted samples cover, read off the data because samples may be stamped in UT seconds or wall-clock milliseconds. `windowSec` sets the span only for a chart with no marks.
  *
- * A series carrying a reckoned run extends the right edge to `reckonedWindowEnd`, so the blank where a model declined stays visible; a purely measured series claims nothing past its last sample.
+ * A series carrying a reckoned run extends the right edge to `windowEndAt`, so the blank where a model declined stays visible; a purely measured series claims nothing past its last sample.
  */
 export function timeWindowDomain(
   series: readonly ChartSeries[],
   windowSec: number,
   reckonedWindowEnd?: number,
-  basis: SeriesTimeBasis = "wall-ms",
 ): [number, number] {
-  const span = windowSec * (basis === "ut-seconds" ? 1 : 1000);
-  let end = Number.NEGATIVE_INFINITY;
-  for (const s of series) {
-    for (const x of s.data.x) if (x > end) end = x;
-  }
-  if (reckonedWindowEnd !== undefined && reckonedWindowEnd > end)
-    end = reckonedWindowEnd;
-  if (end === Number.NEGATIVE_INFINITY) {
+  const all: number[] = [];
+  for (const s of series) all.push(...s.data.x);
+  if (all.length === 0) {
     const now = Date.now();
     return [now - windowSec * 1000, now];
   }
-  return [end - span, end];
+  if (reckonedWindowEnd !== undefined) all.push(reckonedWindowEnd);
+  return computeValueDomain(all);
 }
 
 export function resolveAxes(
@@ -83,18 +78,4 @@ export function resolveAxes(
     const u = metaMap.get(seriesKeyOf(c.source))?.unit ?? "raw";
     return seen.indexOf(u) === 0 ? "primary" : "secondary";
   });
-}
-
-/**
- * The y domain for the series on one axis when every one of them is a constant ratio: the whole 0 to 1 a ratio is defined over, widened only to take in a value outside it (a throttle driven past 1 by another mod is not clamped). Anything else returns `undefined` and the chart scales as usual.
- */
-export function constantRatioDomain(
-  axisSeries: readonly ChartSeries[],
-  units: readonly (string | undefined)[],
-): [number, number] | undefined {
-  if (axisSeries.length === 0 || units.some((u) => u !== "ratio"))
-    return undefined;
-  const ys = axisSeries.flatMap((s) => s.data.y).filter(Number.isFinite);
-  if (ys.length === 0 || ys.some((y) => y !== ys[0])) return undefined;
-  return [Math.min(0, ys[0]), Math.max(1, ys[0])];
 }

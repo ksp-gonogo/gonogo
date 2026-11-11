@@ -500,27 +500,6 @@ function buildSeries(
   // annotation that can change while nothing has arrived at all. Its runs
   // move with `t`, so the length check catches most of it, but a model
   // withdrawing at its horizon shortens the runs without shortening `t`.
-  /*
-   * A live series that stops emitting has not stopped holding its value: the
-   * emitter withholds a sample that compares equal, so the last one stands
-   * until the view time. The window closes on the whole second at the view
-   * time so the chart advances without every frame being a new snapshot.
-   * Occurrences hold nothing, and neither does a series the link is not
-   * currently confirming.
-   */
-  const lastObservedAt = observed.length > 0 ? nextT[observed.length - 1] : -1;
-  const holdsToViewTime =
-    nextReckoned.length === 0 &&
-    observed.length > 0 &&
-    interpolation !== "none" &&
-    store.sampleStatus(topic, store.currentFrame()) === "live" &&
-    Math.floor(toUt) > lastObservedAt;
-  const windowEndAt =
-    nextReckoned.length > 0
-      ? toUt
-      : holdsToViewTime
-        ? Math.floor(toUt)
-        : undefined;
   const prev = previous;
   const prevBreaks = prev.breaks ?? [];
   const unchanged =
@@ -538,7 +517,7 @@ function buildSeries(
      * fixed while the view time keeps advancing, and the growing blank
      * between the two is the only thing that changes.
      */
-    prev.windowEndAt === windowEndAt &&
+    prev.windowEndAt === (nextReckoned.length > 0 ? toUt : undefined) &&
     (prev.interpolation ?? "linear") === interpolation;
   if (unchanged) return prev;
 
@@ -554,12 +533,15 @@ function buildSeries(
     reckoned: nextReckoned,
     interpolation,
     /*
-     * The exact view time where a model answered for part of the window, a
-     * whole second of it where a live series holds its last value, otherwise
-     * absent: an exact view time in every live snapshot would make every chart
-     * re-render at frame rate.
+     * Only where a model actually answered for part of the window. Stating
+     * it always would put the frame's view time into the snapshot of every
+     * live chart, and a live chart's view time advances every frame, so a
+     * window with nothing new in it would stop returning `prev` and start
+     * re-rendering at frame rate for no change. A chart WITH a tail already
+     * re-renders per frame by construction, so confining it there costs
+     * nothing that was not already being spent.
      */
-    windowEndAt,
+    windowEndAt: nextReckoned.length > 0 ? toUt : undefined,
   };
   rememberWindowSource(built, { payloads, modelled });
   return built;

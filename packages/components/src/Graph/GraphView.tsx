@@ -26,7 +26,6 @@ import {
 } from "react";
 import {
   computeXDomain,
-  constantRatioDomain,
   resolveAxes,
   timeWindowDomain,
   withDefaults,
@@ -211,12 +210,21 @@ export function GraphView({
   const reckonedWindowEnd = series.reduce<number | undefined>(
     (furthest, cfg) => {
       const raw = seriesData.get(seriesKeyOf(cfg.source));
-      const end = raw?.windowEndAt;
+      const end =
+        raw && (raw.reckoned?.length ?? 0) > 0 ? raw.windowEndAt : undefined;
       if (end === undefined) return furthest;
       return furthest === undefined || end > furthest ? end : furthest;
     },
     undefined,
   );
+
+  function resolveXDomain(): [number, number] {
+    if (xPinned) return config?.xDomain as [number, number];
+    if (xIsTime)
+      return timeWindowDomain(liveSeries, windowSec, reckonedWindowEnd);
+    return computeXDomain(xData.v as number[], referenceCurves ?? [], layers);
+  }
+  const xDomain = resolveXDomain();
 
   // The clock the samples are stamped against, as the fetcher declared it; the first series with samples decides.
   const timeBasis: SeriesTimeBasis =
@@ -224,27 +232,6 @@ export function GraphView({
       .map((cfg) => seriesData.get(seriesKeyOf(cfg.source)))
       .find((range) => range !== undefined && range.t.length > 0)?.basis ??
     "wall-ms";
-
-  function ratioDomainOn(side: "primary" | "secondary") {
-    const idx = series.flatMap((_, i) => (axes[i] === side ? [i] : []));
-    return constantRatioDomain(
-      idx.map((i) => liveSeries[i]),
-      idx.map((i) => metaMap.get(seriesKeyOf(series[i].source))?.unit),
-    );
-  }
-
-  function resolveXDomain(): [number, number] {
-    if (xPinned) return config?.xDomain as [number, number];
-    if (xIsTime)
-      return timeWindowDomain(
-        liveSeries,
-        windowSec,
-        reckonedWindowEnd,
-        timeBasis,
-      );
-    return computeXDomain(xData.v as number[], referenceCurves ?? [], layers);
-  }
-  const xDomain = resolveXDomain();
 
   function resolveXTickFormat():
     | ((
@@ -345,8 +332,8 @@ export function GraphView({
       xReadFormat={xReadFormat}
       xUnit={xPinned && !xIsTime ? config?.xUnit : undefined}
       yUnit={config?.yUnit}
-      yDomainPrimary={config?.yDomainPrimary ?? ratioDomainOn("primary")}
-      yDomainSecondary={config?.yDomainSecondary ?? ratioDomainOn("secondary")}
+      yDomainPrimary={config?.yDomainPrimary}
+      yDomainSecondary={config?.yDomainSecondary}
       yScalePrimary={config?.yScalePrimary}
       yScaleSecondary={config?.yScaleSecondary}
       thresholds={thresholds}

@@ -1,4 +1,4 @@
-import { act, render, screen, within } from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http, ws } from "msw";
@@ -47,8 +47,8 @@ afterEach(() => {
 });
 afterAll(() => server.close());
 
-/** A relay whose endpoint is running, with automatic port forwarding `enabled` and its router attempt in `portState`. */
-function relayRunning(portState: string | null, enabled = portState !== null) {
+/** A relay whose endpoint is running, reporting `portState` for its own attempt to open the router's port. */
+function relayRunning(portState: string | null) {
   server.use(
     http.get("http://localhost:3002/bootstrap-config", () =>
       HttpResponse.json({ kspHost: null, stationEndpoint: true }),
@@ -58,12 +58,12 @@ function relayRunning(portState: string | null, enabled = portState !== null) {
         JSON.stringify({ type: "status", port: 47100, publicIp: null }),
       );
     }),
-    http.get("http://localhost:3002/port-forward", () =>
+    http.get("http://localhost:3002/health", () =>
       HttpResponse.json({
-        enabled,
-        portMapping: portState
-          ? { state: portState, message: `router said ${portState}.` }
-          : null,
+        status: "ok",
+        ...(portState
+          ? { portMapping: { state: portState, message: "router said" } }
+          : {}),
       }),
     ),
   );
@@ -112,8 +112,8 @@ describe("Invite relay line", () => {
     expect(within(dialog).queryByText(/The relay is not running/)).toBeNull();
   });
 
-  it("says forwarding is off, and opens Settings from the setting's name", async () => {
-    relayRunning(null, false);
+  it("points to the setting rather than explaining it, and opens Settings from it", async () => {
+    relayRunning("refused");
     const { user, dialog } = await openPanel();
     const button = await within(dialog).findByRole("button", {
       name: "Automatic port forwarding",
@@ -121,7 +121,7 @@ describe("Invite relay line", () => {
     expect(
       within(dialog).getByText(/Stations on this network can join/),
     ).toBeInTheDocument();
-    expect(within(dialog).getByText(/is off/)).toBeInTheDocument();
+    expect(within(dialog).queryByText(/router said/)).toBeNull();
 
     const asked: Array<string | undefined> = [];
     const stop = onSettingsRequested((tab) => asked.push(tab));
@@ -130,27 +130,20 @@ describe("Invite relay line", () => {
     expect(asked).toEqual(["general"]);
   });
 
-  it("says forwarding is on but not working, with the router's answer", async () => {
-    relayRunning("refused");
-    const { dialog } = await openPanel();
-    expect(
-      await within(dialog).findByText(
-        /is on but not working: router said refused\./,
-      ),
-    ).toBeInTheDocument();
-    expect(
-      within(dialog).queryByText(/Stations on this network can join/),
-    ).toBeNull();
-  });
-
-  it("says the router opened the port once it did", async () => {
+  it("shows no relay line once the router opened the port", async () => {
     relayRunning("mapped");
     const { dialog } = await openPanel();
+    // The panel says the relay is not running until the endpoint reports, then points to the setting until the relay says the port is open.
+    await waitFor(() => {
+      expect(within(dialog).queryByText(/The relay is not running/)).toBeNull();
+      expect(
+        within(dialog).queryByText(/Stations on this network can join/),
+      ).toBeNull();
+    });
     expect(
-      await within(dialog).findByText(/is on: router said mapped\./),
-    ).toBeInTheDocument();
-    expect(
-      within(dialog).queryByText(/Stations on this network can join/),
+      within(dialog).queryByRole("button", {
+        name: "Automatic port forwarding",
+      }),
     ).toBeNull();
   });
 });

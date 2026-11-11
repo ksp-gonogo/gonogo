@@ -1,13 +1,13 @@
 import { Button, Spinner } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
-import { StationNameEditor, useStationNameOptional } from "../stationIdentity";
+import { useStationNameOptional } from "../stationIdentity";
 import { JoinBox, JoinCode, JoinLayout, JoinMuted } from "./joinParts";
 import { joinPath, setJoined } from "./seatChoice";
 
 /**
  * A joining screen before the host has let it in: reaching the host, waiting
  * for its approval, or refused. It names this screen as the host sees it in
- * the request, lets the joiner rename it, and offers the way back to the two seats.
+ * the request, and offers the way back to the two seats.
  */
 export function JoinWaiting({
   code,
@@ -38,7 +38,7 @@ export function JoinWaiting({
         {name && (
           <Fact>
             <JoinMuted>Shown to the host as</JoinMuted>
-            <StationNameEditor bare />
+            <strong>{name}</strong>
           </Fact>
         )}
         <Actions>
