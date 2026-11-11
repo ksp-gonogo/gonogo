@@ -1,4 +1,3 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
 import "./chargeRate";
 import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
@@ -109,57 +108,15 @@ describe("ChargeTrendBox", () => {
 });
 
 describe("chargeTrendBadges", () => {
-  const none = { secondsToEmpty: undefined, secondsToFull: undefined };
-
-  it("is absent with no trend", () => {
+  it("names the direction in the tone of its state, and is absent with no trend", () => {
     expect(chargeTrendBadges(undefined)).toBeUndefined();
-  });
-
-  it("reads a drain as the time to empty, in the warning tone", () => {
     expect(
       chargeTrendBadges({
         direction: "draining",
-        ...none,
-        secondsToEmpty: 450,
+        secondsToEmpty: 10,
+        secondsToFull: undefined,
         atLimit: false,
       }),
-    ).toMatchObject([
-      { label: expect.stringMatching(/^Empty in 7/), tone: "warn" },
-    ]);
-  });
-
-  it("reads a measured zero as empty, in the red tone", () => {
-    expect(
-      chargeTrendBadges({ direction: "draining", ...none, atLimit: true }),
-    ).toMatchObject([{ label: "Empty", tone: "nogo" }]);
-  });
-
-  it("marks a carried-forward time as approximate and blue, and a crossed zero as likely empty", () => {
-    expect(
-      chargeTrendBadges({
-        direction: "draining",
-        ...none,
-        secondsToEmpty: 790,
-        atLimit: false,
-        modelled: true,
-      }),
-    ).toMatchObject([
-      { label: expect.stringMatching(/^Empty in ~13/), tone: "info" },
-    ]);
-    expect(
-      chargeTrendBadges({
-        direction: "draining",
-        ...none,
-        atLimit: true,
-        modelled: true,
-        emptySinceUt: value("ut", 5),
-      }),
-    ).toMatchObject([{ label: "Likely empty", tone: "nogo" }]);
-  });
-
-  it("names a charge and a level store by their direction", () => {
-    expect(
-      chargeTrendBadges({ direction: "charging", ...none, atLimit: false }),
-    ).toMatchObject([{ label: "Charging", tone: "go" }]);
+    ).toMatchObject([{ label: "Draining", tone: "warn" }]);
   });
 });

@@ -1,5 +1,4 @@
 import {
-  HeldFigure,
   NULL_DISPLAY,
   Text,
   Tooltip,
@@ -43,8 +42,6 @@ export function PowerTotals({
   measuredTotalProduced,
   measuredDisagrees,
   storage,
-  modelledStored,
-  modelledCaption,
 }: Readonly<{
   /** The net rate as the figure the cell draws, null while the net is unknown rather than zero. */
   netFigure: ComponentProps<typeof Unit>["value"] | null;
@@ -64,10 +61,6 @@ export function PowerTotals({
   measuredDisagrees: boolean;
   /** Null when a store aboard could not be read. */
   storage: { amount: number; maxAmount: number } | null;
-  /** What the held report says is stored now, drawn in place of the stored figure with the modelled mark. */
-  modelledStored?: number;
-  /** What the modelled mark means in words. */
-  modelledCaption?: string;
 }>) {
   return (
     <div style={TOTALS}>
@@ -140,21 +133,8 @@ export function PowerTotals({
       {storage && storage.maxAmount > 0 && (
         <div style={TOTALS_CELL}>
           <span style={CELL_LABEL}>STORED</span>
-          <Text
-            size="sm"
-            tone={modelledStored === undefined ? undefined : "info"}
-            style={STORED_VALUE}
-          >
-            {modelledStored === undefined ? (
-              <span style={STORED_PART}>{formatUnits(storage.amount)}</span>
-            ) : (
-              <HeldFigure
-                kind="modelled"
-                caption={`${modelledCaption}, last received ${formatUnits(storage.amount)}`}
-              >
-                {formatUnits(modelledStored)}
-              </HeldFigure>
-            )}{" "}
+          <Text size="sm" style={STORED_VALUE}>
+            <span style={STORED_PART}>{formatUnits(storage.amount)}</span>{" "}
             <span style={STORED_PART}>/ {formatUnits(storage.maxAmount)}</span>
           </Text>
         </div>
