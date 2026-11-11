@@ -48,12 +48,19 @@ namespace Gonogo.KSP.SilenceTracking
             // happens at bootstrap and cannot change under a running save.
             var propagator = PropagationElection.ElectedOrStock(SilenceGeometrySink.Kernel);
 
-            return new PredictedReacquisitionSilenceDeadlinePolicy(
+            var policy = new PredictedReacquisitionSilenceDeadlinePolicy(
                 new KspVisibilityGeometryFactory(
                     () => SilenceGeometrySink.Kernel, propagator: propagator).Build,
                 fallback: new OrbitalPeriodSilenceDeadlinePolicy(propagator: propagator),
                 observationQuantumSeconds: ObservationQuantumSeconds,
-                propagator: propagator).Evaluate;
+                propagator: propagator);
+
+            return (sample, ut) =>
+            {
+                var deadline = policy.Evaluate(sample, ut);
+                SilenceTrace.Verdict(sample.VesselId, deadline.Basis, deadline.PredictedReacquisitionUt, ut);
+                return deadline;
+            };
         }
 
         /// <summary>

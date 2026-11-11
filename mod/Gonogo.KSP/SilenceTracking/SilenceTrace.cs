@@ -72,14 +72,55 @@ namespace Gonogo.KSP.SilenceTracking
         /// </summary>
         public static void FrameCheckFailed(double liveMeters, double predictedMeters, double residualMeters)
         {
-            if (!Diagnostics) return;
             var line = "frame self-check failed: live=" + liveMeters.ToString("F0")
                 + "m predicted=" + predictedMeters.ToString("F0")
                 + "m residual=" + residualMeters.ToString("F0") + "m";
+
+            // The first failure after a pass always prints: it is the reason a
+            // craft gets no forecast, and the residual drifts every frame, so
+            // only the working lines below it need the finer key.
+            if (!_frameCheckFailing)
+            {
+                _frameCheckFailing = true;
+                _lastFrameCheck = FrameCheckKey(residualMeters);
+                GonogoLog.Info("silence", line);
+                return;
+            }
+
+            if (!Diagnostics) return;
             var key = FrameCheckKey(residualMeters);
             if (key == _lastFrameCheck) return;
             _lastFrameCheck = key;
             GonogoLog.Info("silence", line);
+        }
+
+        private static bool _frameCheckFailing;
+
+        /// <summary>A frame self-check that reconciled, so the next failure prints again.</summary>
+        public static void FrameCheckPassed() => _frameCheckFailing = false;
+
+        private static readonly Dictionary<string, string> _verdicts = new Dictionary<string, string>();
+
+        /// <summary>
+        /// What the deadline policy answered for one vessel: the basis it
+        /// reached and the UT it predicts the path to re-open, or none. The
+        /// policy otherwise answers through the wire alone, so a log read
+        /// cannot tell a forecast that was withheld from one never asked for.
+        /// Prints when a vessel's answer changes.
+        /// </summary>
+        public static void Verdict(string vesselId, string basis, double? predictedUt, double sampleUt)
+        {
+            var line = basis + (predictedUt.HasValue
+                ? " predictedReacquisitionUt=" + predictedUt.Value.ToString("F0", CultureInfo.InvariantCulture)
+                : " no prediction");
+            lock (_verdicts)
+            {
+                string last;
+                if (_verdicts.TryGetValue(vesselId, out last) && last == line) return;
+                _verdicts[vesselId] = line;
+            }
+            GonogoLog.Info("silence", "forecast " + vesselId + " at UT "
+                + sampleUt.ToString("F0", CultureInfo.InvariantCulture) + ": " + line);
         }
 
         private static string? _lastHomeSearch;

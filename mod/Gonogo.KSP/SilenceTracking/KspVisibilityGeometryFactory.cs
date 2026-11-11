@@ -621,6 +621,7 @@ namespace Gonogo.KSP.SilenceTracking
                 SilenceTrace.FrameCheckFailed(live, predicted, residual);
                 return false;
             }
+            SilenceTrace.FrameCheckPassed();
             return true;
         }
 
