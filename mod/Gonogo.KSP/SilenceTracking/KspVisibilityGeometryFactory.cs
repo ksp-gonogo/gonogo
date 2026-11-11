@@ -167,7 +167,7 @@ namespace Gonogo.KSP.SilenceTracking
             // against a 795 s truth, the excess being the wait for one station
             // to come back around rather than for the moon to clear.
             // The chosen node goes FIRST, because the frame self-check measures
-            // against comm.precisePosition and compares that with the
+            // against the chosen node's live position and compares that with the
             // geometry's own first station. Any other order compares two
             // different points on the planet and reports their separation - up
             // to a body diameter - as frame error.
@@ -227,7 +227,7 @@ namespace Gonogo.KSP.SilenceTracking
         /// <para>Reads the live CommNet graph first, and the
         /// <c>FindObjectsOfType&lt;CommNetHome&gt;()</c> scene objects second (see
         /// <see cref="HomeNodes"/>). The graph is the read that always works:
-        /// home nodes carry their own <c>precisePosition</c>, so the CommNetHome
+        /// home nodes are placed by <see cref="LivePositionOf"/>, so the CommNetHome
         /// MonoBehaviour is never needed for the geometry.</para>
         /// </summary>
         private CommNode NearestHomeNode(
@@ -251,7 +251,7 @@ namespace Gonogo.KSP.SilenceTracking
 
             foreach (var node in homes)
             {
-                var body = BodyUnder(node.precisePosition, bodies);
+                var body = BodyUnder(LivePositionOf(node), bodies);
                 if (body == null)
                 {
                     // Counted, not just skipped: a node whose body cannot be
@@ -355,8 +355,8 @@ namespace Gonogo.KSP.SilenceTracking
         ///
         /// <para>The control path goes first all the same, because it is the read
         /// the elected comms backend is already making successfully, and its
-        /// links carry home <see cref="CommNode"/>s with their own
-        /// <c>precisePosition</c>, which is all the geometry needs.</para>
+        /// links carry home <see cref="CommNode"/>s, which
+        /// <see cref="LivePositionOf"/> places, and that is all the geometry needs.</para>
         ///
         /// <para>The path yields the stations the active vessel routes
         /// through, not every station in the game. For an occultation
@@ -392,6 +392,8 @@ namespace Gonogo.KSP.SilenceTracking
             var seen = new HashSet<string>(System.StringComparer.Ordinal);
             pathHomes = 0;
             sceneHomes = 0;
+            var homes = new List<CommNetHome>(_homes());
+            NoteHomeSurfaces(homes);
 
             var vessels = FlightGlobals.Vessels;
             if (vessels != null)
@@ -406,7 +408,7 @@ namespace Gonogo.KSP.SilenceTracking
                         foreach (var node in new[] { link.a, link.b })
                         {
                             if (node == null || !node.isHome) continue;
-                            if (!seen.Add(node.precisePosition.ToString())) continue;
+                            if (!seen.Add(LivePositionOf(node).ToString())) continue;
                             pathHomes++;
                             found.Add(node);
                         }
@@ -414,11 +416,11 @@ namespace Gonogo.KSP.SilenceTracking
                 }
             }
 
-            foreach (var home in _homes())
+            foreach (var home in homes)
             {
                 var comm = home != null ? CommNetHomeAccess.Comm(home) : null;
                 if (comm == null) continue;
-                if (!seen.Add(comm.precisePosition.ToString())) continue;
+                if (!seen.Add(LivePositionOf(comm).ToString())) continue;
                 sceneHomes++;
                 found.Add(comm);
             }
@@ -456,8 +458,42 @@ namespace Gonogo.KSP.SilenceTracking
         /// A station from where the game says the node is, turned into the
         /// propagation frame, plus the body's spin.
         /// </summary>
-        private static RotatingGroundStation? StationOn(CelestialBody body, CommNode comm, FrameFit fit) =>
-            SurfacePointAt(body, comm.precisePosition, fit);
+        /// <summary>The body and the stock surface coordinates of each home node seen on the last search, by node.</summary>
+        private readonly Dictionary<CommNode, (CelestialBody Body, double Latitude, double Longitude, double Altitude)> _homeSurfaces =
+            new Dictionary<CommNode, (CelestialBody, double, double, double)>();
+
+        private void NoteHomeSurfaces(List<CommNetHome> homes)
+        {
+            _homeSurfaces.Clear();
+            foreach (var home in homes)
+            {
+                var comm = home != null ? CommNetHomeAccess.Comm(home) : null;
+                var body = home != null ? CommNetHomeAccess.Body(home) : null;
+                var at = home != null ? CommNetHomeAccess.Coordinates(home) : null;
+                var altitude = home != null ? CommNetHomeAccess.Altitude(home) : null;
+                if (comm != null && body != null && at.HasValue && altitude.HasValue)
+                {
+                    _homeSurfaces[comm] = (body, at.Value.Latitude, at.Value.Longitude, altitude.Value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Where <paramref name="node"/> is at this instant, in the world frame the
+        /// bodies are read in now. A home node is placed from the coordinates its
+        /// <see cref="CommNetHome"/> holds, as stock places it. Its
+        /// <c>precisePosition</c> is refreshed only when CommNet rebuilds, every five
+        /// seconds with a loaded craft, and trails by kilometres while the world frame
+        /// moves with an orbiting one. Any other node, and a home whose coordinates
+        /// could not be read, gives its <c>precisePosition</c>.
+        /// </summary>
+        private Vector3d LivePositionOf(CommNode node) =>
+            _homeSurfaces.TryGetValue(node, out var at)
+                ? at.Body.GetWorldSurfacePosition(at.Latitude, at.Longitude, at.Altitude)
+                : node.precisePosition;
+
+        private RotatingGroundStation? StationOn(CelestialBody body, CommNode comm, FrameFit fit) =>
+            SurfacePointAt(body, LivePositionOf(comm), fit);
 
         /// <summary>
         /// The surface point under <paramref name="node"/> on <paramref name="body"/>,
@@ -478,7 +514,7 @@ namespace Gonogo.KSP.SilenceTracking
             {
                 return null;
             }
-            return SurfacePointAt(body, node.precisePosition, fit);
+            return SurfacePointAt(body, LivePositionOf(node), fit);
         }
 
         /// <summary>
@@ -563,8 +599,8 @@ namespace Gonogo.KSP.SilenceTracking
                 return true;
             }
 
-            // Compare at NOW, both sides. comm.precisePosition is a live
-            // reading and cannot be evaluated at any other time, so measuring
+            // Compare at NOW, both sides. The station's live position is a
+            // reading at this instant and cannot be evaluated at any other time, so measuring
             // the vessel at the sweep origin instead put the two endpoints at
             // different instants and the check reported the vessel's own motion
             // between them as frame error. On the upgrade path that origin is
@@ -576,7 +612,7 @@ namespace Gonogo.KSP.SilenceTracking
             // were being withheld by a bug in the check rather than by a bug in
             // what it checks.
             var now = Planetarium.GetUniversalTime();
-            var live = (vessel.orbitDriver.orbit.getPositionAtUT(now) - comm.precisePosition).magnitude;
+            var live = (vessel.orbitDriver.orbit.getPositionAtUT(now) - LivePositionOf(comm)).magnitude;
             var predicted = geometry.SeparationAt(now);
             var residual = Math.Abs(live - predicted);
             if (residual > FrameCheckToleranceMeters)
@@ -865,7 +901,7 @@ namespace Gonogo.KSP.SilenceTracking
                 // the propagation-frame value compare directly.
                 var centre = stationBody.position;
                 var vesselFromCentre = vessel.orbitDriver.orbit.getPositionAtUT(now) - centre;
-                var stationFromCentre = comm.precisePosition - centre;
+                var stationFromCentre = LivePositionOf(comm) - centre;
                 var liveCentreToVessel = vesselFromCentre.magnitude;
                 var liveToward = liveCentreToVessel > 0.0
                     ? Vector3d.Dot(stationFromCentre, vesselFromCentre) / liveCentreToVessel
