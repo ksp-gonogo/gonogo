@@ -135,6 +135,41 @@ describe("PushClientProvider", () => {
     client.disconnect();
   });
 
+  it("pushes its widgets again when the host returns to the main seat", () => {
+    vi.useFakeTimers();
+    const client = new PeerClientService();
+    client.connect("HOST");
+    const conn = openLink("session-A");
+
+    const held: { api: ReturnType<typeof usePushClient> } = { api: null };
+    function Probe() {
+      held.api = usePushClient();
+      return null;
+    }
+    render(
+      <PeerClientProvider client={client}>
+        <PushClientProvider>
+          <Probe />
+        </PushClientProvider>
+      </PeerClientProvider>,
+    );
+    act(() => {
+      held.api?.push(INTENT);
+    });
+    act(() => {
+      conn.emit("data", { type: "host-seat", seat: "pilot" });
+    });
+    expect(held.api?.hasMainScreen).toBe(false);
+    expect(conn.sent.filter((m) => m.type === "widget-push")).toHaveLength(1);
+
+    act(() => {
+      conn.emit("data", { type: "host-seat", seat: "main" });
+    });
+    expect(held.api?.hasMainScreen).toBe(true);
+    expect(conn.sent.filter((m) => m.type === "widget-push")).toHaveLength(2);
+    client.disconnect();
+  });
+
   it("does not push a recalled widget again", () => {
     vi.useFakeTimers();
     const client = new PeerClientService();

@@ -63,6 +63,22 @@ export function PushClientProvider({ children }: { children: ReactNode }) {
     });
   }, [client]);
 
+  /* The main screen drops every station's pushed widgets when it leaves the
+     main seat, so a station that still shows them as pushed has to put them
+     back once the main screen returns. */
+  const sawPilotHost = useRef(false);
+  useEffect(() => {
+    if (hostSeat === "pilot") {
+      sawPilotHost.current = true;
+      return;
+    }
+    if (!sawPilotHost.current || !client) return;
+    sawPilotHost.current = false;
+    for (const intent of pushedRef.current.values()) {
+      client.sendWidgetPush(intent);
+    }
+  }, [client, hostSeat]);
+
   const push = useCallback(
     (intent: PushIntent) => {
       if (!client) return;
