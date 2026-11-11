@@ -103,6 +103,12 @@ export interface CommsMessage {
    * screen's own words.
    */
   arrivedUt?: number;
+  /**
+   * The order this screen received it in, counting from 1. Absent from this
+   * screen's own words and from anything stored before the count existed, which
+   * read as seen.
+   */
+  receivedSeq?: number;
 }
 
 /**
@@ -163,6 +169,12 @@ export interface Delivery {
    */
   neverLeft: boolean;
   /**
+   * Set while the recipient has no path from the author and the mod is keeping
+   * the message for the next one. Nothing is travelling yet, so there is no
+   * countdown, and the words stay unconfirmed until the recipient answers.
+   */
+  queued?: boolean;
+  /**
    * Set when the mod refused the send outright, such as a conversation it has no
    * record of. Nothing is travelling and nothing will answer, which is not the
    * same as words that went out and were not acknowledged.
@@ -172,6 +184,30 @@ export interface Delivery {
   refusedReason?: string;
   /** Set when the mod's receipt for the send names this recipient as one it addressed the words to. */
   delivered?: boolean;
+}
+
+/** One entry of a centre's ledger, as the mod publishes it: what the centre said and what reached it. */
+export interface LedgerItem {
+  kind: "text" | "members";
+  id: string;
+  groupId: string;
+  from: RecipientId;
+  author: { name: string; stationKey: string; seat: Seat };
+  sentUt: number;
+  to: readonly RecipientId[];
+  /** When it reached this centre. Absent from something this centre said. */
+  arrivedUt?: number;
+  body?: string;
+  members?: readonly RecipientId[];
+  added?: readonly RecipientId[];
+  /** For something this centre said: when each recipient's copy ran and the reply reached here. */
+  delivered: Readonly<Record<RecipientId, number>>;
+  /** For something this centre said: how a recipient's copy ended without running. */
+  ended: Readonly<Record<RecipientId, string>>;
+  /** For something this centre said: when a screen at each recipient read it. */
+  read: Readonly<
+    Record<RecipientId, { at: number; stationKey: string; seat: Seat }>
+  >;
 }
 
 /** What one vantage holds: what it sent, and what reached it. */
@@ -190,6 +226,8 @@ export interface CommcastLogSnapshot {
    * recorder makes with `Meta.GapSinceUt` when its ring drops a sample.
    */
   droppedCount: number;
+  /** Per group, the newest `receivedSeq` this screen has shown the operator; anything above it is unread. */
+  readThrough: Readonly<Record<string, number>>;
 }
 
 export const EMPTY_COMMCAST_LOG: CommcastLogSnapshot = {
@@ -197,6 +235,7 @@ export const EMPTY_COMMCAST_LOG: CommcastLogSnapshot = {
   inbox: [],
   pending: [],
   droppedCount: 0,
+  readThrough: {},
 };
 
 /** What the author asks the log to send. The log stamps the rest. */

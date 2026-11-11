@@ -36,7 +36,7 @@ namespace Sitrep.Host
     /// only ever touches primitives, registered mapper delegates, and the
     /// explicit job queue.
     /// </summary>
-    public sealed partial class ChannelEngine : IUplinkHost, ISessionDirectory, Comms.IDelayModifierSource, IVesselJourneyWriter, CommandCentres.ICommandReachWriter, Comms.ICraftForecastWriter, CommandCentres.ICentreRouteWriter, CommandCentres.IActiveRouteHost, Commcast.IAddressedStreamHost, IDisposable
+    public sealed partial class ChannelEngine : IUplinkHost, ISessionDirectory, Comms.IDelayModifierSource, IVesselJourneyWriter, CommandCentres.ICommandReachWriter, Comms.ICraftForecastWriter, CommandCentres.ICentreRouteWriter, CommandCentres.IActiveRouteHost, Commcast.IAddressedStreamHost, Commcast.ILaneHost, IDisposable
     {
         public const string NodeId = "system";
 
@@ -4167,6 +4167,15 @@ namespace Sitrep.Host
         public void RegisterCommandCentreSeatSource(ICommandCentreSource source)
         {
             _commandCentres.RegisterSeatSource(source);
+        }
+
+        /// <summary>
+        /// Registers a source of listeners, craft that can be sent a message and
+        /// nothing else: see <see cref="CommandCentres.CommandCentreRegistry.RegisterListenerSource"/>.
+        /// </summary>
+        public void RegisterCommandCentreListenerSource(ICommandCentreSource source)
+        {
+            _commandCentres.RegisterListenerSource(source);
         }
 
         /// <summary>

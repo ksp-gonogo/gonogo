@@ -16,8 +16,8 @@ import type {
   RadioFrame,
   RadioTransmission,
 } from "./radio/wire";
-import { COMMCAST_RADIO_TOPIC, COMMCAST_TRAFFIC_TOPIC } from "./topics";
-import type { CommsMessage } from "./types";
+import { COMMCAST_LEDGER_TOPIC, COMMCAST_RADIO_TOPIC } from "./topics";
+import type { CommsMessage, LedgerItem } from "./types";
 
 /**
  * Chunks per batch sent up to the mod: 200 ms of the 20 ms grid. Each batch
@@ -65,7 +65,7 @@ interface Keying {
 
 /**
  * Put `log` on the mod: what it says goes up as commands, and what is said to
- * this vantage comes down on `commcast.traffic` and `commcast.radio`, already
+ * this vantage comes down on `commcast.ledger` and `commcast.radio`, already
  * delayed by the mod for the signal delay from each speaker. Returns the way off.
  *
  * The same on every screen. A host reaches the mod on its own socket; a station
@@ -179,7 +179,12 @@ export function attachCommcastModLink(
           (result) => {
             const receipt = receiptOf(result);
             if (receipt) {
-              log.recordReceipt(msg.id, receipt.addressed, receipt.unreached);
+              log.recordReceipt(
+                msg.id,
+                receipt.addressed,
+                receipt.unreached,
+                receipt.queued,
+              );
             }
           },
           (result, reason) => {
@@ -237,19 +242,19 @@ export function attachCommcastModLink(
     },
   };
 
-  const offTraffic = wire.subscribe(COMMCAST_TRAFFIC_TOPIC, () => {});
+  const offLedger = wire.subscribe(COMMCAST_LEDGER_TOPIC, () => {});
   const offRadio = wire.subscribe(COMMCAST_RADIO_TOPIC, () => {});
   const offRaw = wire.onRawMessage((message) => {
     if (
       message.type === "stream-data" &&
-      message.topic === COMMCAST_TRAFFIC_TOPIC
+      message.topic === COMMCAST_LEDGER_TOPIC
     ) {
-      const item = readTraffic(message.payload);
-      if (!item) {
-        logger.warn("[commcast] a traffic item could not be read");
+      const items = readLedger(message.payload);
+      if (!items) {
+        logger.warn("[commcast] a ledger could not be read");
         return;
       }
-      receiveTraffic(log, item, message.meta.validAt, message.meta.deliveredAt);
+      log.applyLedger(items, message.meta.deliveredAt);
       return;
     }
     if (
@@ -276,7 +281,7 @@ export function attachCommcastModLink(
     keyings.clear();
     offRaw();
     offRadio();
-    offTraffic();
+    offLedger();
   };
 }
 
@@ -285,21 +290,6 @@ interface AuthorWire {
   name: string;
   stationKey: string;
   seat: string;
-}
-
-/** A `commcast.traffic` item, narrowed off the wire. */
-interface TrafficWire {
-  kind: string;
-  id: string | undefined;
-  groupId: string;
-  from: string;
-  author: AuthorWire;
-  to: string[];
-  body: string | undefined;
-  members: string[] | undefined;
-  added: string[] | undefined;
-  messageId: string | undefined;
-  oneWaySeconds: Record<string, number> | undefined;
 }
 
 /** The JSON segment that opens a `commcast.radio` frame, narrowed off the wire. */
@@ -312,56 +302,6 @@ interface BatchWire {
   seq: number;
   end: boolean;
   to: string[];
-}
-
-/**
- * One `commcast.traffic` item, handed to the log unless this screen said it.
- * What another screen at this vantage said arrives here too, with the delays
- * the log needs to hold it as outgoing.
- * `sentUt` is the delivery's own `validAt`, which the item's field restates.
- */
-function receiveTraffic(
-  log: CommcastLog,
-  item: TrafficWire,
-  sentUt: number,
-  arrivedUt: number,
-): void {
-  if (item.author.stationKey === log.screenKey) return;
-  const seat = seatOf(item.author.seat);
-  if (item.kind === "ack") {
-    if (!item.messageId) return;
-    log.receiveAck({
-      messageId: item.messageId,
-      from: item.from,
-      stationKey: item.author.stationKey,
-      seat,
-      atUt: sentUt,
-      arrivedUt,
-    });
-    return;
-  }
-  if (!item.id) return;
-  log.receiveTransmission(
-    {
-      id: item.id,
-      groupId: item.groupId,
-      to: item.to,
-      from: item.from,
-      authorStationKey: item.author.stationKey,
-      authorName: item.author.name,
-      authorSeat: seat,
-      sentUt,
-      lastSentUt: sentUt,
-      attempts: 1,
-      separationSeconds: arrivedUt - sentUt,
-      kind: item.kind === "members" ? "members" : "text",
-      arrivedUt,
-      ...(item.body === undefined ? {} : { body: item.body }),
-      ...(item.members === undefined ? {} : { members: item.members }),
-      ...(item.added === undefined ? {} : { added: item.added }),
-    },
-    item.oneWaySeconds,
-  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -409,29 +349,77 @@ function readAuthor(value: unknown): AuthorWire | null {
   };
 }
 
-function readTraffic(value: unknown): TrafficWire | null {
+/** A centre's ledger as it comes off the wire, or null when it cannot be read. */
+function readLedger(value: unknown): LedgerItem[] | null {
+  if (!isRecord(value) || !Array.isArray(value.items)) return null;
+  const items: LedgerItem[] = [];
+  for (const raw of value.items) {
+    const item = readLedgerItem(raw);
+    if (item) items.push(item);
+  }
+  return items;
+}
+
+function readLedgerItem(value: unknown): LedgerItem | null {
   if (!isRecord(value)) return null;
   const kind = text(value, "kind");
+  const id = text(value, "id");
   const groupId = text(value, "groupId");
   const from = text(value, "from");
   const author = readAuthor(value.author);
   const to = texts(value, "to");
-  if (kind === undefined || groupId === undefined || from === undefined) {
+  const { sentUt } = value;
+  if (kind === undefined || id === undefined || groupId === undefined) {
     return null;
   }
-  if (!author || !to) return null;
+  if (from === undefined || !author || !to || typeof sentUt !== "number") {
+    return null;
+  }
+  const arrivedUt =
+    typeof value.arrivedUt === "number" ? value.arrivedUt : undefined;
+  const read: Record<string, { at: number; stationKey: string; seat: Seat }> =
+    {};
+  if (isRecord(value.read)) {
+    for (const [centre, entry] of Object.entries(value.read)) {
+      if (!isRecord(entry) || typeof entry.at !== "number") continue;
+      read[centre] = {
+        at: entry.at,
+        stationKey: text(entry, "stationKey") ?? "",
+        seat: seatOf(text(entry, "seat") ?? ""),
+      };
+    }
+  }
+  const ended: Record<string, string> = {};
+  if (isRecord(value.ended)) {
+    for (const [centre, how] of Object.entries(value.ended)) {
+      if (typeof how === "string") ended[centre] = how;
+    }
+  }
   return {
-    kind,
-    id: text(value, "id"),
+    kind: kind === "members" ? "members" : "text",
+    id,
     groupId,
     from,
-    author,
+    author: {
+      name: author.name,
+      stationKey: author.stationKey,
+      seat: seatOf(author.seat),
+    },
+    sentUt,
     to,
-    body: text(value, "body"),
-    members: texts(value, "members"),
-    added: texts(value, "added"),
-    messageId: text(value, "messageId"),
-    oneWaySeconds: numbers(value, "oneWaySeconds"),
+    ...(arrivedUt === undefined ? {} : { arrivedUt }),
+    ...(text(value, "body") === undefined
+      ? {}
+      : { body: text(value, "body") as string }),
+    ...(texts(value, "members") === undefined
+      ? {}
+      : { members: texts(value, "members") as string[] }),
+    ...(texts(value, "added") === undefined
+      ? {}
+      : { added: texts(value, "added") as string[] }),
+    delivered: numbers(value, "delivered") ?? {},
+    ended,
+    read,
   };
 }
 
@@ -525,11 +513,12 @@ function seatOf(seat: string): Seat {
 /** Why the mod refused a command, or `null` when it did not. */
 function receiptOf(
   result: unknown,
-): { addressed: string[]; unreached: string[] } | null {
+): { addressed: string[]; unreached: string[]; queued: string[] } | null {
   if (!isRecord(result) || !isRecord(result.payload)) return null;
   const addressed = texts(result.payload, "addressed");
   const unreached = texts(result.payload, "unreached");
-  return addressed && unreached ? { addressed, unreached } : null;
+  const queued = texts(result.payload, "queued") ?? [];
+  return addressed && unreached ? { addressed, unreached, queued } : null;
 }
 
 /** What a command that never completed says for itself, in the words the operator reads. */

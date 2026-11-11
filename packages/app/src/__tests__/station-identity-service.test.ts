@@ -58,6 +58,20 @@ describe("StationIdentityService", () => {
     ).toBe("Mission Control");
   });
 
+  it("does not store the name a device starts with, so it can follow where the screen sits", () => {
+    const svc = new StationIdentityService(storage, "Mission Control");
+    expect(svc.getName()).toBe("Mission Control");
+    expect(svc.getExplicitName()).toBeUndefined();
+    expect(storage.getItem("gonogo.station.name")).toBeNull();
+  });
+
+  it("calls a name an operator typed explicit, even when it matches the starting name", () => {
+    const svc = new StationIdentityService(storage, "Mission Control");
+    svc.setName("Mission Control");
+    expect(svc.getExplicitName()).toBe("Mission Control");
+    expect(storage.getItem("gonogo.station.name")).toBe("Mission Control");
+  });
+
   it("setName persists, trims, and notifies listeners", () => {
     const svc = new StationIdentityService(storage);
     const spy = vi.fn();
