@@ -219,11 +219,14 @@ function plainRate(rate: { valueOf(): number } | null | undefined) {
 }
 
 /**
- * The draw measured from the vessel's stored electric charge, each figure undefined while it cannot be known (batteries full or empty, or the figure held). Only electric charge has one; any other resource reads all three as undefined.
+ * The draw measured from the vessel's stored electric charge, each figure undefined while it cannot be known (batteries full or empty). A held report keeps its last figures, which the caller marks as held. Only electric charge has one; any other resource reads all three as undefined.
  */
 export function useMeasuredCharge(resource: string) {
   const reading = useTelemetry("parts.power");
-  const power = reading.state === "observed" ? reading.value : undefined;
+  const power =
+    reading.state === "observed" || reading.state === "held"
+      ? reading.value
+      : undefined;
   const isCharge = resource === "ElectricCharge";
   return {
     /** The stream answered and says the stored charge is not moving, so no draw can be read from it. */

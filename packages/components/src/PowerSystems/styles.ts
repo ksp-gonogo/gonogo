@@ -6,9 +6,8 @@ import styled from "styled-components";
 import type { NetTone } from "./flow";
 
 export const RESOURCE_SELECT: CSSProperties = {
-  maxWidth: "50%",
-  // A short header would otherwise squeeze the select until its chevron sits on the name.
-  minWidth: "9em",
+  // A set width, so a long resource name cannot change whether the header's aside fits beside the title, which would make the render gate see the badge beside this select on one machine and not on another.
+  width: "12em",
   textOverflow: "ellipsis",
   fontSize: "var(--font-size-value)",
   padding: "var(--inset-control)",
@@ -155,6 +154,7 @@ export const HINT: CSSProperties = {
 
 /** Text alignment for a compact resource name long enough to wrap; `Panel fitToSize` owns the centring. */
 export const COMPACT_BODY: CSSProperties = {
+  gap: 0,
   alignItems: "center",
   textAlign: "center",
 };
@@ -169,6 +169,8 @@ export const COMPACT_RESOURCE: CSSProperties = {
 // A literal 16px because --font-size-lg grows to 17px on coarse pointers, which clips "+49.50/s" in a 3x3 tile.
 export const COMPACT_NET: CSSProperties = {
   maxWidth: "100%",
+  // Room above the figure for the held and modelled marks, which hang over it and are cut by its own clip; the body's gap is dropped to pay for it.
+  paddingTop: "0.3em",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
@@ -217,4 +219,8 @@ export const TREND_BOX_COMPACT: CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   gap: "var(--gap-related)",
+};
+
+export const HELD_LINE: CSSProperties = {
+  marginBottom: "var(--gap-related-comfortable)",
 };

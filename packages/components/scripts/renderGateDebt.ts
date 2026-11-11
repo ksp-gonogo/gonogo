@@ -35,7 +35,9 @@ export const RENDER_GATE_DEBT: ReadonlySet<string> = new Set<string>([
   "navball|stress-long-labels|svgHtmlOverlaps",
   "navball|stress-modded-label|svgHtmlOverlaps",
   "navball|svgHtmlOverlaps",
+  // Operator-approved exception, badge beside picker: the charge badge sits next to the Resource picker in the header.
   "power-systems|hitTargets",
+  // Operator-approved exception, badge beside picker: the same badge in the generated stress scenes.
   "power-systems|stress-long-labels|hitTargets",
   "power-systems|stress-modded-label|hitTargets",
   "research-and-development|hitTargets",
