@@ -241,7 +241,10 @@ public class CommcastRadioTransmitArgs
 /// <list type="bullet">
 /// <item><c>"members"</c>: a group opened or grew. <see cref="Members"/> is its
 /// whole membership after the change, <see cref="Added"/> who came in</item>
-/// <item><c>"text"</c>: a message, <see cref="Id"/> and <see cref="Body"/></item>
+/// <item><c>"text"</c>: a message, <see cref="Id"/> and <see cref="Body"/>. It
+/// is also delivered, at once, to the speaker's own centre (<see cref="To"/>
+/// names it), where another screen at that centre reads it as an outgoing
+/// message rather than a received one</item>
 /// <item><c>"ack"</c>: a member acknowledging <see cref="MessageId"/>, addressed
 /// to that message's author alone</item>
 /// </list>
@@ -296,6 +299,17 @@ public class CommcastTraffic
     /// <summary>The message an <c>"ack"</c> acknowledges. Absent otherwise.</summary>
     [SitrepUnit(Units.Id)]
     public string? MessageId { get; set; }
+
+    /// <summary>
+    /// A <c>"text"</c> message's one-way signal delay from <see cref="From"/> to
+    /// each other centre in <see cref="To"/>, keyed by that centre's id, as the
+    /// speaker's connection was delayed when it spoke. The speaker's own centre
+    /// is not a key. A screen at the speaker's own centre reads it to show the
+    /// message crossing, and an absent map means the sender did not say.
+    /// Absent from every other kind.
+    /// </summary>
+    [SitrepUnit(Units.Seconds)]
+    public Dictionary<string, double>? OneWaySeconds { get; set; }
 }
 
 /// <summary>

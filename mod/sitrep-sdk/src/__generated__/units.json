@@ -434,6 +434,7 @@
       "kind": "enum",
       "members": "id",
       "messageId": "id",
+      "oneWaySeconds": "s",
       "sentUt": "ut",
       "to": "id"
     },
@@ -2158,6 +2159,7 @@
       "kind": "enum",
       "members": "id",
       "messageId": "id",
+      "oneWaySeconds": "s",
       "sentUt": "ut",
       "to": "id"
     },

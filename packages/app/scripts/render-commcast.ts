@@ -54,6 +54,7 @@ const LIGHT_TIME = 240;
 
 /** One message a pane's log holds. Mirrors the probe's `Held`. */
 interface Held {
+  id?: string;
   from: string;
   to: string[];
   authorName: string;
@@ -82,6 +83,7 @@ interface Pane {
   sent?: Held[];
   received?: Held[];
   crossing?: Held[];
+  heard?: Held[];
   noLog?: boolean;
   /** Correspondent whose conversation this pane is opened into. */
   openThread?: string;
@@ -754,6 +756,46 @@ const SCENES: Scene[] = [
     pxH: 620,
   },
   ...REFUSALS.flatMap(refusedHoverScenes),
+  {
+    /*
+     * Two screens at one centre. The first screen said the message; the
+     * second is another seat at the same vantage and hears it as the mod
+     * delivers it to the speaker's own centre.
+     */
+    name: "same-vantage-outgoing",
+    panes: [
+      {
+        seat: "mission-control",
+        vantage: KSC,
+        name: "Kennedy Flight",
+        openThread: "Ares 4",
+        sent: [
+          {
+            ...toAres("Ares, Kennedy. Confirm residuals.", -60),
+            id: "echo-1",
+          },
+        ],
+      },
+      {
+        seat: "mission-control",
+        vantage: KSC,
+        name: "Kennedy Capcom",
+        openThread: "Ares 4",
+        heard: [
+          {
+            ...toAres("Ares, Kennedy. Confirm residuals.", -60),
+            id: "echo-1",
+          },
+        ],
+      },
+    ],
+    separation: PAIRS,
+    roster: ROSTER,
+    oneWaySeconds: LIGHT_TIME,
+    settleOn: "Confirm residuals",
+    pxW: 900,
+    pxH: 620,
+  },
   {
     /*
      * A vantage owns what reached IT, read off the two INBOXES rather than out

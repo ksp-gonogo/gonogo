@@ -299,6 +299,7 @@ interface TrafficWire {
   members: string[] | undefined;
   added: string[] | undefined;
   messageId: string | undefined;
+  oneWaySeconds: Record<string, number> | undefined;
 }
 
 /** The JSON segment that opens a `commcast.radio` frame, narrowed off the wire. */
@@ -315,6 +316,8 @@ interface BatchWire {
 
 /**
  * One `commcast.traffic` item, handed to the log unless this screen said it.
+ * What another screen at this vantage said arrives here too, with the delays
+ * the log needs to hold it as outgoing.
  * `sentUt` is the delivery's own `validAt`, which the item's field restates.
  */
 function receiveTraffic(
@@ -338,24 +341,27 @@ function receiveTraffic(
     return;
   }
   if (!item.id) return;
-  log.receiveTransmission({
-    id: item.id,
-    groupId: item.groupId,
-    to: item.to,
-    from: item.from,
-    authorStationKey: item.author.stationKey,
-    authorName: item.author.name,
-    authorSeat: seat,
-    sentUt,
-    lastSentUt: sentUt,
-    attempts: 1,
-    separationSeconds: arrivedUt - sentUt,
-    kind: item.kind === "members" ? "members" : "text",
-    arrivedUt,
-    ...(item.body === undefined ? {} : { body: item.body }),
-    ...(item.members === undefined ? {} : { members: item.members }),
-    ...(item.added === undefined ? {} : { added: item.added }),
-  });
+  log.receiveTransmission(
+    {
+      id: item.id,
+      groupId: item.groupId,
+      to: item.to,
+      from: item.from,
+      authorStationKey: item.author.stationKey,
+      authorName: item.author.name,
+      authorSeat: seat,
+      sentUt,
+      lastSentUt: sentUt,
+      attempts: 1,
+      separationSeconds: arrivedUt - sentUt,
+      kind: item.kind === "members" ? "members" : "text",
+      arrivedUt,
+      ...(item.body === undefined ? {} : { body: item.body }),
+      ...(item.members === undefined ? {} : { members: item.members }),
+      ...(item.added === undefined ? {} : { added: item.added }),
+    },
+    item.oneWaySeconds,
+  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -374,6 +380,22 @@ function texts(o: Record<string, unknown>, key: string): string[] | undefined {
   for (const entry of v) {
     if (typeof entry !== "string") return undefined;
     out.push(entry);
+  }
+  return out;
+}
+
+function numbers(
+  o: Record<string, unknown>,
+  key: string,
+): Record<string, number> | undefined {
+  const v = o[key];
+  if (!isRecord(v)) return undefined;
+  const out: Record<string, number> = {};
+  for (const [id, seconds] of Object.entries(v)) {
+    if (typeof seconds !== "number" || !Number.isFinite(seconds)) {
+      return undefined;
+    }
+    out[id] = seconds;
   }
   return out;
 }
@@ -409,6 +431,7 @@ function readTraffic(value: unknown): TrafficWire | null {
     members: texts(value, "members"),
     added: texts(value, "added"),
     messageId: text(value, "messageId"),
+    oneWaySeconds: numbers(value, "oneWaySeconds"),
   };
 }
 

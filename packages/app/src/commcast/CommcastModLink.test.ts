@@ -643,6 +643,81 @@ describe("attachCommcastModLink", () => {
     expect(log.snapshot().pending).toHaveLength(0);
   });
 
+  it("holds a colleague's message as this vantage's own outgoing mail, timed by the mod's delays", () => {
+    wire.deliver({
+      type: "stream-data",
+      topic: "commcast.traffic",
+      meta: meta(100, 100),
+      payload: {
+        kind: "text",
+        id: "m9",
+        groupId: "g1",
+        from: KSC,
+        author: {
+          name: "Capcom",
+          stationKey: "screen-colleague",
+          seat: "mission-control",
+        },
+        sentUt: 100,
+        to: [ARES, KSC],
+        body: "from next door",
+        oneWaySeconds: { [ARES]: 240 },
+      },
+    });
+
+    const snap = log.snapshot();
+    expect(snap.pending).toHaveLength(0);
+    expect(snap.inbox).toHaveLength(0);
+    const out = snap.outbox[0];
+    expect(out?.msg.body).toBe("from next door");
+    expect(out?.deliveries.map((d) => [d.to, d.separationSeconds])).toEqual([
+      [ARES, 240],
+    ]);
+    expect(out?.deliveries[0]?.lastSentUt).toBe(100);
+  });
+
+  it("settles a colleague's message on the acknowledgement that comes back to this vantage, and never answers it itself", () => {
+    const acked: unknown[] = [];
+    log.setTransmitter({
+      transmit: () => {},
+      acknowledge: (a) => acked.push(a),
+    });
+    const traffic = (payload: Record<string, unknown>) =>
+      wire.deliver({
+        type: "stream-data",
+        topic: "commcast.traffic",
+        meta: meta(100, 100),
+        payload,
+      });
+    traffic({
+      kind: "text",
+      id: "m9",
+      groupId: "g1",
+      from: KSC,
+      author: {
+        name: "Capcom",
+        stationKey: "screen-colleague",
+        seat: "mission-control",
+      },
+      sentUt: 100,
+      to: [ARES, KSC],
+      body: "from next door",
+      oneWaySeconds: { [ARES]: 240 },
+    });
+    traffic({
+      kind: "ack",
+      groupId: "",
+      from: ARES,
+      messageId: "m9",
+      author: { name: "Jeb", stationKey: "screen-jeb", seat: "pilot" },
+      sentUt: 340,
+      to: [KSC],
+    });
+
+    expect(log.snapshot().outbox[0]?.acks).toHaveLength(1);
+    expect(acked).toHaveLength(0);
+  });
+
   it("places each radio chunk at its own arrival, 20 ms apart, ending at the delivery", () => {
     const heard: HeardRadioFrame[] = [];
     log.onRadio((f) => heard.push(f));

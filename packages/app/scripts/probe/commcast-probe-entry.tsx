@@ -65,6 +65,8 @@ const VIEW_UT = 12_000_000;
 
 /** One message a pane's log holds, in whichever direction. */
 export interface Held {
+  /** Fixed message id, so two panes can hold the same message. */
+  id?: string;
   /** Where it was spoken from, and who it was addressed to. */
   from: string;
   to: string[];
@@ -109,6 +111,11 @@ export interface Pane {
   received?: Held[];
   /** Addressed here and still crossing. Shown nowhere, which is the point. */
   crossing?: Held[];
+  /**
+   * Said by another screen at this same vantage and delivered here through the
+   * log's own receive path, at once, with the one-way seconds the mod stamps on it.
+   */
+  heard?: Held[];
   /** Mount with no log at all, the other end of the empty state. */
   noLog?: boolean;
   /**
@@ -285,7 +292,7 @@ function toMessage(held: Held): CommsMessage {
   nextId += 1;
   const ends = [...new Set([held.from, ...held.to])].sort();
   return {
-    id: `probe-${nextId}`,
+    id: held.id ?? `probe-${nextId}`,
     groupId: held.group ?? JSON.stringify(ends),
     to: ends,
     from: held.from,
@@ -559,6 +566,15 @@ function paneTree(pane: Pane, index: number) {
       inbox: (pane.received ?? []).map(toReceived),
       pending: (pane.crossing ?? []).map(toReceived),
     });
+    for (const held of pane.heard ?? []) {
+      const msg = toMessage(held);
+      const reach: Record<string, number> = {};
+      for (const to of msg.to) {
+        const seconds = held.separations?.[to] ?? held.separationSeconds;
+        if (to !== msg.from && seconds !== null) reach[to] = seconds;
+      }
+      log.receiveTransmission({ ...msg, arrivedUt: msg.lastSentUt }, reach);
+    }
   }
   /*
    * The radio, on a recorded clip. `webaudio.ts` is the only file in the radio

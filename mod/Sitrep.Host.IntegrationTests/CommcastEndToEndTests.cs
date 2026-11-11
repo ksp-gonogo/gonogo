@@ -66,6 +66,26 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
+        public async Task AMessageSaysHowLongItTakesToEachOtherCentre_AndReachesTheSpeakersOwnCentreAtOnce()
+        {
+            await using var scene = await Scene.StartAsync();
+            await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, Open("g1", B, C));
+            await scene.CommandAsync(scene.A, CommcastUplink.SendCommand, Send("m1", "g1", "hello"));
+
+            scene.Tick(1);
+            var own = await NextTrafficAsync(scene.A);
+            while ((string)own["kind"]! != "text")
+            {
+                own = await NextTrafficAsync(scene.A);
+            }
+            Assert.Equal(A, own["from"]);
+            var seconds = (IDictionary<string, object?>)own["oneWaySeconds"]!;
+            Assert.Equal(new[] { B, C }, seconds.Keys.OrderBy(k => k, StringComparer.Ordinal));
+            Assert.Equal(5.0, Convert.ToDouble(seconds[B]));
+            Assert.Equal(20.0, Convert.ToDouble(seconds[C]));
+        }
+
+        [Fact]
         public async Task ASeatSpeaksToACentreOverItsOwnRow_AndTheCentreHearsItOneRouteDelayLater()
         {
             await using var scene = await Scene.StartAsync(seat: true, seatReaches: A);

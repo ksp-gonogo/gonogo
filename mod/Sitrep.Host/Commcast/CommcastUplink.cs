@@ -348,6 +348,7 @@ namespace Sitrep.Host.Commcast
                 SentUt = now,
                 To = to,
                 Body = args.Body,
+                OneWaySeconds = OneWayFrom(from, to),
             };
             var held = HeldBehindMembership(_groups[args.GroupId], from, to, now);
             if (held == null)
@@ -360,6 +361,21 @@ namespace Sitrep.Host.Commcast
                 _streams!.PublishAddressedTo(TrafficTopic, ToWire(text), now, held);
             }
             return CommandResult<CommcastSendReceipt>.Ok(new CommcastSendReceipt { Addressed = to, Unreached = unreached });
+        }
+
+        /// <summary>The one-way delay from <paramref name="speaker"/> to each centre in <paramref name="to"/> but itself.</summary>
+        private Dictionary<string, double> OneWayFrom(string speaker, List<string> to)
+        {
+            var stamp = _streams!.StampFrom(speaker);
+            var seconds = new Dictionary<string, double>(StringComparer.Ordinal);
+            foreach (var id in to)
+            {
+                if (id != speaker)
+                {
+                    seconds[id] = stamp.For(id);
+                }
+            }
+            return seconds;
         }
 
         private CommandResult HandleAck(CommcastMessageAckArgs? args, string from)
@@ -733,6 +749,10 @@ namespace Sitrep.Host.Commcast
             if (item.MessageId != null)
             {
                 wire["messageId"] = item.MessageId;
+            }
+            if (item.OneWaySeconds != null)
+            {
+                wire["oneWaySeconds"] = item.OneWaySeconds;
             }
             return wire;
         }

@@ -37,6 +37,9 @@ const COMMCAST_TRANSMIT_BUDGET = new PerfBudget({
 
 type Listener = (snap: CommcastLogSnapshot) => void;
 
+/** One-way seconds from a message's own vantage to each recipient the mod could reach, by recipient. */
+export type OneWaySeconds = Readonly<Record<RecipientId, number>>;
+
 /** An acknowledgement this screen sends. The mod stamps when it was made, and when it arrives. */
 export type OutgoingAck = Omit<CommsAck, "atUt" | "arrivedUt">;
 
@@ -100,7 +103,10 @@ export class CommcastLog {
   private droppedCount = 0;
   private vantageId: string | undefined;
   /** What the wire delivered before the vantage was known, judged once it is. */
-  private awaitingVantage: CommsMessage[] = [];
+  private awaitingVantage: {
+    msg: CommsMessage;
+    oneWaySeconds: OneWaySeconds | undefined;
+  }[] = [];
   private readonly listeners = new Set<Listener>();
   private readonly radioListeners = new Set<(frame: HeardRadioFrame) => void>();
   private readonly radioRefusalListeners = new Set<(reason?: string) => void>();
@@ -391,7 +397,9 @@ export class CommcastLog {
     if (vantageId === undefined || this.awaitingVantage.length === 0) return;
     const waiting = this.awaitingVantage;
     this.awaitingVantage = [];
-    for (const msg of waiting) this.receiveTransmission(msg);
+    for (const held of waiting) {
+      this.receiveTransmission(held.msg, held.oneWaySeconds);
+    }
   }
 
   /**
@@ -403,11 +411,20 @@ export class CommcastLog {
    * `false` says it was a duplicate or not addressed here. A duplicate of a
    * message already read is answered with its acknowledgement again, since a
    * resend exists because the first one never reached the author.
+   *
+   * A text message said by another screen at this same vantage is this
+   * vantage's own outgoing mail, not a message received: it is kept in the
+   * outbox with a delivery to each recipient timed by `oneWaySeconds`, so every
+   * screen at the vantage draws it crossing and settles on the same
+   * acknowledgements. It is never read here and never acknowledged from here.
    */
-  receiveTransmission(msg: CommsMessage): boolean {
+  receiveTransmission(
+    msg: CommsMessage,
+    oneWaySeconds?: OneWaySeconds,
+  ): boolean {
     if (this.vantageId === undefined) {
       if (this.awaitingVantage.length < AWAITING_VANTAGE_CAP) {
-        this.awaitingVantage.push(msg);
+        this.awaitingVantage.push({ msg, oneWaySeconds });
       }
       return false;
     }
@@ -416,9 +433,40 @@ export class CommcastLog {
       this.reacknowledge(msg.id);
       return false;
     }
+    if (
+      msg.kind === "text" &&
+      msg.from === this.vantageId &&
+      oneWaySeconds !== undefined
+    ) {
+      this.takeOwnVantageSend(msg, oneWaySeconds);
+      return true;
+    }
     this.pending = [...this.pending, msg];
     this.persistAndEmit();
     return true;
+  }
+
+  /** Another screen at this vantage said `msg`: file it as outgoing, with one delivery per recipient. */
+  private takeOwnVantageSend(msg: CommsMessage, oneWaySeconds: OneWaySeconds) {
+    const deliveries = msg.to
+      .filter((to) => to !== msg.from)
+      .map((to): Delivery => {
+        const separationSeconds = oneWaySeconds[to] ?? null;
+        return {
+          to,
+          separationSeconds,
+          lastSentUt: msg.sentUt,
+          attempts: 1,
+          neverLeft: separationSeconds === null,
+          delivered: true,
+        };
+      });
+    this.pushOutbound({
+      msg: { ...msg, separationSeconds: longestOf(deliveries) },
+      acks: [],
+      deliveries,
+    });
+    this.persistAndEmit();
   }
 
   /**
@@ -427,7 +475,9 @@ export class CommcastLog {
    *
    * A screen at the author's own vantage does not answer. It crossed nothing,
    * and an instant answer from a colleague at the same centre would confirm a
-   * message that is still on its way to everyone it had to travel to.
+   * message that is still on its way to everyone it had to travel to. A text
+   * message from a colleague never reaches here at all: it is held as outgoing
+   * (`takeOwnVantageSend`).
    */
   release(id: string, ack: Omit<OutgoingAck, "messageId">): void {
     const msg = this.pending.find((m) => m.id === id);

@@ -1941,7 +1941,10 @@ export interface CommcastRadioTransmitArgs
 *
 * - `"members"`: a group opened or grew. `CommcastTraffic.members` is its
 *   whole membership after the change, `CommcastTraffic.added` who came in
-* - `"text"`: a message, `CommcastTraffic.id` and `CommcastTraffic.body`
+* - `"text"`: a message, `CommcastTraffic.id` and `CommcastTraffic.body`. It
+*   is also delivered, at once, to the speaker's own centre
+*   (`CommcastTraffic.to` names it), where another screen at that centre reads
+*   it as an outgoing message rather than a received one
 * - `"ack"`: a member acknowledging `CommcastTraffic.messageId`, addressed to
 *   that message's author alone
 *
@@ -1977,6 +1980,15 @@ export interface CommcastTraffic
 	body?: string | null;
 	/** The message an `"ack"` acknowledges. Absent otherwise. */
 	messageId?: string | null;
+	/**
+	* A `"text"` message's one-way signal delay from `CommcastTraffic.from` to
+	* each other centre in `CommcastTraffic.to`, keyed by that centre's id, as the
+	* speaker's connection was delayed when it spoke. The speaker's own centre is
+	* not a key. A screen at the speaker's own centre reads it to show the message
+	* crossing, and an absent map means the sender did not say. Absent from every
+	* other kind.
+	*/
+	oneWaySeconds?: { [key: string]: Value<"s"> } | null;
 }
 /**
 * The first segment of every `commcast.radio` frame, as UTF-8 JSON. The
