@@ -4,11 +4,15 @@ import {
   type PendingPulseEntry,
   type UplinkPulseLeg,
 } from "../FleetComms/pendingPulse";
-import { deriveCommsPath, edgeEntityId } from "./commsPath";
+import {
+  deriveCommsPath,
+  deriveCommsPathBetween,
+  edgeEntityId,
+} from "./commsPath";
 
 /*
  * Command traffic routes each `system.uplink.pending` pulse along the actual `comms.network` relay path, reading the already-projected `connection-line` endpoints by entity id.
- * `PendingUplink` carries no vessel target by contract, so every entry is addressed to the current active vessel, the only craft the command channel can reach.
+ * An entry is routed by its own `craft`: a vessel's path to home, or for a ground station the path between that station and the sender's, which is drawn only when the graph has one. An entry with no `craft` is a command to the active vessel.
  */
 /** One `comms.network` edge, directed by the walk: `forward` is true when the walk crossed it a to b, the edge's own draw order. */
 export interface DirectedTrafficHop {
@@ -53,6 +57,20 @@ export interface TrafficPulsePosition {
 /** A `system.uplink.pending` entry with its correlation id, so each pulse keeps a stable React key when two entries share an edge. */
 export interface PendingTrafficEntry extends PendingPulseEntry {
   id: string;
+  /** Who it is addressed to: `vessel:<id>` or `ground:<name>`; empty or absent for a command to the active vessel. */
+  craft?: string | null;
+  /** The command centre that sent it, as `ground:<name>`. */
+  vantage?: string | null;
+}
+
+const NODE_PREFIXES = ["vessel:", "ground:"] as const;
+
+/** A craft or vantage id as `comms.network` names the node: without its `vessel:` or `ground:` prefix. */
+function nodeIdOf(id: string): string {
+  for (const prefix of NODE_PREFIXES) {
+    if (id.startsWith(prefix)) return id.slice(prefix.length);
+  }
+  return id;
 }
 
 /** Places a pulse leg and progress on a hop at a local t in its a-to-b sense. `hops` run vessel to home, so the return leg travels them in order and the outbound leg reversed; `null` when there are no hops. */
@@ -87,7 +105,7 @@ export interface IdentifiedTrafficPulse extends TrafficPulsePosition {
 }
 
 export interface TrafficState {
-  /** Every edge id on the active vessel's route to home, non-empty only while at least one pulse is actually in flight on it. */
+  /** Every edge id on the route of an entry with a pulse in flight; empty while none is. */
   edgeIds: readonly string[];
   /** One position per in-flight `system.uplink.pending` entry. */
   pulses: readonly IdentifiedTrafficPulse[];
@@ -95,7 +113,7 @@ export interface TrafficState {
 
 export const NO_TRAFFIC: TrafficState = { edgeIds: [], pulses: [] };
 
-/** `system.uplink.pending` entries to in-flight pulse positions on the active vessel's route; returns `NO_TRAFFIC` for any input that cannot produce a pulse. */
+/** `system.uplink.pending` entries to in-flight pulse positions, each on the route of the craft it is addressed to; returns `NO_TRAFFIC` for any input that cannot produce a pulse. */
 export function deriveTraffic(
   pending: readonly PendingTrafficEntry[],
   network: CommsNetwork | undefined,
@@ -104,7 +122,6 @@ export function deriveTraffic(
 ): TrafficState {
   if (
     !network ||
-    !targetVesselId ||
     pending.length === 0 ||
     utNow === undefined ||
     !Number.isFinite(utNow)
@@ -112,27 +129,47 @@ export function deriveTraffic(
     return NO_TRAFFIC;
   }
 
-  const path = deriveCommsPath(network, targetVesselId);
-  if (path.edgeIds.length === 0) return NO_TRAFFIC;
-
-  const hops = directTrafficHops(
-    targetVesselId,
-    path.edgeIds,
-    edgesById(network),
-  );
+  const byEdge = edgesById(network);
+  const routes = new Map<
+    string,
+    { edgeIds: readonly string[]; hops: DirectedTrafficHop[] }
+  >();
+  const routeOf = (entry: PendingTrafficEntry) => {
+    const craft = entry.craft ?? "";
+    const toGround = craft.startsWith("ground:");
+    const target = craft === "" ? (targetVesselId ?? "") : nodeIdOf(craft);
+    const sender = toGround ? nodeIdOf(entry.vantage ?? "") : "";
+    const key = `${target}>${sender}`;
+    const held = routes.get(key);
+    if (held) return held;
+    const path = toGround
+      ? deriveCommsPathBetween(network, target, sender)
+      : deriveCommsPath(network, target);
+    const route = {
+      edgeIds: path.edgeIds,
+      hops: directTrafficHops(target, path.edgeIds, byEdge),
+    };
+    routes.set(key, route);
+    return route;
+  };
 
   const pulses: IdentifiedTrafficPulse[] = [];
+  const litEdgeIds = new Set<string>();
   for (const entry of pending) {
     const pulse = computeUplinkPulse(entry, utNow);
     if (!pulse) continue;
+    const route = routeOf(entry);
+    if (route.hops.length === 0) continue;
     const position = pulsePositionOnHops(
-      hops,
+      route.hops,
       pulse.leg,
       pulse.progress,
       pulse.opacity,
     );
-    if (position) pulses.push({ ...position, id: entry.id });
+    if (!position) continue;
+    pulses.push({ ...position, id: entry.id });
+    for (const edgeId of route.edgeIds) litEdgeIds.add(edgeId);
   }
 
-  return { edgeIds: pulses.length > 0 ? path.edgeIds : [], pulses };
+  return { edgeIds: [...litEdgeIds], pulses };
 }
