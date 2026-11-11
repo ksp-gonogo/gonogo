@@ -51,7 +51,6 @@ namespace Sitrep.Host.Comms
                     ["retargeted"] = f.Retargeted,
                 }).ToList(),
                 ["retargets"] = Retargets(snapshot.Retargets),
-                ["sections"] = snapshot.Sections.ToDictionary(s => s.Key, s => (object?)s.Value),
                 ["storedCancels"] = snapshot.StoredCancels.Select(c => (object?)new Dictionary<string, object?>
                 {
                     ["node"] = c.Node,
@@ -147,7 +146,6 @@ namespace Sitrep.Host.Comms
                     Retargeted = Get(f, "retargeted") is true,
                 }).ToList(),
                 Retargets = RetargetsFrom(Get(root, "retargets") as Dictionary<string, object?>),
-                Sections = SectionsFrom(Get(root, "sections") as Dictionary<string, object?>),
                 StoredCancels = Items(root, "storedCancels").Select(c => new StoredCancelRecord
                 {
                     Node = (string)c["node"]!,
@@ -326,23 +324,6 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>The hops a message carries. Its plan is not saved: a plan is made of what a centre had heard, and that is not saved either.</summary>
-        private static Dictionary<string, string> SectionsFrom(Dictionary<string, object?>? map)
-        {
-            var sections = new Dictionary<string, string>(StringComparer.Ordinal);
-            if (map == null)
-            {
-                return sections;
-            }
-            foreach (var entry in map)
-            {
-                if (entry.Value is string text)
-                {
-                    sections[entry.Key] = text;
-                }
-            }
-            return sections;
-        }
-
         private static Dictionary<string, object?> Retargets(RetargetSnapshot snapshot) => new Dictionary<string, object?>
         {
             ["events"] = snapshot.Events.Select(e => (object?)new Dictionary<string, object?>

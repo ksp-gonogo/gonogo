@@ -26,7 +26,7 @@ The Making History Uplink comes with Gonogo, so there is nothing separate to ins
 | --- | --- |
 | Uplink id | `makingHistory` |
 | Version | `0.0.1` |
-| Built against | contract 52.0, extension API 6.0.0 |
+| Built against | contract 51.1, extension API 6.0.0 |
 
 </details>
 

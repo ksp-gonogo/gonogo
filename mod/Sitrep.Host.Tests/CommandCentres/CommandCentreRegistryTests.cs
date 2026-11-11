@@ -25,21 +25,6 @@ namespace Sitrep.Host.Tests.CommandCentres
         }
 
         [Fact]
-        public void EnumerateListeners_AreNeverActiveCentres_AndAnActiveCentreIsNotAlsoAListener()
-        {
-            var reg = new CommandCentreRegistry();
-            reg.RegisterSource(new FakeCommandCentreSource("a", new FakeCommandCentre("vessel:crewed-control", CommandCentreKind.CrewedVessel)));
-            reg.RegisterListenerSource(new FakeCommandCentreSource(
-                "listeners",
-                new FakeCommandCentre("vessel:crewed-control", CommandCentreKind.CrewedVessel),
-                new FakeCommandCentre("vessel:pod", CommandCentreKind.CrewedVessel, active: false),
-                new FakeCommandCentre("vessel:pod", CommandCentreKind.CrewedVessel, active: false)));
-
-            Assert.Equal(new[] { "vessel:crewed-control" }, reg.EnumerateActive().Select(c => c.Id).ToArray());
-            Assert.Equal(new[] { "vessel:pod" }, reg.EnumerateListeners().Select(c => c.Id).ToArray());
-        }
-
-        [Fact]
         public void ADuplicateId_IsRecordedAndReported_NotDroppedQuietly()
         {
             var reports = new System.Collections.Generic.List<string>();

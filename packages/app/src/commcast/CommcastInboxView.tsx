@@ -1,5 +1,4 @@
 import {
-  Badge,
   Button,
   ButtonGroup,
   Console,
@@ -126,12 +125,7 @@ export function CommcastInboxView({
                   <Commcast__RowName>
                     <Addressees ids={thread.with} book={book} />
                   </Commcast__RowName>
-                  {thread.unread > 0 && (
-                    <Badge tone="info" size="sm">
-                      {thread.unread} new
-                    </Badge>
-                  )}
-                  {/* Something is still crossing in there. */}
+                  {/* The one state an inbox row needs: something is still crossing in there. */}
                   {thread.outbound.length > 0 && (
                     <Text size="xs" tone="info">
                       {thread.outbound.length} out

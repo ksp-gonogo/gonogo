@@ -242,10 +242,6 @@ namespace Gonogo.KSP
                 var seatSource = new CommandCentres.ActiveCraftSeatSource();
                 _engine.RegisterCommandCentreSeatSource(seatSource);
                 ccRegistry.RegisterSeatSource(seatSource);
-                // Every craft with a kerbal aboard can be sent a message, whatever it carries.
-                var listenerSource = new CommandCentres.CrewedCraftListenerSource();
-                _engine.RegisterCommandCentreListenerSource(listenerSource);
-                ccRegistry.RegisterListenerSource(listenerSource);
                 var homeEngine = _engine;
                 RegisterCoreUplink(_engine, new CommandCentres.CommandCentreDelayUplink(ccRegistry, () => homeEngine.CurrentHomeCommand, homeEngine, line => GonogoLog.Info("lens-sites", line)));
                 // One shared hand-off: the planner and the link capture write it,

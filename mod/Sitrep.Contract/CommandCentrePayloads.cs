@@ -130,16 +130,6 @@ public class CommandCentreEntry
     /// </summary>
     [SitrepUnit(Units.Text)]
     public string? DelayQuality { get; set; }
-
-    /// <summary>
-    /// Whether commands can be sent from this centre: absent or true for every
-    /// centre that can, false for a craft with a kerbal aboard that is listed
-    /// only so a message can be addressed to it. Such an entry is never a vantage
-    /// to choose, is not active, and has no command rights; what is said to it
-    /// waits in its ledger until a screen sits aboard.
-    /// </summary>
-    [SitrepUnit(Units.Flag)]
-    public bool? Commandable { get; set; }
 }
 
 /// <summary>

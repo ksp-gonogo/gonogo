@@ -42,13 +42,7 @@ function out(over: Partial<CommsMessage> = {}): OutboundMessage {
 }
 
 function feed(over: Partial<CommcastFeed> = {}): CommcastFeed {
-  return {
-    log: [],
-    outbound: [],
-    groups: new Map(),
-    readThrough: {},
-    ...over,
-  };
+  return { log: [], outbound: [], groups: new Map(), ...over };
 }
 
 describe("counterpartiesOf", () => {

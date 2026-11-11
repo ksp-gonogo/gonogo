@@ -30,7 +30,7 @@ namespace Sitrep.Host.Commcast
     public sealed class CommcastUplink : ISitrepUplink
     {
         public const string UplinkId = "commcast";
-        public const string LedgerTopic = "commcast.ledger";
+        public const string TrafficTopic = "commcast.traffic";
         public const string RadioTopic = "commcast.radio";
         public const string TransmissionsTopic = "commcast.transmissions";
         public const string OpenCommand = "commcast.group.open";
@@ -38,13 +38,6 @@ namespace Sitrep.Host.Commcast
         public const string SendCommand = "commcast.message.send";
         public const string AckCommand = "commcast.message.ack";
         public const string TransmitCommand = "commcast.radio.transmit";
-
-        /// <summary>The host's own commands between two centres: a message reaching its recipient, and a recipient telling the sender it was read. Not commands a client can send.</summary>
-        internal const string DeliverLaneId = "commcast.deliver";
-        internal const string ReadLaneId = "commcast.read";
-
-        /// <summary>How long a message waits for a path before it is deleted wherever it is: one game day, at the stock calendar's length.</summary>
-        public const double MessageLifetimeSeconds = Sitrep.Core.GameDayDefaults.StockDaySeconds;
 
         /// <summary>
         /// Audio chunks accepted per second, across every talker. One talker on
@@ -103,47 +96,7 @@ namespace Sitrep.Host.Commcast
 
             /// <summary>How the author described itself.</summary>
             public CommcastAuthor Said = new CommcastAuthor();
-
-            /// <summary>When word of this change reached a centre it had no path to when it was said, by a letter kept for it.</summary>
-            public Dictionary<string, double> LetterArrival = new Dictionary<string, double>(StringComparer.Ordinal);
         }
-
-        /// <summary>One entry of a centre's ledger of messages: what it said and what reached it.</summary>
-        private sealed class LedgerEntry
-        {
-            public string Id = "";
-            public double SentUt;
-
-            /// <summary>When it reached this centre; null for something this centre said itself.</summary>
-            public double? ArrivedUt;
-
-            /// <summary>The entry as its fixed fields go on the wire.</summary>
-            public Dictionary<string, object?> Wire = null!;
-
-            /// <summary>Per recipient, when the message ran at that centre and the reply reached here. Only on a message this centre said.</summary>
-            public Dictionary<string, double> Delivered = new Dictionary<string, double>(StringComparer.Ordinal);
-
-            /// <summary>Per recipient, how a message that never ran there ended: "cancelled" or "expired".</summary>
-            public Dictionary<string, string> Ended = new Dictionary<string, string>(StringComparer.Ordinal);
-
-            /// <summary>Per recipient, when a screen there read it.</summary>
-            public Dictionary<string, ReadRecord> Read = new Dictionary<string, ReadRecord>(StringComparer.Ordinal);
-        }
-
-        private sealed class ReadRecord
-        {
-            public double Ut;
-            public string StationKey = "";
-            public string Seat = "";
-        }
-
-        /// <summary>The most entries one centre's ledger keeps.</summary>
-        private const int LedgerMemory = 300;
-
-        private readonly object _gate = new object();
-
-        private readonly Dictionary<string, List<LedgerEntry>> _ledger =
-            new Dictionary<string, List<LedgerEntry>>(StringComparer.Ordinal);
 
         private sealed class SentMessage
         {
@@ -175,7 +128,6 @@ namespace Sitrep.Host.Commcast
         private Sitrep.Host.Comms.ICraftStateHost? _craftState;
         private IUplinkHost? _host;
         private IAddressedStreamHost? _streams;
-        private ILaneHost? _lanes;
 
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
@@ -186,13 +138,13 @@ namespace Sitrep.Host.Commcast
             {
                 new ChannelDeclaration
                 {
-                    Kind = SampleKind.Discrete,
+                    Kind = SampleKind.Event,
                     Requires = Requirement.None,
-                    Topic = LedgerTopic,
-                    Delivery = Delivery.LossyLatest,
+                    Topic = TrafficTopic,
+                    Delivery = Delivery.ReliableOrdered,
                     Delay = DelayRole.Delayed,
                     Recordable = false,
-                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
                 },
                 new ChannelDeclaration
                 {
@@ -233,32 +185,11 @@ namespace Sitrep.Host.Commcast
             _host = host;
             _streams = host as IAddressedStreamHost
                 ?? throw new InvalidOperationException("commcast needs a host that carries addressed streams");
-            _streams.DeclareAddressedTopic(LedgerTopic);
+            _streams.DeclareAddressedTopic(TrafficTopic);
             _streams.DeclareAddressedTopic(RadioTopic);
             _streams.DeclareAddressedTopic(TransmissionsTopic);
 
-            /* A centre's ledger is state, and an addressed sample is not kept for
-               whoever subscribes after it landed, so a screen that has just sat
-               down is told its centre's ledger again. */
-            _streams.OnAddressedSubscribed(LedgerTopic, centre =>
-            {
-                lock (_gate)
-                {
-                    PublishLedger(centre);
-                }
-            });
-
-            /* A message is a command between two centres: it travels a lane, waits
-               for a path, shows in the sender's uplink queue and can be cancelled
-               there, and what it does on arrival is write the recipient's ledger. */
-            _lanes = host as ILaneHost;
-            if (_lanes != null)
-            {
-                _lanes.RegisterLaneHandler(DeliverLaneId, OnDelivered);
-                _lanes.RegisterLaneHandler(ReadLaneId, OnRead);
-                _lanes.RegisterLaneOutcome(DeliverLaneId, OnDeliverEnded);
-                _lanes.RegisterSaveSection(SaveSectionName, SaveSection, RestoreSection);
-            }
+            _streams.OnAddressedSubscribed(TrafficTopic, SayGroupsKnownAt);
 
             /* Groups, messages and keyings are stamped with the UT they were said
                at, so a reset keeps what was said up to the loaded UT and drops
@@ -266,221 +197,17 @@ namespace Sitrep.Host.Commcast
             _craftState = host as Sitrep.Host.Comms.ICraftStateHost;
             _craftState?.OnTimelineReset(ForgetTheTimeline);
 
-            host.AddVantageCommandHandler<CommcastGroupOpenArgs, CommandResult>(OpenCommand, (a, from) => { lock (_gate) { return HandleOpen(a, from); } });
-            host.AddVantageCommandHandler<CommcastGroupAddArgs, CommandResult>(AddCommand, (a, from) => { lock (_gate) { return HandleAdd(a, from); } });
-            host.AddVantageCommandHandler<CommcastMessageSendArgs, CommandResult>(SendCommand, (a, from) => { lock (_gate) { return HandleSend(a, from); } });
-            host.AddVantageCommandHandler<CommcastMessageAckArgs, CommandResult>(AckCommand, (a, from) => { lock (_gate) { return HandleAck(a, from); } });
-            host.AddVantageCommandHandler<CommcastRadioTransmitArgs, CommandResult>(TransmitCommand, (a, from) => { lock (_gate) { return HandleTransmit(a, from); } });
+            host.AddVantageCommandHandler<CommcastGroupOpenArgs, CommandResult>(OpenCommand, HandleOpen);
+            host.AddVantageCommandHandler<CommcastGroupAddArgs, CommandResult>(AddCommand, HandleAdd);
+            host.AddVantageCommandHandler<CommcastMessageSendArgs, CommandResult>(SendCommand, HandleSend);
+            host.AddVantageCommandHandler<CommcastMessageAckArgs, CommandResult>(AckCommand, HandleAck);
+            host.AddVantageCommandHandler<CommcastRadioTransmitArgs, CommandResult>(TransmitCommand, HandleTransmit);
         }
-
-        private const string SaveSectionName = "commcast";
-
-        /// <summary>Everything kept with the game: the groups, what each centre was sent, and who may acknowledge what. Any thread.</summary>
-        private string? SaveSection()
-        {
-            lock (_gate)
-            {
-                if (_groups.Count == 0 && _messages.Count == 0 && _ledger.Count == 0)
-                {
-                    return null;
-                }
-                var groups = _groups.Select(g => (object?)new Dictionary<string, object?>
-                {
-                    ["id"] = g.Key,
-                    ["changes"] = g.Value.Select(c => (object?)new Dictionary<string, object?>
-                    {
-                        ["ut"] = c.Ut,
-                        ["author"] = c.Author,
-                        ["said"] = ToWire(c.Said),
-                        ["reached"] = c.Reached.OrderBy(id => id, StringComparer.Ordinal).Cast<object?>().ToList(),
-                        ["added"] = c.Added.Cast<object?>().ToList(),
-                        ["members"] = c.Members.Cast<object?>().ToList(),
-                        ["stamp"] = c.Reached.ToDictionary(id => id, id => (object?)c.Stamp.For(id), StringComparer.Ordinal),
-                        ["letterArrival"] = c.LetterArrival.ToDictionary(a => a.Key, a => (object?)a.Value, StringComparer.Ordinal),
-                    }).ToList(),
-                }).ToList();
-                var messages = _messageOrder.Where(_messages.ContainsKey).Select(id => (object?)new Dictionary<string, object?>
-                {
-                    ["id"] = id,
-                    ["author"] = _messages[id].Author,
-                    ["to"] = _messages[id].To.OrderBy(t => t, StringComparer.Ordinal).Cast<object?>().ToList(),
-                    ["ut"] = _messages[id].Ut,
-                }).ToList();
-                var ledger = _ledger.ToDictionary(
-                    l => l.Key,
-                    l => (object?)l.Value.Select(e => (object?)new Dictionary<string, object?>
-                    {
-                        ["id"] = e.Id,
-                        ["sentUt"] = e.SentUt,
-                        ["arrivedUt"] = e.ArrivedUt,
-                        ["wire"] = e.Wire,
-                        ["delivered"] = e.Delivered.ToDictionary(d => d.Key, d => (object?)d.Value, StringComparer.Ordinal),
-                        ["ended"] = e.Ended.ToDictionary(d => d.Key, d => (object?)d.Value, StringComparer.Ordinal),
-                        ["read"] = e.Read.ToDictionary(
-                            r => r.Key,
-                            r => (object?)new Dictionary<string, object?> { ["ut"] = r.Value.Ut, ["stationKey"] = r.Value.StationKey, ["seat"] = r.Value.Seat },
-                            StringComparer.Ordinal),
-                    }).ToList(),
-                    StringComparer.Ordinal);
-                return Json(new Dictionary<string, object?>
-                {
-                    ["version"] = 1.0,
-                    ["groups"] = groups,
-                    ["messages"] = messages,
-                    ["ledger"] = ledger,
-                });
-            }
-        }
-
-        /// <summary>Takes back what a loaded save kept, replacing what is held. A string this build cannot read, or none, leaves what is held. Courier thread.</summary>
-        private void RestoreSection(string? kept)
-        {
-            if (kept == null || !(JsonReader.Parse(kept) is Dictionary<string, object?> root))
-            {
-                return;
-            }
-            lock (_gate)
-            {
-                _groups.Clear();
-                _messages.Clear();
-                _messageOrder.Clear();
-                _ledger.Clear();
-                foreach (var group in List(root, "groups").OfType<Dictionary<string, object?>>())
-                {
-                    var changes = new List<MembershipChange>();
-                    foreach (var c in List(group, "changes").OfType<Dictionary<string, object?>>())
-                    {
-                        var stamp = Map(c, "stamp");
-                        var said = Map(c, "said");
-                        changes.Add(new MembershipChange
-                        {
-                            Ut = Num(c, "ut"),
-                            Author = Str(c, "author"),
-                            Said = new CommcastAuthor
-                            {
-                                Name = Str(said, "name"),
-                                StationKey = Str(said, "stationKey"),
-                                Seat = Str(said, "seat"),
-                            },
-                            Reached = new HashSet<string>(List(c, "reached").OfType<string>(), StringComparer.Ordinal),
-                            Added = List(c, "added").OfType<string>().ToList(),
-                            Members = List(c, "members").OfType<string>().ToList(),
-                            Stamp = new Sitrep.Core.DelayStamp(
-                                double.PositiveInfinity,
-                                stamp.Where(e => e.Value is double).ToDictionary(e => e.Key, e => (double)e.Value!, StringComparer.Ordinal)),
-                            LetterArrival = Map(c, "letterArrival").Where(e => e.Value is double).ToDictionary(e => e.Key, e => (double)e.Value!, StringComparer.Ordinal),
-                        });
-                    }
-                    _groups[Str(group, "id")] = changes;
-                }
-                foreach (var m in List(root, "messages").OfType<Dictionary<string, object?>>())
-                {
-                    var id = Str(m, "id");
-                    _messages[id] = new SentMessage
-                    {
-                        Author = Str(m, "author"),
-                        To = new HashSet<string>(List(m, "to").OfType<string>(), StringComparer.Ordinal),
-                        Ut = Num(m, "ut"),
-                    };
-                    _messageOrder.Enqueue(id);
-                }
-                foreach (var centre in Map(root, "ledger"))
-                {
-                    var entries = new List<LedgerEntry>();
-                    foreach (var i in (centre.Value as List<object?> ?? new List<object?>()).OfType<Dictionary<string, object?>>())
-                    {
-                        if (!(i.TryGetValue("wire", out var wire) && wire is Dictionary<string, object?> body))
-                        {
-                            continue;
-                        }
-                        var entry = new LedgerEntry
-                        {
-                            Id = Str(i, "id"),
-                            SentUt = Num(i, "sentUt"),
-                            ArrivedUt = i.TryGetValue("arrivedUt", out var arrived) && arrived is double at ? at : (double?)null,
-                            Wire = body,
-                        };
-                        foreach (var d in Map(i, "delivered"))
-                        {
-                            if (d.Value is double ut)
-                            {
-                                entry.Delivered[d.Key] = ut;
-                            }
-                        }
-                        foreach (var d in Map(i, "ended"))
-                        {
-                            if (d.Value is string how)
-                            {
-                                entry.Ended[d.Key] = how;
-                            }
-                        }
-                        foreach (var r in Map(i, "read"))
-                        {
-                            if (r.Value is Dictionary<string, object?> read)
-                            {
-                                entry.Read[r.Key] = new ReadRecord { Ut = Num(read, "ut"), StationKey = Str(read, "stationKey"), Seat = Str(read, "seat") };
-                            }
-                        }
-                        entries.Add(entry);
-                    }
-                    _ledger[centre.Key] = entries;
-                }
-            }
-        }
-
-        private static List<object?> List(Dictionary<string, object?>? o, string key) =>
-            o != null && o.TryGetValue(key, out var v) && v is List<object?> list ? list : new List<object?>();
-
-        private static Dictionary<string, object?> Map(Dictionary<string, object?>? o, string key) =>
-            o != null && o.TryGetValue(key, out var v) && v is Dictionary<string, object?> map ? map : new Dictionary<string, object?>();
-
-        private static string Str(Dictionary<string, object?>? o, string key) =>
-            o != null && o.TryGetValue(key, out var v) && v is string text ? text : "";
-
-        private static double Num(Dictionary<string, object?>? o, string key) =>
-            o != null && o.TryGetValue(key, out var v) && v is double d ? d : 0.0;
 
         private void ForgetTheTimeline()
         {
-            lock (_gate)
-            {
-                ForgetTheTimelineLocked();
-            }
-        }
-
-        private void ForgetTheTimelineLocked()
-        {
             /* Another save folder is another game, whose chat is not this one's. */
             var loadedAt = _craftState?.TimelineResetChangedSave == true ? double.NegativeInfinity : Now();
-            foreach (var centre in _ledger.Keys.ToList())
-            {
-                _ledger[centre].RemoveAll(entry => entry.SentUt > loadedAt);
-                foreach (var entry in _ledger[centre])
-                {
-                    foreach (var late in entry.Delivered.Where(d => d.Value > loadedAt).Select(d => d.Key).ToList())
-                    {
-                        entry.Delivered.Remove(late);
-                    }
-                    foreach (var late in entry.Read.Where(r => r.Value.Ut > loadedAt).Select(r => r.Key).ToList())
-                    {
-                        entry.Read.Remove(late);
-                    }
-                }
-                if (_ledger[centre].Count == 0)
-                {
-                    _ledger.Remove(centre);
-                }
-            }
-            foreach (var changes in _groups.Values)
-            {
-                foreach (var change in changes)
-                {
-                    foreach (var arrived in change.LetterArrival.Where(a => a.Value > loadedAt).Select(a => a.Key).ToList())
-                    {
-                        change.LetterArrival.Remove(arrived);
-                    }
-                }
-            }
             foreach (var id in _groups.Keys.ToList())
             {
                 _groups[id].RemoveAll(change => change.Ut > loadedAt);
@@ -543,7 +270,7 @@ namespace Sitrep.Host.Commcast
             var now = Now();
             var change = Change(now, from, args.Author, members, members);
             _groups[args.GroupId] = new List<MembershipChange> { change };
-            SendMembers(args.GroupId, change, members, from);
+            PublishTraffic(MembersItem(args.GroupId, change, members));
             return CommandResult.Ok();
         }
 
@@ -577,7 +304,7 @@ namespace Sitrep.Host.Commcast
 
             var change = Change(now, from, args.Author, members, added);
             _groups[args.GroupId].Add(change);
-            SendMembers(args.GroupId, change, members, from);
+            PublishTraffic(MembersItem(args.GroupId, change, members));
             return CommandResult.Ok();
         }
 
@@ -608,279 +335,47 @@ namespace Sitrep.Host.Commcast
                 }
             }
             var meant = named.Count == 0 ? known : named;
-            var reached = Addressed(from, meant);
-            var waiting = meant.Where(id => id != from && !reached.Contains(id)).OrderBy(id => id, StringComparer.Ordinal).ToList();
-            var everyone = Distinct(meant.Append(from)).OrderBy(id => id, StringComparer.Ordinal).ToList();
-            Remember(args.Id, from, everyone, now);
-            var wire = new Dictionary<string, object?>
+            var to = Addressed(from, meant);
+            var unreached = meant.Where(id => !to.Contains(id)).OrderBy(id => id, StringComparer.Ordinal).ToList();
+            Remember(args.Id, from, to, now);
+            var text = new CommcastTraffic
             {
-                ["kind"] = "text",
-                ["id"] = args.Id,
-                ["groupId"] = args.GroupId,
-                ["from"] = from,
-                ["author"] = ToWire(args.Author),
-                ["sentUt"] = now,
-                ["to"] = everyone,
-                ["body"] = args.Body ?? "",
+                Kind = "text",
+                Id = args.Id,
+                GroupId = args.GroupId,
+                From = from,
+                Author = args.Author,
+                SentUt = now,
+                To = to,
+                Body = args.Body,
+                OneWaySeconds = OneWayFrom(from, to),
             };
-            SendEntry(from, wire, now, everyone, args.Body ?? "");
-            return CommandResult<CommcastSendReceipt>.Ok(new CommcastSendReceipt
+            var held = HeldBehindMembership(_groups[args.GroupId], from, to, now);
+            if (held == null)
             {
-                Addressed = reached,
-                Unreached = new List<string>(),
-                Queued = waiting,
-            });
-        }
-
-        /// <summary>
-        /// Records a message in its speaker's own ledger and sends it down a lane to
-        /// every other member: each copy waits for a path as any command does, runs
-        /// at its recipient by writing that centre's ledger, and can be cancelled
-        /// from the speaker's uplink queue.
-        /// </summary>
-        private void SendEntry(string speaker, Dictionary<string, object?> wire, double now, List<string> everyone, string label)
-        {
-            var id = (string)wire["id"]!;
-            AddToLedger(speaker, new LedgerEntry { Id = id, SentUt = now, ArrivedUt = null, Wire = wire });
-            PublishLedger(speaker);
-            if (_lanes == null)
-            {
-                return;
+                PublishTraffic(text);
             }
-            foreach (var recipient in everyone)
+            else
             {
-                if (recipient == speaker)
-                {
-                    continue;
-                }
-                var args = new Dictionary<string, object?>(wire, StringComparer.Ordinal) { ["label"] = label, ["recipient"] = recipient };
-                _lanes.SendLaneCommand(speaker, recipient, DeliverLaneId, args, label, MessageLifetimeSeconds);
                 SaidBudget.Record(1, now);
+                _streams!.PublishAddressedTo(TrafficTopic, ToWire(text), now, held);
             }
+            return CommandResult<CommcastSendReceipt>.Ok(new CommcastSendReceipt { Addressed = to, Unreached = unreached });
         }
 
-        /// <summary>A membership change is said as a message is: to every other member, down its own lane.</summary>
-        private void SendMembers(string groupId, MembershipChange change, List<string> members, string speaker)
+        /// <summary>The one-way delay from <paramref name="speaker"/> to each centre in <paramref name="to"/> but itself.</summary>
+        private Dictionary<string, double> OneWayFrom(string speaker, List<string> to)
         {
-            var wire = ToWire(MembersItem(groupId, change, members));
-            var everyone = members.OrderBy(id => id, StringComparer.Ordinal).ToList();
-            wire["to"] = everyone;
-            SendEntry(speaker, wire, change.Ut, everyone, "added " + string.Join(", ", change.Added));
-        }
-
-        /// <summary>A command from another centre reached this one: its words go into this centre's ledger.</summary>
-        private object? OnDelivered(LaneArrival arrival)
-        {
-            lock (_gate)
+            var stamp = _streams!.StampFrom(speaker);
+            var seconds = new Dictionary<string, double>(StringComparer.Ordinal);
+            foreach (var id in to)
             {
-                if (!(arrival.Args is Dictionary<string, object?> args))
+                if (id != speaker)
                 {
-                    return CommandResult.Fail(CommandErrorCode.Range, "a delivery carried nothing");
+                    seconds[id] = stamp.For(id);
                 }
-                var wire = new Dictionary<string, object?>(args, StringComparer.Ordinal);
-                wire.Remove("label");
-                wire.Remove("recipient");
-                var id = wire.TryGetValue("id", out var named) ? named as string : null;
-                if (id == null)
-                {
-                    return CommandResult.Fail(CommandErrorCode.Range, "a delivery named no message");
-                }
-                if (wire.TryGetValue("kind", out var kind) && (kind as string) == "members"
-                    && wire.TryGetValue("groupId", out var group) && group is string groupId
-                    && _groups.TryGetValue(groupId, out var changes))
-                {
-                    foreach (var change in changes)
-                    {
-                        if (MembersItemId(groupId, change) == id)
-                        {
-                            change.LetterArrival[arrival.Recipient] = arrival.AtUt;
-                        }
-                    }
-                }
-                AddToLedger(arrival.Recipient, new LedgerEntry { Id = id, SentUt = arrival.SentUt, ArrivedUt = arrival.AtUt, Wire = wire });
-                PublishLedger(arrival.Recipient);
-                return CommandResult.Ok();
             }
-        }
-
-        /// <summary>A message this centre sent has ended: it was delivered, or it was cancelled or ran out of time.</summary>
-        private void OnDeliverEnded(LaneOutcome outcome)
-        {
-            lock (_gate)
-            {
-                var id = outcome.Args is Dictionary<string, object?> args && args.TryGetValue("id", out var named) ? named as string : null;
-                var entry = id == null ? null : FindEntry(outcome.Sender, id);
-                if (entry == null)
-                {
-                    return;
-                }
-                if (outcome.Kind == LaneOutcomeKind.Delivered)
-                {
-                    entry.Delivered[outcome.Recipient] = outcome.AtUt;
-                }
-                else
-                {
-                    entry.Ended[outcome.Recipient] = outcome.Kind == LaneOutcomeKind.Cancelled ? "cancelled" : "expired";
-                }
-                PublishLedger(outcome.Sender);
-            }
-        }
-
-        /// <summary>A recipient's screen read a message: the sender's ledger says so once the notice reaches it.</summary>
-        private object? OnRead(LaneArrival arrival)
-        {
-            lock (_gate)
-            {
-                if (!(arrival.Args is Dictionary<string, object?> args) || !(args.TryGetValue("messageId", out var named) && named is string id))
-                {
-                    return CommandResult.Fail(CommandErrorCode.Range, "a read notice named no message");
-                }
-                var entry = FindEntry(arrival.Recipient, id);
-                if (entry == null)
-                {
-                    return CommandResult.Fail(CommandErrorCode.NotFound, "no such message in this ledger");
-                }
-                entry.Read[arrival.Sender] = new ReadRecord
-                {
-                    Ut = Num(args, "readUt"),
-                    StationKey = Str(args, "stationKey"),
-                    Seat = Str(args, "seat"),
-                };
-                PublishLedger(arrival.Recipient);
-                return CommandResult.Ok();
-            }
-        }
-
-        private LedgerEntry? FindEntry(string centre, string id) =>
-            _ledger.TryGetValue(centre, out var entries) ? entries.FirstOrDefault(e => e.Id == id) : null;
-
-        private void AddToLedger(string centre, LedgerEntry entry)
-        {
-            if (!_ledger.TryGetValue(centre, out var entries))
-            {
-                entries = new List<LedgerEntry>();
-                _ledger[centre] = entries;
-            }
-            if (entries.Any(e => e.Id == entry.Id))
-            {
-                return;
-            }
-            entries.Add(entry);
-            if (entries.Count > LedgerMemory)
-            {
-                entries.RemoveRange(0, entries.Count - LedgerMemory);
-            }
-        }
-
-        /// <summary>Says a centre's whole ledger to the screens at it, as the latest value of its state.</summary>
-        private void PublishLedger(string centre)
-        {
-            if (string.IsNullOrEmpty(centre) || _streams == null)
-            {
-                return;
-            }
-            var now = Now();
-            _ledger.TryGetValue(centre, out var entries);
-            var ledger = new CommcastLedger { Items = (entries ?? new List<LedgerEntry>()).Select(ItemOf).ToList() };
-            _streams.PublishAddressedTo(
-                LedgerTopic,
-                ToWire(ledger),
-                now,
-                new Dictionary<string, double>(StringComparer.Ordinal) { [centre] = 0.0 });
-        }
-
-        private static CommcastLedgerItem ItemOf(LedgerEntry entry)
-        {
-            var wire = entry.Wire;
-            return new CommcastLedgerItem
-            {
-                Kind = Str(wire, "kind"),
-                Id = entry.Id,
-                GroupId = Str(wire, "groupId"),
-                From = Str(wire, "from"),
-                Author = AuthorOf(wire),
-                SentUt = entry.SentUt,
-                To = StringsOf(wire, "to") ?? new List<string>(),
-                Members = StringsOf(wire, "members"),
-                Added = StringsOf(wire, "added"),
-                Body = wire.TryGetValue("body", out var body) ? body as string : null,
-                ArrivedUt = entry.ArrivedUt,
-                Delivered = entry.Delivered.Count == 0 ? null : new Dictionary<string, double>(entry.Delivered, StringComparer.Ordinal),
-                Ended = entry.Ended.Count == 0 ? null : new Dictionary<string, string>(entry.Ended, StringComparer.Ordinal),
-                Read = entry.Read.Count == 0
-                    ? null
-                    : entry.Read.ToDictionary(
-                        r => r.Key,
-                        r => new CommcastRead { At = r.Value.Ut, StationKey = r.Value.StationKey, Seat = r.Value.Seat },
-                        StringComparer.Ordinal),
-            };
-        }
-
-        /// <summary>The strings a wire entry holds under <paramref name="key"/>, whether it was built here as a typed list or read back from a save as a generic one; null when it holds none.</summary>
-        private static List<string>? StringsOf(Dictionary<string, object?> wire, string key) =>
-            wire.TryGetValue(key, out var value) && value is System.Collections.IEnumerable items && !(value is string)
-                ? items.OfType<string>().ToList()
-                : null;
-
-        private static CommcastAuthor AuthorOf(Dictionary<string, object?> wire)
-        {
-            var said = Map(wire, "author");
-            return new CommcastAuthor { Name = Str(said, "name"), StationKey = Str(said, "stationKey"), Seat = Str(said, "seat") };
-        }
-
-        private static Dictionary<string, object?> ToWire(CommcastLedger ledger) => new Dictionary<string, object?>
-        {
-            ["items"] = ledger.Items.Select(item => (object?)ToWire(item)).ToList(),
-        };
-
-        private static Dictionary<string, object?> ToWire(CommcastRead read) => new Dictionary<string, object?>
-        {
-            ["at"] = read.At,
-            ["stationKey"] = read.StationKey,
-            ["seat"] = read.Seat,
-        };
-
-        private static Dictionary<string, object?> ToWire(CommcastLedgerItem item)
-        {
-            var wire = new Dictionary<string, object?>
-            {
-                ["kind"] = item.Kind,
-                ["id"] = item.Id,
-                ["groupId"] = item.GroupId,
-                ["from"] = item.From,
-                ["author"] = ToWire(item.Author),
-                ["sentUt"] = item.SentUt,
-                ["to"] = item.To,
-            };
-            if (item.Members != null)
-            {
-                wire["members"] = item.Members;
-            }
-            if (item.Added != null)
-            {
-                wire["added"] = item.Added;
-            }
-            if (item.Body != null)
-            {
-                wire["body"] = item.Body;
-            }
-            if (item.ArrivedUt != null)
-            {
-                wire["arrivedUt"] = item.ArrivedUt.Value;
-            }
-            if (item.Delivered != null)
-            {
-                wire["delivered"] = item.Delivered;
-            }
-            if (item.Ended != null)
-            {
-                wire["ended"] = item.Ended;
-            }
-            if (item.Read != null)
-            {
-                wire["read"] = item.Read.ToDictionary(r => r.Key, r => (object?)ToWire(r.Value), StringComparer.Ordinal);
-            }
-            return wire;
+            return seconds;
         }
 
         private CommandResult HandleAck(CommcastMessageAckArgs? args, string from)
@@ -900,21 +395,16 @@ namespace Sitrep.Host.Commcast
             }
 
             var now = Now();
-            AcknowledgedBudget.Record(1, now);
-            _lanes?.SendLaneCommand(
-                from,
-                message.Author,
-                ReadLaneId,
-                new Dictionary<string, object?>
-                {
-                    ["messageId"] = args.MessageId,
-                    ["readUt"] = now,
-                    ["stationKey"] = args.Author?.StationKey ?? "",
-                    ["seat"] = args.Author?.Seat ?? "",
-                },
-                "",
-                MessageLifetimeSeconds,
-                listed: false);
+            var to = _streams!.HasRoute(from, message.Author) ? new List<string> { message.Author } : new List<string>();
+            PublishTraffic(new CommcastTraffic
+            {
+                Kind = "ack",
+                From = from,
+                Author = args.Author,
+                SentUt = now,
+                To = to,
+                MessageId = args.MessageId,
+            });
             return CommandResult.Ok();
         }
 
@@ -1054,10 +544,92 @@ namespace Sitrep.Host.Commcast
             return members;
         }
 
+        /// <summary>
+        /// When a message said now lands at each listener, in seconds from now,
+        /// where it has to be held back so as not to land before word of the
+        /// group it was said in; null where none has to be.
+        ///
+        /// <para>Word of a membership change crosses under the delay of the
+        /// moment it was said. A path that has shortened since would carry a
+        /// later message there first, to a listener that has never heard of
+        /// the group. Holding a message only ever makes it later, so nothing
+        /// reaches anyone sooner than light would carry it.</para>
+        /// </summary>
+        private Dictionary<string, double>? HeldBehindMembership(
+            List<MembershipChange> changes, string speaker, List<string> to, double now)
+        {
+            var stamp = _streams!.StampFrom(speaker);
+            var arrives = new Dictionary<string, double>(StringComparer.Ordinal);
+            var any = false;
+            foreach (var listener in to)
+            {
+                var seconds = listener == speaker ? 0.0 : stamp.For(listener);
+                foreach (var change in changes)
+                {
+                    if (change.Author == listener || !change.Reached.Contains(listener))
+                    {
+                        continue;
+                    }
+                    var wordLands = change.Ut + change.Stamp.For(listener) - now;
+                    if (wordLands > seconds)
+                    {
+                        seconds = wordLands;
+                        any = true;
+                    }
+                }
+                arrives[listener] = seconds;
+            }
+            return any ? arrives : null;
+        }
+
+        /// <summary>
+        /// Says each group again to a vantage a screen has just opened at, as that
+        /// vantage knows it now: the newest change to have reached it, with
+        /// everyone the changes that have reached it named. Who is in a group is
+        /// state, where a message is not, and without this a screen opened after
+        /// word of a group landed would never learn of it. It is all word that
+        /// has already arrived there, so it arrives again at once.
+        /// </summary>
+        private void SayGroupsKnownAt(string vantage)
+        {
+            if (string.IsNullOrEmpty(vantage))
+            {
+                return;
+            }
+            var now = Now();
+            foreach (var group in _groups)
+            {
+                MembershipChange? newest = null;
+                var members = new List<string>();
+                foreach (var change in group.Value)
+                {
+                    if (!KnownAt(change, vantage, now))
+                    {
+                        continue;
+                    }
+                    newest = change;
+                    foreach (var id in change.Members)
+                    {
+                        if (!members.Contains(id))
+                        {
+                            members.Add(id);
+                        }
+                    }
+                }
+                if (newest == null || !members.Contains(vantage))
+                {
+                    continue;
+                }
+                _streams!.PublishAddressedTo(
+                    TrafficTopic,
+                    ToWire(MembersItem(group.Key, newest, members)),
+                    newest.Ut,
+                    new Dictionary<string, double>(StringComparer.Ordinal) { [vantage] = Math.Max(0.0, now - newest.Ut) });
+            }
+        }
+
         private static bool KnownAt(MembershipChange change, string vantage, double ut) =>
-            change.Author == vantage
-            || (change.Reached.Contains(vantage) && change.Ut + change.Stamp.For(vantage) <= ut)
-            || (change.LetterArrival.TryGetValue(vantage, out var landed) && landed <= ut);
+            change.Author == vantage || (change.Reached.Contains(vantage) && change.Ut + change.Stamp.For(vantage) <= ut);
 
         /// <summary>The speaker, and every member it knows of that a signal from it can reach.</summary>
         private List<string> Addressed(string speaker, IEnumerable<string> members)
@@ -1087,14 +659,11 @@ namespace Sitrep.Host.Commcast
             };
 
         /// <summary>A membership change as its listeners read it. Its id is the same however often it is said, so a listener told twice holds it once.</summary>
-        private static string MembersItemId(string groupId, MembershipChange change) =>
-            groupId + "@" + change.Ut.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
-
-        private static CommcastLedgerItem MembersItem(string groupId, MembershipChange change, List<string> members) =>
-            new CommcastLedgerItem
+        private static CommcastTraffic MembersItem(string groupId, MembershipChange change, List<string> members) =>
+            new CommcastTraffic
             {
                 Kind = "members",
-                Id = MembersItemId(groupId, change),
+                Id = groupId + "@" + change.Ut.ToString("R", System.Globalization.CultureInfo.InvariantCulture),
                 GroupId = groupId,
                 From = change.Author,
                 Author = change.Said,
@@ -1103,6 +672,12 @@ namespace Sitrep.Host.Commcast
                 Members = members.OrderBy(id => id, StringComparer.Ordinal).ToList(),
                 Added = change.Added.OrderBy(id => id, StringComparer.Ordinal).ToList(),
             };
+
+        private void PublishTraffic(CommcastTraffic item)
+        {
+            (item.Kind == "ack" ? AcknowledgedBudget : SaidBudget).Record(1, item.SentUt);
+            _streams!.PublishAddressed(TrafficTopic, ToWire(item), item.SentUt, item.From, item.To);
+        }
 
         /// <summary>
         /// Keeps who a message was addressed to, for acknowledging. Said again by
@@ -1143,6 +718,44 @@ namespace Sitrep.Host.Commcast
             ["stationKey"] = author?.StationKey ?? "",
             ["seat"] = author?.Seat ?? "",
         };
+
+        private static Dictionary<string, object?> ToWire(CommcastTraffic item)
+        {
+            var wire = new Dictionary<string, object?>
+            {
+                ["kind"] = item.Kind,
+                ["groupId"] = item.GroupId,
+                ["from"] = item.From,
+                ["author"] = ToWire(item.Author),
+                ["sentUt"] = item.SentUt,
+                ["to"] = item.To,
+            };
+            if (item.Id != null)
+            {
+                wire["id"] = item.Id;
+            }
+            if (item.Members != null)
+            {
+                wire["members"] = item.Members;
+            }
+            if (item.Added != null)
+            {
+                wire["added"] = item.Added;
+            }
+            if (item.Body != null)
+            {
+                wire["body"] = item.Body;
+            }
+            if (item.MessageId != null)
+            {
+                wire["messageId"] = item.MessageId;
+            }
+            if (item.OneWaySeconds != null)
+            {
+                wire["oneWaySeconds"] = item.OneWaySeconds;
+            }
+            return wire;
+        }
 
         private static Dictionary<string, object?> ToWire(CommcastTransmissionRow row) => new Dictionary<string, object?>
         {

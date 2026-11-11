@@ -28,7 +28,6 @@ namespace Sitrep.Host.CommandCentres
 
         private readonly List<ICommandCentreSource> _sources = new List<ICommandCentreSource>();
         private readonly List<ICommandCentreSource> _seatSources = new List<ICommandCentreSource>();
-        private readonly List<ICommandCentreSource> _listenerSources = new List<ICommandCentreSource>();
         private readonly Action<string>? _report;
         private readonly HashSet<string> _reportedIds = new HashSet<string>(StringComparer.Ordinal);
         private volatile IReadOnlyList<CommandCentreIdCollision> _collisions = NoCollisions;
@@ -55,15 +54,6 @@ namespace Sitrep.Host.CommandCentres
         /// and no vantage picker.
         /// </summary>
         public void RegisterSeatSource(ICommandCentreSource source) => _seatSources.Add(source);
-
-        /// <summary>
-        /// Registers a source of listeners: craft that can be sent a message and
-        /// nothing else. A listener is listed on the roster as not commandable and not
-        /// active, is timed from every active centre, and is never part of
-        /// <see cref="EnumerateActive"/>, so it reaches no home election, no vantage
-        /// picker, no command right and no delay row of any centre.
-        /// </summary>
-        public void RegisterListenerSource(ICommandCentreSource source) => _listenerSources.Add(source);
 
         /// <summary>The id collisions the most recent <see cref="EnumerateActive"/> pass dropped a centre for.</summary>
         public IReadOnlyList<CommandCentreIdCollision> Collisions => _collisions;
@@ -156,45 +146,6 @@ namespace Sitrep.Host.CommandCentres
         }
 
         /// <summary>
-        /// The listeners now: every craft the listener sources name, minus any whose
-        /// id is already an active centre (that craft is the centre, not a listener as
-        /// well), deduped by id.
-        /// </summary>
-        public IReadOnlyList<ICommandCentre> EnumerateListeners()
-        {
-            var held = _listenerPassResult;
-            if (held != null)
-            {
-                return held;
-            }
-
-            var taken = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var centre in EnumerateActive())
-            {
-                taken.Add(centre.Id);
-            }
-
-            var result = new List<ICommandCentre>();
-            foreach (var source in _listenerSources)
-            {
-                foreach (var listener in source.Enumerate())
-                {
-                    if (taken.Add(listener.Id))
-                    {
-                        result.Add(listener);
-                    }
-                }
-            }
-
-            if (_passOpen)
-            {
-                _listenerPassResult = result;
-            }
-
-            return result;
-        }
-
-        /// <summary>
         /// The id of the first active seat, whether or not that id is also an active
         /// centre, or null when no seat source has one. For the active craft this is
         /// where a session that follows it stands.
@@ -237,7 +188,6 @@ namespace Sitrep.Host.CommandCentres
         private volatile IReadOnlyList<ICommandCentre>? _passResult;
         private volatile IReadOnlyList<ICommandCentre>? _seatPassResult;
         private volatile IReadOnlyList<ICommandCentre>? _rawSeatPassResult;
-        private volatile IReadOnlyList<ICommandCentre>? _listenerPassResult;
         private volatile bool _passOpen;
 
         /// <summary>
@@ -251,7 +201,6 @@ namespace Sitrep.Host.CommandCentres
             _passResult = null;
             _seatPassResult = null;
             _rawSeatPassResult = null;
-            _listenerPassResult = null;
             _passOpen = true;
         }
 
@@ -262,7 +211,6 @@ namespace Sitrep.Host.CommandCentres
             _passResult = null;
             _seatPassResult = null;
             _rawSeatPassResult = null;
-            _listenerPassResult = null;
         }
 
         private void Report(List<CommandCentreIdCollision> collisions)

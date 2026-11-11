@@ -239,61 +239,6 @@ describe("deriveTraffic", () => {
     expect(state.pulses).toHaveLength(1);
   });
 
-  it("routes an entry by the craft it is addressed to, not the active vessel", () => {
-    const net = network(
-      [
-        node({ id: "home" }),
-        node({ id: "v-1", kind: CommsHopKind.Vessel }),
-        node({ id: "v-2", kind: CommsHopKind.Vessel }),
-      ],
-      [edge("home", "v-1"), edge("home", "v-2")],
-    );
-    const state = deriveTraffic(
-      [{ ...pendingEntry("cmd-1", 0, 10), craft: "vessel:v-2" }],
-      net,
-      "v-1",
-      5,
-    );
-    expect(state.pulses.map((p) => p.edgeId)).toEqual(["comms-edge:home:v-2"]);
-  });
-
-  it("draws a ground-to-ground message only along a path the graph has between the two stations", () => {
-    const stations = [
-      node({ id: "Kennedy" }),
-      node({ id: "Woomera" }),
-      node({ id: "v-1", kind: CommsHopKind.Vessel }),
-    ];
-    const entry = {
-      ...pendingEntry("cmd-1", 0, 10),
-      craft: "ground:Woomera",
-      vantage: "ground:Kennedy",
-    };
-    const joined = network(stations, [
-      edge("Kennedy", "v-1"),
-      edge("v-1", "Woomera"),
-    ]);
-    const drawn = deriveTraffic([entry], joined, "v-1", 5);
-    expect(drawn.pulses).toHaveLength(1);
-    expect(drawn.edgeIds).toEqual([
-      "comms-edge:v-1:Woomera",
-      "comms-edge:Kennedy:v-1",
-    ]);
-
-    const apart = network(stations, [edge("Kennedy", "v-1")]);
-    expect(deriveTraffic([entry], apart, "v-1", 5)).toEqual(NO_TRAFFIC);
-  });
-
-  it("draws nothing for an entry addressed to a craft the graph does not name", () => {
-    expect(
-      deriveTraffic(
-        [{ ...pendingEntry("cmd-1", 0, 10), craft: "vessel:unknown" }],
-        NET,
-        "v-1",
-        5,
-      ),
-    ).toEqual(NO_TRAFFIC);
-  });
-
   it("carries multiple simultaneous pending entries as separate pulses", () => {
     const state = deriveTraffic(
       [pendingEntry("cmd-1", 0, 10), pendingEntry("cmd-2", 2, 10)],

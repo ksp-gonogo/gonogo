@@ -97,16 +97,12 @@ const NameInput = styled.input<{ $compact: boolean }>`
 export function StationNameEditor({
   compact = false,
   bare = false,
-  shownAs,
 }: {
   compact?: boolean;
   bare?: boolean;
-  /** What to show in place of the device's own name, for a screen that is better named by where it sits. */
-  shownAs?: string;
 }) {
   const service = useStationIdentityService();
-  const deviceName = useStationName();
-  const name = shownAs ?? deviceName;
+  const name = useStationName();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(name);
   const inputRef = useRef<HTMLInputElement | null>(null);

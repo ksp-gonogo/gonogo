@@ -79,8 +79,7 @@ namespace Sitrep.Host.Comms
                 && a.Active == b.Active
                 && a.IsHome == b.IsHome
                 && a.IsHomeFallback == b.IsHomeFallback
-                && a.DelayQuality == b.DelayQuality
-                && a.Commandable == b.Commandable;
+                && a.DelayQuality == b.DelayQuality;
         }
 
         /// <summary>Whether two rosters would read the same, entry for entry and in the same order.</summary>

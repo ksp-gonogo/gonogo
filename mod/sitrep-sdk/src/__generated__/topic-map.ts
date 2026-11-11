@@ -29,7 +29,7 @@ import type {
   CommandCentreActiveVesselDelay,
   CommandCentreEntry,
   CommandCentreSeparation,
-  CommcastLedger,
+  CommcastTraffic,
   CommcastTransmissionRow,
   CommsCommandCentre,
   CommsConnectivity,
@@ -144,8 +144,8 @@ export interface GeneratedTopicPayloadMap {
   "commandCentre.separation": CommandCentreSeparation;
   /** One command centre that was on `commandCentre.roster` earlier in this session and is not now, in the `commandCentre.unreachable` channel: a ground station whose node went away, a crewed vessel that lost its crew or was destroyed or recovered. */
   "commandCentre.unreachable": UnreachableCentreEntry[];
-  /** One command centre's ledger of messages: what it said, and what reached it, as the state `commcast.ledger` carries. */
-  "commcast.ledger": CommcastLedger;
+  /** One item of `commcast.traffic`: something said to a group this vantage belongs to, delivered one signal delay after it was said from where it was said. */
+  "commcast.traffic": CommcastTraffic;
   /** One row of `commcast.transmissions`: a radio transmission this vantage can detect. */
   "commcast.transmissions": CommcastTransmissionRow;
   /** The `comms.commandCentre` payload: which command centre the active route ends at as it stands now, so a client can show its own stats against the right name instead of assuming KSC. */
@@ -329,7 +329,7 @@ export const GENERATED_TOPIC_IDS = [
   "commandCentre.roster",
   "commandCentre.separation",
   "commandCentre.unreachable",
-  "commcast.ledger",
+  "commcast.traffic",
   "commcast.transmissions",
   "comms.commandCentre",
   "comms.connectivity",

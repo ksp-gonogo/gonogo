@@ -22145,10 +22145,6 @@
         "note": "A command that has just left the rail: confirmed, drawn on through the confirmed stage then fading; failed, fading where it was"
       },
       {
-        "key": "ui-kit . InFlightListItem#waiting?",
-        "note": "An entry kept at its sender for a path that has not opened, read as waiting for a path in place of a countdown"
-      },
-      {
         "key": "ui-kit . InFlightListProps#\"aria-label\"?",
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },

@@ -29,8 +29,6 @@ export interface CommcastThread {
    * is how the two disagree.
    */
   preview: string;
-  /** How many messages landed here from others that the operator has not had this thread open for. */
-  unread: number;
 }
 
 /**
@@ -91,7 +89,6 @@ export function threadsOf(
     entries: CommcastEntry[];
     outbound: OutboundMessage[];
     preview: string;
-    unread: number;
     rank: number;
   }
   const byKey = new Map<string, Building>();
@@ -107,7 +104,6 @@ export function threadsOf(
       entries: [],
       outbound: [],
       preview: "",
-      unread: 0,
       rank: 0,
     };
     byKey.set(groupId, fresh);
@@ -117,13 +113,6 @@ export function threadsOf(
   for (const entry of feed.log) {
     const thread = reach(entry.msg.groupId, counterpartiesOf(entry, me));
     thread.entries.push(entry);
-    if (
-      !entry.out &&
-      entry.msg.kind !== "members" &&
-      (entry.msg.receivedSeq ?? 0) > (feed.readThrough[entry.msg.groupId] ?? 0)
-    ) {
-      thread.unread += 1;
-    }
     rank += 1;
     thread.rank = rank;
     thread.preview = messageText(entry.msg, nameFor);
@@ -169,7 +158,6 @@ export function threadFor(
     entries: [],
     outbound: [],
     preview: "",
-    unread: 0,
   };
 }
 

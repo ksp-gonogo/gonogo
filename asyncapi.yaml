@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo WebSocket API
-  version: 52.0.0
+  version: 51.1.0
   description: |-
     The WebSocket API of the Gonogo mod: 97 telemetry channels a client
     subscribes to and 89 commands it sends, each with its payload and what it
@@ -783,32 +783,6 @@ channels:
         $ref: "#/components/messages/commandRequest.commcast.group.open"
       commandResponse:
         $ref: "#/components/messages/commandResponse.commcast.group.open"
-  commcast.ledger:
-    address: commcast.ledger
-    description: |-
-      One command centre's ledger of messages: what it said, and what reached it,
-      as the state `commcast.ledger` carries.
-
-      **State, read like telemetry.** A message is a command from one centre to
-      another. It travels like any command, waiting for a path and cancellable
-      from the sender's uplink queue, and what it does on arrival is write this
-      ledger at the recipient. A screen reads the ledger as the latest value of a
-      state, and a screen that opens at a centre later is told the whole ledger on
-      connecting.
-
-      **Addressed, never broadcast.** A connection receives only the ledger of its
-      own vantage.
-    servers:
-      - $ref: "#/servers/mod"
-    x-sitrep-delivery: lossy-latest
-    x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
-    x-sitrep-keyframe-interval-ut: 30
-    messages:
-      streamData:
-        $ref: "#/components/messages/streamData.commcast.ledger"
-      event:
-        $ref: "#/components/messages/event"
   commcast.message.ack:
     address: commcast.message.ack
     description: |-
@@ -852,6 +826,43 @@ channels:
         $ref: "#/components/messages/commandRequest.commcast.radio.transmit"
       commandResponse:
         $ref: "#/components/messages/commandResponse.commcast.radio.transmit"
+  commcast.traffic:
+    address: commcast.traffic
+    description: |-
+      One item of `commcast.traffic`: something said to a group this vantage
+      belongs to, delivered one signal delay after it was said from where it was
+      said.
+
+      **Addressed, never broadcast.** A connection receives only the items
+      addressed to its own vantage. A group's members are addressed as the speaker
+      could see them when it spoke, so a centre added far away starts receiving
+      once word of it has reached the speaker, and a member with no path from the
+      speaker misses what was said.
+
+      **A stream, not state.** Nothing is replayed to a connection that subscribes
+      after an item reached it, as with anything heard on a radio.
+
+      Three kinds, by `CommcastTraffic.kind`:
+
+      - `"members"`: a group opened or grew. `CommcastTraffic.members` is its
+        whole membership after the change, `CommcastTraffic.added` who came in
+      - `"text"`: a message, `CommcastTraffic.id` and `CommcastTraffic.body`. It
+        is also delivered, at once, to the speaker's own centre
+        (`CommcastTraffic.to` names it), where another screen at that centre reads
+        it as an outgoing message rather than a received one
+      - `"ack"`: a member acknowledging `CommcastTraffic.messageId`, addressed to
+        that message's author alone
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: reliable-ordered
+    x-sitrep-delay-role: delayed
+    x-sitrep-sample-kind: event
+    x-sitrep-keyframe-interval-ut: 1000
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.commcast.traffic"
+      event:
+        $ref: "#/components/messages/event"
   commcast.transmissions:
     address: commcast.transmissions
     description: |-
@@ -5750,17 +5761,17 @@ operations:
     messages:
       - $ref: "#/channels/commandCentre.unreachable/messages/streamData"
       - $ref: "#/channels/commandCentre.unreachable/messages/event"
-  read:commcast.ledger:
+  read:commcast.traffic:
     action: receive
     channel:
-      $ref: "#/channels/commcast.ledger"
-    title: Read commcast.ledger
-    description: Delivered only after `subscribe` names `commcast.ledger` on the session channel, which the mod answers here with an `event` named `subscribed`.
+      $ref: "#/channels/commcast.traffic"
+    title: Read commcast.traffic
+    description: Delivered only after `subscribe` names `commcast.traffic` on the session channel, which the mod answers here with an `event` named `subscribed`.
     tags:
       - name: commcast
     messages:
-      - $ref: "#/channels/commcast.ledger/messages/streamData"
-      - $ref: "#/channels/commcast.ledger/messages/event"
+      - $ref: "#/channels/commcast.traffic/messages/streamData"
+      - $ref: "#/channels/commcast.traffic/messages/event"
   read:commcast.transmissions:
     action: receive
     channel:
@@ -9616,19 +9627,19 @@ components:
                 type: array
                 items:
                   $ref: "#/components/schemas/UnreachableCentreEntry"
-    streamData.commcast.ledger:
+    streamData.commcast.traffic:
       name: stream-data
-      title: A frame on commcast.ledger
+      title: A frame on commcast.traffic
       contentType: application/json
       payload:
-        description: The `stream-data` envelope carrying `commcast.ledger`.
+        description: The `stream-data` envelope carrying `commcast.traffic`.
         allOf:
           - $ref: "#/components/schemas/StreamData"
           - properties:
               topic:
-                const: commcast.ledger
+                const: commcast.traffic
               payload:
-                $ref: "#/components/schemas/CommcastLedger"
+                $ref: "#/components/schemas/CommcastTraffic"
     streamData.commcast.transmissions:
       name: stream-data
       title: A frame on commcast.transmissions
@@ -13236,17 +13247,6 @@ components:
             node, so no command path and no delay). No delay is estimated from position
             alone: commands travel over the relay network, so a centre with no route has
             no delay to quote.
-        commandable:
-          type:
-            - boolean
-            - "null"
-          x-sitrep-unit: flag
-          description: |-
-            Whether commands can be sent from this centre: absent or true for every
-            centre that can, false for a craft with a kerbal aboard that is listed only
-            so a message can be addressed to it. Such an entry is never a vantage to
-            choose, is not active, and has no command rights; what is said to it waits
-            in its ledger until a screen sits aboard.
     CommandCentreSeparation:
       type: object
       description: |-
@@ -13962,148 +13962,6 @@ components:
           description: How the speaker describes itself, for display only.
           allOf:
             - $ref: "#/components/schemas/CommcastAuthor"
-    CommcastLedger:
-      type: object
-      description: |-
-        One command centre's ledger of messages: what it said, and what reached it,
-        as the state `commcast.ledger` carries.
-
-        **State, read like telemetry.** A message is a command from one centre to
-        another. It travels like any command, waiting for a path and cancellable
-        from the sender's uplink queue, and what it does on arrival is write this
-        ledger at the recipient. A screen reads the ledger as the latest value of a
-        state, and a screen that opens at a centre later is told the whole ledger on
-        connecting.
-
-        **Addressed, never broadcast.** A connection receives only the ledger of its
-        own vantage.
-      required:
-        - items
-      properties:
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/CommcastLedgerItem"
-          description: |-
-            Every entry the ledger keeps, oldest first: what this centre said and what
-            reached it.
-    CommcastLedgerItem:
-      type: object
-      description: |-
-        One entry of a centre's ledger.
-
-        Two kinds, by `CommcastLedgerItem.kind`:
-
-        - `"members"`: a group opened or grew. `CommcastLedgerItem.members` is its
-          whole membership after the change, `CommcastLedgerItem.added` who came in
-        - `"text"`: a message, `CommcastLedgerItem.id` and `CommcastLedgerItem.body`
-
-        An entry this centre said has no `CommcastLedgerItem.arrivedUt` and carries
-        how each recipient stands: `CommcastLedgerItem.delivered`,
-        `CommcastLedgerItem.ended` and `CommcastLedgerItem.read`. An entry that
-        reached this centre has `CommcastLedgerItem.arrivedUt` and none of those.
-      required:
-        - kind
-        - id
-        - groupId
-        - from
-        - author
-        - sentUt
-        - to
-      properties:
-        kind:
-          type: string
-          x-sitrep-unit: enum
-          description: "`\"members\"` or `\"text\"`."
-        id:
-          type: string
-          x-sitrep-unit: id
-          description: A text message's own id, or a membership change's.
-        groupId:
-          type: string
-          x-sitrep-unit: id
-          description: The group, by the id it was opened with.
-        from:
-          type: string
-          x-sitrep-unit: id
-          description: |-
-            The centre it was said from, as the mod resolved it for the speaker's
-            connection.
-        author:
-          description: How the speaker describes itself, for display only.
-          allOf:
-            - $ref: "#/components/schemas/CommcastAuthor"
-        sentUt:
-          type: number
-          x-sitrep-unit: ut
-          description: The UT it was said at.
-        to:
-          type: array
-          items:
-            type: string
-            x-sitrep-unit: id
-          description: |-
-            Everyone it was addressed to, the speaker included, as the speaker could see
-            the group.
-        members:
-          type:
-            - array
-            - "null"
-          items:
-            type: string
-            x-sitrep-unit: id
-          description: The group's whole membership after a `"members"` change. Absent otherwise.
-        added:
-          type:
-            - array
-            - "null"
-          items:
-            type: string
-            x-sitrep-unit: id
-          description: Who a `"members"` change brought in. Absent otherwise.
-        body:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: text
-          description: A `"text"` message's words. Absent otherwise.
-        arrivedUt:
-          type:
-            - number
-            - "null"
-          x-sitrep-unit: ut
-          description: The UT it reached this centre. Absent from an entry this centre said.
-        delivered:
-          type:
-            - object
-            - "null"
-          additionalProperties:
-            type: number
-            x-sitrep-unit: ut
-          x-sitrep-unit: ut
-          description: |-
-            For an entry this centre said: the UT each recipient's copy ran, keyed by
-            recipient, as the reply reached here. A recipient with no key has not been
-            heard from.
-        ended:
-          type:
-            - object
-            - "null"
-          additionalProperties:
-            type: string
-          x-sitrep-unit: enum
-          description: |-
-            For an entry this centre said: how a recipient's copy ended without running,
-            `"cancelled"` or `"expired"`, keyed by recipient.
-        read:
-          type:
-            - object
-            - "null"
-          additionalProperties:
-            $ref: "#/components/schemas/CommcastRead"
-          description: |-
-            For an entry this centre said: when a screen at each recipient read it,
-            keyed by recipient, as the notice reached here.
     CommcastMessageAckArgs:
       type: object
       description: |-
@@ -14208,28 +14066,6 @@ components:
           description: How the speaker describes itself, for display only.
           allOf:
             - $ref: "#/components/schemas/CommcastAuthor"
-    CommcastRead:
-      type: object
-      description: "A recipient's screen reading a message: when, and who read it."
-      required:
-        - at
-        - stationKey
-        - seat
-      properties:
-        at:
-          type: number
-          x-sitrep-unit: ut
-          description: The UT a screen at the recipient read it.
-        stationKey:
-          type: string
-          x-sitrep-unit: id
-          description: The reading device's own stable key.
-        seat:
-          type: string
-          x-sitrep-unit: id
-          description: |-
-            Which end of the light-path the screen that read it sits at, in the client's
-            own vocabulary.
     CommcastSendReceipt:
       type: object
       description: |-
@@ -14260,24 +14096,122 @@ components:
             x-sitrep-unit: id
           description: |-
             Every member it was meant for that no signal from the speaker could reach
-            when it was said, sorted by id, and that the host cannot keep the message
-            for either. The message was never sent to these centres, so none of them
-            will ever acknowledge it; to reach them, send it again later naming them in
-            `to`. Empty on a host that keeps messages for centres it cannot reach yet,
-            which lists those in `CommcastSendReceipt.queued` instead.
-        queued:
+            when it was said, sorted by id. The message was never sent to these centres,
+            so none of them will ever acknowledge it; to reach them, send it again later
+            naming them in `to`.
+    CommcastTraffic:
+      type: object
+      description: |-
+        One item of `commcast.traffic`: something said to a group this vantage
+        belongs to, delivered one signal delay after it was said from where it was
+        said.
+
+        **Addressed, never broadcast.** A connection receives only the items
+        addressed to its own vantage. A group's members are addressed as the speaker
+        could see them when it spoke, so a centre added far away starts receiving
+        once word of it has reached the speaker, and a member with no path from the
+        speaker misses what was said.
+
+        **A stream, not state.** Nothing is replayed to a connection that subscribes
+        after an item reached it, as with anything heard on a radio.
+
+        Three kinds, by `CommcastTraffic.kind`:
+
+        - `"members"`: a group opened or grew. `CommcastTraffic.members` is its
+          whole membership after the change, `CommcastTraffic.added` who came in
+        - `"text"`: a message, `CommcastTraffic.id` and `CommcastTraffic.body`. It
+          is also delivered, at once, to the speaker's own centre
+          (`CommcastTraffic.to` names it), where another screen at that centre reads
+          it as an outgoing message rather than a received one
+        - `"ack"`: a member acknowledging `CommcastTraffic.messageId`, addressed to
+          that message's author alone
+      required:
+        - kind
+        - groupId
+        - from
+        - author
+        - sentUt
+        - to
+      properties:
+        kind:
+          type: string
+          x-sitrep-unit: enum
+          description: "`\"members\"`, `\"text\"` or `\"ack\"`."
+        id:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: id
+          description: A text message's own id, or a membership change's. Absent from an ack.
+        groupId:
+          type: string
+          x-sitrep-unit: id
+          description: The group, by the id it was opened with.
+        from:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            The centre it was said from, as the mod resolved it for the speaker's
+            connection.
+        author:
+          description: How the speaker describes itself, for display only.
+          allOf:
+            - $ref: "#/components/schemas/CommcastAuthor"
+        sentUt:
+          type: number
+          x-sitrep-unit: ut
+          description: The UT it was said at, which is also this delivery's `meta.validAt`.
+        to:
+          type: array
+          items:
+            type: string
+            x-sitrep-unit: id
+          description: |-
+            Everyone it was addressed to, the speaker included, as the speaker could see
+            the group.
+        members:
           type:
             - array
             - "null"
           items:
             type: string
             x-sitrep-unit: id
+          description: The group's whole membership after a `"members"` change. Absent otherwise.
+        added:
+          type:
+            - array
+            - "null"
+          items:
+            type: string
+            x-sitrep-unit: id
+          description: Who a `"members"` change brought in. Absent otherwise.
+        body:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: text
+          description: A `"text"` message's words. Absent otherwise.
+        messageId:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: id
+          description: The message an `"ack"` acknowledges. Absent otherwise.
+        oneWaySeconds:
+          type:
+            - object
+            - "null"
+          additionalProperties:
+            type: number
+            x-sitrep-unit: s
+          x-sitrep-unit: s
           description: |-
-            Every member it was meant for that no signal from the speaker could reach
-            when it was said, and that the host is keeping the message for, sorted by
-            id. It is carried to each as soon as a path opens, kept with the game until
-            then, and the member acknowledges it when a screen at its centre reads it.
-            Absent from a host that keeps nothing.
+            A `"text"` message's one-way signal delay from `CommcastTraffic.from` to
+            each other centre in `CommcastTraffic.to`, keyed by that centre's id, as the
+            speaker's connection was delayed when it spoke. The speaker's own centre is
+            not a key. A screen at the speaker's own centre reads it to show the message
+            crossing, and an absent map means the sender did not say. Absent from every
+            other kind.
     CommcastTransmissionRow:
       type: object
       description: |-

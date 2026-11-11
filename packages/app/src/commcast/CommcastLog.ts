@@ -7,7 +7,6 @@ import type {
   CommsMessage,
   CommsSendInput,
   Delivery,
-  LedgerItem,
   OutboundMessage,
   RecipientId,
 } from "./types";
@@ -37,6 +36,9 @@ const COMMCAST_TRANSMIT_BUDGET = new PerfBudget({
 });
 
 type Listener = (snap: CommcastLogSnapshot) => void;
+
+/** One-way seconds from a message's own vantage to each recipient the mod could reach, by recipient. */
+export type OneWaySeconds = Readonly<Record<RecipientId, number>>;
 
 /** An acknowledgement this screen sends. The mod stamps when it was made, and when it arrives. */
 export type OutgoingAck = Omit<CommsAck, "atUt" | "arrivedUt">;
@@ -96,19 +98,15 @@ export class CommcastLog {
    * genuinely on its way.
    */
   private pending: CommsMessage[] = [];
+  /** Who answered the last release, so a resent copy can be answered the same way. */
+  private ackIdentity: Omit<OutgoingAck, "messageId"> | undefined;
   private droppedCount = 0;
-  /** Per group, the newest `receivedSeq` shown to the operator. */
-  private readThrough: Record<string, number> = {};
-  private nextReceivedSeq = 1;
   private vantageId: string | undefined;
   /** What the wire delivered before the vantage was known, judged once it is. */
-  private awaitingVantage: CommsMessage[] = [];
-  /** How long a message from this vantage takes to reach a recipient, as this screen can tell: null for none, undefined for no way of telling. */
-  private separationOf:
-    | ((to: RecipientId) => number | null | undefined)
-    | undefined;
-  /** The latest ledger the wire delivered before the vantage was known. */
-  private awaitingLedger: readonly LedgerItem[] | undefined;
+  private awaitingVantage: {
+    msg: CommsMessage;
+    oneWaySeconds: OneWaySeconds | undefined;
+  }[] = [];
   private readonly listeners = new Set<Listener>();
   private readonly radioListeners = new Set<(frame: HeardRadioFrame) => void>();
   private readonly radioRefusalListeners = new Set<(reason?: string) => void>();
@@ -178,53 +176,21 @@ export class CommcastLog {
     };
   }
 
-  /**
-   * What this screen holds at the vantage it is standing at now. One stored log
-   * serves every centre the screen sits at, so mail for another centre stays
-   * stored and is not shown here; before the vantage is known everything is.
-   */
   snapshot(): CommcastLogSnapshot {
-    const here = this.vantageId;
-    const outbox =
-      here === undefined
-        ? this.outbox
-        : this.outbox.filter((o) => o.msg.from === here);
-    const inbox =
-      here === undefined
-        ? this.inbox
-        : this.inbox.filter((m) => m.to.includes(here));
-    const pending =
-      here === undefined
-        ? this.pending
-        : this.pending.filter((m) => m.to.includes(here));
     if (
-      outbox.length === 0 &&
-      inbox.length === 0 &&
-      pending.length === 0 &&
+      this.outbox.length === 0 &&
+      this.inbox.length === 0 &&
+      this.pending.length === 0 &&
       this.droppedCount === 0
     ) {
       return EMPTY_COMMCAST_LOG;
     }
     return {
-      outbox,
-      inbox,
-      pending,
+      outbox: this.outbox,
+      inbox: this.inbox,
+      pending: this.pending,
       droppedCount: this.droppedCount,
-      readThrough: this.readThrough,
     };
-  }
-
-  /** The operator has the group's thread in front of them: everything received in it so far is read. */
-  markRead(groupId: string): void {
-    let newest = this.readThrough[groupId] ?? 0;
-    for (const m of this.inbox) {
-      if (m.groupId === groupId && (m.receivedSeq ?? 0) > newest) {
-        newest = m.receivedSeq ?? 0;
-      }
-    }
-    if (newest === (this.readThrough[groupId] ?? 0)) return;
-    this.readThrough = { ...this.readThrough, [groupId]: newest };
-    this.persistAndEmit();
   }
 
   subscribe(listener: Listener): () => void {
@@ -235,10 +201,10 @@ export class CommcastLog {
   /**
    * Say something to whoever `input.to` names.
    *
-   * A separation of `null` is "NO PATH" to that recipient: its delivery is
-   * queued, with no countdown, because the mod keeps the words until a path
-   * opens. The message is always transmitted; the mod's receipt says who it
-   * left for, who is waiting and who it could not reach.
+   * A separation of `null` is "NO PATH" to that recipient: it is marked as
+   * never having left, and the operator can resend when a path exists, rather
+   * than watching a countdown for words the mod would address to nobody. The
+   * message is transmitted once, when it can reach at least one recipient.
    */
   send(
     author: {
@@ -259,8 +225,7 @@ export class CommcastLog {
               separationSeconds,
               lastSentUt: input.sentUt,
               attempts: 1,
-              neverLeft: false,
-              ...(separationSeconds === null ? { queued: true } : {}),
+              neverLeft: separationSeconds === null,
             }),
           );
     const msg: CommsMessage = {
@@ -284,7 +249,9 @@ export class CommcastLog {
         : { authorVesselId: input.authorVesselId }),
     };
     this.pushOutbound({ msg, acks: [], deliveries });
-    this.dispatch(msg);
+    if (deliveries.length === 0 || deliveries.some((d) => !d.neverLeft)) {
+      this.dispatch(msg);
+    }
     this.persistAndEmit();
     return msg;
   }
@@ -317,19 +284,13 @@ export class CommcastLog {
     const deliveries = found.deliveries.map((d): Delivery => {
       if (!recipients.includes(d.to)) return d;
       const separationSeconds = separations.get(d.to) ?? null;
-      const {
-        refused: _refused,
-        refusedReason: _reason,
-        queued: _queued,
-        ...kept
-      } = d;
+      const { refused: _refused, refusedReason: _reason, ...kept } = d;
       return {
         ...kept,
         separationSeconds,
         lastSentUt: atUt,
         attempts: d.attempts + 1,
-        neverLeft: false,
-        ...(separationSeconds === null ? { queued: true } : {}),
+        neverLeft: separationSeconds === null,
       };
     });
     const msg: CommsMessage = {
@@ -342,45 +303,34 @@ export class CommcastLog {
       o.msg.id === messageId ? { ...o, msg, deliveries } : o,
     );
     const leaving = deliveries
-      .filter((d) => recipients.includes(d.to))
+      .filter((d) => recipients.includes(d.to) && !d.neverLeft)
       .map((d) => d.to);
     if (leaving.length > 0) this.dispatch(msg, leaving);
     this.persistAndEmit();
   }
 
   /**
-   * What the mod says a send did: who it left for, who it is keeping the
-   * message for until a path opens, and who it could not reach at all.
+   * What the mod says a send did: who it left for and who it could not reach.
    *
    * The mod knows whether a route existed, which this screen only estimates,
-   * so a member it names queued is waiting for a path and one it names
-   * unreached is never-left, whatever the estimate said. An addressed member
-   * is left as it was: arrival is for its own acknowledgement to say.
+   * so a member it names unreached is never-left whatever the estimate said.
+   * An addressed member is left as it was: arrival is for its own
+   * acknowledgement to say.
    */
   recordReceipt(
     messageId: string,
     addressed: readonly RecipientId[],
     unreached: readonly RecipientId[],
-    queued: readonly RecipientId[] = [],
   ): void {
     const found = this.outbox.find((o) => o.msg.id === messageId);
     if (!found) return;
     const changes = (d: Delivery) =>
       (unreached.includes(d.to) && !d.neverLeft) ||
-      (queued.includes(d.to) && !d.queued) ||
       (addressed.includes(d.to) && !d.delivered);
     if (!found.deliveries.some(changes)) return;
     const deliveries = found.deliveries.map((d): Delivery => {
-      if (unreached.includes(d.to)) {
-        const { queued: _queued, ...rest } = d;
-        return { ...rest, neverLeft: true };
-      }
-      if (queued.includes(d.to))
-        return { ...d, queued: true, neverLeft: false };
-      if (addressed.includes(d.to)) {
-        const { queued: _queued, ...rest } = d;
-        return { ...rest, delivered: true };
-      }
+      if (unreached.includes(d.to)) return { ...d, neverLeft: true };
+      if (addressed.includes(d.to)) return { ...d, delivered: true };
       return d;
     });
     this.outbox = this.outbox.map((o) =>
@@ -443,21 +393,13 @@ export class CommcastLog {
    * would otherwise be lost for good.
    */
   setVantage(vantageId: string | undefined): void {
-    const moved = this.vantageId !== vantageId;
     this.vantageId = vantageId;
-    if (moved) this.emit();
-    if (
-      vantageId === undefined ||
-      (this.awaitingVantage.length === 0 && this.awaitingLedger === undefined)
-    ) {
-      return;
-    }
+    if (vantageId === undefined || this.awaitingVantage.length === 0) return;
     const waiting = this.awaitingVantage;
     this.awaitingVantage = [];
-    for (const msg of waiting) this.receiveTransmission(msg);
-    const ledger = this.awaitingLedger;
-    this.awaitingLedger = undefined;
-    if (ledger) this.applyLedger(ledger);
+    for (const held of waiting) {
+      this.receiveTransmission(held.msg, held.oneWaySeconds);
+    }
   }
 
   /**
@@ -476,161 +418,55 @@ export class CommcastLog {
    * screen at the vantage draws it crossing and settles on the same
    * acknowledgements. It is never read here and never acknowledged from here.
    */
-  receiveTransmission(msg: CommsMessage): boolean {
+  receiveTransmission(
+    msg: CommsMessage,
+    oneWaySeconds?: OneWaySeconds,
+  ): boolean {
     if (this.vantageId === undefined) {
       if (this.awaitingVantage.length < AWAITING_VANTAGE_CAP) {
-        this.awaitingVantage.push(msg);
+        this.awaitingVantage.push({ msg, oneWaySeconds });
       }
       return false;
     }
     if (!msg.to.includes(this.vantageId)) return false;
-    if (this.holds(msg.id)) return false;
-    this.pending = [
-      ...this.pending,
-      { ...msg, receivedSeq: this.nextReceivedSeq++ },
-    ];
+    if (this.holds(msg.id)) {
+      this.reacknowledge(msg.id);
+      return false;
+    }
+    if (
+      msg.kind === "text" &&
+      msg.from === this.vantageId &&
+      oneWaySeconds !== undefined
+    ) {
+      this.takeOwnVantageSend(msg, oneWaySeconds);
+      return true;
+    }
+    this.pending = [...this.pending, msg];
     this.persistAndEmit();
     return true;
   }
 
-  /** Gives the log a way to time a colleague's message to each recipient, from the separations this screen reads. */
-  setSeparations(
-    separationOf: ((to: RecipientId) => number | null | undefined) | undefined,
-  ): void {
-    this.separationOf = separationOf;
-    if (separationOf && this.timeColleaguesMessages()) this.persistAndEmit();
-  }
-
-  /**
-   * A colleague's message filed before this screen could time it is timed now,
-   * by the separations it has since read. True when any changed.
-   */
-  private timeColleaguesMessages(): boolean {
-    let changed = false;
-    this.outbox = this.outbox.map((out) => {
-      if (out.msg.authorStationKey === this.screenKey) return out;
-      let touched = false;
-      const deliveries = out.deliveries.map((d): Delivery => {
-        if (!d.queued || d.delivered || d.refused) return d;
-        const separation = this.separationOf?.(d.to);
-        if (typeof separation !== "number") return d;
-        touched = true;
-        const { queued: _queued, ...rest } = d;
-        return { ...rest, separationSeconds: separation };
-      });
-      if (!touched) return out;
-      changed = true;
-      return { ...out, deliveries };
-    });
-    return changed;
-  }
-
-  /**
-   * This vantage's ledger, as the mod published it: what reached it and what it
-   * said, with how each recipient stands.
-   *
-   * What reached it is handed to {@link receiveTransmission}, which keeps what it
-   * does not already hold, so the same ledger said again changes nothing. What
-   * it said is this vantage's own outgoing mail whichever screen said it: a
-   * screen that did not say it files it as outgoing, and every screen settles it
-   * on what the ledger says of each recipient.
-   */
-  applyLedger(items: readonly LedgerItem[], deliveredAt?: number): void {
-    const here = this.vantageId;
-    if (here === undefined) {
-      this.awaitingLedger = items;
-      return;
-    }
-    let changed = false;
-    for (const item of items) {
-      if (item.arrivedUt !== undefined) {
-        if (item.to.includes(here)) {
-          this.receiveTransmission(messageOf(item, item.arrivedUt));
-        }
-        continue;
-      }
-      if (item.from !== here) continue;
-      if (item.kind === "members") {
-        // A colleague's membership change is held as the group's, like any heard; our own is already held.
-        if (item.author.stationKey !== this.screenKey) {
-          this.receiveTransmission(messageOf(item, item.sentUt));
-        }
-        continue;
-      }
-      if (this.settleOutgoing(item, deliveredAt)) changed = true;
-    }
-    if (changed) this.persistAndEmit();
-  }
-
-  /** Files an outgoing text this screen did not say, if it is new, and settles each recipient on the ledger. True when anything changed. */
-  private settleOutgoing(item: LedgerItem, deliveredAt?: number): boolean {
-    let found = this.outbox.find((o) => o.msg.id === item.id);
-    let changed = false;
-    if (!found) {
-      const msg = messageOf(item, undefined);
-      found = {
-        msg,
-        acks: [],
-        deliveries: item.to
-          .filter((to) => to !== item.from)
-          .map((to): Delivery => {
-            const separationSeconds = this.separationOf?.(to) ?? null;
-            return {
-              to,
-              separationSeconds,
-              lastSentUt: item.sentUt,
-              attempts: 1,
-              neverLeft: false,
-              ...(separationSeconds === null ? { queued: true } : {}),
-            };
-          }),
-      };
-      this.pushOutbound(found);
-      changed = true;
-    }
-    const acks = [...found.acks];
-    for (const [centre, read] of Object.entries(item.read)) {
-      if (acks.some((a) => a.stationKey === read.stationKey)) continue;
-      acks.push({
-        messageId: item.id,
-        from: centre,
-        stationKey: read.stationKey,
-        seat: read.seat,
-        atUt: read.at,
-        // The notice reached here when this ledger did; a screen that is only now told of it has no better figure than when it was read.
-        arrivedUt: deliveredAt ?? read.at,
-      });
-    }
-    const deliveries = found.deliveries.map((d): Delivery => {
-      const ended = item.ended[d.to];
-      if (ended !== undefined) {
-        if (d.refused && d.refusedReason === ended) return d;
-        const { queued: _queued, ...rest } = d;
-        return { ...rest, refused: true, refusedReason: ended };
-      }
-      const landed = item.delivered[d.to];
-      if (landed !== undefined && !d.delivered) {
-        const { queued: _queued, ...rest } = d;
+  /** Another screen at this vantage said `msg`: file it as outgoing, with one delivery per recipient. */
+  private takeOwnVantageSend(msg: CommsMessage, oneWaySeconds: OneWaySeconds) {
+    const deliveries = msg.to
+      .filter((to) => to !== msg.from)
+      .map((to): Delivery => {
+        const separationSeconds = oneWaySeconds[to] ?? null;
         return {
-          ...rest,
+          to,
+          separationSeconds,
+          lastSentUt: msg.sentUt,
+          attempts: 1,
+          neverLeft: separationSeconds === null,
           delivered: true,
-          // The reply reached here at `landed`, a round trip after it was sent.
-          separationSeconds:
-            d.separationSeconds ?? Math.max(0, (landed - d.lastSentUt) / 2),
         };
-      }
-      return d;
+      });
+    this.pushOutbound({
+      msg: { ...msg, separationSeconds: longestOf(deliveries) },
+      acks: [],
+      deliveries,
     });
-    const deliveriesChanged = deliveries.some(
-      (d, i) => d !== found.deliveries[i],
-    );
-    if (!changed && !deliveriesChanged && acks.length === found.acks.length) {
-      return false;
-    }
-    this.outbox = this.outbox.map((o) =>
-      o.msg.id === item.id ? { ...o, deliveries, acks } : o,
-    );
-    return true;
+    this.persistAndEmit();
   }
 
   /**
@@ -640,8 +476,8 @@ export class CommcastLog {
    * A screen at the author's own vantage does not answer. It crossed nothing,
    * and an instant answer from a colleague at the same centre would confirm a
    * message that is still on its way to everyone it had to travel to. A text
-   * message from a colleague never reaches here at all: the ledger holds it as
-   * outgoing.
+   * message from a colleague never reaches here at all: it is held as outgoing
+   * (`takeOwnVantageSend`).
    */
   release(id: string, ack: Omit<OutgoingAck, "messageId">): void {
     const msg = this.pending.find((m) => m.id === id);
@@ -650,10 +486,25 @@ export class CommcastLog {
     this.inbox = capped([...this.inbox, msg], (n) => {
       this.droppedCount += n;
     });
+    this.ackIdentity = ack;
     if (ack.from !== msg.from && msg.kind !== "members") {
       this.acknowledge({ ...ack, messageId: id });
     }
     this.persistAndEmit();
+  }
+
+  /**
+   * Say again that a message already read landed here.
+   *
+   * Needs who is answering, which only a release carries, so a log restored
+   * from storage stays silent until its first release of the session.
+   */
+  private reacknowledge(id: string): void {
+    const ack = this.ackIdentity;
+    if (!ack) return;
+    const msg = this.inbox.find((m) => m.id === id);
+    if (!msg || msg.kind === "members" || ack.from === msg.from) return;
+    this.acknowledge({ ...ack, messageId: id });
   }
 
   /** Tell the author of a message that it landed here. */
@@ -711,10 +562,6 @@ export class CommcastLog {
 
   private persistAndEmit(): void {
     this.persist();
-    this.emit();
-  }
-
-  private emit(): void {
     const snap = this.snapshot();
     for (const listener of this.listeners) listener(snap);
   }
@@ -729,7 +576,6 @@ export class CommcastLog {
           inbox: this.inbox,
           pending: this.pending,
           droppedCount: this.droppedCount,
-          readThrough: this.readThrough,
         }),
       );
     } catch (err) {
@@ -754,16 +600,6 @@ export class CommcastLog {
       this.outbox = (held.outbox ?? []).filter(isOutbound).slice(-MAX_MESSAGES);
       this.droppedCount =
         typeof held.droppedCount === "number" ? held.droppedCount : 0;
-      this.readThrough =
-        typeof held.readThrough === "object" && held.readThrough !== null
-          ? { ...held.readThrough }
-          : {};
-      for (const m of [...this.inbox, ...this.pending]) {
-        this.nextReceivedSeq = Math.max(
-          this.nextReceivedSeq,
-          (m.receivedSeq ?? 0) + 1,
-        );
-      }
     } catch (err) {
       logger.warn("[commcast] failed to load log", { err: String(err) });
     }
@@ -815,30 +651,4 @@ function isOutbound(value: unknown): value is OutboundMessage {
     Array.isArray(o.acks) &&
     Array.isArray(o.deliveries)
   );
-}
-
-/** A ledger entry as a message held in a log: said at `arrivedUt` here, or by this vantage itself when that is undefined. */
-function messageOf(
-  item: LedgerItem,
-  arrivedUt: number | undefined,
-): CommsMessage {
-  return {
-    id: item.id,
-    groupId: item.groupId,
-    to: [...item.to],
-    from: item.from,
-    authorStationKey: item.author.stationKey,
-    authorName: item.author.name,
-    authorSeat: item.author.seat,
-    sentUt: item.sentUt,
-    lastSentUt: item.sentUt,
-    attempts: 1,
-    separationSeconds:
-      arrivedUt === undefined ? null : Math.max(0, arrivedUt - item.sentUt),
-    kind: item.kind,
-    ...(arrivedUt === undefined ? {} : { arrivedUt }),
-    ...(item.body === undefined ? {} : { body: item.body }),
-    ...(item.members === undefined ? {} : { members: [...item.members] }),
-    ...(item.added === undefined ? {} : { added: [...item.added] }),
-  };
 }
