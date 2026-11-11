@@ -503,7 +503,7 @@ describe("Commcast, rendered", () => {
       fixture.store.beginFrame();
     });
     await openConversation(/do you copy/);
-    expect(screen.getByText("NO PATH")).toBeInTheDocument();
+    expect(screen.getByText("NO PATH YET")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
     await act(async () => {});
   });

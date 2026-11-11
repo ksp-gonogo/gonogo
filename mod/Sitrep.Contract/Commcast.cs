@@ -153,12 +153,24 @@ public class CommcastSendReceipt
 
     /// <summary>
     /// Every member it was meant for that no signal from the speaker could
-    /// reach when it was said, sorted by id. The message was never sent to
-    /// these centres, so none of them will ever acknowledge it; to reach them,
-    /// send it again later naming them in <c>to</c>.
+    /// reach when it was said, sorted by id, and that the host cannot keep the
+    /// message for either. The message was never sent to these centres, so none
+    /// of them will ever acknowledge it; to reach them, send it again later
+    /// naming them in <c>to</c>. Empty on a host that keeps messages for centres
+    /// it cannot reach yet, which lists those in <see cref="Queued"/> instead.
     /// </summary>
     [SitrepUnit(Units.Id)]
     public List<string> Unreached { get; set; } = new();
+
+    /// <summary>
+    /// Every member it was meant for that no signal from the speaker could
+    /// reach when it was said, and that the host is keeping the message for,
+    /// sorted by id. It is carried to each as soon as a path opens, kept with
+    /// the game until then, and the member acknowledges it when a screen at its
+    /// centre reads it. Absent from a host that keeps nothing.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public List<string>? Queued { get; set; }
 }
 
 /// <summary>
@@ -224,46 +236,59 @@ public class CommcastRadioTransmitArgs
 }
 
 /// <summary>
-/// One item of <c>commcast.traffic</c>: something said to a group this vantage
-/// belongs to, delivered one signal delay after it was said from where it was
-/// said.
+/// One command centre's ledger of messages: what it said, and what reached it,
+/// as the state <c>commcast.ledger</c> carries.
+///
+/// <para><b>State, read like telemetry.</b> A message is a command from one
+/// centre to another. It travels like any command, waiting for a path and
+/// cancellable from the sender's uplink queue, and what it does on arrival is
+/// write this ledger at the recipient. A screen reads the ledger as the latest
+/// value of a state, and a screen that opens at a centre later is told the
+/// whole ledger on connecting.</para>
 ///
 /// <para><b>Addressed, never broadcast.</b> A connection receives only the
-/// items addressed to its own vantage. A group's members are addressed as the
-/// speaker could see them when it spoke, so a centre added far away starts
-/// receiving once word of it has reached the speaker, and a member with no path
-/// from the speaker misses what was said.</para>
-///
-/// <para><b>A stream, not state.</b> Nothing is replayed to a connection that
-/// subscribes after an item reached it, as with anything heard on a radio.</para>
-///
-/// <para>Three kinds, by <see cref="Kind"/>:</para>
-/// <list type="bullet">
-/// <item><c>"members"</c>: a group opened or grew. <see cref="Members"/> is its
-/// whole membership after the change, <see cref="Added"/> who came in</item>
-/// <item><c>"text"</c>: a message, <see cref="Id"/> and <see cref="Body"/>. It
-/// is also delivered, at once, to the speaker's own centre (<see cref="To"/>
-/// names it), where another screen at that centre reads it as an outgoing
-/// message rather than a received one</item>
-/// <item><c>"ack"</c>: a member acknowledging <see cref="MessageId"/>, addressed
-/// to that message's author alone</item>
-/// </list>
+/// ledger of its own vantage.</para>
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]
-[SitrepTopic("commcast.traffic")]
+[SitrepTopic("commcast.ledger")]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-public class CommcastTraffic
+public class CommcastLedger
 {
-    /// <summary><c>"members"</c>, <c>"text"</c> or <c>"ack"</c>.</summary>
+    /// <summary>Every entry the ledger keeps, oldest first: what this centre said and what reached it.</summary>
+    public List<CommcastLedgerItem> Items { get; set; } = new();
+}
+
+/// <summary>
+/// One entry of a centre's ledger.
+///
+/// <para>Two kinds, by <see cref="Kind"/>:</para>
+/// <list type="bullet">
+/// <item><c>"members"</c>: a group opened or grew. <see cref="Members"/> is its
+/// whole membership after the change, <see cref="Added"/> who came in</item>
+/// <item><c>"text"</c>: a message, <see cref="Id"/> and <see cref="Body"/></item>
+/// </list>
+///
+/// <para>An entry this centre said has no <see cref="ArrivedUt"/> and carries how
+/// each recipient stands: <see cref="Delivered"/>, <see cref="Ended"/> and
+/// <see cref="Read"/>. An entry that reached this centre has <see cref="ArrivedUt"/>
+/// and none of those.</para>
+/// </summary>
+/// <category>Comms</category>
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class CommcastLedgerItem
+{
+    /// <summary><c>"members"</c> or <c>"text"</c>.</summary>
     [SitrepUnit(Units.Enumeration)]
     public string Kind { get; set; } = "";
 
-    /// <summary>A text message's own id, or a membership change's. Absent from an ack.</summary>
+    /// <summary>A text message's own id, or a membership change's.</summary>
     [SitrepUnit(Units.Id)]
-    public string? Id { get; set; }
+    public string Id { get; set; } = "";
 
     /// <summary>The group, by the id it was opened with.</summary>
     [SitrepUnit(Units.Id)]
@@ -276,7 +301,7 @@ public class CommcastTraffic
     /// <summary>How the speaker describes itself, for display only.</summary>
     public CommcastAuthor Author { get; set; } = new();
 
-    /// <summary>The UT it was said at, which is also this delivery's <c>meta.validAt</c>.</summary>
+    /// <summary>The UT it was said at.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double SentUt { get; set; }
 
@@ -296,20 +321,40 @@ public class CommcastTraffic
     [SitrepUnit(Units.Text)]
     public string? Body { get; set; }
 
-    /// <summary>The message an <c>"ack"</c> acknowledges. Absent otherwise.</summary>
-    [SitrepUnit(Units.Id)]
-    public string? MessageId { get; set; }
+    /// <summary>The UT it reached this centre. Absent from an entry this centre said.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? ArrivedUt { get; set; }
 
-    /// <summary>
-    /// A <c>"text"</c> message's one-way signal delay from <see cref="From"/> to
-    /// each other centre in <see cref="To"/>, keyed by that centre's id, as the
-    /// speaker's connection was delayed when it spoke. The speaker's own centre
-    /// is not a key. A screen at the speaker's own centre reads it to show the
-    /// message crossing, and an absent map means the sender did not say.
-    /// Absent from every other kind.
-    /// </summary>
-    [SitrepUnit(Units.Seconds)]
-    public Dictionary<string, double>? OneWaySeconds { get; set; }
+    /// <summary>For an entry this centre said: the UT each recipient's copy ran, keyed by recipient, as the reply reached here. A recipient with no key has not been heard from.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public Dictionary<string, double>? Delivered { get; set; }
+
+    /// <summary>For an entry this centre said: how a recipient's copy ended without running, <c>"cancelled"</c> or <c>"expired"</c>, keyed by recipient.</summary>
+    [SitrepUnit(Units.Enumeration)]
+    public Dictionary<string, string>? Ended { get; set; }
+
+    /// <summary>For an entry this centre said: when a screen at each recipient read it, keyed by recipient, as the notice reached here.</summary>
+    public Dictionary<string, CommcastRead>? Read { get; set; }
+}
+
+/// <summary>A recipient's screen reading a message: when, and who read it.</summary>
+/// <category>Comms</category>
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class CommcastRead
+{
+    /// <summary>The UT a screen at the recipient read it.</summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double At { get; set; }
+
+    /// <summary>The reading device's own stable key.</summary>
+    [SitrepUnit(Units.Id)]
+    public string StationKey { get; set; } = "";
+
+    /// <summary>Which end of the light-path the screen that read it sits at, in the client's own vocabulary.</summary>
+    [SitrepUnit(Units.Id)]
+    public string Seat { get; set; } = "";
 }
 
 /// <summary>

@@ -70,6 +70,8 @@ interface Held {
   neverLeft?: boolean;
   /** The mod refused the send; a string is the reason it gave. */
   refused?: string | true;
+  queued?: boolean;
+  unread?: boolean;
   unreached?: string[];
   group?: string;
   members?: string[];
@@ -106,6 +108,7 @@ interface Scene {
   panes: Pane[];
   separation?: { from: string; to: string; oneWaySeconds: number }[];
   roster?: { id: string; displayName: string; active: boolean }[];
+  uplinkPending?: Record<string, unknown>[];
   unreachable?: {
     id: string;
     displayName: string;
@@ -756,6 +759,158 @@ const SCENES: Scene[] = [
     pxH: 620,
   },
   ...REFUSALS.flatMap(refusedHoverScenes),
+  {
+    /* A conversation with something new in it, beside one that is read. */
+    name: "inbox-unread",
+    panes: [
+      {
+        seat: "mission-control",
+        vantage: KSC,
+        name: "Kennedy Flight",
+        received: [
+          { ...toKsc("Kennedy, Ares. Burn complete.", -900), unread: true },
+          { ...toKsc("Kennedy, Ares. Residuals nominal.", -800), unread: true },
+          {
+            from: WOOMERA,
+            to: [KSC],
+            authorName: "Woomera Range",
+            authorSeat: "mission-control",
+            body: "Range is clear.",
+            sentAt: -2000,
+            separationSeconds: 12,
+          },
+        ],
+      },
+    ],
+    separation: PAIRS,
+    roster: ROSTER,
+    oneWaySeconds: LIGHT_TIME,
+    settleOn: "2 new",
+    pxW: 520,
+    pxH: 420,
+  },
+  {
+    /* A message still crossing: the thread offers Cancel, because the sender's queue still holds it. */
+    name: "message-crossing-cancel",
+    panes: [
+      {
+        seat: "mission-control",
+        vantage: KSC,
+        name: "Kennedy Flight",
+        openThread: "Ares 4",
+        sent: [
+          toAres("Ares, Kennedy. Confirm residuals when you have them.", -60),
+        ],
+      },
+    ],
+    separation: PAIRS,
+    roster: ROSTER,
+    uplinkPending: [
+      {
+        id: "m1",
+        command: "commcast.message.deliver",
+        label: "Ares, Kennedy. Confirm residuals when you have them.",
+        vantage: KSC,
+        craft: ARES,
+        laneSeq: 1,
+        attempts: 1,
+        members: ["m1"],
+      },
+    ],
+    oneWaySeconds: LIGHT_TIME,
+    settleOn: "Cancel",
+    pxW: 520,
+    pxH: 460,
+  },
+  {
+    /* A message cancelled while it crossed: the thread keeps it, marked as not sent with the reason. */
+    name: "message-cancelled",
+    panes: [
+      {
+        seat: "mission-control",
+        vantage: KSC,
+        name: "Kennedy Flight",
+        openThread: "Ares 4",
+        received: [toKsc("Copy go. Starting the sequence.", -600)],
+        sent: [
+          {
+            ...toAres(
+              "Ares, Kennedy. Confirm residuals when you have them.",
+              -60,
+            ),
+            refused: "Cancelled before it arrived",
+            neverLeft: true,
+          },
+        ],
+      },
+    ],
+    separation: PAIRS,
+    roster: ROSTER,
+    oneWaySeconds: LIGHT_TIME,
+    settleOn: "Starting the sequence",
+    pxW: 520,
+    pxH: 460,
+  },
+  {
+    /* Words for a centre with no path from here yet: kept, nothing counting down. */
+    name: "delivery-waiting-for-a-path",
+    panes: [
+      {
+        seat: "mission-control",
+        vantage: KSC,
+        name: "Kennedy Flight",
+        openThread: "Woomera Range",
+        sent: [
+          {
+            from: KSC,
+            to: [WOOMERA],
+            authorName: "Kennedy Flight",
+            authorSeat: "mission-control",
+            body: "Woomera, Kennedy. Confirm the range is ready.",
+            sentAt: -120,
+            separationSeconds: null,
+            queued: true,
+          },
+        ],
+      },
+    ],
+    separation: PAIRS,
+    roster: ROSTER,
+    oneWaySeconds: LIGHT_TIME,
+    settleOn: "range is ready",
+    hover: "In transit",
+    pxW: 520,
+    pxH: 460,
+  },
+  {
+    /* A screen that has just switched to Woomera: named for it, and the group KSC opened is waiting, unread. */
+    name: "opens-at-second-station",
+    panes: [
+      {
+        seat: "mission-control",
+        vantage: WOOMERA,
+        name: "Mission Control",
+        received: [
+          {
+            from: KSC,
+            to: [WOOMERA],
+            authorName: "Kennedy Flight",
+            authorSeat: "mission-control",
+            body: "Woomera, Kennedy. Confirm the range is ready.",
+            sentAt: -3600,
+            separationSeconds: 0,
+            unread: true,
+          },
+        ],
+      },
+    ],
+    separation: PAIRS,
+    roster: ROSTER,
+    oneWaySeconds: LIGHT_TIME,
+    settleOn: "1 new",
+    pxW: 520,
+    pxH: 420,
+  },
   {
     /*
      * Two screens at one centre. The first screen said the message; the

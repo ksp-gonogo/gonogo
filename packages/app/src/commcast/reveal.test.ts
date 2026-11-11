@@ -117,6 +117,16 @@ describe("separationBetween", () => {
     });
   });
 
+  it("does not read the craft's path home as the distance between two ground centres", () => {
+    expect(separationBetween(KSC, WOOMERA, null)).toEqual({
+      kind: "unmeasured",
+    });
+    expect(separationBetween(KSC, WOOMERA, 240)).toEqual({
+      kind: "unmeasured",
+    });
+    expect(separationBetween(KSC, ARES, null)).toEqual({ kind: "no-path" });
+  });
+
   it("resolves a centre pair the seat axis alone cannot reach", () => {
     /*
      * Both ends are `mission-control`, so nothing but the published pair

@@ -10,7 +10,7 @@ import {
   type useLocalParticipant,
 } from "./CommcastContext";
 import type { CommcastLog } from "./CommcastLog";
-import { CommcastMessageRow } from "./CommcastMessageRow";
+import { CommcastMessageRow, CrossingMessage } from "./CommcastMessageRow";
 import { nextContactUt, noReachReasonOf } from "./commcastSendStatus";
 import {
   COMMCAST_TONE,
@@ -172,6 +172,14 @@ export function CommcastThreadView({
                       : undefined,
                   staffed: book.staffedOf(id),
                 })}
+              />
+            ))}
+            {thread.outbound.map((out) => (
+              <CrossingMessage
+                key={out.msg.id}
+                out={out}
+                utNow={utNow}
+                nameFor={nameFor}
               />
             ))}
             {/* A rule at the tail: past it there may be words this vantage has not heard, which is not a message in transit. */}

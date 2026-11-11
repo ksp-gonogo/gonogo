@@ -48,9 +48,16 @@ export interface CommcastFeed {
   outbound: readonly OutboundMessage[];
   /** Every group known here now, with its members: see `groupsAt`. */
   groups: ReadonlyMap<string, readonly RecipientId[]>;
+  /** Per group, the newest received message this screen has shown the operator. */
+  readThrough: Readonly<Record<string, number>>;
 }
 
-const EMPTY_FEED: CommcastFeed = { log: [], outbound: [], groups: new Map() };
+const EMPTY_FEED: CommcastFeed = {
+  log: [],
+  outbound: [],
+  groups: new Map(),
+  readThrough: {},
+};
 
 /**
  * Puts what one vantage holds in front of its operator, in the order it
@@ -245,6 +252,7 @@ export function useCommcastFeed(
       log: entries,
       outbound,
       groups: groupsAt(snapshot, utNow),
+      readThrough: snapshot.readThrough,
     };
   }, [log, snapshot, landed, utNow]);
 }

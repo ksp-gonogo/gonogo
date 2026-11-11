@@ -1,4 +1,4 @@
-import type { Meta, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
+import { type Meta, type ServerMessage, value } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CommcastLog } from "./CommcastLog";
 import { attachCommcastModLink, type CommcastWire } from "./CommcastModLink";
@@ -133,7 +133,7 @@ describe("attachCommcastModLink", () => {
   });
 
   it("holds both commcast topics for as long as it is attached", () => {
-    expect(wire.subscribed).toEqual(["commcast.traffic", "commcast.radio"]);
+    expect(wire.subscribed).toEqual(["commcast.ledger", "commcast.radio"]);
   });
 
   it("sends a group's opening change as an open and a later one as an add", () => {
@@ -596,125 +596,184 @@ describe("attachCommcastModLink", () => {
     ]);
   });
 
-  it("hands a message to the log stamped with when the mod delivered it here", () => {
+  const ledgerFrame = (items: unknown[], deliveredAt: number) =>
     wire.deliver({
       type: "stream-data",
-      topic: "commcast.traffic",
-      meta: meta(100, 105),
-      payload: {
-        kind: "text",
-        id: "m1",
-        groupId: "g1",
-        from: ARES,
-        author: { name: "Pilot", stationKey: "screen-b", seat: "pilot" },
-        sentUt: { magnitude: 100 },
-        to: [ARES, KSC],
-        body: "hello",
-      },
+      topic: "commcast.ledger",
+      meta: meta(deliveredAt, deliveredAt),
+      payload: { items },
     });
 
-    const [held] = log.snapshot().pending;
+  const heardItem = (over: Record<string, unknown> = {}) => ({
+    kind: "text",
+    id: "m1",
+    groupId: "g1",
+    from: ARES,
+    author: { name: "Pilot", stationKey: "screen-b", seat: "pilot" },
+    sentUt: 100,
+    to: [ARES, KSC],
+    body: "hello",
+    arrivedUt: 105,
+    ...over,
+  });
+
+  it("hands what reached this vantage to the log, stamped with when it arrived, and once however often the ledger is said", () => {
+    ledgerFrame([heardItem()], 105);
+    ledgerFrame([heardItem()], 110);
+
+    const [held, ...rest] = log.snapshot().pending;
+    expect(rest).toHaveLength(0);
     expect(held?.body).toBe("hello");
     expect(held?.arrivedUt).toBe(105);
     expect(held?.authorSeat).toBe("pilot");
   });
 
-  it("drops what this screen said itself when the mod hands it back", () => {
-    wire.deliver({
-      type: "stream-data",
-      topic: "commcast.traffic",
-      meta: meta(100, 100),
-      payload: {
-        kind: "text",
-        id: "m1",
-        groupId: "g1",
-        from: KSC,
-        author: {
-          name: "Flight",
-          stationKey: "screen-a",
-          seat: "mission-control",
-        },
-        sentUt: { magnitude: 100 },
-        to: [KSC, ARES],
-        body: "mine",
-      },
-    });
+  it("reads the times of a ledger the client has already decoded into values with their unit", () => {
+    ledgerFrame(
+      [
+        heardItem({
+          sentUt: value("ut", 100),
+          arrivedUt: value("ut", 105),
+        }),
+      ],
+      105,
+    );
 
-    expect(log.snapshot().pending).toHaveLength(0);
+    const [held] = log.snapshot().pending;
+    expect(held?.body).toBe("hello");
+    expect(held?.arrivedUt).toBe(105);
   });
 
-  it("holds a colleague's message as this vantage's own outgoing mail, timed by the mod's delays", () => {
-    wire.deliver({
-      type: "stream-data",
-      topic: "commcast.traffic",
-      meta: meta(100, 100),
-      payload: {
-        kind: "text",
-        id: "m9",
-        groupId: "g1",
-        from: KSC,
-        author: {
-          name: "Capcom",
-          stationKey: "screen-colleague",
-          seat: "mission-control",
-        },
-        sentUt: 100,
-        to: [ARES, KSC],
-        body: "from next door",
-        oneWaySeconds: { [ARES]: 240 },
-      },
+  it("files what this screen said itself once, and settles each recipient on the ledger", () => {
+    const sent = log.send(author, {
+      ...textTo([KSC, ARES]),
+      separations: new Map([[ARES, 240]]),
     });
+    const said = (over: Record<string, unknown>) => ({
+      kind: "text",
+      id: sent.id,
+      groupId: "g1",
+      from: KSC,
+      author: {
+        name: "Flight",
+        stationKey: "screen-a",
+        seat: "mission-control",
+      },
+      sentUt: 100,
+      to: [ARES, KSC],
+      body: sent.body,
+      ...over,
+    });
+    ledgerFrame([said({})], 100);
+    expect(log.snapshot().outbox).toHaveLength(1);
+    expect(log.snapshot().pending).toHaveLength(0);
+
+    ledgerFrame([said({ delivered: { [ARES]: 580 } })], 580);
+    expect(log.snapshot().outbox[0]?.deliveries[0]?.delivered).toBe(true);
+
+    ledgerFrame(
+      [
+        said({
+          delivered: { [ARES]: 580 },
+          read: {
+            [ARES]: { at: 340, stationKey: "screen-jeb", seat: "pilot" },
+          },
+        }),
+      ],
+      590,
+    );
+    const [ack] = log.snapshot().outbox[0]?.acks ?? [];
+    expect(ack?.from).toBe(ARES);
+    expect(ack?.arrivedUt).toBe(590);
+  });
+
+  it("marks a recipient whose copy was cancelled as not sent, with the reason", () => {
+    const sent = log.send(author, {
+      ...textTo([KSC, ARES]),
+      separations: new Map([[ARES, null]]),
+    });
+    ledgerFrame(
+      [
+        {
+          kind: "text",
+          id: sent.id,
+          groupId: "g1",
+          from: KSC,
+          author: {
+            name: "Flight",
+            stationKey: "screen-a",
+            seat: "mission-control",
+          },
+          sentUt: 100,
+          to: [ARES, KSC],
+          body: sent.body,
+          ended: { [ARES]: "cancelled" },
+        },
+      ],
+      200,
+    );
+    const delivery = log.snapshot().outbox[0]?.deliveries[0];
+    expect(delivery?.refused).toBe(true);
+    expect(delivery?.refusedReason).toBe("cancelled");
+    expect(delivery?.queued).toBeUndefined();
+  });
+
+  it("holds a colleague's message as this vantage's own outgoing mail", () => {
+    ledgerFrame(
+      [
+        {
+          kind: "text",
+          id: "m9",
+          groupId: "g1",
+          from: KSC,
+          author: {
+            name: "Capcom",
+            stationKey: "screen-colleague",
+            seat: "mission-control",
+          },
+          sentUt: 100,
+          to: [ARES, KSC],
+          body: "from next door",
+        },
+      ],
+      100,
+    );
 
     const snap = log.snapshot();
     expect(snap.pending).toHaveLength(0);
     expect(snap.inbox).toHaveLength(0);
     const out = snap.outbox[0];
     expect(out?.msg.body).toBe("from next door");
-    expect(out?.deliveries.map((d) => [d.to, d.separationSeconds])).toEqual([
-      [ARES, 240],
+    expect(out?.deliveries.map((d) => [d.to, d.queued])).toEqual([
+      [ARES, true],
     ]);
-    expect(out?.deliveries[0]?.lastSentUt).toBe(100);
   });
 
-  it("settles a colleague's message on the acknowledgement that comes back to this vantage, and never answers it itself", () => {
+  it("never answers what it files as outgoing", () => {
     const acked: unknown[] = [];
     log.setTransmitter({
       transmit: () => {},
       acknowledge: (a) => acked.push(a),
     });
-    const traffic = (payload: Record<string, unknown>) =>
-      wire.deliver({
-        type: "stream-data",
-        topic: "commcast.traffic",
-        meta: meta(100, 100),
-        payload,
-      });
-    traffic({
-      kind: "text",
-      id: "m9",
-      groupId: "g1",
-      from: KSC,
-      author: {
-        name: "Capcom",
-        stationKey: "screen-colleague",
-        seat: "mission-control",
-      },
-      sentUt: 100,
-      to: [ARES, KSC],
-      body: "from next door",
-      oneWaySeconds: { [ARES]: 240 },
-    });
-    traffic({
-      kind: "ack",
-      groupId: "",
-      from: ARES,
-      messageId: "m9",
-      author: { name: "Jeb", stationKey: "screen-jeb", seat: "pilot" },
-      sentUt: 340,
-      to: [KSC],
-    });
-
-    expect(log.snapshot().outbox[0]?.acks).toHaveLength(1);
+    ledgerFrame(
+      [
+        {
+          kind: "text",
+          id: "m9",
+          groupId: "g1",
+          from: KSC,
+          author: {
+            name: "Capcom",
+            stationKey: "other",
+            seat: "mission-control",
+          },
+          sentUt: 100,
+          to: [ARES, KSC],
+          body: "from next door",
+        },
+      ],
+      100,
+    );
     expect(acked).toHaveLength(0);
   });
 
