@@ -428,6 +428,7 @@ export {
   PencilIcon,
   PlayIcon,
   PlusIcon,
+  PullDownIcon,
   PushUpIcon,
   RecallIcon,
   RotateAnticlockwiseIcon,

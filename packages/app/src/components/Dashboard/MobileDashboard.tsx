@@ -10,7 +10,7 @@ import {
 import { GRID_GAP, ROW_PITCH } from "./GridDashboard";
 import type { DashboardItem, DashboardProps } from "./index";
 import { ROW_HEIGHT } from "./layoutNormalization";
-import { ComponentWrapper, highlightStyle } from "./shared";
+import { ComponentWrapper, highlightStyle, PushButton } from "./shared";
 import { TileMenu } from "./TileMenu";
 import { WidgetProviders, WidgetShell } from "./TileWidget";
 import { UnavailableWidget } from "./UnavailableWidget";
@@ -195,6 +195,14 @@ const MobileItemContent = memo(function MobileItemContent({
                 onSaveMappings={onSaveMappings}
               />
             )}
+            <MobilePush>
+              <PushButton
+                item={item}
+                pushable={def.pushable === true}
+                w={def.defaultSize?.w ?? 3}
+                h={def.defaultSize?.h ?? 3}
+              />
+            </MobilePush>
             <TileMenu
               item={item}
               name={def.name}
@@ -290,6 +298,16 @@ const MobileCellHeader = styled.div`
 
   @media (pointer: coarse) {
     height: auto;
+    min-height: 44px;
+  }
+`;
+
+/* The push control stays a 44px target on a phone-width window whatever the pointer reports; the tile menu's own item remains. */
+const MobilePush = styled.span`
+  display: contents;
+
+  & button {
+    min-width: 44px;
     min-height: 44px;
   }
 `;
