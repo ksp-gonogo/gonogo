@@ -81,7 +81,10 @@ namespace Gonogo.KSP.CommandCentres
                     active: true,
                     latitude: facts.Latitude,
                     longitude: facts.Longitude,
-                    nodeName: string.IsNullOrEmpty(home.NodeName) ? null : home.NodeName);
+                    nodeName: string.IsNullOrEmpty(home.NodeName) ? null : home.NodeName,
+                    stockSurface: home.Coordinates is { } at && home.Altitude is double altitude
+                        ? (at.Latitude, at.Longitude, altitude)
+                        : ((double, double, double)?)null);
             }
         }
 
@@ -230,7 +233,8 @@ namespace Gonogo.KSP.CommandCentres
                     comm,
                     CommNetHomeAccess.Body(home),
                     comm != null ? comm.precisePosition : (Vector3d)anchor.position,
-                    comm != null ? CommNetHomeAccess.Coordinates(home) : null);
+                    comm != null ? CommNetHomeAccess.Coordinates(home) : null,
+                    comm != null ? CommNetHomeAccess.Altitude(home) : null);
             }
         }
 
@@ -260,7 +264,8 @@ namespace Gonogo.KSP.CommandCentres
             CommNode? comm,
             CelestialBody? body,
             Vector3d position,
-            (double Latitude, double Longitude)? coordinates = null)
+            (double Latitude, double Longitude)? coordinates = null,
+            double? altitude = null)
         {
             IsKsc = isKsc;
             NodeName = nodeName;
@@ -269,6 +274,7 @@ namespace Gonogo.KSP.CommandCentres
             Body = body;
             Position = position;
             Coordinates = coordinates;
+            Altitude = altitude;
         }
 
         public bool IsKsc { get; }
@@ -280,5 +286,8 @@ namespace Gonogo.KSP.CommandCentres
 
         /// <summary>The body-fixed degrees the node's position is built from, when stock's own fields were readable.</summary>
         public (double Latitude, double Longitude)? Coordinates { get; }
+
+        /// <summary>The altitude above sea level, in metres, that stock builds the node's position from, when readable.</summary>
+        public double? Altitude { get; }
     }
 }

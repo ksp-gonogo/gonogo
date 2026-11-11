@@ -31,6 +31,9 @@ namespace Gonogo.KSP.CommandCentres
         private static readonly FieldInfo? LongitudeField = typeof(CommNetHome).GetField(
             "lon", BindingFlags.NonPublic | BindingFlags.Instance);
 
+        private static readonly FieldInfo? AltitudeField = typeof(CommNetHome).GetField(
+            "alt", BindingFlags.NonPublic | BindingFlags.Instance);
+
         /// <summary>The home's CommNet node, or null when absent or unreadable.</summary>
         public static CommNode? Comm(CommNetHome home)
         {
@@ -97,6 +100,28 @@ namespace Gonogo.KSP.CommandCentres
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// The home's altitude above its body's sea level in metres, the third of
+        /// the values stock builds the node's world position from, or null when
+        /// unreadable.
+        /// </summary>
+        public static double? Altitude(CommNetHome home)
+        {
+            if (home == null || AltitudeField == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                return AltitudeField.GetValue(home) is double altitude ? altitude : (double?)null;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
     }
 }

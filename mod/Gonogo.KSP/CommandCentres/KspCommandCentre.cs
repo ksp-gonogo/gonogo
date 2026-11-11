@@ -33,7 +33,8 @@ namespace Gonogo.KSP.CommandCentres
             bool active,
             double? latitude = null,
             double? longitude = null,
-            string? nodeName = null)
+            string? nodeName = null,
+            (double Latitude, double Longitude, double Altitude)? stockSurface = null)
         {
             Id = id;
             DisplayName = displayName;
@@ -45,6 +46,7 @@ namespace Gonogo.KSP.CommandCentres
             Latitude = latitude;
             Longitude = longitude;
             NodeName = nodeName;
+            StockSurface = stockSurface;
         }
 
         public string Id { get; }
@@ -72,6 +74,17 @@ namespace Gonogo.KSP.CommandCentres
 
         /// <summary>The ground station's <c>CommNetHome.nodeName</c>; null for a crewed vessel and for a home with none.</summary>
         public string? NodeName { get; }
+
+        /// <summary>
+        /// The latitude and longitude in degrees and altitude in metres that stock
+        /// places a ground station's node at, as its <c>CommNetHome</c> holds them, or
+        /// null for anything else. A position built from these at a given instant is
+        /// where the station is at that instant, which the node's
+        /// <c>precisePosition</c> is not: stock refreshes that only when CommNet
+        /// rebuilds, every five seconds with a loaded craft, and the world frame
+        /// moves with an orbiting craft in between.
+        /// </summary>
+        public (double Latitude, double Longitude, double Altitude)? StockSurface { get; }
 
         public bool IsActiveNow() => _active;
     }

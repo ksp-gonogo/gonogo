@@ -350,7 +350,9 @@ namespace Gonogo.KSP
                 {
                     continue;
                 }
-                var point = _surface.SurfacePointOf(bodies[bodyIndex], home.Node);
+                var point = home.StockSurface is { } at
+                    ? _surface.SurfacePointOf(bodies[bodyIndex], at.Latitude, at.Longitude, at.Altitude)
+                    : _surface.SurfacePointOf(bodies[bodyIndex], home.Node);
                 if (point != null)
                 {
                     nodes.Add(ContactGameNode.GroundStation(home.Id, bodyIndex, point.Value, CommsNodeHandle.Of(home.Node), home.DisplayName));

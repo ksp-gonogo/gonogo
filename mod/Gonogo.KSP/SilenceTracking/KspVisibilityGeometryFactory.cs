@@ -481,6 +481,32 @@ namespace Gonogo.KSP.SilenceTracking
             return SurfacePointAt(body, node.precisePosition, fit);
         }
 
+        /// <summary>
+        /// The surface point at <paramref name="latitude"/>, <paramref name="longitude"/>
+        /// and <paramref name="altitude"/> on <paramref name="body"/>, placed in the
+        /// propagation frame from where the body puts that point now. Null until the
+        /// body's frame can be fitted. Main thread.
+        /// </summary>
+        internal RotatingGroundStation? SurfacePointOf(CelestialBody body, double latitude, double longitude, double altitude)
+        {
+            var bodies = FlightGlobals.Bodies;
+            if (bodies == null || body == null)
+            {
+                return null;
+            }
+            FrameFit fit;
+            if (!TryFitFrame(body, bodies, out fit))
+            {
+                return null;
+            }
+            return SurfacePointAt(body, body.GetWorldSurfacePosition(latitude, longitude, altitude), fit);
+        }
+
+        /// <summary>
+        /// The surface point at world position <paramref name="world"/>, which must be
+        /// where the point is at this instant, in the same frame as the body's own
+        /// position now.
+        /// </summary>
         private static RotatingGroundStation? SurfacePointAt(CelestialBody body, Vector3d world, FrameFit fit)
         {
             if (!(body.Radius > 0.0) || !(Math.Abs(body.rotationPeriod) > 0.0))
@@ -497,7 +523,7 @@ namespace Gonogo.KSP.SilenceTracking
 
             // The reference UT is NOW, not the caller's ut.
             //
-            // precisePosition is where the station is at this instant, so
+            // The world position handed in is where the station is now, so
             // stamping it with a past reference UT time-shifts the station's
             // entire trajectory by (now - ut), and the sweep origin CAN be far in
             // the past - a deadline upgrade evaluates from the silence onset,

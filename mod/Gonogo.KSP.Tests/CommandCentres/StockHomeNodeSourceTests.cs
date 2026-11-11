@@ -70,6 +70,43 @@ namespace Gonogo.KSP.Tests.CommandCentres
             Assert.Single(source.HomeFacts());
         }
 
+        /// <summary>
+        /// A station is placed from the coordinates stock builds it from, at the
+        /// instant it is read: the node's own position is refreshed only when
+        /// CommNet rebuilds, and under an orbiting craft it trails by kilometres.
+        /// </summary>
+        [Fact]
+        public void AStationCarriesTheCoordinatesStockPlacesItAt()
+        {
+            var source = new StockHomeNodeSource(
+                () => new[]
+                {
+                    new HomeReading(true, "Kerbin: KSC", displayName: null, comm: null, body: null,
+                        position: new Vector3d(0, 0, 0), coordinates: (-0.0972, -74.5577), altitude: 68.2),
+                },
+                () => true);
+
+            var centre = Assert.IsType<KspCommandCentre>(Assert.Single(source.Enumerate()));
+
+            Assert.Equal((-0.0972, -74.5577, 68.2), centre.StockSurface);
+        }
+
+        [Fact]
+        public void AStationWhoseAltitudeCannotBeReadCarriesNoStockCoordinates()
+        {
+            var source = new StockHomeNodeSource(
+                () => new[]
+                {
+                    new HomeReading(true, "Kerbin: KSC", displayName: null, comm: null, body: null,
+                        position: new Vector3d(0, 0, 0), coordinates: (-0.0972, -74.5577)),
+                },
+                () => true);
+
+            var centre = Assert.IsType<KspCommandCentre>(Assert.Single(source.Enumerate()));
+
+            Assert.Null(centre.StockSurface);
+        }
+
         private static HomeReading Home(bool isKsc, string name) =>
             new HomeReading(isKsc, name, displayName: null, comm: null, body: null, position: new Vector3d(0, 0, 0));
     }
