@@ -61,6 +61,23 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         /// <summary>
+        /// A direct craft-to-ground link closes. The break sits at the craft,
+        /// so every reading already in flight when line of sight closed still
+        /// arrives and only what the craft sends after the cut is lost.
+        /// </summary>
+        [Fact]
+        public void ADirectLinkThatClosesBreaksAtTheCraftNotAtTheGround()
+        {
+            var watch = new PathBreakWatch();
+            Assert.Null(watch.Observe(Node, Route("home"), 1.0, 10.0, Dead()));
+
+            var found = watch.Observe(Node, Route(), 1.0, 11.0, Dead("home"));
+
+            Assert.NotNull(found);
+            Assert.Equal(0.0, found!.Value.LightSecondsOut, 9);
+        }
+
+        /// <summary>
         /// The break lands on the node it was observed for and no other: the
         /// engine retires only the samples that node sent, so a break placed on
         /// the wrong node deletes telemetry that arrived.

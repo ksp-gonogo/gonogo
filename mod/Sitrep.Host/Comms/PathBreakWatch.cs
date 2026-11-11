@@ -153,7 +153,20 @@ namespace Sitrep.Host.Comms
                 }
                 if (stillCarries(rung.NodeId) == false)
                 {
-                    return new PathBreak(node, ut, rung.LightSecondsOut);
+                    /*
+                     * A relay that stops carrying took with it whatever was
+                     * still heading for it, so the break sits at the relay.
+                     * The last node is the ground station, which line of sight
+                     * can close on but nothing destroys: light already
+                     * launched into that hop still arrives, so the break sits
+                     * where the hop begins and only what is sent after the cut
+                     * is lost. A direct link puts that at the craft itself.
+                     */
+                    var isGround = i == previous.Count - 1;
+                    var position = isGround
+                        ? (i == 0 ? 0.0 : previous[i - 1].LightSecondsOut)
+                        : rung.LightSecondsOut;
+                    return new PathBreak(node, ut, position);
                 }
             }
             return null;
