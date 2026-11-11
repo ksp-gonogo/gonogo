@@ -26,6 +26,7 @@ export function recipientWords(
       ? "not sent, the game refused it"
       : `not sent, ${delivery.refusedReason}`;
   }
+  if (delivery.queued && !isSettled(phase)) return "waiting for a path";
   if (delivery.neverLeft) {
     return about.noReachReason === "unpowered"
       ? "never left, no electric charge aboard"

@@ -31,6 +31,7 @@
     "render-comm-signal-badge-slot": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-comm-signal-badge-slot.ts",
     "render-crew-status-avatar": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-crew-status-avatar.ts",
     "render-cross-browser": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-cross-browser.ts",
+    "render-commcast-traffic-video": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-commcast-traffic-video.ts",
     "render-systemview-traffic-video": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-systemview-traffic-video.ts",
     "visual-gate": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/visual-gate.ts",
     "render-contact-timeline": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-contact-timeline.ts",

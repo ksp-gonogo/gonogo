@@ -343,7 +343,9 @@ namespace Sitrep.Core.StoreAndForward
         /// Sends a delayed command from its lane's command centre: takes the next
         /// lane number and its gap expiry, and puts it on hold at the sender until
         /// it can leave. <paramref name="id"/> names the message, or a fresh id is
-        /// minted when it is null. Returns the message as sent.
+        /// minted when it is null. <paramref name="lifetimeSeconds"/> is how long
+        /// it waits before it is deleted wherever it is, <see cref="CommandLifetimeSeconds"/>
+        /// when null. Returns the message as sent.
         /// </summary>
         public CommandMessage SendCommand(
             LaneKey lane,
@@ -355,7 +357,8 @@ namespace Sitrep.Core.StoreAndForward
             double? arriveBeforeUt,
             string? id = null,
             string clientRequestId = "",
-            long sendOrder = 0)
+            long sendOrder = 0,
+            double? lifetimeSeconds = null)
         {
             try
             {
@@ -366,7 +369,7 @@ namespace Sitrep.Core.StoreAndForward
                     {
                         throw new DuplicateMessageIdException(messageId, lane.Vantage);
                     }
-                    var deleteAt = nowUt + CommandLifetimeSeconds;
+                    var deleteAt = nowUt + (lifetimeSeconds ?? CommandLifetimeSeconds);
                     if (arriveBeforeUt != null)
                     {
                         deleteAt = Math.Min(deleteAt, arriveBeforeUt.Value);
@@ -2260,6 +2263,9 @@ namespace Sitrep.Core.StoreAndForward
         /// <see cref="Courier"/> carries: see <see cref="Courier.SnapshotCommands"/>.
         /// </summary>
         public CommandQueueState LivePath { get; set; } = new CommandQueueState();
+
+        /// <summary>What the parts of the host that keep their own records saved with the game, by name: each is one opaque string.</summary>
+        public Dictionary<string, string> Sections { get; set; } = new Dictionary<string, string>(StringComparer.Ordinal);
     }
 
     public sealed class HeldRecord

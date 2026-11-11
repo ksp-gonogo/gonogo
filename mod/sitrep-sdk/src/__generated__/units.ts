@@ -372,6 +372,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "CommandCentreEntry": {
     active: "flag",
     bodyIndex: "id",
+    commandable: "flag",
     delayQuality: "text",
     displayName: "text",
     id: "id",
@@ -436,6 +437,20 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     groupId: "id",
     members: "id",
   },
+  "CommcastLedgerItem": {
+    added: "id",
+    arrivedUt: "ut",
+    body: "text",
+    delivered: "ut",
+    ended: "enum",
+    from: "id",
+    groupId: "id",
+    id: "id",
+    kind: "enum",
+    members: "id",
+    sentUt: "ut",
+    to: "id",
+  },
   "CommcastMessageAckArgs": {
     messageId: "id",
   },
@@ -461,22 +476,15 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     seq: "count",
     transmissionId: "id",
   },
+  "CommcastRead": {
+    at: "ut",
+    seat: "id",
+    stationKey: "id",
+  },
   "CommcastSendReceipt": {
     addressed: "id",
+    queued: "id",
     unreached: "id",
-  },
-  "CommcastTraffic": {
-    added: "id",
-    body: "text",
-    from: "id",
-    groupId: "id",
-    id: "id",
-    kind: "enum",
-    members: "id",
-    messageId: "id",
-    oneWaySeconds: "s",
-    sentUt: "ut",
-    to: "id",
   },
   "CommcastTransmissionRow": {
     from: "id",
@@ -2179,6 +2187,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "commandCentre.roster": {
     active: "flag",
     bodyIndex: "id",
+    commandable: "flag",
     delayQuality: "text",
     displayName: "text",
     id: "id",
@@ -2194,19 +2203,6 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     kind: "text",
     lastReachableUt: "ut",
     reason: "enum",
-  },
-  "commcast.traffic": {
-    added: "id",
-    body: "text",
-    from: "id",
-    groupId: "id",
-    id: "id",
-    kind: "enum",
-    members: "id",
-    messageId: "id",
-    oneWaySeconds: "s",
-    sentUt: "ut",
-    to: "id",
   },
   "commcast.transmissions": {
     from: "id",
@@ -2962,6 +2958,13 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "CommcastGroupOpenArgs": {
     author: "CommcastAuthor",
   },
+  "CommcastLedger": {
+    items: "CommcastLedgerItem[]",
+  },
+  "CommcastLedgerItem": {
+    author: "CommcastAuthor",
+    read: "*CommcastRead",
+  },
   "CommcastMessageAckArgs": {
     author: "CommcastAuthor",
   },
@@ -2972,9 +2975,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     author: "CommcastAuthor",
   },
   "CommcastRadioTransmitArgs": {
-    author: "CommcastAuthor",
-  },
-  "CommcastTraffic": {
     author: "CommcastAuthor",
   },
   "CommcastTransmissionRow": {
@@ -3375,8 +3375,8 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "commandCentre.separation": {
     pairs: "CentreSeparationEntry[]",
   },
-  "commcast.traffic": {
-    author: "CommcastAuthor",
+  "commcast.ledger": {
+    items: "CommcastLedgerItem[]",
   },
   "commcast.transmissions": {
     author: "CommcastAuthor",
@@ -3591,7 +3591,7 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   "ClosestApproach": {
     trajectoryKind: "TrajectoryKind",
   },
-  "CommcastTraffic": {
+  "CommcastLedgerItem": {
     kind: null,
   },
   "CommcastTransmissionRow": {
@@ -3789,9 +3789,6 @@ export const GENERATED_TOPIC_ENUMS: Readonly<Record<string, EnumsByField>> = {
   },
   "commandCentre.unreachable": {
     reason: "UnreachableReason",
-  },
-  "commcast.traffic": {
-    kind: null,
   },
   "commcast.transmissions": {
     phase: null,

@@ -479,9 +479,11 @@ public static class RtConfig
                 typeof(UplinkResendRequest),
                 typeof(UplinkActionReply),
                 typeof(GateCheckRequest),
-                // commcast.traffic, and the descriptor that opens every
+                // commcast.ledger, and the descriptor that opens every
                 // commcast.radio frame on the binary lane
-                typeof(CommcastTraffic),
+                typeof(CommcastLedger),
+                typeof(CommcastLedgerItem),
+                typeof(CommcastRead),
                 typeof(CommcastSendReceipt),
                 typeof(CommcastAuthor),
                 typeof(CommcastRadioBatch),

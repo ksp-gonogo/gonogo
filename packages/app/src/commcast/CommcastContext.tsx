@@ -21,12 +21,17 @@ import {
   useState,
 } from "react";
 import { getStationKey } from "../peer/stationPeerId";
-import { useStationNameOptional } from "../stationIdentity";
+import { useExplicitStationNameOptional } from "../stationIdentity";
 import { CommcastLog } from "./CommcastLog";
 import { useCommcastLogOptional } from "./CommcastLogContext";
 import { attachCommcastModLink } from "./CommcastModLink";
 import type { PlannedContact } from "./commcastSendStatus";
-import type { SeparationMatrix, Vantage } from "./reveal";
+import {
+  type SeparationMatrix,
+  separationBetween,
+  transitSecondsOf,
+  type Vantage,
+} from "./reveal";
 import type { CommsRecipient, RecipientId } from "./types";
 
 const CommcastContext = createContext<CommcastLog | null>(null);
@@ -72,6 +77,24 @@ export function CommcastProvider({
    */
   useEffect(() => log?.setVantage(me.vantageId), [log, me.vantageId]);
 
+  /*
+   * A colleague's message at this vantage is timed by the same published
+   * separations this screen times its own by.
+   */
+  const pairs = useSeparationMatrix();
+  useEffect(() => {
+    if (!log) return;
+    log.setSeparations((to) => {
+      // Before the first frame says where this screen stands there is nothing to measure from.
+      if (me.vantageId === undefined) return undefined;
+      const sep = separationBetween(me.vantageId, to, undefined, pairs);
+      // A pair nothing has measured yet is not zero, and is left to be timed when it is.
+      if (sep.kind === "unmeasured") return undefined;
+      return transitSecondsOf(sep);
+    });
+    return () => log.setSeparations(undefined);
+  }, [log, me.vantageId, pairs]);
+
   useEffect(() => {
     if (!log || !client || fromContext) return;
     return attachCommcastModLink(log, client);
@@ -103,17 +126,28 @@ export function useLocalParticipant(): {
   vantageId: string | undefined;
 } {
   const seat = useSeat();
-  const named = useStationNameOptional();
+  const typed = useExplicitStationNameOptional();
   const vantageId = useObservedVantage();
+  const roster = useTelemetry("commandCentre.roster");
+  const rostered =
+    roster.state === "observed" || roster.state === "held"
+      ? roster.value
+      : undefined;
+  const centreName =
+    vantageId === undefined
+      ? undefined
+      : rostered?.find((e) => e.id === vantageId)?.displayName;
   /*
    * Per seat, so a pilot page and the main screen in one browser keep separate
    * logs: a shared one would show the pilot the centre's outbox.
    */
   const stationKey = useMemo(() => getStationKey(undefined, seat), [seat]);
-  // A screen with no identity provider still has a seat, and the seat is a
-  // truthful thing to be called. Blank is the one thing it must never be:
-  // "from the ground" and "from nobody" must not read the same.
-  const name = named ?? (seat === "pilot" ? "Pilot" : "Mission Control");
+  // A name an operator typed wins; otherwise the centre the screen sits at.
+  // A screen with neither still has a seat, and the seat is a truthful thing
+  // to be called. Blank is the one thing it must never be: "from the ground"
+  // and "from nobody" must not read the same.
+  const name =
+    typed ?? centreName ?? (seat === "pilot" ? "Pilot" : "Mission Control");
   return useMemo(
     () => ({ stationKey, name, seat, vantageId }),
     [stationKey, name, seat, vantageId],

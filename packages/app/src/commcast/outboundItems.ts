@@ -40,6 +40,7 @@ export function outboundItems(
           label: `${messageText(out.msg, nameFor)}, to ${nameFor(delivery.to)}`,
           etaSeconds: etaFor(delivery, phase, utNow),
           phase,
+          ...(delivery.queued === true ? { waiting: true, held: true } : {}),
           ...(utNow === undefined
             ? {}
             : { progress: progressFor(delivery, utNow) }),
