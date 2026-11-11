@@ -421,6 +421,24 @@ describe("PanelDelayRail", () => {
       await expectNoA11yViolations(container);
     });
 
+    it("draws the graph's T and 2T marks and zone labels over command presses when opened, and none on the closed strip", async () => {
+      const user = userEvent.setup();
+      const store = createDelayRailStore();
+      store.register(handle("press"));
+      const { container } = inPanel(<PanelDelayRail />, store);
+      expect(container.querySelectorAll("[data-divider]")).toHaveLength(0);
+      await user.click(railButton());
+      const marks = Array.from(container.querySelectorAll("[data-divider]"));
+      expect(marks.map((m) => m.getAttribute("data-divider"))).toEqual([
+        "t",
+        "2t",
+      ]);
+      expect(marks.every((m) => m.closest("svg"))).toBe(true);
+      expect(container.textContent).toContain("outgoing");
+      expect(container.textContent).toContain("confirmed");
+      expect(container.querySelector("[data-command-list] svg")).toBeNull();
+    });
+
     it("pinned with a stream AND a multi-command discrete handle grows every command", async () => {
       const user = userEvent.setup();
       const store = createDelayRailStore();

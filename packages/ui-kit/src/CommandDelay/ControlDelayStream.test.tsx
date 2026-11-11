@@ -456,6 +456,19 @@ describe("ControlDelayStream", () => {
     );
   });
 
+  it("draws the T and 2T marks when opened and inline, and none in the closed strip", () => {
+    const { container } = render(
+      <ControlDelayStream streams={[stream()]} variant="rail" />,
+    );
+    const mark = container.querySelector('[data-divider="t"]') as Element;
+    expect(getComputedStyle(mark).display).toBe("none");
+    const open = render(
+      <ControlDelayStream streams={[stream()]} variant="expanded" />,
+    );
+    const shown = open.container.querySelector('[data-divider="t"]') as Element;
+    expect(getComputedStyle(shown).display).not.toBe("none");
+  });
+
   it("drops the zone/section labels in rail mode, keeps them inline", () => {
     const { container: rail } = render(
       <ControlDelayStream streams={[stream()]} variant="rail" />,

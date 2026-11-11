@@ -762,6 +762,42 @@ export function ControlDelayStream({
   variant = "inline",
   delayReading,
 }: ControlDelayStreamProps) {
+  // Every entry crosses the same gap, so the first one that knows its light-time serves the strip.
+  const first = [...streams, ...ribbons].find((e) => e.oneWaySeconds !== null);
+  const oneWay = first?.oneWaySeconds ?? null;
+  if (!first || !hasRealDelay(oneWay)) return null;
+  return (
+    <DelayBand
+      oneWay={oneWay}
+      streams={streams}
+      ribbons={ribbons}
+      ariaLabel={ariaLabel}
+      variant={variant}
+      delayReading={delayReading}
+    />
+  );
+}
+
+/**
+ * The graph the strip is drawn on: its T and 2T marks and, opened, the zone
+ * labels under it. With no streams or ribbons it is the empty graph, which is
+ * what the opened rail draws over a command press.
+ */
+export function DelayBand({
+  oneWay,
+  streams = [],
+  ribbons = [],
+  ariaLabel = "Controls in flight",
+  variant,
+  delayReading,
+}: {
+  oneWay: number;
+  streams?: ControlDelayStreamProps["streams"];
+  ribbons?: NonNullable<ControlDelayStreamProps["ribbons"]>;
+  ariaLabel?: string;
+  variant: ControlDelayStreamVariant;
+  delayReading?: ControlDelayStreamProps["delayReading"];
+}) {
   // Before the early return, so the hook runs unconditionally.
   const dividerFadeId = `cds-divfade-${useId()}`;
   const delayHeld = delayReading?.state === "held";
@@ -769,12 +805,6 @@ export function ControlDelayStream({
     ? resolveCurrency(delayReading ?? null).caption
     : null;
   const { anchor, tip } = useTooltip(delayCaption);
-  // Every entry crosses the same gap, so the first one that knows its light-time serves the strip.
-  const first = [...streams, ...ribbons].find((e) => e.oneWaySeconds !== null);
-  const oneWay = first?.oneWaySeconds ?? null;
-  if (!first || !hasRealDelay(oneWay)) {
-    return null;
-  }
   const drawStreams = oneWay >= STREAM_MIN_DELAY_SECONDS;
   if (!drawStreams && ribbons.length === 0) return null;
 
@@ -1000,6 +1030,10 @@ const ControlDelayStream__Svg = styled.svg<{
          [data-role="deviation-actual"] { stroke-width: 1.88; }`
       : ""}
 
+
+  /* The closed strip is too thin to carry the marks; they stay in the drawing so the lines still change appearance at them. */
+  ${({ $variant }) =>
+    $variant === "rail" ? `[data-divider] { display: none; }` : ""}
 
   [data-role="hover-labels"] {
     opacity: ${({ $quiet }) => ($quiet ? 1 : 0)};

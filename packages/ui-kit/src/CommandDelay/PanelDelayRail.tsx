@@ -6,7 +6,11 @@ import { Tooltip } from "../Tooltip";
 import { TONE_TEXT } from "../tone";
 import { CommandDelay } from "./CommandDelay";
 import { CommandList } from "./CommandList";
-import { hasRealDelay, STREAM_MIN_DELAY_SECONDS } from "./ControlDelayStream";
+import {
+  DelayBand,
+  hasRealDelay,
+  STREAM_MIN_DELAY_SECONDS,
+} from "./ControlDelayStream";
 import {
   commandFailedSentence,
   type RailFailed,
@@ -334,6 +338,15 @@ export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
   ];
   const hasGraph = visible.some((h) => railMark(h.tags) === "ribbon");
   const discrete = ordered.filter((h) => railMark(h.tags) !== "ribbon");
+  // Opened with no graph of its own, the rail draws the empty graph, so its marks and zone labels read as they do over a stream.
+  const bandDelay =
+    visible.find((h) => hasRealDelay(h.effectiveDelaySeconds))
+      ?.effectiveDelaySeconds ?? null;
+  const drawsBand =
+    grown &&
+    !hasGraph &&
+    hasRealDelay(bandDelay) &&
+    bandDelay >= STREAM_MIN_DELAY_SECONDS;
   const strip = toInFlightListItems(
     visible
       .filter((h) => railMark(h.tags) !== "ribbon")
@@ -448,7 +461,7 @@ export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
           }}
         >
           {/* Opened with no graph to share, the marks come down into a band of their own, first in the rail. Each names its command on hover and on focus. */}
-          {grown && strip.length > 0 && !hasGraph && (
+          {grown && strip.length > 0 && !hasGraph && !drawsBand && (
             <PanelDelayRail__GrownStrip>
               <InFlightLanes items={strip} height={LANES_HEIGHT_PX} />
             </PanelDelayRail__GrownStrip>
@@ -484,6 +497,13 @@ export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
             </PanelDelayRail__Toggle>
           </Tooltip>
           <PanelDelayRail__Detail id={detailId} data-panel-rail-detail="">
+            {drawsBand && bandDelay !== null && (
+              <DelayBand
+                oneWay={bandDelay}
+                variant="expanded"
+                ariaLabel="Delay detail"
+              />
+            )}
             {ordered
               .filter((h) => !grown || railMark(h.tags) === "ribbon")
               .map((h) => (
@@ -545,7 +565,7 @@ export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
               )}
           </PanelDelayRail__Detail>
           {/* Opened over a graph, the marks lie on it; last in the rail, so they paint over the graph and the rail's button. */}
-          {grown && strip.length > 0 && hasGraph && (
+          {grown && strip.length > 0 && (hasGraph || drawsBand) && (
             <PanelDelayRail__GrownStrip data-over-graph="true">
               <InFlightLanes items={strip} height={GRAPH_HEIGHT_PX} />
             </PanelDelayRail__GrownStrip>

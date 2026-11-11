@@ -217,6 +217,13 @@ describe("InFlightList", () => {
   });
 
   describe('variant="expanded" (compact-mode command queue)', () => {
+    it("draws no T and 2T marks inside the queue", () => {
+      const { container } = render(
+        <InFlightList items={ITEMS} variant="expanded" />,
+      );
+      expect(container.querySelectorAll("[data-divider]")).toHaveLength(0);
+    });
+
     it("renders one square per command, each showing the command's own glyph", () => {
       const { container } = render(
         <InFlightList
