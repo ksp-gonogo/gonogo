@@ -240,6 +240,7 @@ const CONTROL_SELECTOR = [
   '[role="checkbox"]',
   '[role="menuitem"]',
   '[role="option"]',
+  '[role="spinbutton"]',
 ].join(",");
 
 /**
@@ -365,8 +366,8 @@ export async function findDeadTextTargets(page: Page): Promise<string[]> {
  * Plants a title beside a button that no press can reach and a line beside a
  * button that names a different element as its description, which must be
  * reported, and a title that is part of its button, a label for one, a line the
- * button names as its description and a line in a row with no control, which
- * must not.
+ * button names as its description, a value inside a spinbutton and a line in
+ * a row with no control, which must not.
  */
 export async function proveHitTargetCheckWorks(page: Page): Promise<void> {
   await page.evaluate(() => {
@@ -382,6 +383,7 @@ export async function proveHitTargetCheckWorks(page: Page): Promise<void> {
         <div style="display:flex;gap:8px"><span id="hit-other" style="pointer-events:none">fires-wrong-description</span><button type="button" aria-describedby="hit-elsewhere">go</button></div>
         <div style="display:flex;gap:8px"><span id="hit-described" style="pointer-events:none">quiet-described</span><button type="button" aria-describedby="hit-described">go</button></div>
         <div style="display:flex;gap:8px"><span>quiet-no-control</span><span>other</span></div>
+        <div style="display:flex;gap:8px"><button type="button">go</button><div role="spinbutton" tabindex="0" aria-label="quiet-spin"><span>quiet-in-spinbutton</span></div></div>
       </div>`;
     host.appendChild(box);
   });
