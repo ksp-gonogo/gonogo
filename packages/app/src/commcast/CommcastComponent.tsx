@@ -8,7 +8,7 @@ import type { CommsLink } from "@ksp-gonogo/sitrep-sdk";
 import { observedValue } from "@ksp-gonogo/sitrep-sdk";
 import { useLatestValue, useUtNow } from "@ksp-gonogo/sitrep-sdk/spine";
 import { EmptyState, Panel, Section, Text } from "@ksp-gonogo/ui-kit";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { StationNameEditor, useStationNameOptional } from "../stationIdentity";
 import { CommcastComposeView } from "./CommcastComposeView";
 import {
@@ -55,12 +55,6 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
   const [view, setView] = useState<CommcastView>({ kind: "inbox" });
   const feed = useCommcastFeed(log, me);
   const dropped = useDroppedCount(log);
-  const openGroupId = view.kind === "thread" ? view.groupId : null;
-  const landedCount = feed.log.length;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `landedCount` is the trigger: a message landing while the thread is open is read as it lands.
-  useEffect(() => {
-    if (log && openGroupId !== null) log.markRead(openGroupId);
-  }, [log, openGroupId, landedCount]);
   // The book names every address, this vantage's own included, so no address reaches the screen as itself.
   const book = useAddressBook();
   const nameFor = book.nameFor;
@@ -174,7 +168,7 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
       {named === undefined ? (
         <Text size="xs">{local.name}</Text>
       ) : (
-        <StationNameEditor compact shownAs={local.name} />
+        <StationNameEditor compact />
       )}
     </Commcast__Identity>
   );

@@ -1,4 +1,4 @@
-{"t":1793088652778,"f":{"type":"hello","bootId":"cd502212e1ab4ef2b1596ea5332e48d3","modVersion":"1.0.0-dev.466afc714","contractMajor":52,"contractMinor":0}}
+{"t":1793088652778,"f":{"type":"hello","bootId":"cd502212e1ab4ef2b1596ea5332e48d3","modVersion":"1.0.0-dev.466afc714","contractMajor":51,"contractMinor":0}}
 {"t":1793088652778,"f":{"type":"game-state","state":"ready","scene":"FLIGHT"}}
 {"t":1793088652785,"f":{"type":"stream-data","topic":"alarm.activeList","payload":[],"meta":{"source":"system","validAt":637583987.3495369,"seq":4228,"deliveredAt":637584121.9094086,"vantage":"meta","active":true,"staleness":0,"timelineEpoch":1,"sampleId":55}}}
 {"t":1793088652790,"f":{"type":"event","topic":"alarm.activeList","name":"subscribed","meta":{"source":"system","validAt":637584121.9094086,"seq":500,"deliveredAt":637584121.9094086,"vantage":"meta","quality":0,"active":true,"staleness":0,"timelineEpoch":1},"keyframeIntervalUt":3600}}

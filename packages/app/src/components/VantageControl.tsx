@@ -69,8 +69,7 @@ export function useActiveCentres(): {
       ? rosterReading.value
       : undefined;
   const active = (roster ?? []).filter(
-    (c): c is typeof c & { id: string } =>
-      c.active && c.commandable !== false && c.id != null,
+    (c): c is typeof c & { id: string } => c.active && c.id != null,
   );
   return { active, homeId: resolveHomeCentreId(active) };
 }

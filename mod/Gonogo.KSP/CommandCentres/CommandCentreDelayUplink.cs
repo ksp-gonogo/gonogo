@@ -157,7 +157,6 @@ namespace Gonogo.KSP.CommandCentres
 
             var centres = _registry.EnumerateActive();
             var seats = _registry.EnumerateSeats();
-            var listeners = _registry.EnumerateListeners();
             var config = CommsCoreUplink.SignalDelayConfig;
             // Resolved ONCE per pass, not per row: the election does not change
             // mid-capture, and every routed row below is solved by this backend's
@@ -180,8 +179,7 @@ namespace Gonogo.KSP.CommandCentres
                 (from, to) => RouteCentreDelay(backend, from, to, config, solves),
                 centre => SecondsToHome(centre, config),
                 centre => ReachesGround(centre, vessels, config),
-                seats,
-                listeners);
+                seats);
             capture.Ut = snapshot != null ? snapshot.Ut : 0.0;
             capture.ActiveRoutes = activeRoutes;
             capture.OffTheGround = FleetCommsReader.OffTheGround(vessels, config);
@@ -217,8 +215,7 @@ namespace Gonogo.KSP.CommandCentres
             Func<ICommandCentre, ICommandCentre, double?> routeBetweenCentres,
             Func<ICommandCentre, double?> secondsToHome,
             Func<ICommandCentre, bool?> reachesGround,
-            IReadOnlyList<ICommandCentre>? seats = null,
-            IReadOnlyList<ICommandCentre>? listeners = null)
+            IReadOnlyList<ICommandCentre>? seats = null)
         {
             var homeId = HomeCentreId(centres, home);
             /*
@@ -254,7 +251,7 @@ namespace Gonogo.KSP.CommandCentres
                 homeId,
                 Routed,
                 (vantage, seconds) => Row(vantage, ChannelEngine.NodeId, seconds));
-            pass.PopulateCentrePairs(centres, routeBetweenCentres, Row, seats, listeners);
+            pass.PopulateCentrePairs(centres, routeBetweenCentres, Row, seats);
             pass.PopulateHomeCommand(
                 origins,
                 homeId,
@@ -340,25 +337,7 @@ namespace Gonogo.KSP.CommandCentres
                 : ActiveVesselScope.Current?.id.ToString();
 
         /// <summary>Main thread: every active centre as a roster entry, home marked. What the contact plan source makes each centre's own roster from.</summary>
-        internal List<CommandCentreEntry> RosterNow()
-        {
-            var roster = ToRoster(_registry.EnumerateActive(), _home());
-            roster.AddRange(ToListenerRoster(_registry.EnumerateListeners()));
-            return roster;
-        }
-
-        /// <summary>
-        /// The craft that can be sent a message and nothing else, as roster entries: not active,
-        /// not commandable, never home, so no picker offers one and no command is sent from it.
-        /// </summary>
-        internal static List<CommandCentreEntry> ToListenerRoster(IEnumerable<ICommandCentre> listeners) =>
-            listeners.Select(listener =>
-            {
-                var entry = ToRosterEntry(listener, null, false);
-                entry.Active = false;
-                entry.Commandable = false;
-                return entry;
-            }).ToList();
+        internal List<CommandCentreEntry> RosterNow() => ToRoster(_registry.EnumerateActive(), _home());
 
         /// <summary>
         /// One-way seconds from a centre to a subject vessel. The home command, as the

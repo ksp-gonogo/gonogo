@@ -222,182 +222,7 @@ namespace Sitrep.Host
             }
             var snapshot = _delivery.Snapshot();
             snapshot.LivePath = _courier.SnapshotCommands();
-            foreach (var section in _saveSections)
-            {
-                var kept = section.Value.Now();
-                if (kept != null)
-                {
-                    snapshot.Sections[section.Key] = kept;
-                }
-            }
             return snapshot;
-        }
-
-        private readonly Dictionary<string, (Func<string?> Now, Action<string?> Restore)> _saveSections =
-            new Dictionary<string, (Func<string?>, Action<string?>)>(StringComparer.Ordinal);
-
-        public void RegisterSaveSection(string name, Func<string?> now, Action<string?> restoreAtReset) =>
-            _saveSections[name] = (now, restoreAtReset);
-
-        /// <summary>A command sent down a lane by the host itself, so no client request waits on it, by its id.</summary>
-        private sealed class HostLane
-        {
-            public string Command = "";
-            public string Sender = "";
-            public string Recipient = "";
-            public object? Args;
-        }
-
-        private readonly Dictionary<string, HostLane> _hostLanes = new Dictionary<string, HostLane>(StringComparer.Ordinal);
-        private readonly Dictionary<string, Func<Commcast.LaneArrival, object?>> _laneHandlers =
-            new Dictionary<string, Func<Commcast.LaneArrival, object?>>(StringComparer.Ordinal);
-        private readonly Dictionary<string, Action<Commcast.LaneOutcome>> _laneOutcomes =
-            new Dictionary<string, Action<Commcast.LaneOutcome>>(StringComparer.Ordinal);
-
-        public void RegisterLaneHandler(string command, Func<Commcast.LaneArrival, object?> arrives) =>
-            _laneHandlers[command] = arrives;
-
-        public void RegisterLaneOutcome(string command, Action<Commcast.LaneOutcome> ended) =>
-            _laneOutcomes[command] = ended;
-
-        /// <summary>The node a craft's lane runs on and is timed by: the engine's own for the active craft, its fleet node otherwise.</summary>
-        private string NodeOfCraft(string craft) =>
-            string.Equals(craft, _activeCraftId, StringComparison.Ordinal)
-                ? NodeId
-                : FleetNodePrefix + craft.Substring(CraftPrefix.Length);
-
-        public string SendLaneCommand(string sender, string recipient, string command, object? args, string label, double lifetimeSeconds, bool listed = true)
-        {
-            var now = PressUt();
-            // A craft at either end is timed by the engine's own ledger, as a command to it is; a ground centre by the link graph.
-            foreach (var end in new[] { sender, recipient })
-            {
-                if (end.StartsWith(CraftPrefix, StringComparison.Ordinal))
-                {
-                    _laneCraftNodes[end] = NodeOfCraft(end);
-                }
-            }
-            var lane = new LaneKey(_courier.CurrentEpoch, sender, recipient);
-            var requestId = NextRequestId();
-            var execNode = _laneCraftNodes.TryGetValue(recipient, out var craftNode) ? craftNode : recipient;
-            var message = _delivery.SendCommand(lane, command, args, execNode, null, now, null, requestId, "", ++_sendOrder, lifetimeSeconds);
-            DeliveryMessagesBudget.Record(1, now);
-            _hostLanes[message.Id] = new HostLane { Command = command, Sender = sender, Recipient = recipient, Args = args };
-
-            var prediction = Predict(lane, now, message.DeleteAtUt);
-            if (SenderPlans.Reckons && lane.Vantage != lane.Craft)
-            {
-                _predictedJourneys[requestId] = new PredictedJourney(lane, now, prediction.Route ?? new PlannedHop[0], message.DeleteAtUt);
-            }
-            var oneWay = prediction.ArrivalUt != null ? Math.Max(0.0, prediction.ArrivalUt.Value - now) : (double?)null;
-            if (listed)
-            {
-                _pending.Add(PendingForHostLane(message, label, now, oneWay, prediction));
-            }
-            SettleAtOnce(now);
-            return message.Id;
-        }
-
-        private PendingUplink PendingForHostLane(CommandMessage message, string label, double now, double? oneWay, DeliveryPrediction? prediction)
-        {
-            return new PendingUplink
-            {
-                Id = message.Id,
-                ClientRequestId = "",
-                Command = message.Command,
-                Label = label,
-                Topic = "",
-                Vantage = message.Lane.Vantage,
-                DispatchedAt = now,
-                OneWaySeconds = oneWay,
-                LaneSeq = message.LaneSeq,
-                Craft = message.Lane.Craft,
-                ExpiresAtUt = message.DeleteAtUt,
-                PredictedArrivalUt = prediction?.ArrivalUt,
-                PredictedReplyUt = prediction?.ReplyUt,
-                PredictedHeldAt = prediction?.HeldAt,
-                PredictedHeldUntilUt = prediction?.HeldUntilUt,
-                PredictedHeldFromUt = prediction?.HeldFromUt,
-                CancelDeadlineUt = prediction?.CancelDeadlineUt,
-                Attempts = message.Attempt,
-                Members = new List<string> { message.Id },
-                MemberCommands = new List<string> { message.Command },
-            };
-        }
-
-        /// <summary>Puts back, after a game load, the host's own lane commands the restored network carries, with their entries in the uplink queue.</summary>
-        private void RestoreHostLanes(DeliverySnapshot? carried)
-        {
-            _hostLanes.Clear();
-            if (carried == null)
-            {
-                return;
-            }
-            foreach (var message in carried.SentCommands.Concat(carried.Held.Select(h => h.Message)).Concat(carried.Flights.Select(f => f.Message)).OfType<CommandMessage>())
-            {
-                if (!_laneHandlers.ContainsKey(message.Command) || _hostLanes.ContainsKey(message.Id))
-                {
-                    continue;
-                }
-                _hostLanes[message.Id] = new HostLane { Command = message.Command, Sender = message.Lane.Vantage, Recipient = message.Lane.Craft, Args = message.Args };
-                var label = message.Args is Dictionary<string, object?> map && map.TryGetValue("label", out var text) ? text as string ?? "" : "";
-                if (label.Length > 0)
-                {
-                    _pending.Add(PendingForHostLane(message, label, message.SentUt, null, null));
-                }
-            }
-        }
-
-        /// <summary>How a report ends a host lane command, or null when it only reports progress.</summary>
-        private Commcast.LaneOutcomeKind? LaneOutcomeOf(ReportMessage report)
-        {
-            if (report.Kind == JourneyKind.Reply)
-            {
-                return Commcast.LaneOutcomeKind.Delivered;
-            }
-            var refusal = RefusalOf(report);
-            if (refusal == null)
-            {
-                return null;
-            }
-            return refusal.Value.Code == FaultCode.CommandCancelled ? Commcast.LaneOutcomeKind.Cancelled : Commcast.LaneOutcomeKind.Expired;
-        }
-
-        /// <summary>A command the host sent down a lane has ended at its sender's centre: its entry leaves the queue and its owner is told.</summary>
-        private bool EndHostLane(ReportMessage report)
-        {
-            if (!_hostLanes.TryGetValue(report.About, out var host))
-            {
-                return false;
-            }
-            var kind = LaneOutcomeOf(report);
-            if (kind == null)
-            {
-                return true;
-            }
-            _hostLanes.Remove(report.About);
-            _pending.RemoveAll(p => string.Equals(p.Id, report.About, StringComparison.Ordinal));
-            if (_laneOutcomes.TryGetValue(host.Command, out var ended))
-            {
-                try
-                {
-                    ended(new Commcast.LaneOutcome
-                    {
-                        MessageId = report.About,
-                        Sender = host.Sender,
-                        Recipient = host.Recipient,
-                        Command = host.Command,
-                        Args = host.Args,
-                        Kind = kind.Value,
-                        AtUt = report.AtUt,
-                    });
-                }
-                catch (Exception ex)
-                {
-                    LogHostFault("a lane outcome listener threw", ex);
-                }
-            }
-            return true;
         }
 
         /// <summary>
@@ -1280,20 +1105,6 @@ namespace Sitrep.Host
         /// <summary>Runs a command that reached its craft on the held path.</summary>
         private object? ExecuteDelivered(CommandMessage message, double atUt)
         {
-            if (_laneHandlers.TryGetValue(message.Command, out var arrives))
-            {
-                // The host's own command between two centres: it runs here, on the Courier thread, and no craft or gate is asked.
-                return arrives(new Commcast.LaneArrival
-                {
-                    MessageId = message.Id,
-                    Sender = message.Lane.Vantage,
-                    Recipient = message.Lane.Craft,
-                    Command = message.Command,
-                    Args = message.Args,
-                    SentUt = message.SentUt,
-                    AtUt = atUt,
-                }) ?? CommandResult.Ok();
-            }
             var craft = string.Equals(message.ExecNode, NodeId, StringComparison.Ordinal) ? message.Lane.Craft : null;
             if (string.Equals(message.Command, GroupCommandId, StringComparison.Ordinal))
             {
@@ -1438,10 +1249,6 @@ namespace Sitrep.Host
             // than light could carry it.
             PublishJourney(report.To, report.AtUt, report.LandedUt - report.AtUt);
 
-            if (EndHostLane(report))
-            {
-                return;
-            }
             if (!_deliveryJobs.TryGetValue(report.About, out var job))
             {
                 if (string.IsNullOrEmpty(report.ClientRequestId) || _settledDeliveries.Contains(report.About))
@@ -1791,19 +1598,6 @@ namespace Sitrep.Host
             var latest = Volatile.Read(ref _latestSave);
             var from = loaded ?? (latest != null && latest.IsBehind(ut, save) ? latest : null);
             _heardRestore?.Invoke(from?.Heard);
-            foreach (var section in _saveSections)
-            {
-                string? kept = null;
-                from?.Delivery.Sections.TryGetValue(section.Key, out kept);
-                try
-                {
-                    section.Value.Restore(kept);
-                }
-                catch (Exception ex)
-                {
-                    LogHostFault("restoring the saved section '" + section.Key + "' threw", ex);
-                }
-            }
             var carried = WithoutUndone(from?.Delivery);
             if (carried != null)
             {
@@ -1814,26 +1608,11 @@ namespace Sitrep.Host
                     .OfType<CommandMessage>();
                 foreach (var command in commands)
                 {
-                    if (_laneHandlers.ContainsKey(command.Command))
-                    {
-                        // A message between two centres: only a craft at an end is timed by the ledger, a ground centre by the link graph.
-                        foreach (var end in new[] { command.Lane.Vantage, command.Lane.Craft })
-                        {
-                            if (end.StartsWith(CraftPrefix, StringComparison.Ordinal))
-                            {
-                                _laneCraftNodes[end] = NodeOfCraft(end);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        _laneCraftNodes[command.Lane.Craft] = command.ExecNode;
-                    }
+                    _laneCraftNodes[command.Lane.Craft] = command.ExecNode;
                     MoveRequestCountPast(command.Id);
                 }
                 RestoreLivePath(carried.LivePath);
             }
-            RestoreHostLanes(carried);
             CarryOrUndo(jobsBefore, courierJobsBefore, pendingBefore, dispatchersBefore);
             SettleWaitingClaims(RestoredCommandsOf(carried));
             var ic = System.Globalization.CultureInfo.InvariantCulture;

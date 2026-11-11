@@ -11,7 +11,7 @@
   "version": "1.0.0-rc.4",
   "minAppVersion": "0.0.0",
   "apiVersion": "6.0.0",
-  "contractMajor": 52,
+  "contractMajor": 51,
   "contractMinor": 0,
   "bundleUrl": "kerbalism/kerbalism.client.js",
   "integrity": "sha256-8201bc894704a47d965f9d8fbd6c8fb1a7c2a8491cedac9b1ee916f8fcff77de",

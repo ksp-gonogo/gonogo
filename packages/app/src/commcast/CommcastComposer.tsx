@@ -77,7 +77,7 @@ export function CommcastComposer({
     <ComposerBar
       blocked={noPath}
       prompt="❯"
-      {...(noPath ? { flag: "NO PATH YET" } : {})}
+      {...(noPath ? { flag: "NO PATH" } : {})}
       {...(status ? { sendTooltip: describeSendStatus(status) } : {})}
       onSend={submit}
       sendDisabled={!ready}

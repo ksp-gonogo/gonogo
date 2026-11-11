@@ -324,35 +324,6 @@ namespace Sitrep.Host.Tests.CommandCentres
             Assert.Contains(calls, x => x.vantage == "ground:gs1" && x.node == "centre.ksc" && x.s == 34.0);
         }
 
-        /// <summary>
-        /// A listener, a craft that can only be sent a message, hears every centre by its
-        /// route and is nothing else: no row from it as a speaker, none to another
-        /// listener, none to itself, and no centre's own row changes.
-        /// </summary>
-        [Fact]
-        public void PopulateCentrePairs_TimesAListenerFromEveryCentre_AndWritesNothingElseForIt()
-        {
-            var (calls, sink) = Recorder();
-            var centres = new ICommandCentre[] { new FakeCommandCentre("ksc"), new FakeCommandCentre("ground:gs1") };
-            var listeners = new ICommandCentre[]
-            {
-                new FakeCommandCentre("vessel:A", CommandCentreKind.CrewedVessel),
-                new FakeCommandCentre("vessel:B", CommandCentreKind.CrewedVessel),
-            };
-
-            new AuthorityMatrixPass().PopulateCentrePairs(
-                centres,
-                (from, to) => from.Id == "vessel:B" ? (double?)null : 7.0,
-                sink,
-                listeners: listeners);
-
-            Assert.Contains(calls, x => x.vantage == "vessel:A" && x.node == "centre.ksc" && x.s == 7.0);
-            Assert.Contains(calls, x => x.vantage == "vessel:A" && x.node == "centre.ground:gs1" && x.s == 7.0);
-            Assert.DoesNotContain(calls, x => x.vantage == "vessel:B");
-            Assert.DoesNotContain(calls, x => x.node == "centre.vessel:A" || x.node == "centre.vessel:B");
-            Assert.DoesNotContain(calls, x => x.vantage == "vessel:A" && x.node == "centre.vessel:A");
-        }
-
         [Fact]
         public void PopulateCentrePairs_ACentreIsZeroDistanceFromItself()
         {

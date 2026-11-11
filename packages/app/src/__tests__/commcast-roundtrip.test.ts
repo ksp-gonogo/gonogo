@@ -52,18 +52,12 @@ function strs(a: Record<string, unknown>, key: string): string[] {
     : [];
 }
 
-interface LedgerEntry {
-  [key: string]: unknown;
-  id: string;
-}
-
 function fakeMod() {
   let now = 1000;
-  const due: { at: number; run: () => void }[] = [];
+  const due: { at: number; to: string; message: ServerMessage }[] = [];
   const listeners = new Map<string, Set<(m: ServerMessage) => void>>();
   const groups = new Map<string, string[]>();
   const authors = new Map<string, string>();
-  const ledgers = new Map<string, LedgerEntry[]>();
 
   const meta = (validAt: number, deliveredAt: number, vantage: string): Meta =>
     ({
@@ -78,26 +72,6 @@ function fakeMod() {
       timelineEpoch: 0,
     }) as Meta;
 
-  const ledgerOf = (vantage: string): LedgerEntry[] => {
-    let entries = ledgers.get(vantage);
-    if (!entries) {
-      entries = [];
-      ledgers.set(vantage, entries);
-    }
-    return entries;
-  };
-
-  /** The centre's whole ledger, said to its screens as the latest value of its state. */
-  const publish = (vantage: string, at: number) => {
-    const message: ServerMessage = {
-      type: "stream-data",
-      topic: "commcast.ledger",
-      meta: meta(at, at, vantage),
-      payload: { items: ledgerOf(vantage).map((e) => ({ ...e })) },
-    };
-    for (const l of listeners.get(vantage) ?? []) l(message);
-  };
-
   const say = (
     from: string,
     to: readonly string[],
@@ -105,34 +79,21 @@ function fakeMod() {
   ) => {
     for (const vantage of to) {
       const at = now + delay(from, vantage);
-      due.push({
-        at,
-        run: () => {
-          for (const l of listeners.get(vantage) ?? [])
-            l(build(meta(now, at, vantage)));
-        },
-      });
+      due.push({ at, to: vantage, message: build(meta(now, at, vantage)) });
     }
   };
 
-  /** A message or membership change is said: in the speaker's ledger at once, and in each recipient's when it lands. */
-  const tell = (from: string, to: readonly string[], item: LedgerEntry) => {
-    const sentUt = now;
-    const entry = { ...item, from, sentUt, to: [...to] };
-    ledgerOf(from).push(entry);
-    publish(from, now);
-    for (const vantage of to) {
-      if (vantage === from) continue;
-      const at = now + delay(from, vantage);
-      due.push({
-        at,
-        run: () => {
-          ledgerOf(vantage).push({ ...entry, arrivedUt: at });
-          publish(vantage, at);
-        },
-      });
-    }
-  };
+  const traffic = (from: string, to: readonly string[], item: object) =>
+    say(
+      from,
+      to,
+      (m): ServerMessage => ({
+        type: "stream-data",
+        topic: "commcast.traffic",
+        meta: m,
+        payload: { ...item, from, sentUt: now, to },
+      }),
+    );
 
   const handle = (
     from: string,
@@ -145,7 +106,7 @@ function fakeMod() {
       case "commcast.group.open": {
         const members = [...new Set([from, ...strs(a, "members")])];
         groups.set(groupId, members);
-        tell(from, members, {
+        traffic(from, members, {
           kind: "members",
           id: `${groupId}@${now}`,
           groupId,
@@ -158,10 +119,10 @@ function fakeMod() {
       case "commcast.message.send": {
         const to = groups.get(groupId) ?? [];
         authors.set(str(a, "id"), from);
-        tell(from, to, {
+        traffic(from, to, {
           kind: "text",
-          id: str(a, "id"),
-          groupId,
+          id: a.id,
+          groupId: a.groupId,
           author,
           body: a.body,
         });
@@ -169,27 +130,13 @@ function fakeMod() {
       }
       case "commcast.message.ack": {
         const author = authors.get(str(a, "messageId"));
-        if (!author) return;
-        const reader = isRecord(a.author) ? a.author : {};
-        const readAt = now;
-        due.push({
-          at: now + delay(from, author),
-          run: () => {
-            const entry = ledgerOf(author).find(
-              (e) => e.id === str(a, "messageId"),
-            );
-            if (!entry) return;
-            entry.read = {
-              ...(isRecord(entry.read) ? entry.read : {}),
-              [from]: {
-                at: readAt,
-                stationKey: str(reader, "stationKey"),
-                seat: str(reader, "seat"),
-              },
-            };
-            publish(author, now);
-          },
-        });
+        if (author)
+          traffic(from, [author], {
+            kind: "ack",
+            groupId: "",
+            author: a.author,
+            messageId: a.messageId,
+          });
         return;
       }
       case "commcast.radio.transmit": {
@@ -243,13 +190,11 @@ function fakeMod() {
       };
     },
     advanceTo(ut: number) {
-      const ready = due.filter((x) => x.at <= ut).sort((x, y) => x.at - y.at);
-      for (const d of ready) {
-        due.splice(due.indexOf(d), 1);
-        now = d.at;
-        d.run();
-      }
       now = ut;
+      for (const d of due.filter((x) => x.at <= ut)) {
+        due.splice(due.indexOf(d), 1);
+        for (const l of listeners.get(d.to) ?? []) l(d.message);
+      }
     },
   };
 }

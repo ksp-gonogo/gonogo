@@ -38,7 +38,7 @@ function ut() {
 
 const BINARY_MAGIC = 0x9e;
 const LANE_STREAM_BINARY = 0x01;
-const LEDGER = "commcast.ledger";
+const TRAFFIC = "commcast.traffic";
 const RADIO = "commcast.radio";
 
 /** Every connection on every port, each at its port's vantage. */
@@ -49,12 +49,6 @@ const snapshots = new Map();
 
 /** groupId -> membership changes, in the order they were made. */
 const groups = new Map();
-
-/** vantage -> the centre's ledger of messages and membership changes, as the mod keeps it. */
-const ledgers = new Map();
-
-/** port -> vantage, so a centre's ledger lands in the snapshot of each port that serves it. */
-const portVantage = new Map();
 
 /** message id -> { author, to }, so an acknowledgement can be addressed. */
 const messages = new Map();
@@ -162,54 +156,15 @@ function say(topic, from, validAt, to, build) {
   }
 }
 
-function ledgerOf(vantage) {
-  let entries = ledgers.get(vantage);
-  if (!entries) {
-    entries = [];
-    ledgers.set(vantage, entries);
-  }
-  return entries;
-}
-
-/** The centre's whole ledger, said to every screen at it as the latest value of its state, stamped when it changed. */
-function publishLedger(vantage) {
-  const now = ut();
-  const payload = { items: ledgerOf(vantage).map((e) => ({ ...e })) };
-  for (const [port, v] of portVantage) {
-    if (v === vantage) snapshots.get(port)?.set(LEDGER, payload);
-  }
-  for (const client of clients) {
-    if (client.vantage !== vantage || !client.subs.has(LEDGER)) continue;
-    if (client.ws.readyState !== client.ws.OPEN) continue;
-    client.ws.send(
-      JSON.stringify({
-        type: "stream-data",
-        topic: LEDGER,
-        payload,
-        meta: meta(vantage, now, now),
-      }),
-    );
-  }
-}
-
-/** Something said by `from`: in its own ledger at once, and in each recipient's one light-time later. */
-function tell(from, to, item, at) {
-  const entry = { ...item, from, sentUt: at, to: [...to] };
-  ledgerOf(from).push(entry);
-  publishLedger(from);
-  for (const vantage of to) {
-    if (vantage === from) continue;
-    const d = delay(vantage, from);
-    if (d === null) continue;
-    const arrivedUt = at + d;
-    setTimeout(
-      () => {
-        ledgerOf(vantage).push({ ...entry, arrivedUt });
-        publishLedger(vantage);
-      },
-      Math.max(0, (arrivedUt - ut()) * 1000),
-    );
-  }
+function traffic(from, to, item, at) {
+  say(TRAFFIC, from, at, to, (m) =>
+    JSON.stringify({
+      type: "stream-data",
+      topic: TRAFFIC,
+      payload: { ...item, from, sentUt: at, to },
+      meta: m,
+    }),
+  );
 }
 
 function changeMembers(groupId, from, author, members, added, at) {
@@ -218,7 +173,7 @@ function changeMembers(groupId, from, author, members, added, at) {
   const changes = groups.get(groupId) ?? [];
   changes.push(change);
   groups.set(groupId, changes);
-  tell(
+  traffic(
     from,
     [...reached].sort(),
     {
@@ -246,25 +201,12 @@ function handle(from, command, args) {
   if (command === "commcast.message.ack") {
     const message = messages.get(args.messageId);
     if (!message?.to.includes(from)) return "not addressed here";
-    const d = delay(message.author, from);
-    if (d === null) return null;
-    setTimeout(
-      () => {
-        const entry = ledgerOf(message.author).find(
-          (e) => e.id === args.messageId,
-        );
-        if (!entry) return;
-        entry.read = {
-          ...(entry.read ?? {}),
-          [from]: {
-            at,
-            stationKey: author.stationKey ?? "",
-            seat: author.seat ?? "",
-          },
-        };
-        publishLedger(message.author);
-      },
-      Math.max(0, d * 1000),
+    const to = delay(message.author, from) === null ? [] : [message.author];
+    traffic(
+      from,
+      to,
+      { kind: "ack", groupId: "", author, messageId: args.messageId },
+      at,
     );
     return null;
   }
@@ -281,7 +223,7 @@ function handle(from, command, args) {
   const to = addressed(from, known);
   if (command === "commcast.message.send") {
     messages.set(args.id, { author: from, to });
-    tell(
+    traffic(
       from,
       to,
       {
@@ -335,8 +277,6 @@ const hostRecord = createHostRecord({
 export function startRadioStreamServer({ port, vantage }) {
   const snapshot = new Map();
   snapshots.set(port, snapshot);
-  portVantage.set(port, vantage);
-  snapshot.set(LEDGER, { items: ledgerOf(vantage).map((e) => ({ ...e })) });
 
   /*
    * Frames per phase of a blinking vantage stamp, or 0 for a steady one. While

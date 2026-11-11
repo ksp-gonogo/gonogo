@@ -311,13 +311,6 @@ namespace Sitrep.Contract.Serialization
                     AppendString(sb, "unreached");
                     sb.Append(':');
                     AppendValue(sb, sendReceipt.Unreached);
-                    if (sendReceipt.Queued != null)
-                    {
-                        sb.Append(',');
-                        AppendString(sb, "queued");
-                        sb.Append(':');
-                        AppendValue(sb, sendReceipt.Queued);
-                    }
                     sb.Append('}');
                     break;
                 case Sitrep.Contract.CommandCentreActiveVesselDelay activeVesselDelay:
@@ -2761,13 +2754,6 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "delayQuality");
             sb.Append(':');
             AppendNullableString(sb, e.DelayQuality);
-            if (e.Commandable != null)
-            {
-                sb.Append(',');
-                AppendString(sb, "commandable");
-                sb.Append(':');
-                AppendBool(sb, e.Commandable.Value);
-            }
             sb.Append('}');
         }
 

@@ -73,11 +73,10 @@ export type SeparationMatrix = ReadonlyMap<string, ReadonlyMap<string, number>>;
  *      it reads at the host's vantage) and two operators at one centre
  *   2. the published pair matrix, which is the server's number: the geometry is
  *      solved once, where it is known
- *   3. `fallbackSeconds`, the caller's own best figure for this pair, used
- *      only when a craft is one end. At send that is `comms.delay`, the
- *      craft-to-ground path, which is the one pair that channel answers; at the
- *      far end it is the number the author froze into the envelope. Two ground
- *      centres with no published row read as unmeasured, never as that path
+ *   3. `fallbackSeconds`, the caller's own best figure for this pair. At send
+ *      that is `comms.delay`, the craft-to-ground path, which is the headline
+ *      case and the one pair that channel answers; at the far end it is the
+ *      number the author froze into the envelope
  *   4. otherwise `unmeasured`, said out loud rather than guessed
  */
 export function separationBetween(
@@ -95,13 +94,9 @@ export function separationBetween(
       return { kind: "light-time", seconds: published };
     }
   }
-  /* The fallback is the craft-to-ground path, so it says nothing about two ground centres. */
-  const craftInvolved = [from, to].some((id) => id?.startsWith("vessel:"));
-  if (craftInvolved || from === undefined || to === undefined) {
-    if (fallbackSeconds === null) return { kind: "no-path" };
-    if (fallbackSeconds !== undefined && Number.isFinite(fallbackSeconds)) {
-      return { kind: "light-time", seconds: fallbackSeconds };
-    }
+  if (fallbackSeconds === null) return { kind: "no-path" };
+  if (fallbackSeconds !== undefined && Number.isFinite(fallbackSeconds)) {
+    return { kind: "light-time", seconds: fallbackSeconds };
   }
   // Neither end has claimed a differing vantage and nothing measured the pair.
   // Before the first frame lands nobody has a vantage id at all, and inventing
@@ -350,12 +345,10 @@ export function deliveryPhaseFor(
   // wait: the operator is told, and can resend, rather than watching a
   // countdown for a journey that never started.
   if (delivery.neverLeft || delivery.refused) return "lost";
-  // Sent after the game's present: the game was loaded from an earlier save, so no answer will come for it.
-  if (sentInDiscardedTimeline(delivery.lastSentUt, utNow)) return "lost";
-  // Kept by the mod for a path that has not opened: nothing is crossing, so there is no clock to run out.
-  if (delivery.queued) return "in-transit";
   const trip = roundTripFor(delivery);
   if (trip === null) return "lost";
+  // Sent after the game's present: the game was loaded from an earlier save, so no answer will come for it.
+  if (sentInDiscardedTimeline(delivery.lastSentUt, utNow)) return "lost";
   if (utNow < trip.reachUt) return "in-transit";
   if (utNow < trip.replyUt) return "awaiting-reply";
   if (utNow < trip.overdueUt) return "due";

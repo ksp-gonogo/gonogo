@@ -81,10 +81,12 @@ describe("CommcastLog, one vantage's own record", () => {
     expect(log.snapshot().outbox[0].deliveries[0]?.neverLeft).toBe(false);
   });
 
-  it("hands the mod a message with no path now, and marks it queued rather than never-left", () => {
+  it("transmits NOTHING when there was no path, and says so", () => {
     /*
-     * The mod keeps it for the next path, so the screen never decides it cannot
-     * leave; the mod's receipt says who is waiting and who cannot be reached.
+     * The mesh would deliver it over the internet in milliseconds, which is
+     * exactly the faster-than-light channel the light-time model exists to
+     * model away. The loss is real and the author is the only one who can see
+     * it.
      */
     log.send(AUTHOR, {
       kind: "text",
@@ -94,13 +96,8 @@ describe("CommcastLog, one vantage's own record", () => {
       sentUt: 1000,
       separations: separationsTo(KSC, [ARES], null),
     });
-    expect(wire.sent).toHaveLength(1);
-    const delivery = log.snapshot().outbox[0].deliveries[0];
-    expect(delivery?.queued).toBe(true);
-    expect(delivery?.neverLeft).toBe(false);
-    log.recordReceipt(wire.sent[0]?.id ?? "", [], [ARES]);
+    expect(wire.sent).toHaveLength(0);
     expect(log.snapshot().outbox[0].deliveries[0]?.neverLeft).toBe(true);
-    expect(log.snapshot().outbox[0].deliveries[0]?.queued).toBeUndefined();
   });
 
   it("judges what the wire delivered before the vantage was known once it is", () => {
@@ -234,6 +231,30 @@ describe("CommcastLog, one vantage's own record", () => {
       expect(log.snapshot().pending).toHaveLength(1);
     });
 
+    it("answers a resent copy of a message already read with its acknowledgement again", () => {
+      const first = fromWire({ to: [KSC] });
+      log.receiveTransmission(first);
+      log.release("m1", {
+        from: KSC,
+        stationKey: "screen-a",
+        seat: "mission-control",
+      });
+      // The first acknowledgement is lost on the way back: the author resends.
+      wire.acked.length = 0;
+      expect(
+        log.receiveTransmission({ ...first, lastSentUt: 2000, attempts: 2 }),
+      ).toBe(false);
+      expect(wire.acked).toEqual([
+        {
+          messageId: "m1",
+          from: KSC,
+          stationKey: "screen-a",
+          seat: "mission-control",
+        },
+      ]);
+      expect(log.snapshot().inbox).toHaveLength(1);
+    });
+
     it("leaves a resent copy of a message not yet read to the acknowledgement its release will send", () => {
       const first = fromWire({ to: [KSC] });
       log.receiveTransmission(first);
@@ -362,145 +383,3 @@ function fromWire(over: Partial<CommsMessage> = {}): CommsMessage {
     ...over,
   };
 }
-
-describe("a screen that moves between centres", () => {
-  const STATION = "ground:station";
-
-  function wire(
-    id: string,
-    to: string[],
-    over: Partial<CommsMessage> = {},
-  ): CommsMessage {
-    return {
-      id,
-      groupId: "g1",
-      to,
-      from: KSC,
-      authorStationKey: "other",
-      authorName: "Flight",
-      authorSeat: "mission-control",
-      sentUt: 100,
-      lastSentUt: 100,
-      attempts: 1,
-      separationSeconds: 5,
-      kind: "text",
-      body: id,
-      arrivedUt: 105,
-      ...over,
-    };
-  }
-
-  it("shows only the mail for the centre it stands at, and keeps the rest stored", () => {
-    const log = new CommcastLog({ screenKey: "s", storage: memoryStorage() });
-    log.setVantage(KSC);
-    log.receiveTransmission(wire("for-ksc", [KSC, ARES], { from: ARES }));
-    log.setVantage(STATION);
-    log.receiveTransmission(wire("for-station", [STATION, ARES]));
-
-    expect(log.snapshot().pending.map((m) => m.id)).toEqual(["for-station"]);
-    log.setVantage(KSC);
-    expect(log.snapshot().pending.map((m) => m.id)).toEqual(["for-ksc"]);
-  });
-
-  it("tells subscribers when the vantage changes what is shown", () => {
-    const log = new CommcastLog({ screenKey: "s", storage: memoryStorage() });
-    log.setVantage(KSC);
-    log.receiveTransmission(wire("a", [KSC, ARES], { from: ARES }));
-    const seen: number[] = [];
-    log.subscribe((snap) => seen.push(snap.pending.length));
-    log.setVantage(STATION);
-    expect(seen).toEqual([0]);
-  });
-});
-
-describe("unread", () => {
-  function heard(log: CommcastLog, id: string, groupId = "g1") {
-    log.receiveTransmission({
-      id,
-      groupId,
-      to: [KSC, ARES],
-      from: ARES,
-      authorStationKey: "jeb",
-      authorName: "Jeb",
-      authorSeat: "pilot",
-      sentUt: 10,
-      lastSentUt: 10,
-      attempts: 1,
-      separationSeconds: 5,
-      kind: "text",
-      body: id,
-      arrivedUt: 15,
-    });
-    log.release(id, { from: KSC, stationKey: "s", seat: "mission-control" });
-  }
-
-  it("counts what landed since a group's thread was last open, per screen", () => {
-    const log = new CommcastLog({ screenKey: "s", storage: memoryStorage() });
-    log.setVantage(KSC);
-    heard(log, "m1");
-    heard(log, "m2");
-    const read = (group: string) => log.snapshot().readThrough[group] ?? 0;
-    const unread = (group: string) =>
-      log
-        .snapshot()
-        .inbox.filter(
-          (m) => m.groupId === group && (m.receivedSeq ?? 0) > read(group),
-        ).length;
-    expect(unread("g1")).toBe(2);
-    log.markRead("g1");
-    expect(unread("g1")).toBe(0);
-    heard(log, "m3");
-    expect(unread("g1")).toBe(1);
-  });
-
-  it("keeps what was read across a reload, and numbers on from the highest it holds", () => {
-    const storage = memoryStorage();
-    const first = new CommcastLog({ screenKey: "s", storage });
-    first.setVantage(KSC);
-    heard(first, "m1");
-    first.markRead("g1");
-    heard(first, "m2");
-
-    const again = new CommcastLog({ screenKey: "s", storage });
-    again.setVantage(KSC);
-    expect(again.snapshot().readThrough.g1).toBe(1);
-    heard(again, "m3");
-    const seqs = again.snapshot().inbox.map((m) => m.receivedSeq);
-    expect(seqs).toEqual([1, 2, 3]);
-  });
-});
-
-describe("a colleague's message filed before this screen could time it", () => {
-  it("is timed once the separations are read, and a pair nothing has measured stays untimed", () => {
-    const log = new CommcastLog({ screenKey: "s", storage: memoryStorage() });
-    log.setVantage(KSC);
-    log.applyLedger([
-      {
-        kind: "text",
-        id: "m1",
-        groupId: "g1",
-        from: KSC,
-        author: {
-          name: "Capcom",
-          stationKey: "other",
-          seat: "mission-control",
-        },
-        sentUt: 100,
-        to: [KSC, ARES],
-        body: "hello",
-        delivered: {},
-        ended: {},
-        read: {},
-      },
-    ]);
-    expect(log.snapshot().outbox[0]?.deliveries[0]?.queued).toBe(true);
-
-    log.setSeparations(() => undefined);
-    expect(log.snapshot().outbox[0]?.deliveries[0]?.queued).toBe(true);
-
-    log.setSeparations(() => 240);
-    const [delivery] = log.snapshot().outbox[0]?.deliveries ?? [];
-    expect(delivery?.queued).toBeUndefined();
-    expect(delivery?.separationSeconds).toBe(240);
-  });
-});

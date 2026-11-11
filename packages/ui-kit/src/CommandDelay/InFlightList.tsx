@@ -113,14 +113,6 @@ export interface InFlightListItem {
   /** True while the route holds the command at a relay: drawn still, in the held colour. */
   held?: true;
   /**
-   * True while the entry is kept at its sender for a path that has not opened,
-   * so nothing is crossing and no countdown can be given. The entry reads
-   * "waiting for a path" where a countdown would be. Useful for showing the
-   * operator that a message to a command centre with no path from here is
-   * held, not lost. Used by the message queue in Commcast. Draw it with `held`.
-   */
-  waiting?: true;
-  /**
    * Set on a command that has just left. The `rail` and `expanded` variants
    * draw a `confirmed` one moving on to `progress` over `settleSeconds`, then
    * fading, and a `failed` one fading where it was, in the warning colour.
@@ -221,11 +213,6 @@ const PHASE_WORD: Record<InFlightListItem["phase"], string> = {
   overdue: "overdue",
   lost: "unconfirmed",
 };
-
-/** What an entry with no countdown says: its phase, or that it waits for a path that has not opened. */
-function wordOf(item: InFlightListItem): string {
-  return item.waiting ? "waiting for a path" : PHASE_WORD[item.phase];
-}
 
 /** An inbound entry in transit is coming down, whatever the phase table says a command does. */
 function arrowOf(item: InFlightListItem): string {
@@ -525,7 +512,7 @@ function InFlightRow({
   const isError = ERROR_PHASES.has(item.phase);
   const spoken =
     countdown === null
-      ? `${item.label}, ${wordOf(item)}`
+      ? `${item.label}, ${PHASE_WORD[item.phase]}`
       : `${item.label}, ${clampedCountdown(countdown)}`;
   return (
     // Compact drops the visible label, so the row carries it as its accessible name; `title` is only a convenience.
@@ -544,7 +531,7 @@ function InFlightRow({
       {!$compact && <InFlightList__Label>{item.label}</InFlightList__Label>}
       <InFlightList__Phase>
         {countdown === null ? (
-          wordOf(item)
+          PHASE_WORD[item.phase]
         ) : (
           <Countdown value={Math.max(0, countdown)} />
         )}
@@ -611,7 +598,9 @@ export function InFlightLanes({
         return (
           <Tooltip
             key={item.id}
-            text={item.settling ? null : `${item.label}, ${wordOf(item)}`}
+            text={
+              item.settling ? null : `${item.label}, ${PHASE_WORD[item.phase]}`
+            }
             announce={false}
             focusable={!item.settling}
           >
@@ -624,7 +613,7 @@ export function InFlightLanes({
                   }
                 : {
                     role: "img",
-                    "aria-label": `${item.label}, ${wordOf(item)}`,
+                    "aria-label": `${item.label}, ${PHASE_WORD[item.phase]}`,
                     "data-role": "glow",
                     "data-phase": item.phase,
                     ...(item.held ? { "data-held": "" } : {}),
@@ -800,7 +789,7 @@ function InFlightQueueCmd({
   );
   const dismissable =
     ERROR_PHASES.has(item.phase) && !!onDismiss && !item.settling;
-  const spoken = `${item.label}, ${wordOf(item)}`;
+  const spoken = `${item.label}, ${PHASE_WORD[item.phase]}`;
   return (
     <InFlightQueue__Cmd
       role="listitem"

@@ -28,8 +28,6 @@ type NameListener = (name: string) => void;
 
 export class StationIdentityService {
   private name: string;
-  /** Whether the name was typed by an operator, as opposed to being what the device is called until someone names it. */
-  private explicit = false;
   private listeners = new Set<NameListener>();
   private readonly storage: Storage;
   private readonly nameKey: string;
@@ -51,33 +49,20 @@ export class StationIdentityService {
     const saved = storage.getItem(this.nameKey);
     if (saved?.trim()) {
       this.name = saved.trim();
-      this.explicit = true;
       return;
     }
 
-    if (defaultName !== undefined) {
-      // Not stored: it is only what the device is called until someone names it, so it can follow where the screen sits.
-      this.name = defaultName;
-      return;
-    }
-    this.name = `Station ${generateSuffix()}`;
+    this.name = defaultName ?? `Station ${generateSuffix()}`;
     storage.setItem(this.nameKey, this.name);
-    this.explicit = true;
   }
 
   getName(): string {
     return this.name;
   }
 
-  /** The name an operator typed, or `undefined` while the device only has the name it started with. */
-  getExplicitName(): string | undefined {
-    return this.explicit ? this.name : undefined;
-  }
-
   setName(next: string): void {
     const trimmed = next.trim();
-    if (!trimmed || (this.explicit && trimmed === this.name)) return;
-    this.explicit = true;
+    if (!trimmed || trimmed === this.name) return;
     this.name = trimmed;
     this.storage.setItem(this.nameKey, trimmed);
     for (const listener of this.listeners) listener(trimmed);

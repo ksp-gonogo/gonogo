@@ -87,7 +87,7 @@ describe("usePrintableFields", () => {
 
   it("offers an enum the wire already carries by name", () => {
     const kind = capture(usePrintableFields).find(
-      (f) => f.key === "comms.nextLoss.basis",
+      (f) => f.key === "commcast.traffic.kind",
     );
     expect(kind?.enumEncoding).toEqual({ by: "name" });
   });

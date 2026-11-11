@@ -88,10 +88,6 @@ export interface Held {
   neverLeft?: boolean;
   /** The mod refused the send; a string is the reason it gave. */
   refused?: string | true;
-  /** The mod is keeping the message for a path that has not opened. */
-  queued?: boolean;
-  /** Received here and not yet read. */
-  unread?: boolean;
   /** The recipients the mod said it could not reach, each never left whatever the rest did. */
   unreached?: string[];
   /** The group it is addressed to. Defaults to one group per set of ends, so a two-way exchange is one thread. */
@@ -176,8 +172,6 @@ export interface Scene {
   separation?: { from: string; to: string; oneWaySeconds: number }[];
   /** Who each pane can address. */
   roster?: { id: string; displayName: string; active: boolean }[];
-  /** Entries of `system.uplink.pending`: messages still held in the sender's queue. */
-  uplinkPending?: Record<string, unknown>[];
   /** Centres that left the roster, as `commandCentre.unreachable` lists them. */
   unreachable?: {
     id: string;
@@ -288,15 +282,10 @@ function twoFrames(): Promise<void> {
 let lastLogCounts: Record<string, number>[] = [];
 
 let nextId = 0;
-let nextReceivedSeq = 0;
 /** A message as the mod delivers it here, one separation after it was last sent. */
 function toReceived(held: Held): CommsMessage {
   const msg = toMessage(held);
-  return {
-    ...msg,
-    arrivedUt: msg.lastSentUt + (held.separationSeconds ?? 0),
-    ...(held.unread === true ? { receivedSeq: ++nextReceivedSeq } : {}),
-  };
+  return { ...msg, arrivedUt: msg.lastSentUt + (held.separationSeconds ?? 0) };
 }
 
 function toMessage(held: Held): CommsMessage {
@@ -526,7 +515,6 @@ function paneTree(pane: Pane, index: number) {
     "commandCentre.unreachable",
     "comms.delay",
     "comms.link",
-    "system.uplink.pending",
   ]) {
     fixture.subscribe(topic);
   }
@@ -564,7 +552,6 @@ function paneTree(pane: Pane, index: number) {
             attempts: msg.attempts,
             neverLeft:
               held.neverLeft === true || held.unreached?.includes(to) === true,
-            ...(held.queued === true ? { queued: true } : {}),
             ...(held.refused === undefined
               ? {}
               : {
@@ -581,25 +568,12 @@ function paneTree(pane: Pane, index: number) {
     });
     for (const held of pane.heard ?? []) {
       const msg = toMessage(held);
-      log.applyLedger([
-        {
-          kind: "text",
-          id: msg.id,
-          groupId: msg.groupId,
-          from: msg.from,
-          author: {
-            name: msg.authorName,
-            stationKey: msg.authorStationKey,
-            seat: msg.authorSeat,
-          },
-          sentUt: msg.sentUt,
-          to: msg.to,
-          body: msg.body ?? "",
-          delivered: {},
-          ended: {},
-          read: {},
-        },
-      ]);
+      const reach: Record<string, number> = {};
+      for (const to of msg.to) {
+        const seconds = held.separations?.[to] ?? held.separationSeconds;
+        if (to !== msg.from && seconds !== null) reach[to] = seconds;
+      }
+      log.receiveTransmission({ ...msg, arrivedUt: msg.lastSentUt }, reach);
     }
   }
   /*
@@ -866,13 +840,6 @@ async function renderSceneOnce(scene: Scene): Promise<boolean> {
     }
     if (scene.roster) {
       panes[i].fixture.emit("commandCentre.roster", scene.roster, meta);
-    }
-    if (scene.uplinkPending) {
-      panes[i].fixture.emit(
-        "system.uplink.pending",
-        { pending: scene.uplinkPending, settled: [] },
-        meta,
-      );
     }
     if (scene.unreachable) {
       panes[i].fixture.emit(

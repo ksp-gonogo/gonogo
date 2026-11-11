@@ -279,7 +279,6 @@ namespace Sitrep.Host
                 SentCommands = carried.SentCommands.Where(Kept).ToList(),
                 NextId = carried.NextId,
                 Retargets = carried.Retargets,
-                Sections = carried.Sections,
                 LivePath = new CommandQueueState
                 {
                     Commands = carried.LivePath.Commands

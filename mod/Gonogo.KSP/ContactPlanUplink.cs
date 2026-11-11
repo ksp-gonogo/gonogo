@@ -288,7 +288,6 @@ namespace Gonogo.KSP
 
             var active = _centres.EnumerateActive();
             var roster = CommandCentreDelayUplink.ToRoster(active, _home());
-            roster.AddRange(CommandCentreDelayUplink.ToListenerRoster(_centres.EnumerateListeners()));
             var centreOf = new Dictionary<string, CommandCentreEntry>(System.StringComparer.Ordinal);
             foreach (var entry in roster)
             {

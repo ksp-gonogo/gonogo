@@ -147,8 +147,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    * instead of once. The context's is the mirror of it, turning the published
    * pair matrix into the lookup the reveal rule indexes.
    */
-  // 1, in `figure`: the ledger's times arrive from the game as `Value<"ut">` and go into a log that keeps every time as a plain number. This is the one place they are unwrapped; converting the log to unit types retires it.
-  "packages/app/src/commcast/CommcastModLink.ts": 1,
   "packages/app/src/commcast/CommcastComponent.tsx": 1,
   "packages/app/src/commcast/CommcastContext.tsx": 1,
   "packages/app/src/telemetry/KspCalendarObserver.tsx": 4,

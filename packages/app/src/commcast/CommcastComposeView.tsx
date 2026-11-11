@@ -8,7 +8,7 @@ import {
   useRowFilter,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
-import { Fragment, useState } from "react";
+import { useState } from "react";
 import { CommcastBackButton } from "./CommcastBackButton";
 import {
   COMMCAST_TONE,
@@ -90,34 +90,23 @@ export function CommcastComposeView({
               {recipients.length > 0 && shown.length === 0 && (
                 <EmptyState>No match</EmptyState>
               )}
-              {GROUPS.map((group) => {
-                const rows = shown.filter(group.holds);
-                if (rows.length === 0) return null;
-                return (
-                  <Fragment key={group.heading}>
-                    <Text size="xs" level="faint">
-                      {group.heading}
-                    </Text>
-                    {rows.map((r) => (
-                      <SelectableRow
-                        key={r.id}
-                        selected={picked.includes(r.id)}
-                        onClick={() => toggle(r.id)}
-                      >
-                        <Commcast__RowHead>
-                          <Commcast__RowName>{r.name}</Commcast__RowName>
-                          {/* Still addressable; saying so before it is sent stops an unacknowledged message reading as a fault. */}
-                          {!r.staffed && (
-                            <Text size="xs" level="faint">
-                              unstaffed
-                            </Text>
-                          )}
-                        </Commcast__RowHead>
-                      </SelectableRow>
-                    ))}
-                  </Fragment>
-                );
-              })}
+              {shown.map((r) => (
+                <SelectableRow
+                  key={r.id}
+                  selected={picked.includes(r.id)}
+                  onClick={() => toggle(r.id)}
+                >
+                  <Commcast__RowHead>
+                    <Commcast__RowName>{r.name}</Commcast__RowName>
+                    {/* Still addressable; saying so before it is sent stops an unacknowledged message reading as a fault. */}
+                    {!r.staffed && (
+                      <Text size="xs" level="faint">
+                        unstaffed
+                      </Text>
+                    )}
+                  </Commcast__RowHead>
+                </SelectableRow>
+              ))}
             </Commcast__Rows>
           </FilterRegion>
         </Commcast__Scroll>
@@ -125,15 +114,6 @@ export function CommcastComposeView({
     </>
   );
 }
-
-/** The two kinds of correspondent, in the order the list shows them. */
-const GROUPS: readonly {
-  heading: string;
-  holds: (r: CommsRecipient) => boolean;
-}[] = [
-  { heading: "Command centres", holds: (r) => !r.id.startsWith("vessel:") },
-  { heading: "Crewed craft", holds: (r) => r.id.startsWith("vessel:") },
-];
 
 function pickStatus(pickedCount: number): string {
   if (pickedCount > 1) return `${pickedCount} chosen`;

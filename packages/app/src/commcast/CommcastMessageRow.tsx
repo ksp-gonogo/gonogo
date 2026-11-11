@@ -1,10 +1,4 @@
 import {
-  type HeldCommand,
-  heldCommandOf,
-  useHeldCommandActions,
-  useLatestValue,
-} from "@ksp-gonogo/sitrep-sdk/spine";
-import {
   Button,
   CheckIcon,
   HeldFigure,
@@ -76,9 +70,6 @@ export function CommcastMessageRow({
       <Commcast__Body $change={msg.kind === "members"}>
         {messageText(msg, nameFor)}
       </Commcast__Body>
-      {out && msg.kind === "text" && (
-        <CancelActions out={out} utNow={utNow} nameFor={nameFor} />
-      )}
       {out && (
         <UnconfirmedActions
           out={out}
@@ -202,10 +193,7 @@ function RecipientState({
   const state = recipientWords(phase, delivery, about);
   // A refusal is the mod's own word, not a worked-out state, so it carries no mark and wraps like any sentence.
   const modelled =
-    phase !== "confirmed" &&
-    !delivery.neverLeft &&
-    !delivery.refused &&
-    !delivery.queued;
+    phase !== "confirmed" && !delivery.neverLeft && !delivery.refused;
   return (
     <Text size="xs">
       {name}{" "}
@@ -258,86 +246,6 @@ function UnconfirmedActions({
             }}
           >
             {noPath ? `No path to resend${name}` : `Send again${name}`}
-          </Button>
-        );
-      })}
-    </Commcast__Actions>
-  );
-}
-
-/**
- * Withdraw a message that has not yet reached a recipient, from the thread it
- * was said in: it is the same cancel the uplink queue offers for any command,
- * addressed through the queue's own entry for that recipient's copy.
- */
-/** A message of this screen's own still crossing or waiting, drawn as the controls that cancel it, since nothing has arrived to make a row of yet; its words are in the queue below. */
-export function CrossingMessage({
-  out,
-  utNow,
-  nameFor,
-}: {
-  out: OutboundMessage;
-  utNow: number | undefined;
-  nameFor: (id: RecipientId) => string;
-}) {
-  return <CancelActions out={out} utNow={utNow} nameFor={nameFor} />;
-}
-
-function CancelActions({
-  out,
-  utNow,
-  nameFor,
-}: {
-  out: OutboundMessage;
-  utNow: number | undefined;
-  nameFor: (id: RecipientId) => string;
-}) {
-  const queue = useLatestValue<unknown>("system.uplink.pending");
-  const actions = useHeldCommandActions();
-  const now = utNow ?? Number.NEGATIVE_INFINITY;
-  const heldFor = (to: RecipientId): HeldCommand | undefined => {
-    const entries =
-      typeof queue === "object" &&
-      queue !== null &&
-      "pending" in queue &&
-      Array.isArray(queue.pending)
-        ? queue.pending
-        : [];
-    for (const entry of entries) {
-      if (
-        typeof entry === "object" &&
-        entry !== null &&
-        "craft" in entry &&
-        entry.craft === to &&
-        "label" in entry &&
-        entry.label === out.msg.body
-      ) {
-        return heldCommandOf(entry);
-      }
-    }
-    return undefined;
-  };
-  const cancellable = out.deliveries.filter((d) => {
-    if (d.delivered || d.refused) return false;
-    const phase = deliveryPhaseFor(out, d, now);
-    return (phase === "in-transit" || d.queued === true) && heldFor(d.to);
-  });
-  if (cancellable.length === 0) return null;
-  const several = out.deliveries.length > 1;
-  return (
-    <Commcast__Actions>
-      {cancellable.map((delivery) => {
-        const held = heldFor(delivery.to);
-        const name = several ? ` to ${nameFor(delivery.to)}` : "";
-        return (
-          <Button
-            key={delivery.to}
-            type="button"
-            onClick={() => {
-              if (held) void actions.cancel(held, false);
-            }}
-          >
-            {`Cancel${name}`}
           </Button>
         );
       })}

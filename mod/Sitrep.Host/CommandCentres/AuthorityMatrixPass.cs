@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Sitrep.Contract;
 
 namespace Sitrep.Host.CommandCentres
@@ -384,12 +383,6 @@ namespace Sitrep.Host.CommandCentres
         /// delay for a command that could not be delivered).
         /// </param>
         /// <param name="setDelay">Writes an explicit (vantage, node, seconds) pair.</param>
-        /// <param name="listeners">
-        /// Craft that can be sent a message and nothing more: each is timed from every
-        /// active centre by its route, as a listener only. No row is written from a
-        /// listener as a speaker, to another listener, or to itself, and no existing
-        /// centre's row changes.
-        /// </param>
         /// <param name="seats">
         /// Seats, which stand as an origin only: each is timed to every active centre by
         /// its route, and no row is written to a seat as a destination or from a seat to
@@ -399,29 +392,8 @@ namespace Sitrep.Host.CommandCentres
             IReadOnlyList<ICommandCentre> activeCentres,
             Func<ICommandCentre, ICommandCentre, double?> routeDelay,
             Action<string, string, double> setDelay,
-            IReadOnlyList<ICommandCentre>? seats = null,
-            IReadOnlyList<ICommandCentre>? listeners = null)
+            IReadOnlyList<ICommandCentre>? seats = null)
         {
-            if (listeners != null)
-            {
-                foreach (var listener in listeners)
-                {
-                    // A seat already stands as an origin to every centre under its own id, so it gets no second row.
-                    if (seats != null && seats.Any(seat => seat.Id == listener.Id))
-                    {
-                        continue;
-                    }
-                    foreach (var speaker in activeCentres)
-                    {
-                        var seconds = routeDelay(listener, speaker);
-                        if (seconds != null)
-                        {
-                            setDelay(listener.Id, CentreNode(speaker.Id), seconds.Value);
-                        }
-                    }
-                }
-            }
-
             if (seats != null)
             {
                 foreach (var seat in seats)

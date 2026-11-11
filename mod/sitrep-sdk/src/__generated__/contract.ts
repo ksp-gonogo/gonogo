@@ -1299,14 +1299,6 @@ export interface CommandCentreEntry
 	* no delay to quote.
 	*/
 	delayQuality?: string | null;
-	/**
-	* Whether commands can be sent from this centre: absent or true for every
-	* centre that can, false for a craft with a kerbal aboard that is listed only
-	* so a message can be addressed to it. Such an entry is never a vantage to
-	* choose, is not active, and has no command rights; what is said to it waits
-	* in its ledger until a screen sits aboard.
-	*/
-	commandable?: boolean | null;
 }
 /**
 * One command centre that was on `commandCentre.roster` earlier in this
@@ -1881,21 +1873,11 @@ export interface CommcastSendReceipt
 	addressed: string[];
 	/**
 	* Every member it was meant for that no signal from the speaker could reach
-	* when it was said, sorted by id, and that the host cannot keep the message
-	* for either. The message was never sent to these centres, so none of them
-	* will ever acknowledge it; to reach them, send it again later naming them in
-	* `to`. Empty on a host that keeps messages for centres it cannot reach yet,
-	* which lists those in `CommcastSendReceipt.queued` instead.
+	* when it was said, sorted by id. The message was never sent to these centres,
+	* so none of them will ever acknowledge it; to reach them, send it again later
+	* naming them in `to`.
 	*/
 	unreached: string[];
-	/**
-	* Every member it was meant for that no signal from the speaker could reach
-	* when it was said, and that the host is keeping the message for, sorted by
-	* id. It is carried to each as soon as a path opens, kept with the game until
-	* then, and the member acknowledges it when a screen at its centre reads it.
-	* Absent from a host that keeps nothing.
-	*/
-	queued?: string[] | null;
 }
 /**
 * Tell a message's author it arrived. The acknowledgement travels back to the
@@ -1942,51 +1924,38 @@ export interface CommcastRadioTransmitArgs
 	author: CommcastAuthor;
 }
 /**
-* One command centre's ledger of messages: what it said, and what reached it,
-* as the state `commcast.ledger` carries.
+* One item of `commcast.traffic`: something said to a group this vantage
+* belongs to, delivered one signal delay after it was said from where it was
+* said.
 *
-* **State, read like telemetry.** A message is a command from one centre to
-* another. It travels like any command, waiting for a path and cancellable
-* from the sender's uplink queue, and what it does on arrival is write this
-* ledger at the recipient. A screen reads the ledger as the latest value of a
-* state, and a screen that opens at a centre later is told the whole ledger on
-* connecting.
+* **Addressed, never broadcast.** A connection receives only the items
+* addressed to its own vantage. A group's members are addressed as the speaker
+* could see them when it spoke, so a centre added far away starts receiving
+* once word of it has reached the speaker, and a member with no path from the
+* speaker misses what was said.
 *
-* **Addressed, never broadcast.** A connection receives only the ledger of its
-* own vantage.
+* **A stream, not state.** Nothing is replayed to a connection that subscribes
+* after an item reached it, as with anything heard on a radio.
 *
-* @category Comms
-*/
-export interface CommcastLedger
-{
-	/**
-	* Every entry the ledger keeps, oldest first: what this centre said and what
-	* reached it.
-	*/
-	items: CommcastLedgerItem[];
-}
-/**
-* One entry of a centre's ledger.
+* Three kinds, by `CommcastTraffic.kind`:
 *
-* Two kinds, by `CommcastLedgerItem.kind`:
-*
-* - `"members"`: a group opened or grew. `CommcastLedgerItem.members` is its
-*   whole membership after the change, `CommcastLedgerItem.added` who came in
-* - `"text"`: a message, `CommcastLedgerItem.id` and `CommcastLedgerItem.body`
-*
-* An entry this centre said has no `CommcastLedgerItem.arrivedUt` and carries
-* how each recipient stands: `CommcastLedgerItem.delivered`,
-* `CommcastLedgerItem.ended` and `CommcastLedgerItem.read`. An entry that
-* reached this centre has `CommcastLedgerItem.arrivedUt` and none of those.
+* - `"members"`: a group opened or grew. `CommcastTraffic.members` is its
+*   whole membership after the change, `CommcastTraffic.added` who came in
+* - `"text"`: a message, `CommcastTraffic.id` and `CommcastTraffic.body`. It
+*   is also delivered, at once, to the speaker's own centre
+*   (`CommcastTraffic.to` names it), where another screen at that centre reads
+*   it as an outgoing message rather than a received one
+* - `"ack"`: a member acknowledging `CommcastTraffic.messageId`, addressed to
+*   that message's author alone
 *
 * @category Comms
 */
-export interface CommcastLedgerItem
+export interface CommcastTraffic
 {
-	/** `"members"` or `"text"`. */
+	/** `"members"`, `"text"` or `"ack"`. */
 	kind: string;
-	/** A text message's own id, or a membership change's. */
-	id: string;
+	/** A text message's own id, or a membership change's. Absent from an ack. */
+	id?: string | null;
 	/** The group, by the id it was opened with. */
 	groupId: string;
 	/**
@@ -1996,7 +1965,7 @@ export interface CommcastLedgerItem
 	from: string;
 	/** How the speaker describes itself, for display only. */
 	author: CommcastAuthor;
-	/** The UT it was said at. */
+	/** The UT it was said at, which is also this delivery's `meta.validAt`. */
 	sentUt: Value<"ut">;
 	/**
 	* Everyone it was addressed to, the speaker included, as the speaker could see
@@ -2009,48 +1978,24 @@ export interface CommcastLedgerItem
 	added?: string[] | null;
 	/** A `"text"` message's words. Absent otherwise. */
 	body?: string | null;
-	/** The UT it reached this centre. Absent from an entry this centre said. */
-	arrivedUt?: Value<"ut"> | null;
+	/** The message an `"ack"` acknowledges. Absent otherwise. */
+	messageId?: string | null;
 	/**
-	* For an entry this centre said: the UT each recipient's copy ran, keyed by
-	* recipient, as the reply reached here. A recipient with no key has not been
-	* heard from.
+	* A `"text"` message's one-way signal delay from `CommcastTraffic.from` to
+	* each other centre in `CommcastTraffic.to`, keyed by that centre's id, as the
+	* speaker's connection was delayed when it spoke. The speaker's own centre is
+	* not a key. A screen at the speaker's own centre reads it to show the message
+	* crossing, and an absent map means the sender did not say. Absent from every
+	* other kind.
 	*/
-	delivered?: { [key: string]: Value<"ut"> } | null;
-	/**
-	* For an entry this centre said: how a recipient's copy ended without running,
-	* `"cancelled"` or `"expired"`, keyed by recipient.
-	*/
-	ended?: { [key: string]: string } | null;
-	/**
-	* For an entry this centre said: when a screen at each recipient read it,
-	* keyed by recipient, as the notice reached here.
-	*/
-	read?: { [key: string]: CommcastRead } | null;
-}
-/**
-* A recipient's screen reading a message: when, and who read it.
-*
-* @category Comms
-*/
-export interface CommcastRead
-{
-	/** The UT a screen at the recipient read it. */
-	at: Value<"ut">;
-	/** The reading device's own stable key. */
-	stationKey: string;
-	/**
-	* Which end of the light-path the screen that read it sits at, in the client's
-	* own vocabulary.
-	*/
-	seat: string;
+	oneWaySeconds?: { [key: string]: Value<"s"> } | null;
 }
 /**
 * The first segment of every `commcast.radio` frame, as UTF-8 JSON. The
 * segments after it are that batch's raw Opus packets, 20 ms each, in order.
 *
 * `commcast.radio` is carried in BinaryLane frames and is addressed exactly as
-* CommcastTraffic is: a connection hears only transmissions to groups its
+* `CommcastTraffic` is: a connection hears only transmissions to groups its
 * vantage belongs to, one signal delay after each batch was spoken. Every
 * frame carries this whole description, so a listener that starts hearing
 * partway through a keying places it from the first frame it gets.
