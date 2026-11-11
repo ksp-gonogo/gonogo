@@ -22565,10 +22565,6 @@
         "note": "member of PresentPoint, new with it"
       },
       {
-        "key": "ui-kit . PullDownIcon",
-        "note": "the downward arrow icon for recalling a pushed widget"
-      },
-      {
         "key": "ui-kit . REFUSAL_TIMEOUT_MS",
         "note": "exported, since the published docs of useCommandButton link it"
       },
