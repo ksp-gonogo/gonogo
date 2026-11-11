@@ -18,9 +18,15 @@ import { magnitudeOf } from "../shared/magnitude";
 import { ChargeTrendBox, chargeTrendBadges } from "./ChargeTrendBox";
 import { ContributionSection } from "./ContributionSection";
 import { netRate, netUnit } from "./chargeRate";
-import { chargeTrend, useSmoothedRate } from "./chargeTrend";
+import { useSmoothedRate } from "./chargeTrend";
 import type { PowerSystemsConfig } from "./config";
-import { type NetTone, netToneWithUnrated, splitCamel } from "./flow";
+import {
+  formatUnits,
+  type NetTone,
+  netToneWithUnrated,
+  splitCamel,
+} from "./flow";
+import { HeldLine } from "./HeldLine";
 import { OtherDrawRow } from "./OtherDrawRow";
 import { PowerTotals } from "./PowerTotals";
 import { ResourceTrend } from "./ResourceTrend";
@@ -35,6 +41,7 @@ import {
   SECTION_EMPTY,
   SectionsScroll,
 } from "./styles";
+import { useChargeOutlook } from "./useChargeOutlook";
 import {
   useCycleResourceAction,
   useLiveParts,
@@ -124,10 +131,19 @@ export function PowerSystemsComponent({
   const shownConsumed =
     measuredConsumption === undefined ? totalConsumed : -measuredConsumption;
 
+  // A craft with only batteries has no part flow, but its stored charge still gives a net rate.
+  const netKnown =
+    !drawUnknown && (flowMeasured || (isCharge && measuredNet !== undefined));
   const smoothedNet = useSmoothedRate(
-    isCharge && flowMeasured && !drawUnknown ? shownNet : undefined,
+    isCharge && netKnown ? shownNet : undefined,
   );
-  const trend = chargeTrend(smoothedNet, storage?.amount, storage?.maxAmount);
+  const { trend, projection, heldSinceUt, heldFor } = useChargeOutlook({
+    isCharge,
+    netKnown,
+    net: shownNet,
+    smoothedNet,
+    storage,
+  });
 
   const seriesKey = `vessel.resources.resources.${resource}.current`;
   const series = useDataSeries(seriesKey, SPARKLINE_WINDOW_SEC);
@@ -189,6 +205,8 @@ export function PowerSystemsComponent({
     );
   }
 
+  const isEmpty =
+    trend?.direction === "draining" && trend.atLimit && !trend.modelled;
   const netTone = drawUnknown
     ? "neutral"
     : netToneWithUnrated(
@@ -204,23 +222,37 @@ export function PowerSystemsComponent({
         fitToSize
         sections={
           <Section gap="related-dense" style={COMPACT_BODY}>
-            <div style={COMPACT_RESOURCE}>{splitCamel(resource)}</div>
-            <Text tone={COMPACT_NET_TONE[netTone]} style={COMPACT_NET}>
-              {flowMeasured && !drawUnknown ? (
-                <>
-                  {shownNet >= 0 ? "+" : ""}
-                  <Unit
-                    value={readingOf(partsReading, () =>
-                      netRate(resource, shownNet),
-                    )}
-                    decimals={2}
-                  />
-                </>
-              ) : (
-                NULL_DISPLAY
-              )}
-            </Text>
-            <ChargeTrendBox trend={trend} compact />
+            {showHeader && (
+              <div style={COMPACT_RESOURCE}>{splitCamel(resource)}</div>
+            )}
+            {isEmpty ? (
+              <>
+                <Text tone="nogo" style={COMPACT_NET}>
+                  EMPTY
+                </Text>
+                <div style={COMPACT_RESOURCE}>
+                  {formatUnits(storage?.amount ?? 0)} /{" "}
+                  {formatUnits(storage?.maxAmount ?? 0)}
+                </div>
+              </>
+            ) : (
+              <Text tone={COMPACT_NET_TONE[netTone]} style={COMPACT_NET}>
+                {netKnown ? (
+                  <>
+                    {shownNet >= 0 ? "+" : ""}
+                    <Unit
+                      value={readingOf(partsReading, () =>
+                        netRate(resource, shownNet),
+                      )}
+                      decimals={2}
+                    />
+                  </>
+                ) : (
+                  NULL_DISPLAY
+                )}
+              </Text>
+            )}
+            {!isEmpty && <ChargeTrendBox trend={trend} compact />}
           </Section>
         }
       />
@@ -254,15 +286,17 @@ export function PowerSystemsComponent({
               {NET_ANNOUNCEMENT[netTone]}
             </VisuallyHidden>
 
-            {contributions.length === 0 && (
+            {contributions.length === 0 && !netKnown && (
               <div style={SECTION_EMPTY} role="status">
                 No active {splitCamel(resource)} flow right now.
               </div>
             )}
 
+            {heldSinceUt !== undefined && <HeldLine sinceUt={heldSinceUt} />}
+
             <PowerTotals
               netFigure={
-                flowMeasured && !drawUnknown
+                netKnown
                   ? readingOf(partsReading, () => netRate(resource, shownNet))
                   : null
               }
@@ -277,6 +311,7 @@ export function PowerSystemsComponent({
               measuredTotalProduced={measuredTotalProduced}
               measuredDisagrees={measuredDisagrees}
               storage={storage}
+              modelledStored={projection?.stored}
             />
 
             <ChargeTrendBox trend={trend} />
@@ -288,6 +323,11 @@ export function PowerSystemsComponent({
                 values={sparkValues}
                 domain={sparkDomain}
                 netTone={netTone}
+                projection={
+                  projection && heldFor
+                    ? { stored: projection.stored, elapsed: heldFor }
+                    : undefined
+                }
               />
             )}
           </Section>,
@@ -296,7 +336,7 @@ export function PowerSystemsComponent({
               <ContributionSection
                 title="Producers"
                 rows={producers}
-                emptyText="Nothing producing"
+                emptyText={flowMeasured ? "Nothing producing" : undefined}
                 listStyle={CONTRIB_LIST}
                 landscape={isLandscape}
                 currency={partsReading}
@@ -304,9 +344,9 @@ export function PowerSystemsComponent({
               <ContributionSection
                 title="Consumers"
                 rows={consumers}
-                emptyText="Nothing consuming"
+                emptyText={flowMeasured ? "Nothing consuming" : undefined}
                 trailing={
-                  isCharge && flowMeasured ? (
+                  isCharge && (flowMeasured || netKnown) ? (
                     <OtherDrawRow draw={measuredOther ?? null} />
                   ) : undefined
                 }

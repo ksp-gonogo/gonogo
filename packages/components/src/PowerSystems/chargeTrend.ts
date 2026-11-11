@@ -1,4 +1,6 @@
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useRef, useState } from "react";
+import type { ChargeProjection } from "./powerPrediction";
 
 /** Time constant of the smoothing, in seconds: a step in the rate is about two thirds shown after this long. */
 const SMOOTHING_SECONDS = 8;
@@ -19,6 +21,10 @@ export interface ChargeTrend {
   secondsToFull: number | undefined;
   /** The store is already at capacity (charging) or already empty (draining), so there is no time to give. */
   atLimit: boolean;
+  /** The figures are carried forward from a report that stopped arriving, not measured now. */
+  modelled?: boolean;
+  /** The UT a modelled drain crossed zero at, once that is behind now. */
+  emptySinceUt?: Value<"ut">;
 }
 
 /**
@@ -61,6 +67,39 @@ export function chargeTrend(
       }
     : { direction: "draining", ...none, atLimit: true };
 }
+
+/**
+ * The trend a held report carries forward: the direction of its rate, the time
+ * left from now, and, once the model has crossed zero, the UT it did.
+ */
+export function trendFromProjection(
+  rate: number,
+  projection: ChargeProjection,
+): ChargeTrend {
+  const none = { secondsToEmpty: undefined, secondsToFull: undefined };
+  if (Math.abs(rate) < STEADY_BELOW) {
+    return { direction: "steady", ...none, atLimit: false, modelled: true };
+  }
+  if (rate > 0) {
+    return { direction: "charging", ...none, atLimit: false, modelled: true };
+  }
+  return {
+    direction: "draining",
+    ...none,
+    secondsToEmpty: projection.secondsToEmpty,
+    atLimit: projection.secondsToEmpty === undefined,
+    modelled: true,
+    emptySinceUt: projection.emptySinceUt,
+  };
+}
+
+/** A store measured at zero: draining with nothing left, with no rate to give. */
+export const EMPTY_TREND: ChargeTrend = {
+  direction: "draining",
+  secondsToEmpty: undefined,
+  secondsToFull: undefined,
+  atLimit: true,
+};
 
 /** One exponential smoothing step from `previous` toward `next` over `elapsedSeconds`. */
 export function smoothStep(
