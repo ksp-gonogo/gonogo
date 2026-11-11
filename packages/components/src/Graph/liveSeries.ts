@@ -36,10 +36,22 @@ export function buildLiveSeries(
     const meta = metaMap.get(key);
     const raw = seriesData.get(key) ?? { t: [], v: [] };
     // Only a time axis keeps spans, reckoned runs and bridges: on a re-paired parametric axis they would name the wrong part of the curve.
+    const holdAt =
+      xIsTime &&
+      raw.windowEndAt !== undefined &&
+      (raw.reckoned?.length ?? 0) === 0 &&
+      raw.t.length > 0 &&
+      raw.windowEndAt > raw.t[raw.t.length - 1]
+        ? raw.windowEndAt
+        : undefined;
+    // The last value stands until the window's end, so a series that stopped emitting still reaches it.
     const baseData = xIsTime
       ? {
-          x: raw.t,
-          y: raw.v as number[],
+          x: holdAt === undefined ? raw.t : [...raw.t, holdAt],
+          y:
+            holdAt === undefined
+              ? (raw.v as number[])
+              : [...(raw.v as number[]), (raw.v as number[])[raw.v.length - 1]],
           breaks: raw.breaks,
           spans: raw.spans,
           reckoned: raw.reckoned,

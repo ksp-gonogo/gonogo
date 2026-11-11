@@ -2233,6 +2233,11 @@ function computeYDomain(
     MIN_ABSOLUTE_SPAN,
   );
   if (scale === "linear" || scale === undefined) {
+    // A constant series is centred in a band around its value, so the axis reads as constant rather than as a collapsed scale.
+    if (hi === lo) {
+      const pad = Math.abs(lo) > 0 ? Math.abs(lo) * 0.1 : 1;
+      return [lo - pad, hi + pad];
+    }
     if (hi > lo && hi - lo < floor) {
       const mid = (lo + hi) / 2;
       return [mid - floor, mid + floor];
