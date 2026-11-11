@@ -96,7 +96,9 @@ jobs:
         run: pnpm build
 
       - name: Install Playwright browser
-        run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
+        uses: ./.github/actions/setup-playwright-browsers
+        with:
+          browsers: ${{ matrix.browser }}
 
       - name: Playwright e2e (${{ matrix.browser }})
         run: pnpm exec playwright test --project=${{ matrix.browser }}
@@ -454,7 +456,9 @@ jobs:
       # widget. This step asks a question `visual` cannot: not "did the pixels
       # drift" but "did the harness render anything at all".
       - name: Install Playwright browser
-        run: pnpm exec playwright install --with-deps chromium
+        uses: ./.github/actions/setup-playwright-browsers
+        with:
+          browsers: chromium
 
       # Sharded by widget (`--shard i/2` partitions the render configs, each in
       # exactly one shard, the floor checked on the whole set). Every shard
@@ -589,7 +593,9 @@ jobs:
         run: pnpm --filter "@ksp-gonogo/components..." build
 
       - name: Install Playwright browser
-        run: pnpm exec playwright install --with-deps chromium
+        uses: ./.github/actions/setup-playwright-browsers
+        with:
+          browsers: chromium
 
       - run: pnpm --filter @ksp-gonogo/components face-gate --shard ${{ matrix.shard }}/2
 
@@ -653,7 +659,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install Playwright browser
-        run: pnpm exec playwright install --with-deps chromium
+        uses: ./.github/actions/setup-playwright-browsers
+        with:
+          browsers: chromium
 
       - name: Widgets fit the minSize they declare
         run: |
@@ -1293,7 +1301,9 @@ jobs:
       # scaffold installed; this step supplies the system libraries that browser
       # needs, and the browser too whenever the two versions agree.
       - name: Install Playwright browser
-        run: pnpm exec playwright install --with-deps chromium
+        uses: ./.github/actions/setup-playwright-browsers
+        with:
+          browsers: chromium
 
       - name: A scaffolded Uplink builds from the packed packages and reaches the dashboard
         env:

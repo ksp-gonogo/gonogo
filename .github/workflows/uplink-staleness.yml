@@ -97,7 +97,9 @@ jobs:
       # Asking whether the committed renders are current means rendering them.
       # Chromium alone, the engine the page harness launches.
       - name: Install the browser the page harness renders in
-        run: pnpm exec playwright install --with-deps chromium
+        uses: ./.github/actions/setup-playwright-browsers
+        with:
+          browsers: chromium
 
       # `set -o pipefail` is load-bearing: the runner's default shell is
       # `bash -e`, which does not set it, and without it `tee` decides the step's

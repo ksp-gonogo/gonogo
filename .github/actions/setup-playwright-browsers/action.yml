@@ -1,0 +1,76 @@
+name: Set up Playwright browsers
+description: Installs Playwright browsers and their system libraries from caches, reaching apt only on a cold cache
+inputs:
+  browsers:
+    description: Space-separated browsers to install
+    default: chromium
+  command:
+    description: Command that runs the Playwright CLI of the project being installed for
+    default: pnpm exec playwright
+  directories:
+    description: Newline-separated directories to run the command in, one per Playwright version in play
+    default: .
+runs:
+  using: composite
+  steps:
+    - id: version
+      shell: bash
+      env:
+        PW: ${{ inputs.command }}
+        DIRS: ${{ inputs.directories }}
+      run: |
+        set -euo pipefail
+        versions=""
+        while IFS= read -r dir; do
+          [ -n "$dir" ] || continue
+          versions="${versions}$(cd "$dir" && $PW --version)"$'\n'
+        done <<< "$DIRS"
+        echo "hash=$(printf '%s' "$versions" | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+
+    # The key carries the runner image, because the debs are only valid against the
+    # package set of the image they were downloaded on.
+    - id: cache
+      uses: actions/cache@v5
+      with:
+        path: |
+          ~/.cache/ms-playwright
+          ${{ runner.temp }}/playwright-debs
+        key: playwright-${{ runner.os }}-${{ env.ImageVersion }}-${{ inputs.browsers }}-${{ steps.version.outputs.hash }}
+
+    - shell: bash
+      env:
+        PW: ${{ inputs.command }}
+        DIRS: ${{ inputs.directories }}
+        BROWSERS: ${{ inputs.browsers }}
+        DEBS: ${{ runner.temp }}/playwright-debs
+        HIT: ${{ steps.cache.outputs.cache-hit }}
+      run: |
+        set -euo pipefail
+        first="$(printf '%s\n' "$DIRS" | grep -m1 .)"
+
+        need_apt=true
+        if [ "$HIT" = "true" ] && compgen -G "$DEBS/*.deb" > /dev/null; then
+          echo "Playwright system libraries: warm cache, installing cached packages, no apt call"
+          if sudo dpkg -i "$DEBS"/*.deb; then
+            need_apt=false
+          else
+            echo "::warning::cached packages did not install, falling back to apt"
+          fi
+        fi
+
+        if [ "$need_apt" = "true" ]; then
+          echo "Playwright system libraries: cold cache, installing through apt"
+          (cd "$first" && $PW install-deps $BROWSERS)
+          mkdir -p "$DEBS"
+          if compgen -G "/var/cache/apt/archives/*.deb" > /dev/null; then
+            cp /var/cache/apt/archives/*.deb "$DEBS"/
+          else
+            echo "::warning::apt kept no packages to cache, the next run reaches apt again"
+          fi
+        fi
+
+        # A browser already in ~/.cache/ms-playwright makes this a no-op with no download
+        while IFS= read -r dir; do
+          [ -n "$dir" ] || continue
+          (cd "$dir" && $PW install $BROWSERS)
+        done <<< "$DIRS"

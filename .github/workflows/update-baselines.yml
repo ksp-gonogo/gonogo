@@ -69,7 +69,9 @@ jobs:
         run: pnpm --filter "@ksp-gonogo/components..." build
 
       - name: Install Playwright browser
-        run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
+        uses: ./.github/actions/setup-playwright-browsers
+        with:
+          browsers: ${{ matrix.browser }}
 
       - name: Regenerate baselines
         env:
