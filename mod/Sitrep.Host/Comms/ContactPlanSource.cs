@@ -952,19 +952,49 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>
-        /// Courier thread: the plan grids' kept positions and the knowledge board's
-        /// sight samples, as one fragment of a memory census line.
+        /// Courier thread: the plan grids' kept positions, the knowledge board's
+        /// sight samples, and how many plans each replan reason has asked for
+        /// (<c>replan.&lt;reason&gt;=</c>, with <c>replan.ground.&lt;change&gt;</c> for
+        /// what made the ground differ), and the farthest a station has been read
+        /// from its last reading (<c>ground.stationDriftMaxM=</c>), as one fragment of
+        /// a census line.
         /// </summary>
         public string CensusDescribe()
         {
             var planner = _runner.CensusCounts();
             var knowledge = Knowledge.CensusCounts();
-            return "plan.positions=" + planner.Positions
-                + " plan.grids=" + planner.Grids
-                + " plan.rounds=" + planner.Rounds
-                + " knowledge.samples=" + knowledge.Samples
-                + " knowledge.pairs=" + knowledge.Pairs
-                + " plans=" + _plans.Count;
+            var line = new System.Text.StringBuilder()
+                .Append("plan.positions=").Append(planner.Positions)
+                .Append(" plan.grids=").Append(planner.Grids)
+                .Append(" plan.rounds=").Append(planner.Rounds)
+                .Append(" knowledge.samples=").Append(knowledge.Samples)
+                .Append(" knowledge.pairs=").Append(knowledge.Pairs)
+                .Append(" plans=").Append(_plans.Count)
+                .Append(" ground.last=").Append(_lastGroundChange ?? "none")
+                .Append(" ground.stationDriftMaxM=").Append(Math.Round(_stationDriftMaxMeters));
+            foreach (var reason in ReplanReasons)
+            {
+                _replanReasons.TryGetValue(reason, out var count);
+                line.Append(" replan.").Append(reason).Append('=').Append(count);
+            }
+            return line.ToString();
+        }
+
+        /* Ground first, then the order Due tests them in, then what made a ground differ. */
+        private static readonly string[] ReplanReasons =
+        {
+            "ground", "noPlan", "rewind", "halfHorizon", "nodes", "drift",
+            "ground.first", "ground.bodies", "ground.frame", "ground.stations", "ground.radius", "ground.station",
+        };
+
+        private readonly Dictionary<string, long> _replanReasons = new Dictionary<string, long>(StringComparer.Ordinal);
+        private string? _lastGroundChange;
+        private double _stationDriftMaxMeters;
+
+        private void CountReplanReason(string reason)
+        {
+            _replanReasons.TryGetValue(reason, out var count);
+            _replanReasons[reason] = count + 1;
         }
 
         /// <summary>What each centre knows of where each craft is, for the <c>craftKnowledge</c> capability. Any thread.</summary>
@@ -1834,40 +1864,68 @@ namespace Sitrep.Host.Comms
         /// <summary>Keeps the ground the next plans are made over, and counts each time the stations or the bodies' sizes change.</summary>
         private void NoteGround(Looked looked)
         {
-            if (_ground == null || !SameGround(_ground, _stations, looked.Ground, looked.Stations))
+            var drift = 0.0;
+            var change = _ground == null ? "first" : GroundChange(_ground, _stations, looked.Ground, looked.Stations, out drift);
+            _stationDriftMaxMeters = Math.Max(_stationDriftMaxMeters, drift);
+            if (change != null)
             {
                 _groundVersion++;
+                _lastGroundChange = change;
+                CountReplanReason("ground." + change);
             }
             _ground = looked.Ground;
             _stations = looked.Stations;
         }
 
-        private static bool SameGround(
-            PlanGround was, IReadOnlyList<ContactGameNode> wasStations, PlanGround now, IReadOnlyList<ContactGameNode> nowStations)
+        /// <summary>
+        /// What differs between two grounds (<c>bodies</c>, <c>frame</c>, <c>stations</c>,
+        /// <c>radius</c> or <c>station</c>), or null when they are the same, and the
+        /// farthest any station was read from where it was read last, in metres.
+        ///
+        /// <para>A ground station stands still on its body, so where it is read is
+        /// no part of the ground: a station read from the live game lands more than a
+        /// kilometre from its last reading on every look while the craft is in orbit,
+        /// so treating that as a change would plan again on every look. Only a station
+        /// that appears, goes, or stands on another body changes the ground.</para>
+        /// </summary>
+        private static string? GroundChange(
+            PlanGround was, IReadOnlyList<ContactGameNode> wasStations, PlanGround now, IReadOnlyList<ContactGameNode> nowStations,
+            out double stationDriftMeters)
         {
-            if (was.Bodies.Count != now.Bodies.Count || was.FrameBodyIndex != now.FrameBodyIndex || wasStations.Count != nowStations.Count)
+            stationDriftMeters = 0.0;
+            if (was.Bodies.Count != now.Bodies.Count)
             {
-                return false;
+                return "bodies";
+            }
+            if (was.FrameBodyIndex != now.FrameBodyIndex)
+            {
+                return "frame";
+            }
+            if (wasStations.Count != nowStations.Count)
+            {
+                return "stations";
             }
             for (var i = 0; i < now.Bodies.Count; i++)
             {
                 if (was.OccludingRadius(i) != now.OccludingRadius(i))
                 {
-                    return false;
+                    return "radius";
                 }
             }
             for (var i = 0; i < nowStations.Count; i++)
             {
                 var a = wasStations[i];
                 var b = nowStations[i];
-                if (a.Id != b.Id
-                    || a.BodyIndex != b.BodyIndex
-                    || (a.Surface!.Value.PositionAt(0.0) - b.Surface!.Value.PositionAt(0.0)).Magnitude() > ContactPlanSchedule.SurfaceToleranceMeters)
+                if (a.Id != b.Id || a.BodyIndex != b.BodyIndex)
                 {
-                    return false;
+                    return "station";
+                }
+                if (a.Surface != null && b.Surface != null)
+                {
+                    stationDriftMeters = Math.Max(stationDriftMeters, (a.Surface.Value.PositionAt(0.0) - b.Surface.Value.PositionAt(0.0)).Magnitude());
                 }
             }
-            return true;
+            return null;
         }
 
         private void TakeFinished(double ut)
@@ -1972,15 +2030,18 @@ namespace Sitrep.Host.Comms
         private ContactPlanRequest? Due(string centre, double ut)
         {
             var heard = _hearing!.HeardAt(centre);
-            if (!_planned.TryGetValue(centre, out var planned)
-                || ut < planned.FromUt
-                || ut >= planned.FromUt + (ContactPlanSchedule.HorizonSeconds / 2.0)
-                || planned.Ground != _groundVersion)
+            var always = !_planned.TryGetValue(centre, out var planned) ? "noPlan"
+                : ut < planned.FromUt ? "rewind"
+                : ut >= planned.FromUt + (ContactPlanSchedule.HorizonSeconds / 2.0) ? "halfHorizon"
+                : planned.Ground != _groundVersion ? "ground"
+                : null;
+            if (always != null)
             {
+                CountReplanReason(always);
                 return ReckonedPlan.Request(heard, _ground!, ut, ContactPlanSchedule.HorizonSeconds);
             }
             var news = _hearing.NewsAt(centre);
-            if (planned.News == news)
+            if (planned!.News == news)
             {
                 return null;
             }
@@ -1990,9 +2051,17 @@ namespace Sitrep.Host.Comms
                 planned.News = news;
                 return null;
             }
-            return request.Nodes.Count != planned.Request.Nodes.Count || ut >= planned.FromUt + ContactPlanSchedule.MinDriftReplanSeconds
-                ? request
-                : null;
+            if (request.Nodes.Count != planned.Request.Nodes.Count)
+            {
+                CountReplanReason("nodes");
+                return request;
+            }
+            if (ut >= planned.FromUt + ContactPlanSchedule.MinDriftReplanSeconds)
+            {
+                CountReplanReason("drift");
+                return request;
+            }
+            return null;
         }
 
         /// <summary>

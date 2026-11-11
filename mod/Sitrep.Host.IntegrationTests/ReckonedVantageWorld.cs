@@ -501,10 +501,12 @@ namespace Sitrep.Host.IntegrationTests
             }
             // A node's radio is its own id where a backend is elected, so the backend can tell the pair it is asked about.
             CommsNodeHandle? Antenna(string id) => LinkStrengths == null ? null : CommsNodeHandle.Of(id);
+            var wobble = StationWobbleMeters == 0.0 ? 0.0
+                : (System.Threading.Interlocked.Increment(ref _looks) % 2 == 0 ? 1.0 : -1.0) * StationWobbleMeters / KerbinRadius * 180.0 / Math.PI;
             var nodes = new List<ContactGameNode>
             {
-                ContactGameNode.GroundStation(Home, Kerbin, Surface(0.0), Antenna(Home), HomeName),
-                ContactGameNode.GroundStation(Far, Kerbin, Surface(20.0), Antenna(Far)),
+                ContactGameNode.GroundStation(Home, Kerbin, Surface(0.0 + wobble), Antenna(Home), HomeName),
+                ContactGameNode.GroundStation(Far, Kerbin, Surface(20.0 + wobble), Antenna(Far)),
             };
             if (!ActiveDestroyed)
             {
@@ -573,6 +575,15 @@ namespace Sitrep.Host.IntegrationTests
                 return ends;
             }
         }
+
+        /// <summary>
+        /// How far, in metres, each look places the ground stations from where they
+        /// stand, alternately east and west: the error a station read from the live
+        /// game carries from one look to the next.
+        /// </summary>
+        public double StationWobbleMeters { get; set; }
+
+        private int _looks;
 
         private static RotatingGroundStation Surface(double longitudeDeg) =>
             RotatingGroundStation.FromLatitudeLongitude(0.0, longitudeDeg, 0.0, KerbinSiderealDay, KerbinRadius, 0.0);
@@ -771,6 +782,9 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         public UplinkManifest Manifest { get; }
+
+        /// <summary>The contact plan's census fragment: plan rounds and the count per replan reason.</summary>
+        public string Census => _source.CensusDescribe();
 
         /// <summary>What store-and-forward reads of the live game here.</summary>
         public DeliveryInputs Inputs => _inputs;
