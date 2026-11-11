@@ -1012,7 +1012,9 @@ const WIDGETS: WidgetRenderConfig[] = [
         name: "blocked-row-tip-7x10",
         w: 7,
         h: 10,
-        hovers: [{ selector: "[data-ship-row][aria-disabled='true']" }],
+        hovers: [
+          { selector: "[data-ship-row][aria-disabled='true']", awaitMs: 800 },
+        ],
         forFixtures: ["pre-launch-insufficient-funds"],
       },
       // Click-driven modes: capture the arm-then-confirm sequences
