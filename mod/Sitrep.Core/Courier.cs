@@ -1154,6 +1154,11 @@ namespace Sitrep.Core
                 {
                     continue;
                 }
+                // A sample of the new timeline is already scheduled by its own record, and would arrive twice.
+                if (asEpoch != null && sample.Epoch >= asEpoch.Value)
+                {
+                    continue;
+                }
                 var sampleDelay = DelayOf(sample, vantage, liveDelay);
                 var stampedFireUt = sample.ValidAt + sampleDelay;
                 if (double.IsPositiveInfinity(stampedFireUt))

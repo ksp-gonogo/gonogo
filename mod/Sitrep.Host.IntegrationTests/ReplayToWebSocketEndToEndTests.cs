@@ -263,7 +263,19 @@ namespace Sitrep.Host.IntegrationTests
                 // above -- no re-subscribe was sent. ----
                 server.TickAndWait(3.0, TestSystemUplink.RawSnapshot(3.0, BodiesPayload(444)), Timeout);
 
+                // The reading sma=111 (valid at UT 0) was still in flight at the
+                // reload point (UT 1), so the new timeline rebuilds it to arrive
+                // at UT 2, in the same tick as sma=333. The outbox keeps only the
+                // newest frame of a topic, so whether the client sees 111 first
+                // depends on whether its writer drained between the two: both
+                // orders are right, and 222 (valid after the reload) never is.
                 var deliveredPostRewind = await ReceiveStreamDataAsync(client, Timeout);
+                if (Assert.IsType<Dictionary<string, object?>>(deliveredPostRewind.Payload)["sma"] is double firstSma && firstSma == 111)
+                {
+                    Assert.Equal(0.0, deliveredPostRewind.Meta.ValidAt);
+                    Assert.Equal(2.0, deliveredPostRewind.Meta.DeliveredAt);
+                    deliveredPostRewind = await ReceiveStreamDataAsync(client, Timeout);
+                }
                 AssertSma(deliveredPostRewind, 333);
                 Assert.Equal(1.0, deliveredPostRewind.Meta.ValidAt);
                 Assert.Equal(3.0, deliveredPostRewind.Meta.DeliveredAt);
