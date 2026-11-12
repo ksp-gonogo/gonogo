@@ -34,13 +34,11 @@ import { ControlFrameSettings } from "./ControlFrameSettings";
 import { GonogoSettings } from "./GonogoSettings";
 import { HelpSettings } from "./HelpSettings";
 import type { JoinedGame } from "./JoinedGameContext";
-import { ModSettingsSection } from "./ModSettingsSection";
 import type { SettingDefinition } from "./registry";
 import { getSettingsForScreen } from "./registry";
 import { bucketBy, CategoryRows } from "./SettingRows";
 import { useSetting } from "./SettingsContext";
 import { SitrepConnection } from "./SitrepConnection";
-import { useSettingsHomes } from "./settingsHomes";
 import {
   Empty,
   RowDesc,
@@ -162,7 +160,7 @@ export function SettingsModal({
       label: "Gonogo",
       content: (
         <SectionStack>
-          <GonogoTabHomes />
+          <GonogoSettings />
 
           <Stack as="section" gap="related-comfortable">
             <SectionTitle as="h3" $rule>
@@ -481,39 +479,3 @@ const Wrap = styled.div`
   min-height: min(70vh, 640px);
   min-height: min(70dvh, 640px);
 `;
-
-/**
- * Every place on the Gonogo tab: the mod's own settings, the settings file's
- * rows of each Uplink compiled into the mod, and under "Game" the host mod
- * settings those Uplinks read off the game, such as signal delay in the loaded
- * save.
- */
-function GonogoTabHomes() {
-  const homes = useSettingsHomes().filter(
-    (home) => home.where === "gonogo-tab",
-  );
-  const game = homes.filter((home) => home.kind === "mod");
-  return (
-    <>
-      {homes
-        .filter((home) => home.kind === "gonogo")
-        .map((home) => (
-          <GonogoSettings key={home.id} owner={home.id} />
-        ))}
-      {game.length > 0 && (
-        <Stack as="section" gap="related-comfortable">
-          <SectionTitle as="h3" $rule>
-            Game
-          </SectionTitle>
-          {game.map((home) => (
-            <ModSettingsSection
-              key={home.id}
-              uplinkId={home.id}
-              name={home.name}
-            />
-          ))}
-        </Stack>
-      )}
-    </>
-  );
-}

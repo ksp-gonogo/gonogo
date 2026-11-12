@@ -85,7 +85,7 @@ RPM and controls for Breaking Ground rotors.
 | --- | --- |
 | Uplink id | `breakingGround` |
 | Version | `0.0.1` |
-| Built against | contract 52.1, extension API 6.0.0 |
+| Built against | contract 52.0, extension API 6.0.0 |
 
 </details>
 

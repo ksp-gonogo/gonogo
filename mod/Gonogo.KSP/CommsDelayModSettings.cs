@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Sitrep.Contract;
-using Sitrep.Host;
 
 namespace Gonogo.KSP
 {
@@ -26,12 +25,9 @@ namespace Gonogo.KSP
     }
 
     /// <summary>
-    /// The save's comms choices as mod settings Gonogo can read and set: signal
-    /// delay and its light speed, and "Vessel telemetry requires vessel charge".
-    /// The save's difficulty settings hold them, so the value read here is the
-    /// one the game shows and the one in force. While an Uplink locks the charge
-    /// setting, it reads the locked value, with or without a save, and names the
-    /// Uplink and its reason.
+    /// The signal delay choice as a mod setting Gonogo can read and set. The
+    /// save's difficulty settings hold it, so the value read here is the one the
+    /// game shows and the one in force.
     ///
     /// <para>KSP-free: the save's node arrives through the delegates handed in,
     /// so every branch can be checked without a save.</para>
@@ -40,7 +36,6 @@ namespace Gonogo.KSP
     {
         public const string EnabledId = "delayEnabled";
         public const string LightSpeedScaleId = "lightSpeedScale";
-        public const string TelemetryRequiresChargeId = "telemetryRequiresCharge";
 
         private const string SetIn = "Difficulty settings, Gonogo";
 
@@ -63,53 +58,29 @@ namespace Gonogo.KSP
                     + "1 is real light speed and 0.5 doubles every delay. Any value from 0.00000001 to 100",
                 setIn: SetIn,
                 writable: true),
-            ModSetting.Bool(
-                TelemetryRequiresChargeId,
-                "Vessel telemetry requires vessel charge",
-                ModSettingRefresh.Live,
-                description: GonogoGameParameters.TelemetryRequiresChargeTooltip,
-                setIn: SetIn,
-                writable: true).WithTags(SettingTags.Setup),
         };
 
         private readonly Func<string?> _unavailable;
         private readonly Func<SignalDelayChoice?> _read;
         private readonly Func<SignalDelayChoice, bool> _write;
-        private readonly Func<bool?> _readCharge;
-        private readonly Func<bool, bool> _writeCharge;
-        private readonly Func<CoreSettingLock?> _chargeLock;
 
         /// <param name="unavailable">Why the choice cannot be reached right now, or null when it can.</param>
         /// <param name="read">The choice the loaded save holds, or null when it could not be read.</param>
         /// <param name="write">Sets the loaded save's choice; false when it could not be written.</param>
-        /// <param name="readCharge">The loaded save's "Vessel telemetry requires vessel charge" choice, or null when it could not be read.</param>
-        /// <param name="writeCharge">Sets that choice in the loaded save; false when it could not be written.</param>
-        /// <param name="chargeLock">The lock an Uplink holds on that setting, or null.</param>
         public CommsDelayModSettings(
             Func<string?> unavailable,
             Func<SignalDelayChoice?> read,
-            Func<SignalDelayChoice, bool> write,
-            Func<bool?> readCharge,
-            Func<bool, bool> writeCharge,
-            Func<CoreSettingLock?> chargeLock)
+            Func<SignalDelayChoice, bool> write)
         {
             _unavailable = unavailable;
             _read = read;
             _write = write;
-            _readCharge = readCharge;
-            _writeCharge = writeCharge;
-            _chargeLock = chargeLock;
         }
 
         public IReadOnlyList<ModSetting> ListModSettings() => Listed;
 
         public ModSettingValue ReadModSetting(string id)
         {
-            if (id == TelemetryRequiresChargeId)
-            {
-                return ReadCharge();
-            }
-
             if (id != EnabledId && id != LightSpeedScaleId)
             {
                 return ModSettingValue.Unavailable("not a Gonogo setting");
@@ -134,11 +105,6 @@ namespace Gonogo.KSP
 
         public CommandResult WriteModSetting(string id, ModSettingValue value)
         {
-            if (id == TelemetryRequiresChargeId && value.Kind == SettingKind.Bool)
-            {
-                return WriteCharge(value.AsBool);
-            }
-
             var isSwitch = id == EnabledId && value.Kind == SettingKind.Bool;
             var isScale = id == LightSpeedScaleId && value.Kind == SettingKind.Number;
             if (!isSwitch && !isScale)
@@ -173,42 +139,6 @@ namespace Gonogo.KSP
             return _write(next)
                 ? CommandResult.Ok()
                 : CommandResult.Fail(CommandErrorCode.ModeUnavailable, "the signal delay setting could not be set");
-        }
-
-        private ModSettingValue ReadCharge()
-        {
-            if (_chargeLock() is CoreSettingLock held)
-            {
-                return ModSettingValue.Locked(ModSettingValue.Of(held.Value), held.UplinkName, held.Reason);
-            }
-
-            var unavailable = _unavailable();
-            if (unavailable != null)
-            {
-                return ModSettingValue.Unavailable(unavailable);
-            }
-
-            return _readCharge() is bool on
-                ? ModSettingValue.Of(on)
-                : ModSettingValue.Unavailable("the vessel charge setting could not be read");
-        }
-
-        private CommandResult WriteCharge(bool on)
-        {
-            if (_chargeLock() is CoreSettingLock held)
-            {
-                return CommandResult.Fail(CommandErrorCode.WrongState, "set by the " + held.UplinkName + " Uplink: " + held.Reason);
-            }
-
-            var unavailable = _unavailable();
-            if (unavailable != null)
-            {
-                return CommandResult.Fail(CommandErrorCode.ModeUnavailable, unavailable);
-            }
-
-            return _writeCharge(on)
-                ? CommandResult.Ok()
-                : CommandResult.Fail(CommandErrorCode.ModeUnavailable, "the vessel charge setting could not be set");
         }
 
         /*

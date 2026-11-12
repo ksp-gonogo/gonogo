@@ -134,8 +134,7 @@ namespace Gonogo.KSP
                     continue;
                 }
                 var comm = vessel.connection != null ? vessel.connection.Comm : null;
-                // A craft with no electric charge neither sends nor relays, so it holds no live link.
-                if (comm != null && Plannable(vessel.vesselType) && !CraftPowerBook.Shared.IsUnpowered(comm))
+                if (comm != null && Plannable(vessel.vesselType))
                 {
                     ids[comm] = "vessel:" + vessel.id;
                 }

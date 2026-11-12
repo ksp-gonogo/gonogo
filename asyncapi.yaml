@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo WebSocket API
-  version: 52.1.0
+  version: 52.0.0
   description: |-
     The WebSocket API of the Gonogo mod: 97 telemetry channels a client
     subscribes to and 89 commands it sends, each with its payload and what it

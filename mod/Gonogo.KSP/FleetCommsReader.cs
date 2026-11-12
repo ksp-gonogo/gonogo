@@ -200,10 +200,6 @@ namespace Gonogo.KSP
                 {
                     return false;
                 }
-                if (CraftPowerBook.Shared.Powered(vessel) == false || CommNetBackend.CrossesUnpowered(conn.ControlPath))
-                {
-                    return false;
-                }
                 if (conn.ControlPath == null)
                 {
                     return null;

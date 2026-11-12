@@ -36,7 +36,7 @@ namespace Sitrep.Host
     /// only ever touches primitives, registered mapper delegates, and the
     /// explicit job queue.
     /// </summary>
-    public sealed partial class ChannelEngine : IUplinkHost, ISessionDirectory, Comms.IDelayModifierSource, IVesselJourneyWriter, CommandCentres.ICommandReachWriter, Comms.ICraftForecastWriter, CommandCentres.ICentreRouteWriter, Comms.ICraftPowerWriter, CommandCentres.IActiveRouteHost, Commcast.IAddressedStreamHost, Commcast.ILaneHost, IDisposable
+    public sealed partial class ChannelEngine : IUplinkHost, ISessionDirectory, Comms.IDelayModifierSource, IVesselJourneyWriter, CommandCentres.ICommandReachWriter, Comms.ICraftForecastWriter, CommandCentres.ICentreRouteWriter, CommandCentres.IActiveRouteHost, Commcast.IAddressedStreamHost, Commcast.ILaneHost, IDisposable
     {
         public const string NodeId = "system";
 
@@ -1831,11 +1831,6 @@ namespace Sitrep.Host
             // and killing the thread. See InvokeCommandHandler's doc comment.
             _courier.SetCommandHandler(
                 (command, args, node, vantage, craft) => RunArrived(command, args, vantage, craft));
-            // A craft whose own link is down when a command lands, out of contact or with no electric charge to run its radio, never receives it.
-            _courier.SetAboard((node, vantage) => IsOwnSeat(vantage, node));
-            _courier.SetArrivalCheck(
-                (node, vantage) => IsOwnSite(vantage, node) || IsOwnSeat(vantage, node) || SubjectConnected(node),
-                requestId => _courierJobs.Remove(requestId));
             _listener = new FleckTransportListener(bindUri);
             _listener.ClientConnected += OnClientConnected;
             _courierThread = new Thread(CourierLoop) { IsBackground = true, Name = "Sitrep-ChannelEngine-Courier" };
@@ -2724,8 +2719,6 @@ namespace Sitrep.Host
                     ["errorCodes"] = ErrorCodesPayload(id),
                     // Whether settings.<id> carries this uplink's host mod settings.
                     ["modSettings"] = _modSettings.ContainsKey(id),
-                    // Whether one of those settings is tagged to be offered in the first-run setup.
-                    ["setupModSettings"] = _modSettings.TryGetValue(id, out var modSettings) && modSettings.Lists(SettingTags.Setup),
                 });
             }
 
@@ -8955,12 +8948,6 @@ namespace Sitrep.Host
                 }
 
                 RecordForOwnSeat(topic, value, ut);
-                if (IsUnpowered(NodeFor(topic)))
-                {
-                    // A craft with no charge records nothing, so its dark window comes back as a gap.
-                    OpenGap(topic);
-                    return;
-                }
                 if (_channelDeclarations.TryGetValue(topic, out var held) && held.Kind == SampleKind.Event)
                 {
                     LogLimitedPerTopic("held ", topic, "held " + topic + " at UT " + ut.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)
@@ -8972,16 +8959,6 @@ namespace Sitrep.Host
 
             BufferFor(topic).Add(new BufferedReveal(ut, value, delay));
         }
-
-        private volatile HashSet<string> _unpoweredCraft = new HashSet<string>(StringComparer.Ordinal);
-
-        /// <inheritdoc/>
-        public void SetUnpoweredCraft(IReadOnlyCollection<string> craftIds) =>
-            _unpoweredCraft = new HashSet<string>(craftIds, StringComparer.Ordinal);
-
-        /// <summary>Whether the craft <paramref name="node"/> stands for has no electric charge to run its radio.</summary>
-        private bool IsUnpowered(string node) =>
-            CraftIdFor(node) is string craft && _unpoweredCraft.Contains(craft);
 
         /// <summary>
         /// A sample the craft took while its link is down reaches no centre, but the
@@ -11024,7 +11001,6 @@ namespace Sitrep.Host
             BringForwardWhatTravelsOnAShorterDelay(tick.Ut);
             PrunePendingUplinks(tick.Ut);
             FollowPendingPredictions(tick.Ut);
-            HoldWhatNeverLeft(tick.Ut);
             timing.End(ref timing.Refresh);
 
             foreach (var channelSource in _channelSources)
@@ -12187,9 +12163,7 @@ namespace Sitrep.Host
                 var due = live
                     ? entry.PredictedReplyUt ?? entry.DispatchedAt + (2 * (entry.OneWaySeconds ?? 0.0))
                     : entry.PredictedReplyUt;
-                // A held command the centre that sent it has not seen reach anyone has no reply to be late.
                 var overdue = entry.PredictedHeldAt == null
-                    && !(entry.LaneSeq != null && StillHeldAtCentre(entry))
                     && due != null
                     && ut > due.Value + PendingSettleMarginSeconds;
                 if (!overdue)

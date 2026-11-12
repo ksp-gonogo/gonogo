@@ -1053,20 +1053,6 @@ namespace Sitrep.Core.StoreAndForward
             }
         }
 
-        /// <summary>
-        /// Whether <paramref name="node"/> holds the copy <paramref name="id"/> and
-        /// it is waiting there: not yet sent on, or sent again after a hop lost it.
-        /// A first send still on its way is not waiting.
-        /// </summary>
-        public bool WaitingAt(string node, string id)
-        {
-            lock (_gate)
-            {
-                return _held.TryGetValue(node, out var list)
-                    && list.Any(h => string.Equals(h.Message.Id, id, StringComparison.Ordinal) && (h.Away == null || (!h.Landed && h.Losses > 0)));
-            }
-        }
-
         /// <summary>Where every message is right now, for tests and diagnostics.</summary>
         public IReadOnlyList<(string Node, DeliveryMessage Message)> HeldMessages()
         {

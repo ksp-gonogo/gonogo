@@ -173,17 +173,13 @@ const SwitchLabel = styled.label<{ $disabled?: boolean }>`
   }
 `;
 
-/*
- * A disabled switch keeps the colours of its state, so one held on reads as on;
- * the label's reduced opacity is what marks it disabled.
- */
 const SwitchTrack = styled.div<{ $checked: boolean; $disabled?: boolean }>`
   width: 28px;
   height: 14px;
   /* --radius-pill keeps the stadium shape through a height change. */
   border-radius: var(--radius-pill);
-  background: ${({ $checked }) => ($checked ? "var(--color-go-mark)" : "var(--color-surface-raised)")};
-  border: 1px solid ${({ $checked }) => ($checked ? "var(--color-go-mark)" : "var(--color-border-strong)")};
+  background: ${({ $checked, $disabled }) => ($disabled ? "var(--color-surface-raised)" : $checked ? "var(--color-go-mark)" : "var(--color-surface-raised)")};
+  border: 1px solid ${({ $checked, $disabled }) => ($disabled ? "var(--color-border-strong)" : $checked ? "var(--color-go-mark)" : "var(--color-border-strong)")};
   position: relative;
   flex-shrink: 0;
   transition: background var(--duration-base), border-color var(--duration-base);
@@ -229,7 +225,7 @@ const SwitchThumb = styled.div<{ $checked: boolean; $disabled?: boolean }>`
   width: 8px;
   height: 8px;
   border-radius: var(--radius-circle);
-  background: ${({ $checked }) => ($checked ? "var(--color-accent-fg)" : "var(--color-text-faint)")};
+  background: ${({ $checked, $disabled }) => ($disabled ? "var(--color-text-faint)" : $checked ? "var(--color-accent-fg)" : "var(--color-text-faint)")};
   transition: left var(--duration-base), background var(--duration-base);
 `;
 

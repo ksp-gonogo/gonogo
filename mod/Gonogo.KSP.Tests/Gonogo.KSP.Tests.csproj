@@ -463,9 +463,6 @@
          DevCommsOverride. All CommNet/CommNode-level types, the same headless
          reference-DLL contract FleetCommsReader.cs above already relies on. -->
     <Compile Include="..\Gonogo.KSP\CommNetBackend.cs" />
-    <!-- CraftPowerBook.cs is read by CommNetBackend.cs's route solves. With no
-         Unity runtime it reads no craft, so every route stands as stock solved it. -->
-    <Compile Include="..\Gonogo.KSP\CraftPowerBook.cs" />
     <Compile Include="..\Gonogo.KSP\ControlLevelGrade.cs" />
     <!-- CommsModelPresence.cs is the three live reads behind the no-comms-model
          rule (the CommNet difficulty option, the craft's own control tier, the

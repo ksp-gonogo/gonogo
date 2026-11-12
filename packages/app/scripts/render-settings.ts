@@ -83,29 +83,29 @@ const SAVED = 0;
 const MEMORY_ONLY = 1;
 const RECOVERED = 2;
 
-/** What the mod publishes with a facility-building Uplink running: three of its own rows, and one in that Uplink's block. */
+/** What the mod publishes with a facility-building Uplink running: its own three rows, and one in that Uplink's block. */
 function kspSettings(state: number, reason: string | null = null) {
   return {
     rows: [
       {
-        path: "CONSOLE/mission.historyEnabled",
+        path: "SIGNAL_DELAY/enabled",
         owner: "gonogo",
         kind: BOOL,
-        label: "Record mission history",
+        label: "Signal delay",
         description:
-          "Lets the Flight History panel record the live stream as a replayable mission. It captures only the topics the dashboard already carries, so it is cheap to leave on.",
+          "Commands and readings take the time light needs to cross the distance. Off, they arrive at once; a craft with no path is still out of contact",
         value: "True",
         default: "True",
       },
       {
-        path: "CONSOLE/sound.enabled",
+        path: "SIGNAL_DELAY/lightSpeedScale",
         owner: "gonogo",
-        kind: BOOL,
-        label: "Sound effects",
+        kind: NUMBER,
+        label: "Light speed",
         description:
-          "Plays the alarm chime, the launch countdown tones and the abort alert on the main screen. Station screens are always silent.",
-        value: "True",
-        default: "True",
+          "How fast signals travel, as a fraction of the speed of light. 1 is real light speed and 0.5 doubles every delay. Any value from 0.00000001 to 100",
+        value: "0.00000001",
+        default: "1",
       },
       {
         path: "RECORDING/enabled",
@@ -317,77 +317,6 @@ interface Scene {
   phone?: number;
   /** Draw the floating button cluster instead of the settings. */
   fab?: "closed" | "open" | "chosen";
-  /** Draw this first-run setup step instead of the settings. */
-  setup?: "recommended" | "delay";
-}
-
-/** The comms Uplink as `system.uplinks` lists it: compiled into the mod, with a host mod setting tagged for the setup. */
-const COMMS_ROSTER = {
-  uplinks: [
-    {
-      id: "comms",
-      name: null,
-      version: "1.0.0",
-      available: true,
-      reason: null,
-      modSettings: true,
-      setupModSettings: true,
-      bundled: true,
-      health: { state: 0, detail: null },
-    },
-  ],
-};
-
-/**
- * The comms Uplink's host mod settings as `CommsDelayModSettings` lists them:
- * signal delay, light speed, then the charge setting. With no save loaded every
- * row says so; a lock holds the charge setting alone.
- */
-function commsSettings(charge: Record<string, unknown>) {
-  const noSave = charge.unavailable ?? null;
-  const row = (fields: Record<string, unknown>) => ({
-    description: "",
-    kind: BOOL,
-    unit: null,
-    group: "",
-    setIn: "Difficulty settings, Gonogo",
-    writable: true,
-    value: "True",
-    unavailable: null,
-    tags: [],
-    lockedBy: null,
-    lockReason: null,
-    ...fields,
-    ...(noSave ? { value: null, unavailable: noSave } : {}),
-  });
-  return {
-    uplink: "comms",
-    failure: null,
-    settings: [
-      row({
-        id: "delayEnabled",
-        label: "Signal delay",
-        description:
-          "Commands and readings take the time light needs to cross the distance. Off, they arrive at once; a craft with no path is still out of contact",
-      }),
-      row({
-        id: "lightSpeedScale",
-        label: "Light speed",
-        kind: NUMBER,
-        value: "1",
-        description:
-          "How fast signals travel, as a fraction of the speed of light. 1 is real light speed and 0.5 doubles every delay. Any value from 0.00000001 to 100",
-      }),
-      row({
-        id: "telemetryRequiresCharge",
-        label: "Vessel telemetry requires vessel charge",
-        description:
-          "A craft with no electric charge takes no command from a command centre and sends nothing home. Its crew can still fly it",
-        tags: ["setup"],
-        ...charge,
-      }),
-    ],
-  };
 }
 
 const SCENES: Scene[] = [
@@ -586,184 +515,6 @@ const SCENES: Scene[] = [
     connected: true,
     emit: PHONE_EMIT,
   },
-  {
-    // The Settings window's Gonogo tab: the loaded save's comms settings, the charge setting a switch.
-    name: "settings-loaded-save-charge",
-    tab: "gonogo",
-    connected: true,
-    emit: {
-      [KSP_TOPIC]: kspSettings(SAVED),
-      "settings.comms": commsSettings({ value: "False" }),
-    },
-    pxW: 900,
-    pxH: 620,
-  },
-  {
-    // Three switches from the same section: on and enabled, on and locked (disabled), off and locked (disabled).
-    name: "switch-states",
-    tab: "gonogo",
-    connected: true,
-    emit: {
-      "system.uplinks": COMMS_ROSTER,
-      [KSP_TOPIC]: kspSettings(SAVED),
-      "settings.comms": {
-        uplink: "comms",
-        failure: null,
-        settings: [
-          {
-            id: "a",
-            label: "On, enabled",
-            description: "",
-            kind: BOOL,
-            unit: null,
-            group: "",
-            setIn: "",
-            writable: true,
-            value: "True",
-            unavailable: null,
-            tags: [],
-            lockedBy: null,
-            lockReason: null,
-          },
-          {
-            id: "b",
-            label: "On, locked",
-            description: "",
-            kind: BOOL,
-            unit: null,
-            group: "",
-            setIn: "",
-            writable: true,
-            value: "True",
-            unavailable: null,
-            tags: [],
-            lockedBy: "Example Antennas",
-            lockReason: "locked on",
-          },
-          {
-            id: "c",
-            label: "Off, locked",
-            description: "",
-            kind: BOOL,
-            unit: null,
-            group: "",
-            setIn: "",
-            writable: true,
-            value: "False",
-            unavailable: null,
-            tags: [],
-            lockedBy: "Example Antennas",
-            lockReason: "locked off",
-          },
-        ],
-      },
-    },
-    pxW: 900,
-    pxH: 620,
-  },
-  {
-    // The charge setting switched on and not locked, to set beside the locked one.
-    name: "settings-loaded-save-charge-on",
-    tab: "gonogo",
-    connected: true,
-    emit: {
-      "system.uplinks": COMMS_ROSTER,
-      [KSP_TOPIC]: kspSettings(SAVED),
-      "settings.comms": commsSettings({ value: "True" }),
-    },
-    pxW: 900,
-    pxH: 620,
-  },
-  {
-    // The same with no save loaded: every row says so and none offers a control.
-    name: "settings-loaded-save-charge-no-save",
-    tab: "gonogo",
-    connected: true,
-    emit: {
-      "system.uplinks": COMMS_ROSTER,
-      [KSP_TOPIC]: kspSettings(SAVED),
-      "settings.comms": commsSettings({
-        value: null,
-        unavailable: "no save is loaded",
-      }),
-    },
-    pxW: 900,
-    pxH: 620,
-  },
-  {
-    // With Example Antennas installed: the switch at its value, disabled, with which Uplink and why.
-    name: "settings-loaded-save-charge-locked",
-    tab: "gonogo",
-    connected: true,
-    emit: {
-      "system.uplinks": COMMS_ROSTER,
-      [KSP_TOPIC]: kspSettings(SAVED),
-      "settings.comms": commsSettings({
-        value: "True",
-        lockedBy: "Example Antennas",
-        lockReason:
-          "Example Antennas already cuts the link of a craft with no charge",
-      }),
-    },
-    pxW: 900,
-    pxH: 620,
-  },
-  {
-    // The first-run setup's signal delay step: the comms settings Settings shows on its Gonogo tab, less the one the recommended step offers.
-    name: "setup-delay",
-    emit: {
-      "system.uplinks": COMMS_ROSTER,
-      "settings.comms": commsSettings({ value: "False" }),
-    },
-    pxW: 900,
-    pxH: 560,
-    connected: true,
-    setup: "delay",
-  },
-  {
-    // The first-run setup's recommended settings with a save loaded: the charge setting as a switch.
-    name: "setup-recommended-charge",
-    emit: {
-      "system.uplinks": COMMS_ROSTER,
-      "settings.comms": commsSettings({ value: "False" }),
-    },
-    pxW: 900,
-    pxH: 560,
-    connected: true,
-    setup: "recommended",
-  },
-  {
-    // The same before any save is loaded: the row says so and offers no switch.
-    name: "setup-recommended-charge-no-save",
-    emit: {
-      "system.uplinks": COMMS_ROSTER,
-      "settings.comms": commsSettings({
-        value: null,
-        unavailable: "no save is loaded",
-      }),
-    },
-    pxW: 900,
-    pxH: 560,
-    connected: true,
-    setup: "recommended",
-  },
-  {
-    // With Example Antennas installed: the value its Uplink holds, with which Uplink and why.
-    name: "setup-recommended-charge-locked",
-    emit: {
-      "system.uplinks": COMMS_ROSTER,
-      "settings.comms": commsSettings({
-        value: "True",
-        lockedBy: "Example Antennas",
-        lockReason:
-          "Example Antennas already cuts the link of a craft with no charge",
-      }),
-    },
-    pxW: 900,
-    pxH: 560,
-    connected: true,
-    setup: "recommended",
-  },
 ];
 
 /** The theme sheet whole, checked to be the tokens file. The border-box reset
@@ -889,7 +640,6 @@ async function main(): Promise<void> {
       outcomes,
       phone,
       fab,
-      setup,
     } of SCENES) {
       if (phoneOnly !== (phone !== undefined)) continue;
       await page.evaluate(
@@ -910,7 +660,6 @@ async function main(): Promise<void> {
           outcomes,
           modal: phone !== undefined && fab === undefined,
           fab: fab !== undefined,
-          setup,
         },
       );
       if (clickTab !== undefined) {

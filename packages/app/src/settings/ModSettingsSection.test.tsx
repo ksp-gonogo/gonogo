@@ -48,9 +48,6 @@ function row(fields: Partial<ModSettingRow> & { id: string }): ModSettingRow {
     unit: null,
     group: "",
     setIn: "",
-    tags: [],
-    lockedBy: null,
-    lockReason: null,
     writable: false,
     value: null,
     unavailable: null,
@@ -80,15 +77,12 @@ afterEach(() => {
   unmounts.length = 0;
 });
 
-function mount(
-  screenName: "main" | "station" = "main",
-  filter: { tag?: string; withoutTag?: string } = {},
-) {
+function mount(screenName: "main" | "station" = "main") {
   const fixture = setupStreamFixture();
   const view = render(
     <ScreenProvider value={screenName}>
       <fixture.Provider>
-        <ModSettingsSection uplinkId="streamer" name="Streamer" {...filter} />
+        <ModSettingsSection uplinkId="streamer" name="Streamer" />
       </fixture.Provider>
     </ScreenProvider>,
   );
@@ -105,73 +99,6 @@ async function publish(
 }
 
 describe("ModSettingsSection", () => {
-  it("draws a switch an Uplink locks at its value and disabled, with the Uplink and its reason under it", async () => {
-    registerDataSource(sitrep("connected"));
-    const { fixture, view } = mount();
-    await publish(
-      fixture,
-      model([
-        row({
-          id: "telemetryRequiresCharge",
-          label: "Vessel telemetry requires vessel charge",
-          writable: true,
-          value: "True",
-          setIn: "Difficulty settings, Gonogo",
-          lockedBy: "Example Antennas",
-          lockReason:
-            "Example Antennas already cuts the link of a craft with no charge",
-        }),
-      ]),
-    );
-
-    expect(
-      await screen.findByText("Vessel telemetry requires vessel charge"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Set by the Example Antennas Uplink: Example Antennas already cuts the link of a craft with no charge",
-      ),
-    ).toBeInTheDocument();
-    const toggle = screen.getByRole("checkbox", {
-      name: "Vessel telemetry requires vessel charge",
-    });
-    expect(toggle).toBeChecked();
-    expect(toggle).toHaveAttribute("aria-disabled", "true");
-    fireEvent.click(toggle);
-    expect(fixture.transport.sentCommands).toHaveLength(0);
-    await expectNoA11yViolations(view.container);
-  });
-
-  it("draws only the settings carrying the tag it is given", async () => {
-    registerDataSource(sitrep("connected"));
-    const { fixture } = mount("main", { tag: "setup" });
-    await publish(
-      fixture,
-      model([
-        row({ id: "charge", label: "Tagged", value: "True", tags: ["setup"] }),
-        row({ id: "delay", label: "Untagged", value: "True" }),
-      ]),
-    );
-
-    expect(await screen.findByText("Tagged")).toBeInTheDocument();
-    expect(screen.queryByText("Untagged")).toBeNull();
-  });
-
-  it("leaves out the settings carrying the tag it is told to leave out", async () => {
-    registerDataSource(sitrep("connected"));
-    const { fixture } = mount("main", { withoutTag: "setup" });
-    await publish(
-      fixture,
-      model([
-        row({ id: "charge", label: "Tagged", value: "True", tags: ["setup"] }),
-        row({ id: "delay", label: "Untagged", value: "True" }),
-      ]),
-    );
-
-    expect(await screen.findByText("Untagged")).toBeInTheDocument();
-    expect(screen.queryByText("Tagged")).toBeNull();
-  });
-
   it("draws a setting the Uplink does not offer to write as a value, never a control", async () => {
     registerDataSource(sitrep("connected"));
     const { fixture, view } = mount();

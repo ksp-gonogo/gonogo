@@ -19,9 +19,7 @@ namespace Gonogo.KSP
     /// the active backend's router, so a craft the graph reaches reads connected
     /// whatever its own cache says. A solve that ran and found no route is
     /// disconnected; a craft with no connection object, no active backend, or a
-    /// solve that could not be asked has no reading (null). A craft with no
-    /// electric charge is disconnected whatever the network says (see
-    /// <see cref="CraftPower"/>).</para>
+    /// solve that could not be asked has no reading (null).</para>
     ///
     /// <para>Main thread only.</para>
     /// </summary>
@@ -55,10 +53,9 @@ namespace Gonogo.KSP
                 {
                     return null;
                 }
-                var powered = CraftPowerBook.Shared.Powered(vessel);
                 if (vessel.loaded)
                 {
-                    return CraftPower.Link(conn.IsConnected && !CommNetBackend.CrossesUnpowered(conn.ControlPath), powered);
+                    return conn.IsConnected;
                 }
                 var comm = conn.Comm;
                 var backend = Backend();
@@ -74,7 +71,7 @@ namespace Gonogo.KSP
                         return backend.RouteBetween(CommsNodeHandle.Of(comm), home);
                     }));
                 Trace(vessel, id, solve);
-                return CraftPower.Link(solve.Connected, powered);
+                return solve.Connected;
             }
             catch (Exception ex)
             {

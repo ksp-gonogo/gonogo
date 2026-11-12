@@ -50,31 +50,6 @@ namespace Sitrep.Contract
             Group = group ?? string.Empty;
             SetIn = setIn ?? string.Empty;
             Writable = writable;
-            Tags = Array.Empty<string>();
-        }
-
-        private ModSetting(ModSetting from, IReadOnlyList<string> tags)
-            : this(from.Id, from.Label, from.Kind, from.Unit, from.Refresh, from.Description, from.Group, from.SetIn, from.Writable)
-        {
-            Tags = tags;
-        }
-
-        /// <summary>
-        /// This setting with <paramref name="tags"/> added, such as
-        /// <see cref="SettingTags.Setup"/> to offer it among the first-run
-        /// setup's recommended settings. A client ignores a tag it does not know.
-        /// </summary>
-        public ModSetting WithTags(params string[] tags)
-        {
-            var all = new List<string>(Tags);
-            foreach (var tag in tags ?? Array.Empty<string>())
-            {
-                if (!string.IsNullOrEmpty(tag) && !all.Contains(tag))
-                {
-                    all.Add(tag);
-                }
-            }
-            return new ModSetting(this, all);
         }
 
         /// <summary>A setting that is on or off.</summary>
@@ -141,9 +116,6 @@ namespace Sitrep.Contract
         /// write a setting not marked here.
         /// </summary>
         public bool Writable { get; }
-
-        /// <summary>The tags a client groups this setting by, such as <see cref="SettingTags.Setup"/>. Empty for none.</summary>
-        public IReadOnlyList<string> Tags { get; }
     }
 
     /// <summary>
@@ -157,15 +129,13 @@ namespace Sitrep.Contract
         private readonly double _number;
         private readonly string? _text;
 
-        private ModSettingValue(SettingKind? kind, bool boolValue, double number, string? text, string? unavailable, string? lockedBy = null, string? lockReason = null)
+        private ModSettingValue(SettingKind? kind, bool boolValue, double number, string? text, string? unavailable)
         {
             Kind = kind;
             _bool = boolValue;
             _number = number;
             _text = text;
             UnavailableReason = unavailable;
-            LockedBy = lockedBy;
-            LockReason = lockReason;
         }
 
         /// <summary>On or off.</summary>
@@ -182,27 +152,11 @@ namespace Sitrep.Contract
         public static ModSettingValue Unavailable(string reason) =>
             new ModSettingValue(null, false, 0, null, string.IsNullOrEmpty(reason) ? "unavailable" : reason);
 
-        /// <summary>
-        /// <paramref name="value"/>, held there by another Uplink so that it
-        /// cannot be changed from here, with that Uplink's name and its reason.
-        /// Gonogo refuses a write to a locked setting.
-        /// </summary>
-        public static ModSettingValue Locked(ModSettingValue value, string lockedBy, string reason) =>
-            new ModSettingValue(value.Kind, value._bool, value._number, value._text, value.UnavailableReason,
-                lockedBy ?? throw new ArgumentNullException(nameof(lockedBy)),
-                reason ?? throw new ArgumentNullException(nameof(reason)));
-
         /// <summary>The kind of value held, or null when it is unavailable.</summary>
         public SettingKind? Kind { get; }
 
         /// <summary>Why it could not be read, or null when it was.</summary>
         public string? UnavailableReason { get; }
-
-        /// <summary>The name of the Uplink holding the value, or null when nothing locks it.</summary>
-        public string? LockedBy { get; }
-
-        /// <summary>Why <see cref="LockedBy"/> holds the value, or null when nothing locks it.</summary>
-        public string? LockReason { get; }
 
         /// <summary>Whether the value was read.</summary>
         public bool IsAvailable => Kind.HasValue;
@@ -426,26 +380,6 @@ namespace Sitrep.Contract
         /// <summary>Why the value cannot be read right now, or null when it was.</summary>
         [SitrepUnit(Units.Text)]
         public string? Unavailable { get; set; }
-
-        /// <summary>
-        /// The tags the Uplink gave the setting, such as <c>setup</c> for one
-        /// offered among the first-run setup's recommended settings. Empty for
-        /// none; a client ignores a tag it does not know.
-        /// </summary>
-        [SitrepUnit(Units.Id)]
-        public List<string> Tags { get; set; } = new();
-
-        /// <summary>
-        /// The name of the Uplink holding the value where it is, or null when
-        /// nothing locks it. A locked setting cannot be changed, and
-        /// <c>settings.mod.write</c> refuses it.
-        /// </summary>
-        [SitrepUnit(Units.Text)]
-        public string? LockedBy { get; set; }
-
-        /// <summary>Why <see cref="LockedBy"/> holds the value, for the operator. Null when nothing locks it.</summary>
-        [SitrepUnit(Units.Text)]
-        public string? LockReason { get; set; }
     }
 
     /// <summary>
