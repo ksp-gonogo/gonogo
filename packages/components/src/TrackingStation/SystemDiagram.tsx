@@ -889,17 +889,7 @@ export function SystemDiagram({
       </svg>
 
       <div style={VIEW_BUTTONS}>
-        {placed.vessel && (
-          <TextButton
-            type="button"
-            aria-pressed={following}
-            onClick={view.focusVessel ?? (() => setFollowing(!following))}
-            style={following ? VIEW_BUTTON_ON : VIEW_BUTTON}
-          >
-            Focus vessel
-          </TextButton>
-        )}
-        {/* Hidden rather than absent while the view is whole, so Focus vessel keeps its place when a reset lets go. */}
+        {/* Hidden rather than absent while the view is whole, so it holds its room beside Focus vessel, which stays in the corner. */}
         <TextButton
           type="button"
           onClick={resetView}
@@ -913,6 +903,16 @@ export function SystemDiagram({
         >
           Reset view
         </TextButton>
+        {placed.vessel && (
+          <TextButton
+            type="button"
+            aria-pressed={following}
+            onClick={view.focusVessel ?? (() => setFollowing(!following))}
+            style={following ? VIEW_BUTTON_ON : VIEW_BUTTON}
+          >
+            Focus vessel
+          </TextButton>
+        )}
       </div>
     </div>
   );
