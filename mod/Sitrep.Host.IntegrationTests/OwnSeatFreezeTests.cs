@@ -124,12 +124,12 @@ namespace Sitrep.Host.IntegrationTests
 
                 for (var ut = 1.0; ut <= 10.0; ut += 1.0)
                 {
-                    engine.TickAndWait(ut, BreakSnapshot(ut, connected: true, breakOut: null), Timeout);
+                    TickAndWaitForOutboxes(engine, ut, BreakSnapshot(ut, connected: true, breakOut: null), Timeout);
                 }
-                engine.TickAndWait(11.0, BreakSnapshot(11.0, connected: false, breakOut: 5.0), Timeout);
+                TickAndWaitForOutboxes(engine, 11.0, BreakSnapshot(11.0, connected: false, breakOut: 5.0), Timeout);
                 for (var ut = 12.0; ut <= 20.0; ut += 1.0)
                 {
-                    engine.TickAndWait(ut, BreakSnapshot(ut, connected: false, breakOut: null), Timeout);
+                    TickAndWaitForOutboxes(engine, ut, BreakSnapshot(ut, connected: false, breakOut: null), Timeout);
                 }
 
                 var read = (await DrainAllStreamDataAsync(client, Quiet))

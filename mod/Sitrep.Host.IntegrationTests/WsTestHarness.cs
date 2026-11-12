@@ -109,6 +109,26 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// Ticks the engine and returns once every connected screen's outbox has
+        /// been pumped. A topic that keeps only its newest frame loses each
+        /// reading a later tick overwrites before the pump has sent it, so a test
+        /// asserting on every reading of such a topic ticks through this.
+        /// </summary>
+        internal static void TickAndWaitForOutboxes(ChannelEngine engine, double ut, KspSnapshot? snapshot, TimeSpan timeout)
+        {
+            engine.TickAndWait(ut, snapshot, timeout);
+            var deadline = DateTime.UtcNow + timeout;
+            while (engine.AnySessionHasQueuedFrames())
+            {
+                if (DateTime.UtcNow > deadline)
+                {
+                    throw new TimeoutException("the outboxes still held frames " + timeout.TotalMilliseconds + " ms after the tick at UT " + ut);
+                }
+                Thread.Sleep(1);
+            }
+        }
+
         public static async Task<T> ReceiveTypedAsync<T>(TestClient client, TimeSpan timeout) where T : class
         {
             var deadline = DateTime.UtcNow + timeout;
