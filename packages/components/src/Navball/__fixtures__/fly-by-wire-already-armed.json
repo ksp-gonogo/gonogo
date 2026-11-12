@@ -2,7 +2,8 @@
   "_meta": {
     "shows": "A dashboard opened while fly-by-wire, where the dashboard steers the craft in place of the pilot, is already armed on the craft, so the button reads armed though this dashboard never armed it.",
     "notes": "A page opened while the mod already has the fly-by-wire override armed on this craft, so vessel.control.flyByWire reads true and the button reads FBW ARMED with no command of this page's having armed it.",
-    "scenario": "fly-by-wire-already-armed"
+    "scenario": "fly-by-wire-already-armed",
+    "opensBelow": ["SAS Mode", "Throttle controls"]
   },
   "n.heading": 270,
   "n.pitch": -60,

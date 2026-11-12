@@ -2,7 +2,8 @@
   "_meta": {
     "shows": "Level flight upside down, ground above and sky below, under manual control.",
     "notes": "Inverted, wings level: 180\u00b0 roll. Sky and ground swap: warm/ground band on top, cool/sky band below. SAS off, manual flight.",
-    "scenario": "inverted-level"
+    "scenario": "inverted-level",
+    "opensBelow": ["SAS Mode", "Throttle controls"]
   },
   "n.heading": 90,
   "n.pitch": 0,

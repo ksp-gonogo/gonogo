@@ -2,7 +2,8 @@
   "_meta": {
     "shows": "No active or offered contracts, with one contract recently completed and two recently failed, each listed.",
     "scenario": "finished-contracts",
-    "notes": "The board after a flight: the completed contract with what it paid and each failed contract with what it cost."
+    "notes": "The board after a flight: the completed contract with what it paid and each failed contract with what it cost.",
+    "opensBelow": ["Active0", "Completed1", "Failed2", "Offered0"]
   },
   "contracts.active": [],
   "contracts.offered": [],

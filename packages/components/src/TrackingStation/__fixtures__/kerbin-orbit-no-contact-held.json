@@ -5,7 +5,8 @@
     "vessel": "LFV-2 Wave Probe",
     "body": "Kerbin",
     "situation": "Orbiting ~100km, out of contact",
-    "notes": "Derived from kerbin-orbit-placed-by-record.json. comms.link is server-stamped held (staleness 1) at the report instant, so the header badge takes the held grade rather than the transport-drop grade."
+    "notes": "Derived from kerbin-orbit-placed-by-record.json. comms.link is server-stamped held (staleness 1) at the report instant, so the header badge takes the held grade rather than the transport-drop grade.",
+    "opensBelow": ["Minmus", "Mun"]
   },
   "_stream": {
     "pinnedUt": 0,

@@ -5,7 +5,14 @@
     "vessel": "Ares (LEO parking orbit)",
     "body": "Earth (RSS)",
     "situation": "700 km LEO around Earth, Mars targeted, phase AT the Hohmann ideal, and a 5,700 m/s vacuum budget that lands one destination in each verdict state",
-    "notes": "Reach-list showcase. The budget is chosen so all three interesting verdicts are on screen at once: Mars GO (ejection 3,511 + capture 2,110 = 5,621, inside 5,700), Venus ONE WAY (departure 3,400 affordable, whole trip 6,780 not: Venus is cheaper to leave for than Mars and far dearer to arrive at), Jupiter MARGINAL (ejection 6,278, within a tenth of the budget, so the coplanar model declines to commit). Jupiter is added for the marginal case; the other three bodies match earth-mars-go."
+    "notes": "Reach-list showcase. The budget is chosen so all three interesting verdicts are on screen at once: Mars GO (ejection 3,511 + capture 2,110 = 5,621, inside 5,700), Venus ONE WAY (departure 3,400 affordable, whole trip 6,780 not: Venus is cheaper to leave for than Mars and far dearer to arrive at), Jupiter MARGINAL (ejection 6,278, within a tenth of the budget, so the coplanar model declines to commit). Jupiter is added for the marginal case; the other three bodies match earth-mars-go.",
+    "opensBelow": [
+      "Jupiter",
+      "Venus",
+      "in 4.3 y\u2014259 d",
+      "in 6.4 y\u2014259 d",
+      "in 780 d\u2014259 d"
+    ]
   },
   "_stream": {
     "pinnedUt": 0,

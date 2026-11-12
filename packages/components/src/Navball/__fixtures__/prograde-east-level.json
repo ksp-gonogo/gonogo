@@ -2,7 +2,8 @@
   "_meta": {
     "shows": "Level cruise heading east, the horizon across the middle of the dial, with SAS in stability assist.",
     "notes": "Baseline: level cruise on east heading. Horizon should bisect the dial perfectly. SAS in stability-assist, no RCS, throttle idle.",
-    "scenario": "prograde-east-level"
+    "scenario": "prograde-east-level",
+    "opensBelow": ["SAS Mode", "Throttle controls"]
   },
   "n.heading": 90,
   "n.pitch": 0,

@@ -75,14 +75,6 @@ export const PadDetail = styled.div`
   border-left: 2px solid var(--color-border-subtle);
 `;
 
-/** A craft's row and, while it is picked, its crew and launch control beneath it. */
-export const ShipSelection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
-  min-width: 0;
-`;
-
 export const PadColumn = styled.div`
   display: flex;
   flex-direction: column;

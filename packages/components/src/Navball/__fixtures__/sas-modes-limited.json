@@ -2,7 +2,8 @@
   "_meta": {
     "shows": "A probe core whose SAS level holds only stability assist, prograde and retrograde: the other modes are dimmed in the SAS mode grid.",
     "notes": "The mod publishes sasModesAvailable from the game's own per-mode check, so a mode the craft cannot hold is not offered as a live button.",
-    "scenario": "sas-modes-limited"
+    "scenario": "sas-modes-limited",
+    "opensBelow": ["SAS Mode", "Throttle controls"]
   },
   "n.heading": 270,
   "n.pitch": -60,
