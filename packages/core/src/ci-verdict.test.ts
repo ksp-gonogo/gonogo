@@ -1,8 +1,17 @@
 // @vitest-environment node
-import { readFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   AMBER_JOBS,
   classify,
@@ -125,5 +134,98 @@ describe("the workflow", () => {
   it("is forwarded by a script that refuses an amber commit", () => {
     expect(forward).toContain("ci/verdict");
     expect(forward).toContain("amber");
+  });
+});
+
+describe("the forwarder in a repository", () => {
+  const dirs: string[] = [];
+  afterEach(() => {
+    for (const dir of dirs.splice(0))
+      rmSync(dir, { recursive: true, force: true });
+  });
+
+  const git = (cwd: string, ...args: string[]) =>
+    execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
+
+  /**
+   * A repository whose `origin/staging` is its first commit, with a middle and a head commit on top, and a `gh` that
+   * answers the three calls the forwarder makes: the runs of the head, its verdict status, and each commit's hold.
+   */
+  const setup = (held: "none" | "middle" | "base", verdict = "") => {
+    const root = mkdtempSync(join(tmpdir(), "forward-"));
+    dirs.push(root);
+    const work = join(root, "work");
+    mkdirSync(work);
+    git(work, "init", "--quiet", "-b", "main");
+    git(work, "config", "user.email", "ci@example.test");
+    git(work, "config", "user.name", "ci");
+    const commit = (name: string) => {
+      writeFileSync(join(work, name), "x\n");
+      git(work, "add", ".");
+      git(work, "commit", "--quiet", "-m", name);
+      return git(work, "rev-parse", "HEAD");
+    };
+    const base = commit("base");
+    git(work, "update-ref", "refs/remotes/origin/staging", base);
+    const middle = commit("middle");
+    const head = commit("head");
+    const bin = join(root, "bin");
+    mkdirSync(bin);
+    const heldSha = held === "middle" ? middle : held === "base" ? base : "";
+    writeFileSync(
+      join(bin, "gh"),
+      `#!/usr/bin/env bash
+args="$*"
+case "$args" in
+  *actions/workflows/ci.yml/runs*)
+    echo '{"total_count":1,"workflow_runs":[{"id":1,"event":"push","head_branch":"ci-dev","status":"completed","conclusion":"success"}]}'
+    ;;
+  *ci/verdict*) echo '${verdict}' ;;
+  *ci/hold*)
+    case "$args" in
+      *commits/${heldSha || "none"}/*) echo 'hold: navball baselines held' ;;
+    esac
+    ;;
+esac
+`,
+    );
+    chmodSync(join(bin, "gh"), 0o755);
+    return { work, bin, head, middle };
+  };
+
+  const run = (work: string, bin: string, sha: string) =>
+    spawnSync(
+      "bash",
+      [join(repoRoot, "scripts/ci-dev-forward-verdict.sh"), "o/r", sha],
+      {
+        cwd: work,
+        encoding: "utf8",
+        env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+      },
+    );
+
+  it("forwards a head none of whose commits is held and whose verdict is not amber", () => {
+    const { work, bin, head } = setup("none");
+    expect(run(work, bin, head).status).toBe(0);
+  });
+
+  it("refuses a head that contains a held commit, and names the commit", () => {
+    const { work, bin, head, middle } = setup("middle");
+    const out = run(work, bin, head);
+    expect(out.status).toBe(1);
+    expect(out.stdout).toContain(middle);
+  });
+
+  it("does not count a commit staging already has, held or not", () => {
+    const { work, bin, head } = setup("base");
+    expect(run(work, bin, head).status).toBe(0);
+  });
+
+  it("refuses an amber head", () => {
+    const { work, bin, head } = setup(
+      "none",
+      "\u{1F7E0} amber: face-gate (2/2)",
+    );
+    expect(run(work, bin, head).status).toBe(1);
   });
 });

@@ -19,6 +19,8 @@
 # may fail on ci-dev without failing the run, and the commit then carries a
 # `ci/verdict` status that says amber. An amber commit is refused here, so it
 # stays on ci-dev until a later commit is green.
+#
+# A commit the operator stopped carries a failing `ci/hold` status, and every head that contains one is refused too, until the status is replaced by a passing one.
 set -euo pipefail
 
 repo="${1:?usage: ci-dev-forward-verdict.sh <owner/repo> <sha>}"
@@ -64,4 +66,12 @@ case "$grade" in
     exit 1
     ;;
 esac
+range="$(git rev-list --max-count=100 "origin/staging..$sha" 2>/dev/null || true)"
+for commit in $range; do
+  hold="$(gh api "repos/$repo/commits/$commit/statuses?per_page=100" --jq '[.[] | select(.context == "ci/hold")][0] | select(.state == "failure") | .description // "held"' 2>/dev/null || true)"
+  if [ -n "$hold" ]; then
+    echo "refusing: $commit is held back ($hold), so no head that contains it is forwarded"
+    exit 1
+  fi
+done
 echo "every CI run of $sha that reached a verdict passed ($green green)"
