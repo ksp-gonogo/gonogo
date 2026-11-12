@@ -540,6 +540,16 @@ describe("PanelDelayRail", () => {
       expect(rule).toContain("var(--color-warn-text)");
     });
 
+    it("stands the collapsed strip the whole band tall, so the count centres in the band instead of hugging the panel's top edge", () => {
+      const store = createDelayRailStore();
+      store.register(refusedHandle("cmd", 1));
+      const { container } = inPanel(<PanelDelayRail />, store);
+      const rail = container.querySelector("[data-panel-rail]") as HTMLElement;
+      expect(emittedRuleFor(rail)).toContain(
+        "min-height:var(--panel-rail-band)",
+      );
+    });
+
     it("stays open while the pointer moves from the strip onto the refusal list", async () => {
       const user = userEvent.setup();
       const store = createDelayRailStore();

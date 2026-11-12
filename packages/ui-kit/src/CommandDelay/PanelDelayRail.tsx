@@ -673,6 +673,8 @@ const PanelDelayRail__Rail = styled.div`
   height: auto;
   /* The band, and nothing over it: the strip a widget reserves is the strip the rail fills. */
   max-height: var(--panel-rail-band);
+  /* A count alone is one line tall, so without a floor the grid shrinks to it and the count rides the panel's top edge instead of centring in the band. */
+  min-height: var(--panel-rail-band);
   overflow: hidden;
   transition: max-height var(--duration-slow) var(--ease-standard);
 
