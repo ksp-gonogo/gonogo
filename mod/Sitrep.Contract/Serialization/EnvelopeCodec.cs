@@ -333,6 +333,12 @@ namespace Sitrep.Contract.Serialization
                 JsonWriter.AppendNumber(sb, msg.KeyframeIntervalUt.Value);
             }
 
+            if (msg.KeptThroughUt.HasValue)
+            {
+                AppendField(sb, "keptThroughUt");
+                JsonWriter.AppendNumber(sb, msg.KeptThroughUt.Value);
+            }
+
             sb.Append('}');
             return sb.ToString();
         }
@@ -355,6 +361,7 @@ namespace Sitrep.Contract.Serialization
                 Name = RequireString(raw, "name"),
                 Meta = ParseMetaRaw(RequireObject(raw, "meta")),
                 KeyframeIntervalUt = OptionalDouble(raw, "keyframeIntervalUt"),
+                KeptThroughUt = OptionalDouble(raw, "keptThroughUt"),
             };
         }
 

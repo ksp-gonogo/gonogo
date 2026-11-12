@@ -4015,6 +4015,14 @@ export interface EventMsg
 	* keyframe cadence, and on `timeline-reset`; absent means unknown, never zero.
 	*/
 	keyframeIntervalUt?: number;
+	/**
+	* On `timeline-reset`, the latest game time from before the load that the new
+	* timeline still includes: a reading validated at or before it stands,
+	* anything after it is gone. Absent on a `timeline-reset` means the load kept
+	* no history at all (a different game was loaded). Always absent on
+	* `subscribed`.
+	*/
+	keptThroughUt?: number;
 }
 /**
 * A command the client sends: the command id, its arguments, and a request id

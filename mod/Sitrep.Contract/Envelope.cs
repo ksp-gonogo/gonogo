@@ -90,6 +90,16 @@ public class EventMsg
     /// </summary>
     [SitrepUnit(Units.Seconds)]
     public double? KeyframeIntervalUt { get; set; }
+
+    /// <summary>
+    /// On <c>timeline-reset</c>, the latest game time from before the load that
+    /// the new timeline still includes: a reading validated at or before it
+    /// stands, anything after it is gone. Absent on a <c>timeline-reset</c> means
+    /// the load kept no history at all (a different game was loaded). Always
+    /// absent on <c>subscribed</c>.
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? KeptThroughUt { get; set; }
 }
 
 /// <summary>

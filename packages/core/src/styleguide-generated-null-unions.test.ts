@@ -103,6 +103,8 @@ const OMITTED_WHEN_NULL = new Set([
   "CapRate.samplesPerSecond",
   // EnvelopeCodec.WriteEventMsg guards it on HasValue: only a `subscribed` ack for a channel that declares a keyframe cadence carries one.
   "EventMsg.keyframeIntervalUt",
+  // EnvelopeCodec.WriteEventMsg guards it on HasValue: a `timeline-reset` that kept no history carries no key.
+  "EventMsg.keptThroughUt",
   // JsonWriter.AppendPendingUplink guards it on HasValue, because a zero throttle and an unknown value must never arrive looking the same.
   "PendingUplink.commandedValue",
   // JsonWriter.AppendCommsContactWindow writes a dish only where the link model named one: a window on an omni or a stock antenna carries neither.

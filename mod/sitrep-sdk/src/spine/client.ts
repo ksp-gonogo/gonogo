@@ -1763,6 +1763,15 @@ export class TelemetryClient {
     // branch existed, which is why the mod's own answer to "does anything
     // publish this topic" reached nothing that could use it.
     if (message.type === "event") {
+      if (message.name === "timeline-reset") {
+        const kept: unknown = message.keptThroughUt;
+        for (const store of this.stores) {
+          store.noteTimelineReset(
+            message.topic,
+            typeof kept === "number" ? kept : undefined,
+          );
+        }
+      }
       if (message.name === "subscribed") {
         this.ownership?.noteAck(message.topic);
         /* An ack can arrive after the window that called the topic unowned, and it is the mod's own answer. */

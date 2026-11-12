@@ -16941,6 +16941,17 @@ components:
             changed. A client judges a quiet change-driven Topic as overdue only once it
             has been silent longer than this. Absent when the channel declares no
             keyframe cadence, and on `timeline-reset`; absent means unknown, never zero.
+        keptThroughUt:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: ut
+          description: |-
+            On `timeline-reset`, the latest game time from before the load that the new
+            timeline still includes: a reading validated at or before it stands,
+            anything after it is gone. Absent on a `timeline-reset` means the load kept
+            no history at all (a different game was loaded). Always absent on
+            `subscribed`.
     ExperimentActionArgs:
       type: object
       description: |-

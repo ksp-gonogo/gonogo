@@ -72,6 +72,7 @@ export class ClientTimeline<Payload = unknown> {
   private droppedThrough: number | undefined;
   /** How many of the oldest points `supersedeBefore` has already passed over. */
   private superseded = 0;
+  private bridged = false;
 
   /** Bumped on every append that changes the buffer (insert or epoch-reset). Memo key for later tasks. */
   revision = 0;
@@ -106,6 +107,33 @@ export class ClientTimeline<Payload = unknown> {
     return this.currentEpoch;
   }
 
+  /**
+   * Whether the points held are from before a load that kept history. They
+   * stay readable across the store's epoch sweep until the load ends or this
+   * timeline's first sample of the new timeline lands.
+   */
+  get bridging(): boolean {
+    return this.bridged;
+  }
+
+  /**
+   * Answer a `timeline-reset` for this Topic: keep the points validated at or
+   * before `keptThroughUt` and drop the rest. With no `keptThroughUt` the load
+   * kept no history and everything goes at once.
+   */
+  retainThrough(keptThroughUt: number | undefined): void {
+    const keep =
+      keptThroughUt === undefined
+        ? 0
+        : this.firstIndexAfter(keptThroughUt, true);
+    if (keep < this.points.length) {
+      this.points.splice(keep);
+      this.superseded = Math.min(this.superseded, keep);
+      this.revision++;
+    }
+    this.bridged = this.points.length > 0;
+  }
+
   /** Insert a delivered sample, sorted by `validAt` (tie-break: `meta.seq`). */
   append(point: TimelinePoint<Payload>): void {
     if (point.epoch < this.currentEpoch) {
@@ -120,6 +148,7 @@ export class ClientTimeline<Payload = unknown> {
       this.currentEpoch = point.epoch;
       this.droppedThrough = undefined;
       this.superseded = 0;
+      this.bridged = false;
     }
 
     const index = this.insertionIndex(point);
@@ -203,7 +232,7 @@ export class ClientTimeline<Payload = unknown> {
    * than waiting for that topic's next sample.
    */
   adoptEpoch(epoch: number): void {
-    if (epoch <= this.currentEpoch) return;
+    if (epoch <= this.currentEpoch || this.bridged) return;
     this.points = [];
     this.currentEpoch = epoch;
     this.droppedThrough = undefined;

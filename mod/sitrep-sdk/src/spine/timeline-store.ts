@@ -1094,6 +1094,8 @@ export class TimelineStore {
       clearTimeout(this.gameOnset);
       this.gameOnset = undefined;
     }
+    this.loadRequested = state === "loading";
+    if (!this.loadRequested) this.endBridges();
     if (state === "loading") {
       this.gameOnset = setTimeout(() => {
         this.gameOnset = undefined;
@@ -1105,6 +1107,36 @@ export class TimelineStore {
       state: state === "no-game" ? "no-game" : "ready",
       scene,
     });
+  }
+
+  /**
+   * Answer a `timeline-reset` the mod sent for `topic`. While a load is in
+   * progress and kept history, the Topic's readings at or before
+   * `keptThroughUt` stand, graded `"loading"`, until the load ends. A load that
+   * kept none empties the Topic here. A reset with no load in progress leaves
+   * the readings to the first sample of the new timeline.
+   */
+  noteTimelineReset(topic: string, keptThroughUt: number | undefined): void {
+    const timeline = this.timelines.get(topic);
+    if (!timeline) return;
+    if (keptThroughUt !== undefined && !this.loadRequested) return;
+    timeline.retainThrough(keptThroughUt);
+    this.beginFrame();
+  }
+
+  /**
+   * Empty every timeline still standing on readings from before a load that
+   * kept history: the load is over, and the mod now holds each channel's first
+   * frame back, so nothing from before it is shown.
+   */
+  private endBridges(): void {
+    let ended = false;
+    for (const timeline of this.timelines.values()) {
+      if (!timeline.bridging) continue;
+      timeline.retainThrough(undefined);
+      ended = true;
+    }
+    if (ended) this.beginFrame();
   }
 
   /** What the game is doing as the operator is shown it. */
@@ -1119,6 +1151,8 @@ export class TimelineStore {
       this.gameListeners.delete(listener);
     };
   }
+
+  private loadRequested = false;
 
   private showGameStatus(status: GameStatus): void {
     if (
@@ -1740,14 +1774,14 @@ export class TimelineStore {
     const rawField = this.resolveRawFieldSubtopic(topic);
     if (!rawField) {
       const timeline = this.timelineFor<Payload>(topic);
-      if (timeline.epoch < epoch) return [];
+      if (timeline.epoch < epoch && !timeline.bridging) return [];
       return timeline.range(fromUt, toUt);
     }
 
     const parentTimeline = this.timelineFor<Record<string, unknown>>(
       rawField.rawTopic,
     );
-    if (parentTimeline.epoch < epoch) return [];
+    if (parentTimeline.epoch < epoch && !parentTimeline.bridging) return [];
 
     const out: TimelinePoint<Payload>[] = [];
     for (const point of parentTimeline.range(fromUt, toUt)) {
@@ -2398,7 +2432,7 @@ export class TimelineStore {
       `${topic}\0epoch\0${epoch}\0lane\0${lane}`,
       () => {
         const timeline = this.timelineFor<Payload>(topic);
-        if (timeline.epoch < epoch) return undefined;
+        if (timeline.epoch < epoch && !timeline.bridging) return undefined;
         return timeline.at(viewUt);
       },
     );
@@ -2562,7 +2596,7 @@ export class TimelineStore {
       `\0interp\0${topic}\0epoch\0${epoch}\0lane\0${lane}`,
       () => {
         const timeline = this.timelineFor<Payload>(topic);
-        if (timeline.epoch < epoch) return undefined;
+        if (timeline.epoch < epoch && !timeline.bridging) return undefined;
         const viewUt = this.viewUtFor(effectiveToken, lane);
         // A topic that is not continuous as a whole stands until its next sample.
         if (sampleKindOf(topic, [], this.declaredKinds) !== "continuous") {
@@ -3596,7 +3630,12 @@ export class TimelineStore {
   /** Whether `topic` has a point recorded under its own literal string, in this epoch, by the frame's view time. */
   private hasLiteralPoint(topic: string, token: FrameToken): boolean {
     const timeline = this.timelines.get(topic);
-    if (!timeline || timeline.epoch < this.clock.getEpoch()) return false;
+    if (
+      !timeline ||
+      (timeline.epoch < this.clock.getEpoch() && !timeline.bridging)
+    ) {
+      return false;
+    }
     return (
       timeline.at(this.viewUtFor(token, this.laneForTopic(topic))) !== undefined
     );
@@ -3638,6 +3677,7 @@ export class TimelineStore {
     const point = this.sample(topic, token);
     if (!point) return "resyncing";
     if (point.payload === null) return "absent";
+    if (this.timelineFor(topic).bridging) return "loading";
     /*
      * A reading about a craft that is no longer the active one is not a
      * reading of the active craft, whatever its age: it waits for the new

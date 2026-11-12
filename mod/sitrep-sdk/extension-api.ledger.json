@@ -9711,8 +9711,16 @@
         "note": "the time of the oldest point a timeline still holds"
       },
       {
+        "key": "sitrep-sdk ./spine ClientTimeline#get bridging",
+        "note": "New: whether a timeline holds readings from before a load that kept history"
+      },
+      {
         "key": "sitrep-sdk ./spine ClientTimeline#get size",
         "note": "how many points a timeline holds"
+      },
+      {
+        "key": "sitrep-sdk ./spine ClientTimeline#retainThrough",
+        "note": "New: keeps the readings at or before a UT after a timeline-reset and drops the rest"
       },
       {
         "key": "sitrep-sdk ./spine ClientTimeline#scaleMaxPoints",
@@ -10101,6 +10109,10 @@
       {
         "key": "sitrep-sdk ./spine TimelineStore#markTopicOwned",
         "note": "New: takes back an unowned verdict when the ack for a topic arrives after the window"
+      },
+      {
+        "key": "sitrep-sdk ./spine TimelineStore#noteTimelineReset",
+        "note": "New: answers a timeline-reset by keeping or emptying a Topic according to the history the load kept"
       },
       {
         "key": "sitrep-sdk ./spine TimelineStore#publishProcessor",
@@ -10703,6 +10715,10 @@
         "note": "New: takes back an unowned verdict when the ack for a topic arrives after the window"
       },
       {
+        "key": "sitrep-sdk ./testing TimelineStore#noteTimelineReset",
+        "note": "New: answers a timeline-reset by keeping or emptying a Topic according to the history the load kept"
+      },
+      {
         "key": "sitrep-sdk ./testing TimelineStore#publishProcessor",
         "note": "derived channels are retired: a processor can publish a Topic of its own, registered through registerProcessor"
       },
@@ -10795,8 +10811,16 @@
         "note": "the time of the oldest point a timeline still holds"
       },
       {
+        "key": "sitrep-sdk ./testing ~ClientTimeline#get bridging",
+        "note": "New: whether a timeline holds readings from before a load that kept history"
+      },
+      {
         "key": "sitrep-sdk ./testing ~ClientTimeline#get size",
         "note": "how many points a timeline holds"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ClientTimeline#retainThrough",
+        "note": "New: keeps the readings at or before a UT after a timeline-reset and drops the rest"
       },
       {
         "key": "sitrep-sdk ./testing ~ClientTimeline#scaleMaxPoints",

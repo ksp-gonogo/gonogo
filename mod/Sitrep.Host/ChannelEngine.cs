@@ -10841,7 +10841,7 @@ namespace Sitrep.Host
                 RecomputeChannelBirthFromArchive();
                 _failedCommands.Clear();
                 _recoveryWithdrawalPending = false;
-                BroadcastTimelineReset();
+                BroadcastTimelineReset(resetUt);
                 AnnounceTimelineEpoch();
                 AwaitLoadedWorld();
                 SendKeptAfterTimelineReset();
@@ -12889,7 +12889,7 @@ namespace Sitrep.Host
             }
         }
 
-        private void BroadcastTimelineReset()
+        private void BroadcastTimelineReset(double resetUt)
         {
             foreach (var session in _sessions.Values)
             {
@@ -12913,6 +12913,7 @@ namespace Sitrep.Host
                     {
                         Topic = topic,
                         Name = "timeline-reset",
+                        KeptThroughUt = double.IsInfinity(resetUt) || double.IsNaN(resetUt) ? null : resetUt,
                         Meta = new Meta
                         {
                             Source = NodeId,
