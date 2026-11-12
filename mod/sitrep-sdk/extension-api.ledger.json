@@ -14741,6 +14741,10 @@
         "note": "The config defineUplinkClient takes, named so the host and the facade share it; tags carries the Uplink's generated value tags"
       },
       {
+        "key": "sitrep-sdk . UplinkHealthEntry#setupModSettings?",
+        "note": "whether one of the Uplink's host mod settings is tagged setup, so the first-run setup can offer it among the recommended settings"
+      },
+      {
         "key": "sitrep-sdk . UseCommandOptions#confirmedBy?",
         "note": "a check of the telemetry for what one dispatch set; with it a ran dispatch stays in inFlight until the telemetry shows it, due then overdue a minute of game time after its reply"
       },
@@ -18289,6 +18293,10 @@
         "note": "The config defineUplinkClient takes, named so the host and the facade share it; tags carries the Uplink's generated value tags"
       },
       {
+        "key": "sitrep-sdk ./spine UplinkHealthEntry#setupModSettings?",
+        "note": "whether one of the Uplink's host mod settings is tagged setup, so the first-run setup can offer it among the recommended settings"
+      },
+      {
         "key": "sitrep-sdk ./spine UseCommandOptions#confirmedBy?",
         "note": "a check of the telemetry for what one dispatch set; with it a ran dispatch stays in inFlight until the telemetry shows it, due then overdue a minute of game time after its reply"
       },
@@ -19167,6 +19175,10 @@
       {
         "key": "sitrep-sdk ./spine ~RawUplinkEntry#reason",
         "note": "a processor can also publish a Topic, so the processor definition and its run carry the published result"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~RawUplinkEntry#setupModSettings?",
+        "note": "whether one of the Uplink's host mod settings is tagged setup, so the first-run setup can offer it among the recommended settings"
       },
       {
         "key": "sitrep-sdk ./spine ~RawUplinkEntry#version",

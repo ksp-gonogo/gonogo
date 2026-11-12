@@ -120,7 +120,7 @@ describe("ConsoleSettingsFromHost", () => {
     await publish(
       fixture,
       model([
-        { ...consoleRow("sound.enabled", false), path: "SIGNAL_DELAY/enabled" },
+        { ...consoleRow("sound.enabled", false), path: "RECORDING/enabled" },
         { ...consoleRow("sound.enabled", false), owner: "example" },
         consoleRow("mission.historyEnabled", false),
       ]),

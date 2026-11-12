@@ -97,7 +97,8 @@ export const WIZARD_COPY = {
   "delay.instruction":
     "With signal delay on, commands and readings take as long as light needs to travel between mission control and the craft, so a probe at Duna answers minutes after you ask. Each save has its own setting, and a new save starts with it on.",
   "delay.owner": "Gonogo",
-  "delay.later": "You can change it at any time in Settings, under Uplinks.",
+  "delay.later":
+    "You can change it at any time in Settings, on the Gonogo tab.",
 
   "uplinks.heading": "Uplinks",
   "uplinks.advance": "Review setup",

@@ -46,6 +46,9 @@ function delayRow(fields: Partial<ModSettingRow>): ModSettingRow {
     unit: null,
     group: "",
     setIn: "Difficulty settings, Gonogo",
+    tags: [],
+    lockedBy: null,
+    lockReason: null,
     writable: true,
     value: "True",
     unavailable: null,
@@ -62,14 +65,33 @@ function mount() {
       </fixture.Provider>
     </ScreenProvider>,
   );
-  const publish = async (row: ModSettingRow) => {
+  const publish = async (...rows: ModSettingRow[]) => {
+    await waitFor(() =>
+      expect(fixture.transport.isSubscribed("system.uplinks")).toBe(true),
+    );
+    act(() =>
+      fixture.emit("system.uplinks", {
+        uplinks: [
+          {
+            id: "comms",
+            name: null,
+            version: "1.0.0",
+            available: true,
+            reason: null,
+            modSettings: true,
+            bundled: true,
+            health: { state: 0, detail: null },
+          },
+        ],
+      }),
+    );
     await waitFor(() =>
       expect(fixture.transport.isSubscribed("settings.comms")).toBe(true),
     );
     act(() =>
       fixture.emit("settings.comms", {
         uplink: "comms",
-        settings: [row],
+        settings: rows,
         failure: null,
       }),
     );
@@ -102,6 +124,25 @@ describe("the signal delay step", () => {
       value: "False",
     });
     await expectNoA11yViolations(view.container);
+  });
+
+  it("leaves a comms setting tagged for the recommended settings step to that step", async () => {
+    const { publish } = mount();
+    await publish(
+      delayRow({}),
+      delayRow({
+        id: "telemetryRequiresCharge",
+        label: "Vessel telemetry requires vessel charge",
+        tags: ["setup"],
+      }),
+    );
+
+    expect(
+      await screen.findByRole("checkbox", { name: "Signal delay" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Vessel telemetry requires vessel charge"),
+    ).toBeNull();
   });
 
   it("offers no switch until a save is loaded", async () => {

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Sitrep.Contract;
 
 namespace Sitrep.Host.Settings
@@ -56,6 +57,9 @@ namespace Sitrep.Host.Settings
         /// <summary>The topic an Uplink's mod settings ride.</summary>
         public static string TopicFor(string uplinkId) => "settings." + uplinkId;
 
+        /// <summary>Whether the Uplink listed a setting carrying <paramref name="tag"/>.</summary>
+        public bool Lists(string tag) => _settings.Exists(s => s.Tags.Contains(tag));
+
         /// <summary>
         /// Read every setting that is due. <see cref="ModSettingRefresh.Save"/>
         /// settings are due whenever <paramref name="saveKey"/> differs from the
@@ -96,8 +100,8 @@ namespace Sitrep.Host.Settings
 
         /// <summary>
         /// One <c>settings.mod.write</c>. Refused, with the Uplink never asked,
-        /// when the setting is not listed, not writable, or the value is not of
-        /// its kind. The setting is read again straight after, whatever the
+        /// when the setting is not listed, not writable, locked by an Uplink, or
+        /// the value is not of its kind. The setting is read again straight after, whatever the
         /// Uplink answered, so the payload says what the mod now holds.
         /// </summary>
         public CommandResult Write(string id, string text)
@@ -111,6 +115,11 @@ namespace Sitrep.Host.Settings
             if (!setting.Writable || _writer == null)
             {
                 return CommandResult.Fail(CommandErrorCode.WrongState, setting.Label + " is not offered to be changed from here");
+            }
+
+            if (_values.TryGetValue(id, out var held) && held.LockedBy != null)
+            {
+                return CommandResult.Fail(CommandErrorCode.WrongState, setting.Label + " is set by the " + held.LockedBy + " Uplink: " + held.LockReason);
             }
 
             var value = Parse(setting.Kind, text);
@@ -173,7 +182,9 @@ namespace Sitrep.Host.Settings
             _values[setting.Id] = read;
             return !had
                 || before.Spelled() != read.Spelled()
-                || before.UnavailableReason != read.UnavailableReason;
+                || before.UnavailableReason != read.UnavailableReason
+                || before.LockedBy != read.LockedBy
+                || before.LockReason != read.LockReason;
         }
 
         private string? List()

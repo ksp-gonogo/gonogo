@@ -68,6 +68,9 @@ namespace Sitrep.Core
         {
             public string Vantage = string.Empty;
             public Action<StreamData> OnData = null!;
+
+            /// <summary>The newest ValidAt delivered to this subscriber, so a break opened at or before it has been told; null before the first delivery.</summary>
+            public double? GapToldThrough;
         }
 
         private sealed class PendingCommand
@@ -110,9 +113,20 @@ namespace Sitrep.Core
         /// </summary>
         public void SetNotCarriedByTheNode(Func<string, bool> topic) => _notCarriedByTheNode = topic;
 
-        /// <summary>Whether a sample of <paramref name="topic"/> sent from <paramref name="node"/> at <paramref name="sentAtUt"/> ran into a break in the node's route (see <see cref="INetwork.DropPath"/>).</summary>
-        private bool LostInFlight(string node, string topic, double sentAtUt) =>
-            (_notCarriedByTheNode == null || !_notCarriedByTheNode(topic)) && _network.Lost(node, sentAtUt);
+        private Func<string, string, bool>? _aboard;
+
+        /// <summary>
+        /// Names the vantages aboard a node, handed the node and the vantage: the
+        /// crew of a craft read it where they sit, over no route, so a break in
+        /// the craft's route never catches what they read.
+        /// </summary>
+        public void SetAboard(Func<string, string, bool> aboard) => _aboard = aboard;
+
+        /// <summary>Whether a sample of <paramref name="topic"/> sent from <paramref name="node"/> at <paramref name="sentAtUt"/> ran into a break in the node's route on its way to <paramref name="vantage"/> (see <see cref="INetwork.DropPath"/>).</summary>
+        private bool LostInFlight(string node, string topic, double sentAtUt, string vantage) =>
+            (_notCarriedByTheNode == null || !_notCarriedByTheNode(topic))
+            && (_aboard == null || !_aboard(node, vantage))
+            && _network.Lost(node, sentAtUt);
 
         // node -> Archive (one archive per node, shared across all topics on it).
         private readonly Dictionary<string, Archive> _archives = new Dictionary<string, Archive>();
@@ -155,21 +169,22 @@ namespace Sitrep.Core
         // ResetTimeline for the same reason as _linkDownSince.
         private readonly Dictionary<string, double> _subjectLinkDownSince = new Dictionary<string, double>();
 
-        // node -> topic -> the ONE sample on that topic that opens a known break
-        // in the record, as (its ValidAt, the ValidAt the break runs back to).
-        // See Meta.GapSinceUt.
+        // node -> topic -> the samples on that topic that open a known break in
+        // the record, oldest first, each as (its ValidAt, the ValidAt the break
+        // runs back to). See Meta.GapSinceUt.
         //
-        // Keyed by the sample's ValidAt rather than "the next delivery" because a
-        // LossyLatest delivery is a fire-time archive RE-READ (see Deliver), so
-        // WHICH sample a scheduled callback resolves to is not known when Record
-        // runs, and there are as many deliveries of it as there are subscribed
-        // vantages. Matching on ValidAt attaches the gap to that sample however
-        // many times and by whatever route it is served (scheduled delivery,
-        // catch-up, in-flight reschedule), and stops attaching it the moment a
-        // newer sample supersedes it. Superseded entries are dropped by the next
-        // higher-ValidAt Record for the same topic rather than accumulating.
-        private readonly Dictionary<string, Dictionary<string, (double ValidAt, double GapSinceUt)>> _gapOpeningSample =
-            new Dictionary<string, Dictionary<string, (double, double)>>();
+        // A subscriber is told a break on the first sample it is delivered at or
+        // after the one that opened it, rather than only on that exact sample: a
+        // LossyLatest delivery is a fire-time archive RE-READ (see Deliver), and
+        // under a signal delay several newer samples are recorded before the
+        // opening one reaches a centre, so the re-read can land past it. Which
+        // breaks a subscriber has been told is kept on it (Subscriber.GapToldThrough).
+        private readonly Dictionary<string, Dictionary<string, List<(double ValidAt, double GapSinceUt)>>> _gapOpeningSample =
+            new Dictionary<string, Dictionary<string, List<(double, double)>>>();
+
+        // The breaks a topic keeps once it has more: enough to cover every
+        // vantage's delay, never a history.
+        private const int GapsKeptPerTopic = 16;
 
         // node -> topic -> the last REVEALED (i.e. already-Record()ed, so
         // already past whatever reveal gate the caller runs in front of this
@@ -244,6 +259,23 @@ namespace Sitrep.Core
             _commandHandler = fn;
         }
 
+        private Func<string, string, bool>? _landsOnArrival;
+        private Action<string>? _lostOnArrival;
+
+        /// <summary>
+        /// Asks, as each command reaches its node, whether the node can take it
+        /// from that vantage now: <paramref name="lands"/> is handed the node and
+        /// the vantage. A command that cannot land is neither run nor answered,
+        /// the same silence as one sent into a link that is down, and
+        /// <paramref name="lost"/> is told its request id. With no check set every
+        /// command lands.
+        /// </summary>
+        public void SetArrivalCheck(Func<string, string, bool> lands, Action<string>? lost = null)
+        {
+            _landsOnArrival = lands;
+            _lostOnArrival = lost;
+        }
+
         /// <summary>
         /// Expected wall-clock (UT) duration of a full command round trip
         /// between <paramref name="vantage"/> and <paramref name="node"/>:
@@ -269,16 +301,11 @@ namespace Sitrep.Core
         /// to infer loss via ETA timeout rather than an explicit error
         /// response.
         ///
-        /// <para>Reachability is asked once, here, and never again, so a command
-        /// dispatched into a route that dies mid-flight still executes on the
-        /// craft and still confirms. <see cref="INetwork.DropPath"/> is what
-        /// could answer that, and the telemetry lanes consult it; this one does
-        /// not. The uplink leg's geometry is the mirror of the downlink's, so
-        /// the arithmetic is available, but a command reaching a dead route is
-        /// visible to an operator through <c>system.uplink.pending</c> and
-        /// changing when an entry leaves that queue is a wire decision rather
-        /// than an internal one. Left deliberately, in the open, rather than
-        /// guessed at.</para>
+        /// <para>Reachability of the route is asked once, here, so a command
+        /// dispatched into a route that dies mid-flight is not caught on the way.
+        /// What is asked again is whether the node can take it when it arrives
+        /// (see <see cref="SetArrivalCheck"/>): a craft whose own link is down by
+        /// then, out of contact or unpowered, never receives it.</para>
         ///
         /// <para><paramref name="sentAtUt"/> is the instant the command left, when
         /// the caller knows a later one than the clock has reached: the clock moves
@@ -364,6 +391,15 @@ namespace Sitrep.Core
             }
             pending.CancelExecute = _clock.Schedule(pending.ExecuteUt, () =>
             {
+                if (_landsOnArrival != null && !_landsOnArrival(pending.Node, pending.Vantage))
+                {
+                    lock (_commandsGate)
+                    {
+                        _pendingCommands.Remove(pending.RequestId);
+                    }
+                    _lostOnArrival?.Invoke(pending.RequestId);
+                    return;
+                }
                 var result = _commandHandler(
                     pending.Command, pending.Args, pending.Node, pending.Vantage, pending.Craft);
                 lock (_commandsGate)
@@ -991,7 +1027,7 @@ namespace Sitrep.Core
                 {
                     return;
                 }
-                subscriber.OnData(StreamDataFor(node, topic, subscriber.Vantage, addressed.Sample, fireAt, isCatchUp: false));
+                subscriber.OnData(StreamDataFor(node, topic, subscriber, addressed.Sample, fireAt, isCatchUp: false));
             });
         }
 
@@ -1047,7 +1083,7 @@ namespace Sitrep.Core
             // see Record's isKeyframe parameter.
             if (_stickyKeyframes.TryGetValue(node, out var stickyByTopic) && stickyByTopic.TryGetValue(topic, out var sticky))
             {
-                subscriber.OnData(StreamDataFor(node, topic, vantage, sticky, now, isCatchUp: true));
+                subscriber.OnData(StreamDataFor(node, topic, subscriber, sticky, now, isCatchUp: true));
             }
             else
             {
@@ -1076,7 +1112,7 @@ namespace Sitrep.Core
                 var arrivedAt = double.NegativeInfinity;
                 foreach (var sample in archived)
                 {
-                    if (LostInFlight(node, topic, sample.ValidAt))
+                    if (LostInFlight(node, topic, sample.ValidAt, vantage))
                     {
                         continue;
                     }
@@ -1266,7 +1302,7 @@ namespace Sitrep.Core
                     sampleInstant != null ? Math.Max(fireUt, sampleInstant.Value + stampedDelaySeconds.Value) : fireUt)
                 : archive.ReadAtVantage(
                     topic, subscriber.Vantage, _network.DelayTo(subscriber.Vantage, node), fireUt);
-            if (sample == null || LostInFlight(node, topic, sample.Value.ValidAt))
+            if (sample == null || LostInFlight(node, topic, sample.Value.ValidAt, subscriber.Vantage))
             {
                 return;
             }
@@ -1281,7 +1317,7 @@ namespace Sitrep.Core
             var served = asEpoch == null
                 ? sample.Value
                 : new ArchiveSample(sample.Value.Value, sample.Value.ValidAt, asEpoch.Value, sample.Value.Stamp, sample.Value.SampleId);
-            subscriber.OnData(StreamDataFor(node, topic, subscriber.Vantage, served, fireUt, isCatchUp));
+            subscriber.OnData(StreamDataFor(node, topic, subscriber, served, fireUt, isCatchUp));
         }
 
         /// <summary>
@@ -1329,62 +1365,84 @@ namespace Sitrep.Core
         /// </summary>
         private void DeliverSample(string node, string topic, Subscriber subscriber, ArchiveSample forwarded, double fireUt)
         {
-            if (LostInFlight(node, topic, forwarded.ValidAt))
+            if (LostInFlight(node, topic, forwarded.ValidAt, subscriber.Vantage))
             {
                 return;
             }
             // Nothing is re-read here, but the vantage has now been told about
             // this scene, and retention prunes to what each vantage has been told.
             ArchiveFor(node).NoteRead(topic, subscriber.Vantage, forwarded.ValidAt);
-            subscriber.OnData(StreamDataFor(node, topic, subscriber.Vantage, forwarded, fireUt, isCatchUp: false));
+            subscriber.OnData(StreamDataFor(node, topic, subscriber, forwarded, fireUt, isCatchUp: false));
         }
 
-        private StreamData StreamDataFor(string node, string topic, string vantage, ArchiveSample sample, double deliveredAt, bool isCatchUp)
+        private StreamData StreamDataFor(string node, string topic, Subscriber subscriber, ArchiveSample sample, double deliveredAt, bool isCatchUp)
         {
-            var staleness = isCatchUp ? ResolveStaleness(node, vantage, sample) : Staleness.Fresh;
-            return StreamDataFor(node, topic, vantage, sample, deliveredAt, staleness, GapFor(node, topic, sample.ValidAt));
+            var staleness = isCatchUp ? ResolveStaleness(node, subscriber.Vantage, sample) : Staleness.Fresh;
+            return StreamDataFor(node, topic, subscriber.Vantage, sample, deliveredAt, staleness, GapFor(node, topic, sample.ValidAt, subscriber));
         }
 
         /// <summary>
         /// Record that the sample at <paramref name="validAtUt"/> opens a known
-        /// break in <paramref name="topic"/>'s record, and drop a superseded
-        /// entry: see <see cref="_gapOpeningSample"/>. A <c>null</c>
-        /// <paramref name="gapSinceUt"/> (every ordinary call site) only prunes.
+        /// break in <paramref name="topic"/>'s record: see <see cref="_gapOpeningSample"/>.
+        /// A <c>null</c> <paramref name="gapSinceUt"/> (every ordinary call site) records nothing.
         /// </summary>
         private void NoteGapOpeningSample(string node, string topic, double validAtUt, double? gapSinceUt)
         {
-            if (!_gapOpeningSample.TryGetValue(node, out var byTopic))
+            if (gapSinceUt == null)
             {
-                if (gapSinceUt == null)
-                {
-                    return;
-                }
-                byTopic = new Dictionary<string, (double, double)>();
-                _gapOpeningSample[node] = byTopic;
-            }
-
-            if (gapSinceUt != null)
-            {
-                byTopic[topic] = (validAtUt, gapSinceUt.Value);
                 return;
             }
-
-            if (byTopic.TryGetValue(topic, out var held) && validAtUt > held.ValidAt)
+            if (!_gapOpeningSample.TryGetValue(node, out var byTopic))
             {
-                byTopic.Remove(topic);
+                byTopic = new Dictionary<string, List<(double, double)>>();
+                _gapOpeningSample[node] = byTopic;
+            }
+            if (!byTopic.TryGetValue(topic, out var opened))
+            {
+                opened = new List<(double, double)>();
+                byTopic[topic] = opened;
+            }
+            opened.Add((validAtUt, gapSinceUt.Value));
+            if (opened.Count > GapsKeptPerTopic)
+            {
+                opened.RemoveAt(0);
             }
         }
 
-        /// <summary><see cref="Meta.GapSinceUt"/> for the sample at <paramref name="validAtUt"/>, or null when it opens no known break.</summary>
-        private double? GapFor(string node, string topic, double validAtUt)
+        /// <summary>
+        /// <see cref="Meta.GapSinceUt"/> for the sample at <paramref name="validAtUt"/>
+        /// as delivered to <paramref name="subscriber"/>, or null when it tells
+        /// that subscriber of no break. A break is told on the first sample the
+        /// subscriber is delivered at or after the one that opened it, running
+        /// back to the earliest such break not yet told. A first delivery tells
+        /// only a break opened by that very sample: the subscriber holds nothing
+        /// older for a hole to run back into.
+        /// </summary>
+        private double? GapFor(string node, string topic, double validAtUt, Subscriber subscriber)
         {
-            if (_gapOpeningSample.TryGetValue(node, out var byTopic)
-                && byTopic.TryGetValue(topic, out var held)
-                && held.ValidAt == validAtUt)
+            var toldThrough = subscriber.GapToldThrough;
+            if (toldThrough != null && validAtUt <= toldThrough.Value)
             {
-                return held.GapSinceUt;
+                return null;
             }
-            return null;
+            subscriber.GapToldThrough = validAtUt;
+
+            if (!_gapOpeningSample.TryGetValue(node, out var byTopic) || !byTopic.TryGetValue(topic, out var opened))
+            {
+                return null;
+            }
+            double? gap = null;
+            foreach (var entry in opened)
+            {
+                var untold = toldThrough == null
+                    ? entry.ValidAt == validAtUt
+                    : entry.ValidAt > toldThrough.Value && entry.ValidAt <= validAtUt;
+                if (untold && (gap == null || entry.GapSinceUt < gap))
+                {
+                    gap = entry.GapSinceUt;
+                }
+            }
+            return gap;
         }
 
         /// <summary>
@@ -1798,7 +1856,7 @@ namespace Sitrep.Core
                             var arrivedAt = double.NegativeInfinity;
                             foreach (var sample in archived)
                             {
-                                if (LostInFlight(node, topic, sample.ValidAt))
+                                if (LostInFlight(node, topic, sample.ValidAt, subscriber.Vantage))
                                 {
                                     continue;
                                 }
@@ -1824,7 +1882,7 @@ namespace Sitrep.Core
                         if (held != null)
                         {
                             var current = new ArchiveSample(held.Value.Value, held.Value.ValidAt, _epoch, held.Value.Stamp, held.Value.SampleId);
-                            subscriber.OnData(StreamDataFor(node, topic, subscriber.Vantage, current, now, isCatchUp: false));
+                            subscriber.OnData(StreamDataFor(node, topic, subscriber, current, now, isCatchUp: false));
                         }
                         ScheduleInFlight(node, topic, subs, subscriber, archived, _network.DelayTo(subscriber.Vantage, node), now, _epoch, _lastResetUt);
                     }

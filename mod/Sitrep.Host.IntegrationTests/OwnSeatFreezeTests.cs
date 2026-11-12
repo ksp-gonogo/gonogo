@@ -101,6 +101,62 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// A break in the craft's route catches light crossing it, and what the
+        /// craft sends until word of the break reaches it, for every centre. The
+        /// crew aboard read the craft over no route, so the seat reads straight
+        /// through the cut with no stall.
+        /// </summary>
+        [Fact]
+        public async Task TheSeatReadsStraightThroughABreakInTheCraftsRoute()
+        {
+            var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new ConnectivityHorizonTestUplink());
+            engine.RegisterCommandCentreSource(new SeatSource());
+            engine.Start();
+            try
+            {
+                engine.TickAndWait(0.0, BreakSnapshot(0.0, connected: true, breakOut: null), Timeout);
+                engine.SetActiveVesselDelays(new Dictionary<string, double> { [Seat] = 0.0 });
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = Seat }));
+                await SubscribeAsync(client, ConnectivityHorizonTestUplink.DelayedTopic, Timeout);
+
+                for (var ut = 1.0; ut <= 10.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, BreakSnapshot(ut, connected: true, breakOut: null), Timeout);
+                }
+                engine.TickAndWait(11.0, BreakSnapshot(11.0, connected: false, breakOut: 5.0), Timeout);
+                for (var ut = 12.0; ut <= 20.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, BreakSnapshot(ut, connected: false, breakOut: null), Timeout);
+                }
+
+                var read = (await DrainAllStreamDataAsync(client, Quiet))
+                    .Where(f => f.Topic == ConnectivityHorizonTestUplink.DelayedTopic && f.Payload != null)
+                    .Select(f => Convert.ToDouble(f.Payload))
+                    .ToList();
+                for (var ut = 1.0; ut <= 20.0; ut += 1.0)
+                {
+                    Assert.Contains(ut, read);
+                }
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        private static KspSnapshot BreakSnapshot(double ut, bool connected, double? breakOut)
+        {
+            var snapshot = ConnectivityHorizonTestUplink.Snapshot(ut, connected, delay: connected ? 5.0 : 0.0, delayed: ut, breakOut: breakOut);
+            snapshot.Values["vessel"] = new Dictionary<string, object?>
+            {
+                ["identity"] = new Dictionary<string, object?> { ["id"] = Craft },
+            };
+            return snapshot;
+        }
+
         private sealed class SeatSource : ICommandCentreSource
         {
             public string ProviderId => "seat-test";

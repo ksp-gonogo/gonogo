@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Sitrep.Contract;
 
 namespace Sitrep.Host.Settings
@@ -59,6 +60,9 @@ namespace Sitrep.Host.Settings
                 ["writable"] = setting.Writable,
                 ["value"] = value.IsAvailable ? value.Spelled() : null,
                 ["unavailable"] = value.IsAvailable ? null : value.UnavailableReason ?? "not read yet",
+                ["tags"] = setting.Tags.Select(tag => (object?)tag).ToList(),
+                ["lockedBy"] = value.LockedBy,
+                ["lockReason"] = value.LockReason,
             };
     }
 }

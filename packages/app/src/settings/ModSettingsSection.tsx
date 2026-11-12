@@ -43,14 +43,21 @@ type Pending = Record<string, string>;
  * it; every other one is a value, never a disabled control. What the topic
  * says afterwards is the only authority for whether a write landed, so a
  * control shows the value it asked for only until the topic agrees or the
- * write is refused.
+ * write is refused. A switch an Uplink locks is drawn at its value and cannot
+ * be changed, with the Uplink's name and reason under it.
  */
 export function ModSettingsSection({
   uplinkId,
   name,
+  tag,
+  withoutTag,
 }: {
   uplinkId: string;
   name: string;
+  /** Only the settings carrying this tag. */
+  tag?: string;
+  /** Leave out the settings carrying this tag. */
+  withoutTag?: string;
 }) {
   const stationOnly = useScreen() === "station";
   const hostDown = useTelemetryHostDown();
@@ -102,7 +109,13 @@ export function ModSettingsSection({
     );
   }
 
-  if (model.settings.length === 0) {
+  const settings = model.settings.filter(
+    (s) =>
+      (tag === undefined || (s.tags ?? []).includes(tag)) &&
+      (withoutTag === undefined || !(s.tags ?? []).includes(withoutTag)),
+  );
+
+  if (settings.length === 0) {
     return <Empty>{name} lists no settings</Empty>;
   }
 
@@ -151,13 +164,13 @@ export function ModSettingsSection({
     />
   );
   const grouped = bucketBy(
-    model.settings.filter((s) => s.group !== ""),
+    settings.filter((s) => s.group !== ""),
     (s) => s.group,
   );
 
   return (
     <Stack gap="related-comfortable">
-      {model.settings.filter((s) => s.group === "").map(drawRow)}
+      {settings.filter((s) => s.group === "").map(drawRow)}
       {[...grouped.entries()].map(([group, rows]) => (
         <Stack gap="related-dense" key={group}>
           <GroupTitle>{group}</GroupTitle>
@@ -186,7 +199,24 @@ function ModSettingLine({
   writeBool: ValueCommand<boolean, unknown, unknown>;
 }) {
   const known = row.value !== null && row.value !== undefined;
-  if (!row.writable || !known) {
+  if (row.lockedBy && known && row.kind === SettingKind.Bool) {
+    return (
+      <SettingLine>
+        <RowText>
+          <RowLabel>{row.label}</RowLabel>
+          <About row={row} />
+        </RowText>
+        <Switch
+          state={row.value === "True"}
+          command={writeBool}
+          unavailable={`Set by the ${row.lockedBy} Uplink`}
+          aria-label={row.label}
+        />
+      </SettingLine>
+    );
+  }
+
+  if (!row.writable || !known || row.lockedBy) {
     return (
       <SettingReadOnlyLine>
         <ReadOnlyField
@@ -270,15 +300,25 @@ function ModSettingInput({
 }
 
 function hasAbout(row: ModSettingRow): boolean {
-  return row.description !== "" || row.setIn !== "" || !!row.unavailable;
+  return (
+    row.description !== "" ||
+    row.setIn !== "" ||
+    !!row.unavailable ||
+    !!row.lockedBy
+  );
 }
 
-/** What the setting is for, where in the game it is set, and why it cannot be read right now. */
+/** What the setting is for, which Uplink locks it and why, where in the game it is set, and why it cannot be read right now. */
 function About({ row }: { row: ModSettingRow }) {
   return (
     <AboutLines>
       {row.description && <RowDesc>{row.description}</RowDesc>}
-      {row.setIn && <RowDesc>Set in {row.setIn}</RowDesc>}
+      {row.lockedBy && (
+        <RowDesc>
+          Set by the {row.lockedBy} Uplink: {row.lockReason}
+        </RowDesc>
+      )}
+      {row.setIn && !row.lockedBy && <RowDesc>Set in {row.setIn}</RowDesc>}
       {row.unavailable && <RowDesc>{row.unavailable}</RowDesc>}
     </AboutLines>
   );

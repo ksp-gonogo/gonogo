@@ -6390,6 +6390,23 @@ export interface ModSettingRow
 	value?: string | null;
 	/** Why the value cannot be read right now, or null when it was. */
 	unavailable?: string | null;
+	/**
+	* The tags the Uplink gave the setting, such as `setup` for one offered among
+	* the first-run setup's recommended settings. Empty for none; a client ignores
+	* a tag it does not know.
+	*/
+	tags: string[];
+	/**
+	* The name of the Uplink holding the value where it is, or null when nothing
+	* locks it. A locked setting cannot be changed, and `settings.mod.write`
+	* refuses it.
+	*/
+	lockedBy?: string | null;
+	/**
+	* Why `ModSettingRow.lockedBy` holds the value, for the operator. Null when
+	* nothing locks it.
+	*/
+	lockReason?: string | null;
 }
 /**
 * Arguments to `settings.mod.write`: change one of a host mod's own settings
