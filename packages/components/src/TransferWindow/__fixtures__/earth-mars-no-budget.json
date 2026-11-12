@@ -5,13 +5,7 @@
     "vessel": "Ares (LEO parking orbit)",
     "body": "Earth (RSS)",
     "situation": "700 km LEO around Earth, Mars targeted, and the delta-v summary confirmed absent",
-    "notes": "The confirmed-absent state, a first-class state rather than an edge. The mod sends dv.summary as null when stock's delta-v simulation has nothing for the craft at that moment: the craft is not loaded, or the simulation is not ready (scene load, the moment after a staging event) or is disabled. It is usually brief. The tile shows the no-data token in the Budget slot with the reason as its tip, and no sentence. Costs and window times do not depend on the budget and stay; there is no verdict at all, which is not the same as a NO verdict.",
-    "opensBelow": [
-      "Venus",
-      "in 4.3 y\u2014259 d",
-      "in 6.4 y\u2014259 d",
-      "in 780 d\u2014259 d"
-    ]
+    "notes": "The confirmed-absent state, a first-class state rather than an edge. The mod sends dv.summary as null when stock's delta-v simulation has nothing for the craft at that moment: the craft is not loaded, or the simulation is not ready (scene load, the moment after a staging event) or is disabled. It is usually brief. The tile shows the no-data token in the Budget slot with the reason as its tip, and no sentence. Costs and window times do not depend on the budget and stay; there is no verdict at all, which is not the same as a NO verdict."
   },
   "_stream": {
     "pinnedUt": 0,

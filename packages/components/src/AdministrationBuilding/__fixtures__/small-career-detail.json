@@ -2,8 +2,7 @@
   "_meta": {
     "shows": "An early career with 525,000 funds and Aggressive Negotiations active, Fundraising Campaign available and Patriotism Drive locked behind a reputation requirement.",
     "notes": "Hand-authored (not a live capture) used ONLY by the M3b career-detail golden dual-run (dual-run.test.tsx). career.status.strategies.all (CareerViewProvider.BuildStrategyList) carries initialCostReputation and no scaled figure.",
-    "scenario": "small-career-detail",
-    "opensBelow": ["Available", "Locked"]
+    "scenario": "small-career-detail"
   },
   "strategies.all": [
     {

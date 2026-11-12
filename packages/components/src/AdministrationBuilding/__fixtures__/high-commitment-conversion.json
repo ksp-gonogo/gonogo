@@ -2,8 +2,7 @@
   "_meta": {
     "shows": "Open Source Tech running at full commitment, converting 5% of funds earned into science, with long effect text; the other two strategies are listed but each says to deactivate the running one first.",
     "notes": "High-commitment strategy: a funds-to-science conversion running at factor=1.0 (maximum commitment). Shows long multi-bullet effect text. No other slots consumed, room for one more strategy. Good resources.",
-    "scenario": "high-commitment-conversion",
-    "opensBelow": ["Available"]
+    "scenario": "high-commitment-conversion"
   },
   "strategies.all": [
     {

@@ -2,8 +2,7 @@
   "_meta": {
     "shows": "One active contract with one of its three terms complete and one offered contract, with two contracts recently failed counted in the summary line.",
     "scenario": "recently-failed-contracts",
-    "notes": "The same board as active-mission-partial, plus career.status contracts.failedRecent carrying two failed contracts, so the summary counts them.",
-    "opensBelow": ["Active1", "Completed0", "Failed2", "Offered1"]
+    "notes": "The same board as active-mission-partial, plus career.status contracts.failedRecent carrying two failed contracts, so the summary counts them."
   },
   "contracts.active": [
     {

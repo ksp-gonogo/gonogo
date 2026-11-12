@@ -450,17 +450,6 @@ function craftSourceOf(payload: unknown): string | undefined {
  */
 export const GAME_LOADING_ONSET_MS = 750;
 
-function hasSignalDelay(seconds: number): boolean {
-  return seconds > 0 && Number.isFinite(seconds);
-}
-
-/**
- * How long after a load ends a Topic may keep standing on readings from before
- * it, waiting for the mod to send what its command centre had heard at the save.
- * Past this the Topic blanks until its first fresh reading.
- */
-const LOAD_BRIDGE_GRACE_MS = 5000;
-
 /** How long a notice about a game load stays on screen, in seconds: the "Game loaded" banner, and the status line of a command the load undid. */
 export const GAME_LOAD_NOTICE_SECONDS = 10;
 
@@ -1024,8 +1013,6 @@ export class TimelineStore {
    */
   private gameShown: GameStatus = { state: "ready", scene: "" };
   private gameOnset: ReturnType<typeof setTimeout> | undefined;
-  private bridgeGrace: ReturnType<typeof setTimeout> | undefined;
-  private delayedAtLoadStart = false;
   private readonly gameListeners = new Set<() => void>();
 
   /**
@@ -1107,15 +1094,8 @@ export class TimelineStore {
       clearTimeout(this.gameOnset);
       this.gameOnset = undefined;
     }
-    if (this.bridgeGrace !== undefined) {
-      clearTimeout(this.bridgeGrace);
-      this.bridgeGrace = undefined;
-    }
-    if (state === "loading" && !this.loadRequested) {
-      this.delayedAtLoadStart = hasSignalDelay(this.clock.delaySeconds());
-    }
     this.loadRequested = state === "loading";
-    if (!this.loadRequested) this.endBridgesAfterLoad();
+    if (!this.loadRequested) this.endBridges();
     if (state === "loading") {
       this.gameOnset = setTimeout(() => {
         this.gameOnset = undefined;
@@ -1142,32 +1122,6 @@ export class TimelineStore {
     if (keptThroughUt !== undefined && !this.loadRequested) return;
     timeline.retainThrough(keptThroughUt);
     this.beginFrame();
-  }
-
-  /*
-   * With a delay the mod sends each Topic what its command centre had heard at
-   * the save a tick after the load ends, so a Topic keeps its readings until its
-   * first reading of the new timeline replaces them, or the grace runs out. With
-   * no delay the loaded world's own first frame is the next thing sent and the
-   * Topic blanks at once until it arrives.
-   */
-  private endBridgesAfterLoad(): void {
-    /*
-     * The delay is read again at the end of the load only as a second
-     * opinion: the load empties the Topics the delay is learned from, so on a
-     * first load it can read zero here while the screen was delayed before.
-     */
-    if (
-      !this.delayedAtLoadStart &&
-      !hasSignalDelay(this.clock.delaySeconds())
-    ) {
-      this.endBridges();
-      return;
-    }
-    this.bridgeGrace = setTimeout(() => {
-      this.bridgeGrace = undefined;
-      this.endBridges();
-    }, LOAD_BRIDGE_GRACE_MS);
   }
 
   /**

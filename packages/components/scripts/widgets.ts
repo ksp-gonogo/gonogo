@@ -1004,7 +1004,7 @@ const WIDGETS: WidgetRenderConfig[] = [
         w: 14,
         h: 16,
         // The fourth craft in launch order, which the fixture sends no parts for.
-        clicks: [{ selector: "[data-ship-row]:nth-child(4)" }],
+        clicks: [{ selector: "div:nth-child(4) > [data-ship-row]" }],
         forFixtures: ["pad-craft-parts"],
       },
       // A greyed-out craft row under the pointer: the row's own tip gives the reason.

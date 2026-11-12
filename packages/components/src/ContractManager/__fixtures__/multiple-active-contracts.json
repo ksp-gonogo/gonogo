@@ -2,8 +2,7 @@
   "_meta": {
     "shows": "Three active contracts at once, with deadlines in days and hours, in hours and none at all, and no offered contracts.",
     "scenario": "multiple-active-contracts",
-    "notes": "Three active contracts simultaneously: tests the ScrollArea / overflow behaviour and verifies the section labels render correctly. Includes a big-string contract ID (exceeds JS safe-integer range). No offered contracts. Deadline formats: days+hours, hours, no-deadline.",
-    "opensBelow": ["Active3", "Completed1", "Failed0", "Offered0"]
+    "notes": "Three active contracts simultaneously: tests the ScrollArea / overflow behaviour and verifies the section labels render correctly. Includes a big-string contract ID (exceeds JS safe-integer range). No offered contracts. Deadline formats: days+hours, hours, no-deadline."
   },
   "contracts.active": [
     {

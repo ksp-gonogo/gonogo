@@ -2,8 +2,7 @@
   "_meta": {
     "shows": "Fly-by-wire armed under a signal delay long enough to warn, so the control surface carries both the delay strip and the warning line.",
     "notes": "The fly-by-wire-already-armed state plus a 3 second one-way comms delay.",
-    "scenario": "fly-by-wire-delayed",
-    "opensBelow": ["SAS Mode", "Throttle controls"]
+    "scenario": "fly-by-wire-delayed"
   },
   "n.heading": 270,
   "n.pitch": -60,

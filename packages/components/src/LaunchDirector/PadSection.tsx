@@ -156,16 +156,15 @@ export function PadSection(props: PadSectionProps) {
                     }}
                   />
                 </PadAside>
+                {expanded && (
+                  <PadDetail>
+                    <OpenPad {...props} site={site} />
+                  </PadDetail>
+                )}
               </PadCard>
             );
           })}
         </PadList>
-      )}
-      {/* One area under the list, so opening another pad moves no pad row. */}
-      {activePad && (
-        <PadDetail>
-          <OpenPad {...props} site={activePad} />
-        </PadDetail>
       )}
       {/* Pre-launch checklist augments. */}
       <AugmentSlot name="launch-director.preflight" props={slotContext} />

@@ -127,6 +127,13 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
         marking={props.planMarking}
       />
       {props.error && <Notice tone="warn">{props.error}</Notice>}
+      <TriggerEditor
+        open={props.triggerEditorOpen}
+        numericKeys={props.numericKeys}
+        externallyDisabled={!plan || !props.triggersAccepted}
+        onClose={() => props.setTriggerEditorOpen(false)}
+        onArm={props.onArm}
+      />
       <CommitRow>
         <Button
           variant="ghost"
@@ -169,14 +176,6 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
           )}
         </SendGroup>
       </CommitRow>
-      {/* Below the row that opens it, so opening it moves nothing above. */}
-      <TriggerEditor
-        open={props.triggerEditorOpen}
-        numericKeys={props.numericKeys}
-        externallyDisabled={!plan || !props.triggersAccepted}
-        onClose={() => props.setTriggerEditorOpen(false)}
-        onArm={props.onArm}
-      />
     </Stack>
   );
 }

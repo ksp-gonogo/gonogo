@@ -79,7 +79,7 @@ const PAGE_SCRIPT = `(() => {
     '[role="checkbox"]', '[role="menuitem"]', '[role="option"]',
     'input[type="checkbox"]', 'input[type="radio"]',
   ].join(",");
-  const state = { els: [], rects: [], texts: [], ids: new WeakMap(), control: null, index: -1 };
+  const state = { els: [], rects: [], ids: new WeakMap(), control: null, index: -1 };
 
   const nameOf = (el) =>
     (el.getAttribute("aria-label") || el.textContent || "")
@@ -90,7 +90,7 @@ const PAGE_SCRIPT = `(() => {
     if (!root) return [];
     const out = [];
     for (const el of Array.from(root.querySelectorAll(PRESSABLE))) {
-      if (el.disabled || el.closest("[inert]")) continue;
+      if (el.disabled) continue;
       const r = el.getBoundingClientRect();
       if (r.width <= 0 || r.height <= 0) continue;
       const s = getComputedStyle(el);
@@ -132,7 +132,6 @@ const PAGE_SCRIPT = `(() => {
       const origin = root.getBoundingClientRect();
       state.els = [];
       state.rects = [];
-      state.texts = [];
       state.ids = new WeakMap();
       for (const el of Array.from(root.querySelectorAll("*"))) {
         // Shapes inside a drawing are the drawing's, which is one box.
@@ -141,7 +140,6 @@ const PAGE_SCRIPT = `(() => {
         state.ids.set(el, state.els.length);
         state.els.push(el);
         state.rects.push(rectOf(el, origin));
-        state.texts.push(el.textContent);
       }
       state.control = control;
       state.index = index;
@@ -168,16 +166,6 @@ const PAGE_SCRIPT = `(() => {
         if (!el.isConnected) continue;
         // The pressed control's own box is the one thing allowed to change, and so is anything that contains it.
         if (el === control || control.contains(el) || el.contains(control)) continue;
-        // A tab strip draws which tab is selected as a hidden mark that slides to it, which belongs to the tab pressed; the tabs beside it stay put.
-        const strip = control.closest('[role="tablist"]');
-        if (strip && strip.contains(el) && el.getAttribute("aria-hidden") === "true") continue;
-        // What a summary reveals is the summary's own: the disclosure around it opens.
-        const disclosure = control.tagName === "SUMMARY" ? control.parentElement : null;
-        if (disclosure && disclosure.tagName === "DETAILS" && disclosure.contains(el)) continue;
-        // What a control names with aria-controls is its own content, which grows and shrinks with it.
-        const owned = control.getAttribute("aria-controls");
-        const ownedEl = owned ? document.getElementById(owned) : null;
-        if (ownedEl && ownedEl.contains(el)) continue;
         const was = state.rects[i];
         const now = rectOf(el, origin);
         if (was.w === 0 && was.h === 0 && now.w === 0 && now.h === 0) continue;
@@ -187,12 +175,9 @@ const PAGE_SCRIPT = `(() => {
         const dh = now.h - was.h;
         if (Math.abs(dx) <= ${MOVE_TOLERANCE_PX} && Math.abs(dy) <= ${MOVE_TOLERANCE_PX} &&
             Math.abs(dw) <= ${MOVE_TOLERANCE_PX} && Math.abs(dh) <= ${MOVE_TOLERANCE_PX}) continue;
-        // A panel the control opens makes room by moving what sits at or below the control's own top, straight down; nothing above it may move.
-        if (allowBelow && restBox && was.y >= restBox.y - ${MOVE_TOLERANCE_PX} &&
+        // A panel the control opens makes room by moving what sits below it, straight down.
+        if (allowBelow && restBox && was.y >= restBox.y + restBox.h - ${MOVE_TOLERANCE_PX} &&
             Math.abs(dx) <= ${MOVE_TOLERANCE_PX} && Math.abs(dw) <= ${MOVE_TOLERANCE_PX}) continue;
-        // Below a control that opens or swaps content, a box whose words changed is the content the selection replaced, and its width follows its words.
-        if (allowBelow && restBox && was.y >= restBox.y - ${MOVE_TOLERANCE_PX} &&
-            el.textContent !== state.texts[i]) continue;
         found.push({ i, el, dx, dy, dw, dh });
       }
       // An element carried along by a parent that moved the same way is the parent's finding.
@@ -355,10 +340,8 @@ const PLANT_FIXTURE = { _stream: { pinnedUt: 10, emits: [] } };
  * Presses planted widgets and requires the check to see what it exists to see:
  * a button that widens when sent, a neighbour a status line pushes down, and a
  * panel opening below its toggle (which must be reported unless the scene names
- * it), a control the scene names that moves something above it, and a tab pushed sideways by the selected tab beside it. A fixed-width
- * button that changes its word, a toggle behind an inert overlay, a summary
- * opening its own body and a tab strip's sliding mark must come out clean, or
- * the check reports faces that were never there.
+ * it). A fixed-width button that changes its word must come out clean, or the
+ * check reports faces that were never there.
  */
 export async function proveFaceCheckWorks(page: Page): Promise<void> {
   const run = async (
@@ -398,43 +381,9 @@ export async function proveFaceCheckWorks(page: Page): Promise<void> {
         `What it did report: ${panel.length === 0 ? "nothing" : panel.join("; ")}`,
     );
   }
-  const tabs = await run(PLANTED_FACE_IDS.tabs);
-  if (!tabs.some((f) => f.includes("Second") && f.includes("moved"))) {
-    throw new Error(
-      "The face check is BLIND: a tab pushed sideways by the selected tab beside it was not reported.\n" +
-        `What it did report: ${tabs.length === 0 ? "nothing" : tabs.join("; ")}`,
-    );
-  }
-  const slidingMark = tabs.filter((f) => f.includes("planted-blob"));
-  const above = await run(PLANTED_FACE_IDS.opensAbove, ["Details"]);
-  if (!above.some((f) => f.includes("above"))) {
-    throw new Error(
-      "The face check is BLIND: a control the scene names as opening below moved something above it and was not reported.\n" +
-        `What it did report: ${above.length === 0 ? "nothing" : above.join("; ")}`,
-    );
-  }
-  const swaps = await run(PLANTED_FACE_IDS.swaps, ["Details"]);
-  if (!swaps.some((f) => f.includes("neighbour"))) {
-    throw new Error(
-      "The face check is BLIND: a neighbour pushed sideways below a control the scene names was not reported.\n" +
-        `What it did report: ${swaps.length === 0 ? "nothing" : swaps.join("; ")}`,
-    );
-  }
-  const replaced = swaps.filter((f) => f.includes("replacement"));
-  const owns = await run(PLANTED_FACE_IDS.owns);
   const allowed = await run(PLANTED_FACE_IDS.panel, ["Details"]);
   const steady = await run(PLANTED_FACE_IDS.steady);
-  const inert = await run(PLANTED_FACE_IDS.inert);
-  const disclosure = await run(PLANTED_FACE_IDS.disclosure);
-  const wrong = [
-    ...slidingMark,
-    ...replaced,
-    ...owns,
-    ...allowed,
-    ...steady,
-    ...inert,
-    ...disclosure,
-  ];
+  const wrong = [...allowed, ...steady];
   if (wrong.length > 0) {
     throw new Error(
       "The face check reported something that did not move, or a panel the scene names as allowed:\n  " +

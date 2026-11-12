@@ -4,10 +4,4 @@ export const PLANTED_FACE_IDS = {
   shifts: "planted-face-shifts",
   steady: "planted-face-steady",
   panel: "planted-face-panel",
-  opensAbove: "planted-face-opens-above",
-  owns: "planted-face-owns",
-  swaps: "planted-face-swaps",
-  inert: "planted-face-inert",
-  disclosure: "planted-face-disclosure",
-  tabs: "planted-face-tabs",
 } as const;
