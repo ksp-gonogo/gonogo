@@ -46,26 +46,6 @@ export const FACE_DEBT: Readonly<Record<string, string>> = {
     'face "press 1": button "Brake on" resized -6.0, 0.0px (+1 more)',
   'space-center-status|button "Upgrade"':
     'face "no reply": span "25kf funds" moved 0.0, 7.0px',
-  'target-picker|button "▸Bodies (3)"':
-    'face "press 1": div "▸Parts (5)Target Docking Port 1Orbiting\u2014" moved 0.0, -70.0px',
-  'target-picker|button "▸Vessels (3)"':
-    'face "press 1": div "▸Parts (5)Target Docking Port 1Orbiting\u2014" moved 0.0, -109.0px',
-  'target-picker|button "Asteroids: hidden (1)"':
-    'face "press 1": button "Comsat Relay 4Probe · Orbiting\u2014, Last he" moved 0.0, 36.0px (+1 more)',
-  'target-picker|button "Clamp-O-Tron Sr. (aft)Orbiting168.2 km k"':
-    'face "answered": span "168.2 km kilometres" moved -20.0, 0.0px',
-  'target-picker|button "Clamp-O-Tron Sr. (fore)Orbiting168.2 km "':
-    'face "answered": span "168.2 km kilometres" moved -20.0, 0.0px',
-  'target-picker|button "Kerbin720.0 km kilometres"':
-    'face "answered": span "720.0 km kilometres" moved -20.0, 0.0px',
-  'target-picker|button "Mun11.9 Mm megametres"':
-    'face "answered": span "11.9 Mm megametres" moved -20.0, 0.0px',
-  'target-picker|button "Munar Transfer StageShip · Escaping1.6 M"':
-    'face "answered": span "1.6 Mm megametres" moved -20.0, 0.0px',
-  'target-picker|button "Target Docking Port 1Orbiting\u2014"':
-    'face "answered": span "Target Docking Port 1Orbiting" resized -20.0, 0.0px',
-  'target-picker|button "Target Docking Port 2Orbiting\u2014"':
-    'face "answered": span "Target Docking Port 2Orbiting" resized -20.0, 0.0px',
   'tracking-station|g "Minmus"':
     'face "press 1": aside "Minmusorbiting KerbinRadius60.0 km kilom" resized 0.0, 45.0px (+6 more)',
   'tracking-station|g "Mun"':

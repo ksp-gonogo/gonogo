@@ -9,6 +9,7 @@ import {
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
+import { useOwnSize } from "../Rendezvous/useOwnSize";
 import {
   bare,
   closingRateReading,
@@ -30,6 +31,7 @@ import {
   CompactName,
   FilterBox,
   Hint,
+  ListBody,
   ListScroll,
   OrbitalEventChipsRow,
   SectionBody,
@@ -41,6 +43,9 @@ import { useClearTarget } from "./useClearTarget";
 import { useRosterCategories } from "./useRosterCategories";
 
 /** What a confirmed-no-targets tombstone means: a roster, and it is empty. */
+/** The list width below which the names start to truncate, so a row drops its subtitle and "TARGET" word. */
+const NARROW_LIST_WIDTH = 260;
+
 const EMPTY_ROSTER = { entries: [] as TargetListEntry[] };
 
 export function TargetPickerComponent({
@@ -81,6 +86,8 @@ export function TargetPickerComponent({
   const setTargetCmd = useCommand("vessel.target.set");
   const clearTargetControl = useClearTarget(() => setPendingTarget(null));
 
+  const { ref: listRef, size: listSize } = useOwnSize();
+  const narrow = listSize.w > 1 && listSize.w < NARROW_LIST_WIDTH;
   const [filter, setFilter] = useState("");
   const [showSpaceObjects, setShowSpaceObjects] = useState(false);
   const [bodiesExpanded, setBodiesExpanded] = useState(true);
@@ -168,6 +175,7 @@ export function TargetPickerComponent({
       listHeld={heldGrade(availableReading)}
       isPending={pendingTarget?.id === entryId(entry)}
       command={targetCommandFor(entry)}
+      narrow={narrow}
     />
   );
 
@@ -201,84 +209,86 @@ export function TargetPickerComponent({
             <Hint>Waiting for target list...</Hint>
           ) : (
             <ListScroll>
-              {suggested.length > 0 && (
-                <Section>
-                  <SuggestedHeading>Suggested</SuggestedHeading>
-                  <SectionBody>
-                    {suggested.map((entry) => renderRow(entry, "suggested"))}
-                  </SectionBody>
-                </Section>
-              )}
-              {bodiesList.length > 0 && (
-                <CategorySection
-                  id="bodies"
-                  label="Bodies"
-                  count={bodiesList.length}
-                  expanded={bodiesExpanded}
-                  onToggle={() => setBodiesExpanded((v) => !v)}
-                >
-                  {bodiesList.map((entry) => renderRow(entry, "body"))}
-                </CategorySection>
-              )}
-              {vesselsList.length > 0 && (
-                <CategorySection
-                  id="vessels"
-                  label="Vessels"
-                  count={vesselsList.length}
-                  expanded={vesselsExpanded}
-                  onToggle={() => setVesselsExpanded((v) => !v)}
-                  extra={
-                    spaceObjectCount > 0 && (
-                      <Tooltip
-                        text={
-                          showSpaceObjects
-                            ? "Hide asteroids / comets from the list"
-                            : "Show asteroids / comets in the list"
-                        }
-                      >
-                        <ToggleButton
-                          size="sm"
-                          pressed={showSpaceObjects}
-                          onClick={() => setShowSpaceObjects((v) => !v)}
+              <ListBody ref={listRef}>
+                {suggested.length > 0 && (
+                  <Section>
+                    <SuggestedHeading>Suggested</SuggestedHeading>
+                    <SectionBody>
+                      {suggested.map((entry) => renderRow(entry, "suggested"))}
+                    </SectionBody>
+                  </Section>
+                )}
+                {bodiesList.length > 0 && (
+                  <CategorySection
+                    id="bodies"
+                    label="Bodies"
+                    count={bodiesList.length}
+                    expanded={bodiesExpanded}
+                    onToggle={() => setBodiesExpanded((v) => !v)}
+                  >
+                    {bodiesList.map((entry) => renderRow(entry, "body"))}
+                  </CategorySection>
+                )}
+                {vesselsList.length > 0 && (
+                  <CategorySection
+                    id="vessels"
+                    label="Vessels"
+                    count={vesselsList.length}
+                    expanded={vesselsExpanded}
+                    onToggle={() => setVesselsExpanded((v) => !v)}
+                    extra={
+                      spaceObjectCount > 0 && (
+                        <Tooltip
+                          text={
+                            showSpaceObjects
+                              ? "Hide asteroids / comets from the list"
+                              : "Show asteroids / comets in the list"
+                          }
                         >
-                          {showSpaceObjects
-                            ? `Asteroids: shown (${spaceObjectCount})`
-                            : `Asteroids: hidden (${spaceObjectCount})`}
-                        </ToggleButton>
-                      </Tooltip>
-                    )
-                  }
-                >
-                  {vesselsList.map((entry) => renderRow(entry, "vessel"))}
-                </CategorySection>
-              )}
-              {partsList.length > 0 && (
-                <CategorySection
-                  id="parts"
-                  label="Parts"
-                  count={partsList.length}
-                  expanded={partsExpanded}
-                  onToggle={() => setPartsExpanded((v) => !v)}
-                >
-                  {partsList.map((entry) => renderRow(entry, "part"))}
-                </CategorySection>
-              )}
-              {otherList.length > 0 && (
-                <CategorySection
-                  id="other"
-                  label="Other"
-                  count={otherList.length}
-                  expanded={otherExpanded}
-                  onToggle={() => setOtherExpanded((v) => !v)}
-                >
-                  {otherList.map((entry) => renderRow(entry, "other"))}
-                </CategorySection>
-              )}
-              {noCategoriesHaveEntries && (
-                <Hint>
-                  {isFiltering ? "No targets match." : "No targets in range."}
-                </Hint>
-              )}
+                          <ToggleButton
+                            size="sm"
+                            pressed={showSpaceObjects}
+                            onClick={() => setShowSpaceObjects((v) => !v)}
+                          >
+                            {showSpaceObjects
+                              ? `Asteroids: shown (${spaceObjectCount})`
+                              : `Asteroids: hidden (${spaceObjectCount})`}
+                          </ToggleButton>
+                        </Tooltip>
+                      )
+                    }
+                  >
+                    {vesselsList.map((entry) => renderRow(entry, "vessel"))}
+                  </CategorySection>
+                )}
+                {partsList.length > 0 && (
+                  <CategorySection
+                    id="parts"
+                    label="Parts"
+                    count={partsList.length}
+                    expanded={partsExpanded}
+                    onToggle={() => setPartsExpanded((v) => !v)}
+                  >
+                    {partsList.map((entry) => renderRow(entry, "part"))}
+                  </CategorySection>
+                )}
+                {otherList.length > 0 && (
+                  <CategorySection
+                    id="other"
+                    label="Other"
+                    count={otherList.length}
+                    expanded={otherExpanded}
+                    onToggle={() => setOtherExpanded((v) => !v)}
+                  >
+                    {otherList.map((entry) => renderRow(entry, "other"))}
+                  </CategorySection>
+                )}
+                {noCategoriesHaveEntries && (
+                  <Hint>
+                    {isFiltering ? "No targets match." : "No targets in range."}
+                  </Hint>
+                )}
+              </ListBody>
             </ListScroll>
           )}
         </Section>,

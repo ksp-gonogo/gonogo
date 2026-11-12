@@ -64,6 +64,13 @@ export const ListScroll = styled(ScrollArea)`
   }
 `;
 
+/** Carries the list's own column layout one level down, so the list's width can be measured. */
+export const ListBody = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-related);
+`;
+
 export const SuggestedHeading = styled.div`
   font-size: var(--font-size-caption);
   letter-spacing: 0.1em;
@@ -125,19 +132,40 @@ export const RowSubtitle = styled.span`
 `;
 
 /** The range with the row's marker beneath it, so the marker never takes width from the name. */
-export const RowTrailing = styled.span`
-  display: flex;
+export const RowTrailing = styled.span<{ $narrow?: boolean }>`
+  display: ${({ $narrow }) => ($narrow ? "grid" : "flex")};
   flex-direction: column;
   align-items: flex-end;
+  justify-items: end;
   gap: var(--gap-line);
+  ${({ $narrow }) => ($narrow ? "> * { grid-area: 1 / 1; }" : "")}
   margin-right: var(--gap-trailing-mark);
   flex-shrink: 0;
 `;
 
-export const RowDistance = styled.span`
+export const RowDistance = styled.span<{ $hidden?: boolean }>`
+  visibility: ${({ $hidden }) => ($hidden ? "hidden" : "visible")};
   font-size: var(--font-size-compact);
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
+`;
+
+/* Holds the room the "TARGET" tag takes, so a pick or a pending spinner never moves or resizes the row. */
+export const RowMark = styled.span<{ $narrow?: boolean }>`
+  display: inline-grid;
+  align-items: center;
+  justify-items: end;
+  font-size: var(--font-size-compact);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  &::before {
+    content: ${({ $narrow }) => ($narrow ? "none" : '"TARGET"')};
+    grid-area: 1 / 1;
+    visibility: hidden;
+  }
+  > * {
+    grid-area: 1 / 1;
+  }
 `;
 
 export const RowTag = styled.span`

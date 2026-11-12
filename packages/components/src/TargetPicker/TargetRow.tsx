@@ -20,6 +20,7 @@ import {
   EntryName,
   RowDistance,
   RowMain,
+  RowMark,
   RowSubtitle,
   RowTag,
   RowTrailing,
@@ -32,6 +33,7 @@ export function TargetRow({
   listHeld,
   isPending,
   command,
+  narrow = false,
 }: Readonly<{
   entry: TargetListEntry;
   /** The entry's range as a reading of the roster, so a held roster marks it. */
@@ -41,8 +43,10 @@ export function TargetRow({
   isPending: boolean;
   /** What pressing the row sends; null for an entry the mod cannot be told to target, which draws as a row that does nothing. */
   command: AnyBoundCommand | null;
+  /** True where the name has little room: the row is one line, with no subtitle and no "TARGET" word, and the spinner replaces the range while a pick is pending. */
+  narrow?: boolean;
 }>) {
-  const subtitle = entrySubtitle(entry);
+  const subtitle = narrow ? null : entrySubtitle(entry);
   return (
     <Row
       as="button"
@@ -57,17 +61,22 @@ export function TargetRow({
         </Tooltip>
         {subtitle && <RowSubtitle>{subtitle}</RowSubtitle>}
       </RowMain>
-      <RowTrailing>
-        <RowDistance>
+      <RowTrailing $narrow={narrow}>
+        <RowDistance $hidden={narrow && isPending}>
           {seenAsItIs(entry) ? (
             <SeenRange entry={entry} distance={distance} />
           ) : (
             <KnownOnly entry={entry} distance={distance} listHeld={listHeld} />
           )}
         </RowDistance>
-        {!isPending && entry.isCurrent && <RowTag>TARGET</RowTag>}
+        <RowMark $narrow={narrow}>
+          {isPending ? (
+            <Spinner aria-label="Setting target" />
+          ) : (
+            !narrow && entry.isCurrent && <RowTag>TARGET</RowTag>
+          )}
+        </RowMark>
       </RowTrailing>
-      {isPending && <Spinner aria-label="Setting target" />}
     </Row>
   );
 }
