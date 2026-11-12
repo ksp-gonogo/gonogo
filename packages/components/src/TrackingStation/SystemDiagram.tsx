@@ -899,11 +899,20 @@ export function SystemDiagram({
             Focus vessel
           </TextButton>
         )}
-        {(anchored || zoom !== 1 || pan.x !== 0 || pan.y !== 0) && (
-          <TextButton type="button" onClick={resetView} style={VIEW_BUTTON}>
-            Reset view
-          </TextButton>
-        )}
+        {/* Hidden rather than absent while the view is whole, so Focus vessel keeps its place when a reset lets go. */}
+        <TextButton
+          type="button"
+          onClick={resetView}
+          style={{
+            ...VIEW_BUTTON,
+            visibility:
+              anchored || zoom !== 1 || pan.x !== 0 || pan.y !== 0
+                ? "visible"
+                : "hidden",
+          }}
+        >
+          Reset view
+        </TextButton>
       </div>
     </div>
   );

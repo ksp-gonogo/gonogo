@@ -2,7 +2,8 @@
   "_meta": {
     "shows": "One active first-flight contract whose objective is a progress milestone: reach space at Kerbin, with the vessel climbing through 12.3 km.",
     "notes": "Hand-authored. The objective carries the milestone, its body and the altitude it is reached at, which the contract list shows as a goal with the vessel's altitude against it.",
-    "scenario": "milestone-goal"
+    "scenario": "milestone-goal",
+    "opensBelow": ["Active1", "Completed0", "Failed0", "Offered0"]
   },
   "contracts.active": [
     {

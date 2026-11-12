@@ -3,7 +3,8 @@
     "shows": "One active strategy, Aggressive Negotiations under Operations, with Fundraising Campaign available beside it showing its reputation cost.",
     "scenario": "one-active-strategy-room-for-more",
     "synthetic": true,
-    "notes": "SYNTHETIC. one-active-room-for-more.json re-spelled as the wire the mod actually sends: strategies name the department `department` and carry no effectiveCostReputation, which the contract has never declared. The reputation costs are the nominal initialCostReputation (14.5), and the commitment scaling is left to the client."
+    "notes": "SYNTHETIC. one-active-room-for-more.json re-spelled as the wire the mod actually sends: strategies name the department `department` and carry no effectiveCostReputation, which the contract has never declared. The reputation costs are the nominal initialCostReputation (14.5), and the commitment scaling is left to the client.",
+    "opensBelow": ["Available", "Locked"]
   },
   "_stream": {
     "emits": [

@@ -7,7 +7,7 @@ import {
   Tooltip,
   Unit,
 } from "@ksp-gonogo/ui-kit";
-import { type ReactNode, useState } from "react";
+import { Fragment, type ReactNode, useState } from "react";
 import { type SavedShip, shipBlockedReason } from "./ships";
 import {
   BlockedTag,
@@ -20,13 +20,12 @@ import {
   ShipList,
   ShipMeta,
   ShipName,
-  ShipSelection,
 } from "./styles";
 
 /**
  * The open pad's craft, each greyed out while its funds or parts block it, and
  * a search box that narrows the list by name, in the order given. The picked craft's `detail`
- * (its crew and launch control) opens directly beneath its own row.
+ * (its crew and launch control) sits under the list, so a pick moves no row.
  */
 export function ShipPicker({
   padCraft,
@@ -44,7 +43,7 @@ export function ShipPicker({
   fundsAvailable: number;
   /** Kerbals free to fly; a craft that needs more crew than this is not ready. Null while the roster is unread. */
   freeCrew?: number | null;
-  /** Shown under the selected craft's row while it is in the list. */
+  /** Shown under the list while a craft in it is selected. */
   detail?: ReactNode;
   /** Marks each craft that has been launched with its date, and says when the time came from a vessel of the same name. */
   showLaunched?: boolean;
@@ -80,9 +79,8 @@ export function ShipPicker({
         {shown.map((s) => {
           const reason = blockedReason(s);
           const blocked = reason !== null;
-          const picked = selectedShip === s.file;
           return (
-            <ShipSelection key={`${s.facility}/${s.file}`}>
+            <Fragment key={`${s.facility}/${s.file}`}>
               <Tooltip text={reason ?? undefined}>
                 <SelectableRow
                   layout="split"
@@ -136,11 +134,13 @@ export function ShipPicker({
                   </ShipCost>
                 </SelectableRow>
               </Tooltip>
-              {picked && detail}
-            </ShipSelection>
+            </Fragment>
           );
         })}
       </ShipList>
+      {selectedShip !== null &&
+        shown.some((s) => s.file === selectedShip) &&
+        detail}
     </PadColumn>
   );
 }
