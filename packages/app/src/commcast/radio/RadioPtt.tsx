@@ -6,10 +6,12 @@ import {
   useRailEntry,
   VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
-import { useId } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { MIN_RIBBON_SPAN_SECONDS } from "./RadioTransmitter";
 import type { RadioControl } from "./useRadio";
+
+const SILENT_WAVE = { lo: 0, hi: 0 };
 
 /**
  * The push-to-talk key, at the top right of the widget's own bar, opposite the
@@ -84,6 +86,60 @@ export function crossingSpanSamples(
   return Math.max(separationSeconds, MIN_RIBBON_SPAN_SECONDS) / CHUNK_SECONDS;
 }
 
+/**
+ * What is still on the rail after Talk is released: the keyed audio followed by
+ * silence, one 20 ms chunk of it per elapsed 20 ms, so every sample ages exactly
+ * as it did while keyed and the trace carries on to the end of the rail. Ends
+ * once the newest real sample has crossed `spanSamples`. `null` while keyed (the
+ * live ring is used as it is) and once the tail has finished.
+ */
+function useReleaseTail(
+  radio: RadioControl,
+  spanSamples: number | undefined,
+): { amplitudes: readonly number[]; waves: RadioControl["waves"] } | null {
+  const last = useRef({ amplitudes: radio.amplitudes, waves: radio.waves });
+  const wasKeyed = useRef(radio.transmitting);
+  const [releasedAt, setReleasedAt] = useState<number | null>(null);
+  const [, tick] = useState(0);
+
+  if (radio.transmitting) {
+    last.current = { amplitudes: radio.amplitudes, waves: radio.waves };
+  }
+
+  useEffect(() => {
+    if (radio.transmitting) {
+      setReleasedAt(null);
+    }
+    const justReleased = wasKeyed.current && !radio.transmitting;
+    if (justReleased && last.current.amplitudes.length > 0) {
+      setReleasedAt(Date.now());
+    }
+    wasKeyed.current = radio.transmitting;
+  }, [radio.transmitting]);
+
+  const span = spanSamples ?? last.current.amplitudes.length;
+  const elapsed =
+    releasedAt === null
+      ? 0
+      : Math.floor((Date.now() - releasedAt) / (CHUNK_SECONDS * 1000));
+  const done = releasedAt === null || elapsed > span;
+
+  useEffect(() => {
+    if (releasedAt === null || done) return;
+    const id = setInterval(() => tick((n) => n + 1), CHUNK_SECONDS * 1000);
+    return () => clearInterval(id);
+  }, [releasedAt, done]);
+
+  return useMemo(() => {
+    if (radio.transmitting || releasedAt === null || done) return null;
+    const { amplitudes, waves } = last.current;
+    return {
+      amplitudes: [...amplitudes, ...new Array<number>(elapsed).fill(0)],
+      waves: [...waves, ...new Array(elapsed).fill(SILENT_WAVE)],
+    };
+  }, [radio.transmitting, releasedAt, done, elapsed]);
+}
+
 export function RadioPtt({
   radio,
   targetName,
@@ -108,9 +164,14 @@ export function RadioPtt({
    * what the transmission IS, on the three axes, and the rail picks its
    * renderer from that.
    */
+  const spanSamples = crossingSpanSamples(separationSeconds);
+  const tail = useReleaseTail(radio, spanSamples);
+  const onRail = radio.transmitting
+    ? { amplitudes: radio.amplitudes, waves: radio.waves }
+    : tail;
   const label = `Your transmission crossing to ${targetName ?? "the far end"}`;
   useRailEntry(
-    radio.transmitting
+    onRail !== null
       ? {
           inFlight: [],
           tags: VOICE_RAIL_TAGS,
@@ -121,9 +182,9 @@ export function RadioPtt({
               id: "radio.voice",
               label,
               oneWaySeconds: separationSeconds ?? null,
-              amplitudes: radio.amplitudes,
-              wave: radio.waves,
-              spanSamples: crossingSpanSamples(separationSeconds),
+              amplitudes: onRail.amplitudes,
+              wave: onRail.waves,
+              spanSamples,
               tags: VOICE_RAIL_TAGS,
             },
           ],
