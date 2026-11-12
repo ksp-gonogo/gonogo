@@ -1,5 +1,5 @@
 import { useTelemetry } from "@ksp-gonogo/core";
-import { useViewUt } from "@ksp-gonogo/sitrep-client";
+import { useUtNow, useViewClockOptional } from "@ksp-gonogo/sitrep-client";
 import {
   type GameLoaded,
   stillTrue,
@@ -51,25 +51,36 @@ export function isNews(event: GameLoaded, viewUt: Value<"ut">): boolean {
 }
 
 /**
- * A polite banner on every screen when a quickload finishes, and on no screen
- * that connects afterwards: an event older than the view clock by
+ * A polite banner on every screen when a game load finishes, and on no screen
+ * that connects afterwards: an event older than the present by
  * {@link STALE_AFTER_SECONDS} is a replay, not news.
+ *
+ * The event arrives with no signal delay, so it is judged against the present
+ * and not the delayed view clock, which a load rewinds and leaves behind the
+ * load's own times for as long as the delay lasts.
  */
 export function QuickloadBanner() {
   const reading = useTelemetry("ksp.gameLoaded");
   const event = stillTrue(reading, undefined);
-  const viewUt = useViewUt();
+  const clock = useViewClockOptional();
+  const utNow = useUtNow();
   const seenRef = useRef<string | null>(null);
   const [announcement, setAnnouncement] = useState<GameLoaded | null>(null);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: utNow re-runs the judgement once the clock has a time
   useEffect(() => {
     if (!event?.loadId || event.loadId === seenRef.current) return;
-    // A fresh connection is replayed the last load before the view clock has a time, so the load cannot be judged yet.
-    if (viewUt === undefined || viewUt === null) return;
+    // A fresh connection is replayed the last load before the clock has a time, so the load cannot be judged yet.
+    if (
+      clock === undefined ||
+      !Number.isFinite(clock.confirmedEdgeUt("true-now"))
+    ) {
+      return;
+    }
     seenRef.current = event.loadId;
-    if (!isNews(event, viewUt)) return;
+    if (!isNews(event, value("ut", clock.utNowEstimate()))) return;
     setAnnouncement(event);
-  }, [event, viewUt]);
+  }, [event, clock, utNow]);
 
   useEffect(() => {
     if (announcement === null) return;

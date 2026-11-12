@@ -1,8 +1,12 @@
-import { TelemetryProvider } from "@ksp-gonogo/sitrep-client";
 import { type GameLoaded, value } from "@ksp-gonogo/sitrep-sdk";
-import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  act,
+  render,
+  screen,
+  setupStreamFixture,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
-import { isNews, QuickloadSentence } from "./QuickloadBanner";
+import { isNews, QuickloadBanner, QuickloadSentence } from "./QuickloadBanner";
 
 function event(over: Partial<GameLoaded>): GameLoaded {
   return {
@@ -65,5 +69,34 @@ describe("which loads are news", () => {
 
   it("is news when the view clock has just reached the save", () => {
     expect(isNews(event({}), value("ut", 103))).toBe(true);
+  });
+});
+
+describe("the quickload banner under signal delay", () => {
+  it("shows a load that finished while the view clock lags the load by the delay", async () => {
+    const stream = setupStreamFixture({ delaySeconds: 60 });
+    render(
+      <stream.Provider>
+        <QuickloadBanner />
+      </stream.Provider>,
+    );
+    await act(async () => {
+      stream.emit(
+        "ksp.gameLoaded",
+        {
+          loadId: "l1",
+          outcome: "loaded",
+          failReason: null,
+          saveUt: 100,
+          fromUt: 500,
+          requestedBy: "",
+        },
+        { validAt: 500, deliveredAt: 500 },
+      );
+      stream.wall.advanceBy(0.1);
+      stream.store.beginFrame();
+      stream.store.clock.emitFrame();
+    });
+    expect(screen.getByRole("status").textContent).toContain("Game loaded");
   });
 });
