@@ -309,7 +309,7 @@ function UnitSymbol({
  *
  * The symbol is sized relative to the text around it (never below 10px) and takes its colour, so it needs no size or tone prop and keeps the value's tone at the value's contrast. A symbol that attaches to the number (`22°`, but `22 °C`) is set with no space and keeps full size: the plane-angle marks and the currency marks. Every symbol is replaced in the accessibility tree by its spoken word.
  *
- * `<Unit>` is the way to put a quantity on screen as a React node. Where only text is accepted (an SVG `<text>`, a tooltip, a canvas), write it with {@link writeQuantity} instead. Hand it the value as it arrived (SI, never pre-scaled) and let it choose the unit; pin one with `format` or convert with `as` only where convention calls for it.
+ * `<Unit>` is the way to put a quantity on screen as a React node. Where only text is accepted (an SVG `<text>`, a tooltip, a canvas), write it with {@link writeQuantity} instead. Hand it the value as it arrived (never pre-scaled) and let it choose the unit; pin one with `format` or convert with `as` only where convention calls for it.
  *
  * @example
  * ```tsx

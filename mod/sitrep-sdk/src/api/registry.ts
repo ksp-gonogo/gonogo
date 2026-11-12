@@ -237,7 +237,8 @@ export function getComponents(): AnyDef[] {
 /**
  * The widget registered under `id`, or `undefined`. Useful for drawing a widget
  * from the id saved in a screen's layout. Used by the dashboard when it draws
- * the widgets a screen's layout names.
+ * the widgets a screen's layout names. `AnyDef` in the signature is a
+ * {@link ComponentDefinition}.
  *
  * @category Registering
  */
@@ -322,7 +323,8 @@ export function getResolvedComponents(): AnyDef[] {
 /**
  * Every registered data source. Useful for listing the connections the operator
  * can configure. Used by the main screen when it shares its data sources with
- * the station screens connected to it.
+ * the station screens connected to it. `AnySource` in the signature is a
+ * {@link DataSource}.
  *
  * @category Registering
  */

@@ -29,8 +29,7 @@ const FRAME_MS = 1000 / 60;
  * returns and a widget under test keeps updating (a timer, a socket reply).
  * Call it last in a vitest setup file, after Testing Library is imported, and
  * await it. Useful for finding the update warnings that appear after a test has
- * finished. Used by the test setup of the app and of each bundled Uplink's
- * client.
+ * finished. Used by the test setup of the app and of each Uplink shipped with it.
  *
  * @example
  * ```ts

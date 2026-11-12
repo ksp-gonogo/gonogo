@@ -600,7 +600,7 @@ public enum CommsDelaySource
 
 /// <summary>
 /// The <c>comms.delay</c> payload: the one-way signal delay to the active
-/// vessel, gated by the <c>comms.signalDelay.enabled</c> setting.
+/// vessel, gated by the <c>SIGNAL_DELAY/enabled</c> setting.
 /// <see cref="OneWaySeconds"/> tells two different "no delay" cases apart by
 /// value:
 /// <list type="bullet">
@@ -614,7 +614,7 @@ public enum CommsDelaySource
 /// plan still holds through that stretch is offered as a prediction on
 /// <c>comms.route</c>, never as this delay.</description></item>
 /// <item><description><b>0</b>: the delay feature is disabled
-/// (<c>comms.signalDelay.enabled = false</c>). A genuine "zero delay
+/// (<c>SIGNAL_DELAY/enabled</c> is false). A genuine "zero delay
 /// applied", not an absence. <see cref="Source"/> is also
 /// <see cref="CommsDelaySource.None"/> here: the two cases share the same
 /// <c>Source</c> and are told apart only by whether the value is

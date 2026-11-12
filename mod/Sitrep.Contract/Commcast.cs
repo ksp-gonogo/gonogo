@@ -129,9 +129,9 @@ public class CommcastMessageSendArgs
 /// <summary>
 /// What <c>commcast.message.send</c> (args <see cref="CommcastMessageSendArgs"/>)
 /// did with a message: which command centres it left for, and which it could not
-/// leave for. <c>commcast.message.send</c> is the command, of the core mod's
-/// Commcast group messaging and radio, that sends a text message to a group of
-/// command centres. A centre is a <c>commandCentre.roster</c> entry, a place
+/// leave for. <c>commcast.message.send</c> is the command, of Commcast, the Gonogo mod's
+/// group messaging and radio, that sends a text message to a group of command
+/// centres. A centre is a <c>commandCentre.roster</c> entry, a place
 /// commands are sent from. It says nothing of arrival: a listener is a centre
 /// that receives the message, and arrival is known only when that listener sends
 /// <c>commcast.message.ack</c> (<see cref="CommcastMessageAckArgs"/>) back.

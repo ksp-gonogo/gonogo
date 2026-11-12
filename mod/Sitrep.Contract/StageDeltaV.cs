@@ -121,7 +121,7 @@ public class StageDeltaVEntry
 
 /// <summary>
 /// The whole-vessel ΔV rollup the
-/// game's own ΔV simulation (<c>VesselDeltaV</c>) exposes alongside the per-stage
+/// game's own ΔV simulation exposes alongside the per-stage
 /// <see cref="StageDeltaVEntry"/> list: the ΔV-producing stage count plus the
 /// vacuum, sea-level and current totals and total burn time. A single object,
 /// or <c>null</c> when the stock simulation is not ready or there is no active

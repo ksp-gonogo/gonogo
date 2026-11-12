@@ -266,7 +266,7 @@ function BlockRoot({ ...props }: BlockProps): ReactNode {
  * a widget has the same type and spacing. Used by the administration building widget's
  * strategy cards. {@link Card} is the same arrangement on a sunken surface.
  *
- * `titleRight` is not `right`: `titleRight` holds badges on the name's line and
+ * The `titleRight` and `right` props differ: `titleRight` holds badges on the name's line and
  * wraps under the name when narrow, while `right` sits beside the whole body
  * and drops below it when narrow. The parts are there for a record that needs
  * its own composition but the same type and spacing:

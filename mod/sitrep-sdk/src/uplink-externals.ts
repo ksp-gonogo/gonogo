@@ -86,13 +86,23 @@ export const UPLINK_EXTERNAL_NO_CHUNK: readonly string[] = [
 /**
  * Everything an Uplink's bundler marks `external`: {@link
  * UPLINK_EXTERNAL_SPECIFIERS} and {@link UPLINK_EXTERNAL_NO_CHUNK} together,
- * and the one to use. [`uplink-tools
- * bundle`](/reference/tools/command-line#bundle) passes it for you. A build of
- * your own imports it from this package's `uplink-externals` subpath and passes
- * it as the bundler's list of externals: with esbuild, `external:
- * [...UPLINK_BUNDLE_EXTERNALS]`. Useful for building an Uplink's client so that
- * the app supplies the shared packages the operator's screen already holds.
- * Used by `uplink-tools bundle` and by the app's own bundle build.
+ * and the one to use. [`uplink-tools bundle`](/reference/tools/command-line#bundle)
+ * passes it for you. A build of your own imports it from this package's
+ * `uplink-externals` subpath and passes it as the bundler's list of externals. Useful for building an Uplink's client
+ * so that the app supplies the shared packages the operator's screen already
+ * holds. Used by `uplink-tools bundle` and by the app's own bundle build.
+ *
+ * @example
+ * ```ts
+ * // UPLINK_BUNDLE_EXTERNALS comes from the sitrep-sdk `uplink-externals` subpath.
+ * await build({
+ *   entryPoints: ["src/index.ts"],
+ *   bundle: true,
+ *   format: "esm",
+ *   external: [...UPLINK_BUNDLE_EXTERNALS],
+ *   outfile: "dist/client.js",
+ * });
+ * ```
  *
  * @category Bundling
  * @categoryDescription Bundling

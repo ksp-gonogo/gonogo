@@ -6,7 +6,7 @@ namespace Sitrep.Contract;
 
 /// <summary>
 /// KSP's own maintained state
-/// vector for the active vessel (<c>Orbit.pos</c> and <c>Orbit.vel</c>),
+/// vector for the active vessel,
 /// relative to the body it orbits, in the fixed frame. Read <c>vessel.orbit</c> for altitude and
 /// velocity.
 /// <internal>

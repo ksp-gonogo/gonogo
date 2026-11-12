@@ -1037,12 +1037,14 @@ export function useViewClock(): ViewClockLike {
  * picker widget, so the operator can clear the target from a key. Keys are the
  * action ids from {@link ComponentDefinition.actions}, which the widget must
  * declare when it registers, or no operator can bind them. An operator binds
- * an input to an action on the widget's Inputs tab, the page of the widget's
+ * an input to an action ([Action and binding](/reference/concepts/action-and-binding)) on the widget's Inputs tab, the page of the widget's
  * settings dialog (opened from the tile's gear icon) that lists its actions.
- * What a handler returns is sent back to the device that fired it, a serial
- * control panel with a screen for instance, so the screen can follow the
- * widget. The text display the app's serial devices can draw on, 21 characters
- * by 8 lines, takes a flat object of keys to values, such as `{ ALT: "12.4 km", THR: "80%" }`, and prints one `KEY VALUE`
+ * What a handler returns is sent back to the device that fired it, such as a
+ * control panel plugged in over USB with a screen of its own, so the screen can
+ * follow the widget.
+ *
+ * The text display such a panel can draw on, 21 characters by 8 lines, takes a
+ * flat object of keys to values, such as `{ ALT: "12.4 km", THR: "80%" }`, and prints one `KEY VALUE`
  * line per entry, sorted by key. Return nothing when the device has no display.
  *
  * Pass a new handler object on every render if you like: the latest handlers

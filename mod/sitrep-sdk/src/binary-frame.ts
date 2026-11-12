@@ -58,8 +58,8 @@ export const BINARY_LANE_PREFIX_BYTES = 4;
  * One binary frame, decoded: the fields of its {@link StreamBinary} header,
  * with `segments` holding the segments' bytes in place of their lengths. That
  * is `type` (always `"stream-binary"`), `topic` (the Topic id the delivery
- * belongs to) and `meta` (when the payload was true, when it arrived and where
- * it was observed from), plus `segments`. Each segment is a `Uint8Array`. Useful for handing a received binary payload, such
+ * belongs to) and `meta` (when the payload was true, when the mod sent it and
+ * where it was observed from), plus `segments`. Each segment is a `Uint8Array`. Useful for handing a received binary payload, such
  * as radio audio, to the code that plays or stores it. Returned by
  * {@link decodeBinaryFrame}.
  *
@@ -156,8 +156,8 @@ const HEADER_TEXT_DECODER = new TextDecoder("utf-8", { fatal: false });
  * itself meets these: a widget that reads Topics with {@link useTelemetry} or
  * {@link useStream} can skip this page. The one Topic that arrives this way is
  * `commcast.radio`, the group radio; the first segment of each of its frames is
- * a {@link CommcastRadioBatch}, and the Radio page shows how its audio is
- * decoded.
+ * a {@link CommcastRadioBatch}, and the [Radio](/reference/client/media/radio)
+ * page gives the codec its audio is encoded with.
  *
  * @concept Binary lane
  * The binary lane is how the stream carries a payload that is opaque bytes,

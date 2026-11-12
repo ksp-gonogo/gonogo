@@ -1860,7 +1860,7 @@ export interface CommcastMessageSendArgs
 /**
 * What `commcast.message.send` (args `CommcastMessageSendArgs`) did with a
 * message: which command centres it left for, and which it could not leave
-* for. `commcast.message.send` is the command, of the core mod's Commcast
+* for. `commcast.message.send` is the command, of Commcast, the Gonogo mod's
 * group messaging and radio, that sends a text message to a group of command
 * centres. A centre is a `commandCentre.roster` entry, a place commands are
 * sent from. It says nothing of arrival: a listener is a centre that receives
@@ -2597,7 +2597,7 @@ export enum CommsDelaySource {
 }
 /**
 * The `comms.delay` payload: the one-way signal delay to the active vessel,
-* gated by the `comms.signalDelay.enabled` setting. `CommsDelay.oneWaySeconds`
+* gated by the `SIGNAL_DELAY/enabled` setting. `CommsDelay.oneWaySeconds`
 * tells two different "no delay" cases apart by value:
 *
 * - **null**: no measurable `CommsPath` (no path home, or incomplete hop
@@ -2608,11 +2608,10 @@ export enum CommsDelaySource {
 *   says the vessel is connected; the last figure before that is the one to
 *   hold. A route its plan still holds through that stretch is offered as a
 *   prediction on `comms.route`, never as this delay.
-* - **0**: the delay feature is disabled (`comms.signalDelay.enabled =
-*   false`). A genuine "zero delay applied", not an absence.
-*   `CommsDelay.source` is also `CommsDelaySource.None` here: the two cases
-*   share the same `Source` and are told apart only by whether the value is
-*   null.
+* - **0**: the delay feature is disabled (`SIGNAL_DELAY/enabled` is false). A
+*   genuine "zero delay applied", not an absence. `CommsDelay.source` is also
+*   `CommsDelaySource.None` here: the two cases share the same `Source` and
+*   are told apart only by whether the value is null.
 * - a real number: `CommsDelay.source` is `CommsDelaySource.SignalDelay`, a
 *   signal delay computed over the hop geometry of the comms model in use.
 *
@@ -6290,8 +6289,8 @@ export interface MissionObjectiveEntry
 *
 * @category Missions
 * @categoryDescription Missions
-* A Making History mission in the current game: whether one is running and how
-* far each of its objectives has got.
+* A mission of KSP's Making History expansion in the current game: whether one
+* is running and how far each of its objectives has got.
 */
 export interface MissionStatus
 {
@@ -9232,9 +9231,9 @@ export interface ExperimentBreakdownEntry
 }
 /**
 * One entry in the `science.archive` Topic payload: a single subject out of
-* the whole-career R&D archive (`ResearchAndDevelopment.GetSubjects()`). That
-* is every subject the career has ever collected or recovered, across every
-* mission and every body, not scoped to the active vessel.
+* the whole-career R&D archive. That is every subject the career has ever
+* collected or recovered, across every mission and every body, not scoped to
+* the active vessel.
 *
 * The Topic payload is a bare array (`ArchiveEntry[]`), or `null` when the
 * save has no R&D to walk (Sandbox mode). A save with R&D but nothing
@@ -9349,8 +9348,9 @@ export interface ScienceArrival
 *
 * @category Mod settings
 * @categoryDescription Mod settings
-* Settings as the stream carries them, of three kinds that a client reads
-* differently. Gonogo's own settings and its Uplinks' are one Topic, read with
+* Reading the operator's settings from a client. There are three kinds:
+* Gonogo's own with its Uplinks', a host mod's, and those that live only in
+* the browser. Gonogo's own settings and its Uplinks' are one Topic, read with
 * `useTelemetry("settings.gonogo")`. A host mod's own settings, those of the
 * KSP mod an Uplink wraps, are read through that Uplink with
 * `useModSettings(uplinkId)`. A setting that lives only in the browser has no
@@ -9800,8 +9800,7 @@ export interface CrewRosterEntry
 }
 /**
 * One craft file in the `spaceCenter.savedShips` channel, a saved VAB or SPH
-* design the player can launch, read from the save's craft folders via the
-* stock `CraftProfileInfo` metadata loader.
+* design the player can launch, read from the save's craft folders.
 *
 * The channel is a bare array of these entries, one per `.craft` file keyed by
 * `SavedShipEntry.file`. The whole payload is `null` (not an empty array) when
@@ -10006,7 +10005,7 @@ export interface AstronautComplexInfo
 * launch site (`ksc`/`launchSite` kinds, the same sites as `LaunchSiteEntry`,
 * limited to sites with a set spawn-point coordinate) and every surface
 * contract waypoint whose contract is Active or Offered (`contractTarget`
-* kind, from `FinePrint.WaypointManager`).
+* kind).
 *
 * The channel is a bare array of these entries, one per POI keyed by
 * `SpaceCenterPoiEntry.id`. The whole payload is `null` (not an empty array)
@@ -10130,13 +10129,12 @@ export interface StageDeltaVEntry
 	resources?: { [key: string]: ResourceAmount } | null;
 }
 /**
-* The whole-vessel ΔV rollup the game's own ΔV simulation (`VesselDeltaV`)
-* exposes alongside the per-stage `StageDeltaVEntry` list: the ΔV-producing
-* stage count plus the vacuum, sea-level and current totals and total burn
-* time. A single object, or `null` when the stock simulation is not ready or
-* there is no active vessel. Every field is `null` when its raw value is
-* absent or non-finite. Carries no `meta` of its own: provenance rides the
-* envelope.
+* The whole-vessel ΔV rollup the game's own ΔV simulation exposes alongside
+* the per-stage `StageDeltaVEntry` list: the ΔV-producing stage count plus the
+* vacuum, sea-level and current totals and total burn time. A single object,
+* or `null` when the stock simulation is not ready or there is no active
+* vessel. Every field is `null` when its raw value is absent or non-finite.
+* Carries no `meta` of its own: provenance rides the envelope.
 *
 * @category Vessel
 */
@@ -13345,9 +13343,9 @@ export interface OrbitEncounter
 	bodyIndex?: number | null;
 }
 /**
-* KSP's own maintained state vector for the active vessel (`Orbit.pos` and
-* `Orbit.vel`), relative to the body it orbits, in the fixed frame. Read
-* `vessel.orbit` for altitude and velocity.
+* KSP's own maintained state vector for the active vessel, relative to the
+* body it orbits, in the fixed frame. Read `vessel.orbit` for altitude and
+* velocity.
 *
 * Absent when the state vector or the frame flag could not be read.
 *
@@ -14114,9 +14112,9 @@ export interface ClosestApproach
 	trajectoryKind: TrajectoryKind;
 }
 /**
-* The active vessel's current target only.
-* `VesselTarget.relativePosition`/`VesselTarget.relativeVelocity` both use the
-* one `Vec3` shape.
+* The active vessel's current target, with nothing about any other vessel's
+* target. `VesselTarget.relativePosition`/`VesselTarget.relativeVelocity` both
+* use the one `Vec3` shape.
 *
 * `VesselTarget.orbit` reuses `VesselOrbit` itself (not a separate "target
 * orbit" shape), so a client propagates a target the same way as the active
@@ -14386,9 +14384,10 @@ export interface WarpState
 	* when the game has no warp controller to read it off (no scene that can
 	* warp).
 	*
-	* The table is configuration, not a constant: Kopernicus and RealSolarSystem
-	* both republish it, so a rung stock runs at 100x may run at 10000x on another
-	* install. Read the rate here rather than assuming stock's table.
+	* The table is configuration, not a constant: planet-pack mods such as
+	* Kopernicus and RealSolarSystem republish it, so a rung stock runs at 100x
+	* may run at 10000x on another install. Read the rate here rather than
+	* assuming stock's table.
 	*/
 	warpRates?: Value<"1">[] | null;
 	/**
@@ -14426,10 +14425,10 @@ export interface WarpState
 	* finest spacing the record ever has, and `WarpState.observationQuantumUt` at
 	* 1x. Constant for the life of the mod.
 	*
-	* The chord between two samples this far apart is the resolution every channel
-	* is sampled at, and a chart can draw it. Where the quantum is wider, the span
-	* beyond this is one the sampling skipped because of warp, and a line across
-	* it that no model of the value carries asserts a path nothing observed.
+	* A straight line between two samples this far apart is as fine as the record
+	* gets, so a chart can draw it. Where the quantum is wider, the span beyond
+	* this is one the sampling skipped because of warp, and a line across it that
+	* no model of the value carries asserts a path nothing observed.
 	*/
 	sampleIntervalUt: Value<"s">;
 	/** The payload's provenance (always `"game"`). */

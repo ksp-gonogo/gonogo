@@ -34,7 +34,7 @@ They are peers because the app must hold exactly one copy of each: styled-compon
 
 ## Theme and tokens
 
-Import `@ksp-gonogo/ui-kit/tokens.css` once, or every colour and size is unset. Components read `theme.space` and `theme.colors` and need a `ThemeProvider` in scope. Inside the Gonogo dashboard the host has mounted one. For a test or a preview outside the app:
+An Uplink loaded by the app already has the tokens. Outside the app, import `@ksp-gonogo/ui-kit/tokens.css` once, or every colour and size is unset. Components read `theme.space` and `theme.colors` and need a `ThemeProvider` in scope. Inside the Gonogo dashboard the host has mounted one. For a test or a preview outside the app:
 
 ```tsx
 import "@ksp-gonogo/ui-kit/tokens.css";

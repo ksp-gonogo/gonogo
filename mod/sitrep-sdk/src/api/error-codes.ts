@@ -33,7 +33,7 @@ export function describeErrorCode(
  * Adds an Uplink's generated error-code table, so {@link describeErrorCode}
  * returns the meaning and the sentence of each refinement. Useful for showing
  * the operator why one of your Uplink's commands was refused. A core id is never
- * replaced. An Uplink's table holds refusals only: faults are declared by core.
+ * replaced. An Uplink's table holds refusals only: faults are declared by Gonogo.
  *
  * @category Error codes
  */
@@ -58,7 +58,8 @@ export function registeredErrorCodes(): readonly ErrorCodeDeclaration[] {
 }
 
 /**
- * Reads every error-code refinement the running mod lists on `system.uplinks`
+ * Reads every error-code refinement the running mod lists on `system.uplinks`,
+ * whose payload it takes as `roster`,
  * and makes it describable, so a code from an Uplink whose client never loaded
  * still reads as a sentence. Useful for showing the operator a refusal from an
  * Uplink with no client on this screen. A code already registered with its

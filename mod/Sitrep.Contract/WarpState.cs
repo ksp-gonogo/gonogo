@@ -101,8 +101,8 @@ public class WarpState
     /// <c>time.setWarpIndex</c> (<see cref="SetWarpIndexArgs"/>) with <c>index = i</c> produces. Null when the
     /// game has no warp controller to read it off (no scene that can warp).
     ///
-    /// <para>The table is configuration, not a constant: Kopernicus and
-    /// RealSolarSystem both republish it, so a rung stock runs at 100x may run
+    /// <para>The table is configuration, not a constant: planet-pack mods such as
+    /// Kopernicus and RealSolarSystem republish it, so a rung stock runs at 100x may run
     /// at 10000x on another install. Read the rate here rather than assuming
     /// stock's table.</para>
     /// <internal>
@@ -166,8 +166,8 @@ public class WarpState
     /// the finest spacing the record ever has, and <see cref="ObservationQuantumUt"/>
     /// at 1x. Constant for the life of the mod.
     ///
-    /// <para>The chord between two samples this far apart is the resolution
-    /// every channel is sampled at, and a chart can draw it. Where the
+    /// <para>A straight line between two samples this far apart is as fine as
+    /// the record gets, so a chart can draw it. Where the
     /// quantum is wider, the span beyond this is one the sampling skipped
     /// because of warp, and a line across it that no model of the value
     /// carries asserts a path nothing observed.</para>

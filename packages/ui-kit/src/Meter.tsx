@@ -726,7 +726,7 @@ function MeterPairBar<UnitSymbol extends string = string>({
 const ROW_BAR_FLOOR_PX = 48;
 
 /**
- * A vertical list of meters. Row meters in it share columns, so every label,
+ * A vertical list of {@link Meter} children. Row meters in it share columns, so every label,
  * bar and figure lines up. Useful for letting the operator compare several
  * resources at a glance. Used by the fuel status widget. Where the figures do
  * not fit beside the bars, every figure moves under its bar.

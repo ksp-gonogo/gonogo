@@ -9,9 +9,12 @@ import type { Logger } from "./logger-contract";
  * what an Uplink's code is doing, so the operator can export the log when
  * reporting a problem. Throws when used with no app or test host installed.
  *
- * A tagged logger's `debug` entries are kept in the buffer and sent either
- * way, but reach the browser console only while the operator has verbose
- * logging on in Settings under Diagnostics; its other levels always print.
+ * Log through a tagged logger, `logger.tag("my-uplink")`, so an entry names
+ * the Uplink that wrote it. A tagged logger's `debug` entries are kept in the
+ * buffer and sent either way, but reach the browser console only while the
+ * operator has verbose logging on in Settings under Diagnostics; its other
+ * levels always print. An untagged `logger.debug` prints whenever the console
+ * level allows it.
  *
  * @example
  * ```ts

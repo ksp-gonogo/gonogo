@@ -99,7 +99,7 @@ public class MissionObjectiveEntry
 /// </summary>
 /// <category>Missions</category>
 /// <categoryDescription>
-/// A Making History mission in the current game: whether one is running and how far
+/// A mission of KSP's Making History expansion in the current game: whether one is running and how far
 /// each of its objectives has got.
 /// </categoryDescription>
 [SitrepContract]

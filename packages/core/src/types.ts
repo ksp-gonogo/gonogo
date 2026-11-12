@@ -205,8 +205,8 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    * The smallest tile, in grid units, the widget's own body fits. A widget with
    * no tiny mode cannot be resized below it. One with a tiny mode shows the
    * tiny form in any tile narrower or shorter than it, and can be resized down
-   * to the kit-wide `TINY_SIZE`, so it must exceed `TINY_SIZE` on at least one
-   * axis. Absent, the body fits from 1x1, or from 5x4 when a tiny mode is
+   * to the kit-wide `TINY_SIZE`, so it must be at least `TINY_SIZE` on both axes
+   * and larger on one. Absent, the body fits from 1x1, or from 5x4 when a tiny mode is
    * declared.
    */
   minSize?: { w: number; h: number };

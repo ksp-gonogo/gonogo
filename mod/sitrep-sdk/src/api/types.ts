@@ -69,9 +69,9 @@ export type ComponentRequirement = "flight" | "career";
 
 /**
  * A reason a widget stays on screen although a game state it requires is not met.
- * `"crash-ending"` keeps it open while the crash that ended the last flight is on record, so a widget that shows how a flight ended is still there once the game leaves the flight scene.
- * Useful for letting the operator still read how a flight ended after the game
- * leaves the flight scene.
+ * `"crash-ending"` keeps it open while the crash that ended the last flight is
+ * on record. Useful for letting the operator still read how a flight ended
+ * after the game leaves the flight scene.
  *
  * @category Registering
  */
@@ -105,8 +105,8 @@ export interface ActionInputPayload {
 /**
  * One action a widget declares in {@link ComponentDefinition.actions}, which
  * an operator can bind to a key, button or axis.
- * Useful for letting the operator drive a widget from a key, a button or an
- * axis. Used by the Inputs tab of a widget's settings, the page of its settings
+ * Useful for naming what an operator's input does in the list they bind
+ * from. Used by the Inputs tab of a widget's settings, the page of its settings
  * dialog where the operator picks which device input drives each action.
  *
  * @category Actions
@@ -440,8 +440,8 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    * The smallest tile, in grid units, the widget's own body fits. A widget with
    * no tiny mode cannot be resized below it. One with a tiny mode shows the
    * tiny form in any tile narrower or shorter than it, and can be resized down
-   * to the kit-wide `TINY_SIZE`, so it must exceed `TINY_SIZE` on at least one
-   * axis. Absent, the body fits from 1x1, or from 5x4 when a tiny mode is
+   * to the kit-wide `TINY_SIZE`, so it must be at least `TINY_SIZE` on both axes
+   * and larger on one. Absent, the body fits from 1x1, or from 5x4 when a tiny mode is
    * declared.
    */
   minSize?: { w: number; h: number };
@@ -685,8 +685,7 @@ export interface WidgetScopeRegistry {}
 /**
  * The scope the widget `Widget` publishes, from {@link WidgetScopeRegistry}.
  * `never` for a widget id that publishes none, and an open record
- * (`Record<string, unknown>`) when `Widget` is a plain `string`, which is what
- * the signature's `ErasedOrNever` yields for it. Useful for typing what an
+ * (`Record<string, unknown>`) when `Widget` is a plain `string`. Useful for typing what an
  * augment reads from the widget it is drawn in.
  *
  * @category Registering
@@ -899,7 +898,7 @@ export type ContributionEntry<Slot extends string> =
  * @category Registering
  */
 export interface UplinkClientIdentity {
-  /** The Uplink's id, the one its mod declares. */
+  /** The Uplink's id, the one its plugin declares. */
   id: string;
   /** The Uplink's version. */
   version: string;
@@ -1286,7 +1285,7 @@ export interface SizeDelta {
  * - Its state lasts as long as the widget keeps the slot mounted and the
  *   augment stays registered and present. Registering a different component
  *   under the same `id` replaces it, and the new one starts with fresh state.
- * - While its `requires` Domain is not present it is not mounted at all, so
+ * - While its `requires` [Domain](/guide/concepts#domains-and-seats) is not present it is not mounted at all, so
  *   its state is lost, and it mounts afresh when the Domain returns. A Domain
  *   is present from the first value its `<domain>.available` Topic delivers,
  *   and stays present while that value is held.
@@ -1661,8 +1660,10 @@ export interface CoverageMaskCacheHandle {
 // `DataSourceStatus` without registering through the facade at all.
 
 /**
- * The connection state of a `DataSource`. Useful for telling the operator
- * whether a connection is up. The `status` of a {@link DataSource}.
+ * The connection state of a `DataSource`: `connected` (data is flowing),
+ * `disconnected` (not connected), `reconnecting` (the connection dropped and
+ * the source is trying again) or `error` (the connection failed). Useful for telling the operator whether a
+ * connection is up. The `status` of a {@link DataSource}.
  *
  * @category Registering
  */
@@ -2017,8 +2018,8 @@ export type { PerfBudgetOptions } from "../perf/PerfBudget";
 
 /**
  * A performance budget, as {@link createPerfBudget} returns it. Useful for
- * catching an Uplink that sends or draws more often than the operator's machine
- * can keep up with.
+ * counting how often an Uplink sends or draws, so a test can fail when that is
+ * more often than the operator's machine can keep up with.
  *
  * @category Logging and performance
  */

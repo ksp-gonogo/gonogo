@@ -7,7 +7,7 @@ import { Tooltip } from "./Tooltip";
 
 /**
  * The props every {@link Switch} takes. Useful for letting the operator turn a
- * widget option on or off. Taken by every form of {@link Switch}.
+ * widget option on or off. Taken by {@link Switch}, whether it is given `label` or `aria-label`.
  *
  * @category Form
  */

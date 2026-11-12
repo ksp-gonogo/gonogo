@@ -1019,7 +1019,7 @@ function derivedReckoning<Payload, Derived>(
  * runs on the observed value and on the modelled value alike. Where `pick`
  * returns `undefined` for the modelled value, the result has no model. Useful
  * for showing one figure of a reading with its age and model. Used by the
- * maneuver planner and the countdown helper.
+ * maneuver planner.
  *
  * @category Reading telemetry
  */
@@ -1088,7 +1088,7 @@ function walkField(payload: unknown, path: string): unknown {
 
 /**
  * Returns the {@link Reckoning} of one field of a Topic, taken from the Topic's
- * own model: the modelled value at `path`, the basis that moved it, and the
+ * own model: the modelled value at `path`, the {@link ReckoningBasis} that moved it, and the
  * band the model gives at exactly that path.
  *
  * `path` is dotted from the payload root, such as `"verticalSpeed"`. A path the
@@ -1626,9 +1626,9 @@ export interface ReckonerFrame<Payload = unknown> {
 }
 
 /**
- * Returns whether a reckoner is asked for the same instant its observation was
- * received at, with the observation still live, so there is no gap to carry
- * the value across. Under signal delay it is `false`: a live observation is
+ * Returns whether a reckoner is asked about the instant its observation was
+ * received at and the observation is still live, meaning there is no gap to
+ * carry the value across. Under signal delay it is `false`: a live observation is
  * still the signal delay behind the vessel. Useful for a model deciding whether
  * there is any delay to carry a value across. Used by the built-in atmospheric
  * and core models.

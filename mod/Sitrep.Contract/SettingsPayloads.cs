@@ -26,8 +26,9 @@ namespace Sitrep.Contract;
 /// </summary>
 /// <category>Mod settings</category>
 /// <categoryDescription>
-/// Settings as the stream carries them, of three kinds that a client reads
-/// differently. Gonogo's own settings and its Uplinks' are one Topic, read with
+/// Reading the operator's settings from a client. There are three kinds: Gonogo's
+/// own with its Uplinks', a host mod's, and those that live only in the browser.
+/// Gonogo's own settings and its Uplinks' are one Topic, read with
 /// <c>useTelemetry("settings.gonogo")</c>. A host mod's own settings, those of
 /// the KSP mod an Uplink wraps, are read through that Uplink with
 /// <c>useModSettings(uplinkId)</c>. A setting that lives only in the browser has

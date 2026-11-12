@@ -743,7 +743,7 @@ public static class RtConfig
         {
             sb.Append("/**\n * One declared error code, as a client reads it.\n *\n * @category Error codes\n */\n");
             sb.Append("export interface ErrorCodeDeclaration {\n");
-            sb.Append("  /** The camelCase id. `owner.name` for a refinement, where `owner` is the declaring Uplink or core domain, which is what every code an Uplink declares is; one segment for a core root or a fault. */\n");
+            sb.Append("  /** The camelCase id. A refinement is written `owner.name`, where `owner` is the Uplink or core domain that declares it, and every code an Uplink declares is a refinement. A core root or a fault is one segment. */\n");
             sb.Append("  readonly id: string;\n");
             sb.Append("  /** `refusal`: the game ran the command and said no. `fault`: nothing was decided, the request could not be carried. */\n");
             sb.Append("  readonly kind: \"refusal\" | \"fault\";\n");

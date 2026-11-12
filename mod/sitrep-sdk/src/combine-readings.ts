@@ -6,7 +6,7 @@ import type { Value } from "./unit-system/value";
  * {@link Reading} with a state of its own, as current as the least current
  * input. Useful for showing the operator a figure derived from more than one
  * Topic, such as the range to a target, without losing how current it is. Used
- * by the approach display, which shows the range and closing rate to a target,
+ * by the Rendezvous widget, which shows the range and closing rate to a target,
  * and by the vessel catalog, which lists the operator's vessels.
  *
  * @example
@@ -37,8 +37,9 @@ import type { Value } from "./unit-system/value";
  *   several inputs qualify, the first in argument order decides
  *
  * The forward model is combined separately from the state: two observed inputs
- * whose models both declined give an observed result with a declined
- * reckoning. The result never carries a band.
+ * whose models both declined (see {@link TopicReckoning}) give an observed
+ * result with a declined reckoning. The result never carries an
+ * {@link UncertaintyBand}.
  *
  * ## No result
  *

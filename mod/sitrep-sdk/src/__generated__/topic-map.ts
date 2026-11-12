@@ -158,7 +158,7 @@ export interface GeneratedTopicPayloadMap {
   "comms.control": CommsControl;
   /** The `comms.degrade` payload: how degraded the active vessel's link home is right now, on one fixed scale, as the comms backend in force grades it. */
   "comms.degrade": CommsDegrade;
-  /** The `comms.delay` payload: the one-way signal delay to the active vessel, gated by the `comms.signalDelay.enabled` setting. */
+  /** The `comms.delay` payload: the one-way signal delay to the active vessel, gated by the `SIGNAL_DELAY/enabled` setting. */
   "comms.delay": CommsDelay;
   /** The `comms.groundStations` payload: every ground station the game has, as the comms mod in use reads them, with the body each stands on and its latitude and longitude. */
   "comms.groundStations": CommsGroundStations;
@@ -184,7 +184,7 @@ export interface GeneratedTopicPayloadMap {
   "crash.lastCrash": CrashReport;
   /** One ΔV-producing stage of the active vessel, from the game's own stage simulation: the same numbers the in-game ΔV app shows, with atmosphere, ISP, crossfeed and staging all handled by the game. */
   "dv.stages": StageDeltaVEntry[];
-  /** The whole-vessel ΔV rollup the game's own ΔV simulation (`VesselDeltaV`) exposes alongside the per-stage `StageDeltaVEntry` list: the ΔV-producing stage count plus the vacuum, sea-level and current totals and total burn time. */
+  /** The whole-vessel ΔV rollup the game's own ΔV simulation exposes alongside the per-stage `StageDeltaVEntry` list: the ΔV-producing stage count plus the vacuum, sea-level and current totals and total burn time. */
   "dv.summary": StageDeltaVSummary;
   /** The roster of kerbals currently outside a craft, loaded or not, so a client can find each one's own `eva.kerbal.<vessel id>.state` Topic. */
   "eva.crew": EvaCrew;
@@ -222,7 +222,7 @@ export interface GeneratedTopicPayloadMap {
   "robotics.available": RoboticsAvailability;
   /** One entry in the `robotics.servos` Topic payload, a single Breaking Ground robotic servo on the active vessel. */
   "robotics.servos": ServoEntry[];
-  /** One entry in the `science.archive` Topic payload: a single subject out of the whole-career R&D archive (`ResearchAndDevelopment.GetSubjects()`). */
+  /** One entry in the `science.archive` Topic payload: a single subject out of the whole-career R&D archive. */
   "science.archive": ArchiveEntry[];
   /** One entry in the `science.experimentBreakdown` Topic payload: a per-subject rollup of the stored science results that `science.experiments` lists one row per result. */
   "science.experimentBreakdown": ExperimentBreakdownEntry[];
@@ -246,9 +246,9 @@ export interface GeneratedTopicPayloadMap {
   "spaceCenter.launchSites": LaunchSiteEntry[];
   /** A wrapper carrying the count of parts the player can place right now (tech-unlocked and purchased in career; the full `PartLoader` catalogue in sandbox). */
   "spaceCenter.partsAvailable": SpaceCenterPartsAvailable;
-  /** One point of interest in the `spaceCenter.pois` channel: the union of every launch site (`ksc`/`launchSite` kinds, the same sites as `LaunchSiteEntry`, limited to sites with a set spawn-point coordinate) and every surface contract waypoint whose contract is Active or Offered (`contractTarget` kind, from `FinePrint.WaypointManager`). */
+  /** One point of interest in the `spaceCenter.pois` channel: the union of every launch site (`ksc`/`launchSite` kinds, the same sites as `LaunchSiteEntry`, limited to sites with a set spawn-point coordinate) and every surface contract waypoint whose contract is Active or Offered (`contractTarget` kind). */
   "spaceCenter.pois": SpaceCenterPoiEntry[];
-  /** One craft file in the `spaceCenter.savedShips` channel, a saved VAB or SPH design the player can launch, read from the save's craft folders via the stock `CraftProfileInfo` metadata loader. */
+  /** One craft file in the `spaceCenter.savedShips` channel, a saved VAB or SPH design the player can launch, read from the save's craft folders. */
   "spaceCenter.savedShips": SavedShipEntry[];
   /** The single current KSP game scene. */
   "spaceCenter.scene": SpaceCenterScene;
@@ -292,7 +292,7 @@ export interface GeneratedTopicPayloadMap {
   "vessel.maneuver": VesselManeuver;
   /** The active vessel's orbital elements. */
   "vessel.orbit": VesselOrbit;
-  /** KSP's own maintained state vector for the active vessel (`Orbit.pos` and `Orbit.vel`), relative to the body it orbits, in the fixed frame. */
+  /** KSP's own maintained state vector for the active vessel, relative to the body it orbits, in the fixed frame. */
   "vessel.orbit.truth": VesselOrbitTruth;
   /** The active vessel's full part tree, with each part's position, mass, temperatures, resources, module states and action-group bindings. */
   "vessel.parts": VesselParts;
@@ -308,7 +308,7 @@ export interface GeneratedTopicPayloadMap {
   "vessel.structure": VesselStructure;
   /** Surface data a landing widget needs that `vessel.flight` doesn't already carry. */
   "vessel.surface": VesselSurface;
-  /** The active vessel's current target only. */
+  /** The active vessel's current target, with nothing about any other vessel's target. */
   "vessel.target": VesselTarget;
   /** The active vessel's thermal rollup, its hottest part, heat shield and engine. */
   "vessel.thermal": VesselThermal;

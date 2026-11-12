@@ -86,7 +86,7 @@ import { registerReckoner } from "./reckoners";
  * @category Registering
  */
 export interface UplinkClientHandle {
-  /** The Uplink's id. It must match the id its mod declares with `[SitrepUplink]`, and the `id` in `uplink.json` when that file names one. */
+  /** The Uplink's id. It must match the id its plugin declares with `[SitrepUplink]`, and the `id` in `uplink.json` when that file sets one. */
   id: string;
   /** The Uplink's version, the same for its mod and its client. */
   version: string;

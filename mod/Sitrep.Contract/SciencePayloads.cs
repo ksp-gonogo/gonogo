@@ -958,8 +958,7 @@ public class ExperimentBreakdownEntry
 
 /// <summary>
 /// One entry in the <c>science.archive</c> Topic payload: a single subject
-/// out of the whole-career R&amp;D archive
-/// (<c>ResearchAndDevelopment.GetSubjects()</c>). That is every subject the
+/// out of the whole-career R&amp;D archive. That is every subject the
 /// career has ever collected or recovered, across every mission and every
 /// body, not scoped to the active vessel.
 ///

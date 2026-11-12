@@ -132,8 +132,8 @@ export function enumNameOf<EnumName extends string>(
 /**
  * The control level of each `ControlState` value, by its number: 2 for full
  * control, 1 for partial, 0 for none, and `undefined` for `Unknown`. Read it
- * with {@link collapseControlStateLevel}. Useful for reducing the eleven
- * control states to the three levels the operator acts on.
+ * with {@link collapseControlStateLevel}. Useful for reducing the control
+ * states to the three levels the operator acts on.
  *
  * @category Enum names
  */

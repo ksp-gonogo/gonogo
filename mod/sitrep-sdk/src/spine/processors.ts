@@ -205,7 +205,7 @@ export type ResolvedDeps<Deps extends readonly Dep[]> = {
  * @category Processors
  */
 export interface ProcessorFrame {
-  /** The frame's frozen view time. Every read in this frame shares it. */
+  /** The frame's frozen view time, in game seconds as a plain number (where {@link useViewUt} gives a `Value<"ut">`). Every read in this frame shares it. */
   viewUt: number;
 }
 

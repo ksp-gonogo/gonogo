@@ -60,7 +60,7 @@ interface Event {
  * on the page.
  *
  * Make one at module scope beside the code it measures and call `record()` on
- * each event. Recording costs one `Date.now()` and an array push. The three
+ * each event. The three
  * static members are called on the class: `PerfBudget.getAll()`,
  * `PerfBudget.clearRegistry()` and `PerfBudget.installTestGate()`.
  *
@@ -225,7 +225,7 @@ export class PerfBudget {
    * Makes every test fail that pushes a budget over its threshold. Each test
    * notes every budget's exceedance count before it runs, and fails afterwards
    * if any count rose. Call it once from a test setup file (`setupFiles` in a
-   * Vitest config) so it applies to every test.
+   * Vitest config, or your test runner's equivalent) so it applies to every test.
    *
    * It checks the budgets registered in the page the tests run in, which is
    * every budget made with `new PerfBudget` or `createPerfBudget` there, an

@@ -2,8 +2,8 @@ import { createContext, useContext, useLayoutEffect } from "react";
 
 /**
  * Something a widget uses that the save may not have unlocked: a Topic it reads
- * or a command it holds. Useful for refusing a widget when the career has not
- * yet unlocked what it needs. Taken by the ui-kit's lock scope, which collects
+ * or a command it sends. Useful for refusing a widget when the career has not
+ * yet unlocked what it needs. Taken by `LockScope` in the ui-kit, which collects
  * the capabilities a section of a widget uses so it can show one lock message.
  *
  * @category Readings

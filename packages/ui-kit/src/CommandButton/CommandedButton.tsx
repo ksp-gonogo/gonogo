@@ -122,14 +122,13 @@ export interface CommandedButtonProps extends NativeButtonProps {
   refusedLabel?: ReactNode;
   /**
    * The word shown in place of the label after a dispatch got no reply.
-   * Defaults to "No reply": not "failed" and not "refused", neither of which is
-   * known.
+   * Defaults to "No reply".
    */
   lostLabel?: ReactNode;
   /**
    * The label for a command this control lost that has since replied.
    * Defaults to "Found", with the whole sentence on the accessible name and
-   * title. Not "Confirmed": the operator was told to give up on it.
+   * title.
    */
   foundLabel?: ReactNode;
   /**

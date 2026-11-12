@@ -29,7 +29,7 @@ export interface RawFieldSubtopic {
  * Splits a dotted key into a Topic and the field path under it, or returns
  * `undefined` when the key is a whole Topic. Useful for reading one field of a
  * Topic, such as in a saved graph that names a field by its dotted key. Used by
- * the graph widget's saved configuration and the data package's field catalogue.
+ * the graph widget's saved configuration and the app's field catalogue.
  *
  * The Topic is the longest known Topic id the key starts with, counting ids
  * an Uplink has registered, so `"alarm.scet.fired.firedAtUt"` splits into

@@ -35,7 +35,7 @@ export const RADIO_REQUIRED_GLOBALS = [
 
 /**
  * The encoder configuration the radio transmits at: 20 ms chunks of mono
- * 48 kHz audio at a voice-radio bitrate. Useful for encoding the operator's
+ * 48 kHz audio at 12 kbit/s. Useful for encoding the operator's
  * microphone audio before it is sent. Used by the app's push-to-talk radio
  * when it encodes the operator's voice. `bitrate` is a target that some browsers exceed, so size buffers by the
  * measured rate rather than this number.
@@ -82,7 +82,8 @@ export const RADIO_CHUNK_FRAMES = 960;
 /**
  * Why the radio cannot run here. With `insecure-context` the page is not a
  * secure origin, which the operator can fix by opening it over https or on
- * localhost. With `no-codec` the browser lacks the audio codec the radio needs,
+ * localhost. With `no-codec` the browser lacks the WebCodecs classes the radio
+ * needs, listed in {@link RadioSupport}'s `missing`,
  * which the operator cannot fix on this browser. Useful for telling the operator
  * which of the two applies. Carried by
  * {@link RadioSupport}.
@@ -111,6 +112,7 @@ export type RadioSupport =
       /** The names from {@link RADIO_REQUIRED_GLOBALS} that were absent.
        *  Empty for `insecure-context`, which is diagnosed before the
        *  globals are consulted at all. */
+      /** The WebCodecs constructors this browser lacks, empty for `"insecure-context"`. */
       missing: readonly string[];
     };
 
@@ -153,7 +155,7 @@ export function radioSupportStatus(): RadioSupport {
  * @categoryDescription Radio
  * Whether this browser can carry live push-to-talk radio, and the audio
  * settings the radio encodes and decodes with. The radio is part of Commcast,
- * the core mod's group messaging and radio between command centres. This
+ * the Gonogo mod's group messaging and radio between command centres. This
  * package does not send or play audio itself: it tells a client whether it may
  * and what to encode with.
  *
@@ -162,10 +164,9 @@ export function radioSupportStatus(): RadioSupport {
  * {@link RADIO_ENCODER_CONFIG}, and send about 200 ms of packets at a time with
  * the `commcast.radio.transmit` command, whose arguments are
  * {@link CommcastRadioTransmitArgs}; send it as any command is sent, with
- * {@link useCommand}. To listen, read the `commcast.radio` Topic. A typed Topic
- * is one with a `TopicId` and a payload type in the Topics list, which
- * `useTelemetry` reads; this one has neither, because it arrives as binary
- * frames, read with {@link decodeBinaryFrame}, and the first segment of each is
+ * {@link useCommand}. To listen, read the `commcast.radio` Topic, which arrives
+ * as binary frames rather than through `useTelemetry`: read each with
+ * {@link decodeBinaryFrame}. The first segment of each frame is
  * a {@link CommcastRadioBatch} describing who is speaking, followed by the Opus
  * packets to decode with {@link RADIO_DECODER_CONFIG}.
  */

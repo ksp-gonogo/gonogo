@@ -1,7 +1,7 @@
 {
   "id": "stock-career",
   "name": "Stock career",
-  "description": "Stock KSP career. A planted Uplink is installed and reports its target assembly missing, so its channels stay declared but never carry a value.",
+  "description": "Stock KSP career. An Uplink is installed and reports its target mod missing, so its Topics stay declared but never carry a value.",
   "uplinks": [
     {
       "id": "planted",

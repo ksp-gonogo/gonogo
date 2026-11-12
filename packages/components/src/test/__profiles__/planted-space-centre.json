@@ -1,7 +1,7 @@
 {
   "id": "planted-space-centre",
   "name": "A career mod with its own space centre",
-  "description": "A career install where an Uplink runs a space centre of its own: the planted Uplink owns its own pad and complex channels, and the stock launch-site read carries that centre's sites rather than the KSC's. Its channels are live, so a widget that reads none of them is shown to read none of them where they carry values, and its sites say nothing about stock pad occupancy.",
+  "description": "A career install where an Uplink runs a space centre of its own: that Uplink owns its own pad and complex channels, and the stock launch-site read carries that centre's sites rather than the KSC's. Its channels are live, so a widget that reads none of them is shown to read none of them where they carry values, and its sites say nothing about stock pad occupancy.",
   "uplinks": [
     {
       "id": "planted",

@@ -103,8 +103,8 @@ public class ClosestApproach
 }
 
 /// <summary>
-/// The active vessel's current
-/// target only. <see cref="RelativePosition"/>/<see cref="RelativeVelocity"/>
+/// The active vessel's current target, with nothing about any other vessel's
+/// target. <see cref="RelativePosition"/>/<see cref="RelativeVelocity"/>
 /// both use the one <see cref="Vec3"/> shape.
 ///
 /// <para><see cref="Orbit"/> reuses <see cref="VesselOrbit"/> itself (not a

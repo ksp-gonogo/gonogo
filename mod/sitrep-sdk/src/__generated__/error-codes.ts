@@ -9,7 +9,7 @@
  * @category Error codes
  */
 export interface ErrorCodeDeclaration {
-  /** The camelCase id. `owner.name` for a refinement, where `owner` is the declaring Uplink or core domain, which is what every code an Uplink declares is; one segment for a core root or a fault. */
+  /** The camelCase id. A refinement is written `owner.name`, where `owner` is the Uplink or core domain that declares it, and every code an Uplink declares is a refinement. A core root or a fault is one segment. */
   readonly id: string;
   /** `refusal`: the game ran the command and said no. `fault`: nothing was decided, the request could not be carried. */
   readonly kind: "refusal" | "fault";
@@ -82,8 +82,8 @@ export const CommandErrorCode = {
    * A retry succeeds only once something changes, such as a kerbal leaving the
    * active roster.
    *
-   * The `breach` field of the reply carries the numbers, so a client can say "16
-   * of 16".
+   * The `breach` field of the reply (a `LimitBreach`) carries the numbers, so a
+   * client can say "16 of 16".
    */
   LimitReached: "limitReached",
   /**
@@ -143,14 +143,14 @@ export const CommandErrorCode = {
    * change can also be switched off by the save's own difficulty settings. The
    * game's reason is on the `detail` field of the reply.
    *
-   * Also returned by the command that sets a SCET alarm (an alarm on the craft's
-   * own clock, spacecraft event time) when the command centre it names as its
-   * vantage cannot be checked, because the game has not yet reported any command
-   * centre: at the main menu, and in the first moments after a save loads. The
-   * same command refuses a vantage that is known and inactive with
-   * `CommandErrorCode.Range` instead, because that one does not resolve by
-   * waiting. Any other command naming an inactive vantage fails with the
-   * `unknownVantage` fault.
+   * Also returned by `alarm.scet.arm`, the command that sets a SCET alarm (an
+   * alarm on the craft's own clock, spacecraft event time), when the command
+   * centre it names as its vantage cannot be checked, because the game has not
+   * yet reported any command centre: at the main menu, and in the first moments
+   * after a save loads. The same command refuses a vantage that is known and
+   * inactive with `CommandErrorCode.Range` instead, because that one does not
+   * resolve by waiting. Any other command naming an inactive vantage fails with
+   * the `unknownVantage` fault.
    *
    * Distinct from `CommandErrorCode.WrongState`, which is about the entity and
    * does not resolve by waiting.
@@ -438,7 +438,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "a limit has been reached",
-    meaning: "A capacity is full: the Astronaut Complex holds its cap of active crew, a facility holds its cap of anything else countable.\n\nA retry succeeds only once something changes, such as a kerbal leaving the active roster.\n\nThe `breach` field of the reply carries the numbers, so a client can say \"16 of 16\".",
+    meaning: "A capacity is full: the Astronaut Complex holds its cap of active crew, a facility holds its cap of anything else countable.\n\nA retry succeeds only once something changes, such as a kerbal leaving the active roster.\n\nThe `breach` field of the reply (a `LimitBreach`) carries the numbers, so a client can say \"16 of 16\".",
   },
   {
     id: "alreadyAtMaximum",
@@ -494,7 +494,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "the flight is not clear for it yet",
-    meaning: "Right command, wrong moment: the flight is not in a state that permits it yet, and will be later.\n\nThe game gives five such reasons: in atmosphere, under acceleration, moving over the surface, about to crash, on a ladder; and a revert or a scene change can also be switched off by the save's own difficulty settings. The game's reason is on the `detail` field of the reply.\n\nAlso returned by the command that sets a SCET alarm (an alarm on the craft's own clock, spacecraft event time) when the command centre it names as its vantage cannot be checked, because the game has not yet reported any command centre: at the main menu, and in the first moments after a save loads. The same command refuses a vantage that is known and inactive with `CommandErrorCode.Range` instead, because that one does not resolve by waiting. Any other command naming an inactive vantage fails with the `unknownVantage` fault.\n\nDistinct from `CommandErrorCode.WrongState`, which is about the entity and does not resolve by waiting.",
+    meaning: "Right command, wrong moment: the flight is not in a state that permits it yet, and will be later.\n\nThe game gives five such reasons: in atmosphere, under acceleration, moving over the surface, about to crash, on a ladder; and a revert or a scene change can also be switched off by the save's own difficulty settings. The game's reason is on the `detail` field of the reply.\n\nAlso returned by `alarm.scet.arm`, the command that sets a SCET alarm (an alarm on the craft's own clock, spacecraft event time), when the command centre it names as its vantage cannot be checked, because the game has not yet reported any command centre: at the main menu, and in the first moments after a save loads. The same command refuses a vantage that is known and inactive with `CommandErrorCode.Range` instead, because that one does not resolve by waiting. Any other command naming an inactive vantage fails with the `unknownVantage` fault.\n\nDistinct from `CommandErrorCode.WrongState`, which is about the entity and does not resolve by waiting.",
   },
   {
     id: "capabilityMismatch",

@@ -9,7 +9,7 @@ import { Tooltip } from "./Tooltip";
  * produce. Used by {@link DeclinedEmptyState} and by the widgets that show a
  * modelled figure.
  *
- * A `beyond-horizon` decline that `resolvesByWaiting` reads `NOT YET COMPUTED`,
+ * A `beyond-horizon` decline whose `ReckoningDecline.resolvesByWaiting` is true reads `NOT YET COMPUTED`,
  * since the figure comes back by itself, where the same reason without it reads
  * `CANNOT MODEL`.
  *

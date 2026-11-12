@@ -199,7 +199,8 @@ export interface UplinkCodegenDeclaration {
   /**
    * The extra files `configurationMethod` writes beyond `contract.ts`, which is
    * always written and is not listed. Each entry is the name of an environment
-   * variable the method reads an output path from, mapped to the file name
+   * variable your configuration method reads in C# to find where to write a
+   * file, mapped to the file name
    * `uplink-tools codegen` sets that variable to, under
    * `client/src/__generated__/`. The method chooses the variable names, so any
    * name works as long as the method reads the same one; `uplink-tools new`
@@ -234,7 +235,7 @@ export interface UplinkManifest {
    * The KSP mod this Uplink connects and the version of it the Uplink was built
    * against, from `uplink.json`'s `mod`. The app shows them beside the Uplink
    * when an operator decides whether to load it. Absent when `uplink.json`
-   * names neither.
+   * names neither. The `tier` that `uplink.json` may also give is not copied.
    */
   mod?: { name?: string; builtAgainst?: string };
   /** The Uplink's own version, which its client and its plugin share. */
@@ -361,7 +362,7 @@ function readJsonFile(path: string, what: string): Record<string, unknown> {
  * `clientDir`, or `undefined` when there is none. Useful for a build script that
  * needs the author's distribution declaration. Used by
  * {@link buildUplinkManifest}. An Uplink of your own always
- * has one; only an Uplink bundled inside the app's own repository does not.
+ * has one; only an Uplink whose code sits inside the app's own repository does not.
  *
  * @category Manifest
  */
@@ -422,6 +423,10 @@ function wrappedMod(
 /**
  * The manifest, from the files an Uplink already has. Useful for writing the
  * `gonogo-uplink.json` the app reads before it loads the Uplink.
+ *
+ * The manifest's `bundleUrl` is always `<id>/<id>.client.js`, the path `uplink-tools
+ * bundle` writes under `dist/`. The `client.url` in `uplink.json` is where the
+ * file is published and may use another name.
  *
  * Deterministic: given the same client directory, declaration and compat block
  * it produces the same object every time, and `serialiseUplinkManifest` the same

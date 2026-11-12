@@ -38,9 +38,10 @@ function withTheme(Extra?: Wrapper): Wrapper {
  * {@link installDomStubs} to have run. Any test runner works; the example uses
  * vitest, installed with `npm install -D vitest jsdom` and set to
  * `environment: "jsdom"` in its config.
- * Its options and result are Testing Library's own `RenderOptions` and
- * `RenderResult`, with Testing Library's default queries, which the signature
- * shows as `queries`. Useful for testing what an operator sees of a ui-kit
+ * Its options and result are the ones Testing Library's `render` takes and
+ * returns, with its default queries, which the signature shows as `queries`.
+ * The kit's theme here is the small stand-in {@link harnessTheme}, so this
+ * package does not depend on the kit. Useful for testing what an operator sees of a ui-kit
  * component or a widget.
  *
  * @example
@@ -111,6 +112,18 @@ export function renderHook<Result, Props>(
  * not of how it is drawn; use `visibleText` from `@ksp-gonogo/ui-kit/testing`
  * for what a reader sees. Useful for testing that a value reached a widget,
  * such as a reading the operator is shown.
+ *
+ * @example
+ * ```tsx
+ * import { probeText } from "@ksp-gonogo/sitrep-sdk/testing";
+ * import { useTelemetry } from "@ksp-gonogo/sitrep-sdk";
+ *
+ * function Probe() {
+ *   const reading = useTelemetry("vessel.flight");
+ *   const altitude = reading.state === "observed" ? reading.value.altitudeAsl : undefined;
+ *   return <p>{probeText(altitude)}</p>;
+ * }
+ * ```
  *
  * @category Rendering
  */

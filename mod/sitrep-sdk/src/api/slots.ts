@@ -115,7 +115,7 @@ export interface RendezvousHudContext {
    * has no picture and never calls it.
    */
   reportPicture: (picture: RendezvousPicture | null) => void;
-  /** True while the two ports are within docking-alignment tolerance. */
+  /** True while the two ports face each other head-on to within about 1 degree. */
   aligned: boolean;
   /** Horizontal docking alignment angle in degrees (plain degrees, like `ay`), before any limit is applied. `undefined` while the angle is not reported. */
   ax: number | undefined;
@@ -651,8 +651,8 @@ export interface SystemOverlayContext {
  * its own transform. A world point `(wx, wy)` lands at
  * `x = (wx - camera.panX) * camera.zoom + width / 2` and
  * `y = (wy - camera.panY) * camera.zoom + height / 2`.
- * Useful for marking positions on the map, such as a waypoint. Used by the Map
- * View.
+ * Useful for marking positions on the map, such as a waypoint. Used by the Ground Track
+ * widget.
  *
  * @category Widget slots
  * @categoryDescription Widget slots
@@ -740,8 +740,8 @@ export interface MapCoverageGate {
 }
 
 /**
- * Props passed to every `ground-track.base` augment: the base surface of the Map
- * View, under every other layer.
+ * Props passed to every `ground-track.base` augment: the base surface of the Ground Track
+ * widget, under every other layer.
  *
  * Any number of augments can fill this slot at once. Each hands back a canvas
  * through `onLayer`, and the map stretches it over the whole world image, so
@@ -851,7 +851,7 @@ export interface OrbitOverlayContext {
   apoapsis?: number;
   /** Periapsis distance from the body's centre, in metres. */
   periapsis: number;
-  /** Argument of periapsis in degrees, which turns the orbit in its plane. Always reported: with no argument of periapsis the orbit has no overlay. */
+  /** Argument of periapsis in degrees, which turns the orbit in its plane. Always present, since an orbit with no argument of periapsis draws no overlay. */
   argPe: number;
   /** The vessel's true anomaly in degrees. */
   trueAnomaly: number;
@@ -1163,7 +1163,7 @@ declare module "./types" {
      */
     "action-group.subsystem": ActionGroupSlotContext;
 
-    /** The standard header segment of the Tracking Station widget: controls of your own in its panel header. Passes no props. */
+    /** Controls of your own in the Tracking Station widget's panel header. Passes no props. */
     "tracking-station.actions": Record<string, never>;
     /**
      * A layer over the Tracking Station diagram, the same size as it, for marks
@@ -1188,13 +1188,13 @@ declare module "./types" {
      * the whole body such as a scanned terrain map. The augment draws nothing
      * itself: it paints a canvas and hands it to the map with
      * {@link MapBaseLayerContext.onLayer}, and
-     * returns `null`. Set `suppressesVanillaBase` on the augment to remove the
+     * returns `null`. Set `AugmentDefinition.suppressesVanillaBase` on the augment to remove the
      * stock texture. Passes a {@link MapBaseLayerContext}.
      */
     "ground-track.base": MapBaseLayerContext;
     /** Content of your own at the end of the Ground Track widget's body, after everything the widget itself draws. Passes no props. */
     "ground-track.sections": Record<string, never>;
-    /** The standard header segment of the Ground Track widget: controls of your own in its panel header. Passes no props. */
+    /** Controls of your own in the Ground Track widget's panel header. Passes no props. */
     "ground-track.actions": Record<string, never>;
 
     /** Content of your own at the end of the Research and Development widget's body, after everything the widget itself draws. Passes no props. */
@@ -1218,7 +1218,7 @@ declare module "./types" {
 
     /** Content of your own at the end of the Landing Status widget's body, after everything the widget itself draws. Passes no props. */
     "landing-status.sections": Record<string, never>;
-    /** The standard header segment of the Landing Status widget: controls of your own in its panel header. Passes no props. */
+    /** Controls of your own in the Landing Status widget's panel header. Passes no props. */
     "landing-status.actions": Record<string, never>;
 
     /**
@@ -1229,7 +1229,7 @@ declare module "./types" {
      * {@link ExperimentsInstrumentSlotContext}.
      */
     "experiments.instrument": ExperimentsInstrumentSlotContext;
-    /** The standard header segment of the Experiments widget: controls of your own in its panel header. Passes no props. */
+    /** Controls of your own in the Experiments widget's panel header. Passes no props. */
     "experiments.actions": Record<string, never>;
 
     /**

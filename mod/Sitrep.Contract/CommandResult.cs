@@ -50,7 +50,7 @@ public static class CommandErrorCode
     /// <para>A retry succeeds only once something changes, such as a kerbal
     /// leaving the active roster.</para>
     ///
-    /// <para>The <c>breach</c> field of the reply carries the
+    /// <para>The <c>breach</c> field of the reply (a <see cref="LimitBreach"/>) carries the
     /// numbers, so a client can say "16 of 16".</para>
     /// </summary>
     public static readonly RefusalCode LimitReached = RefusalCode.DeclareRoot("limitReached", "a limit has been reached");
@@ -142,8 +142,8 @@ public static class CommandErrorCode
     /// the <c>GameParameters</c> flags for leaving to the space center and to
     /// the tracking station.</internal></para>
     ///
-    /// <para>Also returned by the command that sets a SCET alarm (an alarm on the
-    /// craft's own clock, spacecraft event time) when the command centre it names
+    /// <para>Also returned by <c>alarm.scet.arm</c>, the command that sets a SCET alarm (an alarm on the
+    /// craft's own clock, spacecraft event time), when the command centre it names
     /// as its vantage cannot be checked, because the game has not yet reported
     /// any command centre: at the main menu, and in the first moments after a
     /// save loads. The same command refuses a vantage that is known and inactive

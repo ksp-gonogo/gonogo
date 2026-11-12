@@ -27,7 +27,7 @@ export function isLocked(value: unknown): value is LockedValue {
  * in calculations, where a locked field and a missing one both mean there is
  * nothing to work with. To show the field, use {@link isLocked} instead, so
  * the operator sees why it is empty. Used by the maneuver planner, which
- * plans burns, and by the system view.
+ * plans burns, and by the Tracking Station widget.
  *
  * @typeParam Value - The type of the field itself. It is a type parameter of
  * this function, not the SDK's `Value` quantity type.

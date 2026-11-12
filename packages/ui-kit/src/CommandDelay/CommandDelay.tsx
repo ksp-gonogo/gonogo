@@ -44,7 +44,7 @@ export interface CommandDelayHandle {
    */
   inFlight: InFlightCommandLike[];
   /**
-   * What this entry is on the delay rail's three axes, in full. `direction`
+   * What this entry is on the three axes the delay rail sorts by, in full. `direction`
    * is `command` for something leaving the command centre or `telemetry` for
    * something arriving from the vessel. `kind` is `event` or `discrete` for one
    * point in time, or `continuous` for a span. `delivery` is `acked` when the
@@ -93,7 +93,7 @@ export interface CommandDelayHandle {
    */
   refusals?: CommandRefusalEntry[];
   /**
-   * Dispatches from this command that got "NO ANSWER", until dismissed. Rendered
+   * Dispatches from this command that got no reply, until dismissed. Rendered
    * by the Panel rail, since a loss can have no in-flight entry at all. Apart
    * from `refusals` because a loss carries no verdict: the command may have
    * executed.

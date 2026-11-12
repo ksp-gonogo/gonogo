@@ -380,11 +380,11 @@ export type TopicPayload<Topic extends TopicId> = TopicPayloadMap[Topic];
  * {@link getAllKnownTopicIds} and {@link isTopicId} include them. Topics whose
  * id is built at runtime, such as one per celestial body,
  * `vessel.partActions.<flightId>` or an Uplink's own `settings.<uplink id>`, are
- * in neither, and are read with {@link useStream}. Nor are the Topics computed in the app,
- * in {@link PUBLISHED_TOPIC_IDS}, such as `system.uplinkHealth` and
+ * in neither, and are read with {@link useStream}. Nor are the Topics Gonogo
+ * publishes from processors, in {@link PUBLISHED_TOPIC_IDS}, such as `system.uplinkHealth` and
  * `spaceCenter.state`, which the app works out from Topics and a widget reads
- * by id with {@link useTelemetry} like a Topic, or the binary Topic `commcast.radio`, which carries
- * audio rather than a typed payload.
+ * by id with {@link useStream}, or the binary Topic `commcast.radio`, which
+ * carries audio rather than a typed payload.
  *
  * @category Reading telemetry
  */
@@ -420,10 +420,8 @@ const barePrimitiveTopicIds = new Set<string>();
  * the Uplink's client package loads, beside its `declare module` entry in
  * {@link TopicPayloadMap}. Registering an id twice does nothing.
  *
- * Register every Topic your Uplink adds through this function, whatever its
- * payload: the name is narrower than what it accepts, which is a Topic of any
- * payload shape and not only one whose payload is a bare boolean or number. A
- * Topic with numeric fields also needs {@link registerTopicUnits}. Useful for
+ * Register every Topic your Uplink adds through this function, whatever the
+ * shape of its payload. A Topic with numeric fields also needs {@link registerTopicUnits}. Useful for
  * letting the operator read and pick an Uplink's Topics as they do the SDK's
  * own.
  *
@@ -517,8 +515,9 @@ export function isCollectionTopic(id: string): boolean {
 
 /**
  * The Topics Gonogo itself publishes from processors: values it computes in the browser from other
- * Topics, rather than ones the game publishes. A widget declares and reads one
- * exactly as it does a Topic, but it is not a {@link TopicId}. Useful for
+ * Topics, rather than ones the game publishes. A widget lists one in its
+ * `channels` like a Topic and reads it with {@link useStream}, since it is not
+ * a {@link TopicId} and {@link useTelemetry} takes only those. Useful for
  * listing the channels the operator can read that no Uplink publishes.
  *
  * @category Reading telemetry

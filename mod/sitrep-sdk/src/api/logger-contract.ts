@@ -22,7 +22,8 @@ export interface LogContext {
  * which an operator switches on in Settings under Diagnostics, or in the
  * browser with `localStorage.LOG_TAGS = "*"` and a reload. Its `info`, `warn` and `error` entries always print. Every entry,
  * tagged or not, is kept in the log buffer and sent on either way. Useful for
- * tracing too chatty to print by default.
+ * an Uplink's own logging, and for tracing that would be too chatty to print by
+ * default.
  *
  * @category Logging and performance
  */

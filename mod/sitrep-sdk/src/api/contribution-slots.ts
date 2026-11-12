@@ -843,8 +843,7 @@ declare module "./types" {
     /**
      * The data rate of each hop on the comms route CommNet Signal draws, for a
      * comms mod that models bitrate. No Topic in the core contract carries a hop's
-     * rate, so the contribution reads it from a Topic an Uplink publishes, such
-     * as a channel a comms-modelling Uplink publishes for its hop rates. Each rate is shown
+     * rate, so the contribution reads it from a Topic of its own Uplink's. Each rate is shown
      * beside its hop, and the slowest hop is marked. The route, and so the rates, appear only
      * when the widget is large enough to draw the full path. Returns
      * {@link CommSignalHopRateEntry} entries.
@@ -917,13 +916,12 @@ declare module "./types" {
     /**
      * Badges in the screen header's status strip, drawn on the main screen and
      * on every station alike: a fact about the whole board rather than about
-     * any one widget, such as the flight on screen being something other than
-     * it looks.
+     * any one widget, such as the flight on screen being a simulation.
      *
      * The host draws each entry with its own `Badge`, in registration order,
      * inside a polite live region, so a badge appearing is announced. A
      * contribution that declares `requires` shows only while its Domain is
-     * present, so a bundled client whose mod is not running adds nothing.
+     * present, so a client whose mod is not running adds nothing.
      */
     "app.header-badges": {
       entry: BadgeEntry;

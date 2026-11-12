@@ -36,8 +36,9 @@ import { namesByValue } from "./enum-names";
  */
 
 /**
- * KSP's `ProtoCrewMember.RosterStatus`, as the `situationOrdinal` of a
- * `spaceCenter.crewRoster[]` entry carries it. A map from each value to its
+ * KSP's `ProtoCrewMember.RosterStatus`, as the `situationOrdinal` field of a
+ * `spaceCenter.crewRoster[]` entry carries it, which despite its name holds a
+ * roster status. A map from each value to its
  * member name: `KSP_ROSTER_STATUS_NAMES.get(0)` is `"Available"`, and a value the
  * table does not know gives `undefined`. `situationOrdinal` reads `Available`
  * for a kerbal who is resting after a flight, so do not branch on it to decide
@@ -190,7 +191,7 @@ export const KSP_TANK_FLOW_MODE_NAMES = namesByValue(KspTankFlowMode);
 export type KspTankFlowModeName = keyof typeof KspTankFlowMode;
 
 /**
- * Every name table for one of KSP's own enums in this file, such as
+ * Every name table for one of KSP's own enums, such as
  * {@link KSP_ROSTER_STATUS_NAMES}, each with the enum it names. Useful for code that checks or lists all the
  * tables at once.
  *

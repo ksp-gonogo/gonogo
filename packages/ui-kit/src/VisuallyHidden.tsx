@@ -13,6 +13,9 @@ import styled from "styled-components";
  *
  * @example
  * ```tsx
+ * import { VisuallyHidden } from "@ksp-gonogo/ui-kit";
+ *
+ * // `netRate` stands for a figure the widget reads, here a resource's rate of change.
  * <span role="status" aria-live="polite">
  *   <VisuallyHidden>{netRate < 0 ? "Draining" : "Charging"}</VisuallyHidden>
  * </span>

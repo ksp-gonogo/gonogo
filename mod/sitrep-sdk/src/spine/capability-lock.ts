@@ -22,7 +22,7 @@ import { useLatestValue } from "./use-stream";
 /**
  * Why a capability is locked: the unlocks it is missing, and a sentence from
  * the mod saying why, for when it named none. Useful for telling the operator
- * what the save has not unlocked yet. Used by the ui-kit's lock scope, which
+ * what the save has not unlocked yet. Used by `LockScope` in the ui-kit, which
  * shows one lock message for a group of controls.
  *
  * @category Readings

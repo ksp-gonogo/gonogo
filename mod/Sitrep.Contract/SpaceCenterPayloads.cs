@@ -308,8 +308,7 @@ public class CrewRosterEntry
 
 /// <summary>
 /// One craft file in the <c>spaceCenter.savedShips</c> channel, a saved VAB or
-/// SPH design the player can launch, read from the save's craft folders via the
-/// stock <c>CraftProfileInfo</c> metadata loader.
+/// SPH design the player can launch, read from the save's craft folders.
 ///
 /// <para>The channel is a bare array of these entries, one per <c>.craft</c>
 /// file keyed by <see cref="File"/>. The whole payload is <c>null</c> (not an
@@ -554,7 +553,7 @@ public class AstronautComplexInfo
 /// of every launch site (<c>ksc</c>/<c>launchSite</c> kinds, the same sites as
 /// <see cref="LaunchSiteEntry"/>, limited to sites with a set spawn-point
 /// coordinate) and every surface contract waypoint whose contract is Active or
-/// Offered (<c>contractTarget</c> kind, from <c>FinePrint.WaypointManager</c>).
+/// Offered (<c>contractTarget</c> kind).
 ///
 /// <para>The channel is a bare array of these entries, one per POI keyed by
 /// <see cref="Id"/>. The whole payload is <c>null</c> (not an empty array)
