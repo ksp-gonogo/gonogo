@@ -125,7 +125,8 @@ namespace Gonogo.KSP
             {
                 return null;
             }
-            return new CommsLinkState(conn.IsConnected, ControlLevelGrade.Of(conn.GetControlLevel()), conn.SignalStrength, SignalQuantity.RangeFraction);
+            var connected = conn.IsConnected && !CrossesUnpowered(conn.ControlPath);
+            return new CommsLinkState(connected, ControlLevelGrade.Of(conn.GetControlLevel()), conn.SignalStrength, SignalQuantity.RangeFraction);
         }
 
         /// <summary>
@@ -150,6 +151,10 @@ namespace Gonogo.KSP
             }
 
             var links = new List<CommsLinkView>();
+            if (CrossesUnpowered(path))
+            {
+                return links;
+            }
             foreach (var link in path)
             {
                 if (link?.a == null || link.b == null)
@@ -221,13 +226,35 @@ namespace Gonogo.KSP
                 }
 
                 var path = new CommPath();
-                return net.FindPath(start, path, end) ? RouteHops(path) : null;
+                return net.FindPath(start, path, end) && !CrossesUnpowered(path) ? RouteHops(path) : null;
             }
             catch (Exception ex)
             {
                 GonogoLog.WarnLimited("CommNetBackend.RouteBetween failed (treating as no route)", ex);
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Whether any node on <paramref name="path"/> is the radio of a craft with
+        /// no electric charge. Stock routes through such a craft, but it can
+        /// neither send nor relay, so the route is not one. Stock picked this
+        /// route as its best; a live alternative it passed over is not searched for.
+        /// </summary>
+        internal static bool CrossesUnpowered(IEnumerable<CommLink>? path)
+        {
+            if (path == null)
+            {
+                return false;
+            }
+            foreach (var link in path)
+            {
+                if (link != null && (CraftPowerBook.Shared.IsUnpowered(link.a) || CraftPowerBook.Shared.IsUnpowered(link.b)))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>

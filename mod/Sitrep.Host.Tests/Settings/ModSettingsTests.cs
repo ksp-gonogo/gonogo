@@ -331,6 +331,70 @@ namespace Sitrep.Host.Tests.Settings
         }
 
         [Fact]
+        public void ASettingCarriesItsTagsAndAnUntaggedOneCarriesNone()
+        {
+            var tagged = ModSetting.Bool("charge", "Vessel telemetry requires vessel charge", ModSettingRefresh.Live)
+                .WithTags(SettingTags.Setup, SettingTags.Setup);
+            var (engine, _) = Discover(new ModUplink("comms", tagged, Wear));
+
+            Assert.Equal(new List<object?> { SettingTags.Setup }, Row(engine, "comms", "charge")["tags"]);
+            Assert.Equal(new List<object?>(), Row(engine, "comms", "mtbfFailures")["tags"]);
+        }
+
+        [Fact]
+        public void AnUplinkWithASettingTaggedForSetupSaysSoOnTheUplinkRoster()
+        {
+            var tagged = ModSetting.Bool("charge", "Vessel telemetry requires vessel charge", ModSettingRefresh.Live)
+                .WithTags(SettingTags.Setup);
+            var (engine, _) = Discover(new ModUplink("comms", tagged), new ModUplink("survival", Wear), new ModUplink2());
+
+            var roster = (List<object?>)((Dictionary<string, object?>)engine.PayloadOf(ChannelEngine.UplinksTopic)!)["uplinks"]!;
+            var flags = new Dictionary<string, object?>();
+            foreach (var entry in roster)
+            {
+                var fields = (Dictionary<string, object?>)entry!;
+                flags[(string)fields["id"]!] = fields["setupModSettings"];
+            }
+
+            Assert.Equal(true, flags["comms"]);
+            Assert.Equal(false, flags["survival"]);
+            Assert.Equal(false, flags["plain"]);
+        }
+
+        [Fact]
+        public void ALockedSettingNamesTheUplinkHoldingItAndAWriteToItIsRefusedWithoutAskingTheUplink()
+        {
+            var uplink = new WritableModUplink("streamer", Throttle);
+            uplink.Values["throttleMainRender"] = ModSettingValue.Locked(ModSettingValue.Of(true), "Example Antennas", "Example Antennas decides it");
+            var (engine, _) = Discover(uplink);
+            engine.SampleModSettings("FLIGHT/1");
+
+            var row = Row(engine, "streamer", "throttleMainRender");
+            Assert.Equal("True", row["value"]);
+            Assert.Equal("Example Antennas", row["lockedBy"]);
+            Assert.Equal("Example Antennas decides it", row["lockReason"]);
+
+            var result = Write(engine, "streamer", "throttleMainRender", "False");
+
+            Assert.False(result.Success);
+            Assert.Contains("Example Antennas", result.Detail);
+            Assert.Empty(uplink.Writes);
+        }
+
+        [Fact]
+        public void AnUnlockedSettingCarriesNoLock()
+        {
+            var uplink = new WritableModUplink("streamer", Throttle);
+            uplink.Values["throttleMainRender"] = ModSettingValue.Of(true);
+            var (engine, _) = Discover(uplink);
+            engine.SampleModSettings("FLIGHT/1");
+
+            var row = Row(engine, "streamer", "throttleMainRender");
+            Assert.Null(row["lockedBy"]);
+            Assert.Null(row["lockReason"]);
+        }
+
+        [Fact]
         public void AWriteReachesTheUplinkAndTheSettingIsReadAgainStraightAfter()
         {
             var uplink = new WritableModUplink("streamer", Throttle);

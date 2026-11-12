@@ -1078,10 +1078,10 @@ describe("SettingsModal: the Uplinks tab", () => {
   const GONOGO_SETTINGS = {
     rows: [
       {
-        path: "SIGNAL_DELAY/enabled",
+        path: "CONSOLE/sound.enabled",
         owner: "gonogo",
         kind: 1,
-        label: "Apply light-time delay",
+        label: "Sound effects",
         description: "",
         value: "True",
         default: "True",
@@ -1152,7 +1152,7 @@ describe("SettingsModal: the Uplinks tab", () => {
     expect(screen.queryByRole("tab", { name: "Uplinks" })).toBeNull();
   });
 
-  it("shows a core feature's rows and health nowhere in Settings", async () => {
+  it("shows a core feature's rows on the Gonogo tab and its health nowhere in Settings", async () => {
     const stream = setupTelemetryStream();
     registerDataSource(makeSitrepStub(vi.fn(), "connected"));
     renderModalWithStream(stream);
@@ -1185,8 +1185,8 @@ describe("SettingsModal: the Uplinks tab", () => {
     const user = userEvent.setup();
     await user.click(await screen.findByRole("tab", { name: "Gonogo" }));
     expect(
-      screen.queryByRole("checkbox", { name: "Show landed vessels" }),
-    ).toBeNull();
+      await screen.findByRole("checkbox", { name: "Show landed vessels" }),
+    ).toBeInTheDocument();
     await user.click(screen.getByRole("tab", { name: /^Connection/ }));
     expect(screen.queryByText("no vessels yet")).toBeNull();
     expect(screen.queryByText("Fleet")).toBeNull();
@@ -1267,7 +1267,7 @@ describe("SettingsModal: the Uplinks tab", () => {
       screen.getByRole("checkbox", { name: "Warn on wear" }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("checkbox", { name: "Apply light-time delay" }),
+      screen.queryByRole("checkbox", { name: "Sound effects" }),
     ).toBeNull();
 
     act(() =>
@@ -1316,6 +1316,74 @@ describe("SettingsModal: the Uplinks tab", () => {
 
     expect(
       screen.getByText(/could not be read this session \(declaration threw\)/),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("SettingsModal: the loaded save's settings", () => {
+  it("shows the loaded save's comms settings on the Gonogo tab, a locked one at its value with the Uplink and why", async () => {
+    registerDataSource(makeSitrepStub());
+    const stream = setupTelemetryStream();
+    renderModalWithStream(stream);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("tab", { name: "Gonogo" }));
+    act(() =>
+      stream.emit({
+        uplinks: [
+          {
+            ...uplinkEntry("comms", { state: 0, detail: null }),
+            modSettings: true,
+            bundled: true,
+          },
+        ],
+      }),
+    );
+    expect(
+      await screen.findByRole("heading", { name: "Game" }),
+    ).toBeInTheDocument();
+
+    // The section subscribes once it mounts, and a stub emit before that reaches no one.
+    await waitFor(() => {
+      act(() =>
+        stream.emitTopic("settings.comms", {
+          uplink: "comms",
+          failure: null,
+          settings: [
+            {
+              id: "telemetryRequiresCharge",
+              label: "Vessel telemetry requires vessel charge",
+              description: "",
+              kind: SettingKind.Bool,
+              unit: null,
+              group: "",
+              setIn: "Difficulty settings, Gonogo",
+              writable: true,
+              value: "True",
+              unavailable: null,
+              tags: ["setup"],
+              lockedBy: "Example Antennas",
+              lockReason:
+                "Example Antennas already cuts the link of a craft with no charge",
+            },
+          ],
+        }),
+      );
+      expect(
+        screen.queryByRole("checkbox", {
+          name: "Vessel telemetry requires vessel charge",
+        }),
+      ).not.toBeNull();
+    });
+
+    const toggle = await screen.findByRole("checkbox", {
+      name: "Vessel telemetry requires vessel charge",
+    });
+    expect(toggle).toBeChecked();
+    expect(toggle).toHaveAttribute("aria-disabled", "true");
+    expect(
+      screen.getByText(
+        "Set by the Example Antennas Uplink: Example Antennas already cuts the link of a craft with no charge",
+      ),
     ).toBeInTheDocument();
   });
 });

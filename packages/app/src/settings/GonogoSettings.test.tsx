@@ -51,20 +51,20 @@ interface Row {
 
 const ROWS: Row[] = [
   {
-    path: "SIGNAL_DELAY/enabled",
+    path: "CONSOLE/sound.enabled",
     owner: "gonogo",
     kind: SettingKind.Bool,
-    label: "Apply light-time delay",
+    label: "Sound effects",
     value: "True",
     default: "True",
   },
   {
-    path: "SIGNAL_DELAY/lightSpeedScale",
+    path: "CONSOLE/mission.historyEnabled",
     owner: "gonogo",
-    kind: SettingKind.Number,
-    label: "Light speed scale",
-    value: "1",
-    default: "1",
+    kind: SettingKind.Bool,
+    label: "Record mission history",
+    value: "True",
+    default: "True",
   },
   {
     path: "Uplinks/Builder/upgradeSlipWarningDays",
@@ -140,11 +140,11 @@ describe("GonogoSettings", () => {
     await publish(fixture, model());
 
     expect(
-      await screen.findByRole("checkbox", { name: "Apply light-time delay" }),
+      await screen.findByRole("checkbox", { name: "Sound effects" }),
     ).toBeChecked();
     expect(
-      screen.getByRole("textbox", { name: "Light speed scale" }),
-    ).toHaveValue("1");
+      screen.getByRole("checkbox", { name: "Record mission history" }),
+    ).toBeChecked();
     expect(screen.queryByRole("textbox", { name: "Slip warning" })).toBeNull();
   });
 
@@ -157,7 +157,7 @@ describe("GonogoSettings", () => {
       await screen.findByRole("textbox", { name: "Slip warning" }),
     ).toHaveValue("30");
     expect(
-      screen.queryByRole("checkbox", { name: "Apply light-time delay" }),
+      screen.queryByRole("checkbox", { name: "Sound effects" }),
     ).toBeNull();
   });
 
@@ -176,7 +176,7 @@ describe("GonogoSettings", () => {
     await publish(fixture, model([...ROWS, devRow]));
 
     expect(
-      await screen.findByRole("checkbox", { name: "Apply light-time delay" }),
+      await screen.findByRole("checkbox", { name: "Sound effects" }),
     ).toBeChecked();
     expect(screen.queryByRole("checkbox", { name: devRow.label })).toBeNull();
 
@@ -222,7 +222,7 @@ describe("GonogoSettings", () => {
     ).not.toBeChecked();
     expect(screen.queryByLabelText("Quality")).toBeNull();
     expect(
-      screen.queryByRole("checkbox", { name: "Apply light-time delay" }),
+      screen.queryByRole("checkbox", { name: "Sound effects" }),
     ).toBeNull();
   });
 
@@ -237,12 +237,9 @@ describe("GonogoSettings", () => {
     const save = await screen.findByRole("button", { name: "Save" });
     expect(save).toHaveAttribute("aria-disabled", "true");
 
+    fireEvent.click(screen.getByRole("checkbox", { name: "Sound effects" }));
     fireEvent.click(
-      screen.getByRole("checkbox", { name: "Apply light-time delay" }),
-    );
-    fireEvent.change(
-      screen.getByRole("textbox", { name: "Light speed scale" }),
-      { target: { value: "0.5" } },
+      screen.getByRole("checkbox", { name: "Record mission history" }),
     );
     expect(fixture.transport.sentCommands).toHaveLength(0);
 
@@ -253,8 +250,8 @@ describe("GonogoSettings", () => {
     expect(sent?.command).toBe("settings.save");
     expect(sent?.args).toEqual({
       changes: [
-        { path: "SIGNAL_DELAY/enabled", value: "False" },
-        { path: "SIGNAL_DELAY/lightSpeedScale", value: "0.5" },
+        { path: "CONSOLE/sound.enabled", value: "False" },
+        { path: "CONSOLE/mission.historyEnabled", value: "False" },
       ],
     });
     await act(async () => {});
@@ -266,11 +263,11 @@ describe("GonogoSettings", () => {
    */
   it("drops an edit once the published model carries it", async () => {
     registerDataSource(sitrep("connected"));
-    const { fixture } = mount();
+    const { fixture } = mount("main", "Builder");
     await publish(fixture, model());
     fireEvent.change(
-      await screen.findByRole("textbox", { name: "Light speed scale" }),
-      { target: { value: "0.5" } },
+      await screen.findByRole("textbox", { name: "Slip warning" }),
+      { target: { value: "45" } },
     );
     expect(screen.getByRole("button", { name: "Save" })).not.toHaveAttribute(
       "aria-disabled",
@@ -278,7 +275,9 @@ describe("GonogoSettings", () => {
     );
 
     const saved = ROWS.map((r) =>
-      r.path === "SIGNAL_DELAY/lightSpeedScale" ? { ...r, value: "0.5" } : r,
+      r.path === "Uplinks/Builder/upgradeSlipWarningDays"
+        ? { ...r, value: "45" }
+        : r,
     );
     act(() => fixture.emit(TOPIC, model(saved)));
 
@@ -288,18 +287,18 @@ describe("GonogoSettings", () => {
         "true",
       ),
     );
-    expect(
-      screen.getByRole("textbox", { name: "Light speed scale" }),
-    ).toHaveValue("0.5");
+    expect(screen.getByRole("textbox", { name: "Slip warning" })).toHaveValue(
+      "45",
+    );
   });
 
   it("will not offer SAVE for a value its setting cannot hold", async () => {
     registerDataSource(sitrep("connected"));
-    const { fixture } = mount();
+    const { fixture } = mount("main", "Builder");
     await publish(fixture, model());
 
     fireEvent.change(
-      await screen.findByRole("textbox", { name: "Light speed scale" }),
+      await screen.findByRole("textbox", { name: "Slip warning" }),
       { target: { value: "fast" } },
     );
 
@@ -309,22 +308,23 @@ describe("GonogoSettings", () => {
     );
     expect(screen.getByText("Not a number.")).toBeInTheDocument();
     expect(
-      screen.getByRole("textbox", { name: "Light speed scale" }),
+      screen.getByRole("textbox", { name: "Slip warning" }),
     ).toHaveAttribute("aria-invalid", "true");
   });
 
   it("says why the mod refused a save", async () => {
     registerDataSource(sitrep("connected"));
-    const { fixture } = mount();
+    const { fixture } = mount("main", "Builder");
     fixture.transport.setCommandHandler(() => ({
       success: false,
       errorCode: "noVessel",
-      detail: "SIGNAL_DELAY/lightSpeedScale holds a Number value, not 0 5",
+      detail:
+        "Uplinks/Builder/upgradeSlipWarningDays holds a Number value, not 4 5",
     }));
     await publish(fixture, model());
     fireEvent.change(
-      await screen.findByRole("textbox", { name: "Light speed scale" }),
-      { target: { value: "0.5" } },
+      await screen.findByRole("textbox", { name: "Slip warning" }),
+      { target: { value: "45" } },
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
@@ -341,7 +341,7 @@ describe("GonogoSettings", () => {
     await publish(fixture, model());
 
     expect(
-      await screen.findByRole("checkbox", { name: "Apply light-time delay" }),
+      await screen.findByRole("checkbox", { name: "Sound effects" }),
     ).toBeDisabled();
     expect(screen.getByRole("button", { name: "Save" })).toHaveAttribute(
       "aria-disabled",
@@ -367,7 +367,7 @@ describe("GonogoSettings", () => {
     await publish(fixture, model());
 
     expect(
-      await screen.findByRole("checkbox", { name: "Apply light-time delay" }),
+      await screen.findByRole("checkbox", { name: "Sound effects" }),
     ).toBeDisabled();
     expect(screen.queryByRole("button", { name: /save/i })).toBeNull();
     expect(
@@ -429,7 +429,7 @@ describe("GonogoSettings", () => {
     registerDataSource(sitrep("connected"));
     const { fixture, view } = mount();
     await publish(fixture, model());
-    await screen.findByRole("checkbox", { name: "Apply light-time delay" });
+    await screen.findByRole("checkbox", { name: "Sound effects" });
 
     await expectNoA11yViolations(view.container);
   });

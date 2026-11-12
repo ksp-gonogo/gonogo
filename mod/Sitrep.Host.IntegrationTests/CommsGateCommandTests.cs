@@ -140,6 +140,66 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        [Fact]
+        public void DelayedCommandWhoseCraftLosesItsLinkBeforeItLandsIsNeitherRunNorAnswered()
+        {
+            // Sent while the craft was linked; its battery ran flat while the
+            // command was on its way, so its radio could not take it.
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new CommsGateTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                const double signalDelay = 5.0;
+                engine.TickAndWait(0.0, FreezeGateTestUplink.Snapshot(0.0, connected: true, delay: signalDelay), Timeout);
+
+                var resolved = false;
+                engine.DispatchCommandAndWait(
+                    CommsGateTestUplink.Command, "x", "vantage-1", _ => { resolved = true; },
+                    TestBudgets.Op);
+
+                engine.TickAndWait(2.0, FreezeGateTestUplink.Snapshot(2.0, connected: false, delay: signalDelay), Timeout);
+                engine.TickAndWait(5.0, FreezeGateTestUplink.Snapshot(5.0, connected: false, delay: signalDelay), Timeout);
+                engine.TickAndWait(20.0, FreezeGateTestUplink.Snapshot(20.0, connected: true, delay: signalDelay), Timeout);
+
+                Assert.Equal(0, uplink.HandledCount);
+                Assert.False(resolved, "a craft that could not receive the command must not answer it");
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
+        public void DelayedCommandWhoseCraftKeepsItsLinkUntilItLandsRunsAndAnswers()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new CommsGateTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                const double signalDelay = 5.0;
+                engine.TickAndWait(0.0, FreezeGateTestUplink.Snapshot(0.0, connected: true, delay: signalDelay), Timeout);
+
+                var resolved = false;
+                engine.DispatchCommandAndWait(
+                    CommsGateTestUplink.Command, "x", "vantage-1", _ => { resolved = true; },
+                    TestBudgets.Op);
+
+                engine.TickAndWait(5.0, FreezeGateTestUplink.Snapshot(5.0, connected: true, delay: signalDelay), Timeout);
+                Assert.Equal(1, uplink.HandledCount);
+                engine.TickAndWait(10.0, FreezeGateTestUplink.Snapshot(10.0, connected: true, delay: signalDelay), Timeout);
+                Assert.True(resolved);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         private sealed class CommsGateTestUplink : ISitrepUplink
         {
             // Mandatory health floor (test double).

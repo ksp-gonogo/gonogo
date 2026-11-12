@@ -144,7 +144,10 @@ namespace Gonogo.KSP
         private static readonly CommsDelayModSettings DelayModSettings = new CommsDelayModSettings(
             unavailable: () => SaveChoice.Unavailable(),
             read: () => SaveChoice.Read(),
-            write: choice => SaveChoice.Write(choice));
+            write: choice => SaveChoice.Write(choice),
+            readCharge: () => SaveChoice.ReadCharge(),
+            writeCharge: on => SaveChoice.WriteCharge(on),
+            chargeLock: () => GonogoGameParameters.LockOn(CoreSettings.TelemetryRequiresCharge));
 
         public IReadOnlyList<ModSetting> ListModSettings() => DelayModSettings.ListModSettings();
 
@@ -215,6 +218,20 @@ namespace Gonogo.KSP
                 node.signalDelay = choice.Enabled;
                 node.lightSpeedScale = (float)choice.LightSpeedScale;
                 SyncSignalDelayFromSave();
+                return true;
+            }
+
+            internal static bool? ReadCharge() => Node()?.telemetryRequiresCharge;
+
+            internal static bool WriteCharge(bool on)
+            {
+                var node = Node();
+                if (node == null)
+                {
+                    return false;
+                }
+
+                node.telemetryRequiresCharge = on;
                 return true;
             }
 
@@ -658,6 +675,8 @@ namespace Gonogo.KSP
         /// </summary>
         internal bool? ComputeConnectedOnMain(KspSnapshot? snapshot)
         {
+            (_host as ICraftPowerWriter)?.SetUnpoweredCraft(CraftPowerBook.Shared.UnpoweredIds());
+
             /*
              * With no craft on screen (an editor, the Space Center) there is no
              * link to be down, but the backend's read of "no craft" is a
@@ -727,6 +746,28 @@ namespace Gonogo.KSP
         private readonly ConnectivitySettle _channelSettle = new ConnectivitySettle();
 
         /// <summary>
+        /// The active craft's connectivity as its radio can use it: the backend's
+        /// reading reconciled against its control path, and down while the craft
+        /// has no electric charge (see <see cref="CraftPower"/>). A save that
+        /// models no comms network has no link to cut.
+        /// </summary>
+        internal static CommsConnectivity ReadConnectivity(ICommsBackend backend, Vessel? active)
+        {
+            var connectivity = ReconcileWithPath(backend, active);
+            if (active == null || backend is NoCommsModelBackend || connectivity.Connected != true
+                || CraftPowerBook.Shared.Powered(active) != false)
+            {
+                return connectivity;
+            }
+            return new CommsConnectivity
+            {
+                Connected = false,
+                ControlSource = connectivity.ControlSource,
+                HasLocalControl = connectivity.HasLocalControl,
+            };
+        }
+
+        /// <summary>
         /// The backend's connectivity with <see cref="CommsConnectivity.Connected"/>
         /// reconciled against the control path the same backend reports for the
         /// same craft. A path that reaches home over live hops is a link, whatever
@@ -734,7 +775,7 @@ namespace Gonogo.KSP
         /// different points of the game's network update, and a backend can hold
         /// the flag at false while the path it routes over is up.
         /// </summary>
-        internal static CommsConnectivity ReadConnectivity(ICommsBackend backend, Vessel? active)
+        private static CommsConnectivity ReconcileWithPath(ICommsBackend backend, Vessel? active)
         {
             var connectivity = backend.Connectivity();
             if (connectivity.Connected != false || active == null)
@@ -858,11 +899,16 @@ namespace Gonogo.KSP
         /// node its samples leave from: the craft on screen speaks through the
         /// active node and its own fleet node, every other craft through its
         /// fleet node alone.
+        ///
+        /// <para>A craft with no electric charge is not watched. Its route reads
+        /// empty because its radio stopped, not because anything on the route
+        /// broke, so what it sent before it went dark is still on its way and
+        /// lands. Its watch starts afresh when it has power again.</para>
         /// </summary>
         private IEnumerable<PathBreakWatchers.Subject> WatchedCraft(ICommsBackend backend)
         {
             var active = _activeVesselProbe();
-            if (active != null)
+            if (active != null && CraftPowerBook.Shared.Powered(active) != false)
             {
                 var id = active.id.ToString();
                 yield return Watched(backend, active, id, ChannelEngine.NodeId, ChannelEngine.FleetNodePrefix + id);
@@ -879,7 +925,7 @@ namespace Gonogo.KSP
             }
             foreach (var vessel in all)
             {
-                if (vessel == null || ReferenceEquals(vessel, active))
+                if (vessel == null || ReferenceEquals(vessel, active) || CraftPowerBook.Shared.Powered(vessel) == false)
                 {
                     continue;
                 }

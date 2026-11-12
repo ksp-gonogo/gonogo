@@ -32,6 +32,7 @@ function entry(
       contract: null,
       ownedPrefixes: [],
       modSettings: false,
+      setupModSettings: false,
       bundled: false,
       health: { state: health, detail: null, facts: [], preventsStart: false },
     },

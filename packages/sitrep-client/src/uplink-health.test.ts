@@ -80,6 +80,7 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
           contract: null,
           ownedPrefixes: [],
           modSettings: false,
+          setupModSettings: false,
           bundled: false,
           health: {
             state: "degraded",
@@ -116,6 +117,7 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
           contract: null,
           ownedPrefixes: [],
           modSettings: false,
+          setupModSettings: false,
           bundled: false,
           health: {
             state: "unavailable",
@@ -152,6 +154,7 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
           contract: null,
           ownedPrefixes: [],
           modSettings: false,
+          setupModSettings: false,
           bundled: false,
           health: {
             state: "healthy",
@@ -189,6 +192,7 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
           contract: null,
           ownedPrefixes: ["kos.terminal.", "kos.processors"],
           modSettings: false,
+          setupModSettings: false,
           bundled: false,
           health: {
             state: "healthy",

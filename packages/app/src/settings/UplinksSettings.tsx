@@ -28,6 +28,7 @@ import { LocalBuilds, localStatusLine } from "./LocalBuilds";
 import { ModSettingsSection } from "./ModSettingsSection";
 import { getSettingsForScreen, type SettingDefinition } from "./registry";
 import { CategoryRows } from "./SettingRows";
+import { useSettingsHomes } from "./settingsHomes";
 import { Empty, SectionStack } from "./settingsLayout";
 import {
   StatusList,
@@ -78,6 +79,7 @@ export function useUplinkPages(screen: Screen): UplinkPage[] {
 function useAllPages(screen: Screen): UplinkPage[] {
   const health = useStream<SystemUplinkHealth>("system.uplinkHealth");
   const gonogo = useTelemetry("settings.gonogo");
+  const homes = useSettingsHomes();
   const rosterKnown = health.state === "observed" || health.state === "held";
   const roster = rosterKnown ? health.value.uplinks : [];
   const localUplinks = useLocalUplinks();
@@ -118,9 +120,19 @@ function useAllPages(screen: Screen): UplinkPage[] {
     pages.push({
       id,
       name: entry?.name ?? local?.name ?? client?.name ?? id,
-      gonogo: undeclared || (model?.rows.some((r) => r.owner === id) ?? false),
+      gonogo:
+        undeclared ||
+        homes.some(
+          (home) =>
+            home.kind === "gonogo" &&
+            home.id === id &&
+            home.where === "uplink-page",
+        ),
       undeclared,
-      modSettings: entry?.modSettings ?? false,
+      modSettings: homes.some(
+        (home) =>
+          home.kind === "mod" && home.id === id && home.where === "uplink-page",
+      ),
       bundled: entry?.bundled ?? false,
       health: entry,
       rosterKnown,

@@ -264,6 +264,7 @@ namespace Gonogo.KSP
                 // exactly like one that loaded and had not published yet.
                 _engine.RegisterDiscoveredUplinks(
                     UplinkDiscovery.Discover(GonogoLog.Sink));
+                GonogoGameParameters.UseLocks(_engine.SettingLock);
 
                 // comms.commandCentre: give
                 // CommsCoreUplink the SAME registry instance so it resolves the

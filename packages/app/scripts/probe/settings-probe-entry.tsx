@@ -30,6 +30,7 @@ import {
 import { useEffect } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
+import { FirstRunSetup } from "../../src/firstRun/FirstRunSetup";
 import { SettingsProvider } from "../../src/settings/SettingsContext";
 import { SettingsModal } from "../../src/settings/SettingsModal";
 import { SettingsService } from "../../src/settings/SettingsService";
@@ -95,6 +96,8 @@ interface Scene {
   modal?: boolean;
   /** Draw the station's floating button cluster instead of the settings modal. */
   fab?: boolean;
+  /** Draw this first-run setup step instead of the settings modal. */
+  setup?: "recommended" | "delay";
 }
 
 const FAB_LABELS = [
@@ -212,6 +215,8 @@ async function renderScene(scene: Scene): Promise<void> {
             <mounted.Provider>
               {scene.fab ? (
                 <FabScene />
+              ) : scene.setup ? (
+                <FirstRunSetup initialStep={scene.setup} />
               ) : scene.modal ? (
                 <ModalProvider>
                   <OpenSettings
@@ -239,12 +244,12 @@ async function renderScene(scene: Scene): Promise<void> {
 }
 
 /**
- * Publish every topic, twice, because a topic can be subscribed only once an
+ * Publish every topic three times, because a topic can be subscribed only once an
  * earlier one has drawn what reads it: an Uplink's page mounts off the roster,
  * and only then reads that Uplink's own settings topic.
  */
 async function emitSettings(emit: Record<string, unknown> | undefined) {
-  for (let pass = 0; pass < 2; pass++) {
+  for (let pass = 0; pass < 3; pass++) {
     for (const [topic, payload] of Object.entries(emit ?? {})) {
       fixture?.emit(topic, payload as never);
     }

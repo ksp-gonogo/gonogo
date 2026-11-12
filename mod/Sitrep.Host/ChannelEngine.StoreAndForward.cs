@@ -1531,6 +1531,37 @@ namespace Sitrep.Host
             });
         }
 
+        /// <summary>
+        /// Predicts as waiting where it is every held command that is still with the
+        /// centre that sent it after the moment its plan had it arriving, or that
+        /// the centre has not seen reach anyone by the time its reply was due. The plan
+        /// did not foresee whatever is keeping it there (a craft out of contact, or
+        /// with no electric charge to receive), so when it will leave is not known,
+        /// and a command that has not left has no reply to be late.
+        /// </summary>
+        private void HoldWhatNeverLeft(double now)
+        {
+            foreach (var entry in _pending)
+            {
+                if (entry.LaneSeq == null)
+                {
+                    continue;
+                }
+                var waitingPastArrival = entry.PredictedArrivalUt is double arrival && now > arrival && _delivery.WaitingAt(entry.Vantage, entry.Id);
+                var unseenPastReply = entry.PredictedReplyUt is double reply && now > reply && StillHeldAtCentre(entry);
+                if (!waitingPastArrival && !unseenPastReply)
+                {
+                    continue;
+                }
+                entry.PredictedHeldAt = entry.Vantage;
+                entry.PredictedHeldFromUt = entry.DispatchedAt;
+                entry.PredictedHeldUntilUt = null;
+                entry.PredictedArrivalUt = null;
+                entry.PredictedReplyUt = null;
+                entry.ReplyOverdueUt = null;
+            }
+        }
+
         /// <summary>Whether the command never got past the centre that sent it, so nothing of it can have run or been answered.</summary>
         private bool StillHeldAtCentre(PendingUplink entry) => _delivery.NeverLeft(entry.Vantage, entry.Id);
 
