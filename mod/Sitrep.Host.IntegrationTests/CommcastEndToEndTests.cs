@@ -215,6 +215,24 @@ namespace Sitrep.Host.IntegrationTests
             Assert.True(HasText(await LedgerWhereAsync(second, items => HasText(items, "hello")), "hello"));
         }
 
+        /// <summary>A message to a crewed vessel with nobody signed in at it is accepted, listed in the sender's uplink queue and kept in the sender's own ledger.</summary>
+        [Fact]
+        public async Task AMessageToAVesselWithNoPilotSignedInIsAcceptedAndHeld()
+        {
+            await using var scene = await Scene.StartAsync(delivery: true, seat: true, seatReaches: A);
+            Assert.True((await scene.CommandAsync(scene.A, CommcastUplink.OpenCommand, Open("g1", Seat))).Success);
+            var receipt = await scene.ReceiptAsync(scene.A, Send("m1", "g1", "hold for pilot"));
+            Assert.Contains(Seat, Strings(receipt["addressed"]).Concat(Strings(receipt["queued"])));
+
+            var queue = Assert.IsType<PendingUplinkQueue>(scene.Engine.PayloadOf(ChannelEngine.UplinkPendingTopic));
+            Assert.Contains(queue.Pending, p => p.Vantage == A && p.Craft == Seat && p.Label == "hold for pilot");
+
+            var colleague = await scene.OpenScreenAtAsync(A);
+            scene.Tick(1);
+            var ledger = await LedgerWhereAsync(colleague, items => HasText(items, "hold for pilot"));
+            Assert.Equal(new[] { A, Seat }, Strings(TextOf(ledger, "hold for pilot")!["to"]));
+        }
+
         /// <summary>The ledger is kept with the game: a restart from the save still holds the waiting message, and a save from before it was sent holds nothing.</summary>
         [Fact]
         public async Task AMessageKeptForACentreSurvivesASaveAndALoadAndIsGoneFromATimelineBeforeItWasSent()
