@@ -6,12 +6,13 @@ import {
   type Value,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
+import { GAME_LOAD_NOTICE_SECONDS } from "@ksp-gonogo/sitrep-sdk/spine";
 import { BannerRow } from "@ksp-gonogo/ui";
 import { MissionDate, Unit } from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 
-const VISIBLE_MS = 10_000;
+const VISIBLE_MS = GAME_LOAD_NOTICE_SECONDS * 1000;
 
 /** How far behind the view clock a load may be and still count as news. */
 const STALE_AFTER_SECONDS = 10;

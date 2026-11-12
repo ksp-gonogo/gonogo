@@ -450,6 +450,9 @@ function craftSourceOf(payload: unknown): string | undefined {
  */
 export const GAME_LOADING_ONSET_MS = 750;
 
+/** How long a notice about a game load stays on screen, in seconds: the "Game loaded" banner, and the status line of a command the load undid. */
+export const GAME_LOAD_NOTICE_SECONDS = 10;
+
 /**
  * What the game is doing as the operator is shown it, with the scene being loaded
  * or the one that stands. Useful for telling the operator the game is loading.

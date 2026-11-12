@@ -2121,6 +2121,11 @@ export class TelemetryClient {
     return this.lastWireEpoch;
   }
 
+  /** Calls `fn` once `seconds` have passed on this client's clock. Returns a function that cancels it. */
+  scheduleAfter(seconds: number, fn: () => void): () => void {
+    return this.clock.schedule(this.clock.now() + seconds, fn);
+  }
+
   /** Calls `listener` whenever {@link wireEpoch} changes. Returns a function that stops it. */
   onTimelineChange(listener: () => void): () => void {
     this.timelineListeners.add(listener);

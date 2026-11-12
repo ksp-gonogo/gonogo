@@ -10047,6 +10047,10 @@
         "note": "New: hands a useCommand the commands an earlier page of the screen left outstanding"
       },
       {
+        "key": "sitrep-sdk ./spine TelemetryClient#scheduleAfter",
+        "note": "New: runs a callback after a number of seconds on the client's own clock"
+      },
+      {
         "key": "sitrep-sdk ./spine TelemetryClient#subscribeFrames",
         "note": "New: subscribes as subscribe does and also hands over the Meta of the frame that carried each value"
       },
@@ -11457,6 +11461,10 @@
       {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#restoredCommands",
         "note": "New: hands a useCommand the commands an earlier page of the screen left outstanding"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#scheduleAfter",
+        "note": "New: runs a callback after a number of seconds on the client's own clock"
       },
       {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#subscribeFrames",
@@ -17923,6 +17931,10 @@
       {
         "key": "sitrep-sdk ./spine GAME_LOADING_ONSET_MS",
         "note": "New: how long a load must run before it is shown"
+      },
+      {
+        "key": "sitrep-sdk ./spine GAME_LOAD_NOTICE_SECONDS",
+        "note": "New: how long a notice about a game load stays on screen"
       },
       {
         "key": "sitrep-sdk ./spine GATE_STOPS_PRESS_BELOW_SECONDS",

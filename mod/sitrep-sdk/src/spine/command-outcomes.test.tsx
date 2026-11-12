@@ -10,6 +10,7 @@ import { TelemetryClient } from "./client";
 import type { Clock } from "./clock";
 import { commandOutcomesOf } from "./command-outcomes";
 import { TelemetryProvider } from "./context";
+import { GAME_LOAD_NOTICE_SECONDS } from "./timeline-store";
 import { useCommand } from "./use-command";
 
 class ManualClock implements Clock {
@@ -98,6 +99,9 @@ function Outcomes({ command, name }: { command: string; name: string }) {
         {handle.refusals.map((r) => r.label).join(",")}
       </output>
       <output aria-label={`founds ${name}`}>{handle.founds.length}</output>
+      <output aria-label={`failures ${name}`}>
+        {handle.failures.map((f) => f.code).join(",")}
+      </output>
     </>
   );
 }
@@ -301,5 +305,66 @@ describe("command outcomes across a game load", () => {
     loadStarts(transport, 1);
 
     expect(store.get("x.y").refusals.map((r) => r.id)).toEqual(["kept"]);
+  });
+});
+
+describe("a failure a game load caused", () => {
+  const sendAndFail = async (
+    clock: ManualClock,
+    transport: ModTransport,
+    code: string,
+  ) => {
+    act(() => {
+      screen.getByRole("button", { name: "send a" }).click();
+    });
+    await act(async () =>
+      transport.deliver({
+        type: "error",
+        requestId: lastRequestId(transport),
+        code,
+        message: "failed",
+        meta: makeMeta(),
+      } as ServerMessage),
+    );
+    return clock;
+  };
+
+  it("clears itself after the notice time", async () => {
+    const { clock, transport, client } = setup();
+    loadStarts(transport, 1);
+    render(
+      <TelemetryProvider client={client}>
+        <Outcomes command="x.y" name="a" />
+      </TelemetryProvider>,
+    );
+    await sendAndFail(clock, transport, "undoneByLoad");
+    expect(screen.getByLabelText("failures a").textContent).toBe(
+      "undoneByLoad",
+    );
+
+    act(() => clock.advance(GAME_LOAD_NOTICE_SECONDS - 1));
+    expect(screen.getByLabelText("failures a").textContent).toBe(
+      "undoneByLoad",
+    );
+
+    act(() => clock.advance(1));
+    expect(screen.getByLabelText("failures a").textContent).toBe("");
+  });
+
+  it("leaves a failure of any other cause until it is dismissed", async () => {
+    const { clock, transport, client } = setup();
+    loadStarts(transport, 1);
+    render(
+      <TelemetryProvider client={client}>
+        <Outcomes command="x.y" name="a" />
+      </TelemetryProvider>,
+    );
+    await sendAndFail(clock, transport, "continuousInputWouldWait");
+
+    act(() => clock.advance(GAME_LOAD_NOTICE_SECONDS * 6));
+
+    expect(screen.getByLabelText("failures a").textContent).toBe(
+      "continuousInputWouldWait",
+    );
   });
 });

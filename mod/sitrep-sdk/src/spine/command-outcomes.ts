@@ -6,6 +6,7 @@ import type {
   CommandUndelivered,
 } from "../api/types";
 import type { TelemetryClient } from "./client";
+import { GAME_LOAD_NOTICE_SECONDS } from "./timeline-store";
 
 /** What became of the commands sent under one command id, as one immutable snapshot. */
 export interface CommandOutcomeSet {
@@ -35,6 +36,7 @@ export const NO_OUTCOMES: CommandOutcomeSet = {
  *
  * A game load that starts a new timeline drops every outcome except those
  * saying that load undid the command, which are dropped at the load after it.
+ * Such an outcome also goes by itself after {@link GAME_LOAD_NOTICE_SECONDS}.
  */
 export class CommandOutcomeStore {
   private readonly byCommand = new Map<string, CommandOutcomeSet>();
@@ -44,6 +46,8 @@ export class CommandOutcomeStore {
   private readonly stopTimeline: () => void;
   /** The ids of the outcomes the last load kept. */
   private keptByLastLoad = new Set<string>();
+  /** Cancels for the timers that clear load-undone failures, by outcome id. */
+  private readonly expiries = new Map<string, () => void>();
 
   constructor(private readonly client: TelemetryClient) {
     this.stopSweep = client.subscribeStore(() => this.sweep());
@@ -75,6 +79,9 @@ export class CommandOutcomeStore {
     if (next === current[key]) return;
     this.byCommand.set(command, { ...current, [key]: next });
     this.notify();
+    if (key === "failures") {
+      this.expireUndoneByLoad(command, next as CommandFailure[]);
+    }
     if (key === "losses") this.sweep();
   }
 
@@ -127,6 +134,8 @@ export class CommandOutcomeStore {
   }
 
   dispose(): void {
+    for (const cancel of this.expiries.values()) cancel();
+    this.expiries.clear();
     this.stopSweep();
     this.stopTimeline();
     this.listeners.clear();
@@ -153,6 +162,25 @@ export class CommandOutcomeStore {
     }
     this.keptByLastLoad = kept;
     this.notify();
+  }
+
+  private expireUndoneByLoad(
+    command: string,
+    failures: CommandFailure[],
+  ): void {
+    for (const failure of failures) {
+      if (failure.code !== UNDONE_BY_LOAD || this.expiries.has(failure.id)) {
+        continue;
+      }
+      const { id } = failure;
+      this.expiries.set(
+        id,
+        this.client.scheduleAfter(GAME_LOAD_NOTICE_SECONDS, () => {
+          this.expiries.delete(id);
+          this.dismiss(command, id);
+        }),
+      );
+    }
   }
 
   private notify(): void {
