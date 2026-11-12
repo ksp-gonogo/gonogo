@@ -1814,6 +1814,8 @@ namespace Sitrep.Host
             _network = stubNetwork;
             _ledger = stubNetwork;
             _courier = new Courier(_clock, _network) { NewestWins = IsFreezeExempt };
+            _courier.ReissueSkipped = (topic, vantage, why) =>
+                LogHost("reset: nothing re-sent for " + topic + " to " + vantage + ": " + why);
             // A break in a craft's route catches the light the craft sent. A
             // TrueNow channel is the ground's own state, and a freeze-exempt
             // report is a centre noticing the link, so neither was ever in flight.

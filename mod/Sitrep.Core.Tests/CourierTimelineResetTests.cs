@@ -252,6 +252,42 @@ namespace Sitrep.Core.Tests
         }
 
         [Fact]
+        public void ATopicWithNoReadingHeardAtTheSaveIsReportedSkippedOncePerReset()
+        {
+            var clock = new ManualClock();
+            var courier = new Courier(clock, new StubNetwork());
+            var skipped = new List<string>();
+            courier.ReissueSkipped = (topic, vantage, why) => skipped.Add(topic + "|" + vantage + "|" + why);
+            courier.SubscribeStream("system", "vessel.flight", "KSC", _ => { });
+            courier.SubscribeStream("system", "vessel.flight", "KSC", _ => { });
+
+            clock.AdvanceTo(10);
+            courier.Record("system", "vessel.flight", "abandoned", 10);
+            courier.ResetTimeline(8);
+            courier.ReissueRetainedAfterReset();
+
+            var told = Assert.Single(skipped);
+            Assert.StartsWith("vessel.flight|KSC|no reading had reached that vantage", told);
+        }
+
+        [Fact]
+        public void AVantageTheLoadReachesAtOnceIsNotReportedAsSkippedForWantingADelay()
+        {
+            var clock = new ManualClock();
+            var courier = new Courier(clock, new StubNetwork());
+            var skipped = new List<string>();
+            courier.ReissueSkipped = (topic, vantage, why) => skipped.Add(why);
+            courier.SubscribeStream("system", "vessel.flight", "KSC", _ => { });
+            courier.Record("system", "vessel.flight", "saved", 5);
+            clock.AdvanceTo(10);
+
+            courier.ResetTimeline(8);
+            courier.ReissueRetainedAfterReset(onlyWithDelay: _ => true);
+
+            Assert.Empty(skipped);
+        }
+
+        [Fact]
         public void AfterAReloadTheHomeCommandGetsWhatItHadHeardThenTheRestAsItArrives()
         {
             var clock = new ManualClock();

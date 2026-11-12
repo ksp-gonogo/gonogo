@@ -1613,6 +1613,9 @@ namespace Sitrep.Core
 
         private double _historyFloorUt = double.NegativeInfinity;
 
+        /// <summary>Told, once per reset, each topic and vantage <see cref="ReissueRetainedAfterReset"/> sent nothing to, with the reason.</summary>
+        public Action<string, string, string>? ReissueSkipped { get; set; }
+
         /// <summary>
         /// Keeps every topic's history from the sample current at <paramref name="ut"/>
         /// onward, for a quickload to that instant to rebuild from. Callable from any
@@ -1826,6 +1829,14 @@ namespace Sitrep.Core
         public void ReissueRetainedAfterReset(Func<string, bool>? reissues = null, Func<string, bool>? onlyWithDelay = null)
         {
             var now = _clock.Now();
+            var told = new HashSet<string>(StringComparer.Ordinal);
+            void Skipped(string topic, string vantage, string why)
+            {
+                if (ReissueSkipped != null && told.Add(topic + "\0" + vantage + "\0" + why))
+                {
+                    ReissueSkipped(topic, vantage, why);
+                }
+            }
             foreach (var nodeEntry in _subscribers.ToList())
             {
                 var node = nodeEntry.Key;
@@ -1839,6 +1850,7 @@ namespace Sitrep.Core
                     }
                     if (ArchiveFor(node).HistoryMissingAt(topic, _lastResetUt))
                     {
+                        Skipped(topic, "all", "history missing at the reset UT " + _lastResetUt.ToString("F2", System.Globalization.CultureInfo.InvariantCulture));
                         continue;
                     }
                     var archived = ArchiveFor(node).Samples(topic);
@@ -1877,7 +1889,17 @@ namespace Sitrep.Core
                         // A topic read from the loaded world has nothing older to say to a vantage the load reaches at once.
                         if (onlyWithDelay != null && onlyWithDelay(topic) && !(_network.DelayTo(subscriber.Vantage, node) > 0))
                         {
+                            var delay = _network.DelayTo(subscriber.Vantage, node);
+                            // A vantage the load reaches at once is the designed case; only an unknown or negative delay is news.
+                            if (delay != 0)
+                            {
+                                Skipped(topic, subscriber.Vantage, "no usable delay to that vantage (" + delay.ToString(System.Globalization.CultureInfo.InvariantCulture) + ")");
+                            }
                             continue;
+                        }
+                        if (held == null)
+                        {
+                            Skipped(topic, subscriber.Vantage, "no reading had reached that vantage by the reset");
                         }
                         if (held != null)
                         {
