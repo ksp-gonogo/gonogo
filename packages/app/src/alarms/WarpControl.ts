@@ -4,17 +4,6 @@ import type { AlarmWarpPlanner } from "./AlarmWarpPlanner";
 import type { AlarmWarpState } from "./types";
 import type { WarpRateTable } from "./WarpRateTable";
 
-/**
- * The fastest rate to run at when there is no arrival time to plan against:
- * an alarm that is eligible but already inside its warp stop.
- *
- * A rate, not a warp index: an index is only ever shorthand for "100x on
- * stock's ladder", and an install that republishes the ladder makes the
- * shorthand a different number (rung 4 is 10000x on the deck's RSS/RO table).
- * Naming the rate says the same thing on every install.
- */
-const UNPLANNABLE_MAX_RATE = 100;
-
 export interface WarpControlContext {
   /** Current observed warp index, used to skip redundant commands. */
   getObservedIndex(): number;
@@ -35,6 +24,12 @@ export interface WarpControlContext {
    * no telemetry reach of its own, the same way it takes its clock.
    */
   getOwltSeconds(): number;
+  /**
+   * The highest warp index the game allows right now, or null while nothing has
+   * said. It falls with altitude and under thrust, and asking for a rung above
+   * it makes the game cut warp to 1x on its own.
+   */
+  getMaxIndex(): number | null;
 }
 
 export interface WarpToTarget {
@@ -167,8 +162,17 @@ export class WarpControl {
      *
      * No `commandWarp(0)` on the way out. The warp is already stopped, so a
      * second command would be a second authority for one piece of state.
+     *
+     * The exception is the game cutting warp because the rung asked for is now
+     * above its maximum: that is a limit, not a decision, and the plan below
+     * re-ramps inside the allowed rungs.
      */
-    if (!stale && observedIndex === 0 && this.warpToTargetIndex > 0) {
+    if (
+      !stale &&
+      observedIndex === 0 &&
+      this.warpToTargetIndex > 0 &&
+      !this.cutByGameCap()
+    ) {
       this.endSession();
       return;
     }
@@ -192,14 +196,9 @@ export class WarpControl {
         return;
       }
       this.warpToAlarmId = eligible.id;
-      const targetIndex = this.ctx
-        .getRateTable()
-        .chooseIndex(UNPLANNABLE_MAX_RATE);
-      this.warpToTargetIndex = targetIndex;
-      if (targetIndex !== currentIndex) {
-        this.ctx.registerOwnWarpIntent();
-        this.commandWarp(targetIndex);
-      }
+      /* Inside its warp stop: the simulation stops the warp this tick, so the
+         only correct command is none. */
+      this.warpToTargetIndex = currentIndex;
       return;
     }
     this.warpToAlarmId = target.alarm.id;
@@ -273,7 +272,17 @@ export class WarpControl {
   private computeWarpToIndex(remainingGameSeconds: number): number {
     if (remainingGameSeconds <= 0) return 0;
     const maxRate = remainingGameSeconds / this.effectiveMarginSeconds();
-    return this.ctx.getRateTable().chooseIndex(maxRate);
+    const index = this.ctx.getRateTable().chooseIndex(maxRate);
+    const max = this.ctx.getMaxIndex();
+    return max === null ? index : Math.min(index, Math.max(0, max));
+  }
+
+  /** Whether the last command asked for a rung above the game's current maximum. */
+  private cutByGameCap(): boolean {
+    const max = this.ctx.getMaxIndex();
+    return (
+      max !== null && this.commandedIndex !== null && this.commandedIndex > max
+    );
   }
 
   /**

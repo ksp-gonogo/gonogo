@@ -235,6 +235,7 @@ export class AlarmHostService {
       {
         getObservedIndex: () => this.warpObserver.getWarp().index,
         getRateTable: () => this.warpObserver.getRateTable(),
+        getMaxIndex: () => this.warpObserver.getMaxIndex(),
         registerOwnWarpIntent: () => this.warpObserver.registerIntent(),
         getOwltSeconds: () => this.opts.getOwltSeconds(),
       },

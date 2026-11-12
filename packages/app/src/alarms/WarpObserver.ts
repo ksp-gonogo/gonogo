@@ -36,6 +36,7 @@ export class WarpObserver {
   private lastIntentAt: number | null = null;
   /** The rung an announced warp was first seen on, so it stays explained for as long as that rung holds. */
   private announcedIndex: number | null = null;
+  private maxIndex: number | null = null;
   private readonly rateTable = new WarpRateTable();
   /** Each change in the reported rate, keyed by the view UT it was read at. */
   private readonly rateChanges: { ut: number; rate: number }[] = [];
@@ -44,6 +45,11 @@ export class WarpObserver {
     private readonly ctx: WarpObserverContext,
     private readonly nowMs: () => number,
   ) {}
+
+  /** The game's highest allowed warp index as last reported, or null before it has said. */
+  getMaxIndex(): number | null {
+    return this.maxIndex;
+  }
 
   getWarp(): AlarmWarpState {
     return this.observedWarp;
@@ -114,6 +120,11 @@ export class WarpObserver {
     };
 
     this.rateTable.setPublished(warp?.warpRates);
+    const reportedMax = warp?.maxWarpRateIndex;
+    this.maxIndex =
+      typeof reportedMax === "number" && Number.isFinite(reportedMax)
+        ? Math.round(reportedMax)
+        : null;
 
     /*
      * Only when the SAME reading carried both, never the merged state above:

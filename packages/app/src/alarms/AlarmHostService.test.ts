@@ -146,6 +146,7 @@ function fakeTelemetry(): FakeTelemetry {
     warpRates: [1, 5, 10, 50, 100, 1000, 10000, 100000],
     warpMode: WarpMode.Unknown,
     paused: false,
+    maxWarpRateIndex: undefined as number | undefined,
   };
 
   return {
@@ -153,7 +154,12 @@ function fakeTelemetry(): FakeTelemetry {
     isSubscribed: (topic) => transport.isSubscribed(topic),
     publishTopic: publish,
     obeyWarpCommands() {
-      onWarpCommand = (index) => {
+      onWarpCommand = (asked) => {
+        /* Stock behaviour: a rung above the cap is not clamped, warp is cut to 1x. */
+        const index =
+          warp.maxWarpRateIndex !== undefined && asked > warp.maxWarpRateIndex
+            ? 0
+            : asked;
         warp = {
           ...warp,
           warpRateIndex: index,
@@ -169,6 +175,11 @@ function fakeTelemetry(): FakeTelemetry {
       }
       if (key === "t.currentRateIndex" && typeof v === "number") {
         warp = { ...warp, warpRateIndex: v };
+        publish("time.warp", warp);
+        return;
+      }
+      if (key === "t.maxWarpRateIndex" && typeof v === "number") {
+        warp = { ...warp, maxWarpRateIndex: v };
         publish("time.warp", warp);
         return;
       }
@@ -917,6 +928,64 @@ describe("AlarmHostService", () => {
 
       expect(svc.snapshot().warpTo).toBeNull();
       expect(telemetry.calls).not.toContain("time.setWarpIndex[0]");
+    });
+
+    it("never asks for a rung above the game's current maximum", async () => {
+      const { svc, telemetry } = makeService();
+      telemetry.obeyWarpCommands();
+      telemetry.set("t.maxWarpRateIndex", 3);
+      svc.addAlarm({
+        name: "Far",
+        trigger: { kind: "time", ut: 100_000, leadSeconds: 10 },
+      });
+      svc.beginWarpTo();
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(svc.snapshot().warpTo?.targetIndex).toBe(3);
+      expect(telemetry.calls).toEqual(["time.setWarpIndex[3]"]);
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(telemetry.calls).toEqual(["time.setWarpIndex[3]"]);
+    });
+
+    it("re-ramps inside the allowed rungs when the game cuts warp because the maximum fell", async () => {
+      const { svc, telemetry } = makeService();
+      telemetry.obeyWarpCommands();
+      svc.addAlarm({
+        name: "Far",
+        trigger: { kind: "time", ut: 100_000, leadSeconds: 10 },
+      });
+      svc.beginWarpTo();
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(svc.snapshot().warpTo?.targetIndex).toBe(5);
+
+      /* The cap drops under the rung in force and the game cuts warp to 1x. */
+      telemetry.calls.length = 0;
+      telemetry.set("t.maxWarpRateIndex", 3);
+      telemetry.set("t.currentRateIndex", 0);
+      telemetry.set("t.currentRate", 1);
+      await vi.advanceTimersByTimeAsync(1100);
+
+      expect(svc.snapshot().warpTo?.targetIndex).toBe(3);
+      expect(telemetry.calls).toEqual(["time.setWarpIndex[3]"]);
+    });
+
+    it("sends no warp command for an alarm already inside its warp stop", async () => {
+      const { svc, telemetry } = makeService();
+      telemetry.obeyWarpCommands();
+      svc.addAlarm({
+        name: "Near",
+        trigger: { kind: "time", ut: 11_000, leadSeconds: 10 },
+      });
+      svc.beginWarpTo();
+      await Promise.resolve();
+      await Promise.resolve();
+      telemetry.calls.length = 0;
+      telemetry.set("t.universalTime", 10_995);
+      await vi.advanceTimersByTimeAsync(1100);
+      expect(
+        telemetry.calls.filter((c) => c !== "time.setWarpIndex[0]"),
+      ).toEqual([]);
     });
 
     it("retargets to a sooner alarm added mid-session", async () => {
