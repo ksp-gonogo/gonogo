@@ -69,4 +69,77 @@ describe("a quickload the mod announces", () => {
     wire.deliver(frame("spaceCenter.scene", 10, 99));
     expect(seen).toEqual([10]);
   });
+
+  it("reads the scene the mod re-sends right after the reset, whatever UT it carries", () => {
+    const wire = new Wire();
+    const client = new TelemetryClient(wire, CLOCK, { idPrefix: "p" });
+    client.subscribe("spaceCenter.scene", () => {});
+    wire.deliver({
+      type: "hello",
+      bootId: "b",
+      timelineEpoch: 9,
+      contractMajor: 1,
+      contractMinor: 0,
+    });
+    wire.deliver({
+      type: "stream-data",
+      topic: "spaceCenter.scene",
+      payload: { scene: "Flight" },
+      meta: makeMeta({ timelineEpoch: 9, deliveredAt: 500 }),
+    });
+    wire.deliver(frame("vessel.flight", 9, 500));
+    wire.deliver({
+      type: "game-state",
+      state: "loading",
+      scene: "FLIGHT",
+      bootId: "b",
+      timelineEpoch: 9,
+    });
+    wire.deliver({
+      type: "event",
+      topic: "vessel.flight",
+      name: "timeline-reset",
+      meta: makeMeta({ timelineEpoch: 10 }),
+    });
+    wire.deliver({
+      type: "stream-data",
+      topic: "spaceCenter.scene",
+      payload: { scene: "Flight" },
+      meta: makeMeta({ timelineEpoch: 10, deliveredAt: 100 }),
+    });
+    expect(client.getValue("spaceCenter.scene")).toEqual({ scene: "Flight" });
+  });
+
+  it("reads the scene on a station, which hears the load as a game state and a frame but no reset event", () => {
+    const wire = new Wire();
+    const client = new TelemetryClient(wire, CLOCK, { idPrefix: "p" });
+    client.subscribe("spaceCenter.scene", () => {});
+    wire.deliver({
+      type: "hello",
+      bootId: "b",
+      timelineEpoch: 9,
+      contractMajor: 1,
+      contractMinor: 0,
+    });
+    wire.deliver({
+      type: "stream-data",
+      topic: "spaceCenter.scene",
+      payload: { scene: "Flight" },
+      meta: makeMeta({ timelineEpoch: 9, deliveredAt: 500 }),
+    });
+    wire.deliver({
+      type: "game-state",
+      state: "loading",
+      scene: "FLIGHT",
+      bootId: "b",
+      timelineEpoch: 9,
+    });
+    wire.deliver({
+      type: "stream-data",
+      topic: "spaceCenter.scene",
+      payload: { scene: "Flight" },
+      meta: makeMeta({ timelineEpoch: 10, deliveredAt: 100 }),
+    });
+    expect(client.getValue("spaceCenter.scene")).toEqual({ scene: "Flight" });
+  });
 });
