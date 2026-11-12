@@ -12,7 +12,7 @@ describe("Commcast's tile sizes", () => {
   it("leaves the thread room for messages at the smallest size it allows", () => {
     const def = getComponent("commcast");
     expect(def?.minSize).toEqual({ w: 8, h: 9 });
-    expect(def?.defaultSize).toEqual({ w: 10, h: 10 });
+    expect(def?.defaultSize).toEqual({ w: 11, h: 9 });
     expect(def?.mobileHeight).toBe(720);
   });
 });

@@ -7,10 +7,11 @@ import {
 import type { CommsLink } from "@ksp-gonogo/sitrep-sdk";
 import { observedValue } from "@ksp-gonogo/sitrep-sdk";
 import { useLatestValue, useUtNow } from "@ksp-gonogo/sitrep-sdk/spine";
-import { EmptyState, Panel, Section, Text } from "@ksp-gonogo/ui-kit";
+import { Badge, EmptyState, Panel, Section, Text } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import { StationNameEditor, useStationNameOptional } from "../stationIdentity";
 import { CommcastComposeView } from "./CommcastComposeView";
+import { type CommcastConfig, CommcastConfigForm } from "./CommcastConfigForm";
 import {
   CommcastProvider,
   useAddressBook,
@@ -33,6 +34,7 @@ import type { RecipientId } from "./types";
 import { useCommcastFeed } from "./useCommcastFeed";
 import { useDetectedTransmissions } from "./useDetectedTransmissions";
 import { useDroppedCount } from "./useDroppedCount";
+import { useMessageChime } from "./useMessageChime";
 
 /** Which of the widget's screens the operator is on: each group is its own thread, and only its members hold it. */
 type CommcastView =
@@ -44,7 +46,9 @@ type CommcastView =
   /** Choosing who to add to a group this vantage is in. */
   | { kind: "add"; groupId: string; with: readonly RecipientId[] };
 
-function CommcastComponent(_props: Readonly<ComponentProps>) {
+function CommcastComponent({
+  config,
+}: Readonly<ComponentProps<CommcastConfig>>) {
   const log = useCommcastLog();
   const named = useStationNameOptional();
   const me = useMyVantage();
@@ -65,6 +69,12 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
   const book = useAddressBook();
   const nameFor = book.nameFor;
   const threads = threadsOf(feed, me, nameFor);
+  const unread = threads.reduce((total, t) => total + t.unread, 0);
+  useMessageChime(
+    feed.log,
+    () => log?.snapshot().inbox.map((m) => m.id) ?? [],
+    config?.chime !== false,
+  );
   /*
    * The craft-to-ground path, standing in for a pair the separation matrix
    * has not reached. Observed only: this number is frozen into a message
@@ -271,7 +281,23 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
     </Section>
   );
 
-  return <Panel panelTitle="Commcast" panelAside={identity} sections={body} />;
+  return (
+    <Panel
+      panelTitle="Commcast"
+      panelAside={
+        <Commcast__Identity>
+          {/* Left of the identity, which is pinned to the header's end, so the count appearing moves neither it nor the title. */}
+          {unread > 0 && (
+            <Badge tone="info" size="sm">
+              {unread} new
+            </Badge>
+          )}
+          {identity}
+        </Commcast__Identity>
+      }
+      sections={body}
+    />
+  );
 }
 
 /** A group's whole membership from the others in it, this vantage included once it knows where it is. */
@@ -289,7 +315,7 @@ function secondsOf(separation: Separation): number | null {
 }
 
 /** Mounts its own provider so the widget works on a screen that never wired one. */
-function CommcastWidget(props: Readonly<ComponentProps>) {
+function CommcastWidget(props: Readonly<ComponentProps<CommcastConfig>>) {
   return (
     <CommcastProvider>
       <CommcastComponent {...props} />
@@ -303,8 +329,8 @@ registerComponent({
   description:
     "Messages and push-to-talk radio between command centres and craft.",
   tags: ["mission-control", "comms"],
-  // The bar wraps to two rows under about 300 px, and below this the thread has no room for two messages beside it and the composer.
-  defaultSize: { w: 10, h: 10 },
+  // The bar holds one row from about 400 px, and at this height the thread shows two messages above the composer. A narrower tile wraps the bar to two rows, which is why the width is the default's.
+  defaultSize: { w: 11, h: 9 },
   minSize: { w: 8, h: 9 },
   // A phone tile at half height is half of this, and still has to hold the title, the bar, two messages and the composer.
   mobileHeight: 720,
@@ -325,7 +351,8 @@ registerComponent({
     "commcast.transmissions",
     "vessel.identity",
   ],
-  defaultConfig: {},
+  defaultConfig: { chime: true },
+  configComponent: CommcastConfigForm,
   actions: [],
   pushable: false,
 });
