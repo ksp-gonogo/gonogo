@@ -754,6 +754,8 @@ textarea {
   --inset-control-small-touch: var(--space-6) var(--space-10);
   /* A chromeless glyph button. */
   --inset-glyph-button: var(--space-2) var(--space-4);
+  /* How far a glyph button's hit target stands past the text line beside it. */
+  --overhang-glyph-button: var(--space-4);
   /* A glyph button in a row, padded across only. */
   --inset-glyph: 0 var(--space-4);
   /* The same, packed tight against the row's text. */

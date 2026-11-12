@@ -2,6 +2,7 @@ import { AugmentSlot } from "@ksp-gonogo/core";
 import type { Tone } from "@ksp-gonogo/sitrep-sdk";
 import {
   Card,
+  Cluster,
   type ContributedEntries,
   Contribution,
   EmptyState,
@@ -143,10 +144,10 @@ export function renderRoster({
             }
           >
             {seats.has(name) && (
-              <Inline>
+              <Cluster justify="start" align="center" style={SEAT_ROW_STYLE}>
                 <ReadoutCaption>{seats.get(name)}</ReadoutCaption>
                 <CrewMoveControl name={name} />
-              </Inline>
+              </Cluster>
             )}
             <Contribution
               slot="meters"
@@ -159,6 +160,15 @@ export function renderRoster({
     </Stack>
   );
 }
+
+/**
+ * The Move button's hit target is taller than the part-name line beside it.
+ * The negative block margin lets the button overhang the row's padding so the
+ * row stays as tall as the text and the button stays centred on it.
+ */
+const SEAT_ROW_STYLE = {
+  marginBlock: "calc(-1 * var(--overhang-glyph-button))",
+} as const;
 
 // The augment slot layer fills the avatar cell and centres its content.
 const AVATAR_LAYER_STYLE = {
