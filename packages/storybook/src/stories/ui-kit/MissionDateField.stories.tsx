@@ -5,7 +5,7 @@ import {
   kspCalendar,
   MissionDate,
   MissionDateField,
-  type MissionDateFieldProps,
+  type PlainMissionDateFieldProps,
   Text,
   utOfParts,
 } from "@ksp-gonogo/ui-kit";
@@ -32,7 +32,7 @@ const MUN_ORBIT_S = 138_984;
 function Controlled({
   initial,
   ...rest
-}: Omit<MissionDateFieldProps, "value" | "onChange"> & {
+}: Omit<PlainMissionDateFieldProps, "value" | "onChange"> & {
   initial: number | null;
 }) {
   const [ut, setUt] = useState<number | null>(initial);

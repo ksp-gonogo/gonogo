@@ -1,3 +1,4 @@
+import type { AnyBoundCommand } from "@ksp-gonogo/sitrep-sdk";
 import {
   type ComponentPropsWithoutRef,
   forwardRef,
@@ -7,6 +8,10 @@ import {
   useState,
 } from "react";
 import styled from "styled-components";
+import { useBoundCommandInput } from "./CommandButton/commandInput";
+import { commandOutlineEdge } from "./commandEdge";
+import { LiveRegion } from "./LiveRegion";
+import { Tooltip } from "./Tooltip";
 
 /**
  * Props for {@link FitLabelButton}. Any other `button` attribute passes
@@ -24,6 +29,16 @@ export interface FitLabelButtonProps
   label: string;
   /** Shown in place of the label when the label does not fit. */
   icon: ReactNode;
+  /**
+   * The command pressing the button sends, made with `with` on a `useCommand`
+   * handle. While the label is shown, a word over it says what became of the
+   * press: "SENT" while it is unanswered, then "Refused", "No reply" or
+   * "Found". While the icon is shown the word is left out, and the button's
+   * edge, its tip and a live region carry the outcome.
+   */
+  command?: AnyBoundCommand;
+  /** Why a command button cannot be pressed now. It is drawn dimmed with this as its tip and a press sends nothing. */
+  unavailable?: string;
 }
 
 /**
@@ -33,6 +48,9 @@ export interface FitLabelButtonProps
  * unstyled native button (`type="button"` by default), so it has no border,
  * fill or padding until you give it some: style it with
  * `styled(FitLabelButton)` or wrap it as the layout needs.
+ *
+ * Given a `command`, a press sends it and a word over the label says what became
+ * of the press.
  *
  * The accessible name is always `label`, carried in `aria-label` in both
  * states. Put anything explaining a disabled state in `title`, since it is the
@@ -52,13 +70,65 @@ export interface FitLabelButtonProps
 export const FitLabelButton = forwardRef<
   HTMLButtonElement,
   FitLabelButtonProps
->(function FitLabelButton({ label, icon, type, ...rest }, ref) {
+>(function FitLabelButton(props, ref) {
+  if (props.command) {
+    return (
+      <CommandedFitLabelButton {...props} command={props.command} ref={ref} />
+    );
+  }
+  const { command: _command, unavailable: _unavailable, ...rest } = props;
+  return <PlainFitLabelButton {...rest} ref={ref} />;
+});
+
+const CommandedFitLabelButton = forwardRef<
+  HTMLButtonElement,
+  FitLabelButtonProps & { command: AnyBoundCommand }
+>(function CommandedFitLabelButton(
+  { command, unavailable, onClick, ...rest },
+  ref,
+) {
+  const input = useBoundCommandInput({ command, unavailable });
   return (
-    <button ref={ref} type={type ?? "button"} aria-label={label} {...rest}>
-      <FitLabel label={label} icon={icon} />
-    </button>
+    <>
+      <Tooltip text={input.tip}>
+        <PlainFitLabelButton
+          {...rest}
+          {...input.edge}
+          ref={ref}
+          word={input.word}
+          onClick={(e) => {
+            if (input.inert) return;
+            input.send();
+            onClick?.(e);
+          }}
+        />
+      </Tooltip>
+      <LiveRegion visuallyHidden>{input.announce}</LiveRegion>
+    </>
   );
 });
+
+const PlainFitLabelButton = forwardRef<
+  HTMLButtonElement,
+  Omit<FitLabelButtonProps, "command" | "unavailable"> & {
+    word?: string | null;
+  }
+>(function PlainFitLabelButton({ label, icon, type, word, ...rest }, ref) {
+  return (
+    <FitLabelButton__Root
+      ref={ref}
+      type={type ?? "button"}
+      aria-label={label}
+      {...rest}
+    >
+      <FitLabel label={label} icon={icon} word={word} />
+    </FitLabelButton__Root>
+  );
+});
+
+const FitLabelButton__Root = styled.button`
+  ${commandOutlineEdge}
+`;
 
 /**
  * The label-or-icon content of a {@link FitLabelButton}, for another control
@@ -68,7 +138,15 @@ export const FitLabelButton = forwardRef<
  * (`min-width: 0`). Both states are `aria-hidden`: the parent carries the name.
  * Kit-internal, not on the barrel.
  */
-export function FitLabel({ label, icon }: { label: string; icon: ReactNode }) {
+export function FitLabel({
+  label,
+  icon,
+  word,
+}: {
+  label: string;
+  icon: ReactNode;
+  word?: string | null;
+}) {
   const contentRef = useRef<HTMLSpanElement | null>(null);
   const ghostRef = useRef<HTMLSpanElement | null>(null);
   const [fits, setFits] = useState(true);
@@ -95,7 +173,7 @@ export function FitLabel({ label, icon }: { label: string; icon: ReactNode }) {
         {label}
       </FitLabelButton__Ghost>
       {fits ? (
-        <FitLabelButton__Label aria-hidden="true">
+        <FitLabelButton__Label aria-hidden="true" $hidden={!!word}>
           {label}
         </FitLabelButton__Label>
       ) : (
@@ -103,6 +181,9 @@ export function FitLabel({ label, icon }: { label: string; icon: ReactNode }) {
           {icon}
         </FitLabelButton__Icon>
       )}
+      {fits && word ? (
+        <FitLabelButton__Word aria-hidden="true">{word}</FitLabelButton__Word>
+      ) : null}
     </FitLabelButton__Content>
   );
 }
@@ -127,9 +208,23 @@ const FitLabelButton__Ghost = styled.span`
   white-space: nowrap;
 `;
 
-const FitLabelButton__Label = styled.span`
+const FitLabelButton__Label = styled.span<{ $hidden?: boolean }>`
   /* nowrap, so a label that does not fit overflows and the measurement stays honest. */
   white-space: nowrap;
+  ${({ $hidden }) => ($hidden ? "visibility: hidden;" : "")}
+`;
+
+/* Over the label, which keeps its place hidden, so the button is the same size in every phase. */
+const FitLabelButton__Word = styled.span`
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  pointer-events: none;
+  font-size: var(--font-size-caption);
+  letter-spacing: 0.08em;
 `;
 
 const FitLabelButton__Icon = styled.span`

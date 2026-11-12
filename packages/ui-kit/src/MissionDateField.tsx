@@ -1,21 +1,29 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type ValueCommand, value } from "@ksp-gonogo/sitrep-sdk";
 import { useId, useState } from "react";
+import styled from "styled-components";
 import { Button } from "./Button";
 import { Cluster } from "./Cluster";
+import {
+  type CommandInputState,
+  useCommandInput,
+} from "./CommandButton/commandInput";
 import { FieldLabel, Input } from "./Form";
 import { kspCalendar } from "./kspTime";
+import { LiveRegion } from "./LiveRegion";
 import { NULL_DISPLAY } from "./NullValue";
 import { Stack } from "./Stack";
 import { Text } from "./Text";
+import { Tooltip } from "./Tooltip";
 import { writeQuantity } from "./units";
 
 /**
- * Props for {@link MissionDateField}. Useful for letting the operator enter an
- * instant on the game's calendar. Taken by {@link MissionDateField}.
+ * The props every {@link MissionDateField} takes, whether it changes an instant
+ * the caller holds or sends a command. Useful for naming the instant and
+ * choosing the coarse steps. Taken by both forms of {@link MissionDateField}.
  *
  * @category Form
  */
-export interface MissionDateFieldProps {
+export interface MissionDateFieldBaseProps {
   /**
    * The instant being edited, in seconds since the game's epoch, or `null` when
    * there is none: a reading that did not arrive, a field the producer withheld.
@@ -24,14 +32,8 @@ export interface MissionDateFieldProps {
    */
   value: number | null;
 
-  /** Called with the new instant, in whole seconds since the game's epoch. */
-  onChange: (ut: number) => void;
-
   /** Names the whole group for a screen reader: "Ignition", "Plan end". */
   label: string;
-
-  /** Greys the field and its buttons out and ignores input. */
-  disabled?: boolean;
 
   /**
    * The coarse steps offered, in seconds, smallest first. Rendered as a minus
@@ -43,6 +45,54 @@ export interface MissionDateFieldProps {
    */
   steps?: number[];
 }
+
+/**
+ * The props of a {@link MissionDateField} that changes an instant the caller
+ * holds.
+ *
+ * @category Form
+ */
+export interface PlainMissionDateFieldProps extends MissionDateFieldBaseProps {
+  /** Called with the new instant, in whole seconds since the game's epoch. */
+  onChange: (ut: number) => void;
+
+  /** Greys the field and its buttons out and ignores input. */
+  disabled?: boolean;
+
+  command?: never;
+  unavailable?: never;
+}
+
+/**
+ * The props of a {@link MissionDateField} that sends a command. `value` is the
+ * instant the vessel is commanded to hold. A nudge sends at once, a typed field
+ * sends when the operator leaves it or presses Enter, and a word over the top
+ * right of the group says what became of the send.
+ *
+ * @category Form
+ */
+export interface CommandedMissionDateFieldProps
+  extends MissionDateFieldBaseProps {
+  /** The command a change sends, made with `toArgs` on a `useCommand` handle and given the instant in seconds since the game's epoch. */
+  // biome-ignore lint/suspicious/noExplicitAny: a command of any argument and reply types
+  command: ValueCommand<number, any, any>;
+
+  /** Why the field cannot be used now. It is drawn dimmed with this as its tip and nothing is sent. */
+  unavailable?: string | null;
+
+  onChange?: never;
+  disabled?: never;
+}
+
+/**
+ * Props for {@link MissionDateField}. Useful for letting the operator enter an
+ * instant on the game's calendar. Taken by {@link MissionDateField}.
+ *
+ * @category Form
+ */
+export type MissionDateFieldProps =
+  | PlainMissionDateFieldProps
+  | CommandedMissionDateFieldProps;
 
 /**
  * The five components of an instant on the game's own calendar: year, day,
@@ -145,18 +195,85 @@ function stepLabel(seconds: number): string {
  * calendar): `null` comes up empty with {@link NULL_DISPLAY}, the dash that
  * stands for no value, and nothing is committed until a component is typed.
  *
+ * Given a `command`, a nudge sends at once and a typed field sends when the
+ * operator leaves it or presses Enter.
+ *
  * {@link UnitInput} with a `ut` unit renders this for you and emits a `Value`;
  * use this directly when you hold the instant as a bare number of seconds.
  *
  * @category Form
  */
-export function MissionDateField({
+export function MissionDateField(props: MissionDateFieldProps) {
+  if (props.command) {
+    return <CommandedMissionDateField {...props} command={props.command} />;
+  }
+  return (
+    <MissionDateFieldView
+      value={props.value}
+      label={props.label}
+      steps={props.steps}
+      onChange={props.onChange}
+      disabled={props.disabled}
+    />
+  );
+}
+
+function CommandedMissionDateField({
+  command,
+  unavailable,
+  ...props
+}: CommandedMissionDateFieldProps) {
+  const input = useCommandInput({ command, unavailable });
+  return (
+    <MissionDateFieldView
+      value={props.value}
+      label={props.label}
+      steps={props.steps}
+      onChange={input.send}
+      disabled={input.inert}
+      input={input}
+    />
+  );
+}
+
+/*
+ * Drawn over the top right of the group rather than in the flow, so the field
+ * is the same size at rest and in every phase.
+ */
+const MissionDateField__Word = styled.span`
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  padding-inline: var(--gap-related-dense);
+  background: var(--color-surface-sunken);
+  color: var(--color-text-muted);
+  pointer-events: none;
+  &:empty {
+    display: none;
+  }
+  font-size: var(--font-size-caption);
+  letter-spacing: 0.08em;
+`;
+
+const MissionDateField__Frame = styled.div`
+  position: relative;
+`;
+
+function MissionDateFieldView({
   value,
   onChange,
   label,
   disabled,
   steps,
-}: MissionDateFieldProps) {
+  input,
+}: {
+  value: number | null;
+  onChange: (ut: number) => void;
+  label: string;
+  disabled?: boolean;
+  steps?: number[];
+  input?: CommandInputState<number>;
+}) {
   const groupId = useId();
   const absentId = `${groupId}-absent`;
   // A non-finite number is the same absence as a null, reached by a different route.
@@ -180,6 +297,23 @@ export function MissionDateField({
     text: string;
   } | null>(null);
 
+  const commit = () => {
+    if (!input || draft === null) return;
+    const typed = draft.text.trim();
+    const typedNumber = Number(typed);
+    setDraft(null);
+    if (typed === "" || !Number.isFinite(typedNumber)) return;
+    const min = draft.key === "year" || draft.key === "day" ? 1 : 0;
+    const next = Math.max(min, Math.round(typedNumber));
+    const sent = utOfParts({ ...(parts ?? EPOCH_PARTS), [draft.key]: next });
+    if (sent !== instant) onChange(sent);
+  };
+
+  // The edge without the phase, which would pad each box for a word it does not draw.
+  const { "data-command-phase": _phase, ...edge } = input?.edge ?? {
+    "data-command-phase": "",
+  };
+
   const field = (
     key: keyof MissionDateParts,
     text: string,
@@ -189,6 +323,7 @@ export function MissionDateField({
     <Stack gap="caption" key={key}>
       <FieldLabel htmlFor={`${groupId}-${key}`}>{text}</FieldLabel>
       <Input
+        {...edge}
         id={`${groupId}-${key}`}
         type="number"
         inputMode="numeric"
@@ -208,10 +343,14 @@ export function MissionDateField({
               ? ""
               : String(parts[key])
         }
-        onBlur={() => setDraft(null)}
+        onBlur={() => (input ? commit() : setDraft(null))}
+        onKeyDown={(event) => {
+          if (input && event.key === "Enter") commit();
+        }}
         onChange={(event) => {
           const typed = event.target.value;
           setDraft({ key, text: typed });
+          if (input) return;
           if (typed.trim() === "") return;
           const typedNumber = Number(typed);
           if (!Number.isFinite(typedNumber)) return;
@@ -224,7 +363,7 @@ export function MissionDateField({
     </Stack>
   );
 
-  return (
+  const group = (
     <Stack gap="related-dense" role="group" aria-label={label}>
       <Cluster gap="related-dense" wrap justify="start">
         {field("year", "YEAR", 1, "5rem")}
@@ -272,5 +411,18 @@ export function MissionDateField({
         </Cluster>
       )}
     </Stack>
+  );
+
+  if (!input) return group;
+  return (
+    <Tooltip text={input.tip}>
+      <MissionDateField__Frame>
+        {group}
+        <MissionDateField__Word aria-hidden="true">
+          {input.word}
+        </MissionDateField__Word>
+        <LiveRegion visuallyHidden>{input.announce}</LiveRegion>
+      </MissionDateField__Frame>
+    </Tooltip>
   );
 }

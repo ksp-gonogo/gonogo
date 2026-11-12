@@ -445,6 +445,7 @@ export { Inline, type InlineProps } from "./Inline";
 export { InstrumentHeldMark, sayHeld } from "./instrumentCurrency";
 export {
   JogWheel,
+  type JogWheelCommandedCommon,
   type JogWheelCommon,
   type JogWheelProps,
 } from "./JogWheel";
@@ -499,9 +500,12 @@ export {
   type TimeContext,
 } from "./MissionDate";
 export {
+  type CommandedMissionDateFieldProps,
   MissionDateField,
+  type MissionDateFieldBaseProps,
   type MissionDateFieldProps,
   type MissionDateParts,
+  type PlainMissionDateFieldProps,
   utOfParts,
 } from "./MissionDateField";
 export {

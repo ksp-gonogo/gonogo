@@ -12019,6 +12019,10 @@
         "note": "Gains an optional figureSize, the font size of the figure the mark follows, which raises the mark to the top of that figure's digits. Existing callers pass none and draw exactly as before"
       },
       {
+        "key": "ui-kit . JogWheelProps",
+        "note": "JogWheel now takes a command, so its props are a union of the plain and the commanded form"
+      },
+      {
         "key": "ui-kit . LineGraph",
         "note": "its label prop is now aria-label"
       },
@@ -12119,6 +12123,34 @@
         "note": "Takes the new optional wrapLabel prop, which changes the component's props type"
       },
       {
+        "key": "ui-kit . MissionDateField",
+        "note": "MissionDateField now takes a command, so its props are a union of the plain and the commanded form"
+      },
+      {
+        "key": "ui-kit . MissionDateFieldProps",
+        "note": "MissionDateField now takes a command, so its props are a union of the plain and the commanded form"
+      },
+      {
+        "key": "ui-kit . MissionDateFieldProps#disabled?",
+        "note": "MissionDateField with a command takes no disabled, and its reason is unavailable"
+      },
+      {
+        "key": "ui-kit . MissionDateFieldProps#label",
+        "note": "MissionDateField now takes a command, so its props are a union of the plain and the commanded form"
+      },
+      {
+        "key": "ui-kit . MissionDateFieldProps#onChange",
+        "note": "MissionDateField props are now a union of the plain and the commanded form"
+      },
+      {
+        "key": "ui-kit . MissionDateFieldProps#steps?",
+        "note": "MissionDateField now takes a command, so its props are a union of the plain and the commanded form"
+      },
+      {
+        "key": "ui-kit . MissionDateFieldProps#value",
+        "note": "MissionDateField now takes a command, so its props are a union of the plain and the commanded form"
+      },
+      {
         "key": "ui-kit . PanelProps#panelSections?",
         "note": "Removed with WidgetSections. Panel always places the sections an Uplink adds, as ordinary sections, so no widget places the slot or turns the default off"
       },
@@ -12189,6 +12221,10 @@
       {
         "key": "ui-kit . Select",
         "note": "now takes a command, so its props are a union of the plain and the commanded form"
+      },
+      {
+        "key": "ui-kit . SelectableRow",
+        "note": "SelectableRow now takes a command"
       },
       {
         "key": "ui-kit . Slider",
@@ -21565,6 +21601,26 @@
         "note": "the props of a button or toggle given a command, replacing those of CommandButton"
       },
       {
+        "key": "ui-kit . CommandedMissionDateFieldProps",
+        "note": "MissionDateField props are now a union of the plain and the commanded form, each exported by name"
+      },
+      {
+        "key": "ui-kit . CommandedMissionDateFieldProps#command",
+        "note": "MissionDateField props are now a union of the plain and the commanded form, each exported by name"
+      },
+      {
+        "key": "ui-kit . CommandedMissionDateFieldProps#disabled?",
+        "note": "MissionDateField props are now a union of the plain and the commanded form, each exported by name"
+      },
+      {
+        "key": "ui-kit . CommandedMissionDateFieldProps#onChange?",
+        "note": "MissionDateField props are now a union of the plain and the commanded form, each exported by name"
+      },
+      {
+        "key": "ui-kit . CommandedMissionDateFieldProps#unavailable?",
+        "note": "MissionDateField props are now a union of the plain and the commanded form, each exported by name"
+      },
+      {
         "key": "ui-kit . CommandedSelectProps",
         "note": "props of the form that sends a command"
       },
@@ -21823,6 +21879,14 @@
       {
         "key": "ui-kit . EdgeCueTone",
         "note": "the two tones an edge cue's arc can take, accent or warn"
+      },
+      {
+        "key": "ui-kit . FitLabelButtonProps#command?",
+        "note": "FitLabelButton takes a command, which it sends and shows the outcome of"
+      },
+      {
+        "key": "ui-kit . FitLabelButtonProps#unavailable?",
+        "note": "FitLabelButton takes the reason a command cannot be sent now"
       },
       {
         "key": "ui-kit . FlowChevrons",
@@ -22165,12 +22229,36 @@
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
       {
+        "key": "ui-kit . JogWheelCommandedCommon",
+        "note": "JogWheel props are now a union of the plain and the commanded form, each exported by name"
+      },
+      {
+        "key": "ui-kit . JogWheelCommandedCommon#command",
+        "note": "JogWheel props are now a union of the plain and the commanded form, each exported by name"
+      },
+      {
+        "key": "ui-kit . JogWheelCommandedCommon#disabled?",
+        "note": "JogWheel props are now a union of the plain and the commanded form, each exported by name"
+      },
+      {
+        "key": "ui-kit . JogWheelCommandedCommon#onChange?",
+        "note": "JogWheel props are now a union of the plain and the commanded form, each exported by name"
+      },
+      {
+        "key": "ui-kit . JogWheelCommandedCommon#unavailable?",
+        "note": "JogWheel props are now a union of the plain and the commanded form, each exported by name"
+      },
+      {
         "key": "ui-kit . JogWheelCommon",
         "note": "exported, since a published component's props or return type already names it"
       },
       {
         "key": "ui-kit . JogWheelCommon#\"aria-label\"",
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . JogWheelCommon#command?",
+        "note": "JogWheel takes a command, which it sends and shows the outcome of"
       },
       {
         "key": "ui-kit . JogWheelCommon#disabled?",
@@ -22199,6 +22287,10 @@
       {
         "key": "ui-kit . JogWheelCommon#step",
         "note": "exported, since a published component's props or return type already names it"
+      },
+      {
+        "key": "ui-kit . JogWheelCommon#unavailable?",
+        "note": "JogWheel takes the reason a command cannot be sent now"
       },
       {
         "key": "ui-kit . JogWheelCommon#value",
@@ -22307,6 +22399,22 @@
       {
         "key": "ui-kit . MenuIcon",
         "note": "Three horizontal lines, the icon of the dashboard menu button"
+      },
+      {
+        "key": "ui-kit . MissionDateFieldBaseProps",
+        "note": "MissionDateField props are now a union of the plain and the commanded form, each exported by name"
+      },
+      {
+        "key": "ui-kit . MissionDateFieldBaseProps#label",
+        "note": "MissionDateField props are now a union of the plain and the commanded form, each exported by name"
+      },
+      {
+        "key": "ui-kit . MissionDateFieldBaseProps#steps?",
+        "note": "MissionDateField props are now a union of the plain and the commanded form, each exported by name"
+      },
+      {
+        "key": "ui-kit . MissionDateFieldBaseProps#value",
+        "note": "MissionDateField props are now a union of the plain and the commanded form, each exported by name"
       },
       {
         "key": "ui-kit . ModalContextValue",
@@ -22459,6 +22567,26 @@
       {
         "key": "ui-kit . PlainAdvice#tip",
         "note": "what adviceFor returns for a plain control to spread onto its button"
+      },
+      {
+        "key": "ui-kit . PlainMissionDateFieldProps",
+        "note": "MissionDateField props are now a union of the plain and the commanded form, each exported by name"
+      },
+      {
+        "key": "ui-kit . PlainMissionDateFieldProps#command?",
+        "note": "MissionDateField props are now a union of the plain and the commanded form, each exported by name"
+      },
+      {
+        "key": "ui-kit . PlainMissionDateFieldProps#disabled?",
+        "note": "MissionDateField props are now a union of the plain and the commanded form, each exported by name"
+      },
+      {
+        "key": "ui-kit . PlainMissionDateFieldProps#onChange",
+        "note": "MissionDateField props are now a union of the plain and the commanded form, each exported by name"
+      },
+      {
+        "key": "ui-kit . PlainMissionDateFieldProps#unavailable?",
+        "note": "MissionDateField props are now a union of the plain and the commanded form, each exported by name"
       },
       {
         "key": "ui-kit . PlotCrosshair",
@@ -22755,6 +22883,14 @@
       {
         "key": "ui-kit . ScrollAreaProps#maxHeight?",
         "note": "The tallest a framed ScrollArea grows before it scrolls"
+      },
+      {
+        "key": "ui-kit . SelectableRowProps#command?",
+        "note": "SelectableRow takes a command, which it sends and shows the outcome of"
+      },
+      {
+        "key": "ui-kit . SelectableRowProps#unavailable?",
+        "note": "SelectableRow takes the reason a command cannot be sent now"
       },
       {
         "key": "ui-kit . SeriesType",
@@ -23247,6 +23383,10 @@
       {
         "key": "ui-kit . ~ContributedSlot",
         "note": "Helper type of Contribution, referenced by its props"
+      },
+      {
+        "key": "ui-kit . ~JogWheelModeProps",
+        "note": "JogWheel now takes a command, so its props are a union of the plain and the commanded form"
       },
       {
         "key": "ui-kit . ~MeterCommonProps#rowAction?",

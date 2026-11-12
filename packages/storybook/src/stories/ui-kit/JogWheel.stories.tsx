@@ -7,7 +7,9 @@ import { withGonogoFrame } from "../../frame";
  * The wheel is controlled, so each story holds its value: a story that passed
  * a fixed `value` would drop every drag and look broken.
  */
-function Held(props: JogWheelProps) {
+type PlainJogWheelProps = Extract<JogWheelProps, { command?: undefined }>;
+
+function Held(props: PlainJogWheelProps) {
   const [value, setValue] = useState(props.value);
   return <JogWheel {...props} value={value} onChange={setValue} />;
 }
@@ -16,7 +18,9 @@ const meta = {
   title: "ui-kit/JogWheel",
   component: JogWheel,
   decorators: [withGonogoFrame],
-  render: (args) => <Held key={`${args.min}:${args.max}`} {...args} />,
+  render: (args) => (
+    <Held key={`${args.min}:${args.max}`} {...(args as PlainJogWheelProps)} />
+  ),
   args: {
     "aria-label": "Throttle trim",
     value: 50,

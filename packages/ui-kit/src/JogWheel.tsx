@@ -1,7 +1,15 @@
-import type { KeyboardEvent, PointerEvent } from "react";
+import type { ValueCommand } from "@ksp-gonogo/sitrep-sdk";
+import type { KeyboardEvent, PointerEvent, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
+import {
+  type CommandInputState,
+  useCommandInput,
+} from "./CommandButton/commandInput";
+import { commandEdge } from "./commandEdge";
 import { focusRing } from "./focusRing";
+import { LiveRegion } from "./LiveRegion";
+import { Tooltip } from "./Tooltip";
 
 /**
  * What the position of a jog wheel's handle means. Useful for choosing between
@@ -56,6 +64,31 @@ export interface JogWheelCommon {
    * to the smallest touch target.
    */
   height?: number;
+  command?: never;
+  unavailable?: never;
+}
+
+/**
+ * The props every {@link JogWheel} that sends a command takes, whichever its
+ * mode. `value` is the value the vessel is commanded to hold. The wheel follows
+ * the operator's hand while it is held, sends once on release (or on each key
+ * press), and a word on the wheel says what became of the send. Useful for
+ * dialling a value on a craft, such as a camera's aim.
+ *
+ * @category Form
+ */
+export interface JogWheelCommandedCommon
+  extends Omit<
+    JogWheelCommon,
+    "onChange" | "disabled" | "command" | "unavailable"
+  > {
+  /** The command a release sends, made with `toArgs` on a `useCommand` handle and given the value dialled. */
+  // biome-ignore lint/suspicious/noExplicitAny: a command of any argument and reply types
+  command: ValueCommand<number, any, any>;
+  /** Why the wheel cannot be used now. It is drawn dimmed with this as its tip and nothing is sent. */
+  unavailable?: string | null;
+  onChange?: never;
+  disabled?: never;
 }
 
 /**
@@ -65,16 +98,19 @@ export interface JogWheelCommon {
  *
  * @category Form
  */
-export type JogWheelProps =
-  | (JogWheelCommon & {
+export type JogWheelProps = (JogWheelCommon | JogWheelCommandedCommon) &
+  JogWheelModeProps;
+
+type JogWheelModeProps =
+  | {
       /** Dragging moves the value by an amount (the default). */
       mode?: "offset";
       /** The lowest value. */
       min: number;
       /** The highest value. */
       max: number;
-    })
-  | (JogWheelCommon & {
+    }
+  | {
       /** Holding the wheel off centre changes the value continuously. */
       mode: "rate";
       /** Optional here: a rate control does not need somewhere to stop. */
@@ -87,7 +123,7 @@ export type JogWheelProps =
        * the coarse end.
        */
       stepsPerSecond?: number;
-    });
+    };
 
 /** Pixels of pointer travel per `step` of value. */
 const SENSITIVITY_PX_PER_STEP = 4;
@@ -151,6 +187,10 @@ export function applyDelta(
  * one `step`, Home and End go to `min` and `max`). Used by {@link UnitInput}
  * for a quantity that is tuned by feel.
  *
+ * Given a `command`, the wheel follows the hand while it is held and sends one
+ * command on release, or one per key press, with a word on the wheel saying what
+ * became of it. A camera's aim input is one that takes it.
+ *
  * It is a focusable `role="slider"`; nothing is emitted while `disabled`. It is
  * sized with `width` and `height` in CSS px, as {@link Dial} and {@link Tape}
  * are.
@@ -177,6 +217,54 @@ export function applyDelta(
  * @category Form
  */
 export function JogWheel(props: JogWheelProps): JSX.Element {
+  if (props.command) {
+    return <CommandedJogWheel {...props} command={props.command} />;
+  }
+  const { command: _command, unavailable: _unavailable, ...rest } = props;
+  return (
+    <JogWheelView
+      {...rest}
+      onChange={rest.onChange as JogWheelCommon["onChange"]}
+    />
+  );
+}
+
+function CommandedJogWheel(
+  props: JogWheelCommandedCommon & JogWheelModeProps,
+): JSX.Element {
+  const { command, unavailable, ...rest } = props;
+  const input = useCommandInput({ command, unavailable });
+  /*
+   * The wheel follows the hand while it is held, so a drag is one command on
+   * release and not one per pixel of travel.
+   */
+  const [dialled, setDialled] = useState<number | null>(null);
+  return (
+    <JogWheelView
+      {...rest}
+      value={dialled ?? rest.value}
+      disabled={input.inert}
+      onChange={setDialled}
+      onCommit={(next) => {
+        setDialled(null);
+        input.send(next);
+      }}
+      input={input}
+      status={<LiveRegion visuallyHidden>{input.announce}</LiveRegion>}
+    />
+  );
+}
+
+type JogWheelViewProps = Omit<JogWheelCommon, "command" | "unavailable"> &
+  JogWheelModeProps & {
+    /** Present on a commanded wheel: called on release and on a key press, where `onChange` follows the hand. */
+    onCommit?: (next: number) => void;
+    input?: CommandInputState<number>;
+    /** The commanded wheel's live region, drawn beside the wheel. */
+    status?: ReactNode;
+  };
+
+function JogWheelView(props: JogWheelViewProps): JSX.Element {
   const {
     value,
     min,
@@ -184,6 +272,9 @@ export function JogWheel(props: JogWheelProps): JSX.Element {
     step,
     orientation = "horizontal",
     onChange,
+    onCommit,
+    input,
+    status,
     format,
     "aria-label": ariaLabel,
     label: caption = ariaLabel,
@@ -221,9 +312,24 @@ export function JogWheel(props: JogWheelProps): JSX.Element {
   const fraction =
     hi > lo && Number.isFinite(hi - lo) ? (value - lo) / (hi - lo) : 0.5;
 
+  // What a commanded wheel sends on release: the last value the hand dialled.
+  const pending = useRef<number | null>(null);
+
   const emit = (next: number): void => {
     if (disabled) return;
-    if (next !== value) onChange(next);
+    if (next === value) return;
+    pending.current = next;
+    onChange(next);
+  };
+
+  // A key press is a whole gesture, so a commanded wheel sends it at once.
+  const emitKey = (next: number): void => {
+    if (!onCommit) {
+      emit(next);
+      return;
+    }
+    if (disabled || next === value) return;
+    onCommit(next);
   };
 
   /**
@@ -243,7 +349,10 @@ export function JogWheel(props: JogWheelProps): JSX.Element {
             displacement * stepsPerSecond * step * (RATE_TICK_MS / 1000),
         ),
       );
-      if (moved !== latest.current) onChangeRef.current(moved);
+      if (moved !== latest.current) {
+        pending.current = moved;
+        onChangeRef.current(moved);
+      }
     }, RATE_TICK_MS);
     return () => clearInterval(timer);
   }, [rate, displacement, disabled, step, stepsPerSecond, lo, hi]);
@@ -273,7 +382,7 @@ export function JogWheel(props: JogWheelProps): JSX.Element {
         return;
     }
     e.preventDefault();
-    emit(next);
+    emitKey(next);
   };
 
   const axisPos = (e: PointerEvent<HTMLDivElement>): number =>
@@ -307,49 +416,60 @@ export function JogWheel(props: JogWheelProps): JSX.Element {
     drag.current = null;
     // Springs back, so the value stops moving once the operator lets go.
     setDisplacement(0);
+    const sent = pending.current;
+    pending.current = null;
+    if (onCommit && sent !== null) onCommit(sent);
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       e.currentTarget.releasePointerCapture(e.pointerId);
     }
   };
+
+  const root = (
+    <JogWheel__Root
+      {...input?.edge}
+      role="slider"
+      aria-label={ariaLabel}
+      aria-orientation={orientation}
+      aria-valuenow={Number.isFinite(value) ? value : undefined}
+      aria-valuemin={min}
+      aria-valuemax={max}
+      aria-valuetext={label}
+      aria-disabled={disabled || undefined}
+      tabIndex={disabled ? -1 : 0}
+      $orientation={orientation}
+      $disabled={disabled}
+      $width={boxWidth}
+      $height={boxHeight}
+      $compact={(vertical ? boxWidth : boxHeight) < COMPACT_CROSS_AXIS_PX}
+      onKeyDown={handleKeyDown}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+    >
+      <JogWheel__Tape
+        $orientation={orientation}
+        style={
+          orientation === "vertical"
+            ? { transform: `translateY(${(0.5 - fraction) * 100}%)` }
+            : { transform: `translateX(${(0.5 - fraction) * 100}%)` }
+        }
+        aria-hidden="true"
+      />
+      <JogWheel__Caret $orientation={orientation} aria-hidden="true" />
+      <JogWheel__Label aria-hidden="true">
+        {input?.word ?? label}
+      </JogWheel__Label>
+    </JogWheel__Root>
+  );
 
   return (
     <JogWheel__Frame>
       {caption !== false && (
         <JogWheel__Caption aria-hidden="true">{caption}</JogWheel__Caption>
       )}
-      <JogWheel__Root
-        role="slider"
-        aria-label={ariaLabel}
-        aria-orientation={orientation}
-        aria-valuenow={Number.isFinite(value) ? value : undefined}
-        aria-valuemin={min}
-        aria-valuemax={max}
-        aria-valuetext={label}
-        aria-disabled={disabled || undefined}
-        tabIndex={disabled ? -1 : 0}
-        $orientation={orientation}
-        $disabled={disabled}
-        $width={boxWidth}
-        $height={boxHeight}
-        $compact={(vertical ? boxWidth : boxHeight) < COMPACT_CROSS_AXIS_PX}
-        onKeyDown={handleKeyDown}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-      >
-        <JogWheel__Tape
-          $orientation={orientation}
-          style={
-            orientation === "vertical"
-              ? { transform: `translateY(${(0.5 - fraction) * 100}%)` }
-              : { transform: `translateX(${(0.5 - fraction) * 100}%)` }
-          }
-          aria-hidden="true"
-        />
-        <JogWheel__Caret $orientation={orientation} aria-hidden="true" />
-        <JogWheel__Label aria-hidden="true">{label}</JogWheel__Label>
-      </JogWheel__Root>
+      {input ? <Tooltip text={input.tip}>{root}</Tooltip> : root}
+      {status}
     </JogWheel__Frame>
   );
 }
@@ -398,6 +518,8 @@ const JogWheel__Root = styled.div<{
   opacity: ${(p) => (p.$disabled ? 0.5 : 1)};
 
   ${focusRing}
+
+  ${commandEdge}
 `;
 
 const JogWheel__Tape = styled.div<{ $orientation: "horizontal" | "vertical" }>`

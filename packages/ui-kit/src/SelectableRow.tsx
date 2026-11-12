@@ -1,7 +1,12 @@
+import type { AnyBoundCommand } from "@ksp-gonogo/sitrep-sdk";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import styled, { css } from "styled-components";
+import { useBoundCommandInput } from "./CommandButton/commandInput";
+import { commandOutlineEdge } from "./commandEdge";
 import { focusRing } from "./focusRing";
+import { LiveRegion } from "./LiveRegion";
 import { GAP_VAR, type GapToken, RADIUS_VAR } from "./scales";
+import { Tooltip } from "./Tooltip";
 import { statusFill } from "./tone";
 
 /**
@@ -36,6 +41,15 @@ export interface SelectableRowProps
    * for a row whose text should stay readable as it is.
    */
   selectedLook?: "fill" | "outline";
+  /**
+   * The command pressing the row sends, made with `with` on a `useCommand`
+   * handle. A word at the row's end says what became of the press: "SENT"
+   * while it is unanswered, then "Refused", "No reply" or "Found". A row that
+   * closes its list on the press leaves the outcome to the delay rail.
+   */
+  command?: AnyBoundCommand;
+  /** Why a command row cannot be pressed now. It is drawn dimmed with this as its tip and a press sends nothing. */
+  unavailable?: string;
   /** What the row shows. */
   children?: ReactNode;
 }
@@ -45,6 +59,9 @@ export interface SelectableRowProps
  * option in a pick-one list. Useful for letting the operator choose one entry,
  * such as a vessel or a radio channel, from a list. Used by the communications
  * inbox.
+ *
+ * Given a `command`, pressing the row sends it and a word over the row says
+ * what became of the press.
  *
  * It stacks its children vertically (typically a name line over a muted meta
  * line) and fills in the go tone while `selected`. Text inherits the row's
@@ -85,14 +102,53 @@ export interface SelectableRowProps
  *
  * @category FilterList
  */
-export function SelectableRow({
+export function SelectableRow(props: SelectableRowProps) {
+  if (props.command) {
+    return <CommandedSelectableRow {...props} command={props.command} />;
+  }
+  const { command: _command, unavailable: _unavailable, ...rest } = props;
+  return <PlainSelectableRow {...rest} />;
+}
+
+function CommandedSelectableRow({
+  command,
+  unavailable,
+  children,
+  onClick,
+  ...rest
+}: SelectableRowProps & { command: AnyBoundCommand }) {
+  const input = useBoundCommandInput({ command, unavailable });
+  return (
+    <>
+      <Tooltip text={input.tip}>
+        <PlainSelectableRow
+          {...rest}
+          {...input.edge}
+          onClick={(e) => {
+            if (input.inert) return;
+            input.send();
+            onClick?.(e);
+          }}
+        >
+          {children}
+          <SelectableRow__Word aria-hidden="true">
+            {input.word}
+          </SelectableRow__Word>
+        </PlainSelectableRow>
+      </Tooltip>
+      <LiveRegion visuallyHidden>{input.announce}</LiveRegion>
+    </>
+  );
+}
+
+function PlainSelectableRow({
   selected,
   gap = "caption",
   layout = "stack",
   selectedLook = "fill",
   children,
   ...rest
-}: SelectableRowProps) {
+}: Omit<SelectableRowProps, "command" | "unavailable">) {
   return (
     <SelectableRow__Root
       type="button"
@@ -107,6 +163,26 @@ export function SelectableRow({
     </SelectableRow__Root>
   );
 }
+
+/*
+ * Drawn over the end of the row rather than beside its content, so the row is
+ * the same size at rest and in every phase.
+ */
+const SelectableRow__Word = styled.span`
+  position: absolute;
+  inset-inline-end: var(--gap-related);
+  top: 50%;
+  transform: translateY(-50%);
+  padding-inline: var(--gap-related-dense);
+  background: var(--color-surface-sunken);
+  color: var(--color-text-muted);
+  pointer-events: none;
+  &:empty {
+    display: none;
+  }
+  font-size: var(--font-size-caption);
+  letter-spacing: 0.08em;
+`;
 
 const SelectableRow__Root = styled.button<{
   $selected: boolean;
@@ -167,4 +243,10 @@ const SelectableRow__Root = styled.button<{
   }
 
   ${focusRing}
+
+  &[data-command-phase] {
+    position: relative;
+  }
+
+  ${commandOutlineEdge}
 `;
