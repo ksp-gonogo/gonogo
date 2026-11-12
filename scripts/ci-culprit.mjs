@@ -105,7 +105,10 @@ function report(answer, argv) {
           "-f",
           `context=${STATUS_CONTEXT}`,
           "-f",
-          `description=${answer}`.slice(0, 140),
+          `description=${answer.replace(/[\u{10000}-\u{10FFFF}]/gu, "")}`.slice(
+            0,
+            140,
+          ),
         ],
         { stdio: "inherit" },
       );

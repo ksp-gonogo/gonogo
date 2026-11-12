@@ -8,6 +8,9 @@ export interface Grade {
   grade: "green" | "amber" | "red";
   amber: string[];
   red: string[];
+  /** The status text, plain ASCII. */
+  text: string;
+  /** The log line: the text with a coloured mark. */
   label: string;
 }
 

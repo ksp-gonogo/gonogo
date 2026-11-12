@@ -60,6 +60,8 @@ describe("the grade of a run", () => {
     expect(got.grade).toBe("amber");
     expect(got.amber).toEqual(["face-gate (2/2)"]);
     expect(got.label).toBe("\u{1F7E0} amber: face-gate (2/2)");
+    expect(got.text).toBe("amber: face-gate (2/2)");
+    expect(got.text).toMatch(/^[\x20-\x7e]*$/);
   });
 
   it("is red when a job that gates the tree failed, whatever else is amber", () => {

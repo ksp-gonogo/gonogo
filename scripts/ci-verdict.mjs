@@ -67,13 +67,16 @@ export function classify(jobs) {
     (isAmberJob(job.name) ? amber : red).push(job.name);
   }
   const grade = red.length ? "red" : amber.length ? "amber" : "green";
-  const label =
+  const text =
     grade === "red"
-      ? `\u{1F534} red: ${red.join(", ")}`
+      ? `red: ${red.join(", ")}`
       : grade === "amber"
-        ? `\u{1F7E0} amber: ${amber.join(", ")}`
-        : "\u{1F7E2} green";
-  return { grade, amber, red, label };
+        ? `amber: ${amber.join(", ")}`
+        : "green";
+  const mark = { red: "\u{1F534}", amber: "\u{1F7E0}", green: "\u{1F7E2}" }[
+    grade
+  ];
+  return { grade, amber, red, text, label: `${mark} ${text}` };
 }
 
 /** Whether the run must fail on this grade. */
@@ -115,7 +118,7 @@ function main(argv) {
     process.exit(2);
   }
   const tolerateAmber = argv.includes("--tolerate-amber");
-  const { grade, label, amber, red } = classify(readJobs(repo, run));
+  const { grade, label, text, amber, red } = classify(readJobs(repo, run));
   console.log(label);
   if (process.env.GITHUB_STEP_SUMMARY) {
     appendFileSync(
@@ -138,7 +141,8 @@ function main(argv) {
       "-f",
       `context=${STATUS_CONTEXT}`,
       "-f",
-      `description=${label}`.slice(0, 140),
+      // a status description refuses a 4-byte character, so the posted text is the plain one
+      `description=${text}`.slice(0, 140),
     ]);
   }
   process.exit(failsRun(grade, tolerateAmber) ? 1 : 0);
