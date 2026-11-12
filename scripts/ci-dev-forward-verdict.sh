@@ -14,6 +14,11 @@
 # after it, so a flaky test cannot land by being run again until it passes. A
 # re-run ATTEMPT replaces its run's conclusion, which is a person's decision and
 # not something this can tell apart.
+#
+# A green run is not enough either: a ratchet-style gate (face, render, minsize)
+# may fail on ci-dev without failing the run, and the commit then carries a
+# `ci/verdict` status that says amber. An amber commit is refused here, so it
+# stays on ci-dev until a later commit is green.
 set -euo pipefail
 
 repo="${1:?usage: ci-dev-forward-verdict.sh <owner/repo> <sha>}"
@@ -49,4 +54,14 @@ if [ "$green" -eq 0 ]; then
   echo "refusing: no CI run of $sha passed"
   exit 1
 fi
+grade="$(gh api "repos/$repo/commits/$sha/statuses?per_page=100" --jq '[.[] | select(.context == "ci/verdict")][0].description // ""')" || {
+  echo "refusing: could not read the statuses of $sha"
+  exit 2
+}
+case "$grade" in
+  *amber:*)
+    echo "refusing: $sha is amber ($grade), so it is not forwarded until a later commit is green"
+    exit 1
+    ;;
+esac
 echo "every CI run of $sha that reached a verdict passed ($green green)"

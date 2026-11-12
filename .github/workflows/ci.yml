@@ -400,6 +400,12 @@ jobs:
   render-gate:
     name: render-gate (${{ matrix.shard }}/2)
     runs-on: ubuntu-24.04
+    # Amber: a failure here keeps the commit on ci-dev. scripts/ci-verdict.mjs grades the run and
+    # the forwarder refuses an amber commit. Anywhere else this job gates like any other.
+    continue-on-error: ${{ github.event_name == 'push' && github.ref == 'refs/heads/ci-dev' }}
+    permissions:
+      contents: read
+      statuses: write
     strategy:
       fail-fast: false
       matrix:
@@ -504,7 +510,25 @@ jobs:
       # the fixture's real figures, which the minsize gate's empty renders cannot
       # see overflow. A planted tiny widget must fit empty and fail fed at 2x3,
       # or the run fails as blind.
-      - run: pnpm --filter @ksp-gonogo/components render-gate --shard ${{ matrix.shard }}/2
+      - name: Render gate
+        run: |
+          set -o pipefail
+          pnpm --filter @ksp-gonogo/components render-gate --shard ${{ matrix.shard }}/2 2>&1 | tee "$RUNNER_TEMP/gate.log"
+
+      - name: Find the commit that broke it
+        if: failure() && github.event_name == 'push' && github.ref == 'refs/heads/ci-dev'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/ci-culprit.mjs
+          --log "$RUNNER_TEMP/gate.log"
+          --repo "$GITHUB_REPOSITORY"
+          --before "${{ github.event.before }}"
+          --head "${{ github.sha }}"
+          --prepare 'pnpm --filter "@ksp-gonogo/components..." build'
+          --command 'pnpm --filter @ksp-gonogo/components render-gate --widget {widgets}'
+          --post
 
       # Checkered-flag aspect gate: a checkerboard of square cells painted into
       # a FramedDisplay with object-fit cover, at landscape, portrait and square
@@ -552,6 +576,12 @@ jobs:
   face-gate:
     name: face-gate (${{ matrix.shard }}/2)
     runs-on: ubuntu-24.04
+    # Amber: a failure here keeps the commit on ci-dev. scripts/ci-verdict.mjs grades the run and
+    # the forwarder refuses an amber commit. Anywhere else this job gates like any other.
+    continue-on-error: ${{ github.event_name == 'push' && github.ref == 'refs/heads/ci-dev' }}
+    permissions:
+      contents: read
+      statuses: write
     strategy:
       fail-fast: false
       matrix:
@@ -597,7 +627,25 @@ jobs:
         with:
           browsers: chromium
 
-      - run: pnpm --filter @ksp-gonogo/components face-gate --shard ${{ matrix.shard }}/2
+      - name: Face gate
+        run: |
+          set -o pipefail
+          pnpm --filter @ksp-gonogo/components face-gate --shard ${{ matrix.shard }}/2 2>&1 | tee "$RUNNER_TEMP/gate.log"
+
+      - name: Find the commit that broke it
+        if: failure() && github.event_name == 'push' && github.ref == 'refs/heads/ci-dev'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/ci-culprit.mjs
+          --log "$RUNNER_TEMP/gate.log"
+          --repo "$GITHUB_REPOSITORY"
+          --before "${{ github.event.before }}"
+          --head "${{ github.sha }}"
+          --prepare 'pnpm --filter "@ksp-gonogo/components..." build'
+          --command 'pnpm --filter @ksp-gonogo/components face-gate --widget {widgets}'
+          --post
 
   # Min-size gate: mounts EVERY registered widget at the `minSize` it itself
   # declares and fails when its title ellipsises, its content is clipped with
@@ -625,6 +673,12 @@ jobs:
   # and enforced from both sides.
   minsize-gate:
     runs-on: ubuntu-24.04
+    # Amber: a failure here keeps the commit on ci-dev. scripts/ci-verdict.mjs grades the run and
+    # the forwarder refuses an amber commit. Anywhere else this job gates like any other.
+    continue-on-error: ${{ github.event_name == 'push' && github.ref == 'refs/heads/ci-dev' }}
+    permissions:
+      contents: read
+      statuses: write
     steps:
       - uses: actions/checkout@v5
         with:
@@ -665,8 +719,24 @@ jobs:
 
       - name: Widgets fit the minSize they declare
         run: |
+          set -o pipefail
           pnpm --filter "@ksp-gonogo/app^..." build
-          pnpm --filter @ksp-gonogo/app minsize-gate
+          pnpm --filter @ksp-gonogo/app minsize-gate 2>&1 | tee "$RUNNER_TEMP/gate.log"
+
+      - name: Find the commit that broke it
+        if: failure() && github.event_name == 'push' && github.ref == 'refs/heads/ci-dev'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/ci-culprit.mjs
+          --log "$RUNNER_TEMP/gate.log"
+          --repo "$GITHUB_REPOSITORY"
+          --before "${{ github.event.before }}"
+          --head "${{ github.sha }}"
+          --prepare 'pnpm --filter "@ksp-gonogo/app^..." build'
+          --command 'pnpm --filter @ksp-gonogo/app minsize-gate'
+          --post
 
       # Un-fed snapshot gate: re-runs the DOM snapshot specs with every stream
       # emit suppressed and fails on any that still pass, because such a test is
@@ -1362,3 +1432,47 @@ jobs:
 
       - name: Every Uplink builds against this commit
         run: node scripts/uplinks-gate.mjs gonogo-uplinks
+
+  # Grades the run green, amber or red and posts the grade as the `ci/verdict`
+  # commit status. The amber jobs above conclude success on a push to ci-dev even
+  # when they fail, so this job reads the real outcome back from the API; it fails
+  # the run on red, and on amber anywhere but ci-dev. The forwarder refuses to move
+  # `staging` onto a commit whose status says amber.
+  verdict:
+    needs:
+      - e2e
+      - lint-typecheck
+      - endpoint
+      - unit-test
+      - render-gate
+      - face-gate
+      - minsize-gate
+      - act-warnings
+      - mod
+      - mod-integration
+      - scaffold
+      - uplinks
+    if: always()
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      contents: read
+      statuses: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          sparse-checkout: scripts/ci-verdict.mjs
+          sparse-checkout-cone-mode: false
+
+      - name: Grade the run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tolerate=""
+          post=""
+          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/ci-dev" ]; then
+            tolerate="--tolerate-amber"
+            post="--post"
+          fi
+          node scripts/ci-verdict.mjs --repo "$GITHUB_REPOSITORY" --run "$GITHUB_RUN_ID" --sha "${{ inputs.ref || github.sha }}" $tolerate $post
