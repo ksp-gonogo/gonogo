@@ -363,6 +363,7 @@ public static class RtConfig
                 typeof(CareerMode),
                 typeof(GameDlc),
                 typeof(RevertAvailability),
+                typeof(ActiveVessel),
                 typeof(SwitchableVessels),
                 typeof(SwitchableVessel),
                 // ksp.saves / ksp.gameLoaded, and the two commands' replies

@@ -11,11 +11,12 @@ import {
   solveOrbit,
   useProcessor,
   useStream,
+  useTelemetryStoreOptional,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import { stillTrue, type Value } from "@ksp-gonogo/sitrep-sdk";
 import { derivedMarking } from "@ksp-gonogo/ui-kit";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useSyncExternalStore } from "react";
 import { currencyOf } from "../shared/currencyOf";
 import { magnitudeOf } from "../shared/magnitude";
 import { bodyFromStream } from "../shared/streamBody";
@@ -124,6 +125,12 @@ export function usePlannerTelemetry() {
     ecc,
   );
   const orbitalSpeedReading = useTelemetry("vessel.flight").orbitalSpeed;
+  // An orbit the craft has not sent is the catalog's, carried forward: it can be shown and is not planned on.
+  const store = useTelemetryStoreOptional();
+  const orbitIsCatalogs = useSyncExternalStore(
+    (onChange) => store?.subscribeFrame(onChange) ?? (() => {}),
+    () => store?.isCatalogFallback("vessel.orbit") ?? false,
+  );
   // computeMu wants a number true of the craft now: modelled where on offer, else observed.
   const speedNow = () => {
     if (orbitalSpeedReading.reckoning.status === "available") {
@@ -231,7 +238,8 @@ export function usePlannerTelemetry() {
     celestialBodies,
     craftBody,
     orbitPresent:
-      orbitReading.state === "observed" || orbitReading.state === "held",
+      !orbitIsCatalogs &&
+      (orbitReading.state === "observed" || orbitReading.state === "held"),
     elementsNeedDating,
     orbitMarking,
     targetMarking,

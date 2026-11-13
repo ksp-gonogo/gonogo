@@ -3,7 +3,7 @@ info:
   title: Gonogo WebSocket API
   version: 52.1.0
   description: |-
-    The WebSocket API of the Gonogo mod: 98 telemetry channels a client
+    The WebSocket API of the Gonogo mod: 99 telemetry channels a client
     subscribes to and 89 commands it sends, each with its payload and what it
     means, all over one socket.
 
@@ -1774,6 +1774,33 @@ channels:
     messages:
       streamData:
         $ref: "#/components/messages/streamData.isru.drills"
+      event:
+        $ref: "#/components/messages/event"
+  ksp.activeVessel:
+    address: ksp.activeVessel
+    title: Active vessel
+    description: |-
+      Which vessel the game is flying right now: its id and name, and nothing of
+      where it is or how it is doing. Changing the active vessel is a change of
+      scene that every command centre can see whatever the radio link to the new
+      vessel, so this is read with no signal delay and does not depend on a link.
+      Useful for naming the craft the operator is flying while its telemetry has
+      not arrived. Used by the dashboard header.
+
+      The payload is `null` (no key emitted) outside the flight scene. It carries
+      no per-payload `Meta` of its own (the envelope's applies). Position,
+      situation, distance and link state of the vessel are not here and reach a
+      centre only through `vessel.identity` and the other `vessel.*` Topics,
+      delayed.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: lossy-latest
+    x-sitrep-delay-role: true-now
+    x-sitrep-sample-kind: discrete
+    x-sitrep-keyframe-interval-ut: 30
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.ksp.activeVessel"
       event:
         $ref: "#/components/messages/event"
   ksp.gameLoaded:
@@ -6105,6 +6132,17 @@ operations:
     messages:
       - $ref: "#/channels/isru.drills/messages/streamData"
       - $ref: "#/channels/isru.drills/messages/event"
+  read:ksp.activeVessel:
+    action: receive
+    channel:
+      $ref: "#/channels/ksp.activeVessel"
+    title: Read ksp.activeVessel
+    description: Delivered only after `subscribe` names `ksp.activeVessel` on the session channel, which the mod answers here with an `event` named `subscribed`.
+    tags:
+      - name: ksp
+    messages:
+      - $ref: "#/channels/ksp.activeVessel/messages/streamData"
+      - $ref: "#/channels/ksp.activeVessel/messages/event"
   read:ksp.gameLoaded:
     action: receive
     channel:
@@ -10048,6 +10086,19 @@ components:
                 type: array
                 items:
                   $ref: "#/components/schemas/IsruDrillEntry"
+    streamData.ksp.activeVessel:
+      name: stream-data
+      title: A frame on ksp.activeVessel
+      contentType: application/json
+      payload:
+        description: The `stream-data` envelope carrying `ksp.activeVessel`.
+        allOf:
+          - $ref: "#/components/schemas/StreamData"
+          - properties:
+              topic:
+                const: ksp.activeVessel
+              payload:
+                $ref: "#/components/schemas/ActiveVessel"
     streamData.ksp.gameLoaded:
       name: stream-data
       title: A frame on ksp.gameLoaded
@@ -10926,6 +10977,35 @@ components:
           type: number
           x-sitrep-unit: ratio
           description: 0 to 1 slider fraction; ignored by strategies without a factor slider.
+    ActiveVessel:
+      type: object
+      description: |-
+        Which vessel the game is flying right now: its id and name, and nothing of
+        where it is or how it is doing. Changing the active vessel is a change of
+        scene that every command centre can see whatever the radio link to the new
+        vessel, so this is read with no signal delay and does not depend on a link.
+        Useful for naming the craft the operator is flying while its telemetry has
+        not arrived. Used by the dashboard header.
+
+        The payload is `null` (no key emitted) outside the flight scene. It carries
+        no per-payload `Meta` of its own (the envelope's applies). Position,
+        situation, distance and link state of the vessel are not here and reach a
+        centre only through `vessel.identity` and the other `vessel.*` Topics,
+        delayed.
+      required:
+        - vesselId
+        - name
+      properties:
+        vesselId:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            The vessel's stable guid, the same id `vessel.identity` carries once its
+            telemetry arrives.
+        name:
+          type: string
+          x-sitrep-unit: text
+          description: The vessel's display name.
     AddManeuverNodeArgs:
       type: object
       description: |-

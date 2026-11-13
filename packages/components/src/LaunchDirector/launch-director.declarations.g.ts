@@ -6,6 +6,7 @@ export default {
     "crash.hasRecent",
     "crash.lastCrash",
     "eva.crew",
+    "ksp.activeVessel",
     "ksp.saves",
     "ksp.switchableVessels",
     "recovery.lastSummary",

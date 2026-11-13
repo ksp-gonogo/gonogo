@@ -20,6 +20,7 @@
 // the mod for `RegisterDynamicNamespace` instead.
 
 import type {
+  ActiveVessel,
   ArchiveEntry,
   AstronautComplexInfo,
   CareerContractEvent,
@@ -205,6 +206,8 @@ export interface GeneratedTopicPayloadMap {
   "isru.converters": IsruConverterEntry[];
   /** One drill (resource harvester) on the active vessel. */
   "isru.drills": IsruDrillEntry[];
+  /** Which vessel the game is flying right now: its id and name, and nothing of where it is or how it is doing. */
+  "ksp.activeVessel": ActiveVessel;
   /** A quickload ending, one way or the other. */
   "ksp.gameLoaded": GameLoaded;
   /** Whether the two stock in-flight revert actions are available right now, so a widget can enable its Revert to Launch and Revert to Editor controls exactly when KSP's own pause menu shows them. */
@@ -362,6 +365,7 @@ export const GENERATED_TOPIC_IDS = [
   "host.record",
   "isru.converters",
   "isru.drills",
+  "ksp.activeVessel",
   "ksp.gameLoaded",
   "ksp.revertAvailability",
   "ksp.saves",

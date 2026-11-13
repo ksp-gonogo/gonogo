@@ -117,6 +117,19 @@ namespace Gonogo.KSP
                     Delay = DelayRole.TrueNow,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 },
+                // ksp.activeVessel -- which vessel the game is flying, identity
+                // only. A change of active vessel is a scene change every centre
+                // can see whatever the link to the new craft, so it is TrueNow
+                // and needs no link. Carries no position, situation or distance.
+                new ChannelDeclaration
+                {
+                    Kind = SampleKind.Discrete,
+                    Requires = Requirement.None,
+                    Topic = SystemViewProvider.ActiveVesselTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    Delay = DelayRole.TrueNow,
+                },
                 // ksp.switchableVessels -- the other vessels of the save the game
                 // offers to switch to, identity only. Switching is a scene change
                 // any centre can make, so the list is a fact about the save and
@@ -205,6 +218,7 @@ namespace Gonogo.KSP
             host.AddChannelSource(SystemViewProvider.Topic, SystemViewProvider.BuildSystemBodies);
 
             host.AddChannelSource(SystemViewProvider.RevertTopic, SystemViewProvider.BuildRevertAvailability);
+            host.AddChannelSource(SystemViewProvider.ActiveVesselTopic, SystemViewProvider.BuildActiveVessel);
             host.AddChannelSource(SystemViewProvider.SwitchableVesselsTopic, SystemViewProvider.BuildSwitchableVessels);
             host.AddChannelSource(SystemViewProvider.DlcTopic, SystemViewProvider.BuildGameDlc);
             // Read through the election rather than off stock directly, which is

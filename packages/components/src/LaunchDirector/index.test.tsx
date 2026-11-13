@@ -677,6 +677,33 @@ describe("LaunchDirectorComponent", () => {
     });
   });
 
+  it("names the craft the game says is active when its own identity has not arrived", async () => {
+    renderWidget();
+    act(() => {
+      stream.emit("spaceCenter.savedShips", []);
+      emitScene(stream, "Flight");
+      emitInFlightVessel(stream, { name: "MkI", altitudeAsl: 70 });
+      stream.emit("vessel.identity", {
+        name: "MkI",
+        vesselId: "mk1",
+        launchUt: null,
+        meta: { source: "vessel:mk1" },
+      });
+      stream.emit("ksp.activeVessel", { vesselId: "mk1", name: "MkI" });
+    });
+    await screen.findByText(/In flight: MkI/i);
+
+    // The probe has no link, so no identity of its own arrives: the newest one is still MkI's.
+    act(() => {
+      stream.emit("ksp.activeVessel", {
+        vesselId: "probe",
+        name: "Mun Probe",
+      });
+    });
+    await screen.findByText(/In flight: Mun Probe/i);
+    expect(screen.queryByText(/In flight: MkI/i)).toBeNull();
+  });
+
   it("badges above Recover how many of this vessel's crew are outside, nothing for another vessel's, and nothing with no data", async () => {
     renderWidget();
     act(() => {

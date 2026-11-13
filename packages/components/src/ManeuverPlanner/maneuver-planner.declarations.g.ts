@@ -3,6 +3,7 @@ export default {
   optionalChannels: [
     "dv.stages",
     "dv.summary",
+    "ksp.activeVessel",
     "system.frame",
     "trackingStation.bodies",
     "vessel.flight",

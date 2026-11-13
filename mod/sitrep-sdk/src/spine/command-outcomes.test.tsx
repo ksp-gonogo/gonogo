@@ -142,18 +142,18 @@ const refusalOf = (id: string, errorCode: string) => ({
   errorCode: errorCode as CommandErrorCode,
 });
 
-const identityOf = (transport: ModTransport, vesselId: string) =>
+const activeVesselOf = (transport: ModTransport, vesselId: string) =>
   transport.deliver({
     type: "stream-data",
-    topic: "vessel.identity",
-    payload: { vesselId },
+    topic: "ksp.activeVessel",
+    payload: { vesselId, name: vesselId },
     meta: makeMeta({ deliveredAt: GAME_UT }),
   });
 
 describe("command outcomes held on the client", () => {
-  it("drops a refusal once another vessel is active, and keeps it through a withdrawn reading", async () => {
+  it("drops a refusal once another vessel is active, and keeps it while the same vessel is named again", async () => {
     const { transport, client } = setup();
-    identityOf(transport, "mk1");
+    activeVesselOf(transport, "mk1");
     render(
       <TelemetryProvider client={client}>
         <Outcomes command="x.y" name="a" />
@@ -165,10 +165,10 @@ describe("command outcomes held on the client", () => {
     await act(async () => refuse(transport, lastRequestId(transport)));
     expect(screen.getByLabelText("refusals a").textContent).toBe("a");
 
-    await act(async () => identityOf(transport, "mk1"));
+    await act(async () => activeVesselOf(transport, "mk1"));
     expect(screen.getByLabelText("refusals a").textContent).toBe("a");
 
-    await act(async () => identityOf(transport, "mun-probe"));
+    await act(async () => activeVesselOf(transport, "mun-probe"));
     expect(screen.getByLabelText("refusals a").textContent).toBe("");
   });
 

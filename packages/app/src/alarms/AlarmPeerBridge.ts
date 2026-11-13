@@ -63,6 +63,7 @@ export interface AlarmPeerBridgeHandlers {
   registerStationWarpIntent(): void;
   acknowledgeAlarmsCancelled(): void;
   beginWarpTo(): void;
+  beginWarpToFirstSignal(): void;
   cancelWarpTo(): void;
   setWarpSafetyMargin(seconds: number): void;
   /**
@@ -169,6 +170,9 @@ export class AlarmPeerBridge {
             break;
           case "warp-to-begin":
             handlers.beginWarpTo();
+            break;
+          case "warp-to-first-signal":
+            handlers.beginWarpToFirstSignal();
             break;
           case "warp-to-cancel":
             handlers.cancelWarpTo();

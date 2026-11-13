@@ -3,13 +3,15 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import { ArrowRightIcon, BannerRow, PlayIcon, StopIcon } from "@ksp-gonogo/ui";
 import {
   Cluster,
+  InfoIcon,
   NULL_DISPLAY,
   Tooltip,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import styled from "styled-components";
 import { useAlarmHost, useAlarmSnapshot } from "./AlarmHostContext";
+import { FIRST_SIGNAL_TARGET_ID } from "./AlarmWarpPlanner";
 import { orderAlarms } from "./alarmOrder";
 import { useFireBeep } from "./alarmTone";
 import { FiredFacts } from "./FiredFacts";
@@ -38,10 +40,86 @@ export function AlarmBanner() {
         snap={snap}
         onAcknowledge={(id) => host.acknowledgeAlarm(id)}
       />
+      <FirstSignalStrip />
       <LocalAlarmStrip />
     </>
   );
 }
+
+/**
+ * Offered after the game switches to another craft: that craft's telemetry only
+ * started streaming at the switch, so nothing from it can reach the command
+ * centre until one signal delay later. The button warps to that moment under
+ * the warp-to ladder's own rate cap, and the strip goes when the craft's first
+ * signal arrives.
+ */
+function FirstSignalStrip() {
+  const snap = useAlarmSnapshot();
+  const host = useAlarmHost();
+  const waiting = snap.firstSignal;
+  if (!waiting) return null;
+  const warping = snap.warpTo?.alarmId === FIRST_SIGNAL_TARGET_ID;
+  return (
+    <FirstSignalNotice
+      waiting={waiting}
+      actions={
+        warping ? (
+          <Tooltip text="Stop the managed warp and drop to 1×">
+            <StopWarpButton type="button" onClick={() => host.cancelWarpTo()}>
+              <StopIcon size={12} /> Stop warp
+            </StopWarpButton>
+          </Tooltip>
+        ) : (
+          <WarpToButton
+            type="button"
+            onClick={() => host.beginWarpToFirstSignal()}
+          >
+            <PlayIcon size={12} /> Warp to first signal
+          </WarpToButton>
+        )
+      }
+    />
+  );
+}
+
+/**
+ * The craft the game switched to and why nothing of it can be shown yet, as a
+ * strip with its own controls on the right. Used by the main screen's banner
+ * with the warp button, and by the station screen's banner with none.
+ */
+export function FirstSignalNotice({
+  waiting,
+  actions,
+}: {
+  waiting: NonNullable<AlarmSnapshot["firstSignal"]>;
+  actions?: ReactNode;
+}) {
+  const delay =
+    waiting.owltSeconds === null
+      ? NULL_DISPLAY
+      : `${waiting.estimated ? "~" : ""}${writeQuantity(value("s", waiting.owltSeconds))}`;
+  return (
+    <Wrap $tone="idle" role="status">
+      <BannerRow actions={actions}>
+        <Label>Switched to</Label>
+        <AlarmName>{waiting.vesselName}</AlarmName>
+        <Tooltip
+          focusable
+          text={`Right now Gonogo can't stream from other vessels in the background, so vessel data only started streaming at the moment of the switch, which will take ${delay} to arrive here.`}
+        >
+          <InfoMark role="img" aria-label="Why there is no data yet">
+            <InfoIcon size={14} />
+          </InfoMark>
+        </Tooltip>
+      </BannerRow>
+    </Wrap>
+  );
+}
+
+const InfoMark = styled.span`
+  display: inline-flex;
+  color: var(--color-text-dim);
+`;
 
 function LocalAlarmStrip() {
   const snap = useAlarmSnapshot();
@@ -687,6 +765,11 @@ const WarpToButton = styled.button`
   &:focus-visible {
     outline: 2px solid var(--color-accent-fg);
     outline-offset: 2px;
+  }
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    filter: none;
   }
 `;
 

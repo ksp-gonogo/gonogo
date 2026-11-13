@@ -41,9 +41,8 @@ import { VantageControl } from "./VantageControl";
  * matters when it does can still declare its own live region, and the station's
  * vantage readout is one.
  *
- * The vessel name sits after the command centre, from the same
- * `vessel.identity` the rest of the screen reads, so a player who has added no
- * widget still sees which craft the numbers belong to.
+ * The vessel name sits after the command centre, from `ksp.activeVessel`, so a
+ * player who has added no widget still sees which craft the numbers belong to.
  *
  * The signal delay sits beside the command centre because on a command-centre
  * screen it is that centre's distance from the craft. A pilot's is the distance
@@ -173,16 +172,17 @@ function BannerField({
 }
 
 /**
- * The active craft's name. While a craft is flying and its identity has not
- * arrived (no contact), the field says the name is not known rather than
- * leaving a gap or naming another craft. Nothing at all outside a flight.
+ * The active craft's name, from the game's own statement of which craft is
+ * flying, so a switch to a craft with no link renames it at once. Before that
+ * arrives, the field says the name is not known rather than leaving a gap or
+ * naming another craft. Nothing at all outside a flight.
  */
 function VesselField() {
-  const identity = useTelemetry("vessel.identity");
+  const active = useTelemetry("ksp.activeVessel");
   const { inFlight } = useGameContext();
   const known =
-    identity.state === "observed" || identity.state === "held"
-      ? identity.value.name.trim()
+    active.state === "observed" || active.state === "held"
+      ? active.value.name.trim()
       : "";
   if (known === "" && !inFlight) return null;
   return (

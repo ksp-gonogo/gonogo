@@ -64,6 +64,9 @@ const GAME_UT_RECHECK_SECONDS = 5;
 /** How close to a deadline in game UT counts as reached, in seconds, so that rounding in the clock arithmetic cannot leave a timer one tick short. */
 const GAME_UT_TOLERANCE = 1e-6;
 
+/** How far behind the game's UT a frame after a load may be stamped and still belong to the same timeline, in seconds: the mod stamps a withdrawal one float step below the instant it happens at. */
+const REWIND_TOLERANCE_SECONDS = 1e-3;
+
 /**
  * Dispatch-rate budget for every command this client sends.
  *
@@ -2062,7 +2065,7 @@ export class TelemetryClient {
       prior !== undefined &&
       epoch === prior.epoch &&
       Number.isFinite(meta.deliveredAt) &&
-      meta.deliveredAt < prior.ut;
+      meta.deliveredAt < prior.ut - REWIND_TOLERANCE_SECONDS;
     const rewound = this.loadSinceLastSample && behind;
     if (rewound) {
       this.epochShift += 1;

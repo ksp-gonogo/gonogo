@@ -61,6 +61,10 @@
       "factor": "ratio",
       "strategyId": "id"
     },
+    "ActiveVessel": {
+      "name": "text",
+      "vesselId": "id"
+    },
     "AddManeuverNodeArgs": {
       "normal": "m/s",
       "prograde": "m/s",
@@ -2342,6 +2346,10 @@
       "shortfall": "text",
       "throughput": "ratio"
     },
+    "ksp.activeVessel": {
+      "name": "text",
+      "vesselId": "id"
+    },
     "ksp.gameLoaded": {
       "failReason": "text",
       "fromUt": "ut",
@@ -4243,6 +4251,7 @@
     "game.dlc": "Game DLC",
     "isru.converters": "Converters",
     "isru.drills": "Drills",
+    "ksp.activeVessel": "Active vessel",
     "ksp.gameLoaded": "Game loaded",
     "ksp.revertAvailability": "Revert",
     "ksp.saves": "Saves",

@@ -64,6 +64,7 @@ function setupTelemetryStream() {
     advanceTo: (ut: number) => clock.observeSample(ut, ut),
     emitIdentity: (identity: unknown) =>
       transport.emit("vessel.identity", identity),
+    emitActive: (active: unknown) => transport.emit("ksp.activeVessel", active),
     emitDelay: (delay: unknown) => transport.emit("comms.delay", delay),
     emitEvaCrew: (crew: unknown) => transport.emit("eva.crew", crew),
     emitRoster: (roster: unknown) =>
@@ -176,7 +177,7 @@ describe("MissionBanner", () => {
     expect(screen.queryByText("Vessel")).toBeNull();
 
     act(() => {
-      fixture.emitIdentity({ vesselId: "v1", name: "Kerbal X" });
+      fixture.emitActive({ vesselId: "v1", name: "Kerbal X" });
     });
 
     expect(await screen.findByText("Kerbal X")).toBeInTheDocument();
@@ -184,7 +185,7 @@ describe("MissionBanner", () => {
     await expectNoA11yViolations(container);
   });
 
-  it("does not name the previous craft once a different craft is the active one", async () => {
+  it("names a craft with no link as soon as it is the active one, and not the previous craft", async () => {
     const fixture = setupTelemetryStream();
     render(
       <fixture.Provider>
@@ -192,27 +193,21 @@ describe("MissionBanner", () => {
       </fixture.Provider>,
     );
     act(() => {
-      fixture.emitDelay({
-        oneWaySeconds: 284,
-        meta: { source: "vessel:probe" },
-      });
+      fixture.emitActive({ vesselId: "mk1", name: "MkI" });
       fixture.emitIdentity({
-        vesselId: "probe",
-        name: "Eeloo Probe",
-        meta: { source: "vessel:probe" },
+        vesselId: "mk1",
+        name: "MkI",
+        meta: { source: "vessel:mk1" },
       });
     });
-    expect(await screen.findByText("Eeloo Probe")).toBeInTheDocument();
+    expect(await screen.findByText("MkI")).toBeInTheDocument();
 
-    // The control craft has no link, so no identity of its own has arrived: the newest one is still the probe's.
+    // The probe has no link, so no identity of its own arrives: the newest one is still MkI's.
     act(() => {
-      fixture.emitDelay({
-        oneWaySeconds: null,
-        meta: { source: "vessel:control" },
-      });
+      fixture.emitActive({ vesselId: "probe", name: "Mun Probe" });
     });
-    await waitFor(() => expect(screen.queryByText("Eeloo Probe")).toBeNull());
-    expect(screen.queryByText("Vessel")).toBeNull();
+    expect(await screen.findByText("Mun Probe")).toBeInTheDocument();
+    expect(screen.queryByText("MkI")).toBeNull();
   });
 
   it("names every kerbal outside within physics range, and drops the one the vessel field already names", async () => {
@@ -310,9 +305,9 @@ describe("MissionBanner", () => {
       </fixture.Provider>,
     );
     act(() => {
-      fixture.emitIdentity({ vesselId: "v1", name: "" });
+      fixture.emitActive({ vesselId: "v1", name: "" });
     });
-    // The identity is the first sample, so the view clock starts and the date replaces the dash a frame later.
+    // The statement is the first sample, so the view clock starts and the date replaces the dash a frame later.
     await screen.findByText(/^Y\d+ D\d+ /);
     expect(screen.queryByText("Vessel")).toBeNull();
   });

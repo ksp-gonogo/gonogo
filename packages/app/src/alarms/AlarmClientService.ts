@@ -107,6 +107,10 @@ export class AlarmClientService {
     this.client.sendAlarmControl("warp-to-begin");
   }
 
+  beginWarpToFirstSignal(): void {
+    this.client.sendAlarmControl("warp-to-first-signal");
+  }
+
   cancelWarpTo(): void {
     this.client.sendAlarmControl("warp-to-cancel");
   }

@@ -4,6 +4,8 @@ import type { ServerMessage } from "../envelope";
 import { makeMeta } from "../testing/stub-transport";
 import { TelemetryClient } from "./client";
 import type { Clock } from "./clock";
+import { TimelineStore } from "./timeline-store";
+import { ViewClock } from "./view-clock";
 
 const CLOCK: Clock = { now: () => 100, schedule: () => () => {} };
 
@@ -141,5 +143,70 @@ describe("a quickload the mod announces", () => {
       meta: makeMeta({ timelineEpoch: 10, deliveredAt: 100 }),
     });
     expect(client.getValue("spaceCenter.scene")).toEqual({ scene: "Flight" });
+  });
+});
+
+describe("a load that does not rewind the game, as a switch of craft is", () => {
+  it("keeps the epoch when a frame is stamped a float step behind another of the same instant", () => {
+    const wire = new Wire();
+    const client = new TelemetryClient(wire, CLOCK, { idPrefix: "p" });
+    for (const topic of [
+      "spaceCenter.scene",
+      "comms.nextLoss",
+      "vessel.target",
+    ]) {
+      client.subscribe(topic, () => {});
+    }
+    const viewClock = new ViewClock();
+    client.attachStore(new TimelineStore(viewClock));
+    wire.deliver({
+      type: "hello",
+      bootId: "b",
+      timelineEpoch: 1,
+      contractMajor: 1,
+      contractMinor: 0,
+    });
+    wire.deliver(frame("spaceCenter.scene", 1, 7121.640000000472));
+    wire.deliver({
+      type: "game-state",
+      state: "loading",
+      scene: "FLIGHT",
+      bootId: "b",
+      timelineEpoch: 1,
+    });
+    wire.deliver(frame("comms.nextLoss", 1, 7135.100000000766));
+    wire.deliver(frame("vessel.target", 1, 7135.100000000765));
+    expect(viewClock.getEpoch()).toBe(1);
+  });
+
+  it("still reads a load that goes back by a second as a rewind", () => {
+    const wire = new Wire();
+    const client = new TelemetryClient(wire, CLOCK, { idPrefix: "p" });
+    for (const topic of [
+      "spaceCenter.scene",
+      "comms.nextLoss",
+      "vessel.target",
+    ]) {
+      client.subscribe(topic, () => {});
+    }
+    const viewClock = new ViewClock();
+    client.attachStore(new TimelineStore(viewClock));
+    wire.deliver({
+      type: "hello",
+      bootId: "b",
+      timelineEpoch: 1,
+      contractMajor: 1,
+      contractMinor: 0,
+    });
+    wire.deliver(frame("spaceCenter.scene", 1, 7135));
+    wire.deliver({
+      type: "game-state",
+      state: "loading",
+      scene: "FLIGHT",
+      bootId: "b",
+      timelineEpoch: 1,
+    });
+    wire.deliver(frame("vessel.target", 1, 7134));
+    expect(viewClock.getEpoch()).toBe(2);
   });
 });

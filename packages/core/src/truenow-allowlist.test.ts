@@ -25,7 +25,7 @@ import { describe, expect, it } from "vitest";
  * Same shape as `uplink-boundary.test.ts`'s ratchet (seeded allowlist,
  * fails on new/removed/stale entries) but per-file count rather than
  * per-file presence, because a single file can legitimately declare
- * several TrueNow channels (SystemUplink.cs has 5).
+ * several TrueNow channels (SystemUplink.cs has 6).
  *
  * Why a source scan, not runtime enumeration: every production uplink that
  * declares a TrueNow channel lives in a KSP-dependent assembly (Gonogo.KSP)
@@ -192,8 +192,12 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // that the game offers to switch to. Switching is a change of scene that any
   // command centre can make with no link to the vessel, so the list of what it
   // can switch to is a fact about the save, and carries no state of any vessel.
-  // 5 explicit declarations.
-  "mod/Gonogo.KSP/SystemUplink.cs": 5,
+  // Also ksp.activeVessel: the id, name and type of the vessel the game is
+  // flying. A change of active vessel is a scene change every command centre
+  // sees whatever the link to the new craft, and the payload carries no
+  // position, situation, distance or link state.
+  // 6 explicit declarations.
+  "mod/Gonogo.KSP/SystemUplink.cs": 6,
 
   /*
    * comms.occlusion: not an observation of the vessel at all, but the

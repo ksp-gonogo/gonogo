@@ -20,6 +20,7 @@ import {
   localGravity,
   withinAtmosphere,
 } from "./atmospheric-reckoning";
+import { catalogRelayOrbit } from "./catalog-fallback";
 import { deriveCelestialFacts } from "./celestial-facts";
 import { commsDelaySecondsAt, fitCommsDelay } from "./comms-delay-reckoning";
 import {
@@ -550,46 +551,6 @@ function registerFlightReckoner(): void {
       };
     },
   });
-}
-
-/**
- * The orbit the command centre's catalog records for the relay `vesselId`,
- * with the gravitational parameter of the body it orbits, or `undefined` when
- * the entry, any element the solve needs, or that body's parameter is unread.
- * An unread element is never filled with a zero.
- */
-function catalogRelayOrbit(
-  catalog: TopicPayload<"trackingStation.catalog"> | null | undefined,
-  bodies: TopicPayload<"trackingStation.bodies"> | null | undefined,
-  vesselId: string,
-): CommsPeerOrbit | undefined {
-  const entry = catalog?.entries?.find((e) => e.vesselId === vesselId);
-  const orbit = entry?.orbit;
-  const bodyIndex = entry?.bodyIndex;
-  if (orbit == null || bodyIndex == null) return undefined;
-  const mu = bodies?.bodies?.find((b) => b.index === bodyIndex)?.gravParameter;
-  const { sma, ecc, inc, meanAnomalyAtEpoch, epoch } = orbit;
-  if (
-    sma == null ||
-    ecc == null ||
-    inc == null ||
-    meanAnomalyAtEpoch == null ||
-    epoch == null ||
-    mu == null
-  ) {
-    return undefined;
-  }
-  return {
-    sma,
-    ecc,
-    inc,
-    lan: orbit.lan,
-    argPe: orbit.argPe,
-    meanAnomalyAtEpoch,
-    epoch,
-    mu,
-    referenceBodyIndex: bodyIndex,
-  };
 }
 
 /**

@@ -1,6 +1,7 @@
 import { BannerRow } from "@ksp-gonogo/ui";
 import { Stack } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
+import { FirstSignalNotice } from "./AlarmBanner";
 import { orderAlarms } from "./alarmOrder";
 import { ScreenFiredFacts } from "./FiredFacts";
 import { ForeignFireNotice } from "./ForeignFireNotice";
@@ -8,13 +9,14 @@ import { collapseFiredContractParam } from "./firedCollapse";
 import type { Alarm, AlarmSnapshot } from "./types";
 
 /**
- * Station-side companion to AlarmBanner. Surfaces only the fired-alarm
- * acknowledge flow: warp control stays on the main screen because the
- * station can't drive it directly.
+ * Station-side companion to AlarmBanner. Surfaces the fired-alarm
+ * acknowledge flow and the strip after a switch of craft, which says which
+ * craft was switched to and why nothing of it shows yet: warp control stays on
+ * the main screen because the station can't drive it directly.
  *
- * Renders nothing while no alarms are fired; mounts as a fixed-position
- * pill at the top of the station screen when one or more fire so the
- * operator can dismiss without opening the modal.
+ * Renders nothing while no alarms are fired and no switch awaits its first
+ * signal; mounts as a fixed-position pill at the top of the station screen when
+ * one or more fire so the operator can dismiss without opening the modal.
  *
  * No alarm tone here: only the main screen chimes (via AlarmBanner's
  * useFireBeep). With every station beeping independently the operator
@@ -37,7 +39,10 @@ export function StationAlarmBanner({
     snap.alarms.filter((a) => a.state === "fired" || a.state === "firing"),
   );
   const foreign = (
-    <ForeignFireNotice snap={snap} onAcknowledge={onAcknowledge} />
+    <>
+      {snap.firstSignal && <FirstSignalNotice waiting={snap.firstSignal} />}
+      <ForeignFireNotice snap={snap} onAcknowledge={onAcknowledge} />
+    </>
   );
   if (fired.length === 0) return foreign;
 

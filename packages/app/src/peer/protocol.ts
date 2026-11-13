@@ -311,6 +311,7 @@ export type PeerMessage =
       action:
         | "acknowledge-cancelled"
         | "warp-to-begin"
+        | "warp-to-first-signal"
         | "warp-to-cancel"
         | "warp-margin";
       seconds?: number;

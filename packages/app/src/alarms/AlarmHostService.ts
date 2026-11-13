@@ -2,13 +2,22 @@ import { safeRandomUuid } from "@ksp-gonogo/core";
 import { LocalStorageStore } from "@ksp-gonogo/data";
 import { logger } from "@ksp-gonogo/logger";
 import {
+  estimateOneWayDelaySeconds,
   getActiveTelemetryClient,
+  getGameUtNow,
   getVesselIdentity,
+  lightSecondsPerMetre,
+  sampleActiveReading,
   sampleActiveTopic,
 } from "@ksp-gonogo/sitrep-client";
 import {
+  type ActiveVessel,
+  type CommandCentreEntry,
   type CommsDelay,
+  type CommsPath,
   type ManeuverNode,
+  type SystemBodies,
+  type TrackingStationCatalog,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { dispatchActionGroup } from "../dispatchActionGroup";
@@ -17,6 +26,7 @@ import type { PeerHostService } from "../peer/PeerHostService";
 import { viewUtSeconds } from "../telemetry/viewUtSeconds";
 import { AlarmPeerBridge } from "./AlarmPeerBridge";
 import { AlarmWarpPlanner } from "./AlarmWarpPlanner";
+import { FirstSignalWatch } from "./FirstSignalWatch";
 import { type EditedInGame, ScetAlarmBridge } from "./ScetAlarmBridge";
 import {
   type Alarm,
@@ -115,6 +125,67 @@ export class AlarmHostService {
   private fireListeners = new Set<FireListener>();
   private tickHandle: ReturnType<typeof setInterval> | null = null;
   private observedUT: number | null = null;
+  private readonly firstSignal = new FirstSignalWatch({
+    readActive: () => {
+      const reading = sampleActiveReading<ActiveVessel>("ksp.activeVessel");
+      return reading.state === "observed" || reading.state === "held"
+        ? { vesselId: reading.value.vesselId, name: reading.value.name }
+        : null;
+    },
+    gameUtNow: () => getGameUtNow()?.valueOf() ?? null,
+    ownDataObserved: () => {
+      const flight = sampleActiveReading<unknown>("vessel.flight");
+      return flight.state === "observed";
+    },
+    readEstimate: () => {
+      const scale = this.lastSecondsPerMetre;
+      const now = getGameUtNow()?.valueOf();
+      const active = sampleActiveReading<ActiveVessel>("ksp.activeVessel");
+      if (scale === null || now === undefined) return null;
+      if (active.state !== "observed" && active.state !== "held") return null;
+      const heldValue = <T>(topic: string): T | undefined => {
+        const reading = sampleActiveReading<T>(topic);
+        return reading.state === "observed" || reading.state === "held"
+          ? reading.value
+          : undefined;
+      };
+      return estimateOneWayDelaySeconds({
+        secondsPerMetre: scale,
+        roster: heldValue<CommandCentreEntry[]>("commandCentre.roster"),
+        bodies: heldValue<SystemBodies>("trackingStation.bodies"),
+        catalog: heldValue<TrackingStationCatalog>("trackingStation.catalog"),
+        vesselId: active.value.vesselId,
+        atUt: now,
+      });
+    },
+    readDelay: () => {
+      const delay = sampleActiveReading<CommsDelay>("comms.delay");
+      if (delay.state !== "observed" && delay.state !== "held") {
+        return { kind: "unknown" };
+      }
+      /*
+       * Every delay frame names what it describes: a craft, or the game while
+       * none is loaded (a scene load between two craft carries a null here).
+       * Only a frame naming the active craft says anything of it, and only a
+       * null naming it says there is no route.
+       */
+      const active = sampleActiveReading<ActiveVessel>("ksp.activeVessel");
+      const named = delay.value.meta?.source;
+      if (
+        (active.state !== "observed" && active.state !== "held") ||
+        named !== `vessel:${active.value.vesselId}`
+      ) {
+        return { kind: "unknown" };
+      }
+      const seconds = delay.value.oneWaySeconds?.valueOf();
+      if (seconds === undefined) return { kind: "none" };
+      return Number.isFinite(seconds) && seconds > 0
+        ? { kind: "known", seconds }
+        : { kind: "none" };
+    },
+  });
+  /** The signal delay per metre of route last measured for a craft, kept across a switch to estimate the delay to the next one. */
+  private lastSecondsPerMetre: number | null = null;
   private opts: Required<
     Pick<AlarmHostOptions, "nowMs" | "tickIntervalMs" | "getOwltSeconds">
   >;
@@ -218,6 +289,8 @@ export class AlarmHostService {
         ),
       () => this.observedUT,
       () => this.opts.getOwltSeconds(),
+      () => this.firstSignal.awaited(),
+      () => getGameUtNow()?.valueOf() ?? null,
     );
 
     const initialMargin = this.loadMargin();
@@ -253,6 +326,7 @@ export class AlarmHostService {
       registerStationWarpIntent: () => this.registerStationWarpIntent(),
       acknowledgeAlarmsCancelled: () => this.acknowledgeAlarmsCancelled(),
       beginWarpTo: () => this.beginWarpTo(),
+      beginWarpToFirstSignal: () => this.beginWarpToFirstSignal(),
       cancelWarpTo: () => this.cancelWarpTo(),
       setWarpSafetyMargin: (seconds) => this.setWarpSafetyMargin(seconds),
       getSnapshot: () => this.snapshot(),
@@ -334,6 +408,7 @@ export class AlarmHostService {
       warp: this.warpObserver.getWarp(),
       unscheduledWarp: this.warpObserver.getUnscheduled(),
       warpTo: this.warp.snapshot(),
+      firstSignal: this.firstSignal.snapshot(),
       warpSafetyMarginSeconds: this.warp.getMarginSeconds(),
       owltSeconds: this.warp.getOverridingOwltSeconds(),
       scetArmRefusals:
@@ -626,6 +701,33 @@ export class AlarmHostService {
     this.tick();
   }
 
+  /** Keeps the delay per metre of route while the active craft has a measured delay and route, for estimating the delay to the next craft switched to. */
+  private noteLightScale(): void {
+    const delay = sampleActiveReading<CommsDelay>("comms.delay");
+    const path = sampleActiveReading<CommsPath>("comms.path");
+    const active = sampleActiveReading<ActiveVessel>("ksp.activeVessel");
+    if (
+      (delay.state !== "observed" && delay.state !== "held") ||
+      (path.state !== "observed" && path.state !== "held") ||
+      (active.state !== "observed" && active.state !== "held") ||
+      delay.value.meta?.source !== `vessel:${active.value.vesselId}`
+    ) {
+      return;
+    }
+    const scale = lightSecondsPerMetre({
+      hops: path.value.hops,
+      oneWaySeconds: delay.value.oneWaySeconds,
+      source: delay.value.source,
+    });
+    if (scale !== null) this.lastSecondsPerMetre = scale;
+  }
+
+  /** Begin a warp-to session toward the newly active craft's first signal, under the same rate cap and re-ramp as a warp to an alarm. */
+  beginWarpToFirstSignal(): void {
+    if (!this.warp.begin("first-signal")) return;
+    this.tick();
+  }
+
   cancelWarpTo(): void {
     if (this.warp.cancel()) this.emit();
   }
@@ -823,6 +925,14 @@ export class AlarmHostService {
       if (changed) this.persist();
     }
 
+    /* The craft's first signal arriving, or its due instant passing, ends a warp toward it and drops to 1x. */
+    this.noteLightScale();
+    if (
+      this.firstSignal.observe() === "ended" &&
+      this.warp.isActive("first-signal")
+    ) {
+      this.warp.cancel();
+    }
     this.warp.reconcile(this.observedUT);
     this.warpObserver.detectUnscheduled();
     // Every tick, not only on an edit: the mod's roster is what this reconciles

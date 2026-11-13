@@ -96,15 +96,19 @@ describe("the planner's refusal line", () => {
     await waitFor(() => expect(out.error).toBeNull());
   });
 
-  it("is gone once another vessel is active", async () => {
+  it("is gone once another vessel is active, even one with no link whose own identity never arrives", async () => {
     const { fixture, out } = await refusedPlanner();
     act(() => {
-      fixture.emit("vessel.identity", { vesselId: "mk1" }, meta);
+      fixture.emit("ksp.activeVessel", { vesselId: "mk1", name: "MkI" }, meta);
       fixture.emitFrame();
     });
     expect(out.error).not.toBeNull();
     act(() => {
-      fixture.emit("vessel.identity", { vesselId: "mun-probe" }, meta);
+      fixture.emit(
+        "ksp.activeVessel",
+        { vesselId: "mun-probe", name: "Mun Probe" },
+        meta,
+      );
       fixture.emitFrame();
     });
     await waitFor(() => expect(out.error).toBeNull());

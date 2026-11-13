@@ -8674,6 +8674,19 @@ namespace Sitrep.Host
         /// </summary>
         internal bool AnySessionHasQueuedFrames() => _sessions.Values.Any(session => session.Outbox.HasQueuedFrames);
 
+        /// <summary>
+        /// Test-only: while held, every connection's outbox sends its reliable lane and leaves
+        /// its lossy-latest frames coalescing, as a busy socket does, so a test can stage a tick
+        /// that delivers two frames of one topic and read what the client is sent of them.
+        /// </summary>
+        internal void HoldLatestFrames(bool held)
+        {
+            foreach (var session in _sessions.Values)
+            {
+                session.Outbox.HoldLatestFrames(held);
+            }
+        }
+
         /// <summary>Test-only visibility into one topic's emission counters; see <c>GonogoBodiesServer.BodiesEmitterCounters</c>'s equivalent doc comment for why tests need this rather than inferring it from wire silence.</summary>
         internal EmissionCounters ChannelCounters(string topic) => _emitter.CountersFor(topic);
 
@@ -12674,8 +12687,17 @@ namespace Sitrep.Host
                     // none superseded, so coalescing it deletes the outage window
                     // one layer below the gate that just took care to keep it.
                     // Measured: a 1200-sample dump arrived as 242 frames.
+                    /*
+                     * A withdrawal, a frame saying the Topic holds no reading, rides the
+                     * same lane. Coalescing keeps the frame that was queued last, and a
+                     * reading made earlier can be delivered after the withdrawal that
+                     * stands later in time (the craft switched away from has readings
+                     * still crossing), so a busy socket would be sent that reading and
+                     * never be told the Topic was withdrawn.
+                     */
                     if (delivery == Delivery.ReliableOrdered
-                        || streamData.Meta.Staleness == Staleness.Recorded)
+                        || streamData.Meta.Staleness == Staleness.Recorded
+                        || streamData.Payload == null)
                     {
                         // Reliable-ordered: rides the outbox's FIFO lane, never
                         // coalesced away: see Delivery's doc comment.
@@ -14100,6 +14122,7 @@ namespace Sitrep.Host
         private readonly SemaphoreSlim _signal = new SemaphoreSlim(0, int.MaxValue);
         private readonly Thread _pumpThread;
         private volatile bool _stopping;
+        private volatile bool _held;
 
         public ChannelOutbox(ITransportConnection connection)
         {
@@ -14139,6 +14162,13 @@ namespace Sitrep.Host
         /// <summary>Test-only: whether a lossy-latest frame is currently queued (not yet pumped) for <paramref name="topic"/>. See <see cref="ChannelEngine.AnySessionHasQueuedFrames"/>.</summary>
         internal bool HasQueuedFrame(string topic) => _latestByTopic.ContainsKey(topic);
 
+        /// <summary>Test-only: stop handing lossy-latest frames to the socket while held, so they go on coalescing.</summary>
+        internal void HoldLatestFrames(bool held)
+        {
+            _held = held;
+            _signal.Release();
+        }
+
         /// <summary>Test-only: whether any frame, lossy-latest or reliable, is still waiting for the pump to hand it to the socket.</summary>
         internal bool HasQueuedFrames => !_latestByTopic.IsEmpty || !_reliable.IsEmpty;
 
@@ -14160,7 +14190,7 @@ namespace Sitrep.Host
 
                 // While the socket is still writing what it was given, the
                 // latest frames stay here and go on coalescing.
-                if (!_stopping && _connection.IsBusy)
+                if (!_stopping && (_connection.IsBusy || _held))
                 {
                     continue;
                 }

@@ -23,12 +23,14 @@ describe("AlarmClientService banner controls", () => {
     const service = new AlarmClientService(asLink(link));
 
     service.beginWarpTo();
+    service.beginWarpToFirstSignal();
     service.cancelWarpTo();
     service.acknowledgeAlarmsCancelled();
     service.setWarpSafetyMargin(12);
 
     expect(link.sendAlarmControl.mock.calls).toEqual([
       ["warp-to-begin"],
+      ["warp-to-first-signal"],
       ["warp-to-cancel"],
       ["acknowledge-cancelled"],
       ["warp-margin", 12],
@@ -77,6 +79,7 @@ describe("AlarmPeerBridge alarm-control", () => {
       registerStationWarpIntent: () => {},
       acknowledgeAlarmsCancelled: () => calls.push("ack-cancelled"),
       beginWarpTo: () => calls.push("begin"),
+      beginWarpToFirstSignal: () => calls.push("first-signal"),
       cancelWarpTo: () => calls.push("cancel"),
       setWarpSafetyMargin: (s) => calls.push(`margin ${s}`),
       getSnapshot: () => {
@@ -89,11 +92,18 @@ describe("AlarmPeerBridge alarm-control", () => {
       seconds?: number,
     ) => deliver?.("p", { type: "alarm-control", action, seconds });
     send("warp-to-begin");
+    send("warp-to-first-signal");
     send("warp-to-cancel");
     send("acknowledge-cancelled");
     send("warp-margin", 9);
     send("warp-margin");
 
-    expect(calls).toEqual(["begin", "cancel", "ack-cancelled", "margin 9"]);
+    expect(calls).toEqual([
+      "begin",
+      "first-signal",
+      "cancel",
+      "ack-cancelled",
+      "margin 9",
+    ]);
   });
 });

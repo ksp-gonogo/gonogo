@@ -1,4 +1,5 @@
 import { render, screen } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -220,5 +221,105 @@ describe("AlarmBanner with an alarm the simulation refused to arm", () => {
     renderBanner(snapshotOf([refused], 0));
     expect(screen.getByText("Next alarm")).toBeInTheDocument();
     expect(screen.queryByText("Not armed")).toBeNull();
+  });
+});
+
+describe("the first-signal strip after a switch of craft", () => {
+  const waiting = {
+    vesselName: "Mun Probe",
+    owltSeconds: 1_800,
+    estimated: false,
+  };
+
+  it("names the craft and offers to warp to its first signal", async () => {
+    const user = userEvent.setup();
+    const service = fakeHost({
+      ...snapshotOf([], 1_000),
+      firstSignal: waiting,
+    });
+    const begin = vi.fn();
+    service.beginWarpToFirstSignal = begin;
+    render(
+      <AlarmHostProvider service={service}>
+        <AlarmBanner />
+      </AlarmHostProvider>,
+    );
+
+    expect(screen.getByText("Mun Probe")).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: /Warp to first signal/ }),
+    );
+    expect(begin).toHaveBeenCalledOnce();
+  });
+
+  async function tipFor(firstSignal: AlarmSnapshot["firstSignal"]) {
+    const user = userEvent.setup();
+    renderBanner({ ...snapshotOf([], 1_000), firstSignal });
+    await user.tab();
+    await user.tab();
+    await user.hover(
+      screen.getByRole("img", { name: "Why there is no data yet" }),
+    );
+    return screen.findByText(
+      /^Right now Gonogo can't stream from other vessels in the background, so vessel data only started streaming at the moment of the switch, which will take .+ to arrive here\.$/,
+    );
+  }
+
+  it("explains why there is no data yet, with the real delay in the app's own duration format and no tilde", async () => {
+    const tip = await tipFor(waiting);
+    expect(tip.textContent).toContain("which will take 30min to arrive");
+  });
+
+  it("marks an estimated delay with a leading tilde", async () => {
+    const tip = await tipFor({ ...waiting, estimated: true });
+    expect(tip.textContent).toContain("which will take ~30min to arrive");
+  });
+
+  it("says the figure is unknown the way the other banners do while there is no real delay and no estimate", async () => {
+    const tip = await tipFor({
+      vesselName: "Mun Probe",
+      owltSeconds: null,
+      estimated: false,
+    });
+    expect(tip.textContent).toContain(
+      `which will take ${NULL_DISPLAY} to arrive`,
+    );
+  });
+
+  it("offers a stop while the warp toward the first signal runs", () => {
+    renderBanner({
+      ...snapshotOf([], 1_000),
+      firstSignal: waiting,
+      warpTo: { alarmId: "first-signal", targetIndex: 2, targetRate: 100 },
+    });
+    expect(
+      screen.getByRole("button", { name: /Stop warp/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Warp to first signal/ }),
+    ).toBeNull();
+  });
+
+  it("shows the strip from the switch with the button ready while no delay is known or estimated", () => {
+    renderBanner({
+      ...snapshotOf([], 1_000),
+      firstSignal: {
+        vesselName: "Mun Probe",
+        owltSeconds: null,
+        estimated: false,
+      },
+    });
+    expect(screen.getByText("Mun Probe")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Warp to first signal/ }),
+    ).toBeEnabled();
+  });
+
+  it("shows nothing while no first signal is awaited", () => {
+    renderBanner(snapshotOf([], 1_000));
+    expect(screen.queryByText("Mun Probe")).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: /Warp to first signal/ }),
+    ).toBeNull();
   });
 });

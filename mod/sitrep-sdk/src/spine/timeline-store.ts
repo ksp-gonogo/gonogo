@@ -1,3 +1,7 @@
+import type {
+  SystemBodies,
+  TrackingStationCatalog,
+} from "../__generated__/contract";
 import {
   type DataRateReport,
   type Meta,
@@ -46,6 +50,12 @@ import {
   reckonableValuesOf,
 } from "../reckonability";
 import { dynamicValue, isValue, type Value } from "../unit-system/value";
+import {
+  CATALOG_FALLBACK_INPUTS,
+  CATALOG_FALLBACK_TOPICS,
+  catalogIdentityPoint,
+  catalogOrbitPoint,
+} from "./catalog-fallback";
 import {
   type ReckonerFor,
   readingFrom,
@@ -389,6 +399,20 @@ export type GapModel =
 /** The answer for a span wider than warp-free sampling that no model claims. */
 const UNCLAIMED: GapModel = { carried: false, unclaimed: true };
 
+/** The `meta.source` a payload carries about itself, or `undefined` where it carries none. */
+function payloadMetaSource(payload: unknown): string | undefined {
+  if (typeof payload !== "object" || payload === null) return undefined;
+  if (!("meta" in payload)) return undefined;
+  const { meta } = payload;
+  if (typeof meta !== "object" || meta === null || !("source" in meta)) {
+    return undefined;
+  }
+  return typeof meta.source === "string" ? meta.source : undefined;
+}
+
+/** The game's statement of which craft is active. */
+const ACTIVE_VESSEL_TOPIC = "ksp.activeVessel";
+
 /**
  * How many instants inside one unobserved span the model is asked about. Enough
  * to draw one full swing of an orbit smoothly, which is the most a single span
@@ -430,6 +454,14 @@ const LINK_REPORT_TOPICS: ReadonlySet<string> = new Set([
   "comms.connectivity",
   "comms.control",
 ]);
+
+/** The vessel id a `ksp.activeVessel` payload names, or `undefined` for a withdrawn statement or one with none. */
+function statedVesselId(payload: unknown): string | undefined {
+  if (typeof payload !== "object" || payload === null) return undefined;
+  if (!("vesselId" in payload)) return undefined;
+  const id = payload.vesselId;
+  return typeof id === "string" && id !== "" ? id : undefined;
+}
 
 /** The `meta.source` a payload carries, when it names a craft. */
 function craftSourceOf(payload: unknown): string | undefined {
@@ -1041,12 +1073,18 @@ export class TimelineStore {
   private declaredRoles: DeclaredDelayRoles | undefined;
 
   /**
-   * The `meta.source` of the newest `comms.delay`, captured at ingest: the
-   * craft the game has active. That report is sent at once, so after a switch
-   * it names the new craft while every delayed reading in the timelines is
-   * still about the old one.
+   * The craft the game has active, as a `meta.source`, captured at ingest. The
+   * game's own statement of it (`ksp.activeVessel`) names the new craft the
+   * moment of a switch; the `meta.source` of the newest `comms.delay` is the
+   * fallback while that statement has not been heard, and for a linked craft it
+   * can name the craft left behind for a whole signal delay after the switch.
+   * Either way, after a switch every delayed reading in the timelines is still
+   * about the old craft.
    */
   private activeCraftSource: string | undefined;
+
+  /** Whether the game's statement of the active craft has been heard, which then outranks the delay report. */
+  private activeCraftStated = false;
 
   /** The sample kinds the mod stated on the newest `system.uplinks`, captured at ingest for the same reason the roles are. */
   private declaredKinds: DeclaredSampleKinds | undefined;
@@ -1277,9 +1315,16 @@ export class TimelineStore {
     if (topic === DATA_RATES_TOPIC) {
       this.applyDataRates(point.payload as DataRateReport | null);
     }
-    if (topic === ACTIVE_CRAFT_TOPIC) {
+    if (topic === ACTIVE_CRAFT_TOPIC && !this.activeCraftStated) {
       this.activeCraftSource =
         craftSourceOf(point.payload) ?? this.activeCraftSource;
+    }
+    if (topic === ACTIVE_VESSEL_TOPIC) {
+      const id = statedVesselId(point.payload);
+      if (id !== undefined) {
+        this.activeCraftSource = `${CRAFT_SOURCE_PREFIX}${id}`;
+        this.activeCraftStated = true;
+      }
     }
     if (topic === UPLINK_ROSTER_TOPIC) {
       this.declaredRoles = readDeclaredDelayRoles(point.payload);
@@ -1652,8 +1697,10 @@ export class TimelineStore {
     const parsed = this.resolveRawFieldSubtopic(topic);
     const elected =
       getReckoner(topic) ?? (parsed ? getReckoner(parsed.rawTopic) : undefined);
-    if (!elected) return [];
-    const out = new Set<string>();
+    const out = new Set<string>(
+      this.vesselInputTopics(parsed?.rawTopic ?? topic),
+    );
+    if (!elected) return [...out];
     for (const dep of elected.definition.deps as readonly Dep[]) {
       const depTopic =
         typeof dep === "string"
@@ -1667,6 +1714,20 @@ export class TimelineStore {
       }
     }
     return [...out];
+  }
+
+  /**
+   * The topics a read of the active craft's figures needs besides its own: the
+   * game's statement of which craft is active, which tells a craft's own
+   * samples from the previous craft's, and for the orbit and identity the
+   * catalog and bodies they fall back to until the craft's own arrive.
+   */
+  private vesselInputTopics(raw: string): string[] {
+    if (this.resolvePublishedTopic(raw)) return [];
+    if (this.laneForTopic(raw) === "true-now") return [];
+    return CATALOG_FALLBACK_TOPICS.includes(raw)
+      ? [ACTIVE_VESSEL_TOPIC, ...CATALOG_FALLBACK_INPUTS]
+      : [ACTIVE_VESSEL_TOPIC];
   }
 
   private collectSubscriptionTopics(
@@ -2424,6 +2485,93 @@ export class TimelineStore {
    * signal delay apart into one value. See {@link evaluateProcessor}.
    */
   private sampleInLane<Payload>(
+    topic: string,
+    token: FrameToken,
+    laneOverride: DelayLane | undefined,
+    modelled = false,
+  ): TimelinePoint<Payload> | undefined {
+    const raw = this.sampleInLaneUnfiltered<Payload>(
+      topic,
+      token,
+      laneOverride,
+    );
+    const own =
+      raw && !this.isReportedByOtherVessel(topic, raw, token) ? raw : undefined;
+    if (own && own.payload !== null) return own;
+    return (this.catalogFallback<Payload>(topic, token, modelled) ?? own) as
+      | TimelinePoint<Payload>
+      | undefined;
+  }
+
+  /**
+   * Whether the point a reading of `topic` is built from is the active craft's
+   * catalog entry carried forward, rather than a sample the craft sent. A
+   * consumer that acts on an orbit it was sent, such as a burn planner, asks
+   * this and declines while it holds.
+   */
+  isCatalogFallback(
+    topic: string,
+    token: FrameToken = this.currentToken,
+  ): boolean {
+    const point = this.sampleInLane<unknown>(topic, token, undefined, true);
+    return point !== undefined && this.catalogFallbackPoints.has(point);
+  }
+
+  /** The game's statement of which craft is active, or `undefined` while it names none. */
+  private activeVesselId(token: FrameToken): string | undefined {
+    const active = this.sample("ksp.activeVessel", token)?.payload;
+    const id =
+      typeof active === "object" && active !== null && "vesselId" in active
+        ? active.vesselId
+        : undefined;
+    return typeof id === "string" && id !== "" ? id : undefined;
+  }
+
+  /** Points built from the catalog, kept so the same inputs give the same point and a reading's identity holds between frames. */
+  private readonly catalogFallbacks = new Map<
+    string,
+    { catalog: unknown; bodies: unknown; point: TimelinePoint<unknown> }
+  >();
+  private readonly catalogFallbackPoints = new WeakSet<object>();
+
+  /**
+   * The craft the game names as active, as the command centre's catalog has it,
+   * for a craft whose own `vessel.identity` or `vessel.orbit` has not arrived.
+   * The orbit is offered only to a reading, which models it forward and marks
+   * it so; the identity is a held fact and is offered to any read. Nothing
+   * crosses that the centre does not already hold under its own delay.
+   */
+  private catalogFallback<Payload>(
+    topic: string,
+    token: FrameToken,
+    modelled: boolean,
+  ): TimelinePoint<Payload> | undefined {
+    if (!CATALOG_FALLBACK_TOPICS.includes(topic)) return undefined;
+    if (topic === "vessel.orbit" && !modelled) return undefined;
+    const id = this.activeVesselId(token);
+    if (id === undefined) return undefined;
+    const [catalogTopic, bodiesTopic] = CATALOG_FALLBACK_INPUTS;
+    const catalog = this.sample<TrackingStationCatalog>(catalogTopic, token);
+    const bodies = this.sample<SystemBodies>(bodiesTopic, token);
+    const key = `${topic}\0${id}`;
+    const held = this.catalogFallbacks.get(key);
+    if (held && held.catalog === catalog && held.bodies === bodies) {
+      return held.point as TimelinePoint<Payload>;
+    }
+    const point =
+      topic === "vessel.orbit"
+        ? catalogOrbitPoint(catalog, bodies, id)
+        : catalogIdentityPoint(catalog, id);
+    if (!point) {
+      this.catalogFallbacks.delete(key);
+      return undefined;
+    }
+    this.catalogFallbackPoints.add(point);
+    this.catalogFallbacks.set(key, { catalog, bodies, point });
+    return point as TimelinePoint<Payload>;
+  }
+
+  private sampleInLaneUnfiltered<Payload>(
     topic: string,
     token: FrameToken,
     laneOverride: DelayLane | undefined,
@@ -3295,6 +3443,10 @@ export class TimelineStore {
       return { points: [], truncatedAtBreak: false };
     }
     if (!window) return { points: [anchor], truncatedAtBreak: false };
+    // A point built from the catalog has no history of its own in the topic: what the timeline holds in its span is the craft left behind, or the withdrawal of it.
+    if (this.catalogFallbackPoints.has(anchor)) {
+      return { points: [anchor], truncatedAtBreak: false };
+    }
     const key = `reckon-window:${topic}:${anchor.validAt}:${window.spanUt}:${window.maxSamples}`;
     return this.memoize(token, key, () => {
       const raw = this.sampleRange<Payload>(
@@ -3437,6 +3589,30 @@ export class TimelineStore {
   }
 
   /**
+   * Whether `point` is a delayed payload whose own meta names a vessel other than the
+   * one `ksp.activeVessel` names. That topic is read with no delay and needs no
+   * link, so it can name a craft whose own telemetry has not arrived: until it
+   * does, the figures still held are the previous craft's and are not shown.
+   * Nothing is withheld while no active vessel is known.
+   */
+  private isReportedByOtherVessel(
+    topic: string,
+    point: TimelinePoint<unknown>,
+    token: FrameToken,
+  ): boolean {
+    // A true-now topic is the game's own statement and never carries a craft's delayed figures.
+    if (this.laneForTopic(topic) === "true-now") return false;
+    // The craft a payload describes is named by the payload's own meta; the envelope's source is the node it was observed from.
+    const source = payloadMetaSource(point.payload);
+    if (source === undefined || !source.startsWith("vessel:")) return false;
+    const activeId = this.activeVesselId(token);
+    if (activeId === undefined) return false;
+    return (
+      source.slice("vessel:".length).toLowerCase() !== activeId.toLowerCase()
+    );
+  }
+
+  /**
    * The topic's value and its currency as one `TopicReading<Payload>`, at a frame token's
    * frozen `viewUt`: `sample()` and `sampleStatus()` folded into the union a
    * widget cannot read incuriously. See `Reading`'s own doc for the mechanism.
@@ -3480,9 +3656,26 @@ export class TimelineStore {
           topic,
           effectiveToken,
           laneOverride,
+          true,
         );
-        const status = this.sampleStatus(topic, effectiveToken);
-        const receivedUt = this.viewUtFor(effectiveToken, lane);
+        // A point built from the catalog is a held fact about where the craft was last known, whatever the topic's own wire status.
+        const status =
+          point && this.catalogFallbackPoints.has(point)
+            ? "held"
+            : this.sampleStatus(topic, effectiveToken);
+        const viewedUt = this.viewUtFor(effectiveToken, lane);
+        /*
+         * While the signal delay to the craft is not known the view has no
+         * instant to stand at, and nothing could be solved. A reading built from
+         * the catalog is about where the craft is now, which the client knows
+         * without any delay, so it is carried to that.
+         */
+        const fromCatalog =
+          point !== undefined && this.catalogFallbackPoints.has(point);
+        const receivedUt =
+          fromCatalog && !Number.isFinite(viewedUt)
+            ? this.clock.utNowEstimate()
+            : viewedUt;
         // A true-now lane can sit a fraction of a second past a sub-second SCET, and a model is never asked for an instant behind its own observation.
         const reckonUt = Math.max(effectiveToken.scetUt, receivedUt);
         /*

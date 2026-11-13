@@ -19,9 +19,9 @@ export interface CommandOutcomeSet {
 
 type Listener = () => void;
 
-/** The vessel `vessel.identity` names, or `null` while it names none, as in a withdrawn reading. */
+/** The vessel `ksp.activeVessel` names, or `null` while it names none. */
 export function activeVesselIdOf(client: TelemetryClient): string | null {
-  const identity = client.getValue("vessel.identity");
+  const identity = client.getValue("ksp.activeVessel");
   if (typeof identity !== "object" || identity === null) return null;
   const id = "vesselId" in identity ? identity.vesselId : undefined;
   return typeof id === "string" && id !== "" ? id : null;
@@ -54,14 +54,17 @@ export class CommandOutcomeStore {
   private localSeq = 0;
   private readonly stopSweep: () => void;
   private readonly stopTimeline: () => void;
+  /** Keeps `ksp.activeVessel` arriving, since the store cannot see a vessel change on a topic nobody else reads. */
+  private readonly releaseActiveVessel: () => void;
   /** The ids of the outcomes the last load kept. */
   private keptByLastLoad = new Set<string>();
   /** Cancels for the timers that clear load-undone failures, by outcome id. */
   private readonly expiries = new Map<string, () => void>();
-  /** The last vessel the client named; a withdrawn reading between two vessels leaves it standing. */
+  /** The last vessel the client named; a gap between two vessels leaves it standing. */
   private lastVesselId: string | null;
 
   constructor(private readonly client: TelemetryClient) {
+    this.releaseActiveVessel = client.subscribe("ksp.activeVessel", () => {});
     this.lastVesselId = activeVesselIdOf(client);
     this.stopSweep = client.subscribeStore(() => {
       this.followVessel();
@@ -154,6 +157,7 @@ export class CommandOutcomeStore {
     this.expiries.clear();
     this.stopSweep();
     this.stopTimeline();
+    this.releaseActiveVessel();
     this.listeners.clear();
   }
 

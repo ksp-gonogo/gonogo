@@ -649,9 +649,13 @@ namespace Gonogo.KSP
                     GonogoLog.WarnLimited("revert-availability snapshot build failed, omitting", ex);
                 }
 
-                // The vessels the game offers to switch to (ksp.switchableVessels):
-                // identity only, read with no link to any vessel, so it is
-                // captured with the flight scene and no active-vessel group.
+                // The vessels the game offers to switch to (ksp.switchableVessels)
+                // and which one is active (ksp.activeVessel): identity only, read
+                // with no link to any vessel, so it is captured with the flight
+                // scene and no active-vessel group. The active one is the craft
+                // gonogo reports, the same every vessel.* reading is about, so a
+                // kerbal on EVA names the craft they left; the list leaves out
+                // the game's own.
                 try
                 {
                     // KSP's own active craft is the one the list leaves out, so this is the game's answer and not a reported vessel.
@@ -659,6 +663,11 @@ namespace Gonogo.KSP
                     if (HighLogic.LoadedScene == CareerGates.RevertScene && flown != null)
                     {
                         values["switchable"] = BuildSwitchableVessels(flown);
+                        var reported = ActiveVesselScope.Current;
+                        if (reported != null)
+                        {
+                            values["activeVessel"] = BuildActiveVessel(reported);
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -4430,6 +4439,19 @@ namespace Gonogo.KSP
             {
                 ["breakingGround"] = ExpansionsLoader.IsExpansionInstalled("Serenity"),
                 ["makingHistory"] = ExpansionsLoader.IsExpansionInstalled("MakingHistory"),
+            };
+        }
+
+        /// <summary>
+        /// The vessel the game is flying: name and id and nothing about
+        /// where or how it is, so no link to it is needed.
+        /// </summary>
+        private static Dictionary<string, object?> BuildActiveVessel(Vessel active)
+        {
+            return new Dictionary<string, object?>
+            {
+                ["vesselId"] = active.id.ToString(),
+                ["name"] = GameWords.VesselName(active),
             };
         }
 

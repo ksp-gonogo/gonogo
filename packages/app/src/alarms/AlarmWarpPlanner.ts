@@ -1,5 +1,21 @@
 import type { Alarm } from "./types";
 
+/** The id a warp-to session carries while its target is the first signal from a newly active craft. */
+export const FIRST_SIGNAL_TARGET_ID = "first-signal";
+
+/**
+ * How much game time a first signal is taken to be away at the least, when
+ * nothing says how far off it is or the estimate says it is due. It sets the
+ * rate cap of a warp toward a first signal, which only the craft's own data ends.
+ */
+export const FIRST_SIGNAL_FLOOR_SECONDS = 600;
+
+/**
+ * What a warp-to session plans toward: the alarms, or the first signal from the
+ * craft the game has just switched to.
+ */
+export type WarpScope = "alarms" | "first-signal";
+
 /**
  * A one-way signal delay to be subtracted: a non-finite or negative reading
  * is no signal delay rather than a negative one, which would push a SCET instant
@@ -52,15 +68,39 @@ export class AlarmWarpPlanner {
      * caller with no vantage of its own needs no argument.
      */
     private readonly getOwltSeconds: () => number = () => 0,
+    /**
+     * The first signal awaited from a newly active craft, or null while none
+     * is. `arrivesAtUt` is the game's universal time it is expected at, or null
+     * while no delay is known or estimated.
+     */
+    private readonly getFirstSignal: () => {
+      arrivesAtUt: number | null;
+    } | null = () => null,
+    /** The game's universal time now, or null before the clock has one. */
+    private readonly getGameUtNow: () => number | null = () => null,
   ) {}
 
   /** The closest pending time alarm, and the view-clock seconds left before its warp stop. */
-  findClosestPendingTrackableAlarm(): {
-    alarm: Alarm;
+  findClosestPendingTrackableAlarm(scope: WarpScope = "alarms"): {
+    alarm: { id: string };
     remainingGameSeconds: number;
   } | null {
     const ut = this.getObservedUT();
     if (ut === null) return null;
+    if (scope === "first-signal") {
+      const waiting = this.getFirstSignal();
+      if (waiting === null) return null;
+      const now = this.getGameUtNow();
+      /* Where the estimate says the signal is due, but never closer than the floor: only the craft's own data ends the warp, so an estimate that has run out keeps the ladder at its cautious rung. */
+      const toArrival =
+        waiting.arrivesAtUt !== null && now !== null
+          ? waiting.arrivesAtUt - now
+          : 0;
+      return {
+        alarm: { id: FIRST_SIGNAL_TARGET_ID },
+        remainingGameSeconds: Math.max(toArrival, FIRST_SIGNAL_FLOOR_SECONDS),
+      };
+    }
     let best: { alarm: Alarm; remaining: number } | null = null;
     for (const a of this.getAlarms()) {
       if (a.state !== "pending") continue;
@@ -81,8 +121,13 @@ export class AlarmWarpPlanner {
       : null;
   }
 
-  /** Any pending time alarm, which a warp-to session holds open for. */
-  findEligiblePendingAlarm(): Alarm | null {
+  /** Any pending time alarm, which a warp-to session holds open for, or the first signal while one is awaited. */
+  findEligiblePendingAlarm(scope: WarpScope = "alarms"): { id: string } | null {
+    if (scope === "first-signal") {
+      return this.getFirstSignal() === null
+        ? null
+        : { id: FIRST_SIGNAL_TARGET_ID };
+    }
     return (
       this.getAlarms().find(
         (a) => a.state === "pending" && targetInstant(a) !== null,

@@ -7,6 +7,32 @@ import { ProviderExtensions } from '../extensions';
 import { CommandErrorCode, FaultCode } from './error-codes';
 
 /**
+* Which vessel the game is flying right now: its id and name, and nothing of
+* where it is or how it is doing. Changing the active vessel is a change of
+* scene that every command centre can see whatever the radio link to the new
+* vessel, so this is read with no signal delay and does not depend on a link.
+* Useful for naming the craft the operator is flying while its telemetry has
+* not arrived. Used by the dashboard header.
+*
+* The payload is `null` (no key emitted) outside the flight scene. It carries
+* no per-payload `Meta` of its own (the envelope's applies). Position,
+* situation, distance and link state of the vessel are not here and reach a
+* centre only through `vessel.identity` and the other `vessel.*` Topics,
+* delayed.
+*
+* @category Flights
+*/
+export interface ActiveVessel
+{
+	/**
+	* The vessel's stable guid, the same id `vessel.identity` carries once its
+	* telemetry arrives.
+	*/
+	vesselId: string;
+	/** The vessel's display name. */
+	name: string;
+}
+/**
 * The JSON header of a binary frame: everything about the delivery except the
 * bytes themselves.
 *

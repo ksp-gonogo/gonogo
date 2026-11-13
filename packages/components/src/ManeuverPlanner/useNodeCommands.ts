@@ -67,11 +67,11 @@ export function useNodeCommands(
     lastEpoch.current = epoch;
   }, [epoch]);
 
-  // A refusal is about the vessel it was sent to; a withdrawn reading between two vessels names none and changes nothing.
-  const identity = useTelemetry("vessel.identity");
+  // A refusal is about the vessel it was sent to, so another vessel becoming active drops it, linked or not.
+  const active = useTelemetry("ksp.activeVessel");
   const vesselId =
-    identity.state === "observed" || identity.state === "held"
-      ? identity.value.vesselId
+    active.state === "observed" || active.state === "held"
+      ? active.value.vesselId
       : undefined;
   const lastVesselId = useRef(vesselId);
   useEffect(() => {

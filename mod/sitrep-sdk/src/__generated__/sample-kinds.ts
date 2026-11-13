@@ -52,6 +52,7 @@ export const GENERATED_CHANNEL_KINDS = {
   "host.record": "discrete",
   "isru.converters": "continuous",
   "isru.drills": "continuous",
+  "ksp.activeVessel": "discrete",
   "ksp.gameLoaded": "event",
   "ksp.revertAvailability": "discrete",
   "ksp.saves": "discrete",

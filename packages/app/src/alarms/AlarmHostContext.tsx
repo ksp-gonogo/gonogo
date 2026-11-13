@@ -23,6 +23,7 @@ export interface AlarmService {
   acknowledgeAlarmsCancelled(): void;
   announceWarpIntent(): void;
   beginWarpTo(): void;
+  beginWarpToFirstSignal(): void;
   cancelWarpTo(): void;
   setWarpSafetyMargin(seconds: number): void;
 }
@@ -39,6 +40,7 @@ export const NO_ALARM_SERVICE: AlarmService = {
   acknowledgeAlarmsCancelled: () => {},
   announceWarpIntent: () => {},
   beginWarpTo: () => {},
+  beginWarpToFirstSignal: () => {},
   cancelWarpTo: () => {},
   setWarpSafetyMargin: () => {},
 };

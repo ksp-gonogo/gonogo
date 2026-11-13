@@ -24,6 +24,7 @@ export const GENERATED_TRUENOW_TOPICS = [
   "comms.occlusion",
   "game.dlc",
   "host.record",
+  "ksp.activeVessel",
   "ksp.gameLoaded",
   "ksp.revertAvailability",
   "ksp.saves",

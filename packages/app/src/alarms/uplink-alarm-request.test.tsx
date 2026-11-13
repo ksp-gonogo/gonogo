@@ -431,6 +431,7 @@ describe("an Uplink's alarm request", () => {
         registerStationWarpIntent: () => {},
         acknowledgeAlarmsCancelled: () => {},
         beginWarpTo: () => {},
+        beginWarpToFirstSignal: () => {},
         cancelWarpTo: () => {},
         setWarpSafetyMargin: () => {},
         getSnapshot: () => host.snapshot(),

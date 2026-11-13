@@ -1,6 +1,6 @@
 import { logger } from "@ksp-gonogo/logger";
 import { dispatchActiveCommandTopic } from "@ksp-gonogo/sitrep-client";
-import type { AlarmWarpPlanner } from "./AlarmWarpPlanner";
+import type { AlarmWarpPlanner, WarpScope } from "./AlarmWarpPlanner";
 import type { AlarmWarpState } from "./types";
 import type { WarpRateTable } from "./WarpRateTable";
 
@@ -56,6 +56,7 @@ export interface WarpToTarget {
 export class WarpControl {
   private warpToActive = false;
   private warpToAlarmId: string | null = null;
+  private scope: WarpScope = "alarms";
   private warpToTargetIndex = 0;
   private warpSafetyMarginSeconds: number;
   /** The index the last dispatched `time.setWarpIndex` asked for, null before it has asked for anything. */
@@ -71,8 +72,8 @@ export class WarpControl {
     this.warpSafetyMarginSeconds = initialMarginSeconds;
   }
 
-  isActive(): boolean {
-    return this.warpToActive;
+  isActive(scope?: WarpScope): boolean {
+    return this.warpToActive && (scope === undefined || this.scope === scope);
   }
 
   snapshot(): WarpToTarget | null {
@@ -107,9 +108,10 @@ export class WarpControl {
   }
 
   /** Begin a warp-to session. Returns true if a session actually started. */
-  begin(): boolean {
-    if (this.planner.findEligiblePendingAlarm() === null) return false;
+  begin(scope: WarpScope = "alarms"): boolean {
+    if (this.planner.findEligiblePendingAlarm(scope) === null) return false;
     this.endSession();
+    this.scope = scope;
     this.warpToActive = true;
     this.ctx.registerOwnWarpIntent();
     return true;
@@ -188,9 +190,9 @@ export class WarpControl {
       ? (this.commandedIndex as number)
       : observedIndex;
 
-    const target = this.planner.findClosestPendingTrackableAlarm();
+    const target = this.planner.findClosestPendingTrackableAlarm(this.scope);
     if (target === null) {
-      const eligible = this.planner.findEligiblePendingAlarm();
+      const eligible = this.planner.findEligiblePendingAlarm(this.scope);
       if (eligible === null) {
         this.endSession();
         return;
@@ -232,6 +234,7 @@ export class WarpControl {
 
   /** Clear the session without touching the game's warp. */
   private endSession(): void {
+    this.scope = "alarms";
     this.warpToActive = false;
     this.warpToAlarmId = null;
     this.warpToTargetIndex = 0;
@@ -255,6 +258,8 @@ export class WarpControl {
    * LAN session keeps exactly the behaviour it had.
    */
   private effectiveMarginSeconds(): number {
+    /* The first signal is due at a view-clock instant, not at an event the craft passes a signal delay earlier, so the delay is no part of the room to leave. */
+    if (this.scope === "first-signal") return this.warpSafetyMarginSeconds;
     const owlt = this.ctx.getOwltSeconds();
     const safeOwlt = Number.isFinite(owlt) && owlt > 0 ? owlt : 0;
     return Math.max(this.warpSafetyMarginSeconds, safeOwlt);

@@ -10099,6 +10099,10 @@
         "note": "Gains an optional options argument whose replayed flag keeps a replayed sample from pulling the clock anchor back"
       },
       {
+        "key": "sitrep-sdk ./spine TimelineStore#isCatalogFallback",
+        "note": "Gains isCatalogFallback, which says whether a topic's reading is built from the active craft's catalog entry rather than a sample the craft sent"
+      },
+      {
         "key": "sitrep-sdk ./spine TimelineStore#isDerivedTopic",
         "note": "derived channels are retired: a processor can publish a Topic of its own, registered through registerProcessor"
       },
@@ -10373,6 +10377,10 @@
       {
         "key": "sitrep-sdk ./spine rotatePerifocalToInertial",
         "note": "Gains an optional trailing zPf (the part along the orbit normal, default 0). Callers passing five arguments are unaffected, and with zPf at 0 the result is bit-identical to before"
+      },
+      {
+        "key": "sitrep-sdk ./spine setActiveViewClockForTests",
+        "note": "A fake clock may also give utNowEstimate, which getGameUtNow reads"
       },
       {
         "key": "sitrep-sdk ./spine settingTypeOf",
@@ -10701,6 +10709,10 @@
       {
         "key": "sitrep-sdk ./testing TimelineStore#ingest",
         "note": "Gains an optional options argument whose replayed flag keeps a replayed sample from pulling the clock anchor back"
+      },
+      {
+        "key": "sitrep-sdk ./testing TimelineStore#isCatalogFallback",
+        "note": "Gains isCatalogFallback, which says whether a topic's reading is built from the active craft's catalog entry rather than a sample the craft sent"
       },
       {
         "key": "sitrep-sdk ./testing TimelineStore#isDerivedTopic",
@@ -18461,8 +18473,16 @@
         "note": "several commands sent by one press and shown as one"
       },
       {
+        "key": "sitrep-sdk ./spine estimateOneWayDelaySeconds",
+        "note": "New non-hook estimate of the one-way delay to a craft from its catalog orbit and a measured light-speed scale"
+      },
+      {
         "key": "sitrep-sdk ./spine getActiveTimelineEpoch",
         "note": "New spine plumbing that says which timeline the mounted provider shows, so a service can tell a revert or quickload from one more frame; not an author surface"
+      },
+      {
+        "key": "sitrep-sdk ./spine getGameUtNow",
+        "note": "New non-hook read of the game's universal time now, from the mounted clock's estimate"
       },
       {
         "key": "sitrep-sdk ./spine getPublishedProcessors",
@@ -18495,6 +18515,10 @@
       {
         "key": "sitrep-sdk ./spine keplerAdmissibilityAcrossPatches",
         "note": "the orbit admissibility answer that also says which patch the craft is on past a sphere-of-influence change"
+      },
+      {
+        "key": "sitrep-sdk ./spine lightSecondsPerMetre",
+        "note": "New: the seconds per metre of route a measured delay implies, for carrying a light-speed scale to another craft"
       },
       {
         "key": "sitrep-sdk ./spine mergeGateReports",

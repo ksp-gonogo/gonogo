@@ -295,6 +295,19 @@ export interface AlarmSnapshot {
     targetRate: number | null;
   } | null;
   /**
+   * Set while the game's newly active craft has sent nothing yet and its first
+   * signal is expected: the craft's name and the one-way delay its signal takes
+   * to arrive. The delay is the real figure once the craft's own is known, else
+   * an estimate (`estimated`), else null. Absent when no craft was switched to,
+   * when the first signal has arrived, and when there is no route to the craft
+   * or the delay is too short to be worth a wait.
+   */
+  firstSignal?: {
+    vesselName: string;
+    owltSeconds: number | null;
+    estimated: boolean;
+  } | null;
+  /**
    * Real-time buffer (seconds) the warp-to controller leaves between the
    * current rate and the alarm's lead window. Higher = more pessimistic /
    * earlier step-down. Configurable from the banner.

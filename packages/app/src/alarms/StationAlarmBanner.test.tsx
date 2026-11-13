@@ -85,4 +85,35 @@ describe("StationAlarmBanner", () => {
     );
     expect(container.textContent).toMatch(/Firing\s*firing-one/);
   });
+
+  it("names the craft the game switched to, with no warp control", () => {
+    render(
+      <StationAlarmBanner
+        useSnapshot={() => ({
+          ...snapshotOf([]),
+          firstSignal: {
+            vesselName: "Mun Probe",
+            owltSeconds: 1_800,
+            estimated: true,
+          },
+        })}
+        onAcknowledge={() => {}}
+      />,
+    );
+    expect(screen.getByText("Switched to")).toBeInTheDocument();
+    expect(screen.getByText("Mun Probe")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /warp to first signal/i }),
+    ).toBeNull();
+  });
+
+  it("shows nothing while no switch awaits its first signal", () => {
+    const { container } = render(
+      <StationAlarmBanner
+        useSnapshot={() => snapshotOf([])}
+        onAcknowledge={() => {}}
+      />,
+    );
+    expect(container.textContent).toBe("");
+  });
 });

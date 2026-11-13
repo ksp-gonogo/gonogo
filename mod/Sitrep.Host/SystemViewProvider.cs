@@ -108,6 +108,9 @@ namespace Sitrep.Host
         /// </summary>
         public const string RevertTopic = "ksp.revertAvailability";
 
+        /// <summary>The <c>ksp.activeVessel</c> channel: see <see cref="BuildActiveVessel"/>.</summary>
+        public const string ActiveVesselTopic = "ksp.activeVessel";
+
         /// <summary>The <c>ksp.switchableVessels</c> channel: see <see cref="BuildSwitchableVessels"/>.</summary>
         public const string SwitchableVesselsTopic = "ksp.switchableVessels";
 
@@ -590,6 +593,36 @@ namespace Sitrep.Host
             {
                 ["canRevertToEditor"] = SnapshotDict.GetBool(raw, "canRevertToEditor") ?? false,
                 ["canRevertToLaunch"] = SnapshotDict.GetBool(raw, "canRevertToLaunch") ?? false,
+            };
+        }
+
+        /// <summary>
+        /// Maps <paramref name="snapshot"/>'s raw <c>"activeVessel"</c> group
+        /// (<c>{ vesselId, name }</c>, from
+        /// <c>Gonogo.KSP.KspHost.BuildActiveVessel</c>) to the
+        /// <c>ksp.activeVessel</c> payload. Identity only: nothing here reads a
+        /// position or a state, so it needs no link to the vessel. Returns
+        /// <c>null</c> outside the flight scene, and when the group has no id.
+        /// </summary>
+        public static object? BuildActiveVessel(KspSnapshot? snapshot)
+        {
+            if (snapshot?.Values == null
+                || !snapshot.Values.TryGetValue("activeVessel", out var rawGroup)
+                || rawGroup is not IDictionary<string, object?> raw)
+            {
+                return null;
+            }
+
+            var vesselId = GetString(raw, "vesselId");
+            if (string.IsNullOrEmpty(vesselId))
+            {
+                return null;
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["vesselId"] = vesselId,
+                ["name"] = GetString(raw, "name") ?? "",
             };
         }
 

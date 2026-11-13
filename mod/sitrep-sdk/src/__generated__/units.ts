@@ -101,6 +101,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     factor: "ratio",
     strategyId: "id",
   },
+  "ActiveVessel": {
+    name: "text",
+    vesselId: "id",
+  },
   "AddManeuverNodeArgs": {
     normal: "m/s",
     prograde: "m/s",
@@ -2387,6 +2391,10 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     shortfall: "text",
     throughput: "ratio",
   },
+  "ksp.activeVessel": {
+    name: "text",
+    vesselId: "id",
+  },
   "ksp.gameLoaded": {
     failReason: "text",
     fromUt: "ut",
@@ -4388,6 +4396,7 @@ export const GENERATED_CONTRACT_TAGS = {
     "game.dlc": "Game DLC",
     "isru.converters": "Converters",
     "isru.drills": "Drills",
+    "ksp.activeVessel": "Active vessel",
     "ksp.gameLoaded": "Game loaded",
     "ksp.revertAvailability": "Revert",
     "ksp.saves": "Saves",

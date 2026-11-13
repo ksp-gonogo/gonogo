@@ -571,7 +571,7 @@ export type ViewClockView = Pick<
  * contract, including under a pinned/scrubbed test clock.
  */
 let activeViewClock:
-  | Pick<ViewClock, "viewUt" | "scetUt" | "commandArrivalUt">
+  | Pick<ViewClock, "viewUt" | "scetUt" | "commandArrivalUt" | "utNowEstimate">
   | undefined;
 
 /**
@@ -740,6 +740,21 @@ export function getViewUt(): Value<"ut"> | undefined {
 }
 
 /**
+ * The game's universal time right now, as the clock of the most recently
+ * mounted `TelemetryProvider` estimates it, as a single read for a caller that
+ * cannot use hooks. Useful for a service that marks the instant something
+ * happened in the game, which the delayed view time cannot say. Used by the
+ * alarm host service to date a switch of craft.
+ *
+ * `undefined` when no provider has mounted or the estimate is not a number yet.
+ */
+export function getGameUtNow(): Value<"ut"> | undefined {
+  noteUndeclaredRead("getGameUtNow");
+  const ut = activeViewClock?.utNowEstimate();
+  return ut !== undefined && Number.isFinite(ut) ? value("ut", ut) : undefined;
+}
+
+/**
  * Which timeline the mounted `TelemetryProvider` is showing: the epoch the game
  * has reached and the store that holds it, or `undefined` without a store that
  * keeps one. The epoch goes up each time the game starts a new timeline, on a
@@ -774,13 +789,16 @@ export function getActiveTimelineEpoch():
 export function setActiveViewClockForTests(
   clock:
     | (Pick<ViewClock, "viewUt"> &
-        Partial<Pick<ViewClock, "scetUt" | "commandArrivalUt">>)
+        Partial<
+          Pick<ViewClock, "scetUt" | "commandArrivalUt" | "utNowEstimate">
+        >)
     | undefined,
 ): void {
   activeViewClock = clock && {
     viewUt: () => clock.viewUt(),
     scetUt: (viewUt) => clock.scetUt?.(viewUt) ?? viewUt,
     commandArrivalUt: (scetUt) => clock.commandArrivalUt?.(scetUt) ?? scetUt,
+    utNowEstimate: () => clock.utNowEstimate?.() ?? clock.viewUt(),
   };
 }
 

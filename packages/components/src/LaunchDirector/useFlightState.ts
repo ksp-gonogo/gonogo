@@ -17,7 +17,9 @@ export function useFlightState() {
   const identity = stillTrue(identityReading, undefined);
   // Confirmed nothing, as when the flown vessel is destroyed: a reading not yet received is "pending" and does not count.
   const noActiveVessel = identityReading.state === "absent";
-  const vesselName = identity?.name;
+  // The game's own statement of which craft is flying, so an unlinked craft is named before its identity arrives.
+  const activeVessel = stillTrue(useTelemetry("ksp.activeVessel"), undefined);
+  const vesselName = identity?.name ?? activeVessel?.name;
   const vesselId = identity?.vesselId;
   // Crew of this vessel who are outside it: recovering the vessel does not bring them home.
   const crewOutside = (

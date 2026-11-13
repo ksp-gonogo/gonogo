@@ -74,6 +74,7 @@ export * from "./control-frame-to-read-frame";
 export * from "./core-reckoners";
 export * from "./dashboard-item";
 export * from "./delay-authority";
+export * from "./delay-estimate";
 export * from "./delta-v-budget";
 export * from "./dv-stage-resources";
 export * from "./heartbeat-tracker";

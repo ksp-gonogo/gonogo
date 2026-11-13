@@ -43,6 +43,7 @@ registerComponent<ManeuverPlannerConfig>({
     "vessel.orbit.referenceBodyIndex",
     "trackingStation.bodies",
     "vessel.identity.parentBodyIndex",
+    "ksp.activeVessel",
     "vessel.maneuver.nodes",
     "vessel.target",
     "vessel.propulsion",
