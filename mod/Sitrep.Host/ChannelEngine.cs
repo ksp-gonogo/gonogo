@@ -10076,6 +10076,12 @@ namespace Sitrep.Host
             }
         }
 
+        /// <summary>The instant immediately before <paramref name="ut"/>, which no reading made at <paramref name="ut"/> shares.</summary>
+        private static double InstantBefore(double ut) =>
+            ut > 0.0 && !double.IsInfinity(ut)
+                ? BitConverter.Int64BitsToDouble(BitConverter.DoubleToInt64Bits(ut) - 1)
+                : ut - 1e-9;
+
         /// <summary>
         /// A craft switched to has told the ground nothing yet, whether its link is down or
         /// its signal delay has not elapsed, so what the active-vessel topics still hold
@@ -10101,7 +10107,21 @@ namespace Sitrep.Host
                 if (_lastRecordedUt.ContainsKey(topic)
                     || (entry.Value.Delivery == Delivery.LossyLatest && _courier.HasAnyArchiveTail(NodeId, topic)))
                 {
-                    RecordThrough(topic, null, ut, new DelayStamp(0.0));
+                    /*
+                     * The withdrawal goes in at the instant before the switch, not
+                     * at it. The Courier delivers a state topic by reading the
+                     * archive at the delivery's own instant, and the new craft's
+                     * first readings are made at the switch's instant: a
+                     * withdrawal at that same instant, which crosses at no delay,
+                     * would read them and carry them to every centre at once.
+                     */
+                    var recordedBefore = _lastRecordedUt.TryGetValue(topic, out var lastUt) ? lastUt : (double?)null;
+                    var before = InstantBefore(ut);
+                    RecordThrough(topic, null, before, new DelayStamp(0.0));
+                    if (recordedBefore.HasValue && recordedBefore.Value > before)
+                    {
+                        _lastRecordedUt[topic] = recordedBefore.Value;
+                    }
                 }
                 // The emitter's last-emitted value is the old craft's whether or not it was
                 // ever recorded (a dark craft's samples are held, then discarded), so an equal
