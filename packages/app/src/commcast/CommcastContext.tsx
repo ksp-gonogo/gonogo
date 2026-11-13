@@ -302,8 +302,6 @@ export interface AddressBook {
   nameFor: (id: RecipientId) => string;
   /** Set for an address the roster no longer lists. Unset while the roster is still unknown, so a fresh page load greys nobody. */
   unreachableOf: (id: RecipientId) => Unreachable | undefined;
-  /** Whether a screen can answer at an address's centre now, from the roster; undefined while the roster is unknown or does not list it. */
-  staffedOf: (id: RecipientId) => boolean | undefined;
 }
 
 /**
@@ -341,10 +339,6 @@ export function useAddressBook(): AddressBook {
         // A craft the roster has not heard of yet is still the active vessel, which the screen can name.
         (activeVessel?.id === id ? activeVessel.name : undefined) ??
         unnamedAs(id, roster.state, unnamed.current),
-      staffedOf: (id) => {
-        const entry = entries?.find((e) => e.id === id);
-        return entry === undefined ? undefined : entry.active === true;
-      },
       unreachableOf: (id) => {
         // The roster lists a craft only once its own word has arrived, so the screen's active vessel is not absent for having left.
         if (

@@ -27,6 +27,7 @@ import { messageText } from "./groups";
 import { type RecipientAbout, recipientWords } from "./recipientWords";
 import {
   deliveryAckUtFor,
+  deliveryAnswerUtFor,
   deliveryPhaseFor,
   heardUtOf,
   isSettled,
@@ -173,7 +174,7 @@ function SentVerdict({
 function lastAnswerUt(out: OutboundMessage, now: number): number | undefined {
   let latest: number | undefined;
   for (const delivery of out.deliveries) {
-    const ut = deliveryAckUtFor(out, delivery);
+    const ut = deliveryAnswerUtFor(out, delivery);
     if (ut === undefined || ut > now) return undefined;
     if (latest === undefined || ut > latest) latest = ut;
   }
@@ -199,7 +200,8 @@ function RecipientState({
   about: RecipientAbout;
 }) {
   const phase = deliveryPhaseFor(out, delivery, now);
-  const state = recipientWords(phase, delivery, about);
+  const read = deliveryAckUtFor(out, delivery) !== undefined;
+  const state = recipientWords(phase, delivery, about, read);
   // A refusal is the mod's own word, not a worked-out state, so it carries no mark and wraps like any sentence.
   const modelled =
     phase !== "confirmed" &&

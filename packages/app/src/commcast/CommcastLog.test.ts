@@ -1,7 +1,13 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { OutgoingAck } from "./CommcastLog";
 import { CommcastLog, type CommcastTransmitter } from "./CommcastLog";
-import { separationsTo } from "./reveal";
+import { recipientWords } from "./recipientWords";
+import {
+  deliveryAckUtFor,
+  deliveryPhaseFor,
+  messageStatusFor,
+  separationsTo,
+} from "./reveal";
 import type { CommsAck, CommsMessage } from "./types";
 
 const KSC = "ksc";
@@ -502,5 +508,105 @@ describe("a colleague's message filed before this screen could time it", () => {
     const [delivery] = log.snapshot().outbox[0]?.deliveries ?? [];
     expect(delivery?.queued).toBeUndefined();
     expect(delivery?.separationSeconds).toBe(240);
+  });
+});
+
+describe("delivery ends on the mod's record of the arrival, never on a read", () => {
+  function sendTo(log: CommcastLog) {
+    return log.send(AUTHOR, {
+      kind: "text",
+      groupId: "g1",
+      body: "station to craft 1",
+      to: [ARES],
+      sentUt: 1000,
+      separations: separationsTo(KSC, [ARES], 2),
+    }).id;
+  }
+
+  function ledgerOf(
+    id: string,
+    landed: number | undefined,
+    read: Record<
+      string,
+      { at: number; stationKey: string; seat: "pilot" }
+    > = {},
+  ) {
+    return [
+      {
+        kind: "text" as const,
+        id,
+        groupId: "g1",
+        from: KSC,
+        author: {
+          name: AUTHOR.name,
+          stationKey: AUTHOR.stationKey,
+          seat: AUTHOR.seat,
+        },
+        sentUt: 1000,
+        to: [KSC, ARES],
+        body: "station to craft 1",
+        delivered: (landed === undefined ? {} : { [ARES]: landed }) as Record<
+          string,
+          number
+        >,
+        ended: {},
+        read,
+      },
+    ];
+  }
+
+  it("is delivered from the landing for a recipient that never reads, and offers no resend", () => {
+    const log = makeLog();
+    log.setVantage(KSC);
+    const id = sendTo(log);
+    log.applyLedger(ledgerOf(id, 1002));
+
+    const out = log.snapshot().outbox[0];
+    const delivery = out?.deliveries[0];
+    expect(delivery?.landedUt).toBe(1002);
+    expect(out?.acks).toEqual([]);
+    expect(deliveryPhaseFor(out, delivery, 1001)).toBe("in-transit");
+    expect(deliveryPhaseFor(out, delivery, 1002)).toBe("confirmed");
+    expect(deliveryPhaseFor(out, delivery, 1030)).toBe("confirmed");
+    expect(messageStatusFor(out, 1030)).toBe("received");
+    expect(recipientWords("confirmed", delivery, {}, false)).toBe("delivered");
+  });
+
+  it("is delivered, then read, for a recipient with a screen", () => {
+    const log = makeLog();
+    log.setVantage(KSC);
+    const id = sendTo(log);
+    log.applyLedger(ledgerOf(id, 1002));
+    log.applyLedger(
+      ledgerOf(id, 1002, {
+        [ARES]: { at: 1010, stationKey: "pilot-1", seat: "pilot" },
+      }),
+    );
+
+    const out = log.snapshot().outbox[0];
+    const delivery = out?.deliveries[0];
+    expect(out?.acks).toHaveLength(1);
+    expect(deliveryPhaseFor(out, delivery, 1002)).toBe("confirmed");
+    expect(
+      recipientWords(
+        "confirmed",
+        delivery,
+        {},
+        deliveryAckUtFor(out, delivery) !== undefined,
+      ),
+    ).toBe("delivered, read");
+  });
+
+  it("offers a resend only when no arrival is recorded in the expected time", () => {
+    const log = makeLog();
+    log.setVantage(KSC);
+    const id = sendTo(log);
+    log.applyLedger(ledgerOf(id, undefined));
+
+    const out = log.snapshot().outbox[0];
+    const delivery = out?.deliveries[0];
+    expect(deliveryPhaseFor(out, delivery, 1003)).toBe("awaiting-reply");
+    expect(deliveryPhaseFor(out, delivery, 1500)).toBe("overdue");
+    expect(messageStatusFor(out, 1500)).toBe("unconfirmed");
   });
 });

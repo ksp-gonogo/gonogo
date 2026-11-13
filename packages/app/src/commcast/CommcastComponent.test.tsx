@@ -1028,7 +1028,7 @@ describe("Commcast, rendered", () => {
       await userEvent.hover(screen.getByRole("button", { name: "In transit" }));
       const card = await screen.findByRole("tooltip");
       expect(
-        within(card).getByText(/Unknown station\s+received/),
+        within(card).getByText(/Unknown station\s+delivered, read/),
       ).toBeInTheDocument();
       const onTheWay = within(card).getByText("on the way");
       expect(

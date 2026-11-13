@@ -86,6 +86,8 @@ export interface Held {
   acks?: { from: string; stationKey: string; at: number }[];
   /** Set on an outbound message that was never transmitted. */
   neverLeft?: boolean;
+  /** When the mod's ledger says the words reached the recipient, relative to `VIEW_UT`. */
+  landedAt?: number;
   /** The mod refused the send; a string is the reason it gave. */
   refused?: string | true;
   /** The mod is keeping the message for a path that has not opened. */
@@ -565,6 +567,9 @@ function paneTree(pane: Pane, index: number) {
             neverLeft:
               held.neverLeft === true || held.unreached?.includes(to) === true,
             ...(held.queued === true ? { queued: true } : {}),
+            ...(held.landedAt === undefined
+              ? {}
+              : { delivered: true, landedUt: VIEW_UT + held.landedAt }),
             ...(held.refused === undefined
               ? {}
               : {

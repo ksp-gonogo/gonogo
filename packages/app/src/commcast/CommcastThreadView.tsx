@@ -170,7 +170,6 @@ export function CommcastThreadView({
                     plan && me.vantageId !== undefined
                       ? noReachReasonOf(plan, me.vantageId, [id])
                       : undefined,
-                  staffed: book.staffedOf(id),
                 })}
               />
             ))}

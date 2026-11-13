@@ -257,6 +257,36 @@ export function firstAckUtFor(out: OutboundMessage): number | undefined {
   return soonest;
 }
 
+/**
+ * The instant the first recipient's arrival or acknowledgement of `out` reached
+ * its author, or `undefined` while none has.
+ */
+export function firstAnswerUtFor(out: OutboundMessage): number | undefined {
+  let soonest = firstAckUtFor(out);
+  for (const delivery of out.deliveries) {
+    const ut = deliveryAnswerUtFor(out, delivery);
+    if (ut !== undefined && (soonest === undefined || ut < soonest))
+      soonest = ut;
+  }
+  return soonest;
+}
+
+/**
+ * The instant word that `delivery`'s message arrived at its recipient reached
+ * the author: the mod's record of the arrival or the recipient's own
+ * acknowledgement, whichever is first. `undefined` while neither has. A read
+ * is never needed for this; the arrival alone ends the delivery.
+ */
+export function deliveryAnswerUtFor(
+  out: OutboundMessage,
+  delivery: Delivery,
+): number | undefined {
+  const ackUt = deliveryAckUtFor(out, delivery);
+  const landed = delivery.landedUt;
+  if (ackUt === undefined) return landed;
+  return landed === undefined ? ackUt : Math.min(ackUt, landed);
+}
+
 /** The instant `delivery`'s recipient's acknowledgement reached the author, or `undefined` while none has. */
 export function deliveryAckUtFor(
   out: OutboundMessage,
@@ -335,17 +365,18 @@ export function sentInDiscardedTimeline(
 /**
  * One recipient's standing at the author as of `utNow`.
  *
- * The gate on `confirmed` is that recipient's own acknowledgement having
- * reached here, never one merely recorded and never anybody else's, which is
- * why the group's first answer cannot speak for the rest.
+ * The gate on `confirmed` is word of that recipient's own arrival having
+ * reached here (the mod's record of it, or the recipient's acknowledgement,
+ * which implies it), never anybody else's, which is why the group's first
+ * answer cannot speak for the rest. A read is not a condition.
  */
 export function deliveryPhaseFor(
   out: OutboundMessage,
   delivery: Delivery,
   utNow: number,
 ): SentPhase {
-  const ackUt = deliveryAckUtFor(out, delivery);
-  if (ackUt !== undefined && utNow >= ackUt) return "confirmed";
+  const answerUt = deliveryAnswerUtFor(out, delivery);
+  if (answerUt !== undefined && utNow >= answerUt) return "confirmed";
   // Nothing left, so nothing is travelling and nothing will answer. Not a long
   // wait: the operator is told, and can resend, rather than watching a
   // countdown for a journey that never started.
@@ -443,7 +474,7 @@ export function sentArrivalUtFor(
   if (giveUpUt === undefined || crossesFast) return out.msg.lastSentUt;
   // Nothing will answer a message sent in a timeline the game has left, so it lands now as unconfirmed.
   if (sentInDiscardedTimeline(out.msg.lastSentUt, utNow)) return utNow;
-  const firstAck = firstAckUtFor(out);
-  if (firstAck !== undefined && firstAck <= giveUpUt) return firstAck;
+  const firstAnswer = firstAnswerUtFor(out);
+  if (firstAnswer !== undefined && firstAnswer <= giveUpUt) return firstAnswer;
   return utNow >= giveUpUt ? giveUpUt : undefined;
 }

@@ -184,6 +184,8 @@ export interface Delivery {
   refusedReason?: string;
   /** Set when the mod's receipt for the send names this recipient as one it addressed the words to. */
   delivered?: boolean;
+  /** When the mod's ledger says the words reached this recipient, as the reply reached the author; absent until they have. */
+  landedUt?: number;
 }
 
 /** One entry of a centre's ledger, as the mod publishes it: what the centre said and what reached it. */

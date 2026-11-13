@@ -609,11 +609,12 @@ export class CommcastLog {
         return { ...rest, refused: true, refusedReason: ended };
       }
       const landed = item.delivered[d.to];
-      if (landed !== undefined && !d.delivered) {
+      if (landed !== undefined && (!d.delivered || d.landedUt === undefined)) {
         const { queued: _queued, ...rest } = d;
         return {
           ...rest,
           delivered: true,
+          landedUt: landed,
           // The reply reached here at `landed`, a round trip after it was sent.
           separationSeconds:
             d.separationSeconds ?? Math.max(0, (landed - d.lastSentUt) / 2),

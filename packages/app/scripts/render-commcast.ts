@@ -68,6 +68,8 @@ interface Held {
   separations?: Record<string, number | null>;
   acks?: { from: string; stationKey: string; at: number }[];
   neverLeft?: boolean;
+  /** When the mod's ledger says the words reached the recipient, relative to `VIEW_UT`. */
+  landedAt?: number;
   /** The mod refused the send; a string is the reason it gave. */
   refused?: string | true;
   queued?: boolean;
@@ -725,6 +727,65 @@ const SCENES: Scene[] = [
     settleOn: "unconfirmed",
     pxW: 520,
     pxH: 620,
+  },
+  {
+    name: "delivered-no-screen",
+    caption:
+      "A craft nobody reads at: the ledger records its arrival and nothing is read",
+    panes: [
+      {
+        seat: "mission-control",
+        vantage: KSC,
+        name: "Kennedy Flight",
+        openThread: "Ares 4",
+        sent: [
+          {
+            ...toAres("Ares, Kennedy. Station to craft 1.", -300),
+            separationSeconds: 2,
+            landedAt: -298,
+          },
+        ],
+      },
+    ],
+    separation: PAIRS.map((p) =>
+      p.from === KSC && p.to === ARES ? { ...p, oneWaySeconds: 2 } : p,
+    ),
+    roster: ROSTER,
+    oneWaySeconds: 2,
+    settleOn: "Station to craft 1",
+    hover: "Received by everyone",
+    pxW: 760,
+    pxH: 600,
+  },
+  {
+    name: "delivered-then-read",
+    caption:
+      "A centre with a screen: the arrival is recorded and then a read comes back",
+    panes: [
+      {
+        seat: "mission-control",
+        vantage: KSC,
+        name: "Kennedy Flight",
+        openThread: "Ares 4",
+        sent: [
+          {
+            ...toAres("Ares, Kennedy. Station to craft 1.", -300),
+            separationSeconds: 2,
+            landedAt: -298,
+            acks: [{ from: ARES, stationKey: "pilot-1", at: -296 }],
+          },
+        ],
+      },
+    ],
+    separation: PAIRS.map((p) =>
+      p.from === KSC && p.to === ARES ? { ...p, oneWaySeconds: 2 } : p,
+    ),
+    roster: ROSTER,
+    oneWaySeconds: 2,
+    settleOn: "Station to craft 1",
+    hover: "Received by everyone",
+    pxW: 760,
+    pxH: 600,
   },
   {
     /*
