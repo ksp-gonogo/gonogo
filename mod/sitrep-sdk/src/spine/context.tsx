@@ -1004,6 +1004,21 @@ export function sampleActiveReading<Payload>(
 }
 
 /**
+ * Whether the newest reading of `topic` that has arrived here is one the active
+ * craft sent, for a caller that cannot use hooks. It answers true while that
+ * reading is held back from the screen by a delay not yet known. Useful for a
+ * service that tells the operator a craft's data is on its way. Used by the
+ * alarm host service.
+ */
+export function hasActiveCraftReadingArrived(topic: string): boolean {
+  const store = activeTimelineStore as
+    | (ActiveTimelineStore &
+        Partial<Pick<TimelineStore, "hasArrivedFromActiveCraft">>)
+    | undefined;
+  return store?.hasArrivedFromActiveCraft?.(topic) ?? false;
+}
+
+/**
  * The vessel's own Keplerian orbit elements (`sma`, `ecc`, `inc`, `lan`,
  * `argPe`, `mu` and the rest) from `vessel.orbit`, as a single read for a caller
  * that cannot use hooks. Useful for a service that plans against the orbit the

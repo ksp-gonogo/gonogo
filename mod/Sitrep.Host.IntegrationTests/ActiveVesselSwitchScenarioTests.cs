@@ -124,5 +124,93 @@ namespace Sitrep.Host.IntegrationTests
                 engine.Stop();
             }
         }
+
+        [Fact]
+        public async Task ACraftSwitchedToUnderAForcedBlackoutSendsNothingWhileTheDelaySourceStaysLive()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new BlackoutRecorderTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, TestBudgets.Op);
+                await SubscribeAsync(client, BlackoutRecorderTestUplink.OnboardTopic, TestBudgets.Op);
+
+                // The shape the dev override gives the capture: the link forced down for the craft now flown, while the
+                // delay source goes on reporting the delay the real network would have, 30 minutes.
+                const double switchToB = 3600.0;
+                const double end = switchToB + 2400.0;
+                for (var ut = 0.0; ut <= end; ut += 30.0)
+                {
+                    var onB = ut >= switchToB;
+                    var snapshot = BlackoutRecorderTestUplink.Snapshot(
+                        ut,
+                        connected: !onB,
+                        delay: Delay,
+                        onboard: (onB ? 1_000_000.0 : 0.0) + ut);
+                    snapshot.Values["vessel"] = new Dictionary<string, object?>
+                    {
+                        ["identity"] = new Dictionary<string, object?> { ["id"] = onB ? VesselB : VesselA, ["name"] = onB ? VesselB : VesselA },
+                    };
+                    TickAndWaitForOutboxes(engine, ut, snapshot, TestBudgets.Op);
+                }
+
+                var readings = (await DrainAllStreamDataAsync(client, TestBudgets.Quiet))
+                    .Where(f => f.Topic == BlackoutRecorderTestUplink.OnboardTopic && f.Payload != null)
+                    .Select(f => Convert.ToDouble(f.Payload))
+                    .ToList();
+
+                // The first craft's readings made before the switch cross as always. Nothing the dark craft made does, however long the wait.
+                Assert.Contains(readings, v => v == 3570.0);
+                Assert.DoesNotContain(readings, v => v >= 1_000_000.0);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
+        public async Task ASwitchWhileTheBlackoutIsAlreadyForcedOnTheCraftLeftSendsNothingOfTheNewCraftEither()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new BlackoutRecorderTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, TestBudgets.Op);
+                await SubscribeAsync(client, BlackoutRecorderTestUplink.OnboardTopic, TestBudgets.Op);
+
+                // The override is not about one craft: it was forced before the switch, so the craft left was dark too.
+                const double forcedAt = 3000.0;
+                const double switchToB = 3600.0;
+                const double end = switchToB + 2400.0;
+                for (var ut = 0.0; ut <= end; ut += 30.0)
+                {
+                    var onB = ut >= switchToB;
+                    var snapshot = BlackoutRecorderTestUplink.Snapshot(
+                        ut,
+                        connected: ut < forcedAt,
+                        delay: Delay,
+                        onboard: (onB ? 1_000_000.0 : 0.0) + ut);
+                    snapshot.Values["vessel"] = new Dictionary<string, object?>
+                    {
+                        ["identity"] = new Dictionary<string, object?> { ["id"] = onB ? VesselB : VesselA, ["name"] = onB ? VesselB : VesselA },
+                    };
+                    TickAndWaitForOutboxes(engine, ut, snapshot, TestBudgets.Op);
+                }
+
+                var readings = (await DrainAllStreamDataAsync(client, TestBudgets.Quiet))
+                    .Where(f => f.Topic == BlackoutRecorderTestUplink.OnboardTopic && f.Payload != null)
+                    .Select(f => Convert.ToDouble(f.Payload))
+                    .ToList();
+
+                Assert.DoesNotContain(readings, v => v >= 1_000_000.0);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
     }
 }

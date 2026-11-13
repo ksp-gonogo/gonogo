@@ -2517,6 +2517,29 @@ export class TimelineStore {
     return point !== undefined && this.catalogFallbackPoints.has(point);
   }
 
+  /**
+   * Whether the newest reading `topic` holds is one the active craft sent: it
+   * names that craft and is not a withdrawal. It looks at what has arrived
+   * here, not at what the view shows, so it answers true while the craft's
+   * reading is held back by a delay not yet known. Useful for telling the
+   * operator the craft's data is on its way when it is not on screen yet. Used
+   * by the alarm host service.
+   */
+  hasArrivedFromActiveCraft(topic: string): boolean {
+    const timeline = this.timelines.get(topic);
+    if (!timeline) return false;
+    if (timeline.epoch < this.clock.getEpoch() && !timeline.bridging) {
+      return false;
+    }
+    const newest = timeline.latest();
+    if (!newest || newest.payload === null) return false;
+    const active = this.activeVesselId(this.currentToken);
+    return (
+      active !== undefined &&
+      payloadMetaSource(newest.payload) === `${CRAFT_SOURCE_PREFIX}${active}`
+    );
+  }
+
   /** The game's statement of which craft is active, or `undefined` while it names none. */
   private activeVesselId(token: FrameToken): string | undefined {
     const active = this.sample("ksp.activeVessel", token)?.payload;

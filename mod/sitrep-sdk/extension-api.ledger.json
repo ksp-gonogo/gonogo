@@ -10079,6 +10079,10 @@
         "note": "New: what the game is doing as the operator is shown it, after the onset"
       },
       {
+        "key": "sitrep-sdk ./spine TimelineStore#hasArrivedFromActiveCraft",
+        "note": "Gains hasArrivedFromActiveCraft, which says whether the newest reading a topic holds is one the active craft sent, whatever the view shows"
+      },
+      {
         "key": "sitrep-sdk ./spine TimelineStore#hasDerivedChannel",
         "note": "derived channels are retired: a processor can publish a Topic of its own, registered through registerProcessor"
       },
@@ -10689,6 +10693,10 @@
       {
         "key": "sitrep-sdk ./testing TimelineStore#gameStatus",
         "note": "New: what the game is doing as the operator is shown it, after the onset"
+      },
+      {
+        "key": "sitrep-sdk ./testing TimelineStore#hasArrivedFromActiveCraft",
+        "note": "Gains hasArrivedFromActiveCraft, which says whether the newest reading a topic holds is one the active craft sent, whatever the view shows"
       },
       {
         "key": "sitrep-sdk ./testing TimelineStore#hasDerivedChannel",
@@ -18495,6 +18503,10 @@
       {
         "key": "sitrep-sdk ./spine getPublishedTopics",
         "note": "a processor can also publish a Topic, so the processor definition and its run carry the published result"
+      },
+      {
+        "key": "sitrep-sdk ./spine hasActiveCraftReadingArrived",
+        "note": "Gains hasActiveCraftReadingArrived, the on-demand read of whether the active craft's newest reading of a topic has arrived, for a caller that cannot use hooks"
       },
       {
         "key": "sitrep-sdk ./spine hasItemVerdict",

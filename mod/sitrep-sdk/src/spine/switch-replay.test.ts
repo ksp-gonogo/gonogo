@@ -220,4 +220,25 @@ describe("a switch from MkI to Mun Probe, from recorded frames", () => {
     expect(seconds).toBeGreaterThan(27);
     expect(seconds).toBeLessThan(31);
   });
+
+  it("knows the craft's own reading has arrived while the view still holds it back for a delay not yet known, which is when the strip must not show", () => {
+    const { advanceTo, store } = replay("back-to-craft");
+    const flight = () =>
+      store.sampleReading<unknown>("vessel.flight", store.currentFrame());
+    const arrived = () => store.hasArrivedFromActiveCraft("vessel.flight");
+
+    // Back on the first craft: the withdrawal of the other's readings is at 5.14 s and the game names it at 5.17 s.
+    advanceTo(5_200);
+    expect(arrived()).toBe(false);
+
+    // Its own reading is in at 5.24 s, but its delay is not known until its comms.delay frame at 6.21 s, so the view reads nothing.
+    advanceTo(5_500);
+    expect(flight().state).toBe("pending");
+    expect(arrived()).toBe(true);
+
+    // Once the delay lands the reading shows.
+    advanceTo(6_600);
+    expect(flight().state).toBe("observed");
+    expect(arrived()).toBe(true);
+  });
 });

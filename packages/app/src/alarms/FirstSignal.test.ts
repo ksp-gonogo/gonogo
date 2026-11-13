@@ -140,6 +140,7 @@ function watch(initial: { id: string | null; name?: string }) {
       : null,
     now: 100 as number | null,
     observed: false,
+    arrived: false,
     delay: { kind: "unknown" } as KnownDelay,
     estimate: null as number | null,
   };
@@ -147,6 +148,7 @@ function watch(initial: { id: string | null; name?: string }) {
     readActive: () => state.active,
     gameUtNow: () => state.now,
     ownDataObserved: () => state.observed,
+    ownDataArrived: () => state.arrived,
     readDelay: () => state.delay,
     readEstimate: () => state.estimate,
   });
@@ -249,5 +251,21 @@ describe("FirstSignalWatch", () => {
       estimated: true,
     });
     expect(w.awaited()).toEqual({ arrivesAtUt: 2_370 });
+  });
+
+  it("shows nothing once the craft's own data has arrived and only a delay not yet known keeps it from the screen", () => {
+    const { state, w } = switched();
+    expect(w.snapshot()).not.toBeNull();
+
+    state.arrived = true;
+    expect(w.snapshot()).toBeNull();
+    expect(w.awaited()).toBeNull();
+
+    // The wait itself has not ended: it ends when the reading is observed.
+    state.arrived = false;
+    expect(w.snapshot()).not.toBeNull();
+    state.arrived = true;
+    state.observed = true;
+    expect(w.observe()).toBe("ended");
   });
 });

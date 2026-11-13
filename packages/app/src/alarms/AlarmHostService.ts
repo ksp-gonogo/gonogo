@@ -6,6 +6,7 @@ import {
   getActiveTelemetryClient,
   getGameUtNow,
   getVesselIdentity,
+  hasActiveCraftReadingArrived,
   lightSecondsPerMetre,
   sampleActiveReading,
   sampleActiveTopic,
@@ -137,6 +138,7 @@ export class AlarmHostService {
       const flight = sampleActiveReading<unknown>("vessel.flight");
       return flight.state === "observed";
     },
+    ownDataArrived: () => hasActiveCraftReadingArrived("vessel.flight"),
     readEstimate: () => {
       const scale = this.lastSecondsPerMetre;
       const now = getGameUtNow()?.valueOf();

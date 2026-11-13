@@ -138,6 +138,7 @@ export {
   getVesselTarget,
   getViewUt,
   getWarpState,
+  hasActiveCraftReadingArrived,
   holdActiveTopicRead,
   lightSecondsPerMetre,
   onActiveTimelineFrame,

@@ -19,6 +19,8 @@ interface FirstSignalPorts {
   gameUtNow(): number | null;
   /** Whether the active craft's own telemetry is arriving live at this screen. */
   ownDataObserved(): boolean;
+  /** Whether the active craft's own telemetry has reached this screen, whether or not it shows yet. */
+  ownDataArrived(): boolean;
   /** The one-way signal delay to the active craft: not known yet, no route to it, or a figure. */
   readDelay(): KnownDelay;
   /** A rough one-way delay to the active craft from where the catalog has it, or null where none can be made. */
@@ -41,7 +43,9 @@ export interface FirstSignalWait {
  * reaches the centre one signal delay later. The wait is announced from the
  * switch itself, before the delay to the new craft is known, and ends only when
  * the craft's own data is observed here: an estimate of the delay, or a held or
- * modelled reading, never ends it.
+ * modelled reading, never ends it. It is not shown once the craft's own data has
+ * arrived and only a delay not yet known keeps it from the screen, since there
+ * is then no signal left to wait for.
  */
 export class FirstSignalWatch {
   private lastVesselId: string | null = null;
@@ -65,9 +69,9 @@ export class FirstSignalWatch {
       : { seconds: estimate, estimated: true };
   }
 
-  /** The wait to show, or null when none is awaited, there is no route to the craft, or the delay is too short to wait out. */
+  /** The wait to show, or null when none is awaited, the craft's own data has already arrived, there is no route to the craft, or the delay is too short to wait out. */
   snapshot(): FirstSignalWait | null {
-    if (this.waiting === null) return null;
+    if (this.waiting === null || this.ports.ownDataArrived()) return null;
     const figure = this.figure();
     if (figure === null) return null;
     return {
@@ -79,7 +83,7 @@ export class FirstSignalWatch {
 
   /** The first signal awaited, with the game's time it is expected at where a delay is known or estimated, or null while none is awaited. */
   awaited(): { arrivesAtUt: number | null } | null {
-    if (this.waiting === null) return null;
+    if (this.waiting === null || this.ports.ownDataArrived()) return null;
     const figure = this.figure();
     if (figure === null) return null;
     const at = this.waiting.switchedAtUt;
