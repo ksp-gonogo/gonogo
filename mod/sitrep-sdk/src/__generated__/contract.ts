@@ -10169,6 +10169,44 @@ export interface StageDeltaVSummary
 	totalBurnTime?: Value<"s"> | null;
 }
 /**
+* One vessel of the save the operator can switch to: who it is, and nothing of
+* where it is or how it is doing.
+*
+* @category Flights
+*/
+export interface SwitchableVessel
+{
+	/** The vessel's stable guid, the id `ksp.switchVessel` takes. */
+	vesselId: string;
+	/** The vessel's display name. */
+	name: string;
+	/** The vessel's type. */
+	vesselType?: VesselType | null;
+}
+/**
+* The other vessels in the save that the game's own vessel switching offers,
+* as `{ "entries": [ ... ] }`. Switching to a vessel is a change of scene,
+* which every command centre can do whatever the radio link to that vessel, so
+* this list does not depend on one: a vessel with no link to any centre is on
+* it. It names vessels and carries no position, distance, situation or any
+* other state of one, which a centre may learn only through delayed telemetry.
+*
+* The active vessel is not on the list. The payload is `null` (no key emitted)
+* outside the flight scene, where there is no vessel to switch from. Not
+* delayed by signal delay: it is a fact about the save, and carries no
+* per-payload `Meta` of its own (the envelope's applies).
+*
+* @category Flights
+*/
+export interface SwitchableVessels
+{
+	/**
+	* Every other vessel of the save the game offers to switch to, in id order.
+	* Empty, never null, when there is none.
+	*/
+	entries: SwitchableVessel[];
+}
+/**
 * Every celestial body in the game, as a tree, wrapped as `{ "bodies": [ ... ]
 * }`. The whole payload is `null`, not an empty list, when no sample has been
 * taken yet, so "no data yet" and "zero bodies" stay distinct.

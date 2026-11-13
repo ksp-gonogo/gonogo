@@ -197,6 +197,7 @@ function outcomes(
     own?: string[];
     nowUt?: number;
     epoch?: number;
+    vesselId?: string | null;
   } = {},
 ) {
   return centreCommandOutcomes({
@@ -206,6 +207,7 @@ function outcomes(
     memory: opts.memory ?? createCentreCommandMemory(),
     nowUt: opts.nowUt ?? 1041,
     epoch: opts.epoch ?? 0,
+    vesselId: opts.vesselId ?? null,
   });
 }
 
@@ -380,5 +382,29 @@ describe("a late answer the centre reports", () => {
       epoch: 1,
     });
     expect(refusals.map((r) => r.id)).toEqual(["station-ab12:c1"]);
+  });
+  it("drops an outcome it reported once a game load starts a new timeline", () => {
+    const memory = createCentreCommandMemory();
+    outcomes([], { memory, nowUt: 1000, epoch: 0 });
+    const refused = settled({ detail: "No RCS thrusters aboard" });
+    expect(outcomes([refused], { memory, epoch: 0 }).refusals).toHaveLength(1);
+    // The centre still lists the entry after the load; the flight it was refused on is gone.
+    expect(
+      outcomes([refused], { memory, nowUt: 1042, epoch: 1 }).refusals,
+    ).toEqual([]);
+  });
+  it("drops an outcome it reported once another vessel is active", () => {
+    const memory = createCentreCommandMemory();
+    outcomes([], { memory, nowUt: 1000, vesselId: "a" });
+    const refused = settled({ detail: "No RCS thrusters aboard" });
+    expect(
+      outcomes([refused], { memory, vesselId: "a" }).refusals,
+    ).toHaveLength(1);
+    expect(
+      outcomes([refused], { memory, vesselId: null }).refusals,
+    ).toHaveLength(1);
+    expect(
+      outcomes([refused], { memory, nowUt: 1042, vesselId: "b" }).refusals,
+    ).toEqual([]);
   });
 });

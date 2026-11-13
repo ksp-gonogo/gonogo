@@ -1788,6 +1788,11 @@
     "SwitchVesselArgs": {
       "vesselId": "id"
     },
+    "SwitchableVessel": {
+      "name": "text",
+      "vesselId": "id",
+      "vesselType": "enum"
+    },
     "TankReach": {
       "drawsFromSet": "id",
       "partId": "id"
@@ -3166,6 +3171,9 @@
     "StreamData": {
       "meta": "Meta"
     },
+    "SwitchableVessels": {
+      "entries": "SwitchableVessel[]"
+    },
     "SystemBodies": {
       "bodies": "BodyEntry[]"
     },
@@ -3367,6 +3375,9 @@
     "ksp.saves": {
       "previousQuicksave": "SaveSummary",
       "quicksave": "SaveSummary"
+    },
+    "ksp.switchableVessels": {
+      "entries": "SwitchableVessel[]"
     },
     "missions.active": {
       "objectives": "MissionObjectiveEntry[]"
@@ -3666,6 +3677,9 @@
     },
     "SettingsRowState": {
       "kind": "SettingKind"
+    },
+    "SwitchableVessel": {
+      "vesselType": "VesselType"
     },
     "TargetListEntry": {
       "kind": "TargetKind",
@@ -4232,6 +4246,7 @@
     "ksp.gameLoaded": "Game loaded",
     "ksp.revertAvailability": "Revert",
     "ksp.saves": "Saves",
+    "ksp.switchableVessels": "Switchable vessels",
     "missions.active": "Active missions",
     "parts.power": "Electric power",
     "recovery.hasRecent": "Recent recovery",
