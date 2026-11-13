@@ -176,13 +176,6 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        /// <summary>
-        /// Whether the game has measured a path to the active craft yet. False
-        /// stands for the first ticks after a switch, when the craft reads
-        /// connected but no light-time to it has been measured.
-        /// </summary>
-        public bool ActivePathMeasured { get; set; } = true;
-
         /// <summary>Whether the active craft has a link home.</summary>
         public bool ActiveConnected { get; set; } = true;
 
@@ -876,7 +869,7 @@ namespace Sitrep.Host.IntegrationTests
             host.SetSignalDelaySource(_ => new CommsDelay
             {
                 // A craft with no path measures no light-time at all, as the live read does.
-                OneWaySeconds = _game.ActivePathMeasured && (_game.ActiveConnected || !_game.DarkMeasuresNoDelay) ? _game.ActiveSeconds : (double?)null,
+                OneWaySeconds = _game.ActiveConnected || !_game.DarkMeasuresNoDelay ? _game.ActiveSeconds : (double?)null,
                 Source = CommsDelaySource.SignalDelay,
             });
             host.SetPathBreakSource((_, ut) =>
