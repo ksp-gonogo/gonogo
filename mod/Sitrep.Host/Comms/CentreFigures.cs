@@ -57,7 +57,8 @@ namespace Sitrep.Host.Comms
 
         /// <summary>
         /// Each centre on <paramref name="roster"/>'s own delay to the active
-        /// craft, as the receiving centre's plan has it. The home centre is
+        /// craft, as the receiving centre's plan has it. <paramref name="noRoute"/>
+        /// is the ledger's word that the receiving centre has none. The home centre is
         /// never listed, a centre with no open route is not listed, and the
         /// centre that is the active craft is listed at zero.
         /// </summary>
@@ -68,12 +69,13 @@ namespace Sitrep.Host.Comms
             string? home,
             IReadOnlyCollection<string>? antennas,
             double ut,
-            double lightFactor)
+            double lightFactor,
+            bool noRoute = false)
         {
             var centres = new List<CentreDelayEntry>();
             if (activeCraft == null)
             {
-                return new CommandCentreActiveVesselDelay { Centres = centres };
+                return new CommandCentreActiveVesselDelay { Centres = centres, NoRoute = noRoute };
             }
             foreach (var centre in roster)
             {
@@ -87,7 +89,7 @@ namespace Sitrep.Host.Comms
                     centres.Add(new CentreDelayEntry { Id = centre.Id, OneWaySeconds = seconds.Value });
                 }
             }
-            return new CommandCentreActiveVesselDelay { Centres = centres };
+            return new CommandCentreActiveVesselDelay { Centres = centres, NoRoute = noRoute };
         }
 
         /// <summary>

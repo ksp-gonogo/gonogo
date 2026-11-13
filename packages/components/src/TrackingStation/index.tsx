@@ -1134,6 +1134,8 @@ registerComponent<TrackingStationConfig>({
   minSize: { w: 6, h: 8 },
   component: TrackingStationComponent,
   configComponent: TrackingStationConfigForm,
+  // The no-route read only quiets the awaiting notice at a ground centre; a pilot aboard still sees the diagram.
+  seats: ["mission-control", "pilot"],
   // One augment can drive an overlay from a header control; `.actions` is Panel's universal segment, listed so authors find it here.
   augmentSlots: ["tracking-station.actions", "tracking-station.overlay"],
   contributionSlots: [

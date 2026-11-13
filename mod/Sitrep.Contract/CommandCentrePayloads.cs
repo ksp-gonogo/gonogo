@@ -311,9 +311,10 @@ public class CentreDelayEntry
 /// <para><b>Sparse.</b> A centre is listed only when it has a delay of its
 /// own. The home centre is never listed: its delay is
 /// <c>comms.delay</c>, which also carries the hold through a loss of signal. A
-/// centre other than home that is not listed has no route to the craft. Neither
-/// absence is a zero, so a client must not quote a delay for a centre that is
-/// missing from the list.</para>
+/// centre other than home that is not listed has either no route to the craft
+/// or has not yet heard it, and <see cref="NoRoute"/> says which for the
+/// receiving centre. Neither absence is a zero, so a client must not quote a
+/// delay for a centre that is missing from the list.</para>
 ///
 /// <para>A crewed centre that is the active craft is listed at an explicit
 /// zero: a craft is no distance from itself.</para>
@@ -339,4 +340,21 @@ public class CommandCentreActiveVesselDelay
 {
     /// <summary>Every centre with a delay of its own to the active craft.</summary>
     public IReadOnlyList<CentreDelayEntry> Centres { get; set; } = new List<CentreDelayEntry>();
+
+    /// <summary>
+    /// Whether the command centre this payload is sent to has no route to the
+    /// active craft, so nothing the craft sends will ever reach it. False while
+    /// the centre has a route, including the first signal delay after a switch to
+    /// it, when the craft's first report is still on its way. A screen at a centre
+    /// with this set has no link to report on and should say so rather than wait
+    /// for a first signal.
+    /// <internal>
+    /// Read from the ledger's route-carried set, the same one that holds the
+    /// centre's delay to the craft at "never", and not from the centre's contact
+    /// plan: the plan omits a centre that has not heard the craft yet, which
+    /// looks the same as a centre with no route.
+    /// </internal>
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool NoRoute { get; set; }
 }

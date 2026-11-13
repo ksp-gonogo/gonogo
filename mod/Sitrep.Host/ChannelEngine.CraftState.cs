@@ -589,6 +589,9 @@ namespace Sitrep.Host
             return home == CommandCentres.FreshConnectionVantage.None ? null : home;
         }
 
+        public bool HasNoRouteToActiveCraft(string centre) =>
+            !_reach.Carried(centre, NodeId).HasFlag(CommsDirection.Reverse);
+
         public double LightFactor() => _deliveryInputs.LightFactor;
 
         public bool NetworkModelled() => _deliveryInputs.NetworkModelled;

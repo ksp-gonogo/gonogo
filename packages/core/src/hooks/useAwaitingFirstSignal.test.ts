@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isAwaitingFirstSignal } from "./useAwaitingFirstSignal";
+import { isAwaitingFirstSignal, readNoRoute } from "./useAwaitingFirstSignal";
 
 describe("isAwaitingFirstSignal", () => {
   it("is true for a link report that has not arrived yet", () => {
@@ -27,5 +27,31 @@ describe("isAwaitingFirstSignal", () => {
     ]) {
       expect(isAwaitingFirstSignal({ state: "held", grade })).toBe(false);
     }
+  });
+});
+
+describe("readNoRoute", () => {
+  it("is true only when the centre's own delay list says it has no route", () => {
+    expect(
+      readNoRoute({ state: "observed", value: { centres: [], noRoute: true } }),
+    ).toBe(true);
+    expect(
+      readNoRoute({ state: "held", value: { centres: [], noRoute: true } }),
+    ).toBe(true);
+  });
+
+  it("is false while the centre has a route, including the first delay after a switch", () => {
+    expect(
+      readNoRoute({
+        state: "observed",
+        value: { centres: [], noRoute: false },
+      }),
+    ).toBe(false);
+  });
+
+  it("is false before the list has arrived or when it is absent", () => {
+    expect(readNoRoute({ state: "pending" })).toBe(false);
+    expect(readNoRoute({ state: "absent" })).toBe(false);
+    expect(readNoRoute(undefined)).toBe(false);
   });
 });

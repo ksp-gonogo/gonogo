@@ -369,6 +369,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     type: "id",
     warning: "text",
   },
+  "CommandCentreActiveVesselDelay": {
+    noRoute: "flag",
+  },
   "CommandCentreEntry": {
     active: "flag",
     bodyIndex: "id",
@@ -2187,6 +2190,9 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "career.mode": {
     mode: "enum",
+  },
+  "commandCentre.activeVesselDelay": {
+    noRoute: "flag",
   },
   "commandCentre.roster": {
     active: "flag",
