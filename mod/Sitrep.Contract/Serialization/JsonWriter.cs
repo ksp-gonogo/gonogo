@@ -2290,10 +2290,6 @@ namespace Sitrep.Contract.Serialization
                 }
             }
             sb.Append(']');
-            sb.Append(',');
-            AppendString(sb, "noRoute");
-            sb.Append(':');
-            sb.Append(d.NoRoute ? "true" : "false");
             sb.Append('}');
         }
 

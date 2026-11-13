@@ -270,9 +270,6 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>Pairs of a centre and a craft's bare guid that the centre's own route finding finds no path between.</summary>
         public HashSet<(string Centre, string VesselId)> Unroutable { get; } = new HashSet<(string Centre, string VesselId)>();
 
-        /// <summary>Centres with no route to the active craft as the game's own delay reads it: listed on no active-vessel delay row and sent none of the craft's channels.</summary>
-        public HashSet<string> NoRouteToActive { get; } = new HashSet<string>();
-
         /// <summary>Whether the active craft's route ends somewhere other than a ground station.</summary>
         public bool ActiveOffTheGround { get; set; }
 
@@ -922,10 +919,6 @@ namespace Sitrep.Host.IntegrationTests
             {
                 activeRows[route.Key] = ScriptedContactGame.SecondsOver(route.Value);
             }
-            foreach (var centre in ledger.NoRouteToActive)
-            {
-                activeRows.Remove(centre);
-            }
             _engine.SetActiveVesselDelays(activeRows);
             _engine.SetActiveVesselRoutes(ledger.GameRoutes);
             var rows = new List<(string, string, double)>
@@ -962,15 +955,6 @@ namespace Sitrep.Host.IntegrationTests
             if (ledger.RelayExists && !ledger.FarRoutedToRelay)
             {
                 NoRoute(ScriptedContactGame.Far, ScriptedContactGame.RelayGuid);
-            }
-            foreach (var centre in ledger.NoRouteToActive)
-            {
-                if (!unroutable.TryGetValue(centre, out var silent))
-                {
-                    silent = new List<string>();
-                    unroutable[centre] = silent;
-                }
-                silent.Add(ChannelEngine.NodeId);
             }
             foreach (var (centre, vesselId) in ledger.Unroutable)
             {
@@ -1045,7 +1029,6 @@ namespace Sitrep.Host.IntegrationTests
                 RelayOffTheGround = game.RelayOffTheGround;
                 RelayIsEngineCentre = game.RelayIsEngineCentre;
                 Unroutable = new List<(string, string)>(game.Unroutable);
-                NoRouteToActive = new List<string>(game.NoRouteToActive);
                 ActiveOffTheGround = game.ActiveOffTheGround;
                 ActiveFromRelaySeconds = game.ActiveFromRelaySeconds;
                 Forecasts = new Dictionary<string, CraftForecast>(game.Forecasts);
@@ -1061,8 +1044,6 @@ namespace Sitrep.Host.IntegrationTests
             public bool RelayIsEngineCentre { get; }
 
             public List<(string Centre, string VesselId)> Unroutable { get; }
-
-            public List<string> NoRouteToActive { get; }
 
             public bool ActiveOffTheGround { get; }
 

@@ -1443,10 +1443,8 @@ export interface CentreDelayEntry
 * **Sparse.** A centre is listed only when it has a delay of its own. The home
 * centre is never listed: its delay is `comms.delay`, which also carries the
 * hold through a loss of signal. A centre other than home that is not listed
-* has either no route to the craft or has not yet heard it, and
-* `CommandCentreActiveVesselDelay.noRoute` says which for the receiving
-* centre. Neither absence is a zero, so a client must not quote a delay for a
-* centre that is missing from the list.
+* has no route to the craft. Neither absence is a zero, so a client must not
+* quote a delay for a centre that is missing from the list.
 *
 * A crewed centre that is the active craft is listed at an explicit zero: a
 * craft is no distance from itself.
@@ -1462,15 +1460,6 @@ export interface CommandCentreActiveVesselDelay
 {
 	/** Every centre with a delay of its own to the active craft. */
 	centres: CentreDelayEntry[];
-	/**
-	* Whether the command centre this payload is sent to has no route to the
-	* active craft, so nothing the craft sends will ever reach it. False while the
-	* centre has a route, including the first signal delay after a switch to it,
-	* when the craft's first report is still on its way. A screen at a centre with
-	* this set has no link to report on and should say so rather than wait for a
-	* first signal.
-	*/
-	noRoute: boolean;
 }
 /**
 * One gated command and what its gate says right now, evaluated with no

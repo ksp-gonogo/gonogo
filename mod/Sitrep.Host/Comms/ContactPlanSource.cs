@@ -177,9 +177,6 @@ namespace Sitrep.Host.Comms
         /// <summary>The signal delay <paramref name="centre"/> last had to the craft, by bare guid, in seconds: 0 when it never had a route.</summary>
         double LastDelaySeconds(string vesselId, string centre);
 
-        /// <summary>Whether the ledger holds <paramref name="centre"/> at "never" from the active craft, so nothing the craft sends reaches it.</summary>
-        bool HasNoRouteToActiveCraft(string centre);
-
         /// <summary>What a real signal delay is multiplied by to get the delay the game is set to model: see <see cref="DeliveryInputs.LightFactor"/>.</summary>
         double LightFactor();
 
@@ -1553,7 +1550,7 @@ namespace Sitrep.Host.Comms
                 {
                     _streams!.PublishAddressedTo(
                         ActiveVesselDelayTopic,
-                        CentreFigures.ActiveVesselDelays(roster, plan, looked.ActiveCraft, home, stations, looked.Ut, lightFactor, _audience!.HasNoRouteToActiveCraft(centre)),
+                        CentreFigures.ActiveVesselDelays(roster, plan, looked.ActiveCraft, home, stations, looked.Ut, lightFactor),
                         looked.Ut,
                         to);
                 }

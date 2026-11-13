@@ -329,9 +329,6 @@
       "type": "id",
       "warning": "text"
     },
-    "CommandCentreActiveVesselDelay": {
-      "noRoute": "flag"
-    },
     "CommandCentreEntry": {
       "active": "flag",
       "bodyIndex": "id",
@@ -2145,9 +2142,6 @@
     },
     "career.mode": {
       "mode": "enum"
-    },
-    "commandCentre.activeVesselDelay": {
-      "noRoute": "flag"
     },
     "commandCentre.roster": {
       "active": "flag",

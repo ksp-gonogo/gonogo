@@ -1,6 +1,6 @@
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
-import { commsLinkBadge, commsLinkState } from "./badge";
+import { commsLinkBadge } from "./badge";
 
 /** The label/tone table of the comms link badge; `panel-badge.test.tsx` proves it reaches the header. */
 describe("commsLinkBadge", () => {
@@ -45,15 +45,5 @@ describe("commsLinkBadge", () => {
         tone: "neutral",
       },
     ]);
-  });
-});
-
-describe("commsLinkState", () => {
-  it("awaits a link not yet heard from at a centre that has a route", () => {
-    expect(commsLinkState({ state: "pending" } as never)).toBe("awaiting");
-  });
-
-  it("reads a link not heard from at a centre with no route as down", () => {
-    expect(commsLinkState({ state: "pending" } as never, true)).toBe(false);
   });
 });

@@ -1,6 +1,5 @@
 import {
   isAwaitingFirstSignal,
-  useNoRouteToCraft,
   useScreen,
   useTelemetry,
   useTimeContexts,
@@ -32,9 +31,16 @@ import { useActiveCentres } from "./VantageControl";
 /** What the header can truthfully say about the delay in force. */
 type SignalDelayState =
   | { kind: "delay"; seconds: number }
+  | { kind: "via-home"; seconds: number }
   | { kind: "disconnected" }
   | { kind: "awaiting"; seconds: number | undefined }
   | { kind: "unknown"; spoken: string };
+
+/**
+ * What a centre with no route of its own to the craft is called. It still has
+ * a link: its traffic rides the whole-network delay, home's.
+ */
+const VIA_HOME_LABEL = "via home";
 
 const LINK_UNKNOWN = "Signal delay unknown, no link report yet";
 const NOT_REPORTED = "Signal delay from this command centre is not reported";
@@ -49,8 +55,10 @@ type LinkConnected = boolean | "awaiting" | undefined;
  * `centreDelays` is `commandCentre.activeVesselDelay`: each centre with a delay
  * of its own, or `undefined` before that list has arrived. Home is never on it,
  * because home's delay is `comms.delay`, so `homeSeconds` answers for home. Any
- * other centre the list leaves out has no delay of its own to quote, and no
- * other centre's figure is borrowed for it: it reads as unknown.
+ * other centre the list leaves out has no route of its own, yet its traffic
+ * still arrives, timed by the whole-network delay, which is home's: so it reads
+ * home's figure marked as borrowed, never "disconnected", and never the mark
+ * without the figure.
  *
  * A link reported down wins over every number, because the number held through
  * a blackout is right for the clock and would be a falsehood in a readout. A
@@ -78,12 +86,7 @@ function deriveSignalDelay({
   if (isOwnCraft) return { kind: "delay", seconds: 0 };
   if (linkConnected === false) return { kind: "disconnected" };
   if (linkConnected === "awaiting") {
-    return {
-      kind: "awaiting",
-      seconds: isHome
-        ? homeSeconds
-        : (centreDelays?.get(centreId ?? "") ?? undefined),
-    };
+    return { kind: "awaiting", seconds: homeSeconds };
   }
   if (linkConnected === undefined) {
     return { kind: "unknown", spoken: LINK_UNKNOWN };
@@ -99,7 +102,9 @@ function deriveSignalDelay({
   }
   const seconds = centreDelays.get(centreId);
   if (seconds !== undefined) return { kind: "delay", seconds };
-  return { kind: "unknown", spoken: NOT_REPORTED };
+  return homeSeconds === undefined
+    ? { kind: "unknown", spoken: NOT_REPORTED }
+    : { kind: "via-home", seconds: homeSeconds };
 }
 
 /**
@@ -180,7 +185,9 @@ function CentreSignalDelayValue({
   return (
     <SignalDelayValue
       state={
-        state.kind === "delay" ? { ...state, seconds: owltSeconds } : state
+        state.kind === "delay" || state.kind === "via-home"
+          ? { ...state, seconds: owltSeconds }
+          : state
       }
       wrap={wrap}
     />
@@ -238,7 +245,6 @@ function useRouteHome(): boolean | undefined {
  */
 function useLinkConnected(): LinkConnected {
   const linkReading = useTelemetry("comms.link");
-  if (useNoRouteToCraft()) return false;
   if (isAwaitingFirstSignal(linkReading)) return "awaiting";
   return linkReading.state === "observed"
     ? (linkReading.value.connected ?? undefined)
@@ -284,7 +290,10 @@ function SignalDelayValue({
   state: SignalDelayState;
   wrap: Wrap | undefined;
 }) {
-  if (state.kind === "delay" && delayVisibility(state.seconds) === "hidden") {
+  if (
+    (state.kind === "delay" || state.kind === "via-home") &&
+    delayVisibility(state.seconds) === "hidden"
+  ) {
     return null;
   }
   const readout = <SignalDelayFigure state={state} />;
@@ -307,6 +316,16 @@ function SignalDelayFigure({ state }: { state: SignalDelayState }) {
         <>
           <VisuallyHidden>Signal delay </VisuallyHidden>
           <DelayFigure seconds={state.seconds} />
+        </>
+      );
+    case "via-home":
+      return (
+        <>
+          <VisuallyHidden>Signal delay </VisuallyHidden>
+          <DelayFigure seconds={state.seconds} />{" "}
+          <Text level="muted" size="xs">
+            {VIA_HOME_LABEL}
+          </Text>
         </>
       );
     case "disconnected":

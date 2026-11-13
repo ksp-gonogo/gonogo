@@ -769,7 +769,8 @@ describe("MissionBanner signal delay at a centre other than home", () => {
     expect(delayValue()?.innerHTML).not.toContain(unitMarkup(187.4));
   });
 
-  it("quotes no figure for a centre with no delay of its own, home's included", async () => {
+  it("reads home's delay, marked as via home, for a centre with no route of its own", async () => {
+    const atHome = unitMarkup(187.4);
     const fixture = setupDelayedStream();
     render(
       <fixture.Provider>
@@ -783,72 +784,9 @@ describe("MissionBanner signal delay at a centre other than home", () => {
     centreDelaysAt(fixture, "ground:unrouted", 0, 187.4);
 
     await waitFor(() => {
-      expect(delayValue()?.textContent).toContain("is not reported");
+      expect(delayValue()?.textContent).toContain("via home");
     });
-    expect(delayValue()?.textContent).not.toContain("via home");
-    expect(delayValue()?.innerHTML).not.toContain(unitMarkup(187.4));
-    expect(delayValue()?.textContent).not.toContain("disconnected");
-  });
-
-  it("says disconnected, never awaiting a first signal, at a centre the mod says has no route to the craft", async () => {
-    const fixture = setupDelayedStream();
-    render(
-      <fixture.Provider>
-        <MissionBanner />
-      </fixture.Provider>,
-    );
-    act(() => {
-      fixture.client.setVantage("ground:unrouted");
-    });
-    fixture.emit("commandCentre.roster", MULTI_ROSTER, "ground:unrouted");
-    fixture.emit("spaceCenter.scene", { scene: "Flight" }, "ground:unrouted");
-    fixture.emit(
-      "comms.delay",
-      { oneWaySeconds: 187.4, source: CommsDelaySource.SignalDelay },
-      "ground:unrouted",
-    );
-    await screen.findByText("Delay");
-    fixture.emit(
-      "commandCentre.activeVesselDelay",
-      { centres: [], noRoute: true },
-      "ground:unrouted",
-      0,
-    );
-
-    await waitFor(() => {
-      expect(delayValue()?.textContent).toBe("Signal delay: disconnected");
-    });
-    expect(delayValue()?.textContent).not.toContain("Awaiting first signal");
-  });
-
-  it("still awaits the first signal in the first delay after a switch to a centre that has a route", async () => {
-    const fixture = setupDelayedStream();
-    render(
-      <fixture.Provider>
-        <MissionBanner />
-      </fixture.Provider>,
-    );
-    act(() => {
-      fixture.client.setVantage(GS1);
-    });
-    fixture.emit("commandCentre.roster", MULTI_ROSTER, GS1);
-    fixture.emit("spaceCenter.scene", { scene: "Flight" }, GS1);
-    fixture.emit(
-      "comms.delay",
-      { oneWaySeconds: 42.5, source: CommsDelaySource.SignalDelay },
-      GS1,
-    );
-    await screen.findByText("Delay");
-    fixture.emit(
-      "commandCentre.activeVesselDelay",
-      { centres: [], noRoute: false },
-      GS1,
-      0,
-    );
-
-    await waitFor(() => {
-      expect(delayValue()?.textContent).toContain("Awaiting first signal");
-    });
+    expect(delayValue()?.innerHTML).toContain(atHome);
     expect(delayValue()?.textContent).not.toContain("disconnected");
   });
 
@@ -865,7 +803,7 @@ describe("MissionBanner signal delay at a centre other than home", () => {
     await fixture.flyAt(187.4, "ground:unrouted");
     centreDelaysAt(fixture, "ground:unrouted", 0, 187.4);
     await waitFor(() => {
-      expect(delayValue()?.textContent).toContain("is not reported");
+      expect(delayValue()?.textContent).toContain("via home");
     });
 
     fixture.linkAt(false, 1000, 187.4, "ground:unrouted");
@@ -1058,16 +996,16 @@ describe("MissionBanner signal delay aboard the craft", () => {
     });
   });
 
-  it("quotes no figure when mission control's centre has no delay of its own", async () => {
+  it("reads home's delay, marked as via home, when mission control's centre has no route of its own", async () => {
+    const atHome = unitMarkup(187.4);
     const { tell, fly } = renderPilot();
     tell("ground:unrouted");
     await fly(true);
 
     await waitFor(() => {
-      expect(delayValue()?.textContent).toContain("is not reported");
+      expect(delayValue()?.textContent).toContain("via home");
     });
-    expect(delayValue()?.textContent).not.toContain("via home");
-    expect(delayValue()?.innerHTML).not.toContain(unitMarkup(187.4));
+    expect(delayValue()?.innerHTML).toContain(atHome);
   });
 
   it("says disconnected at mission control's unrouted centre once the link is down", async () => {

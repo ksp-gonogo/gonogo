@@ -210,53 +210,16 @@ const SCENES: Scene[] = [
     emit: flight(true),
   },
   {
-    // A centre with no delay of its own to the craft: no figure is quoted for it.
+    // A centre with no route of its own to the craft: its traffic still arrives, timed by home's delay.
     name: "non-home-centre-unrouted",
     screen: "main",
     vantage: GS2,
     select: GS2,
     settled: {
-      after: NOT_REPORTED,
-      before: "DelaySignal delay 3min 7s via home",
+      after: "DelaySignal delay 3min 7s via home",
+      before: NOT_REPORTED,
     },
     emit: flight(true),
-  },
-  {
-    // The mod says this centre has no route to the craft: nothing will ever arrive there.
-    name: "centre-no-route",
-    screen: "main",
-    vantage: GS2,
-    select: GS2,
-    settled: {
-      after: "DelaySignal delay: disconnected",
-      before: "DelaySignal delay: Awaiting first signal",
-    },
-    emit: [
-      ["commandCentre.roster", ROSTER],
-      ["spaceCenter.scene", { scene: "Flight" }],
-      ["comms.delay", { oneWaySeconds: 187.4, source: SIGNAL_DELAY }],
-      [
-        "commandCentre.activeVesselDelay",
-        { centres: CENTRE_DELAYS.centres, noRoute: true },
-      ],
-    ],
-  },
-  {
-    // The first signal delay after a switch to a centre that has a route: the craft's first report is still on its way.
-    name: "centre-first-delay",
-    screen: "main",
-    vantage: GS1,
-    select: GS1,
-    settled: {
-      after: "DelaySignal delay: Awaiting first signal",
-      before: "DelaySignal delay: Awaiting first signal",
-    },
-    emit: [
-      ["commandCentre.roster", ROSTER],
-      ["spaceCenter.scene", { scene: "Flight" }],
-      ["comms.delay", { oneWaySeconds: 187.4, source: SIGNAL_DELAY }],
-      ["commandCentre.activeVesselDelay", { centres: [], noRoute: false }],
-    ],
   },
   {
     // The same centre once the link itself is down.
@@ -336,8 +299,8 @@ const SCENES: Scene[] = [
     follow: true,
     hostCentre: GS2,
     settled: {
-      after: NOT_REPORTED,
-      before: "DelaySignal delay 3min 7s via home",
+      after: "DelaySignal delay 3min 7s via home",
+      before: "DelaySignal delay 0s",
     },
     emit: [...flight(true), ["vessel.orbit", CRAFT_ORBIT]],
   },
@@ -566,7 +529,7 @@ async function cleanRenders(dir: string): Promise<void> {
 async function main(): Promise<void> {
   const probeHtml = await prepareProbePage();
   await mkdir(OUT_DIR, { recursive: true });
-  if (!process.env.HEADER_DELAY_SCENES) await cleanRenders(OUT_DIR);
+  await cleanRenders(OUT_DIR);
 
   console.log("Launching Chromium...");
   const browser = await chromium.launch();
@@ -596,9 +559,7 @@ async function main(): Promise<void> {
       { timeout: 15_000 },
     );
 
-    const only = process.env.HEADER_DELAY_SCENES?.split(",");
     for (const scene of SCENES) {
-      if (only && !only.includes(scene.name)) continue;
       const { name, emit, settled } = scene;
       const flying = emit.some(
         ([topic, payload]) =>
