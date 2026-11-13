@@ -1,5 +1,4 @@
-import { useTelemetry } from "@ksp-gonogo/core";
-import { type ParsedManeuverNode, useTimelineEpoch } from "@ksp-gonogo/data";
+import type { ParsedManeuverNode } from "@ksp-gonogo/data";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
 import {
   commandSet,
@@ -51,37 +50,6 @@ export function useNodeCommands(
    */
   const [expectedNodes, setExpectedNodes] = useState<number | null>(null);
   const adding = expectedNodes !== null && nodes.length < expectedNodes;
-
-  // A game load abandons the flight a refusal was said about.
-  const epoch = useTimelineEpoch();
-  const lastEpoch = useRef(epoch);
-  useEffect(() => {
-    if (
-      epoch !== undefined &&
-      lastEpoch.current !== undefined &&
-      epoch > lastEpoch.current
-    ) {
-      setError(null);
-      setExpectedNodes(null);
-    }
-    lastEpoch.current = epoch;
-  }, [epoch]);
-
-  // A refusal is about the vessel it was sent to; a withdrawn reading between two vessels names none and changes nothing.
-  const identity = useTelemetry("vessel.identity");
-  const vesselId =
-    identity.state === "observed" || identity.state === "held"
-      ? identity.value.vesselId
-      : undefined;
-  const lastVesselId = useRef(vesselId);
-  useEffect(() => {
-    if (!vesselId) return;
-    if (lastVesselId.current && lastVesselId.current !== vesselId) {
-      setError(null);
-      setExpectedNodes(null);
-    }
-    lastVesselId.current = vesselId;
-  }, [vesselId]);
 
   useEffect(() => {
     if (expectedNodes === null) return;

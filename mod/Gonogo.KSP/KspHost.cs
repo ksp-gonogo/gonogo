@@ -649,21 +649,6 @@ namespace Gonogo.KSP
                     GonogoLog.WarnLimited("revert-availability snapshot build failed, omitting", ex);
                 }
 
-                // The vessels the game offers to switch to (ksp.switchableVessels):
-                // identity only, read with no link to any vessel, so it is
-                // captured with the flight scene and no active-vessel group.
-                try
-                {
-                    if (HighLogic.LoadedScene == CareerGates.RevertScene && FlightGlobals.ActiveVessel != null)
-                    {
-                        values["switchable"] = BuildSwitchableVessels(FlightGlobals.ActiveVessel);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    GonogoLog.WarnLimited("switchable-vessels snapshot build failed, omitting", ex);
-                }
-
                 // Current scene (spaceCenter.scene) is a global game fact -
                 // resolvable in every scene, not tied to FlightGlobals - so it's
                 // captured unconditionally here. The RAW GameScenes enum name is
@@ -4429,40 +4414,6 @@ namespace Gonogo.KSP
                 ["breakingGround"] = ExpansionsLoader.IsExpansionInstalled("Serenity"),
                 ["makingHistory"] = ExpansionsLoader.IsExpansionInstalled("MakingHistory"),
             };
-        }
-
-        /// <summary>
-        /// The other vessels the game offers to switch to: name, type and id
-        /// and nothing about where or how each is. Filtered like
-        /// <c>target.available</c> (no flags, EVAs, debris, or vessels the save
-        /// has not discovered), but with no regard to any radio link.
-        /// </summary>
-        private static List<object?> BuildSwitchableVessels(Vessel active)
-        {
-            var entries = new List<object?>();
-            var vessels = FlightGlobals.Vessels;
-            if (vessels == null)
-            {
-                return entries;
-            }
-
-            foreach (var v in vessels)
-            {
-                if (v == null || ReferenceEquals(v, active) || IsFilteredTargetVesselType(v.vesselType)
-                    || !OrbitKnowledge.Known(DiscoveryLevelOf(v)))
-                {
-                    continue;
-                }
-
-                entries.Add(new Dictionary<string, object?>
-                {
-                    ["vesselId"] = v.id.ToString(),
-                    ["name"] = GameWords.VesselName(v),
-                    ["vesselType"] = v.vesselType.ToString(),
-                });
-            }
-
-            return entries;
         }
 
         /// <summary>

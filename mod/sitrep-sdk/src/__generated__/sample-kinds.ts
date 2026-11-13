@@ -55,7 +55,6 @@ export const GENERATED_CHANNEL_KINDS = {
   "ksp.gameLoaded": "event",
   "ksp.revertAvailability": "discrete",
   "ksp.saves": "discrete",
-  "ksp.switchableVessels": "discrete",
   "missions.active": "discrete",
   "parts.power": "continuous",
   "recovery.hasRecent": "discrete",

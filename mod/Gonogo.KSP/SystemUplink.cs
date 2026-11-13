@@ -117,20 +117,6 @@ namespace Gonogo.KSP
                     Delay = DelayRole.TrueNow,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 },
-                // ksp.switchableVessels -- the other vessels of the save the game
-                // offers to switch to, identity only. Switching is a scene change
-                // any centre can make, so the list is a fact about the save and
-                // needs no link to any vessel: TrueNow. It changes only when a
-                // vessel is launched, recovered or destroyed.
-                new ChannelDeclaration
-                {
-                    Kind = SampleKind.Discrete,
-                    Requires = Requirement.None,
-                    Topic = SystemViewProvider.SwitchableVesselsTopic,
-                    Delivery = Delivery.LossyLatest,
-                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                    Delay = DelayRole.TrueNow,
-                },
                 // ksp.revertAvailability -- whether the two stock in-flight
                 // "revert" actions are available right now, for LaunchDirector's
                 // revert-availability gating. A flight-scene game-state fact
@@ -205,7 +191,6 @@ namespace Gonogo.KSP
             host.AddChannelSource(SystemViewProvider.Topic, SystemViewProvider.BuildSystemBodies);
 
             host.AddChannelSource(SystemViewProvider.RevertTopic, SystemViewProvider.BuildRevertAvailability);
-            host.AddChannelSource(SystemViewProvider.SwitchableVesselsTopic, SystemViewProvider.BuildSwitchableVessels);
             host.AddChannelSource(SystemViewProvider.DlcTopic, SystemViewProvider.BuildGameDlc);
             // Read through the election rather than off stock directly, which is
             // the whole point of the capability: an n-body producer elected over

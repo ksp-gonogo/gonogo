@@ -90,7 +90,6 @@ import type {
   SpaceCenterScene,
   StageDeltaVEntry,
   StageDeltaVSummary,
-  SwitchableVessels,
   SystemBodies,
   TargetAvailable,
   TimeCalendar,
@@ -211,8 +210,6 @@ export interface GeneratedTopicPayloadMap {
   "ksp.revertAvailability": RevertAvailability;
   /** The quicksave slot of the loaded game and the save it replaced. */
   "ksp.saves": SaveSlots;
-  /** The other vessels in the save that the game's own vessel switching offers, as `{ "entries": [ ... ] }`. */
-  "ksp.switchableVessels": SwitchableVessels;
   /** The Making History mission that is running, or has just ended, in the current game. */
   "missions.active": MissionStatus;
   /** The active vessel's rolled-up electric-charge production. */
@@ -365,7 +362,6 @@ export const GENERATED_TOPIC_IDS = [
   "ksp.gameLoaded",
   "ksp.revertAvailability",
   "ksp.saves",
-  "ksp.switchableVessels",
   "missions.active",
   "parts.power",
   "recovery.hasRecent",

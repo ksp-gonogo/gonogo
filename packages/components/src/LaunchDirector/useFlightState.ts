@@ -2,13 +2,13 @@ import { useTelemetry } from "@ksp-gonogo/core";
 import { useViewUt } from "@ksp-gonogo/sitrep-client";
 import {
   type Reading,
-  type SwitchableVessel,
   stillTrue,
+  TargetKind,
   type Value,
 } from "@ksp-gonogo/sitrep-sdk";
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 import { magnitudeOf } from "../shared/magnitude";
-import { rosterDistanceById } from "../shared/rosterDistance";
+import { rosterDistance } from "../shared/rosterDistance";
 
 /** What the in-flight panel shows, for the vessel currently flying. */
 export function useFlightState() {
@@ -43,23 +43,17 @@ export function useFlightState() {
       ? undefined
       : (magnitudeOf(viewUt.minus(identity.launchUt)) ?? undefined);
   /*
-   * Switching vessel is a scene change that needs no link, so the list comes off
-   * the save's own roster of identities. The ranges come off `target.available`,
-   * which carries only what the active vessel knows of, so a craft it has no
-   * word of is listed with no figure.
+   * `target.available` already excludes the active vessel; only Vessel-kind
+   * entries are switch targets. The roster is a fact, so the last one stands.
    */
-  const availableVessels = stillTrue(
-    useTelemetry("ksp.switchableVessels"),
-    undefined,
-  )?.entries;
   const rosterReading = useTelemetry("target.available");
-  const distanceById = useMemo(
-    () => rosterDistanceById(rosterReading),
+  const targetAvailable = stillTrue(rosterReading, undefined);
+  const distanceOf = useMemo(
+    () => rosterDistance(rosterReading),
     [rosterReading],
   );
-  const distanceOf = useCallback(
-    (entry: SwitchableVessel) => distanceById(entry.vesselId),
-    [distanceById],
+  const availableVessels = targetAvailable?.entries?.filter(
+    (e) => e.kind === TargetKind.Vessel,
   );
 
   /*

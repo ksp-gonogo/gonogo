@@ -55,8 +55,6 @@ export interface CentreCommandMemory {
   since: Value<"ut"> | null;
   /** The timeline epoch `since` was taken in; a quickload starts a new one and `since` with it. */
   sinceEpoch: number | null;
-  /** The last vessel the outcomes were reported under; a switch to another drops them. */
-  vesselId: string | null;
 }
 
 export function createCentreCommandMemory(): CentreCommandMemory {
@@ -67,7 +65,6 @@ export function createCentreCommandMemory(): CentreCommandMemory {
     unanswered: new Set(),
     since: null,
     sinceEpoch: null,
-    vesselId: null,
   };
 }
 
@@ -96,8 +93,6 @@ export function centreCommandOutcomes(args: {
   nowUt: number | null;
   /** The timeline epoch the view clock is in; a UT from an earlier epoch says nothing about this one. */
   epoch?: number;
-  /** The vessel the view names as active, or `null` while it names none; outcomes reported for an earlier vessel are dropped when it changes. */
-  vesselId?: string | null;
   /** When set, only outcomes of commands sent with this topic are listed. */
   topic?: string;
 }): {
@@ -105,27 +100,8 @@ export function centreCommandOutcomes(args: {
   failures: CommandFailure[];
   founds: CommandFound[];
 } {
-  const {
-    command,
-    queue,
-    own,
-    memory,
-    nowUt,
-    epoch = 0,
-    vesselId = null,
-    topic,
-  } = args;
-  if (vesselId !== null && vesselId !== memory.vesselId) {
-    if (memory.vesselId !== null) {
-      memory.outcomes.clear();
-      // What the centre still lists was reported about the vessel left.
-      memory.since = null;
-    }
-    memory.vesselId = vesselId;
-  }
+  const { command, queue, own, memory, nowUt, epoch = 0, topic } = args;
   if (memory.sinceEpoch !== epoch) {
-    // A game load abandons the flight the outcomes held so far were reported for.
-    if (memory.sinceEpoch !== null) memory.outcomes.clear();
     memory.since = null;
     memory.sinceEpoch = epoch;
   }

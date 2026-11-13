@@ -118,9 +118,6 @@ namespace Sitrep.Core.Tests
             // are the rows and sub-objects those roots assemble from the raw
             // capture's flat keys, with no method of their own.
             "BodyEntry", "AtmosphereEntry", "OrbitEntry", "CatalogEntry", "TargetListEntry",
-            // ksp.switchableVessels: BuildSwitchableVessels is the graded root;
-            // each row is assembled inline from the capture's flat keys.
-            "SwitchableVessel",
             // robotics.available: BreakingGroundViewProvider builds this tree
             // without a method named for it.
             "RoboticsAvailability",

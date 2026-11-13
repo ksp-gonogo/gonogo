@@ -109,11 +109,6 @@ describe("LaunchDirector when its telemetry is held", () => {
         canRevertToEditor: true,
       });
       stream.emit("crash.hasRecent", { recent: false });
-      stream.emit("ksp.switchableVessels", {
-        entries: [
-          { vesselId: "vessel-guid-aaa", name: "Relay Sat A", vesselType: 6 },
-        ],
-      });
       stream.emit("target.available", {
         entries: [
           {

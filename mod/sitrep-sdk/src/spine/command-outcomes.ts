@@ -19,14 +19,6 @@ export interface CommandOutcomeSet {
 
 type Listener = () => void;
 
-/** The vessel `vessel.identity` names, or `null` while it names none, as in a withdrawn reading. */
-export function activeVesselIdOf(client: TelemetryClient): string | null {
-  const identity = client.getValue("vessel.identity");
-  if (typeof identity !== "object" || identity === null) return null;
-  const id = "vesselId" in identity ? identity.vesselId : undefined;
-  return typeof id === "string" && id !== "" ? id : null;
-}
-
 const UNDONE_BY_LOAD = "undoneByLoad";
 
 export const NO_OUTCOMES: CommandOutcomeSet = {
@@ -45,8 +37,6 @@ export const NO_OUTCOMES: CommandOutcomeSet = {
  * A game load that starts a new timeline drops every outcome except those
  * saying that load undid the command, which are dropped at the load after it.
  * Such an outcome also goes by itself after {@link GAME_LOAD_NOTICE_SECONDS}.
- * A change of active vessel drops every outcome too: each is about the vessel
- * it was sent to.
  */
 export class CommandOutcomeStore {
   private readonly byCommand = new Map<string, CommandOutcomeSet>();
@@ -58,15 +48,9 @@ export class CommandOutcomeStore {
   private keptByLastLoad = new Set<string>();
   /** Cancels for the timers that clear load-undone failures, by outcome id. */
   private readonly expiries = new Map<string, () => void>();
-  /** The last vessel the client named; a withdrawn reading between two vessels leaves it standing. */
-  private lastVesselId: string | null;
 
   constructor(private readonly client: TelemetryClient) {
-    this.lastVesselId = activeVesselIdOf(client);
-    this.stopSweep = client.subscribeStore(() => {
-      this.followVessel();
-      this.sweep();
-    });
+    this.stopSweep = client.subscribeStore(() => this.sweep());
     this.stopTimeline = client.onTimelineChange(() => this.followLoad());
   }
 
@@ -177,19 +161,6 @@ export class CommandOutcomeStore {
       }
     }
     this.keptByLastLoad = kept;
-    this.notify();
-  }
-
-  private followVessel(): void {
-    const id = activeVesselIdOf(this.client);
-    if (id === null || id === this.lastVesselId) return;
-    const switched = this.lastVesselId !== null;
-    this.lastVesselId = id;
-    if (!switched || this.byCommand.size === 0) return;
-    for (const cancel of this.expiries.values()) cancel();
-    this.expiries.clear();
-    this.byCommand.clear();
-    this.keptByLastLoad.clear();
     this.notify();
   }
 

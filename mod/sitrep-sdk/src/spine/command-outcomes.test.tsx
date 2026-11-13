@@ -142,36 +142,7 @@ const refusalOf = (id: string, errorCode: string) => ({
   errorCode: errorCode as CommandErrorCode,
 });
 
-const identityOf = (transport: ModTransport, vesselId: string) =>
-  transport.deliver({
-    type: "stream-data",
-    topic: "vessel.identity",
-    payload: { vesselId },
-    meta: makeMeta({ deliveredAt: GAME_UT }),
-  });
-
 describe("command outcomes held on the client", () => {
-  it("drops a refusal once another vessel is active, and keeps it through a withdrawn reading", async () => {
-    const { transport, client } = setup();
-    identityOf(transport, "mk1");
-    render(
-      <TelemetryProvider client={client}>
-        <Outcomes command="x.y" name="a" />
-      </TelemetryProvider>,
-    );
-    act(() => {
-      screen.getByRole("button", { name: "send a" }).click();
-    });
-    await act(async () => refuse(transport, lastRequestId(transport)));
-    expect(screen.getByLabelText("refusals a").textContent).toBe("a");
-
-    await act(async () => identityOf(transport, "mk1"));
-    expect(screen.getByLabelText("refusals a").textContent).toBe("a");
-
-    await act(async () => identityOf(transport, "mun-probe"));
-    expect(screen.getByLabelText("refusals a").textContent).toBe("");
-  });
-
   it("shows a refusal to a widget mounted after the one that sent the command is gone", async () => {
     const { transport, client } = setup();
     const first = render(

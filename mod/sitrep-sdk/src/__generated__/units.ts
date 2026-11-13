@@ -1828,11 +1828,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "SwitchVesselArgs": {
     vesselId: "id",
   },
-  "SwitchableVessel": {
-    name: "text",
-    vesselId: "id",
-    vesselType: "enum",
-  },
   "TankReach": {
     drawsFromSet: "id",
     partId: "id",
@@ -3245,9 +3240,6 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "StreamData": {
     meta: "Meta",
   },
-  "SwitchableVessels": {
-    entries: "SwitchableVessel[]",
-  },
   "SystemBodies": {
     bodies: "BodyEntry[]",
   },
@@ -3451,9 +3443,6 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "ksp.saves": {
     previousQuicksave: "SaveSummary",
     quicksave: "SaveSummary",
-  },
-  "ksp.switchableVessels": {
-    entries: "SwitchableVessel[]",
   },
   "missions.active": {
     objectives: "MissionObjectiveEntry[]",
@@ -3762,9 +3751,6 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   },
   "SettingsRowState": {
     kind: "SettingKind",
-  },
-  "SwitchableVessel": {
-    vesselType: "VesselType",
   },
   "TargetListEntry": {
     kind: "TargetKind",
@@ -4391,7 +4377,6 @@ export const GENERATED_CONTRACT_TAGS = {
     "ksp.gameLoaded": "Game loaded",
     "ksp.revertAvailability": "Revert",
     "ksp.saves": "Saves",
-    "ksp.switchableVessels": "Switchable vessels",
     "missions.active": "Active missions",
     "parts.power": "Electric power",
     "recovery.hasRecent": "Recent recovery",

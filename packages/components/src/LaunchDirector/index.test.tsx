@@ -798,7 +798,7 @@ describe("LaunchDirectorComponent", () => {
    * positional index. Body-kind entries are not offered, and a SpaceObject
    * stays hidden until the toggle is used.
    */
-  it("switches vessel via ksp.switchableVessels, dispatching the stable vesselId guid", async () => {
+  it("switches vessel via target.available, dispatching the stable vesselId guid", async () => {
     const user = userEvent.setup();
     renderWidget();
     act(() => {
@@ -810,20 +810,6 @@ describe("LaunchDirectorComponent", () => {
         canRevertToEditor: false,
       });
       stream.emit("crash.hasRecent", { recent: false });
-      stream.emit("ksp.switchableVessels", {
-        entries: [
-          {
-            vesselId: "vessel-guid-aaa",
-            name: "Relay Sat A",
-            vesselType: 6, // VesselType.Relay
-          },
-          {
-            vesselId: "vessel-guid-space-object",
-            name: "Mun Rock",
-            vesselType: 10, // VesselType.SpaceObject
-          },
-        ],
-      });
       stream.emit("target.available", {
         entries: [
           {
@@ -873,66 +859,6 @@ describe("LaunchDirectorComponent", () => {
       );
       expect(sent).toMatchObject({
         args: { vesselId: "vessel-guid-aaa" },
-        vantage: "meta",
-      });
-    });
-  });
-
-  /*
-   * Switching is a scene change that needs no link. A craft the active vessel
-   * has no word of is on `ksp.switchableVessels` and not on `target.available`:
-   * it is listed, can be switched to, and has no range beside it.
-   */
-  it("lists a vessel the roster does not know of, switches to it, and draws no range for it", async () => {
-    const user = userEvent.setup();
-    renderWidget();
-    act(() => {
-      stream.emit("spaceCenter.savedShips", []);
-      emitScene(stream, "Flight");
-      emitInFlightVessel(stream, { name: "Probe X", altitudeAsl: 2000 });
-      stream.emit("ksp.revertAvailability", {
-        canRevertToLaunch: false,
-        canRevertToEditor: false,
-      });
-      stream.emit("crash.hasRecent", { recent: false });
-      stream.emit("ksp.switchableVessels", {
-        entries: [
-          { vesselId: "guid-linked", name: "Relay Sat A", vesselType: 6 },
-          { vesselId: "guid-unlinked", name: "Mun Probe", vesselType: 1 },
-        ],
-      });
-      stream.emit("target.available", {
-        entries: [
-          {
-            kind: 0,
-            name: "Relay Sat A",
-            vesselId: "guid-linked",
-            vesselType: 6,
-            situation: 3,
-            distance: 5000,
-            isCurrent: false,
-          },
-        ],
-      });
-    });
-
-    await screen.findByText(/In flight: Probe X/i);
-    const switcher = screen.getByRole("button", { name: /Switch to vessel/i });
-    expect(switcher).not.toBeDisabled();
-    await user.click(switcher);
-
-    const linked = screen.getByText("Relay Sat A").closest("button");
-    const unlinked = screen.getByText("Mun Probe").closest("button");
-    expect(linked?.textContent).toMatch(/5(\.0+)?\s*km/);
-    expect(unlinked?.textContent).not.toMatch(/\d\s*(m|km|Mm)\b/);
-
-    await user.click(screen.getByText("Mun Probe"));
-    await waitFor(() => {
-      const sent = stream.transport.sentCommands.find(
-        (c) => c.command === "ksp.switchVessel",
-      );
-      expect(sent).toMatchObject({
-        args: { vesselId: "guid-unlinked" },
         vantage: "meta",
       });
     });

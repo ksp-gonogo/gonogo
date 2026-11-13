@@ -7,7 +7,6 @@ export default {
     "crash.lastCrash",
     "eva.crew",
     "ksp.saves",
-    "ksp.switchableVessels",
     "recovery.lastSummary",
     "spaceCenter.crewRoster",
     "spaceCenter.launchSites",

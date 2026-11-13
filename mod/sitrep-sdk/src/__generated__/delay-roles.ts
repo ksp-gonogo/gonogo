@@ -27,7 +27,6 @@ export const GENERATED_TRUENOW_TOPICS = [
   "ksp.gameLoaded",
   "ksp.revertAvailability",
   "ksp.saves",
-  "ksp.switchableVessels",
   "settings.gonogo",
   "spaceCenter.scene",
   "system.channels",

@@ -1,7 +1,7 @@
 import {
   type AnyBoundCommand,
   type Reading,
-  type SwitchableVessel,
+  type TargetListEntry,
   type Value,
   VesselType,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -17,15 +17,7 @@ import {
 } from "./styles";
 import { VESSEL_TYPE_LABELS } from "./vesselTypeLabels";
 
-function rangeOf(reading: Reading<Value<"m">> | undefined): number {
-  const range =
-    reading?.state === "observed" || reading?.state === "held"
-      ? reading.value
-      : undefined;
-  return magnitudeOf(range) ?? Number.POSITIVE_INFINITY;
-}
-
-/** The other vessels in the save, nearest first and unranged ones by name after them; picking one sends the switch. */
+/** The other vessels in the save, nearest first; picking one sends the switch. */
 export function VesselSwitchList({
   vessels,
   distanceOf,
@@ -33,9 +25,9 @@ export function VesselSwitchList({
   onToggleSpaceObjects,
   switchCommand,
 }: {
-  vessels: readonly SwitchableVessel[];
-  /** Each vessel's range as a reading of the roster, so a held roster marks it; none where the roster does not list the vessel. */
-  distanceOf: (entry: SwitchableVessel) => Reading<Value<"m">> | undefined;
+  vessels: readonly TargetListEntry[];
+  /** Each vessel's range as a reading of the roster, so a held roster marks it. */
+  distanceOf: (entry: TargetListEntry) => Reading<Value<"m">> | undefined;
   /** Held by the caller, so the choice survives the list closing. */
   showSpaceObjects: boolean;
   onToggleSpaceObjects: () => void;
@@ -52,11 +44,11 @@ export function VesselSwitchList({
       ? vessels
       : vessels.filter((e) => e.vesselType !== VesselType.SpaceObject);
     return [...list].sort((a, b) => {
-      const da = rangeOf(distanceOf(a));
-      const db = rangeOf(distanceOf(b));
-      return da === db ? a.name.localeCompare(b.name) : da - db;
+      const da = magnitudeOf(a.distance) ?? Number.POSITIVE_INFINITY;
+      const db = magnitudeOf(b.distance) ?? Number.POSITIVE_INFINITY;
+      return da - db;
     });
-  }, [vessels, showSpaceObjects, distanceOf]);
+  }, [vessels, showSpaceObjects]);
   return (
     <VesselSwitchPanel role="group" aria-label="Switch active vessel">
       {spaceObjectCount > 0 && (
@@ -87,9 +79,13 @@ export function VesselSwitchList({
           <Row
             as="button"
             interactive
-            key={entry.vesselId}
+            key={entry.vesselId ?? entry.name}
             type="button"
-            command={switchCommand(entry.vesselId, entry.name)}
+            command={
+              entry.vesselId
+                ? switchCommand(entry.vesselId, entry.name)
+                : undefined
+            }
           >
             <VesselSwitchName>
               <span>{entry.name}</span>
