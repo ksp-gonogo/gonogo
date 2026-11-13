@@ -73,6 +73,7 @@ import { SceneChangeBanner } from "../components/SceneChangeBanner";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
 import { StationBuildMismatchNotice } from "../components/StationBuildMismatchNotice";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
+import { UpdateBanner } from "../components/UpdateBanner";
 import { FirstRunSetupHost } from "../firstRun/FirstRunSetupHost";
 import {
   GoNoGoHostProvider,
@@ -648,6 +649,7 @@ function MainDashboard({
             <ContactLossBanner />
             <HomeFallbackNotice />
             <ModVersionBanner />
+            <UpdateBanner />
             <UplinkBanners />
             {hosting && (
               <>
