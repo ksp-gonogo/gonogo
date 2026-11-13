@@ -1,5 +1,6 @@
 import {
   isAwaitingFirstSignal,
+  useNoRouteToCraft,
   useTelemetry,
   useTimeContexts,
 } from "@ksp-gonogo/core";
@@ -73,7 +74,8 @@ export function forgetHeldSignalLoss(): void {
 export function SignalLossIndicator() {
   const linkReading = useTelemetry("comms.link");
   const { owltSeconds } = useTimeContexts();
-  const linkPending = isAwaitingFirstSignal(linkReading);
+  const noRoute = useNoRouteToCraft();
+  const linkPending = isAwaitingFirstSignal(linkReading) && !noRoute;
   const [graceElapsed, setGraceElapsed] = useState(false);
   useEffect(() => {
     if (!linkPending) {
