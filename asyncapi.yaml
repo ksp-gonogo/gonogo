@@ -3,7 +3,7 @@ info:
   title: Gonogo WebSocket API
   version: 52.1.0
   description: |-
-    The WebSocket API of the Gonogo mod: 97 telemetry channels a client
+    The WebSocket API of the Gonogo mod: 98 telemetry channels a client
     subscribes to and 89 commands it sends, each with its payload and what it
     means, all over one socket.
 
@@ -1969,6 +1969,32 @@ channels:
         $ref: "#/components/messages/commandRequest.ksp.switchVessel"
       commandResponse:
         $ref: "#/components/messages/commandResponse.ksp.switchVessel"
+  ksp.switchableVessels:
+    address: ksp.switchableVessels
+    title: Switchable vessels
+    description: |-
+      The other vessels in the save that the game's own vessel switching offers,
+      as `{ "entries": [ ... ] }`. Switching to a vessel is a change of scene,
+      which every command centre can do whatever the radio link to that vessel, so
+      this list does not depend on one: a vessel with no link to any centre is on
+      it. It names vessels and carries no position, distance, situation or any
+      other state of one, which a centre may learn only through delayed telemetry.
+
+      The active vessel is not on the list. The payload is `null` (no key emitted)
+      outside the flight scene, where there is no vessel to switch from. Not
+      delayed by signal delay: it is a fact about the save, and carries no
+      per-payload `Meta` of its own (the envelope's applies).
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: lossy-latest
+    x-sitrep-delay-role: true-now
+    x-sitrep-sample-kind: discrete
+    x-sitrep-keyframe-interval-ut: 30
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.ksp.switchableVessels"
+      event:
+        $ref: "#/components/messages/event"
   ksp.toSpaceCenter:
     address: ksp.toSpaceCenter
     description: Leave the flight for the Space Center.
@@ -6112,6 +6138,17 @@ operations:
     messages:
       - $ref: "#/channels/ksp.saves/messages/streamData"
       - $ref: "#/channels/ksp.saves/messages/event"
+  read:ksp.switchableVessels:
+    action: receive
+    channel:
+      $ref: "#/channels/ksp.switchableVessels"
+    title: Read ksp.switchableVessels
+    description: Delivered only after `subscribe` names `ksp.switchableVessels` on the session channel, which the mod answers here with an `event` named `subscribed`.
+    tags:
+      - name: ksp
+    messages:
+      - $ref: "#/channels/ksp.switchableVessels/messages/streamData"
+      - $ref: "#/channels/ksp.switchableVessels/messages/event"
   read:missions.active:
     action: receive
     channel:
@@ -10050,6 +10087,19 @@ components:
                 const: ksp.saves
               payload:
                 $ref: "#/components/schemas/SaveSlots"
+    streamData.ksp.switchableVessels:
+      name: stream-data
+      title: A frame on ksp.switchableVessels
+      contentType: application/json
+      payload:
+        description: The `stream-data` envelope carrying `ksp.switchableVessels`.
+        allOf:
+          - $ref: "#/components/schemas/StreamData"
+          - properties:
+              topic:
+                const: ksp.switchableVessels
+              payload:
+                $ref: "#/components/schemas/SwitchableVessels"
     streamData.missions.active:
       name: stream-data
       title: A frame on missions.active
@@ -24861,6 +24911,53 @@ components:
           description: |-
             The vessel to switch to: KSP's `Vessel.id` guid as a string, as
             `trackingStation.catalog` carries it.
+    SwitchableVessel:
+      type: object
+      description: |-
+        One vessel of the save the operator can switch to: who it is, and nothing of
+        where it is or how it is doing.
+      required:
+        - vesselId
+        - name
+      properties:
+        vesselId:
+          type: string
+          x-sitrep-unit: id
+          description: The vessel's stable guid, the id `ksp.switchVessel` takes.
+        name:
+          type: string
+          x-sitrep-unit: text
+          description: The vessel's display name.
+        vesselType:
+          description: The vessel's type.
+          anyOf:
+            - $ref: "#/components/schemas/VesselType"
+              x-sitrep-unit: enum
+            - type: "null"
+    SwitchableVessels:
+      type: object
+      description: |-
+        The other vessels in the save that the game's own vessel switching offers,
+        as `{ "entries": [ ... ] }`. Switching to a vessel is a change of scene,
+        which every command centre can do whatever the radio link to that vessel, so
+        this list does not depend on one: a vessel with no link to any centre is on
+        it. It names vessels and carries no position, distance, situation or any
+        other state of one, which a centre may learn only through delayed telemetry.
+
+        The active vessel is not on the list. The payload is `null` (no key emitted)
+        outside the flight scene, where there is no vessel to switch from. Not
+        delayed by signal delay: it is a fact about the save, and carries no
+        per-payload `Meta` of its own (the envelope's applies).
+      required:
+        - entries
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/SwitchableVessel"
+          description: |-
+            Every other vessel of the save the game offers to switch to, in id order.
+            Empty, never null, when there is none.
     SystemBodies:
       type: object
       description: |-

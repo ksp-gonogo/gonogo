@@ -80,6 +80,7 @@ registerComponent<LaunchDirectorConfig>({
     "recovery.lastSummary.crewBreakdown",
     "recovery.lastSummary.partBreakdown",
     "recovery.lastSummary.scienceBreakdown",
+    "ksp.switchableVessels",
     "target.available",
   ],
   ...read,

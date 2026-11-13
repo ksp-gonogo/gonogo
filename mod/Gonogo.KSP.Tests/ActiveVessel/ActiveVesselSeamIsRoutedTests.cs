@@ -49,6 +49,8 @@ namespace Gonogo.KSP.Tests.ActiveVessel
             ["CommandCentres/CrewedVesselSource.cs"] = 1,
             ["CurrencyEventUplink.cs"] = 1,
             ["Gates/KspGateEvaluators.cs"] = 1,
+            // The switchable-vessels list leaves out the craft KSP itself is flying, a scene-level fact the game answers, not a vessel being reported.
+            ["KspHost.cs"] = 1,
             ["KspFlightOpsActuator.cs"] = 2,
             // Stock's quicksave rule judges whatever KSP itself has active, kerbal or craft.
             ["KspQuicksaves.cs"] = 1,

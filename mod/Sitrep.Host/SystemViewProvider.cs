@@ -108,6 +108,9 @@ namespace Sitrep.Host
         /// </summary>
         public const string RevertTopic = "ksp.revertAvailability";
 
+        /// <summary>The <c>ksp.switchableVessels</c> channel: see <see cref="BuildSwitchableVessels"/>.</summary>
+        public const string SwitchableVesselsTopic = "ksp.switchableVessels";
+
         /// <summary>
         /// The <c>game.dlc</c> capability channel, which KSP expansions are
         /// installed (Breaking Ground / Making History). A ground-side,
@@ -588,6 +591,51 @@ namespace Sitrep.Host
                 ["canRevertToEditor"] = SnapshotDict.GetBool(raw, "canRevertToEditor") ?? false,
                 ["canRevertToLaunch"] = SnapshotDict.GetBool(raw, "canRevertToLaunch") ?? false,
             };
+        }
+
+        /// <summary>
+        /// Maps <paramref name="snapshot"/>'s raw <c>"switchable"</c> group (a
+        /// list of <c>{ vesselId, name, vesselType }</c>, from
+        /// <c>Gonogo.KSP.KspHost.BuildSwitchableVessels</c>) to the
+        /// <c>ksp.switchableVessels</c> payload. Identity only: nothing here
+        /// reads a position or a state, so the list needs no link to any
+        /// vessel. Returns <c>null</c> when the snapshot carries no such group
+        /// (outside the flight scene). An entry with no id is dropped, as it
+        /// could not be switched to.
+        /// </summary>
+        public static object? BuildSwitchableVessels(KspSnapshot? snapshot)
+        {
+            if (snapshot?.Values == null
+                || !snapshot.Values.TryGetValue("switchable", out var rawGroup)
+                || rawGroup is not IEnumerable<object?> rawList)
+            {
+                return null;
+            }
+
+            var entries = new List<object?>();
+            foreach (var rawEntry in rawList)
+            {
+                if (rawEntry is not IDictionary<string, object?> raw)
+                {
+                    continue;
+                }
+
+                var vesselId = GetString(raw, "vesselId");
+                if (string.IsNullOrEmpty(vesselId))
+                {
+                    continue;
+                }
+
+                var vesselTypeRaw = GetString(raw, "vesselType");
+                entries.Add(new Dictionary<string, object?>
+                {
+                    ["vesselId"] = vesselId,
+                    ["name"] = GetString(raw, "name") ?? "",
+                    ["vesselType"] = vesselTypeRaw != null ? (int?)SharedMappers.ParseVesselType(vesselTypeRaw) : null,
+                });
+            }
+
+            return new Dictionary<string, object?> { ["entries"] = entries };
         }
 
         /// <summary>

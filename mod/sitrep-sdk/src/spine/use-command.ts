@@ -73,6 +73,7 @@ import {
 } from "./command-gate";
 import { openCommandGroup } from "./command-group";
 import {
+  activeVesselIdOf,
   type CommandOutcomeSet,
   commandOutcomesOf,
   NO_OUTCOMES,
@@ -1033,6 +1034,7 @@ export function useCommand(
         memory: centreMemoryRef.current,
         nowUt: clockSampled ? nowUt : null,
         epoch: store?.clock.getEpoch() ?? 0,
+        vesselId: client ? activeVesselIdOf(client) : null,
         topic: scopeTopic,
       });
   const allRefusals =
