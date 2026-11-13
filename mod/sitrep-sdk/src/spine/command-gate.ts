@@ -55,10 +55,11 @@ export interface CommandGateStatus {
  * @internal
  */
 export function mergeGateReports(
-  ...reports: readonly (CommandGateReport | undefined)[]
+  ...reports: readonly (CommandGateReport | null | undefined)[]
 ): CommandGateReport | undefined {
+  // The wire withdraws a report with a null payload, as it does for the vessel that has just become active.
   const present = reports.filter(
-    (report): report is CommandGateReport => report !== undefined,
+    (report): report is CommandGateReport => report != null,
   );
   if (present.length <= 1) return present[0];
   return {

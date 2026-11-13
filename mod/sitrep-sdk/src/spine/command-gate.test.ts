@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { CommandGateReport } from "../__generated__/contract";
 import { GateOutcome } from "../__generated__/contract";
 import { CommandErrorCode } from "../__generated__/error-codes";
-import { selectCommandGate } from "./command-gate";
+import { mergeGateReports, selectCommandGate } from "./command-gate";
 
 function report(
   ...gates: {
@@ -338,5 +338,20 @@ describe("selectCommandGate for an item named by two arguments", () => {
     expect(
       selectCommandGate(gates, "science.experiment.deploy", { partId: "77" }),
     ).toMatchObject({ blocked: false });
+  });
+});
+
+describe("a gate report the mod has withdrawn", () => {
+  // The wire says a report is gone with a null payload, which is what the new active vessel's report is while it has none.
+  const withdrawn = null;
+
+  it("merges as no report, whichever of the three is withdrawn", () => {
+    const live = report({ command: "a.b", outcome: GateOutcome.Pass });
+    expect(mergeGateReports(withdrawn, withdrawn, withdrawn)).toBeUndefined();
+    expect(mergeGateReports(live, withdrawn, withdrawn)).toBe(live);
+    expect(mergeGateReports(withdrawn, live, withdrawn)).toBe(live);
+    expect(
+      selectCommandGate(mergeGateReports(withdrawn), "a.b"),
+    ).toBeUndefined();
   });
 });
