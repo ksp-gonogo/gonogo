@@ -9585,6 +9585,7 @@ namespace Sitrep.Host
                 }
             }
 
+            TimeActiveLaneByActiveDelay();
             RememberConnectedStamp(NodeId);
             foreach (var node in _vesselNodeDelay.Keys)
             {
@@ -10850,6 +10851,10 @@ namespace Sitrep.Host
                 _lastMeasuredStamp = null;
                 _unmeasuredSinceUt = null;
                 _awaitingFirstMeasuredPath = false;
+                foreach (var session in _sessions.Values)
+                {
+                    session.LaneShownThrough.Clear();
+                }
                 // The connectivity history's UTs belong to the abandoned
                 // timeline too: collapse it to the current link state seeded at
                 // -Inf so a post-rewind ConnectivityAt lookup fails soft to that
@@ -10890,6 +10895,8 @@ namespace Sitrep.Host
             AdvanceWorldWait(tick.GameLoading);
 
             var activeVesselId = VesselViewProvider.TryGetActiveVesselId(tick.Snapshot);
+            _laneCraftThisTick = activeVesselId;
+            NoteLaneViewCraft(tick.Snapshot, activeVesselId);
             if (activeVesselId != null)
             {
                 if (_lastActiveVesselId != null && _lastActiveVesselId != activeVesselId)
@@ -11179,6 +11186,8 @@ namespace Sitrep.Host
                     _born.Add(topic);
                 }
 
+                KeepActiveReadingInLane(topic, value, tick.Ut);
+
                 // C2-1 (second fail-soft round): Decide is ALSO
                 // uplink-authored code -- a structured payload's deadband
                 // falls back to object.Equals (see
@@ -11233,6 +11242,9 @@ namespace Sitrep.Host
             // run against the craft that is active now, not the one that was.
             NoteActiveCraft(tick.Snapshot);
             _clock.AdvanceTo(tick.Ut);
+            // After the clock moves, so a screen re-pointed at a craft's lane is handed it at this tick's instant, as every other delivery of the tick is.
+            RepointLaneViews();
+            TrimLanes(tick.Ut);
             timing.End(ref timing.Deliveries);
             OffloadRecordings(tick.Ut, null);
             TickDelivery(tick.Ut);
@@ -12588,12 +12600,27 @@ namespace Sitrep.Host
             try
             {
                 var boundNode = NodeFor(topic);
-                if (RoutesByKeySegment(topic))
+                var boundTopic = topic;
+                if (LaneViewFor(topic) is { } laneView)
                 {
-                    session.RoutedNodes[topic] = boundNode;
+                    boundNode = laneView.Node;
+                    boundTopic = laneView.Topic;
+                    DeclareLane(boundTopic, topic);
                 }
-                unsubscribe = _courier.SubscribeStream(boundNode, topic, vantage, delivered =>
+                NoteStreamBinding(session, topic, boundNode, boundTopic);
+                var fromALane = !ReferenceEquals(boundTopic, topic);
+                double? shownThroughBefore = fromALane && session.LaneShownThrough.TryGetValue(boundTopic, out var shown) ? shown : (double?)null;
+                Action<StreamData<object?>> deliver = fromLane =>
                 {
+                    // A lane's readings reach the screen under the topic it subscribed to.
+                    var delivered = fromLane;
+                    if (fromALane)
+                    {
+                        delivered = new StreamData<object?> { Topic = topic, Payload = fromLane.Payload, Meta = fromLane.Meta, Unchanged = fromLane.Unchanged };
+                        session.LaneShownThrough[boundTopic] = session.LaneShownThrough.TryGetValue(boundTopic, out var through)
+                            ? Math.Max(through, fromLane.Meta.ValidAt)
+                            : fromLane.Meta.ValidAt;
+                    }
                     var streamData = delivered;
                     if (viewerFilter != null && delivered.Payload != null)
                     {
@@ -12707,7 +12734,12 @@ namespace Sitrep.Host
                     {
                         session.Outbox.PublishTelemetry(topic, bytes, onSent);
                     }
-                });
+                };
+                unsubscribe = _courier.SubscribeStream(boundNode, boundTopic, vantage, deliver);
+                if (fromALane)
+                {
+                    ReplayLaneHistory(session, boundNode, boundTopic, vantage, shownThroughBefore, deliver);
+                }
             }
             catch (Exception ex)
             {
@@ -12726,6 +12758,7 @@ namespace Sitrep.Host
                 // the client's subscribe simply never completes, matching
                 // "unavailable channel" behavior elsewhere in this class.
                 session.RoutedNodes.Remove(topic);
+                session.LaneViews.Remove(topic);
                 if (_subscriptions.Unsubscribe(topic))
                 {
                     _subscribedTopics.TryRemove(topic, out _);
@@ -12989,6 +13022,7 @@ namespace Sitrep.Host
                 session.Unsubscribers.Remove(topic);
                 _liveSubscriptions.TryRemove(LiveSubscriptionKey(session.Connection.Id, topic), out _);
                 session.RoutedNodes.Remove(topic);
+                session.LaneViews.Remove(topic);
                 if (_subscriptions.Unsubscribe(topic))
                 {
                     _subscribedTopics.TryRemove(topic, out _);
@@ -13999,6 +14033,20 @@ namespace Sitrep.Host
             /// is placed or moves afterwards can be found and re-pointed. Courier-thread only.
             /// </summary>
             public readonly Dictionary<string, string> RoutedNodes = new Dictionary<string, string>();
+
+            /// <summary>
+            /// The lane topic each active-vessel topic's stream reads, or the topic
+            /// itself while no craft has been active, so a switch of active craft can
+            /// find it and re-point it at the new craft's lane. Courier-thread only.
+            /// </summary>
+            public readonly Dictionary<string, string> LaneViews = new Dictionary<string, string>();
+
+            /// <summary>
+            /// The newest instant of each lane this connection has been shown, kept
+            /// after it moves to another craft's lane, so coming back hands it the
+            /// span it missed. Courier-thread only.
+            /// </summary>
+            public readonly Dictionary<string, double> LaneShownThrough = new Dictionary<string, double>();
 
             /// <summary>
             /// The command centre this connection chose with a set-vantage message, or

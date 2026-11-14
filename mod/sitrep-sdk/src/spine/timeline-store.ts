@@ -446,6 +446,9 @@ const DATA_RATES_TOPIC = "system.dataRates";
 
 const CRAFT_SOURCE_PREFIX = "vessel:";
 
+/** The domain of the topics that describe whichever craft is active. */
+const ACTIVE_VESSEL_TOPIC_PREFIX = "vessel.";
+
 const CORE_TOPIC_IDS: ReadonlySet<string> = new Set(GENERATED_TOPIC_IDS);
 
 /** The reports of the active craft's link, which the mod sends through a blackout. */
@@ -2531,13 +2534,15 @@ export class TimelineStore {
     if (timeline.epoch < this.clock.getEpoch() && !timeline.bridging) {
       return false;
     }
-    const newest = timeline.latest();
-    if (!newest || newest.payload === null) return false;
     const active = this.activeVesselId(this.currentToken);
-    return (
-      active !== undefined &&
-      payloadMetaSource(newest.payload) === `${CRAFT_SOURCE_PREFIX}${active}`
+    if (active === undefined) return false;
+    const own = `${CRAFT_SOURCE_PREFIX}${active}`.toLowerCase();
+    // Each craft's readings arrive after its own delay, so a nearer craft's can be newer than the active craft's own.
+    const newestOwn = timeline.lastMatchingAt(
+      Number.POSITIVE_INFINITY,
+      (point) => payloadMetaSource(point.payload)?.toLowerCase() === own,
     );
+    return newestOwn !== undefined && newestOwn.payload !== null;
   }
 
   /** The game's statement of which craft is active, or `undefined` while it names none. */
@@ -2650,7 +2655,7 @@ export class TimelineStore {
       () => {
         const timeline = this.timelineFor<Payload>(topic);
         if (timeline.epoch < epoch && !timeline.bridging) return undefined;
-        return timeline.at(viewUt);
+        return this.activeCraftsOwnAt(topic, timeline, viewUt, effectiveToken);
       },
     );
     if (literal !== undefined) return literal;
@@ -2683,6 +2688,41 @@ export class TimelineStore {
           laneOverride,
         ),
     );
+  }
+
+  /**
+   * The point an active-vessel topic shows at `ut`: the active craft's own
+   * newest reading. After a switch the timeline holds readings of both craft,
+   * each reaching the screen after its own craft's delay, so a nearer craft's
+   * newer readings can lie past the active craft's; those are passed over, and
+   * a topic with no reading of the active craft yet shows none.
+   */
+  private activeCraftsOwnAt<Payload>(
+    topic: string,
+    timeline: ClientTimeline<Payload>,
+    ut: number,
+    token: FrameToken,
+  ): TimelinePoint<Payload> | undefined {
+    const point = timeline.at(ut);
+    if (point === undefined || !topic.startsWith(ACTIVE_VESSEL_TOPIC_PREFIX)) {
+      return point;
+    }
+    const active = this.activeCraftSourceAt(token);
+    if (active === undefined) return point;
+    const subject = craftSourceOf(point.payload)?.toLowerCase();
+    if (subject === undefined || subject === active) return point;
+    return timeline.lastMatchingAt(
+      ut,
+      (candidate) => craftSourceOf(candidate.payload)?.toLowerCase() === active,
+    );
+  }
+
+  /** The active craft as a payload's `meta.source` names it, lower-cased: from the game's own statement, else from the newest delay report. */
+  private activeCraftSourceAt(token: FrameToken): string | undefined {
+    const id = this.activeVesselId(token);
+    const source =
+      id !== undefined ? `${CRAFT_SOURCE_PREFIX}${id}` : this.activeCraftSource;
+    return source?.toLowerCase();
   }
 
   /** The frozen view time `token` exposes for `lane`. Both are minted together, so which one a read takes is the only thing a lane decides. */

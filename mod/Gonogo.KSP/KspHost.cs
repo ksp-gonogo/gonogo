@@ -760,6 +760,395 @@ namespace Gonogo.KSP
         /// everything else is the craft, <paramref name="vessel"/>. They differ while a
         /// kerbal is focused and the craft they left is loaded.</para>
         /// </summary>
+        /// <summary>
+        /// The vessel entry of a craft that is not the active one, for its lane:
+        /// the same walk as the active craft's, with nothing that belongs to the
+        /// active craft alone (its action groups, its maneuver plan, its target,
+        /// the signal quantity its own radio reports).
+        /// </summary>
+        internal static Dictionary<string, object?> BuildLaneVesselEntry(Vessel vessel, ThrustObserver thrustObserver, double ut)
+        {
+            var entry = BuildVesselEntry(vessel, vessel, null, null, null, thrustObserver, null, ut);
+            if (!vessel.loaded)
+            {
+                // What the game holds of a craft it has not loaded is its saved snapshot, so each parts-read group is read from that instead.
+                TryBuildGroup(entry, "resources", () => BuildSavedResources(vessel));
+                TryBuildGroup(entry, "crew", () => BuildSavedCrew(vessel));
+                TryBuildGroup(entry, "misc", () => BuildSavedMisc(vessel));
+                TryBuildGroup(entry, "attitude", () => BuildSavedAttitude(vessel));
+                TryBuildGroup(entry, "thermal", () => BuildSavedThermal(vessel));
+                TryBuildGroup(entry, "propulsion", () => BuildSavedPropulsion(vessel, thrustObserver, ut));
+                TryBuildGroup(entry, "flight", () => BuildRailsFlight(vessel, ut));
+                if (AtRestOnRails(vessel))
+                {
+                    TryBuildGroup(entry, "orbit", () => BuildOrbit(OrbitAtRest(vessel, ut)));
+                    if (entry.TryGetValue("identity", out var identity) && identity is Dictionary<string, object?> fields)
+                    {
+                        fields["situation"] = vessel.protoVessel.situation.ToString();
+                    }
+                }
+            }
+            return entry;
+        }
+
+        /// <summary>
+        /// Whether a craft on rails is standing on a surface, by the situation its
+        /// saved snapshot holds: the game does not keep <c>Vessel.situation</c>
+        /// current for a craft it has not loaded, and a craft at rest keeps the
+        /// situation it was saved with.
+        /// </summary>
+        private static bool AtRestOnRails(Vessel vessel)
+        {
+            var saved = vessel.protoVessel?.situation;
+            return saved == Vessel.Situations.LANDED
+                || saved == Vessel.Situations.SPLASHED
+                || saved == Vessel.Situations.PRELAUNCH;
+        }
+
+        /// <summary>
+        /// The orbit of a craft standing on a surface, as the game works it out for
+        /// a loaded one (<c>OrbitDriver</c>'s tracking): from its position and the
+        /// velocity the body's turning gives that position. The orbit a craft is
+        /// saved with is not kept for a craft at rest.
+        /// </summary>
+        private static Orbit? OrbitAtRest(Vessel vessel, double ut)
+        {
+            var body = vessel.mainBody;
+            if (body == null)
+            {
+                return null;
+            }
+            var position = (vessel.GetWorldPos3D() - body.position).xzy;
+            var velocity = body.rotates ? Vector3d.Cross(body.zUpAngularVelocity, -position) : Vector3d.zero;
+            var orbit = new Orbit();
+            orbit.UpdateFromStateVectors(position, velocity, body, ut);
+            return orbit;
+        }
+
+        /// <summary>
+        /// The flight group of a craft on rails. The game does not keep a craft's
+        /// speed fields current while it is not loaded, so the speeds are worked out
+        /// the way the game works them out for a loaded craft, from what it does
+        /// keep: the orbit at <paramref name="ut"/> for the velocity
+        /// (<c>obt_velocity</c>), less the body's rotation at the craft's position
+        /// for the surface velocity (<c>mainBody.getRFrmVel</c>). A landed craft
+        /// moves with the surface, so its surface and vertical speed are zero and
+        /// its orbital speed is the surface's own. Free fall weighs nothing; a
+        /// landed craft feels gravity less the surface's turning. Outside an
+        /// atmosphere, or at rest on the surface, there is no air to read; the
+        /// remaining fields are the game's own.
+        /// </summary>
+        private static Dictionary<string, object?>? BuildRailsFlight(Vessel vessel, double ut)
+        {
+            var body = vessel.mainBody;
+            if (body == null)
+            {
+                return null;
+            }
+            var flight = BuildFlight(vessel);
+            double orbital;
+            double surface;
+            double vertical;
+            double gForce;
+            if (vessel.LandedOrSplashed || AtRestOnRails(vessel))
+            {
+                var fromCentre = vessel.GetWorldPos3D() - body.position;
+                var surfaceVelocity = body.getRFrmVel(vessel.GetWorldPos3D());
+                orbital = surfaceVelocity.magnitude;
+                surface = 0.0;
+                vertical = 0.0;
+                var r = fromCentre.magnitude;
+                var gravity = -fromCentre.normalized * (body.gravParameter / (r * r));
+                var turning = Vector3d.Cross(body.angularVelocity, surfaceVelocity);
+                gForce = (turning - gravity).magnitude / PhysicsGlobals.GravitationalAcceleration;
+            }
+            else
+            {
+                var orbit = vessel.orbitDriver != null ? vessel.orbitDriver.orbit : null;
+                if (orbit == null)
+                {
+                    return null;
+                }
+                var position = orbit.getRelativePositionAtUT(ut).xzy;
+                var velocity = orbit.getOrbitalVelocityAtUT(ut).xzy;
+                orbital = velocity.magnitude;
+                surface = (velocity - Vector3d.Cross(body.angularVelocity, position)).magnitude;
+                vertical = Vector3d.Dot(velocity, position.normalized);
+                gForce = 0.0;
+            }
+            flight["orbitalSpeed"] = orbital;
+            flight["surfaceSpeed"] = surface;
+            flight["verticalSpeed"] = vertical;
+            flight["gForce"] = gForce;
+            var inAir = body.atmosphere && vessel.altitude < body.atmosphereDepth;
+            if (!inAir || vessel.LandedOrSplashed || AtRestOnRails(vessel))
+            {
+                flight["dynamicPressure"] = 0.0;
+                flight["mach"] = 0.0;
+            }
+            if (!inAir)
+            {
+                flight["atmDensity"] = 0.0;
+            }
+            return flight;
+        }
+
+        /// <summary>
+        /// The crew group of a craft on rails, from its saved snapshot: who is
+        /// aboard, in which part, and what each is carrying. Whether moving a
+        /// kerbal would leave the craft with no control is not given, since that
+        /// is worked out from the loaded craft's parts.
+        /// </summary>
+        private static Dictionary<string, object?>? BuildSavedCrew(Vessel vessel)
+        {
+            var proto = vessel.protoVessel;
+            if (proto?.protoPartSnapshots == null)
+            {
+                return null;
+            }
+            var capacity = 0;
+            var members = new List<object?>();
+            foreach (var pps in proto.protoPartSnapshots)
+            {
+                if (pps == null)
+                {
+                    continue;
+                }
+                capacity += pps.partInfo?.partPrefab != null ? pps.partInfo.partPrefab.CrewCapacity : 0;
+                if (pps.protoModuleCrew == null)
+                {
+                    continue;
+                }
+                foreach (var member in pps.protoModuleCrew)
+                {
+                    if (member == null)
+                    {
+                        continue;
+                    }
+                    var row = new Dictionary<string, object?>
+                    {
+                        ["name"] = member.name,
+                        ["trait"] = member.trait,
+                        ["experienceLevel"] = member.experienceLevel,
+                        ["type"] = member.type.ToString(),
+                        ["rosterStatus"] = member.rosterStatus.ToString(),
+                        ["partId"] = pps.flightID.ToString(),
+                        ["partTitle"] = pps.partInfo?.title ?? "",
+                    };
+                    AddInventoryFields(row, member.KerbalInventoryModule);
+                    members.Add(row);
+                }
+            }
+            return new Dictionary<string, object?>
+            {
+                ["capacity"] = capacity,
+                ["members"] = members,
+            };
+        }
+
+        /// <summary>The structure group of a craft on rails: its saved stage, part count and crew count.</summary>
+        private static Dictionary<string, object?>? BuildSavedMisc(Vessel vessel)
+        {
+            var proto = vessel.protoVessel;
+            if (proto?.protoPartSnapshots == null)
+            {
+                return null;
+            }
+            var crew = 0;
+            foreach (var pps in proto.protoPartSnapshots)
+            {
+                crew += pps?.protoModuleCrew?.Count ?? 0;
+            }
+            return new Dictionary<string, object?>
+            {
+                ["crewCount"] = crew,
+                ["currentStage"] = proto.stage,
+                ["partCount"] = proto.protoPartSnapshots.Count,
+            };
+        }
+
+        /// <summary>
+        /// The attitude group of a craft on rails. Such a craft keeps the
+        /// orientation it was saved with relative to the body it orbits, which is
+        /// how the game itself places it, so its control part's attitude is that
+        /// saved rotation turned by the part's own saved rotation, measured in the
+        /// same surface frame as a loaded craft's. Both frames are anchored at the
+        /// craft's position, since its parts have no positions of their own on rails.
+        /// </summary>
+        private static Dictionary<string, object?>? BuildSavedAttitude(Vessel vessel)
+        {
+            var proto = vessel.protoVessel;
+            var body = vessel.mainBody;
+            if (proto == null || body == null || body.bodyTransform == null)
+            {
+                return null;
+            }
+            var craftRotation = body.bodyTransform.rotation * proto.rotation;
+            var control = proto.protoPartSnapshots?.Find(pps => pps != null && pps.flightID == proto.refTransform);
+            var referenceRotation = control != null ? craftRotation * control.rotation : craftRotation;
+            var attitude = SurfaceAttitude(body, vessel.GetWorldPos3D(), referenceRotation);
+            return new Dictionary<string, object?>
+            {
+                ["pitch"] = attitude.pitch,
+                ["heading"] = attitude.heading,
+                ["roll"] = attitude.roll,
+                ["pitchRootFrame"] = attitude.pitch,
+                ["headingRootFrame"] = attitude.heading,
+                ["rollRootFrame"] = attitude.roll,
+            };
+        }
+
+        /// <summary>
+        /// The thermal group of a craft on rails, from each part's saved internal
+        /// temperature against its prefab's limit. The snapshot keeps no skin
+        /// temperature and no heat-shield flux, so those are left out and read as
+        /// unknown, never as cold.
+        /// </summary>
+        private static Dictionary<string, object?>? BuildSavedThermal(Vessel vessel)
+        {
+            var parts = vessel.protoVessel?.protoPartSnapshots;
+            if (parts == null || parts.Count == 0)
+            {
+                return null;
+            }
+            const double EngineOverheatRatio = 0.9;
+            var maxInternalRatio = double.NegativeInfinity;
+            ProtoPartSnapshot? hottestEngine = null;
+            var hottestEngineRatio = double.NegativeInfinity;
+            var anyEnginesOverheating = false;
+            var hasAnyEngine = false;
+            foreach (var pps in parts)
+            {
+                var prefab = pps?.partInfo?.partPrefab;
+                if (prefab == null || prefab.maxTemp <= 0)
+                {
+                    continue;
+                }
+                var ratio = pps!.temperature / prefab.maxTemp;
+                if (ratio > maxInternalRatio)
+                {
+                    maxInternalRatio = ratio;
+                }
+                if (prefab.FindModuleImplementing<ModuleEngines>() == null)
+                {
+                    continue;
+                }
+                hasAnyEngine = true;
+                anyEnginesOverheating |= ratio >= EngineOverheatRatio;
+                if (ratio > hottestEngineRatio)
+                {
+                    hottestEngineRatio = ratio;
+                    hottestEngine = pps;
+                }
+            }
+            var result = new Dictionary<string, object?>
+            {
+                ["maxSkinTempRatio"] = null,
+                ["maxInternalTempRatio"] = double.IsNegativeInfinity(maxInternalRatio) ? (double?)null : maxInternalRatio,
+            };
+            if (hottestEngine != null)
+            {
+                result["hottestEngineTemp"] = hottestEngine.temperature;
+                result["hottestEngineMaxTemp"] = hottestEngine.partInfo.partPrefab.maxTemp;
+                result["hottestEngineTempRatio"] = hottestEngineRatio;
+            }
+            if (hasAnyEngine)
+            {
+                result["anyEnginesOverheating"] = anyEnginesOverheating;
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// The propulsion group of a craft on rails: its saved masses, and no
+        /// thrust, which is the game's own state for a craft it is not simulating.
+        /// The thrust history is not moved by it, since an engine that was firing
+        /// when the craft went on rails has not been seen to stop.
+        /// </summary>
+        private static Dictionary<string, object?>? BuildSavedPropulsion(Vessel vessel, ThrustObserver thrustObserver, double ut)
+        {
+            var parts = vessel.protoVessel?.protoPartSnapshots;
+            if (parts == null)
+            {
+                return null;
+            }
+            var dryMass = 0.0;
+            var resourceMass = 0.0;
+            foreach (var pps in parts)
+            {
+                if (pps == null)
+                {
+                    continue;
+                }
+                dryMass += pps.mass;
+                if (pps.resources == null)
+                {
+                    continue;
+                }
+                foreach (var res in pps.resources)
+                {
+                    if (res?.definition != null)
+                    {
+                        resourceMass += res.amount * res.definition.density;
+                    }
+                }
+            }
+            thrustObserver.Observe(vessel.id.ToString(), ut, 0.0, measurable: false);
+            return new Dictionary<string, object?>
+            {
+                ["totalMass"] = dryMass + resourceMass,
+                ["dryMass"] = dryMass,
+                ["currentThrust"] = 0.0,
+                ["availableThrust"] = 0.0,
+                ["thrustStartedUt"] = thrustObserver.ThrustStartedUt,
+                ["lastThrustEndUt"] = thrustObserver.LastThrustEndUt,
+                ["massFlow"] = 0.0,
+            };
+        }
+
+        /// <summary>
+        /// The resources group of a craft on rails, from its saved snapshot, counted
+        /// as <see cref="BuildResources"/> counts a loaded craft: the game's
+        /// vessel-wide set of tanks that are unlocked and can give their resource
+        /// up, plus every resource that never flows between parts (see
+        /// <see cref="SavedTankCount"/>). A tank's flow mode is not saved, so it is
+        /// read off the part's prefab, which is where the game takes it from when
+        /// the craft loads. Amounts are the snapshot's, which is where a mod that
+        /// simulates unloaded craft writes its results. Null when the craft has no snapshot.
+        /// </summary>
+        private static Dictionary<string, object?>? BuildSavedResources(Vessel vessel)
+        {
+            var protoParts = vessel.protoVessel?.protoPartSnapshots;
+            if (protoParts == null)
+            {
+                return null;
+            }
+            var counted = new List<VesselResourceTotals.Reading>();
+            foreach (var pps in protoParts)
+            {
+                if (pps?.resources == null)
+                {
+                    continue;
+                }
+                var prefabResources = pps.partInfo?.partPrefab?.Resources;
+                foreach (var res in pps.resources)
+                {
+                    if (res == null)
+                    {
+                        continue;
+                    }
+                    var flowMode = prefabResources?.Get(res.resourceName)?.flowMode ?? PartResource.FlowMode.Both;
+                    var flowsBetweenParts = flowMode != PartResource.FlowMode.None;
+                    var flowsOut = (flowMode & PartResource.FlowMode.Out) != PartResource.FlowMode.None;
+                    if (SavedTankCount.Counts(flowsBetweenParts, flowsOut, res.flowState))
+                    {
+                        counted.Add(new VesselResourceTotals.Reading(res.resourceName, res.amount, res.maxAmount));
+                    }
+                }
+            }
+            return VesselResourceTotals.Sum(counted, new List<VesselResourceTotals.Reading>());
+        }
+
         private static Dictionary<string, object?> BuildVesselEntry(Vessel vessel, Vessel focused, IActionGroupsBackend? actionGroupsBackend, IManeuverPlanSource? maneuverPlanSource, ClosestApproach? closestApproach, ThrustObserver thrustObserver, SignalQuantity? signalQuantity, double ut)
         {
             // vessel.orbit is a computed property (orbitDriver.orbit) that
@@ -1271,11 +1660,11 @@ namespace Gonogo.KSP
                 return null;
             }
 
-            var comAttitude = SurfaceAttitude(body, vessel.CoM, referenceTransform);
+            var comAttitude = SurfaceAttitude(body, vessel.CoM, referenceTransform.rotation);
 
             var rootPart = vessel.rootPart;
             var rootPosition = rootPart != null ? (Vector3d)rootPart.transform.position : (Vector3d)vessel.CoM;
-            var rootAttitude = SurfaceAttitude(body, rootPosition, referenceTransform);
+            var rootAttitude = SurfaceAttitude(body, rootPosition, referenceTransform.rotation);
 
             return new Dictionary<string, object?>
             {
@@ -1293,15 +1682,15 @@ namespace Gonogo.KSP
         /// two named frames: build a local up/north frame anchored at
         /// <paramref name="position"/> (CoM for the primary frame,
         /// <c>rootPart.transform.position</c> for the root-part frame), then
-        /// measure <paramref name="referenceTransform"/>'s rotation against it
+        /// measure <paramref name="referenceRotation"/> against it
         /// (MechJeb2's construction).
         /// </summary>
-        private static (double pitch, double heading, double roll) SurfaceAttitude(CelestialBody body, Vector3d position, Transform referenceTransform)
+        private static (double pitch, double heading, double roll) SurfaceAttitude(CelestialBody body, Vector3d position, Quaternion referenceRotation)
         {
             var up = (position - (Vector3d)body.position).normalized;
             var north = Vector3d.Exclude(up, body.position + (Vector3d)(body.transform.up * (float)body.Radius) - position).normalized;
             var surfaceRotation = Quaternion.LookRotation(north, up);
-            var attitude = Quaternion.Inverse(Quaternion.Euler(90, 0, 0) * Quaternion.Inverse(referenceTransform.rotation) * surfaceRotation);
+            var attitude = Quaternion.Inverse(Quaternion.Euler(90, 0, 0) * Quaternion.Inverse(referenceRotation) * surfaceRotation);
 
             var euler = attitude.eulerAngles;
             var pitch = euler.x > 180 ? 360.0 - euler.x : -(double)euler.x;

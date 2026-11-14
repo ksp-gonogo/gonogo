@@ -375,6 +375,14 @@ namespace Gonogo.KSP
             host.AddChannelSource(StageDeltaVViewProvider.StagesTopic, StageDeltaVViewProvider.BuildStages);
             host.AddChannelSource(StageDeltaVViewProvider.SummaryTopic, StageDeltaVViewProvider.BuildSummary);
 
+            if (host is ICraftLaneHost lanes)
+            {
+                foreach (var topic in VesselViewProvider.LaneTopics)
+                {
+                    lanes.FollowActiveCraft(topic);
+                }
+            }
+
             host.AddSampler(new VesselEpochSampler(host));
 
             host.AddCommandHandler<SetEnabledArgs, CommandResult>(VesselCommandProvider.SetSasCommand, args => VesselCommandProvider.HandleSetSas(_actuator, args));

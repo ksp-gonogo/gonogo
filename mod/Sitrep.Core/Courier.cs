@@ -2051,6 +2051,53 @@ namespace Sitrep.Core
         /// Drops what <paramref name="topic"/> on <paramref name="node"/> holds that no reader
         /// at or after <paramref name="cutoffUt"/> can reach, for a topic nobody reads.
         /// </summary>
+        /// <summary>
+        /// Hands <paramref name="onData"/> every sample of <paramref name="topic"/>
+        /// on <paramref name="node"/> made after <paramref name="afterValidAt"/> and
+        /// before <paramref name="beforeValidAt"/> that has already reached
+        /// <paramref name="vantage"/>, each by its own record-time stamp, oldest
+        /// first, as <see cref="Staleness.Recorded"/> delivered now. For a reader
+        /// that was not listening while they arrived and wants the span it missed;
+        /// a sample still crossing is left to the ordinary scheduled delivery, and
+        /// one a break caught is never handed over.
+        ///
+        /// <para>C#-ONLY, like <see cref="ReplayRecordedTo"/>.</para>
+        /// </summary>
+        public int ReplayArrived(
+            string node,
+            string topic,
+            string vantage,
+            double afterValidAt,
+            double beforeValidAt,
+            Action<StreamData> onData)
+        {
+            if (!_archives.TryGetValue(node, out var archive))
+            {
+                return 0;
+            }
+            var liveDelay = _network.DelayTo(vantage, node);
+            var now = _clock.Now();
+            var handed = 0;
+            foreach (var sample in archive.Samples(topic))
+            {
+                if (sample.ValidAt <= afterValidAt || sample.ValidAt >= beforeValidAt)
+                {
+                    continue;
+                }
+                if (LostInFlight(node, topic, sample.ValidAt, vantage))
+                {
+                    continue;
+                }
+                if (ArrivalOf(sample.ValidAt, sample.ValidAt + DelayOf(sample, vantage, liveDelay)) > now)
+                {
+                    continue;
+                }
+                onData(StreamDataFor(node, topic, vantage, sample, now, Staleness.Recorded, null));
+                handed++;
+            }
+            return handed;
+        }
+
         public void TrimTopic(string node, string topic, double cutoffUt)
         {
             if (_archives.TryGetValue(node, out var archive))

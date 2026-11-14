@@ -147,6 +147,75 @@ describe("a quickload the mod announces", () => {
 });
 
 describe("a load that does not rewind the game, as a switch of craft is", () => {
+  it("keeps the epoch when a craft's own reading trails the frames the load sent before it", () => {
+    const wire = new Wire();
+    const client = new TelemetryClient(wire, CLOCK, { idPrefix: "p" });
+    client.subscribe("life-support.profile", () => {});
+    const viewClock = new ViewClock();
+    client.attachStore(new TimelineStore(viewClock));
+    wire.deliver({
+      type: "hello",
+      bootId: "b",
+      timelineEpoch: 1,
+      contractMajor: 1,
+      contractMinor: 0,
+    });
+    // Recorded on the Deck at a switch: an Uplink's reading of the old craft taken a tick before the load, delivered on its own clock after the load's first frames.
+    wire.deliver(frame("vessel.flight", 1, 115.6));
+    wire.deliver({
+      type: "game-state",
+      state: "loading",
+      scene: "FLIGHT",
+      bootId: "b",
+      timelineEpoch: 1,
+    });
+    wire.deliver(frame("ksp.activeVessel", 1, 116.6));
+    wire.deliver({
+      type: "stream-data",
+      topic: "life-support.transmission",
+      payload: {},
+      meta: makeMeta({
+        timelineEpoch: 1,
+        deliveredAt: 116.0047,
+        source: "fleet.fe9bd1e1",
+      }),
+    });
+    expect(viewClock.getEpoch()).toBe(1);
+  });
+
+  it("keeps the epoch when the game sat in the switch dialog while the clock's estimate ran on", () => {
+    let now = 100;
+    const wire = new Wire();
+    const client = new TelemetryClient(
+      wire,
+      { now: () => now, schedule: () => () => {} },
+      { idPrefix: "p" },
+    );
+    client.subscribe("spaceCenter.scene", () => {});
+    const viewClock = new ViewClock();
+    client.attachStore(new TimelineStore(viewClock));
+    wire.deliver({
+      type: "hello",
+      bootId: "b",
+      timelineEpoch: 1,
+      contractMajor: 1,
+      contractMinor: 0,
+    });
+    // Recorded from a switch on the Deck: the last frame before the dialog, then wall seconds with the game held.
+    wire.deliver(frame("spaceCenter.scene", 1, 379.08));
+    now = 104;
+    wire.deliver({
+      type: "game-state",
+      state: "loading",
+      scene: "FLIGHT",
+      bootId: "b",
+      timelineEpoch: 1,
+    });
+    now = 108;
+    wire.deliver(frame("vessel.flight", 1, 379.92));
+    expect(viewClock.getEpoch()).toBe(1);
+  });
+
   it("keeps the epoch when a frame is stamped a float step behind another of the same instant", () => {
     const wire = new Wire();
     const client = new TelemetryClient(wire, CLOCK, { idPrefix: "p" });

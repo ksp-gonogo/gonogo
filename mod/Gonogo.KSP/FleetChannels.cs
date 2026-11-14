@@ -113,6 +113,8 @@ namespace Gonogo.KSP
             // Registered after the gated source, whose handle has to report a
             // link after its delay and before its publishes on a tick it runs.
             host.AddSampledSource(CaptureLinksOnMain, HandleLinksOnCourier);
+            // Every other craft's lane, so a switch shows what its light has already brought.
+            new CraftLaneFeed().Register(host);
         }
 
         /// <summary>
@@ -272,19 +274,7 @@ namespace Gonogo.KSP
                 }
                 else
                 {
-                    var protoParts = vessel.protoVessel?.protoPartSnapshots;
-                    if (protoParts != null)
-                    {
-                        foreach (var pps in protoParts)
-                        {
-                            if (pps?.resources == null) continue;
-                            foreach (var res in pps.resources)
-                            {
-                                if (res == null) continue;
-                                TrackingStationVesselResourcesBuilder.Add(resources, res.resourceName, res.amount, res.maxAmount);
-                            }
-                        }
-                    }
+                    AddSavedTanks(vessel, resources);
                 }
             }
             catch (System.Exception ex)
@@ -297,6 +287,30 @@ namespace Gonogo.KSP
 
             FleetResourceBudget.Record(resources.Count, ut);
             return TrackingStationVesselResourcesBuilder.Build(resources);
+        }
+
+        /// <summary>
+        /// MAIN-THREAD: adds every tank in <paramref name="vessel"/>'s saved snapshot
+        /// to <paramref name="resources"/>, as the game last wrote it. With a mod that
+        /// simulates unloaded craft installed, that is its background simulation,
+        /// which it writes back into the same snapshot.
+        /// </summary>
+        internal static void AddSavedTanks(Vessel vessel, Dictionary<string, object?> resources)
+        {
+            var protoParts = vessel.protoVessel?.protoPartSnapshots;
+            if (protoParts == null)
+            {
+                return;
+            }
+            foreach (var pps in protoParts)
+            {
+                if (pps?.resources == null) continue;
+                foreach (var res in pps.resources)
+                {
+                    if (res == null) continue;
+                    TrackingStationVesselResourcesBuilder.Add(resources, res.resourceName, res.amount, res.maxAmount);
+                }
+            }
         }
 
         /// <summary>
