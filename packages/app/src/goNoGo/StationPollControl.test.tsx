@@ -302,6 +302,26 @@ describe("GO/NO-GO in a station's header", () => {
     ).toBeInTheDocument();
   });
 
+  it("says why an abort was refused, in the same line as a refused T-0 action", async () => {
+    let outcome: (action: string | null, sent: boolean, why?: string) => void =
+      () => {};
+    const client: PeerClient = {
+      ...idlePeerClient(),
+      onGonogoOutcome: (cb) => {
+        outcome = cb;
+        return () => {};
+      },
+    };
+    station(client);
+    await screen.findByText("NO-GO");
+    await act(async () =>
+      outcome("Abort", false, "Abort refused: there is no active craft."),
+    );
+    expect(
+      screen.getByText("Abort refused: there is no active craft."),
+    ).toBeInTheDocument();
+  });
+
   it("opens the vote's input binding from the gear", async () => {
     station(idlePeerClient());
     fireEvent.click(screen.getByRole("button", { name: "Vote input" }));

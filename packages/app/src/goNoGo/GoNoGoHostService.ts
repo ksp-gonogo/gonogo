@@ -12,7 +12,10 @@
  */
 
 import { logger } from "@ksp-gonogo/logger";
-import type { TelemetryClient } from "@ksp-gonogo/sitrep-client";
+import type {
+  DispatchCommandRefusal,
+  TelemetryClient,
+} from "@ksp-gonogo/sitrep-client";
 import {
   dispatchActiveCommandTopic,
   getActiveTimelineEpoch,
@@ -127,6 +130,27 @@ export const DEFAULT_GONOGO_CONFIG: GoNoGoConfig = {
 };
 
 type Listener = () => void;
+
+/**
+ * The sentence saying why `action` was not sent: the refusal wording the
+ * controls use when the game gave a typed reason, otherwise the message the
+ * dispatch failed with.
+ */
+function refusalWhy(
+  action: string,
+  message: string,
+  refusal: DispatchCommandRefusal | undefined,
+): string {
+  if (refusal?.errorCode) {
+    return commandRefusalSentence({
+      errorCode: refusal.errorCode,
+      reason: refusal.reason,
+      detail: refusal.detail,
+      label: action,
+    });
+  }
+  return `${action} not sent: ${message}`;
+}
 
 /** A countdown at the host screen's own centre starting, or finishing as go or as aborted. */
 export type CountdownEvent =
@@ -434,16 +458,28 @@ export class GoNoGoHostService {
   private async sendAbort(peerId: string, stationName: string): Promise<void> {
     this.abortInFlight = true;
     const centre = this.voterCentre(peerId);
-    const refusal = await this.dispatchCommand(
+    const refused = await this.dispatchCommand(
       "vessel.control.setAbort",
       { enabled: true },
       centre ? this.places.commandFrom(centre) : undefined,
     );
     this.abortInFlight = false;
-    if (refusal !== undefined) {
+    if (refused !== undefined) {
       logger.warn(
-        `[GoNoGoHost] abort from ${stationName} not sent: ${refusal}`,
+        `[GoNoGoHost] abort from ${stationName} not sent: ${refused.message}`,
       );
+      const why = refusalWhy("Abort", refused.message, refused.refusal);
+      if (centre === null) {
+        // A pilot votes in no poll, so the refusal goes to the pilot who pressed it.
+        this.host.sendToPeer(peerId, {
+          type: "gonogo-outcome",
+          action: "Abort",
+          sent: false,
+          why,
+        });
+      } else {
+        this.announceOutcome(centre, "Abort", false, why);
+      }
       return;
     }
     // A craft back on the pad by the time the outcome arrived has no abort to show.
@@ -478,11 +514,15 @@ export class GoNoGoHostService {
     command: string,
     args: unknown,
     through: TelemetryClient | undefined,
-  ): Promise<string | undefined> {
+  ): Promise<
+    { message: string; refusal?: DispatchCommandRefusal } | undefined
+  > {
     const outcome = dispatchActiveCommandTopic(command, args, through);
-    if (!outcome.routed) return "no telemetry stream is connected";
+    if (!outcome.routed) {
+      return { message: "no telemetry stream is connected" };
+    }
     const refusal = await outcome.settled;
-    return refusal?.message;
+    return refusal ? { message: refusal.message, refusal } : undefined;
   }
 
   /** Calls `listener` as a countdown at the host screen's own centre starts or finishes. */
@@ -674,14 +714,7 @@ export class GoNoGoHostService {
     const why =
       refusal === undefined
         ? undefined
-        : refused?.errorCode
-          ? commandRefusalSentence({
-              errorCode: refused.errorCode,
-              reason: refused.reason,
-              detail: refused.detail,
-              label: this.config.onGoLabel ?? undefined,
-            })
-          : refusal;
+        : refusalWhy(this.config.onGoLabel ?? "T-0 action", refusal, refused);
     this.announceOutcome(
       centre,
       this.config.onGoLabel,

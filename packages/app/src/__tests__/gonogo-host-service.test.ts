@@ -819,7 +819,10 @@ describe("GoNoGoHostService", () => {
     await drainDispatch();
     expect(abortDispatches()).toHaveLength(1);
     expect(svc.getSnapshot().abort).toBeNull();
-    expect(host.broadcasts.length).toBe(broadcastsBefore);
+    // Only the refusal is announced: no abort notice, and no alert tone.
+    expect(host.broadcasts.slice(broadcastsBefore).map((b) => b.type)).toEqual([
+      "gonogo-outcome",
+    ]);
     expect(oscillators).toHaveLength(0);
 
     refuse = false;
@@ -830,6 +833,45 @@ describe("GoNoGoHostService", () => {
     expect(lastBroadcast(host, "gonogo-abort-notify").stationName).toBe(
       "CAPCOM",
     );
+  });
+
+  it("says why the game refused an abort, in the refusal wording, on the host and to the stations", async () => {
+    transport.setCommandHandler(() => ({
+      success: false,
+      errorCode: "wrongScene",
+      detail: "there is no active craft",
+    }));
+    host.fireConnect("peer-1");
+    host.fireStationInfo("peer-1", "CAPCOM");
+    timeline.emitMet(10);
+    host.fireAbort("peer-1");
+    await drainDispatch();
+    const why = "Abort refused: there is no active craft.";
+    expect(lastBroadcast(host, "gonogo-outcome")).toEqual({
+      type: "gonogo-outcome",
+      action: "Abort",
+      sent: false,
+      why,
+    });
+    expect(svc.getSnapshot().notice).toEqual({
+      kind: "outcome",
+      action: "Abort",
+      sent: false,
+      why,
+    });
+  });
+
+  it("says an abort could not be sent when there is no stream, in a sentence of its own", async () => {
+    setActiveTelemetryClientForTests(undefined);
+    host.fireConnect("peer-1");
+    timeline.emitMet(10);
+    host.fireAbort("peer-1");
+    await drainDispatch();
+    expect(lastBroadcast(host, "gonogo-outcome")).toMatchObject({
+      action: "Abort",
+      sent: false,
+      why: "Abort not sent: no telemetry stream is connected",
+    });
   });
 
   it("records no abort when there is no stream to send it on", async () => {
