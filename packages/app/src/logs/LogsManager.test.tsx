@@ -420,6 +420,18 @@ describe("LogsManager: Feedback with analytics off", () => {
     for (let i = 0; i < 3000; i++)
       logger.info(`filler ${i} ${"x".repeat(300)}`);
     const user = await openReportForm();
+    await user.selectOptions(
+      screen.getByLabelText(/include logs from/i),
+      "everything in buffer",
+    );
+    expect(
+      screen.getByText(/^The latest \d+ log entries will be attached\.$/),
+    ).toBeInTheDocument();
+    const shown = Number(
+      /(\d+) log entr/.exec(
+        screen.getByText(/log entr(y|ies) will be attached/i).textContent ?? "",
+      )?.[1],
+    );
     await user.type(screen.getByLabelText(/what went wrong/i), "Gauge froze");
     await user.click(screen.getByRole("button", { name: /send report/i }));
     await waitFor(
@@ -430,12 +442,16 @@ describe("LogsManager: Feedback with analytics off", () => {
     );
     const sent = (
       ingested.flat() as {
-        context?: { bug_report?: { recentLogs: unknown[] } };
+        context?: {
+          bug_report?: { recentLogs: unknown[]; recentLogsCount: number };
+        };
       }[]
     ).find((e) => e.context?.bug_report);
     const bytes = JSON.stringify(sent?.context?.bug_report?.recentLogs).length;
     expect(bytes).toBeLessThanOrEqual(400_000);
     expect(sent?.context?.bug_report?.recentLogs.length).toBeGreaterThan(100);
+    expect(sent?.context?.bug_report?.recentLogs.length).toBe(shown);
+    expect(sent?.context?.bug_report?.recentLogsCount).toBe(shown);
     await act(async () => {});
   });
 

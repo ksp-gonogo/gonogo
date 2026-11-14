@@ -175,11 +175,17 @@ function ReportBug() {
 
   const selectedWindow =
     TIME_WINDOW_OPTIONS[windowIndex] ?? TIME_WINDOW_OPTIONS[0];
-  const previewCount = useMemo(
-    () =>
-      recentLogsWindow(logger.getBuffer(), selectedWindow.windowMinutes).length,
-    [selectedWindow.windowMinutes],
-  );
+  const preview = useMemo(() => {
+    const windowed = recentLogsWindow(
+      logger.getBuffer(),
+      selectedWindow.windowMinutes,
+    );
+    return {
+      attached: capLogsByBytes(windowed).length,
+      inWindow: windowed.length,
+    };
+  }, [selectedWindow.windowMinutes]);
+  const previewCount = preview.attached;
 
   if (!open && phase !== "sent") {
     return (
@@ -353,6 +359,7 @@ function ReportBug() {
           ))}
         </Select>
         <FieldHint>
+          {preview.inWindow > preview.attached && "The latest "}
           {previewCount} log entr{previewCount === 1 ? "y" : "ies"} will be
           attached.
         </FieldHint>
