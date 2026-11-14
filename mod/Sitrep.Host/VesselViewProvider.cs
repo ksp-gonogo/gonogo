@@ -79,6 +79,27 @@ namespace Sitrep.Host
         public const string LightTopic = "vessel.light";
 
         /// <summary>
+        /// The active-vessel topics a craft can report whether or not it is the
+        /// active one, each kept in every craft's lane (see
+        /// <see cref="ICraftLaneHost"/>). The rest read the active craft's own
+        /// controls, target and plans, and have nothing to say of another craft.
+        /// </summary>
+        public static readonly IReadOnlyList<string> LaneTopics = new[]
+        {
+            IdentityTopic,
+            OrbitTopic,
+            FlightTopic,
+            AttitudeTopic,
+            ResourcesTopic,
+            ThermalTopic,
+            PhysicsModeTopic,
+            PropulsionTopic,
+            CrewTopic,
+            StructureTopic,
+            SurfaceTopic,
+        };
+
+        /// <summary>
         /// The <c>eva.crew</c> channel: which kerbals are currently outside a craft.
         /// Held at the home command, so no craft's link gates it; each kerbal's suit
         /// state is on its own <see cref="EvaKerbalPrefix"/> Topic.
