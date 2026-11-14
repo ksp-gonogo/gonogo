@@ -32,6 +32,16 @@ interface SystemUplinksReading {
   uplinks?: Array<{ id: string; version: string; available: boolean }>;
 }
 
+/**
+ * The run and session ids of this tab's logs, only while anonymous logs are on.
+ * The run id is set on the logger exactly while they are, on the main screen and
+ * on a station following it.
+ */
+function currentLogTrail(): { runId: string; sessionId: string } | null {
+  const runId = logger.getRunId();
+  return runId ? { runId, sessionId: logger.getSessionId() } : null;
+}
+
 /** What the bug report form asks that this screen already knows. */
 function useReportEnvironment() {
   const reading = useStream<SystemUplinksReading>("system.uplinks");
@@ -118,6 +128,7 @@ export function GithubIssueForm({
         appVersion: VERSION,
         uplinks: env.uplinks,
         screen: env.screen,
+        logTrail: currentLogTrail(),
       },
       sections,
     );

@@ -12,10 +12,35 @@ const fields: IssueFields = {
   appVersion: "1.4.0",
   uplinks: ["sample 1.2.0", "example 0.9.1"],
   screen: "Main screen",
+  logTrail: null,
 };
 
 const lines = (n: number) =>
   Array.from({ length: n }, (_, i) => `line ${i} ${"x".repeat(60)}`);
+
+describe("log trail", () => {
+  it("carries the run and session ids when given", () => {
+    const { url } = buildIssueLink(
+      {
+        ...fields,
+        logTrail: { runId: "run-20261114T1900-ab12", sessionId: "s-1" },
+      },
+      [],
+    );
+    const body = new URL(url).searchParams.get("body") ?? "";
+    expect(body).toContain(
+      "## Log trail\n\n- Run: run-20261114T1900-ab12\n- Session: s-1",
+    );
+    expect(body.match(/Log trail/g)).toHaveLength(1);
+  });
+
+  it("carries no id when anonymous logs are off", () => {
+    const body =
+      new URL(buildIssueLink(fields, []).url).searchParams.get("body") ?? "";
+    expect(body).not.toContain("Log trail");
+    expect(body).not.toContain("session");
+  });
+});
 
 describe("redactLogLine", () => {
   it.each([

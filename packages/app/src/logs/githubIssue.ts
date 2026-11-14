@@ -24,6 +24,8 @@ export interface IssueFields {
   appVersion: string;
   uplinks: string[];
   screen: "Main screen" | "Station";
+  /** The ids a maintainer looks this player's logs up by; null while anonymous logs are off. */
+  logTrail: { runId: string; sessionId: string } | null;
 }
 
 export interface IssueLink {
@@ -117,6 +119,12 @@ function build(fields: IssueFields, logText: string | null): string {
     "",
     "## Versions",
     facts.join("\n"),
+    ...(fields.logTrail
+      ? [
+          "## Log trail",
+          `- Run: ${fields.logTrail.runId}\n- Session: ${fields.logTrail.sessionId}`,
+        ]
+      : []),
     ...(logText ? ["## Logs", logText] : []),
   ].join("\n\n");
   const params = new URLSearchParams({ labels: "bug", body });

@@ -96,4 +96,33 @@ describe("Open a GitHub issue", () => {
       expect.stringContaining("github.com/ksp-gonogo/gonogo/issues/new"),
     );
   });
+
+  describe("log trail", () => {
+    afterEach(() => logger.setRunId(undefined));
+
+    async function openedBody() {
+      const popup = fakePopup();
+      vi.spyOn(window, "open").mockReturnValue(popup);
+      const user = await openForm();
+      await user.click(
+        screen.getByRole("button", { name: /open github issue/i }),
+      );
+      await vi.waitFor(() => expect(popup.location.href).not.toBe(""));
+      return new URL(popup.location.href).searchParams.get("body") ?? "";
+    }
+
+    it("names this tab's run and session with anonymous logs on", async () => {
+      logger.setRunId("run-20261114T1900-ab12");
+      const body = await openedBody();
+      expect(body).toContain(
+        `- Run: run-20261114T1900-ab12\n- Session: ${logger.getSessionId()}`,
+      );
+    });
+
+    it("carries neither id with anonymous logs off", async () => {
+      const body = await openedBody();
+      expect(body).not.toContain("Log trail");
+      expect(body).not.toContain(logger.getSessionId());
+    });
+  });
 });
