@@ -97,6 +97,15 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>
+        /// The signal delay in seconds of the route the game has from
+        /// <paramref name="craft"/> that has reached <paramref name="centre"/>,
+        /// or null when no route has reached it, the newest news is that the game
+        /// has none, or the centre was last told of another craft.
+        /// </summary>
+        public double? OpenSeconds(string centre, string craft) =>
+            _centres.TryGetValue(centre, out var held) && held.Craft == craft && held.Latest != null ? held.LatestSeconds : (double?)null;
+
+        /// <summary>
         /// Whether nothing of the craft has yet reached <paramref name="centre"/>
         /// over any route, so a null from <see cref="Note"/> means the news is
         /// still crossing and not that the craft has no route.

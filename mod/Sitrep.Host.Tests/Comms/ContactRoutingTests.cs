@@ -45,6 +45,31 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Equal(1000.0, hold.DepartUt, 9);
         }
 
+        [Fact]
+        public void ACraftTheGameHoldsALinkToIsGivenItsArrivalWhereThePlanFoundNoPath()
+        {
+            var routes = ContactRouting.RoutesFor(Plan, "vessel:docked", new[] { "ground:ksc" }, 10.0);
+            Assert.All(routes.Routes, r => Assert.Null(r.ArrivalUt));
+
+            ContactRouting.WithGameRoute(routes, 2.5);
+
+            Assert.All(routes.Routes, r =>
+            {
+                Assert.True(r.Live);
+                Assert.Equal(12.5, r.ArrivalUt!.Value, 9);
+            });
+        }
+
+        [Fact]
+        public void TheGamesRouteLeavesARowThePlanFoundAPathForAsItIs()
+        {
+            var routes = ContactRouting.RoutesFor(Plan, "vessel:probe", new[] { "ground:ksc" }, 10.0);
+
+            ContactRouting.WithGameRoute(routes, 99.0);
+
+            Assert.All(routes.Routes, r => Assert.Equal(11.0, r.ArrivalUt!.Value, 9));
+        }
+
         private static readonly string[] Stations = { "ground:ksc", "ground:forward" };
 
         /// <summary>The home station has no window for a thousand seconds and the forward station has one now.</summary>

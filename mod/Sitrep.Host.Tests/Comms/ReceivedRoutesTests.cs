@@ -39,6 +39,23 @@ namespace Sitrep.Host.Tests.Comms
         private static string? First(IReadOnlyList<CommsHop>? route) => route?[1].To;
 
         [Fact]
+        public void AnOpenRouteReportsItsDelayOnlyForTheCraftItWasTakenFrom()
+        {
+            var routes = new ReceivedRoutes();
+            Assert.Null(routes.OpenSeconds(Ksc, Probe));
+
+            routes.Note(Ksc, Probe, 100.0, Chain, 1.0);
+            routes.Note(Ksc, Probe, 500.0, Chain, 1.0);
+
+            Assert.True(routes.OpenSeconds(Ksc, Probe) > 0.0);
+            Assert.Null(routes.OpenSeconds(Ksc, "vessel:other"));
+
+            routes.Note(Ksc, Probe, 900.0, null, 1.0);
+            routes.Note(Ksc, Probe, 1500.0, null, 1.0);
+            Assert.Null(routes.OpenSeconds(Ksc, Probe));
+        }
+
+        [Fact]
         public void ARerouteReachesTheCentreOneSignalDelayAfterIt()
         {
             var routes = new ReceivedRoutes();

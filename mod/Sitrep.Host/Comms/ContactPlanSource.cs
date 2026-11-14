@@ -2116,9 +2116,14 @@ namespace Sitrep.Host.Comms
                 }
                 var routes = ContactRouting.RoutesFor(
                     plan, looked.ActiveCraft, new[] { centre }, looked.Ut, _audience!.LightFactor(), _audience.HomeCentre(), StationIds(), _audience.DishRouting());
-                if (HeardCut(centre, _hearing!.RadioAt(centre, looked.ActiveCraft)))
+                var heardCut = HeardCut(centre, _hearing!.RadioAt(centre, looked.ActiveCraft));
+                if (heardCut)
                 {
                     routes = ContactRouting.NoneLive(routes);
+                }
+                if (!heardCut && _receivedRoutes.OpenSeconds(centre, looked.ActiveCraft) is double gameSeconds)
+                {
+                    routes = ContactRouting.WithGameRoute(routes, gameSeconds);
                 }
                 rows += routes.Routes.Count;
                 _streams!.PublishAddressedTo(RouteTopic, routes, looked.Ut, ToItself(centre));

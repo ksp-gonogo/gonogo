@@ -70,6 +70,28 @@ namespace Sitrep.Host.Comms
             return routes;
         }
 
+        /// <summary>
+        /// <paramref name="routes"/> with every row the plan found no path for
+        /// given the arrival of the route the game itself holds, for a centre
+        /// the game's route has reached: the game's own link outranks a plan
+        /// that has no node or no link for the craft, as after a dock gives it a
+        /// new identity. A row the plan found a path for is left as it is.
+        /// </summary>
+        /// <param name="gameRouteSeconds">The signal delay of the game's route, zero where no delay is applied.</param>
+        public static CommsRoutes WithGameRoute(CommsRoutes routes, double gameRouteSeconds)
+        {
+            foreach (var row in routes.Routes)
+            {
+                if (row.ArrivalUt == null)
+                {
+                    row.ArrivalUt = row.SentUt + gameRouteSeconds;
+                    row.Live = true;
+                    row.Holds.Clear();
+                }
+            }
+            return routes;
+        }
+
         private static CommsRoute Row(
             ContactPlan plan, string from, string to, double sentUt, double lightFactor, string? home, IReadOnlyCollection<string>? antennas, RetargetRouting? retarget)
         {
