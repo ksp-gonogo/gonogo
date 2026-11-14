@@ -9,6 +9,7 @@ const base: TraceSnapshot = {
   currentStage: 3,
   partCount: 10,
   linkConnected: true,
+  linkSource: "vessel:v1",
   routeHome: true,
   ownPortState: undefined,
   targetVesselPersistentId: undefined,
@@ -113,7 +114,60 @@ describe("playtestTracer", () => {
       currentStage: 1,
       partCount: 2,
       linkConnected: false,
+      linkSource: "vessel:v2",
     });
     expect(lines()).toEqual([]);
+  });
+
+  it("logs nothing when the old craft's link reading trails the switch", () => {
+    const { trace, lines } = setup();
+    trace(base);
+    const switched = { ...base, vesselId: "v2", vesselName: "MkI" };
+    trace(switched);
+    trace({ ...switched, linkConnected: false });
+    trace({ ...switched, linkConnected: true, linkSource: "vessel:v2" });
+    trace({ ...switched, linkConnected: true, linkSource: "vessel:v2" });
+    expect(lines()).toEqual([]);
+  });
+
+  it("logs nothing when the new craft's link reading leads the switch", () => {
+    const { trace, lines } = setup();
+    trace(base);
+    trace({ ...base, linkConnected: false, linkSource: "vessel:v2" });
+    trace({
+      ...base,
+      vesselId: "v2",
+      vesselName: "MkI",
+      linkConnected: false,
+      linkSource: "vessel:v2",
+    });
+    expect(lines()).toEqual([]);
+  });
+
+  it("logs a loss and a regain on the craft switched to", () => {
+    const { trace, lines } = setup();
+    trace(base);
+    const switched = {
+      ...base,
+      vesselId: "v2",
+      vesselName: "MkI",
+      linkSource: "vessel:v2",
+    };
+    trace(switched);
+    trace({ ...switched, linkConnected: false });
+    trace({ ...switched, linkConnected: true });
+    expect(lines().map((l) => l[1])).toEqual([
+      "[trace] comms link lost (MkI)",
+      "[trace] comms link regained (MkI)",
+    ]);
+  });
+
+  it("logs link changes from a reading that names no craft", () => {
+    const { trace, lines } = setup();
+    trace({ ...base, linkSource: undefined });
+    trace({ ...base, linkSource: undefined, linkConnected: false });
+    expect(lines().map((l) => l[1])).toEqual([
+      "[trace] comms link lost (Probe)",
+    ]);
   });
 });
