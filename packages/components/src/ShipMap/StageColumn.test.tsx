@@ -20,7 +20,7 @@ const STAGES = buildStageStack(
     { stage: 2, title: "Sepratron I", name: "s" },
     { stage: 1, title: "Terrier", name: "t" },
   ],
-  2,
+  3,
 );
 
 describe("StageColumn", () => {
@@ -91,7 +91,7 @@ describe("ShipMap stage column", () => {
       ),
     ];
     const current = stages[Math.min(1, stages.length - 1)];
-    await emitCraft(fixture, current);
+    await emitCraft(fixture, current + 1);
 
     const marked = document.querySelector('[aria-current="step"]');
     expect(marked?.textContent).toMatch(new RegExp(`Stage ${current}(?!\\d)`));
@@ -103,7 +103,7 @@ describe("ShipMap stage column", () => {
 
   it("leaves every stage unmarked once the stage reading is held", async () => {
     const fixture = mount();
-    await emitCraft(fixture, 0);
+    await emitCraft(fixture, 1);
     expect(document.querySelectorAll('[aria-current="step"]')).toHaveLength(1);
 
     act(() => {

@@ -30,18 +30,18 @@ afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 beforeEach(() => {
   __resetLatestRelease();
-  server.use(
-    http.get(LATEST_RELEASE_URL, () => new HttpResponse(null, { status: 404 })),
-  );
+  server.use(http.get(LATEST_RELEASE_URL, () => HttpResponse.json([])));
 });
 
 function releaseIs(version: string) {
   server.use(
     http.get(LATEST_RELEASE_URL, () =>
-      HttpResponse.json({
-        tag_name: `v${version}`,
-        html_url: `https://github.com/ksp-gonogo/gonogo/releases/tag/v${version}`,
-      }),
+      HttpResponse.json([
+        {
+          tag_name: `v${version}`,
+          html_url: `https://github.com/ksp-gonogo/gonogo/releases/tag/v${version}`,
+        },
+      ]),
     ),
   );
 }
@@ -53,7 +53,7 @@ describe("AppVersion", () => {
     expect(screen.getByText("Gonogo")).toBeInTheDocument();
     expect(screen.getByText(VERSION)).toBeInTheDocument();
     expect(screen.queryByText("Main screen")).toBeNull();
-    await screen.findByText("Could not check");
+    await screen.findByText("None published yet");
     await expectNoA11yViolations(container);
   });
 
@@ -82,7 +82,7 @@ describe("AppVersion", () => {
 
     expect(screen.getByText("Main screen")).toBeInTheDocument();
     expect(screen.getByText("9.9.9")).toBeInTheDocument();
-    await screen.findByText("Could not check");
+    await screen.findByText("None published yet");
     await expectNoA11yViolations(container);
   });
 
@@ -108,7 +108,7 @@ describe("AppVersion", () => {
       </PeerClientProvider>,
     );
     expect(screen.getByText("8.8.8")).toBeInTheDocument();
-    await screen.findByText("Could not check");
+    await screen.findByText("None published yet");
   });
 
   it("shows a newer release and the commands that update the container", async () => {
@@ -142,9 +142,21 @@ describe("AppVersion", () => {
     expect(screen.queryByText(/up to date|current/i)).toBeNull();
   });
 
+  it("treats a refusal as a failed check, not as no release yet", async () => {
+    server.use(
+      http.get(
+        LATEST_RELEASE_URL,
+        () => new HttpResponse(null, { status: 403 }),
+      ),
+    );
+    render(<AppVersion />);
+    expect(await screen.findByText("Could not check")).toBeInTheDocument();
+    expect(screen.queryByText("None published yet")).toBeNull();
+  });
+
   it("treats an answer it cannot read as unknown", async () => {
     server.use(
-      http.get(LATEST_RELEASE_URL, () => HttpResponse.json({ tag_name: 7 })),
+      http.get(LATEST_RELEASE_URL, () => HttpResponse.json([{ tag_name: 7 }])),
     );
     render(<AppVersion />);
     expect(await screen.findByText("Could not check")).toBeInTheDocument();
@@ -155,14 +167,14 @@ describe("AppVersion", () => {
     server.use(
       http.get(LATEST_RELEASE_URL, () => {
         asked += 1;
-        return new HttpResponse(null, { status: 404 });
+        return HttpResponse.json([]);
       }),
     );
     const first = render(<AppVersion />);
-    await screen.findByText("Could not check");
+    await screen.findByText("None published yet");
     first.unmount();
     render(<AppVersion />);
-    expect(screen.getByText("Could not check")).toBeInTheDocument();
+    expect(screen.getByText("None published yet")).toBeInTheDocument();
     expect(asked).toBe(1);
   });
 
@@ -184,7 +196,7 @@ describe("AppVersion", () => {
     expect(
       screen.getByText(/The mod and this app are from different releases/),
     ).toBeInTheDocument();
-    await screen.findByText("Could not check");
+    await screen.findByText("None published yet");
   });
 
   it("says a mod build records no release, without calling it a mismatch", async () => {
@@ -205,7 +217,7 @@ describe("AppVersion", () => {
       await screen.findByText("Not recorded by this build"),
     ).toBeInTheDocument();
     expect(screen.queryByText(/different releases/)).toBeNull();
-    await screen.findByText("Could not check");
+    await screen.findByText("None published yet");
   });
 
   describe("the mod's hello", () => {
@@ -225,7 +237,7 @@ describe("AppVersion", () => {
       expect(
         screen.getByText(/newer contract revision than this app/),
       ).toBeInTheDocument();
-      await screen.findByText("Could not check");
+      await screen.findByText("None published yet");
     });
 
     it("says a mod sending no contract is too old to say", async () => {
@@ -233,7 +245,7 @@ describe("AppVersion", () => {
       await act(async () => reportSitrepHello({}));
 
       expect(screen.getByText("Mod too old to say")).toBeInTheDocument();
-      await screen.findByText("Could not check");
+      await screen.findByText("None published yet");
     });
   });
 });

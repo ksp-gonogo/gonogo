@@ -5,8 +5,9 @@ import styled from "styled-components";
 import {
   checkLatestRelease,
   isNewer,
-  type LatestRelease,
   latestReleaseSoFar,
+  NO_RELEASE_YET,
+  type ReleaseAnswer,
 } from "../settings/releaseCheck";
 import { VERSION } from "../version";
 
@@ -36,7 +37,7 @@ function writeDismissed(version: string): void {
  * release only: a later release shows it again.
  */
 export function UpdateBanner() {
-  const [latest, setLatest] = useState<LatestRelease | null>(
+  const [latest, setLatest] = useState<ReleaseAnswer>(
     () => latestReleaseSoFar() ?? null,
   );
   const [dismissed, setDismissed] = useState<string | null>(readDismissed);
@@ -51,7 +52,8 @@ export function UpdateBanner() {
     };
   }, []);
 
-  if (!latest || latest.version === dismissed) return null;
+  if (!latest || latest === NO_RELEASE_YET || latest.version === dismissed)
+    return null;
   if (isNewer(latest.version, VERSION) !== true) return null;
 
   const dismiss = () => {

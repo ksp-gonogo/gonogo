@@ -34,7 +34,7 @@ async function mountAtWidth(width: number, columns = 8) {
   );
   act(() => {
     fixture.emit("vessel.parts", WIRE);
-    fixture.emit("vessel.structure", { currentStage: 0 });
+    fixture.emit("vessel.structure", { currentStage: 1 });
   });
   await waitFor(() =>
     expect(screen.getByRole("region", { name: "Staging" })).toBeTruthy(),

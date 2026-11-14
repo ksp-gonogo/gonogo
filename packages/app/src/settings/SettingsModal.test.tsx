@@ -62,7 +62,7 @@ import { SettingsService } from "./SettingsService";
 
 /* The General tab asks GitHub for the newest release; here it has none to give. */
 const server = setupServer(
-  http.get(LATEST_RELEASE_URL, () => new HttpResponse(null, { status: 404 })),
+  http.get(LATEST_RELEASE_URL, () => HttpResponse.json([])),
 );
 beforeAll(() => server.listen({ onUnhandledRequest: "bypass" }));
 afterAll(() => server.close());

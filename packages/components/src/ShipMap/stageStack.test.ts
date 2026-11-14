@@ -24,15 +24,29 @@ describe("buildStageStack", () => {
     expect(stack).toEqual([]);
   });
 
-  it("marks the current stage and the spent ones above it", () => {
+  it("marks the stage the next press fires, one below the vessel's counter, and the spent ones above it", () => {
     const stack = buildStageStack(
       [part(2, "A"), part(1, "B"), part(0, "C")],
-      1,
+      2,
     );
     expect(stack.map((s) => [s.stage, s.current, s.spent])).toEqual([
       [2, false, true],
       [1, true, false],
       [0, false, false],
+    ]);
+  });
+
+  it("marks every stage spent and none next once the counter reaches 0", () => {
+    const stack = buildStageStack([part(0, "Engine")], 0);
+    expect(stack.map((s) => [s.stage, s.current, s.spent])).toEqual([
+      [0, false, true],
+    ]);
+  });
+
+  it("marks the only stage next while the counter is 1", () => {
+    const stack = buildStageStack([part(0, "Engine")], 1);
+    expect(stack.map((s) => [s.stage, s.current, s.spent])).toEqual([
+      [0, true, false],
     ]);
   });
 

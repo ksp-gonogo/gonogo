@@ -63,6 +63,19 @@ describe("useCountdown", () => {
     expect(result.current).toBe(55);
   });
 
+  it("does not grow when the game clock goes backward, as on a quickload", () => {
+    const { result } = renderHook(() => useCountdown(240));
+    game.advance(10);
+    wallSecond();
+    expect(result.current).toBe(230);
+    game.advance(-75);
+    wallSecond();
+    expect(result.current).toBe(230);
+    game.advance(5);
+    wallSecond();
+    expect(result.current).toBe(225);
+  });
+
   it("is null while the caller has no figure", () => {
     const { result } = renderHook(() => useCountdown(null));
     game.advance(5);

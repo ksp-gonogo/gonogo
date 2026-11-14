@@ -23,10 +23,11 @@ import { VERSION } from "../version";
 import {
   checkLatestRelease,
   isNewer,
-  type LatestRelease,
   latestReleaseSoFar,
   modMatchesApp,
   modVersionText,
+  NO_RELEASE_YET,
+  type ReleaseAnswer,
 } from "./releaseCheck";
 
 /** The one field of `system.uplinks` this reads. */
@@ -35,13 +36,11 @@ interface SystemUplinksRelease {
 }
 
 /** The newest release once asked: `checking` until GitHub answers, `null` when it cannot be known. */
-function useLatestRelease(): LatestRelease | null | "checking" {
-  const [latest, setLatest] = useState<LatestRelease | null | "checking">(
-    () => {
-      const known = latestReleaseSoFar();
-      return known === undefined ? "checking" : known;
-    },
-  );
+function useLatestRelease(): ReleaseAnswer | "checking" {
+  const [latest, setLatest] = useState<ReleaseAnswer | "checking">(() => {
+    const known = latestReleaseSoFar();
+    return known === undefined ? "checking" : known;
+  });
   useEffect(() => {
     let live = true;
     void checkLatestRelease().then((release) => {
@@ -91,7 +90,10 @@ export function AppVersion() {
     return client.onHostHello(setHostVersion);
   }, [client]);
 
-  const known = latest !== "checking" && latest !== null ? latest : undefined;
+  const known =
+    latest !== "checking" && latest !== null && latest !== NO_RELEASE_YET
+      ? latest
+      : undefined;
   const behind = known ? isNewer(known.version, VERSION) === true : false;
   const mismatch = modMatchesApp(modVersion, VERSION) === false;
 
@@ -128,6 +130,7 @@ export function AppVersion() {
         <Text level="muted" size="sm">
           {latest === "checking" && "Checking"}
           {latest === null && "Could not check"}
+          {latest === NO_RELEASE_YET && "None published yet"}
           {known &&
             (known.url ? (
               <ReleaseLink href={known.url} target="_blank" rel="noreferrer">

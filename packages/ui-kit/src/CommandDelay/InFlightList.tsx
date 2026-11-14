@@ -282,6 +282,8 @@ export function useCountdown(etaSeconds: number | null): number | null {
   const [value, setValue] = useState(etaSeconds);
   // The figure last taken from the caller, and the game time it was taken at.
   const seedRef = useRef({ eta: etaSeconds, ut: gameNow(clock) });
+  // The count last drawn, for re-anchoring when the game clock moves backward.
+  const drawnRef = useRef(etaSeconds);
 
   useEffect(() => {
     const last = seedRef.current.eta;
@@ -292,6 +294,7 @@ export function useCountdown(etaSeconds: number | null): number | null {
         Math.abs(etaSeconds - last) >= RESYNC_THRESHOLD_SECONDS);
     if (jumped) {
       seedRef.current = { eta: etaSeconds, ut: gameNow(clockRef.current) };
+      drawnRef.current = etaSeconds;
       setValue(etaSeconds);
     }
   }, [etaSeconds]);
@@ -313,7 +316,20 @@ export function useCountdown(etaSeconds: number | null): number | null {
         seedRef.current = { eta, ut: now };
         return;
       }
-      setValue(Math.max(0, eta - (now - ut)));
+      /*
+       * A quickload or revert puts game time behind the moment the count was
+       * anchored. Read as it stands, the elapsed time goes negative and the
+       * count grows by the whole jump, so it is anchored again at the new
+       * time and carries on from what was left.
+       */
+      if (now < ut) {
+        const left = drawnRef.current ?? eta;
+        seedRef.current = { eta: left, ut: now };
+        return;
+      }
+      const left = Math.max(0, eta - (now - ut));
+      drawnRef.current = left;
+      setValue(left);
     }, 1000);
     return () => clearInterval(id);
   }, []);

@@ -8718,10 +8718,8 @@ namespace Gonogo.KSP
                 }
             }
 
-            var signature = vessel.id + ":" + list.Count;
-            if (signature != lastBoundsPathSignature)
+            if (boundsPathLogGate.ShouldLog(vessel.id.ToString(), list.Count))
             {
-                lastBoundsPathSignature = signature;
                 GonogoLog.Info("parts", boundsPaths.Line(GameWords.VesselName(vessel)));
             }
 
@@ -8729,7 +8727,7 @@ namespace Gonogo.KSP
         }
 
         // One bounds-path line per craft: the scan runs every few seconds
-        private static string? lastBoundsPathSignature;
+        private static readonly BoundsPathLogGate boundsPathLogGate = new BoundsPathLogGate();
 
         private static Dictionary<string, object?> BuildTopologyPart(Part part, BoundsPathReport boundsPaths)
         {

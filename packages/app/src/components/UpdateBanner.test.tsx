@@ -8,8 +8,8 @@ import { UpdateBanner } from "./UpdateBanner";
 function answer(tag: string | null, url = "https://example.test/notes") {
   const fetchMock = vi.fn(async () =>
     tag === null
-      ? new Response("", { status: 404 })
-      : new Response(JSON.stringify({ tag_name: tag, html_url: url }), {
+      ? new Response("[]", { status: 200 })
+      : new Response(JSON.stringify([{ tag_name: tag, html_url: url }]), {
           status: 200,
         }),
   );

@@ -87,6 +87,22 @@ export interface PartActionMenuProps {
   style?: CSSProperties;
 }
 
+/**
+ * The part's actions without a greyed one whose label an active one also
+ * carries. A docking port holds two events under the label "Undock", one for
+ * each kind of docking, and the game shows only the one that applies.
+ */
+function withoutGreyedTwins<
+  T extends { label: string; name: string; active: boolean },
+>(actions: readonly T[]): T[] {
+  const activeLabels = new Set(
+    actions.filter((a) => a.active).map((a) => a.label || a.name),
+  );
+  return actions.filter(
+    (a) => a.active || !activeLabels.has(a.label || a.name),
+  );
+}
+
 /** A game button is pressed unless a console panel stands in for it; a form read from the window it opens needs the press. */
 function sendsPress(panel: PartPanelDefinition | undefined): boolean {
   return panel === undefined || isGameWindowPanel(panel);
@@ -131,7 +147,7 @@ export function PartActionMenu({
       : undefined;
 
   const items: ActionMenuItem[] = [
-    ...(actions ?? []).map((action) => ({
+    ...withoutGreyedTwins(actions ?? []).map((action) => ({
       key: action.name,
       label: withPanelMark(
         action.label || action.name,

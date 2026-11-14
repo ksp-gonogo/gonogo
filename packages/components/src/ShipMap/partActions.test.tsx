@@ -205,6 +205,26 @@ describe("ShipMap: PAW part actions", () => {
     await waitFor(() => expect(fixture.transport.sentCommands).toHaveLength(1));
   });
 
+  it("lists a label once when the game holds an active and a greyed event under it", async () => {
+    const user = userEvent.setup();
+    const { fixture } = await renderDiagram();
+
+    await user.click(partElement());
+    act(() => {
+      fixture.emit(
+        partActionsTopic(PART_FLIGHT_ID),
+        partActionsWire([
+          { name: "Undock", label: "Undock", active: true },
+          { name: "UndockSameVessel", label: "Undock", active: false },
+        ]),
+      );
+    });
+
+    const items = await screen.findAllByRole("menuitem", { name: /Undock/ });
+    expect(items).toHaveLength(1);
+    expect(items[0].getAttribute("data-predicted")).not.toBe("at-risk");
+  });
+
   it("stops an inactive action while the verdict is fresh and sends nothing", async () => {
     const user = userEvent.setup();
     const { fixture } = await renderDiagram();

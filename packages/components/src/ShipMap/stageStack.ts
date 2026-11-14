@@ -1,3 +1,4 @@
+import { stageToFire } from "../shared/stageToFire";
 import type { ShipMapPart } from "./shipTopology";
 
 /** One row of the staging stack: a stage number and the parts that fire or release with it. */
@@ -16,8 +17,9 @@ export interface StageEntry {
  * The staging stack of a craft as the in-game display lists it: highest stage
  * number first, each with the parts that activate in it. Parts with no stage
  * (null, or negative for a part that is never staged) are left out. When
- * `currentStage` is given, stages above it are marked spent and the stage equal
- * to it is marked current. Used by the Ship Map stage column and by a craft
+ * `currentStage` is given (the vessel's own counter, one above the stage the next
+ * press fires), stages from it upward are marked spent and the stage below it is
+ * marked current; at 0 every stage has fired and none is. Used by the Ship Map stage column and by a craft
  * about to launch in Launch and Recovery.
  */
 export function buildStageStack(
@@ -25,6 +27,7 @@ export function buildStageStack(
   currentStage?: number | null,
 ): StageEntry[] {
   const known = typeof currentStage === "number" ? currentStage : null;
+  const next = known !== null && known > 0 ? stageToFire(known) : null;
   const byStage = new Map<number, Map<string, number>>();
   for (const p of parts) {
     if (p.stage === null || p.stage < 0) continue;
@@ -38,7 +41,7 @@ export function buildStageStack(
     .map(([stage, titles]) => ({
       stage,
       parts: [...titles.entries()].map(([title, count]) => ({ title, count })),
-      current: known !== null && stage === known,
-      spent: known !== null && stage > known,
+      current: next !== null && stage === next,
+      spent: known !== null && stage >= known,
     }));
 }

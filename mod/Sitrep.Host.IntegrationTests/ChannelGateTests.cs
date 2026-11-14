@@ -77,6 +77,50 @@ namespace Sitrep.Host.IntegrationTests
             Assert.DoesNotContain(channels, c => (string?)c["topic"] == ChannelGateProbeUplink.KeyedPrefix + "Mun.locked");
         }
 
+        /// <summary>
+        /// A gate evaluator is an uplink's own code and may declare a channel
+        /// while the sample is still walking the declarations. The walk takes
+        /// its inputs whole first, so that is not a fault and the verdicts are
+        /// still published.
+        /// </summary>
+        [Fact]
+        public async Task AGateThatDeclaresAChannelWhileBeingEvaluatedDoesNotBreakTheSample()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", executeCommandsOnMainThread: true);
+            var declared = false;
+            var uplink = new ChannelGateProbeUplink
+            {
+                OnTechGate = () =>
+                {
+                    if (declared) return;
+                    declared = true;
+                    engine.EnsureDynamicTopicDeclared(
+                        ChannelGateProbeUplink.KeyedPrefix,
+                        ChannelGateProbeUplink.KeyedPrefix + "Kerbin.late");
+                },
+            };
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, ChannelEngine.UplinkGatesTopic, Timeout);
+
+                engine.SampleCommandGates();
+                engine.TickAndWait(1.0, new KspSnapshot { Ut = 1.0 }, Timeout);
+
+                var delivered = await ReceiveStreamDataAsync(client, Timeout);
+                var payload = Assert.IsType<Dictionary<string, object?>>(delivered.Payload);
+                var channels = Assert.IsType<List<object?>>(payload["channels"]).Cast<Dictionary<string, object?>>().ToList();
+                Assert.True(declared);
+                Assert.Contains(channels, c => (string?)c["topic"] == ChannelGateProbeUplink.LockedTopic);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         [Fact]
         public void AChannelRequirementThatNeedsArgumentsRefusesItsUplinkAlone()
         {
@@ -155,6 +199,8 @@ namespace Sitrep.Host.IntegrationTests
 
             public bool NeedsAnArgument { get; set; }
 
+            public Action? OnTechGate { get; set; }
+
             public string Argument { get; set; } = "partId";
 
             public UplinkHealth Health() => UplinkHealth.Healthy;
@@ -189,7 +235,7 @@ namespace Sitrep.Host.IntegrationTests
 
             public void Register(IUplinkHost host)
             {
-                host.AddGateEvaluator(new TechGate());
+                host.AddGateEvaluator(new TechGate(() => OnTechGate?.Invoke()));
                 host.AddChannelSource(LockedTopic, _ => null);
                 host.AddChannelSource(UngatedTopic, _ => null);
                 host.AddChannelSource(UnstatedTopic, _ => null);
@@ -221,10 +267,16 @@ namespace Sitrep.Host.IntegrationTests
 
             private sealed class TechGate : ICommandGateEvaluator
             {
+                private readonly Action _onEvaluate;
+
+                public TechGate(Action onEvaluate) => _onEvaluate = onEvaluate;
+
                 public string Kind => TechKind;
 
-                public GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments) =>
-                    GateVerdict.NotUnlocked(
+                public GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments)
+                {
+                    _onEvaluate();
+                    return GateVerdict.NotUnlocked(
                         "Flight Control has not been researched",
                         new MissingUnlock
                         {
@@ -233,6 +285,7 @@ namespace Sitrep.Host.IntegrationTests
                             Name = "Flight Control",
                             ScienceCost = 45,
                         });
+                }
             }
         }
     }

@@ -1,5 +1,6 @@
 import { PerfBudget } from "@ksp-gonogo/core";
 import {
+  DelayAuthority,
   TelemetryClient,
   type Transport,
   WebSocketTransport,
@@ -78,7 +79,7 @@ export interface VantageSession {
  */
 export type OpenVantageSession = (vantage: string) => VantageSession;
 
-const openLiveSession: OpenVantageSession = (vantage) => {
+export const openLiveSession: OpenVantageSession = (vantage) => {
   const { host, port } = getSitrepHostConfig();
   const transport = new WebSocketTransport({
     host,
@@ -88,11 +89,17 @@ const openLiveSession: OpenVantageSession = (vantage) => {
   const client = new TelemetryClient(transport as Transport);
   // A session that chooses no vantage is placed at the home command centre.
   if (vantage !== HOME_SESSION) client.setVantage(vantage);
+  // A command routed through this session is timed against the delay of the centre the session stands at, so one nothing answers is settled rather than left hanging.
+  const authority = new DelayAuthority();
+  const detachAuthority = authority.attach(client);
+  const clearDelaySource = client.setDelaySource(authority.delaySeconds);
   return {
     subscribe: (topic, cb) => client.subscribe(topic, cb),
     requestRate: (topic, tier) => requestRateUnderChoice(client, topic, tier),
     onRawMessage: (cb) => client.onRawMessage(cb),
     dispose: () => {
+      clearDelaySource();
+      detachAuthority();
       client.dispose();
       // The client leaves its transport open, so the socket is closed here.
       transport.dispose();

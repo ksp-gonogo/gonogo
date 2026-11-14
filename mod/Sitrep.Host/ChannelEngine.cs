@@ -4674,7 +4674,7 @@ namespace Sitrep.Host
         /// <c>_channelDeclarations</c>'s per-topic Emission lookup), its own
         /// birth-guard entry, its own availability tracking.
         /// </summary>
-        private void EnsureDynamicTopicDeclared(string prefix, string fullTopic)
+        internal void EnsureDynamicTopicDeclared(string prefix, string fullTopic)
         {
             if (_channelDeclarations.ContainsKey(fullTopic))
             {
@@ -5421,7 +5421,8 @@ namespace Sitrep.Host
         /// </summary>
         private void SampleSubTopicGates(List<ChannelGate> channels, Dictionary<string, GateVerdict> memo)
         {
-            foreach (var pair in _dynamicNamespaces)
+            // A snapshot: each evaluation below runs an uplink's own code, which may declare a channel while this walk is still going.
+            foreach (var pair in _dynamicNamespaces.ToList())
             {
                 var requires = pair.Value.Requires;
                 if (requires == null || !requires.Any(NeedsOnlySubTopic)) continue;
@@ -5446,19 +5447,26 @@ namespace Sitrep.Host
                 && requirement.Needs.Length == 1
                 && requirement.Needs[0] == ChannelArguments.SubTopic;
 
-        private IEnumerable<KeyValuePair<string, CommandRequirement[]>> ChannelRequirementSets()
+        /// <remarks>
+        /// Built whole before the first item is handed out: callers evaluate an
+        /// uplink's gate for each pair, and that code may declare a channel,
+        /// which a lazy walk over the declaration maps would not survive.
+        /// </remarks>
+        private List<KeyValuePair<string, CommandRequirement[]>> ChannelRequirementSets()
         {
+            var sets = new List<KeyValuePair<string, CommandRequirement[]>>();
             foreach (var pair in _channelDeclarations)
             {
                 if (pair.Value.Requires == null || pair.Value.Requires.Length == 0) continue;
                 if (FindDynamicNamespaceForTopic(pair.Key) != null) continue;
-                yield return new KeyValuePair<string, CommandRequirement[]>(pair.Key, pair.Value.Requires);
+                sets.Add(new KeyValuePair<string, CommandRequirement[]>(pair.Key, pair.Value.Requires));
             }
             foreach (var pair in _dynamicNamespaces)
             {
                 if (pair.Value.Requires == null || pair.Value.Requires.Length == 0) continue;
-                yield return new KeyValuePair<string, CommandRequirement[]>(pair.Key, pair.Value.Requires);
+                sets.Add(new KeyValuePair<string, CommandRequirement[]>(pair.Key, pair.Value.Requires));
             }
+            return sets;
         }
 
         /// <summary>
