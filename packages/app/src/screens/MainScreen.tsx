@@ -126,6 +126,7 @@ import { ScopedStationIdentity, StationNameEditor } from "../stationIdentity";
 import { AugmentAvailabilityFeeder } from "../telemetry/AugmentAvailabilityFeeder";
 import { syncDataRate } from "../telemetry/dataRate";
 import { PilotVantage } from "../telemetry/PilotVantage";
+import { PlaytestTrace } from "../telemetry/PlaytestTraceLog";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
 import { reportSitrepTransportStatus } from "../telemetry/sitrepRuntime";
 import { StationUplinkLoader } from "../uplinks/StationUplinkLoader";
@@ -405,6 +406,7 @@ function MainScreenDisplay({
       />
       <CommcastLink log={commcastLog} />
       <AugmentAvailabilityFeeder />
+      {screen === "main" && <PlaytestTrace />}
       {/* Every screen that loads its Uplinks itself, a pilot host included, picks up a roster that arrives after startup; the host's Uplink list waits on it. */}
       {!loadsThroughHost && <UplinkHealthRetry />}
       {/*
