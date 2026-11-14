@@ -572,6 +572,19 @@ describe("PanelDelayRail", () => {
       expect(sentence.isConnected).toBe(true);
     });
 
+    it("gives the collapsed strip's button the reason, so the count can be pointed at and read", () => {
+      const store = createDelayRailStore();
+      store.register(refusedHandle("cmd", 1));
+      inPanel(<PanelDelayRail />, store);
+
+      expect(
+        screen.getByRole("button", { name: /Signal-delay/ }),
+      ).toHaveAttribute(
+        "data-tooltip",
+        "Upgrade Launch Pad refused: it is already at tier 3 of 3.",
+      );
+    });
+
     it("keeps the reason out of the collapsed strip and shows it once expanded", async () => {
       const user = userEvent.setup();
       const store = createDelayRailStore();

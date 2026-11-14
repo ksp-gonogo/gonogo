@@ -513,6 +513,53 @@ describe("Rendezvous: augment slots", () => {
       expect(text).toContain("0.00");
     });
 
+    it("drops the Docked label once the craft undock and the channel stops reporting the pair", async () => {
+      const fixture = setupStreamFixture({ suspendFrames: true });
+      const view = renderWidget(fixture, {}, { w: 12, h: 9 });
+      act(() => {
+        fixture.emit("vessel.target", null);
+        fixture.emit("vessel.dock", dockedFrame({ vessel: 9001, port: 12 }));
+      });
+      await waitFor(() =>
+        expect(visibleText(view.container)).toContain("Docked"),
+      );
+
+      act(() => {
+        fixture.emit("vessel.dock", null);
+      });
+
+      await waitFor(() =>
+        expect(visibleText(view.container)).toContain("No target set in KSP"),
+      );
+      expect(visibleText(view.container)).not.toContain("Docked");
+    });
+
+    it("drops the Docked label when the pair's ports read at rest again", async () => {
+      const fixture = setupStreamFixture({ suspendFrames: true });
+      const view = renderWidget(fixture, {}, { w: 12, h: 9 });
+      act(() => {
+        fixture.emit("vessel.target", null);
+        fixture.emit("vessel.dock", dockedFrame({ vessel: 9001, port: 12 }));
+      });
+      await waitFor(() =>
+        expect(visibleText(view.container)).toContain("Docked"),
+      );
+
+      act(() => {
+        fixture.emit("vessel.dock", {
+          ...dockedFrame({ vessel: 9001, port: 12 }),
+          ownPortState: 0,
+          targetPortState: 0,
+          relativePosition: atRange(3),
+          distance: 3,
+        });
+      });
+
+      await waitFor(() =>
+        expect(visibleText(view.container)).toContain("No target set in KSP"),
+      );
+    });
+
     it("still draws the range and the tag where the port was never named", async () => {
       const later = setupStreamFixture({ suspendFrames: true });
       const view = renderWidget(later, {}, { w: 12, h: 9 });

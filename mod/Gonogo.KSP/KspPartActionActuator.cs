@@ -133,6 +133,7 @@ namespace Gonogo.KSP
                 return CommandResult.Fail(CommandErrorCode.CapabilityMismatch, NeedsSomeoneAtTheGame);
             }
 
+            var partCountBefore = vessel.parts.Count;
             var locksBefore = new List<string>(InputLockManager.lockStack.Keys);
             var dialogsBefore = new HashSet<PopupDialog>(UnityEngine.Object.FindObjectsOfType<PopupDialog>());
             try
@@ -141,9 +142,14 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                return CommandResult.Fail(
-                    CommandErrorCode.CapabilityMismatch,
+                GonogoLog.Warn("a part action threw", ex);
+                var outcome = PartActionFault.AfterThrow(
+                    part.vessel != vessel || vessel.parts == null || vessel.parts.Count != partCountBefore,
                     ThirdPartyFault.Describe("that part's action", ex));
+                if (!outcome.Success)
+                {
+                    return outcome;
+                }
             }
 
             var locksAdded = InGameOnlyPartActions.NewLocks(locksBefore, InputLockManager.lockStack.Keys);

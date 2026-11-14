@@ -277,6 +277,7 @@ export function useRendezvousReading() {
     dockForwardDot,
     dockTargetPort,
     dockJoined,
+    dockState: dockReading.state,
     dockingAvailable,
     portTargeted,
     alignmentWithheld,

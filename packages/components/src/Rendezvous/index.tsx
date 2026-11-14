@@ -74,9 +74,11 @@ function RendezvousComponent({
    * KSP clears the target the moment a dock completes, while the docking
    * channel goes on reporting the ports' states, so the joined state is read
    * from that channel and remembered across the clear: the view stays at
-   * Docking, reading "Docked", until a target is set again.
+   * Docking, reading "Docked", until a target is set again or the channel
+   * says the pair is apart (it stops reporting it, or reads the ports at rest).
    */
   const joined = reading.dockJoined;
+  const dockState = reading.dockState;
   const wasJoined = useRef(false);
   const lastName = useRef("");
   if (tarName !== undefined) {
@@ -90,8 +92,14 @@ function RendezvousComponent({
       wasJoined.current = true;
       return;
     }
-    if (targetState !== "absent") wasJoined.current = false;
-  }, [joined, targetState]);
+    if (
+      targetState !== "absent" ||
+      dockState === "absent" ||
+      dockState === "observed"
+    ) {
+      wasJoined.current = false;
+    }
+  }, [joined, targetState, dockState]);
   const docked = joined || (targetState === "absent" && wasJoined.current);
   // Short of a dock, a target cleared at the Docking level keeps the camera up behind a notice, so the picture is not cut off.
   const wasDocking = useRef(false);

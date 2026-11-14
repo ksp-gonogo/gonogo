@@ -469,12 +469,18 @@ export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
           {/* Closed, the marks are tips too small to point at, so the rail's button names the commands in flight; hovering opens the rail, where each mark names its own. */}
           <Tooltip
             text={
-              !grown && strip.length > 0
-                ? `In flight: ${strip
-                    .filter((i) => !i.settling)
-                    .map((i) => i.label)
-                    .join(", ")}`
-                : null
+              !grown && failedCount > 0
+                ? [
+                    ...refusals.map(commandRefusalSentence),
+                    ...undelivered.map(commandUndeliveredSentence),
+                    ...failures.map(commandFailedSentence),
+                  ].join(" ")
+                : !grown && strip.length > 0
+                  ? `In flight: ${strip
+                      .filter((i) => !i.settling)
+                      .map((i) => i.label)
+                      .join(", ")}`
+                  : null
             }
           >
             <PanelDelayRail__Toggle
