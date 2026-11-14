@@ -13,6 +13,8 @@ export type GoNoGoNotice =
       /** The display name of the action fired at T-0, or `null` when nothing fires. */
       action: string | null;
       sent: boolean;
+      /** The refusal sentence for an action that was not sent. */
+      why?: string;
     };
 
 const HOLD_TEXT: Record<CountdownHold["cause"], string> = {
@@ -27,6 +29,7 @@ const HOLD_TEXT: Record<CountdownHold["cause"], string> = {
 export function noticeLabel(notice: GoNoGoNotice): string {
   if (notice.kind === "outcome") {
     if (notice.action === null) return "T-0: no action";
+    if (!notice.sent && notice.why) return notice.why;
     return `${notice.action} ${notice.sent ? "sent" : "not sent"}`;
   }
   const what = HOLD_TEXT[notice.cause];

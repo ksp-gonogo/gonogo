@@ -231,7 +231,13 @@ export type PeerMessage =
   /* Host → stations once the action fired at T-0 has been taken or refused,
      after the reset that clears the votes. `action` is its display name, or
      `null` when nothing fires. */
-  | { type: "gonogo-outcome"; action: string | null; sent: boolean }
+  | {
+      type: "gonogo-outcome";
+      action: string | null;
+      sent: boolean;
+      /** The sentence saying why a T-0 action was not sent, when the game or the stream refused it. */
+      why?: string;
+    }
   // Station → host after launch, when the operator hits the big red ABORT
   // button. Host re-sends the action group execution for `f.abort`. `epoch` is
   // the timeline epoch the station's screen showed when it was pressed.

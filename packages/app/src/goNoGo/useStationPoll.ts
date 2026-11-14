@@ -171,8 +171,8 @@ export function useStationPoll(client: PeerClient | null): StationPoll {
         setCountdownT0(null);
         setNotice(hold ? { kind: "held", ...hold } : null);
       }),
-      client.onGonogoOutcome((action, sent) =>
-        setNotice({ kind: "outcome", action, sent }),
+      client.onGonogoOutcome((action, sent, why) =>
+        setNotice({ kind: "outcome", action, sent, ...(why ? { why } : {}) }),
       ),
       client.onGonogoReset((reopened) => {
         // The host has forgotten every vote, and a vote already at NO-GO would not change and so would not be sent again: resend it, or this screen drops out of the poll.

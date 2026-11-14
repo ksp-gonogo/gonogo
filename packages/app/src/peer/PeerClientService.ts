@@ -177,7 +177,11 @@ type ClientEventMap = {
     reason: string | undefined,
     hold: import("../goNoGo/notice").CountdownHold | undefined,
   ];
-  gonogoOutcome: [action: string | null, sent: boolean];
+  gonogoOutcome: [
+    action: string | null,
+    sent: boolean,
+    why: string | undefined,
+  ];
   gonogoOnGo: [label: string | null];
   gonogoReset: [reopened: boolean];
   alarmSnapshot: [snap: import("../alarms/types").AlarmSnapshot];
@@ -1929,7 +1933,9 @@ export class PeerClientService {
     return this.events.on("gonogoCountdownCancel", cb);
   }
 
-  onGonogoOutcome(cb: (action: string | null, sent: boolean) => void) {
+  onGonogoOutcome(
+    cb: (action: string | null, sent: boolean, why?: string) => void,
+  ) {
     return this.events.on("gonogoOutcome", cb);
   }
 
@@ -2128,7 +2134,7 @@ export class PeerClientService {
       this.events.emit("gonogoCountdownCancel", msg.reason, msg.hold);
     },
     "gonogo-outcome": (msg) => {
-      this.events.emit("gonogoOutcome", msg.action, msg.sent);
+      this.events.emit("gonogoOutcome", msg.action, msg.sent, msg.why);
     },
     "gonogo-abort-notify": (msg) => {
       this.events.emit("gonogoAbortNotify", msg.stationName, msg.t);

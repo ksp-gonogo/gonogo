@@ -508,6 +508,32 @@ describe("GoNoGoHostService", () => {
     });
   });
 
+  it("says why the game refused the T-0 action, in the refusal wording, on the host and to the stations", async () => {
+    transport.setCommandHandler(() => ({
+      success: false,
+      errorCode: "wrongScene",
+      detail: "there is no active craft",
+    }));
+    svc.setConfig({ countdownLengthMs: 5_000 });
+    host.fireConnect("peer-1");
+    host.fireVote("peer-1", "go");
+    vi.advanceTimersByTime(5_001);
+    await drainDispatch();
+    const why = "Stage refused: there is no active craft.";
+    expect(lastBroadcast(host, "gonogo-outcome")).toEqual({
+      type: "gonogo-outcome",
+      action: "Stage",
+      sent: false,
+      why,
+    });
+    expect(svc.getSnapshot().notice).toEqual({
+      kind: "outcome",
+      action: "Stage",
+      sent: false,
+      why,
+    });
+  });
+
   it("keeps counting down when a screen that never voted disconnects", () => {
     host.fireConnect("peer-1");
     host.fireConnect("peer-2");

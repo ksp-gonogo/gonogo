@@ -282,6 +282,26 @@ describe("GO/NO-GO in a station's header", () => {
     expect(screen.getByText("Stage sent")).toBeInTheDocument();
   });
 
+  it("says why the T-0 action was not sent when the host gives the refusal", async () => {
+    let outcome: (action: string | null, sent: boolean, why?: string) => void =
+      () => {};
+    const client: PeerClient = {
+      ...idlePeerClient(),
+      onGonogoOutcome: (cb) => {
+        outcome = cb;
+        return () => {};
+      },
+    };
+    station(client);
+    await screen.findByText("NO-GO");
+    await act(async () =>
+      outcome("Stage", false, "Stage refused: there is no active craft."),
+    );
+    expect(
+      screen.getByText("Stage refused: there is no active craft."),
+    ).toBeInTheDocument();
+  });
+
   it("opens the vote's input binding from the gear", async () => {
     station(idlePeerClient());
     fireEvent.click(screen.getByRole("button", { name: "Vote input" }));

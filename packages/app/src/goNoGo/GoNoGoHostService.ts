@@ -22,6 +22,7 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { Situation, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import type { Seat } from "@ksp-gonogo/sitrep-sdk/spine";
+import { commandRefusalSentence } from "@ksp-gonogo/ui-kit";
 import { dispatchActionGroup } from "../dispatchActionGroup";
 import type { PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
@@ -663,15 +664,30 @@ export class GoNoGoHostService {
       actionGroupId,
       centre ? this.places.commandFrom(centre) : undefined,
     );
-    const refusal = outcome.routed
-      ? (await outcome.settled)?.message
-      : outcome.refusal;
+    const refused = outcome.routed ? await outcome.settled : undefined;
+    const refusal = outcome.routed ? refused?.message : outcome.refusal;
     if (flight !== this.flightSerial) return;
     if (refusal !== undefined) {
       logger.warn(`[GoNoGoHost] T-0 action not sent: ${refusal}`);
       this.pollAt(centre).committed = false;
     }
-    this.announceOutcome(centre, this.config.onGoLabel, refusal === undefined);
+    const why =
+      refusal === undefined
+        ? undefined
+        : refused?.errorCode
+          ? commandRefusalSentence({
+              errorCode: refused.errorCode,
+              reason: refused.reason,
+              detail: refused.detail,
+              label: this.config.onGoLabel ?? undefined,
+            })
+          : refusal;
+    this.announceOutcome(
+      centre,
+      this.config.onGoLabel,
+      refusal === undefined,
+      why,
+    );
   }
 
   /** Record what T-0 did and tell the centre's screens, so none is left reading a reset as the answer. */
@@ -679,9 +695,16 @@ export class GoNoGoHostService {
     centre: string,
     action: string | null,
     sent: boolean,
+    why?: string,
   ): void {
-    this.pollAt(centre).notice = { kind: "outcome", action, sent };
-    this.tellCentre(centre, { type: "gonogo-outcome", action, sent });
+    const extra = why === undefined ? {} : { why };
+    this.pollAt(centre).notice = { kind: "outcome", action, sent, ...extra };
+    this.tellCentre(centre, {
+      type: "gonogo-outcome",
+      action,
+      sent,
+      ...extra,
+    });
     this.emit();
   }
 
