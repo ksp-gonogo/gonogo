@@ -107,4 +107,72 @@ describe("an active-vessel topic after a switch", () => {
       store.sample("trackingStation.vessel.b.link", store.beginFrame()),
     ).toBeDefined();
   });
+
+  it("applies to an Uplink's Topic the mod lists as following the active craft", () => {
+    const { store, switchTo } = setup();
+    store.ingest("system.uplinks", {
+      validAt: 0,
+      payload: {
+        delayRoles: {
+          trueNow: [],
+          heldAtHome: [],
+          trueNowPrefixes: [],
+          followsActiveCraft: ["life-support.supplies"],
+        },
+      },
+      meta: meta(0, 0),
+      epoch: 0,
+    });
+    const supplies = (craft: string, validAt: number, deliveredAt: number) =>
+      store.ingest("life-support.supplies", {
+        validAt,
+        payload: { food: validAt, meta: { source: `vessel:${craft}` } },
+        meta: meta(validAt, deliveredAt),
+        epoch: 0,
+      });
+    switchTo("near", 0);
+    for (let ut = 0; ut <= 100; ut++) supplies("near", ut, ut + 1);
+    switchTo("far", 101);
+    supplies("far", 70, 101);
+
+    const shown = store.sample<{ food: number }>(
+      "life-support.supplies",
+      store.beginFrame(),
+    )?.payload as { food: number } | undefined;
+    expect(shown?.food).toBe(70);
+  });
+
+  it("tells an Uplink's readings apart by the craft whose node delivered them when the payload names none", () => {
+    const { store, switchTo } = setup();
+    store.ingest("system.uplinks", {
+      validAt: 0,
+      payload: {
+        delayRoles: {
+          trueNow: [],
+          heldAtHome: [],
+          trueNowPrefixes: [],
+          followsActiveCraft: ["life-support.crew"],
+        },
+      },
+      meta: meta(0, 0),
+      epoch: 0,
+    });
+    const crew = (craft: string, validAt: number, deliveredAt: number) =>
+      store.ingest("life-support.crew", {
+        validAt,
+        payload: { asOf: validAt },
+        meta: { ...meta(validAt, deliveredAt), source: `fleet.${craft}` },
+        epoch: 0,
+      });
+    switchTo("near", 0);
+    for (let ut = 0; ut <= 100; ut++) crew("near", ut, ut + 1);
+    switchTo("far", 101);
+    crew("far", 70, 101);
+
+    const shown = store.sample<{ asOf: number }>(
+      "life-support.crew",
+      store.beginFrame(),
+    )?.payload as { asOf: number } | undefined;
+    expect(shown?.asOf).toBe(70);
+  });
 });

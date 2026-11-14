@@ -466,6 +466,24 @@ function statedVesselId(payload: unknown): string | undefined {
   return typeof id === "string" && id !== "" ? id : undefined;
 }
 
+/** The node a craft's own readings are delivered from, as the envelope's `meta.source` names it. */
+const CRAFT_NODE_PREFIX = "fleet.";
+
+/**
+ * The craft a reading describes, lower-cased as a payload's `meta.source`: the
+ * payload's own word, else the craft whose node delivered it. An Uplink's payload
+ * may carry no meta of its own, and a reading kept per craft is still delivered
+ * from that craft's node.
+ */
+function craftOfPoint(point: TimelinePoint<unknown>): string | undefined {
+  const own = craftSourceOf(point.payload);
+  if (own !== undefined) return own.toLowerCase();
+  const node = point.meta.source;
+  return typeof node === "string" && node.startsWith(CRAFT_NODE_PREFIX)
+    ? `${CRAFT_SOURCE_PREFIX}${node.slice(CRAFT_NODE_PREFIX.length)}`.toLowerCase()
+    : undefined;
+}
+
 /** The `meta.source` a payload carries, when it names a craft. */
 function craftSourceOf(payload: unknown): string | undefined {
   if (typeof payload !== "object" || payload === null) return undefined;
@@ -2704,16 +2722,24 @@ export class TimelineStore {
     token: FrameToken,
   ): TimelinePoint<Payload> | undefined {
     const point = timeline.at(ut);
-    if (point === undefined || !topic.startsWith(ACTIVE_VESSEL_TOPIC_PREFIX)) {
+    if (point === undefined || !this.followsActiveCraft(topic)) {
       return point;
     }
     const active = this.activeCraftSourceAt(token);
     if (active === undefined) return point;
-    const subject = craftSourceOf(point.payload)?.toLowerCase();
+    const subject = craftOfPoint(point);
     if (subject === undefined || subject === active) return point;
     return timeline.lastMatchingAt(
       ut,
-      (candidate) => craftSourceOf(candidate.payload)?.toLowerCase() === active,
+      (candidate) => craftOfPoint(candidate) === active,
+    );
+  }
+
+  /** Whether `topic` describes whichever craft is active: core's `vessel.` domain, and every Topic the mod lists as following the active craft. */
+  private followsActiveCraft(topic: string): boolean {
+    return (
+      topic.startsWith(ACTIVE_VESSEL_TOPIC_PREFIX) ||
+      this.declaredRoles?.followsActiveCraft?.has(topic) === true
     );
   }
 

@@ -13581,6 +13581,10 @@
         "note": "the useDataSources element type, now on the facade as well as the spine"
       },
       {
+        "key": "sitrep-sdk . DeclaredDelayRoles#followsActiveCraft?",
+        "note": "optional list of Topics that describe whichever craft is active, each kept per craft"
+      },
+      {
         "key": "sitrep-sdk . DeclaredDelayRoles#heldAtHomePrefixes?",
         "note": "optional list of namespaces whose Topics are all held at the home command centre"
       },
@@ -18913,6 +18917,10 @@
         "note": "reachable through the spine's DataSourceState"
       },
       {
+        "key": "sitrep-sdk ./spine ~DeclaredDelayRoles#followsActiveCraft?",
+        "note": "same member through the spine re-export"
+      },
+      {
         "key": "sitrep-sdk ./spine ~DeclaredDelayRoles#heldAtHomePrefixes?",
         "note": "same member through the spine re-export"
       },
@@ -20091,6 +20099,10 @@
       {
         "key": "sitrep-sdk ./testing ~DataSourceState#status",
         "note": "the useDataSources element type, now on the facade as well as the spine"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~DeclaredDelayRoles#followsActiveCraft?",
+        "note": "same member through the testing re-export"
       },
       {
         "key": "sitrep-sdk ./testing ~DeclaredDelayRoles#heldAtHomePrefixes?",
