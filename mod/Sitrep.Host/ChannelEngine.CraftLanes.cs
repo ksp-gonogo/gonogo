@@ -138,51 +138,6 @@ namespace Sitrep.Host
             RecordInLane(vesselId, fact, value, ut);
         }
 
-        /// <summary>
-        /// An Uplink's reading of a following channel for a craft that is not the
-        /// active one (see <see cref="ICraftReadingPublisher"/>), kept in that
-        /// craft's lane whether or not any screen reads the channel. A reading
-        /// stamped ahead of the clock belongs to a timeline a load abandoned and is
-        /// taken as now, as an ordinary publish is.
-        /// </summary>
-        internal void PublishForCraft(string topic, string vesselId, object? payload, double ut)
-        {
-            if (string.IsNullOrEmpty(vesselId))
-            {
-                return;
-            }
-            if (OffTheRunningCourier())
-            {
-                EnqueueJob(new CourierActionJob(() => PublishForCraft(topic, vesselId, payload, ut)));
-                return;
-            }
-            if (!_followsActiveCraft.Contains(topic) || _worldWait == WorldWait.Loading)
-            {
-                return;
-            }
-            var now = _clock.Now();
-            RecordInLane(vesselId, topic, payload, ut > now + PublishUtToleranceSeconds ? now : ut);
-        }
-
-        /// <summary>
-        /// Courier thread, as an Uplink's publish is processed: keeps a reading of a
-        /// following channel in the lane of the active craft, whose reading an
-        /// ordinary publish is, before the publish is dropped for want of a
-        /// subscriber.
-        /// </summary>
-        private void KeepPublishedReadingInLane(PublishJob publish, double nowUt)
-        {
-            if (publish.SaidBy != null
-                || _lastActiveVesselId == null
-                || _worldWait == WorldWait.Loading
-                || !_followsActiveCraft.Contains(publish.Topic))
-            {
-                return;
-            }
-            var ut = publish.Ut > nowUt + PublishUtToleranceSeconds ? nowUt : publish.Ut;
-            RecordInLane(_lastActiveVesselId, publish.Topic, publish.Payload, ut);
-        }
-
         /// <summary>The lane topic that keeps <paramref name="topic"/> for the craft <paramref name="vesselId"/>.</summary>
         internal static string LaneTopic(string vesselId, string topic) => CraftLanePrefix + vesselId + "." + topic;
 

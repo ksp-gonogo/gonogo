@@ -105,12 +105,6 @@ export interface DeclaredDelayRoles {
    * each value after its own delay, so it is read as received.
    */
   readonly addressed: ReadonlySet<string>;
-  /**
-   * Topics that describe whichever craft is active, each kept per craft, such
-   * as an Uplink's life-support reading. A screen shows the active craft's own
-   * newest reading of each. A mod that predates the list sends none.
-   */
-  readonly followsActiveCraft?: ReadonlySet<string>;
 }
 
 const GENERATED_ROLES: DeclaredDelayRoles = {
@@ -155,7 +149,6 @@ export function readDeclaredDelayRoles(
     trueNowPrefixes,
     heldAtHomePrefixes: stringsOf(raw.heldAtHomePrefixes) ?? [],
     addressed: new Set(stringsOf(raw.addressed) ?? []),
-    followsActiveCraft: new Set(stringsOf(raw.followsActiveCraft) ?? []),
   };
 }
 
