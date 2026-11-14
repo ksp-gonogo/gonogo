@@ -420,26 +420,6 @@ namespace Sitrep.Contract
         /// </summary>
         public bool Recordable { get; set; } = true;
 
-        /// <summary>
-        /// Whether this channel describes whichever craft is active, so that every
-        /// craft keeps its own record of it. Each reading is kept with the craft it
-        /// describes and reaches each command centre after that craft's own signal
-        /// delay, and a screen reading the channel is shown the active craft's
-        /// record, which moves with a switch of craft at once. Useful for a
-        /// channel that reads the active craft's own systems, so a switch shows
-        /// what the new craft last sent rather than nothing.
-        ///
-        /// <para>A reading published with <see cref="IChannelPublisher.Publish"/>
-        /// is the active craft's. A reading of another craft is published with
-        /// <see cref="ICraftReadingPublisher.PublishFor"/>, on the same publisher,
-        /// and is kept whether or not any screen reads the channel.</para>
-        ///
-        /// <para>Only for a <see cref="DelayRole.Delayed"/> channel on no node of
-        /// its own: it cannot be combined with <see cref="PerVesselNode"/>,
-        /// <see cref="PerLensNode"/> or <see cref="HeldAtHome"/>.</para>
-        /// </summary>
-        public bool FollowsActiveCraft { get; set; } = false;
-
         /// <summary> Declares that this channel's value is a fact held at the
         /// home command (the career ledger, the space centre's facilities and
         /// rosters) rather than aboard a craft. Each command centre learns a
@@ -1302,31 +1282,6 @@ namespace Sitrep.Contract
         /// <param name="payload">The topic's new value, or <c>null</c> for nothing.</param>
         /// <param name="ut">The universal time the value was observed at, in seconds.</param>
         void Publish(object? payload, double ut);
-    }
-
-    /// <summary>
-    /// Publishes a reading of a channel declared with
-    /// <see cref="ChannelDeclaration.FollowsActiveCraft"/> for a craft other than
-    /// the active one. Useful for keeping each craft's record current, so a switch
-    /// to it shows its readings at once. The publisher a host returns for such a
-    /// channel implements it when the host keeps a record per craft; an Uplink
-    /// casts to it and skips the reading when the cast fails.
-    /// </summary>
-    /// <category>Channels and emission</category>
-    public interface ICraftReadingPublisher
-    {
-        /// <summary>
-        /// Offers <paramref name="payload"/> as craft <paramref name="vesselId"/>'s
-        /// reading of this channel at <paramref name="ut"/> (UT seconds). It is kept
-        /// with that craft and reaches each command centre after that craft's own
-        /// signal delay, whether or not any screen reads the channel. Call it from
-        /// the main thread or from the off-main-thread half of a sampled source,
-        /// as <see cref="IChannelPublisher.Publish"/>.
-        /// </summary>
-        /// <param name="vesselId">The craft the reading describes, as the game's vessel id.</param>
-        /// <param name="payload">The craft's reading, in the channel's own shape.</param>
-        /// <param name="ut">The universal time the reading was taken at, in seconds.</param>
-        void PublishFor(string vesselId, object? payload, double ut);
     }
 
     /// <summary>
