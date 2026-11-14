@@ -192,3 +192,30 @@ describe("a client carrying the game's state to its stores", () => {
     expect(late.gameStatus()).toEqual({ state: "loading", scene: "FLIGHT" });
   });
 });
+
+describe("the UT a screen last showed before a load reset its clock", () => {
+  function at(ut: number, epoch: number): TimelinePoint<unknown> {
+    return { ...point(ut, {}), epoch };
+  }
+
+  it("is the UT shown while the game was running, after a restart through the main menu", () => {
+    const s = store();
+    s.setGameState("ready", "FLIGHT");
+    s.ingest("vessel.flight", at(341_500, 0));
+    s.ingest("vessel.flight", at(341_510, 0));
+    s.setGameState("no-game", "MAINMENU");
+    s.ingest("vessel.flight", at(7, 0));
+    s.setGameState("ready", "FLIGHT");
+    s.ingest("vessel.flight", at(341_503, 1));
+    expect(s.utBeforeReset()).toBeCloseTo(341_510, 0);
+  });
+
+  it("is undefined on a screen that only ever saw the main menu before the load", () => {
+    const s = store();
+    s.setGameState("no-game", "MAINMENU");
+    s.ingest("vessel.flight", at(7, 0));
+    s.setGameState("ready", "FLIGHT");
+    s.ingest("vessel.flight", at(341_503, 1));
+    expect(s.utBeforeReset()).toBeUndefined();
+  });
+});

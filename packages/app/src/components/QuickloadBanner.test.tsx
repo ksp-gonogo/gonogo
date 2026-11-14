@@ -22,9 +22,36 @@ function event(over: Partial<GameLoaded>): GameLoaded {
 
 describe("the quickload banner's words", () => {
   it("names the station that loaded and how far it moved", () => {
-    render(<QuickloadSentence event={event({ requestedBy: "Station 3" })} />);
+    render(
+      <QuickloadSentence
+        event={event({ requestedBy: "Station 3" })}
+        from={value("ut", 500)}
+      />,
+    );
     expect(document.body.textContent).toContain("Quickloaded by Station 3");
     expect(document.body.textContent).toContain("moved");
+  });
+
+  it("measures the move from the UT the screen last showed, never the game's own clock at the load", () => {
+    render(
+      <QuickloadSentence
+        event={event({ saveUt: value("ut", 341_503), fromUt: value("ut", 7) })}
+        from={value("ut", 341_510)}
+      />,
+    );
+    expect(document.body.textContent).toContain("moved \u2212");
+    expect(document.body.textContent).not.toContain("moved +");
+    expect(document.body.textContent).toContain("7");
+  });
+
+  it("leaves the move out when the screen had no earlier UT", () => {
+    render(
+      <QuickloadSentence
+        event={event({ saveUt: value("ut", 341_503), fromUt: value("ut", 7) })}
+      />,
+    );
+    expect(document.body.textContent).toContain("Game loaded ·");
+    expect(document.body.textContent).not.toContain("moved");
   });
 
   it("says a game load with no requester plainly", () => {

@@ -1156,6 +1156,7 @@ export class TimelineStore {
       this.delayedAtLoadStart = hasSignalDelay(this.clock.delaySeconds());
     }
     this.loadRequested = state === "loading";
+    this.gameRunning = state === "ready";
     if (!this.loadRequested) this.endBridgesAfterLoad();
     if (state === "loading") {
       this.gameOnset = setTimeout(() => {
@@ -1241,6 +1242,24 @@ export class TimelineStore {
 
   private loadRequested = false;
 
+  /** Whether the game last said it was running a scene: not loading one, and not at its main menu. */
+  private gameRunning = false;
+  private lastRunningUt: number | undefined;
+  private resetFrom: { epoch: number; ut: number } | undefined;
+
+  /**
+   * The UT this screen was showing, in the epoch before the current one, if
+   * the game was running a scene then. Undefined when no game was running
+   * before the current epoch began, as on a screen that connected at the main
+   * menu. Useful for saying how far a load moved the game from where the
+   * operator last saw it. Used by the banner that announces a loaded game.
+   */
+  utBeforeReset(): number | undefined {
+    return this.resetFrom?.epoch === this.clock.getEpoch()
+      ? this.resetFrom.ut
+      : undefined;
+  }
+
   private showGameStatus(status: GameStatus): void {
     if (
       status.state === this.gameShown.state &&
@@ -1311,6 +1330,10 @@ export class TimelineStore {
       // resynchronizing period that follows. This point's own arrival still
       // counts as a fresh heartbeat for its topic once the clear has run.
       this.heartbeats.reset();
+      if (this.lastRunningUt !== undefined) {
+        this.resetFrom = { epoch: point.epoch, ut: this.lastRunningUt };
+        this.lastRunningUt = undefined;
+      }
     }
 
     this.timelineFor<Payload>(topic).append(point);
@@ -1339,6 +1362,10 @@ export class TimelineStore {
       point.epoch,
       options.replayed === true,
     );
+    if (this.gameRunning && !options.replayed) {
+      const ut = this.clock.utNowEstimate();
+      if (Number.isFinite(ut)) this.lastRunningUt = ut;
+    }
     if (hasSupersededFields(topic)) {
       this.timelineFor<Payload>(topic).supersedeBefore(
         this.clock.certaintyHorizonUt(),

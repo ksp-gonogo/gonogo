@@ -10171,6 +10171,10 @@
         "note": "New: what the contracts say about a value, its sample kind, whether it keys its list entry, and the models declared on it"
       },
       {
+        "key": "sitrep-sdk ./spine TimelineStore#utBeforeReset",
+        "note": "New: the UT a screen last showed while the game was running, before the latest load or restart reset its clock"
+      },
+      {
         "key": "sitrep-sdk ./spine TrajectoryWithheldReason",
         "note": "Removed with the frames entry's copy"
       },
@@ -10785,6 +10789,10 @@
       {
         "key": "sitrep-sdk ./testing TimelineStore#tagsOf",
         "note": "New: what the contracts say about a value, its sample kind, whether it keys its list entry, and the models declared on it"
+      },
+      {
+        "key": "sitrep-sdk ./testing TimelineStore#utBeforeReset",
+        "note": "New: the UT a screen last showed while the game was running, before the latest load or restart reset its clock"
       },
       {
         "key": "sitrep-sdk ./testing ViewClock#observeSample",

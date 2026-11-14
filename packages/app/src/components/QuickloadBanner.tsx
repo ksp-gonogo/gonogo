@@ -1,5 +1,9 @@
 import { useTelemetry } from "@ksp-gonogo/core";
-import { useUtNow, useViewClockOptional } from "@ksp-gonogo/sitrep-client";
+import {
+  useTelemetryStoreOptional,
+  useUtNow,
+  useViewClockOptional,
+} from "@ksp-gonogo/sitrep-client";
 import {
   type GameLoaded,
   stillTrue,
@@ -17,8 +21,19 @@ const VISIBLE_MS = GAME_LOAD_NOTICE_SECONDS * 1000;
 /** How far behind the view clock a load may be and still count as news. */
 const STALE_AFTER_SECONDS = 10;
 
-/** The player-facing words for a finished quickload, written in one place so their wording can be reviewed. */
-export function QuickloadSentence({ event }: { event: GameLoaded }): ReactNode {
+/**
+ * The player-facing words for a finished quickload, written in one place so
+ * their wording can be reviewed. `from` is the UT the screen last showed, which
+ * the move is measured from; with none, the screen has no earlier UT to move
+ * from and the sentence leaves the move out.
+ */
+export function QuickloadSentence({
+  event,
+  from = null,
+}: {
+  event: GameLoaded;
+  from?: Value<"ut"> | null;
+}): ReactNode {
   if (event.outcome === "failed") {
     return `Quickload failed: ${event.failReason ?? "unknown reason"}`;
   }
@@ -28,7 +43,15 @@ export function QuickloadSentence({ event }: { event: GameLoaded }): ReactNode {
   const lead = event.requestedBy
     ? `Quickloaded by ${event.requestedBy}`
     : "Game loaded";
-  const behind = event.fromUt.minus(event.saveUt);
+  if (from === null) {
+    return (
+      <span>
+        {`${lead} \u00b7 `}
+        <MissionDate value={event.saveUt} />
+      </span>
+    );
+  }
+  const behind = from.minus(event.saveUt);
   const movedBack = behind.greaterThan(value("s", 0));
   return (
     <span>
@@ -65,8 +88,12 @@ export function QuickloadBanner() {
   const event = stillTrue(reading, undefined);
   const clock = useViewClockOptional();
   const utNow = useUtNow();
+  const store = useTelemetryStoreOptional();
   const seenRef = useRef<string | null>(null);
-  const [announcement, setAnnouncement] = useState<GameLoaded | null>(null);
+  const [announcement, setAnnouncement] = useState<{
+    event: GameLoaded;
+    from: Value<"ut"> | null;
+  } | null>(null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: utNow re-runs the judgement once the clock has a time
   useEffect(() => {
@@ -80,8 +107,12 @@ export function QuickloadBanner() {
     }
     seenRef.current = event.loadId;
     if (!isNews(event, value("ut", clock.utNowEstimate()))) return;
-    setAnnouncement(event);
-  }, [event, clock, utNow]);
+    const before = store?.utBeforeReset();
+    setAnnouncement({
+      event,
+      from: before === undefined ? null : value("ut", before),
+    });
+  }, [event, clock, utNow, store]);
 
   useEffect(() => {
     if (announcement === null) return;
@@ -93,7 +124,10 @@ export function QuickloadBanner() {
   return (
     <Banner role="status" aria-live="polite">
       <BannerRow>
-        <QuickloadSentence event={announcement} />
+        <QuickloadSentence
+          event={announcement.event}
+          from={announcement.from}
+        />
       </BannerRow>
     </Banner>
   );
