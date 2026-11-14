@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { HeldFigure } from "../HeldMark";
 import { RECKONING_MARK } from "../reckoningMarkSpec";
 import { VisuallyHidden } from "../VisuallyHidden";
 
@@ -98,7 +99,12 @@ export function TrackMark({
   );
 }
 
-/** A stepper's secondary figure with its mark beside it at the size the slider draws it. */
+/**
+ * A stepper's figure with its mark: the command's own figure carries the mark a
+ * readout carries, at superscript height in the room at its end, with its caption
+ * spoken and on hover, and a secondary figure has its mark beside it at the size
+ * the slider draws it.
+ */
 export function MarkedFigure({
   kind,
   caption,
@@ -111,12 +117,24 @@ export function MarkedFigure({
   main?: boolean;
   children: ReactNode;
 }) {
+  if (main) {
+    return (
+      <HeldFigure
+        kind={kind}
+        caption={caption}
+        data-role={kind === "modelled" ? "expected" : "last-seen"}
+        data-held={kind === "held" ? "" : undefined}
+      >
+        {children}
+      </HeldFigure>
+    );
+  }
   return (
     <span
       data-role={kind === "modelled" ? "expected" : "last-seen"}
       data-reckoning-mark={kind}
       data-held={kind === "held" ? "" : undefined}
-      style={main ? MAIN_MARKED : SECONDARY}
+      style={SECONDARY}
     >
       <MarkShape kind={kind} />
       {children}
@@ -183,12 +201,6 @@ const STEPPER_FIGURES: CSSProperties = {
   justifyContent: "center",
   gap: "var(--gap-related)",
   fontVariantNumeric: "tabular-nums",
-};
-
-const MAIN_MARKED: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "var(--gap-figure-parts)",
 };
 
 const SECONDARY: CSSProperties = {

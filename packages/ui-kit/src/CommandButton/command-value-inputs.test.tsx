@@ -301,6 +301,22 @@ describe("Stepper given a command", () => {
     expect(held[0].textContent).toContain("340");
   });
 
+  it("marks its own held figure with a readout's held square, not the slider's", () => {
+    const fake = createFakeCommand<{ rpm: number }>();
+    const { container } = render(
+      <Stepper
+        options={OPTIONS}
+        value={340}
+        lastSeen={340}
+        label="RPM cap"
+        command={fake.handle.toArgs((rpm: number) => ({ rpm }))}
+      />,
+    );
+    const held = container.querySelector("[data-held]");
+    expect(held?.querySelector("[data-held-mark]")).not.toBeNull();
+    expect(held?.querySelector("svg")).toBeNull();
+  });
+
   it("reads its worded absence while there is no value at all, and the first step lands on the first option", async () => {
     const user = userEvent.setup();
     const fake = createFakeCommand<{ rpm: number }>();

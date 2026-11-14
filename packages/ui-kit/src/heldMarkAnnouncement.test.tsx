@@ -25,6 +25,7 @@ import { MissionDate } from "./MissionDate";
 import { ReckonedUnit } from "./ModelledAlongside";
 import { derivedMarking } from "./readingCurrency";
 import { StatFigure } from "./StatContributions";
+import { Stepper } from "./Stepper";
 import { Tape } from "./Tape";
 import { TinyEssentials } from "./TinyEssentials";
 import { Unit } from "./Unit";
@@ -180,6 +181,16 @@ const PAINTERS: Record<string, (grade: HeldGrade | undefined) => ReactElement> =
         height={200}
       />
     ),
+    "Stepper, held figure": (grade) => (
+      <Stepper
+        options={[30, 60, 90]}
+        value={60}
+        lastSeen={60}
+        lastSeenCaption={derivedMarking(held(value("m", 60), grade))?.caption}
+        onChange={() => {}}
+        label="Target"
+      />
+    ),
     ControlDelayStream: (grade) => (
       <ControlDelayStream
         streams={[
@@ -245,6 +256,7 @@ const DRAWN_BY: Record<string, readonly string[]> = {
   "./StatContributions.tsx": ["StatFigure, text"],
   "./CommandDelay/ControlDelayStream.tsx": ["ControlDelayStream"],
   "./graph/LineChart.tsx": ["LineChart, held threshold"],
+  "./CommandValue/CommandValue.tsx": ["Stepper, held figure"],
 };
 
 describe("the census of held-mark painters", () => {
