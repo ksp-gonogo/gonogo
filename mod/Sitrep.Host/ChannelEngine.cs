@@ -2416,6 +2416,13 @@ namespace Sitrep.Host
                     MarkUplinkUnavailable(id, NoEmission("channel \"" + channel.Topic + "\""));
                     return;
                 }
+                if (channel.FollowsActiveCraft
+                    && (channel.Delay == DelayRole.TrueNow || channel.PerVesselNode || channel.PerLensNode || channel.HeldAtHome))
+                {
+                    MarkUplinkUnavailable(id, "channel \"" + channel.Topic + "\" declares FollowsActiveCraft with TrueNow, PerVesselNode, PerLensNode or HeldAtHome, which contradict:"
+                        + " a channel that follows the active craft is kept on each craft's own node and read after that craft's delay");
+                    return;
+                }
             }
 
             var taken = TakenByAnother(id, uplink.Manifest);
@@ -2430,6 +2437,10 @@ namespace Sitrep.Host
             {
                 _channelDeclarations[channel.Topic] = channel;
                 _channelOwner[channel.Topic] = id;
+                if (channel.FollowsActiveCraft)
+                {
+                    FollowActiveCraft(channel.Topic);
+                }
                 if (channel.Requires == null)
                 {
                     LogHost($"uplink \"{id}\" channel \"{channel.Topic}\" states no Requires, so it is read as Requirement.None");
@@ -2813,6 +2824,7 @@ namespace Sitrep.Host
         private int _delayRolesDeclarationCount = -1;
         private int _delayRolesNamespaceCount = -1;
         private int _delayRolesAddressedCount = -1;
+        private int _delayRolesFollowingCount = -1;
 
         /// <summary>
         /// Every registered channel's delay role, as the client reads its lane from:
@@ -2835,7 +2847,8 @@ namespace Sitrep.Host
             if (_delayRolesPayload != null
                 && _delayRolesDeclarationCount == _channelDeclarations.Count
                 && _delayRolesNamespaceCount == _dynamicNamespaces.Count
-                && _delayRolesAddressedCount == _addressedTopics.Count)
+                && _delayRolesAddressedCount == _addressedTopics.Count
+                && _delayRolesFollowingCount == _followsActiveCraft.Count)
             {
                 return _delayRolesPayload;
             }
@@ -2883,10 +2896,12 @@ namespace Sitrep.Host
                 ["trueNowPrefixes"] = trueNowPrefixes,
                 ["heldAtHomePrefixes"] = heldAtHomePrefixes,
                 ["addressed"] = addressed,
+                ["followsActiveCraft"] = _followsActiveCraft.OrderBy(topic => topic, StringComparer.Ordinal).ToList(),
             };
             _delayRolesDeclarationCount = _channelDeclarations.Count;
             _delayRolesNamespaceCount = _dynamicNamespaces.Count;
             _delayRolesAddressedCount = _addressedTopics.Count;
+            _delayRolesFollowingCount = _followsActiveCraft.Count;
             return _delayRolesPayload;
         }
 
@@ -11427,6 +11442,7 @@ namespace Sitrep.Host
         private void ProcessPublish(PublishJob publish, double nowUt)
         {
             NoteRecoveryAnnounced(publish);
+            KeepPublishedReadingInLane(publish, nowUt);
             if (!_subscriptions.IsSubscribed(publish.Topic) || HoldUntilWorldStands(publish))
             {
                 return;
@@ -14099,7 +14115,7 @@ namespace Sitrep.Host
             }
         }
 
-        private sealed class ChannelPublisher : ICraftSaidPublisher
+        private sealed class ChannelPublisher : ICraftSaidPublisher, ICraftReadingPublisher
         {
             private readonly ChannelEngine _engine;
             private readonly string _topic;
@@ -14113,6 +14129,8 @@ namespace Sitrep.Host
             public void Publish(object? payload, double ut) => _engine.Publish(_topic, payload, ut);
 
             public void PublishSaidBy(string vesselId, object? payload, double ut) => _engine.PublishSaidBy(_topic, vesselId, payload, ut);
+
+            public void PublishFor(string vesselId, object? payload, double ut) => _engine.PublishForCraft(_topic, vesselId, payload, ut);
         }
 
         private sealed class DynamicChannelSource : IDynamicChannelSource
