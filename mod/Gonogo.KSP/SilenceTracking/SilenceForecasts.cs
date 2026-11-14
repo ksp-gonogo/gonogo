@@ -101,33 +101,6 @@ namespace Gonogo.KSP.SilenceTracking
             return CaptureSilence(tracker, all, snapshot?.Ut ?? Planetarium.GetUniversalTime());
         }
 
-        /// <summary>Sweep steps taken between two looks at the clock in <see cref="AdvanceOnMain"/>.</summary>
-        private const int StepsPerSlice = 16;
-
-        /// <summary>Real time one frame may spend on the forecasts silent craft are owed.</summary>
-        private static readonly long FrameBudgetTicks = Stopwatch.Frequency / 500;
-
-        /// <summary>
-        /// Main thread, every frame: works on the forecasts the current save's
-        /// tracker owes its silent craft, for <see cref="FrameBudgetTicks"/> at
-        /// most. A forecast is a sweep of some 1400 visibility samples, and a
-        /// load or a relay going dark silences a whole fleet on one tick, so
-        /// the sweeps are spread over frames here and never run inside the
-        /// capture. Does nothing while nothing is owed.
-        /// </summary>
-        internal static void AdvanceOnMain()
-        {
-            var tracker = SilenceTrackerSink.Current;
-            if (tracker == null || !tracker.HasPending)
-            {
-                return;
-            }
-            var started = Stopwatch.GetTimestamp();
-            while (tracker.Advance(StepsPerSlice) && Stopwatch.GetTimestamp() - started < FrameBudgetTicks)
-            {
-            }
-        }
-
         /// <summary>One capture of <paramref name="all"/> into <paramref name="tracker"/> at <paramref name="ut"/>.</summary>
         internal object CaptureSilence(SilenceTracker tracker, List<Vessel> all, double ut)
         {

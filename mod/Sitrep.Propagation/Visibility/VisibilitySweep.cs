@@ -125,7 +125,7 @@ namespace Sitrep.Propagation.Visibility
         /// A dense sweep of a badly-chosen window at a badly-chosen step is an
         /// unbounded loop, not an error message. This cap turns that into one.
         /// </summary>
-        internal const int MaxSamples = 5_000_000;
+        private const int MaxSamples = 5_000_000;
 
         /// <summary>
         /// Sweep <paramref name="geometry"/> from <paramref name="startUt"/> to
@@ -181,9 +181,55 @@ namespace Sitrep.Propagation.Visibility
                 throw new ArgumentOutOfRangeException(nameof(startUt), "The sweep window bounds must not be NaN.");
             }
 
-            var run = new VisibilitySweepRun(geometry, startUt, endUt, stepSeconds, refinementToleranceSeconds);
-            run.Advance(int.MaxValue);
-            return run.Result!;
+            var changes = new List<VisibilityChange>();
+
+            double previousUt = startUt;
+            double previousMargin = geometry.MarginAt(startUt);
+            bool previousClear = ChordOcclusion.Unobstructed(previousMargin);
+            bool clearAtStart = previousClear;
+            int samples = 1;
+
+            if (endUt <= startUt)
+            {
+                return new VisibilitySweepResult(
+                    clearAtStart, changes, startUt, endUt, stepSeconds, refinementToleranceSeconds, samples);
+            }
+
+            double span = endUt - startUt;
+            double stepCount = Math.Ceiling(span / stepSeconds);
+            if (stepCount > MaxSamples)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(stepSeconds),
+                    "A " + span + " s window at a " + stepSeconds + " s step needs " + stepCount
+                        + " samples, past the " + MaxSamples + " cap. Widen the step or narrow the window.");
+            }
+
+            int totalSteps = (int)stepCount;
+            for (int i = 1; i <= totalSteps; i++)
+            {
+                // Recomputed from the start rather than accumulated, so a long
+                // sweep does not drift, and pinned to endUt on the last step so
+                // the requested window is covered exactly.
+                double ut = i == totalSteps ? endUt : Math.Min(startUt + (i * stepSeconds), endUt);
+                double margin = geometry.MarginAt(ut);
+                bool clear = ChordOcclusion.Unobstructed(margin);
+                samples++;
+
+                if (clear != previousClear)
+                {
+                    double crossingUt = RefineCrossing(
+                        geometry, previousUt, previousMargin, ut, refinementToleranceSeconds);
+                    changes.Add(new VisibilityChange(clear, crossingUt, previousUt, ut));
+                }
+
+                previousUt = ut;
+                previousMargin = margin;
+                previousClear = clear;
+            }
+
+            return new VisibilitySweepResult(
+                clearAtStart, changes, startUt, endUt, stepSeconds, refinementToleranceSeconds, samples);
         }
 
         /// <summary>
@@ -193,7 +239,7 @@ namespace Sitrep.Propagation.Visibility
         /// answer to within its width; the loop can be cut short by the cap
         /// without returning nonsense.
         /// </summary>
-        internal static double RefineCrossing(
+        private static double RefineCrossing(
             IVisibilityGeometry geometry,
             double lowUt,
             double lowMargin,
