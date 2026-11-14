@@ -16,6 +16,8 @@ export interface TraceSnapshot {
   /** Own docking port state, `undefined` when the dock Topic carries none. */
   ownPortState: DockingPortState | undefined;
   targetVesselPersistentId: number | undefined;
+  /** Name of the vessel the active target points at, `undefined` when none. */
+  targetVesselName: string | undefined;
 }
 
 /**
@@ -33,6 +35,7 @@ export function playtestTracer(
   let parts: number | undefined;
   let link: boolean | undefined;
   let docked: boolean | undefined;
+  let otherName: string | undefined;
 
   return (s) => {
     if (s.vesselId !== undefined && s.vesselId !== vesselId) {
@@ -41,20 +44,26 @@ export function playtestTracer(
       parts = undefined;
       link = undefined;
       docked = undefined;
+      otherName = undefined;
     }
     const who = { vesselId: s.vesselId, vesselName: s.vesselName };
 
     if (s.currentStage !== undefined) {
       if (stage !== undefined && s.currentStage !== stage) {
-        log.info("stage changed", {
+        const lost =
+          parts !== undefined && s.partCount !== undefined
+            ? Math.max(0, parts - s.partCount)
+            : undefined;
+        const detail =
+          s.partCount === undefined
+            ? ""
+            : ` (${s.partCount} parts${lost === undefined ? "" : `, ${lost} lost`})`;
+        log.info(`stage changed ${stage} -> ${s.currentStage}${detail}`, {
           ...who,
           fromStage: stage,
           toStage: s.currentStage,
           partCount: s.partCount,
-          partsLost:
-            parts !== undefined && s.partCount !== undefined
-              ? Math.max(0, parts - s.partCount)
-              : undefined,
+          partsLost: lost,
         });
         parts = s.partCount ?? parts;
       }
@@ -63,7 +72,7 @@ export function playtestTracer(
 
     if (s.partCount !== undefined) {
       if (parts !== undefined && s.partCount < parts) {
-        log.info("parts lost", {
+        log.info(`parts lost ${parts} -> ${s.partCount}`, {
           ...who,
           stage: s.currentStage,
           fromParts: parts,
@@ -75,21 +84,34 @@ export function playtestTracer(
 
     if (s.linkConnected !== undefined) {
       if (link !== undefined && s.linkConnected !== link) {
-        log.info(s.linkConnected ? "comms link regained" : "comms link lost", {
-          ...who,
-          connected: s.linkConnected,
-          routeHome: s.routeHome,
-        });
+        const named = s.vesselName ? ` (${s.vesselName})` : "";
+        log.info(
+          `${s.linkConnected ? "comms link regained" : "comms link lost"}${named}`,
+          {
+            ...who,
+            connected: s.linkConnected,
+            routeHome: s.routeHome,
+          },
+        );
       }
       link = s.linkConnected;
     }
 
     const nowDocked = s.ownPortState === DockingPortState.Docked;
+    if (!nowDocked || otherName === undefined) {
+      otherName = s.targetVesselName ?? otherName;
+    }
     if (docked !== undefined && nowDocked !== docked) {
-      log.info(nowDocked ? "docked" : "undocked", {
-        ...who,
-        otherVesselPersistentId: s.targetVesselPersistentId,
-      });
+      const other = s.targetVesselName ?? otherName;
+      const label = nowDocked ? "docked with" : "undocked from";
+      log.info(
+        other ? `${label} ${other}` : nowDocked ? "docked" : "undocked",
+        {
+          ...who,
+          otherVesselName: other,
+          otherVesselPersistentId: s.targetVesselPersistentId,
+        },
+      );
     }
     docked = nowDocked;
   };

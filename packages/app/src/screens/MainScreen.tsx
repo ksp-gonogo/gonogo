@@ -406,7 +406,7 @@ function MainScreenDisplay({
       />
       <CommcastLink log={commcastLog} />
       <AugmentAvailabilityFeeder />
-      {screen === "main" && <PlaytestTrace />}
+      {screen === "main" && hostsThePeerMesh && <PlaytestTrace />}
       {/* Every screen that loads its Uplinks itself, a pilot host included, picks up a roster that arrives after startup; the host's Uplink list waits on it. */}
       {!loadsThroughHost && <UplinkHealthRetry />}
       {/*

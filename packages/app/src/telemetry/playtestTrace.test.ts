@@ -12,6 +12,7 @@ const base: TraceSnapshot = {
   routeHome: true,
   ownPortState: undefined,
   targetVesselPersistentId: undefined,
+  targetVesselName: undefined,
 };
 
 function setup() {
@@ -31,7 +32,7 @@ describe("playtestTracer", () => {
     expect(lines()).toEqual([
       [
         "info",
-        "[trace] stage changed",
+        "[trace] stage changed 3 -> 2 (7 parts, 3 lost)",
         {
           vesselId: "v1",
           vesselName: "Probe",
@@ -49,7 +50,7 @@ describe("playtestTracer", () => {
     trace(base);
     trace({ ...base, partCount: 8 });
     trace({ ...base, partCount: 8 });
-    expect(lines().map((l) => l[1])).toEqual(["[trace] parts lost"]);
+    expect(lines().map((l) => l[1])).toEqual(["[trace] parts lost 10 -> 8"]);
   });
 
   it("logs only the transitions of the comms link", () => {
@@ -63,8 +64,8 @@ describe("playtestTracer", () => {
     expect(
       lines().map((l) => [l[1], (l[2] as { connected: boolean }).connected]),
     ).toEqual([
-      ["[trace] comms link lost", false],
-      ["[trace] comms link regained", true],
+      ["[trace] comms link lost (Probe)", false],
+      ["[trace] comms link regained (Probe)", true],
     ]);
   });
 
@@ -75,6 +76,7 @@ describe("playtestTracer", () => {
       ...base,
       ownPortState: DockingPortState.Docked,
       targetVesselPersistentId: 42,
+      targetVesselName: "Station",
     };
     trace(docked);
     trace(docked);
@@ -82,14 +84,20 @@ describe("playtestTracer", () => {
     trace({ ...base, ownPortState: undefined });
     expect(lines().map((l) => [l[1], l[2]])).toEqual([
       [
-        "[trace] docked",
-        { vesselId: "v1", vesselName: "Probe", otherVesselPersistentId: 42 },
-      ],
-      [
-        "[trace] undocked",
+        "[trace] docked with Station",
         {
           vesselId: "v1",
           vesselName: "Probe",
+          otherVesselName: "Station",
+          otherVesselPersistentId: 42,
+        },
+      ],
+      [
+        "[trace] undocked from Station",
+        {
+          vesselId: "v1",
+          vesselName: "Probe",
+          otherVesselName: "Station",
           otherVesselPersistentId: undefined,
         },
       ],

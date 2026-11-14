@@ -5,7 +5,7 @@ import { playtestTracer, type TraceSnapshot } from "./playtestTrace";
 
 /**
  * Writes one `info` line, tagged `trace`, for each stage, lost part, comms
- * link change, dock and undock the host sees. Mounted on the main screen only.
+ * link change, dock and undock the host sees. Mounted on the hosting main screen only.
  * Renders nothing.
  */
 export function PlaytestTrace() {
@@ -13,6 +13,7 @@ export function PlaytestTrace() {
   const structure = useTelemetry("vessel.structure");
   const link = useTelemetry("comms.link");
   const dock = useTelemetry("vessel.dock");
+  const target = useTelemetry("vessel.target");
   const trace = useRef<ReturnType<typeof playtestTracer>>();
   trace.current ??= playtestTracer(logger.tag("trace"));
 
@@ -20,6 +21,7 @@ export function PlaytestTrace() {
   const st = structure.state === "observed" ? structure.value : undefined;
   const ln = link.state === "observed" ? link.value : undefined;
   const dk = dock.state === "observed" ? dock.value : undefined;
+  const tg = target.state === "observed" ? target.value : undefined;
 
   const snapshot: TraceSnapshot = {
     vesselId: id?.vesselId,
@@ -30,6 +32,7 @@ export function PlaytestTrace() {
     routeHome: ln?.routeHome ?? undefined,
     ownPortState: dk?.ownPortState ?? undefined,
     targetVesselPersistentId: dk?.targetVesselPersistentId ?? undefined,
+    targetVesselName: tg?.name || undefined,
   };
   const key = JSON.stringify(snapshot);
   // biome-ignore lint/correctness/useExhaustiveDependencies: key is the serialised snapshot
