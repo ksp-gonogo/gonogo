@@ -9719,10 +9719,6 @@
         "note": "how many points a timeline holds"
       },
       {
-        "key": "sitrep-sdk ./spine ClientTimeline#lastMatchingAt",
-        "note": "New: the latest point at or before a UT that matches a test, walking back past the rest"
-      },
-      {
         "key": "sitrep-sdk ./spine ClientTimeline#retainThrough",
         "note": "New: keeps the readings at or before a UT after a timeline-reset and drops the rest"
       },
@@ -10841,10 +10837,6 @@
       {
         "key": "sitrep-sdk ./testing ~ClientTimeline#get size",
         "note": "how many points a timeline holds"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ClientTimeline#lastMatchingAt",
-        "note": "same member through the testing re-export"
       },
       {
         "key": "sitrep-sdk ./testing ~ClientTimeline#retainThrough",

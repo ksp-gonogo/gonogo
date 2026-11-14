@@ -67,9 +67,6 @@ const GAME_UT_TOLERANCE = 1e-6;
 /** How far behind the game's UT a frame after a load may be stamped and still belong to the same timeline, in seconds: the mod stamps a withdrawal one float step below the instant it happens at. */
 const REWIND_TOLERANCE_SECONDS = 1e-3;
 
-/** The `meta.source` of a reading delivered from a craft's own node, which keeps that craft's own delay. */
-const CRAFT_NODE_SOURCE_PREFIX = "fleet.";
-
 /**
  * Dispatch-rate budget for every command this client sends.
  *
@@ -515,9 +512,6 @@ export class TelemetryClient {
   private gameLoading = false;
   /** Whether a load has begun since the last live sample that was not behind the game's UT. */
   private loadSinceLastSample = false;
-
-  /** The newest UT a live sample was delivered at, and the timeline it was on. */
-  private newestDelivered: { ut: number; epoch: number } | undefined;
   /** How far the client's timeline epoch runs ahead of the wire's, for rewinds the mod did not announce with a new epoch. */
   private epochShift = 0;
   private lastWireEpoch = 0;
@@ -2066,40 +2060,16 @@ export class TelemetryClient {
     const wire = meta.timelineEpoch ?? 0;
     this.absorbWireEpoch(wire);
     let epoch = wire + this.epochShift;
-    /*
-     * Behind what has actually been delivered on this timeline, not behind the
-     * clock's estimate of the game's UT. The estimate runs on through a dialog
-     * or a scene load the game spends paused, such as a switch of craft, so the
-     * first frame after one would read as a rewind and empty every Topic.
-     */
-    const delivered = this.newestDelivered;
-    /*
-     * A reading delivered from a craft's own node arrives on that craft's clock,
-     * after its own delay, so it can trail frames already delivered without any
-     * rewind. A rewind takes every Topic back, so the frames the mod sends from
-     * its own nodes are enough to tell one.
-     */
-    const fromACraftsNode =
-      typeof meta.source === "string" &&
-      meta.source.startsWith(CRAFT_NODE_SOURCE_PREFIX);
+    const prior = this.gameClock;
     const behind =
-      !fromACraftsNode &&
-      delivered !== undefined &&
-      epoch === delivered.epoch &&
+      prior !== undefined &&
+      epoch === prior.epoch &&
       Number.isFinite(meta.deliveredAt) &&
-      meta.deliveredAt < delivered.ut - REWIND_TOLERANCE_SECONDS;
+      meta.deliveredAt < prior.ut - REWIND_TOLERANCE_SECONDS;
     const rewound = this.loadSinceLastSample && behind;
     if (rewound) {
       this.epochShift += 1;
       epoch += 1;
-    }
-    if (
-      Number.isFinite(meta.deliveredAt) &&
-      (delivered === undefined ||
-        epoch !== delivered.epoch ||
-        meta.deliveredAt > delivered.ut)
-    ) {
-      this.newestDelivered = { ut: meta.deliveredAt, epoch };
     }
     if (rewound || (!this.gameLoading && !behind)) {
       this.loadSinceLastSample = false;

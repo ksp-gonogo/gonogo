@@ -148,9 +148,9 @@ describe("two craft 30 light minutes away, an hour on A, 2 minutes on B, then ba
     expect(read(29.5)).toBe("A:3570");
   });
 
-  it("keeps showing A's own newest reading while B's readings from the two minutes B was flown arrive, and never shows B's as A's", () => {
+  it("shows nothing of A for the two minutes B was flown, whose readings arrive meanwhile and are not A's", () => {
     for (const minutes of [30, 30.5, 31, 31.5]) {
-      expect(read(minutes)).toBe("A:3570");
+      expect(read(minutes)).toBe("A:pending");
     }
   });
 

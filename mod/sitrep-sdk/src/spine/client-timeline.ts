@@ -172,24 +172,6 @@ export class ClientTimeline<Payload = unknown> {
     return low === 0 ? undefined : this.points[low - 1];
   }
 
-  /** Latest point with `validAt <= ut` that `matches`, walking back past the points that do not. */
-  lastMatchingAt(
-    ut: number,
-    matches: (point: TimelinePoint<Payload>) => boolean,
-  ): TimelinePoint<Payload> | undefined {
-    let low = 0;
-    let high = this.points.length;
-    while (low < high) {
-      const mid = (low + high) >>> 1;
-      if (this.points[mid].validAt <= ut) low = mid + 1;
-      else high = mid;
-    }
-    for (let i = low - 1; i >= 0; i--) {
-      if (matches(this.points[i])) return this.points[i];
-    }
-    return undefined;
-  }
-
   /**
    * The pair of points straddling `ut`, `[before, after]` where
    * `before.validAt <= ut < after.validAt`. Undefined when `ut` is before
