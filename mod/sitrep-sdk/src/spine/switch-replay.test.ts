@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Transport, TransportStatus } from "../api/transport";
 import { parseServerMessage } from "../client";
 import type { ClientMessage, ServerMessage } from "../envelope";
@@ -56,8 +56,26 @@ function arrivedAtOnce(row: Row): boolean {
   );
 }
 
-function replay(name: string, options: { withoutEarlyCopy?: boolean } = {}) {
-  const rows: Row[] = readFileSync(
+/** The Topic the recording's mod lists as following the active craft whose name ends in `suffix`. */
+function followedTopicEndingIn(name: string, suffix: string): string {
+  for (const row of readRows(name)) {
+    const text = JSON.stringify(
+      typeof row.frame === "string" ? JSON.parse(row.frame) : row.frame,
+    );
+    if (!text.includes('"topic":"system.uplinks"')) continue;
+    const listed = /"followsActiveCraft":\[([^\]]*)\]/.exec(text)?.[1] ?? "";
+    for (const quoted of listed.match(/"[^"]*"/g) ?? []) {
+      const topic = quoted.slice(1, -1);
+      if (topic.endsWith(suffix)) return topic;
+    }
+  }
+  throw new Error(
+    `no Topic ending in ${suffix} follows the active craft in ${name}`,
+  );
+}
+
+function readRows(name: string): Row[] {
+  return readFileSync(
     join(
       dirname(fileURLToPath(import.meta.url)),
       "__fixtures__/switch",
@@ -67,8 +85,16 @@ function replay(name: string, options: { withoutEarlyCopy?: boolean } = {}) {
   )
     .split("\n")
     .filter(Boolean)
-    .map((line) => JSON.parse(line))
-    .filter((row: Row) => !(options.withoutEarlyCopy && arrivedAtOnce(row)));
+    .map((line) => JSON.parse(line));
+}
+
+function replay(
+  name: string,
+  options: { withoutEarlyCopy?: boolean; station?: boolean } = {},
+) {
+  const rows: Row[] = readRows(name).filter(
+    (row: Row) => !(options.withoutEarlyCopy && arrivedAtOnce(row)),
+  );
   let wallMs = rows[0].ms;
   const authority = new DelayAuthority();
   const store = new TimelineStore(
@@ -79,6 +105,7 @@ function replay(name: string, options: { withoutEarlyCopy?: boolean } = {}) {
       delayEpoch: authority.delayEpoch,
     }),
   );
+  if (options.station) store.setHistorySource({ request: async () => [] });
   const transport = new RecordedTransport();
   const client = new TelemetryClient(transport);
   client.attachStore(store);
@@ -240,5 +267,82 @@ describe("a switch from MkI to Mun Probe, from recorded frames", () => {
     advanceTo(6_600);
     expect(flight().state).toBe("observed");
     expect(arrived()).toBe(true);
+  });
+});
+
+/**
+ * Two switches off a real game with a life support Uplink, MkI to Mun Probe and
+ * back, read by the main screen's store and by a station's, which keeps only the
+ * window its readers hold. Times are milliseconds from the first click.
+ */
+describe("a station across switches, from recorded frames", () => {
+  const lifeSupport = followedTopicEndingIn("station-trim", ".lifesupport");
+  const read = (store: TimelineStore, topic: string) => {
+    const reading = store.sampleReading<unknown>(topic, store.currentFrame());
+    if (reading.state === "observed") {
+      return { state: reading.state, ut: reading.atUt.magnitude };
+    }
+    if (reading.state === "held") {
+      return { state: reading.state, ut: reading.asOfUt.magnitude };
+    }
+    return { state: reading.state };
+  };
+
+  it("shows the probe's life support on the first visit as soon as it arrives, though the game names the probe just after", () => {
+    const station = replay("station-trim", { station: true });
+    for (const ms of [6_000, 15_000, 25_000]) {
+      station.advanceTo(ms);
+      expect(read(station.store, lifeSupport).state).not.toBe("pending");
+    }
+  });
+
+  it("shows MkI's link and life support on the return while the delay to it is not yet known", () => {
+    const station = replay("station-trim", { station: true });
+    station.advanceTo(56_100);
+    expect(read(station.store, "comms.link").state).not.toBe("pending");
+    expect(read(station.store, lifeSupport).state).not.toBe("pending");
+  });
+
+  it("reads each craft's readings as the main screen does at every moment", () => {
+    const main = replay("station-trim");
+    const station = replay("station-trim", { station: true });
+    for (let ms = 0; ms <= 61_000; ms += 100) {
+      main.advanceTo(ms);
+      station.advanceTo(ms);
+      for (const topic of ["comms.link", lifeSupport]) {
+        expect({ ms, topic, ...read(station.store, topic) }).toEqual({
+          ms,
+          topic,
+          ...read(main.store, topic),
+        });
+      }
+    }
+  });
+});
+
+/**
+ * A switch back to MkI off a real game. In the load's replay the mod sends
+ * `system.uplink.delays` (built first, at UT 239.32) after a
+ * `system.uplink.gates.craft` built 1.1 ms of game time later, which carries
+ * MkI's delay in its stamp. Times are milliseconds from the click.
+ */
+describe("a frame the mod built earlier and sent later, from recorded frames", () => {
+  it("is not read as a rewind, so every Topic keeps what it had", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { advanceTo, store } = replay("late-sent-frame");
+    advanceTo(4_000);
+    const before = store.sampleReading<unknown>(
+      "ksp.activeVessel",
+      store.currentFrame(),
+    );
+    advanceTo(5_100);
+    const said = warn.mock.calls.map((call) => String(call[0])).join("\n");
+    warn.mockRestore();
+    expect(said).not.toContain("rewind");
+    expect(before.state).toBe("observed");
+    expect(
+      store.sampleReading<unknown>("ksp.activeVessel", store.currentFrame())
+        .state,
+    ).toBe("observed");
   });
 });

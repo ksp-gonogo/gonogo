@@ -449,6 +449,21 @@ const CRAFT_SOURCE_PREFIX = "vessel:";
 /** The domain of the topics that describe whichever craft is active. */
 const ACTIVE_VESSEL_TOPIC_PREFIX = "vessel.";
 
+/**
+ * The command centre's figures about the active craft whose payloads do not name
+ * the craft: its route, its signal, its centre, its link's grading and each
+ * centre's delay to it. Each is the active craft's only once recorded after that
+ * craft became active, so a screen never shows the craft left behind's figure as
+ * the new craft's.
+ */
+const UNNAMED_ACTIVE_CRAFT_FIGURES: ReadonlySet<string> = new Set([
+  "comms.path",
+  "comms.signal",
+  "comms.commandCentre",
+  "comms.degrade",
+  "commandCentre.activeVesselDelay",
+]);
+
 const CORE_TOPIC_IDS: ReadonlySet<string> = new Set(GENERATED_TOPIC_IDS);
 
 /** The reports of the active craft's link, which the mod sends through a blackout. */
@@ -464,6 +479,24 @@ function statedVesselId(payload: unknown): string | undefined {
   if (!("vesselId" in payload)) return undefined;
   const id = payload.vesselId;
   return typeof id === "string" && id !== "" ? id : undefined;
+}
+
+/** The node a craft's own readings are delivered from, as the envelope's `meta.source` names it. */
+const CRAFT_NODE_PREFIX = "fleet.";
+
+/**
+ * The craft a reading describes, lower-cased as a payload's `meta.source`: the
+ * payload's own word, else the craft whose node delivered it. An Uplink's payload
+ * may carry no meta of its own, and a reading kept per craft is still delivered
+ * from that craft's node.
+ */
+function craftOfPoint(point: TimelinePoint<unknown>): string | undefined {
+  const own = craftSourceOf(point.payload);
+  if (own !== undefined) return own.toLowerCase();
+  const node = point.meta.source;
+  return typeof node === "string" && node.startsWith(CRAFT_NODE_PREFIX)
+    ? `${CRAFT_SOURCE_PREFIX}${node.slice(CRAFT_NODE_PREFIX.length)}`.toLowerCase()
+    : undefined;
 }
 
 /** The `meta.source` a payload carries, when it names a craft. */
@@ -1088,6 +1121,8 @@ export class TimelineStore {
 
   /** Whether the game's statement of the active craft has been heard, which then outranks the delay report. */
   private activeCraftStated = false;
+  /** When the game last named a craft other than the one before it as active, or negative infinity before any change. */
+  private activeCraftSinceUt = Number.NEGATIVE_INFINITY;
 
   /** The sample kinds the mod stated on the newest `system.uplinks`, captured at ingest for the same reason the roles are. */
   private declaredKinds: DeclaredSampleKinds | undefined;
@@ -1348,7 +1383,11 @@ export class TimelineStore {
     if (topic === ACTIVE_VESSEL_TOPIC) {
       const id = statedVesselId(point.payload);
       if (id !== undefined) {
-        this.activeCraftSource = `${CRAFT_SOURCE_PREFIX}${id}`;
+        const source = `${CRAFT_SOURCE_PREFIX}${id}`;
+        if (this.activeCraftStated && source !== this.activeCraftSource) {
+          this.activeCraftSinceUt = point.validAt;
+        }
+        this.activeCraftSource = source;
         this.activeCraftStated = true;
       }
     }
@@ -1461,7 +1500,16 @@ export class TimelineStore {
       ? Math.min(latest.validAt, viewUt)
       : latest.validAt;
     const fromUt = anchor - need - HELD_WINDOW_FLOOR_SECONDS;
-    timeline.trimBefore(fromUt);
+    /*
+     * A topic that follows the active craft keeps each craft's newest reading,
+     * because a read walks back to the active craft's own: the game names a new
+     * craft just after its reading arrives, and the view can lie behind that
+     * reading until the delay to the craft is known.
+     */
+    timeline.trimBefore(
+      fromUt,
+      this.followsActiveCraft(raw) ? craftOfPoint : undefined,
+    );
     if (need > 0) this.fetchHeldWindow(raw, timeline, fromUt);
   }
 
@@ -2731,16 +2779,24 @@ export class TimelineStore {
     token: FrameToken,
   ): TimelinePoint<Payload> | undefined {
     const point = timeline.at(ut);
-    if (point === undefined || !topic.startsWith(ACTIVE_VESSEL_TOPIC_PREFIX)) {
+    if (point === undefined || !this.followsActiveCraft(topic)) {
       return point;
     }
     const active = this.activeCraftSourceAt(token);
     if (active === undefined) return point;
-    const subject = craftSourceOf(point.payload)?.toLowerCase();
+    const subject = craftOfPoint(point);
     if (subject === undefined || subject === active) return point;
     return timeline.lastMatchingAt(
       ut,
-      (candidate) => craftSourceOf(candidate.payload)?.toLowerCase() === active,
+      (candidate) => craftOfPoint(candidate) === active,
+    );
+  }
+
+  /** Whether `topic` describes whichever craft is active: core's `vessel.` domain, and every Topic the mod lists as following the active craft. */
+  private followsActiveCraft(topic: string): boolean {
+    return (
+      topic.startsWith(ACTIVE_VESSEL_TOPIC_PREFIX) ||
+      this.declaredRoles?.followsActiveCraft?.has(topic) === true
     );
   }
 
@@ -4018,6 +4074,14 @@ export class TimelineStore {
       subject !== undefined &&
       this.activeCraftSource !== undefined &&
       subject !== this.activeCraftSource
+    ) {
+      return "resyncing";
+    }
+    /* A figure that names no craft and was recorded before the craft switched to became active is the craft left behind's. */
+    if (
+      subject === undefined &&
+      UNNAMED_ACTIVE_CRAFT_FIGURES.has(topic) &&
+      point.validAt <= this.activeCraftSinceUt
     ) {
       return "resyncing";
     }

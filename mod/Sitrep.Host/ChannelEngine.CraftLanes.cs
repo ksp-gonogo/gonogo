@@ -138,8 +138,78 @@ namespace Sitrep.Host
             RecordInLane(vesselId, fact, value, ut);
         }
 
+        /// <summary>
+        /// An Uplink's reading of a following channel for a craft that is not the
+        /// active one (see <see cref="ICraftReadingPublisher"/>), kept in that
+        /// craft's lane whether or not any screen reads the channel. A reading
+        /// stamped ahead of the clock belongs to a timeline a load abandoned and is
+        /// taken as now, as an ordinary publish is.
+        /// </summary>
+        internal void PublishForCraft(string topic, string vesselId, object? payload, double ut)
+        {
+            if (string.IsNullOrEmpty(vesselId))
+            {
+                return;
+            }
+            if (OffTheRunningCourier())
+            {
+                EnqueueJob(new CourierActionJob(() => PublishForCraft(topic, vesselId, payload, ut)));
+                return;
+            }
+            if (!_followsActiveCraft.Contains(topic) || _worldWait == WorldWait.Loading)
+            {
+                return;
+            }
+            var now = _clock.Now();
+            RecordInLane(vesselId, topic, payload, ut > now + PublishUtToleranceSeconds ? now : ut);
+        }
+
+        /// <summary>
+        /// Courier thread, as an Uplink's publish is processed: keeps a reading of a
+        /// following channel in the lane of the active craft, whose reading an
+        /// ordinary publish is, before the publish is dropped for want of a
+        /// subscriber.
+        /// </summary>
+        private void KeepPublishedReadingInLane(PublishJob publish, double nowUt)
+        {
+            if (publish.SaidBy != null
+                || _lastActiveVesselId == null
+                || _worldWait == WorldWait.Loading
+                || !_followsActiveCraft.Contains(publish.Topic))
+            {
+                return;
+            }
+            var ut = publish.Ut > nowUt + PublishUtToleranceSeconds ? nowUt : publish.Ut;
+            RecordInLane(_lastActiveVesselId, publish.Topic, publish.Payload, ut);
+        }
+
         /// <summary>The lane topic that keeps <paramref name="topic"/> for the craft <paramref name="vesselId"/>.</summary>
         internal static string LaneTopic(string vesselId, string topic) => CraftLanePrefix + vesselId + "." + topic;
+
+        /// <summary>The craft and the kept topic of a lane topic, or false for a topic that is not a lane.</summary>
+        internal static bool TryReadLane(string topic, out string vesselId, out string kept)
+        {
+            vesselId = "";
+            kept = "";
+            if (!topic.StartsWith(CraftLanePrefix, StringComparison.Ordinal))
+            {
+                return false;
+            }
+            var dot = topic.IndexOf('.', CraftLanePrefix.Length);
+            if (dot <= CraftLanePrefix.Length || dot == topic.Length - 1)
+            {
+                return false;
+            }
+            vesselId = topic.Substring(CraftLanePrefix.Length, dot - CraftLanePrefix.Length);
+            kept = topic.Substring(dot + 1);
+            return true;
+        }
+
+        /// <summary>Whether <paramref name="topic"/> is a lane of the craft whose own seat is <paramref name="seat"/>.</summary>
+        private static bool IsLaneOfSeat(string topic, string? seat) =>
+            seat != null
+            && TryReadLane(topic, out var craft, out _)
+            && string.Equals(seat, "vessel:" + craft, StringComparison.OrdinalIgnoreCase);
 
         /// <summary>Whether a screen reading <paramref name="topic"/> is shown the active craft's lane.</summary>
         internal bool FollowsActiveCraft(string topic) => _followsActiveCraft.Contains(topic);
@@ -290,6 +360,8 @@ namespace Sitrep.Host
                     {
                         continue;
                     }
+                    // The old craft's reading may still be queued, and is already counted as shown.
+                    session.Outbox.KeepQueuedFrame(bound.Key);
                     ProcessUnsubscribe(session, bound.Key);
                     ProcessSubscribe(session, bound.Key);
                 }
@@ -312,6 +384,21 @@ namespace Sitrep.Host
             }
             var from = shownThrough ?? newest - CraftLanePolicy.Current.FirstViewHistoryUt;
             _courier.ReplayArrived(node, lane, vantage, from, newest, deliver);
+        }
+
+        /// <summary>
+        /// Courier thread, as the archive is pruned: a lane is kept back to what the
+        /// farthest centre its craft is stamped for has received, so a screen that
+        /// moves to that centre is shown it at once rather than only what crosses
+        /// after the move. Null for any topic that is not a lane.
+        /// </summary>
+        private double? LaneKeptFrom(string node, string topic)
+        {
+            if (!topic.StartsWith(CraftLanePrefix, StringComparison.Ordinal))
+            {
+                return null;
+            }
+            return _clock.Now() - Longest(_network.StampFor(node)) - 2 * WarmIntervalUt;
         }
 
         /// <summary>

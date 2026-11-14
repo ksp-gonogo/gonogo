@@ -270,16 +270,35 @@ export class ClientTimeline<Payload = unknown> {
 
   /**
    * Drop every point older than the newest one at or before `ut`, which stays so
-   * a hold-last read at `ut` still answers. What was dropped is recorded in
-   * `droppedThroughUt`, so a reader of an older range knows the data existed and
-   * is no longer held here.
+   * a hold-last read at `ut` still answers. With `keepNewestOf`, the newest
+   * dropped point of each key it names stays too, so a read that walks back to
+   * one key's own points still finds that key's newest. What was dropped is
+   * recorded in `droppedThroughUt`, so a reader of an older range knows the data
+   * existed and is no longer held here.
    */
-  trimBefore(ut: number): void {
+  trimBefore(
+    ut: number,
+    keepNewestOf?: (point: TimelinePoint<Payload>) => string | undefined,
+  ): void {
     const keepFrom = this.firstIndexAfter(ut, true) - 1;
     if (keepFrom <= 0) return;
+    const kept: TimelinePoint<Payload>[] = [];
+    if (keepNewestOf) {
+      const seen = new Set<string>();
+      const onward = keepNewestOf(this.points[keepFrom]);
+      if (onward !== undefined) seen.add(onward);
+      for (let i = keepFrom - 1; i >= 0; i--) {
+        const key = keepNewestOf(this.points[i]);
+        if (key === undefined || seen.has(key)) continue;
+        seen.add(key);
+        kept.unshift(this.points[i]);
+      }
+    }
+    const dropped = keepFrom - kept.length;
+    if (dropped === 0) return;
     this.droppedThrough = this.points[keepFrom - 1].validAt;
-    this.points.splice(0, keepFrom);
-    this.superseded = Math.max(0, this.superseded - keepFrom);
+    this.points = [...kept, ...this.points.slice(keepFrom)];
+    this.superseded = Math.max(0, this.superseded - dropped);
     this.revision++;
   }
 

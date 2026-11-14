@@ -571,7 +571,8 @@ namespace Sitrep.Core
         public void PruneToVantageCursors(
             IDictionary<string, double>? owedFloorByTopic = null,
             Func<string, string, bool>? stillReading = null,
-            double historyFloorUt = double.NegativeInfinity)
+            double historyFloorUt = double.NegativeInfinity,
+            Func<string, double>? keptFromByTopic = null)
         {
             if (stillReading != null)
             {
@@ -603,6 +604,11 @@ namespace Sitrep.Core
                 if (!double.IsNegativeInfinity(historyFloorUt) && historyFloorUt < oldest)
                 {
                     oldest = historyFloorUt;
+                }
+                var keptFrom = keptFromByTopic?.Invoke(entry.Key) ?? double.MaxValue;
+                if (keptFrom < oldest)
+                {
+                    oldest = keptFrom;
                 }
 
                 RetainFrom(entry.Key, entry.Value, oldest);

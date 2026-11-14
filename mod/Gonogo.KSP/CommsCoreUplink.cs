@@ -537,7 +537,9 @@ namespace Gonogo.KSP
                 // channel that REPORTS the blackout and so cannot be frozen by
                 // it. Declared Delayed here for accuracy even though the
                 // exemption itself is topic-identity-keyed, not a read of this
-                // Delay disposition.
+                // Delay disposition. It follows the active craft: every other
+                // craft's link is kept in its own lane (CommsLinkLaneFeed), so a
+                // switch shows the new craft's link as its light has brought it.
                 new ChannelDeclaration
                 {
                     Kind = SampleKind.Discrete,
@@ -546,6 +548,7 @@ namespace Gonogo.KSP
                     Delivery = Delivery.LossyLatest,
                     Delay = DelayRole.Delayed,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    FollowsActiveCraft = true,
                 },
             },
         };
@@ -611,6 +614,7 @@ namespace Gonogo.KSP
                 LinkTopic,
                 OcclusionTopic,
                 GroundStationsTopic);
+            _linkLanes.RegisterInto(host, _link);
 
             // Advertise comms.delay to the engine's server-side reveal gate as
             // the AUTHORITATIVE, subscription-independent delay source (§7.3
@@ -744,6 +748,7 @@ namespace Gonogo.KSP
 
         private readonly ConnectivitySettle _gateSettle = new ConnectivitySettle();
         private readonly ConnectivitySettle _channelSettle = new ConnectivitySettle();
+        private readonly CommsLinkLaneFeed _linkLanes = new CommsLinkLaneFeed();
 
         /// <summary>
         /// The active craft's connectivity as its radio can use it: the backend's

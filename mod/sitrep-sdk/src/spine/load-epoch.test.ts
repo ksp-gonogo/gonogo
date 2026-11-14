@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Transport, TransportStatus } from "../api/transport";
 import type { ServerMessage } from "../envelope";
 import { makeMeta } from "../testing/stub-transport";
@@ -246,6 +246,69 @@ describe("a load that does not rewind the game, as a switch of craft is", () => 
     wire.deliver(frame("comms.nextLoss", 1, 7135.100000000766));
     wire.deliver(frame("vessel.target", 1, 7135.100000000765));
     expect(viewClock.getEpoch()).toBe(1);
+  });
+
+  it("names the frame it read a rewind from", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const wire = new Wire();
+    const client = new TelemetryClient(wire, CLOCK, { idPrefix: "p" });
+    client.subscribe("vessel.target", () => {});
+    client.attachStore(new TimelineStore(new ViewClock()));
+    wire.deliver({
+      type: "hello",
+      bootId: "b",
+      timelineEpoch: 1,
+      contractMajor: 1,
+      contractMinor: 0,
+    });
+    wire.deliver(frame("vessel.target", 1, 7135));
+    wire.deliver({
+      type: "game-state",
+      state: "loading",
+      scene: "FLIGHT",
+      bootId: "b",
+      timelineEpoch: 1,
+    });
+    wire.deliver(frame("vessel.target", 1, 7134));
+
+    const said = warn.mock.calls.map((call) => String(call[0])).join("\n");
+    warn.mockRestore();
+    expect(said).toContain("rewind from vessel.target");
+    expect(said).toContain("delivered at 7134");
+  });
+
+  it("does not read a frame the mod built before the newest delivered one as a rewind", () => {
+    const wire = new Wire();
+    const client = new TelemetryClient(wire, CLOCK, { idPrefix: "p" });
+    client.subscribe("vessel.target", () => {});
+    const viewClock = new ViewClock();
+    client.attachStore(new TimelineStore(viewClock));
+    const numbered = (deliveredAt: number, seq: number): ServerMessage => ({
+      type: "stream-data",
+      topic: "vessel.target",
+      payload: {},
+      meta: makeMeta({ timelineEpoch: 1, deliveredAt, seq }),
+    });
+    wire.deliver({
+      type: "hello",
+      bootId: "b",
+      timelineEpoch: 1,
+      contractMajor: 1,
+      contractMinor: 0,
+    });
+    wire.deliver({
+      type: "game-state",
+      state: "loading",
+      scene: "FLIGHT",
+      bootId: "b",
+      timelineEpoch: 1,
+    });
+    wire.deliver(numbered(7135.0011, 20));
+    wire.deliver(numbered(7135, 10));
+    expect(viewClock.getEpoch()).toBe(1);
+
+    wire.deliver(numbered(7134, 30));
+    expect(viewClock.getEpoch()).toBe(2);
   });
 
   it("still reads a load that goes back by a second as a rewind", () => {

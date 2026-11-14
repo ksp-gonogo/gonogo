@@ -516,8 +516,10 @@ export class TelemetryClient {
   /** Whether a load has begun since the last live sample that was not behind the game's UT. */
   private loadSinceLastSample = false;
 
-  /** The newest UT a live sample was delivered at, and the timeline it was on. */
-  private newestDelivered: { ut: number; epoch: number } | undefined;
+  /** The newest UT a live sample was delivered at, the timeline it was on, and the `seq` of the frame that carried it. */
+  private newestDelivered:
+    | { ut: number; epoch: number; seq: number | undefined }
+    | undefined;
   /** How far the client's timeline epoch runs ahead of the wire's, for rewinds the mod did not announce with a new epoch. */
   private epochShift = 0;
   private lastWireEpoch = 0;
@@ -2082,8 +2084,19 @@ export class TelemetryClient {
     const fromACraftsNode =
       typeof meta.source === "string" &&
       meta.source.startsWith(CRAFT_NODE_SOURCE_PREFIX);
+    /*
+     * The mod numbers frames in the order it builds them, and can send one built
+     * earlier after one built later. A frame built before the newest delivered
+     * one was built before any load that frame could have come after, so it is
+     * not a rewind however far behind its stamp is.
+     */
+    const builtEarlier =
+      Number.isFinite(meta.seq) &&
+      delivered?.seq !== undefined &&
+      meta.seq < delivered.seq;
     const behind =
       !fromACraftsNode &&
+      !builtEarlier &&
       delivered !== undefined &&
       epoch === delivered.epoch &&
       Number.isFinite(meta.deliveredAt) &&
@@ -2092,6 +2105,12 @@ export class TelemetryClient {
     if (rewound) {
       this.epochShift += 1;
       epoch += 1;
+      /* Every Topic starts again on a rewind, so the frame that made the call is named, to be found when one was not a rewind at all. */
+      console.warn(
+        `[sitrep] read a load as a rewind from ${message.topic} (source ${String(meta.source)}, ` +
+          `valid at ${meta.validAt}, delivered at ${meta.deliveredAt}, ` +
+          `behind ${delivered?.ut} delivered on this timeline); every Topic starts again.`,
+      );
     }
     if (
       Number.isFinite(meta.deliveredAt) &&
@@ -2099,7 +2118,11 @@ export class TelemetryClient {
         epoch !== delivered.epoch ||
         meta.deliveredAt > delivered.ut)
     ) {
-      this.newestDelivered = { ut: meta.deliveredAt, epoch };
+      this.newestDelivered = {
+        ut: meta.deliveredAt,
+        epoch,
+        seq: Number.isFinite(meta.seq) ? meta.seq : undefined,
+      };
     }
     if (rewound || (!this.gameLoading && !behind)) {
       this.loadSinceLastSample = false;

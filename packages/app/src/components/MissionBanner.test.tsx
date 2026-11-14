@@ -607,6 +607,64 @@ describe("MissionBanner signal delay", () => {
     expect(delayValue()?.textContent).not.toContain("Awaiting");
   });
 
+  it("after a switch, awaits the new craft's own delay rather than quoting the craft left behind's", async () => {
+    const fixture = setupDelayedStream();
+    render(
+      <fixture.Provider>
+        <MissionBanner />
+      </fixture.Provider>,
+    );
+    const delayOf = (craft: string, seconds: number, ut: number) =>
+      fixture.emit(
+        "comms.delay",
+        {
+          oneWaySeconds: seconds,
+          source: CommsDelaySource.SignalDelay,
+          meta: { source: `vessel:${craft}` },
+        },
+        KSC,
+        ut,
+      );
+    const linkOf = (craft: string, ut: number) =>
+      fixture.emit(
+        "comms.link",
+        { connected: true, meta: { source: `vessel:${craft}` } },
+        KSC,
+        ut,
+      );
+    fixture.emit("commandCentre.roster", MULTI_ROSTER, KSC);
+    fixture.emit("spaceCenter.scene", { scene: "Flight" }, KSC);
+    fixture.emit("ksp.activeVessel", { vesselId: "home", name: "Home" }, KSC);
+    delayOf("home", 0.001, 0);
+    await screen.findByText("Delay");
+    linkOf("home", 0);
+    linkOf("home", 1);
+    await waitFor(() => {
+      expect(delayValue()?.textContent).toContain("1 ms");
+    });
+
+    // The new craft's link has already arrived from its own record; its delay is still on its way.
+    fixture.emit(
+      "ksp.activeVessel",
+      { vesselId: "probe", name: "Probe" },
+      KSC,
+      2,
+    );
+    linkOf("probe", 2);
+    linkOf("probe", 2.5);
+    await screen.findByText("Probe");
+    await waitFor(() => {
+      expect(delayValue()?.textContent).toContain("Awaiting first signal");
+    });
+    expect(delayValue()?.textContent).not.toContain("1 ms");
+
+    delayOf("probe", 30, 3);
+    linkOf("probe", 63);
+    await waitFor(() => {
+      expect(delayValue()?.textContent).toContain("30");
+    });
+  });
+
   it("says disconnected when there is no path, never a zero or the held delay", async () => {
     const atDelay = unitMarkup(187.4);
     const fixture = setupDelayedStream();

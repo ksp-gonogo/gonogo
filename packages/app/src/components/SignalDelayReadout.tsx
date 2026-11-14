@@ -168,14 +168,21 @@ function CentreSignalDelayValue({
   const centreId = selected ?? observed;
   const linkConnected = useLinkConnected();
   const centreDelays = useCentreDelays();
+  /*
+   * After a switch the clock runs on the craft left behind's delay until the new
+   * craft's own arrives, and the store reads that figure as not the active
+   * craft's. The header quotes no figure meanwhile, only that it is awaited.
+   */
+  const anotherCraftsDelay = useTelemetry("comms.delay").state === "pending";
 
   const state = deriveSignalDelay({
     centreId,
     isOwnCraft: ownCraftVantage,
     isHome: centreId !== undefined && centreId === homeId,
-    homeSeconds: owltSeconds,
-    centreDelays,
-    linkConnected,
+    homeSeconds: anotherCraftsDelay ? undefined : owltSeconds,
+    centreDelays: anotherCraftsDelay ? undefined : centreDelays,
+    linkConnected:
+      anotherCraftsDelay && linkConnected === true ? "awaiting" : linkConnected,
   });
   return (
     <SignalDelayValue

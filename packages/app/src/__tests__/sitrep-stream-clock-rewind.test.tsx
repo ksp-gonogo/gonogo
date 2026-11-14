@@ -18,6 +18,9 @@ afterEach(() => {
 });
 afterAll(() => server.close());
 
+/** The mod numbers every frame it builds from one counter that never goes back, a load included. */
+let builtSeq = 0;
+
 function frame(
   topic: string,
   payload: unknown,
@@ -31,7 +34,7 @@ function frame(
     meta: {
       source: "test",
       validAt,
-      seq: validAt,
+      seq: ++builtSeq,
       deliveredAt: validAt,
       vantage: "test",
       quality: 0,

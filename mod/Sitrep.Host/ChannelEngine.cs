@@ -781,13 +781,15 @@ namespace Sitrep.Host
         /// a lane frozen by that same silence would be held until the link came
         /// back, which is the opposite of what it is for.
         ///
-        /// <para>Exactly those topics. A craft's ordinary telemetry keeps
-        /// freezing on its own link, and an Uplink's own per-vessel topic that
-        /// happens to end the same way is that craft's telemetry: it is held
-        /// through a blackout and revealed on the ordinary terms.</para>
+        /// <para>Exactly those topics, and each craft's lane of them. A craft's
+        /// ordinary telemetry keeps freezing on its own link, and an Uplink's own
+        /// per-vessel topic that happens to end the same way is that craft's
+        /// telemetry: it is held through a blackout and revealed on the ordinary
+        /// terms.</para>
         /// </summary>
         private static bool IsFreezeExempt(string topic) =>
             ActiveLinkReports.Contains(topic)
+            || (TryReadLane(topic, out _, out var kept) && ActiveLinkReports.Contains(kept))
             || IsPerVesselField(topic, CraftStatePrefix, CraftLinkSuffix);
 
         /// <summary>
@@ -1813,7 +1815,7 @@ namespace Sitrep.Host
             stubNetwork.SetNodeDelay(HomeCommandNode, 0.0);
             _network = stubNetwork;
             _ledger = stubNetwork;
-            _courier = new Courier(_clock, _network) { NewestWins = IsFreezeExempt };
+            _courier = new Courier(_clock, _network) { NewestWins = IsFreezeExempt, ReportsBlackout = IsFreezeExempt, KeepFrom = LaneKeptFrom };
             _courier.ReissueSkipped = (topic, vantage, why) =>
                 LogHost("reset: nothing re-sent for " + topic + " to " + vantage + ": " + why);
             // A break in a craft's route catches the light the craft sent. A
@@ -2416,6 +2418,13 @@ namespace Sitrep.Host
                     MarkUplinkUnavailable(id, NoEmission("channel \"" + channel.Topic + "\""));
                     return;
                 }
+                if (channel.FollowsActiveCraft
+                    && (channel.Delay == DelayRole.TrueNow || channel.PerVesselNode || channel.PerLensNode || channel.HeldAtHome))
+                {
+                    MarkUplinkUnavailable(id, "channel \"" + channel.Topic + "\" declares FollowsActiveCraft with TrueNow, PerVesselNode, PerLensNode or HeldAtHome, which contradict:"
+                        + " a channel that follows the active craft is kept on each craft's own node and read after that craft's delay");
+                    return;
+                }
             }
 
             var taken = TakenByAnother(id, uplink.Manifest);
@@ -2430,6 +2439,10 @@ namespace Sitrep.Host
             {
                 _channelDeclarations[channel.Topic] = channel;
                 _channelOwner[channel.Topic] = id;
+                if (channel.FollowsActiveCraft)
+                {
+                    FollowActiveCraft(channel.Topic);
+                }
                 if (channel.Requires == null)
                 {
                     LogHost($"uplink \"{id}\" channel \"{channel.Topic}\" states no Requires, so it is read as Requirement.None");
@@ -2813,6 +2826,7 @@ namespace Sitrep.Host
         private int _delayRolesDeclarationCount = -1;
         private int _delayRolesNamespaceCount = -1;
         private int _delayRolesAddressedCount = -1;
+        private int _delayRolesFollowingCount = -1;
 
         /// <summary>
         /// Every registered channel's delay role, as the client reads its lane from:
@@ -2835,7 +2849,8 @@ namespace Sitrep.Host
             if (_delayRolesPayload != null
                 && _delayRolesDeclarationCount == _channelDeclarations.Count
                 && _delayRolesNamespaceCount == _dynamicNamespaces.Count
-                && _delayRolesAddressedCount == _addressedTopics.Count)
+                && _delayRolesAddressedCount == _addressedTopics.Count
+                && _delayRolesFollowingCount == _followsActiveCraft.Count)
             {
                 return _delayRolesPayload;
             }
@@ -2883,10 +2898,12 @@ namespace Sitrep.Host
                 ["trueNowPrefixes"] = trueNowPrefixes,
                 ["heldAtHomePrefixes"] = heldAtHomePrefixes,
                 ["addressed"] = addressed,
+                ["followsActiveCraft"] = _followsActiveCraft.OrderBy(topic => topic, StringComparer.Ordinal).ToList(),
             };
             _delayRolesDeclarationCount = _channelDeclarations.Count;
             _delayRolesNamespaceCount = _dynamicNamespaces.Count;
             _delayRolesAddressedCount = _addressedTopics.Count;
+            _delayRolesFollowingCount = _followsActiveCraft.Count;
             return _delayRolesPayload;
         }
 
@@ -9018,13 +9035,13 @@ namespace Sitrep.Host
             var seat = _activeCraftId;
             if (seat == null
                 || !_activeCraftLoaded
-                || !string.Equals(NodeFor(topic), NodeId, StringComparison.Ordinal)
+                || !(string.Equals(NodeFor(topic), NodeId, StringComparison.Ordinal) || IsLaneOfSeat(topic, seat))
                 || !IsRecordable(topic))
             {
                 return;
             }
             _courier.Record(
-                NodeId,
+                NodeFor(topic),
                 topic,
                 value,
                 ut,
@@ -9045,7 +9062,9 @@ namespace Sitrep.Host
         /// </summary>
         private void RecordLinkUpForOwnSeat(string topic, object? value, double ut)
         {
-            if (topic != ConnectivityMetaTopic || value is not CommsLink { Connected: false } down)
+            var linkTopic = topic == ConnectivityMetaTopic
+                || (TryReadLane(topic, out _, out var kept) && kept == ConnectivityMetaTopic);
+            if (!linkTopic || value is not CommsLink { Connected: false } down)
             {
                 return;
             }
@@ -11435,6 +11454,7 @@ namespace Sitrep.Host
         private void ProcessPublish(PublishJob publish, double nowUt)
         {
             NoteRecoveryAnnounced(publish);
+            KeepPublishedReadingInLane(publish, nowUt);
             if (!_subscriptions.IsSubscribed(publish.Topic) || HoldUntilWorldStands(publish))
             {
                 return;
@@ -14107,7 +14127,7 @@ namespace Sitrep.Host
             }
         }
 
-        private sealed class ChannelPublisher : ICraftSaidPublisher
+        private sealed class ChannelPublisher : ICraftSaidPublisher, ICraftReadingPublisher
         {
             private readonly ChannelEngine _engine;
             private readonly string _topic;
@@ -14121,6 +14141,8 @@ namespace Sitrep.Host
             public void Publish(object? payload, double ut) => _engine.Publish(_topic, payload, ut);
 
             public void PublishSaidBy(string vesselId, object? payload, double ut) => _engine.PublishSaidBy(_topic, vesselId, payload, ut);
+
+            public void PublishFor(string vesselId, object? payload, double ut) => _engine.PublishForCraft(_topic, vesselId, payload, ut);
         }
 
         private sealed class DynamicChannelSource : IDynamicChannelSource
@@ -14214,6 +14236,22 @@ namespace Sitrep.Host
         /// nothing was queued for the topic (the common case).
         /// </summary>
         public void ClearTopic(string topic) => _latestByTopic.TryRemove(topic, out _);
+
+        /// <summary>
+        /// Courier-thread-only: moves a queued, not yet pumped lossy-latest frame for
+        /// <paramref name="topic"/> to the FIFO lane, so a frame queued after it under
+        /// the same topic cannot replace it. For a topic whose next frame describes
+        /// something else, as a stream does when it moves to another craft.
+        /// </summary>
+        public void KeepQueuedFrame(string topic)
+        {
+            if (!_latestByTopic.TryRemove(topic, out var frame))
+            {
+                return;
+            }
+            _reliable.Enqueue(frame.Payload);
+            _signal.Release();
+        }
 
         /// <summary>Test-only: whether a lossy-latest frame is currently queued (not yet pumped) for <paramref name="topic"/>. See <see cref="ChannelEngine.AnySessionHasQueuedFrames"/>.</summary>
         internal bool HasQueuedFrame(string topic) => _latestByTopic.ContainsKey(topic);

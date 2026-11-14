@@ -40,6 +40,7 @@
          KSP is installed. -->
     <Compile Include="..\Gonogo.KSP\LoadedApproach.cs" />
     <Compile Include="..\Gonogo.KSP\PrunedCache.cs" />
+    <Compile Include="..\Gonogo.KSP\CommsLinkLaneScope.cs" />
     <Compile Include="..\Gonogo.KSP\PartActionText.cs" />
     <Compile Include="..\Gonogo.KSP\GameWindows\CapturedNode.cs" />
     <Compile Include="..\Gonogo.KSP\GameWindows\WindowAudience.cs" />
@@ -477,6 +478,11 @@
     <Compile Include="..\Gonogo.KSP\CommsModelPresence.cs" />
     <Compile Include="..\Gonogo.KSP\DevCommsOverride.cs" />
     <Compile Include="..\Gonogo.KSP\CommsCoreUplink.cs" />
+    <!-- CommsCoreUplink.cs keeps every other craft's link in its lane through
+         CommsLinkLaneFeed.cs, which reads it with FleetLinkReader.cs, so both
+         have to resolve here. -->
+    <Compile Include="..\Gonogo.KSP\CommsLinkLaneFeed.cs" />
+    <Compile Include="..\Gonogo.KSP\FleetLinkReader.cs" />
     <Compile Include="..\Gonogo.KSP\ConnectivitySettle.cs" />
     <Compile Include="..\Gonogo.KSP\CommsDelayModSettings.cs" />
     <Compile Include="..\Gonogo.KSP\GonogoGameParameters.cs" />

@@ -247,6 +247,23 @@ namespace Sitrep.Core
         /// </summary>
         public Func<string, bool>? NewestWins { get; set; }
 
+        /// <summary>
+        /// Which topics report the blackout itself, such as a craft's link: a
+        /// catch-up of one is the newest report that has reached the vantage, so it
+        /// is served as fresh, never as held or as the last thing out before the
+        /// blackout it describes.
+        /// </summary>
+        public Func<string, bool>? ReportsBlackout { get; set; }
+
+        /// <summary>
+        /// The UT from which a topic on a node is kept whatever the vantages reading
+        /// it have already read, or null to prune it to them alone. For a topic a
+        /// vantage not reading it now may come to read, as a screen moving to a
+        /// command centre farther from the node does: it is shown what has already
+        /// reached that centre, which the nearer centre's reads have passed.
+        /// </summary>
+        public Func<string, string, double?>? KeepFrom { get; set; }
+
         public Courier(IClock clock, INetwork network)
         {
             _clock = clock;
@@ -1377,7 +1394,9 @@ namespace Sitrep.Core
 
         private StreamData StreamDataFor(string node, string topic, Subscriber subscriber, ArchiveSample sample, double deliveredAt, bool isCatchUp)
         {
-            var staleness = isCatchUp ? ResolveStaleness(node, subscriber.Vantage, sample) : Staleness.Fresh;
+            var staleness = isCatchUp && ReportsBlackout?.Invoke(topic) != true
+                ? ResolveStaleness(node, subscriber.Vantage, sample)
+                : Staleness.Fresh;
             return StreamDataFor(node, topic, subscriber.Vantage, sample, deliveredAt, staleness, GapFor(node, topic, sample.ValidAt, subscriber));
         }
 
@@ -2048,10 +2067,6 @@ namespace Sitrep.Core
         }
 
         /// <summary>
-        /// Drops what <paramref name="topic"/> on <paramref name="node"/> holds that no reader
-        /// at or after <paramref name="cutoffUt"/> can reach, for a topic nobody reads.
-        /// </summary>
-        /// <summary>
         /// Hands <paramref name="onData"/> every sample of <paramref name="topic"/>
         /// on <paramref name="node"/> made after <paramref name="afterValidAt"/> and
         /// before <paramref name="beforeValidAt"/> that has already reached
@@ -2098,6 +2113,10 @@ namespace Sitrep.Core
             return handed;
         }
 
+        /// <summary>
+        /// Drops what <paramref name="topic"/> on <paramref name="node"/> holds that no reader
+        /// at or after <paramref name="cutoffUt"/> can reach, for a topic nobody reads.
+        /// </summary>
         public void TrimTopic(string node, string topic, double cutoffUt)
         {
             if (_archives.TryGetValue(node, out var archive))
@@ -2135,7 +2154,12 @@ namespace Sitrep.Core
             foreach (var entry in _archives)
             {
                 var node = entry.Key;
-                entry.Value.PruneToVantageCursors(OwedFloorsFor(node), (topic, vantage) => Subscribed(node, topic, vantage), HistoryFloorFor(node));
+                var keepFrom = KeepFrom;
+                entry.Value.PruneToVantageCursors(
+                    OwedFloorsFor(node),
+                    (topic, vantage) => Subscribed(node, topic, vantage),
+                    HistoryFloorFor(node),
+                    keepFrom == null ? null : topic => keepFrom(node, topic) ?? double.MaxValue);
             }
         }
 
