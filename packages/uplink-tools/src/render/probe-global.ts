@@ -34,7 +34,7 @@ export const SUPPLIED_ATTR = "data-uplink-supplied";
  * `Panel` renders every host's `<id>.badges` aside itself, through
  * `renderWidget`'s `WidgetBadges`, so a badge lands in a stand-in exactly as it
  * lands in the real widget. Other segments are drawn by a widget's own body:
- * a hostless `vessel-schematic.part-meters` scene renders a blank frame, and `meters`
+ * a hostless `ship-map.part-meters` scene renders a blank frame, and `meters`
  * and `filters` are placed by the widget (a `<Meter>` per entry, `<FilterList>`),
  * not by the framework.
  */

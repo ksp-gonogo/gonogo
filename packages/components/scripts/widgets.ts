@@ -2398,22 +2398,22 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    // VesselSchematic: part diagram + the spec §13.4 self-contribution flagship
-    // (`vessel-schematic.part-meters` / `vessel-schematic.part-meta`). A dedicated
+    // ShipMap: part diagram + the spec §13.4 self-contribution flagship
+    // (`ship-map.part-meters` / `ship-map.part-meta`). A dedicated
     // `probe/` subfolder under the widget's own `__fixtures__/`, separate
     // from the SSR-only legacy `{ "v.topology": ... }` fixtures the
-    // `render-vessel-schematic` script + snapshot tests use: those carry no
+    // `render-ship-map` script + snapshot tests use: those carry no
     // `_stream` block, so the probe would render them as a permanent
     // "Waiting for vessel topology" placeholder. These two are authored
     // straight in the modern `vessel.parts` wire shape instead.
-    widgetId: "vessel-schematic",
-    fixturesPath: "VesselSchematic/__fixtures__/probe",
+    widgetId: "ship-map",
+    fixturesPath: "ShipMap/__fixtures__/probe",
     /*
      * The folder name says "colour" because the fills these renders show come
      * from the resource-colour system, so a reader comparing them against an
      * older render set knows which palette they are looking at.
      */
-    outPath: "renders/kerbalism-vessel-schematic-colour",
+    outPath: "renders/kerbalism-shipmap-colour",
     modes: [
       // Registered default.
       { name: "default-8x10", w: 8, h: 10 },

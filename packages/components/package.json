@@ -18,7 +18,7 @@
     "aspect-gate": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/aspect-gate.ts",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.test-d.json && tsc -p tsconfig.scripts.json",
-    "render-vessel-schematic": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-fixtures.ts",
+    "render-ship-map": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-fixtures.ts",
     "render-navball": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-navball.ts",
     "readme-images": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/readme-images.ts",
     "homepage-images": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/homepage-images.ts",

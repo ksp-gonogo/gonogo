@@ -52,7 +52,7 @@ const AWAITING_RULING: Readonly<Record<string, string>> = {
  * the real ground and that the scan cannot see.
  */
 const NOT_DRAWN_TOGETHER: Readonly<Record<string, string>> = {
-  "components/VesselSchematic/partMeters.tsx <rect>: text-inverse fill on surface-panel":
+  "components/ShipMap/partMeters.tsx <rect>: text-inverse fill on surface-panel":
     "the fuel gauge track is drawn over the part's own colour inside the diagram, and its dark fill is what separates it from that colour",
 };
 

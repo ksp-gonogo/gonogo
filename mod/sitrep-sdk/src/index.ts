@@ -207,7 +207,7 @@ export {
 // Ordinal->name tables and closed name unions for the contract's enums. On the
 // root barrel rather than in the spine because an Uplink needs them as much as
 // the app does: KSP's ResourceFlowMode reaches the Kerbalism Uplink and its
-// PartCategories reach VesselSchematic, and an Uplink that had to transcribe the member
+// PartCategories reach ShipMap, and an Uplink that had to transcribe the member
 // set beside its own switch is back to the defect these tables exist to end.
 // Derived from the generated contract and nothing else, so they carry no spine
 // weight into the SDK.

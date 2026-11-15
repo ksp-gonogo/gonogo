@@ -592,8 +592,8 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/sitrep-kernel/src/registry.test.ts",
       /*
        * CommSignal's `comm-signal.hop-rates` slot declaration, which names the
-       * contributor's SOURCE Topic in its `topics` member exactly as VesselSchematic's
-       * `vessel-schematic.part-meters` names `kerbalism.profile`. Declaration only: the
+       * contributor's SOURCE Topic in its `topics` member exactly as ShipMap's
+       * `ship-map.part-meters` names `kerbalism.profile`. Declaration only: the
        * widget's code knows the slot id and nothing else, and a path with no
        * contribution simply renders no bitrate.
        */

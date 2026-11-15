@@ -97,6 +97,9 @@ export type {
   CommSignalLinkRateEntry,
   CrewRowToneEntry,
   ExperimentsInstrumentEntry,
+  ShipMapPartActionEntry,
+  ShipMapPartMetaEntry,
+  ShipMapPartMeterEntry,
   SpaceCenterFacilityEntry,
   SystemEntity,
   SystemEntityEmphasis,
@@ -110,9 +113,6 @@ export type {
   SystemProjectionExtent,
   TrackingStationProjection,
   TrackingStationVesselStatusEntry,
-  VesselSchematicPartActionEntry,
-  VesselSchematicPartMetaEntry,
-  VesselSchematicPartMeterEntry,
 } from "./contribution-slots";
 export { FRAMEWORK_READS } from "./framework-reads";
 export type { GonogoHost } from "./host";
@@ -169,13 +169,13 @@ export type {
   RendezvousHudContext,
   RendezvousPicture,
   ScienceDataAboardRowContext,
+  ShipMapBounds,
+  ShipMapOverlayContext,
+  ShipMapPart,
+  ShipMapPartStateModule,
+  ShipMapPartType,
   SystemOverlayContext,
   VesselCatalogUpdatesContext,
-  VesselSchematicBounds,
-  VesselSchematicOverlayContext,
-  VesselSchematicPart,
-  VesselSchematicPartStateModule,
-  VesselSchematicPartType,
 } from "./slots";
 export type {
   ThemeColors,

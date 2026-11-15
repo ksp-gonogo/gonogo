@@ -151,15 +151,15 @@ const UNOBSERVED_FAMILIES: readonly {
   reason: string;
 }[] = [
   {
-    widgetId: "vessel-schematic",
+    widgetId: "ship-map",
     pattern: "vessel.partActions.<flightId>",
     reason: "read only once a part's action menu is open",
   },
   {
-    widgetId: "vessel-schematic",
+    widgetId: "ship-map",
     pattern: "parts.shape.<key>",
     reason:
-      "one per kind of part on the vessel, and the Vessel Schematic's fixtures sit in a folder this test does not load",
+      "one per kind of part on the vessel, and the Ship Map's fixtures sit in a folder this test does not load",
   },
   {
     widgetId: "science-data",
