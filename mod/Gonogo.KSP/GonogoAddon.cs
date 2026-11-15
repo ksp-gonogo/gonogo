@@ -507,6 +507,14 @@ namespace Gonogo.KSP
             // blocks (bounded) waiting on exactly this drain. Never throws.
             _engine?.RunPendingCommands();
             _loadReporter?.Update();
+            try
+            {
+                SilenceTracking.SilenceForecasts.AdvanceOnMain();
+            }
+            catch (Exception ex)
+            {
+                GonogoLog.ErrorLimited("silence forecasts failed to advance", ex);
+            }
             // The save's signal delay choice, taken into force within a frame
             // of an edit in the difficulty settings or from the app.
             CommsCoreUplink.SyncSignalDelayFromSave();

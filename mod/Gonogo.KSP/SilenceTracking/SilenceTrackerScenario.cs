@@ -40,7 +40,7 @@ namespace Gonogo.KSP.SilenceTracking
         /// radius it declares) is a property of the running game, not of the
         /// process.
         /// </summary>
-        private static SilenceDeadlinePolicy BuildPolicy()
+        private static ISlicedSilencePolicy BuildPolicy()
         {
             // Resolved per save for the same reason the geometry factory is: which
             // provider is elected is a property of the running game, not of the
@@ -55,12 +55,53 @@ namespace Gonogo.KSP.SilenceTracking
                 observationQuantumSeconds: ObservationQuantumSeconds,
                 propagator: propagator);
 
-            return (sample, ut) =>
+            return new TracedPolicy(policy);
+        }
+
+        /// <summary>The policy, with each finished evaluation's verdict written to the silence trace.</summary>
+        private sealed class TracedPolicy : ISlicedSilencePolicy
+        {
+            private readonly ISlicedSilencePolicy _inner;
+
+            public TracedPolicy(ISlicedSilencePolicy inner) => _inner = inner;
+
+            public SilenceDeadline Interim(SilenceSample sample, double ut) => _inner.Interim(sample, ut);
+
+            public ISilenceEvaluation Begin(SilenceSample sample, double ut) =>
+                new TracedEvaluation(_inner.Begin(sample, ut), sample.VesselId, ut);
+        }
+
+        private sealed class TracedEvaluation : ISilenceEvaluation
+        {
+            private readonly ISilenceEvaluation _inner;
+            private readonly string _vesselId;
+            private readonly double _ut;
+            private bool _traced;
+
+            public TracedEvaluation(ISilenceEvaluation inner, string vesselId, double ut)
             {
-                var deadline = policy.Evaluate(sample, ut);
-                SilenceTrace.Verdict(sample.VesselId, deadline.Basis, deadline.PredictedReacquisitionUt, ut);
-                return deadline;
-            };
+                _inner = inner;
+                _vesselId = vesselId;
+                _ut = ut;
+            }
+
+            public bool Done => _inner.Done;
+
+            public SilenceDeadline Result => _inner.Result;
+
+            public bool Advance(int maxSteps)
+            {
+                if (!_inner.Advance(maxSteps))
+                {
+                    return false;
+                }
+                if (!_traced)
+                {
+                    _traced = true;
+                    SilenceTrace.Verdict(_vesselId, _inner.Result.Basis, _inner.Result.PredictedReacquisitionUt, _ut);
+                }
+                return true;
+            }
         }
 
         /// <summary>

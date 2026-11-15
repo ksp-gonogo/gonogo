@@ -23,16 +23,16 @@ namespace Sitrep.Host.Comms
     /// and simply withholds the prediction. It never shortens a deadline
     /// because it failed to find something.</para>
     ///
-    /// <para><b>Deliberately synchronous, and that is not the end state.</b>
-    /// <see cref="SilenceTracker"/> calls the policy inline on the capture
-    /// tick, and above ~100x warp that tick runs every frame. A fleet of
-    /// relays each re-arming a fresh sweep on every reconnect-then-disconnect
-    /// is a stutter. The sample budget below bounds one call, but the real
-    /// answer is to slice the scan across ticks behind a bounded queue; that
-    /// wraps this class rather than changing it, which is why the geometry
-    /// comes in through a factory instead of being built here.</para>
+    /// <para><b>The sweep is the cost, and it can be taken in slices.</b>
+    /// <see cref="Evaluate"/> runs the whole sweep in the call. A
+    /// <see cref="SilenceTracker"/> on the game's main thread uses
+    /// <see cref="Begin"/> instead, which builds the geometry and hands back
+    /// the sweep to be taken a few steps at a time, because a load or a relay
+    /// going dark silences a whole fleet on one capture tick. Both come to the
+    /// same answer: <see cref="Evaluate"/> is <see cref="Begin"/> advanced to
+    /// its end.</para>
     /// </summary>
-    public sealed class PredictedReacquisitionSilenceDeadlinePolicy
+    public sealed class PredictedReacquisitionSilenceDeadlinePolicy : ISlicedSilencePolicy
     {
         /// <summary>
         /// Builds the path geometry for one vessel's silence, or returns null
@@ -201,11 +201,35 @@ namespace Sitrep.Host.Comms
         /// </summary>
         public SilenceDeadline Evaluate(SilenceSample sample, double ut)
         {
-            var fallback = _fallback.Evaluate(sample, ut);
+            var evaluation = Begin(sample, ut);
+            evaluation.Advance(int.MaxValue);
+            return evaluation.Result;
+        }
 
+        /// <summary>
+        /// The deadline every path of <see cref="Evaluate"/> falls back to,
+        /// which costs no geometry and no sweep.
+        /// </summary>
+        public SilenceDeadline Interim(SilenceSample sample, double ut) => _fallback.Evaluate(sample, ut);
+
+        /// <summary>
+        /// Starts <see cref="Evaluate"/> and stops short of the sweep, which the
+        /// returned evaluation takes a few steps at a time. The geometry is
+        /// built here, so this is the call that reads the game. An answer that
+        /// needs no sweep comes back already finished.
+        /// </summary>
+        public ISilenceEvaluation Begin(SilenceSample sample, double ut)
+        {
+            var fallback = _fallback.Evaluate(sample, ut);
+            return Prepare(sample, ut, fallback) ?? new Evaluation(this, fallback);
+        }
+
+        /// <summary>The sweep to run for this silence, or null where the fallback already is the answer.</summary>
+        private Evaluation? Prepare(SilenceSample sample, double ut, SilenceDeadline fallback)
+        {
             if (sample.Orbit == null || sample.LandedOrSplashed)
             {
-                return fallback;
+                return null;
             }
 
             var target = SilenceSampleTarget.Of(sample);
@@ -214,13 +238,13 @@ namespace Sitrep.Host.Comms
                 // The fallback already ceilings these; predicting an emergence
                 // for a trajectory the propagator will not follow would be
                 // inventing one.
-                return fallback;
+                return null;
             }
 
             var period = _propagator.CharacteristicCycleSeconds(target);
             if (!IsUsableInstant(ut))
             {
-                return fallback;
+                return null;
             }
 
             // The geometry is built BEFORE the step is chosen, because only the
@@ -239,12 +263,12 @@ namespace Sitrep.Host.Comms
             {
                 // A geometry factory that throws is a broken input, not a
                 // reason to declare a vessel lost on a different schedule.
-                return fallback;
+                return null;
             }
 
             if (geometry == null)
             {
-                return fallback;
+                return null;
             }
 
             var cycleOrNone = CycleOf(geometry, period);
@@ -255,7 +279,7 @@ namespace Sitrep.Host.Comms
                 // one anyway would publish a detection guarantee the sweep cannot
                 // honour, and the sweep's guarantee is stated in steps. Withhold and
                 // let the fallback deadline stand, which is always a correct answer.
-                return fallback;
+                return null;
             }
 
             var cycle = cycleOrNone.Value;
@@ -263,7 +287,7 @@ namespace Sitrep.Host.Comms
             var step = Math.Max(cycle / SweepStepsPerCycle, quantum);
             if (step > cycle / CoarsestUsefulStepsPerCycle)
             {
-                return WithBasis(fallback, SilenceDeadlineBasis.WarpLimited);
+                return new Evaluation(this, WithBasis(fallback, SilenceDeadlineBasis.WarpLimited));
             }
 
             var window = SearchWindowCycles * cycle;
@@ -289,31 +313,37 @@ namespace Sitrep.Host.Comms
                 : ut + window;
             if (vouchedUntil == null)
             {
-                return WithBasis(fallback, SilenceDeadlineBasis.HorizonLimited);
+                return new Evaluation(this, WithBasis(fallback, SilenceDeadlineBasis.HorizonLimited));
             }
 
             var sweepEnd = Math.Min(ut + window, vouchedUntil.Value);
             var horizonLimited = sweepEnd < ut + window;
             if (!(sweepEnd > ut))
             {
-                return WithBasis(fallback, SilenceDeadlineBasis.HorizonLimited);
+                return new Evaluation(this, WithBasis(fallback, SilenceDeadlineBasis.HorizonLimited));
             }
 
             if ((sweepEnd - ut) / step > MaxSamplesPerEvaluation)
             {
-                return WithBasis(fallback, SilenceDeadlineBasis.WarpLimited);
+                return new Evaluation(this, WithBasis(fallback, SilenceDeadlineBasis.WarpLimited));
             }
 
-            VisibilitySweepResult sweep;
+            VisibilitySweepRun run;
             try
             {
-                sweep = VisibilitySweep.Run(geometry, ut, sweepEnd, step);
+                run = new VisibilitySweepRun(geometry, ut, sweepEnd, step);
             }
             catch (Exception)
             {
-                return fallback;
+                return null;
             }
+            return new Evaluation(this, fallback, run, ut, step, quantum, horizonLimited);
+        }
 
+        /// <summary>The deadline a finished sweep comes to.</summary>
+        private SilenceDeadline Conclude(
+            VisibilitySweepResult sweep, SilenceDeadline fallback, double ut, double step, double quantum, bool horizonLimited)
+        {
             // A silence geometry does not explain must not borrow a geometric
             // explanation. If the path was already CLEAR when contact was lost,
             // the craft did not go behind anything - it lost power, or its
@@ -412,6 +442,72 @@ namespace Sitrep.Host.Comms
             }
 
             return new SilenceDeadline(duration, SilenceDeadlineBasis.PredictedReacquisition, emergence, grace);
+        }
+
+        /// <summary>One <see cref="Begin"/> in progress: the sweep still to take, or the answer where there was none to take.</summary>
+        private sealed class Evaluation : ISilenceEvaluation
+        {
+            private readonly PredictedReacquisitionSilenceDeadlinePolicy _policy;
+            private readonly SilenceDeadline _fallback;
+            private readonly VisibilitySweepRun? _run;
+            private readonly double _ut;
+            private readonly double _step;
+            private readonly double _quantum;
+            private readonly bool _horizonLimited;
+
+            public Evaluation(PredictedReacquisitionSilenceDeadlinePolicy policy, SilenceDeadline answer)
+            {
+                _policy = policy;
+                _fallback = answer;
+                Result = answer;
+                Done = true;
+            }
+
+            public Evaluation(
+                PredictedReacquisitionSilenceDeadlinePolicy policy,
+                SilenceDeadline fallback,
+                VisibilitySweepRun run,
+                double ut,
+                double step,
+                double quantum,
+                bool horizonLimited)
+            {
+                _policy = policy;
+                _fallback = fallback;
+                _run = run;
+                _ut = ut;
+                _step = step;
+                _quantum = quantum;
+                _horizonLimited = horizonLimited;
+            }
+
+            public bool Done { get; private set; }
+
+            public SilenceDeadline Result { get; private set; }
+
+            public bool Advance(int maxSteps)
+            {
+                if (Done)
+                {
+                    return true;
+                }
+                try
+                {
+                    if (!_run!.Advance(maxSteps))
+                    {
+                        return false;
+                    }
+                }
+                catch (Exception)
+                {
+                    Result = _fallback;
+                    Done = true;
+                    return true;
+                }
+                Result = _policy.Conclude(_run.Result!, _fallback, _ut, _step, _quantum, _horizonLimited);
+                Done = true;
+                return true;
+            }
         }
 
         /// <summary>
