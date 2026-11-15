@@ -345,7 +345,7 @@ function refusalOf(row: ModSettingRow, rejected: unknown): string {
       return `${row.label} not changed: ${detail}.`;
     }
   }
-  return `KSP did not confirm the change to ${row.label}. What is shown is what it holds.`;
+  return "KSP did not confirm the change. Values reflect the current in-game settings.";
 }
 
 const AboutLines = styled.span`

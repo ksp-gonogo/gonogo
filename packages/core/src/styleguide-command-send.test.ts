@@ -39,11 +39,11 @@ interface Entry {
 const SEND_WITHOUT_INPUT: Record<string, Entry> = {
   "mod/GonogoBreakingGroundUplink/client/src/RoboticsConsole/index.tsx": {
     reads: 4,
-    why: "robotics controls, awaiting a kit input command",
+    why: "bound-key target, motor and lock, whose on-screen controls already take a command",
   },
   "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/index.tsx": {
     reads: 4,
-    why: "bound-key rotor cap, motor, lock and reverse, awaiting a control press",
+    why: "bound-key rotor cap, motor, lock and reverse, whose on-screen controls already take a command",
   },
   "mod/sitrep-sdk/src/spine/use-body-states.ts": {
     reads: 3,
@@ -67,11 +67,11 @@ const SEND_WITHOUT_INPUT: Record<string, Entry> = {
   },
   "packages/app/src/settings/GonogoSettings.tsx": {
     reads: 1,
-    why: "settings save, awaiting a host command input",
+    why: "save on leaving the page, a flow step with no press (the Save button takes a command)",
   },
   "packages/app/src/settings/ModSettingsSection.tsx": {
     reads: 1,
-    why: "mod setting write, awaiting a kit input command",
+    why: "no shipped Uplink writes a text or number setting; revisit when one does",
   },
   "packages/components/src/ManeuverPlanner/useNodeCommands.ts": {
     reads: 3,

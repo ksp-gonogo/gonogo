@@ -410,7 +410,7 @@ function refusalOf(rejected: unknown): string {
       return `Not saved: ${detail}.`;
     }
   }
-  return "KSP did not confirm the save. What is shown above is what it holds.";
+  return "KSP did not confirm the save. Values reflect the current in-game settings.";
 }
 
 const Body = styled(Stack).attrs({
