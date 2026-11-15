@@ -167,7 +167,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -u
-          git commit -m "release: v${NEW}"
+          git commit -m "chore(release): v${NEW}"
           git tag "${TAG}"
           git push origin HEAD:main "${TAG}"
 
