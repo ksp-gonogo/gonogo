@@ -1632,8 +1632,71 @@ namespace Sitrep.Core
 
         private double _historyFloorUt = double.NegativeInfinity;
 
-        /// <summary>Told, once per reset, each topic and vantage <see cref="ReissueRetainedAfterReset"/> sent nothing to, with the reason.</summary>
-        public Action<string, string, string>? ReissueSkipped { get; set; }
+        /// <summary>
+        /// Told once by each <see cref="ReissueRetainedAfterReset"/> that sent nothing
+        /// to at least one subscribed topic and vantage, with what it skipped.
+        /// A reset that drops the whole history leaves nothing any vantage could
+        /// have heard, so a pair skipped for that alone is not counted.
+        /// </summary>
+        public Action<ReissueSkips>? ReissueSkipped { get; set; }
+
+        /// <summary>The topic and vantage pairs one <see cref="ReissueRetainedAfterReset"/> sent nothing to.</summary>
+        public sealed class ReissueSkips
+        {
+            /// <summary>How many pairs <see cref="Examples"/> names at most.</summary>
+            public const int ExampleLimit = 3;
+
+            private readonly HashSet<string> _told = new HashSet<string>(StringComparer.Ordinal);
+            private readonly HashSet<string> _topics = new HashSet<string>(StringComparer.Ordinal);
+            private readonly HashSet<string> _vantages = new HashSet<string>(StringComparer.Ordinal);
+            private readonly Dictionary<string, int> _byReason = new Dictionary<string, int>(StringComparer.Ordinal);
+            private readonly List<string> _examples = new List<string>();
+
+            /// <summary>Distinct topic, vantage and reason triples skipped.</summary>
+            public int Pairs => _told.Count;
+
+            /// <summary>Distinct topics among them.</summary>
+            public int Topics => _topics.Count;
+
+            /// <summary>Distinct vantages among them. A topic skipped for every vantage at once counts as the vantage "all".</summary>
+            public int Vantages => _vantages.Count;
+
+            /// <summary>How many pairs were skipped for each reason.</summary>
+            public IReadOnlyDictionary<string, int> ByReason => _byReason;
+
+            /// <summary>The first <see cref="ExampleLimit"/> pairs, each as "topic to vantage".</summary>
+            public IReadOnlyList<string> Examples => _examples;
+
+            internal void Add(string topic, string vantage, string why)
+            {
+                if (!_told.Add(topic + "\0" + vantage + "\0" + why))
+                {
+                    return;
+                }
+                _topics.Add(topic);
+                _vantages.Add(vantage);
+                _byReason.TryGetValue(why, out var count);
+                _byReason[why] = count + 1;
+                if (_examples.Count < ExampleLimit)
+                {
+                    _examples.Add(topic + " to " + vantage);
+                }
+            }
+
+            /// <summary>One line saying how many pairs were skipped, why, and the first few of them.</summary>
+            public string Describe()
+            {
+                var reasons = new List<string>();
+                foreach (var entry in _byReason)
+                {
+                    reasons.Add(entry.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + " " + entry.Key);
+                }
+                return Pairs.ToString(System.Globalization.CultureInfo.InvariantCulture) + " topic and vantage pairs across "
+                    + Topics.ToString(System.Globalization.CultureInfo.InvariantCulture) + " topics and "
+                    + Vantages.ToString(System.Globalization.CultureInfo.InvariantCulture) + " vantages (" + string.Join("; ", reasons)
+                    + "), first " + string.Join(", ", _examples);
+            }
+        }
 
         /// <summary>
         /// Keeps every topic's history from the sample current at <paramref name="ut"/>
@@ -1848,14 +1911,9 @@ namespace Sitrep.Core
         public void ReissueRetainedAfterReset(Func<string, bool>? reissues = null, Func<string, bool>? onlyWithDelay = null)
         {
             var now = _clock.Now();
-            var told = new HashSet<string>(StringComparer.Ordinal);
-            void Skipped(string topic, string vantage, string why)
-            {
-                if (ReissueSkipped != null && told.Add(topic + "\0" + vantage + "\0" + why))
-                {
-                    ReissueSkipped(topic, vantage, why);
-                }
-            }
+            var skips = ReissueSkipped == null ? null : new ReissueSkips();
+            var wholeHistoryDropped = double.IsNegativeInfinity(_lastResetUt);
+            void Skipped(string topic, string vantage, string why) => skips?.Add(topic, vantage, why);
             foreach (var nodeEntry in _subscribers.ToList())
             {
                 var node = nodeEntry.Key;
@@ -1916,7 +1974,7 @@ namespace Sitrep.Core
                             }
                             continue;
                         }
-                        if (held == null)
+                        if (held == null && !wholeHistoryDropped)
                         {
                             Skipped(topic, subscriber.Vantage, "no reading had reached that vantage by the reset");
                         }
@@ -1928,6 +1986,10 @@ namespace Sitrep.Core
                         ScheduleInFlight(node, topic, subs, subscriber, archived, _network.DelayTo(subscriber.Vantage, node), now, _epoch, _lastResetUt);
                     }
                 }
+            }
+            if (skips != null && skips.Pairs > 0)
+            {
+                ReissueSkipped?.Invoke(skips);
             }
         }
 
