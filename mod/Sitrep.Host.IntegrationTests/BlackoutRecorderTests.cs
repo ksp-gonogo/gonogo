@@ -678,7 +678,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         private static void Tick(ChannelEngine engine, KspSnapshot snapshot) =>
-            engine.TickAndWait(snapshot.Ut, snapshot, Timeout);
+            TickAndWaitForOutboxes(engine, snapshot.Ut, snapshot, Timeout);
 
         private static KspSnapshot Snap(
             double ut,

@@ -39,7 +39,7 @@ namespace Sitrep.Host.IntegrationTests
                     {
                         probe.Retake();
                     }
-                    engine.TickAndWait(tick, GridProbeUplink.Snapshot(), Timeout);
+                    TickAndWaitForOutboxes(engine, tick, GridProbeUplink.Snapshot(), Timeout);
                 }
                 var frames = await DrainAllStreamDataAsync(client, TestBudgets.Quiet);
 
