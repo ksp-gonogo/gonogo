@@ -614,12 +614,19 @@ namespace Sitrep.Host.IntegrationTests
                 await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = Near }));
                 await SubscribeAsync(client, Topic, Timeout);
 
-                // As a screen's client moves: the new centre, then each topic subscribed again, since the mod reads the centre when a topic is subscribed.
-                async Task MoveTo(string centre)
+                /*
+                 * As a screen's client moves: the new centre, then each topic subscribed
+                 * again, since the mod reads the centre when a topic is subscribed. The
+                 * mod applies the move when it reads the messages, which on a loaded
+                 * machine is ticks after they were sent, so this returns once the mod
+                 * has said the topic is subscribed, with the readings sent meanwhile.
+                 */
+                async Task<List<(double ValidAt, double DeliveredAt, string Vantage)>> MoveTo(string centre)
                 {
                     await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = centre }));
                     await client.SendAsync(EnvelopeCodec.WriteUnsubscribe(new Unsubscribe { Topic = Topic }));
                     await client.SendAsync(EnvelopeCodec.WriteSubscribe(new Subscribe { Topic = Topic }));
+                    return await DeliveredUntilSubscribed(client);
                 }
 
                 for (var ut = Step; ut <= ToFar; ut += Step)
@@ -628,19 +635,19 @@ namespace Sitrep.Host.IntegrationTests
                 }
                 var atNear = await Delivered(client);
 
-                await MoveTo(Far);
+                var atFar = await MoveTo(Far);
                 for (var ut = ToFar + Step; ut <= BackToNear; ut += Step)
                 {
                     world.Tick(ut);
                 }
-                var atFar = await Delivered(client);
+                atFar.AddRange(await Delivered(client));
 
-                await MoveTo(Near);
+                var backAtNear = await MoveTo(Near);
                 for (var ut = BackToNear + Step; ut <= End; ut += Step)
                 {
                     world.Tick(ut);
                 }
-                var backAtNear = await Delivered(client);
+                backAtNear.AddRange(await Delivered(client));
 
                 var delays = new Dictionary<string, double> { [Near] = NearDelay, [Far] = FarDelay };
                 void NoneEarly(IEnumerable<(double ValidAt, double DeliveredAt, string Vantage)> frames)
@@ -788,6 +795,30 @@ namespace Sitrep.Host.IntegrationTests
                 .Where(f => f.Topic == Topic && f.Payload != null)
                 .Select(f => (f.Meta.ValidAt, f.Meta.DeliveredAt, f.Meta.Vantage ?? ""))
                 .ToList();
+
+        /// <summary>Each craft reading a screen is sent up to the mod saying the topic is subscribed, with the centre it was delivered to.</summary>
+        private static async Task<List<(double ValidAt, double DeliveredAt, string Vantage)>> DeliveredUntilSubscribed(TestClient client)
+        {
+            var sent = new List<(double ValidAt, double DeliveredAt, string Vantage)>();
+            var deadline = DateTime.UtcNow + Timeout;
+            while (true)
+            {
+                var remaining = deadline - DateTime.UtcNow;
+                if (remaining <= TimeSpan.Zero)
+                {
+                    throw new TimeoutException("the mod did not say " + Topic + " was subscribed within " + Timeout);
+                }
+                var message = EnvelopeCodec.ParseServerMessage(await client.ReceiveAsync(remaining));
+                if (message is EventMsg { Name: "subscribed", Topic: Topic })
+                {
+                    return sent;
+                }
+                if (message is StreamData<object?> frame && frame.Topic == Topic && frame.Payload != null)
+                {
+                    sent.Add((frame.Meta.ValidAt, frame.Meta.DeliveredAt, frame.Meta.Vantage ?? ""));
+                }
+            }
+        }
 
         private sealed class GroundCentres : ICommandCentreSource
         {
