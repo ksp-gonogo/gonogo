@@ -50,6 +50,10 @@ export interface CommandToggle<Args = unknown> {
    * The args for a press that moves the control away from `base`, the state
    * the control shows (or, while an earlier press is outstanding, the state
    * that press asked for). Return undefined where there is nothing to send; null is a real argument, as for a command that takes none.
+   *
+   * While `state` is unread (null or undefined) and this returns undefined
+   * for it, the control is drawn dimmed, a press sends nothing, and its tip
+   * says the state has not been read yet.
    */
   args: (base: ToggleState) => Args | undefined;
   /**

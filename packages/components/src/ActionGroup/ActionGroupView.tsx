@@ -56,6 +56,7 @@ export function ActionGroupView({
   const {
     stateLabel,
     unavailableReason,
+    unreadTip,
     capabilityWarning,
     streamDown,
     button,
@@ -211,7 +212,7 @@ export function ActionGroupView({
               <ToggleButton
                 command={button}
                 size="sm"
-                tip={unavailableReason ?? `Toggle ${currentLabel}`}
+                tip={unavailableReason ?? unreadTip ?? `Toggle ${currentLabel}`}
                 aria-label={`Toggle ${currentLabel}`}
               />
             </Inline>

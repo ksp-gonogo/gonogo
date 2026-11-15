@@ -609,12 +609,28 @@ namespace Sitrep.Host
             return true;
         }
 
-        /// <summary>True when <paramref name="job"/> is for the active craft and names a different one as the craft the operator saw.</summary>
+        /// <summary>
+        /// True when <paramref name="job"/> is for the active craft and names a
+        /// different one as the craft the operator saw. Never true of a command
+        /// that follows the active vessel, which is sent to the craft that is
+        /// active now.
+        /// </summary>
         private bool SeenAnotherCraft(DispatchCommandJob job, string node) =>
             !string.IsNullOrEmpty(job.SeenVesselId)
             && string.Equals(node, NodeId, StringComparison.Ordinal)
             && _activeCraftLoaded
-            && !string.Equals("vessel:" + job.SeenVesselId, _activeCraftId, StringComparison.Ordinal);
+            && !string.Equals("vessel:" + job.SeenVesselId, _activeCraftId, StringComparison.Ordinal)
+            && !FollowsActiveVessel(job.Command);
+
+        /// <summary>
+        /// Whether <paramref name="command"/> sets a state on whichever craft is
+        /// active, by its tag in the contract or its Uplink's declaration. Such a
+        /// command pressed as the game switches craft is not refused for naming
+        /// the craft switched away from.
+        /// </summary>
+        private bool FollowsActiveVessel(string command) =>
+            CommandDelayCatalog.FollowsActiveVessel(command)
+            || (_commandDeclarations.TryGetValue(command, out var declaration) && declaration.FollowsActiveVessel);
 
         /// <summary>What an operator is told when an order is pressed for a craft the game has already switched away from.</summary>
         /// <summary>The craft id a client sends when it read a craft and the game has since withdrawn it, with no new one read yet. No craft has it.</summary>
@@ -1324,13 +1340,14 @@ namespace Sitrep.Host
             {
                 return refusal;
             }
+            var followsActive = FollowsActiveVessel(command);
             if (!_executeCommandsOnMainThread)
             {
-                return RunArrivedHere(command, args, vantage, craft);
+                return RunArrivedHere(command, args, vantage, craft, followsActive);
             }
             try
             {
-                return RunOnMainThread(_ => RunArrivedHere(command, args, vantage, craft), null);
+                return RunOnMainThread(_ => RunArrivedHere(command, args, vantage, craft, followsActive), null);
             }
             catch (CommandFaultException fault)
             {
@@ -1342,9 +1359,9 @@ namespace Sitrep.Host
             }
         }
 
-        private object? RunArrivedHere(string command, object? args, string vantage, string? craft)
+        private object? RunArrivedHere(string command, object? args, string vantage, string? craft, bool followsActive)
         {
-            var refusal = NotOnTheActiveCraftHere(craft);
+            var refusal = NotOnTheActiveCraftHere(craft, followsActive);
             if (refusal != null)
             {
                 return refusal;
@@ -1386,15 +1403,21 @@ namespace Sitrep.Host
         /// on the main thread. The Courier's view is the tick's snapshot, and a
         /// switch in the frames between that tick and this one is caught only
         /// here. With no main thread to read, or no vessel capability published,
-        /// the snapshot's answer stands.
+        /// the snapshot's answer stands. A command for which
+        /// <paramref name="followsActive"/> is true runs on the craft that switch
+        /// went to, and is refused here only when no craft is loaded.
         /// </summary>
-        private CommandResult? NotOnTheActiveCraftHere(string? craft)
+        private CommandResult? NotOnTheActiveCraftHere(string? craft, bool followsActive)
         {
             if (craft == null || !_executeCommandsOnMainThread || !TryReadActiveVessel(out var activeId))
             {
                 return null;
             }
-            return NotOnTheActiveCraft(craft, activeId == null ? _activeCraftId : CraftPrefix + activeId, activeId != null);
+            if (activeId == null)
+            {
+                return NotOnTheActiveCraft(craft, _activeCraftId, loaded: false);
+            }
+            return NotOnTheActiveCraft(followsActive ? CraftPrefix + activeId : craft, CraftPrefix + activeId, loaded: true);
         }
 
         /// <summary>The active vessel's id as the game reports it now, null outside flight. False when no vessel capability answers.</summary>

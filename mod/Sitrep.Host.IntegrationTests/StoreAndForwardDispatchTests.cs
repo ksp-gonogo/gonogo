@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Sitrep.Contract;
 using Sitrep.Core.StoreAndForward;
 using Sitrep.Host;
@@ -635,6 +636,86 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// A toggle sets a state on whichever craft is active. One pressed while
+        /// the screen still showed the craft the game has switched away from is
+        /// sent to the craft that is active now.
+        /// </summary>
+        [Fact]
+        public void AToggleCrossingASwitchIsSentToTheCraftThatIsActiveNow()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: OneWaySeconds);
+            var uplink = new ActiveCraftTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                TickActive(engine, uplink, 0.0, loaded: true);
+                TickActive(engine, uplink, 1.0, loaded: true, craft: "H");
+                object? result = null;
+                engine.DispatchCommandAndWait(ActiveCraftTestUplink.ToggleCommand, "x", Centre, r => result = r, TestBudgets.Op, seenVesselId: CraftId);
+
+                Assert.Null(result);
+                Assert.Single(Pending(engine));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// A switch to a craft that is not loaded is a scene load, and a press
+        /// made during it is kept until the scene stands. It names the craft the
+        /// screen showed before the load. A toggle is then sent to the craft the
+        /// load ended on, and any other command is refused as one that crossed
+        /// the switch. The toggle is accepted twice: once as held for the load,
+        /// and once as sent with its signal delay.
+        /// </summary>
+        [Theory]
+        [InlineData(ActiveCraftTestUplink.ToggleCommand, "accepted=2 refused=none pending=1")]
+        [InlineData(ActiveCraftTestUplink.Command, "accepted=1 refused=" + ChannelEngine.SwitchedAwayDetail + " pending=0")]
+        public async Task APressHeldThroughALoadThatEndsOnAnotherCraftFollowsItOnlyWhenItIsAToggle(string command, string expected)
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: OneWaySeconds);
+            var uplink = new ActiveCraftTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                engine.SetGameState(GamePhase.Ready, "FLIGHT");
+                TickActive(engine, uplink, 0.0, loaded: true);
+                engine.SetGameState(GamePhase.Loading, "FLIGHT");
+                object? result = null;
+                var accepted = 0;
+                using var held = new ManualResetEventSlim(false);
+                var press = Task.Run(() => engine.DispatchCommandAndWait(
+                    command,
+                    "x",
+                    Centre,
+                    r => result = r,
+                    TestBudgets.Op,
+                    onAccepted: _ =>
+                    {
+                        Interlocked.Increment(ref accepted);
+                        held.Set();
+                    },
+                    seenVesselId: CraftId));
+                Assert.True(held.Wait(TestBudgets.Op), "the press was not held for the load");
+
+                engine.SetGameState(GamePhase.Ready, "FLIGHT");
+                TickActive(engine, uplink, 1.0, loaded: true, craft: "H");
+                await press;
+
+                var refused = result is CommandResult refusal ? refusal.Detail : "none";
+                Assert.Equal(expected, "accepted=" + accepted + " refused=" + refused + " pending=" + Pending(engine).Count);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         /// <summary>The same press naming the craft that is active, or naming none, is accepted.</summary>
         [Fact]
         public void AnOrderPressedWhileSeeingTheActiveCraftOrNoneIsAccepted()
@@ -735,6 +816,56 @@ namespace Sitrep.Host.IntegrationTests
                 var outcome = Assert.IsType<CommandResult>(result);
                 Assert.False(outcome.Success);
                 Assert.Equal(CommandErrorCode.WrongState, outcome.ErrorCode);
+            }
+            finally
+            {
+                stop.Set();
+                pump.Join(TestBudgets.Op);
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// The same switch in the frames before the main thread runs the command,
+        /// with a toggle: it sets a state on whichever craft is active, so it
+        /// runs on the craft the game has switched to.
+        /// </summary>
+        [Fact]
+        public void AToggleRunsOnTheCraftTheGameSwitchedToInTheFramesBeforeItRan()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: OneWaySeconds, executeCommandsOnMainThread: true);
+            var uplink = new ActiveCraftTestUplink();
+            engine.RegisterUplink(uplink);
+            var reported = new ReportedVessel { Id = CraftId };
+            engine.Kernel.RegisterCapability(new CapabilityDescriptor { Id = ActiveVesselCapability.Id, Exclusive = true, Vanilla = _ => reported });
+            engine.ResolveCapabilities();
+            engine.Start();
+            using var stop = new ManualResetEventSlim(false);
+            var pump = new Thread(() =>
+            {
+                while (!stop.IsSet)
+                {
+                    engine.RunPendingCommands();
+                    Thread.Sleep(2);
+                }
+            })
+            { IsBackground = true, Name = "test-main-thread-pump" };
+            pump.Start();
+            try
+            {
+                TickActive(engine, uplink, 0.0, loaded: true);
+                object? result = null;
+                engine.DispatchCommandAndWait(ActiveCraftTestUplink.ToggleCommand, "x", Centre, r => result = r, TestBudgets.Op);
+                Assert.Single(Pending(engine));
+
+                reported.Id = "H";
+                foreach (var ut in new[] { 1.0, OneWaySeconds + 1.0, (2 * OneWaySeconds) + 2.0 })
+                {
+                    TickActive(engine, uplink, ut, loaded: true);
+                }
+
+                Assert.Equal(1, uplink.HandledCount);
+                Assert.Equal("done:x", result);
             }
             finally
             {
@@ -1317,6 +1448,9 @@ namespace Sitrep.Host.IntegrationTests
             public const string ThrottleCommand = "vessel.control.setThrottle";
             private const string Topic = "active-test.state";
 
+            /// <summary>A command that sets a state on whichever craft is active, as a toggle does.</summary>
+            public const string ToggleCommand = "held.toggle";
+
             /// <summary>A held command behind a gate the test opens and closes.</summary>
             public const string GatedCommand = "held.gated";
             private const string GateKind = "test-open";
@@ -1385,6 +1519,7 @@ namespace Sitrep.Host.IntegrationTests
                 {
                     new CommandDeclaration { Command = Command, Delay = DelayRole.Delayed, Subject = Topic },
                     new CommandDeclaration { Command = ThrottleCommand, Delay = DelayRole.Delayed, Subject = Topic },
+                    new CommandDeclaration { Command = ToggleCommand, Delay = DelayRole.Delayed, Subject = Topic, FollowsActiveVessel = true },
                     new CommandDeclaration
                     {
                         Command = GatedCommand,
@@ -1405,6 +1540,11 @@ namespace Sitrep.Host.IntegrationTests
                     return "throttled";
                 });
                 host.AddCommandHandler<string, string>(GatedCommand, args =>
+                {
+                    Interlocked.Increment(ref _handled);
+                    return "done:" + args;
+                });
+                host.AddCommandHandler<string, string>(ToggleCommand, args =>
                 {
                     Interlocked.Increment(ref _handled);
                     return "done:" + args;

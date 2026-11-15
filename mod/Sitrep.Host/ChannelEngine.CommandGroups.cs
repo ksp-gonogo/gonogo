@@ -277,10 +277,12 @@ namespace Sitrep.Host
             {
                 return CommandResult.Fail(CommandErrorCode.NotFound, "the group carried no commands");
             }
+            // A group goes to one craft, so it follows a switch only when every member does.
+            var followsActive = members.All(member => FollowsActiveVessel(member.Command));
             try
             {
                 return _executeCommandsOnMainThread
-                    ? RunOnMainThread(_ => NotOnTheActiveCraftHere(craft) ?? (object)RunGroupHere(members, message.Lane.Vantage), null)
+                    ? RunOnMainThread(_ => NotOnTheActiveCraftHere(craft, followsActive) ?? (object)RunGroupHere(members, message.Lane.Vantage), null)
                     : RunGroupHere(members, message.Lane.Vantage);
             }
             catch (CommandFaultException fault)

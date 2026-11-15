@@ -54,6 +54,8 @@ export interface GroupToggle {
   stateLabel: string;
   /** Whether a press does anything: `buildToggleArgs` would refuse it otherwise. */
   canToggle: boolean;
+  /** Why the toggle cannot be pressed while the group's state has not been read, as its tip; null once it has, or when another reason applies. */
+  unreadTip: string | null;
   unavailableReason: UnavailableReason | null;
   /** What the craft lacks that this group's command needs, from its last control reading; the press still sends. */
   capabilityWarning: CapabilityWarning | null;
@@ -127,15 +129,23 @@ export function useGroupToggle({
         provenance: group.provenance,
       })
     : null;
+  // A group whose state has not arrived names no reason of its own: the control says so in the words every toggle uses.
+  const unread =
+    Boolean(group?.toggle) &&
+    !toggleCmd.streamDown &&
+    !unreadable &&
+    value == null &&
+    unavailableReason === null;
   // A group nothing can press names why: the known reason, else that it has no action to invert.
-  const cannotToggleBecause = pressable
-    ? null
-    : toggleCmd.streamDown
-      ? STREAM_DOWN_TIP
-      : ((unavailableReason ? UNAVAILABLE_TITLES[unavailableReason] : null) ??
-        (group?.toggle
-          ? "The group's state cannot be inverted"
-          : "No toggle is configured for this group"));
+  const cannotToggleBecause =
+    pressable || unread
+      ? null
+      : toggleCmd.streamDown
+        ? STREAM_DOWN_TIP
+        : ((unavailableReason ? UNAVAILABLE_TITLES[unavailableReason] : null) ??
+          (group?.toggle
+            ? "The group's state cannot be inverted"
+            : "No toggle is configured for this group"));
   // The state the latest press asked for, which is what a bound device is told the control now shows.
   const askedRef = useRef<boolean | undefined>(undefined);
   const readState =
@@ -196,7 +206,8 @@ export function useGroupToggle({
     confirmationSentence: view?.sentence ?? null,
     button,
     handle: toggleCmd,
-    canToggle: !button.isBlocked,
+    canToggle: !button.isBlocked && !unread,
+    unreadTip: unread ? (view?.unavailable ?? null) : null,
     unavailableReason,
     capabilityWarning,
     streamDown: toggleCmd.streamDown,

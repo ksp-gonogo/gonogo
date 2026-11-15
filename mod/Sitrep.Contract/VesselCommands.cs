@@ -16,13 +16,13 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("vessel.control.setSas", Summary = "Turn SAS on or off.")]
-[SitrepCommand("vessel.control.setRcs", Summary = "Turn RCS on or off.")]
-[SitrepCommand("vessel.control.setGear", Summary = "Raise or lower the landing gear.")]
-[SitrepCommand("vessel.control.setBrakes", Summary = "Set the brakes on or off.")]
-[SitrepCommand("vessel.control.setLights", Summary = "Turn the lights on or off.")]
+[SitrepCommand("vessel.control.setSas", Summary = "Turn SAS on or off.", FollowsActiveVessel = true)]
+[SitrepCommand("vessel.control.setRcs", Summary = "Turn RCS on or off.", FollowsActiveVessel = true)]
+[SitrepCommand("vessel.control.setGear", Summary = "Raise or lower the landing gear.", FollowsActiveVessel = true)]
+[SitrepCommand("vessel.control.setBrakes", Summary = "Set the brakes on or off.", FollowsActiveVessel = true)]
+[SitrepCommand("vessel.control.setLights", Summary = "Turn the lights on or off.", FollowsActiveVessel = true)]
 [SitrepCommand("vessel.control.setAbort", Summary = "Set or clear the abort action group.")]
-[SitrepCommand("vessel.control.setPrecisionControl", Summary = "Turn precision control (fine control) on or off.")]
+[SitrepCommand("vessel.control.setPrecisionControl", Summary = "Turn precision control (fine control) on or off.", FollowsActiveVessel = true)]
 public class SetEnabledArgs
 {
     /// <summary><c>true</c> to switch the system on (or fire abort), <c>false</c> to switch it off.</summary>
@@ -38,7 +38,7 @@ public class SetEnabledArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("vessel.control.setSasMode")]
+[SitrepCommand("vessel.control.setSasMode", FollowsActiveVessel = true)]
 public class SetSasModeArgs
 {
     /// <summary>The SAS mode to hold.</summary>
@@ -54,7 +54,7 @@ public class SetSasModeArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("vessel.control.setThrottle")]
+[SitrepCommand("vessel.control.setThrottle", FollowsActiveVessel = true)]
 public class SetThrottleArgs
 {
     /// <summary>The throttle from 0 to 1. A value outside that range is refused with <see cref="CommandErrorCode.Range"/> rather than clamped.</summary>
@@ -74,7 +74,7 @@ public class SetThrottleArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("vessel.control.setActionGroup")]
+[SitrepCommand("vessel.control.setActionGroup", FollowsActiveVessel = true)]
 public class SetActionGroupArgs
 {
     /// <summary>

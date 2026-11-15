@@ -44,7 +44,7 @@ namespace Sitrep.Contract;
 #endif
 [SitrepCommand("vessel.control.stage", Payload = typeof(int), Summary = "Activate the next stage.")]
 [SitrepCommand("vessel.target.clear", Summary = "Clear the active vessel's target.")]
-[SitrepCommand("vessel.control.holdFlyByWire", Summary = "Keep an armed fly-by-wire override from lapsing.")]
+[SitrepCommand("vessel.control.holdFlyByWire", Summary = "Keep an armed fly-by-wire override from lapsing.", FollowsActiveVessel = true)]
 [SitrepCommand("ksp.recover", Delay = DelayRole.TrueNow, Summary = "Recover the active vessel.", AllowMetaVantage = true)]
 [SitrepCommand("ksp.revertToLaunch", Delay = DelayRole.TrueNow, Summary = "Revert the flight to its launch.", AllowMetaVantage = true)]
 [SitrepCommand("ksp.toTrackingStation", Delay = DelayRole.TrueNow, Summary = "Leave the flight for the Tracking Station.", AllowMetaVantage = true)]

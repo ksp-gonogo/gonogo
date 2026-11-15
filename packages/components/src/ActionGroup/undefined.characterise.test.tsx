@@ -96,7 +96,7 @@ describe("ActionGroup: nothing has arrived at all", () => {
     expect(screen.getByRole("button", { name: "Rename SAS" })).toBeTruthy();
   });
 
-  it("shows no unavailable badge: absent pause/comms reads are read as 'nothing to warn about'", () => {
+  it("shows no unavailable badge, and the toggle's tip says its state has not been read", () => {
     mount("SAS");
 
     expect(screen.queryByText("Paused")).toBeNull();
@@ -105,7 +105,7 @@ describe("ActionGroup: nothing has arrived at all", () => {
       screen
         .getByRole("button", { name: "Toggle SAS" })
         .getAttribute("data-tooltip"),
-    ).toBe("Toggle SAS");
+    ).toBe("Toggle SAS unavailable: its state has not been read yet.");
   });
 });
 

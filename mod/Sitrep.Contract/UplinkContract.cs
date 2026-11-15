@@ -569,6 +569,20 @@ namespace Sitrep.Contract
         /// registration.</para>
         /// </summary>
         public bool AllowMetaVantage { get; set; } = false;
+
+        /// <summary>
+        /// Whether this command, pressed as the game switches vessels, runs on
+        /// the vessel that is active when the mod takes it. <c>false</c> by
+        /// default, and a command that does not set it is refused when the
+        /// screen it was pressed on still showed the vessel the game has
+        /// switched away from.
+        ///
+        /// <para>Set it only on a command that sets a state on whichever vessel
+        /// is active and that a second press undoes. A command that cannot be
+        /// undone, or that names a part or a kerbal of one vessel, must leave it
+        /// unset.</para>
+        /// </summary>
+        public bool FollowsActiveVessel { get; set; } = false;
     }
 
     /// <summary>

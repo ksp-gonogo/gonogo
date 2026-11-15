@@ -117,6 +117,9 @@ export type BoundControlCommand<Args = unknown, Result = any> = BoundCommand<
   CommandButtonHandle<Result, Args>
 >;
 
+/** Why a toggle whose state has not been read cannot be pressed, as the clause of its tip. */
+const TOGGLE_UNREAD_DETAIL = "its state has not been read yet";
+
 /** The word a command control shows while the mod has not answered the press. */
 export const SENT_WORD = "SENT";
 
@@ -539,7 +542,7 @@ export function useCommandControl<Result = CommandReplyLike, Args = unknown>({
    * seconds. Past that the control advises and the press is sent.
    */
   const stopsOnGate = handle.gateStopsPress === true;
-  const toggleBlocked =
+  const callerBlocked =
     toggle?.unavailable ??
     unavailable ??
     (stopsOnGate && advise
@@ -551,8 +554,28 @@ export function useCommandControl<Result = CommandReplyLike, Args = unknown>({
         })
       : null) ??
     null;
+  /*
+   * A toggle with no state read has nothing to invert, so its face says so in
+   * place of taking a press that sends nothing. It is not a gate: a press that
+   * carries its own value (`pressWith`) needs no state and is still sent.
+   */
+  const unread =
+    callerBlocked === null &&
+    toggle !== undefined &&
+    (toggle.state === null || toggle.state === undefined) &&
+    toggle.args(toggle.state) === undefined;
+  const toggleBlocked =
+    callerBlocked ??
+    (unread
+      ? commandGateSentence({
+          errorCode: CommandErrorCode.ModeUnavailable,
+          detail: TOGGLE_UNREAD_DETAIL,
+          label: commandLabel,
+          args,
+        })
+      : null);
   const gateBlocks =
-    (gate?.blocked === true && stopsOnGate) || toggleBlocked !== null;
+    (gate?.blocked === true && stopsOnGate) || callerBlocked !== null;
   const gateAdvises =
     gate?.blocked === true && !stopsOnGate && toggleBlocked === null;
 

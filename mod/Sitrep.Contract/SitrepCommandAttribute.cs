@@ -158,6 +158,22 @@ namespace Sitrep.Contract
         /// </summary>
         public string? SetsValue { get; set; }
 
+        /// <summary>
+        /// Whether this command, pressed as the game switches vessels, runs on
+        /// the vessel that is active when the mod takes it. Default
+        /// <c>false</c>: a command pressed while the screen still showed the
+        /// vessel the game has switched away from is refused.
+        ///
+        /// <para>Set it only on a command that sets a state on whichever vessel
+        /// is active and that a second press undoes, such as turning SAS on or
+        /// off. A command that cannot be undone (staging, abort) or that names a
+        /// part, a manoeuvre node or a kerbal of one vessel must leave it unset.</para>
+        ///
+        /// <para>It does not change a command that travelled a signal delay and
+        /// found another vessel active on arrival: that one is still refused.</para>
+        /// </summary>
+        public bool FollowsActiveVessel { get; set; } = false;
+
         /// <summary>Declares the args class as the args of one command.</summary>
         /// <param name="commandId">The command id as dispatched, e.g. <c>"vessel.control.setThrottle"</c>. Unique across all declared commands.</param>
         public SitrepCommandAttribute(string commandId)

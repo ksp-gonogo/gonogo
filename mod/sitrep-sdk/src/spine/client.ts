@@ -376,22 +376,37 @@ function randomIdPrefix(): string {
  */
 const UNKNOWN_CRAFT_ID = "unknown";
 
+/** The vessel id a `ksp.activeVessel` or `vessel.identity` payload names, or `undefined` for one that names none. */
+function vesselIdOf(payload: unknown): string | undefined {
+  if (typeof payload !== "object" || payload === null) return undefined;
+  if (!("vesselId" in payload)) return undefined;
+  const id = payload.vesselId;
+  return typeof id === "string" && id !== "" ? id : undefined;
+}
+
 /**
  * The vessel the operator's screen shows as active, as the optional
- * `seenVesselId` of a command frame. Nothing when no `vessel.identity` reading
- * has ever arrived; {@link UNKNOWN_CRAFT_ID} when one has arrived and been
- * withdrawn. The mod refuses an order for the active vessel when the game has
- * since switched to another one.
+ * `seenVesselId` of a command frame. The mod refuses an order for the active
+ * vessel when the game has since switched to another one.
+ *
+ * The game's own statement of the active vessel (`ksp.activeVessel`) is the
+ * one the screen names the craft by and it arrives with no signal delay, so
+ * it is the vessel seen whenever it names one. `vessel.identity` is the
+ * craft's own telemetry and can be seconds or minutes behind it after a
+ * switch. Without the game's statement the newest `vessel.identity` reading
+ * stands: nothing when none has ever arrived, {@link UNKNOWN_CRAFT_ID} when
+ * one has arrived and been withdrawn.
  */
 function seenVessel(
+  active: unknown,
   identity: unknown,
   read: boolean,
 ): { seenVesselId?: string } {
+  const shown = vesselIdOf(active);
+  if (shown !== undefined) return { seenVesselId: shown };
   if (identity === null && read) return { seenVesselId: UNKNOWN_CRAFT_ID };
-  if (typeof identity !== "object" || identity === null) return {};
-  if (!("vesselId" in identity)) return {};
-  const id = identity.vesselId;
-  return typeof id === "string" && id !== "" ? { seenVesselId: id } : {};
+  const id = vesselIdOf(identity);
+  return id !== undefined ? { seenVesselId: id } : {};
 }
 
 type SampleFrame = Extract<
@@ -2205,6 +2220,7 @@ export class TelemetryClient {
       seenBootId: this.wireBootId,
       seenEpoch: this.lastWireEpoch,
       ...seenVessel(
+        this.lastValues.get("ksp.activeVessel"),
         this.lastValues.get("vessel.identity"),
         this.lastValues.has("vessel.identity"),
       ),

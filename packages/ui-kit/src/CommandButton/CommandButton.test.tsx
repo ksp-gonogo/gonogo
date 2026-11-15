@@ -2246,6 +2246,30 @@ describe("CommandButton: the toggle variant", () => {
 
     expect(send).not.toHaveBeenCalled();
   });
+
+  it("is drawn as not pressable from an unread state, and says why", () => {
+    render(
+      draw(
+        null,
+        vi.fn(() => Promise.resolve(OK)),
+      ),
+    );
+
+    const button = screen.getByRole("button");
+    expect(button).toHaveAttribute("aria-disabled", "true");
+    expect(button).toHaveAccessibleDescription(
+      "Toggle RCS unavailable: its state has not been read yet.",
+    );
+  });
+
+  it("is pressable again once the state is read", () => {
+    const send = vi.fn(() => Promise.resolve(OK));
+    const { rerender } = render(draw(null, send));
+
+    rerender(draw(false, send));
+
+    expect(screen.getByRole("button")).not.toHaveAttribute("aria-disabled");
+  });
 });
 
 describe("CommandButton: a press while SENT", () => {

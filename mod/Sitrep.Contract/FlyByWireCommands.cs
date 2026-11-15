@@ -33,7 +33,7 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("vessel.control.setFlyByWire")]
+[SitrepCommand("vessel.control.setFlyByWire", FollowsActiveVessel = true)]
 public class SetFlyByWireArgs
 {
     /// <summary><c>true</c> turns the override on, <c>false</c> turns it off and resets the held axes and trims to 0.</summary>
@@ -64,7 +64,7 @@ public class SetFlyByWireArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("vessel.control.setAxes")]
+[SitrepCommand("vessel.control.setAxes", FollowsActiveVessel = true)]
 public class SetControlAxesArgs
 {
     /// <summary>Pitch input, -1..1. Null leaves the held value unchanged.</summary>

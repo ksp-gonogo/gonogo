@@ -37,7 +37,7 @@ namespace Sitrep.Host
     public static class CommandDelayCatalog
     {
         private static readonly object Gate = new object();
-        private static Dictionary<string, (DelayRole Delay, bool Meta)> _delayed;
+        private static Dictionary<string, (DelayRole Delay, bool Meta, bool Follows)> _delayed;
         private static HashSet<string> _knownMisses = new HashSet<string>(StringComparer.Ordinal);
         private static Action<string> _diagnosticLog;
 
@@ -129,6 +129,27 @@ namespace Sitrep.Host
             }
         }
 
+        /// <summary>
+        /// Whether a loaded contract slice tags <paramref name="command"/> with
+        /// <see cref="SitrepCommandAttribute.FollowsActiveVessel"/>. An untagged id
+        /// is <c>false</c>, after the same one rescan a miss gets in
+        /// <see cref="TryGetDelay"/>.
+        /// </summary>
+        public static bool FollowsActiveVessel(string command)
+        {
+            if (string.IsNullOrEmpty(command))
+            {
+                return false;
+            }
+
+            // Delay is read for the rescan it triggers on a miss; the answer is the Follows bit.
+            TryGetDelay(command, out _);
+            lock (Gate)
+            {
+                return _delayed != null && _delayed.TryGetValue(command, out var hit) && hit.Follows;
+            }
+        }
+
         /// <summary>Every command id a loaded contract slice tags with <see cref="SitrepCommandAttribute.AllowMetaVantage"/>, sorted.</summary>
         public static IReadOnlyList<string> MetaVantageCommandIds()
         {
@@ -139,9 +160,19 @@ namespace Sitrep.Host
             }
         }
 
-        private static Dictionary<string, (DelayRole Delay, bool Meta)> Scan()
+        /// <summary>Every command id a loaded contract slice tags with <see cref="SitrepCommandAttribute.FollowsActiveVessel"/>, sorted.</summary>
+        public static IReadOnlyList<string> FollowsActiveVesselCommandIds()
         {
-            var found = new Dictionary<string, (DelayRole Delay, bool Meta)>(StringComparer.Ordinal);
+            lock (Gate)
+            {
+                _delayed ??= Scan();
+                return _delayed.Where(e => e.Value.Follows).Select(e => e.Key).OrderBy(k => k, StringComparer.Ordinal).ToList();
+            }
+        }
+
+        private static Dictionary<string, (DelayRole Delay, bool Meta, bool Follows)> Scan()
+        {
+            var found = new Dictionary<string, (DelayRole Delay, bool Meta, bool Follows)>(StringComparer.Ordinal);
             foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
                 Type[] types;
@@ -175,7 +206,7 @@ namespace Sitrep.Host
                             // this path runs inside a running game where the
                             // useful behaviour is to dispatch rather than to
                             // stop.
-                            found[attr.CommandId] = (attr.Delay, attr.AllowMetaVantage);
+                            found[attr.CommandId] = (attr.Delay, attr.AllowMetaVantage, attr.FollowsActiveVessel);
                         }
                     }
                     catch (Exception ex)

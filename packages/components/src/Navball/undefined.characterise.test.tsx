@@ -16,7 +16,8 @@ import { NavballComponent } from "./index";
  * (covered in `reading.test.tsx`):
  *  - an unread SAS/RCS arm is labelled with its bare name, neither on nor off
  *  - an unread throttle is the null glyph, never 0%, and refuses relative steps
- *  - a SAS/RCS toggle with no boolean read is refused rather than guessed
+ *  - a SAS/RCS toggle with no boolean read is refused rather than guessed, and
+ *    is drawn as not pressable with the reason as its description
  *  - an unknown control level fails open: the surface stays live
  *  - an unread `comms.delay` arms FBW with no delay caveat
  *  - the first `vessel.identity` to arrive reads as a vessel change
@@ -130,7 +131,7 @@ describe("Navball display: what undefined means today", () => {
 });
 
 describe("Navball control surface: what undefined means today", () => {
-  it("leaves the whole control surface live and unbannered when nothing has arrived", () => {
+  it("leaves the control surface unbannered when nothing has arrived, with the unread toggles saying why they cannot be pressed", () => {
     mount("nb-undef-controls", { w: 10, h: 20, controlMode: true });
     openSections();
 
@@ -138,8 +139,14 @@ describe("Navball control surface: what undefined means today", () => {
     expect(screen.queryByRole("note")).toBeNull();
     const sas = screen.getByRole("button", { name: `SAS ${NULL_DISPLAY}` });
     const rcs = screen.getByRole("button", { name: `RCS ${NULL_DISPLAY}` });
-    expect(isDisabled(sas)).toBe(false);
-    expect(isDisabled(rcs)).toBe(false);
+    expect(isDisabled(sas)).toBe(true);
+    expect(isDisabled(rcs)).toBe(true);
+    expect(sas).toHaveAccessibleDescription(
+      "Toggle SAS unavailable: its state has not been read yet.",
+    );
+    expect(rcs).toHaveAccessibleDescription(
+      "Toggle RCS unavailable: its state has not been read yet.",
+    );
     expect(screen.queryByRole("button", { name: "SAS ON" })).toBeNull();
     expect(screen.queryByRole("button", { name: "SAS OFF" })).toBeNull();
     // A step from an unread throttle is refused; the absolute commands stay live.
@@ -167,6 +174,7 @@ describe("Navball control surface: what undefined means today", () => {
 
     act(() => {
       fixture.emit("vessel.comms", { controlState: CONTROL_STATE_NONE });
+      fixture.emit("vessel.control", { sas: false });
     });
 
     await waitFor(() =>
@@ -174,7 +182,7 @@ describe("Navball control surface: what undefined means today", () => {
         "Vessel not controllable.",
       ),
     );
-    const sas = screen.getByRole("button", { name: `SAS ${NULL_DISPLAY}` });
+    const sas = await screen.findByRole("button", { name: "SAS OFF" });
     expect(isDisabled(sas)).toBe(false);
     expect(sas).toHaveAttribute("data-predicted", "at-risk");
     expect(sas).toHaveAccessibleDescription(
@@ -200,10 +208,12 @@ describe("Navball control surface: what undefined means today", () => {
     // Inverting an unknown boolean would be a blind guess.
     expect(sentNamed("vessel.control.setSas")).toEqual([]);
     expect(sentNamed("vessel.control.setRcs")).toEqual([]);
-    // The refusal is invisible: the button stays enabled.
-    expect(
-      isDisabled(screen.getByRole("button", { name: `SAS ${NULL_DISPLAY}` })),
-    ).toBe(false);
+    // The button says it cannot be pressed, and why.
+    const sas = screen.getByRole("button", { name: `SAS ${NULL_DISPLAY}` });
+    expect(isDisabled(sas)).toBe(true);
+    expect(sas).toHaveAccessibleDescription(
+      "Toggle SAS unavailable: its state has not been read yet.",
+    );
   });
 
   it("dispatches that same click once a real boolean has arrived", async () => {

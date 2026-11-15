@@ -112,3 +112,56 @@ describe("a command names the vessel the operator last saw", () => {
     expect(transport.commands[0]).toMatchObject({ seenVesselId: "bbbb" });
   });
 });
+
+describe("a command names the vessel the game says is active", () => {
+  function deliver(
+    transport: RecordingTransport,
+    topic: string,
+    payload: unknown,
+  ) {
+    transport.deliver({
+      type: "stream-data",
+      topic,
+      payload,
+      meta: makeMeta(),
+    } as ServerMessage);
+  }
+
+  it("carries the vessel just switched to while vessel.identity still names the one left", () => {
+    const { transport, client } = setup();
+    client.subscribe("vessel.identity", () => {});
+    client.subscribe("ksp.activeVessel", () => {});
+    deliver(transport, "vessel.identity", { vesselId: "aaaa" });
+    deliver(transport, "ksp.activeVessel", { vesselId: "aaaa", name: "A" });
+
+    deliver(transport, "ksp.activeVessel", { vesselId: "bbbb", name: "B" });
+    send(client);
+
+    expect(transport.commands[0]).toMatchObject({ seenVesselId: "bbbb" });
+  });
+
+  it("carries the vessel just switched to while vessel.identity is withdrawn", () => {
+    const { transport, client } = setup();
+    client.subscribe("vessel.identity", () => {});
+    client.subscribe("ksp.activeVessel", () => {});
+    deliver(transport, "vessel.identity", { vesselId: "aaaa" });
+    deliver(transport, "vessel.identity", null);
+
+    deliver(transport, "ksp.activeVessel", { vesselId: "bbbb", name: "B" });
+    send(client);
+
+    expect(transport.commands[0]).toMatchObject({ seenVesselId: "bbbb" });
+  });
+
+  it("falls back to vessel.identity outside a flight, where the game names no vessel", () => {
+    const { transport, client } = setup();
+    client.subscribe("vessel.identity", () => {});
+    client.subscribe("ksp.activeVessel", () => {});
+    deliver(transport, "vessel.identity", { vesselId: "aaaa" });
+    deliver(transport, "ksp.activeVessel", null);
+
+    send(client);
+
+    expect(transport.commands[0]).toMatchObject({ seenVesselId: "aaaa" });
+  });
+});

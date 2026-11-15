@@ -161,8 +161,8 @@ describe("ActionGroup when the group's state is held", () => {
       screen
         .getByRole("button", { name: "Toggle SAS" })
         .getAttribute("data-tooltip"),
-    ).toBe("Toggle SAS");
-    // Nothing to invert yet, so no press is offered; the tooltip still names no cause.
+    ).toBe("Toggle SAS unavailable: its state has not been read yet.");
+    // Nothing to invert yet, so no press is offered; the tooltip says the state is unread and nothing about a held one.
     expect(isDisabled(screen.getByRole("button", { name: "Toggle SAS" }))).toBe(
       true,
     );
