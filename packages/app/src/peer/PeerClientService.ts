@@ -12,7 +12,7 @@ import { DeliveryMeter, deliveryChannel } from "./DeliveryMeter";
 import { EndpointHostLink } from "./endpointHostLink";
 import { joinMetadata, readJoin } from "./endpointJoin";
 import { deriveHostPeerIds } from "./hostPeerId";
-import { attachIceDiagnostics } from "./iceDiagnostics";
+import { attachIceDiagnostics, traceIceFromStart } from "./iceDiagnostics";
 import { MessageDispatcher } from "./MessageDispatcher";
 import { peerBrokerOptions } from "./peerOptions";
 import type {
@@ -626,6 +626,7 @@ export class PeerClientService {
       metadata,
     });
     candidate.conn = conn;
+    traceIceFromStart(conn);
     /* A main screen running the endpoint holds the data connection of a
        station that offered to join through it, unserved, so for that
        connection the first message, not its opening, says this is the path

@@ -52,6 +52,8 @@ jobs:
   # is queued behind the rest sets the wall time of the whole run.
   e2e:
     runs-on: ubuntu-24.04
+    # A green leg takes about 25 minutes with its build, so a leg still running at 40 is stuck.
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:

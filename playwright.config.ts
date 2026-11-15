@@ -79,6 +79,14 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
+  /*
+   * A runner where one engine cannot open a peer link fails every spec that
+   * joins a station, each at its full wait and twice over. Stopping at the
+   * third failure reports that in minutes and names the first spec; the global
+   * limit ends a run that stalls without failing anything.
+   */
+  maxFailures: process.env.CI ? 3 : 0,
+  globalTimeout: process.env.CI ? 30 * 60_000 : 0,
   workers: 1,
   reporter: process.env.CI ? "github" : "list",
   use: {

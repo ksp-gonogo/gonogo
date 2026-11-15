@@ -3,7 +3,8 @@ import type Peer from "peerjs";
 
 const tracked = new Map<WebSocket, { url: string; created: number }>();
 
-function socketTraceEnabled(): boolean {
+/** Whether this build writes its connection tracing to the console, which is where an end-to-end trace reads it. */
+export function socketTraceEnabled(): boolean {
   return import.meta.env.VITE_E2E_SOCKET_TRACE === "true";
 }
 

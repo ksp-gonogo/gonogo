@@ -48,7 +48,7 @@ import {
   HOST_PEER_SLOTS,
   HOST_RETRY_INTERVAL_MS,
 } from "./hostPeerId";
-import { attachIceDiagnostics } from "./iceDiagnostics";
+import { attachIceDiagnostics, traceIceFromStart } from "./iceDiagnostics";
 import { MessageDispatcher } from "./MessageDispatcher";
 import { peerBrokerOptions } from "./peerOptions";
 import { traceBrokerSocket } from "./peerSocketTrace";
@@ -975,6 +975,7 @@ export class PeerHostService {
    */
   private acceptStation(conn: StationLink, earlier: unknown[] = []): void {
     logger.info(`[PeerHost] incoming connection from ${conn.peer}`);
+    traceIceFromStart(conn);
     let served = false;
     const serve = () => {
       if (served) return;

@@ -1,4 +1,5 @@
 import { logger } from "@ksp-gonogo/logger";
+import { socketTraceEnabled } from "./peerSocketTrace";
 import type { StationLink } from "./stationLink";
 
 const iceLog = logger.tag("peer:ice");
@@ -136,6 +137,53 @@ export function attachIceDiagnostics(
   conn.on("close", () => {
     dead = true;
     clearGrace();
+  });
+}
+
+/**
+ * Writes a connection's signalling, gathering and ICE states and the class of
+ * each candidate it gathers to the console, from the moment the connection
+ * exists. A connection that never opens is never handed to
+ * {@link attachIceDiagnostics}, so this is the only record of where it
+ * stopped. Does nothing unless the build traces its sockets.
+ */
+export function traceIceFromStart(conn: StationLink): void {
+  if (!socketTraceEnabled()) return;
+  const pc = (conn as StationLink & { peerConnection?: RTCPeerConnection })
+    .peerConnection;
+  if (!pc) {
+    iceLog.info("trace: no peer connection yet", { peerId: conn.peer });
+    return;
+  }
+  const ctx = { peerId: conn.peer };
+  const states = () =>
+    `signaling=${pc.signalingState} gathering=${pc.iceGatheringState} ice=${pc.iceConnectionState} connection=${pc.connectionState}`;
+  iceLog.info(`trace: start ${states()}`, ctx);
+  for (const event of [
+    "signalingstatechange",
+    "icegatheringstatechange",
+    "iceconnectionstatechange",
+    "connectionstatechange",
+  ]) {
+    pc.addEventListener(event, () =>
+      iceLog.info(`trace: ${event} ${states()}`, ctx),
+    );
+  }
+  pc.addEventListener("icecandidate", (ev) => {
+    const c = ev.candidate;
+    iceLog.info(
+      c
+        ? `trace: candidate ${c.type} ${c.protocol} ${iceAddressClass(c.address)}`
+        : "trace: end of candidates",
+      ctx,
+    );
+  });
+  pc.addEventListener("icecandidateerror", (ev) => {
+    const e = ev as RTCPeerConnectionIceErrorEvent;
+    iceLog.info(
+      `trace: candidate error ${e.errorCode} ${iceServerUrlParts(e.url).serverScheme}`,
+      ctx,
+    );
   });
 }
 
