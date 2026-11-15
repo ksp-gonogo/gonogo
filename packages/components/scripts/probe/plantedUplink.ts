@@ -35,7 +35,7 @@ export const PLANTED_AVAILABLE_TOPIC = "planted.available";
 
 registerUplinkTopic(PLANTED_AVAILABLE_TOPIC);
 
-/** The propellants the built-in `ship-map.part-meters` contribution meters. */
+/** The propellants the built-in `vessel-schematic.part-meters` contribution meters. */
 const BUILTIN_METERED = new Set([
   "LiquidFuel",
   "Oxidizer",
@@ -56,12 +56,12 @@ interface PartsWire {
 
 /**
  * A meter for every stored resource the built-in contribution leaves alone,
- * on the same slot, so a ship map shows two contributors side by side and a
+ * on the same slot, so a vessel schematic shows two contributors side by side and a
  * spread of resource colours beyond the five propellants.
  */
 PLANTED_UPLINK.registerContribution({
-  id: "ship-map-part-meters",
-  contributes: "ship-map.part-meters",
+  id: "vessel-schematic-part-meters",
+  contributes: "vessel-schematic.part-meters",
   deps: ["vessel.parts"],
   requires: "planted",
   compute: (topics) => {

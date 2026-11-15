@@ -267,7 +267,7 @@ function MenuCell({ s }: { s: Scenario }) {
   );
 }
 
-/** A part's action menu as the Ship Map opens it, at the menu's own width, before and after the press. */
+/** A part's action menu as the Vessel Schematic opens it, at the menu's own width, before and after the press. */
 function RealMenu({ s }: { s: Scenario }) {
   const h = handleFor(s);
   const other = handleFor("rest");

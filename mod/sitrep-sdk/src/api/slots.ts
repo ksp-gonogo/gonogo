@@ -157,14 +157,14 @@ export interface RendezvousHudContext {
 // "comm-signal.sections" / ".badges" carry no props today.
 
 /**
- * The deploy or activation state of one part module, as the ship map carries it
- * on {@link ShipMapPart.partState}.
+ * The deploy or activation state of one part module, as the vessel schematic carries it
+ * on {@link VesselSchematicPart.partState}.
  * Useful for showing whether a part's module is deployed or active. Used by the
- * Ship Map.
+ * Vessel Schematic.
  *
  * @category Widget slots
  */
-export interface ShipMapPartStateModule {
+export interface VesselSchematicPartStateModule {
   /** Which kind of module this is. */
   type:
     | "solarPanel"
@@ -189,14 +189,14 @@ export interface ShipMapPartStateModule {
 }
 
 /**
- * The shape the ship map draws a part as. Every part that is none of the named
+ * The shape the vessel schematic draws a part as. Every part that is none of the named
  * kinds is `"other"`.
  * Useful for telling the operator what kind of part each shape stands for. Used
- * by the Ship Map.
+ * by the Vessel Schematic.
  *
  * @category Widget slots
  */
-export type ShipMapPartType =
+export type VesselSchematicPartType =
   | "engine"
   | "booster"
   | "tank"
@@ -217,18 +217,18 @@ export type ShipMapPartType =
   | "other";
 
 /**
- * One part of the active vessel as the ship map lays it out: the vessel's
+ * One part of the active vessel as the vessel schematic lays it out: the vessel's
  * structure plus whatever live readings have arrived for the part.
  *
  * The diagram is a side view. `lat` runs across the screen and `axial` runs up
  * it along the vessel's long axis, both in metres from the vessel's own origin.
  * The optional fields are live readings and are absent until they arrive.
  * Useful for telling the operator what each part of the vessel is and how it is
- * doing. Used by the Ship Map.
+ * doing. Used by the Vessel Schematic.
  *
  * @category Widget slots
  */
-export interface ShipMapPart {
+export interface VesselSchematicPart {
   /** KSP's flight id for the part, unique within the vessel. */
   flightId: number;
   /** The flight id of the part this one is attached to. `null` for the root part. */
@@ -238,7 +238,7 @@ export interface ShipMapPart {
   /** The part's display title, such as `"LV-T45 \"Swivel\" Liquid Fuel Engine"`. */
   title: string;
   /** The shape the diagram draws this part as. */
-  type: ShipMapPartType;
+  type: VesselSchematicPartType;
   /** Position across the diagram, in metres. */
   lat: number;
   /** Position along the vessel's long axis, in metres. Positive is up the screen. */
@@ -274,20 +274,20 @@ export interface ShipMapPart {
    * none. Absent before part states arrive, which means unknown rather than all
    * retracted.
    */
-  partState?: ShipMapPartStateModule[];
+  partState?: VesselSchematicPartStateModule[];
 }
 
 /**
- * The area the vessel covers in the ship map's metre space, which the diagram
+ * The area the vessel covers in the vessel schematic's metre space, which the diagram
  * fits to its canvas.
- * Useful for placing an overlay on the Ship Map's diagram.
+ * Useful for placing an overlay on the Vessel Schematic's diagram.
  *
  * @category Widget slots
  */
-export interface ShipMapBounds {
-  /** Centre across the diagram, in metres, on the same axis as {@link ShipMapPart.lat}. */
+export interface VesselSchematicBounds {
+  /** Centre across the diagram, in metres, on the same axis as {@link VesselSchematicPart.lat}. */
   cx: number;
-  /** Centre along the long axis, in metres, on the same axis as {@link ShipMapPart.axial}. */
+  /** Centre along the long axis, in metres, on the same axis as {@link VesselSchematicPart.axial}. */
   cy: number;
   /** Width across the diagram, in metres. */
   w: number;
@@ -296,7 +296,7 @@ export interface ShipMapBounds {
 }
 
 /**
- * Props passed to every `ship-map.overlay` augment: a layer over the ship
+ * Props passed to every `vessel-schematic.overlay` augment: a layer over the ship
  * map's part diagram, with the parts and the projection the diagram fits them
  * with.
  *
@@ -306,22 +306,22 @@ export interface ShipMapBounds {
  * the operator zooms or pans it; the overlay does not follow the live zoom or
  * pan, so a mark placed this way drifts off its part once the operator moves
  * the diagram. Draw what belongs to the whole diagram here, and use the
- * `ship-map.part-meters` contribution for something tied to one part. The slot
+ * `vessel-schematic.part-meters` contribution for something tied to one part. The slot
  * is not drawn until the vessel has parts.
  * Useful for marking something that belongs to the whole diagram rather than to
- * one part. Used by the Ship Map.
+ * one part. Used by the Vessel Schematic.
  *
  * @category Widget slots
  */
-export interface ShipMapOverlayContext {
+export interface VesselSchematicOverlayContext {
   /** Every part of the active vessel, laid out in metres. */
-  parts: readonly ShipMapPart[];
+  parts: readonly VesselSchematicPart[];
   /** Overlay width in pixels, the same as the diagram canvas. */
   width: number;
   /** Overlay height in pixels, the same as the diagram canvas. */
   height: number;
   /** The area the vessel covers, in metres. */
-  bounds: ShipMapBounds;
+  bounds: VesselSchematicBounds;
   /** Pixels per metre at which the whole vessel fits the canvas. */
   baseScale: number;
   /** Margin in pixels the diagram leaves around the fitted vessel. */
@@ -1083,12 +1083,12 @@ declare module "./types" {
     "comm-signal.sections": Record<string, never>;
 
     /**
-     * A layer over the Ship Map's part diagram, the same size as it, for marks
+     * A layer over the Vessel Schematic's part diagram, the same size as it, for marks
      * placed on parts. The layer passes pointer events through to the
      * diagram, so an element that needs clicks turns them back on itself.
-     * Drawn once the vessel has parts. Passes a {@link ShipMapOverlayContext}.
+     * Drawn once the vessel has parts. Passes a {@link VesselSchematicOverlayContext}.
      */
-    "ship-map.overlay": ShipMapOverlayContext;
+    "vessel-schematic.overlay": VesselSchematicOverlayContext;
 
     /**
      * Inline badges at the end of each crew row. Passes a

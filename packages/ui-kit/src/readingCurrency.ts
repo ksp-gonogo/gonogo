@@ -366,7 +366,7 @@ export function derivedMarking(
  * carry it. `null` unless that reading is held or modelled, so the reading can
  * be passed unconditionally. The same marking {@link derivedMarking} gives.
  * Useful for showing the operator that an entry contributed to a widget rests
- * on a held reading. Used by the comm signal widget and the ship map's part
+ * on a held reading. Used by the comm signal widget and the vessel schematic's part
  * tooltip.
  *
  * @category Unit
@@ -402,7 +402,7 @@ export function heldGradeOf(
  * itself while that reading is current, and a held reading of it, dated by the
  * reading's `asOfUt` where it has one, while it is held. Hand the result to
  * any primitive that takes a {@link UnitValue}. Useful for showing the operator
- * a figure with its held mark. Used by the ship map's part tooltip.
+ * a figure with its held mark. Used by the vessel schematic's part tooltip.
  *
  * @category Unit
  */

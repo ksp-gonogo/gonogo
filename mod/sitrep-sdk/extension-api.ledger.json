@@ -8187,8 +8187,12 @@
         "note": "The Science Data widget gains a stat strip above its Archive table that any Uplink can add figures to"
       },
       {
-        "key": "sitrep-sdk . ContributionRegistry#\"ship-map.part-actions\"",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "key": "sitrep-sdk . ContributionRegistry#\"ship-map.part-meta\"",
+        "note": "Renamed to ContributionRegistry#\"vessel-schematic.part-meta\", the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ContributionRegistry#\"ship-map.part-meters\"",
+        "note": "Renamed to ContributionRegistry#\"vessel-schematic.part-meters\", the widget is now named Vessel Schematic"
       },
       {
         "key": "sitrep-sdk . ContributionRegistry#\"strategies.screens\"",
@@ -8217,6 +8221,18 @@
       {
         "key": "sitrep-sdk . ContributionRegistry#\"tracking-station.vessel-status\"",
         "note": "The Tracking Station widget's slot, renamed from ContributionRegistry#\"system-view.vessel-status\"; a new required member of the registry"
+      },
+      {
+        "key": "sitrep-sdk . ContributionRegistry#\"vessel-schematic.part-actions\"",
+        "note": "Renamed from ContributionRegistry#\"ship-map.part-actions\", the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ContributionRegistry#\"vessel-schematic.part-meta\"",
+        "note": "Renamed from ContributionRegistry#\"ship-map.part-meta\", the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ContributionRegistry#\"vessel-schematic.part-meters\"",
+        "note": "Renamed from ContributionRegistry#\"ship-map.part-meters\", the widget is now named Vessel Schematic"
       },
       {
         "key": "sitrep-sdk . DERIVED_CHANNEL_IDS",
@@ -8487,24 +8503,140 @@
         "note": "subscribe takes its callback type inline, so the unexported Listener alias is gone"
       },
       {
-        "key": "sitrep-sdk . ShipMapOverlayContext#held",
-        "note": "ShipMapOverlayContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
+        "key": "sitrep-sdk . ShipMapBounds",
+        "note": "Renamed to VesselSchematicBounds, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapBounds#cx",
+        "note": "Renamed to VesselSchematicBounds#cx, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapBounds#cy",
+        "note": "Renamed to VesselSchematicBounds#cy, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapBounds#h",
+        "note": "Renamed to VesselSchematicBounds#h, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapBounds#w",
+        "note": "Renamed to VesselSchematicBounds#w, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapOverlayContext",
+        "note": "Renamed to VesselSchematicOverlayContext, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapOverlayContext#baseScale",
+        "note": "Renamed to VesselSchematicOverlayContext#baseScale, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapOverlayContext#bounds",
+        "note": "Renamed to VesselSchematicOverlayContext#bounds, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapOverlayContext#height",
+        "note": "Renamed to VesselSchematicOverlayContext#height, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapOverlayContext#padding",
+        "note": "Renamed to VesselSchematicOverlayContext#padding, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapOverlayContext#parts",
+        "note": "Renamed to VesselSchematicOverlayContext#parts, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapOverlayContext#width",
+        "note": "Renamed to VesselSchematicOverlayContext#width, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPart",
+        "note": "Renamed to VesselSchematicPart, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPart#axial",
+        "note": "Renamed to VesselSchematicPart#axial, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPart#axialHalfExtent",
+        "note": "Renamed to VesselSchematicPart#axialHalfExtent, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPart#depth",
+        "note": "Renamed to VesselSchematicPart#depth, the widget is now named Vessel Schematic"
       },
       {
         "key": "sitrep-sdk . ShipMapPart#dryMass",
-        "note": "A ship-map part's dry mass is null when the mod could not read it, rather than 0 tonnes"
+        "note": "A vessel-schematic part's dry mass is null when the mod could not read it, rather than 0 tonnes"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPart#ecFlowSign?",
+        "note": "Renamed to VesselSchematicPart#ecFlowSign?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPart#flightId",
+        "note": "Renamed to VesselSchematicPart#flightId, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPart#fuelLineTarget?",
+        "note": "Renamed to VesselSchematicPart#fuelLineTarget?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPart#lat",
+        "note": "Renamed to VesselSchematicPart#lat, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPart#latHalfExtent",
+        "note": "Renamed to VesselSchematicPart#latHalfExtent, the widget is now named Vessel Schematic"
       },
       {
         "key": "sitrep-sdk . ShipMapPart#maxTemp",
-        "note": "A ship-map part's maximum temperature is null when the mod could not read it, rather than 0 K"
+        "note": "A vessel-schematic part's maximum temperature is null when the mod could not read it, rather than 0 K"
       },
       {
         "key": "sitrep-sdk . ShipMapPart#maxTemperatureK?",
         "note": "The live maximum temperature is null, not 0 K, when the part's limit could not be read"
       },
       {
+        "key": "sitrep-sdk . ShipMapPart#name",
+        "note": "Renamed to VesselSchematicPart#name, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPart#parentFlightId",
+        "note": "Renamed to VesselSchematicPart#parentFlightId, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPart#partState?",
+        "note": "Renamed to VesselSchematicPart#partState?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPart#resources?",
+        "note": "Renamed to VesselSchematicPart#resources?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPart#rotationRad",
+        "note": "Renamed to VesselSchematicPart#rotationRad, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPart#size",
+        "note": "Renamed to VesselSchematicPart#size, the widget is now named Vessel Schematic"
+      },
+      {
         "key": "sitrep-sdk . ShipMapPart#stage",
-        "note": "A ship-map part's stage is null when the mod could not read it, rather than stage 0"
+        "note": "A vessel-schematic part's stage is null when the mod could not read it, rather than stage 0"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPart#temperatureK?",
+        "note": "Renamed to VesselSchematicPart#temperatureK?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPart#title",
+        "note": "Renamed to VesselSchematicPart#title, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPart#type",
+        "note": "Renamed to VesselSchematicPart#type, the widget is now named Vessel Schematic"
       },
       {
         "key": "sitrep-sdk . ShipMapPartMetaEntry",
@@ -8533,6 +8665,54 @@
       {
         "key": "sitrep-sdk . ShipMapPartMetaEntry#value?",
         "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPartMeterEntry",
+        "note": "Renamed to VesselSchematicPartMeterEntry, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPartMeterEntry#amount",
+        "note": "Renamed to VesselSchematicPartMeterEntry#amount, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPartMeterEntry#capacity",
+        "note": "Renamed to VesselSchematicPartMeterEntry#capacity, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPartMeterEntry#displayName",
+        "note": "Renamed to VesselSchematicPartMeterEntry#displayName, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPartMeterEntry#partId",
+        "note": "Renamed to VesselSchematicPartMeterEntry#partId, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPartMeterEntry#resource",
+        "note": "Renamed to VesselSchematicPartMeterEntry#resource, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPartMeterEntry#status?",
+        "note": "Renamed to VesselSchematicPartMeterEntry#status?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPartStateModule",
+        "note": "Renamed to VesselSchematicPartStateModule, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPartStateModule#flameout?",
+        "note": "Renamed to VesselSchematicPartStateModule#flameout?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPartStateModule#state",
+        "note": "Renamed to VesselSchematicPartStateModule#state, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPartStateModule#tracking?",
+        "note": "Renamed to VesselSchematicPartStateModule#tracking?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPartStateModule#type",
+        "note": "Renamed to VesselSchematicPartStateModule#type, the widget is now named Vessel Schematic"
       },
       {
         "key": "sitrep-sdk . ShipMapPartType",
@@ -8591,6 +8771,10 @@
         "note": "The Tech Tree widget is now Research and Development, so its sections slot takes the new id"
       },
       {
+        "key": "sitrep-sdk . SlotRegistry#\"ship-map.overlay\"",
+        "note": "Renamed to SlotRegistry#\"vessel-schematic.overlay\", the widget is now named Vessel Schematic"
+      },
+      {
         "key": "sitrep-sdk . SlotRegistry#\"strategies.screen-body\"",
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
@@ -8625,6 +8809,10 @@
       {
         "key": "sitrep-sdk . SlotRegistry#\"vessel-catalog.updates\"",
         "note": "The Vessel Catalog widget's slot, renamed from SlotRegistry#\"fleet-roster.updates\"; a new required member of the registry"
+      },
+      {
+        "key": "sitrep-sdk . SlotRegistry#\"vessel-schematic.overlay\"",
+        "note": "Renamed from SlotRegistry#\"ship-map.overlay\", the widget is now named Vessel Schematic"
       },
       {
         "key": "sitrep-sdk . StatEntry#value?",
@@ -9419,8 +9607,12 @@
         "note": "The Science Data widget gains a stat strip above its Archive table that any Uplink can add figures to"
       },
       {
-        "key": "sitrep-sdk ./registry ~ContributionRegistry#\"ship-map.part-actions\"",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "key": "sitrep-sdk ./registry ~ContributionRegistry#\"ship-map.part-meta\"",
+        "note": "Renamed to sitrep-sdk ./registry ~ContributionRegistry#\"vessel-schematic.part-meta\", the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ContributionRegistry#\"ship-map.part-meters\"",
+        "note": "Renamed to sitrep-sdk ./registry ~ContributionRegistry#\"vessel-schematic.part-meters\", the widget is now named Vessel Schematic"
       },
       {
         "key": "sitrep-sdk ./registry ~ContributionRegistry#\"strategies.screens\"",
@@ -9449,6 +9641,18 @@
       {
         "key": "sitrep-sdk ./registry ~ContributionRegistry#\"tracking-station.vessel-status\"",
         "note": "The Tracking Station widget's slot, renamed from ContributionRegistry#\"system-view.vessel-status\"; a new required member of the registry"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ContributionRegistry#\"vessel-schematic.part-actions\"",
+        "note": "Renamed from sitrep-sdk ./registry ~ContributionRegistry#\"ship-map.part-actions\", the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ContributionRegistry#\"vessel-schematic.part-meta\"",
+        "note": "Renamed from sitrep-sdk ./registry ~ContributionRegistry#\"ship-map.part-meta\", the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ContributionRegistry#\"vessel-schematic.part-meters\"",
+        "note": "Renamed from sitrep-sdk ./registry ~ContributionRegistry#\"ship-map.part-meters\", the widget is now named Vessel Schematic"
       },
       {
         "key": "sitrep-sdk ./registry ~DepKey",
@@ -9545,6 +9749,34 @@
       {
         "key": "sitrep-sdk ./registry ~ShipMapPartMetaEntry#value?",
         "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ShipMapPartMeterEntry",
+        "note": "Renamed to sitrep-sdk ./registry ~VesselSchematicPartMeterEntry, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ShipMapPartMeterEntry#amount",
+        "note": "Renamed to sitrep-sdk ./registry ~VesselSchematicPartMeterEntry#amount, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ShipMapPartMeterEntry#capacity",
+        "note": "Renamed to sitrep-sdk ./registry ~VesselSchematicPartMeterEntry#capacity, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ShipMapPartMeterEntry#displayName",
+        "note": "Renamed to sitrep-sdk ./registry ~VesselSchematicPartMeterEntry#displayName, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ShipMapPartMeterEntry#partId",
+        "note": "Renamed to sitrep-sdk ./registry ~VesselSchematicPartMeterEntry#partId, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ShipMapPartMeterEntry#resource",
+        "note": "Renamed to sitrep-sdk ./registry ~VesselSchematicPartMeterEntry#resource, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ShipMapPartMeterEntry#status?",
+        "note": "Renamed to sitrep-sdk ./registry ~VesselSchematicPartMeterEntry#status?, the widget is now named Vessel Schematic"
       },
       {
         "key": "sitrep-sdk ./registry ~StatEntry#value?",
@@ -10451,8 +10683,12 @@
         "note": "The Science Data widget gains a stat strip above its Archive table that any Uplink can add figures to"
       },
       {
-        "key": "sitrep-sdk ./spine ~ContributionRegistry#\"ship-map.part-actions\"",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "key": "sitrep-sdk ./spine ~ContributionRegistry#\"ship-map.part-meta\"",
+        "note": "Renamed to sitrep-sdk ./spine ~ContributionRegistry#\"vessel-schematic.part-meta\", the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ContributionRegistry#\"ship-map.part-meters\"",
+        "note": "Renamed to sitrep-sdk ./spine ~ContributionRegistry#\"vessel-schematic.part-meters\", the widget is now named Vessel Schematic"
       },
       {
         "key": "sitrep-sdk ./spine ~ContributionRegistry#\"strategies.screens\"",
@@ -10481,6 +10717,18 @@
       {
         "key": "sitrep-sdk ./spine ~ContributionRegistry#\"tracking-station.vessel-status\"",
         "note": "The Tracking Station widget's slot, renamed from ContributionRegistry#\"system-view.vessel-status\"; a new required member of the registry"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ContributionRegistry#\"vessel-schematic.part-actions\"",
+        "note": "Renamed from sitrep-sdk ./spine ~ContributionRegistry#\"ship-map.part-actions\", the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ContributionRegistry#\"vessel-schematic.part-meta\"",
+        "note": "Renamed from sitrep-sdk ./spine ~ContributionRegistry#\"ship-map.part-meta\", the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ContributionRegistry#\"vessel-schematic.part-meters\"",
+        "note": "Renamed from sitrep-sdk ./spine ~ContributionRegistry#\"ship-map.part-meters\", the widget is now named Vessel Schematic"
       },
       {
         "key": "sitrep-sdk ./spine ~DepKey",
@@ -10569,6 +10817,34 @@
       {
         "key": "sitrep-sdk ./spine ~ShipMapPartMetaEntry#value?",
         "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ShipMapPartMeterEntry",
+        "note": "Renamed to sitrep-sdk ./spine ~VesselSchematicPartMeterEntry, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ShipMapPartMeterEntry#amount",
+        "note": "Renamed to sitrep-sdk ./spine ~VesselSchematicPartMeterEntry#amount, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ShipMapPartMeterEntry#capacity",
+        "note": "Renamed to sitrep-sdk ./spine ~VesselSchematicPartMeterEntry#capacity, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ShipMapPartMeterEntry#displayName",
+        "note": "Renamed to sitrep-sdk ./spine ~VesselSchematicPartMeterEntry#displayName, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ShipMapPartMeterEntry#partId",
+        "note": "Renamed to sitrep-sdk ./spine ~VesselSchematicPartMeterEntry#partId, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ShipMapPartMeterEntry#resource",
+        "note": "Renamed to sitrep-sdk ./spine ~VesselSchematicPartMeterEntry#resource, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ShipMapPartMeterEntry#status?",
+        "note": "Renamed to sitrep-sdk ./spine ~VesselSchematicPartMeterEntry#status?, the widget is now named Vessel Schematic"
       },
       {
         "key": "sitrep-sdk ./spine ~StatEntry#value?",
@@ -10891,8 +11167,12 @@
         "note": "The Science Data widget gains a stat strip above its Archive table that any Uplink can add figures to"
       },
       {
-        "key": "sitrep-sdk ./testing ~ContributionRegistry#\"ship-map.part-actions\"",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "key": "sitrep-sdk ./testing ~ContributionRegistry#\"ship-map.part-meta\"",
+        "note": "Renamed to sitrep-sdk ./testing ~ContributionRegistry#\"vessel-schematic.part-meta\", the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ContributionRegistry#\"ship-map.part-meters\"",
+        "note": "Renamed to sitrep-sdk ./testing ~ContributionRegistry#\"vessel-schematic.part-meters\", the widget is now named Vessel Schematic"
       },
       {
         "key": "sitrep-sdk ./testing ~ContributionRegistry#\"strategies.screens\"",
@@ -10921,6 +11201,18 @@
       {
         "key": "sitrep-sdk ./testing ~ContributionRegistry#\"tracking-station.vessel-status\"",
         "note": "The Tracking Station widget's slot, renamed from ContributionRegistry#\"system-view.vessel-status\"; a new required member of the registry"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ContributionRegistry#\"vessel-schematic.part-actions\"",
+        "note": "Renamed from sitrep-sdk ./testing ~ContributionRegistry#\"ship-map.part-actions\", the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ContributionRegistry#\"vessel-schematic.part-meta\"",
+        "note": "Renamed from sitrep-sdk ./testing ~ContributionRegistry#\"ship-map.part-meta\", the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ContributionRegistry#\"vessel-schematic.part-meters\"",
+        "note": "Renamed from sitrep-sdk ./testing ~ContributionRegistry#\"ship-map.part-meters\", the widget is now named Vessel Schematic"
       },
       {
         "key": "sitrep-sdk ./testing ~DepKey",
@@ -11159,24 +11451,140 @@
         "note": "SettingValueByType is keyed by SettingKind members rather than the words boolean, text and number"
       },
       {
-        "key": "sitrep-sdk ./testing ~ShipMapOverlayContext#held",
-        "note": "ShipMapOverlayContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
+        "key": "sitrep-sdk ./testing ~ShipMapBounds",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicBounds, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapBounds#cx",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicBounds#cx, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapBounds#cy",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicBounds#cy, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapBounds#h",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicBounds#h, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapBounds#w",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicBounds#w, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapOverlayContext",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicOverlayContext, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapOverlayContext#baseScale",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicOverlayContext#baseScale, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapOverlayContext#bounds",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicOverlayContext#bounds, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapOverlayContext#height",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicOverlayContext#height, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapOverlayContext#padding",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicOverlayContext#padding, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapOverlayContext#parts",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicOverlayContext#parts, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapOverlayContext#width",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicOverlayContext#width, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPart",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPart, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPart#axial",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPart#axial, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPart#axialHalfExtent",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPart#axialHalfExtent, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPart#depth",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPart#depth, the widget is now named Vessel Schematic"
       },
       {
         "key": "sitrep-sdk ./testing ~ShipMapPart#dryMass",
-        "note": "A ship-map part's dry mass is null when the mod could not read it, rather than 0 tonnes"
+        "note": "A vessel-schematic part's dry mass is null when the mod could not read it, rather than 0 tonnes"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPart#ecFlowSign?",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPart#ecFlowSign?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPart#flightId",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPart#flightId, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPart#fuelLineTarget?",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPart#fuelLineTarget?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPart#lat",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPart#lat, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPart#latHalfExtent",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPart#latHalfExtent, the widget is now named Vessel Schematic"
       },
       {
         "key": "sitrep-sdk ./testing ~ShipMapPart#maxTemp",
-        "note": "A ship-map part's maximum temperature is null when the mod could not read it, rather than 0 K"
+        "note": "A vessel-schematic part's maximum temperature is null when the mod could not read it, rather than 0 K"
       },
       {
         "key": "sitrep-sdk ./testing ~ShipMapPart#maxTemperatureK?",
         "note": "The live maximum temperature is null, not 0 K, when the part's limit could not be read"
       },
       {
+        "key": "sitrep-sdk ./testing ~ShipMapPart#name",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPart#name, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPart#parentFlightId",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPart#parentFlightId, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPart#partState?",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPart#partState?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPart#resources?",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPart#resources?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPart#rotationRad",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPart#rotationRad, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPart#size",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPart#size, the widget is now named Vessel Schematic"
+      },
+      {
         "key": "sitrep-sdk ./testing ~ShipMapPart#stage",
-        "note": "A ship-map part's stage is null when the mod could not read it, rather than stage 0"
+        "note": "A vessel-schematic part's stage is null when the mod could not read it, rather than stage 0"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPart#temperatureK?",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPart#temperatureK?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPart#title",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPart#title, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPart#type",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPart#type, the widget is now named Vessel Schematic"
       },
       {
         "key": "sitrep-sdk ./testing ~ShipMapPartMetaEntry",
@@ -11205,6 +11613,54 @@
       {
         "key": "sitrep-sdk ./testing ~ShipMapPartMetaEntry#value?",
         "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartMeterEntry",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPartMeterEntry, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartMeterEntry#amount",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPartMeterEntry#amount, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartMeterEntry#capacity",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPartMeterEntry#capacity, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartMeterEntry#displayName",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPartMeterEntry#displayName, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartMeterEntry#partId",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPartMeterEntry#partId, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartMeterEntry#resource",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPartMeterEntry#resource, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartMeterEntry#status?",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPartMeterEntry#status?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartStateModule",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPartStateModule, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartStateModule#flameout?",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPartStateModule#flameout?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartStateModule#state",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPartStateModule#state, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartStateModule#tracking?",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPartStateModule#tracking?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPartStateModule#type",
+        "note": "Renamed to sitrep-sdk ./testing ~VesselSchematicPartStateModule#type, the widget is now named Vessel Schematic"
       },
       {
         "key": "sitrep-sdk ./testing ~ShipMapPartType",
@@ -11263,6 +11719,10 @@
         "note": "The Tech Tree widget is now Research and Development, so its sections slot takes the new id"
       },
       {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"ship-map.overlay\"",
+        "note": "Renamed to sitrep-sdk ./testing ~SlotRegistry#\"vessel-schematic.overlay\", the widget is now named Vessel Schematic"
+      },
+      {
         "key": "sitrep-sdk ./testing ~SlotRegistry#\"strategies.screen-body\"",
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
@@ -11297,6 +11757,10 @@
       {
         "key": "sitrep-sdk ./testing ~SlotRegistry#\"vessel-catalog.updates\"",
         "note": "The Vessel Catalog widget's slot, renamed from SlotRegistry#\"fleet-roster.updates\"; a new required member of the registry"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"vessel-schematic.overlay\"",
+        "note": "Renamed from sitrep-sdk ./testing ~SlotRegistry#\"ship-map.overlay\", the widget is now named Vessel Schematic"
       },
       {
         "key": "sitrep-sdk ./testing ~StatEntry#value?",
@@ -11923,8 +12387,12 @@
         "note": "The Science Data widget gains a stat strip above its Archive table that any Uplink can add figures to"
       },
       {
-        "key": "ui-kit . ContributionRegistry#\"ship-map.part-actions\"",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
+        "key": "ui-kit . ContributionRegistry#\"ship-map.part-meta\"",
+        "note": "Renamed to ContributionRegistry#\"vessel-schematic.part-meta\", the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "ui-kit . ContributionRegistry#\"ship-map.part-meters\"",
+        "note": "Renamed to ContributionRegistry#\"vessel-schematic.part-meters\", the widget is now named Vessel Schematic"
       },
       {
         "key": "ui-kit . ContributionRegistry#\"strategies.screens\"",
@@ -11953,6 +12421,18 @@
       {
         "key": "ui-kit . ContributionRegistry#\"tracking-station.vessel-status\"",
         "note": "The Tracking Station widget's slot, renamed from ContributionRegistry#\"system-view.vessel-status\"; a new required member of the registry"
+      },
+      {
+        "key": "ui-kit . ContributionRegistry#\"vessel-schematic.part-actions\"",
+        "note": "Renamed from ContributionRegistry#\"ship-map.part-actions\", the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "ui-kit . ContributionRegistry#\"vessel-schematic.part-meta\"",
+        "note": "Renamed from ContributionRegistry#\"ship-map.part-meta\", the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "ui-kit . ContributionRegistry#\"vessel-schematic.part-meters\"",
+        "note": "Renamed from ContributionRegistry#\"ship-map.part-meters\", the widget is now named Vessel Schematic"
       },
       {
         "key": "ui-kit . ControlDelayStream",
@@ -12355,6 +12835,10 @@
         "note": "The Tech Tree widget is now Research and Development, so its sections slot takes the new id"
       },
       {
+        "key": "ui-kit . SlotRegistry#\"ship-map.overlay\"",
+        "note": "Renamed to SlotRegistry#\"vessel-schematic.overlay\", the widget is now named Vessel Schematic"
+      },
+      {
         "key": "ui-kit . SlotRegistry#\"strategies.screen-body\"",
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
@@ -12389,6 +12873,10 @@
       {
         "key": "ui-kit . SlotRegistry#\"vessel-catalog.updates\"",
         "note": "The Vessel Catalog widget's slot, renamed from SlotRegistry#\"fleet-roster.updates\"; a new required member of the registry"
+      },
+      {
+        "key": "ui-kit . SlotRegistry#\"vessel-schematic.overlay\"",
+        "note": "Renamed from SlotRegistry#\"ship-map.overlay\", the widget is now named Vessel Schematic"
       },
       {
         "key": "ui-kit . Spinner",
@@ -14365,38 +14853,6 @@
         "note": "Added with SettledEntry: vantage, as the queue's settled entry carries it"
       },
       {
-        "key": "sitrep-sdk . ShipMapPartActionEntry",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk . ShipMapPartActionEntry#active",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk . ShipMapPartActionEntry#args",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk . ShipMapPartActionEntry#command",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk . ShipMapPartActionEntry#group?",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk . ShipMapPartActionEntry#label",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk . ShipMapPartActionEntry#name",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk . ShipMapPartActionEntry#partId",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
         "key": "sitrep-sdk . SizeDelta",
         "note": "The room an extension asks of its host widget, whole grid units of zero or more"
       },
@@ -14975,6 +15431,234 @@
       {
         "key": "sitrep-sdk . VesselCatalogUpdatesContext#vesselName",
         "note": "The Vessel Catalog widget's name for FleetRosterUpdatesContext#vesselName"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicBounds",
+        "note": "Renamed from ShipMapBounds, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicBounds#cx",
+        "note": "Renamed from ShipMapBounds#cx, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicBounds#cy",
+        "note": "Renamed from ShipMapBounds#cy, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicBounds#h",
+        "note": "Renamed from ShipMapBounds#h, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicBounds#w",
+        "note": "Renamed from ShipMapBounds#w, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicOverlayContext",
+        "note": "Renamed from ShipMapOverlayContext, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicOverlayContext#baseScale",
+        "note": "Renamed from ShipMapOverlayContext#baseScale, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicOverlayContext#bounds",
+        "note": "Renamed from ShipMapOverlayContext#bounds, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicOverlayContext#height",
+        "note": "Renamed from ShipMapOverlayContext#height, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicOverlayContext#held",
+        "note": "Renamed from ShipMapOverlayContext#held, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicOverlayContext#padding",
+        "note": "Renamed from ShipMapOverlayContext#padding, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicOverlayContext#parts",
+        "note": "Renamed from ShipMapOverlayContext#parts, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicOverlayContext#width",
+        "note": "Renamed from ShipMapOverlayContext#width, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPart",
+        "note": "Renamed from ShipMapPart, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPart#axial",
+        "note": "Renamed from ShipMapPart#axial, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPart#axialHalfExtent",
+        "note": "Renamed from ShipMapPart#axialHalfExtent, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPart#depth",
+        "note": "Renamed from ShipMapPart#depth, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPart#dryMass",
+        "note": "Renamed from ShipMapPart#dryMass, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPart#ecFlowSign?",
+        "note": "Renamed from ShipMapPart#ecFlowSign?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPart#flightId",
+        "note": "Renamed from ShipMapPart#flightId, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPart#fuelLineTarget?",
+        "note": "Renamed from ShipMapPart#fuelLineTarget?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPart#lat",
+        "note": "Renamed from ShipMapPart#lat, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPart#latHalfExtent",
+        "note": "Renamed from ShipMapPart#latHalfExtent, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPart#maxTemp",
+        "note": "Renamed from ShipMapPart#maxTemp, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPart#maxTemperatureK?",
+        "note": "Renamed from ShipMapPart#maxTemperatureK?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPart#name",
+        "note": "Renamed from ShipMapPart#name, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPart#parentFlightId",
+        "note": "Renamed from ShipMapPart#parentFlightId, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPart#partState?",
+        "note": "Renamed from ShipMapPart#partState?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPart#resources?",
+        "note": "Renamed from ShipMapPart#resources?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPart#rotationRad",
+        "note": "Renamed from ShipMapPart#rotationRad, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPart#size",
+        "note": "Renamed from ShipMapPart#size, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPart#stage",
+        "note": "Renamed from ShipMapPart#stage, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPart#temperatureK?",
+        "note": "Renamed from ShipMapPart#temperatureK?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPart#title",
+        "note": "Renamed from ShipMapPart#title, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPart#type",
+        "note": "Renamed from ShipMapPart#type, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPartActionEntry",
+        "note": "Renamed from ShipMapPartActionEntry, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPartActionEntry#active",
+        "note": "Renamed from ShipMapPartActionEntry#active, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPartActionEntry#args",
+        "note": "Renamed from ShipMapPartActionEntry#args, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPartActionEntry#command",
+        "note": "Renamed from ShipMapPartActionEntry#command, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPartActionEntry#group?",
+        "note": "Renamed from ShipMapPartActionEntry#group?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPartActionEntry#label",
+        "note": "Renamed from ShipMapPartActionEntry#label, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPartActionEntry#name",
+        "note": "Renamed from ShipMapPartActionEntry#name, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPartActionEntry#partId",
+        "note": "Renamed from ShipMapPartActionEntry#partId, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPartMetaEntry",
+        "note": "Renamed from ShipMapPartMetaEntry, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPartMeterEntry",
+        "note": "Renamed from ShipMapPartMeterEntry, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPartMeterEntry#amount",
+        "note": "Renamed from ShipMapPartMeterEntry#amount, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPartMeterEntry#capacity",
+        "note": "Renamed from ShipMapPartMeterEntry#capacity, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPartMeterEntry#displayName",
+        "note": "Renamed from ShipMapPartMeterEntry#displayName, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPartMeterEntry#partId",
+        "note": "Renamed from ShipMapPartMeterEntry#partId, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPartMeterEntry#resource",
+        "note": "Renamed from ShipMapPartMeterEntry#resource, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPartMeterEntry#status?",
+        "note": "Renamed from ShipMapPartMeterEntry#status?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPartStateModule",
+        "note": "Renamed from ShipMapPartStateModule, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPartStateModule#flameout?",
+        "note": "Renamed from ShipMapPartStateModule#flameout?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPartStateModule#state",
+        "note": "Renamed from ShipMapPartStateModule#state, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPartStateModule#tracking?",
+        "note": "Renamed from ShipMapPartStateModule#tracking?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPartStateModule#type",
+        "note": "Renamed from ShipMapPartStateModule#type, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk . VesselSchematicPartType",
+        "note": "Renamed from ShipMapPartType, the widget is now named Vessel Schematic"
       },
       {
         "key": "sitrep-sdk . ViewClockLike",
@@ -16953,202 +17637,6 @@
         "note": "now reachable from the registry entry point because TinyControl names a command; the type itself is unchanged"
       },
       {
-        "key": "sitrep-sdk ./registry ~ShipMapBounds",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapBounds#cx",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapBounds#cy",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapBounds#h",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapBounds#w",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapOverlayContext",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapOverlayContext#baseScale",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapOverlayContext#bounds",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapOverlayContext#height",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapOverlayContext#held",
-        "note": "ShipMapOverlayContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapOverlayContext#padding",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapOverlayContext#parts",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapOverlayContext#width",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPart",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPart#axial",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPart#axialHalfExtent",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPart#depth",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPart#dryMass",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPart#ecFlowSign?",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPart#flightId",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPart#fuelLineTarget?",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPart#lat",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPart#latHalfExtent",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPart#maxTemp",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPart#maxTemperatureK?",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPart#name",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPart#parentFlightId",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPart#partState?",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPart#resources?",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPart#rotationRad",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPart#size",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPart#stage",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPart#temperatureK?",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPart#title",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPart#type",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPartActionEntry",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPartActionEntry#active",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPartActionEntry#args",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPartActionEntry#command",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPartActionEntry#group?",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPartActionEntry#label",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPartActionEntry#name",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPartActionEntry#partId",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPartStateModule",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPartStateModule#flameout?",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPartStateModule#state",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPartStateModule#tracking?",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPartStateModule#type",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ShipMapPartType",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
         "key": "sitrep-sdk ./registry ~SizeDelta",
         "note": "The room an extension asks of its host widget, whole grid units of zero or more"
       },
@@ -17285,10 +17773,6 @@
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
       },
       {
-        "key": "sitrep-sdk ./registry ~SlotRegistry#\"ship-map.overlay\"",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
-      },
-      {
         "key": "sitrep-sdk ./registry ~SlotRegistry#\"space-center-status.sections\"",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
       },
@@ -17307,6 +17791,10 @@
       {
         "key": "sitrep-sdk ./registry ~SlotRegistry#\"vessel-catalog.updates\"",
         "note": "The Vessel Catalog widget's slot, renamed from SlotRegistry#\"fleet-roster.updates\"; a new required member of the registry"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SlotRegistry#\"vessel-schematic.overlay\"",
+        "note": "Renamed from sitrep-sdk ./registry ~SlotRegistry#\"ship-map.overlay\", the widget is now named Vessel Schematic"
       },
       {
         "key": "sitrep-sdk ./registry ~SlotRegistry#\"warp-control.stepper\"",
@@ -17707,6 +18195,234 @@
       {
         "key": "sitrep-sdk ./registry ~VesselCatalogUpdatesContext#vesselName",
         "note": "The Vessel Catalog widget's name for FleetRosterUpdatesContext#vesselName"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicBounds",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapBounds, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicBounds#cx",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapBounds#cx, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicBounds#cy",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapBounds#cy, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicBounds#h",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapBounds#h, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicBounds#w",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapBounds#w, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicOverlayContext",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapOverlayContext, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicOverlayContext#baseScale",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapOverlayContext#baseScale, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicOverlayContext#bounds",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapOverlayContext#bounds, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicOverlayContext#height",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapOverlayContext#height, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicOverlayContext#held",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapOverlayContext#held, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicOverlayContext#padding",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapOverlayContext#padding, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicOverlayContext#parts",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapOverlayContext#parts, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicOverlayContext#width",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapOverlayContext#width, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPart",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPart, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPart#axial",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPart#axial, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPart#axialHalfExtent",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPart#axialHalfExtent, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPart#depth",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPart#depth, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPart#dryMass",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPart#dryMass, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPart#ecFlowSign?",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPart#ecFlowSign?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPart#flightId",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPart#flightId, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPart#fuelLineTarget?",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPart#fuelLineTarget?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPart#lat",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPart#lat, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPart#latHalfExtent",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPart#latHalfExtent, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPart#maxTemp",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPart#maxTemp, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPart#maxTemperatureK?",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPart#maxTemperatureK?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPart#name",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPart#name, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPart#parentFlightId",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPart#parentFlightId, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPart#partState?",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPart#partState?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPart#resources?",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPart#resources?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPart#rotationRad",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPart#rotationRad, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPart#size",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPart#size, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPart#stage",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPart#stage, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPart#temperatureK?",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPart#temperatureK?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPart#title",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPart#title, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPart#type",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPart#type, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPartActionEntry",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPartActionEntry, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPartActionEntry#active",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPartActionEntry#active, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPartActionEntry#args",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPartActionEntry#args, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPartActionEntry#command",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPartActionEntry#command, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPartActionEntry#group?",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPartActionEntry#group?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPartActionEntry#label",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPartActionEntry#label, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPartActionEntry#name",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPartActionEntry#name, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPartActionEntry#partId",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPartActionEntry#partId, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPartMetaEntry",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPartMetaEntry, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPartMeterEntry",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPartMeterEntry, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPartMeterEntry#amount",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPartMeterEntry#amount, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPartMeterEntry#capacity",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPartMeterEntry#capacity, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPartMeterEntry#displayName",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPartMeterEntry#displayName, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPartMeterEntry#partId",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPartMeterEntry#partId, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPartMeterEntry#resource",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPartMeterEntry#resource, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPartMeterEntry#status?",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPartMeterEntry#status?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPartStateModule",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPartStateModule, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPartStateModule#flameout?",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPartStateModule#flameout?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPartStateModule#state",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPartStateModule#state, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPartStateModule#tracking?",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPartStateModule#tracking?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPartStateModule#type",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPartStateModule#type, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~VesselSchematicPartType",
+        "note": "Renamed from sitrep-sdk ./registry ~ShipMapPartType, the widget is now named Vessel Schematic"
       },
       {
         "key": "sitrep-sdk ./registry ~WidgetDataRates",
@@ -19369,38 +20085,6 @@
         "note": "helper type of bindCommand and bindValue"
       },
       {
-        "key": "sitrep-sdk ./spine ~ShipMapPartActionEntry",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~ShipMapPartActionEntry#active",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~ShipMapPartActionEntry#args",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~ShipMapPartActionEntry#command",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~ShipMapPartActionEntry#group?",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~ShipMapPartActionEntry#label",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~ShipMapPartActionEntry#name",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~ShipMapPartActionEntry#partId",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
         "key": "sitrep-sdk ./spine ~SizeDelta",
         "note": "The room an extension asks of its host widget, whole grid units of zero or more"
       },
@@ -19699,6 +20383,70 @@
       {
         "key": "sitrep-sdk ./spine ~ValueTags#kind?",
         "note": "The tags a contract declares on one value: its own sample kind and whether it keys its list entry"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~VesselSchematicPartActionEntry",
+        "note": "Renamed from sitrep-sdk ./spine ~ShipMapPartActionEntry, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~VesselSchematicPartActionEntry#active",
+        "note": "Renamed from sitrep-sdk ./spine ~ShipMapPartActionEntry#active, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~VesselSchematicPartActionEntry#args",
+        "note": "Renamed from sitrep-sdk ./spine ~ShipMapPartActionEntry#args, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~VesselSchematicPartActionEntry#command",
+        "note": "Renamed from sitrep-sdk ./spine ~ShipMapPartActionEntry#command, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~VesselSchematicPartActionEntry#group?",
+        "note": "Renamed from sitrep-sdk ./spine ~ShipMapPartActionEntry#group?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~VesselSchematicPartActionEntry#label",
+        "note": "Renamed from sitrep-sdk ./spine ~ShipMapPartActionEntry#label, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~VesselSchematicPartActionEntry#name",
+        "note": "Renamed from sitrep-sdk ./spine ~ShipMapPartActionEntry#name, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~VesselSchematicPartActionEntry#partId",
+        "note": "Renamed from sitrep-sdk ./spine ~ShipMapPartActionEntry#partId, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~VesselSchematicPartMetaEntry",
+        "note": "Renamed from sitrep-sdk ./spine ~ShipMapPartMetaEntry, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~VesselSchematicPartMeterEntry",
+        "note": "Renamed from sitrep-sdk ./spine ~ShipMapPartMeterEntry, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~VesselSchematicPartMeterEntry#amount",
+        "note": "Renamed from sitrep-sdk ./spine ~ShipMapPartMeterEntry#amount, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~VesselSchematicPartMeterEntry#capacity",
+        "note": "Renamed from sitrep-sdk ./spine ~ShipMapPartMeterEntry#capacity, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~VesselSchematicPartMeterEntry#displayName",
+        "note": "Renamed from sitrep-sdk ./spine ~ShipMapPartMeterEntry#displayName, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~VesselSchematicPartMeterEntry#partId",
+        "note": "Renamed from sitrep-sdk ./spine ~ShipMapPartMeterEntry#partId, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~VesselSchematicPartMeterEntry#resource",
+        "note": "Renamed from sitrep-sdk ./spine ~ShipMapPartMeterEntry#resource, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~VesselSchematicPartMeterEntry#status?",
+        "note": "Renamed from sitrep-sdk ./spine ~ShipMapPartMeterEntry#status?, the widget is now named Vessel Schematic"
       },
       {
         "key": "sitrep-sdk ./spine ~VesselStructureWirePayload",
@@ -20641,38 +21389,6 @@
         "note": "Added. A text setting can refuse typed text with a sentence of its own, which Settings shows under the field"
       },
       {
-        "key": "sitrep-sdk ./testing ~ShipMapPartActionEntry",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ShipMapPartActionEntry#active",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ShipMapPartActionEntry#args",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ShipMapPartActionEntry#command",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ShipMapPartActionEntry#group?",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ShipMapPartActionEntry#label",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ShipMapPartActionEntry#name",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ShipMapPartActionEntry#partId",
-        "note": "The Vessel Schematic part menu gains a slot any Uplink can add buttons to"
-      },
-      {
         "key": "sitrep-sdk ./testing ~SizeDelta",
         "note": "The room an extension asks of its host widget, whole grid units of zero or more"
       },
@@ -21035,6 +21751,234 @@
       {
         "key": "sitrep-sdk ./testing ~VesselCatalogUpdatesContext#vesselName",
         "note": "The Vessel Catalog widget's name for FleetRosterUpdatesContext#vesselName"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicBounds",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapBounds, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicBounds#cx",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapBounds#cx, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicBounds#cy",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapBounds#cy, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicBounds#h",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapBounds#h, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicBounds#w",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapBounds#w, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicOverlayContext",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapOverlayContext, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicOverlayContext#baseScale",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapOverlayContext#baseScale, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicOverlayContext#bounds",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapOverlayContext#bounds, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicOverlayContext#height",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapOverlayContext#height, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicOverlayContext#held",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapOverlayContext#held, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicOverlayContext#padding",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapOverlayContext#padding, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicOverlayContext#parts",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapOverlayContext#parts, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicOverlayContext#width",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapOverlayContext#width, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPart",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPart, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPart#axial",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPart#axial, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPart#axialHalfExtent",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPart#axialHalfExtent, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPart#depth",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPart#depth, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPart#dryMass",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPart#dryMass, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPart#ecFlowSign?",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPart#ecFlowSign?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPart#flightId",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPart#flightId, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPart#fuelLineTarget?",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPart#fuelLineTarget?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPart#lat",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPart#lat, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPart#latHalfExtent",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPart#latHalfExtent, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPart#maxTemp",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPart#maxTemp, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPart#maxTemperatureK?",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPart#maxTemperatureK?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPart#name",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPart#name, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPart#parentFlightId",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPart#parentFlightId, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPart#partState?",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPart#partState?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPart#resources?",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPart#resources?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPart#rotationRad",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPart#rotationRad, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPart#size",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPart#size, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPart#stage",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPart#stage, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPart#temperatureK?",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPart#temperatureK?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPart#title",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPart#title, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPart#type",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPart#type, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPartActionEntry",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPartActionEntry, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPartActionEntry#active",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPartActionEntry#active, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPartActionEntry#args",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPartActionEntry#args, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPartActionEntry#command",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPartActionEntry#command, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPartActionEntry#group?",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPartActionEntry#group?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPartActionEntry#label",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPartActionEntry#label, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPartActionEntry#name",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPartActionEntry#name, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPartActionEntry#partId",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPartActionEntry#partId, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPartMetaEntry",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPartMetaEntry, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPartMeterEntry",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPartMeterEntry, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPartMeterEntry#amount",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPartMeterEntry#amount, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPartMeterEntry#capacity",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPartMeterEntry#capacity, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPartMeterEntry#displayName",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPartMeterEntry#displayName, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPartMeterEntry#partId",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPartMeterEntry#partId, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPartMeterEntry#resource",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPartMeterEntry#resource, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPartMeterEntry#status?",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPartMeterEntry#status?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPartStateModule",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPartStateModule, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPartStateModule#flameout?",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPartStateModule#flameout?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPartStateModule#state",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPartStateModule#state, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPartStateModule#tracking?",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPartStateModule#tracking?, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPartStateModule#type",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPartStateModule#type, the widget is now named Vessel Schematic"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~VesselSchematicPartType",
+        "note": "Renamed from sitrep-sdk ./testing ~ShipMapPartType, the widget is now named Vessel Schematic"
       },
       {
         "key": "sitrep-sdk ./testing ~ViewClockLike",

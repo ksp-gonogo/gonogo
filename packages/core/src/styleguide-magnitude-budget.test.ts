@@ -235,7 +235,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    * division is the dimension check, and the single unwrap is where the
    * fraction stops being a quantity.
    */
-  "packages/components/src/ShipMap/partMeters.tsx": 1,
+  "packages/components/src/VesselSchematic/partMeters.tsx": 1,
   // 1: the view instant, unwrapped to bound a history window. sampleRange takes plain UT numbers because a store index is not a quantity.
   "packages/components/src/shared/usePastTrack.ts": 1,
   /*
@@ -500,7 +500,7 @@ const FUNNEL_BUDGET: Record<string, number> = {
   "mod/sitrep-sdk": 28,
   // One of these is the alarm service reading the view instant into the plain UT seconds an alarm is stored, sent and settled in.
   "packages/app": 9,
-  // Two of these are ShipMap taking the wire's wrapped throttle for the SVG engine-flame gate and the ambient temperature for its CSS colour ramp, both plain-number boundaries.
+  // Two of these are VesselSchematic taking the wire's wrapped throttle for the SVG engine-flame gate and the ambient temperature for its CSS colour ramp, both plain-number boundaries.
   // Four more are the touchdown view reading wire quantities into the plain numbers its camera projects with, each at one call in touchdownInputs.ts: the sample arrays (the camera's per-pixel sampler indexes plain numbers), the grid's extent (the world scale of its ray march), and the craft's altitude and the site's elevation (where the camera places the eye and the ground it looks at).
   "packages/components": 110,
   "packages/data": 5,

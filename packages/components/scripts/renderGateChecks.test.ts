@@ -82,15 +82,15 @@ describe("settleDebt", () => {
   const finding = "graph @ min-5x4 (stress-many-series): <text> x";
 
   it("removes a finding its debt covers and keeps one it does not", () => {
-    const lines = [finding, "ship-map @ a (b): c"];
+    const lines = [finding, "vessel-schematic @ a (b): c"];
     const debt = new Set(["graph|stress-many-series|svgHtmlOverlaps"]);
     const settled = settleDebt(
       [["svgHtmlOverlaps", lines]],
-      new Set(["graph", "ship-map"]),
+      new Set(["graph", "vessel-schematic"]),
       debt,
     );
     expect(settled.covered).toBe(1);
-    expect(lines).toEqual(["ship-map @ a (b): c"]);
+    expect(lines).toEqual(["vessel-schematic @ a (b): c"]);
   });
 
   it("names an entry of a rendered widget that reported nothing, and none of an unrendered one", () => {
