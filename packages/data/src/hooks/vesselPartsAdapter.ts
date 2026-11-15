@@ -17,16 +17,16 @@ import type {
 /**
  * Reshapes the mod's `vessel.parts` Topic (the structural part-tree stream,
  * `VesselStructure.cs`'s doc comment calls it a sibling channel) into the
- * legacy `VesselTopology` shape `ShipMap`/`PowerSystems`'s diagram code
+ * legacy `VesselTopology` shape `VesselSchematic`/`PowerSystems`'s diagram code
  * already consumes, so `useTopology` can un-gap `v.topology`/`v.topologySeq`
  * without touching either widget's rendering logic.
  *
  * Every field the diagrams actually read maps straight across
  * (name/title/category/modules/dryMass/inverseStage/maxTemp/orgPos/up/forward/
  * bounds/fuelLineTarget/parentFlightId: see `shipTopology.ts`'s
- * `buildShipMapPart`/`classifyPart`). `persistentId`/`manufacturer`/
+ * `buildVesselSchematicPart`/`classifyPart`). `persistentId`/`manufacturer`/
  * `crewCapacity`/`crashTolerance` have no `VesselPart` equivalent and no
- * diagram code reads them (confirmed by grep across `ShipMap`/
+ * diagram code reads them (confirmed by grep across `VesselSchematic`/
  * `PowerSystems`), so they're defaulted rather than plumbed through a new
  * mod field nobody would consume.
  *
@@ -255,7 +255,7 @@ function deriveModuleState(m: PartModuleState): PartStateModule {
  * more: the whole `vessel.parts` payload re-emits atomically on change (see
  * `VesselParts`' doc comment), so there's no separate per-part dedup
  * counter left to carry forward. No `usePartsLive` consumer reads `.seq`
- * (confirmed by grep across ShipMap/PowerSystems), so this synthesizes a
+ * (confirmed by grep across VesselSchematic/PowerSystems), so this synthesizes a
  * value from the module count: stable across identical payloads, changes
  * whenever the module set does, satisfying the field's original
  * "consumers dedup on seq" contract without a real wire counter.

@@ -717,7 +717,7 @@ export type ReadingReckoning = Reckoning<unknown>["status"];
  * Use it for a readout that shows the last observed number, marked as held
  * when it is, and never a modelled one. Never use it for anything that draws a
  * position or an attitude: a marker placed at a last-known value claims to
- * know where the vessel is now. Used by the ship map and the target picker.
+ * know where the vessel is now. Used by the vessel schematic and the target picker.
  *
  * @category Reading telemetry
  */

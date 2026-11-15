@@ -23,7 +23,7 @@
  *    `SystemEntityStyle` already draws for `tracking-station.entities`: an author
  *    says how alarming a thing is and the renderer resolves the token, so a
  *    palette change cannot leave a plot's marks behind. The two exceptions are
- *    `PlotFieldLayer.tint` and `PlotWaterLayer.tint`, for the reason ShipMap's
+ *    `PlotFieldLayer.tint` and `PlotWaterLayer.tint`, for the reason VesselSchematic's
  *    resource meters carry a fill colour: a body's own sky or sea is an
  *    identity colour, not a status.
  *

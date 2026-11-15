@@ -210,7 +210,7 @@ describe("uplink-tools add", () => {
 }
 declare module "./types" {
   interface ContributionRegistry {
-    "ship-map.part-meters": { entry: PartMeterEntry };
+    "vessel-schematic.part-meters": { entry: PartMeterEntry };
   }
 }
 `,
@@ -247,7 +247,13 @@ declare module "./types" {
         noTerminal,
       );
       await add(
-        ["contribution", "meter", "ship-map.part-meters", "--uplink", dir],
+        [
+          "contribution",
+          "meter",
+          "vessel-schematic.part-meters",
+          "--uplink",
+          dir,
+        ],
         dir,
         noTerminal,
       );

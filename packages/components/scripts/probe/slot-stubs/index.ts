@@ -15,7 +15,7 @@ import "./objectives";
 import "./orbit-view";
 import "./power-systems";
 import "./science-data";
-import "./ship-map";
+import "./vessel-schematic";
 import "./space-center-status";
 import "./administration-building";
 import "./tracking-station";

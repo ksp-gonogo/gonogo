@@ -24,18 +24,18 @@
 // contribution slot's context type gives the file a natural export.
 //
 // The first two first-party contribution slots landed here (the
-// framework's self-contribution flagship): ShipMap's `ship-map.part-meters`
-// and `ship-map.part-meta`, both owned by `packages/components/src/ShipMap`.
+// framework's self-contribution flagship): VesselSchematic's `vessel-schematic.part-meters`
+// and `vessel-schematic.part-meta`, both owned by `packages/components/src/VesselSchematic`.
 // Every OTHER first-party contribution to date rides the automatic
 // `${componentId}.badges` slot, which is a runtime string, never a member of
 // this declaration-merged registry (see `useWidgetBadges`'s own doc
 // comment); these two are the first GENUINELY typed, declared slots.
 //
-// `ShipMapPartMeterEntry` deliberately carries no `tone`: the meter's fill is
+// `VesselSchematicPartMeterEntry` deliberately carries no `tone`: the meter's fill is
 // the resource's IDENTITY colour, derived by the renderer from `resource` via
 // ui-kit's `resourceColor`, never chosen by a contributor. `status` is the
 // SEPARATE, level-driven signal (a border tint or badge), and a single `tone`
-// would conflate it with the fill hue. `ShipMapPartMetaEntry` does carry a
+// would conflate it with the fill hue. `VesselSchematicPartMetaEntry` does carry a
 // `tone`: that is a different kind of row (process running/broken, habitat
 // pressure, ...) whose tone genuinely is a state rather than an identity.
 // ---------------------------------------------------------------------------
@@ -48,10 +48,10 @@ import type { AlertTone, Tone } from "./tone";
 import type { BadgeEntry, MeterEntry, StatEntry } from "./types";
 
 /**
- * One resource meter on a part of the Ship Map, contributed to
- * `ship-map.part-meters`.
+ * One resource meter on a part of the Vessel Schematic, contributed to
+ * `vessel-schematic.part-meters`.
  *
- * The Ship Map draws each entry as a fill bar on the part and as a meter in the
+ * The Vessel Schematic draws each entry as a fill bar on the part and as a meter in the
  * part's tooltip. The fill colour is the resource's own colour, chosen by the
  * widget from `resource`; `status` is the only signal a contributor adds to it.
  * The first entry for a given `partId` and `resource` is drawn and any later one
@@ -61,7 +61,7 @@ import type { BadgeEntry, MeterEntry, StatEntry } from "./types";
  *
  * @category Widget slots
  */
-export interface ShipMapPartMeterEntry {
+export interface VesselSchematicPartMeterEntry {
   /** The part's `flightId`, as a decimal string. */
   partId: string;
   /** The resource name as KSP spells it, such as `"LiquidFuel"`. Picks the fill colour. */
@@ -88,10 +88,10 @@ export interface ShipMapPartMeterEntry {
 }
 
 /**
- * One button in a part's menu on the Ship Map, contributed to
- * `ship-map.part-actions`.
+ * One button in a part's menu on the Vessel Schematic, contributed to
+ * `vessel-schematic.part-actions`.
  *
- * The Ship Map lists each entry after the buttons the game's own part window
+ * The Vessel Schematic lists each entry after the buttons the game's own part window
  * supplies, counts it in the part's tooltip, and sends `command` with `args`
  * when the operator picks it. The command goes out through the delay-aware
  * command path, so the operator sees it wait on the signal delay like any
@@ -99,11 +99,11 @@ export interface ShipMapPartMeterEntry {
  * one is ignored.
  * Useful for a mod whose controls the game builds only while the in-game part
  * window is open, so the part's own button list never carries them. Used by the
- * Ship Map.
+ * Vessel Schematic.
  *
  * @category Widget slots
  */
-export interface ShipMapPartActionEntry {
+export interface VesselSchematicPartActionEntry {
   /** The part's `flightId`, as a decimal string. */
   partId: string;
   /** Identifies the button on its part, unique among this part's contributed buttons. */
@@ -121,18 +121,18 @@ export interface ShipMapPartActionEntry {
 }
 
 /**
- * One status row on a part of the Ship Map that is not a stored resource, such
+ * One status row on a part of the Vessel Schematic that is not a stored resource, such
  * as a converter's efficiency or a habitat's pressure, contributed to
- * `ship-map.part-meta`.
+ * `vessel-schematic.part-meta`.
  *
  * Drawn in the part's tooltip, after its resource meters. The first entry for a
  * given `partId` and `label` is drawn and any later one is ignored.
  * Useful for showing the operator how a part's process is doing, such as a
- * converter running or broken. Used by the Ship Map.
+ * converter running or broken. Used by the Vessel Schematic.
  *
  * @category Widget slots
  */
-export type ShipMapPartMetaEntry = {
+export type VesselSchematicPartMetaEntry = {
   /** The part's `flightId`, as a decimal string. */
   partId: string;
   /** The row's label, such as `"Water Recycler"`. */
@@ -773,30 +773,30 @@ declare module "./types" {
      * Topic is valid there, and `deps` is the only thing that feeds `compute`.
      */
     /**
-     * Resource meters on the Ship Map's parts, such as a life-support supply
+     * Resource meters on the Vessel Schematic's parts, such as a life-support supply
      * the stock resource list does not carry. Each entry draws as a fill bar
      * on the part and as a meter in the part's tooltip. Returns
-     * {@link ShipMapPartMeterEntry} entries.
+     * {@link VesselSchematicPartMeterEntry} entries.
      */
-    "ship-map.part-meters": {
-      entry: ShipMapPartMeterEntry;
+    "vessel-schematic.part-meters": {
+      entry: VesselSchematicPartMeterEntry;
     };
     /**
-     * Status rows in a Ship Map part's tooltip, after its resource meters, for
+     * Status rows in a Vessel Schematic part's tooltip, after its resource meters, for
      * something that is not a stored resource, such as a converter's
-     * efficiency. Returns {@link ShipMapPartMetaEntry} entries.
+     * efficiency. Returns {@link VesselSchematicPartMetaEntry} entries.
      */
-    "ship-map.part-meta": {
-      entry: ShipMapPartMetaEntry;
+    "vessel-schematic.part-meta": {
+      entry: VesselSchematicPartMetaEntry;
     };
     /**
-     * Buttons in a Ship Map part's menu, after the ones the game's own part
+     * Buttons in a Vessel Schematic part's menu, after the ones the game's own part
      * window supplies, for controls the game builds only while that window is
      * open. Each entry is counted in the part's tooltip and sends its own
-     * command when picked. Returns {@link ShipMapPartActionEntry} entries.
+     * command when picked. Returns {@link VesselSchematicPartActionEntry} entries.
      */
-    "ship-map.part-actions": {
-      entry: ShipMapPartActionEntry;
+    "vessel-schematic.part-actions": {
+      entry: VesselSchematicPartActionEntry;
     };
     /**
      * Things drawn on the Tracking Station diagram, such as a relay's orbit, a

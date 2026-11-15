@@ -76,8 +76,8 @@ export * from "./hooks/useTopicFields";
 export * from "./hooks/useTopology";
 export * from "./hooks/useTrackedVesselTopology";
 // `buildResourcesByFlightId`: the pure per-flightId resources lookup
-// `usePartsLive` builds internally, also needed by ShipMap's built-in
-// `ship-map.part-meters` contribution (a plain function of the same
+// `usePartsLive` builds internally, also needed by VesselSchematic's built-in
+// `vessel-schematic.part-meters` contribution (a plain function of the same
 // `vessel.parts` Topic payload, evaluated outside React by the contribution
 // aggregator, so it can't go through the hook).
 export {

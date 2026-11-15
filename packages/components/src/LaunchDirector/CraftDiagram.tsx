@@ -2,11 +2,14 @@ import type { PartResources, VesselTopology } from "@ksp-gonogo/core";
 import { useCraftFileTopology } from "@ksp-gonogo/data";
 import { NULL_DISPLAY, Spinner } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
-import { ShipDiagramSvg } from "../ShipMap/ShipDiagramSvg";
-import { buildShipMapPart, type ShipMapPart } from "../ShipMap/shipTopology";
-import { pickView } from "../ShipMap/shipView";
-import { buildStageStack } from "../ShipMap/stageStack";
-import { usePartShapes } from "../ShipMap/usePartShapes";
+import { ShipDiagramSvg } from "../VesselSchematic/ShipDiagramSvg";
+import {
+  buildVesselSchematicPart,
+  type VesselSchematicPart,
+} from "../VesselSchematic/shipTopology";
+import { pickView } from "../VesselSchematic/shipView";
+import { buildStageStack } from "../VesselSchematic/stageStack";
+import { usePartShapes } from "../VesselSchematic/usePartShapes";
 import { CraftStages } from "./CraftStages";
 import {
   CraftDiagramFrame,
@@ -73,7 +76,9 @@ function useCraftStages(topology: VesselTopology | undefined) {
     if (!topology) return [];
     const view = pickView(topology.parts);
     return buildStageStack(
-      topology.parts.map((p) => buildShipMapPart(p, null, undefined, view)),
+      topology.parts.map((p) =>
+        buildVesselSchematicPart(p, null, undefined, view),
+      ),
     );
   }, [topology]);
 }
@@ -95,11 +100,11 @@ export function CraftDiagram({
   resourcesByFlightId?: ReadonlyMap<number, PartResources>;
 }) {
   const { shapes, sources: shapeSources } = usePartShapes(topology?.parts);
-  const parts: ShipMapPart[] = useMemo(() => {
+  const parts: VesselSchematicPart[] = useMemo(() => {
     if (!topology) return [];
     const view = pickView(topology.parts);
     return topology.parts.map((p) =>
-      buildShipMapPart(
+      buildVesselSchematicPart(
         p,
         null,
         resourcesByFlightId?.get(p.flightId),
