@@ -160,8 +160,13 @@ jobs:
   ci:
     needs: gate
     if: needs.gate.outputs.build == 'true' && needs.gate.outputs.ci == 'run'
+    # A called workflow's jobs may ask for no more than this grants, checked
+    # before the run starts: ci.yml's amber gates post a commit status and its
+    # verdict job reads the run's jobs back.
     permissions:
       contents: read
+      actions: read
+      statuses: write
     uses: ./.github/workflows/ci.yml
     with:
       ref: ${{ needs.gate.outputs.sha }}

@@ -795,6 +795,7 @@ jobs:
       contents: write
       actions: write
       packages: write
+      statuses: write
     uses: ./.github/workflows/rc.yml
     with:
       label: ${{ fromJSON(needs.rc-plan.outputs.plan).version }}
