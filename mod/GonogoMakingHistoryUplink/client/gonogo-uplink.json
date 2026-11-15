@@ -6,10 +6,10 @@
   "repo": "",
   "version": "0.0.1",
   "minAppVersion": "0.0.0",
-  "apiVersion": "6.0.0",
+  "apiVersion": "7.0.0",
   "contractMajor": 52,
   "contractMinor": 2,
   "bundleUrl": "makingHistory/makingHistory.client.js",
   "integrity": "",
-  "sdkVersion": "0.0.1"
+  "sdkVersion": "1.0.0"
 }

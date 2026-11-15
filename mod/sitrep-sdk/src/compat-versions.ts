@@ -27,7 +27,7 @@
  *
  * @category Host and runtime
  */
-export const EXTENSION_API_VERSION: string = "6.0.0";
+export const EXTENSION_API_VERSION: string = "7.0.0";
 
 /**
  * The major version of the game data contract: the shape of every payload the
