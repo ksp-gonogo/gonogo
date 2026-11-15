@@ -24,7 +24,7 @@ afterEach(() => {
   restoreObserver = undefined;
 });
 
-async function mountAtWidth(width: number, columns = 8) {
+async function mountAtWidth(width: number, columns = 8, currentStage = 1) {
   restoreObserver = installSizedResizeObserver({ w: width, h: 500 });
   const fixture = setupStreamFixture({ pinnedUt: 0, suspendFrames: true });
   const { container } = render(
@@ -34,7 +34,7 @@ async function mountAtWidth(width: number, columns = 8) {
   );
   act(() => {
     fixture.emit("vessel.parts", WIRE);
-    fixture.emit("vessel.structure", { currentStage: 1 });
+    fixture.emit("vessel.structure", { currentStage });
   });
   await waitFor(() =>
     expect(screen.getByRole("region", { name: "Staging" })).toBeTruthy(),
@@ -52,6 +52,14 @@ describe("Ship Map by tile size", () => {
     expect(document.querySelectorAll('[aria-current="step"]')).toHaveLength(1);
     expect(screen.getAllByText("Next")).toHaveLength(1);
     await expectNoA11yViolations(container);
+  });
+
+  it("keeps the stage list at five columns once every stage has fired, and says so", async () => {
+    await mountAtWidth(185, 5, 0);
+
+    expect(screen.queryByLabelText("Ship diagram")).toBeNull();
+    const list = screen.getByRole("region", { name: "Staging" });
+    expect(list.textContent).toContain("All stages fired");
   });
 
   it("shows the diagram and the stage list from six columns, however narrow the tile is", async () => {

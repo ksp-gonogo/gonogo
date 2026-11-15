@@ -245,10 +245,16 @@ function ShipMapComponent({
   }, [topology, liveByFlightId, baseView, turn, shapes, impactId]);
 
   // Stages already fired are left out, as the in-game stack drops them.
-  const stages = useMemo(
-    () => buildStageStack(parts, currentStage).filter((s) => !s.spent),
+  const stageStack = useMemo(
+    () => buildStageStack(parts, currentStage),
     [parts, currentStage],
   );
+  const stages = useMemo(
+    () => stageStack.filter((s) => !s.spent),
+    [stageStack],
+  );
+  const stagesEmptyLabel =
+    stageStack.length > 0 ? "All stages fired" : "No staged parts";
 
   // A state-backed ref so the effect re-attaches when DiagramWrap mounts, which happens only once topology exists.
   const [wrapEl, setWrapEl] = useState<HTMLDivElement | null>(null);
@@ -374,6 +380,7 @@ function ShipMapComponent({
           turn,
           onTurn: setTurn,
           stages,
+          stagesEmptyLabel,
         })}
       />
     </>

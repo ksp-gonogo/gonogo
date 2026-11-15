@@ -2,7 +2,7 @@
   "_meta": {
     "shows": "A three-stage rocket with two parachutes, a Reliant first stage, a Terrier second stage, and the staging stack beside the diagram with the first stage marked next.",
     "scenario": "staged-rocket",
-    "notes": "Every part carries an inverseStage and vessel.structure reports currentStage 3, so the stage column lists stages 3, 2, 1 and 0 from the top with stage 3 marked current."
+    "notes": "Every part carries an inverseStage and vessel.structure reports currentStage 4, as a fresh craft does, one above its highest stage, so the stage column lists stages 3, 2, 1 and 0 from the top with stage 3 marked next."
   },
   "_stream": {
     "emits": [
@@ -302,7 +302,7 @@
       {
         "channel": "vessel.structure",
         "value": {
-          "currentStage": 3,
+          "currentStage": 4,
           "partCount": 8
         }
       }
