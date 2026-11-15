@@ -210,7 +210,14 @@ function refuse(reason: string): never {
  * A refusal made on the Uplink's own health report. Health is a live status, so
  * unlike every other refusal it can be undone by the mod's next roster.
  */
-class HealthRefusal extends LoadRefusal {}
+class HealthRefusal extends LoadRefusal {
+  constructor(
+    message: string,
+    readonly detail: string | null = null,
+  ) {
+    super(message);
+  }
+}
 
 /** The operator answered Skip or Decline at the consent prompt: a choice, not a fault. */
 class ConsentRefusal extends LoadRefusal {}
@@ -390,6 +397,7 @@ function checkCompat(
   if (roster?.health?.state === "unavailable") {
     throw new HealthRefusal(
       `mod reports Uplink unavailable${roster.health.detail ? `: ${roster.health.detail}` : ""}`,
+      roster.health.detail,
     );
   }
 
@@ -1148,6 +1156,8 @@ async function loadOne(
       reason,
       integrity: err instanceof IntegrityRefusal ? err.failure : undefined,
       refusedOnHealth: err instanceof HealthRefusal ? true : undefined,
+      healthDetail:
+        err instanceof HealthRefusal ? (err.detail ?? undefined) : undefined,
       skippedByOperator: err instanceof ConsentRefusal ? true : undefined,
     };
     setUplinkOutcome(outcome);

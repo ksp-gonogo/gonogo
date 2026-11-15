@@ -172,6 +172,37 @@ describe("a saved tile whose widget is not registered", () => {
     });
   });
 
+  describe("when the add-on's own mod reports itself unavailable", () => {
+    const held = {
+      id: "example-mod",
+      name: "Example Mod",
+      status: "quarantined",
+      reason: "mod reports Uplink unavailable: Example Mod does not run",
+      refusedOnHealth: true,
+      healthDetail: "Example Mod does not run in this game",
+    } as const;
+
+    it("names the add-on and gives the mod's reason, with a one-press remove", async () => {
+      setUplinkOutcome(held);
+      const user = userEvent.setup();
+      const { removeItem } = renderGhost(vi.fn(), "example-mod-readout");
+      expect(screen.getByText("Example Mod")).toBeVisible();
+      expect(
+        screen.getByText("Example Mod does not run in this game"),
+      ).toBeVisible();
+      expect(screen.queryByText(/failed to load|repaired/)).toBeNull();
+      await user.click(screen.getByRole("button", { name: "Remove" }));
+      expect(removeItem).toHaveBeenCalledWith("tile-1");
+    });
+
+    it("leaves an id with no add-on prefix as it was", () => {
+      setUplinkOutcome(held);
+      renderGhost(vi.fn(), "ship-systems");
+      expect(screen.getByText("ship-systems")).toBeVisible();
+      expect(screen.getByText(/is not available/)).toBeVisible();
+    });
+  });
+
   it("keeps the failed-add-on message in a live region that was mounted before it had anything to say", async () => {
     const { container } = renderGhost(vi.fn(), "broken-gauge");
     await expectLiveRegionPrimed(container, () => setUplinkOutcome(broken));

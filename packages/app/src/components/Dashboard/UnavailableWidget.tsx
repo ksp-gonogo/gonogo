@@ -63,8 +63,10 @@ interface UnavailableWidgetProps {
  * prefix. While the add-on that owns the widget has failed to load the tile
  * says so, and removing it takes a second press that lapses when the pointer or
  * focus leaves the button or after a few seconds, since a repaired add-on would
- * bring the widget and its saved configuration back. A tile no failed add-on
- * owns says nothing about one and removes in a single press.
+ * bring the widget and its saved configuration back. A tile whose add-on is
+ * held back because the game does not run the mod it integrates with names
+ * that add-on and gives the mod's own reason, and removes in a single press
+ * like a tile no failed add-on owns, which says nothing about one.
  */
 export function UnavailableWidget({
   componentId,
@@ -76,11 +78,13 @@ export function UnavailableWidget({
     getUplinkOutcomes,
     getUplinkOutcomes,
   );
-  const failed = outcomes
-    .filter(
-      (outcome) =>
-        outcome.status === "quarantined" && ownedBy(outcome.id, componentId),
-    )
+  const owned = outcomes.filter(
+    (outcome) =>
+      outcome.status === "quarantined" && ownedBy(outcome.id, componentId),
+  );
+  const notRun = owned.find((outcome) => outcome.refusedOnHealth);
+  const failed = owned
+    .filter((outcome) => !outcome.refusedOnHealth)
     .map((outcome) => outcome.name);
   /*
    * An Uplink that is still starting brings its widgets once it has. Most widget ids
@@ -108,8 +112,12 @@ export function UnavailableWidget({
         <Section key="unavailable" full>
           <Unavailable__Empty layout="fill">
             <Unavailable__Message>
-              <Unavailable__Id>{componentId}</Unavailable__Id>
-              <span>is not available</span>
+              <Unavailable__Id>{notRun?.name ?? componentId}</Unavailable__Id>
+              <span>
+                {notRun
+                  ? (notRun.healthDetail ?? "is not available")
+                  : "is not available"}
+              </span>
             </Unavailable__Message>
           </Unavailable__Empty>
           <LiveRegion as="div">

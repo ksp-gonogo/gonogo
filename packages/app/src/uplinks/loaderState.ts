@@ -67,6 +67,12 @@ export interface UplinkLoadOutcome {
    */
   refusedOnHealth?: true;
   /**
+   * The detail sentence the mod's health report gave when `refusedOnHealth`
+   * was set, as the Uplink's Settings page shows it under Mod. Absent when the
+   * mod gave none.
+   */
+  healthDetail?: string;
+  /**
    * Set when the quarantine is the operator's own answer at the consent prompt
    * (Skip or Decline) rather than a fault. Nothing was fetched or run, and
    * Reconsider asks again.
