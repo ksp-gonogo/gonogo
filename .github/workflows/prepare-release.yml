@@ -168,6 +168,9 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -u
           git commit -m "chore(release): v${NEW}"
+          # Every push from here on skips the pre-push hook: it needs the KSP
+          # assemblies, which this job does not check out, and CI has already tested the commit.
+          git config core.hooksPath /dev/null
           git tag "${TAG}"
           git push origin HEAD:main "${TAG}"
 
