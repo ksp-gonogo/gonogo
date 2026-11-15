@@ -80,6 +80,8 @@ declare global {
       mount: (spec: HeroSpec) => Promise<void>;
       /** Replays every frame up to and including `index`, then waits for the paint. */
       seek: (index: number) => Promise<void>;
+      /** The mounted scene's stream fixture, for a scene that plays its own readings. */
+      stream: () => StreamFixture | null;
     };
   }
 }
@@ -165,6 +167,7 @@ function emitFrame(frame: HeroFrame): void {
 }
 
 window.__hero = {
+  stream: () => stream,
   async mount(spec) {
     const host = document.getElementById("root");
     if (!host) throw new Error("Hero: #root missing");

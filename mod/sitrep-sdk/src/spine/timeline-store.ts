@@ -4041,7 +4041,9 @@ export class TimelineStore {
    *    orthogonal: the client already confirmedly knows there
    *    is no value, and that doesn't stop being true just because the
    *    transport dropped a moment later.
-   * 3. Server-stamped `meta.staleness` wins outright when present (a
+   * 3. The game's own `"loading"` state outranks every stamp below it: the
+   *    scene is being replaced, so no stamped grade describes the link.
+   * 3b. Server-stamped `meta.staleness` wins outright when present (a
    *    catch-up/late-joiner mark is authoritative, no client inference
    *    needed for it, and it out-ranks a live transport-down reading too:
    *    it's a stronger, already-settled claim about this specific point).
@@ -4085,13 +4087,18 @@ export class TimelineStore {
     ) {
       return "resyncing";
     }
+    /*
+     * A scene load replaces every reading, so a grade the mod stamped on the
+     * old scene's samples says nothing about the link while it runs: the load
+     * is why the reading is held, and it outranks the stamp.
+     */
+    if (this.gameShown.state === "loading") return "loading";
     if (point.meta.staleness === Staleness.LastBeforeBlackout) {
       return "last-before-blackout";
     }
     if (point.meta.staleness === Staleness.Recorded) return "recorded";
     if (point.meta.staleness === Staleness.Held) return "held";
     if (!this.transportConnected) return "disconnected";
-    if (this.gameShown.state === "loading") return "loading";
     if (this.gameShown.state === "no-game") return "no-game";
     if (this.predatesLossOfLink(topic, point.validAt, token)) {
       return "last-before-blackout";

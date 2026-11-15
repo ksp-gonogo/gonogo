@@ -1,4 +1,4 @@
-import { parseServerMessage } from "@ksp-gonogo/sitrep-sdk";
+import { parseServerMessage, Staleness } from "@ksp-gonogo/sitrep-sdk";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TelemetryClient } from "./client";
@@ -51,6 +51,31 @@ describe("the game's own state, held on the store", () => {
     const held = s.sampleReading("trackingStation.bodies");
     expect(held.state).toBe("held");
     expect(held.state === "held" && held.grade).toBe("loading");
+  });
+
+  it("reads loading over a blackout stamp during a scene load, and the stamp again after it", () => {
+    const s = store();
+    s.ingest("trackingStation.bodies", {
+      ...point(10, BODIES),
+      meta: makeMeta({
+        validAt: 10,
+        deliveredAt: 10,
+        staleness: Staleness.LastBeforeBlackout,
+      }),
+    });
+    s.beginFrame();
+    expect(s.sampleStatus("trackingStation.bodies")).toBe(
+      "last-before-blackout",
+    );
+
+    s.setGameState("loading", "FLIGHT");
+    vi.advanceTimersByTime(800);
+    expect(s.sampleStatus("trackingStation.bodies")).toBe("loading");
+
+    s.setGameState("ready", "FLIGHT");
+    expect(s.sampleStatus("trackingStation.bodies")).toBe(
+      "last-before-blackout",
+    );
   });
 
   it("reads observed again at once when the game is ready", () => {
