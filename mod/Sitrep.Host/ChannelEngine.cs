@@ -9083,6 +9083,7 @@ namespace Sitrep.Host
             {
                 _jobSignal.Wait(JobPollInterval);
                 _hostRecord?.Expire();
+                WatchHeldForLoad();
 
                 while (_jobs.TryDequeue(out var job))
                 {
@@ -11643,6 +11644,10 @@ namespace Sitrep.Host
             OffloadRecordings(tick.Ut, null);
             TickDelivery(tick.Ut);
             ContinueInbound(tick.Ut);
+            if (!tick.GameLoading)
+            {
+                ReleaseHeldForLoad();
+            }
             ReleaseGameStateAfterTick();
             timing.End(ref timing.StoreAndForward);
             timing.Record();
@@ -12129,6 +12134,12 @@ namespace Sitrep.Host
                 return;
             }
 
+            // A gate check reads the scene on the game's main thread, as a command does.
+            if (string.Equals(job.Command, GateCheckCommand, StringComparison.Ordinal) && HoldWhileLoading(job, listed: false))
+            {
+                return;
+            }
+
             if (TryHandleGateCheck(job))
             {
                 return;
@@ -12182,6 +12193,11 @@ namespace Sitrep.Host
             if (RefuseIfFromAnotherTimeline(job))
             {
                 job.Done?.Set();
+                return;
+            }
+
+            if (HoldWhileLoading(job, listed: true))
+            {
                 return;
             }
 
@@ -13349,7 +13365,7 @@ namespace Sitrep.Host
          */
         public void SetGameState(GamePhase phase, string scene)
         {
-            _gameLoading = phase == GamePhase.Loading;
+            NoteLoading(phase == GamePhase.Loading);
             lock (_gameStateLock)
             {
                 if (phase == GamePhase.Ready)
