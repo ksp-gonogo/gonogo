@@ -79,7 +79,8 @@ interface RawSystemUplinksPayload {
 
 /**
  * The names of an Uplink's health states, in the order of the mod's
- * `Sitrep.Contract.UplinkHealthState` (`healthy`, `degraded`, `unavailable`).
+ * `Sitrep.Contract.UplinkHealthState` (`healthy`, `degraded`, `unavailable`,
+ * `starting`).
  * Useful for turning the number on the wire into a name the operator can read.
  * Used by the app's Uplink roster probe. The mod serializes every enum as its
  * integer ordinal rather than its name, so the wire value resolves here by a plain
@@ -94,12 +95,14 @@ export const HEALTH_STATE_NAMES = [
   "healthy",
   "degraded",
   "unavailable",
+  "starting",
 ] as const;
 
 /**
  * An Uplink's health, as a widget reads it: `"healthy"`, `"degraded"` (running
- * with a problem its `detail` names) or `"unavailable"` (not running, with a
- * reason). Useful for showing the operator whether an Uplink is working. Used by
+ * with a problem its `detail` names), `"unavailable"` (not running, with a
+ * reason) or `"starting"` (waiting for the mod it integrates to finish loading,
+ * which it does by itself, with what it waits for in `detail`). Useful for showing the operator whether an Uplink is working. Used by
  * the Uplink status in the Settings window.
  *
  * @category Host and runtime

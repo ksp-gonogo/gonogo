@@ -5,7 +5,7 @@ using Xunit;
 namespace Sitrep.Contract.Tests
 {
     /// <summary>
-    /// The three health states an Uplink can report, reached the same way.
+    /// The health states an Uplink can report, reached the same way.
     ///
     /// <para>Before the factories existed, <see cref="UplinkHealth.Healthy"/> was
     /// a value and the other two were a two-type incantation naming
@@ -44,6 +44,29 @@ namespace Sitrep.Contract.Tests
             Assert.Equal(UplinkHealthState.Unavailable, health.State);
             Assert.Equal("Example Mod is not installed", health.Detail);
             Assert.Empty(health.Facts);
+        }
+
+        [Fact]
+        public void StartingCarriesWhatItWaitsFor()
+        {
+            var health = UplinkHealth.Starting("Example Mod hasn't finished loading.");
+
+            Assert.Equal(UplinkHealthState.Starting, health.State);
+            Assert.Equal("Example Mod hasn't finished loading.", health.Detail);
+            Assert.Empty(health.Facts);
+        }
+
+        /// <summary>
+        /// The wire carries the state as its ordinal, and a client decodes it by
+        /// position, so the state added last keeps every earlier state's number.
+        /// </summary>
+        [Fact]
+        public void StartingIsTheFourthOrdinalSoEveryEarlierStateKeepsItsNumber()
+        {
+            Assert.Equal(0, (int)UplinkHealthState.Healthy);
+            Assert.Equal(1, (int)UplinkHealthState.Degraded);
+            Assert.Equal(2, (int)UplinkHealthState.Unavailable);
+            Assert.Equal(3, (int)UplinkHealthState.Starting);
         }
 
         /// <summary>

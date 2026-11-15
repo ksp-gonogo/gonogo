@@ -38,12 +38,13 @@ interface UnavailableWidgetProps {
  * that is not registered: it names the missing id and, once every Uplink has
  * been attempted, offers to remove the tile, so a saved layout never loses a
  * tile silently. Until then the id may still belong to an Uplink that has not
- * loaded, and removing the tile is switched off. While the add-on that owns the
- * widget has failed to load the tile says so, and removing it takes a second
- * press that lapses when the pointer or focus leaves the button or after a few
- * seconds, since a repaired add-on would bring the widget and its saved
- * configuration back. A tile no failed add-on owns says nothing about one and
- * removes in a single press.
+ * loaded, and removing the tile is switched off, as it is while any add-on is
+ * still starting, which the tile names when its id carries that add-on's
+ * prefix. While the add-on that owns the widget has failed to load the tile
+ * says so, and removing it takes a second press that lapses when the pointer or
+ * focus leaves the button or after a few seconds, since a repaired add-on would
+ * bring the widget and its saved configuration back. A tile no failed add-on
+ * owns says nothing about one and removes in a single press.
  */
 export function UnavailableWidget({
   componentId,
@@ -61,6 +62,18 @@ export function UnavailableWidget({
         outcome.status === "quarantined" && ownedBy(outcome.id, componentId),
     )
     .map((outcome) => outcome.name);
+  /*
+   * An Uplink that is still starting brings its widgets once it has. Most widget ids
+   * carry no Uplink prefix, so while any Uplink waits no tile is removable, and the
+   * one an Uplink's prefix names says which.
+   */
+  const anyWaiting = outcomes.some((outcome) => outcome.status === "waiting");
+  const waiting = outcomes
+    .filter(
+      (outcome) =>
+        outcome.status === "waiting" && ownedBy(outcome.id, componentId),
+    )
+    .map((outcome) => outcome.name);
   const [confirming, setConfirming] = useState(false);
   useEffect(() => {
     if (!confirming) return;
@@ -76,11 +89,13 @@ export function UnavailableWidget({
             <code>{componentId}</code> is not available
           </EmptyState>
           <LiveRegion as="div">
-            {failed.length > 0
-              ? `${failed.join(", ")} failed to load, so this widget may return once it is repaired`
-              : null}
+            {waiting.length > 0
+              ? `${waiting.join(", ")} has not finished loading, so this widget will arrive once it has`
+              : failed.length > 0
+                ? `${failed.join(", ")} failed to load, so this widget may return once it is repaired`
+                : null}
           </LiveRegion>
-          {settled ? (
+          {settled && !anyWaiting ? (
             <TextButton
               type="button"
               onPointerLeave={() => setConfirming(false)}

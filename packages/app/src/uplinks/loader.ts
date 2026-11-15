@@ -216,6 +216,16 @@ class HealthRefusal extends LoadRefusal {}
 class ConsentRefusal extends LoadRefusal {}
 
 /**
+ * The Uplink reports it is still starting: its client waits rather than being
+ * refused, and the next roster that reports anything else loads or refuses it.
+ */
+class StartingWait extends LoadRefusal {}
+
+/** What the Client line says while the Uplink it belongs to is starting. */
+export const WAITING_FOR_UPLINK_REASON =
+  "waiting for the Uplink to finish loading";
+
+/**
  * A refusal that is a hash disagreement, carrying the machine-readable record
  * alongside the reason string. Both survive: the reason stays the diagnostic
  * line an operator reads in the loaded-clients list, and `failure` is what lets
@@ -373,6 +383,9 @@ function checkCompat(
     refuse(
       `mod reports Uplink unavailable${roster.reason ? `: ${roster.reason}` : ""}`,
     );
+  }
+  if (roster?.health?.state === "starting") {
+    throw new StartingWait(WAITING_FOR_UPLINK_REASON);
   }
   if (roster?.health?.state === "unavailable") {
     throw new HealthRefusal(
@@ -1105,6 +1118,21 @@ async function loadOne(
     );
     return outcome;
   } catch (err) {
+    if (err instanceof StartingWait) {
+      const waiting: UplinkLoadOutcome = {
+        id: descriptor.id,
+        name: descriptor.name,
+        identity,
+        source,
+        unvouchedDevClient,
+        version: base.version,
+        status: "waiting",
+        reason: err.message,
+      };
+      setUplinkOutcome(waiting);
+      logger.info(`[uplink-loader] ${descriptor.id} waiting: ${err.message}`);
+      return waiting;
+    }
     const reason =
       err instanceof LoadRefusal
         ? err.message
@@ -1376,11 +1404,18 @@ export async function loadFromLiveRoster(
     if (isClientlessUplink(id)) return false;
     if (!outcome) return !pinned;
     if (outcome.registryUnavailable) return true;
+    const entry = roster.find((r) => r.id === id);
+    if (outcome.status === "waiting") {
+      return entry !== undefined && entry.health?.state !== "starting";
+    }
     if (outcome.status !== "quarantined" || !outcome.refusedOnHealth) {
       return false;
     }
-    const entry = roster.find((r) => r.id === id);
-    return entry?.available && entry.health?.state !== "unavailable";
+    return (
+      entry?.available &&
+      entry.health?.state !== "unavailable" &&
+      entry.health?.state !== "starting"
+    );
   };
   return queueLoad(
     { ...ctx, override: undefined },

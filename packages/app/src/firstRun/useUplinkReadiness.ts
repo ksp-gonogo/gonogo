@@ -121,7 +121,9 @@ function stateOf(
 ): UplinkReadinessState {
   if (installed && contractRefused) return "contract-mismatch";
   if (outcome?.status === "loaded") return "loaded";
-  if (outcome?.status === "loading") return "loading";
+  /* A client waiting on its Uplink loads by itself once the Uplink is ready. */
+  if (outcome?.status === "loading" || outcome?.status === "waiting")
+    return "loading";
   if (outcome?.status === "quarantined" && outcome.skippedByOperator)
     return "skipped";
   if (outcome?.status === "quarantined") return "quarantined";

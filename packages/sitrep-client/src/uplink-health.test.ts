@@ -316,6 +316,23 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
     expect(decoded?.uplinks[0]?.contract).toBeNull();
   });
 
+  it("decodes a Starting entry, the mod's fourth state, with what it waits for", () => {
+    const raw: RawSystemUplinksPayload = {
+      uplinks: [
+        {
+          id: "example-mod",
+          version: "1.0.0",
+          available: true,
+          reason: null,
+          health: { state: 3, detail: "Example Mod hasn't finished loading." },
+        },
+      ],
+    };
+    const health = deriveSystemUplinkHealth(raw)?.uplinks[0]?.health;
+    expect(health?.state).toBe("starting");
+    expect(health?.detail).toBe("Example Mod hasn't finished loading.");
+  });
+
   it("falls back to unavailable for an out-of-range health.state ordinal; never throws", () => {
     const raw: RawSystemUplinksPayload = {
       uplinks: [

@@ -120,12 +120,14 @@ const healthColor: Record<UplinkHealthStateName, string> = {
   healthy: "var(--color-accent-fg)",
   degraded: "var(--color-warn-mark)",
   unavailable: "var(--color-nogo-mark)",
+  starting: "var(--color-warn-mark)",
 };
 
 const loaderColor: Record<UplinkLoadStatus, string> = {
   loading: "var(--color-warn-mark)",
   loaded: "var(--color-accent-fg)",
   quarantined: "var(--color-nogo-mark)",
+  waiting: "var(--color-warn-mark)",
 };
 
 export const StatusList = styled.ul`

@@ -139,7 +139,7 @@ describe("enum name tables cover their enums", () => {
       "UplinkHealthState",
     );
     // Guards this reader the same way the generated-enum one is guarded above: an extractor that quietly returned nothing would make any table pass.
-    expect(members).toEqual(["Healthy", "Degraded", "Unavailable"]);
+    expect(members).toEqual(["Healthy", "Degraded", "Unavailable", "Starting"]);
     expect([...HEALTH_STATE_NAMES]).toEqual(
       members.map((n) => n.toLowerCase()),
     );

@@ -10,6 +10,7 @@ import {
   loadFromLiveRoster,
   manifestUrlFor,
   type RosterEntry,
+  WAITING_FOR_UPLINK_REASON,
 } from "./loader";
 import { __resetUplinkOutcomes, getUplinkOutcomes } from "./loaderState";
 import type { RegistryIndex } from "./registry";
@@ -354,6 +355,106 @@ describe("loadEnabledUplinks", () => {
     expect(outcomes[0].status).toBe("loaded");
     expect(getUplinkOutcomes()[0].status).toBe("loaded");
     expect(importBundle).toHaveBeenCalledTimes(1);
+  });
+
+  it("holds back the client of an Uplink that is starting, without quarantining it", async () => {
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
+    const roster: RosterEntry[] = [
+      {
+        id: "scansat",
+        version: "1.0.0",
+        available: true,
+        reason: null,
+        health: {
+          state: "starting",
+          detail: "SCANsat hasn't finished loading.",
+        },
+      },
+    ];
+    const outcomes = await loadEnabledUplinks(
+      ctx({ index: indexWith(goodHash), roster, importBundle }),
+    );
+    expect(importBundle).not.toHaveBeenCalled();
+    expect(outcomes[0].status).toBe("waiting");
+    expect(outcomes[0].reason).toBe(WAITING_FOR_UPLINK_REASON);
+    expect(
+      getUplinkOutcomes().filter((o) => o.status === "quarantined"),
+    ).toEqual([]);
+  });
+
+  it("loads a waiting client once the Uplink stops starting, and refuses it if the Uplink turns out unavailable", async () => {
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
+    const rosterWith = (health: RosterEntry["health"]): RosterEntry[] => [
+      {
+        id: "scansat",
+        version: "1.0.0",
+        available: true,
+        reason: null,
+        health,
+      },
+    ];
+    const starting = rosterWith({
+      state: "starting",
+      detail: "SCANsat hasn't finished loading.",
+    });
+    await loadEnabledUplinks(
+      ctx({ index: indexWith(goodHash), roster: starting, importBundle }),
+    );
+    expect(
+      await loadFromLiveRoster(
+        ctx({ index: indexWith(goodHash), roster: starting, importBundle }),
+      ),
+    ).toEqual([]);
+    expect(getUplinkOutcomes()[0].status).toBe("waiting");
+
+    const outcomes = await loadFromLiveRoster(
+      ctx({
+        index: indexWith(goodHash),
+        roster: rosterWith({ state: "healthy", detail: null }),
+        importBundle,
+      }),
+    );
+    expect(outcomes[0].status).toBe("loaded");
+    expect(importBundle).toHaveBeenCalledTimes(1);
+  });
+
+  it("refuses a waiting client once its Uplink reports unavailable", async () => {
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
+    const rosterWith = (health: RosterEntry["health"]): RosterEntry[] => [
+      {
+        id: "scansat",
+        version: "1.0.0",
+        available: true,
+        reason: null,
+        health,
+      },
+    ];
+    await loadEnabledUplinks(
+      ctx({
+        index: indexWith(goodHash),
+        roster: rosterWith({ state: "starting", detail: "still loading" }),
+        importBundle,
+      }),
+    );
+    const outcomes = await loadFromLiveRoster(
+      ctx({
+        index: indexWith(goodHash),
+        roster: rosterWith({
+          state: "unavailable",
+          detail: "SCANsat is not installed",
+        }),
+        importBundle,
+      }),
+    );
+    expect(outcomes[0].status).toBe("quarantined");
+    expect(outcomes[0].reason).toMatch(/SCANsat is not installed/);
+    expect(importBundle).not.toHaveBeenCalled();
   });
 
   it("loads a client startup never attempted once a roster arrives, and loads it once", async () => {

@@ -10063,6 +10063,10 @@
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
       },
       {
+        "key": "sitrep-sdk ./spine HEALTH_STATE_NAMES",
+        "note": "Gains starting, the mod's fourth health state: an Uplink waiting for the mod it integrates to finish loading. A Record keyed on UplinkHealthStateName needs a starting entry"
+      },
+      {
         "key": "sitrep-sdk ./spine HeartbeatTracker#declareKeyframeInterval",
         "note": "New: records the keyframe interval the mod declared for a topic, a floor under the learned interval"
       },

@@ -2071,6 +2071,11 @@ namespace Sitrep.Contract
         /// <summary>Not usable at all: none of its channels will carry
         /// anything.</summary>
         Unavailable,
+
+        /// <summary>Registered and waiting for the mod it integrates to finish
+        /// loading. It becomes <see cref="Healthy"/> or <see cref="Unavailable"/>
+        /// by itself, with nothing for the operator to do.</summary>
+        Starting,
     }
 
     /// <summary> One labelled diagnostic on an <see cref="UplinkHealth"/>:
@@ -2226,6 +2231,21 @@ namespace Sitrep.Contract
             string detail,
             IReadOnlyList<UplinkHealthFact>? facts = null) =>
             new UplinkHealth(UplinkHealthState.Unavailable, detail, facts);
+
+        /// <summary>
+        /// Registered and waiting for the mod it integrates to finish loading, which
+        /// it will do by itself: the Uplink becomes <see cref="UplinkHealthState.Healthy"/>
+        /// or <see cref="UplinkHealthState.Unavailable"/> without the operator doing
+        /// anything. Gonogo holds the Uplink's client back until then rather than
+        /// refusing it. <paramref name="detail"/> says what it is waiting for, in the
+        /// operator's terms.
+        /// </summary>
+        /// <param name="detail">What it is waiting for, in the operator's terms. Required.</param>
+        /// <param name="facts">Labelled facts, or null for none.</param>
+        public static UplinkHealth Starting(
+            string detail,
+            IReadOnlyList<UplinkHealthFact>? facts = null) =>
+            new UplinkHealth(UplinkHealthState.Starting, detail, facts);
     }
 
 }

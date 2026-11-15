@@ -7,7 +7,7 @@
 import type { UplinkIdentity } from "./identity";
 import type { UplinkIntegrityFailure } from "./integrity";
 
-export type UplinkLoadStatus = "loading" | "loaded" | "quarantined";
+export type UplinkLoadStatus = "loading" | "loaded" | "quarantined" | "waiting";
 
 export interface UplinkLoadOutcome {
   /** The Uplink id (matches the mod's `[SitrepUplink("id")]`). */

@@ -28,7 +28,8 @@ export type UplinkHealthForResult =
 const HEALTH_SEVERITY: Record<UplinkHealthStateName, number> = {
   healthy: 0,
   degraded: 1,
-  unavailable: 2,
+  starting: 2,
+  unavailable: 3,
 };
 
 /**

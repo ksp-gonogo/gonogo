@@ -1,8 +1,14 @@
+import type { UplinkHealthEntry } from "@ksp-gonogo/sitrep-client";
 import { render, screen } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
+import { WAITING_FOR_UPLINK_REASON } from "../uplinks/loader";
 import type { UplinkLoadOutcome } from "../uplinks/loaderState";
-import { statusNeedsAttention, UplinkClientStatus } from "./UplinkStatus";
+import {
+  statusNeedsAttention,
+  UplinkClientStatus,
+  UplinkHealthReport,
+} from "./UplinkStatus";
 
 const loaded: UplinkLoadOutcome = {
   id: "widget-y",
@@ -34,6 +40,53 @@ describe("UplinkClientStatus", () => {
   it("says nothing of the kind for a client its plugin vouched for", () => {
     clientRow(loaded);
     expect(screen.queryByText(/Unvouched/)).toBeNull();
+  });
+
+  it("says a client held back by its starting Uplink is waiting, not quarantined", async () => {
+    const { container } = clientRow({
+      ...loaded,
+      status: "waiting",
+      reason: WAITING_FOR_UPLINK_REASON,
+    });
+
+    expect(screen.getByText("waiting")).toBeInTheDocument();
+    expect(screen.getByText(WAITING_FOR_UPLINK_REASON)).toBeInTheDocument();
+    expect(screen.queryByText("quarantined")).toBeNull();
+    await expectNoA11yViolations(container);
+  });
+});
+
+const starting: UplinkHealthEntry = {
+  id: "example-mod",
+  name: "Example Mod",
+  version: "1.0.0",
+  available: true,
+  reason: null,
+  contract: null,
+  ownedPrefixes: [],
+  modSettings: false,
+  bundled: false,
+  health: {
+    state: "starting",
+    detail: "Example Mod hasn't finished loading.",
+    facts: [],
+    preventsStart: false,
+  },
+};
+
+describe("UplinkHealthReport", () => {
+  it("shows a starting Uplink as starting, with what it is waiting for", async () => {
+    const { container } = render(
+      <ul>
+        <UplinkHealthReport entry={starting} />
+      </ul>,
+    );
+
+    expect(screen.getByText("starting")).toBeInTheDocument();
+    expect(
+      screen.getByText("Example Mod hasn't finished loading."),
+    ).toBeInTheDocument();
+    await expectNoA11yViolations(container);
   });
 });
 

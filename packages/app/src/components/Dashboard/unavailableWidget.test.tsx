@@ -89,6 +89,36 @@ describe("a saved tile whose widget is not registered", () => {
     expect(removeItem).toHaveBeenCalledWith("tile-1");
   });
 
+  it("says the owning add-on has not finished loading and cannot be removed while it is starting", async () => {
+    setUplinkOutcome({
+      id: "example-mod",
+      name: "Example Mod",
+      status: "waiting",
+      reason: "waiting for the Uplink to finish loading",
+    });
+    const user = userEvent.setup();
+    const { removeItem } = renderGhost(vi.fn(), "example-mod-gauge");
+    expect(
+      screen.getByText(/Example Mod has not finished loading/),
+    ).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    expect(removeItem).not.toHaveBeenCalled();
+  });
+
+  it("cannot be removed while any add-on is starting, though its id names none", async () => {
+    setUplinkOutcome({
+      id: "example-mod",
+      name: "Example Mod",
+      status: "waiting",
+      reason: "waiting for the Uplink to finish loading",
+    });
+    const user = userEvent.setup();
+    const { removeItem } = renderGhost(vi.fn(), "ship-systems");
+    expect(screen.queryByText(/has not finished loading/)).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    expect(removeItem).not.toHaveBeenCalled();
+  });
+
   it("names no add-on and removes in one press when a different add-on is the one that failed", async () => {
     setUplinkOutcome(broken);
     const user = userEvent.setup();
