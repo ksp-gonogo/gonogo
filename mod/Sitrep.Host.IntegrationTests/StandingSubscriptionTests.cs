@@ -203,5 +203,50 @@ namespace Sitrep.Host.IntegrationTests
                 engine.Stop();
             }
         }
+
+        /// <summary>
+        /// Whether anything under a prefix is subscribed is asked on every tick by
+        /// every source that captures only while it is watched, so the answer is
+        /// kept between changes. A kept answer has to turn over with the topics:
+        /// asked before, during and after a subscription, twice each time.
+        /// </summary>
+        [Fact]
+        public async Task APrefixIsAnsweredAsTheTopicsStandEachTimeItIsAsked()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FreezeGateTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                var prefix = FreezeGateTestUplink.DelayedTopic.Substring(0, FreezeGateTestUplink.DelayedTopic.Length - 1);
+                void Tick(double ut) => engine.TickAndWait(
+                    ut, FreezeGateTestUplink.Snapshot(ut, connected: true, delay: 0.0, trueNow: 42.0), Timeout);
+
+                Tick(0.0);
+                Assert.False(engine.IsAnyTopicSubscribed(prefix));
+                Assert.False(engine.IsAnyTopicSubscribed(prefix));
+
+                engine.OpenStandingSubscription(FreezeGateTestUplink.DelayedTopic, Holder);
+                Tick(1.0);
+                Assert.True(engine.IsAnyTopicSubscribed(prefix));
+                Assert.True(engine.IsAnyTopicSubscribed(prefix));
+                Assert.True(engine.IsAnyTopicSubscribed(FreezeGateTestUplink.DelayedTopic));
+                Assert.False(engine.IsAnyTopicSubscribed(FreezeGateTestUplink.DelayedTopic + ".deeper"));
+
+                engine.CloseStandingSubscriptions(Holder);
+                Tick(2.0);
+                Assert.False(engine.IsAnyTopicSubscribed(prefix));
+                Assert.False(engine.IsAnyTopicSubscribed(FreezeGateTestUplink.DelayedTopic));
+
+                engine.OpenStandingSubscription(FreezeGateTestUplink.DelayedTopic, Holder);
+                Tick(3.0);
+                Assert.True(engine.IsAnyTopicSubscribed(prefix));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
     }
 }

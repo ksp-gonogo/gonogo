@@ -41,10 +41,100 @@ namespace Sitrep.Host.Comms
             {
                 return null;
             }
-            var plan = request.Run();
+            return Changes(request.Run().Pairs, fromUt, toUt);
+        }
 
+        /// <summary>
+        /// One craft's line to the ground stations across one span, for asking of
+        /// several centres in turn. <see cref="Between"/> answers as
+        /// <see cref="SightCrossing.Between"/> does for the same craft, ground, span
+        /// and stations, and a station's line is solved once however many centres
+        /// it stands for.
+        ///
+        /// <para>A line is tested against every body, at every step of the span,
+        /// and where each body is has to be solved first. Solved again for each
+        /// centre, that is most of what a look under warp costs.</para>
+        /// </summary>
+        public sealed class Lines
+        {
+            private readonly CraftState _craft;
+            private readonly PlanGround _ground;
+            private readonly double _fromUt;
+            private readonly double _toUt;
+
+            /// <summary>Each station's line by the step it was solved on, since a plan chooses its step from its own stations. Null where the planner gave the station no line.</summary>
+            private readonly Dictionary<double, Dictionary<string, PairPlan?>> _solved = new Dictionary<double, Dictionary<string, PairPlan?>>();
+
+            public Lines(CraftState craft, PlanGround ground, double fromUt, double toUt)
+            {
+                _craft = craft;
+                _ground = ground;
+                _fromUt = fromUt;
+                _toUt = toUt;
+            }
+
+            /// <param name="stations">The stations that stand for the centre.</param>
+            public IReadOnlyList<LineChange>? Between(IReadOnlyList<PlanNode> stations)
+            {
+                var span = _toUt - _fromUt;
+                if (_craft.ToPlanNode() == null || !_craft.Settled || _craft.Surface != null || stations.Count == 0 || !(span > MinimumSpanSeconds))
+                {
+                    return null;
+                }
+                var request = ReckonedPlan.OpenSkyRequest(_craft, _ground, stations, _fromUt, span);
+                if (request == null)
+                {
+                    return null;
+                }
+                var step = request.Step();
+                if (!_solved.TryGetValue(step, out var solved))
+                {
+                    solved = new Dictionary<string, PairPlan?>(StringComparer.Ordinal);
+                    _solved[step] = solved;
+                    // Every station at once, so the bodies are placed once for all of them; the centre's own where some station cannot be planned for at all.
+                    Solve(ReckonedPlan.OpenSkyRequest(_craft, _ground, _ground.Stations, _fromUt, span) ?? request, step, solved);
+                }
+                Solve(request, step, solved);
+
+                var lines = new List<PairPlan>(request.Pairs.Count);
+                foreach (var pair in request.Pairs)
+                {
+                    if (solved[pair.B] is PairPlan line)
+                    {
+                        lines.Add(line);
+                    }
+                }
+                return Changes(lines, _fromUt, _toUt);
+            }
+
+            /// <summary>Solves the lines of <paramref name="request"/> not yet solved on <paramref name="step"/>.</summary>
+            private static void Solve(ContactPlanRequest request, double step, Dictionary<string, PairPlan?> solved)
+            {
+                var pairs = new List<PlanPair>();
+                foreach (var pair in request.Pairs)
+                {
+                    if (!solved.ContainsKey(pair.B))
+                    {
+                        pairs.Add(pair);
+                        solved[pair.B] = null;
+                    }
+                }
+                if (pairs.Count == 0)
+                {
+                    return;
+                }
+                foreach (var line in request.Run(pairs, step).Pairs)
+                {
+                    solved[line.B] = line;
+                }
+            }
+        }
+
+        /// <summary>The instants the line through <paramref name="lines"/> taken together closed or opened inside the span, oldest first.</summary>
+        private static IReadOnlyList<LineChange> Changes(IReadOnlyList<PairPlan> lines, double fromUt, double toUt)
+        {
             var stretches = new List<Stretch>();
-            foreach (var pair in plan.Pairs)
+            foreach (var pair in lines)
             {
                 foreach (var window in pair.Windows)
                 {

@@ -241,6 +241,25 @@ namespace Sitrep.Propagation.Contacts
             return plain != null && plain.ArrivalUt - turning.ArrivalUt <= retarget.EventSeconds + Tolerance ? plain : turning;
         }
 
+        /// <summary>
+        /// The earliest-arriving routes from <paramref name="sources"/> to every
+        /// node of the plan at once, for a message ready at
+        /// <paramref name="sentUt"/>. Asking the result for a set of destinations
+        /// gives the route <see cref="EarliestArrivalBetween"/> gives for the same
+        /// sources, destinations and instant with no retarget routing, without
+        /// searching again.
+        /// </summary>
+        public static EarliestArrivals EarliestArrivalsFrom(
+            ContactPlan plan, IReadOnlyCollection<string> sources, double sentUt, double? mustArriveByUt = null, double lightFactor = 1.0)
+        {
+            if (plan == null) throw new ArgumentNullException(nameof(plan));
+            if (sources == null) throw new ArgumentNullException(nameof(sources));
+            var best = new Dictionary<string, Label>(StringComparer.Ordinal);
+            var order = new List<string>();
+            Search(plan, sources, null, sentUt, mustArriveByUt, lightFactor, null, best, order);
+            return new EarliestArrivals(sources, sentUt, best, order);
+        }
+
         private static ContactRoute? Search(
             ContactPlan plan,
             IReadOnlyCollection<string> sources,
@@ -258,18 +277,37 @@ namespace Sitrep.Propagation.Contacts
                     return new ContactRoute(source, source, sentUt, new RouteHop[0]);
                 }
             }
+            ends.IntersectWith(plan.Adjacency.Keys);
+            return Search(plan, sources, ends, sentUt, mustArriveByUt, lightFactor, retarget, new Dictionary<string, Label>(StringComparer.Ordinal), null);
+        }
 
+        /// <summary>
+        /// Settles nodes in order of arrival until one of <paramref name="ends"/> is
+        /// settled, which is the route returned, or with no ends until every node
+        /// that can be reached is settled. <paramref name="best"/> is left holding
+        /// each node's label, final for a settled node, and
+        /// <paramref name="order"/> the nodes in the order they were settled.
+        /// </summary>
+        private static ContactRoute? Search(
+            ContactPlan plan,
+            IReadOnlyCollection<string> sources,
+            HashSet<string>? ends,
+            double sentUt,
+            double? mustArriveByUt,
+            double lightFactor,
+            RetargetRouting? retarget,
+            Dictionary<string, Label> best,
+            List<string>? order)
+        {
             var adjacency = plan.Adjacency;
-            ends.IntersectWith(adjacency.Keys);
-            var best = new Dictionary<string, Label>(StringComparer.Ordinal);
             foreach (var source in sources)
             {
                 if (adjacency.ContainsKey(source))
                 {
-                    best[source] = new Label(sentUt, 0, double.PositiveInfinity, source, null, null);
+                    best[source] = new Label(sentUt, 0, double.PositiveInfinity, null, source, null, null);
                 }
             }
-            if (best.Count == 0 || ends.Count == 0)
+            if (best.Count == 0 || (ends != null && ends.Count == 0))
             {
                 return null;
             }
@@ -289,11 +327,12 @@ namespace Sitrep.Propagation.Contacts
                 {
                     return null;
                 }
-                if (ends.Contains(current))
+                if (ends != null && ends.Contains(current))
                 {
                     return Unwind(best, current, sentUt);
                 }
                 settled.Add(current);
+                order?.Add(current);
 
                 var at = best[current];
                 foreach (var (pair, other) in adjacency[current])
@@ -302,8 +341,28 @@ namespace Sitrep.Propagation.Contacts
                     {
                         continue;
                     }
+                    if (retarget == null)
+                    {
+                        /*
+                         * Most hops tried do not better the label their far node already
+                         * has, so the hop and its label are made only for one that does.
+                         * A search tries every pair of the plan from both ends, and one
+                         * object for each try is most of what routing would allocate.
+                         */
+                        if (!TryFirstAdmissible(plan, pair, at.ArrivalUt, mustArriveByUt, lightFactor, out var window, out var times))
+                        {
+                            continue;
+                        }
+                        var termination = Math.Min(at.TerminationUt, times.CloseUt);
+                        if (best.TryGetValue(other, out var held) && !Better(times.ArriveUt, at.Hops + 1, termination, at, other, held))
+                        {
+                            continue;
+                        }
+                        best[other] = new Label(times.ArriveUt, at.Hops + 1, termination, at, other, current, HopOver(pair, window, current, other, times));
+                        continue;
+                    }
                     var hop = FirstAdmissibleHop(plan, pair, current, other, at.ArrivalUt, mustArriveByUt, lightFactor);
-                    if (retarget != null && (at.Hops == 0 || retarget.OnTheWay) && (retarget.OnlyAtNodes == null || retarget.OnlyAtNodes.Contains(current)))
+                    if ((at.Hops == 0 || retarget.OnTheWay) && (retarget.OnlyAtNodes == null || retarget.OnlyAtNodes.Contains(current)))
                     {
                         var turned = FirstRetargetHop(plan, pair, current, other, at.ArrivalUt, mustArriveByUt, lightFactor, retarget);
                         if (turned != null && (hop == null || turned.ArriveUt < hop.ArriveUt - Tolerance))
@@ -319,7 +378,8 @@ namespace Sitrep.Propagation.Contacts
                         hop.ArriveUt,
                         at.Hops + 1,
                         Math.Min(at.TerminationUt, hop.WindowCloseUt),
-                        at.Path + "\u0001" + other,
+                        at,
+                        other,
                         current,
                         hop);
                     if (!best.TryGetValue(other, out var existing) || Better(candidate, existing))
@@ -337,10 +397,39 @@ namespace Sitrep.Propagation.Contacts
         /// window is the best one.
         /// </summary>
         public static RouteHop? FirstAdmissibleHop(
-            ContactPlan plan, PairPlan pair, string from, string to, double readyUt, double? mustArriveByUt, double lightFactor = 1.0)
+            ContactPlan plan, PairPlan pair, string from, string to, double readyUt, double? mustArriveByUt, double lightFactor = 1.0) =>
+            TryFirstAdmissible(plan, pair, readyUt, mustArriveByUt, lightFactor, out var window, out var times)
+                ? HopOver(pair, window, from, to, times)
+                : null;
+
+        /// <summary>When a hop leaves and lands, the instant its window closes and how far the light crosses.</summary>
+        private readonly struct HopTimes
         {
-            foreach (var window in pair.Windows)
+            public HopTimes(double departUt, double arriveUt, double closeUt, double meters)
             {
+                DepartUt = departUt;
+                ArriveUt = arriveUt;
+                CloseUt = closeUt;
+                Meters = meters;
+            }
+
+            public double DepartUt { get; }
+
+            public double ArriveUt { get; }
+
+            public double CloseUt { get; }
+
+            public double Meters { get; }
+        }
+
+        /// <summary>The window and the times of <see cref="FirstAdmissibleHop"/>, with no hop made, or false where that gives none.</summary>
+        private static bool TryFirstAdmissible(
+            ContactPlan plan, PairPlan pair, double readyUt, double? mustArriveByUt, double lightFactor, out ContactWindow window, out HopTimes times)
+        {
+            var windows = pair.Windows;
+            for (var i = 0; i < windows.Count; i++)
+            {
+                window = windows[i];
                 var open = window.OpenUt ?? plan.FromUt;
                 var close = window.CloseUt ?? pair.HorizonUt;
                 var depart = Math.Max(open, readyUt);
@@ -356,7 +445,7 @@ namespace Sitrep.Propagation.Contacts
                 var arrive = depart + crossing.Value.Seconds;
                 if (mustArriveByUt != null && arrive > mustArriveByUt.Value + Tolerance)
                 {
-                    return null;
+                    break;
                 }
                 // A window still open at the pair's horizon is not predicted to
                 // close, so light landing past the horizon is not refused for it.
@@ -364,13 +453,21 @@ namespace Sitrep.Propagation.Contacts
                 {
                     continue;
                 }
-                var forward = string.Equals(from, pair.A, StringComparison.Ordinal);
-                return new RouteHop(
-                    from, to, depart, arrive, close, crossing.Value.Meters,
-                    forward ? window.FromDish : window.ToDish,
-                    forward ? window.ToDish : window.FromDish);
+                times = new HopTimes(depart, arrive, close, crossing.Value.Meters);
+                return true;
             }
-            return null;
+            window = default;
+            times = default;
+            return false;
+        }
+
+        private static RouteHop HopOver(PairPlan pair, ContactWindow window, string from, string to, HopTimes times)
+        {
+            var forward = string.Equals(from, pair.A, StringComparison.Ordinal);
+            return new RouteHop(
+                from, to, times.DepartUt, times.ArriveUt, times.CloseUt, times.Meters,
+                forward ? window.FromDish : window.ToDish,
+                forward ? window.ToDish : window.FromDish);
         }
 
         /// <summary>
@@ -448,6 +545,31 @@ namespace Sitrep.Propagation.Contacts
             return (light, meters);
         }
 
+        /// <summary>The route to <paramref name="destination"/> its settled label ends, for the search's own result type.</summary>
+        internal static ContactRoute RouteTo(Dictionary<string, Label> best, string destination, double sentUt) => Unwind(best, destination, sentUt);
+
+        /// <summary>
+        /// <see cref="Better(Label, Label)"/> for a label not yet made: one that would
+        /// arrive at <paramref name="arrivalUt"/> after <paramref name="hops"/> hops by way of
+        /// <paramref name="before"/> and then <paramref name="node"/>.
+        /// </summary>
+        private static bool Better(double arrivalUt, int hops, double terminationUt, Label before, string node, Label b)
+        {
+            if (Math.Abs(arrivalUt - b.ArrivalUt) > Tolerance)
+            {
+                return arrivalUt < b.ArrivalUt;
+            }
+            if (hops != b.Hops)
+            {
+                return hops < b.Hops;
+            }
+            if (Math.Abs(terminationUt - b.TerminationUt) > Tolerance)
+            {
+                return terminationUt > b.TerminationUt;
+            }
+            return string.CompareOrdinal(before.Path + "\u0001" + node, b.Path) < 0;
+        }
+
         private static bool Better(Label a, Label b)
         {
             if (Math.Abs(a.ArrivalUt - b.ArrivalUt) > Tolerance)
@@ -480,14 +602,19 @@ namespace Sitrep.Propagation.Contacts
             return new ContactRoute(node, destination, sentUt, hops);
         }
 
-        private sealed class Label
+        internal sealed class Label
         {
-            public Label(double arrivalUt, int hops, double terminationUt, string path, string? previous, RouteHop? hop)
+            private readonly Label? _before;
+            private readonly string _node;
+            private string? _path;
+
+            public Label(double arrivalUt, int hops, double terminationUt, Label? before, string node, string? previous, RouteHop? hop)
             {
                 ArrivalUt = arrivalUt;
                 Hops = hops;
                 TerminationUt = terminationUt;
-                Path = path;
+                _before = before;
+                _node = node;
                 Previous = previous;
                 Hop = hop;
             }
@@ -498,11 +625,73 @@ namespace Sitrep.Propagation.Contacts
 
             public double TerminationUt { get; }
 
-            public string Path { get; }
+            /// <summary>Every node on the way, in order, which breaks a tie nothing else does. Put together only when a tie asks for it.</summary>
+            public string Path => _path ??= _before == null ? _node : _before.Path + "\u0001" + _node;
 
             public string? Previous { get; }
 
             public RouteHop? Hop { get; }
+        }
+    }
+
+    /// <summary>
+    /// The earliest-arriving route from one set of sources to every node of a
+    /// plan, for a message ready at one instant: the answer
+    /// <see cref="ContactRouter.EarliestArrivalBetween"/> gives for any set of
+    /// destinations, held so each is read off one search.
+    /// </summary>
+    public sealed class EarliestArrivals
+    {
+        private readonly IReadOnlyCollection<string> _sources;
+        private readonly double _sentUt;
+        private readonly Dictionary<string, ContactRouter.Label> _best;
+        private readonly List<string> _settled;
+
+        internal EarliestArrivals(
+            IReadOnlyCollection<string> sources, double sentUt, Dictionary<string, ContactRouter.Label> best, List<string> settled)
+        {
+            _sources = sources;
+            _sentUt = sentUt;
+            _best = best;
+            _settled = settled;
+        }
+
+        private static bool Holds(IReadOnlyCollection<string> nodes, string node)
+        {
+            if (nodes is HashSet<string> set && ReferenceEquals(set.Comparer, StringComparer.Ordinal))
+            {
+                return set.Contains(node);
+            }
+            foreach (var one in nodes)
+            {
+                if (string.Equals(one, node, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>The earliest-arriving route to whichever of <paramref name="destinations"/> is reached first, or null when the plan predicts none.</summary>
+        public ContactRoute? To(IReadOnlyCollection<string> destinations)
+        {
+            if (destinations == null) throw new ArgumentNullException(nameof(destinations));
+            foreach (var source in _sources)
+            {
+                if (Holds(destinations, source))
+                {
+                    return new ContactRoute(source, source, _sentUt, new RouteHop[0]);
+                }
+            }
+            // Nodes settle in order of arrival, so the first settled is the one a search for these alone would have stopped at.
+            foreach (var node in _settled)
+            {
+                if (Holds(destinations, node))
+                {
+                    return ContactRouter.RouteTo(_best, node, _sentUt);
+                }
+            }
+            return null;
         }
     }
 }

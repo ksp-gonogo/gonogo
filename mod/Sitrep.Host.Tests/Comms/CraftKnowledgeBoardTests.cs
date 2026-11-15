@@ -43,6 +43,42 @@ namespace Sitrep.Host.Tests.Comms
             CraftKnowledgeConformance.AssertKnowledgeContract(board, Home, "probe", ut);
 
         [Fact]
+        public void ACraftNeverInViewAddsNothingToTheBoardHoweverLongItIsLookedFor()
+        {
+            var (board, hearing, host) = Listening();
+            host.State!(Orbiting());
+            host.Reach!(new CraftReach(Probe, 1000.0, Reached));
+
+            for (var ut = 1100.0; ut < 1100.0 + 5000.0; ut += 1.0)
+            {
+                board.Note(new[] { Home }, hearing, ut, OutOfView);
+            }
+
+            Assert.Equal((1L, 1), board.CensusCounts());
+            Assert.False(Read(board, 6000.0).LineOfSight);
+        }
+
+        [Fact]
+        public void ACraftThatComesIntoViewAfterLongOutOfItIsSeenOnceItsLightArrives()
+        {
+            var (board, hearing, host) = Listening();
+            host.State!(Orbiting());
+            host.Reach!(new CraftReach(Probe, 1000.0, Reached));
+            for (var ut = 1100.0; ut < 1200.0; ut += 1.0)
+            {
+                board.Note(new[] { Home }, hearing, ut, OutOfView);
+            }
+
+            board.Note(new[] { Home }, hearing, 1200.0, InView);
+            Assert.False(Read(board, 1200.0).LineOfSight);
+            board.Note(new[] { Home }, hearing, 1201.0, InView);
+
+            Assert.True(Read(board, 1201.0).LineOfSight);
+            // What is kept is the looks whose light is on its way or newest to have landed, never the looks before them.
+            Assert.True(board.CensusCounts().Samples <= 2, "kept " + board.CensusCounts().Samples);
+        }
+
+        [Fact]
         public void ACraftWhoseLinkReachesTheCentreIsHeardWhereItSaysItIs()
         {
             var (board, hearing, host) = Listening();

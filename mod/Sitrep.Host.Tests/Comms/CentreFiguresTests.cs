@@ -199,5 +199,75 @@ namespace Sitrep.Host.Tests.Comms
 
             Assert.Empty(memory.Unreachable());
         }
+
+        /// <summary>The figure between two nodes asked on its own, which is what each entry of a whole table has to be.</summary>
+        private static double? AloneAsHeardBy(string from, string to, ContactPlan plan, string? home, string[] antennas, double ut, double lightFactor)
+        {
+            var seconds = CentreFigures.Between(from, to, plan, home, antennas, ut, lightFactor);
+            for (var pass = 0; seconds != null && pass < 6; pass++)
+            {
+                var settled = CentreFigures.Between(from, to, plan, home, antennas, System.Math.Max(plan.FromUt, ut - seconds.Value), lightFactor);
+                if (settled == null || System.Math.Abs(settled.Value - seconds.Value) < 0.001)
+                {
+                    return settled;
+                }
+                seconds = settled;
+            }
+            return seconds;
+        }
+
+        [Fact]
+        public void EveryFigureOfAWholeTableIsTheFigureAskedForThatPairAlone()
+        {
+            var random = new System.Random(1996);
+            var nodes = new[] { "ground:ksc", "ground:forward", "ground:far", "vessel:crewed", "vessel:relay", "vessel:probe", "vessel:other" };
+            var stations = new[] { "ground:ksc", "ground:forward", "ground:far" };
+            var roster = nodes.Take(5).Select(Entry).ToArray();
+            var compared = 0;
+            for (var round = 0; round < 80; round++)
+            {
+                var pairs = new System.Collections.Generic.List<PairPlan>();
+                for (var i = 0; i < nodes.Length; i++)
+                {
+                    for (var j = i + 1; j < nodes.Length; j++)
+                    {
+                        if ((i < 3 && j < 3) || random.Next(3) == 0)
+                        {
+                            continue;
+                        }
+                        var open = random.Next(2) == 0 ? (double?)null : random.NextDouble() * Horizon / 2.0;
+                        var close = random.Next(2) == 0 ? (double?)null : (open ?? 0.0) + (random.NextDouble() * Horizon / 2.0);
+                        var near = 1e7 + (random.NextDouble() * 3e9);
+                        var drift = (random.NextDouble() - 0.5) * 1e6;
+                        var separation = Enumerable.Range(0, (int)(Horizon / Step) + 1).Select(g => System.Math.Max(1.0, near + (drift * g))).ToArray();
+                        pairs.Add(new PairPlan(nodes[i], nodes[j], Horizon, new[] { new ContactWindow(open, close) }, 0.0, Step, separation));
+                    }
+                }
+                var plan = new ContactPlan(0.0, Horizon, Step, pairs, 0, 0);
+                var home = random.Next(4) == 0 ? null : "ground:ksc";
+                var lightFactor = random.Next(4) == 0 ? 0.5 : 1.0;
+                var ut = random.NextDouble() * Horizon;
+
+                var separationTable = CentreFigures.Separation(roster, plan, home, stations, ut, lightFactor);
+                foreach (var from in roster)
+                {
+                    foreach (var to in roster)
+                    {
+                        var alone = CentreFigures.Between(from.Id, to.Id, plan, home, stations, ut, lightFactor);
+                        Assert.Equal(alone, Seconds(separationTable, from.Id!, to.Id!));
+                        compared++;
+                    }
+                }
+
+                var delays = CentreFigures.ActiveVesselDelays(roster, plan, "vessel:probe", home, stations, ut, lightFactor);
+                foreach (var centre in roster)
+                {
+                    var listed = delays.Centres.SingleOrDefault(c => c.Id == centre.Id)?.OneWaySeconds;
+                    var alone = centre.Id == home ? null : AloneAsHeardBy("vessel:probe", centre.Id!, plan, home, stations, ut, lightFactor);
+                    Assert.Equal(alone, listed);
+                }
+            }
+            Assert.True(compared > 1_500, "only " + compared + " compared");
+        }
     }
 }

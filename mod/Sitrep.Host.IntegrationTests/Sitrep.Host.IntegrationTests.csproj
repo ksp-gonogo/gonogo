@@ -36,6 +36,13 @@
     <Compile Include="..\Sitrep.Host.Tests\RecordingFact.cs" />
   </ItemGroup>
 
+  <!-- The plain search the next-loss figure is defined by, one copy shared with
+       Sitrep.Host.Tests where it lives, so the cost benchmark holds the figures it
+       times to the same definition the unit tests do. -->
+  <ItemGroup>
+    <Compile Include="..\Sitrep.Host.Tests\Comms\ContactLossBySearch.cs" />
+  </ItemGroup>
+
   <!-- The roster's delay-roles block the client half reads back; see DelayRolesRosterTests. -->
   <ItemGroup>
     <None Include="../golden-fixtures/delay-roles-roster.json" Link="golden-fixtures/delay-roles-roster.json" CopyToOutputDirectory="PreserveNewest" />

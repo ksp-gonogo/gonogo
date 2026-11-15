@@ -41,14 +41,24 @@ namespace Sitrep.Host.Comms
             double lightFactor)
         {
             var pairs = new List<CentreSeparationEntry>();
-            foreach (var from in roster)
+            // The nodes each centre sends and hears by, worked out once for the centre and not once for each pair it is in.
+            var ends = new IReadOnlyCollection<string>?[roster.Count];
+            for (var i = 0; i < roster.Count; i++)
             {
-                foreach (var to in roster)
+                ends[i] = roster[i].Id == null ? null : GroundNetwork.EndsOf(roster[i].Id!, home, antennas);
+            }
+            for (var i = 0; i < roster.Count; i++)
+            {
+                var from = roster[i].Id;
+                // One search from each centre answers for every centre it is paired with.
+                EarliestArrivals? arrivals = null;
+                for (var j = 0; j < roster.Count; j++)
                 {
-                    var seconds = Between(from.Id, to.Id, plan, home, antennas, ut, lightFactor);
+                    var to = roster[j].Id;
+                    var seconds = Between(from, to, plan, ends[i], ends[j], ut, lightFactor, ref arrivals);
                     if (seconds != null)
                     {
-                        pairs.Add(new CentreSeparationEntry { From = from.Id!, To = to.Id!, OneWaySeconds = seconds.Value });
+                        pairs.Add(new CentreSeparationEntry { From = from!, To = to!, OneWaySeconds = seconds.Value });
                     }
                 }
             }
@@ -77,13 +87,15 @@ namespace Sitrep.Host.Comms
             {
                 return new CommandCentreActiveVesselDelay { Centres = centres, NoRoute = noRoute };
             }
+            // Every centre's first figure is of the routes leaving the craft at the same instant, which one search answers.
+            EarliestArrivals? leavingNow = null;
             foreach (var centre in roster)
             {
                 if (centre.Id == null || centre.Id == home)
                 {
                     continue;
                 }
-                var seconds = AsHeardBy(activeCraft, centre.Id, plan, home, antennas, ut, lightFactor);
+                var seconds = AsHeardBy(activeCraft, centre.Id, plan, home, antennas, ut, lightFactor, ref leavingNow);
                 if (seconds != null)
                 {
                     centres.Add(new CentreDelayEntry { Id = centre.Id, OneWaySeconds = seconds.Value });
@@ -107,9 +119,10 @@ namespace Sitrep.Host.Comms
             string? home,
             IReadOnlyCollection<string>? antennas,
             double ut,
-            double lightFactor)
+            double lightFactor,
+            ref EarliestArrivals? leavingNow)
         {
-            var seconds = Between(from, to, plan, home, antennas, ut, lightFactor);
+            var seconds = Between(from, to, plan, home, antennas, ut, lightFactor, ref leavingNow);
             if (seconds == null || plan == null)
             {
                 return seconds;
@@ -158,8 +171,66 @@ namespace Sitrep.Host.Comms
             {
                 return null;
             }
-            var route = ContactRouter.EarliestArrivalBetween(
-                plan, GroundNetwork.EndsOf(from, home, antennas), GroundNetwork.EndsOf(to, home, antennas), ut, null, lightFactor);
+            return Over(
+                ContactRouter.EarliestArrivalBetween(
+                    plan, GroundNetwork.EndsOf(from, home, antennas), GroundNetwork.EndsOf(to, home, antennas), ut, null, lightFactor),
+                lightFactor);
+        }
+
+        /// <param name="arrivals">
+        /// The routes leaving <paramref name="from"/> at <paramref name="ut"/> over <paramref name="plan"/>,
+        /// searched for on the first call that needs them and read on every later call with the same three.
+        /// </param>
+        private static double? Between(
+            string? from,
+            string? to,
+            ContactPlan? plan,
+            string? home,
+            IReadOnlyCollection<string>? antennas,
+            double ut,
+            double lightFactor,
+            ref EarliestArrivals? arrivals) =>
+            Between(
+                from,
+                to,
+                plan,
+                from == null ? null : GroundNetwork.EndsOf(from, home, antennas),
+                to == null ? null : GroundNetwork.EndsOf(to, home, antennas),
+                ut,
+                lightFactor,
+                ref arrivals);
+
+        /// <param name="fromEnds">The nodes <paramref name="from"/> sends by, or null when it is null.</param>
+        /// <param name="toEnds">The nodes <paramref name="to"/> hears by, or null when it is null.</param>
+        private static double? Between(
+            string? from,
+            string? to,
+            ContactPlan? plan,
+            IReadOnlyCollection<string>? fromEnds,
+            IReadOnlyCollection<string>? toEnds,
+            double ut,
+            double lightFactor,
+            ref EarliestArrivals? arrivals)
+        {
+            if (from == null || to == null)
+            {
+                return null;
+            }
+            if (from == to)
+            {
+                return 0.0;
+            }
+            if (plan == null)
+            {
+                return null;
+            }
+            arrivals ??= ContactRouter.EarliestArrivalsFrom(plan, fromEnds!, ut, null, lightFactor);
+            return Over(arrivals.To(toEnds!), lightFactor);
+        }
+
+        /// <summary>The signal delay of <paramref name="route"/> when every hop of it is open as the message reaches it, or null.</summary>
+        private static double? Over(ContactRoute? route, double lightFactor)
+        {
             if (route == null || !route.Live)
             {
                 return null;

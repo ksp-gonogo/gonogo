@@ -1667,9 +1667,87 @@ namespace Sitrep.Host
         /// <summary>True once per <see cref="RequestSample"/>, to the sampling loop that acts on it.</summary>
         public bool TakeSampleRequest() => Interlocked.Exchange(ref _sampleRequested, 0) == 1;
 
+        /// <summary>Counts every change to <see cref="_subscribedTopics"/>, moved after the change is made.</summary>
+        private int _subscribedTopicsVersion;
+
+        /// <summary>
+        /// The subscribed topics as they stood at one count of
+        /// <see cref="_subscribedTopicsVersion"/>, with each answer already given
+        /// about them. A prefix is asked about by many sources on every tick, on the
+        /// game's own thread, and the topics change only when a session subscribes
+        /// or leaves, so an answer is worked out once for each time they change.
+        /// </summary>
+        private sealed class SubscribedTopics
+        {
+            public SubscribedTopics(int version, string[] topics)
+            {
+                Version = version;
+                Topics = topics;
+            }
+
+            public int Version { get; }
+
+            public string[] Topics { get; }
+
+            /// <summary>Whether any topic starts with each prefix asked about so far.</summary>
+            public ConcurrentDictionary<string, bool> StartsWith { get; } = new ConcurrentDictionary<string, bool>(StringComparer.Ordinal);
+        }
+
+        /// <summary>The most prefixes an answer is kept for, so a caller that asks about ever-new prefixes costs a scan each and no memory.</summary>
+        private const int PrefixAnswersKept = 4096;
+
+        private SubscribedTopics _subscribedNow = new SubscribedTopics(0, new string[0]);
+
+        /// <summary>Any thread: the subscribed topics as they stand, taken afresh only when they have changed since the last ask.</summary>
+        private SubscribedTopics SubscribedNow()
+        {
+            var now = Volatile.Read(ref _subscribedNow);
+            // The count is read before the topics, so topics that change while they are read are held under the older count and read again on the next ask.
+            var version = Volatile.Read(ref _subscribedTopicsVersion);
+            if (now.Version == version)
+            {
+                return now;
+            }
+            var topics = new List<string>(_subscribedTopics.Keys);
+            now = new SubscribedTopics(version, topics.ToArray());
+            Volatile.Write(ref _subscribedNow, now);
+            return now;
+        }
+
+        /// <summary>Any thread: whether any subscribed topic starts with <paramref name="prefix"/>.</summary>
+        private bool AnySubscribedTopicStartsWith(string prefix)
+        {
+            var now = SubscribedNow();
+            if (now.StartsWith.TryGetValue(prefix, out var known))
+            {
+                return known;
+            }
+            var any = false;
+            foreach (var topic in now.Topics)
+            {
+                if (topic.StartsWith(prefix, StringComparison.Ordinal))
+                {
+                    any = true;
+                    break;
+                }
+            }
+            if (now.StartsWith.Count < PrefixAnswersKept)
+            {
+                now.StartsWith[prefix] = any;
+            }
+            return any;
+        }
+
+        private void ForgetTopicSubscribed(string topic)
+        {
+            _subscribedTopics.TryRemove(topic, out _);
+            Interlocked.Increment(ref _subscribedTopicsVersion);
+        }
+
         private void NoteTopicSubscribed(string topic)
         {
             _subscribedTopics[topic] = 0;
+            Interlocked.Increment(ref _subscribedTopicsVersion);
             RequestSample();
             if (IsGateTopic(topic) || _fieldRequirements.ContainsKey(topic))
             {
@@ -5466,7 +5544,7 @@ namespace Sitrep.Host
             {
                 var requires = pair.Value.Requires;
                 if (requires == null || !requires.Any(NeedsOnlySubTopic)) continue;
-                foreach (var topic in _subscribedTopics.Keys)
+                foreach (var topic in SubscribedNow().Topics)
                 {
                     if (!topic.StartsWith(pair.Key, StringComparison.Ordinal)) continue;
                     channels.Add(new ChannelGate
@@ -8591,14 +8669,11 @@ namespace Sitrep.Host
                 return true;
             }
 
-            foreach (var topic in _subscribedTopics.Keys)
+            for (var i = 0; i < prefixes.Length; i++)
             {
-                for (var i = 0; i < prefixes.Length; i++)
+                if (AnySubscribedTopicStartsWith(prefixes[i]))
                 {
-                    if (topic.StartsWith(prefixes[i], StringComparison.Ordinal))
-                    {
-                        return true;
-                    }
+                    return true;
                 }
             }
             return false;
@@ -8618,14 +8693,7 @@ namespace Sitrep.Host
                 return false;
             }
 
-            foreach (var topic in _subscribedTopics.Keys)
-            {
-                if (topic.StartsWith(topicPrefix, StringComparison.Ordinal))
-                {
-                    return true;
-                }
-            }
-            return false;
+            return AnySubscribedTopicStartsWith(topicPrefix);
         }
 
         /// <summary>
@@ -12555,7 +12623,7 @@ namespace Sitrep.Host
             }
             if (_subscriptions.Unsubscribe(topic))
             {
-                _subscribedTopics.TryRemove(topic, out _);
+                ForgetTopicSubscribed(topic);
             }
             CleanUpSubjectIfGone(topic);
         }
@@ -12914,7 +12982,7 @@ namespace Sitrep.Host
                 session.LaneViews.Remove(topic);
                 if (_subscriptions.Unsubscribe(topic))
                 {
-                    _subscribedTopics.TryRemove(topic, out _);
+                    ForgetTopicSubscribed(topic);
                 }
                 FailSoftChannel(topic, ex);
                 return;
@@ -13178,7 +13246,7 @@ namespace Sitrep.Host
                 session.LaneViews.Remove(topic);
                 if (_subscriptions.Unsubscribe(topic))
                 {
-                    _subscribedTopics.TryRemove(topic, out _);
+                    ForgetTopicSubscribed(topic);
                 }
                 CleanUpSubjectIfGone(topic); // Drop a gone fleet subject's freeze maps.
                 if (session.RateTiers.Remove(topic))
@@ -13252,7 +13320,7 @@ namespace Sitrep.Host
             {
                 if (_subscriptions.Unsubscribe(topic))
                 {
-                    _subscribedTopics.TryRemove(topic, out _);
+                    ForgetTopicSubscribed(topic);
                 }
             }
             // After all this session's topics leave the subscribed mirror, drop

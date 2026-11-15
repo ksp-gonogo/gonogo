@@ -126,6 +126,18 @@ namespace Sitrep.Host.Comms
             return ContactPlanner.Plan(
                 Nodes, Pairs, Propagator, FrameBodyIndex, fromUt, HorizonSeconds, step, ContactPlanSchedule.EdgeToleranceSeconds, remembered, Retarget);
         }
+
+        /// <summary>
+        /// Runs the plan for <paramref name="pairs"/> alone, which are some of
+        /// <see cref="Pairs"/>, on <paramref name="stepSeconds"/> where
+        /// <see cref="Run"/> would choose the step from every node. A pair's
+        /// windows depend on its own two nodes, the span and the step, so each
+        /// is the pair <see cref="Run"/> gives whenever the step is the one it
+        /// would choose. For solving pairs that several requests share once.
+        /// </summary>
+        public ContactPlan Run(IReadOnlyList<PlanPair> pairs, double stepSeconds) =>
+            ContactPlanner.Plan(
+                Nodes, pairs, Propagator, FrameBodyIndex, FromUt, HorizonSeconds, stepSeconds, ContactPlanSchedule.EdgeToleranceSeconds, null, Retarget);
     }
 
     /// <summary>

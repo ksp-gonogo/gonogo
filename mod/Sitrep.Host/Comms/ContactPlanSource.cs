@@ -442,6 +442,9 @@ namespace Sitrep.Host.Comms
 
         /// <summary>The figure last sent to each centre, so an unchanged one is not sent again.</summary>
         private readonly Dictionary<string, CommsNextLoss> _nextLossSent = new Dictionary<string, CommsNextLoss>(StringComparer.Ordinal);
+
+        /// <summary>Each planning centre's next loss as last worked out, kept until an instant passes that can change it.</summary>
+        private readonly Dictionary<string, ContactLossMemo> _nextLossMemo = new Dictionary<string, ContactLossMemo>(StringComparer.Ordinal);
         private readonly Dictionary<string, HashSet<string>> _pathsAsked = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
         private readonly Dictionary<string, string> _pathShapes = new Dictionary<string, string>(StringComparer.Ordinal);
 
@@ -1130,6 +1133,7 @@ namespace Sitrep.Host.Comms
                 _plansBeforeReset = new Dictionary<string, ContactPlan>(_plans, StringComparer.Ordinal);
                 _plans.Clear();
                 _planned.Clear();
+                _nextLossMemo.Clear();
                 _unsettled.Clear();
                 _pathShapes.Clear();
                 _receivedRoutes.Clear();
@@ -1263,8 +1267,25 @@ namespace Sitrep.Host.Comms
                     stations.Add(station);
                 }
             }
-            return SightCrossing.Between(state, looked.Ground, stations, fromUt, toUt);
+            if (!ReferenceEquals(_linesLook, looked))
+            {
+                _linesLook = looked;
+                _lines.Clear();
+            }
+            if (!_lines.TryGetValue((id, fromUt, toUt), out var lines))
+            {
+                lines = new SightCrossing.Lines(state, looked.Ground, fromUt, toUt);
+                _lines[(id, fromUt, toUt)] = lines;
+            }
+            return lines.Between(stations);
         }
+
+        /// <summary>Each craft's lines across the span since the look before, solved once for every centre asking of this look.</summary>
+        private readonly Dictionary<(string Id, double FromUt, double ToUt), SightCrossing.Lines> _lines =
+            new Dictionary<(string, double, double), SightCrossing.Lines>();
+
+        /// <summary>The look <see cref="_lines"/> is of.</summary>
+        private Looked? _linesLook;
 
         /// <summary>What each craft has said, by when it said it.</summary>
         private readonly SaidByWhen _said = new SaidByWhen();
@@ -1995,6 +2016,7 @@ namespace Sitrep.Host.Comms
                 {
                     _plans.Remove(centre);
                     _planned.Remove(centre);
+                    _nextLossMemo.Remove(centre);
                     _unsettled.Remove(centre);
                     _pathShapes.Remove(centre);
                     _radioSent.Remove(centre);
@@ -2174,7 +2196,12 @@ namespace Sitrep.Host.Comms
                 _unsettled.TryGetValue(centre, out var unsettled);
                 stations ??= StationIds();
                 var heard = looked.ActiveCraft == null ? null : _hearing!.RadioAt(centre, looked.ActiveCraft);
-                var figure = ContactLoss.Next(plan, looked.ActiveCraft, centre, home, stations, looked.Ut, unsettled, heard?.Connected);
+                if (!_nextLossMemo.TryGetValue(centre, out var memo))
+                {
+                    memo = new ContactLossMemo();
+                    _nextLossMemo[centre] = memo;
+                }
+                var figure = memo.Next(plan, looked.ActiveCraft, centre, home, stations, looked.Ut, unsettled, heard?.Connected);
                 var changed = !_nextLossSent.TryGetValue(centre, out var sent) || !SameLoss(sent, figure);
                 if (!changed && !_nextLossAsked.Contains(centre))
                 {
