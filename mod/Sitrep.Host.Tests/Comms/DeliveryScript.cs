@@ -46,9 +46,21 @@ namespace Sitrep.Host.Tests.Comms
         /// <summary>The ticks the craft records telemetry for home at.</summary>
         public HashSet<double> Spans { get; } = new HashSet<double>();
 
+        /// <summary>The signal delay of a link that ends at home, in game seconds.</summary>
+        public double HomeLightSeconds { get; set; } = 2.0;
+
+        /// <summary>The signal delay between the relay and the craft, in game seconds.</summary>
+        public double NearLightSeconds { get; set; } = 0.5;
+
+        /// <summary>How many clock callbacks the last run fired.</summary>
+        public long CallbacksFired { get; private set; }
+
+        /// <summary>How many clock callbacks a run may fire before it throws <see cref="InvalidOperationException"/>, for a script that might never finish.</summary>
+        public long CallbackLimit { get; set; } = long.MaxValue;
+
         public bool HasRetargetWindows => RetargetWindows.Count > 0;
 
-        private static double Light(string a, string b) => a == Home || b == Home ? 2.0 : 0.5;
+        private double Light(string a, string b) => a == Home || b == Home ? HomeLightSeconds : NearLightSeconds;
 
         private ContactPlan Plan()
         {
@@ -72,11 +84,15 @@ namespace Sitrep.Host.Tests.Comms
         private sealed class Links : IDeliveryLinks
         {
             private readonly HashSet<(string, string)> _up = new HashSet<(string, string)>();
+            private readonly DeliveryScript _script;
+
+            public Links(DeliveryScript script) => _script = script;
 
             public HashSet<(string, string)> Turned { get; } = new HashSet<(string, string)>();
 
-            public void Read(DeliveryScript script, double ut)
+            public void Read(double ut)
             {
+                var script = _script;
                 _up.Clear();
                 foreach (var pair in script.Windows)
                 {
@@ -92,7 +108,7 @@ namespace Sitrep.Host.Tests.Comms
             }
 
             public double? LiveLink(string from, string to) =>
-                _up.Contains((from, to)) || _up.Contains((to, from)) ? Light(from, to) : (double?)null;
+                _up.Contains((from, to)) || _up.Contains((to, from)) ? _script.Light(from, to) : (double?)null;
 
             public double? LivePath(string from, string to)
             {
@@ -105,6 +121,32 @@ namespace Sitrep.Host.Tests.Comms
                 var second = LiveLink(Relay, to);
                 return first != null && second != null ? first + second : null;
             }
+        }
+
+        /// <summary>A clock that counts the callbacks it fires.</summary>
+        private sealed class CountingClock : IClock
+        {
+            private readonly ManualClock _clock = new ManualClock();
+            private readonly long _limit;
+
+            public CountingClock(long limit) => _limit = limit;
+
+            public long Fired { get; private set; }
+
+            public double Now() => _clock.Now();
+
+            public Action Schedule(double atUt, Action fn) => _clock.Schedule(atUt, () =>
+            {
+                if (++Fired > _limit)
+                {
+                    throw new InvalidOperationException("more than " + _limit + " clock callbacks fired, the last due at UT " + At(atUt) + " with the clock at " + At(_clock.Now()));
+                }
+                fn();
+            });
+
+            public void Reset(double ut) => _clock.Reset(ut);
+
+            public void AdvanceTo(double ut) => _clock.AdvanceTo(ut);
         }
 
         private sealed class Beliefs : ISenderPlans
@@ -151,8 +193,8 @@ namespace Sitrep.Host.Tests.Comms
         public List<string> Run(bool wakesOnDishTurnWaits)
         {
             var log = new List<string>();
-            var clock = new ManualClock();
-            var links = new Links();
+            var clock = new CountingClock(CallbackLimit);
+            var links = new Links(this);
             var beliefs = new Beliefs
             {
                 Plan = new PlanRoutes(Plan(), 1.0, null, null, HasRetargetWindows ? new RetargetRouting(2.0, 10.0) : null),
@@ -178,7 +220,7 @@ namespace Sitrep.Host.Tests.Comms
             var lane = new LaneKey(1, Home, Craft);
             foreach (var ut in Ticks)
             {
-                links.Read(this, ut);
+                links.Read(ut);
                 clock.AdvanceTo(ut);
                 network.Tick(ut);
                 var sent = false;
@@ -201,6 +243,7 @@ namespace Sitrep.Host.Tests.Comms
                     clock.AdvanceTo(ut);
                 }
             }
+            CallbacksFired = clock.Fired;
             log.Add("left held: " + string.Join(", ", network.HeldMessages().Select(h => h.Node + " " + h.Message.GetType().Name).OrderBy(x => x, StringComparer.Ordinal)));
             return log;
         }

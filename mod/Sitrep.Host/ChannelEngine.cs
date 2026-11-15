@@ -291,6 +291,9 @@ namespace Sitrep.Host
         private const double PublishUtToleranceSeconds = 1e-6;
 
         private readonly ManualClock _clock;
+
+        /// <summary>Test-only: how many clock callbacks have fired since the engine was made. Any thread.</summary>
+        internal long ClockCallbacksFired => _clock.FiredCount;
         private readonly INetwork _network;
         private readonly StubNetwork _ledger;
         private readonly Courier _courier;

@@ -258,6 +258,50 @@ namespace Sitrep.Host.IntegrationTests
             AssertTheSaveNeverWaitedOnTheCourier(main);
         }
 
+        /// <summary>
+        /// The plan each centre holds for craft in low orbit: the relay reaches
+        /// home, and the craft and the relay see each other from
+        /// <see cref="Reacquired"/>, with a signal delay of a few milliseconds
+        /// on each link.
+        /// </summary>
+        private static ContactPlan LowOrbitPlan()
+        {
+            const double horizon = 10_000_000.0;
+            const double step = 100_000.0;
+            double[] Flat(double lightSeconds) =>
+                Enumerable.Repeat(lightSeconds / ScriptedContactGame.LightFactor * PairPlan.SpeedOfLight, 101).ToArray();
+            return new ContactPlan(0.0, horizon, step, new List<PairPlan>
+            {
+                new PairPlan(Relay, Home, horizon, new[] { new ContactWindow(Reacquired, null) }, 0.0, step, Flat(0.002)),
+                new PairPlan(Active, Relay, horizon, new[] { new ContactWindow(0.0, null) }, 0.0, step, Flat(0.001)),
+            }, 0, 0);
+        }
+
+        /// <summary>
+        /// The plan has the dark craft back in the relay's sight during the
+        /// stretch a tick skips, and the game does not. The command home holds
+        /// for it leaves when the plan says and is lost, and is sent again on
+        /// a wait that doubles, so the tick finishes and so does the next. Sent
+        /// again as soon as each loss was known, it would leave every six
+        /// milliseconds of the 4950 seconds skipped, and no later tick would
+        /// ever be taken.
+        /// </summary>
+        [Fact]
+        public async Task ATickThatSkipsHoursFinishesWhenTheCommandItHoldsIsLostOnALinkThePlanExpected()
+        {
+            await using var world = await ReckonedVantageWorld.StartAsync(Game(), watchTelemetry: true);
+            var plan = LowOrbitPlan();
+            world.Engine.SetCentrePlans(_ => plan, () => 1);
+            FlyIntoTheDark(world);
+            var firedBefore = world.Engine.ClockCallbacksFired;
+
+            world.Engine.TickAndWait(250.0 + 5000.0, SnapshotAt(world.Game, 250.0 + 5000.0), Timeout);
+            world.Engine.TickAndWait(250.0 + 5001.0, SnapshotAt(world.Game, 250.0 + 5001.0), Timeout);
+
+            var fired = world.Engine.ClockCallbacksFired - firedBefore;
+            Assert.True(fired < 500, fired + " clock callbacks fired over the stretch the tick skipped");
+        }
+
         /// <summary>How many times a dish that will not go back is asked to.</summary>
         private const int RestoreAttempts = 12;
     }

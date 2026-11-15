@@ -1400,7 +1400,7 @@ namespace Sitrep.Core.StoreAndForward
 
         private void Depart(string node, List<Held> list, double nowUt, Held? only)
         {
-            foreach (var held in only != null ? new List<Held> { only } : list.OrderBy(Order).ToList())
+            foreach (var held in only != null ? new List<Held> { only } : list.OrderBy(Order, InOrder).ToList())
             {
                 if (held.Away != null || nowUt < held.EligibleUt)
                 {
@@ -1626,6 +1626,14 @@ namespace Sitrep.Core.StoreAndForward
             message.Route = route.ToList();
             if (IsLive(route, nowUt))
             {
+                if (IsExcluded(held, destination))
+                {
+                    /* The last flight sent all the way was lost. An end-to-end
+                       flight is excluded by its destination and not by the
+                       route's first hop, so the check on the first hop above
+                       does not see it; the copy waits for the retry its loss set. */
+                    return null;
+                }
                 // Believed open all the way: one flight to the destination, as a
                 // command with a live path has always travelled. The real path,
                 // when there is one, sets how long the light takes; when there is
@@ -1923,6 +1931,23 @@ namespace Sitrep.Core.StoreAndForward
             SpanMessage span => (3, span.Samples.Count == 0 ? 0 : (long)Math.Floor(span.Samples[0].Ut * 1000.0), span.Id),
             _ => (2, 0, held.Message.Id),
         };
+
+        /// <summary>
+        /// Compares <see cref="Order"/> keys with the id by ordinal. A tuple's own
+        /// comparison takes its string by the machine's culture, which costs many
+        /// times more on each of the comparisons a sort of a node's whole hold
+        /// makes, and need not give the same order on every machine.
+        /// </summary>
+        private static readonly IComparer<(int Kind, long Seq, string Id)> InOrder = Comparer<(int Kind, long Seq, string Id)>.Create((a, b) =>
+        {
+            var byKind = a.Kind.CompareTo(b.Kind);
+            if (byKind != 0)
+            {
+                return byKind;
+            }
+            var bySeq = a.Seq.CompareTo(b.Seq);
+            return bySeq != 0 ? bySeq : string.CompareOrdinal(a.Id, b.Id);
+        });
 
         private const double MinRetrySeconds = 1.0;
 
