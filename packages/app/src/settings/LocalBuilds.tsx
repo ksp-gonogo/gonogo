@@ -1,5 +1,6 @@
 import { Badge, Button, Stack, Text } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
+import { NOT_LOADED_LABEL } from "./UplinkStatus";
 import type { UplinkPage } from "./UplinksSettings";
 
 /**
@@ -20,6 +21,7 @@ export function localStatusLine(page: UplinkPage): string {
           : "";
       return `build failed: ${local.error ?? "no reason given"}${kept}`;
     }
+    if (page.client?.refusedOnHealth) return NOT_LOADED_LABEL;
     if (page.client?.status === "quarantined")
       return `quarantined: ${page.client.reason ?? "no reason given"}`;
     if (page.client?.status === "loaded") return "loaded";

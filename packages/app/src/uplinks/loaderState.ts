@@ -119,7 +119,9 @@ export function integrityFailures(
  * How many Uplink clients are quarantined for a reason other than an integrity
  * failure, or `null` until a load pass has settled against a roster. An Uplink
  * the operator skipped at the consent prompt is their own answer and not
- * counted.
+ * counted. Nor is a client held back because its Uplink reports itself
+ * unavailable: the mod it integrates with is absent or not running in this
+ * game, which is that Uplink's own health to report.
  */
 export function otherQuarantineCount(
   outcomes: readonly UplinkLoadOutcome[],
@@ -129,7 +131,8 @@ export function otherQuarantineCount(
     (o) =>
       o.status === "quarantined" &&
       o.integrity === undefined &&
-      !o.skippedByOperator,
+      !o.skippedByOperator &&
+      !o.refusedOnHealth,
   ).length;
 }
 

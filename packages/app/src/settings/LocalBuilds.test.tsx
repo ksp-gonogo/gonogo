@@ -64,6 +64,22 @@ describe("the status line of a build named with --uplink", () => {
     expect(line).toContain("quarantined: apiVersion major mismatch");
   });
 
+  it("says not loaded, with no reason, for a client held back because its Uplink reports itself unavailable", () => {
+    const line = localStatusLine(
+      page(
+        { health: { version: "0.9.3" } as UplinkPage["health"] },
+        {},
+        {
+          status: "quarantined",
+          reason:
+            "mod reports Uplink unavailable: Example Mod is not installed",
+          refusedOnHealth: true,
+        },
+      ),
+    );
+    expect(line).toBe("Client: not loaded · mod: reporting, v0.9.3");
+  });
+
   it("says it is waiting for the first build, and what to run", () => {
     const line = localStatusLine(page({}, { state: "waiting", builtAt: null }));
     expect(line).toContain("waiting for the first build");

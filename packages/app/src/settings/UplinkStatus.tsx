@@ -50,18 +50,25 @@ export function UplinkHealthReport({ entry }: { entry: UplinkHealthEntry }) {
   );
 }
 
+/** What a client row reads when its Uplink reports itself unavailable, in place of a load status. */
+export const NOT_LOADED_LABEL = "not loaded";
+
 /**
  * What the runtime loader made of the Uplink's client bundle: loaded, or
- * quarantined with the reason, so a refusal is never silent.
+ * quarantined with the reason, so a refusal is never silent. A client held
+ * back because its Uplink reports itself unavailable reads as not loaded with
+ * no reason of its own, since the mod's health report beside it gives one.
  */
 export function UplinkClientStatus({
   outcome,
 }: {
   outcome: UplinkLoadOutcome;
 }) {
-  const color = outcome.skippedByOperator
-    ? "var(--color-text-muted)"
-    : loaderColor[outcome.status];
+  const heldOnHealth = outcome.refusedOnHealth === true;
+  const color =
+    outcome.skippedByOperator || heldOnHealth
+      ? "var(--color-text-muted)"
+      : loaderColor[outcome.status];
   return (
     <StatusItem>
       <ConnectionRow>
@@ -69,7 +76,11 @@ export function UplinkClientStatus({
         <Name>Client</Name>
         {outcome.version && <Version>v{outcome.version}</Version>}
         <StatusLabel $color={color}>
-          {outcome.skippedByOperator ? "skipped by you" : outcome.status}
+          {outcome.skippedByOperator
+            ? "skipped by you"
+            : heldOnHealth
+              ? NOT_LOADED_LABEL
+              : outcome.status}
         </StatusLabel>
       </ConnectionRow>
       {outcome.identity && (
@@ -87,7 +98,7 @@ export function UplinkClientStatus({
       {outcome.integrity && (
         <UplinkIntegrityDetail failure={outcome.integrity} />
       )}
-      {outcome.reason && <Detail>{outcome.reason}</Detail>}
+      {outcome.reason && !heldOnHealth && <Detail>{outcome.reason}</Detail>}
       <UplinkSkewOverride outcome={outcome} />
       {outcome.skippedByOperator && outcome.version && (
         <Button

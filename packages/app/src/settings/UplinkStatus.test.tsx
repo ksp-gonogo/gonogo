@@ -54,6 +54,31 @@ describe("UplinkClientStatus", () => {
     expect(screen.queryByText("quarantined")).toBeNull();
     await expectNoA11yViolations(container);
   });
+
+  it("says a client held back because its Uplink is unavailable is not loaded, and leaves the reason to the mod's report", async () => {
+    const { container } = clientRow({
+      ...loaded,
+      status: "quarantined",
+      reason: "mod reports Uplink unavailable: Example Mod is not installed",
+      refusedOnHealth: true,
+    });
+
+    expect(screen.getByText("not loaded")).toBeInTheDocument();
+    expect(screen.queryByText("quarantined")).toBeNull();
+    expect(screen.queryByText(/Example Mod is not installed/)).toBeNull();
+    await expectNoA11yViolations(container);
+  });
+
+  it("still says quarantined, with the reason, for a client refused for any other cause", () => {
+    clientRow({
+      ...loaded,
+      status: "quarantined",
+      reason: "apiVersion major mismatch",
+    });
+
+    expect(screen.getByText("quarantined")).toBeInTheDocument();
+    expect(screen.getByText("apiVersion major mismatch")).toBeInTheDocument();
+  });
 });
 
 const starting: UplinkHealthEntry = {

@@ -304,6 +304,29 @@ describe("UplinkIntegrityBanner", () => {
       ).not.toBeInTheDocument();
     });
 
+    it("leaves out a client held back because its Uplink reports itself unavailable", () => {
+      record({
+        ...refused("h"),
+        reason: "mod reports Uplink unavailable: Example Mod is not installed",
+        refusedOnHealth: true,
+      });
+      setUplinksSettled();
+
+      render(<UplinkIntegrityBanner />);
+
+      expect(screen.queryByText(/quarantined, see/)).not.toBeInTheDocument();
+    });
+
+    it("counts the rest beside a client held back on its Uplink's health", () => {
+      record({ ...refused("h"), refusedOnHealth: true });
+      record(refused("a"));
+      setUplinksSettled();
+
+      render(<UplinkIntegrityBanner />);
+
+      expect(screen.getByText("1 Uplink quarantined, see")).toBeInTheDocument();
+    });
+
     it("follows the integrity failures as a count of more", () => {
       record({
         id: "t",
