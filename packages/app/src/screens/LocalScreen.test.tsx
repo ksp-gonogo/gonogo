@@ -12,14 +12,45 @@ import { clearRegistry, ErrorBoundary } from "@ksp-gonogo/core";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { HttpResponse, http } from "msw";
+import { setupServer } from "msw/node";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { ANALYTICS_CONSENT_KEY } from "../analytics/AnalyticsConsentService";
 import { markFirstRunSetupSeen } from "../firstRun/firstRunFlag";
 import { HostRole } from "../hosting/HostRole";
 import { peerHostService } from "../peer/PeerHostService";
+import {
+  checkLatestRelease,
+  LATEST_RELEASE_URL,
+} from "../settings/releaseCheck";
 import { FakeHostMod } from "../test/fakeHostMod";
 import { LocalScreen } from "./LocalScreen";
 import { setStartSeat } from "./seatChoice";
+
+/*
+ * The dashboard's update banner asks GitHub for the newest release, once per
+ * page load. Here GitHub has none to give, and the answer is in hand before any
+ * screen mounts. Left to the network, it arrives whenever GitHub replies, in
+ * the middle of whichever test is running by then, and redraws the banner
+ * outside act.
+ */
+const github = setupServer(
+  http.get(LATEST_RELEASE_URL, () => HttpResponse.json([])),
+);
+beforeAll(async () => {
+  github.listen({ onUnhandledRequest: "bypass" });
+  await checkLatestRelease();
+});
+afterAll(() => github.close());
 
 const peerRegistry = vi.hoisted(
   () =>
