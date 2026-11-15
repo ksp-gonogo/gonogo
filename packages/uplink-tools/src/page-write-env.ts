@@ -1,7 +1,7 @@
 /**
  * The environment variable that makes the page check write the page instead of
  * comparing it. `uplink-tools page` sets it to `1` for the one test run in
- * which it writes, and nothing else sets it. Useful for letting a scaffold
+ * which it writes. Useful for letting a scaffold
  * made inside CI write its first page. Read by the page check in
  * `page-check.ts`.
  *

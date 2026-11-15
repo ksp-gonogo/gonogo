@@ -140,7 +140,7 @@ for (const leg of legs) {
       {
         cwd: ROOT,
         stdio: "inherit",
-        env: { ...process.env, GONOGO_UPLINK_PAGE_UPDATE: "1" },
+        env: { ...process.env, GONOGO_UPLINK_PAGE_WRITE: "1" },
       },
     );
   } catch {
