@@ -91,6 +91,11 @@ namespace Sitrep.Core
         /// <summary>How many callbacks are scheduled, cancelled ones included until their time comes.</summary>
         internal int PendingCount => _pending.Count;
 
+        private long _fired;
+
+        /// <summary>How many callbacks have fired since the clock was made. Any thread.</summary>
+        internal long FiredCount => Interlocked.Read(ref _fired);
+
         public Action Schedule(double atUt, Action fn)
         {
             // A NaN instant has no place in the order, so it is due at once.
@@ -138,6 +143,7 @@ namespace Sitrep.Core
                 var due = Pop();
                 if (!due.Cancelled)
                 {
+                    Interlocked.Increment(ref _fired);
                     due.Fn();
                 }
             }

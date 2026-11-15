@@ -281,6 +281,20 @@ namespace Sitrep.Host.Comms
             {
                 samples.RemoveRange(0, newestArrived);
             }
+            /*
+             * A look taken with no delay ever measured to the centre never
+             * arrives, so nothing above supersedes it and no reading can choose
+             * it. Only the newest is kept, as the look the next one is compared
+             * with; without this a pair the centre has never had in view gains
+             * one sample per look for the whole session.
+             */
+            for (var i = samples.Count - 2; i >= 0; i--)
+            {
+                if (double.IsPositiveInfinity(samples[i].ArrivesUt))
+                {
+                    samples.RemoveAt(i);
+                }
+            }
             return new List<SightSample>(samples);
         }
 

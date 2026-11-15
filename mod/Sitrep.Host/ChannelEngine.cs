@@ -642,6 +642,29 @@ namespace Sitrep.Host
         /// <summary>Ticks <see cref="TryTick"/> has declined since the last slow-tick report. Written from the ticking thread, taken on the Courier thread.</summary>
         private int _ticksDeclined;
 
+        /// <summary>Where the Courier is inside the job it is running.</summary>
+        private readonly CourierSteps _steps = new CourierSteps();
+
+        /// <summary>Where the Courier is inside its current job, and which step of each handle took longest.</summary>
+        internal CourierSteps Steps => _steps;
+
+        /// <summary>The stopwatch timestamp the Courier's current job started at, or 0 between jobs. Written on the Courier, read by <see cref="ReportStuckCourier"/>.</summary>
+        private long _jobStarted;
+
+        /// <summary>The kind of job the Courier is running, or null between jobs.</summary>
+        private string? _jobKind;
+
+        /// <summary>How many clock callbacks had fired when the current job started.</summary>
+        private long _jobFiredAtStart;
+
+        /// <summary>A Courier job that runs this many real seconds is reported, while it runs and when it ends.</summary>
+        internal double CourierStuckSeconds { get; set; } = 10;
+
+        /// <summary>The least real time between two reports of a Courier job still running.</summary>
+        private const double CourierStuckReportIntervalSeconds = 60;
+
+        private long _lastStuckReport = long.MinValue;
+
         // F2 Part 1 (main-thread command execution): when true, a command
         // handler is NOT run inline on the Courier thread but marshaled onto
         // this queue, drained by RunPendingCommands on the Unity main thread
@@ -8153,6 +8176,7 @@ namespace Sitrep.Host
             if (Volatile.Read(ref _ticksOutstanding) >= TickBacklogLimit)
             {
                 Interlocked.Increment(ref _ticksDeclined);
+                ReportStuckCourier();
                 return false;
             }
             SampleTiming.Begin();
@@ -8363,6 +8387,7 @@ namespace Sitrep.Host
 
         private void ProcessAdvance()
         {
+            _steps.Enter("clock advance");
             Volatile.Write(ref _advanceQueued, 0);
             var ut = Volatile.Read(ref _advanceToUt);
             if (!double.IsNaN(ut))
@@ -8760,6 +8785,7 @@ namespace Sitrep.Host
 
         private void CourierLoop()
         {
+            CourierSteps.Bind(_steps);
             while (true)
             {
                 _jobSignal.Wait(JobPollInterval);
@@ -8767,6 +8793,7 @@ namespace Sitrep.Host
 
                 while (_jobs.TryDequeue(out var job))
                 {
+                    BeginJob(job);
                     // Outer safety net (CRITICAL-2): the per-channel
                     // (ProcessTick's channel loop) and per-command
                     // (InvokeCommandHandler) fail-soft above already catch
@@ -8839,6 +8866,7 @@ namespace Sitrep.Host
                     {
                         ReportCourierJobThrow(job, ex);
                     }
+                    EndJob();
                     Volatile.Write(ref _nextDueUt, _clock.NextDueUt);
                 }
             }
@@ -10976,6 +11004,7 @@ namespace Sitrep.Host
                 }
             }
             timing.End(ref timing.Samplers);
+            _steps.Enter("handles");
 
             // Capture-on-main / handle-on-Courier sources (see
             // IUplinkHost.AddSampledSource): the captures already ran on the
@@ -11016,6 +11045,7 @@ namespace Sitrep.Host
                     // a clean state and its next throw is logged as a fresh attempt.
                     source.ConsecutiveCaptureThrows = 0;
 
+                    _steps.BeginHandle(source.OwnerId);
                     try
                     {
                         source.Handle(captured.Value);
@@ -11027,7 +11057,11 @@ namespace Sitrep.Host
                         // transient, so it keeps the permanent fail-soft (now logged).
                         FailSoftSampledSource(source, ex);
                     }
-                    timing.EndOne(ref timing.Handles, ref timing.SlowestHandle, source.OwnerId);
+                    var handleStep = _steps.EndHandle();
+                    if (timing.EndOne(ref timing.Handles, ref timing.SlowestHandle, source.OwnerId))
+                    {
+                        timing.SlowestHandleStep = handleStep;
+                    }
                 }
             }
             _handlePublishes = null;
@@ -11095,6 +11129,7 @@ namespace Sitrep.Host
             FollowPendingPredictions(tick.Ut);
             HoldWhatNeverLeft(tick.Ut);
             timing.End(ref timing.Refresh);
+            _steps.Enter("channels");
 
             foreach (var channelSource in _channelSources)
             {
@@ -11256,6 +11291,7 @@ namespace Sitrep.Host
                 ProcessPublish(publish, tick.Ut);
             }
             timing.End(ref timing.Publishes);
+            _steps.Enter("reveal");
 
             // Release any buffered Delayed-channel samples the advancing horizon
             // has now overtaken, BEFORE AdvanceTo so the freed deliveries the
@@ -11264,6 +11300,7 @@ namespace Sitrep.Host
             ContinueReleases(tick.Ut);
             PruneAllConnectivityHistory();
             timing.End(ref timing.Reveal);
+            _steps.Enter("deliveries");
 
             // Before the clock moves: a command that lands during this advance is
             // run against the craft that is active now, not the one that was.
@@ -11273,6 +11310,7 @@ namespace Sitrep.Host
             RepointLaneViews();
             TrimLanes(tick.Ut);
             timing.End(ref timing.Deliveries);
+            _steps.Enter("store and forward");
             OffloadRecordings(tick.Ut, null);
             TickDelivery(tick.Ut);
             ContinueInbound(tick.Ut);
@@ -11321,6 +11359,71 @@ namespace Sitrep.Host
             {
                 LogHostInfo(line);
             }
+        }
+
+        /// <summary>Courier thread: notes the job it is about to run, for <see cref="ReportStuckCourier"/>.</summary>
+        private void BeginJob(IEngineJob job)
+        {
+            Volatile.Write(ref _jobKind, job.GetType().Name);
+            Volatile.Write(ref _jobFiredAtStart, _clock.FiredCount);
+            Volatile.Write(ref _jobStarted, System.Diagnostics.Stopwatch.GetTimestamp());
+        }
+
+        /// <summary>Courier thread: the job has finished. One that ran past <see cref="CourierStuckSeconds"/> is reported with how long it took.</summary>
+        private void EndJob()
+        {
+            var started = Volatile.Read(ref _jobStarted);
+            Volatile.Write(ref _jobStarted, 0);
+            _steps.Clear();
+            var seconds = (System.Diagnostics.Stopwatch.GetTimestamp() - started) / (double)System.Diagnostics.Stopwatch.Frequency;
+            if (seconds >= CourierStuckSeconds)
+            {
+                LogHost("a Courier " + Volatile.Read(ref _jobKind) + " ran for " + seconds.ToString("F0", CultureInfo.InvariantCulture)
+                    + " s and fired " + (_clock.FiredCount - _jobFiredAtStart) + " clock callbacks; nothing else on the stream ran meanwhile");
+            }
+            Volatile.Write(ref _jobKind, null);
+        }
+
+        /// <summary>
+        /// Any thread, called when a tick is declined: when the Courier has been
+        /// inside one job for <see cref="CourierStuckSeconds"/> or more, say which
+        /// job, where in it, and how many clock callbacks it has fired, at most
+        /// once per <see cref="CourierStuckReportIntervalSeconds"/>. While the
+        /// Courier runs one job nothing else is answered, a new connection's
+        /// subscribes included, and the declined ticks would otherwise leave the
+        /// log silent.
+        /// </summary>
+        internal void ReportStuckCourier()
+        {
+            var started = Volatile.Read(ref _jobStarted);
+            if (started == 0)
+            {
+                return;
+            }
+            var now = System.Diagnostics.Stopwatch.GetTimestamp();
+            var frequency = (double)System.Diagnostics.Stopwatch.Frequency;
+            var seconds = (now - started) / frequency;
+            if (seconds < CourierStuckSeconds)
+            {
+                return;
+            }
+            var last = Interlocked.Read(ref _lastStuckReport);
+            if (last != long.MinValue && (now - last) / frequency < CourierStuckReportIntervalSeconds)
+            {
+                return;
+            }
+            if (Interlocked.CompareExchange(ref _lastStuckReport, now, last) != last)
+            {
+                return;
+            }
+            var (handle, step, since) = _steps.Current;
+            var where = step == null ? ""
+                : ", in " + (handle == null ? "" : handle + " step ") + step
+                    + " for " + ((now - since) / frequency).ToString("F0", CultureInfo.InvariantCulture) + " s";
+            LogHost("the Courier has been running one " + (Volatile.Read(ref _jobKind) ?? "job") + " for "
+                + seconds.ToString("F0", CultureInfo.InvariantCulture) + " s" + where
+                + "; " + (_clock.FiredCount - Volatile.Read(ref _jobFiredAtStart)) + " clock callbacks fired in it, "
+                + Volatile.Read(ref _ticksDeclined) + " ticks declined since the last slow-tick report");
         }
 
         /// <summary>A tick that takes this many real seconds, on the Courier or in its main-thread captures, is reported: see <see cref="ReportSlowTick"/>.</summary>
@@ -11373,6 +11476,9 @@ namespace Sitrep.Host
             public long Deliveries;
             public long StoreAndForward;
             public (long Ticks, string? Name) SlowestHandle;
+
+            /// <summary>The step of the slowest handle that took longest, where it named its own steps.</summary>
+            public (long Ticks, string? Name) SlowestHandleStep;
             public (long Ticks, string? Name) SlowestChannel;
 
             /// <summary>Hands each phase of the finished tick to <see cref="PerfTelemetry"/>.</summary>
@@ -11413,8 +11519,8 @@ namespace Sitrep.Host
                 _mark = now;
             }
 
-            /// <summary>As <see cref="End"/>, for one named item of a phase, keeping the slowest.</summary>
-            public void EndOne(ref long phase, ref (long Ticks, string? Name) slowest, string? name)
+            /// <summary>As <see cref="End"/>, for one named item of a phase, keeping the slowest. Answers whether this item is now the slowest.</summary>
+            public bool EndOne(ref long phase, ref (long Ticks, string? Name) slowest, string? name)
             {
                 var now = System.Diagnostics.Stopwatch.GetTimestamp();
                 var spent = now - _mark;
@@ -11423,7 +11529,9 @@ namespace Sitrep.Host
                 if (name != null && spent > slowest.Ticks)
                 {
                     slowest = (spent, name);
+                    return true;
                 }
+                return false;
             }
 
             public double TotalSeconds() =>
@@ -11432,7 +11540,7 @@ namespace Sitrep.Host
             public string Describe()
             {
                 return Ms(System.Diagnostics.Stopwatch.GetTimestamp() - _started) + " ms (samplers " + Ms(Samplers)
-                    + ", handles " + Ms(Handles) + Slowest(SlowestHandle)
+                    + ", handles " + Ms(Handles) + Slowest(SlowestHandle) + StepOf(SlowestHandleStep)
                     + ", refresh " + Ms(Refresh)
                     + ", channels " + Ms(Channels) + Slowest(SlowestChannel)
                     + ", publishes " + Ms(Publishes)
@@ -11440,6 +11548,9 @@ namespace Sitrep.Host
                     + ", deliveries " + Ms(Deliveries)
                     + ", store and forward " + Ms(StoreAndForward) + ")";
             }
+
+            private static string StepOf((long Ticks, string? Name) step) =>
+                step.Name == null ? "" : " (slowest step " + step.Name + " " + Ms(step.Ticks) + ")";
 
             private static string Slowest((long Ticks, string? Name) slowest) =>
                 slowest.Name == null ? "" : " of which " + slowest.Name + " " + Ms(slowest.Ticks);

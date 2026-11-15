@@ -1094,6 +1094,7 @@ namespace Sitrep.Host.Comms
             if (captured == null && _listeningAtLook != null && _hearing != null && !_timelineReset)
             {
                 // No look this tick, but word has arrived since the last one.
+                CourierSteps.Mark("knowledge refresh");
                 Knowledge.Refresh(_listeningAtLook, _hearing);
                 return;
             }
@@ -1175,31 +1176,41 @@ namespace Sitrep.Host.Comms
             }
             _unreadSinceReset = false;
 
+            CourierSteps.Mark("record");
             CraftStateRecorder.Record(looked.Craft, _craftHost);
+            CourierSteps.Mark("radio");
             SayRadio(looked);
+            CourierSteps.Mark("listen");
             _hearing.Listen(listening, looked.Craft.Known);
             if (looked.VesselsInGame != null && _hearing.ForgetGone(looked.VesselsInGame) > 0)
             {
                 // What is kept for the next save no longer holds them.
                 _heardNowNews = -1;
             }
+            CourierSteps.Mark("ground centres");
             NoteGroundCentres(looked);
+            CourierSteps.Mark("centre reports");
             SayCentreReports(looked);
+            CourierSteps.Mark("judge at home");
             JudgeAtHome(looked.Ut);
             foreach (var state in looked.Craft.States)
             {
                 _lastRead[state.Id] = state;
             }
             _listeningAtLook = listening;
+            CourierSteps.Mark("knowledge board");
             using (PerfTelemetry.Time("courier.knowledgeBoard"))
             {
                 Knowledge.Note(listening, _hearing, looked.Ut, looked.Craft.Sight, (id, centre, from, to) => LineCrossed(looked, id, centre, from, to));
             }
+            CourierSteps.Mark("keep heard");
             KeepHeardForSave(listening);
             // What is kept for a save is now what the centres were given back and have heard since.
             System.Threading.Volatile.Write(ref _restore, null);
 
+            CourierSteps.Mark("ground");
             NoteGround(looked);
+            CourierSteps.Mark("planner");
             using (PerfTelemetry.Time("courier.contactPlanner"))
             {
                 TakeFinished(looked.Ut);
@@ -1210,12 +1221,19 @@ namespace Sitrep.Host.Comms
                     TakeFinished(looked.Ut);
                 }
             }
+            CourierSteps.Mark("plans");
             PublishPlans(looked.Ut);
+            CourierSteps.Mark("routes");
             PublishRoutes(looked, planning);
+            CourierSteps.Mark("next loss");
             PublishNextLoss(looked, planning);
+            CourierSteps.Mark("paths");
             PublishPaths(looked, planning);
+            CourierSteps.Mark("catalogs");
             PublishCatalogs(looked, planning);
+            CourierSteps.Mark("rosters");
             PublishRosters(looked, listening);
+            CourierSteps.Mark("targets");
             PublishTargets(looked);
         }
 
