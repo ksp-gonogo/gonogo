@@ -88,13 +88,42 @@ function readRows(name: string): Row[] {
     .map((line) => JSON.parse(line));
 }
 
+function withLinkFlipped(
+  row: Row,
+  flip: ((source: string, validAt: number) => boolean) | undefined,
+): Row {
+  const frame = row.frame as {
+    topic?: string;
+    meta?: { validAt?: number };
+    payload?: { connected?: boolean; meta?: { source?: string } } | null;
+  };
+  const source = frame.payload?.meta?.source;
+  if (
+    flip === undefined ||
+    frame.topic !== "comms.link" ||
+    source === undefined ||
+    !flip(source, frame.meta?.validAt ?? 0)
+  ) {
+    return row;
+  }
+  return {
+    ...row,
+    frame: { ...frame, payload: { ...frame.payload, connected: false } },
+  };
+}
+
 function replay(
   name: string,
-  options: { withoutEarlyCopy?: boolean; station?: boolean } = {},
+  options: {
+    withoutEarlyCopy?: boolean;
+    station?: boolean;
+    /** Turns a recorded link report to "no link" when it returns true for the craft the report names and the UT it was taken at. */
+    flipLink?: (source: string, validAt: number) => boolean;
+  } = {},
 ) {
-  const rows: Row[] = readRows(name).filter(
-    (row: Row) => !(options.withoutEarlyCopy && arrivedAtOnce(row)),
-  );
+  const rows: Row[] = readRows(name)
+    .filter((row: Row) => !(options.withoutEarlyCopy && arrivedAtOnce(row)))
+    .map((row) => withLinkFlipped(row, options.flipLink));
   let wallMs = rows[0].ms;
   const authority = new DelayAuthority();
   const store = new TimelineStore(
@@ -136,7 +165,7 @@ function replay(
       ),
     };
   };
-  return { advanceTo, store };
+  return { advanceTo, store, client };
 }
 
 /** The scene and bodies the game last sent, read as the dashboard reads them. */
@@ -344,5 +373,88 @@ describe("a frame the mod built earlier and sent later, from recorded frames", (
       store.sampleReading<unknown>("ksp.activeVessel", store.currentFrame())
         .state,
     ).toBe("observed");
+  });
+});
+
+/**
+ * The same station recording with one craft's link reports turned to "no link",
+ * so the two craft differ and a reading taken from the wrong one shows. The
+ * active craft is MkI, then Mun Probe from 5.3 s, then MkI again from 56 s.
+ */
+describe("the link of the active craft across switches, from recorded frames", () => {
+  const MKI = "fe9bd1e1";
+  const PROBE = "6667a929";
+  const linkAt = (store: TimelineStore) => {
+    const frame = store.currentFrame();
+    const link = store.sampleReading<{
+      connected?: boolean | null;
+      meta?: { source?: string };
+    }>("comms.link", frame);
+    /* A held reading still reaches a badge as the link's last word. */
+    const shown = link.state === "observed" || link.state === "held";
+    const active = store.sampleReading<{ vesselId?: string }>(
+      "ksp.activeVessel",
+      frame,
+    );
+    return {
+      connected: shown ? link.value.connected : undefined,
+      craft: shown
+        ? link.value.meta?.source?.slice("vessel:".length)
+        : undefined,
+      active:
+        active.state === "observed" || active.state === "held"
+          ? active.value.vesselId
+          : undefined,
+    };
+  };
+
+  /*
+   * A reading can change when a frame arrives and when the view clock moves on,
+   * so each case reads at every recorded frame and every 100 ms between.
+   */
+  const moments = [
+    ...new Set([
+      ...readRows("station-trim").map((row) => row.ms),
+      ...Array.from({ length: 1171 }, (_, i) => -56_000 + i * 100),
+    ]),
+  ].sort((a, b) => a - b);
+
+  for (const station of [false, true]) {
+    for (const unlinked of [MKI, PROBE]) {
+      it(`never reads another craft's link as the active craft's (${station ? "station" : "main screen"}, ${unlinked === MKI ? "MkI" : "Mun Probe"} unlinked)`, () => {
+        const screen = replay("station-trim", {
+          station,
+          flipLink: (source) => source.includes(unlinked),
+        });
+        const changes: boolean[] = [];
+        for (const ms of moments) {
+          screen.advanceTo(ms);
+          const { connected, craft, active } = linkAt(screen.store);
+          if (connected === undefined || connected === null) continue;
+          expect({ ms, craft }).toEqual({ ms, craft: active });
+          expect({ ms, connected }).toEqual({
+            ms,
+            connected: !craft?.startsWith(unlinked),
+          });
+          if (changes[changes.length - 1] !== connected)
+            changes.push(connected);
+        }
+        const first = unlinked !== MKI;
+        expect(changes).toEqual([first, !first, first]);
+      });
+    }
+  }
+
+  it("shows a loss on the active craft at the first frame after its report arrives", () => {
+    const screen = replay("station-trim", {
+      flipLink: (source, validAt) => source.includes(PROBE) && validAt > 90,
+    });
+    screen.advanceTo(26_885);
+    expect(linkAt(screen.store).connected).toBe(true);
+    screen.advanceTo(26_886);
+    expect(linkAt(screen.store)).toMatchObject({
+      connected: false,
+      craft: expect.stringContaining(PROBE),
+    });
   });
 });

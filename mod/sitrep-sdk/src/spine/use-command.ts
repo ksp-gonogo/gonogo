@@ -418,6 +418,57 @@ export type UseCommandResultFor<Command extends CommandId> = UseCommandResult<
   CommandReply<Command>
 >;
 
+/** The game's statement of which craft is active. */
+const ACTIVE_VESSEL_TOPIC = "ksp.activeVessel";
+
+const CRAFT_SOURCE_PREFIX = "vessel:";
+
+/**
+ * The link of the active craft, and the craft the game names as active
+ * (`"vessel:<guid>"`, lower-cased) once it has named one.
+ */
+function useActiveCraftLink(): {
+  connected: boolean | null | undefined;
+  craft: string | undefined;
+} {
+  /*
+   * The newest report on the wire is read first, since it is not held back by
+   * the view clock. It is the newest of any craft: after a switch it stays the
+   * report of the craft just left until the new craft's next one, which can be a
+   * keyframe interval away. A report that names another craft is passed over
+   * for the store's reading, which follows the active craft.
+   */
+  const newest = useLatestValue<
+    CommsLinkLike & { meta?: { source?: unknown } }
+  >("comms.link");
+  const store = useTelemetryStoreOptional();
+  const active = useLatestValue<{ vesselId?: unknown }>(ACTIVE_VESSEL_TOPIC);
+  const craft =
+    typeof active?.vesselId === "string" && active.vesselId !== ""
+      ? `${CRAFT_SOURCE_PREFIX}${active.vesselId}`.toLowerCase()
+      : undefined;
+  const source = newest?.meta?.source;
+  const named =
+    typeof source === "string" && source.startsWith(CRAFT_SOURCE_PREFIX)
+      ? source.toLowerCase()
+      : undefined;
+  if (craft === undefined || named === undefined || named === craft) {
+    return { connected: newest?.connected, craft };
+  }
+  /* Read at the renders the hook already has, with no subscription of its own: the store's reading changes on its frames, and a command's outcome is only judged at a render. */
+  const followed = store?.sampleReading<CommsLinkLike>(
+    "comms.link",
+    store.currentFrame(),
+  );
+  return {
+    connected:
+      followed?.state === "observed" || followed?.state === "held"
+        ? followed.value.connected
+        : undefined,
+    craft,
+  };
+}
+
 /**
  * Sends `command` to the mod through the nearest `TelemetryProvider` and reflects
  * its progress (`idle`, `in-flight`, then `confirmed` or `failed`). Useful for a
@@ -567,6 +618,8 @@ export function useCommand(
   const connectivityHistoryRef = useRef<ConnectivityHistory>(
     new ConnectivityHistory(),
   );
+  // The active craft `connectivityHistoryRef` describes, once the game has named one.
+  const historyCraftRef = useRef<string | undefined>(undefined);
 
   const sentQueue = useLatestValue<PendingUplinkQueueLike>(
     "system.uplink.pending",
@@ -765,7 +818,7 @@ export function useCommand(
     ),
   );
 
-  const connectivity = useLatestValue<CommsLinkLike>("comms.link");
+  const connectivity = useActiveCraftLink();
   const commsDelay = useLatestValue<CommsDelayLike>("comms.delay");
   const commsDelayReading = useStream<CommsDelayLike>("comms.delay");
   const uplinkDelays = useLatestValue<unknown>(UPLINK_DELAYS_TOPIC);
@@ -897,7 +950,17 @@ export function useCommand(
         readNextLossUt(nextLossPayload),
       );
 
-  if (typeof connectivity?.connected === "boolean") {
+  /* The history is of one craft's link, so it starts again when another craft becomes active. */
+  if (
+    connectivity.craft !== undefined &&
+    connectivity.craft !== historyCraftRef.current
+  ) {
+    if (historyCraftRef.current !== undefined) {
+      connectivityHistoryRef.current = new ConnectivityHistory();
+    }
+    historyCraftRef.current = connectivity.craft;
+  }
+  if (typeof connectivity.connected === "boolean") {
     connectivityHistoryRef.current.record(nowUt, connectivity.connected);
   }
 

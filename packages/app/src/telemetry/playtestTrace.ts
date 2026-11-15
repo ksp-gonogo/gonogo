@@ -12,6 +12,11 @@ export interface TraceSnapshot {
   currentStage: number | undefined;
   partCount: number | undefined;
   linkConnected: boolean | undefined;
+  /**
+   * The craft the comms link reading describes, as its payload names it
+   * (`"vessel:<guid>"`), `undefined` when the reading names none.
+   */
+  linkSource: string | undefined;
   routeHome: boolean | undefined;
   /** Own docking port state, `undefined` when the dock Topic carries none. */
   ownPortState: DockingPortState | undefined;
@@ -82,7 +87,17 @@ export function playtestTracer(
       parts = s.partCount;
     }
 
-    if (s.linkConnected !== undefined) {
+    /*
+     * The comms link reading travels at its own craft's delay, so around a
+     * switch one describing the craft just left can arrive after the identity
+     * of the new craft, and one describing the new craft before it. A reading
+     * that names another craft is neither a change on this one nor its baseline.
+     */
+    const linkIsThisCraft =
+      s.linkSource === undefined ||
+      !s.linkSource.startsWith("vessel:") ||
+      s.linkSource === `vessel:${vesselId}`;
+    if (s.linkConnected !== undefined && linkIsThisCraft) {
       if (link !== undefined && s.linkConnected !== link) {
         const named = s.vesselName ? ` (${s.vesselName})` : "";
         log.info(
