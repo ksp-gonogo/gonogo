@@ -22,7 +22,7 @@
  * starts at that limit), or `page then diagram` (the notches before the pointer
  * moves scroll the page, the ones after it zoom the diagram).
  *
- * `--widget tracking-station|ground-track|ship-map` and `--gesture <text in the label>`
+ * `--widget tracking-station|ground-track|vessel-schematic` and `--gesture <text in the label>`
  * narrow the run, `--repeat <n>` repeats each gesture.
  *
  * Video is recorded for chromium only and needs ffmpeg on the path.
@@ -89,7 +89,7 @@ async function pageFor(variant: Variant): Promise<string> {
   await writeFile(
     entry,
     `import ${JSON.stringify(join(variant.src, "index.ts"))};
-import { ShipDiagram } from ${JSON.stringify(join(variant.src, "ShipMap/ShipDiagram"))};
+import { ShipDiagram } from ${JSON.stringify(join(variant.src, "VesselSchematic/ShipDiagram"))};
 import { AlarmsLauncherProvider } from ${JSON.stringify(join(variant.src, "shared/AlarmsLauncher"))};
 import { installScene } from ${JSON.stringify(SCENE)};
 installScene(AlarmsLauncherProvider as never, ShipDiagram as never);
@@ -260,7 +260,7 @@ const GESTURES: Gesture[] = [
 
 interface Measure {
   scrollY: number;
-  /** Tracking Station: its viewBox. Ship Map: the transform of its drawing. Ground Track: hash of the base canvas pixels. */
+  /** Tracking Station: its viewBox. Vessel Schematic: the transform of its drawing. Ground Track: hash of the base canvas pixels. */
   view: string;
 }
 
@@ -330,7 +330,7 @@ const TILES = [
   { id: "scene-map", widget: "ground-track", ready: "#scene-map canvas" },
   {
     id: "scene-ship",
-    widget: "ship-map",
+    widget: "vessel-schematic",
     ready: "#scene-ship svg g[transform]",
   },
 ];

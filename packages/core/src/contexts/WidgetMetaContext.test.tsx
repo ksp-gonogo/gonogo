@@ -13,8 +13,8 @@ describe("useWidgetMeta", () => {
       wrapper: ({ children }) => (
         <WidgetMetaContext.Provider
           value={{
-            componentId: "ship-map",
-            contributionSlots: ["ship-map.part-meta"],
+            componentId: "vessel-schematic",
+            contributionSlots: ["vessel-schematic.part-meta"],
           }}
         >
           {children}
@@ -22,8 +22,8 @@ describe("useWidgetMeta", () => {
       ),
     });
     expect(result.current).toEqual({
-      componentId: "ship-map",
-      contributionSlots: ["ship-map.part-meta"],
+      componentId: "vessel-schematic",
+      contributionSlots: ["vessel-schematic.part-meta"],
     });
   });
 });

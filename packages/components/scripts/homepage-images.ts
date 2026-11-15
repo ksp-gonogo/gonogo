@@ -129,9 +129,9 @@ const PICTURES: readonly Picture[] = [
     size: { w: 9, h: 12 },
   },
   {
-    file: "ship-map",
-    widget: "ship-map",
-    scenes: "ShipMap/__homepage__",
+    file: "vessel-schematic",
+    widget: "vessel-schematic",
+    scenes: "VesselSchematic/__homepage__",
     fixture: "kerbal-x-liftoff",
     size: { w: 9, h: 14 },
   },

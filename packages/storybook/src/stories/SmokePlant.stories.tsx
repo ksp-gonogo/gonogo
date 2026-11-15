@@ -64,7 +64,7 @@ export const MountRejects: StoryObj = {
   ),
 };
 
-/** A ship-map contribution switched on in a crew roster, which never draws it. */
+/** A vessel-schematic contribution switched on in a crew roster, which never draws it. */
 export const ExtensionUnexercised: StoryObj<typeof ExtensionScene> = {
   render: (args) => <ExtensionScene {...args} />,
   args: {
@@ -72,7 +72,7 @@ export const ExtensionUnexercised: StoryObj<typeof ExtensionScene> = {
     fixture: valentina,
     w: 6,
     h: 8,
-    extension: "core:ship-map-part-meters",
+    extension: "core:vessel-schematic-part-meters",
     enabled: true,
   },
 };

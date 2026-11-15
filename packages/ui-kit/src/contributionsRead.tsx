@@ -117,7 +117,7 @@ export function useContributionsBySlotId(slot: string): readonly unknown[] {
  * the operator what Uplinks add to a widget, such as header badges. Used by the
  * dashboard grid and the screen header badges. Three call shapes:
  *
- * - a full slot id declared in `ContributionRegistry` (`"ship-map.part-meters"`):
+ * - a full slot id declared in `ContributionRegistry` (`"vessel-schematic.part-meters"`):
  *   its entries, typed and stamped with `contributionId` and `owner`
  * - a component segment (`"badges"`, `"filters"`, `"meters"`): completed to
  *   `${componentId}.<segment>` for the widget it is called in, typed from

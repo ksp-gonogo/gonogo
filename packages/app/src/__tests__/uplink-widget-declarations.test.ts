@@ -189,7 +189,7 @@ describe("widget and augment declarations resolve to something real", () => {
    */
   it("actually loaded the built-in widgets", () => {
     const ids = new Set(getComponents().map((def) => def.id));
-    const missing = ["crew-status", "ship-map", "comm-signal"].filter(
+    const missing = ["crew-status", "vessel-schematic", "comm-signal"].filter(
       (id) => !ids.has(id),
     );
     expect(missing).toEqual([]);

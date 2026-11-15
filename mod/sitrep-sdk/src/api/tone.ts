@@ -14,7 +14,7 @@
  *
  * Useful for telling the operator how a reading stands without choosing a
  * colour. Taken by the `tone` of a {@link PlotLayer} and of contribution
- * entries such as {@link ShipMapPartMetaEntry}.
+ * entries such as {@link VesselSchematicPartMetaEntry}.
  *
  * @category Tone
  * @categoryDescription Tone

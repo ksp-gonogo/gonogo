@@ -5026,7 +5026,7 @@ KERBALISM.registerContribution({
   )
 });
 
-// src/ShipMap/partActions.ts
+// src/VesselSchematic/partActions.ts
 function computeKerbalismPartActions(instruments) {
   const entries = [];
   for (const instrument of instruments ?? []) {
@@ -5053,14 +5053,14 @@ function computeKerbalismPartActions(instruments) {
   return entries;
 }
 KERBALISM.registerContribution({
-  id: "ship-map-part-actions",
-  contributes: "ship-map.part-actions",
+  id: "vessel-schematic-part-actions",
+  contributes: "vessel-schematic.part-actions",
   deps: ["science.instruments"],
   requires: "kerbalism",
   compute: (topics) => computeKerbalismPartActions(lastValue(topics["science.instruments"]))
 });
 
-// src/ShipMap/partMeta.ts
+// src/VesselSchematic/partMeta.ts
 import { magnitudeOf as magnitudeOf12 } from "@ksp-gonogo/ui-kit";
 function computeKerbalismPartMeta(lifeSupport, held) {
   if (!lifeSupport) return [];
@@ -5084,8 +5084,8 @@ function computeKerbalismPartMeta(lifeSupport, held) {
   return entries;
 }
 KERBALISM.registerContribution({
-  id: "ship-map-part-meta",
-  contributes: "ship-map.part-meta",
+  id: "vessel-schematic-part-meta",
+  contributes: "vessel-schematic.part-meta",
   deps: ["kerbalism.lifesupport"],
   requires: "kerbalism",
   compute: (topics) => computeKerbalismPartMeta(
@@ -5094,7 +5094,7 @@ KERBALISM.registerContribution({
   )
 });
 
-// src/ShipMap/partMeters.ts
+// src/VesselSchematic/partMeters.ts
 import {
   value as quantity
 } from "@ksp-gonogo/sitrep-sdk";
@@ -5165,8 +5165,8 @@ function kerbalismPartMeterReadings(parts, profile) {
   }));
 }
 KERBALISM.registerContribution({
-  id: "ship-map-part-meters",
-  contributes: "ship-map.part-meters",
+  id: "vessel-schematic-part-meters",
+  contributes: "vessel-schematic.part-meters",
   deps: ["vessel.parts", "kerbalism.profile"],
   requires: "kerbalism",
   compute: (topics) => kerbalismPartMeterReadings(
