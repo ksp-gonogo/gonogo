@@ -15,13 +15,16 @@ export function showsStagesOnly(columns: number | undefined): boolean {
  * fire at the top, each with the titles of its parts and how many of each. The
  * stage the next press of the stage control fires carries a "Next" badge, and
  * only while the stage number is a current reading. Stages already fired are
- * not listed, as in game. Used as the Ship Map's sidebar, and alone in its body on a tile five columns wide or less.
+ * not listed, as in game. Used as the Ship Map's sidebar, and alone in its body on a tile five columns wide or less, where `emptyLabel` takes the list's place once no stage is left.
  */
 export function StageColumn({
   stages,
+  emptyLabel,
   fill = false,
 }: {
   stages: StageEntry[];
+  /** Shown in place of the list when `stages` is empty. */
+  emptyLabel?: string;
   /** Fills the whole body, with no diagram. */
   fill?: boolean;
 }) {
@@ -31,6 +34,9 @@ export function StageColumn({
       <ScrollArea>
         <div style={CONTENT}>
           <h3 style={HEADING}>Stages</h3>
+          {stages.length === 0 && emptyLabel ? (
+            <p style={EMPTY}>{emptyLabel}</p>
+          ) : null}
           <ol style={LIST}>
             {stages.map((s) => (
               <li
@@ -93,6 +99,12 @@ const HEADING: CSSProperties = {
   fontWeight: "normal",
   textTransform: "uppercase",
   color: "var(--color-text-faint)",
+};
+
+const EMPTY: CSSProperties = {
+  margin: 0,
+  padding: "var(--gap-related)",
+  color: "var(--color-text-muted)",
 };
 
 const LIST: CSSProperties = {

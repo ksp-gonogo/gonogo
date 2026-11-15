@@ -46,6 +46,7 @@ export function shipMapSections({
   turn,
   onTurn,
   stages,
+  stagesEmptyLabel,
   stagesOnly,
   destroyed,
   transferTray,
@@ -77,6 +78,8 @@ export function shipMapSections({
   onTurn: (turn: number) => void;
   /** The staging stack still to fire; empty when no part carries a stage. */
   stages: StageEntry[];
+  /** What the stage list says when no stage is left to show. */
+  stagesEmptyLabel: string;
   /** True on a tile narrow enough that the stage list takes the whole body and the diagram is not drawn. */
   stagesOnly: boolean;
   /** The crash report of the craft this map showed, once that craft is destroyed. */
@@ -90,7 +93,7 @@ export function shipMapSections({
   ) => readonly TransferResourceOption[];
   onStartTransferPick?: (part: ShipMapPart, resource: string) => void;
 }): ReactNode[] {
-  const listOnly = stagesOnly && stages.length > 0;
+  const listOnly = stagesOnly;
   if (!topology) {
     return [
       <Section key="message" full>
@@ -115,7 +118,7 @@ export function shipMapSections({
   if (listOnly) {
     return [
       <Section key="stages" fill>
-        <StageColumn stages={stages} fill />
+        <StageColumn stages={stages} emptyLabel={stagesEmptyLabel} fill />
       </Section>,
     ];
   }
