@@ -119,6 +119,14 @@ namespace Sitrep.Core.Tests
                 RedirectStandardError = true,
                 UseShellExecute = false,
             };
+
+            /* A git hook runs with these set to the repository root, which makes git read the
+               working directory as the root and list nothing under mod/ by its real path. */
+            foreach (var name in new[] { "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_PREFIX" })
+            {
+                start.Environment.Remove(name);
+            }
+
             foreach (var arg in new[] { "ls-files", "-z", "--", "*.cs" })
             {
                 start.ArgumentList.Add(arg);
