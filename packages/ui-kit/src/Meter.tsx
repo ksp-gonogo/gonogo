@@ -138,7 +138,7 @@ export interface MeterProps<UnitSymbol extends string = string>
  * A labelled bar showing how full something is: a dose, a resource level, a
  * charge. The value is always written beside the bar, so colour never
  * carries meaning alone. Useful for showing the operator how much of a
- * vessel's resource is left. Used by the part tooltips of the vessel schematic and by
+ * vessel's resource is left. Used by the part tooltips of the ship map and by
  * {@link MeterStack}.
  *
  * Pass `value` alone when it is already a fraction, in `ratio`, or `value` and

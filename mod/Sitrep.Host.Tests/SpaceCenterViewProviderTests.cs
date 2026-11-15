@@ -705,7 +705,7 @@ namespace Sitrep.Host.Tests
 
 
         [Fact]
-        public void BuildSavedShipsConvertsEveryCraftFieldForField()
+        public void BuildSavedShipsMapsEveryCraftFieldForField()
         {
             var snapshot = new KspSnapshot
             {

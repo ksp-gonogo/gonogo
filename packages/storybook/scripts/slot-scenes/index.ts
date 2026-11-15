@@ -18,12 +18,12 @@ import { SCENES as rendezvous } from "./rendezvous";
 import { SCENES as researchAndDevelopment } from "./research-and-development";
 import { SCENES as resourceOps } from "./resource-ops";
 import { SCENES as scienceData } from "./science-data";
+import { SCENES as shipMap } from "./ship-map";
 import { SCENES as spaceCenterStatus } from "./space-center-status";
 import { SCENES as targetPicker } from "./target-picker";
 import { SCENES as systemView } from "./tracking-station";
 import { SCENES as transferWindow } from "./transfer-window";
 import { SCENES as vesselCatalog } from "./vessel-catalog";
-import { SCENES as vesselSchematic } from "./vessel-schematic";
 import { SCENES as warpControl } from "./warp-control";
 
 /**
@@ -49,7 +49,7 @@ export const SLOT_SCENE_OVERRIDES: readonly ExtensionScene[] = [
   ...powerSystems,
   ...resourceOps,
   ...scienceData,
-  ...vesselSchematic,
+  ...shipMap,
   ...spaceCenterStatus,
   ...strategies,
   ...systemView,
@@ -105,13 +105,13 @@ export const COMBINED_SLOT_SCENES: readonly {
   },
   // The part's tooltip lists the meters, then the status rows under them.
   {
-    widgetId: "vessel-schematic",
-    slots: ["vessel-schematic.part-meters", "vessel-schematic.part-meta"],
+    widgetId: "ship-map",
+    slots: ["ship-map.part-meters", "ship-map.part-meta"],
   },
 ];
 
 /** Widgets drawn with no panel, so with nowhere to mount the standard points. */
-const PANELLESS_WIDGETS: ReadonlySet<string> = new Set(["vessel-schematic"]);
+const PANELLESS_WIDGETS: ReadonlySet<string> = new Set(["ship-map"]);
 
 /** The standard extension points every widget with a panel has: two its panel mounts, one it carries. */
 export function standardSlots(widgetId: string): string[] {

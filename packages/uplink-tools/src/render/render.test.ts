@@ -759,8 +759,8 @@ describe("fixtures become scenes", () => {
     });
 
     it("is refused on a slot the host widget's own body draws", () => {
-      expect(() => build("vessel-schematic.part-meters")).toThrow(
-        /"vessel-schematic\.part-meters", which its host widget draws itself/,
+      expect(() => build("ship-map.part-meters")).toThrow(
+        /"ship-map\.part-meters", which its host widget draws itself/,
       );
     });
 

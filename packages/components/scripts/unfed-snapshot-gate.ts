@@ -110,7 +110,7 @@ function keyFor(file: string, fullName: string): string | undefined {
  * `renderWidgetMode` (the shared DOM harness, whose `MockDataSource` seeding
  * and legacy-key reshapes are both muted alongside the stream). A spec matching
  * none of the three feeds its subject some other way, so starving proves
- * nothing about it: `Navball/snapshots.test.ts` and `VesselSchematic/snapshots.test.ts`
+ * nothing about it: `Navball/snapshots.test.ts` and `ShipMap/snapshots.test.ts`
  * serialise an SVG from props with no data source in the picture at all, and
  * they are the reason this is a predicate rather than "every spec".
  *

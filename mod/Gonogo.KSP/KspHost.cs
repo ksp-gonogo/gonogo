@@ -8684,7 +8684,7 @@ namespace Gonogo.KSP
         /// parts.power/robotics captures), parent link, name/title/category,
         /// vessel-local position + up axis + bounds, dry mass, staging, the
         /// four per-part temperatures thermal folds in on, its PartModule class
-        /// names (what VesselSchematic's classifier matches), and the robotics /
+        /// names (what ShipMap's classifier matches), and the robotics /
         /// power-related / fuel-line-target flags. Null when the vessel has no
         /// parts at all. Every part's read is individually try/caught so one
         /// bad part can't blank the whole list, matching the part-walk
@@ -8748,7 +8748,7 @@ namespace Gonogo.KSP
                     {
                         // GetType().Name is the CLR class name (e.g.
                         // "ModuleEngines", "CModuleFuelLine"): exactly what
-                        // VesselSchematic's classifyPart matches on, and guaranteed the
+                        // ShipMap's classifyPart matches on, and guaranteed the
                         // class-name form (unlike PartModule.moduleName).
                         modules.Add(module.GetType().Name);
                     }

@@ -56,7 +56,7 @@ const MOD_CLIENT_SRC_SUFFIX = ["client", "src"];
 // those ignores are the only record of why each file is here. Seven are
 // permanent: SVG focus rings drawn as a stroke on a shape (OrbitDiagram,
 // ShipPartGroup, SystemEntitiesLayer) and the ServerStyleSheet that folds one
-// into the standalone SVG export (VesselSchematic/render), a ScrollArea-internals
+// into the standalone SVG export (ShipMap/render), a ScrollArea-internals
 // selector (PowerSystems), an :empty collapse (VesselCatalog/UpdatesRow), and a
 // page route that is not a widget (StationConnectView). The other seven hold
 // bespoke control states on hand-rolled buttons (LaunchDirector,
