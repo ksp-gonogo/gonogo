@@ -556,7 +556,7 @@ async function mountInto(
     // `WidgetContributions` wrapper (GridItemContent.tsx): without them any
     // widget calling `useContributions`/`useWidgetBadges` in its own body
     // sees no store at all (a silent empty result, not an error), so a
-    // widget whose RENDERED content depends on a contribution (ShipMap's
+    // widget whose RENDERED content depends on a contribution (VesselSchematic's
     // per-part meters/meta, spec §13.4) would render as if nothing had ever
     // contributed, in every probe/render-widget/visual-gate PNG. Safe for
     // every other widget: nothing here reads `useWidgetBadges` from its own

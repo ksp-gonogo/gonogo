@@ -235,7 +235,7 @@ export function hashHue(key: string): number {
  * instance) with a lightness that tells members apart; unrecognised names get
  * a hashed hue clear of every known family. The colour is an identity, never
  * a severity: use a tone for state. Useful for telling the operator which
- * resource a bar or card shows. Used by {@link Meter} and the ship map's part
+ * resource a bar or card shows. Used by {@link Meter} and the vessel schematic's part
  * tooltip.
  *
  * @example

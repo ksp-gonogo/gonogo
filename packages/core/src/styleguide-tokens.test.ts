@@ -225,8 +225,8 @@ const BASELINES: Record<Family, Record<string, number>> = {
     // cell. Not app-global chrome, so no named z rung.
     "packages/app/src/components/Dashboard/GridDashboard.tsx": 1,
     "packages/app/src/components/Dashboard/GridItemContent.tsx": 1,
-    "packages/components/src/ShipMap/ShipDiagram.tsx": 1,
-    "packages/components/src/ShipMap/ShipMapBody.tsx": 2,
+    "packages/components/src/VesselSchematic/ShipDiagram.tsx": 1,
+    "packages/components/src/VesselSchematic/VesselSchematicBody.tsx": 2,
     "packages/data/src/FlightsManager/FlightGraph.tsx": 1,
     // The inlaid caption over the drawing it labels, local sibling ordering
     // inside the frame's own stacking context. Not app-global chrome, so no
@@ -292,7 +292,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/app/src/styles/global.css": 2,
     "packages/components/src/Navball/AttitudeIndicator.tsx": 2,
     "packages/components/src/Navball/ThrottleGauge.tsx": 2,
-    "packages/components/src/ShipMap/ShipMapBody.tsx": 2,
+    "packages/components/src/VesselSchematic/VesselSchematicBody.tsx": 2,
     "packages/serial/src/InputMappingTab.tsx": 1,
     "packages/serial/src/InputTester/index.tsx": 1,
     "packages/serial/src/SerialDevicesMenu/GamepadLearnWizard.tsx": 1,

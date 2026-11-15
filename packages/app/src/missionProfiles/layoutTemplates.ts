@@ -113,7 +113,14 @@ export const FLIGHT_TEMPLATE: LayoutTemplate = {
       h: 14,
       config: () => ({}),
     },
-    { componentId: "ship-map", x: 23, y: 26, w: 13, h: 14, config: () => ({}) },
+    {
+      componentId: "vessel-schematic",
+      x: 23,
+      y: 26,
+      w: 13,
+      h: 14,
+      config: () => ({}),
+    },
   ],
 };
 

@@ -1,0 +1,99 @@
+import type { VesselTopology } from "@ksp-gonogo/core";
+import { getComponent } from "@ksp-gonogo/core";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
+import { afterEach, describe, expect, it } from "vitest";
+import { setupStreamFixture } from "../test/setupStreamFixture";
+import { topologyToVesselPartsWire } from "../test/topologyToVesselPartsWire";
+import {
+  flushResizeObservers,
+  installSizedResizeObserver,
+} from "../test/widgetDomSnapshot";
+import fuellinePrelaunch from "./__fixtures__/fuelline-tester-22parts-prelaunch.json";
+import { VesselSchematicComponent } from "./index";
+
+const WIRE = topologyToVesselPartsWire(
+  fuellinePrelaunch["v.topology"] as VesselTopology,
+  new Map(),
+);
+
+let restoreObserver: (() => void) | undefined;
+
+afterEach(() => {
+  restoreObserver?.();
+  restoreObserver = undefined;
+});
+
+async function mountAtWidth(width: number, columns = 8, currentStage = 1) {
+  restoreObserver = installSizedResizeObserver({ w: width, h: 500 });
+  const fixture = setupStreamFixture({ pinnedUt: 0, suspendFrames: true });
+  const { container } = render(
+    <fixture.Provider>
+      <VesselSchematicComponent
+        id="vessel-schematic-width"
+        w={columns}
+        h={10}
+      />
+    </fixture.Provider>,
+  );
+  act(() => {
+    fixture.emit("vessel.parts", WIRE);
+    fixture.emit("vessel.structure", { currentStage });
+  });
+  await waitFor(() =>
+    expect(screen.getByRole("region", { name: "Staging" })).toBeTruthy(),
+  );
+  await flushResizeObservers();
+  return container;
+}
+
+describe("Vessel Schematic by tile size", () => {
+  it("shows the stage list alone at five columns, with the next stage marked", async () => {
+    const container = await mountAtWidth(185, 5);
+
+    expect(screen.queryByLabelText("Ship diagram")).toBeNull();
+    expect(screen.getByRole("region", { name: "Staging" })).toBeTruthy();
+    expect(document.querySelectorAll('[aria-current="step"]')).toHaveLength(1);
+    expect(screen.getAllByText("Next")).toHaveLength(1);
+    await expectNoA11yViolations(container);
+  });
+
+  it("keeps the stage list at five columns once every stage has fired, and says so", async () => {
+    await mountAtWidth(185, 5, 0);
+
+    expect(screen.queryByLabelText("Ship diagram")).toBeNull();
+    const list = screen.getByRole("region", { name: "Staging" });
+    expect(list.textContent).toContain("All stages fired");
+  });
+
+  it("shows the diagram and the stage list from six columns, however narrow the tile is", async () => {
+    const container = await mountAtWidth(189, 6);
+
+    expect(screen.getByLabelText("Ship diagram")).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Staging" })).toBeTruthy();
+    await expectNoA11yViolations(container);
+  });
+
+  it("shows the diagram and the stage list together on a wide tile", async () => {
+    const container = await mountAtWidth(600, 12);
+
+    expect(screen.getByLabelText("Ship diagram")).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Staging" })).toBeTruthy();
+    await expectNoA11yViolations(container);
+  });
+});
+
+describe("Vessel Schematic in the picker", () => {
+  it("is added 12 columns wide, so a fresh tile shows the diagram and the stage list", () => {
+    expect(getComponent("vessel-schematic")?.defaultSize).toEqual({
+      w: 12,
+      h: 10,
+    });
+  });
+
+  it("is found by a search for staging or stages", () => {
+    const tags = getComponent("vessel-schematic")?.tags ?? [];
+    expect(tags).toContain("staging");
+    expect(tags).toContain("stages");
+  });
+});

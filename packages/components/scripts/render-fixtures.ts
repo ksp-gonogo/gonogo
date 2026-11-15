@@ -1,10 +1,10 @@
 #!/usr/bin/env tsx
 /**
- * Render every Ship Map fixture under `src/ShipMap/__fixtures__/` to an
- * SVG file in `local_docs/renders/ship-map/`. Used for visually iterating
+ * Render every Vessel Schematic fixture under `src/VesselSchematic/__fixtures__/` to an
+ * SVG file in `local_docs/renders/vessel-schematic/`. Used for visually iterating
  * on the diagram without running KSP / the dashboard.
  *
- * Run with `pnpm --filter @ksp-gonogo/components render-ship-map`.
+ * Run with `pnpm --filter @ksp-gonogo/components render-vessel-schematic`.
  */
 import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
@@ -15,16 +15,16 @@ import type {
   PartStateModule,
   VesselTopology,
 } from "@ksp-gonogo/core";
-import { renderShipMapToSvg } from "../src/ShipMap/render";
+import { renderVesselSchematicToSvg } from "../src/VesselSchematic/render";
 import {
-  buildShipMapPart,
-  type ShipMapPart,
-} from "../src/ShipMap/shipTopology";
-import { pickView } from "../src/ShipMap/shipView";
+  buildVesselSchematicPart,
+  type VesselSchematicPart,
+} from "../src/VesselSchematic/shipTopology";
+import { pickView } from "../src/VesselSchematic/shipView";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const FIXTURES_DIR = resolve(HERE, "../src/ShipMap/__fixtures__");
-const OUT_DIR = resolve(HERE, "../../../local_docs/renders/ship-map");
+const FIXTURES_DIR = resolve(HERE, "../src/VesselSchematic/__fixtures__");
+const OUT_DIR = resolve(HERE, "../../../local_docs/renders/vessel-schematic");
 
 interface Fixture {
   "v.topology": VesselTopology;
@@ -65,8 +65,8 @@ async function main(): Promise<void> {
         await readFile(sidecarPath, "utf8"),
       ) as PartStateSidecar;
     }
-    const parts = fixtureToShipMapParts(fixture, sidecar);
-    const svg = renderShipMapToSvg(parts, { width: 800, height: 800 });
+    const parts = fixtureToVesselSchematicParts(fixture, sidecar);
+    const svg = renderVesselSchematicToSvg(parts, { width: 800, height: 800 });
     const outName = name.replace(/\.json$/, ".svg");
     const outPath = join(OUT_DIR, outName);
     await writeFile(outPath, svg, "utf8");
@@ -79,10 +79,10 @@ async function main(): Promise<void> {
   console.log(`\nRendered ${fixtures.length} fixtures → ${OUT_DIR}`);
 }
 
-function fixtureToShipMapParts(
+function fixtureToVesselSchematicParts(
   fixture: Fixture,
   sidecar?: PartStateSidecar,
-): ShipMapPart[] {
+): VesselSchematicPart[] {
   const topo = fixture["v.topology"];
   const view = pickView(topo.parts);
   return topo.parts.map((p) => {
@@ -90,7 +90,7 @@ function fixtureToShipMapParts(
     const partState: PartState | undefined = modules
       ? { seq: 0, modules }
       : undefined;
-    return buildShipMapPart(p, undefined, undefined, view, partState);
+    return buildVesselSchematicPart(p, undefined, undefined, view, partState);
   });
 }
 

@@ -1,4 +1,4 @@
-import type { StageEntry } from "../ShipMap/stageStack";
+import type { StageEntry } from "../VesselSchematic/stageStack";
 import { StageList, StageNumber, StageParts, StageRow } from "./styles";
 
 /**
