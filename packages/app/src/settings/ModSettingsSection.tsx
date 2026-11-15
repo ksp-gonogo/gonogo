@@ -51,6 +51,7 @@ export function ModSettingsSection({
   name,
   tag,
   withoutTag,
+  withoutUnavailableReasons,
 }: {
   uplinkId: string;
   name: string;
@@ -58,6 +59,8 @@ export function ModSettingsSection({
   tag?: string;
   /** Leave out the settings carrying this tag. */
   withoutTag?: string;
+  /** Draw a setting that cannot be read with no reason under it, for a page that already says why none of them can. */
+  withoutUnavailableReasons?: boolean;
 }) {
   const stationOnly = useScreen() === "station";
   const hostDown = useTelemetryHostDown();
@@ -109,11 +112,13 @@ export function ModSettingsSection({
     );
   }
 
-  const settings = model.settings.filter(
-    (s) =>
-      (tag === undefined || (s.tags ?? []).includes(tag)) &&
-      (withoutTag === undefined || !(s.tags ?? []).includes(withoutTag)),
-  );
+  const settings = model.settings
+    .filter(
+      (s) =>
+        (tag === undefined || (s.tags ?? []).includes(tag)) &&
+        (withoutTag === undefined || !(s.tags ?? []).includes(withoutTag)),
+    )
+    .map((s) => (withoutUnavailableReasons ? { ...s, unavailable: null } : s));
 
   if (settings.length === 0) {
     return <Empty>{name} lists no settings</Empty>;

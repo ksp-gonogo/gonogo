@@ -220,7 +220,11 @@ function UplinkPageView({ page }: { page: UplinkPage }) {
           <SectionTitle as="h3" $rule>
             {page.name}
           </SectionTitle>
-          <ModSettingsSection uplinkId={page.id} name={page.name} />
+          <ModSettingsSection
+            uplinkId={page.id}
+            name={page.name}
+            withoutUnavailableReasons={notRunning(page)}
+          />
         </Stack>
       )}
       {page.rows.length > 0 && (
@@ -241,6 +245,12 @@ function UplinkPageView({ page }: { page: UplinkPage }) {
       ))}
     </SectionStack>
   );
+}
+
+/** The Uplink reports it is starting or unavailable, which its Status section says with the reason. */
+function notRunning(page: UplinkPage): boolean {
+  const state = page.health?.health.state;
+  return state === "starting" || state === "unavailable";
 }
 
 /** The mod half's health report, then the client's load outcome. */

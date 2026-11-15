@@ -82,7 +82,11 @@ afterEach(() => {
 
 function mount(
   screenName: "main" | "station" = "main",
-  filter: { tag?: string; withoutTag?: string } = {},
+  filter: {
+    tag?: string;
+    withoutTag?: string;
+    withoutUnavailableReasons?: boolean;
+  } = {},
 ) {
   const fixture = setupStreamFixture();
   const view = render(
@@ -228,6 +232,30 @@ describe("ModSettingsSection", () => {
 
     expect(await screen.findByText("no save loaded")).toBeInTheDocument();
     expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
+  });
+
+  it("shows the null placeholder alone for a setting it cannot read when told the page says why", async () => {
+    registerDataSource(sitrep("connected"));
+    const { fixture } = mount("main", { withoutUnavailableReasons: true });
+    await publish(
+      fixture,
+      model([
+        row({
+          id: "mtbfFailures",
+          label: "Failures from wear",
+          description: "With this off, no part ever fails",
+          unavailable: "Example Mod doesn't run in this game.",
+        }),
+      ]),
+    );
+
+    expect(await screen.findByText(NULL_DISPLAY)).toBeInTheDocument();
+    expect(
+      screen.getByText("With this off, no part ever fails"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Example Mod doesn't run in this game."),
+    ).toBeNull();
   });
 
   it("files grouped settings under their group", async () => {
