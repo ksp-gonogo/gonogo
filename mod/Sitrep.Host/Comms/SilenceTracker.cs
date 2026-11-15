@@ -175,6 +175,33 @@ namespace Sitrep.Host.Comms
     /// </summary>
     public delegate SilenceDeadline SilenceDeadlinePolicy(SilenceSample sample, double ut);
 
+    /// <summary>
+    /// A deadline policy whose answer can be worked out a few steps at a time,
+    /// for a <see cref="SilenceTracker"/> that must not spend a whole
+    /// evaluation, let alone a fleet's, inside one capture tick.
+    /// </summary>
+    public interface ISlicedSilencePolicy
+    {
+        /// <summary>A deadline that is always correct and costs next to nothing, for a silence to stand on until <see cref="Begin"/>'s answer is ready.</summary>
+        SilenceDeadline Interim(SilenceSample sample, double ut);
+
+        /// <summary>Starts working out the deadline of a silence that began at <paramref name="ut"/>.</summary>
+        ISilenceEvaluation Begin(SilenceSample sample, double ut);
+    }
+
+    /// <summary>One deadline being worked out by an <see cref="ISlicedSilencePolicy"/>.</summary>
+    public interface ISilenceEvaluation
+    {
+        /// <summary>Whether <see cref="Result"/> is the answer already, which it is from the start where the answer needed no work.</summary>
+        bool Done { get; }
+
+        /// <summary>Does up to <paramref name="maxSteps"/> more steps of work, at least one, and returns <see cref="Done"/>.</summary>
+        bool Advance(int maxSteps);
+
+        /// <summary>The deadline, once <see cref="Advance"/> has returned true.</summary>
+        SilenceDeadline Result { get; }
+    }
+
     /// <summary>One vessel's live comms facts for a single capture tick.</summary>
     public readonly struct SilenceSample
     {
@@ -304,6 +331,121 @@ namespace Sitrep.Host.Comms
             _policy = policy ?? throw new ArgumentNullException(nameof(policy));
         }
 
+        /// <summary>
+        /// A tracker that never works an evaluation of <paramref name="policy"/>
+        /// through inside <see cref="Tick"/>. A craft that goes silent has its
+        /// evaluation begun on that tick, since what the answer is depends on
+        /// what the game holds then, and stands on the policy's interim
+        /// deadline while the rest of the work waits in a queue. The one later
+        /// look for a prediction is queued whole. <see cref="Advance"/> works
+        /// through the queue, one craft after another, and each answer is
+        /// applied exactly as <see cref="Tick"/> would have applied it. A craft
+        /// heard again before its turn leaves the queue with nothing more done.
+        /// </summary>
+        public SilenceTracker(ISlicedSilencePolicy policy)
+        {
+            _sliced = policy ?? throw new ArgumentNullException(nameof(policy));
+            _policy = policy.Interim;
+        }
+
+        private readonly ISlicedSilencePolicy? _sliced;
+
+        /// <summary>An evaluation a silent craft is owed: the first of its silence, or the one later look for a prediction.</summary>
+        private sealed class Owed
+        {
+            public SilenceSample Sample;
+            public double OriginUt;
+            public bool Arming;
+            public ISilenceEvaluation? Evaluation;
+        }
+
+        private readonly Dictionary<string, Owed> _owed = new Dictionary<string, Owed>(StringComparer.Ordinal);
+        private readonly Queue<string> _owedOrder = new Queue<string>();
+
+        /// <summary>Whether <see cref="Advance"/> has anything to do.</summary>
+        public bool HasPending => _owed.Count > 0;
+
+        /// <summary>
+        /// Works on the evaluation at the head of the queue: begins it if it
+        /// was queued whole, or does up to <paramref name="maxSteps"/> more
+        /// steps of it, and applies its answer when it finishes. One call never
+        /// both begins and steps, because beginning is the part that reads the
+        /// game. Returns <see cref="HasPending"/>.
+        /// </summary>
+        public bool Advance(int maxSteps)
+        {
+            while (_owedOrder.Count > 0)
+            {
+                var id = _owedOrder.Peek();
+                if (!_owed.TryGetValue(id, out var owed))
+                {
+                    // Heard again, or gone, since it was queued.
+                    _owedOrder.Dequeue();
+                    continue;
+                }
+
+                if (owed.Evaluation == null)
+                {
+                    owed.Evaluation = _sliced!.Begin(owed.Sample, owed.OriginUt);
+                    return true;
+                }
+
+                if (!owed.Evaluation.Advance(maxSteps))
+                {
+                    return true;
+                }
+
+                _owedOrder.Dequeue();
+                _owed.Remove(id);
+                if (_states.TryGetValue(id, out var state) && state.State == SilenceState.Silent)
+                {
+                    if (owed.Arming)
+                    {
+                        Arm(state, owed.Evaluation.Result, owed.OriginUt);
+                    }
+                    else
+                    {
+                        Upgrade(state, owed.Evaluation.Result, owed.OriginUt);
+                    }
+                }
+                break;
+            }
+            return HasPending;
+        }
+
+        /// <summary>Queues the evaluation a silent craft is owed, or refreshes the sample of the one already queued.</summary>
+        private void Owe(SilenceSample sample, double originUt, bool arming, ISilenceEvaluation? begun = null)
+        {
+            if (_owed.TryGetValue(sample.VesselId, out var owed))
+            {
+                if (owed.Evaluation == null)
+                {
+                    owed.Sample = sample;
+                }
+                return;
+            }
+            _owed[sample.VesselId] = new Owed { Sample = sample, OriginUt = originUt, Arming = arming, Evaluation = begun };
+            _owedOrder.Enqueue(sample.VesselId);
+        }
+
+        /// <summary>
+        /// Begins the first evaluation of a silence and stands the craft on its
+        /// answer where that needed no work, or on the interim deadline with
+        /// the rest of the work queued.
+        /// </summary>
+        private void ArmSliced(VesselContactState s, SilenceSample sample, double ut)
+        {
+            var evaluation = _sliced!.Begin(sample, ut);
+            if (evaluation.Done)
+            {
+                evaluation.Advance(1);
+                Arm(s, evaluation.Result, ut);
+                return;
+            }
+            Arm(s, _sliced.Interim(sample, ut), ut);
+            Owe(sample, ut, arming: true, begun: evaluation);
+        }
+
         /// <summary>Read-only view of every vessel this tracker currently knows about.</summary>
         public IReadOnlyDictionary<string, VesselContactState> States => _states;
 
@@ -330,6 +472,7 @@ namespace Sitrep.Host.Comms
                 return;
             }
             _states[state.VesselId] = state;
+            _owed.Remove(state.VesselId);
         }
 
         /// <summary>
@@ -368,6 +511,7 @@ namespace Sitrep.Host.Comms
                     continue;
                 }
                 kv.Value.DestroyedReported = true;
+                _owed.Remove(kv.Key);
                 touched.Add(MarkDestroyed(kv.Value));
             }
 
@@ -400,6 +544,7 @@ namespace Sitrep.Host.Comms
                 s.DeadlineBasis = null;
                 s.PredictedReacquisitionUt = null;
                 s.PredictionGraceSec = null;
+                _owed.Remove(sample.VesselId);
                 return s;
             }
 
@@ -412,12 +557,14 @@ namespace Sitrep.Host.Comms
                 // evolves underneath it.
                 s.State = SilenceState.Silent;
                 s.SilenceSinceUt = ut;
-                var deadline = _policy(sample, ut);
-                s.DeadlineUt = ut + deadline.DurationSec;
-                s.DeadlineBasis = deadline.Basis;
-                s.PredictedReacquisitionUt = deadline.PredictedReacquisitionUt;
-                s.PredictionGraceSec = deadline.PredictionGraceSec;
-                s.DeadlineUpgraded = false;
+                if (_sliced != null)
+                {
+                    ArmSliced(s, sample, ut);
+                }
+                else
+                {
+                    Arm(s, _policy(sample, ut), ut);
+                }
                 return s;
             }
 
@@ -446,64 +593,85 @@ namespace Sitrep.Host.Comms
             if (!s.DeadlineUpgraded && !HasPrediction(s.DeadlineBasis))
             {
                 var origin = s.SilenceSinceUt ?? ut;
-                var upgraded = _policy(sample, origin);
-
-                // Spend the retry when the policy ANSWERED, not merely when it
-                // predicted. Every predictor basis is an answer - including
-                // the ones that decline to predict - and re-asking costs a full
-                // ~1400-sample sweep every tick, which at warp is the stutter
-                // the sliced-solver design exists to avoid.
-                //
-                // A fallback basis means the policy could not attempt at all
-                // (no geometry yet), which is transient and cheap: the factory
-                // returns before any sweep. Spending the one retry on it burned
-                // the attempt at the worst possible moment - the tick right
-                // after a save load, when CommNet has not been built - and left
-                // every vessel holding an orbital-period deadline for the rest
-                // of its run.
-                if (IsPredictorBasis(upgraded.Basis))
+                if (_sliced != null)
                 {
-                    s.DeadlineUpgraded = true;
-
-                    // Record the VERDICT, not just a prediction. The three
-                    // non-predicting bases are answers - "nothing is in the way",
-                    // "still behind something", "too fast to resolve" - and
-                    // leaving them unwritten meant the wire kept reporting the
-                    // armed orbital-period basis forever, so a working sweep and
-                    // a sweep that never ran looked identical to every consumer.
-                    // That is precisely what made this feature look dead while
-                    // the geometry underneath it was fine.
-                    //
-                    // The DEADLINE is deliberately not touched here: those bases
-                    // carry the fallback duration unchanged, which is the whole
-                    // point of no-occultation not shortening anything.
-                    s.DeadlineBasis = upgraded.Basis;
+                    Owe(sample, origin, arming: false);
                 }
-                if (upgraded.PredictedReacquisitionUt.HasValue)
+                else
                 {
-                    // NEVER earlier. The upgrade is evaluated from the silence
-                    // ORIGIN, so its duration is measured from a UT that may be
-                    // hours in the past; writing that over the armed deadline
-                    // would move the deadline backwards, in the worst case behind
-                    // the current tick.
-                    //
-                    // A prediction is allowed to explain a silence and to push
-                    // the deadline out. It is never allowed to shorten a
-                    // vessel's remaining life.
-                    var candidate = origin + upgraded.DurationSec;
-                    if (s.DeadlineUt.HasValue && candidate < s.DeadlineUt.Value)
-                    {
-                        candidate = s.DeadlineUt.Value;
-                    }
-
-                    s.DeadlineUt = candidate;
-                    s.DeadlineBasis = upgraded.Basis;
-                    s.PredictedReacquisitionUt = upgraded.PredictedReacquisitionUt;
-                    s.PredictionGraceSec = upgraded.PredictionGraceSec;
+                    Upgrade(s, _policy(sample, origin), origin);
                 }
             }
 
             return s;
+        }
+
+        /// <summary>Stands a silence that began at <paramref name="originUt"/> on <paramref name="deadline"/>.</summary>
+        private static void Arm(VesselContactState s, SilenceDeadline deadline, double originUt)
+        {
+            s.DeadlineUt = originUt + deadline.DurationSec;
+            s.DeadlineBasis = deadline.Basis;
+            s.PredictedReacquisitionUt = deadline.PredictedReacquisitionUt;
+            s.PredictionGraceSec = deadline.PredictionGraceSec;
+            s.DeadlineUpgraded = false;
+        }
+
+        /// <summary>Takes the one later look at a silence that began at <paramref name="origin"/> and still carries no prediction.</summary>
+        private static void Upgrade(VesselContactState s, SilenceDeadline upgraded, double origin)
+        {
+            // Spend the retry when the policy ANSWERED, not merely when it
+            // predicted. Every predictor basis is an answer - including
+            // the ones that decline to predict - and re-asking costs a full
+            // ~1400-sample sweep every tick, which at warp is the stutter
+            // the sliced-solver design exists to avoid.
+            //
+            // A fallback basis means the policy could not attempt at all
+            // (no geometry yet), which is transient and cheap: the factory
+            // returns before any sweep. Spending the one retry on it burned
+            // the attempt at the worst possible moment - the tick right
+            // after a save load, when CommNet has not been built - and left
+            // every vessel holding an orbital-period deadline for the rest
+            // of its run.
+            if (IsPredictorBasis(upgraded.Basis))
+            {
+                s.DeadlineUpgraded = true;
+
+                // Record the VERDICT, not just a prediction. The three
+                // non-predicting bases are answers - "nothing is in the way",
+                // "still behind something", "too fast to resolve" - and
+                // leaving them unwritten meant the wire kept reporting the
+                // armed orbital-period basis forever, so a working sweep and
+                // a sweep that never ran looked identical to every consumer.
+                // That is precisely what made this feature look dead while
+                // the geometry underneath it was fine.
+                //
+                // The DEADLINE is deliberately not touched here: those bases
+                // carry the fallback duration unchanged, which is the whole
+                // point of no-occultation not shortening anything.
+                s.DeadlineBasis = upgraded.Basis;
+            }
+            if (upgraded.PredictedReacquisitionUt.HasValue)
+            {
+                // NEVER earlier. The upgrade is evaluated from the silence
+                // ORIGIN, so its duration is measured from a UT that may be
+                // hours in the past; writing that over the armed deadline
+                // would move the deadline backwards, in the worst case behind
+                // the current tick.
+                //
+                // A prediction is allowed to explain a silence and to push
+                // the deadline out. It is never allowed to shorten a
+                // vessel's remaining life.
+                var candidate = origin + upgraded.DurationSec;
+                if (s.DeadlineUt.HasValue && candidate < s.DeadlineUt.Value)
+                {
+                    candidate = s.DeadlineUt.Value;
+                }
+
+                s.DeadlineUt = candidate;
+                s.DeadlineBasis = upgraded.Basis;
+                s.PredictedReacquisitionUt = upgraded.PredictedReacquisitionUt;
+                s.PredictionGraceSec = upgraded.PredictionGraceSec;
+            }
         }
 
         private static bool HasPrediction(string? basis) =>
