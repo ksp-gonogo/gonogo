@@ -12874,10 +12874,24 @@ namespace Sitrep.Host
                         session.Outbox.PublishTelemetry(topic, bytes, onSent);
                     }
                 };
+                /*
+                 * A lane's frames share one queued slot under the subscribed topic, which
+                 * a later frame replaces until the socket takes it. The frame still queued
+                 * from the binding this replaces is already counted as shown, so the
+                 * replay starts after it, and the subscribe's own newest reading would
+                 * replace it. The newest reading waits behind the replay on a busy socket,
+                 * where the next live reading would replace it. Both move to the lane
+                 * that keeps every frame in order, so neither leaves a hole.
+                 */
+                if (fromALane)
+                {
+                    session.Outbox.KeepQueuedFrame(topic);
+                }
                 unsubscribe = _courier.SubscribeStream(boundNode, boundTopic, vantage, deliver);
                 if (fromALane)
                 {
                     ReplayLaneHistory(session, boundNode, boundTopic, vantage, shownThroughBefore, deliver);
+                    session.Outbox.KeepQueuedFrame(topic);
                 }
             }
             catch (Exception ex)
@@ -14351,8 +14365,9 @@ namespace Sitrep.Host
         /// <summary>
         /// Courier-thread-only: moves a queued, not yet pumped lossy-latest frame for
         /// <paramref name="topic"/> to the FIFO lane, so a frame queued after it under
-        /// the same topic cannot replace it. For a topic whose next frame describes
-        /// something else, as a stream does when it moves to another craft.
+        /// the same topic cannot replace it. For a topic whose next frames are not its
+        /// successors, as when a stream moves to another craft or another centre's
+        /// lane hands it readings it has not been shown.
         /// </summary>
         public void KeepQueuedFrame(string topic)
         {
