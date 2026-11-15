@@ -1211,6 +1211,67 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// A handler the game's main thread has started and never finishes does
+        /// not hold the Courier for good. Once the second wait has run out the
+        /// command is refused as not known to have run, the Courier goes on to
+        /// the next job, and the handler finishing later disturbs nothing.
+        /// </summary>
+        [Fact]
+        public void AHandlerTheGameStartedAndNeverFinishesStopsHoldingTheCourier()
+        {
+            var probe = new SlowHandlerProbeUplink();
+            using var engine = new ChannelEngine(
+                "ws://127.0.0.1:0",
+                executeCommandsOnMainThread: true,
+                mainThreadCommandTimeoutSeconds: 0.2)
+            {
+                MainThreadStartedTimeoutSeconds = 0.3,
+            };
+            engine.RegisterUplink(probe);
+            engine.Start();
+            try
+            {
+                using var resolved = new ManualResetEventSlim(false);
+                FaultCode? fault = null;
+                string? detail = null;
+                engine.DispatchCommand(SlowHandlerProbeUplink.Command, null, "vantage-1",
+                    _ => resolved.Set(),
+                    onRefused: (code, said) =>
+                    {
+                        fault = code;
+                        detail = said;
+                        resolved.Set();
+                    });
+
+                var pump = Task.Run(() =>
+                {
+                    while (!probe.Started.IsSet)
+                    {
+                        engine.RunPendingCommands();
+                        Thread.Sleep(5);
+                    }
+                });
+
+                Assert.True(probe.Started.Wait(Timeout), "the pump must have started the handler");
+                Assert.True(resolved.Wait(Timeout), "the Courier is still waiting for a handler that never returns");
+                Assert.Equal(FaultCode.MainThreadTimeout, fault);
+                Assert.Contains("whether it ran is not known", detail);
+
+                // The Courier is free: the next tick is processed while the handler still holds the main thread.
+                engine.TickAndWait(1.0, new KspSnapshot { Ut = 1.0 }, Timeout);
+
+                probe.Release.Set();
+                Assert.True(pump.Wait(Timeout));
+                Assert.Equal(1, probe.HandlerRunCount);
+            }
+            finally
+            {
+                probe.Release.Set();
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// F2-fix (Fix #2, shutdown gate): a shutdown with multiple instant
         /// commands in flight against a main-thread seam whose pump is not
         /// running must complete promptly and never leave the Courier thread

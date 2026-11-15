@@ -1431,8 +1431,9 @@ namespace Sitrep.Core.StoreAndForward
                     held.Excluded = null;
                 }
 
+                var onATurn = false;
                 var waitsUntil = Reckoning
-                    ? LeaveOnBelief(node, held, destination, nowUt)
+                    ? LeaveOnBelief(node, held, destination, nowUt, out onATurn)
                     : LeaveOnTheLivePath(node, held, destination, nowUt);
                 if (held.Away != null)
                 {
@@ -1445,9 +1446,22 @@ namespace Sitrep.Core.StoreAndForward
                     held.ReportedHeld = true;
                     Report(node, command, JourneyKind.Held, nowUt, until: waitsUntil);
                 }
-                WakeAt(node, held, waitsUntil, nowUt);
+                /* A wait that is only a dish turn's link-up time sets no wake. The
+                   plan gives such a hop a departure that long after whenever it is
+                   asked, so a wake for it would find the same wait and set the next,
+                   every few seconds for as long as the retarget window lasts. What
+                   can end the wait is the link coming up, which the turn's own
+                   event looks for when it is due and every tick looks for after it. */
+                WakeAt(node, held, onATurn && !WakesOnDishTurnWaits ? null : waitsUntil, nowUt);
             }
         }
+
+        /// <summary>
+        /// True has a message waiting on a dish turn's link-up time wake itself
+        /// for it, every link-up time for as long as it waits. Off in the mod;
+        /// the comparison of the two runs one script each way.
+        /// </summary>
+        internal bool WakesOnDishTurnWaits { get; set; }
 
         /// <summary>
         /// Has a message that is waiting for a window looked again at the instant
@@ -1522,8 +1536,10 @@ namespace Sitrep.Core.StoreAndForward
         /// is up. Returns when the plan next expects it to leave, for a message
         /// that stays.
         /// </summary>
-        private double? LeaveOnBelief(string node, Held held, string destination, double nowUt)
+        /// <param name="onATurn">Whether the wait returned is the link-up time of a dish turn that could start now, and not a window still to open.</param>
+        private double? LeaveOnBelief(string node, Held held, string destination, double nowUt, out bool onATurn)
         {
+            onATurn = false;
             var message = held.Message;
             if (string.Equals(node, destination, StringComparison.Ordinal))
             {
@@ -1577,6 +1593,7 @@ namespace Sitrep.Core.StoreAndForward
             }
 
             var next = route[0];
+            onATurn = next.RetargetDish != null && !(next.TurnUt > nowUt + Tolerance);
             if (IsExcluded(held, next.To))
             {
                 if (!own)
@@ -1588,6 +1605,7 @@ namespace Sitrep.Core.StoreAndForward
             var clearAt = AfterAnnouncedWindow(node, next, nowUt);
             if (clearAt != null)
             {
+                onATurn = false;
                 return clearAt;
             }
             if (next.RetargetDish != null && TurnsADish(message, node))

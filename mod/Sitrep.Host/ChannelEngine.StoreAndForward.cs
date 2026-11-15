@@ -787,8 +787,14 @@ namespace Sitrep.Host
         {
             for (var pass = 0; pass < SettlePasses; pass++)
             {
+                if (_clockBehind)
+                {
+                    // The clock still owes callbacks from before this instant; the network is looked over once they have fired.
+                    _settleOwedAt = now;
+                    return;
+                }
                 _delivery.Tick(now);
-                _clock.AdvanceTo(now);
+                AdvanceClock(now);
             }
         }
 

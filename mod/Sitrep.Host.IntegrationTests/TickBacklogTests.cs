@@ -113,6 +113,70 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// A Courier held inside one job logs nothing itself, so the thread
+        /// that is declining ticks says so: once when no tick has been taken
+        /// for long enough, and then no more than once an interval.
+        /// </summary>
+        [Fact]
+        public async Task TicksDeclinedBecauseTheCourierIsHeldAreLoggedOnceAnInterval()
+        {
+            var uplink = new HeldTickUplink();
+            var logged = new ConcurrentQueue<string>();
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0)
+            {
+                DeclinedTicksLogAfterSeconds = 5.0,
+                DeclinedTicksLogEverySeconds = 30.0,
+            };
+            // Real time is the test's to move, so how long the machine takes changes nothing here.
+            var real = 100.0;
+            engine.SetRealClockForTests(() => Volatile.Read(ref real));
+            engine.SetDiagnosticLog(logged.Enqueue);
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                await using var watching = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(watching, HeldTickUplink.Topic, Timeout);
+
+                for (var i = 1; i <= ChannelEngine.TickBacklogLimit; i++)
+                {
+                    var ut = i;
+                    Assert.True(engine.TryTick(() => new KspSnapshot { Ut = ut }));
+                }
+
+                // Declined at once: the backlog limit at work, and nothing to say yet.
+                Assert.False(engine.TryTick(() => new KspSnapshot { Ut = 10 }));
+                Assert.DoesNotContain(logged, line => line.Contains("declining ticks"));
+
+                Volatile.Write(ref real, 106.0);
+                for (var i = 0; i < 5; i++)
+                {
+                    Assert.False(engine.TryTick(() => new KspSnapshot { Ut = 10 }));
+                }
+                var first = Assert.Single(logged, line => line.Contains("declining ticks"));
+                // Written at the first decline past the wait: the one before it and itself.
+                Assert.Contains("2 declined since the last line", first);
+
+                Volatile.Write(ref real, 137.0);
+                Assert.False(engine.TryTick(() => new KspSnapshot { Ut = 10 }));
+                Assert.Equal(2, logged.Count(line => line.Contains("declining ticks")));
+                Assert.Contains("5 declined since the last line", logged.Last(line => line.Contains("declining ticks")));
+
+                // A tick taken ends the stall, and the next one declined is the backlog limit at work again.
+                uplink.LetEveryTickFinish();
+                engine.TickAndWait(20, new KspSnapshot { Ut = 20 }, Timeout);
+                Assert.True(engine.TryTick(() => new KspSnapshot { Ut = 30 }));
+                engine.TickAndWait(40, new KspSnapshot { Ut = 40 }, Timeout);
+                Assert.Equal(2, logged.Count(line => line.Contains("declining ticks")));
+            }
+            finally
+            {
+                uplink.LetEveryTickFinish();
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// Two things happen in the game while the Courier owes its limit: one
         /// that the game sample hands over once, and one that a main-thread
         /// capture does. Neither is looked at for the declined tick, and both

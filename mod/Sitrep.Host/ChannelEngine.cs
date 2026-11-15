@@ -7499,6 +7499,13 @@ namespace Sitrep.Host
              * Answering "the game did not get to it" for a command that then
              * runs is the lie this guards against. The abandoned job's handle is
              * left for the pump to dispose when it drops it.
+             *
+             * A handler the pump has started is waited for no longer than
+             * MainThreadStartedTimeoutSeconds. A handler that never returns, on a main
+             * thread that is itself waiting or looping, would otherwise hold the
+             * Courier for good, and with it every screen. The caller is told the
+             * outcome is not known, which is the truth, and the handle is left
+             * for the pump to dispose if the handler ever does return.
              */
             if (!job.Done.Wait(_mainThreadCommandTimeout))
             {
@@ -7507,7 +7514,15 @@ namespace Sitrep.Host
                     throw new CommandFaultException(
                         FaultCode.MainThreadTimeout, "the game's main thread did not run the command within " + _mainThreadCommandTimeout.TotalSeconds + "s");
                 }
-                job.Done.Wait();
+                if (!job.Done.Wait(TimeSpan.FromSeconds(MainThreadStartedTimeoutSeconds)))
+                {
+                    job.Orphan();
+                    throw new CommandFaultException(
+                        FaultCode.MainThreadTimeout,
+                        "the game's main thread started the command and had not finished it after "
+                        + (_mainThreadCommandTimeout.TotalSeconds + MainThreadStartedTimeoutSeconds).ToString("F0", CultureInfo.InvariantCulture)
+                        + " s, so whether it ran is not known");
+                }
             }
 
             try
@@ -7560,9 +7575,20 @@ namespace Sitrep.Host
                 finally
                 {
                     job.Done.Set();
+                    if (job.Orphaned)
+                    {
+                        job.Done.Dispose();
+                    }
                 }
             }
         }
+
+        /// <summary>
+        /// How long the Courier waits for a handler the game's main thread has
+        /// started, after the first timeout has passed, in real seconds. Set
+        /// before <see cref="Start"/>.
+        /// </summary>
+        internal double MainThreadStartedTimeoutSeconds { get; set; } = 30.0;
 
         /// <summary>
         /// Fails every command execution still blocked on the main-thread queue
@@ -8255,8 +8281,11 @@ namespace Sitrep.Host
             {
                 Interlocked.Increment(ref _ticksDeclined);
                 ReportStuckCourier();
+                NoteTickDeclined();
                 return false;
             }
+            _lastTickTakenAt = _nowRealSec();
+            _declinedSinceLine = 0;
             SampleTiming.Begin();
             var skipped = full ? null : GroupsToSkip(Volatile.Read(ref _gameUt));
             var started = System.Diagnostics.Stopwatch.GetTimestamp();
@@ -8297,6 +8326,48 @@ namespace Sitrep.Host
             }
             EnqueueTick(tick);
             return true;
+        }
+
+        /// <summary>How long ticks may be declined in a row before a line says so, in real seconds.</summary>
+        internal double DeclinedTicksLogAfterSeconds { get; set; } = 5.0;
+
+        /// <summary>The least real time between two lines about declined ticks, in seconds.</summary>
+        internal double DeclinedTicksLogEverySeconds { get; set; } = 30.0;
+
+        // Ticking-thread-only: when a tick was last taken, and what has been declined and said since.
+        private double _lastTickTakenAt = double.NaN;
+        private double _declinedLineAt;
+        private int _declinedSinceLine;
+        private bool _declinedLineWritten;
+
+        /// <summary>
+        /// Says, at most once every <see cref="DeclinedTicksLogEverySeconds"/>,
+        /// that ticks are being declined, once none has been taken for
+        /// <see cref="DeclinedTicksLogAfterSeconds"/>. A tick or two declined
+        /// under warp is the backlog limit at work; none taken for seconds is a
+        /// Courier held inside one job, during which nothing else here logs.
+        /// </summary>
+        private void NoteTickDeclined()
+        {
+            _declinedSinceLine++;
+            var now = _nowRealSec();
+            // A tick is only declined behind ticks that were taken, so a time one was taken at is always on record here.
+            var stalled = now - _lastTickTakenAt;
+            if (!(stalled >= DeclinedTicksLogAfterSeconds)
+                || (_declinedLineWritten && now - _declinedLineAt < DeclinedTicksLogEverySeconds))
+            {
+                return;
+            }
+            _declinedLineAt = now;
+            _declinedLineWritten = true;
+            var declined = _declinedSinceLine;
+            _declinedSinceLine = 0;
+            var gameUt = Volatile.Read(ref _gameUt);
+            LogHost(
+                "declining ticks: the Courier has not finished the " + TickBacklogLimit + " ticks it holds, and no tick has been taken for "
+                + stalled.ToString("F0", CultureInfo.InvariantCulture) + " s"
+                + (double.IsNaN(gameUt) ? "" : " (game UT " + gameUt.ToString("F0", CultureInfo.InvariantCulture) + ")")
+                + "; " + declined + " declined since the last line. Nothing is sent to any screen until it does");
         }
 
         private Action<KspSnapshot>? _afterCaptures;
@@ -8468,11 +8539,165 @@ namespace Sitrep.Host
             _steps.Enter("clock advance");
             Volatile.Write(ref _advanceQueued, 0);
             var ut = Volatile.Read(ref _advanceToUt);
-            if (!double.IsNaN(ut))
+            // While the clock owes callbacks it is not moved on: what a later instant makes due fires after the tick those belong to has finished.
+            if (!double.IsNaN(ut) && !_clockBehind)
             {
-                _clock.AdvanceTo(ut);
+                AdvanceClock(ut);
             }
         }
+
+        /// <summary>
+        /// How long one advance of the clock may go on firing what is due, in
+        /// real seconds, before the rest is left for a later job. Set before
+        /// <see cref="Start"/>.
+        /// </summary>
+        internal double ClockAdvanceBudgetSeconds { get; set; } = 0.1;
+
+        /// <summary>Whether the last advance left callbacks that were already due. Courier-thread-only.</summary>
+        private bool _clockBehind;
+
+        private bool _clockCatchUpQueued;
+        private long _advanceDeadline;
+        private int _advanceFired;
+        private Func<bool>? _mayFireAnother;
+
+        /// <summary>
+        /// Advances the Courier's clock to <paramref name="ut"/> and fires what
+        /// is due, for no longer than <see cref="ClockAdvanceBudgetSeconds"/>.
+        /// What is still due then stays on the clock in its order, and a job
+        /// queued behind whatever is already waiting carries on with it, so
+        /// one advance never keeps a subscribe or the next tick waiting for
+        /// longer than the budget and one callback.
+        /// </summary>
+        /// <param name="whole">Fire everything due however long it takes, for a caller that reads what the advance delivered as soon as it returns.</param>
+        private void AdvanceClock(double ut, bool whole = false)
+        {
+            /*
+             * Under warp one tick can skip hours of game time, and everything
+             * scheduled inside the skipped stretch is due at once. A callback
+             * can cost a round trip to the game's main thread, and one that
+             * schedules its successor inside the stretch fires that too, so
+             * the cost of a single advance grows with the size of the skip.
+             * While the Courier is inside it the game declines ticks, the next
+             * tick skips more, and the stream never catches up.
+             */
+            var started = System.Diagnostics.Stopwatch.GetTimestamp();
+            _advanceDeadline = whole
+                ? long.MaxValue
+                : started + (long)(ClockAdvanceBudgetSeconds * System.Diagnostics.Stopwatch.Frequency);
+            _advanceFired = 0;
+            try
+            {
+                _clock.AdvanceTo(ut, _mayFireAnother ??= MayFireAnother);
+            }
+            finally
+            {
+                _clockBehind = !(_clock.NextDueUt > _clock.Now());
+                if (_clockBehind)
+                {
+                    var ms = (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                    LogHostLimited(
+                        "the clock's advance to UT " + _clock.Now().ToString("F0", CultureInfo.InvariantCulture)
+                        + " stopped after " + _advanceFired + " callbacks and " + ms.ToString("F0", CultureInfo.InvariantCulture)
+                        + " ms with " + _clock.PendingCount + " still scheduled, the earliest for UT "
+                        + _clock.NextDueUt.ToString("F0", CultureInfo.InvariantCulture) + "; the rest follows in later jobs",
+                        "clock advance cut short");
+                    if (!_clockCatchUpQueued)
+                    {
+                        _clockCatchUpQueued = true;
+                        EnqueueJob(new CourierActionJob(CatchUpClock));
+                    }
+                }
+            }
+        }
+
+        private bool MayFireAnother()
+        {
+            _advanceFired++;
+            return System.Diagnostics.Stopwatch.GetTimestamp() < _advanceDeadline;
+        }
+
+        /// <summary>
+        /// Courier thread: carries on with what an advance left, and once
+        /// nothing is left runs what was waiting for that, in the order it
+        /// arrived: the rest of the tick whose advance stopped, a dispatch's
+        /// look over the delivery network, then each tick that came meanwhile.
+        /// </summary>
+        private void CatchUpClock()
+        {
+            _clockCatchUpQueued = false;
+            _steps.Enter("clock advance");
+            AdvanceClock(_clock.Now());
+            if (_clockBehind)
+            {
+                return;
+            }
+            if (_tickAwaitingClock != null)
+            {
+                var tick = _tickAwaitingClock;
+                _tickAwaitingClock = null;
+                try
+                {
+                    FinishTick(tick, ref _tickAwaitingTiming);
+                }
+                finally
+                {
+                    Interlocked.Decrement(ref _ticksOutstanding);
+                }
+            }
+            if (_settleOwedAt != null)
+            {
+                var owed = _settleOwedAt.Value;
+                _settleOwedAt = null;
+                SettleAtOnce(Math.Max(owed, _clock.Now()));
+            }
+            while (!_clockBehind && _tickAwaitingClock == null && _ticksBehindTheClock.Count > 0)
+            {
+                var next = _ticksBehindTheClock.Dequeue();
+                try
+                {
+                    ProcessTick(next);
+                }
+                finally
+                {
+                    Interlocked.Decrement(ref _ticksOutstanding);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Test-only: blocks until the Courier has finished every tick it was
+        /// handed and the clock owes nothing, for a test that ticks without
+        /// waiting, as the game does. Throws <see cref="TimeoutException"/>
+        /// when that takes longer than <paramref name="timeout"/>.
+        /// </summary>
+        internal void WaitForTicksForTests(TimeSpan timeout)
+        {
+            var until = System.Diagnostics.Stopwatch.StartNew();
+            while (true)
+            {
+                var settled = false;
+                using var asked = new ManualResetEventSlim(false);
+                EnqueueJob(new CourierActionJob(() =>
+                {
+                    settled = !_clockBehind && _tickAwaitingClock == null && _ticksBehindTheClock.Count == 0 && _settleOwedAt == null;
+                    asked.Set();
+                }));
+                var left = timeout - until.Elapsed;
+                if (left <= TimeSpan.Zero || !asked.Wait(left))
+                {
+                    throw new TimeoutException("the Courier had not finished its ticks within " + timeout.TotalSeconds.ToString(CultureInfo.InvariantCulture) + " s");
+                }
+                if (settled && Volatile.Read(ref _ticksOutstanding) == 0)
+                {
+                    return;
+                }
+                Thread.Yield();
+            }
+        }
+
+        /// <summary>The instant a dispatch asked for the delivery network to be looked over while the clock still owed callbacks from before it. Courier-thread-only.</summary>
+        private double? _settleOwedAt;
 
         /// <summary>
         /// The instant a command pressed now is sent: the game's UT when the host
@@ -10863,6 +11088,13 @@ namespace Sitrep.Host
 
         private void ProcessTick(TickJob tick)
         {
+            if (_clockBehind || _tickAwaitingClock != null)
+            {
+                // Counted as outstanding until it has run, so the game goes on declining ticks meanwhile.
+                Interlocked.Increment(ref _ticksOutstanding);
+                _ticksBehindTheClock.Enqueue(tick);
+                return;
+            }
             var timing = TickTiming.Start();
             _tickUt = tick.Ut;
             _network.SetCentres(_activeCentreIds);
@@ -10942,6 +11174,9 @@ namespace Sitrep.Host
                     _courier.ResetTimeline(resetUt);
                 }
                 ForgetOwnSavesAfter(resetUt);
+                // The reset emptied the clock, so nothing from the old timeline is owed.
+                _clockBehind = false;
+                _settleOwedAt = null;
                 var loadedToken = Volatile.Read(ref _loadedGame);
                 if (loadedToken != null && (saveChanged || gameRewound))
                 {
@@ -11373,7 +11608,33 @@ namespace Sitrep.Host
             // Before the clock moves: a command that lands during this advance is
             // run against the craft that is active now, not the one that was.
             NoteActiveCraft(tick.Snapshot);
-            _clock.AdvanceTo(tick.Ut);
+            AdvanceClock(tick.Ut, whole: tick.Done != null);
+            if (_clockBehind)
+            {
+                Interlocked.Increment(ref _ticksOutstanding);
+                _tickAwaitingClock = tick;
+                _tickAwaitingTiming = timing;
+                return;
+            }
+            FinishTick(tick, ref timing);
+        }
+
+        /*
+         * A tick is everything up to the clock's advance, the advance, and what
+         * follows it. When the advance stops at its budget, what follows waits
+         * until the callbacks it left have fired, and a tick that arrives
+         * meanwhile waits behind it, so every callback still fires before
+         * anything a whole advance would have fired it before: the same game
+         * time and the same order, later only by the real clock. Other jobs, a
+         * subscribe among them, run in between.
+         */
+        private TickJob? _tickAwaitingClock;
+        private TickTiming _tickAwaitingTiming;
+        private readonly Queue<TickJob> _ticksBehindTheClock = new Queue<TickJob>();
+
+        /// <summary>Courier thread: the part of a tick that follows the clock's advance, run once nothing the advance made due is left.</summary>
+        private void FinishTick(TickJob tick, ref TickTiming timing)
+        {
             // After the clock moves, so a screen re-pointed at a craft's lane is handed it at this tick's instant, as every other delivery of the tick is.
             RepointLaneViews();
             TrimLanes(tick.Ut);
@@ -14235,6 +14496,14 @@ namespace Sitrep.Host
             /// claimed it, and then its outcome is coming and must be waited for.
             /// </summary>
             public bool TryAbandon() => Interlocked.CompareExchange(ref _state, Abandoned, Queued) == Queued;
+
+            private volatile bool _orphaned;
+
+            /// <summary>Whether the waiter stopped waiting for a handler the pump had started, so nothing but the pump is left to dispose <see cref="Done"/>.</summary>
+            public bool Orphaned => _orphaned;
+
+            /// <summary>The waiter stops waiting for a handler that is running.</summary>
+            public void Orphan() => _orphaned = true;
 
             public MainThreadCommand(Func<object?, object?> handler, object? args)
             {

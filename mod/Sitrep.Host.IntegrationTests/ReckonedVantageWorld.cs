@@ -1281,9 +1281,21 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <param name="watchTelemetry">Whether each screen also takes the active craft's telemetry topic and its link report, which a test about what arrives when has to see.</param>
         /// <param name="seatAboardActive">Whether the active craft is also a seat a session may stand aboard, as a pilot's screen does.</param>
-        public static async Task<ReckonedVantageWorld> StartAsync(ScriptedContactGame? scripted = null, bool watchTelemetry = false, bool seatAboardActive = false)
+        /// <param name="commandsOnMainThread">Whether commands and dish turns are handed to a main thread the test pumps, as the game's are.</param>
+        /// <param name="backend">The comms backend to elect, or null for the script's own choice.</param>
+        /// <param name="beforeStart">Sets the engine up further before it starts.</param>
+        /// <param name="mainThreadTimeoutSeconds">How long the Courier waits for the main thread to take up what it was handed.</param>
+        public static async Task<ReckonedVantageWorld> StartAsync(
+            ScriptedContactGame? scripted = null,
+            bool watchTelemetry = false,
+            bool seatAboardActive = false,
+            bool commandsOnMainThread = false,
+            Func<ICommsBackend>? backend = null,
+            Action<ChannelEngine>? beforeStart = null,
+            double mainThreadTimeoutSeconds = 4.0)
         {
-            var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var engine = new ChannelEngine(
+                "ws://127.0.0.1:0", networkDelaySeconds: 0, executeCommandsOnMainThread: commandsOnMainThread, mainThreadCommandTimeoutSeconds: mainThreadTimeoutSeconds);
             var wall = 0.0;
             engine.SetReleaseClockForTests(() => wall += 0.05);
             var game = scripted ?? new ScriptedContactGame();
@@ -1294,13 +1306,19 @@ namespace Sitrep.Host.IntegrationTests
                 engine.RegisterCommandCentreSeatSource(new ActiveSeat());
             }
             var uplink = new ScriptedContactUplink(game, engine);
-            if (game.LinkStrengths != null)
+            if (backend != null)
+            {
+                CommsElection.RegisterCapability(engine.Kernel, _ => backend());
+                engine.ResolveCapabilities();
+            }
+            if (backend == null && game.LinkStrengths != null)
             {
                 // Only where the script elects a backend: every other world runs with none, as it always has.
                 uplink.DeclareCapabilities(engine.Kernel);
                 engine.ResolveCapabilities();
             }
             engine.RegisterUplink(uplink);
+            beforeStart?.Invoke(engine);
             engine.Start();
             var world = new ReckonedVantageWorld(engine, game, uplink) { _watchTelemetry = watchTelemetry };
             world.Tick(0.0);
@@ -1309,7 +1327,8 @@ namespace Sitrep.Host.IntegrationTests
             return world;
         }
 
-        public void Tick(double ut)
+        /// <param name="waited">False hands the tick over as the game does, without waiting for it, and then waits until the Courier has finished every tick it holds.</param>
+        public void Tick(double ut, bool waited = true)
         {
             var values = new Dictionary<string, object?>
             {
@@ -1331,7 +1350,15 @@ namespace Sitrep.Host.IntegrationTests
             {
                 values["vessels"] = Game.RosterSnapshot();
             }
-            Engine.TickAndWait(ut, new KspSnapshot { Ut = ut, Values = values }, Timeout);
+            if (waited)
+            {
+                Engine.TickAndWait(ut, new KspSnapshot { Ut = ut, Values = values }, Timeout);
+            }
+            else
+            {
+                Engine.Tick(ut, new KspSnapshot { Ut = ut, Values = values });
+                Engine.WaitForTicksForTests(Timeout);
+            }
             WaitForTheOutboxesToDrain(ut);
         }
 

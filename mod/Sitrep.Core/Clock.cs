@@ -149,6 +149,45 @@ namespace Sitrep.Core
             }
         }
 
+        /// <summary>
+        /// C#-only, with no TS reference. <see cref="AdvanceTo(double)"/> for a
+        /// caller that must not be held by one advance: after each callback
+        /// <paramref name="mayFireAnother"/> is asked, and on false the advance
+        /// stops with the rest still pending. Returns whether nothing due is left.
+        ///
+        /// <para>What is left keeps its place: the next advance, of either kind,
+        /// fires it first, in the same order one whole advance would have. Time
+        /// has already moved, so a callback that fires late reads a later
+        /// <see cref="Now"/> than its own instant, as it does late in any long
+        /// advance. At least one callback fires on every call that finds one due,
+        /// so repeated calls always finish. A <paramref name="ut"/> behind the
+        /// clock moves no time and still fires what is due.</para>
+        /// </summary>
+        public bool AdvanceTo(double ut, Func<bool> mayFireAnother)
+        {
+            if (ut > _currentUt)
+            {
+                _currentUt = ut;
+            }
+
+            var fired = false;
+            while (_pending.Count > 0 && !(_pending[0].AtUt > _currentUt))
+            {
+                if (fired && !mayFireAnother())
+                {
+                    return false;
+                }
+                var due = Pop();
+                if (!due.Cancelled)
+                {
+                    fired = true;
+                    Interlocked.Increment(ref _fired);
+                    due.Fn();
+                }
+            }
+            return true;
+        }
+
         private static bool Before(PendingCallback a, PendingCallback b) =>
             a.AtUt < b.AtUt || (a.AtUt == b.AtUt && a.Seq < b.Seq);
 
