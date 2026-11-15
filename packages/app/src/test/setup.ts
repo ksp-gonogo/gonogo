@@ -10,6 +10,7 @@ import { afterEach } from "vitest";
 import { setDefaultShareCodeForTests } from "../peer/hostDefaults";
 import { setChosenSitrepVantage } from "../telemetry/sitrepRuntime";
 import { installGonogoHost } from "../uplinks/host";
+import { answerReleaseCheck } from "./releaseAnswer";
 
 installDomStubs();
 
@@ -37,6 +38,8 @@ PerfBudget.installTestGate();
 // locale, which is right for an operator and wrong for a snapshot: a render on
 // a French machine has to match one on an American CI runner.
 setQuantityLocale("en-GB");
+
+await answerReleaseCheck();
 
 // Inert unless the act-warning gate sets its variable. Last, so its afterEach is
 // ordered ahead of Testing Library's cleanup; see its doc.
