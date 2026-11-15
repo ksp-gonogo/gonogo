@@ -129,6 +129,24 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// Returns once every connected screen's outbox has been pumped, for a
+        /// test that has released a hold on the frames that keep only their
+        /// newest and is about to deliver another.
+        /// </summary>
+        internal static void WaitForOutboxes(ChannelEngine engine, TimeSpan timeout)
+        {
+            var deadline = DateTime.UtcNow + timeout;
+            while (engine.AnySessionHasQueuedFrames())
+            {
+                if (DateTime.UtcNow > deadline)
+                {
+                    throw new TimeoutException("the outboxes still held frames after " + timeout.TotalMilliseconds + " ms");
+                }
+                Thread.Sleep(1);
+            }
+        }
+
         public static async Task<T> ReceiveTypedAsync<T>(TestClient client, TimeSpan timeout) where T : class
         {
             var deadline = DateTime.UtcNow + timeout;

@@ -728,37 +728,33 @@ namespace Sitrep.Host.IntegrationTests
                 await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = Near }));
                 await SubscribeAsync(client, Topic, Timeout);
 
-                async Task MoveTo(string centre)
+                // Returns once the mod has said the topic is subscribed at the new centre, with the readings sent meanwhile: it applies a move when it reads the messages, not when they are sent.
+                async Task<List<(double ValidAt, double DeliveredAt, string Vantage)>> MoveTo(string centre)
                 {
                     await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = centre }));
                     await client.SendAsync(EnvelopeCodec.WriteUnsubscribe(new Unsubscribe { Topic = Topic }));
                     await client.SendAsync(EnvelopeCodec.WriteSubscribe(new Subscribe { Topic = Topic }));
+                    return await DeliveredUntilSubscribed(client);
                 }
 
                 for (var ut = Step; ut <= ToFar; ut += Step)
                 {
                     world.Tick(ut);
                 }
-                await MoveTo(Far);
+                var shown = await MoveTo(Far);
                 for (var ut = ToFar + Step; ut < BackToNear; ut += Step)
                 {
                     world.Tick(ut);
                 }
-                var shown = await Delivered(client);
+                shown.AddRange(await Delivered(client));
 
                 // The far centre's newest reading is queued on the busy socket as the screen moves.
                 engine.HoldLatestFrames(true);
                 try
                 {
                     world.TickHeld(BackToNear);
-                    await MoveTo(Near);
-
-                    // The readings it missed come on the lane that is never held, which says the move has been made.
-                    var deadline = DateTime.UtcNow + Timeout;
-                    while (!shown.Any(f => f.Vantage == Near && f.ValidAt > ToFar) && DateTime.UtcNow < deadline)
-                    {
-                        shown.AddRange(await Delivered(client));
-                    }
+                    // The readings it missed come on the lane that is never held, ahead of the mod saying the move has been made.
+                    shown.AddRange(await MoveTo(Near));
                     Assert.True(shown.Any(f => f.Vantage == Near && f.ValidAt > ToFar), "the screen was not moved back to the near centre");
 
                     // The next reading reaches the near centre while the socket is still busy.
@@ -768,6 +764,8 @@ namespace Sitrep.Host.IntegrationTests
                 {
                     engine.HoldLatestFrames(false);
                 }
+                // The socket takes the reading it held before the next one is delivered, which would replace it.
+                WaitForOutboxes(engine, Timeout);
                 world.Tick(BackToNear + 2 * Step);
                 shown.AddRange(await Delivered(client));
 
