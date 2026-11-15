@@ -45,6 +45,14 @@ describe("a saved tile whose widget is not registered", () => {
     expect(screen.getByText(/is not available/)).toBeInTheDocument();
   });
 
+  it("keeps the id and the sentence in separate elements so no spacing depends on a text node", () => {
+    renderGhost();
+    const id = screen.getByText("map-view");
+    expect(id.tagName).toBe("CODE");
+    expect(id).not.toHaveTextContent("is not available");
+    expect(screen.getByText("is not available")).not.toBe(id);
+  });
+
   it("offers a keyboard-operable remove that removes that tile", async () => {
     const user = userEvent.setup();
     const { removeItem } = renderGhost();

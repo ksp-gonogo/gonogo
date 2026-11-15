@@ -657,6 +657,8 @@ textarea {
      inset is already above it, so the full panel top would double the gap
      between a drawing and the readouts that annotate it. */
   --inset-panel-sidebar-under: var(--space-4);
+  /* Under a message that stands above a single control, so the control does not touch its last line. */
+  --inset-message-above-control: 0 0 var(--space-4);
   /* No bottom inset: the body's own gap is the only space between the header and the content. */
   --inset-panel-header: 0 var(--gutter-panel);
   /* Above a hand-composed header row; inside a Panel the rail band is that inset. */

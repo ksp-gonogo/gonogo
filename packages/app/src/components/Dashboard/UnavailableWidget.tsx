@@ -7,6 +7,7 @@ import {
   TextButton,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState, useSyncExternalStore } from "react";
+import styled from "styled-components";
 import {
   getUplinkOutcomes,
   subscribeUplinkOutcomes,
@@ -24,6 +25,25 @@ const CONFIRM_WINDOW_MS = 4000;
 function ownedBy(uplinkId: string, componentId: string): boolean {
   return componentId === uplinkId || componentId.startsWith(`${uplinkId}-`);
 }
+
+/* The section already insets its body, so the fill layout's own padding would leave a 74px tile with 42px for the id. */
+const Unavailable__Empty = styled(EmptyState)`
+  padding: var(--inset-message-above-control);
+`;
+
+const Unavailable__Message = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  min-width: 0;
+`;
+
+const Unavailable__Id = styled.code`
+  max-width: 100%;
+  overflow-wrap: break-word;
+`;
 
 interface UnavailableWidgetProps {
   /** The saved widget id that no registered widget answers to. */
@@ -83,11 +103,15 @@ export function UnavailableWidget({
   return (
     <Panel
       panelTitle="WIDGET UNAVAILABLE"
+      compactTitle={["UNAVAILABLE", "N/A"]}
       sections={[
         <Section key="unavailable" full>
-          <EmptyState layout="fill">
-            <code>{componentId}</code> is not available
-          </EmptyState>
+          <Unavailable__Empty layout="fill">
+            <Unavailable__Message>
+              <Unavailable__Id>{componentId}</Unavailable__Id>
+              <span>is not available</span>
+            </Unavailable__Message>
+          </Unavailable__Empty>
           <LiveRegion as="div">
             {waiting.length > 0
               ? `${waiting.join(", ")} has not finished loading, so this widget will arrive once it has`
