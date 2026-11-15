@@ -96,6 +96,7 @@ export function ManeuverPlannerComponent({
     removeUnavailable,
     clearAllCommand,
     handleEdit,
+    nudgeCommand,
   } = useNodeCommands(nodes, plan, telemetry.burnContext);
 
   const triggerService = usePlannerTriggerService();
@@ -165,7 +166,7 @@ export function ManeuverPlannerComponent({
         <TransferCheck
           nodes={nodes}
           target={inputs.transferBody}
-          onNudge={handleEdit}
+          nudgeCommand={nudgeCommand}
         />
       )}
       {/* Mounted while empty, so a trigger listed later, a fired one that went wrong included, is announced. */}

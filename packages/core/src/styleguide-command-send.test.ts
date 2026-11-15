@@ -59,7 +59,7 @@ const SEND_WITHOUT_INPUT: Record<string, Entry> = {
   },
   "packages/components/src/shared/StopTransfersAction.tsx": {
     reads: 1,
-    why: "a serial input's stop-all, no on-screen control",
+    why: "a serial input's stop-all, no press of an on-screen control",
   },
   "packages/app/src/logs/GithubIssueForm.tsx": {
     reads: 1,
@@ -75,23 +75,23 @@ const SEND_WITHOUT_INPUT: Record<string, Entry> = {
   },
   "packages/components/src/ManeuverPlanner/useNodeCommands.ts": {
     reads: 3,
-    why: "completed-node auto-remove, no press, and the node editor's save, which is a form submit with no command prop",
+    why: "completed-node auto-remove, no press, and the node editor's save, a form submit with no command prop",
   },
   "packages/components/src/Navball/index.tsx": {
     reads: 1,
-    why: "trim: analog, coalesced, nothing drawn",
+    why: "trim from a serial analog input, coalesced, no control to draw it",
   },
   "packages/components/src/Navball/useFlyByWire.ts": {
     reads: 4,
-    why: "fly by wire arm, disarm and lease renewal, awaiting a kit input command",
+    why: "held lease renewal and unmount disarm, no press, and bound-key arm and disarm, whose on-screen buttons already take a command",
   },
   "packages/components/src/Navball/useSasControls.ts": {
     reads: 1,
-    why: "SAS mode from a bound key, awaiting a control press",
+    why: "SAS mode from a bound key, whose on-screen buttons already take a command",
   },
   "packages/components/src/WarpControl/index.tsx": {
     reads: 2,
-    why: "bound-key warp and pause, and the tiny form reset, which has no command prop",
+    why: "bound-key warp and pause, whose on-screen buttons already take a command",
   },
   "packages/sitrep-client/src/auto-command.ts": {
     reads: 3,

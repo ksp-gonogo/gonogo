@@ -5,7 +5,12 @@ import {
   type Value,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
-import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  act,
+  createFakeCommand,
+  render,
+  screen,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NULL_DISPLAY } from "./NullValue";
@@ -135,6 +140,34 @@ describe("TinyEssentials", () => {
     button.click();
     expect(onPress).toHaveBeenCalledTimes(1);
     await expectNoA11yViolations(container);
+  });
+
+  it("draws a plain command as a button that sends it and shows the refusal", async () => {
+    const fake = createFakeCommand<{ index: number }>({ answer: "hold" });
+    render(
+      <TinyEssentials
+        title="Warp"
+        essentials={[
+          {
+            label: "RESET",
+            control: {
+              label: "▶ 1×",
+              active: false,
+              title: "Reset time warp",
+              command: fake.handle.with({ index: 0 }, { label: "Reset warp" }),
+            },
+          },
+        ]}
+      />,
+    );
+    const button = screen.getByRole("button", { name: "Reset time warp" });
+    await act(async () => button.click());
+    expect(fake.sent).toHaveLength(1);
+    expect(fake.sent[0].args).toEqual({ index: 0 });
+    await act(async () => {
+      fake.refuse();
+    });
+    expect(screen.getByRole("button")).toHaveTextContent(/refused/i);
   });
 
   it("draws a disabled control that does not press", () => {

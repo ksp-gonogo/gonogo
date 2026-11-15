@@ -298,7 +298,8 @@ export interface TinyEssential {
 }
 
 /**
- * The button a tiny essential carries, drawn by the kit as a toggle button.
+ * The button a tiny essential carries, drawn by the kit as a toggle button, or
+ * as a plain command button when `command` is not a toggle.
  * Useful for giving the operator the one command a small tile exists for. The
  * `control` of a {@link TinyEssential}.
  *
@@ -325,13 +326,16 @@ export interface TinyControl {
   /** Called on a press. Give this or `command`. */
   onPress?: () => void;
   /**
-   * The command a press sends, made with `toArgs` on a `useCommand` handle and
-   * given `true` to switch on and `false` to switch off. The button shows the
-   * state in `active` and what became of the press, as every control that sends
-   * a command does. Give this or `onPress`.
+   * The command a press sends. Give a command made with `toArgs` on a
+   * `useCommand` handle, given `true` to switch on and `false` to switch off,
+   * and the button is a toggle that shows the state in `active`. Give any other
+   * command, made with `with` on a handle, and the button sends that one
+   * command on every press, with `active` only filling it. Either way the
+   * button shows what became of the press, as every control that sends a
+   * command does. Give this or `onPress`.
    */
   // biome-ignore lint/suspicious/noExplicitAny: a command of any argument and reply types
-  command?: ValueCommand<boolean, any, any>;
+  command?: ValueCommand<boolean, any, any> | AnyBoundCommand;
 }
 
 /**

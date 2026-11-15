@@ -292,6 +292,31 @@ export function useNodeCommands(
     }
   }
 
+  // The edit a nudge button sends; the button draws sent and refused itself, so only a confirmed one clears the planner's earlier outcomes.
+  const nudgeCommand = (nodeId: string, patch: NodeEditPatch) => {
+    const args = {
+      nodeId,
+      ut: patch.ut,
+      radialOut: patch.radial,
+      normal: patch.normal,
+      prograde: patch.prograde,
+    };
+    const label = "Update maneuver node";
+    return updateNodeCmd.with(args, {
+      label,
+      onConfirmed: () => {
+        for (const entry of [
+          ...updateNodeCmd.refusals,
+          ...updateNodeCmd.failures,
+          ...updateNodeCmd.undelivered,
+        ]) {
+          updateNodeCmd.dismiss(entry.id);
+        }
+        setError(null);
+      },
+    });
+  };
+
   // The light time a node crosses, for the send control to state beside itself.
   const sendDelay: SendDelay = {
     oneWaySeconds: addNodeCmd.effectiveDelaySeconds,
@@ -329,5 +354,6 @@ export function useNodeCommands(
     removeUnavailable,
     clearAllCommand,
     handleEdit,
+    nudgeCommand,
   };
 }

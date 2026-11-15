@@ -532,6 +532,14 @@ describe("PanelDelayRail", () => {
       expect(screen.getByText("3 commands failed")).toBeTruthy();
     });
 
+    it("writes the count in a short form in a tiny panel, where the sentence would leave the tile", () => {
+      const store = createDelayRailStore();
+      store.register(refusedHandle("three", 3));
+      inPanel(<PanelDelayRail tiny />, store);
+      expect(screen.getByText("3 failed")).toBeTruthy();
+      expect(screen.queryByText("3 commands failed")).toBeNull();
+    });
+
     it("draws the count in the warning colour made for text on the panel, not the one made for text on amber", () => {
       const store = createDelayRailStore();
       store.register(refusedHandle("one", 1));

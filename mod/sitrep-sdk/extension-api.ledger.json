@@ -14998,7 +14998,7 @@
       },
       {
         "key": "sitrep-sdk . TinyControl#command?",
-        "note": "a tiny control gives a command or onPress"
+        "note": "a tiny control gives a command, toggle or plain, or onPress"
       },
       {
         "key": "sitrep-sdk . TinyControl#held?",
@@ -17942,7 +17942,7 @@
       },
       {
         "key": "sitrep-sdk ./registry ~TinyControl#command?",
-        "note": "a tiny control gives a command or onPress"
+        "note": "a tiny control gives a command, toggle or plain, or onPress"
       },
       {
         "key": "sitrep-sdk ./registry ~TinyControl#held?",

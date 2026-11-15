@@ -7,6 +7,7 @@ import type {
 } from "@ksp-gonogo/sitrep-sdk";
 import { Fragment, useLayoutEffect, useRef, useState } from "react";
 import styled, { css } from "styled-components";
+import { Button } from "./Button";
 import { Dial } from "./Dial";
 import { fillFraction } from "./fillQuantity";
 import { HeldFigure } from "./HeldMark";
@@ -236,10 +237,28 @@ function extentOf(content: Element): number {
 function EssentialFigure({ essential }: { essential: TinyEssential }) {
   const { control } = essential;
   if (control?.command !== undefined) {
+    const { command } = control;
+    if (!("kind" in command && command.kind === "value")) {
+      return (
+        <Button
+          size="sm"
+          command={command}
+          pressed={control.active}
+          unavailable={
+            control.disabled ? (control.hint ?? control.title) : null
+          }
+          tip={control.hint ?? control.title}
+          aria-label={control.title}
+          blockedAriaLabel={control.title}
+        >
+          {control.label}
+        </Button>
+      );
+    }
     return (
       <ToggleButton
         size="sm"
-        command={control.command}
+        command={command}
         state={control.active}
         name={control.title}
         unavailable={control.disabled ? (control.hint ?? control.title) : null}

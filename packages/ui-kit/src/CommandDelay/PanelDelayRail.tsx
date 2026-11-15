@@ -541,16 +541,20 @@ export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
                 <PanelDelayRail__Summaries>
                   {failedCount > 0 && (
                     <PanelDelayRail__WarnSummary>
-                      {failedCount === 1
-                        ? "1 command failed"
-                        : `${failedCount} commands failed`}
+                      {tiny
+                        ? `${failedCount} failed`
+                        : failedCount === 1
+                          ? "1 command failed"
+                          : `${failedCount} commands failed`}
                     </PanelDelayRail__WarnSummary>
                   )}
                   {losses.length > 0 && (
                     <PanelDelayRail__WarnSummary>
-                      {losses.length === 1
-                        ? "1 command unconfirmed"
-                        : `${losses.length} commands unconfirmed`}
+                      {tiny
+                        ? `${losses.length} no reply`
+                        : losses.length === 1
+                          ? "1 command unconfirmed"
+                          : `${losses.length} commands unconfirmed`}
                     </PanelDelayRail__WarnSummary>
                   )}
                   {warnings.length > 0 && (
@@ -562,9 +566,11 @@ export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
                   )}
                   {founds.length > 0 && (
                     <PanelDelayRail__FoundSummary>
-                      {founds.length === 1
-                        ? "1 unconfirmed command answered"
-                        : `${founds.length} unconfirmed commands answered`}
+                      {tiny
+                        ? `${founds.length} answered`
+                        : founds.length === 1
+                          ? "1 unconfirmed command answered"
+                          : `${founds.length} unconfirmed commands answered`}
                     </PanelDelayRail__FoundSummary>
                   )}
                 </PanelDelayRail__Summaries>
@@ -756,7 +762,7 @@ const PanelDelayRail__Detail = styled.div`
 
 /**
  * The collapsed strip's failure count: only the count, since a sentence cannot
- * fit the band. Not a live region; the rail's own announcer reads each outcome.
+ * fit the band; a tiny panel writes each in a shorter form. Not a live region; the rail's own announcer reads each outcome.
  */
 const PanelDelayRail__WarnSummary = styled.span`
   color: ${TONE_TEXT.warn};
@@ -766,6 +772,10 @@ const PanelDelayRail__WarnSummary = styled.span`
 const PanelDelayRail__Summaries = styled.span`
   align-self: center;
   justify-self: end;
+  /* A run wider than the band is clipped at the band's edge rather than drawn past the panel. */
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   display: flex;
   gap: var(--gap-rail-summaries);
   padding: 0 var(--gutter-panel);

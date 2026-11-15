@@ -62,7 +62,7 @@ describe("WarpControl tiny mode", () => {
     const button = await screen.findByRole("button", {
       name: "Reset time warp to 1×",
     });
-    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-disabled", "true");
   });
 
   it("keeps its serial and keyboard binding while the body is unmounted", async () => {

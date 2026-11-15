@@ -158,7 +158,7 @@ function useWarpControl(config: WarpControlConfig | undefined) {
         },
       },
     );
-  // Bound keys and the tiny form's reset press a warp without a button of this widget's own to draw the outcome.
+  // A bound key presses a warp without a button of this widget's own to draw the outcome.
   const setWarp = (idx: number) => {
     noteWarpSent(idx);
     warpCmd.dangerouslySendWithoutInput({ index: idx }).catch(() => {
@@ -274,7 +274,7 @@ function useWarpControl(config: WarpControlConfig | undefined) {
 function useWarpEssentials({
   config,
 }: Readonly<ComponentProps<WarpControlConfig>>): readonly TinyEssential[] {
-  const { warp, warpableScene, hasGameSignal, currentIndex, setWarp } =
+  const { warp, warpableScene, hasGameSignal, currentIndex, warpCommand } =
     useWarpControl(config);
   const physics = normalizeWarpMode(warp?.warpMode) === "Physics";
   const realtime = currentIndex === 0;
@@ -296,7 +296,7 @@ function useWarpEssentials({
         active: realtime,
         disabled: realtime || (hasGameSignal && !warpableScene),
         title: "Reset time warp to 1×",
-        onPress: () => setWarp(0),
+        command: warpCommand(0),
       },
     },
   ];

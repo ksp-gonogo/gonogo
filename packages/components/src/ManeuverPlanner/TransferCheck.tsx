@@ -1,6 +1,6 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
 import { ManeuverFrame, value } from "@ksp-gonogo/sitrep-sdk";
-import { Button, Unit } from "@ksp-gonogo/ui-kit";
+import { type BoundControlCommand, Button, Unit } from "@ksp-gonogo/ui-kit";
 import { checkEncounter, type EncounterCheck } from "./encounterCheck";
 import type { NodeEditPatch } from "./NodeRow";
 import { Label, PreviewGrid, PreviewValue } from "./styles";
@@ -13,27 +13,29 @@ interface TransferCheckProps {
   nodes: readonly ParsedManeuverNode[];
   /** The body the transfer is aimed at. */
   target: string;
-  onNudge: (nodeId: string, patch: NodeEditPatch) => Promise<void> | void;
+  /** The command that edits node `nodeId` as `patch` says, drawn by the nudge button that sends it. */
+  nudgeCommand: (nodeId: string, patch: NodeEditPatch) => BoundControlCommand;
 }
 
 /** Whether the game's patched conics reach the target body after the planned burns, and a prograde nudge where they do not. */
-export function TransferCheck({ nodes, target, onNudge }: TransferCheckProps) {
+export function TransferCheck({
+  nodes,
+  target,
+  nudgeCommand,
+}: TransferCheckProps) {
   const last = nodes.at(-1);
   if (!last) return null;
   const check = checkEncounter(last.orbitPatches, target);
   // A node in a frame this planner cannot name the slots of is not nudged.
   const nudgeable = last.frame === ManeuverFrame.RadialNormalPrograde;
   const nudge = (step: number) =>
-    onNudge(last.id, {
+    nudgeCommand(last.id, {
       ut: last.UT,
       radial: last.deltaV[0],
       normal: last.deltaV[1],
       prograde: last.deltaV[2] + step,
     });
-  // A refused edit is already reported on the planner's error line.
-  const nudgeBy = (step: number) => {
-    Promise.resolve(nudge(step)).catch(() => {});
-  };
+  const unaddressable = last.id ? null : "This node arrived without an id";
   return (
     <div role="status" aria-live="polite">
       <PreviewGrid>
@@ -45,18 +47,20 @@ export function TransferCheck({ nodes, target, onNudge }: TransferCheckProps) {
       {check.kind === "none" && nudgeable && (
         <div style={NUDGE_ROW_STYLE}>
           <Button
-            type="button"
             variant="ghost"
             size="sm"
-            onClick={() => nudgeBy(-NUDGE_STEP)}
+            command={nudge(-NUDGE_STEP)}
+            unavailable={unaddressable}
+            blockedAriaLabel="Nudge down"
           >
             Nudge -<Unit value={value("m/s", NUDGE_STEP)} />
           </Button>
           <Button
-            type="button"
             variant="ghost"
             size="sm"
-            onClick={() => nudgeBy(NUDGE_STEP)}
+            command={nudge(NUDGE_STEP)}
+            unavailable={unaddressable}
+            blockedAriaLabel="Nudge up"
           >
             Nudge +<Unit value={value("m/s", NUDGE_STEP)} />
           </Button>
