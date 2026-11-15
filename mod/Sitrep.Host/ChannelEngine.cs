@@ -13208,9 +13208,23 @@ namespace Sitrep.Host
                      * still crossing), so a busy socket would be sent that reading and
                      * never be told the Topic was withdrawn.
                      */
+                    /*
+                     * A reading that states a gap rides the FIFO lane as well. The
+                     * Courier counts the gap as told once it has handed this reading
+                     * over and states it on no later one, so a reading that replaced
+                     * this one on a busy socket would leave the screen drawing straight
+                     * across the hole. The reading still queued ahead of it moves to
+                     * the same lane first, which keeps the two in the order they were made.
+                     */
+                    var statesAGap = streamData.Meta.GapSinceUt != null;
+                    if (statesAGap)
+                    {
+                        session.Outbox.KeepQueuedFrame(topic);
+                    }
                     if (delivery == Delivery.ReliableOrdered
                         || streamData.Meta.Staleness == Staleness.Recorded
-                        || streamData.Payload == null)
+                        || streamData.Payload == null
+                        || statesAGap)
                     {
                         // Reliable-ordered: rides the outbox's FIFO lane, never
                         // coalesced away: see Delivery's doc comment.

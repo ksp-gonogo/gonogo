@@ -90,6 +90,53 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// The first reading after a power cut states the gap. A screen whose
+        /// socket is too busy to take that reading before later ones are
+        /// delivered is still told of the gap.
+        /// </summary>
+        [Fact]
+        public async Task APowerCutsGapReachesAScreenWhoseSocketWasBusyWhenItWasStated()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new BlackoutRecorderTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, BlackoutRecorderTestUplink.OnboardTopic, Timeout);
+
+                for (var ut = 0.0; ut <= 10.0; ut += 1.0)
+                {
+                    Tick(engine, Snap(ut, connected: true, onboard: ut, delay: 5.0));
+                }
+                engine.SetUnpoweredCraft(new[] { "vessel:" + Craft });
+                for (var ut = 11.0; ut <= 20.0; ut += 1.0)
+                {
+                    Tick(engine, Snap(ut, connected: false, onboard: ut, delay: 0.0));
+                }
+                engine.SetUnpoweredCraft(Array.Empty<string>());
+
+                // The reading that states the gap and the four after it are all delivered before the socket takes any of them.
+                engine.HoldLatestFrames(true);
+                for (var ut = 21.0; ut <= 30.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, Snap(ut, connected: true, onboard: ut, delay: 5.0), Timeout);
+                }
+                engine.HoldLatestFrames(false);
+
+                var resumed = (await DrainAllStreamDataAsync(client, Quiet))
+                    .Where(f => f.Topic == BlackoutRecorderTestUplink.OnboardTopic && f.Payload != null && Value(f) >= 21.0)
+                    .ToList();
+                Assert.Contains(resumed, f => f.Meta.GapSinceUt == 10.0);
+                Assert.Equal(resumed.OrderBy(Value).Select(Value), resumed.Select(Value));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         /// <summary>In contact to UT 1, dark UT 2 to 4, back at UT 5; every sample on the craft's onboard topic a centre is sent.</summary>
         private static async Task<List<StreamData>> DarkWindowAsync(bool unpowered)
         {
