@@ -428,14 +428,14 @@ export const PullDownIcon = makeIcon(ArrowDownToLine);
 export const RecallIcon = makeIcon(Undo2);
 /**
  * A circular arrow running clockwise. Useful for the control that turns a view
- * a step clockwise. Used by the Vessel Schematic's view controls.
+ * a step clockwise. Used by the Ship Map's view controls.
  *
  * @category Icons
  */
 export const RotateClockwiseIcon = makeIcon(RotateCw);
 /**
  * A circular arrow running anticlockwise. Useful for the control that turns a
- * view a step anticlockwise. Used by the Vessel Schematic's view controls.
+ * view a step anticlockwise. Used by the Ship Map's view controls.
  *
  * @category Icons
  */

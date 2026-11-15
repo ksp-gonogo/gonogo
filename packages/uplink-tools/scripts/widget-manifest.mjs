@@ -50,7 +50,7 @@ const PAGE_SCENES = {
   "ground-track": "kerbin-lko-equator",
   navball: "gravity-turn-east",
   "resource-ops": "kerbalism-mixed",
-  "vessel-schematic": "fuel-tank-bars-only",
+  "ship-map": "fuel-tank-bars-only",
   "space-center-status": "mid-career-mixed",
   "administration-building": "one-active-room-for-more",
   "target-picker": "lko-station-target",

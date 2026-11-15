@@ -106,7 +106,7 @@ plantContribution("plots", {
   compute: () => [PLOT],
 });
 
-plantContribution("vessel-schematic.part-meters", {
+plantContribution("ship-map.part-meters", {
   deps: ["vessel.parts"],
   compute: (topics) => {
     const part = stillTrue(topics["vessel.parts"], null)?.parts[0];
@@ -115,7 +115,7 @@ plantContribution("vessel-schematic.part-meters", {
       {
         partId: String(part.id),
         resource: "ElectricCharge",
-        displayName: "vessel-schematic.part-meters",
+        displayName: "ship-map.part-meters",
         amount: value("units", 50),
         capacity: value("units", 100),
       },
@@ -123,7 +123,7 @@ plantContribution("vessel-schematic.part-meters", {
   },
 });
 
-plantContribution("vessel-schematic.part-actions", {
+plantContribution("ship-map.part-actions", {
   deps: ["vessel.parts"],
   compute: (topics) => {
     const part = stillTrue(topics["vessel.parts"], null)?.parts[0];
@@ -131,8 +131,8 @@ plantContribution("vessel-schematic.part-actions", {
     return [
       {
         partId: String(part.id),
-        name: "vessel-schematic.part-actions",
-        label: "vessel-schematic.part-actions",
+        name: "ship-map.part-actions",
+        label: "ship-map.part-actions",
         active: true,
         command: "science.experiment.start" as const,
         args: { partId: String(part.id) },
@@ -141,7 +141,7 @@ plantContribution("vessel-schematic.part-actions", {
   },
 });
 
-plantContribution("vessel-schematic.part-meta", {
+plantContribution("ship-map.part-meta", {
   deps: ["vessel.parts"],
   compute: (topics) => {
     const part = stillTrue(topics["vessel.parts"], null)?.parts[0];
@@ -149,7 +149,7 @@ plantContribution("vessel-schematic.part-meta", {
     return [
       {
         partId: String(part.id),
-        label: "vessel-schematic.part-meta",
+        label: "ship-map.part-meta",
         tone: "info" as const,
         kind: "text" as const,
         text: "stub",

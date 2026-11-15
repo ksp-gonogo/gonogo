@@ -238,17 +238,17 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
     it("getContributionsForSlot fails LOUD with no host, resolves once installed", () => {
       resetTestHost();
       expect(() =>
-        barrel.getContributionsForSlot("vessel-schematic.part-meters"),
+        barrel.getContributionsForSlot("ship-map.part-meters"),
       ).toThrow(named);
 
       const contributions = [{ id: "example-uplink:coolant" }] as never;
       const getContributionsForSlot = vi.fn().mockReturnValue(contributions);
       installTestHost({ getContributionsForSlot });
-      expect(
-        barrel.getContributionsForSlot("vessel-schematic.part-meters"),
-      ).toBe(contributions);
+      expect(barrel.getContributionsForSlot("ship-map.part-meters")).toBe(
+        contributions,
+      );
       expect(getContributionsForSlot).toHaveBeenCalledWith(
-        "vessel-schematic.part-meters",
+        "ship-map.part-meters",
       );
     });
 

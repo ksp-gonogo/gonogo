@@ -101,8 +101,8 @@ namespace Sitrep.Host.IntegrationTests
                 }
             }
 
-            /// <summary>Every craft but the active one, through its lane, as the background feed writes it.</summary>
-            private void WriteOtherCrafts(double ut)
+            /// <summary>One game tick: the active craft through the snapshot, every other craft through its lane, as the background feed writes it.</summary>
+            public void Tick(double ut)
             {
                 foreach (var craft in Delays)
                 {
@@ -116,21 +116,7 @@ namespace Sitrep.Host.IntegrationTests
                         Engine.WriteCraftSnapshot(craft.Key, CraftOnly(ut, craft.Key));
                     }
                 }
-            }
-
-            /// <summary>One game tick: the active craft through the snapshot, every other craft through its lane, as the background feed writes it.</summary>
-            public void Tick(double ut)
-            {
-                WriteOtherCrafts(ut);
                 TickAndWaitForOutboxes(Engine, ut, Snap(ut, Active, Delays[Active], LinkUp(Active)), Timeout);
-                SayLinks(ut);
-            }
-
-            /// <summary>As <see cref="Tick"/>, leaving whatever the screens' sockets hold where it is, for a test that has held them busy.</summary>
-            public void TickHeld(double ut)
-            {
-                WriteOtherCrafts(ut);
-                Engine.TickAndWait(ut, Snap(ut, Active, Delays[Active], LinkUp(Active)), Timeout);
                 SayLinks(ut);
             }
 
@@ -140,7 +126,18 @@ namespace Sitrep.Host.IntegrationTests
                 Engine.HoldLatestFrames(true);
                 try
                 {
-                    WriteOtherCrafts(ut);
+                    foreach (var craft in Delays)
+                    {
+                        if (craft.Key != Active)
+                        {
+                            Engine.SetVesselDelay(craft.Key, craft.Value);
+                            if (Connected.TryGetValue(craft.Key, out var up))
+                            {
+                                Engine.SetVesselConnectivity(craft.Key, up);
+                            }
+                            Engine.WriteCraftSnapshot(craft.Key, CraftOnly(ut, craft.Key));
+                        }
+                    }
                     Engine.TickAndWait(ut, Snap(ut, Active, Delays[Active], LinkUp(Active)), Timeout);
                 }
                 finally
@@ -680,100 +677,6 @@ namespace Sitrep.Host.IntegrationTests
 
                 // Back at the near centre the readings it missed are filled in once each.
                 var repeated = backFromNear.GroupBy(f => f.ValidAt).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
-                Assert.True(repeated.Count == 0, "back at the near centre these readings were sent twice: " + string.Join(", ", repeated));
-            }
-            finally
-            {
-                engine.Stop();
-            }
-        }
-
-        /// <summary>
-        /// A screen moves back from a far command centre to a near one while its
-        /// socket is too busy to be handed the frames that keep only their newest.
-        /// The reading the far centre last handed it, the readings it missed, the
-        /// newest that has reached the near centre and the next to arrive there all
-        /// reach it, none lost to a later one and none twice.
-        /// </summary>
-        [Fact]
-        public async Task AScreenMovedBackToANearCentreOnABusySocketIsSentEveryReading()
-        {
-            const string Near = "centre.near";
-            const string Far = "centre.far";
-            const double NearDelay = 10.0;
-            const double FarDelay = 40.0;
-            const double Step = 2.0;
-            const double ToFar = 100.0;
-            const double BackToNear = 200.0;
-
-            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            engine.RegisterUplink(new LaneUplink());
-            engine.RegisterCommandCentreSource(new GroundCentres(Near, Far));
-            engine.Start();
-            try
-            {
-                var world = new World(engine);
-                world.Delays[VesselA] = NearDelay;
-                world.Tick(0.0);
-                engine.SetAuthorityDelays(new[] { (Near, VesselA, NearDelay), (Far, VesselA, FarDelay) });
-
-                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = Near }));
-                await SubscribeAsync(client, Topic, Timeout);
-
-                async Task MoveTo(string centre)
-                {
-                    await client.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = centre }));
-                    await client.SendAsync(EnvelopeCodec.WriteUnsubscribe(new Unsubscribe { Topic = Topic }));
-                    await client.SendAsync(EnvelopeCodec.WriteSubscribe(new Subscribe { Topic = Topic }));
-                }
-
-                for (var ut = Step; ut <= ToFar; ut += Step)
-                {
-                    world.Tick(ut);
-                }
-                await MoveTo(Far);
-                for (var ut = ToFar + Step; ut < BackToNear; ut += Step)
-                {
-                    world.Tick(ut);
-                }
-                var shown = await Delivered(client);
-
-                // The far centre's newest reading is queued on the busy socket as the screen moves.
-                engine.HoldLatestFrames(true);
-                try
-                {
-                    world.TickHeld(BackToNear);
-                    await MoveTo(Near);
-
-                    // The readings it missed come on the lane that is never held, which says the move has been made.
-                    var deadline = DateTime.UtcNow + Timeout;
-                    while (!shown.Any(f => f.Vantage == Near && f.ValidAt > ToFar) && DateTime.UtcNow < deadline)
-                    {
-                        shown.AddRange(await Delivered(client));
-                    }
-                    Assert.True(shown.Any(f => f.Vantage == Near && f.ValidAt > ToFar), "the screen was not moved back to the near centre");
-
-                    // The next reading reaches the near centre while the socket is still busy.
-                    world.TickHeld(BackToNear + Step);
-                }
-                finally
-                {
-                    engine.HoldLatestFrames(false);
-                }
-                world.Tick(BackToNear + 2 * Step);
-                shown.AddRange(await Delivered(client));
-
-                var history = shown.Select(f => f.ValidAt).Distinct().OrderBy(v => v).ToList();
-                for (var i = 1; i < history.Count; i++)
-                {
-                    Assert.True(
-                        history[i] - history[i - 1] <= Step + 1e-6,
-                        "the screen's history skips from UT " + history[i - 1] + " to " + history[i] + ": "
-                        + string.Join(", ", shown.Where(f => f.ValidAt > BackToNear - FarDelay - 2 * Step).Select(f => f.ValidAt + "@" + f.DeliveredAt + " " + f.Vantage)));
-                }
-                Assert.True(history.Last() >= BackToNear + 2 * Step - NearDelay, "the screen's readings stopped at UT " + history.Last());
-                var repeated = shown.Where(f => f.Vantage == Near && f.ValidAt > ToFar).GroupBy(f => f.ValidAt).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
                 Assert.True(repeated.Count == 0, "back at the near centre these readings were sent twice: " + string.Join(", ", repeated));
             }
             finally

@@ -14,11 +14,8 @@ import type {
 } from "@ksp-gonogo/sitrep-sdk";
 import type { CommSignalHopRateEntry } from "./CommSignal/commsRoute";
 import type { ContributedInstrument } from "./Experiments/instrument";
+import type { ShipMapPartMetaEntry, ShipMapPartMeterEntry } from "./ShipMap";
 import type { SystemEntity } from "./TrackingStation";
-import type {
-  VesselSchematicPartMetaEntry,
-  VesselSchematicPartMeterEntry,
-} from "./VesselSchematic";
 
 type Assignable<Left, Right> = Left extends Right ? true : false;
 type Expect<Condition extends true> = Condition;
@@ -28,58 +25,52 @@ type _SdkKeysAssignableToCore = Expect<
   Assignable<keyof SdkContributionRegistry, keyof CoreContributionRegistry>
 >;
 
-// vessel-schematic.part-meters: checked both directions
+// ship-map.part-meters: checked both directions
 
-type _VesselSchematicPartMeters = Expect<
+type _ShipMapPartMeters = Expect<
   Assignable<
-    SdkContributionEntry<"vessel-schematic.part-meters">,
-    CoreContributionEntry<"vessel-schematic.part-meters">
+    SdkContributionEntry<"ship-map.part-meters">,
+    CoreContributionEntry<"ship-map.part-meters">
   >
 >;
-type _VesselSchematicPartMetersBack = Expect<
+type _ShipMapPartMetersBack = Expect<
   Assignable<
-    CoreContributionEntry<"vessel-schematic.part-meters">,
-    SdkContributionEntry<"vessel-schematic.part-meters">
+    CoreContributionEntry<"ship-map.part-meters">,
+    SdkContributionEntry<"ship-map.part-meters">
   >
 >;
-type _VesselSchematicPartMetersReal = Expect<
+type _ShipMapPartMetersReal = Expect<
   Assignable<
-    SdkContributionEntry<"vessel-schematic.part-meters">,
-    VesselSchematicPartMeterEntry
+    SdkContributionEntry<"ship-map.part-meters">,
+    ShipMapPartMeterEntry
   >
 >;
-type _VesselSchematicPartMetersRealBack = Expect<
+type _ShipMapPartMetersRealBack = Expect<
   Assignable<
-    VesselSchematicPartMeterEntry,
-    SdkContributionEntry<"vessel-schematic.part-meters">
+    ShipMapPartMeterEntry,
+    SdkContributionEntry<"ship-map.part-meters">
   >
 >;
 
-// vessel-schematic.part-meta: checked both directions
+// ship-map.part-meta: checked both directions
 
-type _VesselSchematicPartMeta = Expect<
+type _ShipMapPartMeta = Expect<
   Assignable<
-    SdkContributionEntry<"vessel-schematic.part-meta">,
-    CoreContributionEntry<"vessel-schematic.part-meta">
+    SdkContributionEntry<"ship-map.part-meta">,
+    CoreContributionEntry<"ship-map.part-meta">
   >
 >;
-type _VesselSchematicPartMetaBack = Expect<
+type _ShipMapPartMetaBack = Expect<
   Assignable<
-    CoreContributionEntry<"vessel-schematic.part-meta">,
-    SdkContributionEntry<"vessel-schematic.part-meta">
+    CoreContributionEntry<"ship-map.part-meta">,
+    SdkContributionEntry<"ship-map.part-meta">
   >
 >;
-type _VesselSchematicPartMetaReal = Expect<
-  Assignable<
-    SdkContributionEntry<"vessel-schematic.part-meta">,
-    VesselSchematicPartMetaEntry
-  >
+type _ShipMapPartMetaReal = Expect<
+  Assignable<SdkContributionEntry<"ship-map.part-meta">, ShipMapPartMetaEntry>
 >;
-type _VesselSchematicPartMetaRealBack = Expect<
-  Assignable<
-    VesselSchematicPartMetaEntry,
-    SdkContributionEntry<"vessel-schematic.part-meta">
-  >
+type _ShipMapPartMetaRealBack = Expect<
+  Assignable<ShipMapPartMetaEntry, SdkContributionEntry<"ship-map.part-meta">>
 >;
 
 // tracking-station.entities: checked both directions
@@ -187,14 +178,14 @@ type _ExperimentsInstrumentsRealBack = Expect<
 // Keep every alias "used" under noUnusedLocals.
 export type _ContributionRegistryConformance = [
   _SdkKeysAssignableToCore,
-  _VesselSchematicPartMeters,
-  _VesselSchematicPartMetersBack,
-  _VesselSchematicPartMetersReal,
-  _VesselSchematicPartMetersRealBack,
-  _VesselSchematicPartMeta,
-  _VesselSchematicPartMetaBack,
-  _VesselSchematicPartMetaReal,
-  _VesselSchematicPartMetaRealBack,
+  _ShipMapPartMeters,
+  _ShipMapPartMetersBack,
+  _ShipMapPartMetersReal,
+  _ShipMapPartMetersRealBack,
+  _ShipMapPartMeta,
+  _ShipMapPartMetaBack,
+  _ShipMapPartMetaReal,
+  _ShipMapPartMetaRealBack,
   _TrackingStationEntities,
   _TrackingStationEntitiesBack,
   _TrackingStationEntitiesReal,

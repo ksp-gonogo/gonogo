@@ -36,7 +36,7 @@ export interface FloatingProps extends HTMLAttributes<HTMLDivElement> {
  * A layer drawn over the whole page rather than inside its widget: a hover
  * card, a tooltip, an anchored menu. Useful for showing the operator detail
  * that no panel or scroll box should clip. Used by {@link HoverCard} and the
- * vessel schematic's part tooltip. It is portalled to the document body and placed
+ * ship map's part tooltip. It is portalled to the document body and placed
  * against the viewport by {@link anchoredPosition}. It is measured before paint
  * (and stays hidden until then), and re-placed on every render, on resize and
  * on any scroll. The layer has no surface of its own: style what you put inside

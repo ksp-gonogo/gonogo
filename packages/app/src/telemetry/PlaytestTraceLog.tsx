@@ -29,7 +29,6 @@ export function PlaytestTrace() {
     currentStage: st?.currentStage,
     partCount: st?.partCount?.in("count").valueOf(),
     linkConnected: ln?.connected ?? undefined,
-    linkSource: ln?.meta?.source,
     routeHome: ln?.routeHome ?? undefined,
     ownPortState: dk?.ownPortState ?? undefined,
     targetVesselPersistentId: dk?.targetVesselPersistentId ?? undefined,

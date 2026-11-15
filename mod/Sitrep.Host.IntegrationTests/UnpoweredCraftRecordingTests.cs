@@ -128,7 +128,7 @@ namespace Sitrep.Host.IntegrationTests
         private static double Value(StreamData frame) => Convert.ToDouble(frame.Payload);
 
         private static void Tick(ChannelEngine engine, KspSnapshot snapshot) =>
-            TickAndWaitForOutboxes(engine, snapshot.Ut, snapshot, Timeout);
+            engine.TickAndWait(snapshot.Ut, snapshot, Timeout);
 
         private static KspSnapshot Snap(double ut, bool connected, double? onboard = null, double delay = 0.0)
         {

@@ -16,7 +16,6 @@
  * so a host/station that find each other on the public broker also
  * find each other here.
  */
-import { createSocket } from "node:dgram";
 import { PeerServer } from "peer";
 
 const PORT = Number.parseInt(process.env.BROKER_PORT ?? "9999", 10);
@@ -57,49 +56,6 @@ server.on("message", (client, message) => {
   );
   message.type = "REFUSED";
   setTimeout(() => client.getSocket()?.close(), 35);
-});
-
-/**
- * The address this machine sends from by default, or null with no route out.
- * Connecting a datagram socket picks the route and sends nothing.
- */
-function defaultRouteAddress() {
-  return new Promise((resolve) => {
-    const socket = createSocket("udp4");
-    const done = (address) => {
-      socket.close();
-      resolve(address);
-    };
-    socket.once("error", () => done(null));
-    socket.connect(9, "192.0.2.1", () => done(socket.address().address));
-  });
-}
-
-const ownAddress = await defaultRouteAddress();
-const MDNS_NAME = /\b[0-9a-f-]{36}\.local\b/gi;
-let rewrote = false;
-
-/*
- * WebKit publishes its own address as a one-off mDNS name, and the page at the
- * other end has to resolve that name to reach it. Every screen in a run is on
- * this one machine, and whether a `.local` name resolves there is a property of
- * the machine: on a runner where it does not, the two pages exchange candidates
- * and stay in ICE checking until the test gives up. The name stands for the
- * address this machine sends from, so the broker puts that address in its
- * place and the join no longer depends on the resolver.
- */
-server.on("message", (_client, message) => {
-  if (message.type !== "CANDIDATE" || ownAddress === null) return;
-  const candidate = message.payload?.candidate;
-  if (typeof candidate?.candidate !== "string") return;
-  const resolved = candidate.candidate.replace(MDNS_NAME, ownAddress);
-  if (resolved === candidate.candidate) return;
-  candidate.candidate = resolved;
-  if (rewrote) return;
-  rewrote = true;
-  process.stdout.write(
-    "[broker] mDNS host candidates are passed on with this machine's address\n",
-  );
 });
 
 server.on("connection", (client) => {
