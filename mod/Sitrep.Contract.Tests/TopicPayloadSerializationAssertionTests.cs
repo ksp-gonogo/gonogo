@@ -75,5 +75,58 @@ namespace Sitrep.Contract.Tests
         {
             TopicPayloadSerializationAssertion.AssertSerializes(new[] { typeof(DictionaryPayload) });
         }
+
+        [SitrepContract]
+        private sealed class MarkedOutcome
+        {
+            public bool Repaired { get; set; }
+            public int FailuresCleared { get; set; }
+            public MarkedOutcome? Inner { get; set; }
+        }
+
+        private sealed class UnmarkedOutcome
+        {
+            public bool Repaired { get; set; }
+        }
+
+        [SitrepCommand("fixture.marked", Payload = typeof(MarkedOutcome))]
+        private sealed class MarkedArgs { }
+
+        [Fact]
+        public void A_marked_contract_class_in_a_command_result_is_written_in_camel_case()
+        {
+            var json = Serialization.EnvelopeCodec.WriteStreamData(new StreamData<object?>
+            {
+                Topic = "fixture.marked",
+                Payload = CommandResult<MarkedOutcome>.Ok(new MarkedOutcome { Repaired = true, FailuresCleared = 2 }),
+            });
+
+            Assert.Contains("\"payload\":{\"repaired\":true,\"failuresCleared\":2,\"inner\":null}", json);
+        }
+
+        [Fact]
+        public void The_command_reply_types_of_an_assembly_are_its_command_payloads()
+        {
+            var found = TopicPayloadSerializationAssertion.CommandReplyTypes(typeof(TopicPayloadSerializationAssertionTests).Assembly);
+
+            Assert.Contains(("fixture.marked", typeof(MarkedOutcome), true), found);
+        }
+
+        [Fact]
+        public void A_marked_command_reply_passes_the_gate()
+        {
+            TopicPayloadSerializationAssertion.AssertCommandRepliesSerialize(
+                new[] { ("fixture.marked", typeof(MarkedOutcome), true) });
+        }
+
+        [Fact]
+        public void An_unmarked_command_reply_fails_the_gate_naming_its_command()
+        {
+            var ex = Assert.Throws<TrueException>(() =>
+                TopicPayloadSerializationAssertion.AssertCommandRepliesSerialize(
+                    new[] { ("fixture.unmarked", typeof(UnmarkedOutcome), true) }));
+
+            Assert.Contains("fixture.unmarked (UnmarkedOutcome)", ex.Message);
+        }
     }
 }

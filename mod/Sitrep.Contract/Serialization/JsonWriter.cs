@@ -133,7 +133,11 @@ namespace Sitrep.Contract.Serialization
         ///
         /// <para>A contract POCO needs its own case below whenever a producer
         /// publishes it raw rather than flattening it to a dictionary first:
-        /// without one it reaches the <c>default</c> branch, throws
+        /// without one it reaches the <c>default</c> branch. A class marked
+        /// <see cref="Sitrep.Contract.SitrepContractAttribute"/> that comes from another
+        /// assembly than this one (an Uplink's own contract class) is written by reflection instead, as an
+        /// object of its public properties in camelCase, which is the shape the
+        /// generated client reads. Any other class throws
         /// <c>NotSupportedException</c> at the wire boundary, and the frame is
         /// dropped. An empty list of such POCOs serializes without a case, so
         /// only a populated payload shows the gap.</para>
@@ -505,9 +509,41 @@ namespace Sitrep.Contract.Serialization
                     AppendArray(sb, enumerable);
                     break;
                 default:
+                    // Core's own contract classes keep hand-written cases, so a missing one still
+                    // fails loudly; only a class from another assembly (an Uplink's) is reflected.
+                    if (value.GetType().Assembly != typeof(JsonWriter).Assembly
+                        && value.GetType().IsDefined(typeof(Sitrep.Contract.SitrepContractAttribute), false))
+                    {
+                        AppendContractObject(sb, value);
+                        break;
+                    }
+
                     throw new System.NotSupportedException(
                         $"JsonWriter.AppendValue: unsupported CLR value type {value.GetType()}");
             }
+        }
+
+        /// <summary>
+        /// Writes a contract class that has no hand-written case: each readable public
+        /// instance property in declaration order, named in camelCase, its value back
+        /// through <see cref="AppendValue"/> so nested contract classes, lists, maps and
+        /// enums follow the same rules.
+        /// </summary>
+        private static void AppendContractObject(StringBuilder sb, object value)
+        {
+            sb.Append('{');
+            var first = true;
+            foreach (var prop in value.GetType().GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+            {
+                if (!prop.CanRead || prop.GetIndexParameters().Length != 0) continue;
+                if (!first) sb.Append(',');
+                first = false;
+                var name = prop.Name;
+                AppendString(sb, char.ToLowerInvariant(name[0]) + name.Substring(1));
+                sb.Append(':');
+                AppendValue(sb, prop.GetValue(value));
+            }
+            sb.Append('}');
         }
 
         /// <summary>

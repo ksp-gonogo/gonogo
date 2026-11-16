@@ -96,5 +96,62 @@ namespace Sitrep.Contract.TestSupport
                 "\n\nFlatten the payload to a Dictionary<string, object?> before Publish and name its type in " +
                 "flattenedByProducer, with a test that holds the dictionary to every field of the type.");
         }
+
+        /// <summary>
+        /// Every type a <see cref="SitrepCommandAttribute"/> in the assembly names as its
+        /// <c>Payload</c> or <c>Result</c>, the shapes a command's reply carries.
+        /// </summary>
+        public static IEnumerable<(string CommandId, Type Type, bool InCommandResult)> CommandReplyTypes(Assembly contractAssembly) =>
+            contractAssembly.GetTypes()
+                .SelectMany(t => t.GetCustomAttributes<SitrepCommandAttribute>(false))
+                .SelectMany(a => new[]
+                {
+                    (a.CommandId, a.Payload, true),
+                    (a.CommandId, a.Result, false),
+                })
+                .Where(x => x.Item2 != null)
+                .Select(x => (x.Item1, x.Item2, x.Item3));
+
+        /// <summary>
+        /// Every command reply type in the Uplink's contract assembly writes through the
+        /// host's serializer, a <c>Payload</c> inside a <see cref="CommandResult{T}"/> as the
+        /// host sends it. A reply the writer cannot write reaches the client as
+        /// <c>resultSerializationError</c> after the command has already run in game.
+        /// </summary>
+        /// <param name="contractAssembly">The Uplink's own contract assembly.</param>
+        public static void AssertEveryCommandReplySerializes(Assembly contractAssembly) =>
+            AssertCommandRepliesSerialize(CommandReplyTypes(contractAssembly));
+
+        /// <summary>The same check over an explicit set of command reply types.</summary>
+        public static void AssertCommandRepliesSerialize(IEnumerable<(string CommandId, Type Type, bool InCommandResult)> replies)
+        {
+            var failures = new List<string>();
+            foreach (var (commandId, type, inResult) in replies)
+            {
+                try
+                {
+                    object? value = Activator.CreateInstance(type);
+                    if (inResult)
+                    {
+                        var result = Activator.CreateInstance(typeof(CommandResult<>).MakeGenericType(type))!;
+                        result.GetType().GetProperty("Success")!.SetValue(result, true);
+                        result.GetType().GetProperty("Payload")!.SetValue(result, value);
+                        value = result;
+                    }
+
+                    JsonWriter.AppendValue(new System.Text.StringBuilder(), value);
+                }
+                catch (Exception ex)
+                {
+                    failures.Add(commandId + " (" + type.Name + "): " + ex.Message);
+                }
+            }
+
+            Assert.True(
+                failures.Count == 0,
+                "These command replies cannot be written to the wire:\n  " +
+                string.Join("\n  ", failures) +
+                "\n\nMark the class [SitrepContract] so the writer can write it, or return a Dictionary<string, object?>.");
+        }
     }
 }
