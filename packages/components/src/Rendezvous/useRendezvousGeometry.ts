@@ -2,7 +2,11 @@ import { useViewUt } from "@ksp-gonogo/sitrep-client";
 import { TargetKind, type VesselTarget } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
 import { bare } from "../shared/dockAngles";
-import { type CraftGeometry, craftGeometry } from "./geometry/craft";
+import {
+  type CraftGeometry,
+  craftGeometry,
+  craftOrbitFigure,
+} from "./geometry/craft";
 import {
   type EncounterGeometry,
   encounterGeometry,
@@ -69,6 +73,16 @@ export function useRendezvousGeometry(
       ? bodiesReading.value.bodies
       : undefined;
 
+  const targetOrbit = target?.orbit;
+  /* Held on the two orbits: the outlines and the plane do not move with the instant. */
+  const orbits = useMemo(() => {
+    if (orbit === undefined || !targetOrbit) return null;
+    const chaser = elementsOf(orbit);
+    const theirs = elementsOf(targetOrbit);
+    if (chaser === null || theirs === null) return null;
+    return { chaser, theirs, figure: craftOrbitFigure(chaser, theirs) };
+  }, [orbit, targetOrbit]);
+
   return useMemo(() => {
     if (target === undefined) return NONE;
     const targetClass: TargetClass =
@@ -76,9 +90,9 @@ export function useRendezvousGeometry(
     if (!targetObserved || orbit === undefined || ut === undefined) {
       return { ...NONE, targetClass };
     }
-    const chaser = elementsOf(orbit);
+    const chaser = orbits?.chaser ?? null;
     const central = bodies?.find((b) => b.index === orbit.referenceBodyIndex);
-    const theirs = target.orbit ? elementsOf(target.orbit) : null;
+    const theirs = orbits?.theirs ?? null;
     const sharesBody =
       target.orbit !== undefined &&
       target.orbit !== null &&
@@ -97,6 +111,7 @@ export function useRendezvousGeometry(
         ? craftGeometry({
             chaser,
             target: theirs,
+            figure: orbits?.figure,
             ut,
             approach: targetClass === "craft" ? approachOf(target) : null,
             bodyRadius: bodyNumbers(central)?.radius,
@@ -141,5 +156,5 @@ export function useRendezvousGeometry(
           }
         : null,
     };
-  }, [target, targetObserved, orbit, bodies, ut, range]);
+  }, [target, targetObserved, orbit, orbits, bodies, ut, range]);
 }

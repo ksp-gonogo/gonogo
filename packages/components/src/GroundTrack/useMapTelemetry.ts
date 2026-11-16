@@ -1,10 +1,12 @@
-import { useTelemetry } from "@ksp-gonogo/core";
+import { PerfBudget, useTelemetry } from "@ksp-gonogo/core";
 import {
   type OrbitTrajectory,
   predictImpactPoint,
+  ROTATION_PERIOD_SECONDS,
   useOrbitTrajectory,
   useStream,
   useViewUt,
+  wrap180,
 } from "@ksp-gonogo/sitrep-client";
 import type {
   ManeuverNode,
@@ -21,6 +23,7 @@ import { magnitudeOf } from "../shared/magnitude";
 import { bodyNamed, bodyPlaces } from "../shared/streamBody";
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
 import { bodyDetail } from "./bodyDetail";
+import { useThrottledBucket } from "./predictionThrottle";
 import {
   type ModelledPosition,
   useModelledPosition,
@@ -73,6 +76,17 @@ export interface MapTelemetry {
   /** Whether the craft is flying, so its conic lays a ground track and carries its position; false on the ground, where it turns with the body and has neither. */
   predictable: boolean;
 }
+
+/**
+ * Impact predictions per second. One is made per new sample and per held
+ * second of view time, ten a second at most; one per frame is the regression.
+ */
+const IMPACT_PREDICTION_BUDGET = new PerfBudget({
+  name: "predictImpactPoint calls/sec",
+  threshold: 30,
+  windowMs: 1000,
+  unit: "calls",
+});
 
 /**
  * Everything the map reads off the stream, resolved to what each draw may use:
@@ -198,20 +212,45 @@ export function useMapTelemetry(
     lon,
     receivedUt: universalTime,
   });
-  const impact = useMemo(
-    () =>
+  // One-second buckets, solved at most five times a second at any warp.
+  const impactBucket = useThrottledBucket(universalTime, 1);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: universalTime is read inside, but invalidation is gated on impactBucket
+  const solvedImpact = useMemo(() => {
+    if (
       orbitCurrent === undefined ||
       flightCurrent === undefined ||
       universalTime === undefined
-        ? null
-        : predictImpactPoint({
-            orbit: orbitCurrent,
-            flight: flightCurrent,
-            bodies,
-            viewUt: universalTime,
-          }),
-    [orbitCurrent, flightCurrent, bodies, universalTime],
-  );
+    ) {
+      return null;
+    }
+    IMPACT_PREDICTION_BUDGET.record();
+    const point = predictImpactPoint({
+      orbit: orbitCurrent,
+      flight: flightCurrent,
+      bodies,
+      viewUt: universalTime,
+    });
+    return point === null ? null : { point, solvedAtUt: universalTime };
+  }, [orbitCurrent, flightCurrent, bodies, impactBucket]);
+  /* Between solves the marker is carried east with the turning body, which is the whole of what the unbucketed prediction moves it by between two samples. */
+  const impactBodyName = orbitCurrent?.patches?.[0]?.referenceBody ?? "";
+  const impactRotationPeriod =
+    bodyNamed(bodies, impactBodyName)?.rotationPeriod ??
+    ROTATION_PERIOD_SECONDS[impactBodyName];
+  const impact =
+    solvedImpact === null || universalTime === undefined
+      ? null
+      : {
+          lat: solvedImpact.point.lat,
+          lon:
+            impactRotationPeriod !== undefined && impactRotationPeriod > 0
+              ? wrap180(
+                  solvedImpact.point.lon +
+                    (360 / impactRotationPeriod) *
+                      (universalTime - solvedImpact.solvedAtUt),
+                )
+              : solvedImpact.point.lon,
+        };
   // (0, 0) is the "no prediction" sentinel, never a point to mark.
   const impactMarked =
     impact !== null &&

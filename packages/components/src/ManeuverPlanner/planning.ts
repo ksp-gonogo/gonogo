@@ -23,7 +23,6 @@ import {
 } from "@ksp-gonogo/core";
 import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { isFiniteNumber, type PresetId } from "./presets";
-import { planBodyTransfer, type TransferContext } from "./transferPlan";
 
 export interface PlanInputs {
   preset: PresetId;
@@ -61,8 +60,8 @@ export interface PlanInputs {
   targetPeriod: number | undefined;
   /** Rendezvous standoff offset along-track on target orbit (m). */
   standoffMeters: number;
-  /** What a transfer to another body is planned from; absent until a target is picked and the bodies have arrived. */
-  transfer?: TransferContext | null;
+  /** The transfer to another body already solved; absent until a target is picked and the bodies have arrived. */
+  transferPlan?: ManeuverPlan | null;
 }
 
 /** A single-burn plan or a multi-burn sequence (Hohmann). */
@@ -170,7 +169,7 @@ export function computePlan(i: PlanInputs): PlanResult | null {
     case "match-target-plane":
       return planMatchTargetPlane(i);
     case "transfer-to-body":
-      return i.transfer ? planBodyTransfer(i.transfer) : null;
+      return i.transferPlan ?? null;
   }
 }
 

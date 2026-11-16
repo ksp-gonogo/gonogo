@@ -1,3 +1,4 @@
+import { PerfBudget } from "@ksp-gonogo/core";
 import {
   dot,
   type Elements,
@@ -58,6 +59,17 @@ const DEFAULT_HORIZON_S = 600;
 const MAX_HORIZON_S = 900;
 const MIN_HORIZON_S = 5;
 
+/**
+ * Orbit figures built per second. One is built when either craft's orbit
+ * changes, a few a second at most; building one every frame is the regression.
+ */
+const ORBIT_FIGURE_BUDGET = new PerfBudget({
+  name: "craftOrbitFigure builds/sec",
+  threshold: 20,
+  windowMs: 1000,
+  unit: "builds",
+});
+
 function project(points: readonly Vec3[], e1: Vec3, e2: Vec3): Point2[] {
   return points.map((p) => [dot(p, e1), dot(p, e2)] as const);
 }
@@ -80,6 +92,33 @@ export function orbitSpread(
   return radius === 0 ? 0 : worst / radius;
 }
 
+/** The parts of the craft circles that depend on the two orbits and not on the instant. */
+export interface CraftOrbitFigure {
+  e1: Vec3;
+  e2: Vec3;
+  chaserOrbit: Point2[];
+  targetOrbit: Point2[];
+  apart: boolean;
+}
+
+/** Both orbit outlines in the target's orbital plane, and whether they read as two; the same at every instant. */
+export function craftOrbitFigure(
+  chaser: Elements,
+  target: Elements,
+): CraftOrbitFigure {
+  ORBIT_FIGURE_BUDGET.record();
+  const { e1, e2 } = planeBasis(target);
+  const chaserOrbit = project(orbitPoints(chaser, 120), e1, e2);
+  const targetOrbit = project(orbitPoints(target, 120), e1, e2);
+  return {
+    e1,
+    e2,
+    chaserOrbit,
+    targetOrbit,
+    apart: orbitSpread(chaserOrbit, targetOrbit) > APART_SHARE,
+  };
+}
+
 /**
  * Everything the craft circles need from the two craft's elements at one
  * instant. Null where either is on an open conic, so a hyperbolic escape draws
@@ -98,6 +137,8 @@ export function craftGeometry(input: {
    * with it so it still starts at your mark.
    */
   relative?: Vec3 | null;
+  /** The orbit-only figure for these two orbits, when the caller holds it across instants. */
+  figure?: CraftOrbitFigure;
 }): CraftGeometry | null {
   const { chaser, target, ut } = input;
   const c = stateAt(chaser, ut);
@@ -113,9 +154,8 @@ export function craftGeometry(input: {
           p[2] + relative[2] - fromOrbits[2],
         ]
       : p;
-  const { e1, e2 } = planeBasis(target);
-  const chaserOrbit = project(orbitPoints(chaser, 120), e1, e2);
-  const targetOrbit = project(orbitPoints(target, 120), e1, e2);
+  const { e1, e2, chaserOrbit, targetOrbit, apart } =
+    input.figure ?? craftOrbitFigure(chaser, target);
   const approach = input.approach ?? null;
   const approachAhead =
     approach !== null && Number.isFinite(approach.time) && approach.time > ut
@@ -137,7 +177,7 @@ export function craftGeometry(input: {
         ? [dot(targetAtApproach.r, e1), dot(targetAtApproach.r, e2)]
         : null,
     },
-    apart: orbitSpread(chaserOrbit, targetOrbit) > APART_SHARE,
+    apart,
     bodyRadius: input.bodyRadius,
     targetRadius: norm(t.r),
     phase: phaseAngle(chaser, target, ut),

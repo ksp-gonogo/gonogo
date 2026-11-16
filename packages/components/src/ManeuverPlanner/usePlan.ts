@@ -1,5 +1,6 @@
 import { useTelemetry } from "@ksp-gonogo/core";
 import { useMemo } from "react";
+import { useThrottledBucket } from "../GroundTrack/predictionThrottle";
 import { isGroundedSituation } from "../LandingStatus/grounded";
 import {
   type CaptureFault,
@@ -11,7 +12,7 @@ import {
   type PlanResult,
 } from "./planning";
 import { isFiniteNumber, usesBodyTransfer } from "./presets";
-import type { TransferContext } from "./transferPlan";
+import { planBodyTransfer, type TransferContext } from "./transferPlan";
 import type { PlannerInputs } from "./usePlannerInputs";
 import type { PlannerTelemetry } from "./usePlannerTelemetry";
 
@@ -69,6 +70,10 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
     nowUtSeconds,
   } = telemetry;
 
+  // The search starts from the view's instant, which moves every frame; a held whole second gives the operator the same plan without a Lambert search per frame.
+  const transferNowUt = useThrottledBucket(nowUtSeconds, 1);
+  // Held on the orbit's shape and a whole second: the reckoned elements are re-dated to the view's instant every frame without the orbit changing, and a Lambert search keyed on them ran once a frame.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: craftElements is read at the held second; its shape is keyed below
   const transfer = useMemo<TransferContext | null>(() => {
     if (
       !usesBodyTransfer(preset) ||
@@ -90,12 +95,19 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
     };
   }, [
     preset,
-    craftElements,
+    craftElements !== null,
+    craftElements?.sma,
+    craftElements?.ecc,
+    craftElements?.inc,
+    craftElements?.lan,
+    craftElements?.argPe,
+    craftElements?.mu,
     craftBody,
     celestialBodies,
     transferBody,
     targetAltitudeKm,
-    nowUtSeconds,
+    transferNowUt,
+    nowUtSeconds === undefined,
   ]);
 
   // Altitude is over the body the craft is approaching; unset follows the periapsis, which is a circular capture.
@@ -112,6 +124,13 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
           craftBody?.soi ?? undefined,
         )
       : null;
+
+  // Solved on its own so the per-frame inputs of every other plan do not run the search again.
+  const planned = !openOrbit && currentOrbit !== null && mu > 0;
+  const transferPlan = useMemo(
+    () => (planned && transfer ? planBodyTransfer(transfer) : null),
+    [planned, transfer],
+  );
 
   const plan: PlanResult | null = useMemo(
     () =>
@@ -144,7 +163,7 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
         targetTrueAnomaly,
         targetPeriod,
         standoffMeters,
-        transfer,
+        transferPlan,
       }),
     [
       currentOrbit,
@@ -176,7 +195,7 @@ export function usePlan(inputs: PlannerInputs, telemetry: PlannerTelemetry) {
       targetTrueAnomaly,
       targetPeriod,
       standoffMeters,
-      transfer,
+      transferPlan,
     ],
   );
 
