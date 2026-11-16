@@ -58,7 +58,7 @@ export const FLIGHT_TEMPLATE: LayoutTemplate = {
   summary: "Navball, orbit, ground track, landing, fuel and action groups",
   scenes: ["Flight"],
   tiles: [
-    { componentId: "navball", x: 20, y: 0, w: 6, h: 14 },
+    { componentId: "navball", x: 19, y: 0, w: 7, h: 14 },
     { componentId: "twr", x: 19, y: 26, w: 4, h: 5 },
     { componentId: "orbit-view", x: 0, y: 14, w: 7, h: 12 },
     { componentId: "comm-signal", x: 0, y: 8, w: 3, h: 6 },
@@ -77,7 +77,7 @@ export const FLIGHT_TEMPLATE: LayoutTemplate = {
       componentId: "ground-track",
       x: 3,
       y: 0,
-      w: 17,
+      w: 16,
       h: 14,
       config: () => ({ trajectoryLength: 2000, showPrediction: true }),
     },

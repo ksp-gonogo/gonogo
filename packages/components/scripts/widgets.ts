@@ -247,10 +247,10 @@ const WIDGETS: WidgetRenderConfig[] = [
         clicks: [{ selector: 'button[aria-label="SAS Mode"]' }],
         forFixtures: ["north-level"],
       },
-      // The Flight layout's tile in control mode: six columns are under the surface's seven, so it stays the dial.
+      // The Flight layout's tile in control mode: seven columns and fourteen rows hold the control surface.
       {
-        name: "flight-6x14-control",
-        w: 6,
+        name: "flight-7x14-control",
+        w: 7,
         h: 14,
         config: { controlMode: true },
         forFixtures: ["control-delay"],

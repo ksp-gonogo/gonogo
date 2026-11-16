@@ -382,4 +382,12 @@ describe("ProfileDashboard new layouts", () => {
       }
     }
   });
+
+  it("gives the Flight navball a tile wide and tall enough for its control surface", () => {
+    const { items, layout } = snapshotOf(FLIGHT_TEMPLATE);
+    const navball = items.find((it) => it.componentId === "navball");
+    const tile = layout.find((l) => l.i === navball?.i);
+    expect(tile?.w).toBeGreaterThanOrEqual(7);
+    expect(tile?.h).toBeGreaterThanOrEqual(13);
+  });
 });
