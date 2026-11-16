@@ -44,8 +44,6 @@ export const FACE_DEBT: Readonly<Record<string, string>> = {
     'face "press 1": button "Motor off, OFFLINE, as of Y1 D1 00:00:00" resized 6.0, 0.0px (+7 more)',
   'rotor-tachometer|button "Tail Rotor0/120 rpm revolutions per minu"':
     'face "press 1": button "Brake on" resized -6.0, 0.0px (+1 more)',
-  'space-center-status|button "Upgrade"':
-    'face "no reply": span "25kf funds" moved 0.0, 7.0px',
   'tracking-station|g "Minmus"':
     'face "press 1": aside "Minmusorbiting KerbinRadius60.0 km kilom" resized 0.0, 45.0px (+6 more)',
   'tracking-station|g "Mun"':

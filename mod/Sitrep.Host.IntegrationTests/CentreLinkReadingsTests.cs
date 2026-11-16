@@ -386,6 +386,36 @@ namespace Sitrep.Host.IntegrationTests
             Assert.All(LiveRows(seated.HomeView), live => Assert.True(live));
         }
 
+        /// <summary>
+        /// A blackout forced by the dev tools reads to a centre as a lost link: no
+        /// path, no live route and no measured delay, and the same radio with the
+        /// override off leaves all three as the game reports them.
+        /// </summary>
+        [Fact]
+        public async Task AForcedBlackoutLeavesACentreNoPathNoLiveRouteAndNoDelay()
+        {
+            var real = Direct(0.9);
+            Assert.Same(real, Gonogo.KSP.ForcedBlackoutRadio.Apply(real, false));
+
+            await using var seated = await SeatedAsync(real);
+            await seated.TickAsync(1, 2, 3, 4, 700, 702);
+            Assert.NotEmpty(Hops(seated.HomeView));
+            Assert.NotNull(Delay(seated.HomeView));
+            Assert.All(LiveRows(seated.HomeView), live => Assert.True(live));
+
+            seated.World.Game.ActiveConnected = false;
+            seated.World.Game.Radio = Gonogo.KSP.ForcedBlackoutRadio.Apply(real, true);
+            await seated.TickAsync(T0, T0 + 0.5);
+            await seated.TickAsync(T0 + 2, T0 + 3, T0 + 4, T0 + 5);
+
+            Assert.Empty(Hops(seated.HomeView));
+            Assert.Empty(Hops(seated.FarView));
+            Assert.Null(Delay(seated.HomeView));
+            Assert.Null(Delay(seated.FarView));
+            Assert.All(LiveRows(seated.HomeView), live => Assert.False(live));
+            Assert.All(LiveRows(seated.FarView), live => Assert.False(live));
+        }
+
         private static List<JsonElement> Hops(CentreView view)
         {
             using var doc = JsonDocument.Parse(view.Path!);

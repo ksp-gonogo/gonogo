@@ -62,6 +62,7 @@
   <ItemGroup>
     <Compile Include="..\Gonogo.KSP\TrackingStationVesselLinkBuilder.cs" />
     <Compile Include="..\Gonogo.KSP\CurrencyEventBuilder.cs" />
+    <Compile Include="..\Gonogo.KSP\ForcedBlackoutRadio.cs" />
   </ItemGroup>
 
   <!-- The production rule a currency award from a vessel is timed by, so the

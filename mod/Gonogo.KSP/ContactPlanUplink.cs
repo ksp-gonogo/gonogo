@@ -484,19 +484,20 @@ namespace Gonogo.KSP
                     hops.Add(new RadioHop(hop.From, hop.To, !hop.ToIsHome, hop.Extensions));
                 }
                 // A link with nothing reported yet is no reading at all, and is never taken as a lost link.
+                var forcedBlackout = DevCommsOverride.Current == false;
                 var connected = CommsCoreUplink.ReadConnectivity(backend, active).Connected;
-                if (connected == null)
+                if (connected == null && !forcedBlackout)
                 {
                     return null;
                 }
                 var signal = backend.Signal();
-                return new ContactRadio(
+                return ForcedBlackoutRadio.Apply(new ContactRadio(
                     "vessel:" + active.id,
-                    connected.Value,
+                    connected ?? false,
                     signal.Strength,
                     CommsDegradeModels.ToPayload(backend.DegradeModel()),
                     hops,
-                    signal.Quantity);
+                    signal.Quantity), forcedBlackout);
             }
             catch (System.Exception)
             {
