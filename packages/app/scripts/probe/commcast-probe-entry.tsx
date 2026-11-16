@@ -1,4 +1,5 @@
 import { registerDataSource, ScreenProvider } from "@ksp-gonogo/core";
+import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   harnessTheme,
   installRealTestHost,
@@ -62,6 +63,15 @@ setQuantityLocale("en-GB");
 
 /** UT the whole harness calls "now". Every scene's clock is anchored here. */
 const VIEW_UT = 12_000_000;
+
+/** `VIEW_UT` plus `offset` seconds, as the log holds an instant. */
+function viewUt(offset: number): Value<"ut"> {
+  return value("ut", VIEW_UT + offset);
+}
+
+function seconds(figure: number | null): Value<"s"> | null {
+  return figure === null ? null : value("s", figure);
+}
 
 /** One message a pane's log holds, in whichever direction. */
 export interface Held {
@@ -296,7 +306,7 @@ function toReceived(held: Held): CommsMessage {
   const msg = toMessage(held);
   return {
     ...msg,
-    arrivedUt: msg.lastSentUt + (held.separationSeconds ?? 0),
+    arrivedUt: msg.lastSentUt.plus(value("s", held.separationSeconds ?? 0)),
     ...(held.unread === true ? { receivedSeq: ++nextReceivedSeq } : {}),
   };
 }
@@ -312,10 +322,10 @@ function toMessage(held: Held): CommsMessage {
     authorStationKey: `author-${held.from}`,
     authorName: held.authorName,
     authorSeat: held.authorSeat,
-    sentUt: VIEW_UT + held.sentAt,
-    lastSentUt: VIEW_UT + (held.lastSentAt ?? held.sentAt),
+    sentUt: viewUt(held.sentAt),
+    lastSentUt: viewUt(held.lastSentAt ?? held.sentAt),
     attempts: held.attempts ?? 1,
-    separationSeconds: held.separationSeconds,
+    separationSeconds: seconds(held.separationSeconds),
     ...(held.members === undefined
       ? { kind: "text" as const, body: held.body }
       : {
@@ -553,15 +563,15 @@ function paneTree(pane: Pane, index: number) {
           from: a.from,
           stationKey: a.stationKey,
           seat: a.from.startsWith("vessel:") ? "pilot" : "mission-control",
-          atUt: VIEW_UT + a.at,
-          arrivedUt: VIEW_UT + a.at + (separationTo(a.from) ?? 0),
+          atUt: viewUt(a.at),
+          arrivedUt: viewUt(a.at + (separationTo(a.from) ?? 0)),
         }));
         // A membership change is settled for its author the moment it is made, as the log has it.
         const deliveries = (msg.kind === "members" ? [] : msg.to)
           .filter((id) => id !== msg.from)
           .map((to) => ({
             to,
-            separationSeconds: separationTo(to) ?? null,
+            separationSeconds: seconds(separationTo(to) ?? null),
             lastSentUt: msg.lastSentUt,
             attempts: msg.attempts,
             neverLeft:
@@ -569,7 +579,7 @@ function paneTree(pane: Pane, index: number) {
             ...(held.queued === true ? { queued: true } : {}),
             ...(held.landedAt === undefined
               ? {}
-              : { delivered: true, landedUt: VIEW_UT + held.landedAt }),
+              : { delivered: true, landedUt: viewUt(held.landedAt) }),
             ...(held.refused === undefined
               ? {}
               : {

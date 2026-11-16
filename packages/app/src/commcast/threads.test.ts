@@ -1,3 +1,4 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 /**
  * Group threads, not one log under a filter.
  *
@@ -27,10 +28,10 @@ function msg(over: Partial<CommsMessage> = {}): CommsMessage {
     authorStationKey: "ksc-1",
     authorName: "Kennedy Flight",
     authorSeat: "mission-control",
-    sentUt: 0,
-    lastSentUt: 0,
+    sentUt: value("ut", 0),
+    lastSentUt: value("ut", 0),
     attempts: 1,
-    separationSeconds: 240,
+    separationSeconds: value("s", 240),
     kind: "text",
     body: "body",
     ...over,

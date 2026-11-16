@@ -149,7 +149,7 @@ describe("attachCommcastModLink", () => {
       to: [KSC, ARES],
       members: [KSC, ARES],
       added: [ARES],
-      sentUt: 10,
+      sentUt: value("ut", 10),
       separations: separationsTo(KSC, [KSC, ARES], 5),
     });
     log.send(author, {
@@ -158,7 +158,7 @@ describe("attachCommcastModLink", () => {
       to: [KSC, ARES, "vessel:b"],
       members: [KSC, ARES, "vessel:b"],
       added: ["vessel:b"],
-      sentUt: 11,
+      sentUt: value("ut", 11),
       separations: separationsTo(KSC, [KSC, ARES, "vessel:b"], 5),
     });
 
@@ -183,11 +183,16 @@ describe("attachCommcastModLink", () => {
         body: "go",
         groupId: "g1",
         to: [KSC, ARES],
-        sentUt: 10,
+        sentUt: value("ut", 10),
         separations: separationsTo(KSC, [KSC, ARES], 5),
       },
     );
-    log.resend(msg.id, [ARES], 20, new Map([[ARES, 5]]));
+    log.resend(
+      msg.id,
+      [ARES],
+      value("ut", 20),
+      new Map([[ARES, value("s", 5)]]),
+    );
 
     expect(wire.sent.map((s) => [s.command, s.args.id])).toEqual([
       ["commcast.message.send", msg.id],
@@ -208,11 +213,16 @@ describe("attachCommcastModLink", () => {
         body: "go",
         groupId: "g1",
         to: [KSC, ARES, "vessel:b"],
-        sentUt: 10,
+        sentUt: value("ut", 10),
         separations: separationsTo(KSC, [KSC, ARES, "vessel:b"], 5),
       },
     );
-    log.resend(msg.id, ["vessel:b"], 20, new Map([["vessel:b", 5]]));
+    log.resend(
+      msg.id,
+      ["vessel:b"],
+      value("ut", 20),
+      new Map([["vessel:b", value("s", 5)]]),
+    );
 
     expect(wire.sent.map((s) => s.args.to)).toEqual([undefined, ["vessel:b"]]);
   });
@@ -241,7 +251,7 @@ describe("attachCommcastModLink", () => {
         body: "go",
         groupId: "g1",
         to: [KSC, ARES, "vessel:b"],
-        sentUt: 10,
+        sentUt: value("ut", 10),
         separations: separationsTo(KSC, [KSC, ARES, "vessel:b"], 5),
       },
     );
@@ -272,7 +282,7 @@ describe("attachCommcastModLink", () => {
     body: "go",
     groupId: "g1",
     to: members,
-    sentUt: 10,
+    sentUt: value("ut", 10),
     separations: separationsTo(KSC, members, 5),
   });
 
@@ -298,7 +308,7 @@ describe("attachCommcastModLink", () => {
       to: [KSC, ARES],
       members: [KSC, ARES],
       added: [ARES],
-      sentUt: 0,
+      sentUt: value("ut", 0),
       separations: new Map(),
     });
     await vi.advanceTimersByTimeAsync(0);
@@ -335,9 +345,9 @@ describe("attachCommcastModLink", () => {
 
     const out = log.snapshot().outbox[0];
     expect(out?.deliveries.every((d) => d.refused)).toBe(true);
-    expect(messageStatusFor(out as OutboundMessage, 1_000_000)).toBe(
-      "not-sent",
-    );
+    expect(
+      messageStatusFor(out as OutboundMessage, value("ut", 1_000_000)),
+    ).toBe("not-sent");
     expect(refusing.sent.map((s) => s.command)).toEqual([
       "commcast.message.send",
     ]);
@@ -433,7 +443,7 @@ describe("attachCommcastModLink", () => {
         body: "all stations",
         groupId: "g1",
         to: members,
-        sentUt: 10,
+        sentUt: value("ut", 10),
         separations: separationsTo(KSC, members, 5),
       },
     );
@@ -456,7 +466,7 @@ describe("attachCommcastModLink", () => {
       to: everyone,
       members: everyone,
       added: ["vessel:b"],
-      sentUt: 10,
+      sentUt: value("ut", 10),
       separations: separationsTo(KSC, everyone, 500),
     });
     log.send(author, {
@@ -464,7 +474,7 @@ describe("attachCommcastModLink", () => {
       body: "welcome",
       groupId: "g1",
       to: everyone,
-      sentUt: 10,
+      sentUt: value("ut", 10),
       separations: separationsTo(KSC, everyone, 500),
     });
 
@@ -474,7 +484,9 @@ describe("attachCommcastModLink", () => {
     ]);
     const [change, said] = log.snapshot().outbox;
     expect(change?.deliveries).toEqual([]);
-    const rail = outboundItems(log.snapshot().outbox, 11).map((i) => i.id);
+    const rail = outboundItems(log.snapshot().outbox, value("ut", 11)).map(
+      (i) => i.id,
+    );
     expect(rail.every((id) => id.startsWith(`${said?.msg.id}/`))).toBe(true);
     expect(rail).toHaveLength(2);
   });
@@ -488,10 +500,10 @@ describe("attachCommcastModLink", () => {
       authorStationKey: "screen-b",
       authorName: "Pilot",
       authorSeat: "pilot" as const,
-      sentUt: 100,
-      lastSentUt: 100,
+      sentUt: value("ut", 100),
+      lastSentUt: value("ut", 100),
       attempts: 1,
-      separationSeconds: 5,
+      separationSeconds: value("s", 5),
       kind: "members" as const,
       members: [KSC, ARES],
       added: [KSC],
@@ -624,7 +636,7 @@ describe("attachCommcastModLink", () => {
     const [held, ...rest] = log.snapshot().pending;
     expect(rest).toHaveLength(0);
     expect(held?.body).toBe("hello");
-    expect(held?.arrivedUt).toBe(105);
+    expect(held?.arrivedUt).toEqual(value("ut", 105));
     expect(held?.authorSeat).toBe("pilot");
   });
 
@@ -641,13 +653,13 @@ describe("attachCommcastModLink", () => {
 
     const [held] = log.snapshot().pending;
     expect(held?.body).toBe("hello");
-    expect(held?.arrivedUt).toBe(105);
+    expect(held?.arrivedUt).toEqual(value("ut", 105));
   });
 
   it("files what this screen said itself once, and settles each recipient on the ledger", () => {
     const sent = log.send(author, {
       ...textTo([KSC, ARES]),
-      separations: new Map([[ARES, 240]]),
+      separations: new Map([[ARES, value("s", 240)]]),
     });
     const said = (over: Record<string, unknown>) => ({
       kind: "text",
@@ -684,7 +696,7 @@ describe("attachCommcastModLink", () => {
     );
     const [ack] = log.snapshot().outbox[0]?.acks ?? [];
     expect(ack?.from).toBe(ARES);
-    expect(ack?.arrivedUt).toBe(590);
+    expect(ack?.arrivedUt).toEqual(value("ut", 590));
   });
 
   it("marks a recipient whose copy was cancelled as not sent, with the reason", () => {

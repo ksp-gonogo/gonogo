@@ -1,4 +1,4 @@
-import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import { Button, Console, EmptyState, PlusIcon } from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useRef } from "react";
 import { Addressees } from "./CommcastAddressee";
@@ -53,7 +53,7 @@ export function CommcastThreadView({
 }: {
   thread: CommcastThread;
   me: Vantage;
-  utNow: number | undefined;
+  utNow: Value<"ut"> | undefined;
   log: CommcastLog;
   noSignal: boolean;
   book: AddressBook;
@@ -64,7 +64,7 @@ export function CommcastThreadView({
   separation: Separation;
   separationSeconds: number | null;
   /** One-way seconds to each member, each frozen into its own delivery when sent. */
-  separations: ReadonlyMap<RecipientId, number | null>;
+  separations: ReadonlyMap<RecipientId, Value<"s"> | null>;
   /** Everyone the group's words go to, as this vantage can see them now, its own included. */
   members: readonly RecipientId[];
   /** Choose somebody to add; absent when there is nobody left on the roster to add. */
@@ -195,7 +195,7 @@ function backIn(
   plan: ReturnType<typeof useContactPlan>,
   from: string | undefined,
   gone: readonly RecipientId[],
-  utNow: number | undefined,
+  utNow: Value<"ut"> | undefined,
 ): Value<"s"> | undefined {
   if (!plan || from === undefined || utNow === undefined) return undefined;
   let latest: Value<"ut"> | undefined;
@@ -204,5 +204,5 @@ function backIn(
     if (ut === undefined) return undefined;
     latest = latest === undefined ? ut : latest.max(ut);
   }
-  return latest?.minus(value("ut", utNow));
+  return latest?.minus(utNow);
 }

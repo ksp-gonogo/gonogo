@@ -1,3 +1,4 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 /**
  * Group membership as a value built from the changes that have reached this
  * vantage, each counting from the instant the mod delivered it here.
@@ -20,10 +21,10 @@ function change(over: Partial<CommsMessage> = {}): CommsMessage {
     authorStationKey: "ksc-1",
     authorName: "Kennedy",
     authorSeat: "mission-control",
-    sentUt: 100,
-    lastSentUt: 100,
+    sentUt: value("ut", 100),
+    lastSentUt: value("ut", 100),
     attempts: 1,
-    separationSeconds: 3,
+    separationSeconds: value("s", 3),
     kind: "members",
     members: [KSC, NEAR],
     added: [NEAR],
@@ -40,44 +41,52 @@ describe("groupsAt", () => {
     const snap = held({
       outbox: [{ msg: change(), acks: [], deliveries: [] }],
     });
-    expect(groupsAt(snap, 100).get("g1")).toEqual([KSC, NEAR]);
+    expect(groupsAt(snap, value("ut", 100)).get("g1")).toEqual([KSC, NEAR]);
   });
 
   it("does not know a change made elsewhere until it has arrived here", () => {
     // Added at the ground at UT 200, delivered to the far craft nine seconds later.
     const addFar = change({
       id: "c2",
-      sentUt: 200,
-      lastSentUt: 200,
+      sentUt: value("ut", 200),
+      lastSentUt: value("ut", 200),
       to: [FAR, KSC, NEAR],
       members: [FAR, KSC, NEAR],
       added: [FAR],
-      arrivedUt: 209,
+      arrivedUt: value("ut", 209),
     });
     const snap = held({ pending: [addFar] });
-    expect(groupsAt(snap, 208.9).has("g1")).toBe(false);
-    expect(groupsAt(snap, 209).get("g1")).toEqual([KSC, FAR, NEAR]);
+    expect(groupsAt(snap, value("ut", 208.9)).has("g1")).toBe(false);
+    expect(groupsAt(snap, value("ut", 209)).get("g1")).toEqual([
+      KSC,
+      FAR,
+      NEAR,
+    ]);
   });
 
   it("is the union of every change that has landed, whatever order they landed in", () => {
-    const opened = change({ arrivedUt: 103 });
+    const opened = change({ arrivedUt: value("ut", 103) });
     const grown = change({
       id: "c2",
       from: NEAR,
-      sentUt: 150,
-      lastSentUt: 150,
+      sentUt: value("ut", 150),
+      lastSentUt: value("ut", 150),
       to: [FAR, KSC, NEAR],
       members: [FAR, KSC, NEAR],
       added: [FAR],
-      arrivedUt: 153,
+      arrivedUt: value("ut", 153),
     });
     const snap = held({ inbox: [grown, opened] });
-    expect(groupsAt(snap, 1000).get("g1")).toEqual([KSC, FAR, NEAR]);
+    expect(groupsAt(snap, value("ut", 1000)).get("g1")).toEqual([
+      KSC,
+      FAR,
+      NEAR,
+    ]);
   });
 
   it("reads words as words, not as membership", () => {
     const text = change({ kind: "text", members: undefined, body: "hi" });
-    expect(groupsAt(held({ inbox: [text] }), 1000).size).toBe(0);
+    expect(groupsAt(held({ inbox: [text] }), value("ut", 1000)).size).toBe(0);
   });
 });
 

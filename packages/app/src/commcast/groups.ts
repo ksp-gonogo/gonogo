@@ -1,3 +1,4 @@
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import { heardUtOf } from "./reveal";
 import type { CommcastLogSnapshot, CommsMessage, RecipientId } from "./types";
 
@@ -19,7 +20,7 @@ import type { CommcastLogSnapshot, CommsMessage, RecipientId } from "./types";
 /** Every group known here as of `utNow`, each with its members sorted. */
 export function groupsAt(
   snapshot: CommcastLogSnapshot,
-  utNow: number | undefined,
+  utNow: Value<"ut"> | undefined,
 ): ReadonlyMap<string, readonly RecipientId[]> {
   const byGroup = new Map<string, Set<RecipientId>>();
   if (utNow === undefined) return new Map();
@@ -30,7 +31,7 @@ export function groupsAt(
   ];
   for (const msg of held) {
     if (msg.kind !== "members" || !msg.members) continue;
-    if (utNow < heardUtOf(msg)) continue;
+    if (utNow.lessThan(heardUtOf(msg))) continue;
     let members = byGroup.get(msg.groupId);
     if (!members) {
       members = new Set();

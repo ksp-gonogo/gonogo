@@ -1,11 +1,12 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { recipientWords } from "./recipientWords";
 import type { Delivery } from "./types";
 
 const delivery = (over: Partial<Delivery> = {}): Delivery => ({
   to: "vessel:lab",
-  separationSeconds: 12,
-  lastSentUt: 0,
+  separationSeconds: value("s", 12),
+  lastSentUt: value("ut", 0),
   attempts: 1,
   neverLeft: false,
   ...over,

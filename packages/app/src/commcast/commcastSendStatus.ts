@@ -1,4 +1,4 @@
-import { type SendStatus, type Value, value } from "@ksp-gonogo/sitrep-sdk";
+import type { SendStatus, Value } from "@ksp-gonogo/sitrep-sdk";
 
 /** One pair of the contact plan; an absent edge is a window already open at the plan's start or still open at its horizon. */
 export interface PlannedContact {
@@ -23,17 +23,16 @@ export function nextContactUt(
   plan: readonly PlannedContact[],
   from: string,
   to: string,
-  utNow: number,
+  utNow: Value<"ut">,
 ): Value<"ut"> | undefined {
   const pair = plan.find(
     (p) => (p.a === from && p.b === to) || (p.a === to && p.b === from),
   );
   if (!pair) return undefined;
-  const now = value("ut", utNow);
   for (const window of pair.windows) {
     const closes = window.closeUt ?? pair.horizonUt;
-    if (!closes.greaterThan(now)) continue;
-    return window.openUt?.greaterThan(now) ? window.openUt : undefined;
+    if (!closes.greaterThan(utNow)) continue;
+    return window.openUt?.greaterThan(utNow) ? window.openUt : undefined;
   }
   return undefined;
 }

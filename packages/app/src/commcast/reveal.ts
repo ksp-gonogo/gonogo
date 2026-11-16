@@ -10,7 +10,7 @@
  * waiting.
  */
 import { LOSS_MARGIN } from "@ksp-gonogo/sitrep-client";
-import { currentMode, value } from "@ksp-gonogo/sitrep-sdk";
+import { currentMode, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import type { Seat } from "@ksp-gonogo/sitrep-sdk/spine";
 import type {
   CommsAck,
@@ -144,16 +144,16 @@ export function transitSecondsOf(sep: Separation): number | null {
  */
 export interface RoundTrip {
   /** When the words reach the recipient. `dispatchedAt + oneWaySeconds`. */
-  reachUt: number;
+  reachUt: Value<"ut">;
   /** When an acknowledgement could soonest be back. `+ 2 * oneWaySeconds`. */
-  replyUt: number;
+  replyUt: Value<"ut">;
   /**
    * When an unanswered message stops waiting, `replyUt` plus the same
    * `LOSS_MARGIN` the shipped command path allows. Deliberately the same
    * three seconds rather than a margin invented here: the two are the same
    * question about the same geometry.
    */
-  overdueUt: number;
+  overdueUt: Value<"ut">;
 }
 
 /**
@@ -164,11 +164,12 @@ export function roundTripFor(
   sent: Pick<Delivery, "lastSentUt" | "separationSeconds">,
 ): RoundTrip | null {
   const s = sent.separationSeconds;
-  if (s === null || !Number.isFinite(s) || s < 0) return null;
+  if (s === null || !s.isFinite() || s.isNegative()) return null;
+  const there = s.times(2);
   return {
-    reachUt: sent.lastSentUt + s,
-    replyUt: sent.lastSentUt + 2 * s,
-    overdueUt: sent.lastSentUt + 2 * s + LOSS_MARGIN,
+    reachUt: sent.lastSentUt.plus(s),
+    replyUt: sent.lastSentUt.plus(there),
+    overdueUt: sent.lastSentUt.plus(there).plus(value("s", LOSS_MARGIN)),
   };
 }
 
@@ -181,14 +182,14 @@ export function separationsTo(
   members: readonly RecipientId[],
   fallbackSeconds: number | null | undefined,
   pairs?: SeparationMatrix,
-): ReadonlyMap<RecipientId, number | null> {
-  const out = new Map<RecipientId, number | null>();
+): ReadonlyMap<RecipientId, Value<"s"> | null> {
+  const out = new Map<RecipientId, Value<"s"> | null>();
   for (const member of members) {
     if (member === me) continue;
-    out.set(
-      member,
-      transitSecondsOf(separationBetween(me, member, fallbackSeconds, pairs)),
+    const seconds = transitSecondsOf(
+      separationBetween(me, member, fallbackSeconds, pairs),
     );
+    out.set(member, seconds === null ? null : value("s", seconds));
   }
   return out;
 }
@@ -228,30 +229,36 @@ function secondsOf(sep: Separation): number {
   return transitSecondsOf(sep) ?? 0;
 }
 
+/** A `ut` earlier than any the clock can read, standing in for a clock that has not read one yet. */
+export const BEFORE_THE_CLOCK: Value<"ut"> = value(
+  "ut",
+  Number.NEGATIVE_INFINITY,
+);
+
 /**
  * The instant `msg` became visible here: when it arrived, or, for this screen's
  * own words, when they were said.
  */
-export function heardUtOf(msg: CommsMessage): number {
+export function heardUtOf(msg: CommsMessage): Value<"ut"> {
   return msg.arrivedUt ?? msg.lastSentUt;
 }
 
 /** The acknowledgements on `out` that have reached this screen by `utNow`. */
 export function revealedAcks(
   out: OutboundMessage,
-  utNow: number,
+  utNow: Value<"ut">,
 ): readonly CommsAck[] {
-  return out.acks.filter((ack) => ack.arrivedUt <= utNow);
+  return out.acks.filter((ack) => ack.arrivedUt.lessThanOrEqual(utNow));
 }
 
 /**
  * The instant the first acknowledgement of `out` reached its author, or
  * `undefined` while none has.
  */
-export function firstAckUtFor(out: OutboundMessage): number | undefined {
-  let soonest: number | undefined;
+export function firstAckUtFor(out: OutboundMessage): Value<"ut"> | undefined {
+  let soonest: Value<"ut"> | undefined;
   for (const ack of out.acks) {
-    if (soonest === undefined || ack.arrivedUt < soonest)
+    if (soonest === undefined || ack.arrivedUt.lessThan(soonest))
       soonest = ack.arrivedUt;
   }
   return soonest;
@@ -261,11 +268,13 @@ export function firstAckUtFor(out: OutboundMessage): number | undefined {
  * The instant the first recipient's arrival or acknowledgement of `out` reached
  * its author, or `undefined` while none has.
  */
-export function firstAnswerUtFor(out: OutboundMessage): number | undefined {
+export function firstAnswerUtFor(
+  out: OutboundMessage,
+): Value<"ut"> | undefined {
   let soonest = firstAckUtFor(out);
   for (const delivery of out.deliveries) {
     const ut = deliveryAnswerUtFor(out, delivery);
-    if (ut !== undefined && (soonest === undefined || ut < soonest))
+    if (ut !== undefined && (soonest === undefined || ut.lessThan(soonest)))
       soonest = ut;
   }
   return soonest;
@@ -280,22 +289,22 @@ export function firstAnswerUtFor(out: OutboundMessage): number | undefined {
 export function deliveryAnswerUtFor(
   out: OutboundMessage,
   delivery: Delivery,
-): number | undefined {
+): Value<"ut"> | undefined {
   const ackUt = deliveryAckUtFor(out, delivery);
   const landed = delivery.landedUt;
   if (ackUt === undefined) return landed;
-  return landed === undefined ? ackUt : Math.min(ackUt, landed);
+  return landed === undefined ? ackUt : ackUt.min(landed);
 }
 
 /** The instant `delivery`'s recipient's acknowledgement reached the author, or `undefined` while none has. */
 export function deliveryAckUtFor(
   out: OutboundMessage,
   delivery: Delivery,
-): number | undefined {
-  let soonest: number | undefined;
+): Value<"ut"> | undefined {
+  let soonest: Value<"ut"> | undefined;
   for (const ack of out.acks) {
     if (ack.from !== delivery.to) continue;
-    if (soonest === undefined || ack.arrivedUt < soonest)
+    if (soonest === undefined || ack.arrivedUt.lessThan(soonest))
       soonest = ack.arrivedUt;
   }
   return soonest;
@@ -343,7 +352,7 @@ export function isQuickCrossing(
   delivery: Pick<Delivery, "separationSeconds">,
 ): boolean {
   const s = delivery.separationSeconds;
-  return s !== null && currentMode({ oneWaySeconds: value("s", s) }) === "live";
+  return s !== null && currentMode({ oneWaySeconds: s }) === "live";
 }
 
 /**
@@ -352,14 +361,14 @@ export function isQuickCrossing(
  * the same clock it is later compared against, so anything beyond estimation
  * jitter means the game was loaded from an earlier save.
  */
-const FUTURE_SEND_TOLERANCE_SECONDS = 5;
+const FUTURE_SEND_TOLERANCE = value("s", 5);
 
 /** Whether `lastSentUt` lies in the clock's future, which only a reload to an earlier save produces. */
 export function sentInDiscardedTimeline(
-  lastSentUt: number,
-  utNow: number,
+  lastSentUt: Value<"ut">,
+  utNow: Value<"ut">,
 ): boolean {
-  return lastSentUt > utNow + FUTURE_SEND_TOLERANCE_SECONDS;
+  return lastSentUt.greaterThan(utNow.plus(FUTURE_SEND_TOLERANCE));
 }
 
 /**
@@ -373,10 +382,12 @@ export function sentInDiscardedTimeline(
 export function deliveryPhaseFor(
   out: OutboundMessage,
   delivery: Delivery,
-  utNow: number,
+  utNow: Value<"ut">,
 ): SentPhase {
   const answerUt = deliveryAnswerUtFor(out, delivery);
-  if (answerUt !== undefined && utNow >= answerUt) return "confirmed";
+  if (answerUt !== undefined && utNow.greaterThanOrEqual(answerUt)) {
+    return "confirmed";
+  }
   // Nothing left, so nothing is travelling and nothing will answer. Not a long
   // wait: the operator is told, and can resend, rather than watching a
   // countdown for a journey that never started.
@@ -387,9 +398,9 @@ export function deliveryPhaseFor(
   if (delivery.queued) return "in-transit";
   const trip = roundTripFor(delivery);
   if (trip === null) return "lost";
-  if (utNow < trip.reachUt) return "in-transit";
-  if (utNow < trip.replyUt) return "awaiting-reply";
-  if (utNow < trip.overdueUt) return "due";
+  if (utNow.lessThan(trip.reachUt)) return "in-transit";
+  if (utNow.lessThan(trip.replyUt)) return "awaiting-reply";
+  if (utNow.lessThan(trip.overdueUt)) return "due";
   return "overdue";
 }
 
@@ -408,7 +419,7 @@ export type MessageStatus =
  */
 export function messageStatusFor(
   out: OutboundMessage,
-  utNow: number,
+  utNow: Value<"ut">,
 ): MessageStatus {
   let unanswered = false;
   let refused = false;
@@ -459,22 +470,24 @@ export function isSettled(phase: SentPhase): boolean {
  */
 export function sentArrivalUtFor(
   out: OutboundMessage,
-  utNow: number,
-): number | undefined {
-  let giveUpUt: number | undefined;
+  utNow: Value<"ut">,
+): Value<"ut"> | undefined {
+  let giveUpUt: Value<"ut"> | undefined;
   let crossesFast = true;
   for (const delivery of out.deliveries) {
     if (delivery.neverLeft) continue;
     const trip = roundTripFor(delivery);
     if (trip === null) continue;
     if (!isQuickCrossing(delivery)) crossesFast = false;
-    if (giveUpUt === undefined || trip.overdueUt > giveUpUt)
+    if (giveUpUt === undefined || trip.overdueUt.greaterThan(giveUpUt))
       giveUpUt = trip.overdueUt;
   }
   if (giveUpUt === undefined || crossesFast) return out.msg.lastSentUt;
   // Nothing will answer a message sent in a timeline the game has left, so it lands now as unconfirmed.
   if (sentInDiscardedTimeline(out.msg.lastSentUt, utNow)) return utNow;
   const firstAnswer = firstAnswerUtFor(out);
-  if (firstAnswer !== undefined && firstAnswer <= giveUpUt) return firstAnswer;
-  return utNow >= giveUpUt ? giveUpUt : undefined;
+  if (firstAnswer?.lessThanOrEqual(giveUpUt)) {
+    return firstAnswer;
+  }
+  return utNow.greaterThanOrEqual(giveUpUt) ? giveUpUt : undefined;
 }

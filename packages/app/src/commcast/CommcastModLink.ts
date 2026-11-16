@@ -5,6 +5,8 @@ import {
   isUnit,
   isValue,
   type ServerMessage,
+  value as unitValue,
+  type Value,
 } from "@ksp-gonogo/sitrep-sdk";
 import type { Seat } from "@ksp-gonogo/sitrep-sdk/spine";
 import type {
@@ -256,7 +258,7 @@ export function attachCommcastModLink(
         logger.warn("[commcast] a ledger could not be read");
         return;
       }
-      log.applyLedger(items, message.meta.deliveredAt);
+      log.applyLedger(items, unitValue("ut", message.meta.deliveredAt));
       return;
     }
     if (
@@ -327,23 +329,26 @@ function texts(o: Record<string, unknown>, key: string): string[] | undefined {
 }
 
 /** A UT as the client's decode leaves it: a bare number, or a value in `ut`. */
-function figure(value: unknown): number | undefined {
-  const n =
-    isValue(value) && isUnit(value, "ut") && value.isFinite()
-      ? value.magnitude
-      : value;
-  return typeof n === "number" && Number.isFinite(n) ? n : undefined;
+function figure(candidate: unknown): Value<"ut"> | undefined {
+  if (isValue(candidate)) {
+    return isUnit(candidate, "ut") && candidate.isFinite()
+      ? candidate
+      : undefined;
+  }
+  return typeof candidate === "number" && Number.isFinite(candidate)
+    ? unitValue("ut", candidate)
+    : undefined;
 }
 
-function numbers(
+function instants(
   o: Record<string, unknown>,
   key: string,
-): Record<string, number> | undefined {
+): Record<string, Value<"ut">> | undefined {
   const v = o[key];
   if (!isRecord(v)) return undefined;
-  const out: Record<string, number> = {};
-  for (const [id, seconds] of Object.entries(v)) {
-    const n = figure(seconds);
+  const out: Record<string, Value<"ut">> = {};
+  for (const [id, instant] of Object.entries(v)) {
+    const n = figure(instant);
     if (n === undefined) return undefined;
     out[id] = n;
   }
@@ -386,13 +391,16 @@ function readLedgerItem(value: unknown): LedgerItem | null {
     return null;
   }
   const arrivedUt = figure(value.arrivedUt);
-  const read: Record<string, { at: number; stationKey: string; seat: Seat }> =
-    {};
+  const read: Record<
+    string,
+    { at: Value<"ut">; stationKey: string; seat: Seat }
+  > = {};
   if (isRecord(value.read)) {
     for (const [centre, entry] of Object.entries(value.read)) {
-      if (!isRecord(entry) || figure(entry.at) === undefined) continue;
+      const at = isRecord(entry) ? figure(entry.at) : undefined;
+      if (!isRecord(entry) || at === undefined) continue;
       read[centre] = {
-        at: figure(entry.at) as number,
+        at,
         stationKey: text(entry, "stationKey") ?? "",
         seat: seatOf(text(entry, "seat") ?? ""),
       };
@@ -426,7 +434,7 @@ function readLedgerItem(value: unknown): LedgerItem | null {
     ...(texts(value, "added") === undefined
       ? {}
       : { added: texts(value, "added") as string[] }),
-    delivered: numbers(value, "delivered") ?? {},
+    delivered: instants(value, "delivered") ?? {},
     ended,
     read,
   };

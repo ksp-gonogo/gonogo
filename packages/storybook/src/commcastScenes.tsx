@@ -1,5 +1,6 @@
 import "./appWidgets";
 import { ScreenProvider } from "@ksp-gonogo/core";
+import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { type ReactNode, useEffect, useMemo } from "react";
 import { CommcastLog } from "../../app/src/commcast/CommcastLog";
 import { CommcastLogProvider } from "../../app/src/commcast/CommcastLogContext";
@@ -18,6 +19,14 @@ import { AppWidgetScene, type ScenePress } from "./AppWidgetScene";
 
 /** The UT every scene calls now: message instants are offsets from it. */
 const VIEW_UT = 12_000_000;
+
+function viewUt(offset: number): Value<"ut"> {
+  return value("ut", VIEW_UT + offset);
+}
+
+function seconds(figure: number | null): Value<"s"> | null {
+  return figure === null ? null : value("s", figure);
+}
 
 export const KSC = "ground:kennedy";
 export const ARES = "vessel:ares-4";
@@ -123,10 +132,10 @@ function toMessage(held: Held): CommsMessage {
     authorStationKey: `author-${held.from}`,
     authorName: held.authorName,
     authorSeat: held.authorSeat,
-    sentUt: VIEW_UT + held.sentAt,
-    lastSentUt: VIEW_UT + (held.lastSentAt ?? held.sentAt),
+    sentUt: viewUt(held.sentAt),
+    lastSentUt: viewUt(held.lastSentAt ?? held.sentAt),
     attempts: held.attempts ?? 1,
-    separationSeconds: held.separationSeconds,
+    separationSeconds: seconds(held.separationSeconds),
   };
   if (held.members === undefined) {
     return { ...base, kind: "text", body: held.body };
@@ -175,14 +184,14 @@ export function seededLog(props: CommcastSceneProps): CommcastLog {
         from: a.from,
         stationKey: a.stationKey,
         seat: a.from.startsWith("vessel:") ? "pilot" : "mission-control",
-        atUt: VIEW_UT + a.at,
-        arrivedUt: VIEW_UT + a.at + (separationTo(a.from) ?? 0),
+        atUt: viewUt(a.at),
+        arrivedUt: viewUt(a.at + (separationTo(a.from) ?? 0)),
       }));
       const deliveries = msg.to
         .filter((id) => id !== msg.from)
         .map((to) => ({
           to,
-          separationSeconds: separationTo(to) ?? null,
+          separationSeconds: seconds(separationTo(to) ?? null),
           lastSentUt: msg.lastSentUt,
           attempts: msg.attempts,
           neverLeft: held.neverLeft === true,

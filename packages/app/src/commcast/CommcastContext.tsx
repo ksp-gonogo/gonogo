@@ -10,7 +10,8 @@ import type {
   UnreachableReason,
   Value,
 } from "@ksp-gonogo/sitrep-sdk";
-import { useSeat } from "@ksp-gonogo/sitrep-sdk/spine";
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import { useSeat, useUtNow } from "@ksp-gonogo/sitrep-sdk/spine";
 import type { ReactNode } from "react";
 import {
   createContext,
@@ -90,7 +91,8 @@ export function CommcastProvider({
       const sep = separationBetween(me.vantageId, to, undefined, pairs);
       // A pair nothing has measured yet is not zero, and is left to be timed when it is.
       if (sep.kind === "unmeasured") return undefined;
-      return transitSecondsOf(sep);
+      const seconds = transitSecondsOf(sep);
+      return seconds === null ? null : value("s", seconds);
     });
     return () => log.setSeparations(undefined);
   }, [log, me.vantageId, pairs]);
@@ -103,6 +105,12 @@ export function CommcastProvider({
   return (
     <CommcastContext.Provider value={log}>{children}</CommcastContext.Provider>
   );
+}
+
+/** The game clock's present as a `ut` value, or `undefined` until the clock has one. */
+export function useCommcastNow(): Value<"ut"> | undefined {
+  const ut = useUtNow();
+  return useMemo(() => (ut === undefined ? undefined : value("ut", ut)), [ut]);
 }
 
 /** This screen's log, or null before it has been built. */

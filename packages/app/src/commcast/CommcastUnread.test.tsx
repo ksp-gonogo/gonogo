@@ -1,4 +1,5 @@
 import { clearRegistry } from "@ksp-gonogo/core";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { setupStreamFixture } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -35,10 +36,10 @@ function incoming(over: Partial<CommsMessage> = {}): CommsMessage {
     authorStationKey: "pilot-1",
     authorName: "Jeb",
     authorSeat: "pilot",
-    sentUt: 0,
-    lastSentUt: 0,
+    sentUt: value("ut", 0),
+    lastSentUt: value("ut", 0),
     attempts: 1,
-    separationSeconds: 0,
+    separationSeconds: value("s", 0),
     kind: "text",
     groupId: "g1",
     body: "Kennedy, Ares, we copy",

@@ -1,9 +1,12 @@
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import { DelayedPlayoutBuffer } from "@ksp-gonogo/sitrep-sdk/media";
-import { useUtNow, useViewClockOptional } from "@ksp-gonogo/sitrep-sdk/spine";
+import { useViewClockOptional } from "@ksp-gonogo/sitrep-sdk/spine";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useCommcastNow } from "./CommcastContext";
 import type { CommcastLog } from "./CommcastLog";
 import { groupsAt } from "./groups";
 import {
+  BEFORE_THE_CLOCK,
   deliveryPhaseFor,
   heardUtOf,
   isSettled,
@@ -86,7 +89,7 @@ export function useCommcastFeed(
   me: Vantage,
 ): CommcastFeed {
   const clock = useViewClockOptional();
-  const utNow = useUtNow();
+  const utNow = useCommcastNow();
   const [snapshot, setSnapshot] = useState<CommcastLogSnapshot>(
     () => log?.snapshot() ?? EMPTY_COMMCAST_LOG,
   );
@@ -112,7 +115,7 @@ export function useCommcastFeed(
    * afterwards would move the instant later and un-deliver something already
    * on screen.
    */
-  const pinned = useRef<Map<string, number>>(new Map());
+  const pinned = useRef<Map<string, Value<"ut">>>(new Map());
   /**
    * Which buffer the pins above belong to.
    *
@@ -181,7 +184,7 @@ export function useCommcastFeed(
       pinnedBuffer.current = buffer;
       pinned.current = new Map();
     }
-    const fresh: { ut: number; entry: CommcastEntry }[] = [];
+    const fresh: { ut: Value<"ut">; entry: CommcastEntry }[] = [];
     /*
      * The inbox goes through the buffer too, not straight onto the screen, so
      * a log rebuilt from storage replays in the order it was HEARD rather than
@@ -206,11 +209,13 @@ export function useCommcastFeed(
      * a later pass is by definition later still.
      */
     fresh.sort(
-      (a, b) => a.ut - b.ut || a.entry.msg.sentUt - b.entry.msg.sentUt,
+      (a, b) =>
+        a.ut.compare(b.ut) || a.entry.msg.sentUt.compare(b.entry.msg.sentUt),
     );
     for (const { ut, entry } of fresh) {
       pinned.current.set(entry.msg.id, ut);
-      buffer.push({ ut, data: entry, keyframe: true, bytes: 1 });
+      // The playout buffer stamps its frames with a plain number.
+      buffer.push({ ut: ut.magnitude, data: entry, keyframe: true, bytes: 1 });
     }
   }, [buffer, log, snapshot, utNow]);
 
@@ -243,7 +248,7 @@ export function useCommcastFeed(
     const entries = landed.map((e) =>
       e.out ? { msg: e.msg, out: byId.get(e.msg.id) ?? e.out } : e,
     );
-    const now = utNow ?? Number.NEGATIVE_INFINITY;
+    const now = utNow ?? BEFORE_THE_CLOCK;
     // Kept while any recipient is still on its round trip, landed in the log or not: its line is one, its rows are one per recipient.
     const outbound = snapshot.outbox.filter((o) =>
       o.deliveries.some((d) => !isSettled(deliveryPhaseFor(o, d, now))),

@@ -1,3 +1,4 @@
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import type { InFlightListItem } from "@ksp-gonogo/ui-kit";
 import { messageText } from "./groups";
 import {
@@ -19,7 +20,7 @@ import type { Delivery, OutboundMessage, RecipientId } from "./types";
  */
 export function outboundItems(
   outbound: readonly OutboundMessage[],
-  utNow: number | undefined,
+  utNow: Value<"ut"> | undefined,
   nameFor: (id: RecipientId) => string = (id) => id,
 ): InFlightListItem[] {
   return outbound.flatMap((out) =>
@@ -54,20 +55,27 @@ export function outboundItems(
 function etaFor(
   delivery: Delivery,
   phase: SentPhase,
-  utNow: number | undefined,
+  utNow: Value<"ut"> | undefined,
 ): number | null {
   const trip = roundTripFor(delivery);
   if (trip === null || utNow === undefined) return null;
-  if (legOf(phase) === "outbound") return trip.reachUt - utNow;
-  if (legOf(phase) === "return") return Math.max(0, trip.replyUt - utNow);
-  return null;
+  const remaining =
+    legOf(phase) === "outbound"
+      ? trip.reachUt.minus(utNow)
+      : legOf(phase) === "return"
+        ? trip.replyUt.minus(utNow).max(0)
+        : null;
+  // The row's countdown takes a plain number of seconds.
+  return remaining === null ? null : remaining.magnitude;
 }
 
 /** Position on the round trip, 0 at send to 1 at the reply instant. */
-function progressFor(delivery: Delivery, utNow: number): number {
+function progressFor(delivery: Delivery, utNow: Value<"ut">): number {
   const trip = roundTripFor(delivery);
   if (trip === null) return 0;
-  const span = trip.replyUt - delivery.lastSentUt;
-  if (span <= 0) return 1;
-  return Math.max(0, Math.min(1, (utNow - delivery.lastSentUt) / span));
+  const span = trip.replyUt.minus(delivery.lastSentUt);
+  if (!span.isPositive()) return 1;
+  // The rail's mark takes a plain fraction.
+  const fraction = utNow.minus(delivery.lastSentUt).dividedBy(span).magnitude;
+  return Math.max(0, Math.min(1, fraction));
 }

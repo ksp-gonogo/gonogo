@@ -6,7 +6,7 @@ import {
 } from "@ksp-gonogo/core";
 import type { CommsLink } from "@ksp-gonogo/sitrep-sdk";
 import { observedValue } from "@ksp-gonogo/sitrep-sdk";
-import { useLatestValue, useUtNow } from "@ksp-gonogo/sitrep-sdk/spine";
+import { useLatestValue } from "@ksp-gonogo/sitrep-sdk/spine";
 import { Badge, EmptyState, Panel, Section, Text } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import { StationNameEditor, useStationNameOptional } from "../stationIdentity";
@@ -16,6 +16,7 @@ import {
   CommcastProvider,
   useAddressBook,
   useCommcastLog,
+  useCommcastNow,
   useLocalParticipant,
   useMyVantage,
   useRecipients,
@@ -52,7 +53,7 @@ function CommcastComponent({
   const log = useCommcastLog();
   const named = useStationNameOptional();
   const me = useMyVantage();
-  const utNow = useUtNow();
+  const utNow = useCommcastNow();
   const pairs = useSeparationMatrix();
   const local = useLocalParticipant();
   const recipients = useRecipients(me);

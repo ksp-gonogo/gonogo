@@ -1,3 +1,4 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
   deliveryPhaseFor,
@@ -31,10 +32,10 @@ function msg(over: Partial<CommsMessage> = {}): CommsMessage {
     authorStationKey: "key-1",
     authorName: "KSC",
     authorSeat: "mission-control",
-    sentUt: 1000,
-    lastSentUt: 1000,
+    sentUt: value("ut", 1000),
+    lastSentUt: value("ut", 1000),
     attempts: 1,
-    separationSeconds: 240,
+    separationSeconds: value("s", 240),
     kind: "text",
     groupId: "g1",
     body: "go for staging",
@@ -45,8 +46,8 @@ function msg(over: Partial<CommsMessage> = {}): CommsMessage {
 function delivery(to: string, over: Partial<Delivery> = {}): Delivery {
   return {
     to,
-    separationSeconds: 240,
-    lastSentUt: 1000,
+    separationSeconds: value("s", 240),
+    lastSentUt: value("ut", 1000),
     attempts: 1,
     neverLeft: false,
     ...over,
@@ -63,11 +64,11 @@ const FAR = "vessel:far";
 /** A group of two recipients, 2 s and 600 s out, sent at 1000. */
 function twoRecipients(acks: CommsAck[] = []): OutboundMessage {
   return {
-    msg: msg({ to: [KSC, NEAR, FAR], separationSeconds: 600 }),
+    msg: msg({ to: [KSC, NEAR, FAR], separationSeconds: value("s", 600) }),
     acks,
     deliveries: [
-      delivery(NEAR, { separationSeconds: 2 }),
-      delivery(FAR, { separationSeconds: 600 }),
+      delivery(NEAR, { separationSeconds: value("s", 2) }),
+      delivery(FAR, { separationSeconds: value("s", 600) }),
     ],
   };
 }
@@ -76,8 +77,8 @@ function ackFrom(from: string, arrivedUt: number): CommsAck {
   return ack({
     from,
     stationKey: `key-${from}`,
-    atUt: arrivedUt - 2,
-    arrivedUt,
+    atUt: value("ut", arrivedUt - 2),
+    arrivedUt: value("ut", arrivedUt),
   });
 }
 
@@ -85,7 +86,7 @@ function ackFrom(from: string, arrivedUt: number): CommsAck {
 function sentPhaseFor(out: OutboundMessage, utNow: number) {
   const first = out.deliveries[0];
   if (!first) throw new Error("fixture has no delivery");
-  return deliveryPhaseFor(out, first, utNow);
+  return deliveryPhaseFor(out, first, value("ut", utNow));
 }
 
 function ack(over: Partial<CommsAck> = {}): CommsAck {
@@ -94,8 +95,8 @@ function ack(over: Partial<CommsAck> = {}): CommsAck {
     from: ARES,
     stationKey: "pilot-key",
     seat: "pilot",
-    atUt: 1240,
-    arrivedUt: 1480,
+    atUt: value("ut", 1240),
+    arrivedUt: value("ut", 1480),
     ...over,
   };
 }
@@ -179,11 +180,15 @@ describe("separationBetween", () => {
 
 describe("heardUtOf", () => {
   it("is when the mod delivered it here, for anything received", () => {
-    expect(heardUtOf(msg({ arrivedUt: 1240 }))).toBe(1240);
+    expect(heardUtOf(msg({ arrivedUt: value("ut", 1240) }))).toEqual(
+      value("ut", 1240),
+    );
   });
 
   it("is when they were said, for this screen's own words", () => {
-    expect(heardUtOf(msg({ lastSentUt: 4000 }))).toBe(4000);
+    expect(heardUtOf(msg({ lastSentUt: value("ut", 4000) }))).toEqual(
+      value("ut", 4000),
+    );
   });
 });
 
@@ -191,9 +196,9 @@ describe("roundTripFor", () => {
   it("spans the two legs plus the shipped loss margin", () => {
     // Deliberately `classifyRetained`'s own geometry: reach, reply at twice the separation, and `LOSS_MARGIN` (3 s) before the wait is given up.
     expect(roundTripFor(msg())).toEqual({
-      reachUt: 1240,
-      replyUt: 1480,
-      overdueUt: 1483,
+      reachUt: value("ut", 1240),
+      replyUt: value("ut", 1480),
+      overdueUt: value("ut", 1483),
     });
   });
 
@@ -204,14 +209,22 @@ describe("roundTripFor", () => {
   it("collapses to the send instant when the recipient is alongside", () => {
     // Two participants at one vantage are ~0 apart, so the acknowledgement is
     // effectively instant. That falls out rather than being special-cased.
-    expect(roundTripFor(msg({ separationSeconds: 0 }))?.replyUt).toBe(1000);
+    expect(
+      roundTripFor(msg({ separationSeconds: value("s", 0) }))?.replyUt,
+    ).toEqual(value("ut", 1000));
   });
 
   it("times a group's wait by its farthest member, which the author froze into the envelope", () => {
     // Woomera is twelve seconds out and Ares four minutes: the reply that could come back last is Ares's.
     expect(
-      roundTripFor(msg({ to: [KSC, ARES, WOOMERA], separationSeconds: 240 })),
-    ).toEqual({ reachUt: 1240, replyUt: 1480, overdueUt: 1483 });
+      roundTripFor(
+        msg({ to: [KSC, ARES, WOOMERA], separationSeconds: value("s", 240) }),
+      ),
+    ).toEqual({
+      reachUt: value("ut", 1240),
+      replyUt: value("ut", 1480),
+      overdueUt: value("ut", 1483),
+    });
   });
 });
 
@@ -260,11 +273,11 @@ describe("revealedAcks", () => {
   const out = outbound({ acks: [ack()] });
 
   it("withholds one that has not got back yet", () => {
-    expect(revealedAcks(out, 1479)).toHaveLength(0);
+    expect(revealedAcks(out, value("ut", 1479))).toHaveLength(0);
   });
 
   it("counts it exactly at the instant it lands", () => {
-    expect(revealedAcks(out, 1480)).toHaveLength(1);
+    expect(revealedAcks(out, value("ut", 1480))).toHaveLength(1);
   });
 });
 
@@ -323,7 +336,9 @@ describe("a message sent in a timeline the game has left", () => {
   });
 
   it("lands in the author's log now, unconfirmed, rather than waiting for the old clock", () => {
-    expect(sentArrivalUtFor(outbound(), 400)).toBe(400);
+    expect(sentArrivalUtFor(outbound(), value("ut", 400))).toEqual(
+      value("ut", 400),
+    );
   });
 });
 
@@ -340,21 +355,27 @@ describe("isSettled", () => {
 
 describe("sentArrivalUtFor", () => {
   it("holds the author's own words while the round trip is still running", () => {
-    expect(sentArrivalUtFor(outbound(), 1300)).toBeUndefined();
+    expect(sentArrivalUtFor(outbound(), value("ut", 1300))).toBeUndefined();
   });
 
   it("lands them the instant an acknowledgement gets back", () => {
-    expect(sentArrivalUtFor(outbound({ acks: [ack()] }), 1000)).toBe(1480);
+    expect(
+      sentArrivalUtFor(outbound({ acks: [ack()] }), value("ut", 1000)),
+    ).toEqual(value("ut", 1480));
   });
 
   it("hands them back unconfirmed rather than losing them forever", () => {
-    expect(sentArrivalUtFor(outbound(), 1482)).toBeUndefined();
-    expect(sentArrivalUtFor(outbound(), 1483)).toBe(1483);
+    expect(sentArrivalUtFor(outbound(), value("ut", 1482))).toBeUndefined();
+    expect(sentArrivalUtFor(outbound(), value("ut", 1483))).toEqual(
+      value("ut", 1483),
+    );
   });
 
   it("never waits past the give-up for an acknowledgement later still", () => {
-    const out = outbound({ acks: [ack({ atUt: 9000, arrivedUt: 9240 })] });
-    expect(sentArrivalUtFor(out, 9999)).toBe(1483);
+    const out = outbound({
+      acks: [ack({ atUt: value("ut", 9000), arrivedUt: value("ut", 9240) })],
+    });
+    expect(sentArrivalUtFor(out, value("ut", 9999))).toEqual(value("ut", 1483));
   });
 
   it.each([
@@ -363,19 +384,21 @@ describe("sentArrivalUtFor", () => {
     [1.5, false],
   ])("at %s s one-way, lands at once: %s", (seconds, atOnce) => {
     const out = outbound({
-      deliveries: [delivery(ARES, { separationSeconds: seconds })],
+      deliveries: [delivery(ARES, { separationSeconds: value("s", seconds) })],
     });
-    expect(sentArrivalUtFor(out, 1000)).toBe(atOnce ? 1000 : undefined);
+    expect(sentArrivalUtFor(out, value("ut", 1000))).toEqual(
+      atOnce ? value("ut", 1000) : undefined,
+    );
   });
 
   it("holds the words while any recipient is more than a second away", () => {
     const out = outbound({
       deliveries: [
-        delivery(ARES, { separationSeconds: 0.4 }),
-        delivery(WOOMERA, { separationSeconds: 1.5 }),
+        delivery(ARES, { separationSeconds: value("s", 0.4) }),
+        delivery(WOOMERA, { separationSeconds: value("s", 1.5) }),
       ],
     });
-    expect(sentArrivalUtFor(out, 1000)).toBeUndefined();
+    expect(sentArrivalUtFor(out, value("ut", 1000))).toBeUndefined();
   });
 
   it("shows words that never left at once, because the author is next to them", () => {
@@ -385,16 +408,19 @@ describe("sentArrivalUtFor", () => {
         delivery(ARES, { separationSeconds: null, neverLeft: true }),
       ],
     });
-    expect(sentArrivalUtFor(out, 1000)).toBe(1000);
+    expect(sentArrivalUtFor(out, value("ut", 1000))).toEqual(value("ut", 1000));
   });
 });
 
 describe("firstAckUtFor", () => {
   it("takes the nearest ear, not the first entry in the list", () => {
     const out = outbound({
-      acks: [ack(), ack({ stationKey: "s2", from: KSC, arrivedUt: 1010 })],
+      acks: [
+        ack(),
+        ack({ stationKey: "s2", from: KSC, arrivedUt: value("ut", 1010) }),
+      ],
     });
-    expect(firstAckUtFor(out)).toBe(1010);
+    expect(firstAckUtFor(out)).toEqual(value("ut", 1010));
   });
 
   it("is undefined while nobody has answered", () => {
@@ -406,30 +432,32 @@ describe("one send to a group of two", () => {
   it("is not received because the near recipient answered (D1)", () => {
     const out = twoRecipients([ackFrom(NEAR, 1004)]);
     const [near, far] = out.deliveries;
-    expect(deliveryPhaseFor(out, near, 1005)).toBe("confirmed");
+    expect(deliveryPhaseFor(out, near, value("ut", 1005))).toBe("confirmed");
     expect(["in-transit", "awaiting-reply"]).toContain(
-      deliveryPhaseFor(out, far, 1005),
+      deliveryPhaseFor(out, far, value("ut", 1005)),
     );
-    expect(messageStatusFor(out, 1005)).toBe("in-transit");
+    expect(messageStatusFor(out, value("ut", 1005))).toBe("in-transit");
   });
 
   it("is received once both have answered", () => {
     const out = twoRecipients([ackFrom(NEAR, 1004), ackFrom(FAR, 1500)]);
-    expect(messageStatusFor(out, 1004)).toBe("in-transit");
-    expect(messageStatusFor(out, 1500)).toBe("received");
+    expect(messageStatusFor(out, value("ut", 1004))).toBe("in-transit");
+    expect(messageStatusFor(out, value("ut", 1500))).toBe("received");
   });
 
   it("is unconfirmed when every wait is over and one never answered", () => {
     const out = twoRecipients([ackFrom(NEAR, 1004)]);
     // The far recipient's wait ends at 1000 + 2 * 600 + 3.
-    expect(messageStatusFor(out, 2203)).toBe("unconfirmed");
-    expect(messageStatusFor(out, 2202)).toBe("in-transit");
+    expect(messageStatusFor(out, value("ut", 2203))).toBe("unconfirmed");
+    expect(messageStatusFor(out, value("ut", 2202))).toBe("in-transit");
   });
 
   it("is not confirmed for a recipient by an ack from somebody else", () => {
     const out = twoRecipients([ackFrom("ground:stranger", 1004)]);
     const [near] = out.deliveries;
-    expect(deliveryPhaseFor(out, near, 1005)).not.toBe("confirmed");
+    expect(deliveryPhaseFor(out, near, value("ut", 1005))).not.toBe(
+      "confirmed",
+    );
   });
 
   it("reads a recipient that never left as settled, and the rest still travelling", () => {
@@ -437,11 +465,11 @@ describe("one send to a group of two", () => {
       ...twoRecipients(),
       deliveries: [
         delivery(NEAR, { separationSeconds: null, neverLeft: true }),
-        delivery(FAR, { separationSeconds: 600 }),
+        delivery(FAR, { separationSeconds: value("s", 600) }),
       ],
     };
-    expect(messageStatusFor(out, 1100)).toBe("in-transit");
-    expect(messageStatusFor(out, 2203)).toBe("unconfirmed");
+    expect(messageStatusFor(out, value("ut", 1100))).toBe("in-transit");
+    expect(messageStatusFor(out, value("ut", 2203))).toBe("unconfirmed");
   });
 
   it("reads a send the mod refused as not sent at once, not as a long wait for an answer", () => {
@@ -452,15 +480,21 @@ describe("one send to a group of two", () => {
         delivery(FAR, { refused: true }),
       ],
     };
-    expect(deliveryPhaseFor(out, out.deliveries[0], 1001)).toBe("lost");
-    expect(messageStatusFor(out, 1001)).toBe("not-sent");
+    expect(deliveryPhaseFor(out, out.deliveries[0], value("ut", 1001))).toBe(
+      "lost",
+    );
+    expect(messageStatusFor(out, value("ut", 1001))).toBe("not-sent");
   });
 
   it("lands the author's line at the first answer, or when the last wait ends", () => {
-    expect(sentArrivalUtFor(twoRecipients(), 1100)).toBeUndefined();
-    expect(sentArrivalUtFor(twoRecipients([ackFrom(NEAR, 1004)]), 1100)).toBe(
-      1004,
+    expect(
+      sentArrivalUtFor(twoRecipients(), value("ut", 1100)),
+    ).toBeUndefined();
+    expect(
+      sentArrivalUtFor(twoRecipients([ackFrom(NEAR, 1004)]), value("ut", 1100)),
+    ).toEqual(value("ut", 1004));
+    expect(sentArrivalUtFor(twoRecipients(), value("ut", 2203))).toEqual(
+      value("ut", 2203),
     );
-    expect(sentArrivalUtFor(twoRecipients(), 2203)).toBe(2203);
   });
 });

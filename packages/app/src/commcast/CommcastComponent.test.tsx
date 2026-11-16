@@ -13,7 +13,7 @@
 import { clearRegistry } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
 import { TelemetryClient, TelemetryProvider } from "@ksp-gonogo/sitrep-client";
-import { UnreachableReason } from "@ksp-gonogo/sitrep-sdk";
+import { UnreachableReason, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   StubTransport,
   setupStreamFixture,
@@ -134,10 +134,10 @@ function sent(over: Partial<CommsMessage> = {}): CommsMessage {
     authorStationKey: "screen-under-test",
     authorName: "Kennedy Flight",
     authorSeat: "mission-control",
-    sentUt: 0,
-    lastSentUt: 0,
+    sentUt: value("ut", 0),
+    lastSentUt: value("ut", 0),
     attempts: 1,
-    separationSeconds: 240,
+    separationSeconds: value("s", 240),
     kind: "text",
     groupId: "g1",
     body: "Ares, Kennedy, do you copy",
@@ -164,14 +164,14 @@ function outbound(msg: CommsMessage, acks: CommsAck[] = []): OutboundMessage {
 
 /** An acknowledgement, reaching this screen one 240 s crossing after it was made unless told otherwise. */
 function ack(over: Partial<CommsAck> = {}): CommsAck {
-  const atUt = over.atUt ?? -240;
+  const atUt = over.atUt ?? value("ut", -240);
   return {
     messageId: "m1",
     from: "vessel:ares",
     stationKey: "pilot-1",
     seat: "pilot",
     atUt,
-    arrivedUt: atUt + 240,
+    arrivedUt: atUt.plus(value("s", 240)),
     ...over,
   };
 }
@@ -199,9 +199,9 @@ describe("Commcast, rendered", () => {
           from: "ground:woomera",
           to: ["ksc"],
           authorName: "Woomera Range",
-          sentUt: -600,
-          lastSentUt: -600,
-          separationSeconds: 12,
+          sentUt: value("ut", -600),
+          lastSentUt: value("ut", -600),
+          separationSeconds: value("s", 12),
           body: "Kennedy, Woomera. Tracking is locked.",
         }),
       ],
@@ -228,8 +228,8 @@ describe("Commcast, rendered", () => {
           to: ["ksc"],
           authorName: JEB.name,
           authorSeat: "pilot",
-          sentUt: -600,
-          lastSentUt: -600,
+          sentUt: value("ut", -600),
+          lastSentUt: value("ut", -600),
           body: "Kennedy, Ares. Go ahead.",
         }),
       ],
@@ -269,8 +269,8 @@ describe("Commcast, rendered", () => {
           to: ["ksc"],
           authorName: JEB.name,
           authorSeat: "pilot",
-          sentUt: -600,
-          lastSentUt: -600,
+          sentUt: value("ut", -600),
+          lastSentUt: value("ut", -600),
           body: "Kennedy, Ares. Go ahead.",
         }),
       ],
@@ -328,8 +328,8 @@ describe("Commcast, rendered", () => {
           to: ["ksc"],
           authorName: JEB.name,
           authorSeat: "pilot",
-          sentUt: -600,
-          lastSentUt: -600,
+          sentUt: value("ut", -600),
+          lastSentUt: value("ut", -600),
           body: "Kennedy, Ares. Go ahead.",
         }),
       ],
@@ -802,9 +802,9 @@ describe("Commcast, rendered", () => {
       authorStationKey: JEB.stationKey,
       authorName: JEB.name,
       authorSeat: "pilot",
-      sentUt: 1_000_000,
-      lastSentUt: 1_000_000,
-      arrivedUt: 1_000_240,
+      sentUt: value("ut", 1_000_000),
+      lastSentUt: value("ut", 1_000_000),
+      arrivedUt: value("ut", 1_000_240),
       body: "SECRET-IN-FLIGHT",
     });
     renderWidget(log);
@@ -843,7 +843,7 @@ describe("Commcast, rendered", () => {
     // The console's own rule for a live send is a second or less, and words under it go straight into the thread.
     const log = makeLog();
     log.replaceForTesting({
-      outbox: [outbound(sent({ separationSeconds: seconds }), [])],
+      outbox: [outbound(sent({ separationSeconds: value("s", seconds) }), [])],
     });
     renderWidget(log);
     await openConversation(/do you copy/);
@@ -863,9 +863,10 @@ describe("Commcast, rendered", () => {
     // it arrived: the acknowledgement has had exactly the return leg to cross.
     log.replaceForTesting({
       outbox: [
-        outbound(sent({ sentUt: -480, lastSentUt: -480 }), [
-          ack({ atUt: -240 }),
-        ]),
+        outbound(
+          sent({ sentUt: value("ut", -480), lastSentUt: value("ut", -480) }),
+          [ack({ atUt: value("ut", -240) })],
+        ),
       ],
     });
     renderWidget(log);
@@ -884,7 +885,12 @@ describe("Commcast, rendered", () => {
     // marked, with the one action attached: send it again.
     const log = makeLog();
     log.replaceForTesting({
-      outbox: [outbound(sent({ sentUt: -600, lastSentUt: -600 }), [])],
+      outbox: [
+        outbound(
+          sent({ sentUt: value("ut", -600), lastSentUt: value("ut", -600) }),
+          [],
+        ),
+      ],
     });
     renderWidget(log);
     await openConversation(/do you copy/);
@@ -902,9 +908,9 @@ describe("Commcast, rendered", () => {
     log.replaceForTesting({
       outbox: [
         outbound(
-          sent({ sentUt: -600, lastSentUt: -600 }),
+          sent({ sentUt: value("ut", -600), lastSentUt: value("ut", -600) }),
           // Read at the far end 1 s ago, so the news is still 239 s away.
-          [ack({ atUt: -1 })],
+          [ack({ atUt: value("ut", -1) })],
         ),
       ],
     });
@@ -938,9 +944,9 @@ describe("Commcast, rendered", () => {
     function toGroup(at: number, acks: CommsAck[] = []): OutboundMessage {
       const msg = sent({
         to: ["ksc", ARES, WOOMERA],
-        sentUt: at,
-        lastSentUt: at,
-        separationSeconds: 240,
+        sentUt: value("ut", at),
+        lastSentUt: value("ut", at),
+        separationSeconds: value("s", 240),
       });
       return {
         msg,
@@ -948,15 +954,15 @@ describe("Commcast, rendered", () => {
         deliveries: [
           {
             to: ARES,
-            separationSeconds: 240,
-            lastSentUt: at,
+            separationSeconds: value("s", 240),
+            lastSentUt: value("ut", at),
             attempts: 1,
             neverLeft: false,
           },
           {
             to: WOOMERA,
-            separationSeconds: 12,
-            lastSentUt: at,
+            separationSeconds: value("s", 12),
+            lastSentUt: value("ut", at),
             attempts: 1,
             neverLeft: false,
           },
@@ -968,11 +974,16 @@ describe("Commcast, rendered", () => {
       ack({
         from: WOOMERA,
         stationKey: "woomera-1",
-        atUt,
-        arrivedUt: atUt + 12,
+        atUt: value("ut", atUt),
+        arrivedUt: value("ut", atUt + 12),
       });
     const aresAck = (atUt: number) =>
-      ack({ from: ARES, stationKey: "pilot-1", atUt, arrivedUt: atUt + 240 });
+      ack({
+        from: ARES,
+        stationKey: "pilot-1",
+        atUt: value("ut", atUt),
+        arrivedUt: value("ut", atUt + 240),
+      });
 
     it("is one line with one icon, however many answered, and the near answer does not confirm it", async () => {
       const log = makeLog();
@@ -1106,7 +1117,12 @@ describe("Commcast, rendered", () => {
   it("terminates the log with a no-signal marker on a CONFIRMED link loss", async () => {
     const log = makeLog();
     log.replaceForTesting({
-      outbox: [outbound(sent({ sentUt: -600, lastSentUt: -600 }), [])],
+      outbox: [
+        outbound(
+          sent({ sentUt: value("ut", -600), lastSentUt: value("ut", -600) }),
+          [],
+        ),
+      ],
     });
     const { transport } = renderWidget(log);
     await openConversation(/do you copy/);
@@ -1131,8 +1147,8 @@ describe("Commcast, rendered", () => {
         outbound(
           sent({
             id: `m${i}`,
-            sentUt: at,
-            lastSentUt: at,
+            sentUt: value("ut", at),
+            lastSentUt: value("ut", at),
             body: `line ${i}`,
           }),
           [],
@@ -1153,7 +1169,12 @@ describe("Commcast, rendered", () => {
   it("has no accessibility violations, in the inbox and in a conversation", async () => {
     const log = makeLog();
     log.replaceForTesting({
-      outbox: [outbound(sent({ sentUt: -600, lastSentUt: -600 }), [])],
+      outbox: [
+        outbound(
+          sent({ sentUt: value("ut", -600), lastSentUt: value("ut", -600) }),
+          [],
+        ),
+      ],
     });
     const { container } = renderWidget(log);
     await expectNoA11yViolations(container);

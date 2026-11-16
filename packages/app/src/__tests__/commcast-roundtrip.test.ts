@@ -8,7 +8,7 @@
  * acknowledgement crosses back to the author alone, and radio bytes survive the
  * batch they ride in.
  */
-import type { Meta, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
+import { type Meta, type ServerMessage, value } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, describe, expect, it } from "vitest";
 import { CommcastLog } from "../commcast/CommcastLog";
 import {
@@ -288,7 +288,7 @@ function scene() {
     to: [KSC, ARES],
     members: [KSC, ARES],
     added: [ARES],
-    sentUt: 1000,
+    sentUt: value("ut", 1000),
     separations: separationsTo(KSC, [KSC, ARES], LIGHT_TIME),
   });
   return { mod, ground, aboard, range };
@@ -302,7 +302,7 @@ describe("Commcast through the mod", () => {
       groupId: "g1",
       body: "Go for the burn.",
       to: [KSC, ARES],
-      sentUt: 1000,
+      sentUt: value("ut", 1000),
       separations: separationsTo(KSC, [KSC, ARES], LIGHT_TIME),
     });
 
@@ -321,7 +321,7 @@ describe("Commcast through the mod", () => {
       groupId: "g1",
       body: "hi",
       to: [KSC, ARES],
-      sentUt: 1000,
+      sentUt: value("ut", 1000),
       separations: separationsTo(KSC, [KSC, ARES], LIGHT_TIME),
     });
     mod.advanceTo(2000);
@@ -336,7 +336,7 @@ describe("Commcast through the mod", () => {
       groupId: "g1",
       body: "copy?",
       to: [KSC, ARES],
-      sentUt: 1000,
+      sentUt: value("ut", 1000),
       separations: separationsTo(KSC, [KSC, ARES], LIGHT_TIME),
     });
     mod.advanceTo(1240);
@@ -352,7 +352,7 @@ describe("Commcast through the mod", () => {
       if (!out) throw new Error("the author's log lost its own message");
       const [delivery] = out.deliveries;
       if (!delivery) throw new Error("the message has no recipient");
-      return deliveryPhaseFor(out, delivery, ut);
+      return deliveryPhaseFor(out, delivery, value("ut", ut));
     };
     expect(phaseAt(1479)).toBe("awaiting-reply");
     expect(phaseAt(1480)).toBe("confirmed");

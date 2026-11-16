@@ -1,3 +1,4 @@
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import {
   type HeldCommand,
   heldCommandOf,
@@ -26,6 +27,7 @@ import {
 import { messageText } from "./groups";
 import { type RecipientAbout, recipientWords } from "./recipientWords";
 import {
+  BEFORE_THE_CLOCK,
   deliveryAckUtFor,
   deliveryAnswerUtFor,
   deliveryPhaseFor,
@@ -47,10 +49,10 @@ export function CommcastMessageRow({
   aboutFor,
 }: {
   entry: CommcastEntry;
-  utNow: number | undefined;
+  utNow: Value<"ut"> | undefined;
   log: CommcastLog;
   nameFor: (id: RecipientId) => string;
-  separations: ReadonlyMap<RecipientId, number | null>;
+  separations: ReadonlyMap<RecipientId, Value<"s"> | null>;
   /** What the contact plan and the roster say about a recipient. */
   aboutFor: (id: RecipientId) => RecipientAbout;
 }) {
@@ -128,11 +130,11 @@ function SentVerdict({
   aboutFor,
 }: {
   out: OutboundMessage;
-  utNow: number | undefined;
+  utNow: Value<"ut"> | undefined;
   nameFor: (id: RecipientId) => string;
   aboutFor: (id: RecipientId) => RecipientAbout;
 }) {
-  const now = utNow ?? Number.NEGATIVE_INFINITY;
+  const now = utNow ?? BEFORE_THE_CLOCK;
   const status = messageStatusFor(out, now);
   const Icon = STATUS_ICON[status];
   const answeredUt = lastAnswerUt(out, now);
@@ -171,12 +173,15 @@ function SentVerdict({
 }
 
 /** When the last recipient's answer reached here, once every recipient has answered. */
-function lastAnswerUt(out: OutboundMessage, now: number): number | undefined {
-  let latest: number | undefined;
+function lastAnswerUt(
+  out: OutboundMessage,
+  now: Value<"ut">,
+): Value<"ut"> | undefined {
+  let latest: Value<"ut"> | undefined;
   for (const delivery of out.deliveries) {
     const ut = deliveryAnswerUtFor(out, delivery);
-    if (ut === undefined || ut > now) return undefined;
-    if (latest === undefined || ut > latest) latest = ut;
+    if (ut === undefined || ut.greaterThan(now)) return undefined;
+    if (latest === undefined || ut.greaterThan(latest)) latest = ut;
   }
   return latest;
 }
@@ -195,7 +200,7 @@ function RecipientState({
 }: {
   delivery: Delivery;
   out: OutboundMessage;
-  now: number;
+  now: Value<"ut">;
   name: string;
   about: RecipientAbout;
 }) {
@@ -231,12 +236,12 @@ function UnconfirmedActions({
   separations,
 }: {
   out: OutboundMessage;
-  utNow: number | undefined;
+  utNow: Value<"ut"> | undefined;
   log: CommcastLog;
   nameFor: (id: RecipientId) => string;
-  separations: ReadonlyMap<RecipientId, number | null>;
+  separations: ReadonlyMap<RecipientId, Value<"s"> | null>;
 }) {
-  const now = utNow ?? Number.NEGATIVE_INFINITY;
+  const now = utNow ?? BEFORE_THE_CLOCK;
   const waiting = out.deliveries.filter((d) => {
     const phase = deliveryPhaseFor(out, d, now);
     return phase !== "confirmed" && isSettled(phase);
@@ -279,7 +284,7 @@ export function CrossingMessage({
   nameFor,
 }: {
   out: OutboundMessage;
-  utNow: number | undefined;
+  utNow: Value<"ut"> | undefined;
   nameFor: (id: RecipientId) => string;
 }) {
   return <CancelActions out={out} utNow={utNow} nameFor={nameFor} />;
@@ -291,12 +296,12 @@ function CancelActions({
   nameFor,
 }: {
   out: OutboundMessage;
-  utNow: number | undefined;
+  utNow: Value<"ut"> | undefined;
   nameFor: (id: RecipientId) => string;
 }) {
   const queue = useLatestValue<unknown>("system.uplink.pending");
   const actions = useHeldCommandActions();
-  const now = utNow ?? Number.NEGATIVE_INFINITY;
+  const now = utNow ?? BEFORE_THE_CLOCK;
   const heldFor = (to: RecipientId): HeldCommand | undefined => {
     const entries =
       typeof queue === "object" &&

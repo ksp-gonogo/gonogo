@@ -140,17 +140,20 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/app/src/alarms/AlarmHostService.ts": 1,
   "packages/app/src/alarms/WarpObserver.ts": 1,
   /*
-   * 1 each, and both are the wire boundary. A Commcast message crosses PeerJS
-   * as JSON, so the separation it freezes has to be a plain `number | null`:
-   * a `Value<"s">` serialises to an object the receiving side would then have
-   * to unwrap by hand at every read, which is the same unwrap done N times
-   * instead of once. The context's is the mirror of it, turning the published
-   * pair matrix into the lookup the reveal rule indexes.
+   * 1 each. The component's is the craft-to-ground delay read as the plain
+   * seconds the separation lookup and the radio envelope take. The context's
+   * turns the published pair matrix into the lookup the reveal rule indexes.
    */
-  // 1, in `figure`: the ledger's times arrive from the game as `Value<"ut">` and go into a log that keeps every time as a plain number. This is the one place they are unwrapped; converting the log to unit types retires it.
-  "packages/app/src/commcast/CommcastModLink.ts": 1,
   "packages/app/src/commcast/CommcastComponent.tsx": 1,
   "packages/app/src/commcast/CommcastContext.tsx": 1,
+  /*
+   * 2, in `outboundItems`: the queue row's countdown (`etaSeconds`) and its
+   * rail mark (`progress`) are plain numbers on the published in-flight item.
+   * Each is read once, off a duration the algebra has already produced.
+   */
+  "packages/app/src/commcast/outboundItems.ts": 2,
+  // 1, where the feed stamps a frame for the playout buffer, whose `ut` is a plain number shared with the media path.
+  "packages/app/src/commcast/useCommcastFeed.ts": 1,
   "packages/app/src/telemetry/KspCalendarObserver.tsx": 4,
   /*
    * 2, and they are the subject rather than a use. This file is the planted

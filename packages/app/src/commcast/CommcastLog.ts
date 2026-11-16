@@ -1,5 +1,12 @@
 import { PerfBudget, safeRandomUuid } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
+import {
+  hydrate,
+  isUnit,
+  isValue,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import type { HeardRadioFrame, RadioFrame } from "./radio/wire";
 import type {
   CommcastLogSnapshot,
@@ -13,7 +20,7 @@ import type {
 } from "./types";
 import { EMPTY_COMMCAST_LOG } from "./types";
 
-const STORAGE_PREFIX = "gonogo.commcast.v4.";
+const STORAGE_PREFIX = "gonogo.commcast.v5.";
 
 /**
  * How many messages one vantage keeps in each direction. Its own log, so the
@@ -105,7 +112,7 @@ export class CommcastLog {
   private awaitingVantage: CommsMessage[] = [];
   /** How long a message from this vantage takes to reach a recipient, as this screen can tell: null for none, undefined for no way of telling. */
   private separationOf:
-    | ((to: RecipientId) => number | null | undefined)
+    | ((to: RecipientId) => Value<"s"> | null | undefined)
     | undefined;
   /** The latest ledger the wire delivered before the vantage was known. */
   private awaitingLedger: readonly LedgerItem[] | undefined;
@@ -309,8 +316,8 @@ export class CommcastLog {
   resend(
     messageId: string,
     recipients: readonly RecipientId[],
-    atUt: number,
-    separations: ReadonlyMap<RecipientId, number | null>,
+    atUt: Value<"ut">,
+    separations: ReadonlyMap<RecipientId, Value<"s"> | null>,
   ): void {
     const found = this.outbox.find((o) => o.msg.id === messageId);
     if (!found) return;
@@ -495,7 +502,9 @@ export class CommcastLog {
 
   /** Gives the log a way to time a colleague's message to each recipient, from the separations this screen reads. */
   setSeparations(
-    separationOf: ((to: RecipientId) => number | null | undefined) | undefined,
+    separationOf:
+      | ((to: RecipientId) => Value<"s"> | null | undefined)
+      | undefined,
   ): void {
     this.separationOf = separationOf;
     if (separationOf && this.timeColleaguesMessages()) this.persistAndEmit();
@@ -513,7 +522,7 @@ export class CommcastLog {
       const deliveries = out.deliveries.map((d): Delivery => {
         if (!d.queued || d.delivered || d.refused) return d;
         const separation = this.separationOf?.(d.to);
-        if (typeof separation !== "number") return d;
+        if (separation === null || separation === undefined) return d;
         touched = true;
         const { queued: _queued, ...rest } = d;
         return { ...rest, separationSeconds: separation };
@@ -535,7 +544,7 @@ export class CommcastLog {
    * screen that did not say it files it as outgoing, and every screen settles it
    * on what the ledger says of each recipient.
    */
-  applyLedger(items: readonly LedgerItem[], deliveredAt?: number): void {
+  applyLedger(items: readonly LedgerItem[], deliveredAt?: Value<"ut">): void {
     const here = this.vantageId;
     if (here === undefined) {
       this.awaitingLedger = items;
@@ -563,7 +572,7 @@ export class CommcastLog {
   }
 
   /** Files an outgoing text this screen did not say, if it is new, and settles each recipient on the ledger. True when anything changed. */
-  private settleOutgoing(item: LedgerItem, deliveredAt?: number): boolean {
+  private settleOutgoing(item: LedgerItem, deliveredAt?: Value<"ut">): boolean {
     let found = this.outbox.find((o) => o.msg.id === item.id);
     let changed = false;
     if (!found) {
@@ -617,7 +626,8 @@ export class CommcastLog {
           landedUt: landed,
           // The reply reached here at `landed`, a round trip after it was sent.
           separationSeconds:
-            d.separationSeconds ?? Math.max(0, (landed - d.lastSentUt) / 2),
+            d.separationSeconds ??
+            landed.minus(d.lastSentUt).dividedBy(2).max(NO_SEPARATION),
         };
       }
       return d;
@@ -743,7 +753,9 @@ export class CommcastLog {
     try {
       const raw = this.storage.getItem(this.key);
       if (!raw) return;
-      const parsed: unknown = JSON.parse(raw);
+      const parsed: unknown = JSON.parse(raw, (_key, revived) =>
+        hydrate(revived),
+      );
       if (typeof parsed !== "object" || parsed === null) return;
       const held = parsed as Partial<CommcastLogSnapshot>;
       this.inbox = (held.inbox ?? [])
@@ -772,11 +784,11 @@ export class CommcastLog {
 }
 
 /** The longest separation among the deliveries that have a path, or `null` when none does. */
-function longestOf(deliveries: readonly Delivery[]): number | null {
-  let longest: number | null = null;
+function longestOf(deliveries: readonly Delivery[]): Value<"s"> | null {
+  let longest: Value<"s"> | null = null;
   for (const d of deliveries) {
     if (d.separationSeconds === null) continue;
-    if (longest === null || d.separationSeconds > longest)
+    if (longest === null || d.separationSeconds.greaterThan(longest))
       longest = d.separationSeconds;
   }
   return longest;
@@ -787,6 +799,16 @@ function capped<Entry>(items: Entry[], onDrop: (n: number) => void): Entry[] {
   if (items.length <= MAX_MESSAGES) return items;
   onDrop(items.length - MAX_MESSAGES);
   return items.slice(-MAX_MESSAGES);
+}
+
+const NO_SEPARATION = value("s", 0);
+
+function isUt(candidate: unknown): candidate is Value<"ut"> {
+  return isValue(candidate) && isUnit(candidate, "ut");
+}
+
+function isSeconds(candidate: unknown): candidate is Value<"s"> {
+  return isValue(candidate) && isUnit(candidate, "s");
 }
 
 function isCommsMessage(value: unknown): value is CommsMessage {
@@ -800,10 +822,10 @@ function isCommsMessage(value: unknown): value is CommsMessage {
     typeof m.authorStationKey === "string" &&
     typeof m.authorName === "string" &&
     (m.authorSeat === "pilot" || m.authorSeat === "mission-control") &&
-    typeof m.sentUt === "number" &&
-    typeof m.lastSentUt === "number" &&
+    isUt(m.sentUt) &&
+    isUt(m.lastSentUt) &&
     typeof m.attempts === "number" &&
-    (m.separationSeconds === null || typeof m.separationSeconds === "number") &&
+    (m.separationSeconds === null || isSeconds(m.separationSeconds)) &&
     typeof m.kind === "string"
   );
 }
@@ -821,7 +843,7 @@ function isOutbound(value: unknown): value is OutboundMessage {
 /** A ledger entry as a message held in a log: said at `arrivedUt` here, or by this vantage itself when that is undefined. */
 function messageOf(
   item: LedgerItem,
-  arrivedUt: number | undefined,
+  arrivedUt: Value<"ut"> | undefined,
 ): CommsMessage {
   return {
     id: item.id,
@@ -835,7 +857,9 @@ function messageOf(
     lastSentUt: item.sentUt,
     attempts: 1,
     separationSeconds:
-      arrivedUt === undefined ? null : Math.max(0, arrivedUt - item.sentUt),
+      arrivedUt === undefined
+        ? null
+        : arrivedUt.minus(item.sentUt).max(NO_SEPARATION),
     kind: item.kind,
     ...(arrivedUt === undefined ? {} : { arrivedUt }),
     ...(item.body === undefined ? {} : { body: item.body }),

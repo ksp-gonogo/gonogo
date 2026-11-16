@@ -82,26 +82,26 @@ describe("nextContactUt", () => {
   ];
 
   it("finds the next window to open, whichever end the pair was planned from", () => {
-    expect(nextContactUt(plan, "ground:ksc", "vessel:probe", 1_000)).toEqual(
-      ut(3_280),
-    );
-    expect(nextContactUt(plan, "vessel:probe", "ground:ksc", 5_000)).toEqual(
-      ut(9_000),
-    );
+    expect(
+      nextContactUt(plan, "ground:ksc", "vessel:probe", value("ut", 1_000)),
+    ).toEqual(ut(3_280));
+    expect(
+      nextContactUt(plan, "vessel:probe", "ground:ksc", value("ut", 5_000)),
+    ).toEqual(ut(9_000));
   });
 
   it("claims no return while the plan predicts contact now, since the roster has just said otherwise", () => {
     expect(
-      nextContactUt(plan, "ground:ksc", "vessel:probe", 500),
+      nextContactUt(plan, "ground:ksc", "vessel:probe", value("ut", 500)),
     ).toBeUndefined();
     expect(
-      nextContactUt(plan, "ground:ksc", "vessel:probe", 9_500),
+      nextContactUt(plan, "ground:ksc", "vessel:probe", value("ut", 9_500)),
     ).toBeUndefined();
   });
 
   it("claims no return for a pair the plan does not cover or one with no window left before its horizon", () => {
     expect(
-      nextContactUt(plan, "ground:ksc", "vessel:other", 1_000),
+      nextContactUt(plan, "ground:ksc", "vessel:other", value("ut", 1_000)),
     ).toBeUndefined();
     const closed: PlannedContact[] = [
       {
@@ -112,7 +112,7 @@ describe("nextContactUt", () => {
       },
     ];
     expect(
-      nextContactUt(closed, "ground:ksc", "vessel:probe", 2_000),
+      nextContactUt(closed, "ground:ksc", "vessel:probe", value("ut", 2_000)),
     ).toBeUndefined();
   });
 });

@@ -28,7 +28,7 @@ export function CommcastComposer({
   log: CommcastLog;
   me: Vantage;
   local: ReturnType<typeof useLocalParticipant>;
-  utNow: number | undefined;
+  utNow: Value<"ut"> | undefined;
   /** The thread's group, which the message is addressed to. */
   groupId: string;
   /** The group's members as this vantage can see them now, its own included. */
@@ -41,7 +41,7 @@ export function CommcastComposer({
   backInSeconds: Value<"s"> | undefined;
   /** Why the plan has no contact with the unreachable members, when it says; undefined otherwise. */
   noReachReason: "unpowered" | undefined;
-  separations: ReadonlyMap<RecipientId, number | null>;
+  separations: ReadonlyMap<RecipientId, Value<"s"> | null>;
 }) {
   const [draft, setDraft] = useState("");
   const status = sendStatusFor(unreachable, backInSeconds, noReachReason);

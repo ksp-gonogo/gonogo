@@ -1,3 +1,4 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { outboundItems } from "./outboundItems";
 import type { CommsAck, CommsMessage, OutboundMessage } from "./types";
@@ -14,17 +15,17 @@ function twoRecipients(acks: CommsAck[] = []): OutboundMessage {
     authorStationKey: "key",
     authorName: "KSC",
     authorSeat: "mission-control",
-    sentUt: 1000,
-    lastSentUt: 1000,
+    sentUt: value("ut", 1000),
+    lastSentUt: value("ut", 1000),
     attempts: 1,
-    separationSeconds: 600,
+    separationSeconds: value("s", 600),
     kind: "text",
     body: "go",
   };
   const delivery = (to: string, separationSeconds: number) => ({
     to,
-    separationSeconds,
-    lastSentUt: 1000,
+    separationSeconds: value("s", separationSeconds),
+    lastSentUt: value("ut", 1000),
     attempts: 1,
     neverLeft: false,
   });
@@ -39,7 +40,7 @@ describe("outboundItems", () => {
   it("gives a two-recipient message two rows, each on its own clock", () => {
     const rows = outboundItems(
       [twoRecipients()],
-      1001,
+      value("ut", 1001),
       (id) => id.split(":")[1] ?? id,
     );
     expect(rows.map((r) => r.id)).toEqual(["m1/ground:near", "m1/vessel:far"]);
@@ -55,16 +56,16 @@ describe("outboundItems", () => {
       from: NEAR,
       stationKey: "near-1",
       seat: "mission-control",
-      atUt: 1002,
-      arrivedUt: 1004,
+      atUt: value("ut", 1002),
+      arrivedUt: value("ut", 1004),
     };
-    const rows = outboundItems([twoRecipients([answered])], 1005);
+    const rows = outboundItems([twoRecipients([answered])], value("ut", 1005));
     expect(rows.map((r) => r.id)).toEqual(["m1/vessel:far"]);
   });
 
   it("drops a recipient whose own wait has run out", () => {
     // The near recipient's wait ends at 1000 + 2 * 2 + 3.
-    const rows = outboundItems([twoRecipients()], 1008);
+    const rows = outboundItems([twoRecipients()], value("ut", 1008));
     expect(rows.map((r) => r.id)).toEqual(["m1/vessel:far"]);
   });
 
@@ -76,8 +77,10 @@ describe("outboundItems", () => {
     const base = twoRecipients();
     const out: OutboundMessage = {
       ...base,
-      deliveries: [{ ...base.deliveries[0], separationSeconds: seconds }],
+      deliveries: [
+        { ...base.deliveries[0], separationSeconds: value("s", seconds) },
+      ],
     };
-    expect(outboundItems([out], 1000.1)).toHaveLength(rows);
+    expect(outboundItems([out], value("ut", 1000.1))).toHaveLength(rows);
   });
 });

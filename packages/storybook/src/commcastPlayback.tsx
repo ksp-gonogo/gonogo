@@ -1,3 +1,4 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CommcastLog } from "../../app/src/commcast/CommcastLog";
 import type { RadioBackend } from "../../app/src/commcast/radio/backend";
@@ -300,10 +301,10 @@ export function CommsPlaybackScene({
             authorStationKey: `author-${ARES}`,
             authorName: l.line.authorName,
             authorSeat: "pilot",
-            sentUt,
-            lastSentUt: sentUt,
+            sentUt: value("ut", sentUt),
+            lastSentUt: value("ut", sentUt),
             attempts: 1,
-            separationSeconds: ONE_WAY_SECONDS,
+            separationSeconds: value("s", ONE_WAY_SECONDS),
             kind: "text",
             body: l.line.body,
           });

@@ -1,3 +1,4 @@
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import type { Seat } from "@ksp-gonogo/sitrep-sdk/spine";
 
 /**
@@ -62,14 +63,14 @@ export interface CommsMessage {
    * carries no delay term. Not `confirmedEdgeUt()`, which is already a
    * signal delay behind and would push the reveal out to a round trip.
    */
-  sentUt: number;
+  sentUt: Value<"ut">;
   /**
    * The author's present at the latest transmission, equal to `sentUt` until a
    * resend. Every leg the strip draws is measured from this one, because a
    * resend starts a fresh journey with a fresh acknowledgement window; `sentUt`
    * stays put so the log can say when the thing was first said.
    */
-  lastSentUt: number;
+  lastSentUt: Value<"ut">;
   /** How many times it has been transmitted. 1 until the operator resends. */
   attempts: number;
   /**
@@ -83,7 +84,7 @@ export interface CommsMessage {
    * only reached when the matrix is absent and every member then shares the
    * one path-home figure anyway.
    */
-  separationSeconds: number | null;
+  separationSeconds: Value<"s"> | null;
   kind: CommsMessageKind;
   /** Text body. Present for `kind: "text"`. */
   body?: string;
@@ -102,7 +103,7 @@ export interface CommsMessage {
    * signal delay after it was said. Set on everything received; absent from this
    * screen's own words.
    */
-  arrivedUt?: number;
+  arrivedUt?: Value<"ut">;
   /**
    * The order this screen received it in, counting from 1. Absent from this
    * screen's own words and from anything stored before the count existed, which
@@ -126,9 +127,9 @@ export interface CommsAck {
   stationKey: string;
   seat: Seat;
   /** When the recipient acknowledged it. */
-  atUt: number;
+  atUt: Value<"ut">;
   /** When the acknowledgement reached the author, one signal delay later. */
-  arrivedUt: number;
+  arrivedUt: Value<"ut">;
 }
 
 /**
@@ -156,9 +157,9 @@ export interface OutboundMessage {
 export interface Delivery {
   to: RecipientId;
   /** One-way seconds to this recipient, frozen at its latest attempt, or `null` when there was no path. */
-  separationSeconds: number | null;
+  separationSeconds: Value<"s"> | null;
   /** The author's present at this recipient's latest attempt. */
-  lastSentUt: number;
+  lastSentUt: Value<"ut">;
   /** How many times this recipient has been sent it. */
   attempts: number;
   /**
@@ -185,7 +186,7 @@ export interface Delivery {
   /** Set when the mod's receipt for the send names this recipient as one it addressed the words to. */
   delivered?: boolean;
   /** When the mod's ledger says the words reached this recipient, as the reply reached the author; absent until they have. */
-  landedUt?: number;
+  landedUt?: Value<"ut">;
 }
 
 /** One entry of a centre's ledger, as the mod publishes it: what the centre said and what reached it. */
@@ -195,20 +196,20 @@ export interface LedgerItem {
   groupId: string;
   from: RecipientId;
   author: { name: string; stationKey: string; seat: Seat };
-  sentUt: number;
+  sentUt: Value<"ut">;
   to: readonly RecipientId[];
   /** When it reached this centre. Absent from something this centre said. */
-  arrivedUt?: number;
+  arrivedUt?: Value<"ut">;
   body?: string;
   members?: readonly RecipientId[];
   added?: readonly RecipientId[];
   /** For something this centre said: when each recipient's copy ran and the reply reached here. */
-  delivered: Readonly<Record<RecipientId, number>>;
+  delivered: Readonly<Record<RecipientId, Value<"ut">>>;
   /** For something this centre said: how a recipient's copy ended without running. */
   ended: Readonly<Record<RecipientId, string>>;
   /** For something this centre said: when a screen at each recipient read it. */
   read: Readonly<
-    Record<RecipientId, { at: number; stationKey: string; seat: Seat }>
+    Record<RecipientId, { at: Value<"ut">; stationKey: string; seat: Seat }>
   >;
 }
 
@@ -248,9 +249,9 @@ export interface CommsSendInput {
   to: readonly RecipientId[];
   members?: readonly RecipientId[];
   added?: readonly RecipientId[];
-  sentUt: number;
+  sentUt: Value<"ut">;
   /** One-way seconds to each recipient, `null` for one with no path; the author's own vantage is not a recipient. */
-  separations: ReadonlyMap<RecipientId, number | null>;
+  separations: ReadonlyMap<RecipientId, Value<"s"> | null>;
   authorVesselId?: string;
 }
 

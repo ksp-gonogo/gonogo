@@ -1,3 +1,4 @@
+import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { OutgoingAck } from "./CommcastLog";
 import { CommcastLog, type CommcastTransmitter } from "./CommcastLog";
@@ -79,7 +80,7 @@ describe("CommcastLog, one vantage's own record", () => {
       groupId: "g1",
       body: "go for the burn",
       to: [ARES],
-      sentUt: 1000,
+      sentUt: value("ut", 1000),
       separations: separationsTo(KSC, [ARES], 240),
     });
     expect(wire.sent).toEqual([msg]);
@@ -97,7 +98,7 @@ describe("CommcastLog, one vantage's own record", () => {
       groupId: "g1",
       body: "do you copy",
       to: [ARES],
-      sentUt: 1000,
+      sentUt: value("ut", 1000),
       separations: separationsTo(KSC, [ARES], null),
     });
     expect(wire.sent).toHaveLength(1);
@@ -187,7 +188,7 @@ describe("CommcastLog, one vantage's own record", () => {
       to: [ARES, KSC],
       members: [ARES, KSC],
       added: [ARES],
-      sentUt: 1000,
+      sentUt: value("ut", 1000),
       separations: separationsTo(KSC, [ARES, KSC], 240),
     });
     expect(wire.sent).toEqual([msg]);
@@ -206,10 +207,15 @@ describe("CommcastLog, one vantage's own record", () => {
         groupId: "g1",
         body: "do you copy",
         to: [ARES],
-        sentUt: 1000,
+        sentUt: value("ut", 1000),
         separations: separationsTo(KSC, [ARES], 240),
       });
-      log.resend(msg.id, [ARES], 2000, new Map([[ARES, 240]]));
+      log.resend(
+        msg.id,
+        [ARES],
+        value("ut", 2000),
+        new Map([[ARES, value("s", 240)]]),
+      );
       expect(wire.sent).toHaveLength(2);
       expect(wire.sent[1].id).toBe(msg.id);
     });
@@ -220,14 +226,19 @@ describe("CommcastLog, one vantage's own record", () => {
         groupId: "g1",
         body: "do you copy",
         to: [ARES],
-        sentUt: 1000,
+        sentUt: value("ut", 1000),
         separations: separationsTo(KSC, [ARES], 240),
       });
-      log.resend(msg.id, [ARES], 2000, new Map([[ARES, 300]]));
+      log.resend(
+        msg.id,
+        [ARES],
+        value("ut", 2000),
+        new Map([[ARES, value("s", 300)]]),
+      );
       const [out] = log.snapshot().outbox;
-      expect(out.msg.sentUt).toBe(1000);
-      expect(out.msg.lastSentUt).toBe(2000);
-      expect(out.msg.separationSeconds).toBe(300);
+      expect(out.msg.sentUt).toEqual(value("ut", 1000));
+      expect(out.msg.lastSentUt).toEqual(value("ut", 2000));
+      expect(out.msg.separationSeconds).toEqual(value("s", 300));
       expect(out.msg.attempts).toBe(2);
     });
 
@@ -235,7 +246,11 @@ describe("CommcastLog, one vantage's own record", () => {
       const first = fromWire({ to: [KSC] });
       expect(log.receiveTransmission(first)).toBe(true);
       expect(
-        log.receiveTransmission({ ...first, lastSentUt: 2000, attempts: 2 }),
+        log.receiveTransmission({
+          ...first,
+          lastSentUt: value("ut", 2000),
+          attempts: 2,
+        }),
       ).toBe(false);
       expect(log.snapshot().pending).toHaveLength(1);
     });
@@ -243,7 +258,11 @@ describe("CommcastLog, one vantage's own record", () => {
     it("leaves a resent copy of a message not yet read to the acknowledgement its release will send", () => {
       const first = fromWire({ to: [KSC] });
       log.receiveTransmission(first);
-      log.receiveTransmission({ ...first, lastSentUt: 2000, attempts: 2 });
+      log.receiveTransmission({
+        ...first,
+        lastSentUt: value("ut", 2000),
+        attempts: 2,
+      });
       expect(wire.acked).toEqual([]);
     });
 
@@ -253,7 +272,7 @@ describe("CommcastLog, one vantage's own record", () => {
         groupId: "g1",
         body: "do you copy",
         to: [ARES],
-        sentUt: 1000,
+        sentUt: value("ut", 1000),
         separations: separationsTo(KSC, [ARES], 240),
       });
       const ack: CommsAck = {
@@ -261,11 +280,15 @@ describe("CommcastLog, one vantage's own record", () => {
         from: ARES,
         stationKey: "pilot-1",
         seat: "pilot",
-        atUt: 1240,
-        arrivedUt: 1480,
+        atUt: value("ut", 1240),
+        arrivedUt: value("ut", 1480),
       };
       log.receiveAck(ack);
-      log.receiveAck({ ...ack, atUt: 2240, arrivedUt: 2480 });
+      log.receiveAck({
+        ...ack,
+        atUt: value("ut", 2240),
+        arrivedUt: value("ut", 2480),
+      });
       expect(log.snapshot().outbox[0].acks).toHaveLength(1);
     });
 
@@ -275,34 +298,34 @@ describe("CommcastLog, one vantage's own record", () => {
         groupId: "g1",
         body: "do you copy",
         to: [KSC, ARES, WOOMERA],
-        sentUt: 1000,
+        sentUt: value("ut", 1000),
         separations: new Map([
-          [ARES, 240],
-          [WOOMERA, 12],
+          [ARES, value("s", 240)],
+          [WOOMERA, value("s", 12)],
         ]),
       });
       log.resend(
         msg.id,
         [ARES],
-        2000,
+        value("ut", 2000),
         new Map([
-          [ARES, 300],
-          [WOOMERA, 14],
+          [ARES, value("s", 300)],
+          [WOOMERA, value("s", 14)],
         ]),
       );
       const [out] = log.snapshot().outbox;
       expect(out.deliveries).toEqual([
         {
           to: ARES,
-          separationSeconds: 300,
-          lastSentUt: 2000,
+          separationSeconds: value("s", 300),
+          lastSentUt: value("ut", 2000),
           attempts: 2,
           neverLeft: false,
         },
         {
           to: WOOMERA,
-          separationSeconds: 12,
-          lastSentUt: 1000,
+          separationSeconds: value("s", 12),
+          lastSentUt: value("ut", 1000),
           attempts: 1,
           neverLeft: false,
         },
@@ -315,22 +338,27 @@ describe("CommcastLog, one vantage's own record", () => {
         groupId: "g1",
         body: "do you copy",
         to: [KSC, ARES],
-        sentUt: 1000,
-        separations: new Map([[ARES, 240]]),
+        sentUt: value("ut", 1000),
+        separations: new Map([[ARES, value("s", 240)]]),
       });
       log.receiveAck({
         messageId: msg.id,
         from: WOOMERA,
         stationKey: "stranger",
         seat: "mission-control",
-        atUt: 1010,
-        arrivedUt: 1020,
+        atUt: value("ut", 1010),
+        arrivedUt: value("ut", 1020),
       });
       expect(log.snapshot().outbox[0].acks).toHaveLength(0);
     });
 
     it("does nothing at all for an id this log never sent", () => {
-      log.resend("never-sent", [ARES], 2000, new Map([[ARES, 240]]));
+      log.resend(
+        "never-sent",
+        [ARES],
+        value("ut", 2000),
+        new Map([[ARES, value("s", 240)]]),
+      );
       expect(wire.sent).toHaveLength(0);
     });
   });
@@ -348,6 +376,16 @@ describe("CommcastLog, one vantage's own record", () => {
     const reopened = makeLog({ storage });
     expect(reopened.snapshot().pending).toHaveLength(1);
   });
+
+  it("revives the times it stored as working values", () => {
+    const storage = memoryStorage();
+    const first = makeLog({ storage });
+    first.setVantage(KSC);
+    first.receiveTransmission(fromWire({ to: [KSC] }));
+    const [held] = makeLog({ storage }).snapshot().pending;
+    expect(held?.sentUt.plus(value("s", 240))).toEqual(value("ut", 1240));
+    expect(held?.separationSeconds?.times(2)).toEqual(value("s", 480));
+  });
 });
 
 function fromWire(over: Partial<CommsMessage> = {}): CommsMessage {
@@ -358,10 +396,10 @@ function fromWire(over: Partial<CommsMessage> = {}): CommsMessage {
     authorStationKey: "pilot-1",
     authorName: "Jeb",
     authorSeat: "pilot",
-    sentUt: 1000,
-    lastSentUt: 1000,
+    sentUt: value("ut", 1000),
+    lastSentUt: value("ut", 1000),
     attempts: 1,
-    separationSeconds: 240,
+    separationSeconds: value("s", 240),
     kind: "text",
     groupId: "g1",
     body: "copy that",
@@ -385,13 +423,13 @@ describe("a screen that moves between centres", () => {
       authorStationKey: "other",
       authorName: "Flight",
       authorSeat: "mission-control",
-      sentUt: 100,
-      lastSentUt: 100,
+      sentUt: value("ut", 100),
+      lastSentUt: value("ut", 100),
       attempts: 1,
-      separationSeconds: 5,
+      separationSeconds: value("s", 5),
       kind: "text",
       body: id,
-      arrivedUt: 105,
+      arrivedUt: value("ut", 105),
       ...over,
     };
   }
@@ -429,13 +467,13 @@ describe("unread", () => {
       authorStationKey: "jeb",
       authorName: "Jeb",
       authorSeat: "pilot",
-      sentUt: 10,
-      lastSentUt: 10,
+      sentUt: value("ut", 10),
+      lastSentUt: value("ut", 10),
       attempts: 1,
-      separationSeconds: 5,
+      separationSeconds: value("s", 5),
       kind: "text",
       body: id,
-      arrivedUt: 15,
+      arrivedUt: value("ut", 15),
     });
     log.release(id, { from: KSC, stationKey: "s", seat: "mission-control" });
   }
@@ -491,7 +529,7 @@ describe("a colleague's message filed before this screen could time it", () => {
           stationKey: "other",
           seat: "mission-control",
         },
-        sentUt: 100,
+        sentUt: value("ut", 100),
         to: [KSC, ARES],
         body: "hello",
         delivered: {},
@@ -504,10 +542,10 @@ describe("a colleague's message filed before this screen could time it", () => {
     log.setSeparations(() => undefined);
     expect(log.snapshot().outbox[0]?.deliveries[0]?.queued).toBe(true);
 
-    log.setSeparations(() => 240);
+    log.setSeparations(() => value("s", 240));
     const [delivery] = log.snapshot().outbox[0]?.deliveries ?? [];
     expect(delivery?.queued).toBeUndefined();
-    expect(delivery?.separationSeconds).toBe(240);
+    expect(delivery?.separationSeconds).toEqual(value("s", 240));
   });
 });
 
@@ -518,7 +556,7 @@ describe("delivery ends on the mod's record of the arrival, never on a read", ()
       groupId: "g1",
       body: "station to craft 1",
       to: [ARES],
-      sentUt: 1000,
+      sentUt: value("ut", 1000),
       separations: separationsTo(KSC, [ARES], 2),
     }).id;
   }
@@ -528,7 +566,7 @@ describe("delivery ends on the mod's record of the arrival, never on a read", ()
     landed: number | undefined,
     read: Record<
       string,
-      { at: number; stationKey: string; seat: "pilot" }
+      { at: Value<"ut">; stationKey: string; seat: "pilot" }
     > = {},
   ) {
     return [
@@ -542,13 +580,12 @@ describe("delivery ends on the mod's record of the arrival, never on a read", ()
           stationKey: AUTHOR.stationKey,
           seat: AUTHOR.seat,
         },
-        sentUt: 1000,
+        sentUt: value("ut", 1000),
         to: [KSC, ARES],
         body: "station to craft 1",
-        delivered: (landed === undefined ? {} : { [ARES]: landed }) as Record<
-          string,
-          number
-        >,
+        delivered: (landed === undefined
+          ? {}
+          : { [ARES]: value("ut", landed) }) as Record<string, Value<"ut">>,
         ended: {},
         read,
       },
@@ -563,12 +600,18 @@ describe("delivery ends on the mod's record of the arrival, never on a read", ()
 
     const out = log.snapshot().outbox[0];
     const delivery = out?.deliveries[0];
-    expect(delivery?.landedUt).toBe(1002);
+    expect(delivery?.landedUt).toEqual(value("ut", 1002));
     expect(out?.acks).toEqual([]);
-    expect(deliveryPhaseFor(out, delivery, 1001)).toBe("in-transit");
-    expect(deliveryPhaseFor(out, delivery, 1002)).toBe("confirmed");
-    expect(deliveryPhaseFor(out, delivery, 1030)).toBe("confirmed");
-    expect(messageStatusFor(out, 1030)).toBe("received");
+    expect(deliveryPhaseFor(out, delivery, value("ut", 1001))).toBe(
+      "in-transit",
+    );
+    expect(deliveryPhaseFor(out, delivery, value("ut", 1002))).toBe(
+      "confirmed",
+    );
+    expect(deliveryPhaseFor(out, delivery, value("ut", 1030))).toBe(
+      "confirmed",
+    );
+    expect(messageStatusFor(out, value("ut", 1030))).toBe("received");
     expect(recipientWords("confirmed", delivery, {}, false)).toBe("delivered");
   });
 
@@ -579,14 +622,16 @@ describe("delivery ends on the mod's record of the arrival, never on a read", ()
     log.applyLedger(ledgerOf(id, 1002));
     log.applyLedger(
       ledgerOf(id, 1002, {
-        [ARES]: { at: 1010, stationKey: "pilot-1", seat: "pilot" },
+        [ARES]: { at: value("ut", 1010), stationKey: "pilot-1", seat: "pilot" },
       }),
     );
 
     const out = log.snapshot().outbox[0];
     const delivery = out?.deliveries[0];
     expect(out?.acks).toHaveLength(1);
-    expect(deliveryPhaseFor(out, delivery, 1002)).toBe("confirmed");
+    expect(deliveryPhaseFor(out, delivery, value("ut", 1002))).toBe(
+      "confirmed",
+    );
     expect(
       recipientWords(
         "confirmed",
@@ -605,8 +650,10 @@ describe("delivery ends on the mod's record of the arrival, never on a read", ()
 
     const out = log.snapshot().outbox[0];
     const delivery = out?.deliveries[0];
-    expect(deliveryPhaseFor(out, delivery, 1003)).toBe("awaiting-reply");
-    expect(deliveryPhaseFor(out, delivery, 1500)).toBe("overdue");
-    expect(messageStatusFor(out, 1500)).toBe("unconfirmed");
+    expect(deliveryPhaseFor(out, delivery, value("ut", 1003))).toBe(
+      "awaiting-reply",
+    );
+    expect(deliveryPhaseFor(out, delivery, value("ut", 1500))).toBe("overdue");
+    expect(messageStatusFor(out, value("ut", 1500))).toBe("unconfirmed");
   });
 });
