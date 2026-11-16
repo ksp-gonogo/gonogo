@@ -18,6 +18,12 @@ export interface UplinkLoadOutcome {
    * loader recorded an outcome before it had a descriptor to read one from.
    */
   identity?: UplinkIdentity;
+  /**
+   * The id of every widget this Uplink's client registers, from its manifest,
+   * so a saved widget can name its Uplink though the bundle never loaded.
+   * Absent when no manifest was read or it predates the field.
+   */
+  widgets?: string[];
   /** The resolved version, if the descriptor got that far. */
   version?: string;
   status: UplinkLoadStatus;

@@ -41006,6 +41006,19 @@
   ],
   "pending": {
     "breaks": [],
-    "additions": []
+    "additions": [
+      {
+        "key": "sitrep-sdk ./uplink-load GonogoUplinkManifest#widgets?",
+        "note": "New: the ids of the widgets the client registers, readable before its bundle is fetched"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-manifest RegisteredIdentity#widgets?",
+        "note": "New: the ids of the widgets the client registered, written into the manifest"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-manifest UplinkManifest#widgets?",
+        "note": "New: gonogo-uplink.json lists the ids of the widgets the client registers"
+      }
+    ]
   }
 }

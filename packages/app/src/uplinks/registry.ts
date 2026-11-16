@@ -74,6 +74,8 @@ export interface UplinkDescriptor {
   source?: "local";
   /** The mod this Uplink connects and the version it was built against, from its manifest. */
   mod?: { name?: string; builtAgainst?: string };
+  /** The id of every widget the client registers, from its manifest. Absent when the manifest predates the field. */
+  widgets?: string[];
   /**
    * Set by the build on an Uplink whose client ships with the app and whose mod
    * half ships inside the core mod. The loader loads one without a consent

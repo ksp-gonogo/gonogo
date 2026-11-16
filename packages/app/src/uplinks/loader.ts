@@ -715,6 +715,7 @@ function clientSourceDescriptor(
     repo: identity.repo?.value ?? "",
     identity,
     mod: manifest.mod,
+    widgets: Array.isArray(manifest.widgets) ? manifest.widgets : undefined,
     versions: [
       {
         version: manifest.version,
@@ -748,11 +749,13 @@ function quarantineOutcome(
   identity?: UplinkIdentity,
   integrity?: UplinkIntegrityFailure,
   summary?: string,
+  widgets?: string[],
 ): UplinkLoadOutcome {
   const outcome: UplinkLoadOutcome = {
     id,
     name: identity?.name.value ?? id,
     identity,
+    widgets,
     status: "quarantined",
     reason,
     integrity,
@@ -888,6 +891,8 @@ async function loadThirdParty(
           ? { sameVersion: manifest.version }
           : {}),
       },
+      undefined,
+      Array.isArray(manifest.widgets) ? manifest.widgets : undefined,
     );
   }
 
@@ -945,6 +950,7 @@ async function loadOne(
     identity,
     source,
     unvouchedDevClient,
+    widgets: descriptor.widgets,
     status: "loading",
   };
   setUplinkOutcome(base);
@@ -1116,6 +1122,7 @@ async function loadOne(
       identity,
       source,
       unvouchedDevClient,
+      widgets: descriptor.widgets,
       version: version.version,
       status: "loaded",
       reason: `verified + loaded in ${ms}ms${modHashNote}`,
@@ -1133,6 +1140,7 @@ async function loadOne(
         identity,
         source,
         unvouchedDevClient,
+        widgets: descriptor.widgets,
         version: base.version,
         status: "waiting",
         reason: err.message,
@@ -1151,6 +1159,7 @@ async function loadOne(
       identity,
       source,
       unvouchedDevClient,
+      widgets: descriptor.widgets,
       version: base.version,
       status: "quarantined",
       reason,

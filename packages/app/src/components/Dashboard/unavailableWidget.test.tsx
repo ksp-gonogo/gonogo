@@ -195,6 +195,22 @@ describe("a saved tile whose widget is not registered", () => {
       expect(removeItem).toHaveBeenCalledWith("tile-1");
     });
 
+    it("names the add-on for a widget its manifest lists, though the id carries no prefix", () => {
+      setUplinkOutcome({ ...held, widgets: ["ship-systems"] });
+      renderGhost(vi.fn(), "ship-systems");
+      expect(screen.getByText("Example Mod")).toBeVisible();
+      expect(
+        screen.getByText("Example Mod does not run in this game"),
+      ).toBeVisible();
+    });
+
+    it("does not claim an id its manifest does not list, even with the add-on's prefix", () => {
+      setUplinkOutcome({ ...held, widgets: ["ship-systems"] });
+      renderGhost(vi.fn(), "example-mod-readout");
+      expect(screen.getByText("example-mod-readout")).toBeVisible();
+      expect(screen.getByText(/is not available/)).toBeVisible();
+    });
+
     it("leaves an id with no add-on prefix as it was", () => {
       setUplinkOutcome(held);
       renderGhost(vi.fn(), "ship-systems");

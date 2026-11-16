@@ -94,6 +94,27 @@ describe("gonogo-uplink.json", () => {
     expect(fromBundle).toBe(fromDocs);
   });
 
+  it("lists the widget ids sorted, and bundle recovers them from the sidecar docs wrote", () => {
+    const clientDir = anUplink();
+    const fromDocs = buildUplinkManifest({
+      clientDir,
+      registered: { ...REGISTERED, widgets: ["zeta", "alpha"] },
+      compat: COMPAT,
+      integrity: "sha256-abc",
+    });
+    expect(fromDocs.widgets).toEqual(["alpha", "zeta"]);
+    writeFileSync(
+      join(clientDir, UPLINK_MANIFEST_FILE),
+      serialiseUplinkManifest(fromDocs),
+    );
+    const fromBundle = buildUplinkManifest({
+      clientDir,
+      compat: COMPAT,
+      integrity: "sha256-abc",
+    });
+    expect(fromBundle.widgets).toEqual(["alpha", "zeta"]);
+  });
+
   it("carries every field the loader and the Uplinks panel read", () => {
     const manifest = buildUplinkManifest({
       clientDir: anUplink(),

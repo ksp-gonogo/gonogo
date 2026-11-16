@@ -2,6 +2,11 @@
   "id": "breakingGround",
   "name": "Breaking Ground",
   "description": "Drives Breaking Ground robotic joints and rotors from the console, and reports deployed surface bases on every body while you fly something else.",
+  "widgets": [
+    "deployed-science",
+    "robotics-console",
+    "rotor-tachometer"
+  ],
   "author": "",
   "repo": "",
   "version": "0.0.1",

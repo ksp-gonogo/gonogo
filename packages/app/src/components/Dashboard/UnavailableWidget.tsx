@@ -11,19 +11,22 @@ import styled from "styled-components";
 import {
   getUplinkOutcomes,
   subscribeUplinkOutcomes,
+  type UplinkLoadOutcome,
 } from "../../uplinks/loaderState";
 
 /** How long the second press stays armed once the first has been made. */
 const CONFIRM_WINDOW_MS = 4000;
 
 /**
- * Whether an Uplink could have supplied this widget. The loader keeps no list
- * of widget ids for an Uplink that never loaded, so ownership is the Uplink's
- * id as the widget id or its leading segment: an id that carries no such
- * prefix is attributed to no Uplink.
+ * Whether an Uplink could have supplied this widget. An Uplink whose manifest
+ * was read lists its widget ids and is matched by them. One that lists none
+ * (no manifest read, or one that predates the list) is matched by its id as the
+ * widget id or its leading segment: an id that carries no such prefix is then
+ * attributed to no Uplink.
  */
-function ownedBy(uplinkId: string, componentId: string): boolean {
-  return componentId === uplinkId || componentId.startsWith(`${uplinkId}-`);
+function ownedBy(outcome: UplinkLoadOutcome, componentId: string): boolean {
+  if (outcome.widgets) return outcome.widgets.includes(componentId);
+  return componentId === outcome.id || componentId.startsWith(`${outcome.id}-`);
 }
 
 /* The section already insets its body, so the fill layout's own padding would leave a 74px tile with 42px for the id. */
@@ -80,7 +83,7 @@ export function UnavailableWidget({
   );
   const owned = outcomes.filter(
     (outcome) =>
-      outcome.status === "quarantined" && ownedBy(outcome.id, componentId),
+      outcome.status === "quarantined" && ownedBy(outcome, componentId),
   );
   const notRun = owned.find((outcome) => outcome.refusedOnHealth);
   const failed = owned
@@ -95,7 +98,7 @@ export function UnavailableWidget({
   const waiting = outcomes
     .filter(
       (outcome) =>
-        outcome.status === "waiting" && ownedBy(outcome.id, componentId),
+        outcome.status === "waiting" && ownedBy(outcome, componentId),
     )
     .map((outcome) => outcome.name);
   const [confirming, setConfirming] = useState(false);

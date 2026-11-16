@@ -68,6 +68,12 @@ export interface GonogoUplinkManifest {
    * its client declares. Optional: an Uplink without one still loads.
    */
   description?: string;
+  /**
+   * The id of every widget the client registers. Lets the app name this Uplink
+   * on a saved widget whose client was refused before its bundle was fetched.
+   * Optional: a manifest written before the field existed still loads.
+   */
+  widgets?: string[];
   /** The oldest app version the client asks for; an older app loads it with a warning. */
   minAppVersion: string;
   /**

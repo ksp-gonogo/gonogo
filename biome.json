@@ -15,6 +15,7 @@
       "!.claude",
       "!**/__generated__",
       "!tests/fixtures/uplink-bundles",
+      "!**/client/gonogo-uplink.json",
       "!**/client/docs/widgets.json",
       "!**/client/docs/spec.json",
       "!**/client/docs/assets/.uplink-tools-renders.json",

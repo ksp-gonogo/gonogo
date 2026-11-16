@@ -238,6 +238,13 @@ export interface UplinkManifest {
    * names neither. The `tier` that `uplink.json` may also give is not copied.
    */
   mod?: { name?: string; builtAgainst?: string };
+  /**
+   * The id of every widget the client registers, sorted. The app reads it
+   * before it fetches the bundle, so a saved widget whose client was refused
+   * can still name the Uplink that supplies it. Absent when the manifest was
+   * written before the client's registrations were read.
+   */
+  widgets?: string[];
   /** The Uplink's own version, which its client and its plugin share. */
   version: string;
   /** The oldest app version it is known to work with. The app warns below it and still loads the client. */
@@ -290,6 +297,8 @@ export interface RegisteredIdentity {
   version: string;
   /** The client's one-line description, when it gives one. */
   description?: string;
+  /** The id of every widget the client registered. */
+  widgets?: readonly string[];
 }
 
 /**
@@ -520,6 +529,9 @@ export function buildUplinkManifest(
     // The id is a fallback, not a name: an Uplink that names itself nowhere is better shown as its id than as a plausible-looking invention.
     name: declared.name ?? registered?.name ?? carried.name ?? id,
     description: registered?.description ?? carried.description,
+    widgets: registered?.widgets
+      ? [...registered.widgets].sort()
+      : carried.widgets,
     // An Uplink that declares no author IS unknown, and an empty string says so without claiming anything.
     author: declared.author ?? "",
     repo: declared.repo ?? "",

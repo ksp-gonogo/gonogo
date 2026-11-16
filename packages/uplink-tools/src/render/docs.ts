@@ -200,6 +200,7 @@ export function buildManifest(inputs: DocsInputs): {
         name: inputs.inventory.name,
         version: inputs.inventory.version,
         description: inputs.inventory.description,
+        widgets: inputs.inventory.widgets.map((w) => w.id),
       },
       compat: inputs.inventory.compat,
       integrity,

@@ -2,6 +2,7 @@
   "id": "makingHistory",
   "name": "Making History",
   "description": "Lists the running Making History mission's objectives in the Objectives widget, each marked pending, under way, reached or failed.",
+  "widgets": [],
   "author": "",
   "repo": "",
   "version": "0.0.1",
