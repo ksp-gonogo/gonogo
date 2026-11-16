@@ -403,26 +403,57 @@ async function readCkan(
   return fail(channel, "none of its newest entries is a stable release");
 }
 
+/** CKAN's refusal to pick one spelling: no entry matches the pin, or several do. */
+export class CkanSpellingError extends Error {}
+
+const CKAN_LISTED_SHOWN = 6;
+
 /**
  * The version string CKAN lists for the release a pin names, in CKAN's own
  * spelling with its epoch and leading `v`, or undefined when CKAN lists no such
  * release. A relationship's `min_version` has to be written this way: CKAN
  * orders the epoch first and a `v` above no prefix, so `4.7.0.0` is satisfied
  * by every `v4.x` release and `15.15.0` by every `1:v15.x` one.
+ * Throws a {@link CkanSpellingError} naming the candidates when several entries
+ * match the pin, since picking one would be a guess.
  */
 export async function ckanSpelling(
   identifier: string,
   pin: string,
   http: Http,
 ): Promise<string | undefined> {
+  const { spellings } = await ckanMatches(identifier, pin, http);
+  if (spellings.length > 1) {
+    throw new CkanSpellingError(
+      `CKAN lists several ${identifier} releases matching ${pin}: ${spellings.join(", ")}`,
+    );
+  }
+  return spellings[0];
+}
+
+/**
+ * Every spelling CKAN lists for the release a pin names, and the newest few
+ * versions CKAN does list, so a refusal can name what there is to choose from.
+ */
+export async function ckanMatches(
+  identifier: string,
+  pin: string,
+  http: Http,
+): Promise<{ spellings: string[]; listed: string[] }> {
   const channel = { ckan: identifier };
   const wanted = normalisedVersion(pin);
-  for (const { file, version } of await ckanEntries(channel, http)) {
+  const entries = await ckanEntries(channel, http);
+  const spellings: string[] = [];
+  for (const { file, version } of entries) {
     if (normalisedVersion(version) !== wanted) continue;
     const entry = await ckanEntry(channel, file, http);
-    return str(entry.version) ?? version;
+    const spelled = str(entry.version) ?? version;
+    if (!spellings.includes(spelled)) spellings.push(spelled);
   }
-  return undefined;
+  return {
+    spellings,
+    listed: entries.slice(0, CKAN_LISTED_SHOWN).map((e) => e.version),
+  };
 }
 
 function readAny(

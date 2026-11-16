@@ -35,7 +35,7 @@ Once the package is in an Uplink's devDependencies, the same commands answer to 
 | `release` | `bundle`, `bake`, compile the plugin, check the DLL carries what was baked, and `package`; `release prepare` stamps the version and proves a release builds in a scratch folder; an Uplink with no client runs only the release step |
 | `version` | stamp the release version in every place an Uplink writes it; an Uplink with no client has no version to stamp but its types package's `package.json`, and its plugin takes the version from `GONOGO_UPLINK_VERSION` |
 | `publish` | copy the released client to where `client.url` is served from, and say the links |
-| `deps` | read every dependency the Uplink pins against each channel it is published on; `deps bump` moves the pins that are behind and `deps pin-ckan` writes the CKAN spelling of the pin |
+| `deps` | read every dependency the Uplink pins against each channel it is published on; `deps bump` moves the pins that are behind and `deps pin-ckan` writes the CKAN spelling of the pin; `deps verify-ckan` asks CKAN whether it is the exact spelling |
 | `page` | write the generated page from what the client registers, with no browser |
 | `render` | draw every fixture to `renders/` |
 | `docs` | write the page and draw its pictures; `docs --check` fails on drift |

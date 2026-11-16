@@ -357,6 +357,19 @@ export const modChannelsRule: Rule = {
     const ckanVersion = text(block.ckanVersion);
     const pin = text(block.builtAgainst);
     if (
+      ckanVersion === "" &&
+      pin !== "" &&
+      text(block.tier) === "ckan" &&
+      text(block.ckan) !== ""
+    ) {
+      out.push(
+        finding(
+          `uplink.json's "mod.ckanVersion" is missing. CKAN relationships carry the pinned release in CKAN's own spelling, with its epoch and leading "v", and "mod.builtAgainst" alone (${pin}) is satisfied by every release.`,
+          "Run `uplink-tools deps pin-ckan` to write the spelling CKAN lists the pinned release under.",
+        ),
+      );
+    }
+    if (
       ckanVersion !== "" &&
       pin !== "" &&
       normalisedVersion(plainVersion(ckanVersion)) !== normalisedVersion(pin)

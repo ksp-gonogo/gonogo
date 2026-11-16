@@ -16,7 +16,8 @@ import {
   resultJson,
   writeResult,
 } from "./bump";
-import { ckanSpelling, type Http, parseChannels } from "./channels";
+import { ckanMatches, type Http, parseChannels } from "./channels";
+import { patchModStrings } from "./json-edit";
 import {
   asRecord,
   buildReport,
@@ -29,6 +30,7 @@ import {
 export const DEPS_USAGE = `uplink-tools deps [--json] [options]
 uplink-tools deps bump [<dependency>...] [options]
 uplink-tools deps pin-ckan [options]
+uplink-tools deps verify-ckan [options]
 
   deps          read every dependency this Uplink pins (the wrapped mod, the
                 packages that move with it, the mods in ckanDepends that list
@@ -59,7 +61,12 @@ uplink-tools deps pin-ckan [options]
                 when the bump could not be applied
   deps pin-ckan write mod.ckanVersion: the pinned version in the spelling
                 CKAN lists it, with its epoch and leading v, which is what a
-                relationship's min_version has to carry
+                relationship's min_version has to carry. It refuses, naming
+                the candidates, when CKAN lists none or several for the pin
+  deps verify-ckan  ask CKAN whether mod.ckanVersion is exactly the spelling it
+                lists for mod.builtAgainst, and fail when a CKAN-listed mod has
+                none. Needs the network. Exits 0 when it is, 1 when it is not,
+                and 2 when CKAN could not be read or names no single spelling
 
   --uplink <dir>        the Uplink's directory, the one holding uplink.json
                         (default: found by walking up from the current directory)
@@ -120,7 +127,9 @@ export async function deps(
 ): Promise<number> {
   const http = services.http ?? fetchHttp(services.env);
   const sub =
-    argv[0] === "bump" || argv[0] === "pin-ckan" ? argv[0] : undefined;
+    argv[0] === "bump" || argv[0] === "pin-ckan" || argv[0] === "verify-ckan"
+      ? argv[0]
+      : undefined;
   const { values, switches, positionals } = parseFlags(
     sub ? argv.slice(1) : argv,
     {
@@ -158,6 +167,7 @@ export async function deps(
   };
 
   if (sub === "pin-ckan") return pinCkan(uplinkDir, http);
+  if (sub === "verify-ckan") return verifyCkan(uplinkDir, http);
 
   if (sub === "bump") {
     const skip = (values.get("--skip") ?? "").split(",").filter(Boolean);
@@ -211,7 +221,7 @@ export async function deps(
   return reportExit(report);
 }
 
-async function pinCkan(uplinkDir: string, http: Http): Promise<number> {
+function ckanTarget(uplinkDir: string) {
   const file = join(uplinkDir, "uplink.json");
   const uplink = readJsonFile(file);
   const mod = uplink.mod === null ? null : asRecord(uplink.mod);
@@ -220,21 +230,92 @@ async function pinCkan(uplinkDir: string, http: Http): Promise<number> {
   );
   const pin =
     typeof mod?.builtAgainst === "string" ? mod.builtAgainst : undefined;
-  if (!mod || !ckan || !("ckan" in ckan) || !pin) {
+  return {
+    file,
+    uplink,
+    mod,
+    pin,
+    identifier: ckan && "ckan" in ckan ? ckan.ckan : undefined,
+  };
+}
+
+/** The refusal text for a pin CKAN lists no single spelling of, or undefined when it lists exactly one. */
+async function spellingOrRefusal(
+  identifier: string,
+  pin: string,
+  http: Http,
+): Promise<{ spelled: string } | { refusal: string }> {
+  let matches: Awaited<ReturnType<typeof ckanMatches>>;
+  try {
+    matches = await ckanMatches(identifier, pin, http);
+  } catch (err) {
+    return {
+      refusal: `CKAN could not be read for ${identifier}: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+  const { spellings, listed } = matches;
+  if (spellings.length === 1) return { spelled: spellings[0] as string };
+  if (spellings.length > 1) {
+    return {
+      refusal: `CKAN lists several ${identifier} releases matching ${pin}: ${spellings.join(", ")}. Nothing was written.`,
+    };
+  }
+  return {
+    refusal: `CKAN lists no ${identifier} release matching ${pin}. Its newest entries are ${listed.join(", ")}. Nothing was written.`,
+  };
+}
+
+async function pinCkan(uplinkDir: string, http: Http): Promise<number> {
+  const { file, uplink, mod, pin, identifier } = ckanTarget(uplinkDir);
+  if (!mod || !identifier || !pin) {
     console.error(
       "pin-ckan needs a mod with a ckan channel and a builtAgainst version",
     );
     return 2;
   }
-  const spelled = await ckanSpelling(ckan.ckan, pin, http);
-  if (!spelled) {
-    console.error(`CKAN lists no ${ckan.ckan} release matching ${pin}`);
+  const found = await spellingOrRefusal(identifier, pin, http);
+  if ("refusal" in found) {
+    console.error(found.refusal);
     return 2;
   }
   const original = readFileSync(file, "utf8");
-  mod.ckanVersion = spelled;
+  mod.ckanVersion = found.spelled;
   const indent = /^([ \t]+)"/m.exec(original)?.[1] ?? "  ";
-  writeFileSync(file, `${JSON.stringify(uplink, null, indent)}\n`);
-  console.log(`${ckan.ckan}: mod.ckanVersion ${spelled}`);
+  writeFileSync(
+    file,
+    patchModStrings(original, { ckanVersion: found.spelled }, uplink) ??
+      `${JSON.stringify(uplink, null, indent)}\n`,
+  );
+  console.log(`${identifier}: mod.ckanVersion ${found.spelled}`);
+  return 0;
+}
+
+async function verifyCkan(uplinkDir: string, http: Http): Promise<number> {
+  const { mod, pin, identifier } = ckanTarget(uplinkDir);
+  if (!mod || !identifier || !pin) {
+    console.log("not a CKAN-listed mod, nothing to verify");
+    return 0;
+  }
+  const found = await spellingOrRefusal(identifier, pin, http);
+  if ("refusal" in found) {
+    console.error(found.refusal);
+    return 2;
+  }
+  const declared = typeof mod.ckanVersion === "string" ? mod.ckanVersion : "";
+  if (declared === "") {
+    console.error(
+      `${identifier} has no mod.ckanVersion. CKAN lists ${pin} as ${found.spelled}: run \`uplink-tools deps pin-ckan\`.`,
+    );
+    return 1;
+  }
+  if (declared !== found.spelled) {
+    console.error(
+      `${identifier} mod.ckanVersion is ${declared} and CKAN lists ${pin} as ${found.spelled}: run \`uplink-tools deps pin-ckan\`.`,
+    );
+    return 1;
+  }
+  console.log(
+    `${identifier}: mod.ckanVersion ${declared} is CKAN's spelling of ${pin}`,
+  );
   return 0;
 }

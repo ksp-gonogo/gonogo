@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  ckanMatches,
   ckanSpelling,
   newestAnswer,
   parseChannels,
@@ -145,6 +146,20 @@ describe("ckanSpelling", () => {
     expect(await ckanSpelling("Example-1", "4.8.0.0", recordedHttp())).toBe(
       "v4.8.0.0",
     );
+  });
+  it("refuses to pick when several entries match the pin", async () => {
+    await expect(
+      ckanSpelling("Dup-1", "1.0.0", recordedHttp()),
+    ).rejects.toThrow("1:1.0.0, v1.0.0.0");
+  });
+  it("names the newest entries when none matches", async () => {
+    const { spellings, listed } = await ckanMatches(
+      "Example-1",
+      "9.9.9",
+      recordedHttp(),
+    );
+    expect(spellings).toEqual([]);
+    expect(listed).toEqual(["v4.8.1.0", "v4.8.0.0", "v4.7.0.0", "v4.6.0.0"]);
   });
   it("is undefined for a release CKAN does not list", async () => {
     expect(

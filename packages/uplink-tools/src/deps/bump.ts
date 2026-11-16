@@ -18,11 +18,13 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import {
+  CkanSpellingError,
   ckanSpelling,
   type Http,
   type ModChannel,
   parseChannels,
 } from "./channels";
+import { patchModStrings } from "./json-edit";
 import {
   asRecord,
   buildReport,
@@ -331,7 +333,11 @@ export async function bumpDependencies(
           const spelled =
             target.answer?.ckanVersion && target.answer.version === to
               ? target.answer.ckanVersion
-              : await ckanSpelling(ckan.ckan, to, http);
+              : await ckanSpelling(ckan.ckan, to, http).catch((err) => {
+                  throw err instanceof CkanSpellingError
+                    ? new BumpError(err.message)
+                    : err;
+                });
           if (spelled) {
             mod.ckanVersion = spelled;
             entry.ckanMinVersion = spelled;
@@ -357,7 +363,21 @@ export async function bumpDependencies(
         const found = list.find((d) => d.name === target.name);
         if (found) found.min_version = target.answer?.ckanVersion ?? to;
       }
-      writeJson(uplinkFile, text, uplink);
+      const pinnedCkan = asRecord(uplink.mod).ckanVersion;
+      const patched =
+        target.kind === "mod"
+          ? patchModStrings(
+              text,
+              {
+                builtAgainst: to,
+                ckanVersion:
+                  typeof pinnedCkan === "string" ? pinnedCkan : undefined,
+              },
+              uplink,
+            )
+          : undefined;
+      if (patched === undefined) writeJson(uplinkFile, text, uplink);
+      else writeFileSync(uplinkFile, patched);
       result.bumps.push(entry);
     }
 

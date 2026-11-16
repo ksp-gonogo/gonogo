@@ -23,6 +23,11 @@ export const RECORDED_ROUTES: Record<string, unknown> = {
   [`${CKAN_RAW}/Example-1/Example-1-v4.8.0.0.ckan`]: recorded(
     "ckan-ex1-4.8.0.0.json",
   ),
+  [`${CKAN_API}/Dup-1`]: recorded("ckan-dir-dup1.json"),
+  [`${CKAN_RAW}/Dup-1/Dup-1-v1.0.0.0.ckan`]: recorded(
+    "ckan-dup1-v1.0.0.0.json",
+  ),
+  [`${CKAN_RAW}/Dup-1/Dup-1-1-1.0.0.ckan`]: recorded("ckan-dup1-1-1.0.0.json"),
   "https://spacedock.info/api/mod/1685": recorded("spacedock-agext.json"),
   "https://api.github.com/repos/tag-org/TagMod/tags?per_page=100": recorded(
     "github-tags-tagmod.json",

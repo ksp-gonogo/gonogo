@@ -5,6 +5,7 @@ import {
   compatDifferences,
   compatRule,
   installedCompat,
+  modChannelsRule,
   modVersionRule,
   releaseFaultsRule,
 } from "./index";
@@ -163,5 +164,44 @@ describe("manifest/mod-version", () => {
     const [finding] = run({ builtAgainst: "20.4", tier: "curseforge" });
     expect(finding.message).toContain('"curseforge"');
     expect(finding.message).toContain('"ckan" and "manual"');
+  });
+});
+
+describe("manifest/mod-channels ckanVersion", () => {
+  const run = (mod: Record<string, unknown>) => {
+    const { clientDir } = uplinkOn({
+      "uplink.json": UPLINK_JSON({ mod }),
+      "client/package.json": PACKAGE_JSON(),
+    });
+    return modChannelsRule.check(ctx(clientDir));
+  };
+  const ckanMod = {
+    name: "Example Mod",
+    tier: "ckan",
+    ckan: "Example",
+    builtAgainst: "4.7.0.0",
+    channels: [{ ckan: "Example" }],
+  };
+
+  it("fails a CKAN-listed mod that has no ckanVersion", () => {
+    const [finding] = run(ckanMod);
+    expect(finding.severity).toBe("error");
+    expect(finding.message).toContain('"mod.ckanVersion" is missing');
+    expect(finding.fix).toContain("deps pin-ckan");
+  });
+
+  it("passes a pinned mod whose ckanVersion normalises to builtAgainst", () => {
+    expect(run({ ...ckanMod, ckanVersion: "v4.7.0.0" })).toEqual([]);
+  });
+
+  it("fails a ckanVersion that names another release", () => {
+    expect(run({ ...ckanMod, ckanVersion: "v4.8.0.0" })[0].message).toContain(
+      "is not the release",
+    );
+  });
+
+  it("asks nothing of a mod players install by hand", () => {
+    const { ckan: _ckan, channels: _channels, ...manual } = ckanMod;
+    expect(run({ ...manual, tier: "manual" })).toEqual([]);
   });
 });
