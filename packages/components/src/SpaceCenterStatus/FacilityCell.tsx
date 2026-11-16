@@ -7,6 +7,7 @@ import {
   Tooltip,
   Unit,
 } from "@ksp-gonogo/ui-kit";
+import { useId } from "react";
 import { type HeldSince, heldFigure } from "../shared/heldFigure";
 import {
   type FacilityKey,
@@ -81,6 +82,8 @@ export function FacilityGridItem({
   const hasNextTier = !!f && f.max > 0 && !atMax;
   const tier = heldFigure(value("count", displayLevel), tiersHeldSince);
   const { caption: heldCaption } = resolveCurrency(tier);
+  // The price sits in the button's row, so the button names it as its description and a press on the figure is not a press on nothing.
+  const costId = useId();
 
   return (
     <Tooltip text={tooltip || undefined} focusable>
@@ -113,6 +116,7 @@ export function FacilityGridItem({
         {f && (f.upgradeFunds === null || f.upgradeFunds > 0) && !atMax && (
           <UpgradeRow>
             <UpgradeCost
+              id={costId}
               $verdict={verdict}
               /* The verdict, observable from outside; absent when money decides nothing. */
               data-afford={verdict}
@@ -132,6 +136,7 @@ export function FacilityGridItem({
             </UpgradeCost>
             <UpgradeButton
               upgradeCmd={upgradeCmd}
+              describedBy={costId}
               facilityId={KEY_TO_ENUM_FACILITY[facilityKey]}
               facilityLabel={label}
               titleOverride={

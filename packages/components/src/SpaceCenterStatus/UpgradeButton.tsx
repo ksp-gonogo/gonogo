@@ -10,6 +10,8 @@ export interface UpgradeButtonProps {
   facilityId: string;
   facilityLabel: string;
   titleOverride?: string;
+  /** The id of the element that holds the figure drawn beside the button. */
+  describedBy?: string;
 }
 
 /**
@@ -21,6 +23,7 @@ export function UpgradeButton({
   facilityId,
   facilityLabel,
   titleOverride,
+  describedBy,
 }: UpgradeButtonProps) {
   return (
     <Button
@@ -33,6 +36,7 @@ export function UpgradeButton({
       icon={<ChevronUpIcon size={12} />}
       confirmIcon={<CheckIcon size={12} />}
       tip={titleOverride}
+      aria-describedby={describedBy}
     >
       Upgrade
     </Button>
