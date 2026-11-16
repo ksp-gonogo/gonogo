@@ -85,6 +85,11 @@ export const UpgradeRow = styled.div`
   gap: var(--gap-related);
   margin-top: var(--gap-actions);
   flex-wrap: wrap;
+  /* The button keeps the width of its widest word on one line: a cell too narrow for it wraps the row instead, so a face that shows a longer word never makes the label break and the button grow taller. */
+  & > button {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
 `;
 
 /** `yes` and `no` are the affordability verdicts; `undefined` is no verdict, drawn as a plain price rather than as an affordable one. */
