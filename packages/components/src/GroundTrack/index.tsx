@@ -123,6 +123,8 @@ function GroundTrackComponent({
     encounterKind,
     impactLat,
     impactLon,
+    latNumber,
+    lonNumber,
   } = telemetry;
 
   const { outerRef, containerSize } = useMapResize();
@@ -138,8 +140,8 @@ function GroundTrackComponent({
   });
 
   const { trajectoryRef, trajectoryCount } = useTrajectoryBuffer({
-    lat: lat?.magnitude,
-    lon: lon?.magnitude,
+    lat: latNumber,
+    lon: lonNumber,
     altSea: telemetry.altSea,
     q: telemetry.q,
     mach: telemetry.mach,
@@ -171,12 +173,17 @@ function GroundTrackComponent({
   );
 
   useEffect(() => {
-    if (viewMode !== "follow" || lat === undefined || lon === undefined) return;
+    if (
+      viewMode !== "follow" ||
+      latNumber === undefined ||
+      lonNumber === undefined
+    )
+      return;
     const { x: wx, y: wy } = adjustedMap(
       WORLD_W,
       WORLD_H,
-      lat.magnitude,
-      lon.magnitude,
+      latNumber,
+      lonNumber,
     );
     // An unknown speed leaves the zoom where it is rather than claiming the craft is stationary.
     setCamera((prev) => ({
@@ -184,7 +191,7 @@ function GroundTrackComponent({
       panX: wx,
       panY: wy,
     }));
-  }, [viewMode, lat, lon, speed, adjustedMap, baseZoom, setCamera]);
+  }, [viewMode, latNumber, lonNumber, speed, adjustedMap, baseZoom, setCamera]);
 
   const { predictionSegments, maneuverSegments } = useGroundTrackPrediction({
     enabled: predictionEnabled && telemetry.predictable,
@@ -312,8 +319,8 @@ function GroundTrackComponent({
         worldH: WORLD_H,
         bodyName: targetBodyId,
         bodyRadius: body?.radius,
-        vesselLat: vesselOnThisBody ? lat?.magnitude : undefined,
-        vesselLon: vesselOnThisBody ? lon?.magnitude : undefined,
+        vesselLat: vesselOnThisBody ? latNumber : undefined,
+        vesselLon: vesselOnThisBody ? lonNumber : undefined,
         held: vesselOnThisBody ? telemetry.latitudeReading : undefined,
         project: (projLat, projLon) => {
           const { x: wx, y: wy } = adjustedMap(

@@ -221,13 +221,14 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // 8: each UnitInput's Value unwrapped into the planner inputs, which planning.ts solves as numbers: a transfer or a plane change is trigonometry, not an operation the algebra has a term for.
   "packages/components/src/ManeuverPlanner/PresetInput.tsx": 8,
   "packages/components/src/ManeuverPlanner/usePlannerTelemetry.ts": 4,
-  "packages/components/src/GroundTrack/index.tsx": 6,
   // 3: `predictGroundTrack` is plain-number geometry, so the reference's latitude and longitude unwrap once in `predictionRef`, and the horizon, reckoned as Values, unwraps once in `loopHorizon`.
   "packages/components/src/GroundTrack/useGroundTrackPrediction.ts": 3,
   // 6: `predictGroundTrack` is plain-number geometry, so the reference latitude, longitude and instant, the reckoned instant, the band half-width, and the elements behind the mean motion unwrap at that boundary.
   "packages/components/src/GroundTrack/modelledSpread.ts": 6,
   "packages/components/src/GroundTrack/useMapPainting.ts": 2,
-  "packages/components/src/GroundTrack/useMapTelemetry.ts": 5,
+  "packages/components/src/GroundTrack/useMapTelemetry.ts": 1,
+  // 7: the one place a flight payload becomes the plain numbers the trail buffer holds, shared by the live reading and the positions the stream stored; it replaces six unwraps in `index.tsx` and four in `useMapTelemetry.ts`.
+  "packages/components/src/GroundTrack/flightNumbers.ts": 7,
   // 4: `predictGroundTrack` is plain-number geometry, so the reckoning's instant, the throttle bucket and the `{ ut, lat, lon }` reference unwrap at that boundary.
   "packages/components/src/GroundTrack/useModelledPosition.ts": 4,
   "packages/components/src/GroundTrack/vanillaPoiProvider.ts": 2,

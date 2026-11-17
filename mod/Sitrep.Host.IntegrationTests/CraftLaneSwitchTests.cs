@@ -1007,8 +1007,48 @@ namespace Sitrep.Host.IntegrationTests
                 var ofB = (await Frames(client)).Where(f => CraftOf(f.Value) == VesselB).ToList();
                 Assert.True(ofB.Count > 0, "the first switch to a craft on rails for five minutes showed nothing of it");
                 Assert.Equal(1270.0, ofB.Max(f => f.ValidAt), 3);
-                Assert.Contains(ofB, f => f.ValidAt <= 1301.0 - CraftLanePolicy.Current.FirstViewHistoryUt + 30.0);
+                Assert.Contains(ofB, f => f.ValidAt <= 1000.0 + 30.0);
                 Assert.All(ofB, f => Assert.True(f.DeliveredAt - f.ValidAt >= Delay - 0.01, "a reading of B made at " + f.ValidAt + " reached the screen at " + f.DeliveredAt));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// A craft read every 30 UT for twenty minutes before a screen is first shown
+        /// it: the screen is handed the ten minutes a map's trail needs, not five.
+        /// </summary>
+        [Fact]
+        public async Task TheFirstEverViewOfACraftHandsOverTenMinutesOfItsHistory()
+        {
+            const double Delay = 30.0;
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new LaneUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, Topic, Timeout);
+
+                for (var ut = 1000.0; ut <= 2200.0; ut += 1.0)
+                {
+                    if ((ut - 1000.0) % 30.0 == 0.0)
+                    {
+                        engine.SetVesselDelay(VesselB, Delay);
+                        engine.WriteCraftSnapshot(VesselB, CraftOnly(ut, VesselB));
+                    }
+                    TickAndWaitForOutboxes(engine, ut, Named(Snap(ut, VesselA, 5.0), VesselA), Timeout);
+                }
+                await Frames(client);
+
+                TickAndWaitForOutboxes(engine, 2201.0, Named(Snap(2201.0, VesselA, 5.0), VesselB), Timeout);
+
+                var ofB = (await Frames(client)).Where(f => CraftOf(f.Value) == VesselB).ToList();
+                Assert.True(ofB.Count > 0, "the first switch to a craft showed nothing of it");
+                var span = ofB.Max(f => f.ValidAt) - ofB.Min(f => f.ValidAt);
+                Assert.True(span >= 600.0 - 30.0, "the screen was handed " + span + " UT of a craft it had never been shown");
             }
             finally
             {

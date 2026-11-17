@@ -15,15 +15,24 @@ export function emitAt(
   fixture: ReturnType<typeof setupStreamFixture>,
   at: TestBody,
   catalogue: readonly TestBody[] = [KERBIN, MUN],
+  validAt?: number,
 ): void {
-  fixture.emit("vessel.identity", {
-    vesselId: "v1",
-    name: "Active Vessel",
-    vesselType: 0,
-    situation: 1,
-    parentBodyIndex: at.index,
-    launchUt: 0,
-  });
+  const meta =
+    validAt === undefined
+      ? undefined
+      : { validAt, deliveredAt: validAt * 1000 };
+  fixture.emit(
+    "vessel.identity",
+    {
+      vesselId: "v1",
+      name: "Active Vessel",
+      vesselType: 0,
+      situation: 1,
+      parentBodyIndex: at.index,
+      launchUt: 0,
+    },
+    meta,
+  );
   fixture.emit("trackingStation.bodies", {
     bodies: catalogue.map((b) => ({
       name: b.name,

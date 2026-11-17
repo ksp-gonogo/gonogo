@@ -39,8 +39,11 @@ namespace Sitrep.Host
         /// </summary>
         public double HistoryUt { get; set; } = 3600.0;
 
-        /// <summary>UT of a craft's history handed to a screen the first time it is shown that craft.</summary>
-        public double FirstViewHistoryUt { get; set; } = 300.0;
+        /// <summary>
+        /// UT of a craft's history handed to a screen the first time it is shown that
+        /// craft. Covers the trail a map draws behind the craft, which is held for 600 UT.
+        /// </summary>
+        public double FirstViewHistoryUt { get; set; } = 600.0;
 
         /// <summary>The most loaded craft read each pass, nearest first.</summary>
         public int MaxLoadedCraft { get; set; } = 8;

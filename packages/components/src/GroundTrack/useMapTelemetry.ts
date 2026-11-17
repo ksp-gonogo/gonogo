@@ -23,6 +23,7 @@ import { magnitudeOf } from "../shared/magnitude";
 import { bodyNamed, bodyPlaces } from "../shared/streamBody";
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
 import { bodyDetail } from "./bodyDetail";
+import { flightNumbers } from "./flightNumbers";
 import { useThrottledBucket } from "./predictionThrottle";
 import {
   type ModelledPosition,
@@ -48,6 +49,8 @@ export interface MapTelemetry {
   altSea: number | undefined;
   /** The altitude now, for the imaging verdict. */
   altSeaReadout: number | undefined;
+  latNumber: number | undefined;
+  lonNumber: number | undefined;
   q: number | undefined;
   mach: number | undefined;
   speed: number | undefined;
@@ -113,6 +116,8 @@ export function useMapTelemetry(
   const markerWithheld =
     flightReading.state === "held" &&
     flightReading.reckoning.status !== "available";
+  const flown = flightNumbers(flight);
+  const placed = flightNumbers(positioned);
   const lat = positioned?.latitude;
   const lon = positioned?.longitude;
   const positionHeld =
@@ -272,10 +277,12 @@ export function useMapTelemetry(
     altitudeReading,
     altSea,
     altSeaReadout,
-    q: flight?.dynamicPressureKPa?.magnitude,
-    mach: flight?.mach?.magnitude,
-    speed: flight?.surfaceSpeed?.magnitude,
-    vSpeed: flight?.verticalSpeed?.magnitude,
+    latNumber: placed.lat,
+    lonNumber: placed.lon,
+    q: flown.q,
+    mach: flown.mach,
+    speed: flown.speed,
+    vSpeed: flown.vSpeed,
     orbitPatches,
     encounterKind,
     trajectory,
