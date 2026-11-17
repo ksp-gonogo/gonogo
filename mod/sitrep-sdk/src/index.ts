@@ -547,6 +547,7 @@ export {
   seatOf,
   useIsPilot,
   useScreen,
+  useScreenName,
   useSeat,
 } from "./spine/screen";
 export type { StoredStreamBackedSettingOf } from "./spine/settings-registry";

@@ -81,3 +81,32 @@ export function useSeat(): Seat {
 export function useIsPilot(): boolean {
   return useSeat() === "pilot";
 }
+
+const ScreenNameContext = createContext<string | undefined>(undefined);
+
+export function ScreenNameProvider({
+  value,
+  children,
+}: {
+  value: string | undefined;
+  children: ReactNode;
+}) {
+  return (
+    <ScreenNameContext.Provider value={value}>
+      {children}
+    </ScreenNameContext.Provider>
+  );
+}
+
+/**
+ * The name the operator gave this screen, such as "Guidance" or "Flight
+ * Director", updated when they rename it. Useful for labelling what this
+ * operator does where other operators can see it, such as their cursor in a
+ * file several screens edit at once. It is `undefined` with no screen name
+ * provider above it, as in a test that mounts a widget on its own.
+ *
+ * @category Host and runtime
+ */
+export function useScreenName(): string | undefined {
+  return useContext(ScreenNameContext);
+}

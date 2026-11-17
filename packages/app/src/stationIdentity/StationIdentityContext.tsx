@@ -1,3 +1,4 @@
+import { ScreenNameProvider } from "@ksp-gonogo/core";
 import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useState } from "react";
 import type { StationIdentityService } from "./StationIdentityService";
@@ -6,6 +7,10 @@ const StationIdentityContext = createContext<StationIdentityService | null>(
   null,
 );
 
+/**
+ * Mounts the identity service, and gives every component below it, an Uplink's
+ * included, this screen's name through the sdk's `useScreenName`.
+ */
 export function StationIdentityProvider({
   service,
   children,
@@ -13,9 +18,14 @@ export function StationIdentityProvider({
   service: StationIdentityService;
   children: ReactNode;
 }) {
+  const [name, setName] = useState(() => service.getName());
+  useEffect(() => {
+    setName(service.getName());
+    return service.onChange(setName);
+  }, [service]);
   return (
     <StationIdentityContext.Provider value={service}>
-      {children}
+      <ScreenNameProvider value={name}>{children}</ScreenNameProvider>
     </StationIdentityContext.Provider>
   );
 }

@@ -13,10 +13,12 @@
  */
 export {
   type Screen,
+  ScreenNameProvider,
   ScreenProvider,
   type Seat,
   seatOf,
   useIsPilot,
   useScreen,
+  useScreenName,
   useSeat,
 } from "@ksp-gonogo/sitrep-sdk/spine";

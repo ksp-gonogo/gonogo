@@ -41008,6 +41008,18 @@
     "breaks": [],
     "additions": [
       {
+        "key": "sitrep-sdk . useScreenName",
+        "note": "New: the name the operator gave this screen, for labelling what they do where others can see it"
+      },
+      {
+        "key": "sitrep-sdk ./spine ScreenNameProvider",
+        "note": "New: the app's provider for the screen's name"
+      },
+      {
+        "key": "sitrep-sdk ./spine useScreenName",
+        "note": "New: the screen's name, on the spine subpath as well"
+      },
+      {
         "key": "sitrep-sdk ./uplink-load GonogoUplinkManifest#widgets?",
         "note": "New: the ids of the widgets the client registers, readable before its bundle is fetched"
       },
