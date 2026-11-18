@@ -18,5 +18,6 @@
     <ProjectReference Include="..\..\mod\Sitrep.Host\Sitrep.Host.csproj" />
     <PackageReference Include="xunit.assert" Version="2.9.2" />
     <Compile Include="..\..\mod\Sitrep.Host.IntegrationTests\WsTestHarness.cs" Link="WsTestHarness.cs" />
+    <Compile Include="..\..\mod\Sitrep.Host.IntegrationTests\TestBudgets.cs" Link="TestBudgets.cs" />
   </ItemGroup>
 </Project>
