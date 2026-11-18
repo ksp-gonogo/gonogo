@@ -165,6 +165,38 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// The raw text of the next message <paramref name="wanted"/> accepts,
+        /// under one deadline for the whole wait however many other messages
+        /// arrive first. <paramref name="what"/> names the awaited message in
+        /// the failure.
+        /// </summary>
+        public static async Task<string> ReceiveRawWhereAsync(TestClient client, TimeSpan timeout, string what, Func<string, bool> wanted)
+        {
+            var deadline = DateTime.UtcNow + timeout;
+            while (true)
+            {
+                var remaining = deadline - DateTime.UtcNow;
+                if (remaining <= TimeSpan.Zero)
+                {
+                    throw new TimeoutException($"No {what} arrived within {timeout}.");
+                }
+                string raw;
+                try
+                {
+                    raw = await client.ReceiveAsync(remaining);
+                }
+                catch (OperationCanceledException stopped)
+                {
+                    throw new TimeoutException($"No {what} arrived within {timeout}.", stopped);
+                }
+                if (wanted(raw))
+                {
+                    return raw;
+                }
+            }
+        }
+
         internal sealed class TestClient : IAsyncDisposable
         {
             private readonly ClientWebSocket _socket = new ClientWebSocket();
@@ -206,6 +238,8 @@ namespace Sitrep.Host.IntegrationTests
             private readonly TaskCompletionSource<Hello> _hello = new TaskCompletionSource<Hello>(TaskCreationOptions.RunContinuationsAsynchronously);
             private readonly CancellationTokenSource _pumpCts = new CancellationTokenSource();
             private Thread? _pumpThread;
+            /// <summary>What ended the receive pump, when that was anything but this client's own disposal or the server closing the socket.</summary>
+            private volatile Exception? _pumpFault;
 
             public static async Task<TestClient> ConnectAsync(int port, TimeSpan timeout)
             {
@@ -282,13 +316,24 @@ namespace Sitrep.Host.IntegrationTests
                         }
                     }
                 }
-                catch (Exception)
+                catch (Exception ended)
                 {
-                    // Best-effort pump on a background thread: ANY exception
-                    // (cancellation, WebSocketException, ObjectDisposedException
-                    // from a torn-down socket on teardown, a faulted-task
-                    // AggregateException from GetResult) just ends the loop.
-                    // It must never escape and fault the thread.
+                    // Any exception ends the loop and none may escape, since
+                    // that would fault a background thread and take the test
+                    // host with it. Disposal ends the pump this way on every
+                    // test, so only an exception from a client still in use
+                    // is kept for the reads and sends that will now starve.
+                    if (!_pumpCts.IsCancellationRequested)
+                    {
+                        _pumpFault = ended;
+                    }
+                }
+                finally
+                {
+                    // No hello can arrive once the pump has stopped, so a wait
+                    // for one fails now, with the cause, instead of at its deadline.
+                    _hello.TrySetException(new InvalidOperationException(
+                        "The connection's receive pump stopped before the server's hello arrived.", _pumpFault));
                 }
             }
 
@@ -310,11 +355,14 @@ namespace Sitrep.Host.IntegrationTests
             /// <summary>The greeting the server opened this connection with.</summary>
             public async Task<Hello> HelloAsync(TimeSpan timeout)
             {
-                if (await Task.WhenAny(_hello.Task, Task.Delay(timeout)) != _hello.Task)
+                try
+                {
+                    return await _hello.Task.WaitAsync(timeout);
+                }
+                catch (TimeoutException)
                 {
                     throw new TimeoutException($"No hello arrived within {timeout}.");
                 }
-                return await _hello.Task;
             }
 
             /// <summary>
@@ -324,7 +372,7 @@ namespace Sitrep.Host.IntegrationTests
             /// </summary>
             public async Task SendAsync(string text)
             {
-                await _socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(await WithTimeline(text))), WebSocketMessageType.Text, true, CancellationToken.None);
+                await SendWithinBudgetAsync(Encoding.UTF8.GetBytes(await WithTimeline(text)), WebSocketMessageType.Text);
             }
 
             private async Task<string> WithTimeline(string text)
@@ -333,7 +381,7 @@ namespace Sitrep.Host.IntegrationTests
                 {
                     return text;
                 }
-                var hello = await _hello.Task;
+                var hello = await HelloAsync(TestBudgets.Op);
                 return text.Replace(Unstated, "\"seenBootId\":\"" + hello.BootId + "\",\"seenEpoch\":" + _seenEpoch);
             }
 
@@ -343,8 +391,7 @@ namespace Sitrep.Host.IntegrationTests
 
             internal Task SendRawAsync(string text)
             {
-                var bytes = Encoding.UTF8.GetBytes(text);
-                return _socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
+                return SendWithinBudgetAsync(Encoding.UTF8.GetBytes(text), WebSocketMessageType.Text);
             }
 
             /// <summary>
@@ -355,20 +402,50 @@ namespace Sitrep.Host.IntegrationTests
             /// </summary>
             public Task SendBytesAsync(byte[] bytes)
             {
-                return _socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Binary, true, CancellationToken.None);
+                return SendWithinBudgetAsync(bytes, WebSocketMessageType.Binary);
+            }
+
+            private async Task SendWithinBudgetAsync(byte[] bytes, WebSocketMessageType type)
+            {
+                using var cts = new CancellationTokenSource(TestBudgets.Op);
+                try
+                {
+                    await _socket.SendAsync(new ArraySegment<byte>(bytes), type, true, cts.Token);
+                }
+                catch (OperationCanceledException stopped)
+                {
+                    throw new TimeoutException($"The socket did not take a {bytes.Length} byte {type} message within {TestBudgets.Op}.", stopped);
+                }
             }
 
             public async Task<string> ReceiveAsync(TimeSpan timeout)
             {
+                return await ReadWithinAsync(_incoming.Reader, timeout);
+            }
+
+            /// <summary>
+            /// The next item, or an <see cref="OperationCanceledException"/>
+            /// after <paramref name="timeout"/>, which says so when the receive
+            /// pump had already failed and nothing more could have arrived.
+            /// </summary>
+            private async Task<T> ReadWithinAsync<T>(ChannelReader<T> reader, TimeSpan timeout)
+            {
                 using var cts = new CancellationTokenSource(timeout);
-                return await _incoming.Reader.ReadAsync(cts.Token);
+                try
+                {
+                    return await reader.ReadAsync(cts.Token);
+                }
+                catch (OperationCanceledException) when (_pumpFault is { } fault)
+                {
+                    throw new OperationCanceledException(
+                        $"Nothing arrived within {timeout}, and the connection's receive pump had already stopped: {fault.Message}", fault);
+                }
             }
 
             /// <summary>The next binary-lane frame, still as bytes.</summary>
             public async Task<byte[]> ReceiveBinaryAsync(TimeSpan timeout)
             {
-                using var cts = new CancellationTokenSource(timeout);
-                return await _incomingBinary.Reader.ReadAsync(cts.Token);
+                return await ReadWithinAsync(_incomingBinary.Reader, timeout);
             }
 
             /// <summary>

@@ -394,14 +394,9 @@ namespace Sitrep.Host.IntegrationTests
 
         private static async Task<StreamData<object?>> NextOnAsync(TestClient client, string topic)
         {
-            while (true)
-            {
-                var data = await ReceiveStreamDataAsync(client, Timeout);
-                if (data.Topic == topic)
-                {
-                    return data;
-                }
-            }
+            var raw = await ReceiveRawWhereAsync(client, Timeout, "frame on " + topic,
+                text => EnvelopeCodec.ParseServerMessage(text) is StreamData<object?> data && data.Topic == topic);
+            return (StreamData<object?>)EnvelopeCodec.ParseServerMessage(raw);
         }
 
         private static readonly byte[][] OneChunk = { new byte[] { 0x01, 0x02 } };
@@ -434,19 +429,17 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>Reads the next ledger a screen is told until one satisfies <paramref name="ready"/>, and returns it.</summary>
         private static async Task<List<Dictionary<string, object?>>> LedgerWhereAsync(TestClient client, Func<List<Dictionary<string, object?>>, bool> ready)
         {
-            while (true)
+            List<Dictionary<string, object?>> found = new();
+            await ReceiveRawWhereAsync(client, Timeout, "ledger in the state the test waits for", text =>
             {
-                var data = await ReceiveStreamDataAsync(client, Timeout);
-                if (data.Topic != CommcastUplink.LedgerTopic)
+                if (EnvelopeCodec.ParseServerMessage(text) is not StreamData<object?> data || data.Topic != CommcastUplink.LedgerTopic)
                 {
-                    continue;
+                    return false;
                 }
-                var items = Items(data.Payload);
-                if (ready(items))
-                {
-                    return items;
-                }
-            }
+                found = Items(data.Payload);
+                return ready(found);
+            });
+            return found;
         }
 
         private static Dictionary<string, object?>? TextOf(List<Dictionary<string, object?>> items, string body) =>

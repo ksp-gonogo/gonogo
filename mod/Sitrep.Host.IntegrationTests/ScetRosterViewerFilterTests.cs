@@ -184,15 +184,8 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>The raw text of the next roster frame, which is what an assertion about a leak has to read.</summary>
         private static async Task<string> ReceiveRosterAsync(TestClient client)
         {
-            while (true)
-            {
-                var raw = await client.ReceiveAsync(Timeout);
-                if (EnvelopeCodec.ParseServerMessage(raw) is StreamData data
-                    && data.Topic == ScetRosterTestUplink.Topic)
-                {
-                    return raw;
-                }
-            }
+            return await ReceiveRawWhereAsync(client, Timeout, "roster frame",
+                raw => EnvelopeCodec.ParseServerMessage(raw) is StreamData data && data.Topic == ScetRosterTestUplink.Topic);
         }
 
         private static void AssertNothingLeaks(string raw)
