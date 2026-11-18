@@ -45,9 +45,11 @@ import {
   Rows2,
   Satellite,
   SatelliteDish,
+  Save,
   Settings,
   Square,
   Star,
+  Trash2,
   Undo2,
   Volume2,
   VolumeX,
@@ -285,6 +287,22 @@ export const CloseIcon = makeIcon(X);
  * @category Icons
  */
 export const PencilIcon = makeIcon(Pencil);
+/**
+ * A floppy disk. Useful for the control that saves what the operator has
+ * written. Used by a script editor's save control.
+ *
+ * @intent Published so an Uplink widget that edits text, such as a script editor, can draw its save control in the kit's icon set.
+ * @category Icons
+ */
+export const SaveIcon = makeIcon(Save);
+/**
+ * A rubbish bin. Useful for the control that deletes an item, which should ask
+ * before it acts. Used by a script editor's delete control.
+ *
+ * @intent Published so an Uplink widget that manages files or items, such as a script editor, can draw its delete control in the kit's icon set.
+ * @category Icons
+ */
+export const DeleteIcon = makeIcon(Trash2);
 /**
  * A check mark. Useful for confirming or marking something done. Used by the
  * space centre upgrade button and the research and development node facts.

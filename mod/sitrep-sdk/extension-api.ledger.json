@@ -41030,6 +41030,14 @@
       {
         "key": "sitrep-sdk ./uplink-manifest UplinkManifest#widgets?",
         "note": "New: gonogo-uplink.json lists the ids of the widgets the client registers"
+      },
+      {
+        "key": "ui-kit . DeleteIcon",
+        "note": "New: a rubbish bin icon, for a control that deletes an item"
+      },
+      {
+        "key": "ui-kit . SaveIcon",
+        "note": "New: a floppy disk icon, for a control that saves what the operator wrote"
       }
     ]
   }
