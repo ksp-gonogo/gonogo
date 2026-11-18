@@ -149,7 +149,7 @@ registerComponent<FlightPlanConfig>({
     "Your vessel's flight against the plan applied to it: the current step, its intents, and the Δv the remaining steps need.",
   tags: ["telemetry", "stages"],
   defaultSize: { w: 6, h: 10 },
-  minSize: { w: 3, h: 4 },
+  minSize: { w: 4, h: 4 },
   component: FlightPlanComponent,
   channels: [
     "vessel.identity",
