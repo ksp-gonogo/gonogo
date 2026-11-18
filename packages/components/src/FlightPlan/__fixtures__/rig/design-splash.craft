@@ -1,0 +1,289 @@
+ship = Splashdown Splash
+version = 1.12.5
+description = Design mode video: launches due south under boot/splash.ks
+type = VAB
+size = 1.25,4.3,1.25
+steamPublishedFileId = 0
+persistentId = 1294200001
+rot = 0,0,0,0
+missionFlag = Squad/Flags/default
+vesselType = Ship
+OverrideDefault = False,False,False,False
+OverrideActionControl = 0,0,0,0
+OverrideAxisControl = 0,0,0,0
+OverrideGroupNames = ,,,
+_modVersions = ModuleManager=4.2.3|kOS=1.6.0|GonogoDesignUplink=1.0.0|GonogoKosUplink=0.0.0
+PART
+{
+	part = probeCoreOcto.v2_4294200000
+	persistentId = 1294200000
+	pos = 0,15,0
+	attPos = 0,0,0
+	attPos0 = 0,0,0
+	rot = 0,0,0,1
+	attRot = 0,0,0,1
+	attRot0 = 0,0,0,1
+	mir = 1,1,1
+	symMethod = Radial
+	autostrutMode = Off
+	rigidAttachment = False
+	istg = -1
+	resPri = 0
+	dstg = 0
+	sidx = -1
+	sqor = -1
+	sepI = -1
+	attm = 0
+	sameVesselCollision = False
+	modCost = 0
+	modMass = 0
+	modSize = 0,0,0
+	link = parachuteSingle_4294200002
+	link = kOSMachine1m_4294200004
+	attN = bottom,kOSMachine1m_4294200004_0|-0.1870818|0_0|-1|0_0|-0.1870818|0_0|-1|0
+	attN = top,parachuteSingle_4294200002_0|0.1870818|0_0|1|0_0|0.1870818|0_0|1|0
+}
+PART
+{
+	part = parachuteSingle_4294200002
+	persistentId = 1294200002
+	pos = 0,15.3077,0
+	attPos = 0,0,0
+	attPos0 = 0,0.30770000000000053,0
+	rot = 0,0,0,1
+	attRot = 0,0,0,1
+	attRot0 = 0,0,0,1
+	mir = 1,1,1
+	symMethod = Radial
+	autostrutMode = Off
+	rigidAttachment = False
+	istg = 0
+	resPri = 0
+	dstg = 1
+	sidx = 0
+	sqor = 0
+	sepI = -1
+	attm = 0
+	sameVesselCollision = False
+	modCost = 0
+	modMass = 0
+	modSize = 0,0,0
+	attN = bottom,probeCoreOcto.v2_4294200000_0|-0.120649|0_0|-1|0_0|-0.120649|0_0|-1|0
+}
+PART
+{
+	part = kOSMachine1m_4294200004
+	persistentId = 1294200004
+	pos = 0,14.6399,0
+	attPos = 0,0,0
+	attPos0 = 0,-0.3600999999999992,0
+	rot = 0,0,0,1
+	attRot = 0,0,0,1
+	attRot0 = 0,0,0,1
+	mir = 1,1,1
+	symMethod = Radial
+	autostrutMode = Off
+	rigidAttachment = False
+	istg = -1
+	resPri = 0
+	dstg = 0
+	sidx = -1
+	sqor = -1
+	sepI = -1
+	attm = 0
+	sameVesselCollision = False
+	modCost = 0
+	modMass = 0
+	modSize = 0,0,0
+	link = fuelTank.long_4294200006
+	attN = top,probeCoreOcto.v2_4294200000_0|0.173|0_0|1|0_0|0.173|0_0|1|0
+	attN = bottom,fuelTank.long_4294200006_0|-0.173|0_0|-1|0_0|-0.173|0_0|-1|0
+	MODULE
+	{
+		name = kOSProcessor
+		isEnabled = True
+		bootFile = /boot/splash.ks
+		diskSpace = 1000
+	}
+}
+PART
+{
+	part = fuelTank.long_4294200006
+	persistentId = 1294200006
+	pos = 0,12.5919,0
+	attPos = 0,0,0
+	attPos0 = 0,-2.048,0
+	rot = 0,0,0,1
+	attRot = 0,0,0,1
+	attRot0 = 0,0,0,1
+	mir = 1,1,1
+	symMethod = Radial
+	autostrutMode = Off
+	rigidAttachment = False
+	istg = -1
+	resPri = 0
+	dstg = 0
+	sidx = -1
+	sqor = -1
+	sepI = -1
+	attm = 0
+	sameVesselCollision = False
+	modCost = 0
+	modMass = 0
+	modSize = 0,0,0
+	link = liquidEngine2.v2_4294200008
+	link = basicFin_4294200010
+	link = basicFin_4294200012
+	link = basicFin_4294200014
+	link = basicFin_4294200016
+	attN = top,kOSMachine1m_4294200004_0|1.875|0_0|1|0_0|1.875|0_0|1|0
+	attN = bottom,liquidEngine2.v2_4294200008_0|-1.8875|0_0|-1|0_0|-1.8875|0_0|-1|0
+}
+PART
+{
+	part = liquidEngine2.v2_4294200008
+	persistentId = 1294200008
+	pos = 0,10.7044,0
+	attPos = 0,0,0
+	attPos0 = 0,-1.887500000000001,0
+	rot = 0,0,0,1
+	attRot = 0,0,0,1
+	attRot0 = 0,0,0,1
+	mir = 1,1,1
+	symMethod = Radial
+	autostrutMode = Off
+	rigidAttachment = False
+	istg = 1
+	resPri = 0
+	dstg = 0
+	sidx = 0
+	sqor = 1
+	sepI = -1
+	attm = 0
+	sameVesselCollision = False
+	modCost = 0
+	modMass = 0
+	modSize = 0,0,0
+	attN = top,fuelTank.long_4294200006_0|0|0_0|1|0_0|0|0_0|1|0
+	attN = bottom,Null_0_0|-1.63|0_0|-1|0_0|-1.63|0_0|-1|0
+}
+PART
+{
+	part = basicFin_4294200010
+	persistentId = 1294200010
+	pos = 0.625,11.4,0
+	attPos = 0,0,0
+	attPos0 = 0.625,-1.1919000000000004,0
+	rot = 0,1,0,0
+	attRot = 0,0,0,1
+	attRot0 = 0,1,0,0
+	mir = 1,1,1
+	symMethod = Radial
+	autostrutMode = Off
+	rigidAttachment = False
+	istg = -1
+	resPri = 0
+	dstg = 0
+	sidx = -1
+	sqor = -1
+	sepI = -1
+	attm = 0
+	sameVesselCollision = False
+	modCost = 0
+	modMass = 0
+	modSize = 0,0,0
+	srfN = srfAttach,fuelTank.long_4294200006
+	sym = basicFin_4294200012
+	sym = basicFin_4294200014
+	sym = basicFin_4294200016
+}
+PART
+{
+	part = basicFin_4294200012
+	persistentId = 1294200012
+	pos = 0,11.4,0.625
+	attPos = 0,0,0
+	attPos0 = 0,-1.1919000000000004,0.625
+	rot = 0,0.7071068,0,0.7071068
+	attRot = 0,0,0,1
+	attRot0 = 0,0.7071068,0,0.7071068
+	mir = 1,1,1
+	symMethod = Radial
+	autostrutMode = Off
+	rigidAttachment = False
+	istg = -1
+	resPri = 0
+	dstg = 0
+	sidx = -1
+	sqor = -1
+	sepI = -1
+	attm = 0
+	sameVesselCollision = False
+	modCost = 0
+	modMass = 0
+	modSize = 0,0,0
+	srfN = srfAttach,fuelTank.long_4294200006
+	sym = basicFin_4294200010
+	sym = basicFin_4294200014
+	sym = basicFin_4294200016
+}
+PART
+{
+	part = basicFin_4294200014
+	persistentId = 1294200014
+	pos = -0.625,11.4,0
+	attPos = 0,0,0
+	attPos0 = -0.625,-1.1919000000000004,0
+	rot = 0,0,0,1
+	attRot = 0,0,0,1
+	attRot0 = 0,0,0,1
+	mir = 1,1,1
+	symMethod = Radial
+	autostrutMode = Off
+	rigidAttachment = False
+	istg = -1
+	resPri = 0
+	dstg = 0
+	sidx = -1
+	sqor = -1
+	sepI = -1
+	attm = 0
+	sameVesselCollision = False
+	modCost = 0
+	modMass = 0
+	modSize = 0,0,0
+	srfN = srfAttach,fuelTank.long_4294200006
+	sym = basicFin_4294200010
+	sym = basicFin_4294200012
+	sym = basicFin_4294200016
+}
+PART
+{
+	part = basicFin_4294200016
+	persistentId = 1294200016
+	pos = 0,11.4,-0.625
+	attPos = 0,0,0
+	attPos0 = 0,-1.1919000000000004,-0.625
+	rot = 0,-0.7071068,0,0.7071068
+	attRot = 0,0,0,1
+	attRot0 = 0,-0.7071068,0,0.7071068
+	mir = 1,1,1
+	symMethod = Radial
+	autostrutMode = Off
+	rigidAttachment = False
+	istg = -1
+	resPri = 0
+	dstg = 0
+	sidx = -1
+	sqor = -1
+	sepI = -1
+	attm = 0
+	sameVesselCollision = False
+	modCost = 0
+	modMass = 0
+	modSize = 0,0,0
+	srfN = srfAttach,fuelTank.long_4294200006
+	sym = basicFin_4294200010
+	sym = basicFin_4294200012
+	sym = basicFin_4294200014
+}

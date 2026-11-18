@@ -20,8 +20,17 @@ export interface RigFixture {
   frames: readonly string[];
 }
 
-/** The recordings checked in beside Landing Status, trimmed to the topics the widget mounts on. */
-export type RigName = "landing-lowpass" | "landing-crashfall";
+/** The recordings checked in beside the widgets they were made for, each trimmed to the topics its widget reads. */
+export type RigName =
+  | "landing-lowpass"
+  | "landing-crashfall"
+  | "design-splash-flight";
+
+const RIG_HOME: Readonly<Record<RigName, string>> = {
+  "landing-lowpass": "LandingStatus",
+  "landing-crashfall": "LandingStatus",
+  "design-splash-flight": "FlightPlan",
+};
 
 /**
  * The recordings predate the `subscribed` ack carrying the channel's keyframe interval, so the loader adds it to each vessel topic's ack, the only frames it touches. The vessel channels all declare 30 s of game time; every data frame is exactly as recorded.
@@ -55,7 +64,7 @@ function isVesselAck(frame: unknown): frame is object {
 export function rigFixture(name: RigName): RigFixture {
   const file = path.join(
     path.dirname(fileURLToPath(import.meta.url)),
-    "../LandingStatus/__fixtures__/rig",
+    `../${RIG_HOME[name]}/__fixtures__/rig`,
     `${name}.replay.json`,
   );
   const recorded: unknown = JSON.parse(readFileSync(file, "utf8"));
