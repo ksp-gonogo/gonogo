@@ -1,10 +1,11 @@
 /**
  * `uplink-tools package`: the mod half as a GameData tree and the zip of it.
  *
- * The zip holds the plugin and its own contract slice and nothing else of
- * Gonogo's: `Sitrep.Contract.dll` is Gonogo's to provide, and a second copy
- * in another GameData folder is a second set of types that do not compare equal
- * to the first.
+ * The zip holds the plugin and its own contract slice, the Uplink's licence,
+ * notices and ModuleManager patches, and nothing else of Gonogo's:
+ * `Sitrep.Contract.dll` is Gonogo's to provide, and a second copy in another
+ * GameData folder is a second set of types that do not compare equal to the
+ * first.
  *
  * Its one root is `GameData/<name>/`, which is what both ways of installing a
  * mod expect: by hand the zip is unpacked over the game's own folder, and CKAN
@@ -30,9 +31,10 @@ import { type ZipEntry, zipArchive } from "./zip";
 export const PACKAGE_USAGE = `uplink-tools package [options]
 
   Lay the built plugin out as GameData/<name>/ and zip it with that as the
-  zip's one root, with the netkan beside the zip. It refuses a netkan whose
-  install stanza names a path the zip does not hold. Build the mod in Release
-  first; release does both in order.
+  zip's one root, with the netkan beside the zip. LICENSE, NOTICE*.txt and
+  ModuleManager patches (*.cfg) in the mod folder go in beside the plugin.
+  It refuses a netkan whose install stanza names a path the zip does not
+  hold. Build the mod in Release first; release does both in order.
 
   --out <dir>      where the zip goes (default: dist/ in the Uplink)
   --uplink <dir>   the Uplink's directory, the one holding uplink.json
@@ -98,9 +100,19 @@ export function packageMod(uplinkDir: string, outDir: string): PackageResult {
     cpSync(join(modBin, file), join(staging, "Plugins", file));
     files.push(`Plugins/${file}`);
   }
-  // A licence and any notices ride along by their shape, since which ones an Uplink owes depends on the mod it wraps.
+  /*
+   * A licence, any notices and any ModuleManager patches ride along by their
+   * shape, since which ones an Uplink owes or needs depends on the mod it wraps.
+   * A patch is read by ModuleManager from anywhere under GameData, so it sits
+   * at the folder's root beside the licence.
+   */
   for (const extra of readdirSync(modDir).sort()) {
-    if (extra !== "LICENSE" && !/^NOTICE.*\.txt$/i.test(extra)) continue;
+    if (
+      extra !== "LICENSE" &&
+      !/^NOTICE.*\.txt$/i.test(extra) &&
+      !/\.cfg$/i.test(extra)
+    )
+      continue;
     cpSync(join(modDir, extra), join(staging, extra));
     files.push(extra);
   }
