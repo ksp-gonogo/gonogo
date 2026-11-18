@@ -33,9 +33,9 @@ The Making History Uplink comes with Gonogo, so there is nothing separate to ins
 <details>
 <summary>Augments</summary>
 
-| Augment | Into | Reads | Presence | Scenes | Notes |
-| --- | --- | --- | --- | --- | --- |
-| `objectives-making-history` | `objectives.source` | `missions.active` |  | 1 |  |
+| Augment | Into | Reads | Presence | Notes |
+| --- | --- | --- | --- | --- |
+| `objectives-making-history` | `objectives.source` | `missions.active` |  |  |
 
 </details>
 

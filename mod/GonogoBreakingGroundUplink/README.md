@@ -30,7 +30,6 @@ Science, power and last contact of Breaking Ground deployed stations.
 | Slots of its own | `deployed-science.experiment` |
 | Default size, in grid units | 5 × 9 |
 | Smallest size, in grid units | 5 × 7 |
-| Scenes | 4 |
 
 </details>
 
@@ -51,7 +50,6 @@ Drive Breaking Ground hinges, rotation servos and pistons.
 | Needs | a vessel in flight |
 | Default size, in grid units | 5 × 8 |
 | Smallest size, in grid units | 4 × 4 |
-| Scenes | 3 |
 
 </details>
 
@@ -72,7 +70,6 @@ RPM and controls for Breaking Ground rotors.
 | Needs | a vessel in flight |
 | Default size, in grid units | 6 × 10 |
 | Smallest size, in grid units | 4 × 4 |
-| Scenes | 3 |
 
 </details>
 

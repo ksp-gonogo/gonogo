@@ -500,10 +500,6 @@ function widgetSection(inputs: DocsInputs, widget: WidgetRecord): string[] {
       fact.label,
       widgetFactValueMd(fact.items),
     ]),
-    // How many STATES somebody thought worth showing, not how many pictures.
-    // A widget with three warning states and one scene is the shape that hides
-    // a finding, and this is what makes that visible in review.
-    ["Scenes", String(scenesFor(inputs, "widget", widget.id).length)],
   ]);
   out.push(...collapsed("Widget details", detail));
   return out;
@@ -592,7 +588,6 @@ function augmentTable(
       `\`${augment.augments}\``,
       list(augment.channels),
       augment.requires ? `only while \`${augment.requires}\`` : "",
-      String(scenesFor(inputs, "augment", augment.id).length),
       notes.join("; "),
     ];
   });
@@ -600,7 +595,7 @@ function augmentTable(
   return [
     "## Augments",
     "",
-    ...table(["Augment", "Into", "Reads", "Presence", "Scenes", "Notes"], rows),
+    ...table(["Augment", "Into", "Reads", "Presence", "Notes"], rows),
     ...inputs.inventory.augments.flatMap((augment) =>
       imageLinks(
         inputs.pkg.dir,
