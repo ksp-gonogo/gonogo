@@ -1,3 +1,4 @@
+import { DashboardItemContext } from "@ksp-gonogo/core";
 import {
   act,
   fireEvent,
@@ -11,8 +12,9 @@ import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { emitAt, KERBIN } from "../test/bodyEmits";
 import { setupStreamFixture } from "../test/setupStreamFixture";
+import { FlightPlanComponent } from "./index";
 import type { FlightPlan } from "./plan";
-import { applyPlan, savePlan } from "./planStore";
+import { applyPlan, resetPlanStoreCache, savePlan } from "./planStore";
 import { FlightPlanSection } from "./section";
 
 const plan: FlightPlan = {
@@ -273,5 +275,97 @@ describe("FlightPlanSection after a launch from the editor", () => {
     await waitFor(() => expect(visibleText()).toContain("No plan applied"));
     expect(applied()["flying-1"]).toBeUndefined();
     expect(applied().editor).toBe(plan.id);
+  });
+});
+
+/*
+ * The whole path an operator takes: apply a plan in the VAB's design pane, launch,
+ * and find it on the Flight Plan tile in flight, where the pane is gone.
+ */
+describe("a plan applied in the VAB, after launch", () => {
+  const LAUNCH_UT = 77_563;
+
+  function inTheVab(fixture: ReturnType<typeof setupStreamFixture>) {
+    emitCraft(fixture, 5_620);
+    fixture.emit(
+      "spaceCenter.scene",
+      { scene: "Editor" },
+      { validAt: LAUNCH_UT - 60, deliveredAt: LAUNCH_UT - 60 },
+    );
+  }
+
+  function launched(
+    fixture: ReturnType<typeof setupStreamFixture>,
+    vesselId: string,
+    situation: number,
+    launchUt: number | null,
+  ) {
+    fixture.emit(
+      "spaceCenter.scene",
+      { scene: "Flight" },
+      { validAt: LAUNCH_UT, deliveredAt: LAUNCH_UT },
+    );
+    fixture.emit(
+      "vessel.identity",
+      {
+        vesselId,
+        name: "Splashdown",
+        vesselType: 0,
+        situation,
+        parentBodyIndex: KERBIN.index,
+        launchUt,
+      },
+      { validAt: LAUNCH_UT, deliveredAt: LAUNCH_UT },
+    );
+  }
+
+  async function applyInTheVab() {
+    resetPlanStoreCache();
+    localStorage.clear();
+    const vab = setupStreamFixture({ suspendFrames: true });
+    const pane = renderSection(vab);
+    act(() => inTheVab(vab));
+    fireEvent.click(await screen.findByRole("button", { name: "New plan" }));
+    await waitFor(() => expect(visibleText()).toContain("Launch"));
+    expect(localStorage.getItem("gonogo.flightPlans.editorAppliedAt")).toBe(
+      String(LAUNCH_UT - 60),
+    );
+    pane.unmount();
+  }
+
+  function renderTile(fixture: ReturnType<typeof setupStreamFixture>) {
+    return render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "plan-tile" }}>
+          <FlightPlanComponent id="plan-tile" h={12} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+  }
+
+  it("is on the Flight Plan tile once the craft is on the pad", async () => {
+    await applyInTheVab();
+    const flight = setupStreamFixture({ suspendFrames: true });
+    renderTile(flight);
+    act(() => launched(flight, "pad-1", 2, null));
+    await waitFor(() => expect(visibleText()).not.toContain("No plan applied"));
+    expect(visibleText()).toContain("Launch");
+  });
+
+  it("is on the tile when the pad frame never arrives and the craft left the pad after the plan was applied", async () => {
+    await applyInTheVab();
+    const flight = setupStreamFixture({ suspendFrames: true });
+    renderTile(flight);
+    act(() => launched(flight, "boosted-1", 5, LAUNCH_UT));
+    await waitFor(() => expect(visibleText()).not.toContain("No plan applied"));
+  });
+
+  it("is not given to a craft that left the pad before the plan was applied", async () => {
+    await applyInTheVab();
+    const flight = setupStreamFixture({ suspendFrames: true });
+    renderTile(flight);
+    act(() => launched(flight, "old-1", 5, LAUNCH_UT - 3_600));
+    await waitFor(() => expect(visibleText()).toContain("No plan applied"));
+    await act(async () => {});
   });
 });

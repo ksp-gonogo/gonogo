@@ -3,7 +3,7 @@ import {
   useGameContext,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useStream } from "@ksp-gonogo/sitrep-client";
+import { useStream, useViewClockOptional } from "@ksp-gonogo/sitrep-client";
 import {
   type ModeSectionProps,
   Situation,
@@ -67,17 +67,36 @@ export function useCraftKey(): string | undefined {
 
 /*
  * Interim: the editor's craft has no id the vessel keeps, so a plan applied in
- * the editor is moved to the first vessel seen on the pad in flight. Once the
- * plan is copied into the save this goes.
+ * the editor is moved to the craft launched from it, the first vessel in
+ * flight that is on the pad or left it after the plan was applied. The launch
+ * time covers a craft whose pad frame never reached this screen, such as a
+ * script that stages the moment the craft is loaded. Once the plan is copied
+ * into the save this goes.
  */
 function useEditorPlanCarry(): void {
   const { scene } = useGameContext();
   const identity = stillTrue(useTelemetry("vessel.identity"), undefined);
   const vesselId = identity?.vesselId ?? undefined;
   const onPad = identity?.situation === Situation.PreLaunch;
+  const launchUt =
+    identity?.launchUt == null ? undefined : Number(identity.launchUt);
   useEffect(() => {
-    if (scene === "Flight" && onPad && vesselId) carryEditorPlan(vesselId);
-  }, [scene, onPad, vesselId]);
+    if (scene === "Flight" && vesselId) {
+      carryEditorPlan({ vesselId, onPad, launchUt });
+    }
+  }, [scene, onPad, vesselId, launchUt]);
+}
+
+/** The id of the plan applied to the craft, carrying a plan applied in the editor onto the craft launched from it. */
+export function useCraftPlanId(): string | undefined {
+  useEditorPlanCarry();
+  return useAppliedPlanId(useCraftKey());
+}
+
+/** The game time to stamp a plan applied now with, so it can pass to a craft launched after it. */
+function useApplyUt(): () => number | undefined {
+  const clock = useViewClockOptional();
+  return () => clock?.confirmedEdgeUt();
 }
 
 /** The plan applied to the craft, scored against it: before flight from the Δv it has, in flight against the live flight. */
@@ -89,8 +108,7 @@ export function useAppliedPlan(): {
 } {
   const { scene } = useGameContext();
   const planning = scene === "Editor";
-  useEditorPlanCarry();
-  const plan = useFlightPlan(useAppliedPlanId(useCraftKey()));
+  const plan = useFlightPlan(useCraftPlanId());
   const { live, progress } = usePlanLive(plan);
   const predicted = usePredictedSteps(plan?.id);
   const scored = plan
@@ -177,6 +195,7 @@ function FlightPlanSection({ reportStatus }: Partial<ModeSectionProps> = {}) {
   const craft = useCraftKey();
   const plans = useFlightPlans();
   const { plan, scored, planning, live } = useAppliedPlan();
+  const applyUt = useApplyUt();
   useReportStatus(scored, reportStatus);
   const { open, close } = useModal();
   const openApply = () => {
@@ -194,7 +213,7 @@ function FlightPlanSection({ reportStatus }: Partial<ModeSectionProps> = {}) {
             onClick={() => {
               const p = starterPlan(plans);
               savePlan(p);
-              if (craft) applyPlan(craft, p.id);
+              if (craft) applyPlan(craft, p.id, applyUt());
             }}
           >
             New plan
@@ -323,6 +342,7 @@ function ApplySheet({
   onDone: () => void;
 }) {
   const plans = useFlightPlans();
+  const applyUt = useApplyUt();
   const [chosen, setChosen] = useState<string | undefined>(plans[0]?.id);
   const plan = plans.find((p) => p.id === chosen);
   const { live, progress } = usePlanLive(plan);
@@ -377,7 +397,7 @@ function ApplySheet({
           disabled={!plan || craft === undefined}
           disabledReason={!plan ? "Choose a plan" : "No craft to apply it to"}
           onClick={() => {
-            if (plan && craft) applyPlan(craft, plan.id);
+            if (plan && craft) applyPlan(craft, plan.id, applyUt());
             onDone();
           }}
         >
@@ -388,7 +408,7 @@ function ApplySheet({
   );
 }
 
-// In flight the Flight Plan widget carries the plan, so the section is design mode's alone.
+// In flight the Flight Plan widget shows the plan, so the section is design mode's alone.
 registerAugment({
   id: "flight-plan.pane.design",
   augments: "mode-sections.design",

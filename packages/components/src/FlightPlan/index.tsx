@@ -19,9 +19,9 @@ import {
   wholeFigure,
 } from "./format";
 import type { FlightPlan } from "./plan";
-import { useAppliedPlanId, useFlightPlan } from "./planStore";
+import { useFlightPlan } from "./planStore";
 import { type ScoredPlan, scorePlan } from "./scoring";
-import { useCraftKey } from "./section";
+import { useCraftPlanId } from "./section";
 import { StepCard } from "./steps";
 import { usePlanLive } from "./usePlanLive";
 
@@ -37,7 +37,7 @@ function FlightPlanComponent({
   config,
   h,
 }: Readonly<ComponentProps<FlightPlanConfig>>) {
-  const applied = useAppliedPlanId(useCraftKey());
+  const applied = useCraftPlanId();
   const plan = useFlightPlan(config?.planId ?? applied);
   const { live, progress } = usePlanLive(plan);
   if (!plan) {
