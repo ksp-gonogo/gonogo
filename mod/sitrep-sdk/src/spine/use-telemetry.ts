@@ -7,14 +7,11 @@ import type {
 import { topicReading } from "../reading";
 import type { ReckonableFields, ReckonableTopic } from "../reckonability";
 import type { TopicId, TopicPayload } from "../topics";
-import {
-  useTelemetryClientOptional,
-  useTelemetryStoreOptional,
-} from "./context";
 import { useClaimCapability } from "./lock-scope";
 import type { NeverReckonable } from "./never-reckonable";
 import { subscribeTopicRead } from "./subscribe-read";
 import { useTelemetrySubscriberLabel } from "./subscriber-identity";
+import { useTelemetrySourceFor } from "./telemetry-overlay";
 
 /**
  * One shared `pending` for the no-provider path. A fresh object per
@@ -118,8 +115,7 @@ export function useTelemetry(topic: TopicId): unknown {
    * Narrowing them to `UnmodelledReading` would type away the Uplink seam, which
    * is the one thing the middle arm is holding open.
    */
-  const client = useTelemetryClientOptional();
-  const store = useTelemetryStoreOptional();
+  const { client, store } = useTelemetrySourceFor(topic);
   useClaimCapability("topic", topic);
 
   // Diagnostics only: which widget this read belongs to, so a topic nothing publishes can be reported with the name of the thing that asked for it.

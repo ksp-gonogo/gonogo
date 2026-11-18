@@ -471,6 +471,20 @@ export {
   onMapPoiProvidersChange,
   registerMapPoiProvider,
 } from "./map-poi";
+export {
+  getModes,
+  type ModeDefinition,
+  type ModeId,
+  type ModePlayback,
+  type ModeRegistry,
+  type ModeSectionProps,
+  type ModeTimeline,
+  type PlanStepInput,
+  type PlanStepKind,
+  registerMode,
+  type SectionStatus,
+  useModes,
+} from "./modes";
 // The settings store, its service and its React CONTEXT, likewise owned. `gameHost`
 // has to have one answer, which is why `setSetting` and `subscribeSetting` were
 // shims already; the context is the part a second copy breaks in silence, because a

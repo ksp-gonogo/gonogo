@@ -146,6 +146,7 @@ export function WidgetShell({
                   families={def.channelFamilies}
                   optionalFamilies={def.optionalChannelFamilies}
                   configChannels={def.channelsFromConfig?.(config)}
+                  modes={def.modes}
                   title={title}
                   compact={compact}
                 >

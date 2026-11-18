@@ -1,11 +1,9 @@
 import { useCallback, useSyncExternalStore } from "react";
 import { type TopicReading, topicReading } from "../reading";
-import {
-  useTelemetryClientOptional,
-  useTelemetryStoreOptional,
-} from "./context";
+import { useTelemetryClientOptional } from "./context";
 import { useClaimCapability } from "./lock-scope";
 import { subscribeTopicRead } from "./subscribe-read";
+import { useTelemetrySourceFor } from "./telemetry-overlay";
 
 /**
  * Reactively reads `topic`, raw or derived, as a {@link TopicReading}: the
@@ -62,8 +60,7 @@ export function useStream<Payload>(topic: string): TopicReading<Payload> {
    * are unchanged, so `useSyncExternalStore` bails out of re-rendering when
    * nothing relevant to `topic` changed.
    */
-  const client = useTelemetryClientOptional();
-  const store = useTelemetryStoreOptional();
+  const { client, store } = useTelemetrySourceFor(topic);
   useClaimCapability("topic", topic);
 
   const subscribe = useCallback(

@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import type { Reading } from "../reading";
 import { useTelemetryStoreOptional } from "./context";
-import { processorRuntimeFor } from "./processorEvaluator";
-import type { ProcessorHandle } from "./processors";
+import { overlayCovers, useTelemetryOverlay } from "./overlay-context";
+import {
+  processorInputTopics,
+  processorRuntimeFor,
+} from "./processorEvaluator";
+import { getProcessor, type ProcessorHandle } from "./processors";
 
 /** What a processor answers with: a datable reading, or the bare result. */
 export type ProcessorResult<
@@ -27,7 +31,9 @@ export type ProcessorResult<
 export function useProcessor<Result, Carried extends boolean>(
   handle: ProcessorHandle<Result, string, Carried>,
 ): ProcessorResult<Result, Carried> | undefined {
-  const store = useTelemetryStoreOptional();
+  const live = useTelemetryStoreOptional();
+  const overlay = useTelemetryOverlay();
+  const store = overlayAnswers(overlay, handle.id) ? overlay?.store : live;
   const runtime = store ? processorRuntimeFor(store) : undefined;
 
   useEffect(() => runtime?.activate(handle.id), [runtime, handle.id]);
@@ -43,4 +49,23 @@ export function useProcessor<Result, Carried extends boolean>(
   );
 
   return useSyncExternalStore(subscribe, getSnapshot);
+}
+
+/*
+ * A processor runs on the overlay's store when the overlay answers any of the
+ * Topics it reads, so a derived figure about a design is derived from the
+ * design. One that reads only Topics the overlay does not answer (the bodies)
+ * stays on the live store.
+ */
+function overlayAnswers(
+  overlay: ReturnType<typeof useTelemetryOverlay>,
+  id: string,
+): boolean {
+  if (!overlay) return false;
+  const def = getProcessor(id);
+  if (!def) return false;
+  for (const topic of processorInputTopics(def)) {
+    if (overlayCovers(overlay, topic)) return true;
+  }
+  return false;
 }

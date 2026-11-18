@@ -4,6 +4,7 @@ import {
   registerComponent,
   useContributions,
   useCrashEnding,
+  useGameContext,
 } from "@ksp-gonogo/core";
 import { usePartsLive, useTopology } from "@ksp-gonogo/data";
 import { useCommand } from "@ksp-gonogo/sitrep-client";
@@ -77,6 +78,12 @@ interface VesselSchematicConfig {
   turn?: number;
 }
 
+/*
+ * In design mode the editor craft's parts arrive on an Uplink's Topic in the vessel.parts row
+ * shape. Core has no type for it, so the id is cast to the flight Topic's.
+ */
+const DESIGN_PARTS_TOPIC = "design.editor.parts" as "vessel.parts";
+
 function VesselSchematicComponent({
   config,
   w,
@@ -89,9 +96,12 @@ function VesselSchematicComponent({
     },
     [config, onConfigChange],
   );
+  const design = useGameContext().mode === "design";
+  const partsTopic = design ? DESIGN_PARTS_TOPIC : "vessel.parts";
   // The mod's channel engine is change-gated, so no seq-driven refetch is needed.
-  const liveTopology = useTopology();
-  const crash = useCrashEnding();
+  const liveTopology = useTopology(partsTopic);
+  const flightCrash = useCrashEnding();
+  const crash = design ? undefined : flightCrash;
   /*
    * The game drops a destroyed craft's parts, so the last topology is kept to
    * go on drawing it. It is used only where the crash report names parts of it:
@@ -170,7 +180,7 @@ function VesselSchematicComponent({
     () => topology?.parts.map((p) => p.flightId) ?? [],
     [topology],
   );
-  const liveByFlightId = usePartsLive(flightIds);
+  const liveByFlightId = usePartsLive(flightIds, partsTopic);
   // The live fields on every part come off this one reading, so it dates them for an overlay.
   const partsReading = topics.useTelemetry("vessel.parts");
 
@@ -296,7 +306,9 @@ function VesselSchematicComponent({
   );
 
   const hottestPartId =
-    thermalReading.state === "observed" && typeof hottestPart?.id === "string"
+    !design &&
+    thermalReading.state === "observed" &&
+    typeof hottestPart?.id === "string"
       ? hottestPart.id
       : null;
 
@@ -363,9 +375,9 @@ function VesselSchematicComponent({
           hottestPartId,
           size,
           setWrapEl,
-          ambientTint,
-          throttle,
-          thrusting,
+          ambientTint: design ? BLUEPRINT_TINT : ambientTint,
+          throttle: design ? 0 : throttle,
+          thrusting: design ? false : thrusting,
           overlayContext,
           partMeters,
           partMeta: transfer.partMeta,
@@ -412,6 +424,9 @@ function ContributedCommandHost({
   return null;
 }
 
+const BLUEPRINT_TINT =
+  "linear-gradient(rgba(95,200,255,0.10) 1px, transparent 1px) 0 0 / 16px 16px, linear-gradient(90deg, rgba(95,200,255,0.10) 1px, transparent 1px) 0 0 / 16px 16px, rgba(20,60,100,0.25)";
+
 function normaliseTurn(turn: number | undefined): number {
   if (typeof turn !== "number" || !Number.isFinite(turn)) return 0;
   return (
@@ -428,6 +443,9 @@ registerComponent<VesselSchematicConfig>({
   tags: ["telemetry", "ship", "staging", "stages"],
   defaultSize: { w: 12, h: 10 },
   minSize: { w: 5, h: 5 },
+  modes: ["default", "replay", "design"],
+  // The scene and career reads come with the active mode, not a ground control, so the pilot keeps the Schematic.
+  seats: ["mission-control", "pilot"],
   component: VesselSchematicComponent,
   augmentSlots: ["vessel-schematic.overlay"],
   // The built-in contribution always fills part-meters; an Uplink may fill both.

@@ -1,4 +1,5 @@
 import { TelemetryClient, TelemetryProvider } from "@ksp-gonogo/sitrep-client";
+import { ScreenProvider } from "@ksp-gonogo/sitrep-sdk/spine";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, renderHook, waitFor } from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -215,5 +216,35 @@ describe("useGameContext: kc.padOccupied streamed via spaceCenter.state (mapped 
     // The stream value keeps winning over a legacy emit once carried.
     act(() => legacySource.emit("kc.padOccupied", false));
     expect(result.current.padOccupied).toBe(true);
+  });
+});
+
+describe("useGameContext: mode follows the scene and the seat", () => {
+  async function modeIn(scene: string, screen: "main" | "pilot") {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    const { result } = renderHook(() => useGameContext(), {
+      wrapper: ({ children }) => (
+        <ScreenProvider value={screen}>
+          <TelemetryProvider client={client}>{children}</TelemetryProvider>
+        </ScreenProvider>
+      ),
+    });
+    act(() => transport.emit("spaceCenter.scene", { scene }));
+    await waitFor(() => expect(result.current.scene).toBe(scene));
+    return result.current.mode;
+  }
+
+  it("is design in the vehicle editor at mission control", async () => {
+    expect(await modeIn("Editor", "main")).toBe("design");
+  });
+
+  it("is never design at the pilot seat", async () => {
+    expect(await modeIn("Editor", "pilot")).toBe("default");
+  });
+
+  it("is default in the flight scene and at the space centre", async () => {
+    expect(await modeIn("Flight", "main")).toBe("default");
+    expect(await modeIn("SpaceCenter", "main")).toBe("default");
   });
 });

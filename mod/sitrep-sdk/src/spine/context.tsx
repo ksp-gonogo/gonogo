@@ -42,6 +42,7 @@ import {
 import { commandDelayed } from "./map-command";
 import { DYNAMIC_WHOLE_TOPIC_PREFIXES, resolveValueTopic } from "./map-topic";
 import { type OrbitalSolve, solveSelfOrbit } from "./orbital-solve";
+import { useTelemetryOverlay } from "./overlay-context";
 import { OwnCraftDelayGate } from "./own-craft-vantage";
 import { processorRuntimeFor } from "./processorEvaluator";
 import {
@@ -589,7 +590,8 @@ function removeLast<Item>(stack: Item[], item: Item): void {
 
 export function useViewClock(): ViewClockView {
   // gonogo:reads none
-  return useTelemetryStore().clock;
+  const live = useTelemetryStore();
+  return (useTelemetryOverlay()?.store ?? live).clock;
 }
 
 /**
@@ -603,7 +605,8 @@ export function useViewClock(): ViewClockView {
  */
 export function useViewClockOptional(): ViewClockView | undefined {
   // gonogo:reads none
-  return useTelemetryStoreOptional()?.clock;
+  const live = useTelemetryStoreOptional();
+  return (useTelemetryOverlay()?.store ?? live)?.clock;
 }
 
 /**

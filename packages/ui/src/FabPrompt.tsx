@@ -55,6 +55,7 @@ const Wrap = styled.div<{ $bottom: number | undefined }>`
     $bottom !== undefined
       ? css`
           position: fixed;
+          pointer-events: auto;
           bottom: calc(${$bottom}px + env(safe-area-inset-bottom, 0px));
           /* 72 = 24 (the Fab inset) + 40 (its width) + 8, part of the FAB geometry chain. */
           right: calc(72px + env(safe-area-inset-right, 0px));

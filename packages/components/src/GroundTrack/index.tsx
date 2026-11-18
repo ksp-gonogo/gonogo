@@ -59,6 +59,7 @@ import { useGroundTrackPrediction } from "./useGroundTrackPrediction";
 import { useMapPainting } from "./useMapPainting";
 import { useMapResize } from "./useMapResize";
 import { useMapTelemetry } from "./useMapTelemetry";
+import { useSeriesTrail } from "./useSeriesTrail";
 import { useTrajectoryBuffer } from "./useTrajectoryBuffer";
 import { VanillaSuppressionProbe } from "./VanillaSuppressionProbe";
 // Side-effect only: registers the vanilla POI provider MapPoiLayer renders.
@@ -139,7 +140,7 @@ function GroundTrackComponent({
     containerSize,
   });
 
-  const { trajectoryRef, trajectoryCount } = useTrajectoryBuffer({
+  const liveTrail = useTrajectoryBuffer({
     lat: latNumber,
     lon: lonNumber,
     altSea: telemetry.altSea,
@@ -150,6 +151,8 @@ function GroundTrackComponent({
     trajectoryLength,
     track: `${telemetry.vesselId ?? ""} over ${targetBodyId ?? ""}`,
   });
+  const seriesTrail = useSeriesTrail();
+  const { trajectoryRef, trajectoryCount } = seriesTrail ?? liveTrail;
 
   const baseLayers = useBaseLayers();
 

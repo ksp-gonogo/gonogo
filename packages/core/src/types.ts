@@ -3,6 +3,7 @@
 import type {
   ChannelFamily,
   CommandId,
+  ModeId,
   Seat,
   SlotId,
   TinyMode,
@@ -389,6 +390,15 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    * from there, so the SDK's is the one an author writes against.
    */
   seats?: readonly Seat[];
+  /**
+   * The modes whose telemetry this widget is ready to read. Omit for
+   * `["default", "replay"]`. A mode never hides a widget, and every widget
+   * reads a recording in replay mode whatever it lists. Listing `"design"` is
+   * the one entry that changes anything: in design mode the widget is given
+   * the predicted run's values on the same Topics it reads in flight, and its
+   * `requires: ["flight"]` is met by the predicted run.
+   */
+  modes?: readonly ModeId[];
   /**
    * Addressable augment slots this widget owns.
    * Each entry is a small, stable API the base widget exposes via

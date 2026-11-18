@@ -117,6 +117,7 @@ export * from "./stream-status";
 export * from "./subscribe-read";
 export * from "./subscriber-identity";
 export * from "./system-state";
+export * from "./telemetry-overlay";
 export * from "./timeline-store";
 export * from "./topic-ownership";
 export * from "./unowned-warning";

@@ -41,6 +41,7 @@ import type {
   WidgetFieldPath,
 } from "../topics";
 import type { Value } from "../value";
+import type { ModeId } from "./modes";
 import type { UiKitTheme } from "./theme";
 import type { Tone } from "./tone";
 
@@ -573,6 +574,15 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    * or both.
    */
   seats?: readonly Seat[];
+  /**
+   * The modes whose telemetry this widget is ready to read. Omit for
+   * `["default", "replay"]`. A mode never hides a widget, and every widget
+   * reads a recording in replay mode whatever it lists. Listing `"design"` is
+   * the one entry that changes anything: in design mode the widget is given
+   * the predicted run's values on the same Topics it reads in flight, and its
+   * `requires: ["flight"]` is met by the predicted run.
+   */
+  modes?: readonly ModeId[];
   /**
    * The augment slots this widget draws, by full slot id, each declared in
    * {@link SlotRegistry}. A slot id nothing declares does not compile.

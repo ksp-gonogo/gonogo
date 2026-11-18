@@ -1,4 +1,11 @@
 import { type SpaceCenterState, useStream } from "@ksp-gonogo/sitrep-client";
+import type { ModeId } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type Seat,
+  useSeat,
+  useTelemetryOverlay,
+} from "@ksp-gonogo/sitrep-sdk/spine";
+import { useDesignActive, useReplayActive } from "../modes";
 import { useTelemetry } from "./useTelemetry";
 
 export type GameScene =
@@ -21,6 +28,15 @@ export interface GameContext {
   scene: GameScene;
   /** Convenience derived from `scene === "Flight"`. */
   inFlight: boolean;
+  /** Where the operator sits. Part of this answer because what a widget may show depends on it. */
+  seat: Seat;
+  /**
+   * The mode the widget is showing: `"design"` at mission control in the
+   * vehicle editor or under a design's prediction, `"replay"` while a recorded
+   * flight plays back, and `"default"` otherwise. The pilot seat is never given a
+   * design. `inFlight` stays false for a design.
+   */
+  mode: ModeId;
   /**
    * True when the active vessel is in `PRELAUNCH` situation, false when it is
    * confirmed not to be. Implies `inFlight` (KSP only sets prelaunch after the
@@ -152,6 +168,18 @@ export function useGameContext(): GameContext {
   const careerMode: CareerMode = resolveCareerMode(careerModeRaw);
 
   const inFlight = scene === "Flight";
+  const seat = useSeat();
+  const overlay = useTelemetryOverlay();
+  const designActive = useDesignActive();
+  const replayActive = useReplayActive();
+  const mode: ModeId =
+    seat === "mission-control" && overlay
+      ? overlay.mode
+      : designActive
+        ? "design"
+        : replayActive
+          ? "replay"
+          : "default";
   const padOccupied = padOccupiedRaw;
   const isCareerLike = careerMode === "CAREER" || careerMode === "SCIENCE";
   const chargesFunds = careerMode === "CAREER" || careerMode === "Unknown";
@@ -164,6 +192,8 @@ export function useGameContext(): GameContext {
   return {
     scene,
     inFlight,
+    seat,
+    mode,
     padOccupied,
     careerMode,
     isCareerLike,

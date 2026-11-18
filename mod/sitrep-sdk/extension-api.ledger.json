@@ -41005,19 +41005,548 @@
     }
   ],
   "pending": {
-    "breaks": [],
+    "breaks": [
+      {
+        "key": "sitrep-sdk . ContributionRegistry#\"flight-plan.steps\"",
+        "note": "New contribution slot: an Uplink adds a Flight Plan step kind as a contribution"
+      },
+      {
+        "key": "sitrep-sdk . SlotRegistry#\"mode-sections.default\"",
+        "note": "New augment slot: an Uplink adds a section to the default mode as an augment"
+      },
+      {
+        "key": "sitrep-sdk . SlotRegistry#\"mode-sections.design\"",
+        "note": "New augment slot: an Uplink adds a section to design mode as an augment"
+      },
+      {
+        "key": "sitrep-sdk . SlotRegistry#\"mode-sections.replay\"",
+        "note": "New augment slot: an Uplink adds a section to replay mode as an augment"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ContributionRegistry#\"flight-plan.steps\"",
+        "note": "New contribution slot: an Uplink adds a Flight Plan step kind as a contribution"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SlotRegistry#\"mode-sections.default\"",
+        "note": "New augment slot: an Uplink adds a section to the default mode as an augment"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SlotRegistry#\"mode-sections.design\"",
+        "note": "New augment slot: an Uplink adds a section to design mode as an augment"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SlotRegistry#\"mode-sections.replay\"",
+        "note": "New augment slot: an Uplink adds a section to replay mode as an augment"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ContributionRegistry#\"flight-plan.steps\"",
+        "note": "New contribution slot: an Uplink adds a Flight Plan step kind as a contribution"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ContributionRegistry#\"flight-plan.steps\"",
+        "note": "New contribution slot: an Uplink adds a Flight Plan step kind as a contribution"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"mode-sections.default\"",
+        "note": "New augment slot: an Uplink adds a section to the default mode as an augment"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"mode-sections.design\"",
+        "note": "New augment slot: an Uplink adds a section to design mode as an augment"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"mode-sections.replay\"",
+        "note": "New augment slot: an Uplink adds a section to replay mode as an augment"
+      },
+      {
+        "key": "ui-kit . ContributionRegistry#\"flight-plan.steps\"",
+        "note": "New contribution slot: an Uplink adds a Flight Plan step kind as a contribution"
+      },
+      {
+        "key": "ui-kit . SlotRegistry#\"mode-sections.default\"",
+        "note": "New augment slot: an Uplink adds a section to the default mode as an augment"
+      },
+      {
+        "key": "ui-kit . SlotRegistry#\"mode-sections.design\"",
+        "note": "New augment slot: an Uplink adds a section to design mode as an augment"
+      },
+      {
+        "key": "ui-kit . SlotRegistry#\"mode-sections.replay\"",
+        "note": "New augment slot: an Uplink adds a section to replay mode as an augment"
+      }
+    ],
     "additions": [
+      {
+        "key": "sitrep-sdk . ComponentDefinition#modes?",
+        "note": "A widget lists the modes it shows in; listing design lets it follow a design's predicted run"
+      },
+      {
+        "key": "sitrep-sdk . ModeDefinition",
+        "note": "A mode's name, when it is on and its timeline, passed to registerMode"
+      },
+      {
+        "key": "sitrep-sdk . ModeDefinition#id",
+        "note": "A mode's name, when it is on and its timeline, passed to registerMode"
+      },
+      {
+        "key": "sitrep-sdk . ModeDefinition#name",
+        "note": "A mode's name, when it is on and its timeline, passed to registerMode"
+      },
+      {
+        "key": "sitrep-sdk . ModeDefinition#noTimeline?",
+        "note": "A mode's name, when it is on and its timeline, passed to registerMode"
+      },
+      {
+        "key": "sitrep-sdk . ModeDefinition#order?",
+        "note": "A mode's name, when it is on and its timeline, passed to registerMode"
+      },
+      {
+        "key": "sitrep-sdk . ModeDefinition#useActive",
+        "note": "A mode's name, when it is on and its timeline, passed to registerMode"
+      },
+      {
+        "key": "sitrep-sdk . ModeDefinition#useTimeline?",
+        "note": "A mode's name, when it is on and its timeline, passed to registerMode"
+      },
+      {
+        "key": "sitrep-sdk . ModeId",
+        "note": "The id of a declared mode"
+      },
+      {
+        "key": "sitrep-sdk . ModePlayback",
+        "note": "A recording's playback controls on the Timeline"
+      },
+      {
+        "key": "sitrep-sdk . ModePlayback#exit",
+        "note": "A recording's playback controls on the Timeline"
+      },
+      {
+        "key": "sitrep-sdk . ModePlayback#pause",
+        "note": "A recording's playback controls on the Timeline"
+      },
+      {
+        "key": "sitrep-sdk . ModePlayback#play",
+        "note": "A recording's playback controls on the Timeline"
+      },
+      {
+        "key": "sitrep-sdk . ModePlayback#playing",
+        "note": "A recording's playback controls on the Timeline"
+      },
+      {
+        "key": "sitrep-sdk . ModePlayback#rate",
+        "note": "A recording's playback controls on the Timeline"
+      },
+      {
+        "key": "sitrep-sdk . ModePlayback#rates",
+        "note": "A recording's playback controls on the Timeline"
+      },
+      {
+        "key": "sitrep-sdk . ModePlayback#setRate",
+        "note": "A recording's playback controls on the Timeline"
+      },
+      {
+        "key": "sitrep-sdk . ModeRegistry",
+        "note": "The modes the dashboard can be in, declared by declaration merging"
+      },
+      {
+        "key": "sitrep-sdk . ModeRegistry#default",
+        "note": "The default mode, on whenever no other mode is"
+      },
+      {
+        "key": "sitrep-sdk . ModeRegistry#design",
+        "note": "The modes the dashboard can be in, declared by declaration merging"
+      },
+      {
+        "key": "sitrep-sdk . ModeRegistry#replay",
+        "note": "The replay mode, a recorded flight played back"
+      },
+      {
+        "key": "sitrep-sdk . ModeSectionProps",
+        "note": "The props a mode's section is given, to report its state"
+      },
+      {
+        "key": "sitrep-sdk . ModeSectionProps#reportStatus",
+        "note": "The props a mode's section is given, to report its state"
+      },
+      {
+        "key": "sitrep-sdk . ModeTimeline",
+        "note": "The stretch of time a mode covers, shown by the Timeline"
+      },
+      {
+        "key": "sitrep-sdk . ModeTimeline#at",
+        "note": "The stretch of time a mode covers, shown by the Timeline"
+      },
+      {
+        "key": "sitrep-sdk . ModeTimeline#end",
+        "note": "The stretch of time a mode covers, shown by the Timeline"
+      },
+      {
+        "key": "sitrep-sdk . ModeTimeline#launchUt?",
+        "note": "The stretch of time a mode covers, shown by the Timeline"
+      },
+      {
+        "key": "sitrep-sdk . ModeTimeline#marks?",
+        "note": "The stretch of time a mode covers, shown by the Timeline"
+      },
+      {
+        "key": "sitrep-sdk . ModeTimeline#playback?",
+        "note": "The stretch of time a mode covers, shown by the Timeline"
+      },
+      {
+        "key": "sitrep-sdk . ModeTimeline#seek",
+        "note": "The stretch of time a mode covers, shown by the Timeline"
+      },
+      {
+        "key": "sitrep-sdk . ModeTimeline#start",
+        "note": "The stretch of time a mode covers, shown by the Timeline"
+      },
+      {
+        "key": "sitrep-sdk . PlanStepInput",
+        "note": "One input a Flight Plan step kind takes, kept in SI and shown in its unit"
+      },
+      {
+        "key": "sitrep-sdk . PlanStepInput#default",
+        "note": "One input a Flight Plan step kind takes, kept in SI and shown in its unit"
+      },
+      {
+        "key": "sitrep-sdk . PlanStepInput#label",
+        "note": "One input a Flight Plan step kind takes, kept in SI and shown in its unit"
+      },
+      {
+        "key": "sitrep-sdk . PlanStepInput#unit?",
+        "note": "One input a Flight Plan step kind takes, kept in SI and shown in its unit"
+      },
+      {
+        "key": "sitrep-sdk . PlanStepKind",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk . PlanStepKind#covers?",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk . PlanStepKind#group?",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk . PlanStepKind#id",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk . PlanStepKind#inputs",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk . PlanStepKind#name",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk . PlanStepKind#needsDv?",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk . SectionStatus",
+        "note": "A mode section's state, shown beside its heading"
+      },
+      {
+        "key": "sitrep-sdk . SectionStatus#detail?",
+        "note": "A mode section's state, shown beside its heading"
+      },
+      {
+        "key": "sitrep-sdk . SectionStatus#label",
+        "note": "A mode section's state, shown beside its heading"
+      },
+      {
+        "key": "sitrep-sdk . SectionStatus#tone",
+        "note": "A mode section's state, shown beside its heading"
+      },
+      {
+        "key": "sitrep-sdk . getModes",
+        "note": "Every registered mode, for a test"
+      },
+      {
+        "key": "sitrep-sdk . registerMode",
+        "note": "Declares a mode"
+      },
+      {
+        "key": "sitrep-sdk . useModes",
+        "note": "Every registered mode, read again when one registers"
+      },
       {
         "key": "sitrep-sdk . useScreenName",
         "note": "New: the name the operator gave this screen, for labelling what they do where others can see it"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ComponentDefinition#modes?",
+        "note": "A widget lists the modes it shows in; listing design lets it follow a design's predicted run"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ModeId",
+        "note": "The id of a declared mode"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ModeRegistry",
+        "note": "The modes the dashboard can be in, declared by declaration merging"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ModeRegistry#default",
+        "note": "The default mode, on whenever no other mode is"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ModeRegistry#design",
+        "note": "The modes the dashboard can be in, declared by declaration merging"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ModeRegistry#replay",
+        "note": "The replay mode, a recorded flight played back"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ModeSectionProps",
+        "note": "The props a mode's section is given, to report its state"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ModeSectionProps#reportStatus",
+        "note": "The props a mode's section is given, to report its state"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlanStepInput",
+        "note": "One input a Flight Plan step kind takes, kept in SI and shown in its unit"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlanStepInput#default",
+        "note": "One input a Flight Plan step kind takes, kept in SI and shown in its unit"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlanStepInput#label",
+        "note": "One input a Flight Plan step kind takes, kept in SI and shown in its unit"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlanStepInput#unit?",
+        "note": "One input a Flight Plan step kind takes, kept in SI and shown in its unit"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlanStepKind",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlanStepKind#covers?",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlanStepKind#group?",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlanStepKind#id",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlanStepKind#inputs",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlanStepKind#name",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~PlanStepKind#needsDv?",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SectionStatus",
+        "note": "A mode section's state, shown beside its heading"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SectionStatus#detail?",
+        "note": "A mode section's state, shown beside its heading"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SectionStatus#label",
+        "note": "A mode section's state, shown beside its heading"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SectionStatus#tone",
+        "note": "A mode section's state, shown beside its heading"
       },
       {
         "key": "sitrep-sdk ./spine ScreenNameProvider",
         "note": "New: the app's provider for the screen's name"
       },
       {
+        "key": "sitrep-sdk ./spine TelemetryOverlay",
+        "note": "An overlay names the mode whose values it carries"
+      },
+      {
+        "key": "sitrep-sdk ./spine TelemetryOverlay#client",
+        "note": "An overlay names the mode whose values it carries"
+      },
+      {
+        "key": "sitrep-sdk ./spine TelemetryOverlay#label?",
+        "note": "An overlay names the mode whose values it carries"
+      },
+      {
+        "key": "sitrep-sdk ./spine TelemetryOverlay#mode",
+        "note": "An overlay names the mode whose values it carries"
+      },
+      {
+        "key": "sitrep-sdk ./spine TelemetryOverlay#store",
+        "note": "An overlay names the mode whose values it carries"
+      },
+      {
+        "key": "sitrep-sdk ./spine TelemetryOverlay#topics",
+        "note": "An overlay names the mode whose values it carries"
+      },
+      {
+        "key": "sitrep-sdk ./spine TelemetryOverlayProvider",
+        "note": "An overlay names the mode whose values it carries"
+      },
+      {
+        "key": "sitrep-sdk ./spine overlayCovers",
+        "note": "Whether an overlay answers a Topic, for the app's read routing"
+      },
+      {
         "key": "sitrep-sdk ./spine useScreenName",
         "note": "New: the screen's name, on the spine subpath as well"
+      },
+      {
+        "key": "sitrep-sdk ./spine useTelemetryOverlay",
+        "note": "An overlay names the mode whose values it carries"
+      },
+      {
+        "key": "sitrep-sdk ./spine useTelemetrySourceFor",
+        "note": "The client and store a read of a Topic goes to, the overlay's or the live stream's"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ModeId",
+        "note": "The id of a declared mode"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ModeRegistry",
+        "note": "The modes the dashboard can be in, declared by declaration merging"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ModeRegistry#default",
+        "note": "The default mode, on whenever no other mode is"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ModeRegistry#design",
+        "note": "The modes the dashboard can be in, declared by declaration merging"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ModeRegistry#replay",
+        "note": "The replay mode, a recorded flight played back"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PlanStepInput",
+        "note": "One input a Flight Plan step kind takes, kept in SI and shown in its unit"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PlanStepInput#default",
+        "note": "One input a Flight Plan step kind takes, kept in SI and shown in its unit"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PlanStepInput#label",
+        "note": "One input a Flight Plan step kind takes, kept in SI and shown in its unit"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PlanStepInput#unit?",
+        "note": "One input a Flight Plan step kind takes, kept in SI and shown in its unit"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PlanStepKind",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PlanStepKind#covers?",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PlanStepKind#group?",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PlanStepKind#id",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PlanStepKind#inputs",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PlanStepKind#name",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PlanStepKind#needsDv?",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ModeSectionProps",
+        "note": "The props a mode's section is given, to report its state"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ModeSectionProps#reportStatus",
+        "note": "The props a mode's section is given, to report its state"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlanStepInput",
+        "note": "One input a Flight Plan step kind takes, kept in SI and shown in its unit"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlanStepInput#default",
+        "note": "One input a Flight Plan step kind takes, kept in SI and shown in its unit"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlanStepInput#label",
+        "note": "One input a Flight Plan step kind takes, kept in SI and shown in its unit"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlanStepInput#unit?",
+        "note": "One input a Flight Plan step kind takes, kept in SI and shown in its unit"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlanStepKind",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlanStepKind#covers?",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlanStepKind#group?",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlanStepKind#id",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlanStepKind#inputs",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlanStepKind#name",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PlanStepKind#needsDv?",
+        "note": "A Flight Plan step kind, the entry of the flight-plan.steps contribution slot"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SectionStatus",
+        "note": "A mode section's state, shown beside its heading"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SectionStatus#detail?",
+        "note": "A mode section's state, shown beside its heading"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SectionStatus#label",
+        "note": "A mode section's state, shown beside its heading"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SectionStatus#tone",
+        "note": "A mode section's state, shown beside its heading"
       },
       {
         "key": "sitrep-sdk ./uplink-load GonogoUplinkManifest#widgets?",

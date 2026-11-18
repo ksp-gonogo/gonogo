@@ -13,6 +13,20 @@ import { plantContribution } from "./stub";
  * part, a hop, a vessel, a body) read it from the scene's own Topics.
  */
 
+plantContribution("flight-plan.steps", {
+  compute: () => [
+    {
+      id: "stub.step",
+      name: "flight-plan.steps",
+      group: "Stub",
+      inputs: {
+        altitude: { label: "Orbit", unit: "km" as const, default: 80_000 },
+      },
+      needsDv: () => 100,
+    },
+  ],
+});
+
 plantContribution("astronaut-complex.readouts", {
   compute: () => [
     { id: "stub", label: "astronaut-complex.readouts", text: "stub" },

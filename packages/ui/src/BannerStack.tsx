@@ -25,7 +25,7 @@ const ToastStack = styled.div`
   align-items: flex-end;
   gap: var(--gap-related);
   min-height: 48px;
-  max-width: calc(100vw - 112px - env(safe-area-inset-right, 0px));
+  max-width: calc(100% - 112px - env(safe-area-inset-right, 0px));
   pointer-events: none;
 
   /* The strip passes clicks through; each banner is at least the strip's height, grows with its own wrapped text, and does not shrink. */
@@ -46,7 +46,7 @@ const ToastStack = styled.div`
     flex-wrap: nowrap;
     align-items: flex-end;
     height: auto;
-    max-width: calc(100vw - 32px - env(safe-area-inset-right, 0px));
+    max-width: calc(100% - 32px - env(safe-area-inset-right, 0px));
     max-height: 40vh;
     overflow: visible;
 

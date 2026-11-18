@@ -36,6 +36,7 @@ export function FabClusterToggle() {
 
 const Toggle = styled.button`
   position: fixed;
+  pointer-events: auto;
   /* BannerStack's 88px, FabPrompt's 72px and Fab's own right: 24px are still
      literal arithmetic on this size and edge, and the dashboard screens reserve
      room beneath their tiles from the same two tokens. */

@@ -119,7 +119,12 @@ describe("registerContribution naming an unknown slot", () => {
 describe("KNOWN_SLOT_IDS", () => {
   it("lists every member of SlotRegistry and ContributionRegistry the sdk declares", () => {
     const declared = new Set<string>();
-    for (const name of ["slots.ts", "contribution-slots.ts", "plots.ts"]) {
+    for (const name of [
+      "slots.ts",
+      "contribution-slots.ts",
+      "plots.ts",
+      "modes.ts",
+    ]) {
       const path = join(import.meta.dirname, "..", "api", name);
       const file = ts.createSourceFile(
         path,

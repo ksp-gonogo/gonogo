@@ -13,7 +13,6 @@ import {
   AutoRecordController,
   CoverageMaskCacheProvider,
   FlightsFab,
-  ReplaySessionBanner,
   ReplaySessionProvider,
 } from "@ksp-gonogo/data";
 import {
@@ -23,7 +22,8 @@ import {
   SerialPortRecoveryWatcher,
 } from "@ksp-gonogo/serial";
 import type { Transport } from "@ksp-gonogo/sitrep-client";
-import { RootProviders } from "@ksp-gonogo/sitrep-sdk";
+import type { ModeDefinition } from "@ksp-gonogo/sitrep-sdk";
+import { RootProviders, stillTrue, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   BannerStack,
   FabClusterProvider,
@@ -67,6 +67,8 @@ import { HeaderBadges } from "../components/HeaderBadges";
 import { HomeFallbackNotice } from "../components/HomeFallbackNotice";
 import { InviteFab } from "../components/InviteFab";
 import { MissionBanner } from "../components/MissionBanner";
+import { ActiveModePane } from "../components/ModePane/ActiveModePane";
+import { TileRegion } from "../components/ModePane/TileRegion";
 import { ModVersionBanner } from "../components/ModVersionBanner";
 import { QuickloadBanner } from "../components/QuickloadBanner";
 import { SceneChangeBanner } from "../components/SceneChangeBanner";
@@ -193,10 +195,25 @@ function NoActiveVessel({
   hasGameSignal: boolean;
   scene: GameScene;
 }) {
+  /* The design Uplink's Topic, named by string: core has no type for a design subject. */
+  const designReading = useTelemetry("design.editor.craft" as never) as {
+    state: string;
+    value?: { name?: string; physics?: unknown[]; revision?: unknown };
+  };
+  const design =
+    scene === "Editor" &&
+    (designReading.state === "observed" || designReading.state === "held")
+      ? designReading.value
+      : undefined;
   if (!hasGameSignal) return null;
   return (
     <NoActiveVessel__Body role="status" aria-live="polite">
       <strong>No active vessel</strong>
+      {design?.name ? (
+        <span>
+          In the editor: {design.name} · {design.physics?.length ?? 0} parts
+        </span>
+      ) : null}
       <span>
         {scene === "Editor"
           ? "Editor scene: nothing is flying."
@@ -561,6 +578,16 @@ function MainDashboard({
   inviteCode?: string;
 }) {
   const { scene, inFlight, hasGameSignal } = useGameContext();
+  const vesselName = stillTrue(
+    useTelemetry("vessel.identity"),
+    undefined,
+  )?.name;
+  const titleFor = (mode: ModeDefinition) =>
+    mode.id === "default" || mode.id === "replay"
+      ? (vesselName ?? "Vessel")
+      : mode.id === "design"
+        ? "Editor"
+        : mode.name;
   const profiles = useMissionProfilesService();
   const { dashboard, controller } = useProfileDashboard(
     profiles,
@@ -601,35 +628,40 @@ function MainDashboard({
           {screen === "pilot" && !inFlight ? (
             <NoActiveVessel hasGameSignal={hasGameSignal} scene={scene} />
           ) : null}
-          <ProfileDashboardProvider value={controller}>
-            <Dashboard
-              items={dashboard.items}
-              layout={dashboard.layout}
-              onLayoutChange={dashboard.handleLayoutChange}
-              updateItemConfig={dashboard.updateItemConfig}
-              updateItemMappings={dashboard.updateItemMappings}
-              updateItemMobileWidth={dashboard.updateItemMobileWidth}
-              updateItemMobileHeight={dashboard.updateItemMobileHeight}
-              removeItem={dashboard.removeItem}
-              moveItemUp={dashboard.moveItemUp}
-              moveItemDown={dashboard.moveItemDown}
-              lastAddedId={dashboard.lastAddedId}
-              clearLastAdded={dashboard.clearLastAdded}
-            />
-          </ProfileDashboardProvider>
-          <FabClusterProvider>
-            <ComponentOverlay />
-            <MainInviteFab code={inviteCode} />
-            <FlightsFabWithMissionHistory />
-            <SerialPortRecoveryWatcher />
-            <FullscreenFab bottom={264} />
-            <SettingsFab bottom={324} />
-            <MissionProfilesFab bottom={384} dashboard={controller} />
-            <MainAlarmsFab />
-          </FabClusterProvider>
-          <ReplaySessionBanner />
-          <BannerStack>
-            {/* BannerStack is row-reverse,
+          <ModeRow>
+            <ActiveModePane titleFor={titleFor} />
+            <ModeRow__Dashboard>
+              <ProfileDashboardProvider value={controller}>
+                <Dashboard
+                  items={dashboard.items}
+                  layout={dashboard.layout}
+                  onLayoutChange={dashboard.handleLayoutChange}
+                  updateItemConfig={dashboard.updateItemConfig}
+                  updateItemMappings={dashboard.updateItemMappings}
+                  updateItemMobileWidth={dashboard.updateItemMobileWidth}
+                  updateItemMobileHeight={dashboard.updateItemMobileHeight}
+                  removeItem={dashboard.removeItem}
+                  moveItemUp={dashboard.moveItemUp}
+                  moveItemDown={dashboard.moveItemDown}
+                  lastAddedId={dashboard.lastAddedId}
+                  clearLastAdded={dashboard.clearLastAdded}
+                />
+              </ProfileDashboardProvider>
+            </ModeRow__Dashboard>
+          </ModeRow>
+          <TileRegion>
+            <FabClusterProvider>
+              <ComponentOverlay />
+              <MainInviteFab code={inviteCode} />
+              <FlightsFabWithMissionHistory />
+              <SerialPortRecoveryWatcher />
+              <FullscreenFab bottom={264} />
+              <SettingsFab bottom={324} />
+              <MissionProfilesFab bottom={384} dashboard={controller} />
+              <MainAlarmsFab />
+            </FabClusterProvider>
+            <BannerStack>
+              {/* BannerStack is row-reverse,
                                         first DOM child sits closest
                                         to the FAB. AlarmBanner stays
                                         adjacent; per-concern pills
@@ -637,31 +669,32 @@ function MainDashboard({
                                         unscheduled warp) stack to its
                                         left as separate single-row
                                         pills. */}
-            <AlarmBanner />
-            <SafetyMarginPill />
-            <FiredAlarmPills />
-            <UnscheduledWarpPill />
-            <AlarmsCancelledPill />
-            <HeaderBadges />
-            <SignalLossIndicator />
-            <SustainedFailureBanner />
-            <SceneChangeBanner />
-            <QuickloadBanner />
-            <FlightOutcomeBanner />
-            <ContactLossBanner />
-            <HomeFallbackNotice />
-            <ModVersionBanner />
-            <UpdateBanner />
-            <UplinkBanners />
-            {hosting && (
-              <>
-                <StationBuildMismatchNotice host={peerHostService} />
-                <StationApprovalPrompt host={peerHostService} />
-              </>
-            )}
-            <SceneSwitchPrompt dashboard={controller} />
-            <ProfileSwitchBanner dashboard={controller} />
-          </BannerStack>
+              <AlarmBanner />
+              <SafetyMarginPill />
+              <FiredAlarmPills />
+              <UnscheduledWarpPill />
+              <AlarmsCancelledPill />
+              <HeaderBadges />
+              <SignalLossIndicator />
+              <SustainedFailureBanner />
+              <SceneChangeBanner />
+              <QuickloadBanner />
+              <FlightOutcomeBanner />
+              <ContactLossBanner />
+              <HomeFallbackNotice />
+              <ModVersionBanner />
+              <UpdateBanner />
+              <UplinkBanners />
+              {hosting && (
+                <>
+                  <StationBuildMismatchNotice host={peerHostService} />
+                  <StationApprovalPrompt host={peerHostService} />
+                </>
+              )}
+              <SceneSwitchPrompt dashboard={controller} />
+              <ProfileSwitchBanner dashboard={controller} />
+            </BannerStack>
+          </TileRegion>
           <PushedDashboardOverlay />
         </Layout>
       </MainAlarmsLauncherScope>
@@ -829,12 +862,23 @@ function MainAlarmsFab() {
   );
 }
 
+const ModeRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gutter-screen);
+`;
+
+const ModeRow__Dashboard = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
 const Layout = styled.div`
   padding: var(--gutter-screen);
   padding-top: calc(var(--gutter-screen) + env(safe-area-inset-top, 0px));
   padding-bottom: calc(
     var(--gutter-screen) + var(--fab-size) + var(--fab-edge) +
-      env(safe-area-inset-bottom, 0px)
+      var(--mode-foot-height, 0px) + env(safe-area-inset-bottom, 0px)
   );
   padding-left: calc(var(--gutter-screen) + env(safe-area-inset-left, 0px));
   padding-right: calc(var(--gutter-screen) + env(safe-area-inset-right, 0px));

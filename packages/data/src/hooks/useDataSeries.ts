@@ -3,13 +3,10 @@ import type {
   TimelinePoint,
   TimelineStore,
 } from "@ksp-gonogo/sitrep-client";
-import {
-  subscribeTopicRead,
-  useTelemetryClientOptional,
-  useTelemetryStoreOptional,
-} from "@ksp-gonogo/sitrep-client";
+import { subscribeTopicRead } from "@ksp-gonogo/sitrep-client";
 import type { StreamStatusValue, Value } from "@ksp-gonogo/sitrep-sdk";
 import { Staleness } from "@ksp-gonogo/sitrep-sdk";
+import { useTelemetrySourceFor } from "@ksp-gonogo/sitrep-sdk/spine";
 import { useCallback, useRef, useSyncExternalStore } from "react";
 import type {
   SeriesBridge,
@@ -250,9 +247,8 @@ export function useDataSeries(key: string, windowSec: number): SeriesRange {
    */
   const builtForRef = useRef<string | undefined>(undefined);
 
-  const client = useTelemetryClientOptional();
-  const store = useTelemetryStoreOptional();
   const topic = key;
+  const { client, store } = useTelemetrySourceFor(topic);
 
   const subscribeStream = useCallback(
     (onStoreChange: () => void) => {

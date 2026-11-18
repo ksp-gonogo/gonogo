@@ -12,6 +12,7 @@ export * from "./CrewStatus";
 export * from "./EscapeProfile";
 export * from "./Experiments";
 export * from "./FleetComms";
+export * from "./FlightPlan";
 export * from "./FuelStatus";
 export * from "./Graph";
 export * from "./GroundTrack";

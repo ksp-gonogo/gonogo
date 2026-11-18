@@ -43,6 +43,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import styled from "styled-components";
 import type { DashboardItem } from "./Dashboard";
 
@@ -412,175 +413,180 @@ export function ComponentOverlay({
         <PlusIcon />
       </Fab>
 
-      {open && (
-        <Backdrop onClick={closeOverlay}>
-          <OverlaySurface
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-label="Add a widget"
-          >
-            <SearchRow>
-              <SearchInput
-                autoFocus
-                placeholder="Search widgets..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={handleSearchKeyDown}
-                role="combobox"
-                aria-expanded
-                aria-controls={listboxId}
-                aria-autocomplete="list"
-                aria-activedescendant={
-                  activeDef ? optionId(activeDef.id) : undefined
-                }
-                aria-label="Search widgets"
-              />
-              <IconButton onClick={closeOverlay} aria-label="Close">
-                <CloseIcon size={16} />
-              </IconButton>
-            </SearchRow>
-            {tagCounts.length > 0 && (
-              <ChipRow
-                role="group"
-                aria-label="Filter by tag (any selected match)"
-              >
-                {tagCounts.map(([tag, count]) => (
-                  <FilterChip
-                    key={tag}
-                    label={tag}
-                    count={count}
-                    selected={selectedTags.has(tag)}
-                    onToggle={() => toggleTag(tag)}
-                  />
-                ))}
-              </ChipRow>
-            )}
-            <ResultsHeader>
-              {filtered.length} of {allComponents.length - seatHidden.length}{" "}
-              widgets
-              {seatHidden.length > 0 && (
-                <Tooltip text={seatHidden.map((def) => def.name).join(", ")}>
-                  <Badge size="sm" tabIndex={0}>
-                    {seatHidden.length} hidden
-                  </Badge>
-                </Tooltip>
-              )}
-            </ResultsHeader>
-            {/* The options sit beside their checkboxes, which a listbox may not contain, so the listbox owns them by id instead. */}
-            <div
-              id={listboxId}
-              role="listbox"
-              aria-label="Available widgets"
-              aria-multiselectable
-              aria-owns={filtered.map((d) => optionId(d.id)).join(" ")}
-            />
-            <List>
-              {filtered.length === 0 && (
-                <Empty>
-                  No widgets match "{query}"
-                  {selectedTags.size > 0 && " in selected tags"}
-                </Empty>
-              )}
-              {filtered.map((def, i) => {
-                const active = i === activeIdx;
-                const ticked = selectedIds.includes(def.id);
-                const onHere = placement.here.get(def.id);
-                const onOthers = placement.elsewhere.get(def.id);
-                return (
-                  <ListRow key={def.id} $active={active} $ticked={ticked}>
-                    <ListItem
-                      id={optionId(def.id)}
-                      role="option"
-                      aria-selected={ticked}
-                      ref={active ? activeOptionRef : undefined}
-                      // Pointer focus moves the roving cursor so a subsequent keystroke continues from where the mouse last hovered.
-                      onMouseEnter={() => setActiveIdx(i)}
-                      // Keeps focus in the search box, so ticking with the pointer does not end keyboard use.
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() =>
-                        multiSelect ? toggleSelected(def.id) : handleAdd([def])
-                      }
-                    >
-                      <ItemHead>
-                        <ItemTitle>
-                          <ItemName>{def.name}</ItemName>
-                          {uplinkOwner(def) && (
-                            <ItemOwner>{uplinkOwner(def)?.name}</ItemOwner>
-                          )}
-                        </ItemTitle>
-                        {onHere !== undefined && (
-                          <OnLayoutMark
-                            role="img"
-                            aria-label={`On this layout${onHere > 1 ? ` x${onHere}` : ""}`}
-                          >
-                            <LayersIcon size={22} />
-                            <OnLayoutTick>
-                              <CheckIcon size={13} />
-                            </OnLayoutTick>
-                          </OnLayoutMark>
-                        )}
-                        {onOthers !== undefined && (
-                          <Tooltip text={`On ${onOthers.join(", ")}`}>
-                            <Badge size="sm">
-                              <BadgeContent>
-                                <LayersIcon size={10} />
-                                On another layout
-                              </BadgeContent>
-                            </Badge>
-                          </Tooltip>
-                        )}
-                      </ItemHead>
-                      {uplinkAdditions(def).length > 0 && (
-                        <ExtenderRow>
-                          {uplinkAdditions(def).map((u) => (
-                            <Tag
-                              key={u.id}
-                              label={u.name}
-                              symbol={<PlusIcon size={8} />}
-                              name
-                            />
-                          ))}
-                        </ExtenderRow>
-                      )}
-                      <ItemDesc>{def.description}</ItemDesc>
-                      <TagRow>
-                        {def.tags.map((t) => (
-                          <Tag key={t} label={t} />
-                        ))}
-                      </TagRow>
-                    </ListItem>
-                    <TickCell>
-                      <TickBox
-                        type="checkbox"
-                        aria-label={`Select ${def.name}`}
-                        checked={ticked}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={() => toggleSelected(def.id)}
-                      />
-                    </TickCell>
-                  </ListRow>
-                );
-              })}
-            </List>
-            {selectedIds.length > 0 && (
-              <AddBar>
-                <Button
-                  variant="ghost"
-                  type="button"
-                  onClick={() => setSelectedIds([])}
+      {/* Over the whole screen, not only the region the menu sits in. */}
+      {open &&
+        createPortal(
+          <Backdrop onClick={closeOverlay}>
+            <OverlaySurface
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-label="Add a widget"
+            >
+              <SearchRow>
+                <SearchInput
+                  autoFocus
+                  placeholder="Search widgets..."
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={handleSearchKeyDown}
+                  role="combobox"
+                  aria-expanded
+                  aria-controls={listboxId}
+                  aria-autocomplete="list"
+                  aria-activedescendant={
+                    activeDef ? optionId(activeDef.id) : undefined
+                  }
+                  aria-label="Search widgets"
+                />
+                <IconButton onClick={closeOverlay} aria-label="Close">
+                  <CloseIcon size={16} />
+                </IconButton>
+              </SearchRow>
+              {tagCounts.length > 0 && (
+                <ChipRow
+                  role="group"
+                  aria-label="Filter by tag (any selected match)"
                 >
-                  Clear
-                </Button>
-                <Button variant="primary" type="button" onClick={addSelected}>
-                  {selectedIds.length === 1
-                    ? "Add 1 widget"
-                    : `Add ${selectedIds.length} widgets`}
-                </Button>
-              </AddBar>
-            )}
-          </OverlaySurface>
-        </Backdrop>
-      )}
+                  {tagCounts.map(([tag, count]) => (
+                    <FilterChip
+                      key={tag}
+                      label={tag}
+                      count={count}
+                      selected={selectedTags.has(tag)}
+                      onToggle={() => toggleTag(tag)}
+                    />
+                  ))}
+                </ChipRow>
+              )}
+              <ResultsHeader>
+                {filtered.length} of {allComponents.length - seatHidden.length}{" "}
+                widgets
+                {seatHidden.length > 0 && (
+                  <Tooltip text={seatHidden.map((def) => def.name).join(", ")}>
+                    <Badge size="sm" tabIndex={0}>
+                      {seatHidden.length} hidden
+                    </Badge>
+                  </Tooltip>
+                )}
+              </ResultsHeader>
+              {/* The options sit beside their checkboxes, which a listbox may not contain, so the listbox owns them by id instead. */}
+              <div
+                id={listboxId}
+                role="listbox"
+                aria-label="Available widgets"
+                aria-multiselectable
+                aria-owns={filtered.map((d) => optionId(d.id)).join(" ")}
+              />
+              <List>
+                {filtered.length === 0 && (
+                  <Empty>
+                    No widgets match "{query}"
+                    {selectedTags.size > 0 && " in selected tags"}
+                  </Empty>
+                )}
+                {filtered.map((def, i) => {
+                  const active = i === activeIdx;
+                  const ticked = selectedIds.includes(def.id);
+                  const onHere = placement.here.get(def.id);
+                  const onOthers = placement.elsewhere.get(def.id);
+                  return (
+                    <ListRow key={def.id} $active={active} $ticked={ticked}>
+                      <ListItem
+                        id={optionId(def.id)}
+                        role="option"
+                        aria-selected={ticked}
+                        ref={active ? activeOptionRef : undefined}
+                        // Pointer focus moves the roving cursor so a subsequent keystroke continues from where the mouse last hovered.
+                        onMouseEnter={() => setActiveIdx(i)}
+                        // Keeps focus in the search box, so ticking with the pointer does not end keyboard use.
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() =>
+                          multiSelect
+                            ? toggleSelected(def.id)
+                            : handleAdd([def])
+                        }
+                      >
+                        <ItemHead>
+                          <ItemTitle>
+                            <ItemName>{def.name}</ItemName>
+                            {uplinkOwner(def) && (
+                              <ItemOwner>{uplinkOwner(def)?.name}</ItemOwner>
+                            )}
+                          </ItemTitle>
+                          {onHere !== undefined && (
+                            <OnLayoutMark
+                              role="img"
+                              aria-label={`On this layout${onHere > 1 ? ` x${onHere}` : ""}`}
+                            >
+                              <LayersIcon size={22} />
+                              <OnLayoutTick>
+                                <CheckIcon size={13} />
+                              </OnLayoutTick>
+                            </OnLayoutMark>
+                          )}
+                          {onOthers !== undefined && (
+                            <Tooltip text={`On ${onOthers.join(", ")}`}>
+                              <Badge size="sm">
+                                <BadgeContent>
+                                  <LayersIcon size={10} />
+                                  On another layout
+                                </BadgeContent>
+                              </Badge>
+                            </Tooltip>
+                          )}
+                        </ItemHead>
+                        {uplinkAdditions(def).length > 0 && (
+                          <ExtenderRow>
+                            {uplinkAdditions(def).map((u) => (
+                              <Tag
+                                key={u.id}
+                                label={u.name}
+                                symbol={<PlusIcon size={8} />}
+                                name
+                              />
+                            ))}
+                          </ExtenderRow>
+                        )}
+                        <ItemDesc>{def.description}</ItemDesc>
+                        <TagRow>
+                          {def.tags.map((t) => (
+                            <Tag key={t} label={t} />
+                          ))}
+                        </TagRow>
+                      </ListItem>
+                      <TickCell>
+                        <TickBox
+                          type="checkbox"
+                          aria-label={`Select ${def.name}`}
+                          checked={ticked}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={() => toggleSelected(def.id)}
+                        />
+                      </TickCell>
+                    </ListRow>
+                  );
+                })}
+              </List>
+              {selectedIds.length > 0 && (
+                <AddBar>
+                  <Button
+                    variant="ghost"
+                    type="button"
+                    onClick={() => setSelectedIds([])}
+                  >
+                    Clear
+                  </Button>
+                  <Button variant="primary" type="button" onClick={addSelected}>
+                    {selectedIds.length === 1
+                      ? "Add 1 widget"
+                      : `Add ${selectedIds.length} widgets`}
+                  </Button>
+                </AddBar>
+              )}
+            </OverlaySurface>
+          </Backdrop>,
+          document.body,
+        )}
     </>
   );
 }

@@ -138,10 +138,6 @@ const LOCAL_FORMATTER_DEBT: Record<string, { count: number; why: string }> = {
     count: 1,
     why: "GAP: MM:SS / HH:MM:SS scrub position, same missing notation",
   },
-  "packages/data/src/replaySession/ReplaySessionBanner.tsx": {
-    count: 1,
-    why: "GAP: MM:SS / HH:MM:SS replay position, same missing notation",
-  },
   "packages/ui-kit/src/graph/lineChartMath.ts": {
     count: 1,
     why: "GAP: axis time labels on a padded clock, same missing notation",

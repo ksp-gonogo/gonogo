@@ -359,6 +359,17 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
+    widgetId: "flight-plan",
+    fixturesPath: "FlightPlan/__fixtures__",
+    outPath: "renders/flight-plan-widget",
+    modes: [
+      // The small form: the current step, the Δv margin, and the next intent.
+      { name: "small-3x5", w: 3, h: 5 },
+      // Default: every step with its intents, over the Δv figures.
+      { name: "default-6x10", w: 6, h: 10 },
+    ],
+  },
+  {
     widgetId: "kepler-period",
     fixturesPath: "KeplerPeriod/__fixtures__",
     outPath: "renders/kepler-period-widget",

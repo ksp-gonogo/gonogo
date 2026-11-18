@@ -9,7 +9,11 @@ import {
   useTelemetryHostDown,
   useUplinkHealthFor,
 } from "@ksp-gonogo/core";
-import { type ChannelFamily, familyPrefix } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type ChannelFamily,
+  familyPrefix,
+  type ModeId,
+} from "@ksp-gonogo/sitrep-sdk";
 import { useClaimCapability } from "@ksp-gonogo/sitrep-sdk/spine";
 import { DimmedOverlay } from "@ksp-gonogo/ui";
 import {
@@ -46,6 +50,8 @@ export interface RequiresGuardProps {
   configChannels?: readonly string[];
   /** The widget's name, kept as the panel heading while its body is refused. */
   title?: string;
+  /** The modes the widget shows in; a design meets `requires: ["flight"]` only when this lists it. */
+  modes?: readonly ModeId[];
   /**
    * Set while the widget shows its tiny form: a lock then draws as the compact
    * mark under this heading, since the full notice does not fit a tiny tile.
@@ -75,6 +81,7 @@ export function RequiresGuard({
   optionalFamilies,
   configChannels,
   title,
+  modes,
   compact,
   children,
 }: RequiresGuardProps) {
@@ -124,6 +131,7 @@ export function RequiresGuard({
         heldOpenBy={heldOpenBy}
         channels={healthChecked}
         title={title}
+        modes={modes}
       >
         {awaitsFirstSignal !== undefined && awaitsFirstSignal !== false ? (
           <AwaitingFirstSignalGate
@@ -192,6 +200,7 @@ function GameGate({
   requires,
   channels,
   title,
+  modes,
   heldOpen,
   children,
 }: RequiresGuardProps & { heldOpen: boolean }) {
@@ -218,6 +227,13 @@ function GameGate({
 
   let bypassed = false;
   for (const req of requires) {
+    if (
+      req === "flight" &&
+      ctx.mode === "design" &&
+      modes?.includes("design") === true
+    ) {
+      continue;
+    }
     if (req === "flight" && !ctx.inFlight) {
       if (!heldOpen) {
         return (

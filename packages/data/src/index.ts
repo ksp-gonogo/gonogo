@@ -85,7 +85,6 @@ export {
   buildResourcesByFlightId,
   deriveTopologyFromVesselParts,
 } from "./hooks/vesselPartsAdapter";
-export * from "./replaySession/ReplaySessionBanner";
 export * from "./replaySession/ReplaySessionController";
 export * from "./replaySession/ReplaySessionProvider";
 export { registerBuiltinDerivedKeys } from "./schema/builtinDerivedKeys";
