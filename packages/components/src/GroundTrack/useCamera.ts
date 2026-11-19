@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -18,7 +19,7 @@ import {
   zoomBounds,
 } from "./camera";
 
-/** The map's view: pan and zoom from the shared diagram primitive, held inside the world, plus the follow mode and the refit on resize the map adds. */
+/** The map's view: pan and zoom from the shared diagram primitive, held inside the world, plus the follow mode the map adds, and a resize that keeps the view. */
 export function useCamera(containerSize: { w: number; h: number } | null) {
   const baseZoom = containerSize ? widestZoom(containerSize.w) : 0.0001;
   const width = containerSize?.w;
@@ -61,10 +62,20 @@ export function useCamera(containerSize: { w: number; h: number } | null) {
     [view.camera, width, height],
   );
 
-  // Reset to global fit on a resize, keyed on w/h so an identical new size object is a no-op.
+  /* The first size fits the world; a later one keeps the centre and the zoom relative to the widest view, so a half-pixel change in the frame does not drop an operator's zoom and a tile resize shows the same part of the world. */
+  const previousWidth = useRef<number | null>(null);
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentional: react only to dimension changes, not object identity
   useEffect(() => {
-    if (containerSize) setCamera(fitCamera(containerSize.w, containerSize.h));
+    if (!containerSize) return;
+    const before = previousWidth.current;
+    previousWidth.current = containerSize.w;
+    if (before === null) {
+      setCamera(fitCamera(containerSize.w, containerSize.h));
+      return;
+    }
+    if (before === containerSize.w) return;
+    const scale = containerSize.w / before;
+    setCamera((c) => ({ ...c, zoom: c.zoom * scale }));
   }, [containerSize?.w, containerSize?.h]);
 
   return {

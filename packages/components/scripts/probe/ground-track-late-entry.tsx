@@ -17,6 +17,8 @@ export interface LateScene {
   mount(opts: { w: number; h: number; flownSeconds?: number }): Promise<void>;
   /** Opens the map onto what the stream holds, then lets the draw settle. */
   openMap(): Promise<void>;
+  /** Re-emits the craft's identity with a new situation, which adds or removes the tag in the toolbar. */
+  setSituation(situation: string): Promise<void>;
 }
 
 let reveal: () => void = () => {};
@@ -41,7 +43,14 @@ function frames(): Promise<void> {
   );
 }
 
+let identity: Record<string, unknown> = {};
+
 const scene: LateScene = {
+  async setSituation(situation) {
+    mounted?.emit("vessel.identity", { ...identity, situation });
+    await frames();
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  },
   async mount({ w, h, flownSeconds = FLOWN_SECONDS }) {
     mounted?.unmount();
     const root = document.getElementById("root");
@@ -54,6 +63,9 @@ const scene: LateScene = {
     const emits = fixture._stream.emits
       .filter((e) => e.channel !== "vessel.flight")
       .map((e) => ({ ...e, meta: { ...e.meta, ...before } }));
+    identity = fixture._stream.emits.find(
+      (e) => e.channel === "vessel.identity",
+    )?.value as Record<string, unknown>;
     const payload = probePayload({
       widgetId: "ground-track",
       fixture: { ...fixture, _stream: { pinnedUt: ut, emits } },

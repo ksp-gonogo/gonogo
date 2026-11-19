@@ -129,6 +129,55 @@ describe("useCamera", () => {
   });
 });
 
+describe("useCamera resize", () => {
+  it("keeps a zoomed-in view's centre and zoom through a sub-pixel resize", () => {
+    const view = render(<Harness size={{ w: 400, h: 200 }} />);
+    const el = view.getByRole("group", { name: "Map" });
+    el.getBoundingClientRect = () =>
+      ({
+        left: 0,
+        top: 0,
+        width: 400,
+        height: 200,
+        right: 400,
+        bottom: 200,
+      }) as DOMRect;
+    for (let i = 0; i < 4; i++) wheelOn(el, { clientX: 200, clientY: 100 });
+    const before = latest.camera;
+    expect(before.zoom).toBeGreaterThan(widestZoom(400));
+    view.rerender(<Harness size={{ w: 400, h: 199 }} />);
+    expect(latest.camera.zoom).toBeCloseTo(before.zoom, 9);
+    expect(latest.camera.panX).toBeCloseTo(before.panX, 6);
+    expect(latest.camera.panY).toBeCloseTo(before.panY, 6);
+  });
+
+  it("rescales a zoomed-in view to a much wider tile, holding the same part of the world in view", () => {
+    const view = render(<Harness size={{ w: 400, h: 200 }} />);
+    const el = view.getByRole("group", { name: "Map" });
+    el.getBoundingClientRect = () =>
+      ({
+        left: 0,
+        top: 0,
+        width: 400,
+        height: 200,
+        right: 400,
+        bottom: 200,
+      }) as DOMRect;
+    for (let i = 0; i < 4; i++) wheelOn(el, { clientX: 200, clientY: 100 });
+    const before = latest.camera;
+    view.rerender(<Harness size={{ w: 800, h: 400 }} />);
+    expect(latest.camera.zoom).toBeCloseTo(before.zoom * 2, 9);
+    expect(latest.camera.panX).toBeCloseTo(before.panX, 6);
+    expect(latest.camera.panY).toBeCloseTo(before.panY, 6);
+  });
+
+  it("keeps the whole-world view whole-world when the tile is resized", () => {
+    const view = render(<Harness size={{ w: 400, h: 200 }} />);
+    view.rerender(<Harness size={{ w: 600, h: 200 }} />);
+    expect(latest.camera.zoom).toBe(widestZoom(600));
+  });
+});
+
 describe("useCamera wheel handling", () => {
   it("leaves a scroll that began outside the map to the page when it carries over the map", () => {
     const el = setup();

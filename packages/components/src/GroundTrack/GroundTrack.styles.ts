@@ -16,6 +16,14 @@ export const BodyLabel = styled.span`
   letter-spacing: 0.05em;
 `;
 
+/* A fixed height, so a tag appearing or going never moves the map below by a fraction of a pixel. */
+export const ToolbarRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--gap-related);
+  height: 24px;
+`;
+
 /* The stack of readout rows; `Panel fitToSize` supplies the fill and the centring. */
 export const CompactReadout = styled.div`
   display: flex;

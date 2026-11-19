@@ -43,6 +43,7 @@ import {
   OverlayCanvas,
   PersistentDataCanvas,
   PredictionCanvas,
+  ToolbarRow,
 } from "./GroundTrack.styles";
 import { GroundTrackConfigComponent } from "./GroundTrackConfig";
 import { MapPoiLayer } from "./MapPoiLayer";
@@ -349,7 +350,7 @@ function GroundTrackComponent({
     (showBodyLabel && displayName) ||
     (showImagingChip && vesselOnThisBody && imagingStatus) ||
     (showFollowToggle && vesselOnThisBody) ? (
-      <>
+      <ToolbarRow>
         {showBodyLabel && displayName && (
           <BodyLabel>
             {displayName}
@@ -378,7 +379,7 @@ function GroundTrackComponent({
           />
         )}
         {showImagingChip && vesselOnThisBody && <OrbitalEventChips />}
-      </>
+      </ToolbarRow>
     ) : undefined;
 
   const trajectoryWithheld = telemetry.trajectoryWithheld;
