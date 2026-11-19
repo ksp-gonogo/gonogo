@@ -262,8 +262,8 @@ function TwrComponent({ w }: Readonly<ComponentProps<TwrConfig>>) {
                   : `Stage ${stage} at ignition`
             }
             strip={
-              showTrend ? (
-                <div ref={sparkRef} style={SPARK_SLOT_STYLE}>
+              <div ref={sparkRef} style={SPARK_SLOT_STYLE}>
+                {showTrend ? (
                   <div style={SPARK_PLOT_STYLE}>
                     <Sparkline
                       values={sparkValues}
@@ -277,52 +277,29 @@ function TwrComponent({ w }: Readonly<ComponentProps<TwrConfig>>) {
                       aria-label="TWR trend"
                     />
                   </div>
-                </div>
-              ) : undefined
+                ) : null}
+              </div>
             }
           >
-            {showTrend ? (
-              <div
-                ref={gaugeRef}
-                style={
-                  showCaption ? GAUGE_SLOT_UNDER_CAPTION : GAUGE_SLOT_STYLE
+            <div
+              ref={gaugeRef}
+              style={showCaption ? GAUGE_SLOT_UNDER_CAPTION : GAUGE_SLOT_STYLE}
+            >
+              <Dial
+                startAngle={-90}
+                sweep={180}
+                value={twrReading}
+                min={GAUGE_MIN}
+                max={GAUGE_MAX}
+                zones={ZONES}
+                width={gaugeW}
+                height={gaugeH}
+                readout="large"
+                aria-label={
+                  twr === undefined ? "TWR" : `TWR ${writeQuantity(twr)}`
                 }
-              >
-                <Dial
-                  startAngle={-90}
-                  sweep={180}
-                  value={twrReading}
-                  min={GAUGE_MIN}
-                  max={GAUGE_MAX}
-                  zones={ZONES}
-                  width={gaugeW}
-                  height={gaugeH}
-                  readout="large"
-                  aria-label={
-                    twr === undefined ? "TWR" : `TWR ${writeQuantity(twr)}`
-                  }
-                />
-              </div>
-            ) : (
-              <div style={FACE_STYLE}>
-                <div ref={gaugeRef} style={GAUGE_LAYER_STYLE}>
-                  <Dial
-                    startAngle={-90}
-                    sweep={180}
-                    value={twrReading}
-                    min={GAUGE_MIN}
-                    max={GAUGE_MAX}
-                    zones={ZONES}
-                    width={gaugeW}
-                    height={gaugeH}
-                    readout="large"
-                    aria-label={
-                      twr === undefined ? "TWR" : `TWR ${writeQuantity(twr)}`
-                    }
-                  />
-                </div>
-              </div>
-            )}
+              />
+            </div>
           </FramedDisplay>
         </Section>
       }
@@ -343,30 +320,13 @@ const CAPTION_CLEARANCE = 28;
 /** The measured size is floored, so the plot is drawn a pixel over and the strip clips it: the line reaches the frame's inner edge instead of stopping a fraction short. */
 const SPARK_OVERDRAW_PX = 1;
 
-/** The dial centres in the room the strip leaves, and anything it cannot fit is clipped here, short of the frame's border. */
+/** The dial centres in the room the strip leaves, whether or not a trend is drawn in the strip, so it does not move when one appears. Anything it cannot fit is clipped here, short of the frame's border. */
 const GAUGE_SLOT_STYLE = {
   flex: "1 1 auto",
   minWidth: 0,
   minHeight: 0,
   display: "flex",
   alignItems: "center",
-  justifyContent: "center",
-  overflow: "hidden",
-} as const;
-
-/** With no trend drawn the dial takes the frame's whole face and its figure sits at the bottom edge. */
-const FACE_STYLE = {
-  position: "relative",
-  flex: 1,
-  minWidth: 0,
-  minHeight: 0,
-} as const;
-
-const GAUGE_LAYER_STYLE = {
-  position: "absolute",
-  inset: 0,
-  display: "flex",
-  alignItems: "flex-end",
   justifyContent: "center",
   overflow: "hidden",
 } as const;

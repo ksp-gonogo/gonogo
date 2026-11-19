@@ -1,0 +1,86 @@
+{
+  "_meta": {
+    "shows": "A craft on the pad with its engines off: the dial shows the ratio the next stage will have at ignition, tagged with that stage, and draws no trend.",
+    "scenario": "next-stage-idle",
+    "notes": "Thrust is zero, so the widget reads the next stage with thrust from the stage table: stage 1 at 200 kN over 10 t."
+  },
+  "_series": {
+    "vessel.propulsion.currentThrust": [
+      {
+        "t": -60000,
+        "v": 0
+      },
+      {
+        "t": 0,
+        "v": 0
+      }
+    ],
+    "vessel.propulsion.totalMass": [
+      {
+        "t": -60000,
+        "v": 10
+      },
+      {
+        "t": 0,
+        "v": 10
+      }
+    ]
+  },
+  "_stream": {
+    "emits": [
+      {
+        "channel": "vessel.propulsion",
+        "value": {
+          "totalMass": 10.0,
+          "dryMass": 6.0,
+          "currentThrust": 0,
+          "availableThrust": 200
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 1,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "trackingStation.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "surfaceGravity": 1.0,
+              "orbit": null
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.structure",
+        "value": {
+          "currentStage": 1
+        }
+      },
+      {
+        "channel": "dv.stages",
+        "value": [
+          {
+            "stage": 1,
+            "thrustActual": 200,
+            "startMass": 10,
+            "twrActual": 12.27
+          }
+        ]
+      }
+    ],
+    "pinnedUt": 0
+  }
+}
