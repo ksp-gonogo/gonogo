@@ -92,6 +92,14 @@ on:
           npm and removes it again, for each package. Use it with dry_run.
         type: boolean
         default: false
+      release_notes:
+        description: >-
+          The finished release notes, as Markdown, instead of the notes
+          generated from the commits. Set by prepare-release.yml when it is given
+          notes. At most 60000 bytes, because a dispatch carries 65535 characters
+          of inputs in all.
+        type: string
+        default: ""
       version:
         description: >-
           rc only: the release the RC is a candidate for, X.Y.Z, instead of what
@@ -203,8 +211,21 @@ jobs:
           # This repo lands by push, so GitHub's generated notes (built from pull
           # requests) would leave the page empty: the notes are the player
           # changelog, under the page's body limit.
-          node scripts/release-changelog.mjs --out release-notes.md --tag "$TAG" \
-            --max-bytes 100000 --link "https://github.com/${GITHUB_REPOSITORY}/commits/${TAG}"
+          # Notes handed to the dispatch are used as given, capped the same way;
+          # they are read from the event payload, never from an environment variable.
+          LINK="https://github.com/${GITHUB_REPOSITORY}/commits/${TAG}"
+          if [ "${GITHUB_EVENT_NAME}" = workflow_dispatch ]; then
+            jq -r '.inputs.release_notes // ""' "$GITHUB_EVENT_PATH" > release-notes-input.md
+          else
+            : > release-notes-input.md
+          fi
+          if [ -s release-notes-input.md ]; then
+            node scripts/release-changelog.mjs --from release-notes-input.md --out release-notes.md \
+              --max-bytes 100000 --link "$LINK"
+          else
+            node scripts/release-changelog.mjs --out release-notes.md --tag "$TAG" \
+              --max-bytes 100000 --link "$LINK"
+          fi
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "::notice::$TAG already has a GitHub Release, replacing its site asset."
             gh release upload "$TAG" gonogo-site.tar.gz --clobber --repo "$GITHUB_REPOSITORY"

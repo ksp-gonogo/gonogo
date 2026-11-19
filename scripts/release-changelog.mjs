@@ -10,21 +10,31 @@
  * survives, once.
  *
  *   node scripts/release-changelog.mjs --out changelog.md [--range A..B | --tag vX.Y.Z]
- *     [--max-bytes N] [--link URL]
- *   node scripts/release-changelog.mjs --out capped.md --from changelog.md --max-bytes N
+ *     [--table FILE --release X.Y.Z] [--max-bytes N] [--link URL]
+ *   node scripts/release-changelog.mjs --out capped.md --from changelog.md [--plain] --max-bytes N
  *
  * --tag takes the range from the previous stable tag to that tag, and the
  * whole history when no stable tag precedes it: a pre-release tag is never
  * public, so fixes that landed in a candidate belong to the next stable one.
- * --from only caps a changelog already written.
+ * --from only caps a changelog already written; --plain, with --from or
+ * without, turns the collapsed sections into plain headings, for a place that
+ * cannot fold.
+ *
+ * With no --range or --tag the range is the previous stable tag to HEAD.
+ * --table (or GONOGO_REWORD_TABLE) names a reword table kept outside the
+ * repository; see release-reword.mjs for its format.
  *
  * With --max-bytes the file is cut at a line boundary and ends with a pointer
  * to --link, for the places that take a bounded field.
  */
 import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, rmSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { applyTable, readParsers, readTable } from "./release-reword.mjs";
+import { makeTempDir } from "./temp-dir.mjs";
 
+const DEFAULT_CONFIG = fileURLToPath(new URL("../cliff.toml", import.meta.url));
 const GIT_CLIFF_VERSION = "2.14.2";
 const REVERT = /^revert(?:\([^)]*\))?!?:\s*(.*)$/i;
 const REVERT_QUOTED = /^revert\s+"(.*)"$/i;
@@ -101,8 +111,6 @@ export function capChangelog(text, maxBytes, link) {
   return `${kept.join("\n").trimEnd()}\n${tail(omitted)}`;
 }
 
-const git = (...args) => gitIn(undefined, ...args);
-
 function gitIn(cwd, ...args) {
   return execFileSync("git", args, {
     cwd,
@@ -111,8 +119,9 @@ function gitIn(cwd, ...args) {
   });
 }
 
-function readCommits(range) {
-  const raw = git(
+function readCommits(range, cwd) {
+  const raw = gitIn(
+    cwd,
     "log",
     "--reverse",
     "--format=%x1e%H%x1f%s%x1f%b",
@@ -127,31 +136,94 @@ function readCommits(range) {
     });
 }
 
-/** The previous stable tag to `tag`, or `..tag` (the whole history, spelled as a range because git-cliff rejects a bare revision) when no stable tag precedes it. */
-export function rangeForTag(tag, cwd) {
+function stableTagBefore(rev, cwd) {
   let tags = "";
   try {
-    tags = gitIn(cwd, "tag", "--sort=-creatordate", "--merged", `${tag}^`);
+    tags = gitIn(cwd, "tag", "--sort=-creatordate", "--merged", rev);
   } catch {
-    // a tag on a root commit has no parent, so nothing precedes it
+    // a root commit has no parent, so nothing precedes it
   }
-  const stable = tags.split("\n").find((t) => /^v\d+\.\d+\.\d+$/.test(t));
+  return tags.split("\n").find((t) => /^v\d+\.\d+\.\d+$/.test(t));
+}
+
+/** The previous stable tag to `tag`, or `..tag` (the whole history, spelled as a range because git-cliff rejects a bare revision) when no stable tag precedes it. */
+export function rangeForTag(tag, cwd) {
+  const stable = stableTagBefore(`${tag}^`, cwd);
   return stable ? `${stable}..${tag}` : `..${tag}`;
 }
 
-function runCliff(range, skipIds) {
-  const args = ["--config", "cliff.toml", "--strip", "all"];
-  for (const id of skipIds) args.push("--skip-commit", id);
-  if (range) args.push(range);
+/** The previous stable tag to HEAD: what the next release would hold. */
+export function rangeForUnreleased(cwd) {
+  const stable = stableTagBefore("HEAD", cwd);
+  return stable ? `${stable}..HEAD` : "..HEAD";
+}
+
+function cliffCommand() {
   const bin = process.env.GIT_CLIFF;
-  const [cmd, pre] = bin
-    ? [bin, []]
-    : ["npx", ["--yes", `git-cliff@${GIT_CLIFF_VERSION}`]];
+  return bin ? [bin, []] : ["npx", ["--yes", `git-cliff@${GIT_CLIFF_VERSION}`]];
+}
+
+function runCliff(args, cwd) {
+  const [cmd, pre] = cliffCommand();
   return execFileSync(cmd, [...pre, ...args], {
+    cwd,
     encoding: "utf8",
     maxBuffer: 1 << 28,
-    stdio: ["ignore", "pipe", "ignore"],
+    stdio: ["ignore", "pipe", "pipe"],
   });
+}
+
+const skipArgs = (ids) => ids.flatMap((id) => ["--skip-commit", id]);
+
+/**
+ * The changelog text for `range`. With a reword `table` the commits are read
+ * as git-cliff's context, the table is applied to that JSON, and the same
+ * template renders it with --from-context; without one git-cliff renders the
+ * range directly.
+ */
+export function buildChangelog({ range, table, cwd, config = DEFAULT_CONFIG }) {
+  const configPath = resolve(cwd ?? ".", config);
+  const skip = skipArgs([...skippedIds(readCommits(range, cwd))]);
+  const base = ["--config", configPath, "--strip", "all"];
+  if (!table)
+    return runCliff([...base, ...skip, ...(range ? [range] : [])], cwd);
+
+  const releases = JSON.parse(
+    runCliff([...base, "--context", ...skip, ...(range ? [range] : [])], cwd),
+  );
+  const rangeShas = gitIn(cwd, "rev-list", ...(range ? [range] : ["HEAD"]))
+    .split("\n")
+    .filter(Boolean);
+  const applied = applyTable(
+    releases,
+    table,
+    rangeShas,
+    readParsers(readFileSync(configPath, "utf8")),
+  );
+  const dir = makeTempDir("reword-context-");
+  try {
+    const contextFile = join(dir, "context.json");
+    writeFileSync(contextFile, JSON.stringify(applied));
+    return runCliff([...base, "--from-context", contextFile], cwd);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+/**
+ * The same notes for a place with no folding (SpaceDock): each collapsed
+ * section becomes a plain heading, in the order it already has.
+ */
+export function plainSections(markdown) {
+  return markdown
+    .replace(
+      /<details>\s*<summary>(.*?)<\/summary>/gs,
+      (_, title) => `## ${title.replace(/<[^>]+>/g, "")}\n`,
+    )
+    .replace(/<\/details>\n?/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+    .concat("\n");
 }
 
 export function main(argv) {
@@ -162,7 +234,9 @@ export function main(argv) {
   const out = opt("--out");
   if (!out) {
     process.stderr.write(
-      "usage: release-changelog.mjs --out FILE [--range A..B] [--max-bytes N] [--link URL]\n",
+      "usage: release-changelog.mjs --out FILE [--range A..B | --tag vX.Y.Z]\n" +
+        "         [--table FILE --release X.Y.Z] [--plain] [--max-bytes N] [--link URL]\n" +
+        "       release-changelog.mjs --out FILE --from FILE [--plain] [--max-bytes N] [--link URL]\n",
     );
     return 2;
   }
@@ -174,9 +248,28 @@ export function main(argv) {
     text = readFileSync(from, "utf8");
   } else {
     const tag = opt("--tag");
-    const range = opt("--range") ?? (tag ? rangeForTag(tag) : undefined);
-    text = `${runCliff(range, skippedIds(readCommits(range))).trim()}\n`;
+    const range =
+      opt("--range") ?? (tag ? rangeForTag(tag) : rangeForUnreleased());
+    const tablePath = opt("--table") ?? process.env.GONOGO_REWORD_TABLE;
+    let table;
+    if (tablePath) {
+      table = readTable(tablePath);
+      const release = opt("--release");
+      if (release !== table.release) {
+        process.stderr.write(
+          `the reword table is for release ${table.release}, and --release says ${release ?? "nothing"}\n`,
+        );
+        return 2;
+      }
+    }
+    try {
+      text = `${buildChangelog({ range, table }).trim()}\n`;
+    } catch (error) {
+      process.stderr.write(`${error.message}\n`);
+      return 1;
+    }
   }
+  if (argv.includes("--plain")) text = plainSections(text);
   if (max) text = capChangelog(text, Number(max), link);
   writeFileSync(out, text);
   process.stdout.write(

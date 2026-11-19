@@ -49,6 +49,11 @@ on:
         required: false
         default: ''
         type: string
+      release_notes:
+        description: 'The finished release notes (Markdown, at most 60000 bytes) for release.yml to publish instead of generating them'
+        required: false
+        default: ''
+        type: string
       dry_run:
         description: 'Print what would be bumped and frozen; commit, tag and push nothing'
         required: false
@@ -115,6 +120,21 @@ jobs:
           echo "Releasing ${NEW}"
           echo "new=${NEW}" >> "$GITHUB_OUTPUT"
           echo "tag=v${NEW}" >> "$GITHUB_OUTPUT"
+
+      # The notes travel to release.yml as a dispatch input, which carries
+      # 65535 characters in all, so too large a body is refused here, before
+      # anything is committed or tagged.
+      - name: Check the release notes fit the dispatch
+        id: notes
+        run: |
+          set -euo pipefail
+          jq -r '.inputs.release_notes // ""' "$GITHUB_EVENT_PATH" > "$RUNNER_TEMP/release-notes.md"
+          BYTES="$(wc -c < "$RUNNER_TEMP/release-notes.md" | tr -d ' ')"
+          if [ "$BYTES" -gt 60000 ]; then
+            echo "::error::the release notes are ${BYTES} bytes; a dispatch carries at most 60000 of them"
+            exit 1
+          fi
+          echo "bytes=${BYTES}" >> "$GITHUB_OUTPUT"
 
       - uses: pnpm/action-setup@v6
         if: ${{ !inputs.dry_run }}
@@ -208,6 +228,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          NOTES=()
+          if [ "${{ steps.notes.outputs.bytes }}" != 0 ]; then
+            NOTES=(-F "release_notes=@${RUNNER_TEMP}/release-notes.md")
+          fi
           gh workflow run release.yml \
             --repo "${{ github.repository }}" \
-            --ref "${{ steps.version.outputs.tag }}"
+            --ref "${{ steps.version.outputs.tag }}" \
+            "${NOTES[@]}"

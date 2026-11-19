@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -10,11 +10,8 @@ import { rangeForTag } from "../../../scripts/release-changelog.mjs";
  * The SpaceDock changelog runs from the previous stable tag to the release
  * tag. A candidate's tag is never public, so a range that started at one
  * would drop every fix that landed in it. Held against a small fixture
- * history, through the range function the changelog script itself runs. The saved
- * cliff-output.md is git-cliff's own output for that history.
+ * history, through the range function the changelog script itself runs.
  */
-
-const ROOT = join(__dirname, "../../..");
 
 let repo: string;
 
@@ -55,24 +52,5 @@ describe("the changelog range", () => {
 
   it("is the whole history before the first stable tag", () => {
     expect(range("v0.1.0")).toBe("..v0.1.0");
-  });
-});
-
-describe("the player text from git-cliff's real output for the fixture history", () => {
-  it("keeps the candidate's fix and the later feature, and leaves CI and docs out", () => {
-    const cliff = readFileSync(
-      join(ROOT, "scripts/__fixtures__/cliff-output.md"),
-      "utf8",
-    );
-    const text = execFileSync(
-      "python3",
-      [join(ROOT, "scripts/spacedock-changelog.py")],
-      { input: cliff, encoding: "utf8" },
-    );
-    expect(text).toContain("**Features**\n\n- A feature after the candidate");
-    expect(text).toContain("**Bug Fixes**\n\n- Fixed in the candidate");
-    expect(text).not.toContain("job tweak");
-    expect(text).not.toContain("Reword a page");
-    expect(text).toContain("Other changes: CI, Documentation");
   });
 });

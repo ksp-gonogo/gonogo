@@ -107,7 +107,7 @@ describe("cliff.toml", () => {
     expect(toml).toMatch(/^filter_unconventional = true$/m);
     const skip = toml.match(/message = "\^\(([^)]*)\)[^"]*", skip = true/);
     expect(skip?.[1].split("|").sort()).toEqual(
-      ["build", "chore", "ci", "refactor", "revert", "style", "test"].sort(),
+      ["build", "chore", "ci", "revert", "style", "test"].sort(),
     );
   });
 });
@@ -124,7 +124,15 @@ describe("the workflows that publish the changelog", () => {
 
   it("cap the SpaceDock changelog in a file, linking the full one", () => {
     expect(build).toMatch(
-      /release-changelog\.mjs --from sd-filtered\.md --out sd-changelog\.md --max-bytes \d+ --link/,
+      /release-changelog\.mjs --from sd-full\.md --plain --out sd-changelog\.md --max-bytes \d+ --link/,
+    );
+  });
+
+  it("take finished release notes from the dispatch payload, never an environment variable", () => {
+    expect(release).toMatch(/\.inputs\.release_notes/);
+    expect(release).not.toMatch(/RELEASE_NOTES/);
+    expect(release).toMatch(
+      /--from release-notes-input\.md --out release-notes\.md/,
     );
   });
 

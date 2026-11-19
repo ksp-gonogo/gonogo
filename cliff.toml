@@ -1,13 +1,45 @@
 [changelog]
 header = ""
 body = """
-{% for group, commits in commits | group_by(attribute="group") %}\
-**{{ group }}**
-{% for commit in commits %}\
-- {{ commit.message | upper_first }} \
-({{ commit.id | truncate(length=7, end="") }})
+{%- set app_types = ["Features", "Bug fixes", "Performance", "Documentation", "Other"] -%}
+{%- set_global has_app = false -%}
+{%- for commit in commits -%}
+{%- if commit.group is starting_with("App/") -%}{%- set_global has_app = true -%}{%- endif -%}
+{%- endfor -%}
+{%- if has_app %}
+## App
+{% for type in app_types %}
+{%- set key = "App/" ~ type -%}
+{%- set rows = commits | filter(attribute="group", value=key) -%}
+{%- if rows | length > 0 %}
+### {{ type }}
+
+{% for commit in rows -%}
+- {{ commit.message | upper_first }}
 {% endfor %}
-{% endfor %}\
+{%- endif %}
+{%- endfor %}
+{%- endif %}
+{%- set uplinks = commits | filter(attribute="group", value="Uplinks") %}
+{%- if uplinks | length > 0 %}
+<details>
+<summary><strong>Uplinks</strong>, and building them ({{ uplinks | length }} {% if uplinks | length == 1 %}change{% else %}changes{% endif %})</summary>
+
+{% for commit in uplinks -%}
+- {% if commit.scope in ["sdk", "sitrep-sdk", "ui-kit", "uplink-tools"] %}{{ commit.scope }}: {{ commit.message }}{% else %}{{ commit.message | upper_first }}{% endif %}
+{% endfor %}
+</details>
+{% endif %}
+{%- set api = commits | filter(attribute="group", value="API") %}
+{%- if api | length > 0 %}
+<details>
+<summary><strong>API</strong>, the mod's own interface ({{ api | length }} {% if api | length == 1 %}change{% else %}changes{% endif %})</summary>
+
+{% for commit in api -%}
+- {{ commit.message | upper_first }}
+{% endfor %}
+</details>
+{% endif %}
 """
 trim = true
 footer = ""
@@ -19,13 +51,16 @@ commit_preprocessors = [
   { pattern = "<what was wrong for the add-on author> no longer happens when <situation>", replace = "a new Uplink's docs script stamps its bundle hash, and new says to rename the placeholder widget" },
 ]
 commit_parsers = [
-  { message = "^(revert|chore|test|ci|build|refactor|style)(\\(.*\\))?!?:", skip = true },
+  { message = "^(revert|chore|test|ci|build|style)(\\(.*\\))?!?:", skip = true },
   { message = "^[a-z]+\\((test|tests|e2e|ci|rig|fold|scripts)\\)!?:", skip = true },
-  { message = "^feat",     group = "Features" },
-  { message = "^fix",      group = "Bug Fixes" },
-  { message = "^perf",     group = "Performance" },
-  { message = "^docs",     group = "Documentation" },
-  { message = ".*",        group = "Other" },
+  { message = "^refactor", group = "Hidden" },
+  { message = "^[a-z]+\\((contract|wire|asyncapi)\\)!?:", group = "API" },
+  { message = "^[a-z]+\\((uplinks?|mod|sdk|sitrep-sdk|ui-kit|uplink-tools|breaking-ground|breakingground|making-history|actiongroupsextended|contractconfigurator|ferramaerospaceresearch|kerbalism|kerbcast|kos|mechjeb|principia|realantennas|realfuels|rp1|scansat|testflight)\\)!?:", group = "Uplinks" },
+  { message = "^feat",     group = "App/Features" },
+  { message = "^fix",      group = "App/Bug fixes" },
+  { message = "^perf",     group = "App/Performance" },
+  { message = "^docs",     group = "App/Documentation" },
+  { message = ".*",        group = "App/Other" },
 ]
 filter_commits = true
 tag_pattern = "v[0-9].*"

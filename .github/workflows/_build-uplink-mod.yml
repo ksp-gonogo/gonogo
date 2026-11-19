@@ -338,24 +338,29 @@ jobs:
           fi
           rm -f sd-listing.json
 
-      # What players read on the SpaceDock version: the Features and Bug Fixes
-      # of the conventional commits from the previous stable tag to this one,
-      # written to a file and capped, never passed through an environment
-      # variable (a whole-history changelog is far over Linux's per-string limit).
+      # What players read on the SpaceDock version: the GitHub Release's own
+      # notes (which release.yml published before dispatching this run, so they
+      # are the finished ones even when they were handed in), with the folded
+      # sections as plain headings, capped. Written to a file and never passed
+      # through an environment variable. With no Release to read it falls back
+      # to the notes generated from the commits.
       - name: Write the SpaceDock player changelog
         if: ${{ steps.sd.outputs.upload == 'true' }}
         env:
           TAG: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
           RELEASE_URL: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ inputs.version }}
         run: |
           set -eu
-          if node scripts/release-changelog.mjs --out sd-full.md --tag "$TAG" && [ -s sd-full.md ]; then
-            python3 scripts/spacedock-changelog.py < sd-full.md > sd-filtered.md
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body > sd-full.md && [ -s sd-full.md ]; then
+            :
+          elif node scripts/release-changelog.mjs --out sd-full.md --tag "$TAG" && [ -s sd-full.md ]; then
+            :
           else
-            git log --oneline -20 > sd-filtered.md
+            git log --oneline -20 > sd-full.md
           fi
-          node scripts/release-changelog.mjs --from sd-filtered.md --out sd-changelog.md --max-bytes 16000 --link "$RELEASE_URL"
-          rm -f sd-full.md sd-filtered.md
+          node scripts/release-changelog.mjs --from sd-full.md --plain --out sd-changelog.md --max-bytes 16000 --link "$RELEASE_URL"
+          rm -f sd-full.md
 
       - name: Publish ${{ inputs.id }} to SpaceDock
         if: ${{ steps.sd.outputs.upload == 'true' }}
