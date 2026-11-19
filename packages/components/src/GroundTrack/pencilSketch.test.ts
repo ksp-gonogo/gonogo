@@ -1,11 +1,14 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
   coastBoostFor,
+  DETAIL_FADE,
   detailFromApparentSize,
+  detailSketchAlpha,
   fieldSize,
   paletteFromTheme,
   planSketch,
   REMOTE_BELOW,
+  runSliced,
   SKETCH_HEIGHT,
   SKETCH_WIDTH,
 } from "./pencilSketch";
@@ -249,5 +252,90 @@ describe("sketch time", () => {
     }
     runs.sort((a, b) => a - b);
     expect(runs[2]).toBeLessThan(60);
+  });
+});
+
+describe("detailSketchAlpha", () => {
+  it("shows none of the close sketch up to twice the widest view and all of it from five times", () => {
+    expect(detailSketchAlpha(1)).toBe(0);
+    expect(detailSketchAlpha(DETAIL_FADE.from)).toBe(0);
+    expect(detailSketchAlpha(DETAIL_FADE.to)).toBe(1);
+    expect(detailSketchAlpha(20)).toBe(1);
+  });
+
+  it("blends in between without a step, rising steadily", () => {
+    let last = 0;
+    for (let z = 2; z <= 5; z += 0.1) {
+      const a = detailSketchAlpha(z);
+      expect(a).toBeGreaterThanOrEqual(last);
+      expect(a - last).toBeLessThan(0.12);
+      last = a;
+    }
+  });
+});
+
+describe("half-cell placement", () => {
+  // Cell centres are symmetric about the map's middle, so a mirrored field must give the mirrored coast.
+  it.each([
+    1, 4,
+  ])("places a contour on the cell centres at fineness %i", (fineness) => {
+    const detail = 1;
+    const base = fieldSize(detail);
+    const cols = base.cols * fineness;
+    const rows = base.rows * fineness;
+    const step = (flip: boolean) => {
+      const f = new Float32Array(cols * rows);
+      for (let y = 0; y < rows; y++)
+        for (let x = 0; x < cols; x++) {
+          const land = flip ? x < cols / 2 : x >= cols / 2;
+          f[y * cols + x] = land ? 0.9 : 0.1;
+        }
+      return f;
+    };
+    const width = 1024;
+    const meanX = (flip: boolean) => {
+      const xs = planSketch(step(flip), width, 512, detail, { fineness })
+        .coast.flat()
+        .map((p) => p[0]);
+      expect(xs.length).toBeGreaterThan(0);
+      return xs.reduce((a, b) => a + b, 0) / xs.length;
+    };
+    expect(meanX(false) + meanX(true)).toBeCloseTo(width, 6);
+  });
+});
+
+describe("runSliced", () => {
+  it("gives the thread back between turns and finishes with the result", async () => {
+    let fired = false;
+    setTimeout(() => {
+      fired = true;
+    }, 0);
+    let firedAtLastStep = false;
+    function* steps(): Generator<void, string, void> {
+      for (let i = 0; i < 40; i++) yield;
+      firedAtLastStep = fired;
+      return "done";
+    }
+    expect(await runSliced(steps(), () => false, 10)).toBe("done");
+    expect(firedAtLastStep).toBe(true);
+  });
+
+  it("gives up with nothing once it is cancelled", async () => {
+    let cancelled = false;
+    function* steps(): Generator<void, number, void> {
+      for (let i = 0; i < 50; i++) yield;
+      return 1;
+    }
+    const run = runSliced(steps(), () => cancelled, 5);
+    cancelled = true;
+    expect(await run).toBeNull();
+  });
+
+  it("returns what the steps return", async () => {
+    function* steps(): Generator<void, number, void> {
+      yield;
+      return 3;
+    }
+    expect(await runSliced(steps(), () => false)).toBe(3);
   });
 });

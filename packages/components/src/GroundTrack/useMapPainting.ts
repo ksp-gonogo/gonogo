@@ -27,7 +27,11 @@ import { groupBaseLayersByUplink } from "./orderBaseLayers";
 import type { BaseSurfaceLayer } from "./paintBaseSurface";
 import type { useBaseLayers } from "./useBaseLayers";
 import type { ModelledPosition } from "./useModelledPosition";
-import { baseIsSketch, usePencilBase } from "./usePencilBase";
+import {
+  baseIsSketch,
+  useDetailPencilBase,
+  usePencilBase,
+} from "./usePencilBase";
 import type { TrajectoryPoint } from "./useTrajectoryBuffer";
 import { shouldSuppressVanillaBase } from "./vanillaSuppression";
 
@@ -138,6 +142,16 @@ export function useMapPainting({
   const predictionRef = useRef<HTMLCanvasElement>(null);
 
   const { textureImage, textureReady } = useBodyTexture(bodyTexture);
+  const detailSketch = useDetailPencilBase(
+    textureImage,
+    bodyTexture,
+    bodyDetail,
+    textureImage !== null &&
+      baseIsSketch(
+        bodyVisited,
+        getAugmentsForSlot("ground-track.base").length > 0,
+      ),
+  );
   const pencil = usePencilBase(
     textureImage,
     bodyTexture,
@@ -182,6 +196,7 @@ export function useMapPainting({
       camera,
       textureImage,
       sketch,
+      inkSketch: sketch ? detailSketch : null,
       bodyColor,
       suppressVanilla,
       layers,
@@ -193,6 +208,7 @@ export function useMapPainting({
     textureReady,
     textureImage,
     pencil,
+    detailSketch,
     bodyVisited,
     bodyColor,
     baseLayers.version,

@@ -17,6 +17,7 @@ import {
   visibleWorldX,
   WORLD_H,
   WORLD_W,
+  widestZoom,
   worldRepeats,
 } from "./camera";
 import {
@@ -24,7 +25,9 @@ import {
   baseSurfacePainted,
   paintBaseSurface,
 } from "./paintBaseSurface";
+import { detailSketchAlpha } from "./pencilSketch";
 import { clamp01, getTrajectoryStyle, lerp } from "./trajectoryStyle";
+import type { InkSketch } from "./usePencilBase";
 import type { TrajectoryPoint } from "./useTrajectoryBuffer";
 
 /**
@@ -90,6 +93,7 @@ export function paintMapBase(
     camera,
     textureImage,
     sketch,
+    inkSketch,
     bodyColor,
     suppressVanilla,
     layers,
@@ -99,6 +103,8 @@ export function paintMapBase(
     camera: Camera;
     textureImage: CanvasImageSource | null;
     sketch?: CanvasImageSource | null;
+    /** The close-zoom sketch, drawn in place of `sketch` once it is ready. */
+    inkSketch?: InkSketch | null;
     bodyColor: string | undefined;
     suppressVanilla: boolean;
     layers: readonly BaseSurfaceLayer[];
@@ -121,6 +127,15 @@ export function paintMapBase(
     paintBaseSurface(ctx, {
       textureImage,
       sketch,
+      inkSketch:
+        inkSketch?.coarse != null
+          ? {
+              coarse: inkSketch.coarse,
+              fine: inkSketch.canvas,
+              paper: inkSketch.paper,
+              alpha: detailSketchAlpha(camera.zoom / widestZoom(w)),
+            }
+          : null,
       bodyColor,
       suppressVanilla,
       layers,

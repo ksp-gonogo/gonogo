@@ -13,6 +13,7 @@
 /** The subset of the 2D context this module touches. */
 export interface BaseSurfaceCtx {
   fillStyle: string | CanvasGradient | CanvasPattern;
+  globalAlpha?: number;
   drawImage(image: CanvasImageSource, dx: number, dy: number): void;
   drawImage(
     image: CanvasImageSource,
@@ -41,6 +42,18 @@ export interface BaseSurfaceInput {
    * dark wash to sit behind the marks.
    */
   sketch?: CanvasImageSource | null;
+  /**
+   * The same sketch of the whole map at two sizes, laid on `paper`: the
+   * whole-map drawing at 1 minus `alpha` and the close-zoom drawing at `alpha`.
+   * Both hold the same lines, so a zoom changes how heavy a line looks and
+   * moves none. Drawn in place of `sketch`.
+   */
+  inkSketch?: {
+    coarse: CanvasImageSource;
+    fine: CanvasImageSource;
+    paper: string;
+    alpha: number;
+  } | null;
   /** Last-resort colour wash for bodies with no texture loaded yet. */
   bodyColor: string | undefined;
   /**
@@ -66,6 +79,7 @@ export function paintBaseSurface(
   {
     textureImage,
     sketch = null,
+    inkSketch = null,
     bodyColor,
     suppressVanilla,
     layers,
@@ -73,13 +87,36 @@ export function paintBaseSurface(
     worldH,
   }: BaseSurfaceInput,
 ): void {
-  if (sketch) ctx.drawImage(sketch, 0, 0, worldW, worldH);
+  if (sketch && !inkSketch) ctx.drawImage(sketch, 0, 0, worldW, worldH);
+  if (sketch && inkSketch) paintInkSketch(ctx, inkSketch, worldW, worldH);
   if (!sketch && !suppressVanilla)
     paintVanilla(ctx, textureImage, bodyColor, worldW, worldH);
 
   for (const layer of layers) {
     ctx.drawImage(layer.canvas, 0, 0, worldW, worldH);
   }
+}
+
+/** The paper, then the whole-map and close-zoom drawings of the same lines, each at its share. */
+function paintInkSketch(
+  ctx: BaseSurfaceCtx,
+  ink: NonNullable<BaseSurfaceInput["inkSketch"]>,
+  worldW: number,
+  worldH: number,
+): void {
+  ctx.fillStyle = ink.paper;
+  ctx.fillRect(0, 0, worldW, worldH);
+  const g = ctx as BaseSurfaceCtx & { globalAlpha?: number };
+  const kept = g.globalAlpha ?? 1;
+  if (ink.alpha < 1) {
+    g.globalAlpha = 1 - ink.alpha;
+    ctx.drawImage(ink.coarse, 0, 0, worldW, worldH);
+  }
+  if (ink.alpha > 0) {
+    g.globalAlpha = ink.alpha;
+    ctx.drawImage(ink.fine, 0, 0, worldW, worldH);
+  }
+  g.globalAlpha = kept;
 }
 
 /** The stock texture under a dimming wash, else a colour wash, else nothing. */

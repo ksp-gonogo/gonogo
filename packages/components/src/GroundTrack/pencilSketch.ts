@@ -60,6 +60,25 @@ export interface PencilOptions {
    * asks for more to keep the same line on screen.
    */
   coastBoost?: number;
+  /**
+   * How many times finer than {@link fieldSize} the luminance grid is read, 1
+   * or more. A fine sketch places its lines from the texture's own pixels, for
+   * a canvas that is shown scaled up.
+   */
+  fineness?: number;
+  /** The gap between hatch lines in canvas pixels, in place of the natural one for the detail. */
+  hatchSpacing?: number;
+  /** How much heavier every stroke is drawn than its natural weight. */
+  lineScale?: number;
+  /** Leave the canvas clear where nothing is drawn, so the caller lays the paper under it. */
+  transparent?: boolean;
+  /**
+   * Also draw the same coastlines, and every `hatchEvery`th hatch line, at a
+   * smaller size of `width` by `height` pixels in their natural weight, for
+   * showing the whole map. It shares every line with the full-size drawing
+   * and differs only in how heavy and how dense the lines are.
+   */
+  coarse?: { width: number; height: number; hatchEvery: number };
 }
 
 type Pt = [number, number];
@@ -74,6 +93,37 @@ export const REMOTE_BELOW = 0.6;
 /** The width of the sketch canvas the widget asks for, which its coastline weight is measured against. */
 export const SKETCH_WIDTH = 1024;
 export const SKETCH_HEIGHT = 512;
+
+/** The size, finer grid and line weights of the close-zoom sketch, drawn once at the world's own pixel size. */
+export const DETAIL_SKETCH = {
+  width: 4096,
+  height: 2048,
+  fineness: 8,
+  hatchSpacing: 5,
+  lineScale: 0.9,
+  /** Every this many hatch lines are kept in the whole-map drawing, which gives it the spacing of the earlier whole-map sketch. */
+  coarseHatchEvery: 6,
+} as const;
+
+/** The zoom, as a multiple of the widest view, where the close-zoom sketch starts to fade in and where it is fully shown. */
+export const DETAIL_FADE = { from: 2, to: 5 } as const;
+
+/**
+ * How much of the close-zoom sketch shows over the whole-map sketch at a zoom
+ * of `zoomRatio` times the widest view: none up to {@link DETAIL_FADE}`.from`,
+ * all from `.to`, an eased blend between, so the two sketches cross over with
+ * no step.
+ */
+export function detailSketchAlpha(zoomRatio: number): number {
+  const t = Math.min(
+    1,
+    Math.max(
+      0,
+      (zoomRatio - DETAIL_FADE.from) / (DETAIL_FADE.to - DETAIL_FADE.from),
+    ),
+  );
+  return t * t * (3 - 2 * t);
+}
 
 /**
  * The coastline boost for a map shown `shownWidth` pixels across: 1 where the
@@ -142,32 +192,34 @@ function blur(
   r: number,
 ): Float32Array {
   if (r < 1) return f;
+  const n = 2 * r + 1;
   let src = f;
   for (let pass = 0; pass < 2; pass++) {
     const tmp = new Float32Array(src.length);
     for (let y = 0; y < rows; y++) {
+      const row = y * cols;
+      let sum = 0;
+      for (let k = -r; k <= r; k++) {
+        sum += src[row + Math.min(cols - 1, Math.max(0, k))];
+      }
       for (let x = 0; x < cols; x++) {
-        let s = 0;
-        let n = 0;
-        for (let k = -r; k <= r; k++) {
-          const xx = Math.min(cols - 1, Math.max(0, x + k));
-          s += src[y * cols + xx];
-          n++;
-        }
-        tmp[y * cols + x] = s / n;
+        tmp[row + x] = sum / n;
+        sum +=
+          src[row + Math.min(cols - 1, x + r + 1)] -
+          src[row + Math.max(0, x - r)];
       }
     }
     const out = new Float32Array(src.length);
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
-        let s = 0;
-        let n = 0;
-        for (let k = -r; k <= r; k++) {
-          const yy = Math.min(rows - 1, Math.max(0, y + k));
-          s += tmp[yy * cols + x];
-          n++;
-        }
-        out[y * cols + x] = s / n;
+    for (let x = 0; x < cols; x++) {
+      let sum = 0;
+      for (let k = -r; k <= r; k++) {
+        sum += tmp[Math.min(rows - 1, Math.max(0, k)) * cols + x];
+      }
+      for (let y = 0; y < rows; y++) {
+        out[y * cols + x] = sum / n;
+        sum +=
+          tmp[Math.min(rows - 1, y + r + 1) * cols + x] -
+          tmp[Math.max(0, y - r) * cols + x];
       }
     }
     src = out;
@@ -225,16 +277,17 @@ function otsu(f: Float32Array, below = 1): number {
 }
 
 /** Marching squares over the cell-centre grid; returns chained polylines in cell units. */
-function contours(
+function* contours(
   f: Float32Array,
   cols: number,
   rows: number,
   thr: number,
-): Pt[][] {
+): Generator<void, Pt[][], void> {
   const segs: [Pt, Pt][] = [];
   const v = (x: number, y: number) => f[y * cols + x] - thr;
   const lerp = (a: number, b: number) => a / (a - b);
   for (let y = 0; y < rows - 1; y++) {
+    if (y % 16 === 0) yield;
     for (let x = 0; x < cols - 1; x++) {
       const a = v(x, y);
       const b = v(x + 1, y);
@@ -281,18 +334,23 @@ function contours(
       }
     }
   }
+
   const key = (p: Pt) => `${p[0].toFixed(3)},${p[1].toFixed(3)}`;
   const ends = new Map<string, number[]>();
-  segs.forEach((s, i) => {
-    for (const p of s) {
+  yield;
+  for (let i = 0; i < segs.length; i++) {
+    if (i % 3000 === 0) yield;
+    for (const p of segs[i]) {
       const k = key(p);
       const arr = ends.get(k);
       if (arr) arr.push(i);
       else ends.set(k, [i]);
     }
-  });
+  }
+
   const used = new Uint8Array(segs.length);
   const out: Pt[][] = [];
+  let steps = 0;
   const next = (p: Pt): number => {
     const arr = ends.get(key(p));
     if (!arr) return -1;
@@ -300,10 +358,12 @@ function contours(
     return -1;
   };
   for (let i = 0; i < segs.length; i++) {
+    if (i % 2000 === 0) yield;
     if (used[i]) continue;
     used[i] = 1;
     const line: Pt[] = [segs[i][0], segs[i][1]];
     for (;;) {
+      if (++steps % 3000 === 0) yield;
       const j = next(line[line.length - 1]);
       if (j < 0) break;
       used[j] = 1;
@@ -312,6 +372,7 @@ function contours(
       line.push(key(p) === last ? q : p);
     }
     for (;;) {
+      if (++steps % 3000 === 0) yield;
       const j = next(line[0]);
       if (j < 0) break;
       used[j] = 1;
@@ -321,6 +382,7 @@ function contours(
     }
     out.push(line);
   }
+
   return out;
 }
 
@@ -422,6 +484,8 @@ export interface SketchPlan {
   coast: Pt[][];
   /** Hatching runs as start and end points. */
   hatch: [Pt, Pt][];
+  /** For each hatch run, the number of its line within its pass, so a sparser drawing can keep every few lines of the same hatching. */
+  hatchLine: number[];
   /** The loose frame of a remote body. */
   frame: Pt[] | null;
 }
@@ -444,26 +508,79 @@ export function planSketch(
   width: number,
   height: number,
   detail: number,
+  grain: { fineness?: number; hatchSpacing?: number } = {},
 ): SketchPlan {
+  return drain(planSketchSteps(raw, width, height, detail, grain));
+}
+
+/** Runs a stepwise computation to its end without pausing. */
+function drain<T>(steps: Generator<void, T, void>): T {
+  for (;;) {
+    const r = steps.next();
+    if (r.done) return r.value;
+  }
+}
+
+/**
+ * Runs a stepwise computation `stepsPerTurn` steps at a time, giving the thread
+ * back between turns, so a long build never holds up a frame. Each step of a
+ * sketch is a few milliseconds at most. `null` when `cancelled` turned true
+ * before it finished.
+ */
+export async function runSliced<T>(
+  steps: Generator<void, T, void>,
+  cancelled: () => boolean,
+  stepsPerTurn = 16,
+): Promise<T | null> {
+  let taken = 0;
+  for (;;) {
+    const r = steps.next();
+    if (r.done) return cancelled() ? null : r.value;
+    if (++taken % stepsPerTurn === 0) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      if (cancelled()) return null;
+    }
+  }
+}
+
+function* planSketchSteps(
+  raw: Float32Array,
+  width: number,
+  height: number,
+  detail: number,
+  grain: { fineness?: number; hatchSpacing?: number },
+): Generator<void, SketchPlan, void> {
   const d = Math.min(1, Math.max(0, detail));
   const remote = d < REMOTE_BELOW;
-  const { cols, rows } = fieldSize(d);
-  const shape = blur(raw, cols, rows, 1);
+  const fineness = Math.max(1, grain.fineness ?? 1);
+  const base = fieldSize(d);
+  const cols = base.cols * fineness;
+  const rows = base.rows * fineness;
+  // The outline is smoothed over a quarter of the world distance a coarse grid would, which keeps small bays.
+  const shape = blur(raw, cols, rows, Math.max(1, Math.round(fineness / 4)));
+  yield;
   const t1 = otsu(shape);
+  yield;
   const t2 = otsu(shape, t1);
+  yield;
   const sx = width / cols;
   const sy = height / rows;
 
   const eps = (remote ? 14 - 10 * d : 9 - 7.5 * d) / sx;
   const minLen = (remote ? 40 : 70 - 50 * d) / sx;
   // A remote body also splits its terrain at two low tones, which gives a few rounded blobs even where the texture has one dominant tone.
-  const all = Array.from(shape).sort((a, b) => a - b);
+  const all = remote ? Array.from(shape).sort((a, b) => a - b) : [];
   const tm = all[Math.floor((all.length - 1) * 0.3)];
   let lines = [
-    ...contours(shape, cols, rows, t1),
-    ...contours(shape, cols, rows, remote ? tm : t2),
+    ...(yield* contours(shape, cols, rows, t1)),
+    ...(yield* contours(shape, cols, rows, remote ? tm : t2)),
     ...(remote
-      ? contours(shape, cols, rows, all[Math.floor((all.length - 1) * 0.15)])
+      ? yield* contours(
+          shape,
+          cols,
+          rows,
+          all[Math.floor((all.length - 1) * 0.15)],
+        )
       : []),
   ];
   if (remote) {
@@ -474,18 +591,25 @@ export function planSketch(
     });
   }
   const kept: Pt[][] = [];
+  let lineCount = 0;
   for (const line of lines) {
+    if (++lineCount % 200 === 0) yield;
     let simple = rdp(line, eps);
     if (pathLength(simple) < minLen) continue;
     if (remote) simple = chaikin(simple, 2);
     kept.push(simple);
   }
-  kept.sort((a, b) => pathLength(b) - pathLength(a));
+  yield;
+  const lengths = new Map(kept.map((l) => [l, pathLength(l)]));
+  kept.sort((a, b) => (lengths.get(b) ?? 0) - (lengths.get(a) ?? 0));
+  yield;
   const coast = kept
     .slice(0, remote ? Math.round(3 + 14 * d) : kept.length)
-    .map((l) => l.map(([x, y]): Pt => [x * sx, y * sy]));
+    // A contour point at cell index i lies on the centre of cell i, half a cell in from its edge.
+    .map((l) => l.map(([x, y]): Pt => [(x + 0.5) * sx, (y + 0.5) * sy]));
 
-  const tone = blur(raw, cols, rows, Math.round(6 - 3 * d));
+  yield;
+  const tone = blur(raw, cols, rows, Math.round(6 - 3 * d) * fineness);
   // Whatever depends on latitude alone is a band across the whole map, which hatches as a stripe.
   if (remote) removeLatitudeBands(tone, cols, rows);
   let lo = 1;
@@ -506,13 +630,13 @@ export function planSketch(
     const cy = Math.min(rows - 1, Math.max(0, Math.floor(y / sy)));
     return (tone[cy * cols + cx] - floor) / (top - floor || 1);
   };
-  const spacing = (remote ? 20 : 15) - 7 * d;
+  const spacing = grain.hatchSpacing ?? (remote ? 20 : 15) - 7 * d;
   const diag = width + height;
   // A remote body's hatch scale spans the main terrain's own tones, so a bright polar cap does not turn the whole terrain band into one dark region.
-  const base = remote ? 0.4 : (t2 - lo) / (hi - lo || 1);
+  const hatchBase = remote ? 0.4 : (t2 - lo) / (hi - lo || 1);
   const passes: [number, number, number][] = [
-    [base, spacing, 1],
-    [base / 2, spacing, -1],
+    [hatchBase, spacing, 1],
+    [hatchBase / 2, spacing, -1],
   ];
   // Remote bodies: hatch fills in toward the poles, so the flat map reads as a sphere.
   const poleLift = (y: number) => {
@@ -522,12 +646,17 @@ export function planSketch(
     return 3 * k * k;
   };
   const hatch: [Pt, Pt][] = [];
+  const hatchLine: number[] = [];
   for (const [limit, step, dir] of passes) {
+    let lineNo = -1;
     for (let off = -height; off < width; off += step) {
+      yield;
+      lineNo++;
       let run: Pt[] = [];
       const flush = () => {
         if (run.length > 1 && pathLength(run) > 10) {
           hatch.push([run[0], run[run.length - 1]]);
+          hatchLine.push(lineNo);
         }
         run = [];
       };
@@ -556,7 +685,7 @@ export function planSketch(
         [m, m],
       ]
     : null;
-  return { coast, hatch, frame };
+  return { coast, hatch, hatchLine, frame };
 }
 
 /**
@@ -571,6 +700,39 @@ export function pencilSketch(
   image: CanvasImageSource,
   o: PencilOptions,
 ): HTMLCanvasElement {
+  return drain(sketchSteps(image, o)).canvas;
+}
+
+/** A finished sketch and the coastlines it was drawn from, in its own canvas pixels. */
+export interface DrawnSketch {
+  canvas: HTMLCanvasElement;
+  /** The same lines at {@link PencilOptions.coarse}'s size, when asked for. */
+  coarse: HTMLCanvasElement | null;
+}
+
+/** {@link pencilSketch} a few steps at a time, so a large sketch is built without holding up a frame. `null` when `cancelled` turned true first. */
+export function pencilSketchSliced(
+  image: CanvasImageSource,
+  o: PencilOptions,
+  cancelled: () => boolean,
+  stepsPerTurn?: number,
+): Promise<DrawnSketch | null> {
+  return runSliced(sketchSteps(image, o), cancelled, stepsPerTurn);
+}
+
+function pieces(pts: Pt[], size: number): Pt[][] {
+  if (pts.length <= size) return [pts];
+  const out: Pt[][] = [];
+  for (let i = 0; i < pts.length - 1; i += size - 1) {
+    out.push(pts.slice(i, Math.min(pts.length, i + size)));
+  }
+  return out;
+}
+
+function* sketchSteps(
+  image: CanvasImageSource,
+  o: PencilOptions,
+): Generator<void, DrawnSketch, void> {
   const { paper, coast, ink, hatch } = o.palette;
   const boost = Math.max(1, o.coastBoost ?? 1);
   const rnd = mulberry32(o.seed);
@@ -580,28 +742,76 @@ export function pencilSketch(
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("no 2d context");
   ctx.fillStyle = paper;
-  ctx.fillRect(0, 0, o.width, o.height);
+  // A large canvas is allocated and filled a strip at a time.
+  for (let y = 0; y < o.height && !o.transparent; y += 256) {
+    ctx.fillRect(0, y, o.width, Math.min(256, o.height - y));
+    yield;
+  }
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 
   const d = Math.min(1, Math.max(0, o.detail));
+  const fineness = Math.max(1, o.fineness ?? 1);
   const { cols, rows } = fieldSize(d);
-  const plan = planSketch(
-    luminanceField(image, cols, rows),
-    o.width,
-    o.height,
-    d,
-  );
+  const field = luminanceField(image, cols * fineness, rows * fineness);
+  yield;
+  const plan = yield* planSketchSteps(field, o.width, o.height, d, {
+    fineness,
+    hatchSpacing: o.hatchSpacing,
+  });
+  const shown = plan.coast;
+  const scale = Math.max(0.1, o.lineScale ?? 1);
   const jitter = 1.6 + 1.8 * (1 - d);
-  for (const px of plan.coast) {
-    graphiteStroke(ctx, px, rnd, jitter, 1.6 * boost, 0.9, coast);
-    graphiteStroke(ctx, px, rnd, jitter * 1.3, 1.2 * boost, 0.5, coast);
+  let drawn = 0;
+  for (const whole of shown) {
+    // A coastline running round the map is thousands of points, which strokes in one long block; pieces that share an end point draw the same line a slice at a time.
+    for (const px of pieces(whole, 150)) {
+      graphiteStroke(ctx, px, rnd, jitter, 1.6 * boost * scale, 0.9, coast);
+      graphiteStroke(
+        ctx,
+        px,
+        rnd,
+        jitter * 1.3,
+        1.2 * boost * scale,
+        0.5,
+        coast,
+      );
+      if (++drawn % 4 === 0) yield;
+    }
   }
-  for (const run of plan.hatch)
-    graphiteStroke(ctx, run, rnd, 1.1, 0.9, 0.5, hatch);
+  for (const run of plan.hatch) {
+    graphiteStroke(ctx, run, rnd, 1.1, 0.9 * scale, 0.5, hatch);
+    if (++drawn % 400 === 0) yield;
+  }
   if (plan.frame) {
     graphiteStroke(ctx, plan.frame, rnd, 1.8, 1.5, 0.8, ink);
     graphiteStroke(ctx, plan.frame, rnd, 2.4, 1.1, 0.45, ink);
   }
-  return canvas;
+  let coarse: HTMLCanvasElement | null = null;
+  if (o.coarse) {
+    coarse = document.createElement("canvas");
+    coarse.width = o.coarse.width;
+    coarse.height = o.coarse.height;
+    const cctx = coarse.getContext("2d");
+    if (!cctx) throw new Error("no 2d context");
+    cctx.lineCap = "round";
+    cctx.lineJoin = "round";
+    const k = o.coarse.width / o.width;
+    const small = (l: Pt[]): Pt[] => l.map(([x, y]): Pt => [x * k, y * k]);
+    const crnd = mulberry32(o.seed ^ 0x9e3779b9);
+    for (const whole of plan.coast) {
+      for (const px of pieces(small(whole), 40)) {
+        graphiteStroke(cctx, px, crnd, 0.4, 2.4 * boost, 0.9, coast);
+        graphiteStroke(cctx, px, crnd, 0.5, 1.8 * boost, 0.5, coast);
+      }
+      yield;
+    }
+    let kept = 0;
+    for (let i = 0; i < plan.hatch.length; i++) {
+      if (plan.hatchLine[i] % o.coarse.hatchEvery !== 0) continue;
+      graphiteStroke(cctx, small(plan.hatch[i]), crnd, 0.4, 0.9, 0.5, hatch);
+      if (++kept % 100 === 0) yield;
+    }
+  }
+  return { canvas, coarse };
 }

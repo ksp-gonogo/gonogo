@@ -1,6 +1,10 @@
 import { renderHook } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
-import { baseIsSketch, usePencilBase } from "./usePencilBase";
+import {
+  baseIsSketch,
+  useDetailPencilBase,
+  usePencilBase,
+} from "./usePencilBase";
 
 describe("usePencilBase", () => {
   it("has no sketch without a texture", () => {
