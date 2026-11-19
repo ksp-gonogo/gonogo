@@ -1,0 +1,187 @@
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+/**
+ * Shared engine for the three one-home modelling reports
+ * (`one-home-constants`, `one-home-topic-values`, `one-home-flight-maths`).
+ *
+ * Each report lists code that models something the app already models in one
+ * place: a physical constant spelled again, a Topic value built without the
+ * generated contract type, a flight-maths function defined a second time. They
+ * are report only. A finding never fails a test; the tests fail only as `BLIND`
+ * (a planted violation the scan did not see) or when the scan itself is broken
+ * (too few sources, a debt entry with no reason).
+ *
+ * Scope for every report: TypeScript and TSX under `packages/<pkg>/src` and
+ * `mod/sitrep-sdk/src`. Test files (`*.test.*`, `*.test-d.*`, `*.spec.*`,
+ * `__tests__`), fixtures (`__fixtures__`), generated code (`__generated__`),
+ * stories, the storybook package and the Playwright and probe scripts are
+ * skipped: a test or fixture is allowed to restate a figure it checks against.
+ */
+
+export interface SourceFile {
+  readonly path: string;
+  readonly text: string;
+}
+
+/** Listed whole and filtered in JS: a git pathspec's double star does not match zero directories, so a file directly under `src` would be missed. */
+const SOURCE_ROOTS = ["packages", "mod/sitrep-sdk/src"];
+
+const IN_SCOPE = /^(?:packages\/[^/]+\/src|mod\/sitrep-sdk\/src)\/.*\.tsx?$/;
+
+const SKIPPED_PATH =
+  /\.test\.|\.test-d\.|\.spec\.|\.stories\.|\/__tests__\/|\/__fixtures__\/|\/__generated__\/|^packages\/storybook\//;
+
+/** Directories of test-only support code, skipped by the constants and maths reports but not by the Topic-value report. */
+const TEST_SUPPORT_PATH = /\/test\/|\/testing\/|\/fixtureBuilders\//;
+
+/** The checkout to scan: `ONE_HOME_ROOT` when set (a read-only look at another branch), else the given repo root. */
+export function scanRoot(repoRoot: string): string {
+  return process.env.ONE_HOME_ROOT || repoRoot;
+}
+
+export interface ListOptions {
+  /** Keep test-support directories (`test/`, `testing/`, `fixtureBuilders/`), which ship fixture builders. */
+  readonly includeTestSupport?: boolean;
+}
+
+/** Every in-scope source file in the working tree, tracked or not yet staged. */
+export function listSources(
+  root: string,
+  options: ListOptions = {},
+): SourceFile[] {
+  const out = execFileSync(
+    "git",
+    [
+      "ls-files",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      ...SOURCE_ROOTS,
+    ],
+    { cwd: root, encoding: "utf8", maxBuffer: 1024 * 1024 * 64 },
+  );
+  return out
+    .split("\n")
+    .filter((p) => IN_SCOPE.test(p))
+    .filter((p) => !SKIPPED_PATH.test(p))
+    .filter((p) => options.includeTestSupport || !TEST_SUPPORT_PATH.test(p))
+    .map((path) => ({ path, text: readSafe(join(root, path)) }));
+}
+
+function readSafe(file: string): string {
+  try {
+    return readFileSync(file, "utf8");
+  } catch {
+    return "";
+  }
+}
+
+/** Source with block and line comments blanked to spaces, so offsets and line numbers still line up. */
+export function stripComments(text: string): string {
+  return text
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+    .replace(
+      /(^|[^:"'`\\])\/\/[^\n]*/g,
+      (m, lead: string) => lead + " ".repeat(m.length - lead.length),
+    );
+}
+
+export function lineOf(text: string, offset: number): number {
+  let line = 1;
+  for (let i = 0; i < offset; i++) if (text.charCodeAt(i) === 10) line++;
+  return line;
+}
+
+export type Debt = Readonly<Record<string, string>>;
+
+export interface Finding {
+  /** Debt key: stable across line moves. */
+  readonly key: string;
+  /** Where to look, `path:line` or `path`. */
+  readonly where: string;
+  readonly detail: string;
+}
+
+export interface Report {
+  readonly known: Finding[];
+  readonly added: Finding[];
+  /** Debt entries whose finding is gone from the tree. */
+  readonly resolved: string[];
+  /** Debt entries carrying no reason. */
+  readonly unexplained: string[];
+  readonly text: string;
+}
+
+/** Grades findings against a debt list: anything not in it is `NEW`, anything in it that is gone is `RESOLVED`. */
+export function gradeAgainstDebt(
+  title: string,
+  findings: readonly Finding[],
+  debt: Debt,
+  sourceCount: number,
+): Report {
+  const byKey = new Map<string, Finding>();
+  for (const f of findings) {
+    const prior = byKey.get(f.key);
+    byKey.set(
+      f.key,
+      prior ? { ...prior, detail: `${prior.detail}; ${f.detail}` } : f,
+    );
+  }
+  const unique = [...byKey.values()];
+  const known = unique.filter((f) => f.key in debt);
+  const added = unique.filter((f) => !(f.key in debt));
+  const resolved = Object.keys(debt).filter((k) => !byKey.has(k));
+  const unexplained = Object.keys(debt).filter((k) => !debt[k]?.trim());
+
+  const lines = [
+    "",
+    `[${title}] REPORT ONLY: ${unique.length} finding(s) in ${sourceCount} source files: ${known.length} known debt, ${added.length} NEW, ${resolved.length} debt entries RESOLVED`,
+  ];
+  for (const f of added) lines.push(`  NEW    ${f.where}  ${f.detail}`);
+  for (const f of known) lines.push(`  known  ${f.where}  ${f.detail}`);
+  for (const k of resolved)
+    lines.push(`  GONE   ${k}  (debt entry can be removed)`);
+  lines.push("");
+  return { known, added, resolved, unexplained, text: lines.join("\n") };
+}
+
+/** Prints a report to stderr, which vitest's default reporter does not swallow for a passing test. */
+export function printReport(report: Report): void {
+  process.stderr.write(`${report.text}\n`);
+}
+
+/**
+ * Exported names of the generated contract (`contract.ts`): the interfaces,
+ * types and enums a Topic payload can be typed as.
+ */
+export function contractTypeNames(root: string): Set<string> {
+  const text = readSafe(
+    join(root, "mod/sitrep-sdk/src/__generated__/contract.ts"),
+  );
+  const names = new Set<string>();
+  for (const m of text.matchAll(
+    /export\s+(?:declare\s+)?(?:interface|type|enum|class)\s+(\w+)/g,
+  )) {
+    if (m[1]) names.add(m[1]);
+  }
+  return names;
+}
+
+/** Identifiers a file imports by name, with `type` modifiers and `as` aliases resolved to the exported name. */
+export function importedNames(text: string): Set<string> {
+  const names = new Set<string>();
+  for (const m of text.matchAll(/import\s+(?:type\s+)?\{([^}]*)\}\s*from/g)) {
+    for (const part of (m[1] ?? "").split(",")) {
+      const name = part
+        .trim()
+        .replace(/^type\s+/, "")
+        .split(/\s+as\s+/)[0]
+        ?.trim();
+      if (name) names.add(name);
+    }
+  }
+  return names;
+}
