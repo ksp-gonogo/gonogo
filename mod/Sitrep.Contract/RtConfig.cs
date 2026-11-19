@@ -268,6 +268,8 @@ public static class RtConfig
                 typeof(ConverterSwitchArgs),
                 // vessel.invokePartAction args (fire one PAW button)
                 typeof(InvokePartActionArgs),
+                // vessel.setPartField args (set one PAW field)
+                typeof(SetPartFieldArgs),
                 // vessel.gameWindows channel payload and vessel.gameWindow.press args
                 typeof(GameWindows),
                 typeof(GameWindow),
@@ -433,6 +435,7 @@ public static class RtConfig
                 // wire payload has.
                 typeof(PartActions),
                 typeof(PartActionEntry),
+                typeof(PartWindowItem),
                 // spaceCenter.launchSites / spaceCenter.scene
                 typeof(LaunchSiteEntry),
                 typeof(SpaceCenterScene),

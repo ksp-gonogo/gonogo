@@ -64,24 +64,204 @@ namespace Gonogo.KSP
             // the order KSP builds the window in. PartActionsViewProvider
             // preserves it rather than re-sorting, so the operator's list reads
             // in the same order as the game's.
-            Collect(part.Events, moduleName: null, entries);
+            Collect(part.Events, moduleName: null, moduleIndex: null, entries);
 
             if (part.Modules != null)
             {
-                foreach (PartModule module in part.Modules)
+                for (var i = 0; i < part.Modules.Count; i++)
                 {
-                    if (module == null)
+                    var module = part.Modules[i];
+                    // The game's window leaves out a module that is switched off, with its buttons and its rows.
+                    if (module == null || !module.isEnabled)
                     {
                         continue;
                     }
-                    Collect(module.Events, module.moduleName, entries);
+                    Collect(module.Events, module.moduleName, i, entries);
                 }
             }
 
             return entries;
         }
 
-        public CommandResult Invoke(string partId, string eventName)
+        public IReadOnlyList<PartWindowItem> ListWindow(string partId)
+        {
+            var items = new List<PartWindowItem>();
+            var vessel = ActiveVesselScope.Current;
+            var part = vessel == null || vessel.parts == null ? null : FindPart(vessel, partId);
+            if (part == null)
+            {
+                return items;
+            }
+
+            CollectFields(part.Fields, part, "", items);
+            if (part.Modules != null)
+            {
+                foreach (PartModule module in part.Modules)
+                {
+                    if (module != null && module.isEnabled)
+                    {
+                        CollectFields(module.Fields, module, module.ClassName, items);
+                    }
+                }
+            }
+
+            if (part.Resources != null)
+            {
+                foreach (PartResource resource in part.Resources)
+                {
+                    if (resource == null || resource.info == null || !resource.info.isVisible)
+                    {
+                        continue;
+                    }
+
+                    items.Add(new PartWindowItem
+                    {
+                        Kind = "resource",
+                        Name = resource.resourceName,
+                        Label = resource.info.displayName ?? resource.resourceName,
+                        Number = resource.amount,
+                        Min = 0,
+                        Max = resource.maxAmount,
+                        Flows = resource.flowState,
+                    });
+                }
+            }
+
+            return items;
+        }
+
+        private static void CollectFields(BaseFieldList? fields, object host, string moduleName, List<PartWindowItem> into)
+        {
+            if (fields == null)
+            {
+                return;
+            }
+
+            foreach (BaseField field in fields)
+            {
+                if (field == null || !field.guiActive)
+                {
+                    continue;
+                }
+
+                var control = field.uiControlFlight;
+
+                var label = PartActionText.Clean(field.guiName);
+                if (label == null)
+                {
+                    continue;
+                }
+
+                object? raw = null;
+                string text;
+                try
+                {
+                    raw = field.GetValue(host);
+                    text = PartWindowText.LabelValue(
+                        raw is string held ? PartActionText.Resolve(held) : null,
+                        PartActionText.Resolve(field.GuiString(host)),
+                        label,
+                        PartActionText.Resolve(field.guiName));
+                }
+                catch (Exception ex)
+                {
+                    GonogoLog.Warn("a part field read threw", ex);
+                    continue;
+                }
+
+                var item = new PartWindowItem
+                {
+                    Module = moduleName,
+                    Name = field.name,
+                    Label = label,
+                    Group = GroupName(field.group),
+                    Text = text,
+                    Advanced = field.advancedTweakable,
+                    Kind = "label",
+                };
+
+                switch (control)
+                {
+                    case UI_FloatRange range:
+                        item.Kind = "slider";
+                        item.Number = ToNumber(raw);
+                        item.Min = range.minValue;
+                        item.Max = range.maxValue;
+                        item.Step = range.stepIncrement;
+                        item.Editable = control.controlEnabled;
+                        break;
+                    case UI_Toggle toggle:
+                        item.Kind = "toggle";
+                        item.Number = raw is bool on ? (on ? 1d : 0d) : (double?)null;
+                        item.Editable = control.controlEnabled;
+                        item.Options = OptionNames(new[] { toggle.disabledText, toggle.enabledText });
+                        item.Text = NameAt(item.Options, item.Number, item.Text);
+                        break;
+                    case UI_ChooseOption choose:
+                        item.Kind = "option";
+                        item.Options = OptionNames(choose.display ?? choose.options);
+                        item.Number = Array.IndexOf(choose.options ?? new string[0], raw as string ?? Convert.ToString(raw));
+                        item.Text = NameAt(item.Options, item.Number, item.Text);
+                        item.Editable = control.controlEnabled;
+                        break;
+                    case UI_Cycle cycle:
+                        item.Kind = "cycle";
+                        item.Options = OptionNames(cycle.stateNames);
+                        item.Number = raw is string named
+                            ? Array.IndexOf(cycle.stateNames ?? new string[0], named)
+                            : ToNumber(raw);
+                        item.Text = NameAt(item.Options, item.Number, item.Text);
+                        item.Editable = control.controlEnabled;
+                        break;
+                }
+
+                into.Add(item);
+            }
+        }
+
+        /// <summary>Each entry as the game prints it, with its localisation tag resolved.</summary>
+        private static List<string> OptionNames(string[]? names)
+        {
+            var resolved = new List<string>();
+            if (names != null)
+            {
+                foreach (var name in names)
+                {
+                    resolved.Add(PartActionText.ResolveCached(name));
+                }
+            }
+
+            return resolved;
+        }
+
+        /// <summary>The entry the current position names, or <paramref name="printed"/> when the position is outside the list.</summary>
+        private static string NameAt(List<string> names, double? position, string printed)
+        {
+            if (position.HasValue)
+            {
+                var index = (int)position.Value;
+                if (index >= 0 && index < names.Count && index == position.Value)
+                {
+                    return names[index];
+                }
+            }
+
+            return printed;
+        }
+
+        private static double? ToNumber(object? raw)
+        {
+            try
+            {
+                return raw == null ? (double?)null : Convert.ToDouble(raw, System.Globalization.CultureInfo.InvariantCulture);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        public CommandResult Invoke(string partId, string eventName, int? moduleIndex)
         {
             var vessel = ActiveVesselScope.Current;
             if (vessel == null || vessel.parts == null)
@@ -103,10 +283,10 @@ namespace Gonogo.KSP
                 // vessel but not across those events, so this is the expected
                 // failure for a client holding a slightly stale id, and it must
                 // read as a clean failure rather than a silent no-op.
-                return CommandResult.Fail(CommandErrorCode.NotFound);
+                return CommandResult.Fail(CommandErrorCode.NotFound, "this part is not on the craft");
             }
 
-            var found = FindEvent(part, eventName, out var moduleName);
+            var found = FindEvent(part, eventName, moduleIndex, out var moduleName);
             if (found == null)
             {
                 // The part is there but exposes no such button (a mode change
@@ -174,13 +354,247 @@ namespace Gonogo.KSP
             return CommandResult.Ok();
         }
 
+        public CommandResult SetField(string partId, string moduleName, string fieldName, double value)
+        {
+            var vessel = ActiveVesselScope.Current;
+            if (vessel == null || vessel.parts == null)
+            {
+                return CommandResult.Fail(CommandErrorCode.NoVessel);
+            }
+
+            var ambiguous = PartIdRule.AmbiguousRefusal(partId, CountParts(vessel, partId));
+            if (ambiguous != null)
+            {
+                return ambiguous;
+            }
+
+            var part = FindPart(vessel, partId);
+            if (part == null)
+            {
+                return CommandResult.Fail(CommandErrorCode.NotFound, "this part is not on the craft");
+            }
+
+            PartModule? module = null;
+            BaseField? field;
+            if (string.IsNullOrEmpty(moduleName))
+            {
+                field = part.Fields?[fieldName];
+            }
+            else
+            {
+                field = FindModuleField(part, moduleName, fieldName, out module);
+                if (module == null)
+                {
+                    return CommandResult.Fail(CommandErrorCode.CapabilityMismatch, "this part has no such module");
+                }
+            }
+
+            if (field == null)
+            {
+                return CommandResult.Fail(CommandErrorCode.CapabilityMismatch, "this part has no such field");
+            }
+
+            var control = field.uiControlFlight;
+            if (!field.guiActive || control == null || !control.controlEnabled)
+            {
+                return CommandResult.Fail(CommandErrorCode.CapabilityMismatch, "the game does not offer that field in flight");
+            }
+
+            var converted = ConvertForControl(field, control, value, out var refusal);
+            if (refusal != null)
+            {
+                return refusal;
+            }
+
+            var host = (object?)module ?? part;
+            try
+            {
+                var before = field.GetValue(host);
+                var changed = !Equals(before, converted);
+
+                if ((control.affectSymCounterparts & UI_Scene.Flight) != UI_Scene.None)
+                {
+                    changed |= WriteSymmetryCounterparts(part, module, field, converted);
+                }
+
+                if (!changed)
+                {
+                    return CommandResult.Ok();
+                }
+
+                field.SetValue(converted, host);
+                control.onFieldChanged?.Invoke(field, before);
+            }
+            catch (Exception ex)
+            {
+                GonogoLog.Warn("a part field write threw", ex);
+                return PartActionFault.AfterThrow(
+                    part.vessel != vessel, ThirdPartyFault.Describe("that part's field", ex));
+            }
+
+            return CommandResult.Ok();
+        }
+
+        /// <summary>
+        /// Writes the field on every symmetry counterpart the way the game's own
+        /// window does: the counterpart's module at the same position when it is
+        /// the same type, else the module of the same class name, then the
+        /// counterpart control's symmetry callback. Returns whether any counterpart
+        /// held a different value.
+        /// </summary>
+        private static bool WriteSymmetryCounterparts(Part part, PartModule? module, BaseField field, object converted)
+        {
+            var changed = false;
+            var counterparts = part.symmetryCounterparts;
+            if (counterparts == null)
+            {
+                return false;
+            }
+
+            var index = module == null ? -1 : part.Modules.IndexOf(module);
+            foreach (var other in counterparts)
+            {
+                if (other == null)
+                {
+                    continue;
+                }
+
+                BaseFieldList? fields;
+                if (module == null)
+                {
+                    fields = other.Fields;
+                }
+                else
+                {
+                    PartModule? twin = null;
+                    if (index >= 0 && index < other.Modules.Count && other.Modules[index] != null
+                        && other.Modules[index].GetType() == module.GetType())
+                    {
+                        twin = other.Modules[index];
+                    }
+                    twin ??= other.Modules[module.ClassName];
+                    fields = twin?.Fields;
+                }
+
+                if (fields == null || fields[field.name] == null)
+                {
+                    continue;
+                }
+
+                changed |= !Equals(fields.GetValue(field.name), converted);
+                fields.SetValue(field.name, converted);
+                fields[field.name].uiControlFlight?.onSymmetryFieldChanged?.Invoke(field, converted);
+            }
+
+            return changed;
+        }
+
+        private static BaseField? FindModuleField(Part part, string moduleName, string fieldName, out PartModule? module)
+        {
+            module = null;
+            if (part.Modules == null)
+            {
+                return null;
+            }
+
+            foreach (PartModule candidate in part.Modules)
+            {
+                if (candidate == null || (candidate.moduleName != moduleName && candidate.ClassName != moduleName))
+                {
+                    continue;
+                }
+
+                module ??= candidate;
+                var found = candidate.Fields?[fieldName];
+                if (found != null)
+                {
+                    module = candidate;
+                    return found;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// The value in the type the field holds, or a refusal when the field's
+        /// control cannot take it. A control of a kind this does not know is refused
+        /// rather than written through unchecked.
+        /// </summary>
+        private static object ConvertForControl(BaseField field, UI_Control control, double value, out CommandResult? refusal)
+        {
+            refusal = null;
+            var type = field.FieldInfo?.FieldType ?? (field.MemberInfo as System.Reflection.PropertyInfo)?.PropertyType;
+
+            switch (control)
+            {
+                case UI_Toggle _:
+                    if (type != typeof(bool) || (value != 0d && value != 1d))
+                    {
+                        refusal = CommandResult.Fail(CommandErrorCode.Range, "a switch takes 1 for on or 0 for off");
+                        return value;
+                    }
+                    return value == 1d;
+
+                case UI_FloatRange range:
+                    return NumberInRange(type, value, range.minValue, range.maxValue, out refusal);
+
+                case UI_FloatEdit edit:
+                    return NumberInRange(type, value, edit.minValue, edit.maxValue, out refusal);
+
+                case UI_ChooseOption choose:
+                    return OptionAt(type, value, choose.options, out refusal);
+
+                case UI_Cycle cycle:
+                    return OptionAt(type, value, cycle.stateNames, out refusal);
+
+                default:
+                    refusal = CommandResult.Fail(CommandErrorCode.CapabilityMismatch, "that field has no control that takes a value");
+                    return value;
+            }
+        }
+
+        private static object NumberInRange(Type? type, double value, double min, double max, out CommandResult? refusal)
+        {
+            refusal = null;
+            if (value < min || value > max)
+            {
+                refusal = CommandResult.Fail(CommandErrorCode.Range, "that value is outside the range the field takes");
+                return value;
+            }
+
+            if (type == typeof(float)) return (float)value;
+            if (type == typeof(double)) return value;
+            if (type == typeof(int)) return (int)Math.Round(value);
+
+            refusal = CommandResult.Fail(CommandErrorCode.CapabilityMismatch, "that field is not a number");
+            return value;
+        }
+
+        private static object OptionAt(Type? type, double value, string[]? options, out CommandResult? refusal)
+        {
+            refusal = null;
+            var position = (int)Math.Round(value);
+            if (options == null || position != value || position < 0 || position >= options.Length)
+            {
+                refusal = CommandResult.Fail(CommandErrorCode.Range, "that list has no entry at that position");
+                return value;
+            }
+
+            if (type == typeof(string)) return options[position];
+            if (type == typeof(int)) return position;
+
+            refusal = CommandResult.Fail(CommandErrorCode.CapabilityMismatch, "that field does not take a list position");
+            return value;
+        }
+
         /// <summary>
         /// Maps every <c>guiActive</c> event on one <see cref="BaseEventList"/>
         /// into <paramref name="into"/>. <paramref name="moduleName"/> is null for
         /// the part's own list, which is what
         /// <see cref="PartActionEntry.ModuleName"/> reports.
         /// </summary>
-        private static void Collect(BaseEventList? events, string? moduleName, List<PartActionEntry> into)
+        private static void Collect(BaseEventList? events, string? moduleName, int? moduleIndex, List<PartActionEntry> into)
         {
             if (events == null)
             {
@@ -196,7 +610,10 @@ namespace Gonogo.KSP
 
                 // A row whose label carries no words (a lone "-") is a spacer in
                 // the game's window and has nothing to press or read.
-                var label = PartActionText.Clean(ev.guiName);
+                // The game draws a button with no label as its event name, and so does this.
+                var label = string.IsNullOrWhiteSpace(ev.guiName)
+                    ? PartActionText.Clean(ev.name)
+                    : PartActionText.Clean(ev.guiName);
                 if (label == null)
                 {
                     continue;
@@ -210,6 +627,7 @@ namespace Gonogo.KSP
                     // the code id, used only when a group carries no display name.
                     Group = GroupName(ev.group),
                     ModuleName = moduleName,
+                    ModuleIndex = moduleIndex,
                     // A variant-disabled event (a part variant that removes the
                     // feature) is inert exactly like !active, so it reports as
                     // not-active rather than as a separate flag the client would
@@ -228,7 +646,7 @@ namespace Gonogo.KSP
             {
                 return null;
             }
-            return PartActionText.Clean(group.displayName) ?? PartActionText.Clean(group.name);
+            return PartWindowText.Group(PartActionText.Clean, group.displayName, group.name);
         }
 
         /// <summary>
@@ -240,10 +658,10 @@ namespace Gonogo.KSP
         /// more useful than the NotFound-shaped answer a filtered lookup would
         /// give.
         /// </summary>
-        private static BaseEvent? FindEvent(Part part, string eventName, out string? moduleName)
+        private static BaseEvent? FindEvent(Part part, string eventName, int? moduleIndex, out string? moduleName)
         {
             moduleName = null;
-            var own = FindIn(part.Events, eventName);
+            var own = moduleIndex == null ? FindIn(part.Events, eventName) : null;
             if (own != null)
             {
                 return own;
@@ -254,9 +672,10 @@ namespace Gonogo.KSP
                 return null;
             }
 
-            foreach (PartModule module in part.Modules)
+            for (var i = 0; i < part.Modules.Count; i++)
             {
-                if (module == null)
+                var module = part.Modules[i];
+                if (module == null || (moduleIndex != null && moduleIndex != i))
                 {
                     continue;
                 }

@@ -303,7 +303,8 @@ function DelayFigure({ seconds }: { seconds: number }) {
   return seconds < 1 ? (
     <Countdown value={value("s", seconds)} precise />
   ) : (
-    <Unit value={value("s", seconds)} />
+    // The ladder truncates, which suits a countdown; a delay is a measurement, so 3.9997 s reads as 4s.
+    <Unit value={value("s", Math.round(seconds))} />
   );
 }
 

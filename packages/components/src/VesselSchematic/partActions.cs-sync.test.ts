@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { INVOKE_PART_ACTION_COMMAND } from "./PartActionMenu";
+import { SET_PART_FIELD_COMMAND } from "./PartWindow";
 import { PART_ACTIONS_TOPIC_PREFIX, partActionsTopic } from "./usePartActions";
 
 /**
@@ -38,6 +39,12 @@ describe("part actions name what the mod publishes and handles", () => {
   it("invokes the command PartActionCommandProvider handles", () => {
     expect(INVOKE_PART_ACTION_COMMAND).toBe(
       csConst(COMMAND_PROVIDER, "InvokePartActionCommand"),
+    );
+  });
+
+  it("sets a field with the command PartActionCommandProvider handles", () => {
+    expect(SET_PART_FIELD_COMMAND).toBe(
+      csConst(COMMAND_PROVIDER, "SetPartFieldCommand"),
     );
   });
 });

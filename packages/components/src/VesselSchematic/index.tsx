@@ -21,6 +21,7 @@ import { magnitudeOf, magnitudeOr } from "../shared/magnitude";
 import { externalTempTint } from "./ambientTint";
 import { groupByPart } from "./groupByPart";
 import { INVOKE_PART_ACTION_COMMAND } from "./PartActionMenu";
+import { SET_PART_FIELD_COMMAND } from "./PartWindow";
 import { seatRadialParts } from "./radialSeat";
 import { StageColumn, showsStagesOnly } from "./StageColumn";
 import { computeShipLayout } from "./shipLayout";
@@ -39,6 +40,9 @@ import { usePartShapes } from "./usePartShapes";
 import { useSchematicTransfer } from "./useSchematicTransfer";
 import { vesselSchematicSections } from "./VesselSchematicBody";
 import read from "./vessel-schematic.declarations.g";
+
+/** How long the line saying why a part window closed stays on screen. */
+const CLOSED_NOTICE_MS = 8000;
 
 const topics = defineTopicManifest({
   channels: [
@@ -261,6 +265,12 @@ function VesselSchematicComponent({
 
   // A state-backed ref so the effect re-attaches when DiagramWrap mounts, which happens only once topology exists.
   const [wrapEl, setWrapEl] = useState<HTMLDivElement | null>(null);
+  const [closedNotice, setClosedNotice] = useState<string | null>(null);
+  useEffect(() => {
+    if (closedNotice === null) return;
+    const timer = setTimeout(() => setClosedNotice(null), CLOSED_NOTICE_MS);
+    return () => clearTimeout(timer);
+  }, [closedNotice]);
   const [size, setSize] = useState({ w: 320, h: 240 });
   useEffect(() => {
     if (!wrapEl || typeof ResizeObserver === "undefined") return;
@@ -281,6 +291,7 @@ function VesselSchematicComponent({
 
   // The command handle lives at the always-mounted widget: the menu closes when an action fires, and its in-flight delay row must outlive it.
   const invokePartAction = useCommand(INVOKE_PART_ACTION_COMMAND);
+  const setPartField = useCommand(SET_PART_FIELD_COMMAND);
 
   const partActionCommand = useCallback(
     (
@@ -288,10 +299,16 @@ function VesselSchematicComponent({
       eventName: string,
       actionLabel: string,
       partTitle: string,
+      moduleIndex?: number | null,
     ) =>
       invokePartAction.with(
         // The wire keys parts by stringified flightID, the form every cross-channel join uses.
-        { partId: String(flightId), eventName },
+        {
+          partId: String(flightId),
+          eventName,
+          // Names the module when a part carries several of one class, each with a button of the same name.
+          ...(moduleIndex == null ? {} : { moduleIndex }),
+        },
         // Operator-facing description for the delay readouts: the raw event name alone would not say which part it acts on.
         { label: `${actionLabel} on ${partTitle}` },
       ),
@@ -363,6 +380,8 @@ function VesselSchematicComponent({
         sections={vesselSchematicSections({
           stagesOnly: showsStagesOnly(w),
           destroyed,
+          closedNotice,
+          onClosedNotice: setClosedNotice,
           topology,
           parts,
           hottestPartId,
@@ -382,6 +401,7 @@ function VesselSchematicComponent({
           onStartTransferPick: transfer.onStartTransferPick,
           contributedActionCommand,
           partActionCommand,
+          setPartField,
           turn,
           onTurn: setTurn,
           stages,

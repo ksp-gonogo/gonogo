@@ -78,6 +78,24 @@ namespace Gonogo.KSP
         /// </summary>
         private readonly PartActionsPublicationCache _partActionsCache = new PartActionsPublicationCache();
 
+        /* A window is read at most twice a second per part, a few milliseconds of parts per tick. */
+        private const long PartWindowSweepIntervalMs = 500;
+        private const long PartWindowTickBudgetMs = 2;
+        private readonly PartActionsSweep _partActionsSweep = new PartActionsSweep(PartWindowSweepIntervalMs);
+        private readonly PartWindowFresh _partActionsFresh = new PartWindowFresh();
+
+        /* A window just subscribed to is read in the sample that finds it, up to this long: a one-second sample cannot afford to spread a vessel's windows over the sweep's 2 ms. */
+        private const long PartWindowFreshBudgetMs = 12;
+        private readonly System.Diagnostics.Stopwatch _partActionsClock = System.Diagnostics.Stopwatch.StartNew();
+
+        /* Milliseconds a second spent reading part windows, so a cost the stream adds to the frame is counted where it is paid. */
+        private static readonly PerfBudget PartWindowWalkBudget = new PerfBudget(
+            "VesselUplink part window walk ms/sec", threshold: 40, windowSec: 1.0, unit: "ms");
+
+        /* The most a vessel of 112 parts sends whole is 112 at once on a first subscribe, so a steady rate above that means parts are re-sent that did not change. */
+        private static readonly PerfBudget PartWindowEmitBudget = new PerfBudget(
+            "VesselUplink part windows published/sec", threshold: 120, windowSec: 1.0, unit: "windows");
+
         public VesselUplink(IVesselActuator actuator)
             : this(actuator, new KspPartActionActuator())
         {
@@ -268,6 +286,7 @@ namespace Gonogo.KSP
                 Command(VesselCommandProvider.SetWarpIndexCommand),
                 Command(VesselCommandProvider.SetPausedCommand),
                 Command(PartActionCommandProvider.InvokePartActionCommand, PartActionsViewProvider.PartActionsPrefix + "{args.PartId}"),
+                Command(PartActionCommandProvider.SetPartFieldCommand, PartActionsViewProvider.PartActionsPrefix + "{args.PartId}"),
                 Command(EvaKerbalCommandProvider.SetLampCommand, VesselViewProvider.EvaKerbalPrefix + "{args.KerbalVesselId}." + VesselViewProvider.EvaKerbalField),
             },
         };
@@ -413,6 +432,7 @@ namespace Gonogo.KSP
                     return PartActionCommandProvider.HandleInvoke(_partActionActuator, args);
                 }
             });
+            host.AddCommandHandler<SetPartFieldArgs, CommandResult>(PartActionCommandProvider.SetPartFieldCommand, args => PartActionCommandProvider.HandleSetField(_partActionActuator, args));
             host.AddCommandHandler<SetEvaLampArgs, CommandResult>(EvaKerbalCommandProvider.SetLampCommand, args => EvaKerbalCommandProvider.HandleSetLamp(_evaKerbalActuator, args));
 
             RegisterPartActions(host);
@@ -495,7 +515,14 @@ namespace Gonogo.KSP
             // changed since the previous subscriber closed their popover: the
             // producer's change-gate would otherwise hold it back. See
             // PartActionsPublicationCache.Invalidate.
-            _partActionsSource.OnSubscribed(subTopic => _partActionsCache.Invalidate(subTopic));
+            _partActionsSource.OnSubscribed(subTopic =>
+            {
+                _partActionsCache.Invalidate(subTopic);
+                // Read ahead of the sweep, in two steps (see PartWindowFresh), so a window just subscribed to is neither queued behind a turn through every other part nor published before another mod has switched its modules on.
+                _partActionsFresh.Add(subTopic.StartsWith(PartActionsViewProvider.PartActionsPrefix, System.StringComparison.Ordinal)
+                    ? subTopic.Substring(PartActionsViewProvider.PartActionsPrefix.Length)
+                    : subTopic);
+            });
         }
 
         /// <summary>
@@ -522,7 +549,63 @@ namespace Gonogo.KSP
                 return null;
             }
 
-            List<string>? subscribed = null;
+            var nowMs = _partActionsClock.ElapsedMilliseconds;
+
+            var fresh = new List<PartActionsViewProvider.Publication>();
+            var askedForSample = false;
+            var reads = _partActionsFresh.Take(() => _partActionsClock.ElapsedMilliseconds - nowMs, PartWindowFreshBudgetMs, id => host.IsAnyTopicSubscribed(PartActionsViewProvider.Topic(id)));
+            foreach (var (id, publish) in reads)
+            {
+                if (publish)
+                {
+                    fresh.AddRange(PartActionsViewProvider.Build(_partActionActuator, new[] { id }, vessel.id.ToString()));
+                }
+                else
+                {
+                    // The first step of a window only waits for the host to hold its subscription, so that another mod's watch sees it in this same sample. It reads nothing: the part is walked once, in the second step.
+                    askedForSample = true;
+                }
+            }
+
+            if (askedForSample)
+            {
+                // The second read of these windows, at the next sample and not up to a second on.
+                host.RequestSample();
+            }
+
+            // Named from the SAME read the enumeration came from, on this thread in
+            // this tick, rather than off the snapshot, so meta.source cannot name a
+            // different vessel than the one the actions were walked off.
+            var publications = PartActionsViewProvider.Tick(
+                _partActionActuator,
+                _partActionsSweep,
+                () => SubscribedPartIds(host, vessel),
+                () => vessel.id.ToString(),
+                nowMs,
+                () => _partActionsClock.ElapsedMilliseconds - nowMs >= PartWindowTickBudgetMs,
+                out var subscribed);
+            // A window waiting for its second read is left to it: a sweep read in the sample of the first read would publish the window before another mod has switched its modules on.
+            publications.RemoveAll(p => _partActionsFresh.IsPending(p.SubTopic));
+            if (subscribed == null && fresh.Count == 0)
+            {
+                return null;
+            }
+
+            PartWindowWalkBudget.Record(_partActionsClock.ElapsedMilliseconds - nowMs, nowMs / 1000d);
+
+            fresh.AddRange(publications);
+            return new PartActionsCapture
+            {
+                Ut = snapshot?.Ut ?? Planetarium.GetUniversalTime(),
+                Publications = fresh,
+                Subscribed = subscribed,
+            };
+        }
+
+        /// <summary>The ids of the parts a client is subscribed to, in the vessel's own order. Run once per sweep, not per tick.</summary>
+        private static List<string> SubscribedPartIds(IUplinkHost host, Vessel vessel)
+        {
+            var ids = new List<string>();
             foreach (var part in vessel.parts)
             {
                 // flightID is 0 until the part loads into flight; the same
@@ -533,33 +616,13 @@ namespace Gonogo.KSP
                 }
 
                 var partId = part.flightID.ToString();
-                if (!host.IsAnyTopicSubscribed(PartActionsViewProvider.Topic(partId)))
+                if (host.IsAnyTopicSubscribed(PartActionsViewProvider.Topic(partId)))
                 {
-                    continue;
+                    ids.Add(partId);
                 }
-
-                if (subscribed == null)
-                {
-                    subscribed = new List<string>();
-                }
-                subscribed.Add(partId);
             }
 
-            if (subscribed == null)
-            {
-                return null;
-            }
-
-            // Named from the SAME read the enumeration came from, on this thread in
-            // this tick, rather than off the snapshot, so meta.source cannot name a
-            // different vessel than the one the actions were walked off.
-            var vesselId = vessel.id.ToString();
-
-            return new PartActionsCapture
-            {
-                Ut = snapshot?.Ut ?? Planetarium.GetUniversalTime(),
-                Publications = PartActionsViewProvider.Build(_partActionActuator, subscribed, vesselId),
-            };
+            return ids;
         }
 
         /// <summary>COURIER-THREAD handle: publish the parts whose action list actually moved. No KSP access.</summary>
@@ -570,9 +633,11 @@ namespace Gonogo.KSP
                 return;
             }
 
-            foreach (var publication in _partActionsCache.Changed(capture.Publications))
+            var seconds = _partActionsClock.ElapsedMilliseconds / 1000d;
+            foreach (var publication in _partActionsCache.Changed(capture.Publications, capture.Subscribed, prune: capture.Subscribed != null))
             {
                 _partActionsSource?.Publisher(publication.SubTopic).Publish(publication.Payload, capture.Ut);
+                PartWindowEmitBudget.Record(1, seconds);
             }
         }
 
@@ -584,6 +649,8 @@ namespace Gonogo.KSP
         private sealed class PartActionsCapture
         {
             public double Ut { get; set; }
+
+            public List<string>? Subscribed { get; set; }
 
             public List<PartActionsViewProvider.Publication> Publications { get; set; } =
                 new List<PartActionsViewProvider.Publication>();

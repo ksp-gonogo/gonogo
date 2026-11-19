@@ -48,12 +48,33 @@ namespace Sitrep.Host
         IReadOnlyList<PartActionEntry> List(string partId);
 
         /// <summary>
-        /// Fire one button. Returns a typed failure rather than throwing: no
+        /// The window rows that are not buttons for the part with this
+        /// <c>flightID.ToString()</c>, in the order the game draws them, limited to
+        /// what the flight window shows. Empty when the part has none or the id
+        /// does not resolve.
+        /// </summary>
+        IReadOnlyList<PartWindowItem> ListWindow(string partId);
+
+        /// <summary>
+        /// Fire one button. <paramref name="moduleIndex"/> names the module when a part carries several of one class, and is <c>null</c> to take the first module with such an event. Returns a typed failure rather than throwing: no
         /// active vessel (<see cref="CommandErrorCode.NoVessel"/>), no part with
         /// that id (<see cref="CommandErrorCode.NotFound"/>: staged away,
         /// undocked, or the vessel unloaded), or the part resolved but exposes no
         /// such event (<see cref="CommandErrorCode.ModeUnavailable"/>).
         /// </summary>
-        CommandResult Invoke(string partId, string eventName);
+        CommandResult Invoke(string partId, string eventName, int? moduleIndex);
+
+        /// <summary>
+        /// Set one field of the part's window through the game's own path, on the
+        /// part's symmetry counterparts too when the field's control says so.
+        /// <paramref name="moduleName"/> is empty for a field on the part itself.
+        /// Returns a typed failure rather than throwing: no active vessel
+        /// (<see cref="CommandErrorCode.NoVessel"/>), no part with that id
+        /// (<see cref="CommandErrorCode.NotFound"/>), no such module, no such
+        /// field, or a field the window hides or offers no control for
+        /// (<see cref="CommandErrorCode.CapabilityMismatch"/>), or a value the
+        /// field's control cannot take (<see cref="CommandErrorCode.Range"/>).
+        /// </summary>
+        CommandResult SetField(string partId, string moduleName, string fieldName, double value);
     }
 }

@@ -64,6 +64,10 @@ namespace Sitrep.Host.Tests
 
         public bool IsAnyTopicSubscribed(string topicPrefix) => false;
 
+        public void RequestSample()
+        {
+        }
+
         public IDisposable HoldRate(string topic, double samplesPerSecond) => new Release();
 
         private sealed class Release : IDisposable

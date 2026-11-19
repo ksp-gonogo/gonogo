@@ -14,7 +14,7 @@ namespace Gonogo.KSP.Tests
         public void the_invoke_counts_the_parts_carrying_the_id_and_refuses_before_it_picks_one()
         {
             var source = CurrencyDelaySourceText.ReadRelative("KspPartActionActuator.cs");
-            var invoke = CurrencyDelaySourceText.MethodBody(source, "public CommandResult Invoke(string partId, string eventName)");
+            var invoke = CurrencyDelaySourceText.MethodBody(source, "public CommandResult Invoke(string partId, string eventName, int? moduleIndex)");
 
             var refused = invoke.IndexOf("PartIdRule.AmbiguousRefusal(partId, CountParts(vessel, partId))", StringComparison.Ordinal);
             var picked = invoke.IndexOf("FindPart(vessel, partId)", StringComparison.Ordinal);

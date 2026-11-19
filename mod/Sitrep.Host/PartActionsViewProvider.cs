@@ -68,8 +68,14 @@ namespace Sitrep.Host
         {
             public string SubTopic { get; set; } = "";
 
-            /// <summary>The already-flattened wire dictionary (see <see cref="ToWire"/>), not the POCO: what <see cref="IChannelPublisher.Publish"/> wants.</summary>
-            public Dictionary<string, object?>? Payload { get; set; }
+            /// <summary>The shaped payload this publication carries, flattened to the wire only when the change gate lets it through.</summary>
+            public PartActions? Source { get; set; }
+
+            private Dictionary<string, object?>? _payload;
+
+            /// <summary>The already-flattened wire dictionary (see <see cref="ToWire"/>), not the POCO: what <see cref="IChannelPublisher.Publish"/> wants. Built on first read, so a part the gate holds back costs no dictionaries.</summary>
+            public Dictionary<string, object?>? Payload =>
+                _payload ??= Source == null ? null : ToWire(Source);
 
             /// <summary>
             /// Content fingerprint of <see cref="Payload"/> (see
@@ -94,11 +100,31 @@ namespace Sitrep.Host
         public static List<Publication> Build(
             IPartActionActuator actuator,
             IEnumerable<string> partIds,
-            string? vesselId)
+            string? vesselId) => Build(actuator, partIds, vesselId, null, out _);
+
+        /// <summary>
+        /// As above, stopping before the next part once <paramref name="outOfTime"/>
+        /// answers true, so a caller can spread a large vessel over several ticks.
+        /// <paramref name="read"/> is how many of <paramref name="partIds"/> were
+        /// read, at least one when any were given.
+        /// </summary>
+        public static List<Publication> Build(
+            IPartActionActuator actuator,
+            IEnumerable<string> partIds,
+            string? vesselId,
+            System.Func<bool>? outOfTime,
+            out int read)
         {
             var publications = new List<Publication>();
+            read = 0;
             foreach (var partId in partIds)
             {
+                if (read > 0 && outOfTime != null && outOfTime())
+                {
+                    break;
+                }
+
+                read++;
                 if (string.IsNullOrEmpty(partId))
                 {
                     continue;
@@ -110,17 +136,62 @@ namespace Sitrep.Host
                     PartId = partId,
                     Actions = normalized.Where(e => !IsGameWindow(e)).ToList(),
                     GameWindows = normalized.Where(IsGameWindow).ToList(),
+                    Window = actuator.ListWindow(partId).Where(i => i != null).ToList(),
                     Meta = BuildMeta(vesselId),
                 };
 
                 publications.Add(new Publication
                 {
                     SubTopic = SubTopic(partId),
-                    Payload = ToWire(payload),
+                    Source = payload,
                     Signature = Signature(payload),
                 });
             }
 
+            return publications;
+        }
+
+        /// <summary>
+        /// One tick of the paced walk: starts a sweep over the subscribed ids when
+        /// one is due, reads as many of the remaining parts as
+        /// <paramref name="outOfTime"/> allows and moves the sweep on by exactly
+        /// the number read. Returns the publications to gate, and
+        /// <paramref name="subscribed"/> as every id the sweep covers (what the
+        /// change gate prunes against), or an empty list and null when nothing is
+        /// due.
+        ///
+        /// <para>The sweep, not the caller, holds the cursor and the list it
+        /// indexes, so the two cannot be compared across different lists.</para>
+        /// </summary>
+        public static List<Publication> Tick(
+            IPartActionActuator actuator,
+            PartActionsSweep sweep,
+            System.Func<List<string>> subscribedIds,
+            System.Func<string?> vesselId,
+            long nowMs,
+            System.Func<bool> outOfTime,
+            out List<string>? subscribed)
+        {
+            subscribed = null;
+            if (!sweep.Active)
+            {
+                if (!sweep.Due(nowMs))
+                {
+                    return new List<Publication>();
+                }
+
+                sweep.Start(subscribedIds(), nowMs);
+            }
+
+            var remaining = sweep.Remaining();
+            if (remaining.Count == 0)
+            {
+                return new List<Publication>();
+            }
+
+            var publications = Build(actuator, remaining, vesselId(), outOfTime, out var read);
+            sweep.Advance(read);
+            subscribed = sweep.Ids;
             return publications;
         }
 
@@ -165,7 +236,7 @@ namespace Sitrep.Host
                 // Separated by the same control character Signature uses, so
                 // two distinct (module, name) pairs can never concatenate into
                 // a single key.
-                if (!seen.Add((entry.ModuleName ?? "") + FieldSeparator + entry.Name))
+                if (!seen.Add((entry.ModuleName ?? "") + FieldSeparator + (entry.ModuleIndex?.ToString() ?? "") + FieldSeparator + entry.Name))
                 {
                     continue;
                 }
@@ -214,13 +285,56 @@ namespace Sitrep.Host
                   .Append(a.Label).Append(FieldSeparator)
                   .Append(a.Group).Append(FieldSeparator)
                   .Append(a.ModuleName).Append(FieldSeparator)
+                  .Append(a.ModuleIndex).Append(FieldSeparator)
                   .Append(a.Active ? '1' : '0')
                   .Append(a.GuiActiveUnfocused ? '1' : '0')
                   .Append(a.AdvancedTweakable ? '1' : '0')
                   .Append(a.RequireFullControl ? '1' : '0')
                   .Append(a.OpensGameWindow ? '1' : '0');
             }
+            foreach (var w in payload.Window)
+            {
+                sb.Append(FieldSeparator).Append('w')
+                  .Append(w.Kind).Append(FieldSeparator)
+                  .Append(w.Module).Append(FieldSeparator)
+                  .Append(w.Name).Append(FieldSeparator)
+                  .Append(w.Label).Append(FieldSeparator)
+                  .Append(w.Group).Append(FieldSeparator)
+                  .Append(w.Kind == "resource" ? "" : w.Text).Append(FieldSeparator)
+                  .Append(SignatureNumber(w)).Append(FieldSeparator)
+                  .Append(w.Min?.ToString("R", System.Globalization.CultureInfo.InvariantCulture)).Append(FieldSeparator)
+                  .Append(w.Max?.ToString("R", System.Globalization.CultureInfo.InvariantCulture)).Append(FieldSeparator)
+                  .Append(w.Step?.ToString("R", System.Globalization.CultureInfo.InvariantCulture)).Append(FieldSeparator)
+                  .Append(w.Options == null ? "" : string.Join(FieldSeparator.ToString(), w.Options)).Append(FieldSeparator)
+                  .Append(w.Flows == null ? '-' : (w.Flows.Value ? '1' : '0'))
+                  .Append(w.Editable ? '1' : '0')
+                  .Append(w.Advanced ? '1' : '0');
+            }
             return sb.ToString();
+        }
+
+        /// <summary>
+        /// A resource's share of its capacity that moves the gate: below this a
+        /// bar cannot be told apart, and a tank that drifts by a few thousandths
+        /// (an idle craft's electric charge) would otherwise resend its whole
+        /// window every second. The amount that goes out when the gate opens is
+        /// the exact one.
+        /// </summary>
+        public const double ResourceGateShare = 0.005;
+
+        private static string SignatureNumber(PartWindowItem row)
+        {
+            if (row.Kind == "resource" && row.Number.HasValue)
+            {
+                var step = (row.Max ?? 0) * ResourceGateShare;
+                if (step > 0)
+                {
+                    return System.Math.Round(row.Number.Value / step)
+                        .ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+                }
+            }
+
+            return row.Number?.ToString("R", System.Globalization.CultureInfo.InvariantCulture) ?? "";
         }
 
         /// <summary>
@@ -246,6 +360,7 @@ namespace Sitrep.Host
             ["partId"] = payload.PartId,
             ["actions"] = payload.Actions.Select(a => (object?)ToWire(a)).ToList(),
             ["gameWindows"] = payload.GameWindows.Select(a => (object?)ToWire(a)).ToList(),
+            ["window"] = payload.Window.Select(w => (object?)ToWire(w)).ToList(),
             ["meta"] = ToWire(payload.Meta),
         };
 
@@ -255,11 +370,30 @@ namespace Sitrep.Host
             ["label"] = entry.Label,
             ["group"] = entry.Group,
             ["moduleName"] = entry.ModuleName,
+            ["moduleIndex"] = entry.ModuleIndex,
             ["active"] = entry.Active,
             ["guiActiveUnfocused"] = entry.GuiActiveUnfocused,
             ["advancedTweakable"] = entry.AdvancedTweakable,
             ["requireFullControl"] = entry.RequireFullControl,
             ["opensGameWindow"] = entry.OpensGameWindow,
+        };
+
+        private static Dictionary<string, object?> ToWire(PartWindowItem item) => new Dictionary<string, object?>
+        {
+            ["kind"] = item.Kind,
+            ["module"] = item.Module,
+            ["name"] = item.Name,
+            ["label"] = item.Label,
+            ["group"] = item.Group,
+            ["text"] = item.Text,
+            ["number"] = item.Number,
+            ["min"] = item.Min,
+            ["max"] = item.Max,
+            ["step"] = item.Step,
+            ["options"] = item.Options?.Select(o => (object?)o).ToList(),
+            ["flows"] = item.Flows,
+            ["advanced"] = item.Advanced,
+            ["editable"] = item.Editable,
         };
 
         private static Dictionary<string, object?> ToWire(PayloadMeta meta) => new Dictionary<string, object?>

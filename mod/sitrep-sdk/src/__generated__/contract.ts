@@ -6667,6 +6667,56 @@ export interface InvokePartActionArgs
 	* `CommandErrorCode.NotFound`.
 	*/
 	eventName: string;
+	/**
+	* The `PartActionEntry.moduleIndex` of the button, which names the module when
+	* a part carries several of one class. Left out, the first module with an
+	* event of that name is pressed, as before.
+	*/
+	moduleIndex?: number;
+}
+/**
+* Set one field of one part's right-click Part Action Window on the craft, the
+* remote-control equivalent of the player moving a slider or flipping a toggle
+* in-game: a thrust limiter, a parachute's deploy altitude and pressure, an
+* engine's gimbal switch.
+*
+* It acts on a part aboard the craft, so it waits on the signal delay, like
+* `vessel.invokePartAction`. The value is written through the game's own field
+* path, and on the part's symmetry counterparts when the field's control says
+* the game does the same.
+*
+* The value rides the command queue as `commandedValue`, so a slider can draw
+* the value the operator sent beside the value the craft last reported.
+*
+* @category Command arguments
+*/
+export interface SetPartFieldArgs
+{
+	/**
+	* The part's flight id, as a string: the same id `InvokePartActionArgs.partId`
+	* and `VesselPart.id` carry. An id that no longer resolves fails with
+	* `CommandErrorCode.NotFound`.
+	*/
+	partId: string;
+	/**
+	* The module class name that owns the field (`ModuleEnginesFX`), or empty for
+	* a field on the part itself. A module the part does not carry fails with
+	* `CommandErrorCode.CapabilityMismatch`.
+	*/
+	module: string;
+	/**
+	* The field's code name (`thrustPercentage`), never its localized label. A
+	* field the module does not have, or one the game's window does not offer for
+	* flight, fails with `CommandErrorCode.CapabilityMismatch`.
+	*/
+	field: string;
+	/**
+	* The value to set. A switch takes 1 for on and 0 for off, a list of options
+	* takes the option's position from 0, and a slider takes its own figure in the
+	* field's own unit. A figure outside the field's range, or a switch or list
+	* position it does not have, fails with `CommandErrorCode.Range`.
+	*/
+	value: number;
 }
 /**
 * One button in a part's right-click Part Action Window (PAW): a single KSP
@@ -6714,6 +6764,14 @@ export interface PartActionEntry
 	*/
 	moduleName?: string | null;
 	/**
+	* The position of the owning module among the part's modules, or `null` for an
+	* event on the part itself. A part can carry several modules of one class
+	* (three process controllers), each with a button of the same name, and
+	* `PartActionEntry.name` with `PartActionEntry.moduleName` alone cannot tell
+	* them apart. `InvokePartActionArgs.moduleIndex` carries it back.
+	*/
+	moduleIndex?: number | null;
+	/**
 	* `BaseEvent.active`: the button is currently enabled. A `false` entry is
 	* present but inert, so render it disabled rather than hiding it (hiding would
 	* make the list jump around as state changes).
@@ -6739,6 +6797,74 @@ export interface PartActionEntry
 	* own screen, without locking the craft.
 	*/
 	opensGameWindow: boolean;
+}
+/**
+* One row of a part's right-click Part Action Window that is not a button: a
+* label, a switch, a slider, a list of options, a cycle or a resource bar, in
+* the order the game draws them.
+*
+* `PartWindowItem.module` and `PartWindowItem.name` are the key
+* `SetPartFieldArgs` takes back, and `PartWindowItem.label` is the localized
+* text the player sees. Only rows the game offers in flight are listed. A row
+* with `PartWindowItem.editable` false is shown but cannot be changed from a
+* console.
+*
+* @category Parts
+*/
+export interface PartWindowItem
+{
+	/**
+	* What the row is: `"label"`, `"toggle"`, `"slider"`, `"option"`, `"cycle"` or
+	* `"resource"`.
+	*/
+	kind: string;
+	/**
+	* The module class that owns the field, or empty for a field on the part
+	* itself. For a resource, empty.
+	*/
+	module: string;
+	/** The field's code name, or the resource's name for a resource. */
+	name: string;
+	/** The localized text the player sees on the row. */
+	label: string;
+	/** The PAW group the row sits under, or `null` when it is ungrouped. */
+	group?: string | null;
+	/**
+	* The value as the game prints it, with its unit and without the row's label.
+	* Empty for a label whose owning mod has not given it a value: some mods fill
+	* their labels only while the game's own window for the part is open, so an
+	* empty label is not a reading of nothing. For an option or a cycle, the name
+	* of the chosen entry with its localisation resolved.
+	*/
+	text: string;
+	/**
+	* The value as a number: the figure of a slider, 1 or 0 for a switch, the
+	* position of the chosen entry for an option or a cycle, the amount of a
+	* resource. `null` for a label.
+	*/
+	number?: number | null;
+	/** A slider's lowest figure. `null` for any other row. */
+	min?: number | null;
+	/** A slider's highest figure, or a resource's capacity. */
+	max?: number | null;
+	/** A slider's step. */
+	step?: number | null;
+	/**
+	* The entries of an option or a cycle, as the game prints them, localisation
+	* resolved. For a switch, its two state words in order off then on (the game's
+	* own, such as "Free" and "Locked"), and `PartWindowItem.text` is the one the
+	* switch is at. `null` for any other row.
+	*/
+	options?: string[] | null;
+	/** A resource's flow switch: true when it flows. `null` for any other row. */
+	flows?: boolean | null;
+	/**
+	* The game hides the row behind its advanced-tweakables setting, as it does
+	* `PartActionEntry.advancedTweakable` for a button.
+	*/
+	advanced: boolean;
+	/** The row can be changed from a console with `vessel.setPartField`. */
+	editable: boolean;
 }
 /**
 * The payload of one `vessel.partActions.<flightId>` channel: the PAW buttons
@@ -6781,6 +6907,12 @@ export interface PartActions
 	* them, so draw them disabled. Always present, possibly empty.
 	*/
 	gameWindows: PartActionEntry[];
+	/**
+	* The part's window rows that are not buttons, in the order the game draws
+	* them. Always present, possibly empty. A new list beside
+	* `PartActions.actions`, which keeps carrying buttons only.
+	*/
+	window: PartWindowItem[];
 	/**
 	* Payload provenance. `Source` is `"vessel:<guid>"` for the active vessel, or
 	* `""` when no vessel id was known.

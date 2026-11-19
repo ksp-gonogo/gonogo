@@ -109,6 +109,7 @@ import type {
   SetEnabledArgs,
   SetEvaLampArgs,
   SetFlyByWireArgs,
+  SetPartFieldArgs,
   SetPausedArgs,
   SetSasModeArgs,
   SetTargetArgs,
@@ -298,6 +299,8 @@ export interface GeneratedCommandArgsMap {
   "vessel.resource.transfer.start": ResourceTransferStartArgs;
   /** Stop a resource transfer, or every one. */
   "vessel.resource.transfer.stop": ResourceTransferStopArgs;
+  /** Set one field of one part's right-click Part Action Window on the craft, the remote-control equivalent of the player moving a slider or flipping a toggle in-game: a thrust limiter, a parachute's deploy altitude and pressure, an engine's gimbal switch. */
+  "vessel.setPartField": SetPartFieldArgs;
   /** Clear the active vessel's target. */
   "vessel.target.clear": NoCommandArgs;
   /** Set the active vessel's target. */
@@ -479,6 +482,8 @@ export interface GeneratedCommandReplyMap {
   "vessel.resource.transfer.start": CommandResultOf<ResourceTransferStarted>;
   /** Stop a resource transfer, or every one. */
   "vessel.resource.transfer.stop": CommandResult;
+  /** Set one field of one part's right-click Part Action Window on the craft, the remote-control equivalent of the player moving a slider or flipping a toggle in-game: a thrust limiter, a parachute's deploy altitude and pressure, an engine's gimbal switch. */
+  "vessel.setPartField": CommandResult;
   /** Clear the active vessel's target. */
   "vessel.target.clear": CommandResult;
   /** Set the active vessel's target. */
@@ -584,6 +589,7 @@ export const GENERATED_COMMAND_REPLY_TYPES = {
   "vessel.maneuver.update": "CommandResult",
   "vessel.resource.transfer.start": "CommandResultOf<ResourceTransferStarted>",
   "vessel.resource.transfer.stop": "CommandResult",
+  "vessel.setPartField": "CommandResult",
   "vessel.target.clear": "CommandResult",
   "vessel.target.set": "CommandResult",
   "vessel.trajectory.fromLastKnown": "LastKnownPathReply",
@@ -721,6 +727,7 @@ export const GENERATED_COMMAND_RAIL = {
   "vessel.maneuver.update": { replies: true, delayed: true, arriveBefore: "ut" },
   "vessel.resource.transfer.start": { replies: true, delayed: true },
   "vessel.resource.transfer.stop": { replies: true, delayed: true },
+  "vessel.setPartField": { replies: true, delayed: true },
   "vessel.target.clear": { replies: true, delayed: true },
   "vessel.target.set": { replies: true, delayed: true },
   "vessel.trajectory.fromLastKnown": { replies: true, delayed: false },
@@ -813,6 +820,7 @@ export const GENERATED_COMMAND_IDS = [
   "vessel.maneuver.update",
   "vessel.resource.transfer.start",
   "vessel.resource.transfer.stop",
+  "vessel.setPartField",
   "vessel.target.clear",
   "vessel.target.set",
   "vessel.trajectory.fromLastKnown",

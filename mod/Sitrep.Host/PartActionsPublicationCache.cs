@@ -51,9 +51,27 @@ namespace Sitrep.Host
         /// the batch once and then nothing.
         /// </summary>
         public List<PartActionsViewProvider.Publication> Changed(
-            List<PartActionsViewProvider.Publication> publications)
+            List<PartActionsViewProvider.Publication> publications) => Changed(publications, null);
+
+        /// <summary>
+        /// As <see cref="Changed(List{PartActionsViewProvider.Publication})"/>, but
+        /// pruning against <paramref name="subscribed"/>, every sub-topic still
+        /// open, when the batch holds only the part of them one tick read.
+        /// </summary>
+        public List<PartActionsViewProvider.Publication> Changed(
+            List<PartActionsViewProvider.Publication> publications,
+            IReadOnlyCollection<string>? subscribed) => Changed(publications, subscribed, prune: true);
+
+        /// <summary>
+        /// As above; with <paramref name="prune"/> false nothing is forgotten, for a batch that holds only
+        /// the windows read ahead of the sweep and says nothing about which others are still open.
+        /// </summary>
+        public List<PartActionsViewProvider.Publication> Changed(
+            List<PartActionsViewProvider.Publication> publications,
+            IReadOnlyCollection<string>? subscribed,
+            bool prune)
         {
-            var present = new HashSet<string>();
+            var present = subscribed == null ? new HashSet<string>() : new HashSet<string>(subscribed);
             var changed = new List<PartActionsViewProvider.Publication>();
 
             foreach (var publication in publications)
@@ -70,7 +88,7 @@ namespace Sitrep.Host
                 changed.Add(publication);
             }
 
-            foreach (var known in new List<string>(_lastSignatureBySubTopic.Keys))
+            foreach (var known in prune ? new List<string>(_lastSignatureBySubTopic.Keys) : new List<string>())
             {
                 if (!present.Contains(known))
                 {

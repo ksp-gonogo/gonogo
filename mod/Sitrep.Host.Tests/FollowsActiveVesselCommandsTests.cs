@@ -29,6 +29,7 @@ namespace Sitrep.Host.Tests
         [InlineData("vessel.control.stage", false)]
         [InlineData("vessel.control.setAbort", false)]
         [InlineData("vessel.invokePartAction", false)]
+        [InlineData("vessel.setPartField", false)]
         [InlineData("no.such.command", false)]
         public void AOneWayOrUntaggedCommandDoesNotFollowASwitch(string command, bool follows)
         {

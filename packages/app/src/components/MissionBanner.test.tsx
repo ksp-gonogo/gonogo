@@ -510,9 +510,10 @@ function delayValue(): HTMLElement | null {
     null) as HTMLElement | null;
 }
 
-/** What `<Unit>` itself draws for `seconds`, to compare the header against. */
+/** What `<Unit>` itself draws for `seconds` to the nearest whole second, which is how the header reads a delay of a second or more. */
 function unitMarkup(seconds: number): string {
-  const { container, unmount } = render(<Unit value={value("s", seconds)} />);
+  const whole = seconds < 1 ? seconds : Math.round(seconds);
+  const { container, unmount } = render(<Unit value={value("s", whole)} />);
   const html = container.innerHTML;
   unmount();
   return html;
@@ -535,6 +536,18 @@ function LinkReport() {
 }
 
 describe("MissionBanner signal delay", () => {
+  it("rounds a delay to the nearest second and does not truncate it", async () => {
+    const fixture = setupDelayedStream();
+    render(
+      <fixture.Provider>
+        <MissionBanner />
+      </fixture.Provider>,
+    );
+    await fixture.flyAt(3.9997);
+
+    await waitFor(() => expect(delayValue()?.textContent).toMatch(/\b4\s*s$/));
+  });
+
   it("shows nothing when there is no active vessel", async () => {
     const fixture = setupDelayedStream();
     render(

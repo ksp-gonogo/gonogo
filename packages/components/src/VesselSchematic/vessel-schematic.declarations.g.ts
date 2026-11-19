@@ -4,6 +4,7 @@ export default {
     "career.mode",
     "spaceCenter.scene",
     "spaceCenter.state",
+    "system.uplink.pending",
     "vessel.identity",
     "vessel.resourceTransfers",
     "vessel.transferReach",
@@ -16,5 +17,6 @@ export default {
     "vessel.invokePartAction",
     "vessel.resource.transfer.start",
     "vessel.resource.transfer.stop",
+    "vessel.setPartField",
   ],
 } as const;

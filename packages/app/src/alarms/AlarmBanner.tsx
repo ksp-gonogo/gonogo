@@ -17,6 +17,7 @@ import { useFireBeep } from "./alarmTone";
 import { FiredFacts } from "./FiredFacts";
 import { ForeignFireNotice } from "./ForeignFireNotice";
 import { collapseFiredContractParam } from "./firedCollapse";
+import { measuredDelay } from "./measuredDelay";
 import type { Alarm, AlarmSnapshot } from "./types";
 import {
   MAX_WARP_SAFETY_MARGIN_SECONDS,
@@ -97,7 +98,7 @@ export function FirstSignalNotice({
   const delay =
     waiting.owltSeconds === null
       ? NULL_DISPLAY
-      : `${waiting.estimated ? "~" : ""}${writeQuantity(value("s", waiting.owltSeconds))}`;
+      : `${waiting.estimated ? "~" : ""}${writeQuantity(measuredDelay(waiting.owltSeconds))}`;
   return (
     <Wrap $tone="idle" role="status">
       <BannerRow actions={actions}>
@@ -345,7 +346,7 @@ export function SafetyMarginPill() {
             focusable
           >
             <Label>
-              (light-time {writeQuantity(value("s", snap.owltSeconds))} in
+              (light-time {writeQuantity(measuredDelay(snap.owltSeconds))} in
               force)
             </Label>
           </Tooltip>

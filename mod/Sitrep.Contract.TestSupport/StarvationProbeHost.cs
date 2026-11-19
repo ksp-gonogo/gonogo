@@ -231,6 +231,10 @@ namespace Sitrep.Contract.TestSupport
             return false;
         }
 
+        public void RequestSample()
+        {
+        }
+
         public IDisposable HoldRate(string topic, double samplesPerSecond) => new Release();
 
         private sealed class Release : IDisposable

@@ -1,10 +1,10 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo WebSocket API
-  version: 52.2.0
+  version: 52.3.0
   description: |-
     The WebSocket API of the Gonogo mod: 99 telemetry channels a client
-    subscribes to and 89 commands it sends, each with its payload and what it
+    subscribes to and 90 commands it sends, each with its payload and what it
     means, all over one socket.
 
     ## Frames the mod sends
@@ -4220,6 +4220,31 @@ channels:
         $ref: "#/components/messages/streamData.vessel.resources"
       event:
         $ref: "#/components/messages/event"
+  vessel.setPartField:
+    address: vessel.setPartField
+    description: |-
+      Set one field of one part's right-click Part Action Window on the craft, the
+      remote-control equivalent of the player moving a slider or flipping a toggle
+      in-game: a thrust limiter, a parachute's deploy altitude and pressure, an
+      engine's gimbal switch.
+
+      It acts on a part aboard the craft, so it waits on the signal delay, like
+      `vessel.invokePartAction`. The value is written through the game's own field
+      path, and on the part's symmetry counterparts when the field's control says
+      the game does the same.
+
+      The value rides the command queue as `commandedValue`, so a slider can draw
+      the value the operator sent beside the value the craft last reported.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: true
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.vessel.setPartField"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.vessel.setPartField"
+      commandAccepted:
+        $ref: "#/components/messages/commandAccepted"
   vessel.structure:
     address: vessel.structure
     title: Active vessel structure
@@ -5642,6 +5667,21 @@ operations:
       messages:
         - $ref: "#/channels/vessel.resource.transfer.stop/messages/commandResponse"
         - $ref: "#/channels/vessel.resource.transfer.stop/messages/commandAccepted"
+  dispatch:vessel.setPartField:
+    action: send
+    channel:
+      $ref: "#/channels/vessel.setPartField"
+    title: Dispatch vessel.setPartField
+    tags:
+      - name: vessel
+    messages:
+      - $ref: "#/channels/vessel.setPartField/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/vessel.setPartField"
+      messages:
+        - $ref: "#/channels/vessel.setPartField/messages/commandResponse"
+        - $ref: "#/channels/vessel.setPartField/messages/commandAccepted"
   dispatch:vessel.target.clear:
     action: send
     channel:
@@ -8122,6 +8162,21 @@ components:
                 const: vessel.resource.transfer.stop
               args:
                 $ref: "#/components/schemas/ResourceTransferStopArgs"
+    commandRequest.vessel.setPartField:
+      name: command-request
+      title: Dispatch vessel.setPartField
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `vessel.setPartField`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: vessel.setPartField
+              args:
+                $ref: "#/components/schemas/SetPartFieldArgs"
     commandRequest.vessel.target.clear:
       name: command-request
       title: Dispatch vessel.target.clear
@@ -9449,6 +9504,19 @@ components:
         $ref: "#/components/correlationIds/requestId"
       payload:
         description: The `command-response` envelope for `vessel.resource.transfer.stop`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                $ref: "#/components/schemas/CommandResult"
+    commandResponse.vessel.setPartField:
+      name: command-response
+      title: Reply to vessel.setPartField
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `vessel.setPartField`, with its typed `result`.
         allOf:
           - $ref: "#/components/schemas/CommandResponse"
           - properties:
@@ -19165,6 +19233,15 @@ components:
             the part no longer offers fails with `CommandErrorCode.ModeUnavailable`: the
             part is there but that button is not, where a missing part fails with
             `CommandErrorCode.NotFound`.
+        moduleIndex:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: n/a
+          description: |-
+            The `PartActionEntry.moduleIndex` of the button, which names the module when
+            a part carries several of one class. Left out, the first module with an
+            event of that name is pressed, as before.
     IsruConverterEntry:
       type: object
       description: |-
@@ -24009,6 +24086,56 @@ components:
           description: |-
             `true` turns the override on, `false` turns it off and resets the held axes
             and trims to 0.
+    SetPartFieldArgs:
+      type: object
+      description: |-
+        Set one field of one part's right-click Part Action Window on the craft, the
+        remote-control equivalent of the player moving a slider or flipping a toggle
+        in-game: a thrust limiter, a parachute's deploy altitude and pressure, an
+        engine's gimbal switch.
+
+        It acts on a part aboard the craft, so it waits on the signal delay, like
+        `vessel.invokePartAction`. The value is written through the game's own field
+        path, and on the part's symmetry counterparts when the field's control says
+        the game does the same.
+
+        The value rides the command queue as `commandedValue`, so a slider can draw
+        the value the operator sent beside the value the craft last reported.
+      required:
+        - partId
+        - module
+        - field
+        - value
+      properties:
+        partId:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            The part's flight id, as a string: the same id `InvokePartActionArgs.partId`
+            and `VesselPart.id` carry. An id that no longer resolves fails with
+            `CommandErrorCode.NotFound`.
+        module:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            The module class name that owns the field (`ModuleEnginesFX`), or empty for
+            a field on the part itself. A module the part does not carry fails with
+            `CommandErrorCode.CapabilityMismatch`.
+        field:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            The field's code name (`thrustPercentage`), never its localized label. A
+            field the module does not have, or one the game's window does not offer for
+            flight, fails with `CommandErrorCode.CapabilityMismatch`.
+        value:
+          type: number
+          x-sitrep-unit: n/a
+          description: |-
+            The value to set. A switch takes 1 for on and 0 for off, a list of options
+            takes the option's position from 0, and a slider takes its own figure in the
+            field's own unit. A figure outside the field's range, or a switch or list
+            position it does not have, fails with `CommandErrorCode.Range`.
     SetPausedArgs:
       type: object
       description: Pause or resume the game. Takes whether the game is paused.

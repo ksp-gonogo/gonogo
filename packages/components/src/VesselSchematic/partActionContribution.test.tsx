@@ -4,7 +4,7 @@ import {
   clearContributions,
   registerContribution,
 } from "@ksp-gonogo/sitrep-sdk/spine";
-import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -91,7 +91,7 @@ describe("VesselSchematic: contributed part actions", () => {
 
     await user.click(partElement());
     await user.click(
-      await screen.findByRole("menuitem", {
+      await screen.findByRole("button", {
         name: /Start Mystery Goo Observation/,
       }),
     );
@@ -130,7 +130,8 @@ describe("VesselSchematic: contributed part actions", () => {
       });
     });
 
-    const items = await screen.findAllByRole("menuitem");
+    const window = await screen.findByRole("region", { name: /window/ });
+    const items = within(window).getAllByRole("button");
     expect(items.map((i) => i.textContent)).toEqual([
       "Extend Solar Panel",
       "Start Mystery Goo Observation",
@@ -144,7 +145,7 @@ describe("VesselSchematic: contributed part actions", () => {
 
     await user.click(partElement());
 
-    const item = await screen.findByRole("menuitem", {
+    const item = await screen.findByRole("button", {
       name: /Start Mystery Goo Observation/,
     });
     expect(item.getAttribute("aria-disabled")).toBeNull();
@@ -170,11 +171,13 @@ describe("VesselSchematic: contributed part actions", () => {
     expect(await screen.findByText("1 available")).toBeTruthy();
 
     await user.click(partElement());
-    await screen.findByRole("menu");
+    await screen.findByRole("region", { name: /window/ });
     expect(screen.queryByText("1 available")).toBeNull();
 
     await user.keyboard("{Escape}");
-    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+    await waitFor(() =>
+      expect(screen.queryByRole("region", { name: /window/ })).toBeNull(),
+    );
     expect(await screen.findByText("1 available")).toBeTruthy();
   });
 });

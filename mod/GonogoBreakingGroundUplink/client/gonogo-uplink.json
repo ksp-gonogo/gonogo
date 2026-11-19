@@ -13,7 +13,7 @@
   "minAppVersion": "0.0.0",
   "apiVersion": "7.0.0",
   "contractMajor": 52,
-  "contractMinor": 2,
+  "contractMinor": 3,
   "bundleUrl": "breakingGround/breakingGround.client.js",
   "integrity": "",
   "sdkVersion": "1.0.0"

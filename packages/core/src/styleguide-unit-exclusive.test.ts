@@ -198,6 +198,10 @@ const LOCAL_FORMATTER_DEBT: Record<string, { count: number; why: string }> = {
     count: 1,
     why: "GAP: padded clock again, on an offline source's elapsed time",
   },
+  "packages/components/src/VesselSchematic/PartWindow.tsx": {
+    count: 1,
+    why: "not a quantity: the figure keeps the game's own unit text as written (%, kN, deg), which are not units Gonogo registers",
+  },
 };
 
 const SCAN_EXTENSION = /\.tsx?$/;

@@ -4,10 +4,11 @@ import {
   type VesselTopology,
 } from "@ksp-gonogo/core";
 import type { AnyBoundCommand } from "@ksp-gonogo/sitrep-sdk";
-import { FramedDisplay, Section } from "@ksp-gonogo/ui-kit";
+import { FramedDisplay, LiveRegion, Section } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode } from "react";
 import { DestroyedCraft } from "./DestroyedCraft";
 import type { TransferResourceOption } from "./PartActionMenu";
+import type { FieldCommandHandle } from "./PartWindow";
 import { ShipDiagram } from "./ShipDiagram";
 import { StageColumn } from "./StageColumn";
 import type {
@@ -25,6 +26,7 @@ export type PartActionCommand = (
   eventName: string,
   actionLabel: string,
   partTitle: string,
+  moduleIndex?: number | null,
 ) => AnyBoundCommand;
 
 /** The Panel sections of the map: the tinted diagram in its frame with its overlay slot, or a placeholder until there are parts to draw. */
@@ -43,12 +45,15 @@ export function vesselSchematicSections({
   partActions,
   contributedActionCommand,
   partActionCommand,
+  setPartField,
   turn,
   onTurn,
   stages,
   stagesEmptyLabel,
   stagesOnly,
   destroyed,
+  closedNotice,
+  onClosedNotice,
   transferTray,
   transferDrawing,
   onPickTank,
@@ -72,6 +77,8 @@ export function vesselSchematicSections({
     partTitle: string,
   ) => AnyBoundCommand | null;
   partActionCommand: PartActionCommand;
+  /** The handle `vessel.setPartField` is sent on. */
+  setPartField: FieldCommandHandle;
   /** Presses of the rotate control the view is turned from its default. */
   turn: number;
   /** Sets the number of presses the view is turned from its default. */
@@ -84,6 +91,8 @@ export function vesselSchematicSections({
   stagesOnly: boolean;
   /** The crash report of the craft this map showed, once that craft is destroyed. */
   destroyed: CrashReportOfEnding | undefined;
+  closedNotice: string | null;
+  onClosedNotice: (notice: string | null) => void;
   /** The transfer tray: the pick in progress and running transfers. Null when neither. */
   transferTray: ReactNode;
   transferDrawing?: TransferDrawing;
@@ -112,6 +121,7 @@ export function vesselSchematicSections({
     return [
       <Section key="message" full>
         <div style={PLACEHOLDER}>Vessel has no parts.</div>
+        <LiveRegion>{closedNotice}</LiveRegion>
       </Section>,
     ];
   }
@@ -145,10 +155,14 @@ export function vesselSchematicSections({
             partActions={partActions}
             contributedActionCommand={contributedActionCommand}
             partActionCommand={partActionCommand}
+            setPartField={setPartField}
             turn={turn}
             onTurn={onTurn}
             transferDrawing={transferDrawing}
             onPickTank={onPickTank}
+            destroyed={Boolean(destroyed)}
+            closedNotice={closedNotice}
+            onClosedNotice={onClosedNotice}
             transferResourcesOf={transferResourcesOf}
             onStartTransferPick={onStartTransferPick}
           />

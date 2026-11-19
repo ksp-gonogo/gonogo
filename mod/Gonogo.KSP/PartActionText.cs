@@ -27,6 +27,62 @@ namespace Gonogo.KSP
                 return null;
             }
 
+            if (_cleaned.TryGetValue(stored!, out var known))
+            {
+                return known;
+            }
+
+            var cleaned = CleanUncached(stored!);
+            // A tag the Localizer could not resolve yet may resolve once it has loaded, so only an answer is kept.
+            if (cleaned != null)
+            {
+                if (_cleaned.Count >= CacheLimit)
+                {
+                    _cleaned.Clear();
+                }
+
+                _cleaned[stored!] = cleaned;
+            }
+
+            return cleaned;
+        }
+
+        /* A label or event name is read for every part on every sweep and is the same string each time, so the localisation and markup work is done once. Main thread only. */
+        private const int CacheLimit = 4096;
+        private static readonly System.Collections.Generic.Dictionary<string, string?> _cleaned =
+            new System.Collections.Generic.Dictionary<string, string?>(StringComparer.Ordinal);
+        private static readonly System.Collections.Generic.Dictionary<string, string> _resolved =
+            new System.Collections.Generic.Dictionary<string, string>(StringComparer.Ordinal);
+
+        /// <summary><see cref="Resolve"/> for a string that is the same every read, such as an option name.</summary>
+        public static string ResolveCached(string? stored)
+        {
+            if (string.IsNullOrEmpty(stored))
+            {
+                return "";
+            }
+
+            if (_resolved.TryGetValue(stored!, out var known))
+            {
+                return known;
+            }
+
+            var resolved = Resolve(stored);
+            if (!resolved.StartsWith("#", StringComparison.Ordinal))
+            {
+                if (_resolved.Count >= CacheLimit)
+                {
+                    _resolved.Clear();
+                }
+
+                _resolved[stored!] = resolved;
+            }
+
+            return resolved;
+        }
+
+        private static string? CleanUncached(string stored)
+        {
             var text = stored!;
             if (text.IndexOf('#') >= 0)
             {
@@ -46,6 +102,35 @@ namespace Gonogo.KSP
                 return null;
             }
             return text;
+        }
+
+        /// <summary>
+        /// The text the game would print for a stored string such as an option
+        /// name: a localisation tag resolved, markup removed. A string the
+        /// Localizer has no entry for is returned as stored rather than dropped,
+        /// since an option list with a hole in it cannot be stepped.
+        /// </summary>
+        public static string Resolve(string? stored)
+        {
+            if (string.IsNullOrEmpty(stored))
+            {
+                return "";
+            }
+
+            var text = stored!;
+            if (text.IndexOf('#') >= 0)
+            {
+                try
+                {
+                    text = Localizer.Format(text);
+                }
+                catch (Exception)
+                {
+                    return stored!;
+                }
+            }
+
+            return StripMarkup(text).Trim();
         }
 
         private static bool HasLetterOrDigit(string text)

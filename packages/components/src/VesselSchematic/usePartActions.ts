@@ -10,21 +10,27 @@ export function partActionsTopic(flightId: number | string): string {
 }
 
 const NO_WINDOWS: readonly PartActionEntry[] = [];
+const NO_ROWS: readonly PartWindowRow[] = [];
+
+/** One non-button row of a part's window: a label, switch, slider, option list, cycle or resource. */
+export type PartWindowRow = PartActions["window"][number];
 
 export interface PartActionsRead {
   /** The part's PAW buttons, or `undefined` until the first frame lands. */
   actions: readonly PartActionEntry[] | undefined;
   /** Buttons only someone at the game's own screen can finish, drawn disabled. */
   gameWindows: readonly PartActionEntry[];
+  /** The part's window rows that are not buttons, in the order the game draws them. */
+  rows: readonly PartWindowRow[];
   /** True while the subscription is unanswered: a real wait under signal delay, and not the same as no actions. */
   pending: boolean;
 }
 
 /**
- * Subscribes one part's PAW action list. The mod enumerates a part's
- * `BaseEvent`s only while its topic has a subscriber, so the id is required
- * and callers mount only while a part is hovered or open: an idle VesselSchematic
- * costs nothing. The list is live, so it is also the read-back for an invoke
+ * Subscribes one part's PAW action list and window rows. The mod reads a
+ * part's window only while its topic has a subscriber, so the id is required.
+ * The Vessel Schematic mounts one for every part while it is on screen, so a
+ * part opened later finds a reading already held. The list is live, so it is also the read-back for an invoke
  * ("Extend" becomes "Retract" a signal delay later), and nothing mutates
  * optimistically.
  */
@@ -40,6 +46,7 @@ export function usePartActions(flightId: number): PartActionsRead {
   return {
     actions: payload?.actions,
     gameWindows: payload?.gameWindows ?? NO_WINDOWS,
+    rows: payload?.window ?? NO_ROWS,
     pending: reading.state === "pending" || reading.state === "unowned",
   };
 }

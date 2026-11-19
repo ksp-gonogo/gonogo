@@ -124,5 +124,111 @@ namespace Sitrep.Host.Tests
             // rename on either side without the other is a silent dead command.
             Assert.Equal("vessel.invokePartAction", PartActionCommandProvider.InvokePartActionCommand);
         }
+
+        [Fact]
+        public void SetFieldPassesEveryArgThroughUnscrambled()
+        {
+            var actuator = new FakePartActionActuator();
+
+            var result = PartActionCommandProvider.HandleSetField(
+                actuator,
+                new SetPartFieldArgs { PartId = "1234567", Module = "ModuleEnginesFX", Field = "thrustPercentage", Value = 73.5 });
+
+            Assert.True(result.Success);
+            Assert.Equal("1234567", actuator.LastSetFieldPartId);
+            Assert.Equal("ModuleEnginesFX", actuator.LastSetFieldModule);
+            Assert.Equal("thrustPercentage", actuator.LastSetFieldName);
+            Assert.Equal(73.5, actuator.LastSetFieldValue);
+        }
+
+        [Fact]
+        public void SetFieldWithEmptyPartIdFailsNotFoundWithoutCallingTheActuator()
+        {
+            var actuator = new FakePartActionActuator();
+
+            var result = PartActionCommandProvider.HandleSetField(
+                actuator, new SetPartFieldArgs { PartId = "", Field = "thrustPercentage", Value = 1 });
+
+            Assert.Equal(CommandErrorCode.NotFound, result.ErrorCode);
+            Assert.Null(actuator.LastSetFieldPartId);
+        }
+
+        [Fact]
+        public void SetFieldWithNoFieldNameFailsCapabilityMismatchWithoutCallingTheActuator()
+        {
+            var actuator = new FakePartActionActuator();
+
+            var result = PartActionCommandProvider.HandleSetField(
+                actuator, new SetPartFieldArgs { PartId = "1234567", Field = "", Value = 1 });
+
+            Assert.Equal(CommandErrorCode.CapabilityMismatch, result.ErrorCode);
+            Assert.Equal("the command names no field to set", result.Detail);
+            Assert.Null(actuator.LastSetFieldPartId);
+        }
+
+        [Theory]
+        [InlineData(double.NaN)]
+        [InlineData(double.PositiveInfinity)]
+        [InlineData(double.NegativeInfinity)]
+        public void SetFieldRefusesAValueThatIsNotAFiniteNumberWithoutCallingTheActuator(double value)
+        {
+            var actuator = new FakePartActionActuator();
+
+            var result = PartActionCommandProvider.HandleSetField(
+                actuator, new SetPartFieldArgs { PartId = "1234567", Field = "thrustPercentage", Value = value });
+
+            Assert.Equal(CommandErrorCode.Range, result.ErrorCode);
+            Assert.Null(actuator.LastSetFieldPartId);
+        }
+
+        [Fact]
+        public void SetFieldMeansTheOwnPartWhenNoModuleIsNamed()
+        {
+            var actuator = new FakePartActionActuator();
+
+            PartActionCommandProvider.HandleSetField(
+                actuator, new SetPartFieldArgs { PartId = "1234567", Field = "someField", Value = 1 });
+
+            Assert.Equal("", actuator.LastSetFieldModule);
+        }
+
+        [Theory]
+        [InlineData("notFound")]
+        [InlineData("range")]
+        [InlineData("capabilityMismatch")]
+        public void SetFieldSurfacesTheActuatorsTypedFailureUnchanged(string code)
+        {
+            var refusal = code == "notFound" ? CommandErrorCode.NotFound
+                : code == "range" ? CommandErrorCode.Range
+                : CommandErrorCode.CapabilityMismatch;
+            var actuator = new FakePartActionActuator { SetFieldResult = CommandResult.Fail(refusal, "x") };
+
+            var result = PartActionCommandProvider.HandleSetField(
+                actuator, new SetPartFieldArgs { PartId = "9", Module = "M", Field = "f", Value = 1 });
+
+            Assert.False(result.Success);
+            Assert.Equal(refusal, result.ErrorCode);
+            Assert.Equal("x", result.Detail);
+        }
+
+        [Fact]
+        public void SetFieldCommandNameIsTheDeclaredVesselCommand()
+        {
+            Assert.Equal("vessel.setPartField", PartActionCommandProvider.SetPartFieldCommand);
+        }
+
+        /// <summary>
+        /// The commanded value is what lets a slider draw the value the operator
+        /// sent beside the reported one, so the command must name it.
+        /// </summary>
+        [Fact]
+        public void SetFieldDeclaresItsValueAsTheCommandedValue()
+        {
+            var attribute = (SitrepCommandAttribute)System.Attribute.GetCustomAttribute(
+                typeof(SetPartFieldArgs), typeof(SitrepCommandAttribute))!;
+
+            Assert.Equal(PartActionCommandProvider.SetPartFieldCommand, attribute.CommandId);
+            Assert.Equal(nameof(SetPartFieldArgs.Value), attribute.SetsValue);
+        }
     }
 }

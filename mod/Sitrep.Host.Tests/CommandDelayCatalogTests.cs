@@ -57,6 +57,7 @@ namespace Sitrep.Host.Tests
         [Theory]
         [InlineData("vessel.gameWindow.press")]
         [InlineData("vessel.invokePartAction")]
+        [InlineData("vessel.setPartField")]
         public void TheGameWindowMirrorCommandsRideTheSignalDelay(string command)
         {
             Assert.True(CommandDelayCatalog.TryGetDelay(command, out var delay));

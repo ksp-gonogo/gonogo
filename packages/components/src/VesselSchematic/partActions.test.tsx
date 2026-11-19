@@ -100,7 +100,7 @@ describe("VesselSchematic: PAW part actions", () => {
       });
     });
 
-    const item = await screen.findByRole("menuitem", {
+    const item = await screen.findByRole("button", {
       name: /Rename Vessel .*needs someone at the game's screen/,
     });
     expect(item).toHaveAttribute("aria-disabled", "true");
@@ -124,11 +124,11 @@ describe("VesselSchematic: PAW part actions", () => {
       );
     });
 
-    const menu = await screen.findByRole("menu");
+    const menu = await screen.findByRole("region", { name: /window/ });
     expect(menu).toBeTruthy();
     await waitFor(() =>
       expect(
-        screen.getByRole("menuitem", { name: /Extend Solar Panel/ }),
+        screen.getByRole("button", { name: /Extend Solar Panel/ }),
       ).toBeTruthy(),
     );
   });
@@ -146,7 +146,7 @@ describe("VesselSchematic: PAW part actions", () => {
       );
     });
 
-    const menu = await screen.findByRole("menu");
+    const menu = await screen.findByRole("region", { name: /window/ });
     expect(view.container.contains(menu)).toBe(false);
     expect(document.body.contains(menu)).toBe(true);
   });
@@ -166,7 +166,7 @@ describe("VesselSchematic: PAW part actions", () => {
     });
 
     await user.click(
-      await screen.findByRole("menuitem", { name: /Extend Solar Panel/ }),
+      await screen.findByRole("button", { name: /Extend Solar Panel/ }),
     );
 
     const sent = fixture.transport.sentCommands;
@@ -181,7 +181,7 @@ describe("VesselSchematic: PAW part actions", () => {
     expect(sent[0].label).toContain("Extend Solar Panel");
   });
 
-  it("keeps an inactive action selectable, advises on it, and sends the press", async () => {
+  it("leaves out an inactive action, as the game's window does", async () => {
     const user = userEvent.setup();
     const { fixture } = await renderDiagram();
 
@@ -189,20 +189,15 @@ describe("VesselSchematic: PAW part actions", () => {
     act(() => {
       fixture.emit(
         partActionsTopic(PART_FLIGHT_ID),
-        partActionsWire([{ name: "Deploy", label: "Deploy", active: false }]),
+        partActionsWire([
+          { name: "Deploy", label: "Deploy", active: false },
+          { name: "Retract", label: "Retract", active: true },
+        ]),
       );
     });
 
-    const item = await screen.findByRole("menuitem", { name: /Deploy/ });
-    expect(item.getAttribute("aria-disabled")).toBeNull();
-    expect(item).toHaveAttribute("data-predicted", "at-risk");
-    expect(item).toHaveAccessibleDescription(
-      /likely to be refused: the game greys this action\./i,
-    );
-
-    // The game decides when the press arrives.
-    await user.click(item);
-    await waitFor(() => expect(fixture.transport.sentCommands).toHaveLength(1));
+    await screen.findByRole("button", { name: /Retract/ });
+    expect(screen.queryByRole("button", { name: /Deploy/ })).toBeNull();
   });
 
   it("lists a label once when the game holds an active and a greyed event under it", async () => {
@@ -220,39 +215,49 @@ describe("VesselSchematic: PAW part actions", () => {
       );
     });
 
-    const items = await screen.findAllByRole("menuitem", { name: /Undock/ });
+    const items = await screen.findAllByRole("button", { name: /Undock/ });
     expect(items).toHaveLength(1);
     expect(items[0].getAttribute("data-predicted")).not.toBe("at-risk");
   });
 
-  it("stops an inactive action while the verdict is fresh and sends nothing", async () => {
+  it("keeps an advanced action in the closed Advanced group, pressable once it is opened", async () => {
     const user = userEvent.setup();
     const { fixture } = await renderDiagram();
-    act(() => {
-      fixture.emit("comms.delay", { oneWaySeconds: 1 });
-      fixture.emit("system.uplink.delays", {
-        activeVessel: [INVOKE_PART_ACTION_COMMAND],
-        elsewhere: [],
-      });
-    });
 
     await user.click(partElement());
     act(() => {
-      fixture.emit(
-        partActionsTopic(PART_FLIGHT_ID),
-        partActionsWire([{ name: "Deploy", label: "Deploy", active: false }]),
-      );
+      fixture.emit(partActionsTopic(PART_FLIGHT_ID), {
+        ...partActionsWire([{ name: "Retract", label: "Retract" }]),
+        actions: [
+          {
+            name: "Retract",
+            label: "Retract",
+            moduleName: "ModuleDeployableSolarPanel",
+            active: true,
+            guiActiveUnfocused: false,
+            advancedTweakable: false,
+            requireFullControl: false,
+          },
+          {
+            name: "ToggleAutoStrut",
+            label: "Toggle Autostrut",
+            moduleName: "",
+            active: true,
+            guiActiveUnfocused: false,
+            advancedTweakable: true,
+            requireFullControl: false,
+          },
+        ],
+      });
     });
 
-    const item = await screen.findByRole("menuitem", { name: /Deploy/ });
-    await waitFor(() => expect(item).toHaveAttribute("aria-disabled", "true"));
-    expect(item).not.toHaveAttribute("data-predicted");
-    expect(item).toHaveAccessibleDescription(
-      "Deploy on Mk1 Command Pod unavailable: the game greys this action.",
-    );
+    await screen.findByRole("button", { name: /Retract/ });
+    expect(screen.queryByRole("button", { name: /Autostrut/ })).toBeNull();
 
-    await user.click(item);
-    expect(fixture.transport.sentCommands).toHaveLength(0);
+    await user.click(screen.getByRole("button", { name: "Advanced" }));
+
+    await user.click(await screen.findByRole("button", { name: /Autostrut/ }));
+    await waitFor(() => expect(fixture.transport.sentCommands).toHaveLength(1));
   });
 
   it("closes on Escape and returns focus to the part", async () => {
@@ -272,14 +277,16 @@ describe("VesselSchematic: PAW part actions", () => {
       );
     });
     // Wait for the menu to own focus: Escape bubbles out of the menu, so pressed early it would go to the part.
-    const menu = await screen.findByRole("menu");
+    const menu = await screen.findByRole("region", { name: /window/ });
     await waitFor(() =>
       expect(menu.contains(document.activeElement)).toBe(true),
     );
 
     await user.keyboard("{Escape}");
 
-    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+    await waitFor(() =>
+      expect(screen.queryByRole("region", { name: /window/ })).toBeNull(),
+    );
     // Focus goes back to the part the operator was on, not to the body.
     expect(document.activeElement).toBe(part);
   });
@@ -296,7 +303,7 @@ describe("VesselSchematic: PAW part actions", () => {
       );
     });
 
-    expect(await screen.findByRole("menu")).toBeTruthy();
+    expect(await screen.findByRole("region", { name: /window/ })).toBeTruthy();
   });
 
   it("says a part is still awaiting its list rather than reporting no actions", async () => {

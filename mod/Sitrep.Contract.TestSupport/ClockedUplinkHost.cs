@@ -56,6 +56,10 @@ namespace Sitrep.Contract.TestSupport
         /// </summary>
         public bool IsAnyTopicSubscribed(string topicPrefix) => true;
 
+        public void RequestSample()
+        {
+        }
+
         public IDisposable HoldRate(string topic, double samplesPerSecond) => new Release();
 
         private sealed class Release : IDisposable

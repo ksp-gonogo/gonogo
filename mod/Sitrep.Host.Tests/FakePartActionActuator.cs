@@ -17,6 +17,7 @@ namespace Sitrep.Host.Tests
         public readonly List<string> ListedPartIds = new List<string>();
         public string? LastInvokePartId;
         public string? LastInvokeEventName;
+        public int? LastInvokeModuleIndex;
 
         /// <summary>
         /// What <see cref="List"/> answers per part id. An id with no entry here
@@ -26,7 +27,24 @@ namespace Sitrep.Host.Tests
         public readonly Dictionary<string, List<PartActionEntry>> ActionsByPartId =
             new Dictionary<string, List<PartActionEntry>>();
 
+        public readonly List<string> ListedWindowPartIds = new List<string>();
+
+        public readonly Dictionary<string, List<PartWindowItem>> WindowByPartId =
+            new Dictionary<string, List<PartWindowItem>>();
+
+        public IReadOnlyList<PartWindowItem> ListWindow(string partId)
+        {
+            ListedWindowPartIds.Add(partId);
+            return WindowByPartId.TryGetValue(partId, out var items) ? items : new List<PartWindowItem>();
+        }
+
         public CommandResult InvokeResult = CommandResult.Ok();
+
+        public string? LastSetFieldPartId;
+        public string? LastSetFieldModule;
+        public string? LastSetFieldName;
+        public double? LastSetFieldValue;
+        public CommandResult SetFieldResult = CommandResult.Ok();
 
         public IReadOnlyList<PartActionEntry> List(string partId)
         {
@@ -36,11 +54,21 @@ namespace Sitrep.Host.Tests
                 : new List<PartActionEntry>();
         }
 
-        public CommandResult Invoke(string partId, string eventName)
+        public CommandResult Invoke(string partId, string eventName, int? moduleIndex)
         {
+            LastInvokeModuleIndex = moduleIndex;
             LastInvokePartId = partId;
             LastInvokeEventName = eventName;
             return InvokeResult;
+        }
+
+        public CommandResult SetField(string partId, string moduleName, string fieldName, double value)
+        {
+            LastSetFieldPartId = partId;
+            LastSetFieldModule = moduleName;
+            LastSetFieldName = fieldName;
+            LastSetFieldValue = value;
+            return SetFieldResult;
         }
     }
 }

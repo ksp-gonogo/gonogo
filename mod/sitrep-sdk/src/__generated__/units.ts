@@ -1062,6 +1062,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "InvokePartActionArgs": {
     eventName: "id",
+    moduleIndex: "n/a",
     partId: "id",
   },
   "IsruConverterEntry": {
@@ -1262,6 +1263,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     group: "text",
     guiActiveUnfocused: "flag",
     label: "text",
+    moduleIndex: "n/a",
     moduleName: "id",
     name: "id",
     opensGameWindow: "flag",
@@ -1320,6 +1322,22 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     mesh: "id",
     shown: "flag",
     transform: "1",
+  },
+  "PartWindowItem": {
+    advanced: "flag",
+    editable: "flag",
+    flows: "flag",
+    group: "text",
+    kind: "id",
+    label: "text",
+    max: "n/a",
+    min: "n/a",
+    module: "id",
+    name: "id",
+    number: "n/a",
+    options: "text",
+    step: "n/a",
+    text: "text",
   },
   "PartsPower": {
     netChargeRateEc: "units/s",
@@ -1703,6 +1721,12 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "SetFlyByWireArgs": {
     enabled: "flag",
+  },
+  "SetPartFieldArgs": {
+    field: "id",
+    module: "id",
+    partId: "id",
+    value: "n/a",
   },
   "SetPausedArgs": {
     paused: "flag",
@@ -3181,6 +3205,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     actions: "PartActionEntry[]",
     gameWindows: "PartActionEntry[]",
     meta: "PayloadMeta",
+    window: "PartWindowItem[]",
   },
   "PartShape": {
     meshes: "PartShapeMesh[]",

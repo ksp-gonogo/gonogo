@@ -41089,6 +41089,10 @@
       {
         "key": "ui-kit . SlotRegistry#\"mode-sections.replay\"",
         "note": "New augment slot: an Uplink adds a section to replay mode as an augment"
+      },
+      {
+        "key": "sitrep-sdk . COMMAND_IDS",
+        "note": "Adds the command id vessel.setPartField, which sets one part-window field on a part in flight"
       }
     ],
     "additions": [

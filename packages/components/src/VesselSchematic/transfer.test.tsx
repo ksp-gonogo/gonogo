@@ -79,7 +79,7 @@ describe("Vessel Schematic transfers", () => {
 
     await user.click(partLabelled(A));
     await user.click(
-      await screen.findByRole("menuitem", {
+      await screen.findByRole("button", {
         name: /Transfer Liquid Fuel from or to/,
       }),
     );
@@ -104,7 +104,7 @@ describe("Vessel Schematic transfers", () => {
     await waitFor(() => expect(partLabelled(A)).toBeTruthy());
     await user.click(partLabelled(A));
     await user.click(
-      await screen.findByRole("menuitem", { name: /Transfer Liquid Fuel/ }),
+      await screen.findByRole("button", { name: /Transfer Liquid Fuel/ }),
     );
 
     await user.click(partLabelled(C));

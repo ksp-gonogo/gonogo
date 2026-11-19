@@ -115,7 +115,7 @@ async function renderDiagram(
   return { fixture, user, view };
 }
 
-const menuItem = (name: RegExp) => screen.findByRole("menuitem", { name });
+const menuItem = (name: RegExp) => screen.findByRole("button", { name });
 
 // beforeEach, never afterEach: clearing while a tree is mounted notifies its subscribers outside act()
 beforeEach(() => {
@@ -135,7 +135,7 @@ describe("VesselSchematic: part panels", () => {
     expect(screen.getByText(new RegExp(`panel for ${PART_ID}`))).toBeTruthy();
     expect(screen.getByText("parts observed")).toBeTruthy();
     expect(fixture.transport.sentCommands).toHaveLength(0);
-    expect(screen.queryByRole("menu")).toBeNull();
+    expect(screen.queryByRole("region", { name: /window/ })).toBeNull();
   });
 
   it("closes through the panel's own close", async () => {
@@ -202,20 +202,12 @@ describe("VesselSchematic: part panels", () => {
     expect(fixture.transport.sentCommands).toHaveLength(1);
   });
 
-  it("advises on a greyed game button and still opens its panel", async () => {
+  it("leaves out a greyed game button, and with it its panel", async () => {
     registerPartPanel(WITH_PANEL);
-    const { user } = await renderDiagram(
-      createDomainAvailabilityStore(),
-      actionsWire(false),
-    );
+    await renderDiagram(createDomainAvailabilityStore(), actionsWire(false));
 
-    const item = await menuItem(/Open Window/);
-    expect(item.getAttribute("aria-disabled")).toBeNull();
-    expect(item).toHaveAccessibleDescription(/the game greys this action/i);
-
-    await user.click(item);
-
-    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    await screen.findByRole("region", { name: /window/ });
+    expect(screen.queryByRole("button", { name: /Open Window/ })).toBeNull();
   });
 
   it("hands a button no panel names to a fallback", async () => {

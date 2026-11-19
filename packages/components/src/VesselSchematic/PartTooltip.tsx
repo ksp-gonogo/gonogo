@@ -91,6 +91,9 @@ export function PartTooltip({
           contributed={contributedActions}
         />
       ) : null}
+      {showActionCount ? (
+        <div style={TOOLTIP_ROW}>Open to see this part's window</div>
+      ) : null}
       {meters.map((m) => (
         <TooltipMeter key={`meter-${m.resource}`} entry={m} />
       ))}

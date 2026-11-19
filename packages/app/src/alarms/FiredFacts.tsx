@@ -6,6 +6,7 @@ import {
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
+import { measuredDelay } from "./measuredDelay";
 import type { Alarm } from "./types";
 import { isAtSubjectVantage } from "./types";
 
@@ -93,8 +94,8 @@ export function FiredFacts({
       )}
       {aboard && !noPath && owltSeconds >= 1 && readingsBehind && (
         <Fact>
-          Your readings are {writeQuantity(value("s", owltSeconds))} behind the
-          craft and do not show this yet.
+          Your readings are {writeQuantity(measuredDelay(owltSeconds))} behind
+          the craft and do not show this yet.
         </Fact>
       )}
     </>

@@ -6,6 +6,7 @@ import {
   Button,
   Floating,
   IconButton,
+  LiveRegion,
   LockScope,
   ModalProvider,
   PanZoomViewport,
@@ -17,9 +18,10 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import type React from "react";
 import type { CSSProperties } from "react";
-import { useEffect, useRef, useState } from "react";
-import { PartActionMenu, type TransferResourceOption } from "./PartActionMenu";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { TransferResourceOption } from "./PartActionMenu";
 import { PartTooltip } from "./PartTooltip";
+import { type FieldCommandHandle, PartWindow } from "./PartWindow";
 import { NO_METERS } from "./partMeters";
 import { ShipDiagramSvg } from "./ShipDiagramSvg";
 import type {
@@ -28,8 +30,8 @@ import type {
   VesselSchematicPartMetaEntry,
   VesselSchematicPartMeterEntry,
 } from "./shipTopology";
-
 import type { TransferDrawing } from "./TransferLayer";
+import { usePartActions } from "./usePartActions";
 
 const NO_META: readonly VesselSchematicPartMetaEntry[] = [];
 const NO_ACTIONS: readonly VesselSchematicPartActionEntry[] = [];
@@ -66,7 +68,10 @@ interface Props {
     eventName: string,
     actionLabel: string,
     partTitle: string,
+    moduleIndex?: number | null,
   ) => AnyBoundCommand;
+  /** The handle `vessel.setPartField` is sent on, owned by the widget so a control's sent word outlives the window. */
+  setPartField?: FieldCommandHandle;
   /** Presses of the rotate control the view is turned from its default. */
   turn?: number;
   /** Sets the turn. Omitted, the rotate control does not appear. */
@@ -75,6 +80,11 @@ interface Props {
   transferDrawing?: TransferDrawing;
   /** While picking tanks, a press on a part chooses it instead of opening its menu. */
   onPickTank?: (part: VesselSchematicPart) => void;
+  /** True once the craft is destroyed: its last parts stay drawn, but a part window of it is closed. */
+  destroyed?: boolean;
+  /** The line saying why a part window closed, owned by the caller so it outlives a redraw of the diagram, and the way to set or clear it. */
+  closedNotice?: string | null;
+  onClosedNotice?: (notice: string | null) => void;
   /** The resources a part's menu offers for transfer. */
   transferResourcesOf?: (
     part: VesselSchematicPart,
@@ -113,10 +123,14 @@ function ShipDiagramBody({
   partActions,
   contributedActionCommand,
   partActionCommand,
+  setPartField,
   turn = 0,
   onTurn,
   transferDrawing,
   onPickTank,
+  destroyed = false,
+  closedNotice = null,
+  onClosedNotice,
   transferResourcesOf,
   onStartTransferPick,
 }: Readonly<Props>) {
@@ -168,6 +182,32 @@ function ShipDiagramBody({
     closeModal(opened.modalId);
     openPanelRef.current = null;
   }, [parts, closeModal]);
+
+  const setClosedNotice = useCallback(
+    (notice: string | null) => onClosedNotice?.(notice),
+    [onClosedNotice],
+  );
+  // A part window whose part has left the craft (a stage separated, or the craft was lost) is closed, and a line says why.
+  useEffect(() => {
+    if (!openPart) return;
+    const title = openPart.part.title || openPart.part.name;
+    if (destroyed) {
+      setOpenPart(null);
+      setClosedNotice(
+        `The vessel was destroyed, so the ${title} window closed.`,
+      );
+      return;
+    }
+    if (parts.length === 0) return;
+    if (parts.some((p) => p.flightId === openPart.part.flightId)) return;
+    setOpenPart(null);
+    setClosedNotice(`The ${title} left the vessel, so its window closed.`);
+  }, [parts, openPart, destroyed, setClosedNotice]);
+
+  // The reason goes as soon as another window opens; its few seconds are timed by the owner of the line, so a redraw of the diagram does not cut them short.
+  useEffect(() => {
+    if (openPart) setClosedNotice(null);
+  }, [openPart, setClosedNotice]);
 
   const dismissMenu = () => {
     setOpenPart(null);
@@ -244,6 +284,11 @@ function ShipDiagramBody({
       >
         Reset
       </Button>
+      <LiveRegion>
+        {closedNotice !== null && (
+          <div style={CLOSED_NOTICE}>{closedNotice}</div>
+        )}
+      </LiveRegion>
       {onTurn && width >= ROTATE_MIN_WIDTH && (
         <div style={ROTATE_GROUP}>
           <IconButton
@@ -309,17 +354,29 @@ function ShipDiagramBody({
         />
       )}
 
-      {openPart && partActionCommand && (
+      {/* One subscription per part for as long as the diagram is on screen, so a part opened later is already held. */}
+      {partActionCommand && setPartField
+        ? parts.map((part) => (
+            <PartWindowSubscription
+              key={part.flightId}
+              flightId={part.flightId}
+            />
+          ))
+        : null}
+
+      {openPart && partActionCommand && setPartField && (
         <Floating anchor={menuAnchor}>
-          <PartActionMenu
+          <PartWindow
+            setFieldHandle={setPartField}
             flightId={openPart.part.flightId}
             partTitle={openPart.part.title || openPart.part.name}
-            commandFor={(eventName, actionLabel) =>
+            commandFor={(eventName, actionLabel, moduleIndex) =>
               partActionCommand(
                 openPart.part.flightId,
                 eventName,
                 actionLabel,
                 openPart.part.title || openPart.part.name,
+                moduleIndex,
               )
             }
             contributed={
@@ -354,6 +411,20 @@ const RESET_BUTTON: CSSProperties = {
   zIndex: 10,
 };
 
+const CLOSED_NOTICE: CSSProperties = {
+  position: "absolute",
+  bottom: "6px",
+  left: "6px",
+  right: "6px",
+  zIndex: RESET_BUTTON.zIndex,
+  padding: "var(--inset-chip-readout)",
+  fontSize: "var(--font-size-compact)",
+  color: "var(--color-text-primary)",
+  background: "var(--color-surface-raised)",
+  border: "1px solid var(--color-border-strong)",
+  borderRadius: "var(--radius-regular)",
+};
+
 const ROTATE_GROUP: CSSProperties = {
   position: "absolute",
   top: "6px",
@@ -365,3 +436,9 @@ const ROTATE_GROUP: CSSProperties = {
 
 // Static, not the menu's own absolute, so it stays in the layer's flow and the layer can be measured.
 const MENU_IN_LAYER: CSSProperties = { position: "static" };
+
+/** Holds one part's window subscription, which draws nothing. */
+function PartWindowSubscription({ flightId }: Readonly<{ flightId: number }>) {
+  usePartActions(flightId);
+  return null;
+}

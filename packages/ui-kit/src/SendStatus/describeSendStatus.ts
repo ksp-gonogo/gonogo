@@ -1,7 +1,15 @@
-import type { SendStatus, Value } from "@ksp-gonogo/sitrep-sdk";
+import { type SendStatus, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "../units";
 
 const quantity = (seconds: Value<"s">) => writeQuantity(seconds);
+
+/* A measured delay is rounded to the second before it is written: the kit's time ladder truncates, which is right for a countdown and reads 3.9998 s as 3s. */
+const measuredDelay = (seconds: Value<"s">) =>
+  seconds.isFinite() && seconds.greaterThan(value("s", 1))
+    ? writeQuantity(value("s", Math.round(seconds.in("s").valueOf())), {
+        decimals: 0,
+      })
+    : writeQuantity(seconds);
 
 /** Every word the status can say, keyed by state, so a wording change is an edit here and nowhere else. */
 const WORDS = {
@@ -16,7 +24,7 @@ const WORDS = {
         : "No contact",
   },
   delay: {
-    held: (seconds: Value<"s">) => `${quantity(seconds)} signal delay`,
+    held: (seconds: Value<"s">) => `${measuredDelay(seconds)} signal delay`,
     absent: () => "no signal path",
   },
   arrival: {

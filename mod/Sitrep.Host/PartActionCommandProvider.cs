@@ -39,6 +39,33 @@ namespace Sitrep.Host
         /// </summary>
         public const string InvokePartActionCommand = "vessel.invokePartAction";
 
+        /// <summary>
+        /// Sets one PAW field. <c>delayed: true</c> for the same reason as
+        /// <see cref="InvokePartActionCommand"/>.
+        /// </summary>
+        public const string SetPartFieldCommand = "vessel.setPartField";
+
+        public static CommandResult HandleSetField(IPartActionActuator actuator, SetPartFieldArgs args)
+        {
+            if (string.IsNullOrEmpty(args.PartId))
+            {
+                return CommandResult.Fail(CommandErrorCode.NotFound);
+            }
+
+            if (string.IsNullOrEmpty(args.Field))
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.CapabilityMismatch, "the command names no field to set");
+            }
+
+            if (double.IsNaN(args.Value) || double.IsInfinity(args.Value))
+            {
+                return CommandResult.Fail(CommandErrorCode.Range);
+            }
+
+            return actuator.SetField(args.PartId, args.Module ?? "", args.Field, args.Value);
+        }
+
         public static CommandResult HandleInvoke(IPartActionActuator actuator, InvokePartActionArgs args)
         {
             if (string.IsNullOrEmpty(args.PartId))
@@ -64,7 +91,7 @@ namespace Sitrep.Host
                     "that action needs someone at the game's screen");
             }
 
-            return actuator.Invoke(args.PartId, args.EventName);
+            return actuator.Invoke(args.PartId, args.EventName, args.ModuleIndex);
         }
     }
 }

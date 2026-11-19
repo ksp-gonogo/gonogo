@@ -58,4 +58,14 @@ describe("describeSendStatus", () => {
       "No contact, no electric charge aboard · no signal path\nLikely lost",
     );
   });
+
+  it("rounds a measured delay to the second and leaves a countdown alone", () => {
+    expect(
+      describeSendStatus({
+        contact: { kind: "loss-in", seconds: value("s", 3.9998) },
+        signalDelay: value("s", 3.9998),
+        arrival: "expected",
+      }),
+    ).toBe("LOS in 3s · 4s signal delay\nExpected to arrive");
+  });
 });

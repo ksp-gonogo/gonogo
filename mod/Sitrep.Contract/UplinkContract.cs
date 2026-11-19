@@ -1568,6 +1568,20 @@ namespace Sitrep.Contract
         /// <returns><c>true</c> when any subscribed topic starts with <paramref name="topicPrefix"/>.</returns>
         bool IsAnyTopicSubscribed(string topicPrefix);
 
+        /// <summary>
+        /// Asks the host to sample the game again at its next opportunity, outside its usual cadence, so the
+        /// sampled sources are captured on the next frame and not at the next scheduled sample. Useful for an
+        /// Uplink that has just changed something in the game that a window of its own reads, such as a part
+        /// module it has switched on, and wants the operator to see the result without waiting for the next
+        /// sample: while the game clock is stopped, as in the editors, a sample is a second apart. Used by the
+        /// part window's second read of a window in flight.
+        ///
+        /// <para>Any number of calls before the next sample ask for one sample. Safe to call from the main
+        /// thread and from off-main-thread handlers. A sample is refused while a scene is loading, and the
+        /// request is kept until the host can take it.</para>
+        /// </summary>
+        void RequestSample();
+
         /// <summary> Declares a dynamic namespace: a <paramref name="prefix"/>
         /// the calling Uplink owns, plus a <paramref name="template"/> whose
         /// <see cref="ChannelDeclaration.Delivery"/>,

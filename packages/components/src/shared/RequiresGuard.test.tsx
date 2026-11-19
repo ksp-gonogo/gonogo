@@ -3,6 +3,7 @@ import {
   type DataSource,
   type DataSourceStatus,
   registerDataSource,
+  useHeldOpen,
 } from "@ksp-gonogo/core";
 import { TelemetryClient, TelemetryProvider } from "@ksp-gonogo/sitrep-client";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
@@ -309,18 +310,24 @@ describe("RequiresGuard: held open by the crash a flight ended in", () => {
       transport.emit("crash.hasRecent", { recent: true });
       transport.emit("crash.lastCrash", { vesselId: "doomed", ut: 1000 });
     });
+    // The craft must be rendered flying before it leaves: the gate remembers the craft it last saw, and two emits with no render between them leave it none.
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
     await leaveFlight(transport);
     act(() => transport.emit("vessel.identity", null as never));
   };
 
   it("keeps a widget that declares it on screen once the game has left flight", async () => {
-    const { transport } = renderGuard(<div>widget content</div>, {
+    // The widget is also drawn before the game's first signal, so wait for the gate's own word that it is held open.
+    const Held = () => <div>held by {useHeldOpen() ?? "nothing"}</div>;
+    const { transport } = renderGuard(<Held />, {
       channels: ["vessel.flight"],
       heldOpenBy: ["crash-ending"],
     });
     await crashThenLeave(transport);
     await waitFor(() =>
-      expect(screen.getByText("widget content")).toBeInTheDocument(),
+      expect(screen.getByText("held by crash-ending")).toBeInTheDocument(),
     );
     expect(screen.queryByText("No active vessel")).not.toBeInTheDocument();
   });
