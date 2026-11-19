@@ -26,6 +26,13 @@ async function subscribed(transport: StubTransport) {
   });
 }
 
+/** Holds the act scope open across the frames the view clock takes to deliver the last emit. */
+const settle = () =>
+  act(async () => {
+    for (let i = 0; i < 3; i++)
+      await new Promise((r) => requestAnimationFrame(r));
+  });
+
 const crashOf = (transport: StubTransport, vesselId: string) =>
   act(() => {
     transport.emit("crash.hasRecent", { recent: true });
@@ -49,6 +56,7 @@ describe("useCrashEnding with no active vessel", () => {
     await waitFor(() => expect(hook.result.current?.vesselId).toBe("doomed"));
     identity(transport, null);
     await waitFor(() => expect(hook.result.current?.vesselId).toBe("doomed"));
+    await settle();
   });
 
   it("lets go once another craft has been seen", async () => {
@@ -61,6 +69,7 @@ describe("useCrashEnding with no active vessel", () => {
     await waitFor(() => expect(hook.result.current).toBeUndefined());
     identity(transport, null);
     await waitFor(() => expect(hook.result.current).toBeUndefined());
+    await settle();
   });
 
   it("has no ending for a crash on record when no craft has been seen", async () => {
@@ -68,7 +77,7 @@ describe("useCrashEnding with no active vessel", () => {
     await subscribed(transport);
     identity(transport, null);
     crashOf(transport, "long-ago");
-    await act(async () => {});
+    await settle();
     expect(hook.result.current).toBeUndefined();
   });
 });

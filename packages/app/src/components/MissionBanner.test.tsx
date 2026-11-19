@@ -504,6 +504,13 @@ function setupDelayedStream() {
   };
 }
 
+/** Holds the act scope open across the frames the view clock takes to deliver the last emit. */
+const settleFrames = () =>
+  act(async () => {
+    for (let i = 0; i < 3; i++)
+      await new Promise((r) => requestAnimationFrame(r));
+  });
+
 /** The value beside the header's delay caption, or null when there is none. */
 function delayValue(): HTMLElement | null {
   return (screen.queryByText("Delay")?.nextElementSibling ??
@@ -546,6 +553,7 @@ describe("MissionBanner signal delay", () => {
     await fixture.flyAt(3.9997);
 
     await waitFor(() => expect(delayValue()?.textContent).toMatch(/\b4\s*s$/));
+    await settleFrames();
   });
 
   it("shows nothing when there is no active vessel", async () => {

@@ -230,7 +230,9 @@ describe("RequiresGuard: gated by the Topics a widget reads", () => {
       channels: ["trackingStation.bodies"],
     });
     await leaveFlight(transport, []);
-    await new Promise((r) => setTimeout(r, 50));
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
     expect(screen.getByText("widget content")).toBeInTheDocument();
   });
 
