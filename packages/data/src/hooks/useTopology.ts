@@ -15,10 +15,8 @@ import { deriveTopologyFromVesselParts } from "./vesselPartsAdapter";
  * change-gated, so the whole payload only re-emits when the structure actually
  * changes.
  */
-export function useTopology(
-  topic: "vessel.parts" = "vessel.parts",
-): VesselTopology | undefined {
-  const reading = useTelemetry(topic);
+export function useTopology(): VesselTopology | undefined {
+  const reading = useTelemetry("vessel.parts");
   // Structure, not a quantity: exact between events and unpredictable across
   // one, which is why `vessel.parts` is declared unmodellable. A held topology
   // is the topology, so it is derived from the last observed record; only a

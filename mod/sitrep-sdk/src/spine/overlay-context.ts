@@ -17,7 +17,7 @@ export interface TelemetryOverlay {
   topics: readonly string[];
   client: TelemetryClient;
   store: TimelineStore;
-  /** What the overlay predicts, for a heading ("Splashdown Demo, rev 15"). */
+  /** What the overlay predicts, for a heading ("Orbit insertion, rev 3"). */
   label?: string;
 }
 

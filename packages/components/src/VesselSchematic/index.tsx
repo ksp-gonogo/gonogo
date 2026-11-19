@@ -78,12 +78,6 @@ interface VesselSchematicConfig {
   turn?: number;
 }
 
-/*
- * In design mode the editor craft's parts arrive on an Uplink's Topic in the vessel.parts row
- * shape. Core has no type for it, so the id is cast to the flight Topic's.
- */
-const DESIGN_PARTS_TOPIC = "design.editor.parts" as "vessel.parts";
-
 function VesselSchematicComponent({
   config,
   w,
@@ -97,9 +91,8 @@ function VesselSchematicComponent({
     [config, onConfigChange],
   );
   const design = useGameContext().mode === "design";
-  const partsTopic = design ? DESIGN_PARTS_TOPIC : "vessel.parts";
   // The mod's channel engine is change-gated, so no seq-driven refetch is needed.
-  const liveTopology = useTopology(partsTopic);
+  const liveTopology = useTopology();
   const flightCrash = useCrashEnding();
   const crash = design ? undefined : flightCrash;
   /*
@@ -180,7 +173,7 @@ function VesselSchematicComponent({
     () => topology?.parts.map((p) => p.flightId) ?? [],
     [topology],
   );
-  const liveByFlightId = usePartsLive(flightIds, partsTopic);
+  const liveByFlightId = usePartsLive(flightIds);
   // The live fields on every part come off this one reading, so it dates them for an overlay.
   const partsReading = topics.useTelemetry("vessel.parts");
 
@@ -375,7 +368,7 @@ function VesselSchematicComponent({
           hottestPartId,
           size,
           setWrapEl,
-          ambientTint: design ? BLUEPRINT_TINT : ambientTint,
+          ambientTint,
           throttle: design ? 0 : throttle,
           thrusting: design ? false : thrusting,
           overlayContext,
@@ -423,9 +416,6 @@ function ContributedCommandHost({
   useEffect(() => () => register(command, null), [command, register]);
   return null;
 }
-
-const BLUEPRINT_TINT =
-  "linear-gradient(rgba(95,200,255,0.10) 1px, transparent 1px) 0 0 / 16px 16px, linear-gradient(90deg, rgba(95,200,255,0.10) 1px, transparent 1px) 0 0 / 16px 16px, rgba(20,60,100,0.25)";
 
 function normaliseTurn(turn: number | undefined): number {
   if (typeof turn !== "number" || !Number.isFinite(turn)) return 0;

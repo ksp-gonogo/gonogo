@@ -7,12 +7,11 @@ import {
   type TopologyPart,
   type VesselTopology,
 } from "@ksp-gonogo/core";
-import {
-  type PartModuleState,
-  type Value,
-  type VesselPart,
-  type VesselParts,
-  value,
+import type {
+  PartModuleState,
+  Value,
+  VesselPart,
+  VesselParts,
 } from "@ksp-gonogo/sitrep-sdk";
 
 /**
@@ -78,61 +77,7 @@ function axisTuple(
     : undefined;
 }
 
-/*
- * A row on a Topic whose payload the unit system did not decode (an Uplink's
- * Topic reusing this row shape) arrives with bare numbers and [x, y, z] arrays.
- * They are lifted to the decoded form so one reader serves both.
- */
-interface RawPartRow {
-  position: readonly number[];
-  up?: readonly number[];
-  forward?: readonly number[];
-  dryMass?: number;
-  maxTemp?: number;
-  bounds: { size: readonly number[]; center?: readonly number[] };
-}
-
-function isRawRow(row: object): row is RawPartRow {
-  return "position" in row && Array.isArray(row.position);
-}
-
-const at = (v: readonly number[] | undefined, i: number) => v?.[i] ?? 0;
-
-function metresVec(v: readonly number[] | undefined) {
-  return {
-    x: value("m", at(v, 0)),
-    y: value("m", at(v, 1)),
-    z: value("m", at(v, 2)),
-  };
-}
-
-function unitVec(v: readonly number[]) {
-  return {
-    x: value("1", at(v, 0)),
-    y: value("1", at(v, 1)),
-    z: value("1", at(v, 2)),
-  };
-}
-
-function liftRaw(p: VesselPart): VesselPart {
-  const row: object = p;
-  if (!isRawRow(row)) return p;
-  return {
-    ...p,
-    position: metresVec(row.position),
-    up: row.up ? unitVec(row.up) : p.up,
-    forward: row.forward ? unitVec(row.forward) : p.forward,
-    dryMass: row.dryMass === undefined ? p.dryMass : value("t", row.dryMass),
-    maxTemp: row.maxTemp === undefined ? p.maxTemp : value("K", row.maxTemp),
-    bounds: {
-      size: metresVec(row.bounds.size),
-      center: row.bounds.center ? metresVec(row.bounds.center) : undefined,
-    },
-  };
-}
-
-function deriveTopologyPart(wire: VesselPart): TopologyPart {
-  const p = liftRaw(wire);
+function deriveTopologyPart(p: VesselPart): TopologyPart {
   return {
     flightId: Number(p.id),
     persistentId: Number(p.id),

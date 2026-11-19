@@ -13,10 +13,7 @@ import { applyPlan, savePlan } from "./planStore";
  * cutoff and hit the sea without its chute. The recording keeps the Topics the
  * tile reads, exactly as they arrived.
  *
- * Beside it are the same craft in the VAB (`design-splash-vab.replay.json`,
- * whose `design.editor.craft` and `design.editor.parts` the design Uplink's
- * client at gonogo-uplinks 35d8fa90 rebuilds the predicted run from), the
- * `.craft` and the boot script it flew.
+ * Beside it are the `.craft` and the boot script it flew.
  */
 
 const fixture = rigFixture("design-splash-flight");

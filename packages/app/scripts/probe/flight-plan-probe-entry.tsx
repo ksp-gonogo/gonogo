@@ -11,7 +11,6 @@ import type {
   ModeDefinition,
   ModeTimeline,
 } from "@ksp-gonogo/sitrep-sdk";
-import { registerUplinkTopic } from "@ksp-gonogo/sitrep-sdk";
 import {
   getReplaySessionController,
   ReplaySessionProvider,
@@ -44,7 +43,6 @@ import { TileRegion } from "../../src/components/ModePane/TileRegion";
 /* Probe: the built Flight Plan widget and the mode pane over stream fixtures, for the round's renders. */
 
 setQuantityLocale("en-GB");
-registerUplinkTopic("design.planResult");
 
 registerDataSource({
   id: "sitrep",
@@ -155,8 +153,6 @@ interface Scene {
   /** The live orbit's apoapsis and periapsis heights, in metres. */
   ap?: number;
   pe?: number;
-  /** How many of the prediction's runs met each step, published as the design producer would. */
-  planResult?: Record<string, { met: number; of: number }>;
   /** The pane's title. */
   title?: string;
   /** Lay six placeholder tiles out in a grid filling the width beside the pane, as the dashboard does. */
@@ -638,16 +634,6 @@ async function render(scene: Scene): Promise<void> {
   );
   await new Promise((r) => setTimeout(r, 50));
   emitWorld(live, scene);
-  if (scene.planResult) {
-    // A Topic no contract names is never subscribed on the stub's wire, so the gate is opened by hand.
-    (
-      live.transport as never as { subscribedTopics: Set<string> }
-    ).subscribedTopics.add("design.planResult");
-    live.emit("design.planResult", {
-      planId: PLAN.id,
-      steps: scene.planResult,
-    });
-  }
   if (scene.series) {
     emitWorld(design, scene);
     // The craft in the editor, as the live game reports it, which the pane scores the plan against.

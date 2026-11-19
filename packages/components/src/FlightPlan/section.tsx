@@ -3,7 +3,7 @@ import {
   useGameContext,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import { useStream, useViewClockOptional } from "@ksp-gonogo/sitrep-client";
+import { useViewClockOptional } from "@ksp-gonogo/sitrep-client";
 import {
   type ModeSectionProps,
   Situation,
@@ -26,7 +26,7 @@ import {
   useModal,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   planBadge,
   signed,
@@ -48,12 +48,7 @@ import {
   useFlightPlan,
   useFlightPlans,
 } from "./planStore";
-import {
-  type PlanLive,
-  type PredictedStep,
-  type ScoredPlan,
-  scorePlan,
-} from "./scoring";
+import { type PlanLive, type ScoredPlan, scorePlan } from "./scoring";
 import { StepCard } from "./steps";
 import { usePlanLive } from "./usePlanLive";
 
@@ -110,37 +105,10 @@ export function useAppliedPlan(): {
   const planning = scene === "Editor";
   const plan = useFlightPlan(useCraftPlanId());
   const { live, progress } = usePlanLive(plan);
-  const predicted = usePredictedSteps(plan?.id);
   const scored = plan
-    ? scorePlan(plan, live, progress, predicted, planning)
+    ? scorePlan(plan, live, progress, undefined, planning)
     : undefined;
   return { plan, scored, planning, live };
-}
-
-/** The payload of `design.planResult`: how many of the prediction's runs met each step of a plan. */
-interface PlanResult {
-  planId: string;
-  steps: Record<string, PredictedStep>;
-}
-
-/*
- * The prediction's per-step result, from the design producer. Nothing in core
- * publishes it yet; until something does, the pane scores from Δv alone.
- */
-function usePredictedSteps(
-  planId: string | undefined,
-): ReadonlyMap<string, PredictedStep> | undefined {
-  const result = stillTrue(
-    useStream<PlanResult>("design.planResult"),
-    undefined,
-  );
-  return useMemo(
-    () =>
-      result && result.planId === planId
-        ? new Map(Object.entries(result.steps))
-        : undefined,
-    [result, planId],
-  );
 }
 
 /** Reports the plan's state and margin for the section's heading. */

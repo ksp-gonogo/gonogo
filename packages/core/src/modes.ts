@@ -82,7 +82,7 @@ registerMode({
   name: "Design",
   order: 10,
   useActive: useDesignActive,
-  // Nothing in core produces a predicted run yet; a producer registers design again with its own timeline.
+  // Design has no timeline until core produces a predicted run.
   useTimeline: () => undefined,
   noTimeline: "No predicted run",
 });

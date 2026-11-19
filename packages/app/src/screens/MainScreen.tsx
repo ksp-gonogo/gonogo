@@ -195,25 +195,10 @@ function NoActiveVessel({
   hasGameSignal: boolean;
   scene: GameScene;
 }) {
-  /* The design Uplink's Topic, named by string: core has no type for a design subject. */
-  const designReading = useTelemetry("design.editor.craft" as never) as {
-    state: string;
-    value?: { name?: string; physics?: unknown[]; revision?: unknown };
-  };
-  const design =
-    scene === "Editor" &&
-    (designReading.state === "observed" || designReading.state === "held")
-      ? designReading.value
-      : undefined;
   if (!hasGameSignal) return null;
   return (
     <NoActiveVessel__Body role="status" aria-live="polite">
       <strong>No active vessel</strong>
-      {design?.name ? (
-        <span>
-          In the editor: {design.name} · {design.physics?.length ?? 0} parts
-        </span>
-      ) : null}
       <span>
         {scene === "Editor"
           ? "Editor scene: nothing is flying."

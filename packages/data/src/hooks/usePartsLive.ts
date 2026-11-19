@@ -47,9 +47,8 @@ export interface PartLiveSlice {
  */
 export function usePartsLive(
   flightIds: readonly number[],
-  topic: "vessel.parts" = "vessel.parts",
 ): Map<number, PartLiveSlice> {
-  const partsReading = useTelemetry(topic);
+  const partsReading = useTelemetry("vessel.parts");
   // `vessel.parts` is declared unmodellable: a part list changes by EVENT (a
   // decoupler, a dock), so between events it is exact and across one no model
   // would have predicted it. So the slices derive from the last observed record

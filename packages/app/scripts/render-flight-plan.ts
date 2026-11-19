@@ -73,11 +73,6 @@ const base = {
   ap: 62_000,
   pe: -410_000,
 };
-const MK2_RESULT = {
-  s2: { met: 9, of: 9 },
-  s3: { met: 9, of: 9 },
-  s4: { met: 0, of: 9 },
-};
 
 const RUN = [
   { t: 0, altitude: 70, dv: 5_620, ap: 0, pe: -600_000, ag2: false },
@@ -119,7 +114,6 @@ const SCENES: Record<string, Record<string, unknown>> = {
     grid: true,
   },
   "phone-sheet-over-tiles": {
-    planResult: MK2_RESULT,
     ...base,
     t: 0,
     altitude: 70,
@@ -169,7 +163,6 @@ const SCENES: Record<string, Record<string, unknown>> = {
     screen: { w: 220, h: 190 },
   },
   "pane-vab-tablet": {
-    planResult: MK2_RESULT,
     ...base,
     t: 0,
     altitude: 70,
@@ -187,7 +180,6 @@ const SCENES: Record<string, Record<string, unknown>> = {
     screen: tablet,
   },
   "sheet-phone-minimised": {
-    planResult: MK2_RESULT,
     ...base,
     t: 0,
     altitude: 70,
@@ -198,7 +190,6 @@ const SCENES: Record<string, Record<string, unknown>> = {
     detent: "peek",
   },
   "sheet-phone-half": {
-    planResult: MK2_RESULT,
     ...base,
     t: 0,
     altitude: 70,
@@ -209,7 +200,6 @@ const SCENES: Record<string, Record<string, unknown>> = {
     detent: "half",
   },
   "sheet-phone-full": {
-    planResult: MK2_RESULT,
     ...base,
     t: 0,
     altitude: 70,
@@ -230,7 +220,6 @@ const timelineDesign = (
   ...designScene(112),
   widget: undefined,
   grid: true,
-  planResult: MK2_RESULT,
   dv: 5_030,
   padDv: 5_030,
   title: "Mun Hopper Mk2 rev 3",
@@ -272,7 +261,6 @@ const TIMELINE: Record<string, Record<string, unknown>> = {
   "recorded-tablet": timelineReplay(tablet),
   "recorded-phone": timelineReplay(phone),
   "add-step-contributed": {
-    planResult: MK2_RESULT,
     ...base,
     t: 0,
     altitude: 70,

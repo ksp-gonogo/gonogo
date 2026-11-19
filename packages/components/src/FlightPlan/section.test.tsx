@@ -172,35 +172,6 @@ describe("FlightPlanSection in the editor", () => {
     await act(async () => {});
   });
 
-  it("shows the prediction's result on each step and names the first that fails", async () => {
-    savePlan(plan);
-    applyPlan("editor", plan.id);
-    const fixture = setupStreamFixture({ pinnedUt: 0, suspendFrames: true });
-    render(
-      <fixture.Provider>
-        <ModalProvider>
-          <FlightPlanSection />
-        </ModalProvider>
-      </fixture.Provider>,
-    );
-    act(() => {
-      fixture.emit("spaceCenter.scene", { scene: "Editor" });
-      emitCraft(fixture, 5_030);
-      // A Topic no contract names is never subscribed on the stub's wire, so the gate is opened by hand.
-      (
-        fixture.transport as never as { subscribedTopics: Set<string> }
-      ).subscribedTopics.add("design.planResult");
-      fixture.emit("design.planResult", {
-        planId: plan.id,
-        steps: { s2: { met: 9, of: 9 }, s3: { met: 3, of: 9 } },
-      });
-    });
-    await waitFor(() => expect(visibleText()).toContain("Likely to fail"));
-    expect(visibleText()).toContain("9 of 9");
-    expect(visibleText()).toContain("3 of 9");
-    await act(async () => {});
-  });
-
   it("draws each step's Δv bar as what is left against what the step needs", async () => {
     savePlan(plan);
     applyPlan("editor", plan.id);
