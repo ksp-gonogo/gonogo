@@ -6,14 +6,26 @@ function rootName(
   return bodies.find((b) => !b.referenceBody)?.name ?? null;
 }
 
+/** The home world, where KSC and the launch sites are. */
+function homeName(
+  bodies: readonly { name: string | null; isHome?: boolean | null }[],
+): string | null {
+  return bodies.find((b) => b.isHome === true)?.name ?? null;
+}
+
 /** The body the diagram centres on for a `frame` setting, or `null` before there is one to centre on. */
 export function resolveFrame(
-  bodies: readonly { name: string | null; referenceBody: string | null }[],
+  bodies: readonly {
+    name: string | null;
+    referenceBody: string | null;
+    isHome?: boolean | null;
+  }[],
   setting: string,
   vesselBody: string | null,
 ): string | null {
-  // Follow the vessel's current body, falling back to the root until it arrives.
-  if (setting === "auto") return vesselBody || rootName(bodies);
+  // Follow the vessel's current body; with no vessel, the home world, then the root until the bodies arrive.
+  if (setting === "auto")
+    return vesselBody || homeName(bodies) || rootName(bodies);
   if (setting === "root") {
     if (!vesselBody) return rootName(bodies);
     let cursor: string | null = vesselBody;
@@ -27,8 +39,8 @@ export function resolveFrame(
     }
     return cursor;
   }
-  // A saved "current" is the vessel's body.
-  if (setting === "current") return vesselBody;
+  // A saved "current" is the vessel's body, or the home world with no vessel.
+  if (setting === "current") return vesselBody ?? homeName(bodies);
   return setting;
 }
 

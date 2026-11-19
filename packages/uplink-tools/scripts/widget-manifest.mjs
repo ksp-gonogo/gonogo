@@ -31,7 +31,8 @@ const ENTRY = `
 import "@ksp-gonogo/components";
 import { getComponents } from "@ksp-gonogo/sitrep-sdk/registry";
 import { listWidgets } from "../components/scripts/widgets";
-import { widgetRecordOf, widgetRecordsJson } from "./src/render/widgetRecord";
+import { widgetRecordsJson } from "./src/render/widgetRecord";
+import { widgetRecordOf } from "./src/render/widgetRecordOf";
 export const records = getComponents().map(widgetRecordOf);
 export { widgetRecordsJson };
 export const renderConfigs = listWidgets();

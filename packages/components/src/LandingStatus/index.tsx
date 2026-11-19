@@ -661,7 +661,6 @@ registerComponent<LandingStatusConfig>({
   // Declaring the slot is the whole opt-in; the widget's own descent profile arrives through it too.
   contributionSlots: ["plots"],
   pushable: true,
-  requires: ["flight"],
   // The crash that ended a flight is a record the widget keeps showing after the game leaves the flight scene.
   heldOpenBy: ["crash-ending"],
 });

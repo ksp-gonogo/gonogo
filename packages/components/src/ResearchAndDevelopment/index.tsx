@@ -130,7 +130,6 @@ registerComponent<ResearchAndDevelopmentConfig>({
   actions: [],
   augmentSlots: ["research-and-development.sections"],
   pushable: true,
-  requires: ["career"],
 });
 
 export { ResearchAndDevelopmentComponent };

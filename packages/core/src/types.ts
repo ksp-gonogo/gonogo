@@ -3,7 +3,6 @@
 import type {
   ChannelFamily,
   CommandId,
-  ModeId,
   Seat,
   SlotId,
   TinyMode,
@@ -351,19 +350,10 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    */
   pushable?: boolean;
   /**
-   * Game-state preconditions for this widget to be "live". The dashboard
-   * orchestrator dims the widget with an explanatory overlay when any
-   * requirement is unmet (vessel not flying, career save not active, ...),
-   * the widget still renders its current values underneath the dim
-   * layer so the operator sees layout + last-good data, just visually
-   * de-emphasised. Empty / omitted = always live.
-   *
-   * Honoured via `useGameContext` from the GonogoTelemetry plugin's
-   * `kc.scene` + `career.mode` keys; without the plugin installed, the
-   * context reports `Unknown` and widgets stay live.
+   * Reasons the widget stays open while the Topics it reads say there is no
+   * active vessel. Absent, the dashboard then draws "No active vessel" in its
+   * place.
    */
-  requires?: readonly ComponentRequirement[];
-  /** Reasons the widget stays open while a `requires` is not met. Absent, an unmet `requires` always dims the widget. */
   heldOpenBy?: readonly ComponentHeldOpen[];
   /**
    * Set when the widget has nothing to draw until the vessel's link report
@@ -390,15 +380,6 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    * from there, so the SDK's is the one an author writes against.
    */
   seats?: readonly Seat[];
-  /**
-   * The modes whose telemetry this widget is ready to read. Omit for
-   * `["default", "replay"]`. A mode never hides a widget, and every widget
-   * reads a recording in replay mode whatever it lists. Listing `"design"` is
-   * the one entry that changes anything: in design mode the widget is given
-   * the predicted run's values on the same Topics it reads in flight, and its
-   * `requires: ["flight"]` is met by the predicted run.
-   */
-  modes?: readonly ModeId[];
   /**
    * Addressable augment slots this widget owns.
    * Each entry is a small, stable API the base widget exposes via
@@ -440,23 +421,9 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
 }
 
 /**
- * Game-state preconditions a widget can declare. The orchestrator looks
- * each one up against `useGameContext()` and dims the widget if any is
- * unmet.
- *
- * - `flight`: `kc.scene === "Flight"`. Most vessel-data widgets.
- * - `career`: `career.mode` ∈ {career, science}. Funds / contracts /
- *   tech-tree widgets where sandbox mode has nothing meaningful to show.
- *
- * Add new requirement names here when a widget needs a different gate;
- * keep the enum closed so the matching overlay messages stay coherent.
- */
-export type ComponentRequirement = "flight" | "career";
-
-/**
- * A reason a widget stays on screen although a game state it requires is not
- * met: `crash-ending` keeps it open while the crash that ended the last flight
- * is on record, for a widget that shows how a flight ended.
+ * A reason a widget stays on screen although the Topics it reads say there is
+ * no active vessel: `crash-ending` keeps it open while the crash that ended the
+ * last flight is on record, for a widget that shows how a flight ended.
  */
 export type ComponentHeldOpen = "crash-ending";
 

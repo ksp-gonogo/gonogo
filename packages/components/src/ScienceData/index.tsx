@@ -37,16 +37,8 @@ import { useKerbalHeld } from "./useKerbalHeld";
 export type { ScienceDataAboardRowContext } from "@ksp-gonogo/sitrep-sdk";
 
 const topics = defineTopicManifest({
-  channels: [
-    "vessel.identity",
-    "trackingStation.bodies",
-    "vessel.surface",
-    "science.experiments",
-    "science.experimentBreakdown",
-    "science.archive",
-    "career.status",
-    "eva.crew",
-  ],
+  channels: ["trackingStation.bodies", "science.archive"],
+  // The archive works with no vessel and in a sandbox save, so the vessel and career Topics it reads are optional.
   optionalChannels: read.optionalChannels,
   fields: [
     "vessel.identity.parentBodyIndex",

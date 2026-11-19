@@ -4804,8 +4804,8 @@ export enum FlightEndReason {
 * of this reading, the craft they stepped out of stays it for as long as that
 * craft is in the world.
 *
-* Nothing is published while there is no active vessel; the last value is
-* held.
+* The payload is `null` while there is no active vessel, and a vessel out of
+* contact keeps its last value.
 *
 * @category Flights
 * @categoryDescription Flights
@@ -12056,9 +12056,10 @@ export interface ActionGroupState
 /**
 * The active vessel's control state (the stock toggles, SAS mode, throttle,
 * the commanded fly-by-wire axes and the custom action groups). The payload is
-* present whenever there is an active vessel; each field is individually
-* nullable, and `null` means that input could not be read this tick (for
-* example no flight input state, or no action-group data), never a default.
+* present whenever there is an active vessel and `null` while there is none;
+* each field is individually nullable, and `null` means that input could not
+* be read this tick (for example no flight input state, or no action-group
+* data), never a default.
 *
 * Each control field that can be changed is paired with its command through
 * its control channel, so the confirmed state and the command that changes it
@@ -12601,6 +12602,11 @@ export interface VesselFlight
 * There is no mission time field. `VesselIdentity.launchUt` is fixed after
 * liftoff, so mission elapsed time is the current UT (the `meta.validAt` of
 * the newest frame) minus `launchUt`, computed by the client.
+*
+* The payload is `null` while there is no active vessel: at the Space Center,
+* in an editor, in the tracking station with nothing flying, and after a
+* revert, a destroy or a recovery. A vessel out of contact is still the active
+* vessel and keeps its last value.
 *
 * @category Vessel
 */
@@ -13166,6 +13172,11 @@ export interface VesselManeuver
 * firing stage's propellant in `dv.stages` and `trackingStation.bodies`. A
 * reckoning's `modelled` list says which paths its model moved, and a consumer
 * wanting a whole modelled orbit overlays those on the observed payload.
+*
+* The payload is `null` while there is no active vessel: at the Space Center,
+* in an editor, in the tracking station with nothing flying, and after a
+* revert, a destroy or a recovery. A vessel out of contact is still the active
+* vessel and keeps its last value.
 *
 * @category Orbits and trajectories
 * @categoryDescription Orbits and trajectories
@@ -13898,6 +13909,11 @@ export interface VesselPhysicsMode
 *
 * TWR, maximum TWR and a vessel-level burn-time estimate are derived by the
 * client from these fields, and are not streamed here.
+*
+* The payload is `null` while there is no active vessel: at the Space Center,
+* in an editor, in the tracking station with nothing flying, and after a
+* revert, a destroy or a recovery. A vessel out of contact is still the active
+* vessel and keeps its last value.
 *
 * @category Vessel
 */

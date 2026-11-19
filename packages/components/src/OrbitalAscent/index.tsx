@@ -212,7 +212,6 @@ function OrbitalAscentComponent({
 
 registerComponent<OrbitalAscentConfig>({
   id: "orbital-ascent",
-  modes: ["default", "replay", "design"],
   name: "Orbital Ascent",
   description: "Your horizontal speed against orbital speed, by altitude.",
   tags: ["telemetry", "graph"],
@@ -226,7 +225,6 @@ registerComponent<OrbitalAscentConfig>({
   defaultConfig: { windowSec: 600 },
   actions: [],
   pushable: true,
-  requires: ["flight"],
 });
 
 export { OrbitalAscentComponent };

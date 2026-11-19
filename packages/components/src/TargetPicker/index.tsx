@@ -30,7 +30,6 @@ registerComponent<TargetPickerConfig>({
   defaultConfig: {},
   actions: targetPickerActions,
   pushable: true,
-  requires: ["flight"],
 });
 
 // Aliased for `enumLabelDrift.test.ts`, since LaunchDirector declares its own `VESSEL_TYPE_LABELS`.

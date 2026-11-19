@@ -1029,6 +1029,19 @@ namespace Sitrep.Host
         private bool _activeVesselSwitched;
         private string? _lastActiveVesselId;
 
+        /*
+         * Set on the tick the game, settled and loaded, first reports no active
+         * vessel after one was active (the Space Center, an editor, the tracking
+         * station with nothing flying, after a revert, a destroy or a recovery).
+         * The active vessel's topics are then withdrawn once, as on a switch, so
+         * no screen keeps showing a craft that is no longer flying. A craft out
+         * of contact is still active and never sets it. _craftLeftFor holds the
+         * craft already withdrawn, so the withdrawal is made once per departure.
+         * Courier-thread-only.
+         */
+        private bool _activeVesselLeft;
+        private string? _craftLeftFor;
+
         // Per-subject last-connected delay, keyed by NodeForTopic: what
         // RefreshLedgerDelays holds a dark subject's node default at.
         private readonly Dictionary<string, double> _subjectLastConnectedDelay =
@@ -6572,10 +6585,18 @@ namespace Sitrep.Host
         /// </summary>
         private void RecomputeChannelBirthFromArchive()
         {
+            /*
+             * A topic born on the abandoned timeline stays born even when the rewind
+             * pruned every sample it had: a subscriber still holds its reading until
+             * the topic's first frame of the new timeline, so a null mapper result
+             * must reach it as a tombstone. A revert to before a craft launched from
+             * the editor first spoke is that case for every active-vessel topic.
+             */
+            var bornBefore = new HashSet<string>(_born, StringComparer.Ordinal);
             _born.Clear();
             foreach (var topic in _channelDeclarations.Keys)
             {
-                if (_courier.HasAnyArchiveTail(NodeFor(topic), topic))
+                if (bornBefore.Contains(topic) || _courier.HasAnyArchiveTail(NodeFor(topic), topic))
                 {
                     _born.Add(topic);
                 }
@@ -10455,7 +10476,7 @@ namespace Sitrep.Host
         /// subscriber reads no reading instead of another craft's. The new craft's own
         /// samples reach the ground after its delay, or when its link comes up.
         /// </summary>
-        private void WithdrawTheCraftSwitchedAwayFrom(double ut)
+        private void WithdrawTheCraftSwitchedAwayFrom(double ut, bool leftFlight = false)
         {
             foreach (var entry in _channelDeclarations.ToList())
             {
@@ -10466,11 +10487,26 @@ namespace Sitrep.Host
                 {
                     continue;
                 }
-                // A state topic whose last recording was cleared by a timeline reset can
-                // still have the old craft's reading in the archive. An event stream has no
-                // standing reading to withdraw.
+                var presentState = entry.Value.Delivery == Delivery.LossyLatest;
+                /*
+                 * With no craft left, only the craft's present state goes. A
+                 * reliable-ordered channel is a record of what happened, such as the
+                 * crash a flight ended in, and it outlives the craft.
+                 */
+                if (leftFlight && !presentState)
+                {
+                    continue;
+                }
+                /*
+                 * A state topic whose last recording was cleared by a timeline reset can
+                 * still have the old craft's reading in the archive. An event stream has no
+                 * standing reading to withdraw. Leaving flight withdraws the present state
+                 * whatever the archive holds: a revert rewinds to before a craft launched
+                 * from the editor had its first reading, which empties the archive while
+                 * every screen still shows the craft.
+                 */
                 if (_lastRecordedUt.ContainsKey(topic)
-                    || (entry.Value.Delivery == Delivery.LossyLatest && _courier.HasAnyArchiveTail(NodeId, topic)))
+                    || (presentState && (leftFlight || _courier.HasAnyArchiveTail(NodeId, topic))))
                 {
                     /*
                      * The withdrawal goes in at the instant before the switch, not
@@ -11256,10 +11292,21 @@ namespace Sitrep.Host
             AdvanceWorldWait(tick.GameLoading);
 
             var activeVesselId = VesselViewProvider.TryGetActiveVesselId(tick.Snapshot);
+            var noActiveVessel = activeVesselId == null
+                && tick.Snapshot != null
+                && !tick.GameLoading
+                && _worldWait != WorldWait.Loading
+                && !VesselViewProvider.IsVesselPresentButUnidentified(tick.Snapshot);
             _laneCraftThisTick = activeVesselId;
-            NoteLaneViewCraft(tick.Snapshot, activeVesselId);
+            NoteLaneViewCraft(tick.Snapshot, activeVesselId, noActiveVessel);
+            if (noActiveVessel && _lastActiveVesselId != null && _craftLeftFor != _lastActiveVesselId)
+            {
+                _craftLeftFor = _lastActiveVesselId;
+                _activeVesselLeft = true;
+            }
             if (activeVesselId != null)
             {
+                _craftLeftFor = null;
                 if (_lastActiveVesselId != null && _lastActiveVesselId != activeVesselId)
                 {
                     _activeVesselSwitched = true;
@@ -11412,11 +11459,12 @@ namespace Sitrep.Host
                 SayCraftReach();
             }
             NoteActivePathMeasurement(tick);
-            if (_activeVesselSwitched)
+            if (_activeVesselSwitched || _activeVesselLeft)
             {
-                WithdrawTheCraftSwitchedAwayFrom(tick.Ut);
+                WithdrawTheCraftSwitchedAwayFrom(tick.Ut, leftFlight: _activeVesselLeft && !_activeVesselSwitched);
             }
             _activeVesselSwitched = false;
+            _activeVesselLeft = false;
 
             // The DROP EVENT, written after the ledger's delays and well before
             // this tick's _clock.AdvanceTo: a break has to be on the books

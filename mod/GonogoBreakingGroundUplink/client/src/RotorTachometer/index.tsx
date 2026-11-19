@@ -319,7 +319,6 @@ registerComponent<RotorTachometerConfig>({
   defaultConfig: {},
   actions: rotorActions,
   pushable: true,
-  requires: ["flight"],
   owner: BREAKING_GROUND,
 });
 

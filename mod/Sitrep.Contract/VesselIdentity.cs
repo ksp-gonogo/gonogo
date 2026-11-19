@@ -11,6 +11,11 @@ namespace Sitrep.Contract;
 /// <para>There is no mission time field. <see cref="LaunchUt"/> is fixed after
 /// liftoff, so mission elapsed time is the current UT (the <c>meta.validAt</c>
 /// of the newest frame) minus <c>launchUt</c>, computed by the client.</para>
+///
+/// <para>The payload is <c>null</c> while there is no active vessel: at the
+/// Space Center, in an editor, in the tracking station with nothing flying,
+/// and after a revert, a destroy or a recovery. A vessel out of contact is
+/// still the active vessel and keeps its last value.</para>
 /// </summary>
 /// <category>Vessel</category>
 [SitrepContract]

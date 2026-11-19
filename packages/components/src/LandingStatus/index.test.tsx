@@ -126,12 +126,12 @@ function emitVessel(
 
 describe("the flight gate Landing Status stands behind", () => {
   it("is held open by the crash a flight ended in, and no other flight widget is", () => {
-    expect(getComponent("landing-status")?.requires).toEqual(["flight"]);
+    expect(getComponent("landing-status")?.channels).toContain("vessel.flight");
     expect(getComponent("landing-status")?.heldOpenBy).toEqual([
       "crash-ending",
     ]);
     // Orbit View stays behind the gate, crash on record or not.
-    expect(getComponent("orbit-view")?.requires).toEqual(["flight"]);
+    expect(getComponent("orbit-view")?.channels).toContain("vessel.orbit");
     expect(getComponent("orbit-view")?.heldOpenBy).toBeUndefined();
   });
 });

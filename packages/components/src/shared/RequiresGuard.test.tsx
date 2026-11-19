@@ -61,7 +61,6 @@ function rosterPoint(
 function renderGuard(
   children: React.ReactNode,
   props: {
-    requires?: readonly ("flight" | "career")[];
     heldOpenBy?: readonly "crash-ending"[];
     channels?: readonly string[];
     title?: string;
@@ -74,7 +73,6 @@ function renderGuard(
   const view = render(
     <TelemetryProvider client={client}>
       <RequiresGuard
-        requires={props.requires}
         heldOpenBy={props.heldOpenBy}
         channels={props.channels}
         title={props.title}
@@ -164,40 +162,97 @@ describe("RequiresGuard: uplink-health render-gate on REQUIRED channels", () => 
   });
 });
 
-describe("RequiresGuard: merged with the existing game-context requires gate", () => {
-  it("still dims with the flight-required message when requires=['flight'] and scene isn't Flight", async () => {
+/** The game at the Space Center with no active vessel: the mod sends every vessel Topic with no value. */
+async function leaveFlight(
+  transport: StubTransport,
+  read: readonly string[] = ["ksp.activeVessel", "vessel.flight"],
+) {
+  // The stub delivers only to subscribed Topics, so the gate's reads must be in place first.
+  await waitFor(() => {
+    for (const topic of read) expect(transport.isSubscribed(topic)).toBe(true);
+  });
+  act(() => {
+    transport.emit("spaceCenter.scene", { scene: "SpaceCenter" });
+    transport.emit("ksp.activeVessel", null as never);
+    transport.emit("vessel.flight", null as never);
+  });
+}
+
+describe("RequiresGuard: gated by the Topics a widget reads", () => {
+  it("shows 'No active vessel' when its vessel Topic says there is none", async () => {
     const { transport } = renderGuard(<div>widget content</div>, {
-      requires: ["flight"],
+      channels: ["vessel.flight"],
     });
-    act(() => transport.emit("spaceCenter.scene", { scene: "SpaceCenter" }));
+    await leaveFlight(transport);
     await waitFor(() =>
-      expect(screen.getByText("Vessel in flight required")).toBeInTheDocument(),
+      expect(screen.getByText("No active vessel")).toBeInTheDocument(),
     );
     expect(screen.queryByText("widget content")).not.toBeInTheDocument();
   });
 
   it("keeps the widget's name as the panel heading while the body is refused", async () => {
     const { transport } = renderGuard(<div>widget content</div>, {
-      requires: ["flight"],
-      title: "Contract Manager",
+      channels: ["vessel.flight"],
+      title: "Orbit View",
     });
-    act(() => transport.emit("spaceCenter.scene", { scene: "SpaceCenter" }));
+    await leaveFlight(transport);
     await waitFor(() =>
       expect(
-        screen.getByRole("heading", { name: "Contract Manager" }),
+        screen.getByRole("heading", { name: "Orbit View" }),
       ).toBeInTheDocument(),
     );
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Vessel in flight required",
+    expect(screen.getByRole("status")).toHaveTextContent("No active vessel");
+  });
+
+  it("stays open while a vessel is active, even with a vessel Topic that has no value", async () => {
+    const { transport } = renderGuard(<div>widget content</div>, {
+      channels: ["vessel.target"],
+    });
+    act(() => {
+      transport.emit("spaceCenter.scene", { scene: "Flight" });
+      transport.emit("ksp.activeVessel", { vesselId: "probe" } as never);
+      transport.emit("vessel.target", null as never);
+    });
+    await waitFor(() =>
+      expect(screen.getByText("widget content")).toBeInTheDocument(),
+    );
+    expect(screen.queryByText("No active vessel")).not.toBeInTheDocument();
+  });
+
+  it("does not gate on a vessel Topic that has not arrived yet", () => {
+    renderGuard(<div>widget content</div>, { channels: ["vessel.flight"] });
+    expect(screen.getByText("widget content")).toBeInTheDocument();
+  });
+
+  it("leaves a widget that reads no vessel Topic alone with no vessel", async () => {
+    const { transport } = renderGuard(<div>widget content</div>, {
+      channels: ["trackingStation.bodies"],
+    });
+    await leaveFlight(transport, []);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.getByText("widget content")).toBeInTheDocument();
+  });
+
+  it("shows the career notice when a career Topic it reads has no value", async () => {
+    const { transport } = renderGuard(<div>widget content</div>, {
+      channels: ["career.status"],
+    });
+    act(() => {
+      transport.emit("spaceCenter.scene", { scene: "SpaceCenter" });
+      transport.emit("career.status", null as never);
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByText("Career or science save required"),
+      ).toBeInTheDocument(),
     );
   });
 
-  it("prioritises an unhealthy REQUIRED channel's message over an otherwise-satisfied requires gate", async () => {
+  it("prioritises an unhealthy REQUIRED channel's message over the vessel gate", async () => {
     const { transport } = renderGuard(<div>widget content</div>, {
-      requires: ["flight"],
-      channels: ["demo.gauge.1"],
+      channels: ["demo.gauge.1", "vessel.flight"],
     });
-    act(() => transport.emit("spaceCenter.scene", { scene: "Flight" }));
+    await leaveFlight(transport);
     act(() =>
       transport.emit(
         "system.uplinks",
@@ -214,10 +269,7 @@ describe("RequiresGuard: merged with the existing game-context requires gate", (
     await waitFor(() =>
       expect(screen.getByText("backend not selected")).toBeInTheDocument(),
     );
-    expect(screen.queryByText("widget content")).not.toBeInTheDocument();
-    expect(
-      screen.queryByText("Vessel in flight required"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("No active vessel")).not.toBeInTheDocument();
   });
 });
 
@@ -244,64 +296,59 @@ describe("RequiresGuard: 'No telemetry host' takes priority when channels are de
 });
 
 describe("RequiresGuard: held open by the crash a flight ended in", () => {
-  /** The game at the space centre first, the gate engaged and showing its notice, then the crash arrives. */
-  const crashOnRecord = async (transport: StubTransport) => {
-    act(() => transport.emit("spaceCenter.scene", { scene: "SpaceCenter" }));
-    await screen.findByText("Vessel in flight required");
+  /** The craft flies and crashes, then the game leaves flight: the gate is engaged and the crash is on record. */
+  const crashThenLeave = async (transport: StubTransport, held = true) => {
+    if (held) {
+      await waitFor(() =>
+        expect(transport.isSubscribed("crash.lastCrash")).toBe(true),
+      );
+    }
     act(() => {
+      transport.emit("spaceCenter.scene", { scene: "Flight" });
+      transport.emit("vessel.identity", { vesselId: "doomed" } as never);
       transport.emit("crash.hasRecent", { recent: true });
       transport.emit("crash.lastCrash", { vesselId: "doomed", ut: 1000 });
     });
+    await leaveFlight(transport);
+    act(() => transport.emit("vessel.identity", null as never));
   };
 
-  it("keeps a widget that declares it on screen once the game has left the flight scene", async () => {
+  it("keeps a widget that declares it on screen once the game has left flight", async () => {
     const { transport } = renderGuard(<div>widget content</div>, {
-      requires: ["flight"],
+      channels: ["vessel.flight"],
       heldOpenBy: ["crash-ending"],
     });
-    await crashOnRecord(transport);
+    await crashThenLeave(transport);
     await waitFor(() =>
       expect(screen.getByText("widget content")).toBeInTheDocument(),
     );
-    expect(
-      screen.queryByText("Vessel in flight required"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("No active vessel")).not.toBeInTheDocument();
   });
 
-  it("leaves every other flight widget behind the gate, crash on record or not", async () => {
+  it("leaves every other vessel widget behind the gate, crash on record or not", async () => {
     const { transport } = renderGuard(<div>widget content</div>, {
-      requires: ["flight"],
+      channels: ["vessel.flight"],
     });
-    await crashOnRecord(transport);
+    await crashThenLeave(transport, false);
     await waitFor(() =>
-      expect(screen.getByText("Vessel in flight required")).toBeInTheDocument(),
+      expect(screen.getByText("No active vessel")).toBeInTheDocument(),
     );
     expect(screen.queryByText("widget content")).not.toBeInTheDocument();
   });
 
-  it("holds nothing open without a crash on record", async () => {
+  it("holds nothing open for a crash on record when no craft has been seen", async () => {
     const { transport } = renderGuard(<div>widget content</div>, {
-      requires: ["flight"],
+      channels: ["vessel.flight"],
       heldOpenBy: ["crash-ending"],
     });
-    act(() => transport.emit("spaceCenter.scene", { scene: "SpaceCenter" }));
-    await waitFor(() =>
-      expect(screen.getByText("Vessel in flight required")).toBeInTheDocument(),
-    );
-  });
-
-  it("lets go once another vessel is the one reporting, so a new flight is not under the old crash", async () => {
-    const { transport } = renderGuard(<div>widget content</div>, {
-      requires: ["flight"],
-      heldOpenBy: ["crash-ending"],
+    act(() => {
+      transport.emit("crash.hasRecent", { recent: true });
+      transport.emit("crash.lastCrash", { vesselId: "long-ago", ut: 10 });
+      transport.emit("vessel.identity", null as never);
     });
-    await crashOnRecord(transport);
+    await leaveFlight(transport);
     await waitFor(() =>
-      expect(screen.getByText("widget content")).toBeInTheDocument(),
-    );
-    act(() => transport.emit("vessel.identity", { vesselId: "next-craft" }));
-    await waitFor(() =>
-      expect(screen.getByText("Vessel in flight required")).toBeInTheDocument(),
+      expect(screen.getByText("No active vessel")).toBeInTheDocument(),
     );
   });
 });

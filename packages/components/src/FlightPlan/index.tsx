@@ -140,7 +140,6 @@ function SmallPlan({ plan, scored }: { plan: FlightPlan; scored: ScoredPlan }) {
 
 registerComponent<FlightPlanConfig>({
   id: "flight-plan",
-  modes: ["default", "replay", "design"],
   // The scene and career reads pick the craft the plan follows, not a ground control, so the pilot keeps the plan.
   seats: ["mission-control", "pilot"],
   contributionSlots: ["flight-plan.steps"],
@@ -161,7 +160,6 @@ registerComponent<FlightPlanConfig>({
   defaultConfig: {},
   actions: [],
   pushable: true,
-  requires: ["flight"],
 });
 
 export { FlightPlanComponent };

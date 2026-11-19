@@ -403,7 +403,6 @@ registerComponent<ExperimentsConfig>({
   // Aggregation only runs for declared slots; an undeclared one silently reads empty.
   contributionSlots: ["experiments.instruments"],
   pushable: true,
-  requires: ["flight"],
 });
 
 export { ExperimentsComponent };

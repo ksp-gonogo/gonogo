@@ -264,7 +264,6 @@ registerComponent<RoboticsConsoleConfig>({
   defaultConfig: {},
   actions: roboticsActions,
   pushable: true,
-  requires: ["flight"],
   owner: BREAKING_GROUND,
 });
 

@@ -31,7 +31,6 @@ registerComponent<ContractManagerConfig>({
   defaultConfig: {},
   actions: [],
   pushable: true,
-  requires: ["career"],
 });
 
 export { ContractManagerComponent };

@@ -532,7 +532,6 @@ registerComponent<GroundTrackConfig>({
     "ground-track.actions",
   ],
   pushable: true,
-  requires: ["flight"],
 });
 
 export { GroundTrackComponent, VanillaSuppressionProbe };

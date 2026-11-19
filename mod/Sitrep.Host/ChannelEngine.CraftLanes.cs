@@ -221,12 +221,23 @@ namespace Sitrep.Host
          */
         private string? _laneViewCraft;
 
-        private void NoteLaneViewCraft(KspSnapshot? snapshot, string? vesselEntryId)
+        /*
+         * With no active vessel at all, a screen reads the active-vessel topic itself
+         * rather than the last craft's lane, so it is shown that topic's withdrawal and
+         * not the craft's last readings. The lane keeps those readings for when the
+         * craft is flown again.
+         */
+        private void NoteLaneViewCraft(KspSnapshot? snapshot, string? vesselEntryId, bool noActiveVessel)
         {
             var named = SystemViewProvider.BuildActiveVessel(snapshot) is IDictionary<string, object?> active
                 && active.TryGetValue("vesselId", out var id)
                 ? id as string
                 : null;
+            if (named == null && noActiveVessel)
+            {
+                _laneViewCraft = null;
+                return;
+            }
             _laneViewCraft = named ?? vesselEntryId ?? _laneViewCraft;
         }
 

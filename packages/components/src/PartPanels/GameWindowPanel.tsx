@@ -621,9 +621,13 @@ function GameWindowForm({
   /*
    * A reading that is pending or resubscribing says nothing about the window, so
    * the last one seen stays on screen and stays the target of the dismiss press.
-   * The window is gone only when a reading that is observed or held lacks it.
+   * The window is gone only when a reading that is observed or held lacks it,
+   * or when the game says there is no value, as it does with no active vessel.
    */
-  const known = reading.state === "observed" || reading.state === "held";
+  const known =
+    reading.state === "observed" ||
+    reading.state === "held" ||
+    reading.state === "absent";
   const openWindowRef = useRef<GameWindow | undefined>(undefined);
   if (gameWindow) openWindowRef.current = gameWindow;
   if (!gameWindow && known) openWindowRef.current = undefined;

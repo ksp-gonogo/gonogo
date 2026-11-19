@@ -231,9 +231,10 @@ afterEach(() => {
 
 describe("VesselCatalogComponent", () => {
   it("does not need a vessel in flight, since the roster lists every craft from the Space Center too", () => {
-    expect(getComponent("vessel-catalog")?.requires ?? []).not.toContain(
-      "flight",
-    );
+    const vesselTopics = (
+      getComponent("vessel-catalog")?.channels ?? []
+    ).filter((topic) => /^(vessel|dv|eva)\./.test(topic));
+    expect(vesselTopics).toEqual([]);
   });
 
   it("renders a row per vessel with identity, body, crew and link", async () => {

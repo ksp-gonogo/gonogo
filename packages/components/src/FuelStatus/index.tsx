@@ -218,7 +218,6 @@ registerComponent<FuelStatusConfig>({
   actions: [],
   augmentSlots: ["fuel-status.sections"],
   pushable: true,
-  requires: ["flight"],
 });
 
 export { FuelStatusComponent };

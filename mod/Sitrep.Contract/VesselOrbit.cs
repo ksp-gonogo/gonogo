@@ -29,6 +29,11 @@ namespace Sitrep.Contract;
 /// <c>dv.stages</c> and <c>trackingStation.bodies</c>. A reckoning's <c>modelled</c>
 /// list says which paths its model moved, and a consumer wanting a whole
 /// modelled orbit overlays those on the observed payload.</para>
+///
+/// <para>The payload is <c>null</c> while there is no active vessel: at the
+/// Space Center, in an editor, in the tracking station with nothing flying,
+/// and after a revert, a destroy or a recovery. A vessel out of contact is
+/// still the active vessel and keeps its last value.</para>
 /// </summary>
 /// <category>Orbits and trajectories</category>
 /// <categoryDescription>

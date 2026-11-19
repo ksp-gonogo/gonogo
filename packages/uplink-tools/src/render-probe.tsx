@@ -107,7 +107,8 @@ export {
   sceneFromFixture,
 } from "./render/sceneModel";
 
-import { type WidgetRecord, widgetRecordOf } from "./render/widgetRecord";
+import type { WidgetRecord } from "./render/widgetRecord";
+import { widgetRecordOf } from "./render/widgetRecordOf";
 
 export type { MinFitFinding, WidgetRecord };
 export { auditMinFit };

@@ -193,6 +193,12 @@ export interface ScetAlarmBridgeContext {
  */
 export class ScetAlarmBridge {
   private readonly ctx: ScetAlarmBridgeContext;
+  /*
+   * The craft last seen reporting. With no active vessel the identity reads no
+   * value, and an alarm set then is still about the craft just flown, not
+   * whichever craft flies next.
+   */
+  private lastCraft: string | undefined;
   private unsubscribeClient: (() => void) | null = null;
   private unsubscribeRoster: (() => void) | null = null;
   private unsubscribeFired: (() => void) | null = null;
@@ -455,6 +461,12 @@ export class ScetAlarmBridge {
    * Arm one alarm on the mod. Arming an id the mod already holds replaces it,
    * so an edit needs no disarm-then-arm to race.
    */
+  /** The craft reporting now, or the one last seen when none is. */
+  private currentCraft(): string | undefined {
+    this.lastCraft = getVesselIdentity()?.vesselId ?? this.lastCraft;
+    return this.lastCraft;
+  }
+
   arm(alarm: Alarm): void {
     const armed = this.buildArmArgs(alarm);
     if (armed === NOT_YET) {
@@ -612,7 +624,7 @@ export class ScetAlarmBridge {
         : (client?.selectedVantage ?? client?.observedVantage ?? "");
     if (!isAtSubjectVantage(trigger) && vantage === "") return NOT_YET;
     if (trigger.kind === "time") {
-      const craft = getVesselIdentity()?.vesselId;
+      const craft = this.currentCraft();
       return {
         id: alarm.id,
         name: alarm.name,
@@ -632,7 +644,7 @@ export class ScetAlarmBridge {
       };
     }
     if (trigger.kind === "instant") {
-      const subject = subjectFor(trigger.topic);
+      const subject = subjectFor(trigger.topic, this.currentCraft());
       if (subject === null) {
         logger.warn("alarm-host: instant alarm has no subject yet", {
           id: alarm.id,
@@ -675,7 +687,7 @@ export class ScetAlarmBridge {
         },
       };
     }
-    const subject = subjectFor(trigger.topic);
+    const subject = subjectFor(trigger.topic, this.currentCraft());
     if (subject === null) {
       logger.warn("alarm-host: threshold has no subject yet", {
         id: alarm.id,
@@ -859,9 +871,11 @@ export class ScetAlarmBridge {
  * The identity read is a signal delay old, and that is right rather than a
  * compromise: the craft the operator is looking at is the craft they mean.
  */
-function subjectFor(topic: string): string | null {
+function subjectFor(
+  topic: string,
+  vesselId: string | undefined,
+): string | null {
   if (!topic.startsWith("vessel.")) return "game";
-  const vesselId = getVesselIdentity()?.vesselId;
   return vesselId ? `vessel:${vesselId}` : null;
 }
 

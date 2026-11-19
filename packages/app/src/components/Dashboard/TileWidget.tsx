@@ -139,14 +139,14 @@ export function WidgetShell({
             <ErrorBoundary fallback={renderErrorFallback}>
               <SeatGuard def={def}>
                 <RequiresGuard
-                  requires={def.requires}
                   heldOpenBy={def.heldOpenBy}
                   awaitsFirstSignal={def.awaitsFirstSignal}
                   channels={def.channels}
+                  optionalChannels={def.optionalChannels}
+                  dataRequirements={def.dataRequirements}
                   families={def.channelFamilies}
                   optionalFamilies={def.optionalChannelFamilies}
                   configChannels={def.channelsFromConfig?.(config)}
-                  modes={def.modes}
                   title={title}
                   compact={compact}
                 >

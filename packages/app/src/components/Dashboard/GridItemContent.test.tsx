@@ -183,11 +183,12 @@ describe("GridItemContent: draggableCancel structural guard", () => {
     expect(cancelTarget).toContainElement(removeBtn);
   });
 
-  it("hands the render-gate def.channels only, never def.optionalChannels", () => {
-    // optionalChannels must never gate: an unhealthy OPTIONAL uplink should not
-    // blank a widget that handles absence itself (TrackingStation relies on this).
-    // The chrome enforces it by passing the gate def.channels alone, guard that
-    // wiring so a future accidental optionalChannels pass-through is caught.
+  it("hands the render-gate def.channels as the channels it checks, and def.optionalChannels apart", () => {
+    // An unhealthy OPTIONAL uplink must not blank a widget that handles absence
+    // itself (TrackingStation relies on this), so the gate checks health on
+    // def.channels alone. The optional channels reach it separately, for the
+    // one thing they may do: say there is no vessel for a widget that requires
+    // no vessel Topic.
     registerComponent({
       id: "optional-channels-stub",
       name: "Optional Channels Stub",
@@ -214,7 +215,7 @@ describe("GridItemContent: draggableCancel structural guard", () => {
     );
 
     expect(guardCapture.last?.channels).toEqual(["comms.link"]);
-    expect(guardCapture.last?.optionalChannels).toBeUndefined();
+    expect(guardCapture.last?.optionalChannels).toEqual(["vessel.orbit"]);
     // The SEAT gate gets the whole def, and must: an optional ground channel
     // still makes a widget a ground instrument, even though it must never gate
     // that widget's health. The two gates ask different questions off the same

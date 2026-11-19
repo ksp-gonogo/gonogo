@@ -11,6 +11,11 @@ namespace Sitrep.Contract;
 /// thrust-to-weight ratio directly.
 /// <para>TWR, maximum TWR and a vessel-level burn-time estimate are derived by
 /// the client from these fields, and are not streamed here.</para>
+///
+/// <para>The payload is <c>null</c> while there is no active vessel: at the
+/// Space Center, in an editor, in the tracking station with nothing flying,
+/// and after a revert, a destroy or a recovery. A vessel out of contact is
+/// still the active vessel and keeps its last value.</para>
 /// </summary>
 /// <category>Vessel</category>
 [SitrepContract]

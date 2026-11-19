@@ -1,5 +1,3 @@
-import type { ComponentDefinition } from "@ksp-gonogo/sitrep-sdk";
-
 /**
  * Everything an author declared about a widget in `registerComponent`, as data.
  * Fields the registration leaves out are empty lists, `false` or `null`, never
@@ -44,7 +42,10 @@ export interface WidgetRecord {
   augmentSlots: string[];
   /** The contribution slots the widget reads, as the registration names them. */
   contributionSlots: string[];
-  /** The Domains that must be present for the widget to show. */
+  /**
+   * What the game has to have for the widget to show, from the Topics it
+   * requires: `"flight"` for a vessel Topic, `"career"` for a career Topic.
+   */
   requires: string[];
   /** The id of the widget this one replaces, or `null`. */
   replaces: string | null;
@@ -56,43 +57,6 @@ export interface WidgetRecord {
   minSize: { w: number; h: number } | null;
   /** Whether the widget has a tiny form for the smallest tiles. */
   tiny: boolean;
-}
-
-/**
- * The {@link WidgetRecord} of one registered widget. Useful for keeping the
- * README, the widget records file and the render harness in agreement on every
- * field. Used by the render probe when it reads the inventory.
- */
-export function widgetRecordOf(def: ComponentDefinition): WidgetRecord {
-  return {
-    id: def.id,
-    name: def.name,
-    description: def.description,
-    tags: [...def.tags],
-    channels: [...(def.channels ?? [])],
-    optionalChannels: [...(def.optionalChannels ?? [])],
-    commands: [...(def.commands ?? [])],
-    channelFamilies: [...(def.channelFamilies ?? [])],
-    optionalChannelFamilies: [...(def.optionalChannelFamilies ?? [])],
-    readsFromConfig: def.channelsFromConfig !== undefined,
-    dataRequirements: (def.dataRequirements ?? []).map((r) => String(r)),
-    fields: [...(def.fields ?? [])].map((f) => String(f)),
-    actions: (def.actions ?? []).map((a) => ({
-      id: a.id,
-      label: a.label,
-      description: a.description ?? null,
-    })),
-    augmentSlots: [...(def.augmentSlots ?? [])],
-    contributionSlots: [...(def.contributionSlots ?? [])],
-    requires: (def.requires ?? []).map((r) => String(r)),
-    replaces: def.replaces ?? null,
-    pushable: def.pushable === true,
-    defaultSize: def.defaultSize
-      ? { w: def.defaultSize.w, h: def.defaultSize.h }
-      : null,
-    minSize: def.minSize ? { w: def.minSize.w, h: def.minSize.h } : null,
-    tiny: def.tiny !== undefined,
-  };
 }
 
 /**

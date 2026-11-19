@@ -389,7 +389,6 @@ const SPARK_PLOT_STYLE = { position: "absolute", inset: 0 } as const;
 
 registerComponent<TwrConfig>({
   id: "twr",
-  modes: ["default", "replay", "design"],
   name: "TWR",
   description: "Your vessel's current thrust-to-weight ratio.",
   tags: ["telemetry", "stages"],
@@ -404,7 +403,6 @@ registerComponent<TwrConfig>({
   defaultConfig: {},
   actions: [],
   pushable: true,
-  requires: ["flight"],
 });
 
 export { TwrComponent };

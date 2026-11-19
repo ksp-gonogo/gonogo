@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { VesselOrbit } from "../__generated__/contract";
 import type { TopicReading } from "../reading";
 import { useTelemetryClientOptional } from "./context";
@@ -154,8 +154,14 @@ function OwnCraftDelayWatch({
   authority: DelayAuthority;
   selectedVantage: string;
 }) {
-  const subjectId = subjectOf(useStream<VesselOrbit>("vessel.orbit"));
-  const ownCraftVantage = isOwnCraftVantage(selectedVantage, subjectId);
+  // Kept through a quiet link and through no active vessel, whose orbit reads no value: which craft the seat is aboard does not change with either.
+  const lastSubject = useRef<string | undefined>(undefined);
+  lastSubject.current =
+    subjectOf(useStream<VesselOrbit>("vessel.orbit")) ?? lastSubject.current;
+  const ownCraftVantage = isOwnCraftVantage(
+    selectedVantage,
+    lastSubject.current,
+  );
   useEffect(() => {
     authority.setOwnCraftVantage(ownCraftVantage);
     /*

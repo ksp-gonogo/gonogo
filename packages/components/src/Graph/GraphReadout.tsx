@@ -51,8 +51,9 @@ export function GraphReadout({
    * The series only records samples that arrived, so a topic that goes quiet adds none and the newest one still reads as measured. The topic's own reading knows it has stopped vouching for that figure, so the headline takes its currency from it.
    */
   const topicReading = useStream<unknown>(cfg.source.topic);
+  // A Topic the game says has no value has no current figure, whatever the series last plotted.
   const headline =
-    latest === undefined || !unit
+    latest === undefined || !unit || topicReading.state === "absent"
       ? undefined
       : topicReading.state === "held"
         ? deriveReading(

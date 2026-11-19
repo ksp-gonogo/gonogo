@@ -91,7 +91,6 @@ registerComponent<ActionGroupConfig>({
   defaultConfig: { actionGroupId: "AG1" },
   actions: actionGroupActions,
   augmentSlots: ["action-group.subsystem"],
-  requires: ["flight"],
 });
 
 export { ActionGroupComponent };

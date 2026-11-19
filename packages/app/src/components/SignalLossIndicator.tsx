@@ -188,6 +188,8 @@ export function SignalLossIndicator() {
   if (craftId !== undefined && heldLoss !== null) {
     heldLoss = withCraft(heldLoss, craftId);
   }
+  // With no active vessel there is no link to have lost, so a loss under way when the game left flight ends.
+  if (identityReading.state === "absent") heldLoss = null;
   /*
    * A host that takes over replays the link's history, whose "up" readings
    * pre-date the loss and do not end it. `floor` is when the drop was

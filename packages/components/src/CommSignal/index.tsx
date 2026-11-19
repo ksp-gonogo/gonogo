@@ -30,7 +30,6 @@ registerComponent<CommSignalConfig>({
   actions: [],
   pushable: true,
   awaitsFirstSignal: { heading: "COMMNET" },
-  requires: ["flight"],
 });
 
 export { CommSignalComponent };

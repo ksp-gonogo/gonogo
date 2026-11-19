@@ -1,18 +1,22 @@
 import {
   type ComponentHeldOpen,
-  type ComponentRequirement,
   HeldOpenContext,
   NO_TELEMETRY_HOST_MESSAGE,
   useAwaitingFirstSignal,
   useCrashEnding,
   useGameContext,
+  useTelemetry,
   useTelemetryHostDown,
   useUplinkHealthFor,
 } from "@ksp-gonogo/core";
 import {
   type ChannelFamily,
+  type DeclaredDelayRoles,
+  delayLaneOf,
   familyPrefix,
-  type ModeId,
+  readDeclaredDelayRoles,
+  type TopicId,
+  type WidgetChannelId,
 } from "@ksp-gonogo/sitrep-sdk";
 import { useClaimCapability } from "@ksp-gonogo/sitrep-sdk/spine";
 import { DimmedOverlay } from "@ksp-gonogo/ui";
@@ -25,16 +29,20 @@ import {
   Panel,
   Section,
 } from "@ksp-gonogo/ui-kit";
-import type { ReactNode } from "react";
+import { type ReactNode, useMemo } from "react";
+import { groundDomainsOf } from "./seatAvailability";
 
 export interface RequiresGuardProps {
-  requires?: readonly ComponentRequirement[];
-  /** Reasons the widget stays open while a `requires` is not met. */
+  /** Reasons the widget stays open while its craft Topics say there is no vessel. */
   heldOpenBy?: readonly ComponentHeldOpen[];
   /** The widget has nothing to draw until the link's first report arrives, so the awaiting notice stands in for it until then. */
   awaitsFirstSignal?: boolean | { heading: string };
-  /** The widget's required channels only; optional channels never gate. */
+  /** The widget's required channels. */
   channels?: readonly string[];
+  /** The widget's optional channels: they gate only a widget that requires no Topic and reads none of the ground. */
+  optionalChannels?: readonly string[];
+  /** The widget's reads in the older field-path form (`vessel.orbit.sma`), counted as the Topics they name. */
+  dataRequirements?: readonly string[];
   /**
    * The widget's required families of runtime-built Topics. Each is claimed and
    * health-checked through the literal prefix before its first placeholder, and
@@ -50,8 +58,6 @@ export interface RequiresGuardProps {
   configChannels?: readonly string[];
   /** The widget's name, kept as the panel heading while its body is refused. */
   title?: string;
-  /** The modes the widget shows in; a design meets `requires: ["flight"]` only when this lists it. */
-  modes?: readonly ModeId[];
   /**
    * Set while the widget shows its tiny form: a lock then draws as the compact
    * mark under this heading, since the full notice does not fit a tiny tile.
@@ -64,7 +70,7 @@ export interface RequiresGuardProps {
  * The orchestrator's "can this widget render meaningfully now" gate, one
  * reason line in priority order: no telemetry host, a capability this save has
  * not unlocked, an unhealthy Uplink owning a required channel, then an unmet
- * `requires` game context. With nothing to check it adds no wrapper DOM.
+ * game context read off the Topics the widget reads (no vessel, no career).
  *
  * The order is the nesting: the host check sits outside the widget's lock
  * scope, and the health and game-context checks inside it. Each declared
@@ -73,15 +79,15 @@ export interface RequiresGuardProps {
  * widget's own body, outside any `Section`, locks the whole widget.
  */
 export function RequiresGuard({
-  requires,
   heldOpenBy,
+  dataRequirements,
   awaitsFirstSignal,
   channels,
   families,
   optionalFamilies,
+  optionalChannels,
   configChannels,
   title,
-  modes,
   compact,
   children,
 }: RequiresGuardProps) {
@@ -127,11 +133,12 @@ export function RequiresGuard({
         <ChannelClaim key={topic} topic={topic} />
       ))}
       <ReadinessGate
-        requires={requires}
         heldOpenBy={heldOpenBy}
         channels={healthChecked}
+        optionalChannels={optionalChannels}
+        configChannels={configChannels}
+        dataRequirements={dataRequirements}
         title={title}
-        modes={modes}
       >
         {awaitsFirstSignal !== undefined && awaitsFirstSignal !== false ? (
           <AwaitingFirstSignalGate
@@ -182,30 +189,147 @@ function ChannelClaim({ topic }: { topic: string }) {
   return null;
 }
 
-/** The health and game-context half of {@link RequiresGuard}, inside its lock scope. */
-function ReadinessGate(props: RequiresGuardProps) {
-  // The crash is read only for a widget that declares it: a read in here claims its topics for the widget's lock scope.
-  return props.heldOpenBy?.includes("crash-ending") === true ? (
-    <CrashHeldGate {...props} />
-  ) : (
-    <GameGate {...props} heldOpen={false} />
+/** The Topic a field path names: its first two segments, as `vessel.orbit` for `vessel.orbit.sma`. */
+function topicOfField(path: string): string {
+  return path.split(".").slice(0, 2).join(".");
+}
+
+/**
+ * Whether `topic` is read in the craft's delayed lane, by the roles the mod
+ * states on `system.uplinks` (Uplink channels included), else by the
+ * contract's own table. These are the channels that describe the active craft:
+ * with none active, the mod withdraws each of them, so they read no value.
+ */
+function isCraftTopic(topic: string, roles?: DeclaredDelayRoles): boolean {
+  // A ground Topic the client derives (`spaceCenter.state`) has no declared role and would default to the delayed lane, so the seat rule's ground decides first.
+  return (
+    delayLaneOf(topic, roles) === "delayed" &&
+    groundDomainsOf({ channels: [topic as WidgetChannelId] }).length === 0
   );
 }
 
-function CrashHeldGate(props: RequiresGuardProps) {
+/** The delay roles the running mod states for every channel, once its roster has arrived. */
+function useDeclaredDelayRoles(): DeclaredDelayRoles | undefined {
+  const roster = useTelemetry("system.uplinks");
+  const payload =
+    roster.state === "observed" || roster.state === "held"
+      ? roster.value
+      : undefined;
+  return useMemo(() => readDeclaredDelayRoles(payload), [payload]);
+}
+
+/**
+ * The Topics that gate a widget, read off what it declares it reads, with
+ * nothing declared for the gate itself. Its craft Topics are the ones it
+ * requires that the contract puts in the craft's delayed lane, Uplink channels
+ * included by `roles`: with no active vessel the mod withdraws each of them.
+ * Its career Topics count when it requires nothing else. A widget that requires
+ * no Topic at all is gated by the craft Topics it reads optionally, unless it
+ * also reads the ground (the Space Center, the career), which makes it a ground
+ * instrument that works with no vessel, as the seat rule reads it too. One that
+ * requires only ground Topics (the Tracking Station's bodies, Warp Control's
+ * warp) works with no vessel, and one that needs more than the career (the
+ * Astronaut Complex's crew) works in any save.
+ */
+export function gateTopicsOf(
+  declared: {
+    channels?: readonly string[];
+    configChannels?: readonly string[];
+    optionalChannels?: readonly string[];
+    dataRequirements?: readonly string[];
+  },
+  roles?: DeclaredDelayRoles,
+): { vesselTopics: readonly string[]; careerTopics: readonly string[] } {
+  const required = [
+    ...(declared.channels ?? []),
+    ...(declared.configChannels ?? []),
+    ...(declared.dataRequirements ?? []).map(topicOfField),
+  ];
+  const optional = declared.optionalChannels ?? [];
+  const vesselTopics =
+    required.length > 0
+      ? required.filter((t) => isCraftTopic(t, roles))
+      : groundDomainsOf({
+            optionalChannels: optional as readonly WidgetChannelId[],
+          }).length > 0
+        ? []
+        : optional.filter((t) => isCraftTopic(t, roles));
+  const careerTopics = required.every((t) => t.startsWith("career."))
+    ? required
+    : [];
+  return { vesselTopics, careerTopics };
+}
+
+/** The health and game-context half of {@link RequiresGuard}, inside its lock scope. */
+function ReadinessGate(props: RequiresGuardProps) {
+  const { vesselTopics, careerTopics } = gateTopicsOf(
+    props,
+    useDeclaredDelayRoles(),
+  );
+  const key = [...vesselTopics, "/", ...careerTopics].join("|");
+  // The crash is read only for a widget that declares it: a read in here claims its topics for the widget's lock scope.
+  return props.heldOpenBy?.includes("crash-ending") === true ? (
+    <CrashHeldGate
+      key={key}
+      {...props}
+      vesselTopics={vesselTopics}
+      careerTopics={careerTopics}
+    />
+  ) : (
+    <GameGate
+      key={key}
+      {...props}
+      vesselTopics={vesselTopics}
+      careerTopics={careerTopics}
+      heldOpen={false}
+    />
+  );
+}
+
+interface TopicGateProps extends RequiresGuardProps {
+  vesselTopics: readonly string[];
+  careerTopics: readonly string[];
+}
+
+function CrashHeldGate(props: TopicGateProps) {
   return <GameGate {...props} heldOpen={useCrashEnding() !== undefined} />;
 }
 
+/** Whether any of `topics` reads no value. The list is fixed for a mounted gate, which is keyed by it. */
+function useAnyAbsent(topics: readonly string[]): boolean {
+  let absent = false;
+  for (const topic of topics) {
+    // biome-ignore lint/correctness/useHookAtTopLevel: the list is fixed for a mounted gate, which its parent keys by it
+    const reading = useTelemetry(topic as TopicId) as { state: string };
+    if (reading.state === "absent") absent = true;
+  }
+  return absent;
+}
+
+/**
+ * Whether the game has no active vessel and one of the widget's craft Topics
+ * says so. `ksp.activeVessel` tells "no vessel" from a vessel Topic that has
+ * no value while a craft is flying, such as no target set or a craft that is
+ * comms-dark.
+ */
+function useNoVessel(topics: readonly string[]): boolean {
+  const active = useTelemetry("ksp.activeVessel");
+  const anyAbsent = useAnyAbsent(topics);
+  return topics.length > 0 && active.state === "absent" && anyAbsent;
+}
+
 function GameGate({
-  requires,
   channels,
+  vesselTopics,
+  careerTopics,
   title,
-  modes,
   heldOpen,
   children,
-}: RequiresGuardProps & { heldOpen: boolean }) {
+}: TopicGateProps & { heldOpen: boolean }) {
   const uplinkHealth = useUplinkHealthFor(channels ?? []);
   const ctx = useGameContext();
+  const noVessel = useNoVessel(vesselTopics);
+  const noCareer = useAnyAbsent(careerTopics);
 
   if (uplinkHealth.status === "resolved" && uplinkHealth.state !== "healthy") {
     return (
@@ -216,57 +340,44 @@ function GameGate({
     );
   }
 
-  if (!requires || requires.length === 0) {
-    return <>{children}</>;
-  }
-
   // Without any game-context signal yet, gating would flash every widget on each refresh.
   if (!ctx.hasGameSignal) {
     return <>{children}</>;
   }
 
+  if (noCareer) {
+    return (
+      <GuardPlaceholder
+        title={title}
+        message="Career or science save required"
+        hint={
+          ctx.careerMode === "SANDBOX"
+            ? "Sandbox mode has no funds or science."
+            : undefined
+        }
+      />
+    );
+  }
+
   let bypassed = false;
-  for (const req of requires) {
-    if (
-      req === "flight" &&
-      ctx.mode === "design" &&
-      modes?.includes("design") === true
-    ) {
-      continue;
-    }
-    if (req === "flight" && !ctx.inFlight) {
-      if (!heldOpen) {
-        return (
-          <GuardPlaceholder
-            title={title}
-            message="Vessel in flight required"
-            hint={hintForScene(ctx.scene)}
-          />
-        );
-      }
-      bypassed = true;
-    }
-    if (req === "career" && !ctx.isCareerLike) {
+  if (noVessel) {
+    if (!heldOpen) {
       return (
         <GuardPlaceholder
           title={title}
-          message="Career or science save required"
-          hint={
-            ctx.careerMode === "SANDBOX"
-              ? "Sandbox mode has no funds or science."
-              : undefined
-          }
+          message="No active vessel"
+          hint={hintForScene(ctx.scene)}
         />
       );
     }
+    bypassed = true;
   }
 
-  return bypassed ? (
-    <HeldOpenContext.Provider value="crash-ending">
+  // One element either way, so the widget is not remounted, and does not lose its state, when the crash starts holding it open.
+  return (
+    <HeldOpenContext.Provider value={bypassed ? "crash-ending" : undefined}>
       {children}
     </HeldOpenContext.Provider>
-  ) : (
-    <>{children}</>
   );
 }
 

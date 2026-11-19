@@ -48,7 +48,6 @@ registerComponent<CrewStatusConfig>({
   actions: [],
   pushable: true,
   awaitsFirstSignal: true,
-  requires: ["flight"],
 });
 
 export { CrewStatusComponent };

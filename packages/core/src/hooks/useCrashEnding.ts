@@ -4,6 +4,7 @@ import {
   type Value,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
+import { useRef } from "react";
 import { useTelemetry } from "./useTelemetry";
 
 /** The report of the crash a flight ended in. */
@@ -34,24 +35,49 @@ export function crashEndingOf(inputs: {
   return crash;
 }
 
-/** {@link crashEndingOf} read off the stream: a crash is a record of an event that already happened, so a held reading is still true. */
+/**
+ * {@link crashEndingOf} read off the stream: a crash is a record of an event
+ * that already happened, so a held reading is still true. With no active
+ * vessel the vessel Topics read no value, so the craft last seen, and when, are
+ * kept: a crash newer than that sighting belongs to the flight that just
+ * ended, and an older one is that craft's only if it names it. With no craft
+ * seen there is no ending.
+ */
 export function useCrashEnding(): CrashReportOfEnding | undefined {
   const flag = useTelemetry("crash.hasRecent");
   const report = useTelemetry("crash.lastCrash");
   const identity = useTelemetry("vessel.identity");
   const flight = useTelemetry("vessel.flight");
+  const lastVessel = useRef<string | undefined>(undefined);
+  const lastSeenAt = useRef<Value<"ut"> | undefined>(undefined);
+  const seenCraft = useRef(false);
+  const reporting = identity.state === "observed" || identity.state === "held";
+  if (reporting) {
+    seenCraft.current = true;
+    lastVessel.current = identity.value.vesselId ?? lastVessel.current;
+    if (identity.state === "observed")
+      lastSeenAt.current = observedAt(identity);
+  }
+  if (identity.state === "absent" && !seenCraft.current) return undefined;
+  const crash =
+    report.state === "observed" || report.state === "held"
+      ? report.value
+      : undefined;
+  const sinceLastSeen =
+    crash?.ut?.isFinite() === true &&
+    lastSeenAt.current !== undefined &&
+    !crash.ut.lessThan(lastSeenAt.current);
   return crashEndingOf({
     recent:
       (flag.state === "observed" || flag.state === "held") &&
       flag.value.recent === true,
-    report:
-      report.state === "observed" || report.state === "held"
-        ? report.value
-        : undefined,
-    vesselId:
-      identity.state === "observed" || identity.state === "held"
-        ? identity.value.vesselId
-        : undefined,
+    report: crash,
+    vesselId: reporting
+      ? (identity.value.vesselId ?? undefined)
+      : sinceLastSeen
+        ? undefined
+        : lastVessel.current,
+    // Only a current flight reading can show a revert; an old one would read as one.
     flightAt: flight.state === "observed" ? observedAt(flight) : undefined,
   });
 }

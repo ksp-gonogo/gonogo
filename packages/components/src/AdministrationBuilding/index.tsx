@@ -148,7 +148,6 @@ registerComponent<AdministrationBuildingConfig>({
   defaultConfig: {},
   actions: [],
   pushable: true,
-  requires: ["career"],
   contributionSlots: ["administration-building.screens"],
   augmentSlots: ["administration-building.screen-body"],
 });

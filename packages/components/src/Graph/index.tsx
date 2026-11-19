@@ -36,7 +36,6 @@ function GraphComponent({
 
 registerComponent<GraphConfig>({
   id: "graph",
-  modes: ["default", "replay", "design"],
   name: "Graph",
   description: "Live telemetry plotted over time.",
   tags: ["telemetry", "graph"],

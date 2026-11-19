@@ -37,7 +37,7 @@ async function play(fixture: RigFixture, guarded = false): Promise<Second[]> {
         <WidgetContributions Widget={LandingStatusComponent}>
           {guarded ? (
             <RequiresGuard
-              requires={["flight"]}
+              optionalChannels={["vessel.flight", "vessel.landing"]}
               heldOpenBy={["crash-ending"]}
               title="LANDING"
             >
@@ -127,6 +127,14 @@ const sceneFrame = (scene: string) =>
   frameAt("spaceCenter.scene", { scene, launchSite: null }, 5);
 const identityFrame = (vesselId: string) =>
   frameAt("vessel.identity", { vesselId }, 6);
+/** What the mod sends when the game has no active vessel: every vessel Topic, and the active vessel, with no value. */
+const noVesselFrames = () =>
+  [
+    "ksp.activeVessel",
+    "vessel.identity",
+    "vessel.flight",
+    "vessel.landing",
+  ].map((topic) => frameAt(topic, null, 6));
 
 /** The crash recording with frames of the game moving on, after its last. */
 function afterTheCrash(extra: string[]): RigFixture {
@@ -259,7 +267,10 @@ describe("Landing Status over the rig's recorded landings", () => {
 
     beforeAll(async () => {
       leaves = await playAll(() =>
-        play(afterTheCrash([sceneFrame("SpaceCenter")]), true),
+        play(
+          afterTheCrash([sceneFrame("SpaceCenter"), ...noVesselFrames()]),
+          true,
+        ),
       );
       nextFlight = await playAll(() =>
         play(
@@ -274,9 +285,7 @@ describe("Landing Status over the rig's recorded landings", () => {
       for (const f of last) {
         expect(f.text, `at ${f.second} s`).toContain("CRASHED");
         expect(f.text).toContain("Record of the last flight");
-        expect(f.text, `at ${f.second} s`).not.toContain(
-          "Vessel in flight required",
-        );
+        expect(f.text, `at ${f.second} s`).not.toContain("No active vessel");
         // Nothing live stands beside it: no burn hero, no round trip.
         expect(f.text).not.toContain("BURN TIMING");
         expect(f.text).not.toContain("RT ");

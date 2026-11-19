@@ -270,7 +270,6 @@ registerComponent<RendezvousConfig>({
   defaultConfig: { autoSwitch: true, hudMode: "hud-with-camera" },
   augmentSlots: ["rendezvous.camera", "rendezvous.overlay"],
   pushable: true,
-  requires: ["flight"],
 });
 
 export { RendezvousComponent };

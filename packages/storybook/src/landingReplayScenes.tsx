@@ -85,7 +85,7 @@ const sceneFor = builtOnce((recording: LandingRecording) => {
       <ReplaySessionProvider>
         {gated ? (
           <RequiresGuard
-            requires={["flight"]}
+            optionalChannels={["vessel.flight", "vessel.landing"]}
             heldOpenBy={["crash-ending"]}
             title="LANDING"
           >

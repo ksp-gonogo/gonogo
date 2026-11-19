@@ -41007,6 +41007,14 @@
   "pending": {
     "breaks": [
       {
+        "key": "sitrep-sdk . ComponentDefinition#requires?",
+        "note": "Removed: the gate follows the Topics a widget reads, so a widget declares no game state"
+      },
+      {
+        "key": "sitrep-sdk . ComponentRequirement",
+        "note": "Removed: a widget is gated by the Topics it reads, with nothing declared"
+      },
+      {
         "key": "sitrep-sdk . ContributionRegistry#\"flight-plan.steps\"",
         "note": "New contribution slot: an Uplink adds a Flight Plan step kind as a contribution"
       },
@@ -41021,6 +41029,14 @@
       {
         "key": "sitrep-sdk . SlotRegistry#\"mode-sections.replay\"",
         "note": "New augment slot: an Uplink adds a section to replay mode as an augment"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ComponentDefinition#requires?",
+        "note": "Removed: the gate follows the Topics a widget reads, so a widget declares no game state"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ComponentRequirement",
+        "note": "Removed: a widget is gated by the Topics it reads, with nothing declared"
       },
       {
         "key": "sitrep-sdk ./registry ~ContributionRegistry#\"flight-plan.steps\"",
@@ -41076,10 +41092,6 @@
       }
     ],
     "additions": [
-      {
-        "key": "sitrep-sdk . ComponentDefinition#modes?",
-        "note": "A widget lists the modes it shows in; listing design lets it follow a design's predicted run"
-      },
       {
         "key": "sitrep-sdk . ModeDefinition",
         "note": "A mode's name, when it is on and its timeline, passed to registerMode"
@@ -41275,30 +41287,6 @@
       {
         "key": "sitrep-sdk . useScreenName",
         "note": "New: the name the operator gave this screen, for labelling what they do where others can see it"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ComponentDefinition#modes?",
-        "note": "A widget lists the modes it shows in; listing design lets it follow a design's predicted run"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ModeId",
-        "note": "The id of a declared mode"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ModeRegistry",
-        "note": "The modes the dashboard can be in, declared by declaration merging"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ModeRegistry#default",
-        "note": "The default mode, on whenever no other mode is"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ModeRegistry#design",
-        "note": "The modes the dashboard can be in, declared by declaration merging"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ModeRegistry#replay",
-        "note": "The replay mode, a recorded flight played back"
       },
       {
         "key": "sitrep-sdk ./registry ~ModeSectionProps",

@@ -227,7 +227,6 @@ export type {
   ComponentDefinition,
   ComponentHeldOpen,
   ComponentProps,
-  ComponentRequirement,
   ComponentSlotRegistry,
   ComponentSlotSegment,
   ConfigComponentProps,

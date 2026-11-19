@@ -31,7 +31,6 @@ registerComponent<PowerSystemsConfig>({
   actions: powerSystemsActions,
   augmentSlots: ["power-systems.sections"],
   pushable: true,
-  requires: ["flight"],
 });
 
 export { PowerSystemsComponent };

@@ -58,8 +58,8 @@ public enum FlightEndReason
 /// exception: a kerbal on EVA does not become the subject of this reading,
 /// the craft they stepped out of stays it for as long as that craft is in the
 /// world.
-/// <para>Nothing is published while there is no active vessel; the last
-/// value is held.</para>
+/// <para>The payload is <c>null</c> while there is no active vessel, and a
+/// vessel out of contact keeps its last value.</para>
 /// </summary>
 /// <category>Flights</category>
 /// <categoryDescription>

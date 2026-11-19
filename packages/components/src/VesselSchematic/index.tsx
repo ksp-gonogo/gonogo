@@ -433,7 +433,6 @@ registerComponent<VesselSchematicConfig>({
   tags: ["telemetry", "ship", "staging", "stages"],
   defaultSize: { w: 12, h: 10 },
   minSize: { w: 5, h: 5 },
-  modes: ["default", "replay", "design"],
   // The scene and career reads come with the active mode, not a ground control, so the pilot keeps the Schematic.
   seats: ["mission-control", "pilot"],
   component: VesselSchematicComponent,

@@ -41,7 +41,6 @@ import type {
   WidgetFieldPath,
 } from "../topics";
 import type { Value } from "../value";
-import type { ModeId } from "./modes";
 import type { UiKitTheme } from "./theme";
 import type { Tone } from "./tone";
 
@@ -57,19 +56,7 @@ import type { Tone } from "./tone";
 export type DataRequirement = string;
 
 /**
- * A game state a widget needs before it can show anything useful.
- * `"flight"` needs a vessel in flight; `"career"` needs a career save or a
- * science-mode save (KSP's mode with science but no funds). While one a widget
- * lists is not met, the dashboard draws a notice naming it in place of the
- * widget's body. Useful for telling the operator why a widget shows nothing.
- * Listed in the `requires` of a {@link ComponentDefinition}.
- *
- * @category Registering
- */
-export type ComponentRequirement = "flight" | "career";
-
-/**
- * A reason a widget stays on screen although a game state it requires is not met.
+ * A reason a widget stays on screen although the Topics it reads say there is no active vessel.
  * `"crash-ending"` keeps it open while the crash that ended the last flight is
  * on record. Useful for letting the operator still read how a flight ended
  * after the game leaves the flight scene.
@@ -545,9 +532,11 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
   actions?: readonly ActionDefinition[];
   /** Lets a station send this widget to the main screen. */
   pushable?: boolean;
-  /** Game states the widget needs. While one is not met, the dashboard draws a notice in its place. */
-  requires?: readonly ComponentRequirement[];
-  /** Reasons the widget stays open while a `requires` is not met. Absent, an unmet `requires` always draws the notice. */
+  /**
+   * Reasons the widget stays open while the Topics it reads say there is no
+   * active vessel. Absent, the dashboard then draws "No active vessel" in its
+   * place.
+   */
   heldOpenBy?: readonly ComponentHeldOpen[];
   /**
    * Set when the widget has nothing to draw until the vessel's link report
@@ -574,15 +563,6 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    * or both.
    */
   seats?: readonly Seat[];
-  /**
-   * The modes whose telemetry this widget is ready to read. Omit for
-   * `["default", "replay"]`. A mode never hides a widget, and every widget
-   * reads a recording in replay mode whatever it lists. Listing `"design"` is
-   * the one entry that changes anything: in design mode the widget is given
-   * the predicted run's values on the same Topics it reads in flight, and its
-   * `requires: ["flight"]` is met by the predicted run.
-   */
-  modes?: readonly ModeId[];
   /**
    * The augment slots this widget draws, by full slot id, each declared in
    * {@link SlotRegistry}. A slot id nothing declares does not compile.

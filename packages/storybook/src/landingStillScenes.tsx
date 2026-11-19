@@ -97,7 +97,10 @@ export function LandingOutsideFlight({
       w={w}
       h={h}
       wrap={(tree) => (
-        <RequiresGuard requires={["flight"]} title="LANDING">
+        <RequiresGuard
+          optionalChannels={["vessel.flight", "vessel.landing"]}
+          title="LANDING"
+        >
           {tree}
         </RequiresGuard>
       )}

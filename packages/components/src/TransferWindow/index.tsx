@@ -461,7 +461,6 @@ registerComponent<TransferWindowConfig>({
   defaultConfig: { showPorkchop: true, leadHours: 6, reserveDeltaV: 0 },
   actions: transferWindowActions,
   pushable: true,
-  requires: ["flight"],
 });
 
 export { TransferWindowComponent };

@@ -111,7 +111,8 @@ public class ActionGroupState
 /// The active vessel's control
 /// state (the stock toggles, SAS mode, throttle, the commanded fly-by-wire
 /// axes and the custom action groups). The payload is present whenever there
-/// is an active vessel; each field is individually nullable, and <c>null</c>
+/// is an active vessel and <c>null</c> while there is none; each field is
+/// individually nullable, and <c>null</c>
 /// means that input could not be read this tick (for example no flight input
 /// state, or no action-group data), never a default.
 ///
