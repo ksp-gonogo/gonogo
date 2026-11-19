@@ -32,6 +32,9 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>Delayed and not recordable: stands in for time.warp, a session fact that rides the vessel snapshot.</summary>
         public const string SessionTopic = "recorder.session";
 
+        /// <summary>Delayed, recordable and change-only: stands in for vessel.maneuver, published when it changes plus a keyframe.</summary>
+        public const string DiscreteTopic = "recorder.discrete";
+
         public const string LinkTopic = ChannelEngine.ConnectivityMetaTopic;
 
         public UplinkManifest Manifest { get; } = new UplinkManifest
@@ -45,6 +48,14 @@ namespace Sitrep.Host.IntegrationTests
                     Topic = OnboardTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                    Delay = DelayRole.Delayed,
+                    Recordable = true,
+                },
+                new ChannelDeclaration
+                { Kind = SampleKind.Discrete,
+                    Topic = DiscreteTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.Delayed,
                     Recordable = true,
                 },
@@ -69,11 +80,19 @@ namespace Sitrep.Host.IntegrationTests
         public void Register(IUplinkHost host)
         {
             host.AddChannelSource(OnboardTopic, snapshot => Read(snapshot, "onboard"));
+            host.AddChannelSource(DiscreteTopic, snapshot => Read(snapshot, "discrete"));
             host.AddChannelSource(SessionTopic, snapshot => Read(snapshot, "session"));
             host.AddChannelSource(LinkTopic, MapLink);
 
             host.SetSignalDelaySource(ComputeDelay);
             host.SetConnectivitySource(ComputeConnected);
+            host.SetPathBreakSource(ComputeBreak);
+        }
+
+        private static IReadOnlyList<PathBreak>? ComputeBreak(KspSnapshot? snapshot, double ut)
+        {
+            var raw = Read(snapshot, "breakOut");
+            return raw == null ? null : new[] { new PathBreak(ChannelEngine.NodeId, ut, Convert.ToDouble(raw)) };
         }
 
         private static object? MapLink(KspSnapshot? snapshot)
@@ -128,7 +147,9 @@ namespace Sitrep.Host.IntegrationTests
             bool? connected = null,
             double? delay = null,
             double? onboard = null,
-            double? session = null)
+            double? session = null,
+            double? discrete = null,
+            double? breakOut = null)
         {
             var values = new Dictionary<string, object?>();
             if (connected.HasValue)
@@ -146,6 +167,14 @@ namespace Sitrep.Host.IntegrationTests
             if (session.HasValue)
             {
                 values["session"] = session.Value;
+            }
+            if (breakOut.HasValue)
+            {
+                values["breakOut"] = breakOut.Value;
+            }
+            if (discrete.HasValue)
+            {
+                values["discrete"] = discrete.Value;
             }
             return new KspSnapshot { Ut = ut, Values = values };
         }

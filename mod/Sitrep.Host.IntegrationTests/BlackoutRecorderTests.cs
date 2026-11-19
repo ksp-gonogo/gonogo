@@ -659,6 +659,151 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// The sample a mid-outage subscriber is handed as the last one before the
+        /// outage is the newest the craft delivered while in contact, whatever the
+        /// signal delay and however many samples came before it.
+        /// </summary>
+        [Theory]
+        [InlineData(BlackoutRecorderTestUplink.OnboardTopic, 0.0, true)]
+        [InlineData(BlackoutRecorderTestUplink.OnboardTopic, 3.0, true)]
+        [InlineData(BlackoutRecorderTestUplink.DiscreteTopic, 0.0, true)]
+        [InlineData(BlackoutRecorderTestUplink.DiscreteTopic, 3.0, true)]
+        [InlineData(BlackoutRecorderTestUplink.OnboardTopic, 41.0, true)]
+        [InlineData(BlackoutRecorderTestUplink.DiscreteTopic, 41.0, true)]
+        [InlineData(BlackoutRecorderTestUplink.DiscreteTopic, 41.0, false)]
+        [InlineData(BlackoutRecorderTestUplink.OnboardTopic, 3.0, false)]
+        [InlineData(BlackoutRecorderTestUplink.DiscreteTopic, 3.0, false)]
+        public async Task ALateSubscriberIsServedTheNewestSampleDeliveredBeforeTheOutage(string topic, double delay, bool firstStays)
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new BlackoutRecorderTestUplink());
+            engine.Start();
+            try
+            {
+                await using var first = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(first, topic, Timeout);
+                await SubscribeAsync(first, BlackoutRecorderTestUplink.LinkTopic, Timeout);
+
+                KspSnapshot At(double ut, bool connected, double value) => topic == BlackoutRecorderTestUplink.OnboardTopic
+                    ? Snap(ut, connected: connected, delay: connected ? delay : 0.0, onboard: value)
+                    : Snap(ut, connected: connected, delay: connected ? delay : 0.0, discrete: value);
+
+                Tick(engine, Snap(0.0, connected: true, delay: delay));
+                Tick(engine, At(1.0, true, 1.0));
+                Tick(engine, At(10.0, true, 2.0));
+                Tick(engine, At(20.0, true, 3.0));
+                for (var ut = 30.0; ut <= 100.0; ut += 10.0)
+                {
+                    Tick(engine, At(ut, true, 3.0));
+                }
+                Assert.Contains(On(await DrainAllStreamDataAsync(first, Quiet), topic), f => Value(f) == 3.0);
+
+                if (!firstStays)
+                {
+                    await first.DisposeAsync();
+                    await WaitUntilUnsubscribedAsync(engine, topic);
+                }
+
+                for (var ut = 110.0; ut < 500.0; ut += 10.0)
+                {
+                    Tick(engine, At(ut, false, ut));
+                }
+
+                await using var late = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await late.SendAsync(EnvelopeCodec.WriteSubscribe(new Subscribe { Topic = topic }));
+                var catchUp = On(await DrainAllStreamDataAsync(late, Quiet), topic);
+
+                var served = catchUp.Single();
+                Assert.Equal(3.0, Value(served));
+                Assert.Equal(Staleness.LastBeforeBlackout, served.Meta.Staleness);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// A short outage that broke the route, then contact and a newer sample,
+        /// then a second outage: a subscriber joining in the second is served the
+        /// newest sample delivered before it, not the topic's first.
+        /// </summary>
+        [Theory]
+        [InlineData(BlackoutRecorderTestUplink.OnboardTopic, 0.001, 0.0)]
+        [InlineData(BlackoutRecorderTestUplink.DiscreteTopic, 0.001, 0.0)]
+        [InlineData(BlackoutRecorderTestUplink.DiscreteTopic, 0.001, 30.0)]
+        [InlineData(BlackoutRecorderTestUplink.DiscreteTopic, 5.0, 30.0)]
+        [InlineData(BlackoutRecorderTestUplink.DiscreteTopic, 0.001, 30.0, true)]
+        [InlineData(BlackoutRecorderTestUplink.OnboardTopic, 0.001, 30.0, true)]
+        public async Task ALateSubscriberAfterAShortBreakIsServedTheNewestSampleDeliveredBeforeTheOutage(
+            string topic, double delay, double secondsInContactBetween, bool reloadWhileLinked = false)
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new BlackoutRecorderTestUplink());
+            engine.Start();
+            try
+            {
+                await using var first = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(first, topic, Timeout);
+                await SubscribeAsync(first, BlackoutRecorderTestUplink.LinkTopic, Timeout);
+
+                KspSnapshot At(double ut, bool connected, double value, double? breakOut = null) => topic == BlackoutRecorderTestUplink.OnboardTopic
+                    ? Snap(ut, connected: connected, delay: delay, onboard: value, breakOut: breakOut)
+                    : Snap(ut, connected: connected, delay: delay, discrete: value, breakOut: breakOut);
+
+                Tick(engine, Snap(0.0, connected: true, delay: delay));
+                for (var ut = 1.0; ut <= 100.0; ut += 5.0)
+                {
+                    Tick(engine, At(ut, true, 1.0));
+                }
+
+                // Short natural outage with a route break.
+                Tick(engine, At(105.0, false, 1.0, breakOut: delay));
+                for (var ut = 110.0; ut < 150.0; ut += 5.0)
+                {
+                    Tick(engine, At(ut, false, 1.5));
+                }
+
+                // Contact again, and the node arrives.
+                for (var ut = 150.0; ut <= 200.0 + secondsInContactBetween; ut += 5.0)
+                {
+                    Tick(engine, At(ut, true, 2.0));
+                }
+                Assert.Contains(On(await DrainAllStreamDataAsync(first, Quiet), topic), f => Value(f) == 2.0);
+
+                var loss = 210.0 + secondsInContactBetween;
+                if (reloadWhileLinked)
+                {
+                    for (var ut = loss; ut < loss + 300.0; ut += 5.0)
+                    {
+                        Tick(engine, At(ut, false, 9.0));
+                    }
+                    await first.DisposeAsync();
+                }
+                else
+                {
+                    await first.DisposeAsync();
+                    await WaitUntilUnsubscribedAsync(engine, topic);
+                    for (var ut = loss; ut < loss + 300.0; ut += 5.0)
+                    {
+                        Tick(engine, At(ut, false, 9.0));
+                    }
+                }
+
+                await using var late = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await late.SendAsync(EnvelopeCodec.WriteSubscribe(new Subscribe { Topic = topic }));
+                var served = On(await DrainAllStreamDataAsync(late, Quiet), topic).Single();
+
+                Assert.Equal(2.0, Value(served));
+                Assert.Equal(Staleness.LastBeforeBlackout, served.Meta.Staleness);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// Returns once no client subscribes to <paramref name="topic"/>. The
         /// engine drops a topic from its subscribed set inside the same queued job
         /// that unsubscribes the Courier, so a tick enqueued after this returns
@@ -685,7 +830,9 @@ namespace Sitrep.Host.IntegrationTests
             bool? connected = null,
             double? delay = null,
             double? onboard = null,
-            double? session = null) =>
-            BlackoutRecorderTestUplink.Snapshot(ut, connected, delay, onboard, session);
+            double? session = null,
+            double? discrete = null,
+            double? breakOut = null) =>
+            BlackoutRecorderTestUplink.Snapshot(ut, connected, delay, onboard, session, discrete, breakOut);
     }
 }
