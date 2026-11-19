@@ -149,7 +149,8 @@ namespace Sitrep.Host.IntegrationTests
             double? onboard = null,
             double? session = null,
             double? discrete = null,
-            double? breakOut = null)
+            double? breakOut = null,
+            string? activeCraft = null)
         {
             var values = new Dictionary<string, object?>();
             if (connected.HasValue)
@@ -167,6 +168,13 @@ namespace Sitrep.Host.IntegrationTests
             if (session.HasValue)
             {
                 values["session"] = session.Value;
+            }
+            if (activeCraft != null)
+            {
+                values["vessel"] = new Dictionary<string, object?>
+                {
+                    ["identity"] = new Dictionary<string, object?> { ["id"] = activeCraft },
+                };
             }
             if (breakOut.HasValue)
             {

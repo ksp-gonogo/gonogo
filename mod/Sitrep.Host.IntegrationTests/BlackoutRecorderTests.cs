@@ -804,6 +804,64 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// A change made before a short outage reaches the screen in the recording
+        /// dump, a second outage begins before any new sample is taken in contact,
+        /// and a screen opened then is served that dumped sample, not the topic's
+        /// first.
+        /// </summary>
+        [Theory]
+        [InlineData(BlackoutRecorderTestUplink.DiscreteTopic)]
+        [InlineData(BlackoutRecorderTestUplink.OnboardTopic)]
+        public async Task ASampleTakenInAnOutageAndDumpedOnRegainIsServedToALateSubscriberInTheNextOutage(string topic)
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new BlackoutRecorderTestUplink());
+            engine.Start();
+            try
+            {
+                await using var first = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(first, topic, Timeout);
+                await SubscribeAsync(first, BlackoutRecorderTestUplink.LinkTopic, Timeout);
+
+                KspSnapshot At(double ut, bool connected, double value) => topic == BlackoutRecorderTestUplink.OnboardTopic
+                    ? Snap(ut, connected: connected, delay: 0.001, onboard: value, activeCraft: "craft1")
+                    : Snap(ut, connected: connected, delay: 0.001, discrete: value, activeCraft: "craft1");
+
+                Tick(engine, Snap(0.0, connected: true, delay: 0.001, activeCraft: "craft1"));
+                for (var ut = 1.0; ut <= 40.0; ut += 5.0)
+                {
+                    Tick(engine, At(ut, true, 1.0));
+                }
+
+                // The change is taken inside the first outage.
+                for (var ut = 45.0; ut < 75.0; ut += 5.0)
+                {
+                    Tick(engine, At(ut, false, 2.0));
+                }
+
+                // Contact returns for one tick, the dump goes, and the link drops at once.
+                Tick(engine, At(75.0, true, 2.0));
+                Tick(engine, At(80.0, false, 2.0));
+                Assert.Contains(On(await DrainAllStreamDataAsync(first, Quiet), topic), f => Value(f) == 2.0 && f.Meta.Staleness == Staleness.Recorded);
+                for (var ut = 85.0; ut < 120.0; ut += 5.0)
+                {
+                    Tick(engine, At(ut, false, 2.0));
+                }
+
+                await first.DisposeAsync();
+                await using var late = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await late.SendAsync(EnvelopeCodec.WriteSubscribe(new Subscribe { Topic = topic }));
+                var served = On(await DrainAllStreamDataAsync(late, Quiet), topic).Single();
+
+                Assert.Equal(2.0, Value(served));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// Returns once no client subscribes to <paramref name="topic"/>. The
         /// engine drops a topic from its subscribed set inside the same queued job
         /// that unsubscribes the Courier, so a tick enqueued after this returns
@@ -832,7 +890,8 @@ namespace Sitrep.Host.IntegrationTests
             double? onboard = null,
             double? session = null,
             double? discrete = null,
-            double? breakOut = null) =>
-            BlackoutRecorderTestUplink.Snapshot(ut, connected, delay, onboard, session, discrete, breakOut);
+            double? breakOut = null,
+            string? activeCraft = null) =>
+            BlackoutRecorderTestUplink.Snapshot(ut, connected, delay, onboard, session, discrete, breakOut, activeCraft);
     }
 }

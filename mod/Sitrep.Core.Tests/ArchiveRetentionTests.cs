@@ -414,5 +414,27 @@ namespace Sitrep.Core.Tests
             Assert.Equal(300, kept[1].ValidAt);
             Assert.Equal(9, kept[1].Epoch);
         }
+
+        [Fact]
+        public void KeepsEveryCopyTakenAtTheInstantThePruneCutsAt()
+        {
+            // The same instant is archived more than once: kept for the seat aboard
+            // the craft, which no other vantage has been told of, and delivered to a
+            // command centre in the dump on regain. Dropping all but the last of
+            // them can drop the one the centre was delivered.
+            var archive = new Archive();
+            archive.Record("t", "first", 1, stamp: new DelayStamp(0.001));
+            archive.Record("t", "seat-copy", 10, stamp: DelayStamp.DeliveredTo("seat", 0.0));
+            archive.Record("t", "delivered-copy", 10, stamp: DelayStamp.DeliveredTo("ksc", 5.0));
+            archive.Record("t", "later-seat-copy", 10, stamp: DelayStamp.DeliveredTo("seat", 0.0));
+            archive.Record("t", "newest-seat-copy", 20, stamp: DelayStamp.DeliveredTo("seat", 0.0));
+            archive.ReadAtInstant("t", "ksc", 15, 15);
+
+            archive.PruneToVantageCursors();
+
+            var served = archive.ReadAtInstant("t", "ksc", 25, 30);
+            Assert.NotNull(served);
+            Assert.Equal("delivered-copy", served!.Value.Value);
+        }
     }
 }

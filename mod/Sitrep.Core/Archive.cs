@@ -515,6 +515,19 @@ namespace Sitrep.Core
                 keepFrom = i;
             }
 
+            /*
+             * The instant can be archived more than once, each copy stamped for a
+             * different vantage: one kept for the seat aboard the craft, which no
+             * other vantage has been told of, and one delivered to a command centre
+             * in the dump on regain. Which of them a given vantage may read is
+             * decided by its stamp at read time, so every copy of the cut instant
+             * stays, not only the last.
+             */
+            while (keepFrom > 0 && list[keepFrom - 1].ValidAt == list[keepFrom].ValidAt)
+            {
+                keepFrom--;
+            }
+
             // Index 0 is the birth sample and is kept, so the drop starts at 1.
             if (keepFrom > 1)
             {
