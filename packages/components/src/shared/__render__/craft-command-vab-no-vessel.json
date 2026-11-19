@@ -1,0 +1,30 @@
+{
+  "_meta": {
+    "shows": "A widget that reads only comms.delay and sends a craft command, in the Vehicle Assembly Building with no active vessel.",
+    "scenario": "craft-command-vab-no-vessel",
+    "notes": "A widget that reads only comms.delay and sends a craft command, in the Vehicle Assembly Building with no active vessel."
+  },
+  "_guarded": true,
+  "_stream": {
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "system.uplink.delays",
+        "value": {
+          "activeVessel": ["planted-gate.craft"],
+          "elsewhere": []
+        }
+      },
+      {
+        "channel": "spaceCenter.scene",
+        "value": {
+          "scene": "Editor"
+        }
+      },
+      {
+        "channel": "ksp.activeVessel",
+        "value": null
+      }
+    ]
+  }
+}

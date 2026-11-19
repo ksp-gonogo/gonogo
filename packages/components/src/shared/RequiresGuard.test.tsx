@@ -5,7 +5,11 @@ import {
   registerDataSource,
   useHeldOpen,
 } from "@ksp-gonogo/core";
-import { TelemetryClient, TelemetryProvider } from "@ksp-gonogo/sitrep-client";
+import {
+  TelemetryClient,
+  TelemetryProvider,
+  useCommand,
+} from "@ksp-gonogo/sitrep-client";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
@@ -64,6 +68,7 @@ function renderGuard(
   props: {
     heldOpenBy?: readonly "crash-ending"[];
     channels?: readonly string[];
+    commands?: readonly string[];
     title?: string;
     awaitsFirstSignal?: boolean | { heading: string };
     compact?: { title: string };
@@ -76,6 +81,7 @@ function renderGuard(
       <RequiresGuard
         heldOpenBy={props.heldOpenBy}
         channels={props.channels}
+        commands={props.commands}
         title={props.title}
         awaitsFirstSignal={props.awaitsFirstSignal}
         compact={props.compact}
@@ -160,6 +166,94 @@ describe("RequiresGuard: uplink-health render-gate on REQUIRED channels", () => 
       expect(screen.getByText("backend down")).toBeInTheDocument(),
     );
     await expectNoA11yViolations(container);
+  });
+});
+
+function CommandButton({ command }: { command: string }) {
+  useCommand(command as never);
+  return <div>widget content</div>;
+}
+
+describe("RequiresGuard: gated by the commands a widget sends", () => {
+  async function leaveFlightWithDelays(
+    transport: StubTransport,
+    activeVessel: string[],
+  ) {
+    await waitFor(() => {
+      expect(transport.isSubscribed("system.uplink.delays")).toBe(true);
+    });
+    act(() => {
+      transport.emit("system.uplink.delays", {
+        activeVessel,
+        elsewhere: [],
+      } as never);
+    });
+    await leaveFlight(transport, ["ksp.activeVessel"]);
+  }
+
+  it("shows 'No active vessel' for a widget that reads no craft Topic and sends a craft command", async () => {
+    const { transport } = renderGuard(
+      <CommandButton command="demo.craft.land" />,
+      { channels: ["comms.delay"] },
+    );
+    await leaveFlightWithDelays(transport, ["demo.craft.land"]);
+    await waitFor(() =>
+      expect(screen.getByText("No active vessel")).toBeInTheDocument(),
+    );
+    expect(screen.queryByText("widget content")).not.toBeInTheDocument();
+  });
+
+  it("gates on a craft command its definition lists even before its control mounts", async () => {
+    const { transport } = renderGuard(<div>widget content</div>, {
+      commands: ["vessel.control.setSas"],
+    });
+    await leaveFlightWithDelays(transport, ["vessel.control.setSas"]);
+    await waitFor(() =>
+      expect(screen.getByText("No active vessel")).toBeInTheDocument(),
+    );
+  });
+
+  it("stays open in flight with the same craft command", async () => {
+    const { transport } = renderGuard(
+      <CommandButton command="demo.craft.land" />,
+      { channels: ["comms.delay"] },
+    );
+    await waitFor(() => {
+      expect(transport.isSubscribed("system.uplink.delays")).toBe(true);
+    });
+    act(() => {
+      transport.emit("system.uplink.delays", {
+        activeVessel: ["demo.craft.land"],
+        elsewhere: [],
+      } as never);
+      transport.emit("spaceCenter.scene", { scene: "Flight" });
+      transport.emit("ksp.activeVessel", { vesselId: "probe" } as never);
+    });
+    expect(screen.getByText("widget content")).toBeInTheDocument();
+    expect(screen.queryByText("No active vessel")).not.toBeInTheDocument();
+  });
+
+  it("leaves a widget whose command is aimed at the ground alone with no vessel", async () => {
+    const { transport } = renderGuard(
+      <CommandButton command="demo.ground.upgrade" />,
+      { channels: ["comms.delay"] },
+    );
+    await leaveFlightWithDelays(transport, ["demo.craft.land"]);
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    expect(screen.getByText("widget content")).toBeInTheDocument();
+  });
+
+  it("does not gate before the mod has said which commands address the craft", async () => {
+    const { transport } = renderGuard(
+      <CommandButton command="demo.craft.land" />,
+    );
+    await leaveFlight(transport, ["ksp.activeVessel"]);
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    expect(screen.getByText("widget content")).toBeInTheDocument();
   });
 });
 

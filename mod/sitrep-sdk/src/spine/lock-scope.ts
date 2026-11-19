@@ -50,6 +50,16 @@ export interface LockScopeRegistry {
 export const LockScopeContext = createContext<LockScopeRegistry | null>(null);
 
 /**
+ * Hears every capability claimed anywhere below it, whether or not a lock scope
+ * holds the claim. Useful for a guard that has to know which commands a widget
+ * sends before deciding to draw it. Provided by the dashboard's widget guard and
+ * read by `useClaimCapability`.
+ */
+export const ClaimObserverContext = createContext<
+  ((capability: Capability) => void) | null
+>(null);
+
+/**
  * Claims the capability named by `kind` and `id` with the nearest lock scope for
  * as long as the caller is mounted. Useful for a widget that must refuse itself
  * while what it reads or sends is locked. Used by the guard widgets that wrap
@@ -57,6 +67,10 @@ export const LockScopeContext = createContext<LockScopeRegistry | null>(null);
  */
 export function useClaimCapability(kind: Capability["kind"], id: string): void {
   const scope = useContext(LockScopeContext);
+  const observer = useContext(ClaimObserverContext);
   // A layout effect, so a scope that locks on this claim does so before the first paint.
-  useLayoutEffect(() => scope?.claim({ kind, id }), [scope, kind, id]);
+  useLayoutEffect(() => {
+    observer?.({ kind, id });
+    return scope?.claim({ kind, id });
+  }, [scope, observer, kind, id]);
 }

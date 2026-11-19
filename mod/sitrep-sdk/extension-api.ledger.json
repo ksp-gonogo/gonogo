@@ -41007,6 +41007,10 @@
   "pending": {
     "breaks": [
       {
+        "key": "sitrep-sdk . COMMAND_IDS",
+        "note": "Adds the command id vessel.setPartField, which sets one part-window field on a part in flight"
+      },
+      {
         "key": "sitrep-sdk . ComponentDefinition#requires?",
         "note": "Removed: the gate follows the Topics a widget reads, so a widget declares no game state"
       },
@@ -41089,10 +41093,6 @@
       {
         "key": "ui-kit . SlotRegistry#\"mode-sections.replay\"",
         "note": "New augment slot: an Uplink adds a section to replay mode as an augment"
-      },
-      {
-        "key": "sitrep-sdk . COMMAND_IDS",
-        "note": "Adds the command id vessel.setPartField, which sets one part-window field on a part in flight"
       }
     ],
     "additions": [
@@ -41359,6 +41359,10 @@
       {
         "key": "sitrep-sdk ./registry ~SectionStatus#tone",
         "note": "A mode section's state, shown beside its heading"
+      },
+      {
+        "key": "sitrep-sdk ./spine ClaimObserverContext",
+        "note": "New: the widget guard hears the commands a widget claims, to gate it when one is aimed at the craft"
       },
       {
         "key": "sitrep-sdk ./spine ScreenNameProvider",

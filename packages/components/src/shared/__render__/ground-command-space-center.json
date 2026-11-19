@@ -1,0 +1,30 @@
+{
+  "_meta": {
+    "shows": "A widget that sends a ground command, at the Space Center with no active vessel.",
+    "scenario": "ground-command-space-center",
+    "notes": "A widget that sends a ground command, at the Space Center with no active vessel."
+  },
+  "_guarded": true,
+  "_stream": {
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "system.uplink.delays",
+        "value": {
+          "activeVessel": ["planted-gate.craft"],
+          "elsewhere": []
+        }
+      },
+      {
+        "channel": "spaceCenter.scene",
+        "value": {
+          "scene": "SpaceCenter"
+        }
+      },
+      {
+        "channel": "ksp.activeVessel",
+        "value": null
+      }
+    ]
+  }
+}

@@ -926,6 +926,7 @@ function guarded(
       channels={def.channels}
       families={def.channelFamilies}
       optionalFamilies={def.optionalChannelFamilies}
+      commands={def.commands}
       configChannels={def.channelsFromConfig?.(
         payload.config ?? def.defaultConfig ?? {},
       )}

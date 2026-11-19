@@ -209,6 +209,7 @@ function PushedItem({
                   dataRequirements={def.dataRequirements}
                   families={def.channelFamilies}
                   optionalFamilies={def.optionalChannelFamilies}
+                  commands={def.commands}
                   configChannels={def.channelsFromConfig?.(
                     placement.widget.config,
                   )}

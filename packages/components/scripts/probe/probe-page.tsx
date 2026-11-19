@@ -17,6 +17,7 @@ import "./plantedTinyMisfitWidget";
 import "./plantedEmptyMap";
 import "./plantedLockedAugment";
 import "./plantedFaceWidgets";
+import "./plantedCommandGateWidgets";
 
 declare global {
   interface Window {

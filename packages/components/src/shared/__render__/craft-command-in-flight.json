@@ -1,0 +1,32 @@
+{
+  "_meta": {
+    "shows": "The same widget with a vessel in flight.",
+    "scenario": "craft-command-in-flight",
+    "notes": "The same widget with a vessel in flight."
+  },
+  "_guarded": true,
+  "_stream": {
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "system.uplink.delays",
+        "value": {
+          "activeVessel": ["planted-gate.craft"],
+          "elsewhere": []
+        }
+      },
+      {
+        "channel": "spaceCenter.scene",
+        "value": {
+          "scene": "Flight"
+        }
+      },
+      {
+        "channel": "ksp.activeVessel",
+        "value": {
+          "vesselId": "probe"
+        }
+      }
+    ]
+  }
+}

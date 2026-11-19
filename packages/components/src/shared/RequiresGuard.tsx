@@ -18,7 +18,12 @@ import {
   type TopicId,
   type WidgetChannelId,
 } from "@ksp-gonogo/sitrep-sdk";
-import { useClaimCapability } from "@ksp-gonogo/sitrep-sdk/spine";
+import {
+  type Capability,
+  ClaimObserverContext,
+  useClaimCapability,
+  useLatestValue,
+} from "@ksp-gonogo/sitrep-sdk/spine";
 import { DimmedOverlay } from "@ksp-gonogo/ui";
 import {
   AWAITING_FIRST_SIGNAL,
@@ -29,7 +34,7 @@ import {
   Panel,
   Section,
 } from "@ksp-gonogo/ui-kit";
-import { type ReactNode, useMemo } from "react";
+import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import { groundDomainsOf } from "./seatAvailability";
 
 export interface RequiresGuardProps {
@@ -56,6 +61,12 @@ export interface RequiresGuardProps {
    * towards the missing-host check, and never gate on Uplink health.
    */
   configChannels?: readonly string[];
+  /**
+   * The commands the widget's definition lists. With the ones its controls claim
+   * while mounted, the commands the mod says address the active craft gate the
+   * widget like a craft Topic.
+   */
+  commands?: readonly string[];
   /** The widget's name, kept as the panel heading while its body is refused. */
   title?: string;
   /**
@@ -87,6 +98,7 @@ export function RequiresGuard({
   optionalFamilies,
   optionalChannels,
   configChannels,
+  commands,
   title,
   compact,
   children,
@@ -138,6 +150,7 @@ export function RequiresGuard({
         optionalChannels={optionalChannels}
         configChannels={configChannels}
         dataRequirements={dataRequirements}
+        commands={commands}
         title={title}
       >
         {awaitsFirstSignal !== undefined && awaitsFirstSignal !== false ? (
@@ -260,6 +273,54 @@ export function gateTopicsOf(
   return { vesselTopics, careerTopics };
 }
 
+/**
+ * The commands the mod lists as addressing the active craft, out of those the
+ * widget's definition names and its controls claim while mounted. Empty until
+ * the mod's `system.uplink.delays` report has arrived, so a widget is never
+ * gated on a guess.
+ */
+function useCraftCommands(
+  declared: readonly string[],
+  claimed: readonly string[],
+): readonly string[] {
+  const report = useLatestValue<{ activeVessel?: unknown }>(
+    "system.uplink.delays",
+  );
+  const activeVessel = Array.isArray(report?.activeVessel)
+    ? (report.activeVessel as unknown[])
+    : [];
+  return [...new Set([...declared, ...claimed])].filter((command) =>
+    activeVessel.includes(command),
+  );
+}
+
+/**
+ * Remembers the commands the widget's controls claim. The record is kept after
+ * a claim is released: a widget the gate is refusing has unmounted its
+ * controls, and forgetting their commands would reopen it, which would claim
+ * them again.
+ */
+function ClaimedCommands({
+  children,
+}: {
+  children: (claimed: readonly string[]) => ReactNode;
+}) {
+  const [claimed, setClaimed] = useState<readonly string[]>([]);
+  const seen = useRef(new Set<string>());
+  const observe = useCallback((capability: Capability) => {
+    if (capability.kind !== "command" || seen.current.has(capability.id)) {
+      return;
+    }
+    seen.current.add(capability.id);
+    setClaimed([...seen.current]);
+  }, []);
+  return (
+    <ClaimObserverContext.Provider value={observe}>
+      {children(claimed)}
+    </ClaimObserverContext.Provider>
+  );
+}
+
 /** The health and game-context half of {@link RequiresGuard}, inside its lock scope. */
 function ReadinessGate(props: RequiresGuardProps) {
   const { vesselTopics, careerTopics } = gateTopicsOf(
@@ -267,22 +328,33 @@ function ReadinessGate(props: RequiresGuardProps) {
     useDeclaredDelayRoles(),
   );
   const key = [...vesselTopics, "/", ...careerTopics].join("|");
-  // The crash is read only for a widget that declares it: a read in here claims its topics for the widget's lock scope.
+  return (
+    <ClaimedCommands>
+      {(claimed) => (
+        <CommandGate
+          key={key}
+          {...props}
+          vesselTopics={vesselTopics}
+          careerTopics={careerTopics}
+          claimedCommands={claimed}
+        />
+      )}
+    </ClaimedCommands>
+  );
+}
+
+/** Reads the crash only for a widget that declares it: a read in here claims its topics for the widget's lock scope. */
+function CommandGate(
+  props: TopicGateProps & { claimedCommands: readonly string[] },
+) {
+  const craftCommands = useCraftCommands(
+    props.commands ?? [],
+    props.claimedCommands,
+  );
   return props.heldOpenBy?.includes("crash-ending") === true ? (
-    <CrashHeldGate
-      key={key}
-      {...props}
-      vesselTopics={vesselTopics}
-      careerTopics={careerTopics}
-    />
+    <CrashHeldGate {...props} craftCommands={craftCommands} />
   ) : (
-    <GameGate
-      key={key}
-      {...props}
-      vesselTopics={vesselTopics}
-      careerTopics={careerTopics}
-      heldOpen={false}
-    />
+    <GameGate {...props} craftCommands={craftCommands} heldOpen={false} />
   );
 }
 
@@ -291,7 +363,11 @@ interface TopicGateProps extends RequiresGuardProps {
   careerTopics: readonly string[];
 }
 
-function CrashHeldGate(props: TopicGateProps) {
+interface CommandGateProps extends TopicGateProps {
+  craftCommands: readonly string[];
+}
+
+function CrashHeldGate(props: CommandGateProps) {
   return <GameGate {...props} heldOpen={useCrashEnding() !== undefined} />;
 }
 
@@ -307,28 +383,30 @@ function useAnyAbsent(topics: readonly string[]): boolean {
 }
 
 /**
- * Whether the game has no active vessel and one of the widget's craft Topics
- * says so. `ksp.activeVessel` tells "no vessel" from a vessel Topic that has
- * no value while a craft is flying, such as no target set or a craft that is
- * comms-dark.
+ * Whether the game has no active vessel and the widget needs one: one of its
+ * craft Topics says so, or it sends a command that addresses the craft.
+ * `ksp.activeVessel` tells "no vessel" from a vessel Topic that has no value
+ * while a craft is flying, such as no target set or a craft that is comms-dark.
  */
-function useNoVessel(topics: readonly string[]): boolean {
+function useNoVessel(topics: readonly string[], sendsCraftCommand: boolean) {
   const active = useTelemetry("ksp.activeVessel");
   const anyAbsent = useAnyAbsent(topics);
-  return topics.length > 0 && active.state === "absent" && anyAbsent;
+  if (active.state !== "absent") return false;
+  return sendsCraftCommand || (topics.length > 0 && anyAbsent);
 }
 
 function GameGate({
   channels,
   vesselTopics,
   careerTopics,
+  craftCommands,
   title,
   heldOpen,
   children,
-}: TopicGateProps & { heldOpen: boolean }) {
+}: CommandGateProps & { heldOpen: boolean }) {
   const uplinkHealth = useUplinkHealthFor(channels ?? []);
   const ctx = useGameContext();
-  const noVessel = useNoVessel(vesselTopics);
+  const noVessel = useNoVessel(vesselTopics, craftCommands.length > 0);
   const noCareer = useAnyAbsent(careerTopics);
 
   if (uplinkHealth.status === "resolved" && uplinkHealth.state !== "healthy") {

@@ -146,6 +146,7 @@ export function WidgetShell({
                   dataRequirements={def.dataRequirements}
                   families={def.channelFamilies}
                   optionalFamilies={def.optionalChannelFamilies}
+                  commands={def.commands}
                   configChannels={def.channelsFromConfig?.(config)}
                   title={title}
                   compact={compact}
