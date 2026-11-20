@@ -43,7 +43,54 @@ class FakeClock implements Clock {
   }
 }
 
+function parsed<T extends object>(raw: string): T {
+  const value: unknown = JSON.parse(raw);
+  if (typeof value !== "object" || value === null) {
+    throw new Error(`not a JSON object: ${raw.slice(0, 64)}`);
+  }
+  return value as T;
+}
+
 describe("StreamRecorder", () => {
+  it("begins with the newest frame held of each subscribed Topic, marked as carried, ahead of what arrives", () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    client.subscribe("trackingStation.bodies", () => {});
+    client.subscribe("vessel.orbit", () => {});
+    client.subscribe("flight.ended", () => {});
+    // An earlier flight's ending: something that happened, and no part of the state this recording begins from.
+    transport.emit("flight.ended", { flightId: "earlier" }, { validAt: 5 });
+    // Sent once, long before the recording, and not again while it runs.
+    transport.emit("trackingStation.bodies", { bodies: [] }, { validAt: 10 });
+    transport.emit("vessel.orbit", { sma: 700_000 }, { validAt: 90 });
+    transport.emit("vessel.orbit", { sma: 700_100 }, { validAt: 100 });
+
+    const recorder = new StreamRecorder(client);
+    recorder.start();
+    transport.emit("vessel.orbit", { sma: 700_200 }, { validAt: 110 });
+    const fixture = recorder.stop();
+
+    const frames = fixture.frames.map((raw) =>
+      parsed<{
+        topic: string;
+        carried?: boolean;
+        meta: { validAt: number };
+      }>(raw),
+    );
+    expect(
+      frames.map((f) => [f.topic, f.meta.validAt, f.carried === true]),
+    ).toEqual([
+      ["trackingStation.bodies", 10, true],
+      ["vessel.orbit", 100, true],
+      ["vessel.orbit", 110, false],
+    ]);
+    expect(frames.some((f) => f.topic === "flight.ended")).toBe(false);
+    expect([...(fixture.subscribedTopics ?? [])].sort()).toEqual([
+      "trackingStation.bodies",
+      "vessel.orbit",
+    ]);
+  });
+
   it("default is subscription-scoped: adds no subscriptions beyond whatever's already carried", () => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);

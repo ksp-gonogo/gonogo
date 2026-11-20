@@ -27,6 +27,28 @@ describe("buildMissionRecord", () => {
     });
   });
 
+  it("leaves the state a recording began from out of the flight's span", () => {
+    const carried = JSON.stringify({
+      type: "stream-data",
+      topic: "trackingStation.bodies",
+      carried: true,
+      payload: {},
+      meta: { validAt: 5, deliveredAt: 5 },
+    });
+    const record = buildMissionRecord({
+      vesselName: "Kerbal X",
+      launchedAt: 1,
+      fixture: { frames: [carried, frame(96, 100), frame(156, 160)] },
+    });
+
+    expect(record?.meta).toMatchObject({
+      firstFrameUt: 100,
+      lastFrameUt: 160,
+      firstValidUt: 96,
+      lastValidUt: 156,
+    });
+  });
+
   it("states no valid-time span for frames that carry none", () => {
     const record = buildMissionRecord({
       vesselName: "Kerbal X",

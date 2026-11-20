@@ -1,3 +1,4 @@
+import { channelKindOf } from "../channel-tags";
 import { getAllKnownTopicIds } from "../topics";
 import type { TelemetryClient } from "./client";
 import type { ReplayFixture } from "./replay-transport";
@@ -37,6 +38,16 @@ export interface StreamRecorderOptions {
  * subscribed. A recording therefore holds exactly the topics the dashboard had
  * open, and replaying a widget that was never mounted while recording shows
  * nothing. See `StreamRecorderOptions.recordAllTopics` for the opt-in alternative.
+ *
+ * A recording begins with the state the stream was in: `start()` first writes
+ * the newest frame the client holds of every subscribed Topic of states (not
+ * one of events, whose newest frame is something past), each marked
+ * `carried: true` beside its `type`. Without them a Topic the mod sends only on
+ * change (the bodies, the command centres, a craft's parts) is missing from a
+ * recording begun after it last changed, and a replay has nothing to show for
+ * it. A carried frame keeps the stamps it arrived with, which are from before
+ * the recording began, so a reader working out when a recording starts leaves
+ * carried frames out.
  *
  * Idle (never started, or after `stop()`) costs nothing: no listener is registered
  * on the client until `start()` runs.
@@ -92,6 +103,15 @@ export class StreamRecorder {
     this.bufferedCharacters = 0;
     this.observedTopics.clear();
     this.latestValidAt = 0;
+
+    for (const held of this.client.heldFrames()) {
+      // A Topic of events holds something that happened, not a state the stream is in: its newest frame is an earlier flight's ending, say.
+      if (channelKindOf(held.topic) === "event") continue;
+      this.observedTopics.add(held.topic);
+      const frame = JSON.stringify({ ...held, carried: true });
+      this.frames.push(frame);
+      this.bufferedCharacters += frame.length;
+    }
 
     this.detachRawTap = this.client.onRawMessage((message) => {
       if (message.type !== "stream-data" && message.type !== "event") return;

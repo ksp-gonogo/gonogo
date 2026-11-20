@@ -81,7 +81,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "mod/sitrep-sdk/src/spine/orbit-trajectory.ts": 1,
   "mod/sitrep-sdk/src/spine/past-track.test.ts": 1,
   "mod/sitrep-sdk/src/spine/propagation-horizon.test.ts": 1,
-  "mod/sitrep-sdk/src/spine/replay-transport.ts": 2,
+  "mod/sitrep-sdk/src/spine/replay-transport.ts": 1,
   "mod/sitrep-sdk/src/spine/timeline-store.ts": 1,
   "mod/sitrep-sdk/src/spine/use-data-sources.ts": 2,
   "mod/sitrep-sdk/src/spine/use-observed-vantage.test.tsx": 1,

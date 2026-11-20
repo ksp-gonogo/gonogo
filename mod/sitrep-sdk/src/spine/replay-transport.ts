@@ -2,6 +2,7 @@ import type { EventMsg, StreamData } from "../__generated__/contract";
 import type { Transport, TransportStatus } from "../api/transport";
 import { parseServerMessage } from "../client";
 import type { ServerMessage } from "../envelope";
+import { hydratePayload } from "../wrap-units";
 import type { Clock } from "./clock";
 
 /**
@@ -58,6 +59,12 @@ function isDataOrEventFrame(
   return message.type === "stream-data" || message.type === "event";
 }
 
+/** A parsed frame with every quantity in its payload restored. */
+function whole(message: ServerMessage): ServerMessage {
+  if (message.type === "stream-data") hydratePayload(message.payload);
+  return message;
+}
+
 /**
  * A `Transport` that replays a captured wire recording (the
  * `reference-wire-fixture.json` shape) into a `TelemetryClient`, honouring each
@@ -96,11 +103,16 @@ export class ReplayTransport implements Transport {
     this.clock = options.clock;
     this.loop = options.loop ?? false;
 
-    // `parseServerMessage` rather than a bare `JSON.parse`: a replayed frame
-    // is the same wire text a live socket carries, so it goes through the same
-    // decode and comes out with its quantities wrapped.
+    /*
+     * A frame is read as a live socket's text is, so a quantity written as a
+     * bare number comes out wrapped. A recording made by the stream recorder
+     * holds each quantity already taken apart into its magnitude and unit,
+     * because the recorder is handed frames the client has decoded. Those
+     * come back from JSON as plain objects, and are restored here so that
+     * nothing past this point is handed a quantity without its methods.
+     */
     const parsed = fixture.frames
-      .map((raw) => parseServerMessage(raw))
+      .map((raw) => whole(parseServerMessage(raw)))
       .filter(isDataOrEventFrame)
       .sort((a, b) => a.meta.deliveredAt - b.meta.deliveredAt);
 

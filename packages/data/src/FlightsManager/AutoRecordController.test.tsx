@@ -25,6 +25,14 @@ import { MissionHistorySource } from "./MissionHistorySource";
  */
 
 /** Same fake-rAF double `context.test.tsx` uses to make `scheduleFrame` deterministic under jsdom (no real rAF). */
+function parsed<T extends object>(raw: string): T {
+  const value: unknown = JSON.parse(raw);
+  if (typeof value !== "object" || value === null) {
+    throw new Error(`not a JSON object: ${raw.slice(0, 64)}`);
+  }
+  return value as T;
+}
+
 function installFakeRaf() {
   let nextHandle = 1;
   const pending = new Map<number, () => void>();
@@ -827,7 +835,13 @@ describe("AutoRecordController", () => {
       // Every frame of every part, once each, in the order it arrived.
       expect(frames).toHaveLength(flight?.sampleCount ?? -1);
       expect(new Set(frames).size).toBe(frames.length);
-      const arrived = frames.map(utOf);
+      // Any state the recording began from comes first, and is from before it began; what arrived follows.
+      const carriedIn = (frame: string): boolean =>
+        parsed<{ carried?: boolean }>(frame).carried === true;
+      const opening = frames.findIndex((frame) => !carriedIn(frame));
+      expect(opening).toBeGreaterThanOrEqual(0);
+      expect(frames.slice(opening).some(carriedIn)).toBe(false);
+      const arrived = frames.slice(opening).map(utOf);
       expect(arrived).toEqual([...arrived].sort((a, b) => a - b));
       // Recording starts on the frame that announces the flight, so the first one kept is the tick after it.
       expect(arrived[0]).toBe(1);
@@ -863,6 +877,8 @@ describe("AutoRecordController", () => {
     });
 
     it("reports a part the store refused and still stores the parts after it", async () => {
+      // The test before this one leaves a recorder with frames in hand, which stores them as it unmounts. That write reports success to the same status this test reads, so it is let finish first.
+      await new Promise((resolve) => setTimeout(resolve, 50));
       const rig = buildRig();
       const save = vi
         .spyOn(rig.missionStore, "saveMissionPart")

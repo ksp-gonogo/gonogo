@@ -38,6 +38,7 @@ export function buildMissionRecord(params: {
   const { fixture } = params;
   if (fixture.frames.length === 0) return null;
 
+  let arrived = 0;
   let firstFrameUt = Number.POSITIVE_INFINITY;
   let lastFrameUt = 0;
   let firstValidUt = Number.POSITIVE_INFINITY;
@@ -48,6 +49,15 @@ export function buildMissionRecord(params: {
       typeof parsed === "object" && parsed !== null
         ? Reflect.get(parsed, "meta")
         : undefined;
+    // A frame the recorder carried in from before the recording began is not part of the flight's span.
+    if (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      Reflect.get(parsed, "carried") === true
+    ) {
+      continue;
+    }
+    arrived += 1;
     if (typeof frameMeta !== "object" || frameMeta === null) continue;
     const deliveredAt: unknown = Reflect.get(frameMeta, "deliveredAt");
     if (typeof deliveredAt !== "number") continue;
@@ -58,6 +68,8 @@ export function buildMissionRecord(params: {
     if (validAt < firstValidUt) firstValidUt = validAt;
     if (validAt > lastValidUt) lastValidUt = validAt;
   }
+  // A recording that holds only the state it began from recorded nothing.
+  if (arrived === 0) return null;
   if (!Number.isFinite(firstFrameUt)) firstFrameUt = 0;
 
   const meta: MissionMeta = {
