@@ -177,6 +177,7 @@ export {
   type HeldAtHomeTopic,
   isHeldAtHomeTopic,
   isTrueNowTopic,
+  isWorldTopic,
   readDeclaredDelayRoles,
   type TrueNowTopic,
 } from "./delay-roles";

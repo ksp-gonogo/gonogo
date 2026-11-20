@@ -18,6 +18,7 @@ import {
 import { createAlarmHost } from "../alarms";
 import { GoNoGoHostService } from "../goNoGo";
 import { createManeuverTriggerHost } from "../maneuverTriggers";
+import { ModeHost } from "../modes/ModeHost";
 import { createNotesHost } from "../notes/createNotesHost";
 import { HostCommandCentreAnnouncer } from "../peer/HostCommandCentreAnnouncer";
 import { peerHostService } from "../peer/PeerHostService";
@@ -299,6 +300,8 @@ export function PlainStationFeed({
   return (
     <>
       <SitrepPeerRelay peerHost={peerHostService} />
+      {/* One screen runs the mode's source: the one that hosts, which sends what it makes to every other. */}
+      {ownsMesh && <ModeHost relay={peerHostService} />}
       <HostRatePacer />
       {servesPlainStations && (
         <HostCommandCentreAnnouncer host={peerHostService} />

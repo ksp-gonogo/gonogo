@@ -130,6 +130,13 @@ namespace Sitrep.Contract.Serialization
                 JsonWriter.AppendInteger(sb, meta.SampleId.Value);
             }
 
+            // Omitted when null, as sampleId is: a sample of the live game names no mode.
+            if (meta.Mode != null)
+            {
+                AppendField(sb, "mode");
+                JsonWriter.AppendString(sb, meta.Mode);
+            }
+
             sb.Append('}');
         }
 
@@ -149,6 +156,7 @@ namespace Sitrep.Contract.Serialization
                 // Optional on the way in so a recording that never carried it still parses; absent and null both mean "this sample opens no known break".
                 GapSinceUt = OptionalDouble(raw, "gapSinceUt"),
                 SampleId = OptionalDouble(raw, "sampleId") is double sampleId ? (long)sampleId : null,
+                Mode = raw.TryGetValue("mode", out var mode) ? mode as string : null,
             };
         }
 

@@ -4,6 +4,7 @@ export default {
     "career.mode",
     "career.status",
     "eva.crew",
+    "mode.state",
     "science.experimentBreakdown",
     "science.experiments",
     "spaceCenter.scene",

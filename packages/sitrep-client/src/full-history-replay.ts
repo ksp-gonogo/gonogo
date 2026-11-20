@@ -5,7 +5,7 @@ import type { Clock } from "./clock";
 import { publishProcessorsOn } from "./context";
 import type { ReplayFixture } from "./replay-transport";
 import { ReplayTransport } from "./replay-transport";
-import { TimelineStore } from "./timeline-store";
+import { TimelineStore, type TimelineStoreOptions } from "./timeline-store";
 import { ViewClock } from "./view-clock";
 
 /**
@@ -132,8 +132,25 @@ export class InstantClock implements Pick<Clock, "now" | "schedule"> {
  * nothing for that key".
  */
 export function buildFullHistoryStore(fixture: ReplayFixture): TimelineStore {
+  return buildFullHistory(fixture).store;
+}
+
+/**
+ * {@link buildFullHistoryStore}, with the client the store was filled
+ * through. A reader that subscribes before it reads, as every hook does,
+ * needs the pair. `mode` marks the store as holding a mode's values; see
+ * `TimelineStoreOptions.mode`.
+ */
+export function buildFullHistory(
+  fixture: ReplayFixture,
+  mode?: TimelineStoreOptions["mode"],
+): {
+  client: TelemetryClient;
+  store: TimelineStore;
+} {
   const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
   const store = new TimelineStore(clock, {
+    mode,
     timelineOptions: {
       retentionSeconds: Number.POSITIVE_INFINITY,
       maxPoints: Number.POSITIVE_INFINITY,
@@ -162,5 +179,5 @@ export function buildFullHistoryStore(fixture: ReplayFixture): TimelineStore {
 
   instantClock.drain();
 
-  return store;
+  return { client, store };
 }

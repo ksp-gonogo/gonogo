@@ -88,6 +88,7 @@ export * from "./lock-scope";
 export * from "./map-command";
 export * from "./map-topic";
 export * from "./mod-settings";
+export * from "./mode-view";
 export * from "./never-reckonable";
 export * from "./orbit-patches";
 export * from "./orbit-trajectory";

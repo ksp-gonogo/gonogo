@@ -263,9 +263,11 @@ export function SitrepTelemetryProvider({
     if (!transport) return;
     let bootId: string | undefined;
     const off = transport.onMessage((message) => {
+      // A refused command carries its request's id and says nothing about the centre this screen reads from.
       if (
         message.type === "error" &&
-        message.code === FaultCode.UnknownVantage
+        message.code === FaultCode.UnknownVantage &&
+        !message.requestId
       ) {
         setVantageRefused(true);
       }

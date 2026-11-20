@@ -70,6 +70,8 @@ import type {
   LabEntry,
   LaunchSiteEntry,
   MissionStatus,
+  ModeStateModel,
+  ModesModel,
   PartsPower,
   PlantedFlag,
   RecoveryRecent,
@@ -218,6 +220,8 @@ export interface GeneratedTopicPayloadMap {
   "ksp.switchableVessels": SwitchableVessels;
   /** The Making History mission that is running, or has just ended, in the current game. */
   "missions.active": MissionStatus;
+  /** The mode the dashboard is in, the Topics it answers, its inputs and its timeline. */
+  "mode.state": ModeStateModel;
   /** The active vessel's rolled-up electric-charge production. */
   "parts.power": PartsPower;
   /** The payload for the `recovery.hasRecent` channel: one flag saying a vessel recovery is on record for the current save, published beside `RecoveryReport` on `recovery.lastSummary`. */
@@ -262,6 +266,8 @@ export interface GeneratedTopicPayloadMap {
   "surface.sites": PlantedFlag[];
   /** The frame the game's own navigation view is expressed in, which is what the player is looking at. */
   "system.frame": ControlFrame;
+  /** Every declared mode, lowest order first. */
+  "system.modes": ModesModel;
   /** The list of everything targetable from the active vessel, as the active vessel knows it. */
   "target.available": TargetAvailable;
   /** How long a minute, hour, day and year are, and what real-world instant UT 0 is (when the game has one), as the running game defines them. */
@@ -371,6 +377,7 @@ export const GENERATED_TOPIC_IDS = [
   "ksp.saves",
   "ksp.switchableVessels",
   "missions.active",
+  "mode.state",
   "parts.power",
   "recovery.hasRecent",
   "recovery.lastSummary",
@@ -393,6 +400,7 @@ export const GENERATED_TOPIC_IDS = [
   "spaceCenter.scene",
   "surface.sites",
   "system.frame",
+  "system.modes",
   "target.available",
   "time.calendar",
   "time.warp",

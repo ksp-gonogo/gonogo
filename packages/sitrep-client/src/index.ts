@@ -212,7 +212,11 @@ export {
   deriveCurrentStageResourceCurrent,
   deriveCurrentStageResourceMax,
 } from "./dv-stage-resources";
-export { buildFullHistoryStore, InstantClock } from "./full-history-replay";
+export {
+  buildFullHistory,
+  buildFullHistoryStore,
+  InstantClock,
+} from "./full-history-replay";
 export type { HeartbeatTrackerOptions } from "./heartbeat-tracker";
 export {
   DEFAULT_KEYFRAME_INTERVAL_UT,
@@ -301,6 +305,16 @@ export {
   mapTopic,
   resolveValueTopic,
 } from "./map-topic";
+export {
+  buildModeLayer,
+  getModeLayer,
+  type ModeLayer,
+  missingTopicField,
+  modeFrames,
+  onModeLayerChange,
+  recordedModeFrames,
+  setModeLayer,
+} from "./mode-layer";
 export type { NeverReckonable } from "./never-reckonable";
 export { isNeverReckonable, NEVER_RECKONABLE } from "./never-reckonable";
 export type {

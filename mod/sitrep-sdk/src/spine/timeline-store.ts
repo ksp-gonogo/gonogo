@@ -27,6 +27,7 @@ import {
   type DeclaredDelayRoles,
   type DelayLane,
   delayLaneOf,
+  isWorldTopic,
   readDeclaredDelayRoles,
 } from "../delay-roles";
 import { magnitudeOr, type Quantityish } from "../magnitude";
@@ -229,6 +230,16 @@ export interface TimelineStoreOptions {
    * degradation for a test double that wires no subscriber.
    */
   subscribeDynamicTopic?: (topic: string) => () => void;
+  /**
+   * The mode whose values this store holds, for a store filled by a mode's
+   * source. Every reading it builds carries `from`: the mode's id, and
+   * whether its values are worked out by a model or were observed in a game
+   * at some time. Absent on the store of the live game.
+   */
+  mode?: {
+    id: string;
+    modelled: boolean;
+  };
 }
 
 /**
@@ -2802,6 +2813,13 @@ export class TimelineStore {
 
   /** The active craft as a payload's `meta.source` names it, lower-cased: from the game's own statement, else from the newest delay report. */
   private activeCraftSourceAt(token: FrameToken): string | undefined {
+    // A store moved about on a whole flight names the craft active at the moment on screen, never the last one the flight had.
+    if (this.options.mode !== undefined) {
+      return this.activeCraftAt(
+        token,
+        ACTIVE_VESSEL_TOPIC_PREFIX,
+      ).source?.toLowerCase();
+    }
     const id = this.activeVesselId(token);
     const source =
       id !== undefined ? `${CRAFT_SOURCE_PREFIX}${id}` : this.activeCraftSource;
@@ -2878,6 +2896,14 @@ export class TimelineStore {
         path.length === 0 ? rows : rows.filter((row) => matches(row.field)),
     };
   }
+
+  /**
+   * Whether `topic` is about the game's world or the home command and not
+   * about a craft, by the roles the mod stated when it has stated any. See
+   * {@link isWorldTopic}.
+   */
+  readonly isWorldTopic = (topic: string): boolean =>
+    isWorldTopic(topic, this.declaredRoles);
 
   /** A whole declared topic's lane, by the roles the mod stated when it has stated any. */
   private readonly declaredLane = (topic: string): DelayLane =>
@@ -3830,6 +3856,9 @@ export class TimelineStore {
          * model declined would serve a second model for one topic and hand two
          * answers to one widget.
          */
+        const from = this.options.mode
+          ? { mode: this.options.mode.id, modelled: this.options.mode.modelled }
+          : undefined;
         const registered =
           // The arms `readingFrom` builds without ever consulting a model:
           // nothing to carry (resyncing), and a confirmed absence, which outranks
@@ -3909,6 +3938,7 @@ export class TimelineStore {
               unowned,
               declined,
               owner,
+              from,
             )
           : readingFrom(
               point,
@@ -3918,6 +3948,7 @@ export class TimelineStore {
               unowned,
               undefined,
               owner,
+              from,
             );
         /*
          * A model on offer that answered nothing, before or now, leaves the
@@ -4060,6 +4091,47 @@ export class TimelineStore {
    * anything confirmed on wall time alone. The horizon only advances when a
    * delivered sample, on any topic, confirms elapsed UT.
    */
+  /**
+   * The craft that is the active one for a read, and when it became so.
+   *
+   * On the live game that is what ingest last heard: time only runs forward,
+   * so the newest statement is the one in force. A store that holds a whole
+   * flight and is moved about on it, as a mode's store is, has heard every
+   * change of craft the flight made, and the newest is the one in force only
+   * at the flight's end. Read anywhere earlier, it would call every sample of
+   * the craft actually flying then "another craft's" and show nothing. So
+   * there the active craft is the one named at the moment on screen: by the
+   * game's own statement where the flight holds one, else by whose delay was
+   * being reported.
+   */
+  private activeCraftAt(
+    token: FrameToken,
+    topic: string,
+  ): {
+    source: string | undefined;
+    sinceUt: number;
+  } {
+    if (this.options.mode === undefined) {
+      return {
+        source: this.activeCraftSource,
+        sinceUt: this.activeCraftSinceUt,
+      };
+    }
+    // The moment the Topic being read is shown at, so the craft is the one in force for that reading.
+    const viewUt = this.viewUtFor(token, this.laneForTopic(topic));
+    const stated = statedVesselId(
+      this.timelineFor(ACTIVE_VESSEL_TOPIC).at(viewUt)?.payload,
+    );
+    const source =
+      stated !== undefined
+        ? `${CRAFT_SOURCE_PREFIX}${stated}`
+        : craftSourceOf(
+            this.timelineFor(ACTIVE_CRAFT_TOPIC).at(viewUt)?.payload,
+          );
+    // When this craft took over within the flight is not worked out here: a figure that names no craft is shown from the sample in force.
+    return { source, sinceUt: Number.NEGATIVE_INFINITY };
+  }
+
   private sampleRawStatus(topic: string, token: FrameToken): StreamStatusValue {
     const point = this.sample(topic, token);
     if (!point) return "resyncing";
@@ -4072,10 +4144,11 @@ export class TimelineStore {
      * the active craft is known, and only for a payload that names a craft.
      */
     const subject = craftSourceOf(point.payload);
+    const active = this.activeCraftAt(token, topic);
     if (
       subject !== undefined &&
-      this.activeCraftSource !== undefined &&
-      subject !== this.activeCraftSource
+      active.source !== undefined &&
+      subject !== active.source
     ) {
       return "resyncing";
     }
@@ -4083,7 +4156,7 @@ export class TimelineStore {
     if (
       subject === undefined &&
       UNNAMED_ACTIVE_CRAFT_FIGURES.has(topic) &&
-      point.validAt <= this.activeCraftSinceUt
+      point.validAt <= active.sinceUt
     ) {
       return "resyncing";
     }

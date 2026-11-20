@@ -2055,6 +2055,8 @@ namespace Sitrep.Host
 
             DeclareHostRecord();
 
+            DeclareModes();
+
             // Built-in system.uplink.pending declaration + source: see
             // UplinkPendingTopic's doc comment. Declared (and its source
             // wired) BEFORE Start(), same single-writer-before-start rule as
@@ -2579,6 +2581,12 @@ namespace Sitrep.Host
                 MarkUplinkUnavailable(id,
                     "channel \"" + contradiction + "\" declares HeldAtHome and DelayRole.TrueNow, which contradict:"
                     + " a fact held at home reaches each vantage after its delay to home, and TrueNow says it reaches every vantage at once");
+                return;
+            }
+            var modeRefusal = DeclareUplinkModes(id, uplink.Manifest);
+            if (modeRefusal != null)
+            {
+                MarkUplinkUnavailable(id, modeRefusal);
                 return;
             }
             foreach (var command in uplink.Manifest.Commands)
@@ -9107,6 +9115,8 @@ namespace Sitrep.Host
                 _jobSignal.Wait(JobPollInterval);
                 _hostRecord?.Expire();
                 WatchHeldForLoad();
+                SayPlayingModeTimeline();
+                EndEnteredModeWithLastScreen();
 
                 while (_jobs.TryDequeue(out var job))
                 {
@@ -11306,6 +11316,7 @@ namespace Sitrep.Host
             {
                 _craftLeftFor = _lastActiveVesselId;
                 _activeVesselLeft = true;
+                ModeBoard.SetActiveCraft(null);
             }
             if (activeVesselId != null)
             {
@@ -11321,6 +11332,7 @@ namespace Sitrep.Host
                     ForgetTheDarkCraftSwitchedAwayFrom(tick.Ut);
                 }
                 _lastActiveVesselId = activeVesselId;
+                ModeBoard.SetActiveCraft(activeVesselId);
             }
 
             if (tick.Snapshot != null)
@@ -11953,7 +11965,8 @@ namespace Sitrep.Host
         {
             NoteRecoveryAnnounced(publish);
             KeepPublishedReadingInLane(publish, nowUt);
-            if (!_subscriptions.IsSubscribed(publish.Topic) || HoldUntilWorldStands(publish))
+            // The mode is the dashboard's own state and is said through a load, where a reading of the game is held back.
+            if (!_subscriptions.IsSubscribed(publish.Topic) || (!IsModeTopic(publish.Topic) && HoldUntilWorldStands(publish)))
             {
                 return;
             }
@@ -12182,7 +12195,7 @@ namespace Sitrep.Host
 
             // A cancel or a send again acts on the store-and-forward network, which
             // lives on this thread; it never runs on the game's main thread.
-            if (TryHandleUplinkAction(job) || TryHandleHostCommand(job))
+            if (TryHandleUplinkAction(job) || TryHandleHostCommand(job) || TryHandleModeCommand(job))
             {
                 return;
             }
@@ -13121,6 +13134,11 @@ namespace Sitrep.Host
                 NoteTopicSubscribed(topic);
                 _emitter.NotifySubscribed(topic);
                 ForgetEngineStateOnFirstSubscriber(topic);
+                if (IsModeTopic(topic))
+                {
+                    // Said once this subscription stands, so a screen that opens at the main menu learns the mode with no tick to carry it.
+                    SayModesSoon();
+                }
             }
 
             var vantage = ObservationVantageFor(topic, VantageOf(session));
@@ -13490,6 +13508,8 @@ namespace Sitrep.Host
             state.BootId = BootId;
             state.TimelineEpoch = _courier.CurrentEpoch;
             _toldGameState = state;
+            ModeBoard.SetScene(state.State == GameState.NoGame ? "" : state.Scene);
+            SayModesSoon();
             var bytes = Encoding.UTF8.GetBytes(EnvelopeCodec.WriteGameState(state));
             foreach (var session in _sessions.Values)
             {

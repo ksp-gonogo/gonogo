@@ -859,6 +859,21 @@ export const ELEMENT_READERS: readonly {
     topic: "isru.drills",
   },
   {
+    file: "packages/components/src/ResourceOps/ConverterCard.tsx",
+    topic: "isru.converters",
+    only: ["inputs"],
+  },
+  {
+    file: "packages/app/src/components/ModePane/ActiveModePane.tsx",
+    topic: "mode.state",
+    only: ["answers", "inputs", "name", "noTimeline"],
+  },
+  {
+    file: "packages/app/src/modes/ModeHost.tsx",
+    topic: "mode.state",
+    only: ["inputs", "modelled"],
+  },
+  {
     file: "packages/components/src/AstronautComplex/roster.ts",
     topic: "spaceCenter.crewRoster",
   },

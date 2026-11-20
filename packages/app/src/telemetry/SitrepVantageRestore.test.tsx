@@ -112,6 +112,60 @@ describe("a restarted game that refuses the screen's vantage while it loads", ()
     expect(vantageSends().at(-1)?.centreId).toBe(CENTRE);
   }, 30_000);
 
+  it("leaves the vantage alone when it is a command that was refused", async () => {
+    const sockets: LinkClient[] = [];
+    const sent: Array<{ type: string; centreId?: string }> = [];
+    server.use(
+      link.addEventListener("connection", ({ client }) => {
+        sockets.push(client);
+        client.addEventListener("message", (event) => {
+          sent.push(JSON.parse(String(event.data)));
+        });
+      }),
+    );
+    const vantageSends = () => sent.filter((m) => m.type === "set-vantage");
+
+    render(
+      <SitrepTelemetryProvider enabled host="localhost" port={8090}>
+        <Seat />
+        <VantageControl />
+      </SitrepTelemetryProvider>,
+    );
+    await waitFor(() => expect(vantageSends().length).toBeGreaterThan(0));
+    await act(async () => {
+      sockets[0].send(
+        frame("commandCentre.roster", [
+          { id: CENTRE, displayName: "Sally-Hut 1", active: true },
+        ]),
+      );
+    });
+    await act(async () => {
+      await nextFrame();
+    });
+    const before = vantageSends().length;
+
+    // A command sent from a vantage the mod does not accept for it is answered under the command's own id.
+    await act(async () => {
+      sockets[0].send(
+        JSON.stringify({
+          type: "error",
+          requestId: "abc-0",
+          code: "unknownVantage",
+          message: "'some.command' cannot be sent from the meta vantage",
+        }),
+      );
+      sockets[0].send(
+        frame("commandCentre.roster", [
+          { id: CENTRE, displayName: "Sally-Hut 1", active: true },
+        ]),
+      );
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 300));
+    });
+    expect(vantageSends()).toHaveLength(before);
+  }, 30_000);
+
   it("marks the readings as another centre's until the chosen one is seated", async () => {
     const HOME = "ground:Kerbal Space Center";
     const sockets: LinkClient[] = [];

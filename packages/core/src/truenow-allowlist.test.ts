@@ -282,6 +282,12 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // host.record: which screen hosts the game, its join code and the approved
   // stations. It describes the screens in front of the operator, not a craft.
   "mod/Sitrep.Host/ChannelEngine.Hosting.cs": 1,
+
+  // system.modes and mode.state: which modes the dashboard has and which one
+  // it is in, with that mode's timeline. They describe what the screens in
+  // front of the operator are showing, a recording or a prediction as much as
+  // the live game, and no craft holds either.
+  "mod/Sitrep.Host/ChannelEngine.Modes.cs": 2,
 };
 
 function findRepoRoot(start: string): string {

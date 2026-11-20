@@ -407,6 +407,32 @@ export type TopicReading<Payload> = TopicCurrency<
   TopicFields<Payload>;
 
 /**
+ * The mode a reading was supplied by, and whether its value was worked out by
+ * a model. Present on a reading the dashboard's mode supplied, such as a
+ * recorded altitude in a replay, and absent on a reading of the live game. Useful for marking a figure the operator should not take for the
+ * craft's own. Read with {@link isLive}.
+ *
+ * @category Reading telemetry
+ */
+export interface ReadingFrom {
+  /** The id of the mode that supplied the value, such as `"replay"`. */
+  mode: string;
+  /** True when the value was worked out by a model, false when it was observed in a game at some time, as a recording was. */
+  modelled: boolean;
+}
+
+/**
+ * Whether a reading is of the live game: true unless the dashboard's mode
+ * supplied it. Useful for holding back a control that acts on the craft while
+ * the figures beside it are a prediction or a recording.
+ *
+ * @category Reading telemetry
+ */
+export function isLive(reading: { from?: ReadingFrom }): boolean {
+  return reading.from === undefined;
+}
+
+/**
  * The part of a Topic reading that says how current it is: `state`, the value
  * where there is one, and when it was observed, without the per-field
  * readings.
@@ -441,6 +467,8 @@ export type TopicCurrency<Payload, ReckoningShape = unknown> =
       reckoning: { readonly status: "none" };
       /** When the game confirmed there is no value. */
       atUt: Value<"ut">;
+      /** The mode that supplied the reading. Absent when it is of the live game. */
+      from?: ReadingFrom;
     }
   | {
       /** The newest value that could have reached the operator, however old it is under signal delay. */
@@ -451,6 +479,8 @@ export type TopicCurrency<Payload, ReckoningShape = unknown> =
       atUt: Value<"ut">;
       /** What a forward model says the value is now. */
       reckoning: ReckoningShape;
+      /** The mode that supplied the reading. Absent when it is of the live game. */
+      from?: ReadingFrom;
     }
   | {
       /** Updates stopped arriving, so `value` is the last one received and `grade` says why. */
@@ -463,6 +493,8 @@ export type TopicCurrency<Payload, ReckoningShape = unknown> =
       grade: HeldGrade;
       /** What a forward model says the value is now. */
       reckoning: ReckoningShape;
+      /** The mode that supplied the reading. Absent when it is of the live game. */
+      from?: ReadingFrom;
     };
 
 /**

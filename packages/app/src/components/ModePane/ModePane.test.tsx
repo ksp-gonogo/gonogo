@@ -19,7 +19,7 @@ function Plan({ reportStatus }: ModeSectionProps) {
   return <p>Steps here</p>;
 }
 
-for (const mode of ["design", "default"] as const) {
+for (const mode of ["design", "live"] as const) {
   registerAugment({
     id: `test-plan.${mode}`,
     augments: `mode-sections.${mode}`,
@@ -45,7 +45,7 @@ const DESIGN: ModeDefinition = {
 };
 
 const DEFAULT: ModeDefinition = {
-  id: "default",
+  id: "live",
   name: "Default",
   useActive: () => true,
 };

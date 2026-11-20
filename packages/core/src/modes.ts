@@ -1,14 +1,5 @@
-import { useViewUt } from "@ksp-gonogo/sitrep-client";
-import {
-  type ModeTimeline,
-  registerMode,
-  stillTrue,
-} from "@ksp-gonogo/sitrep-sdk";
-import {
-  getReplaySessionController,
-  useSeat,
-} from "@ksp-gonogo/sitrep-sdk/spine";
-import { useSyncExternalStore } from "react";
+import { registerMode, stillTrue } from "@ksp-gonogo/sitrep-sdk";
+import { useModeState, useSeat } from "@ksp-gonogo/sitrep-sdk/spine";
 import { useTelemetry } from "./hooks/useTelemetry";
 
 export {
@@ -26,49 +17,15 @@ export {
   useModes,
 } from "@ksp-gonogo/sitrep-sdk";
 
-const REPLAY_RATES = [0.5, 1, 2, 5, 10, 50] as const;
-
 function useScene(): string | undefined {
   return (
     stillTrue(useTelemetry("spaceCenter.scene"), undefined)?.scene ?? undefined
   );
 }
 
-/** A recorded flight's timeline while one plays back, from the replay session. */
-function useRecordingTimeline(): ModeTimeline | undefined {
-  const controller = getReplaySessionController();
-  const snapshot = useSyncExternalStore(
-    (cb) => controller.subscribe(cb),
-    () => controller.getSnapshot(),
-  );
-  // Read for the re-render each frame of the replay's clock brings; the position is the controller's.
-  useViewUt();
-  if (!snapshot.active || !snapshot.meta) return undefined;
-  return {
-    start: snapshot.meta.firstFrameUt,
-    end: snapshot.meta.lastFrameUt,
-    at: controller.cursorUt(),
-    seek: (ut) => controller.seekTo(ut),
-    playback: {
-      playing: snapshot.playing,
-      rate: snapshot.rate,
-      rates: REPLAY_RATES,
-      play: () => controller.play(),
-      pause: () => controller.pause(),
-      setRate: (rate) => controller.setRate(rate),
-      exit: () => controller.stop(),
-    },
-  };
-}
-
-/** Whether a recorded flight is playing back, without the per-frame re-render the Timeline needs. */
+/** Whether a recorded flight is playing back: the mode the mod says the dashboard is in. */
 export function useReplayActive(): boolean {
-  const controller = getReplaySessionController();
-  const snapshot = useSyncExternalStore(
-    (cb) => controller.subscribe(cb),
-    () => controller.getSnapshot(),
-  );
-  return snapshot.active && snapshot.meta !== null;
+  return useModeState()?.mode === "replay";
 }
 
 /** Whether the vehicle editor is open at mission control. The pilot seat is never given a design, so design mode is mission control's alone. */
@@ -85,21 +42,26 @@ registerMode({
   // Design has no timeline until core produces a predicted run.
   useTimeline: () => undefined,
   noTimeline: "No predicted run",
+  tone: "info",
 });
 
+/*
+ * The mod says when a replay is on and holds its timeline. What is registered
+ * here is how this screen presents it.
+ */
 registerMode({
   id: "replay",
   name: "Replay",
   order: 20,
-  // A recording stays in replay mode to its end, even past a scene change in it, so its Timeline can always leave it.
   useActive: useReplayActive,
-  useTimeline: useRecordingTimeline,
+  tone: "go",
 });
 
-/* Default is on whenever no other mode is, so it is last in order and always active. */
+/* Live is on whenever no other mode is, so it is last in order and always active. */
 registerMode({
-  id: "default",
-  name: "Default",
+  id: "live",
+  name: "Live",
   order: 1000,
   useActive: () => true,
+  tone: "go",
 });

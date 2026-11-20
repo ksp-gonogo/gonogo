@@ -1213,6 +1213,13 @@ namespace Sitrep.Contract
         public IReadOnlyList<CommandDeclaration> Commands { get; set; } = Array.Empty<CommandDeclaration>();
 
         /// <summary>
+        /// Every mode this Uplink declares: something the dashboard shows other
+        /// than the live game, such as a predicted flight. A mode whose id another
+        /// Uplink already declared refuses this Uplink.
+        /// </summary>
+        public IReadOnlyList<ModeDeclaration> Modes { get; set; } = Array.Empty<ModeDeclaration>();
+
+        /// <summary>
         /// Every refusal refinement this Uplink's commands may return. Declare
         /// each as a public static <see cref="RefusalCode"/> field of one class,
         /// and set this to <see cref="ErrorCodeCatalog.Of"/> of that class.

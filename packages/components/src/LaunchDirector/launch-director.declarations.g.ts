@@ -9,6 +9,7 @@ export default {
     "ksp.activeVessel",
     "ksp.saves",
     "ksp.switchableVessels",
+    "mode.state",
     "recovery.lastSummary",
     "spaceCenter.crewRoster",
     "spaceCenter.launchSites",

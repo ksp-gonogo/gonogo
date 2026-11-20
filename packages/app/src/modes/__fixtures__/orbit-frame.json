@@ -1,0 +1,65 @@
+{
+  "type": "stream-data",
+  "topic": "vessel.orbit",
+  "payload": {
+    "referenceBodyIndex": 1,
+    "sma": 699999.3024982046,
+    "ecc": 0.000001710094538293988,
+    "inc": 1.6508023765454348e-10,
+    "lan": 198.87476442446092,
+    "argPe": 183.20874286531483,
+    "meanAnomalyAtEpoch": 0.3434101867603195,
+    "epoch": 637596064.4388943,
+    "mu": 3531599999999.9995,
+    "timeToAp": 872.0405654397604,
+    "timeToPe": 1851.1033201006403,
+    "encounter": null,
+    "patches": [
+      {
+        "sma": 699999.3024982046,
+        "ecc": 0.000001710094538293988,
+        "inc": 1.6508023765454348e-10,
+        "lan": 198.87476442446092,
+        "argPe": 183.20874286531483,
+        "meanAnomalyAtEpoch": 0.3434101867603195,
+        "epoch": 637596064.4388943,
+        "period": 1958.1255093217599,
+        "startUt": 637596064.4388943,
+        "endUt": 637598022.5644037,
+        "patchStartTransition": 0,
+        "patchEndTransition": 1,
+        "peA": 99998.10543322063,
+        "apA": 100000.49956318852,
+        "semiLatusRectum": 699999.3024961576,
+        "semiMinorAxis": 699999.302497181,
+        "referenceBody": "Kerbin",
+        "closestEncounterBody": null,
+        "mu": 3531599999999.9995,
+        "referenceBodyIndex": 1,
+        "closestEncounterBodyIndex": null
+      }
+    ],
+    "horizon": {
+      "kind": 1,
+      "trajectoryKind": 1,
+      "untilUt": null,
+      "departure": null
+    },
+    "meta": {
+      "source": "vessel:8cbc9ce1-8f6f-4b60-87fa-e9ecf2cc1e98",
+      "quality": 1
+    }
+  },
+  "meta": {
+    "source": "fleet.8cbc9ce1-8f6f-4b60-87fa-e9ecf2cc1e98",
+    "validAt": 637596064.4588943,
+    "seq": 1029,
+    "deliveredAt": 637596064.4596626,
+    "vantage": "ground:Kerbal Space Center",
+    "quality": 1,
+    "active": true,
+    "staleness": 0,
+    "timelineEpoch": 1,
+    "sampleId": 993
+  }
+}

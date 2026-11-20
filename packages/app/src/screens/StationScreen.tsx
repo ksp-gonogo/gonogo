@@ -2,6 +2,7 @@ import {
   ManeuverTriggerProvider,
   WarpIntentProvider,
 } from "@ksp-gonogo/components";
+import type { ModeDefinition } from "@ksp-gonogo/core";
 import { ScreenProvider } from "@ksp-gonogo/core";
 import { CoverageMaskCacheProvider, FlightsFab } from "@ksp-gonogo/data";
 import { debugPeer } from "@ksp-gonogo/logger";
@@ -43,6 +44,8 @@ import { HeaderBadges } from "../components/HeaderBadges";
 import { HomeFallbackNotice } from "../components/HomeFallbackNotice";
 import { InviteFab } from "../components/InviteFab";
 import { MissionBanner } from "../components/MissionBanner";
+import { ModeFrame } from "../components/ModePane/ModeFrame";
+import { TileRegion } from "../components/ModePane/TileRegion";
 import { QuickloadBanner } from "../components/QuickloadBanner";
 import { SceneChangeBanner } from "../components/SceneChangeBanner";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
@@ -64,6 +67,7 @@ import {
   SceneSwitchPrompt,
   useProfileDashboard,
 } from "../missionProfiles";
+import { ModeLayerProvider } from "../modes/ModeLayerProvider";
 import { HostDisconnectBanner } from "../peer/HostDisconnectBanner";
 import { HostVersionBanner } from "../peer/HostVersionBanner";
 import { PeerClientProvider } from "../peer/PeerClientContext";
@@ -415,89 +419,102 @@ export function StationScreen({ code }: { code: string }) {
                             >
                               <Layout as="main" aria-label="Station dashboard">
                                 <UplinkIntegrityBanner />
-                                <MissionBanner
-                                  centre={<StationPollControl />}
-                                  actions={
-                                    <>
-                                      <LayoutHistoryControl
-                                        dashboard={controller}
-                                      />
-                                      <HelpButton />
-                                    </>
-                                  }
-                                />
-                                <StationUplinkLoader>
-                                  <RootProviders screen="station">
-                                    <ProfileDashboardProvider
-                                      value={controller}
-                                    >
-                                      <Dashboard
-                                        items={dashboard.items}
-                                        layout={dashboard.layout}
-                                        onLayoutChange={
-                                          dashboard.handleLayoutChange
-                                        }
-                                        updateItemConfig={
-                                          dashboard.updateItemConfig
-                                        }
-                                        updateItemMappings={
-                                          dashboard.updateItemMappings
-                                        }
-                                        updateItemMobileWidth={
-                                          dashboard.updateItemMobileWidth
-                                        }
-                                        updateItemMobileHeight={
-                                          dashboard.updateItemMobileHeight
-                                        }
-                                        removeItem={dashboard.removeItem}
-                                        moveItemUp={dashboard.moveItemUp}
-                                        moveItemDown={dashboard.moveItemDown}
-                                        lastAddedId={dashboard.lastAddedId}
-                                        clearLastAdded={
-                                          dashboard.clearLastAdded
-                                        }
-                                      />
-                                    </ProfileDashboardProvider>
-                                  </RootProviders>
-                                </StationUplinkLoader>
-                                <FabClusterProvider>
-                                  <ComponentOverlay />
-                                  <InviteFab code={code} />
-                                  <FlightsFab />
-                                  <SerialPortRecoveryWatcher />
-                                  <StationConnectionFab
-                                    bottom={204}
-                                    hostId={hostInput || null}
-                                    connStatus={connStatus}
-                                    onChangeSeat={() => {
-                                      setJoined(null);
-                                      globalThis.location.assign(
-                                        joinPath(code),
-                                      );
-                                    }}
-                                    onLeave={leaveGame}
-                                  />
-                                  <FullscreenFab bottom={264} />
-                                  <SettingsFab bottom={324} />
-                                  <MissionProfilesFab
-                                    bottom={384}
-                                    dashboard={controller}
-                                  />
-                                  <AlarmsFab
-                                    bottom={444}
-                                    useSnapshot={useStationAlarmSnapshot}
-                                    onAdd={(input) =>
-                                      alarmClient.addAlarm(input)
+                                {/* Round the header as well as the tiles, so in a replay the header names the recorded craft and its delay, as the tiles show them. */}
+                                <ModeLayerProvider>
+                                  <MissionBanner
+                                    centre={<StationPollControl />}
+                                    actions={
+                                      <>
+                                        <LayoutHistoryControl
+                                          dashboard={controller}
+                                        />
+                                        <HelpButton />
+                                      </>
                                     }
-                                    onUpdate={(id, patch) =>
-                                      alarmClient.updateAlarm(id, patch)
-                                    }
-                                    onDelete={(id) =>
-                                      alarmClient.deleteAlarm(id)
-                                    }
-                                    ModalComponent={AlarmsModal}
                                   />
-                                </FabClusterProvider>
+                                  <StationUplinkLoader>
+                                    <RootProviders screen="station">
+                                      <ModeFrame
+                                        titleFor={modeTitle}
+                                        ownPlace
+                                        layered={false}
+                                      >
+                                        <ProfileDashboardProvider
+                                          value={controller}
+                                        >
+                                          <Dashboard
+                                            items={dashboard.items}
+                                            layout={dashboard.layout}
+                                            onLayoutChange={
+                                              dashboard.handleLayoutChange
+                                            }
+                                            updateItemConfig={
+                                              dashboard.updateItemConfig
+                                            }
+                                            updateItemMappings={
+                                              dashboard.updateItemMappings
+                                            }
+                                            updateItemMobileWidth={
+                                              dashboard.updateItemMobileWidth
+                                            }
+                                            updateItemMobileHeight={
+                                              dashboard.updateItemMobileHeight
+                                            }
+                                            removeItem={dashboard.removeItem}
+                                            moveItemUp={dashboard.moveItemUp}
+                                            moveItemDown={
+                                              dashboard.moveItemDown
+                                            }
+                                            lastAddedId={dashboard.lastAddedId}
+                                            clearLastAdded={
+                                              dashboard.clearLastAdded
+                                            }
+                                          />
+                                        </ProfileDashboardProvider>
+                                      </ModeFrame>
+                                    </RootProviders>
+                                  </StationUplinkLoader>
+                                </ModeLayerProvider>
+                                <TileRegion>
+                                  <FabClusterProvider>
+                                    <ComponentOverlay />
+                                    <InviteFab code={code} />
+                                    <FlightsFab />
+                                    <SerialPortRecoveryWatcher />
+                                    <StationConnectionFab
+                                      bottom={204}
+                                      hostId={hostInput || null}
+                                      connStatus={connStatus}
+                                      onChangeSeat={() => {
+                                        setJoined(null);
+                                        globalThis.location.assign(
+                                          joinPath(code),
+                                        );
+                                      }}
+                                      onLeave={leaveGame}
+                                    />
+                                    <FullscreenFab bottom={264} />
+                                    <SettingsFab bottom={324} />
+                                    <MissionProfilesFab
+                                      bottom={384}
+                                      dashboard={controller}
+                                    />
+                                    <AlarmsFab
+                                      bottom={444}
+                                      useSnapshot={useStationAlarmSnapshot}
+                                      onAdd={(input) =>
+                                        alarmClient.addAlarm(input)
+                                      }
+                                      onUpdate={(id, patch) =>
+                                        alarmClient.updateAlarm(id, patch)
+                                      }
+                                      onDelete={(id) =>
+                                        alarmClient.deleteAlarm(id)
+                                      }
+                                      ModalComponent={AlarmsModal}
+                                    />
+                                  </FabClusterProvider>
+                                </TileRegion>
                                 <BannerStack>
                                   <StationAlarmBanner
                                     useSnapshot={useStationAlarmSnapshot}
@@ -547,14 +564,20 @@ function StationWakeLockBridge() {
   return null;
 }
 
+/** A station names a mode's pane by the mode, having no craft of its own to name it by. */
+const modeTitle = (mode: ModeDefinition) => mode.name;
+
 const Layout = styled.div`
   padding: var(--gutter-screen);
   padding-top: calc(var(--gutter-screen) + env(safe-area-inset-top, 0px));
   padding-bottom: calc(
     var(--gutter-screen) + var(--fab-size) + var(--fab-edge) +
-      env(safe-area-inset-bottom, 0px)
+      var(--mode-foot-height, 0px) + env(safe-area-inset-bottom, 0px)
   );
-  padding-left: calc(var(--gutter-screen) + env(safe-area-inset-left, 0px));
+  padding-left: calc(
+    var(--gutter-screen) + var(--mode-side-width, 0px) +
+      env(safe-area-inset-left, 0px)
+  );
   padding-right: calc(var(--gutter-screen) + env(safe-area-inset-right, 0px));
   background: var(--color-surface-app);
   min-height: 100vh;

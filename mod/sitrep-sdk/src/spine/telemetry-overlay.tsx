@@ -5,6 +5,7 @@ import {
   useTelemetryStoreOptional,
 } from "./context";
 import {
+  isDashboardTopic,
   overlayCovers,
   type TelemetryOverlay,
   TelemetryOverlayContext,
@@ -42,4 +43,9 @@ export function useTelemetrySourceFor(topic: string): {
   return { client, store };
 }
 
-export { overlayCovers, type TelemetryOverlay, useTelemetryOverlay };
+export {
+  isDashboardTopic,
+  overlayCovers,
+  type TelemetryOverlay,
+  useTelemetryOverlay,
+};

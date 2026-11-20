@@ -7,6 +7,7 @@ import type {
   FlightRecord,
 } from "@ksp-gonogo/data";
 import { debugPeer, logger } from "@ksp-gonogo/logger";
+import type { ModeLayer } from "@ksp-gonogo/sitrep-client";
 import {
   getActiveTelemetryClient,
   type TelemetryClient,
@@ -1322,6 +1323,10 @@ export class PeerHostService {
     } satisfies PeerMessage);
     conn.send({ type: "host-seat", seat: this.hostSeat } satisfies PeerMessage);
     conn.send({
+      type: "mode-layer",
+      layer: this.modeLayer,
+    } satisfies PeerMessage);
+    conn.send({
       type: "host-uplinks",
       uplinks: this.runningUplinks,
     } satisfies PeerMessage);
@@ -1954,6 +1959,19 @@ export class PeerHostService {
           enabled: this.analyticsConsent,
           runId: this.analyticsRunId,
         };
+  }
+
+  private modeLayer: ModeLayer | null = null;
+
+  /**
+   * Record what the dashboard's mode shows and send it to every station.
+   * Called by the main screen whenever its mode's source supplies it again,
+   * and with `null` when the dashboard returns to live.
+   */
+  setModeLayer(layer: ModeLayer | null): void {
+    if (this.modeLayer === layer) return;
+    this.modeLayer = layer;
+    this.broadcast({ type: "mode-layer", layer });
   }
 
   /**

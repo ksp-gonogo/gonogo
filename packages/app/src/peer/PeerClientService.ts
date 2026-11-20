@@ -1,6 +1,7 @@
 import { safeRandomUuid } from "@ksp-gonogo/core";
 import type { FlightRecord } from "@ksp-gonogo/data";
 import { debugPeer, logger } from "@ksp-gonogo/logger";
+import { setModeLayer } from "@ksp-gonogo/sitrep-client";
 import type { DataRateTier } from "@ksp-gonogo/sitrep-sdk";
 import type { CommandSeen } from "@ksp-gonogo/sitrep-sdk/spine";
 import type { ConnectProgress } from "@ksp-gonogo/ui";
@@ -2171,6 +2172,9 @@ export class PeerClientService {
     "host-command-centre": (msg) => {
       this.hostCommandCentre = msg.centreId;
       this.events.emit("hostCommandCentre", msg.centreId);
+    },
+    "mode-layer": (msg) => {
+      setModeLayer(msg.layer ?? undefined);
     },
     "analytics-consent": (msg) => {
       this.analyticsConsent = msg.enabled;

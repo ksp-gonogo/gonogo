@@ -33,7 +33,7 @@ export interface GameContext {
   /**
    * The mode the widget is showing: `"design"` at mission control in the
    * vehicle editor or under a design's prediction, `"replay"` while a recorded
-   * flight plays back, and `"default"` otherwise. The pilot seat is never given a
+   * flight plays back, and `"live"` otherwise. The pilot seat is never given a
    * design. `inFlight` stays false for a design.
    */
   mode: ModeId;
@@ -179,7 +179,7 @@ export function useGameContext(): GameContext {
         ? "design"
         : replayActive
           ? "replay"
-          : "default";
+          : "live";
   const padOccupied = padOccupiedRaw;
   const isCareerLike = careerMode === "CAREER" || careerMode === "SCIENCE";
   const chargesFunds = careerMode === "CAREER" || careerMode === "Unknown";

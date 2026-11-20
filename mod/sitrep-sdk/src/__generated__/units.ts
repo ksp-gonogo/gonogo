@@ -1165,6 +1165,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     active: "flag",
     deliveredAt: "ut",
     gapSinceUt: "ut",
+    mode: "id",
     quality: "enum",
     sampleId: "id",
     seq: "id",
@@ -1215,6 +1216,73 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "ModSettingsModel": {
     failure: "text",
     uplink: "id",
+  },
+  "ModeDeclaration": {
+    activation: "enum",
+    answers: "id",
+    id: "id",
+    modelled: "flag",
+    name: "text",
+    order: "count",
+    scenes: "enum",
+    timeline: "enum",
+  },
+  "ModeInput": {
+    key: "id",
+    value: "text",
+  },
+  "ModeInputArgs": {
+    key: "id",
+    mode: "id",
+    value: "text",
+  },
+  "ModeListing": {
+    eligible: "flag",
+    owner: "id",
+  },
+  "ModeMark": {
+    label: "text",
+    ut: "ut",
+  },
+  "ModePauseArgs": {
+    mode: "id",
+    rate: "ratio",
+  },
+  "ModePlayArgs": {
+    mode: "id",
+    rate: "ratio",
+  },
+  "ModeRangeArgs": {
+    endUt: "ut",
+    launchUt: "ut",
+    mode: "id",
+    noTimeline: "text",
+    rates: "ratio",
+    startUt: "ut",
+  },
+  "ModeRefArgs": {
+    mode: "id",
+  },
+  "ModeSeekArgs": {
+    mode: "id",
+    ut: "ut",
+  },
+  "ModeStateModel": {
+    answers: "id",
+    entry: "count",
+    mode: "id",
+    modelled: "flag",
+    name: "text",
+    noTimeline: "text",
+  },
+  "ModeTimelineState": {
+    atUt: "ut",
+    endUt: "ut",
+    launchUt: "ut",
+    playing: "flag",
+    rate: "ratio",
+    rates: "ratio",
+    startUt: "ut",
   },
   "OrbitEncounter": {
     bodyIndex: "id",
@@ -2441,6 +2509,14 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     started: "flag",
     succeeded: "flag",
   },
+  "mode.state": {
+    answers: "id",
+    entry: "count",
+    mode: "id",
+    modelled: "flag",
+    name: "text",
+    noTimeline: "text",
+  },
   "parts.power": {
     netChargeRateEc: "units/s",
     totalConsumptionEc: "units/s",
@@ -3198,6 +3274,22 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     meta: "PayloadMeta",
     settings: "ModSettingRow[]",
   },
+  "ModeListing": {
+    declaration: "ModeDeclaration",
+  },
+  "ModeRangeArgs": {
+    marks: "ModeMark[]",
+  },
+  "ModeStateModel": {
+    inputs: "ModeInput[]",
+    timeline: "ModeTimelineState",
+  },
+  "ModeTimelineState": {
+    marks: "ModeMark[]",
+  },
+  "ModesModel": {
+    modes: "ModeListing[]",
+  },
   "NamespaceDeclaration": {
     template: "ChannelDeclaration",
   },
@@ -3316,6 +3408,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     channels: "ChannelDeclaration[]",
     clientSource: "UplinkClientSource",
     commands: "CommandDeclaration[]",
+    modes: "ModeDeclaration[]",
     namespaces: "NamespaceDeclaration[]",
   },
   "VesselAttitude": {
@@ -3491,6 +3584,10 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "missions.active": {
     objectives: "MissionObjectiveEntry[]",
   },
+  "mode.state": {
+    inputs: "ModeInput[]",
+    timeline: "ModeTimelineState",
+  },
   "recovery.lastSummary": {
     awards: "RecoveryAward[]",
     crewBreakdown: "RecoveryCrewEntry[]",
@@ -3508,6 +3605,9 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "system.frame": {
     settableFrames: "ControlFrameOption[]",
+  },
+  "system.modes": {
+    modes: "ModeListing[]",
   },
   "target.available": {
     entries: "TargetListEntry[]",
@@ -3739,6 +3839,10 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   },
   "ModSettingRow": {
     kind: "SettingKind",
+  },
+  "ModeDeclaration": {
+    activation: null,
+    timeline: null,
   },
   "OrbitEncounter": {
     transitionType: "TransitionType",

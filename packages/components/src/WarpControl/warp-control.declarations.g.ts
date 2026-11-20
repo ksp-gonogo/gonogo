@@ -5,6 +5,7 @@ export default {
     "commandCentre.roster",
     "comms.delay",
     "comms.nextLoss",
+    "mode.state",
     "spaceCenter.scene",
     "spaceCenter.state",
     "trackingStation.catalog",

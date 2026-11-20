@@ -489,16 +489,22 @@ export {
   registerMapPoiProvider,
 } from "./map-poi";
 export {
+  getModeSource,
   getModes,
   type ModeDefinition,
   type ModeId,
   type ModePlayback,
   type ModeRegistry,
+  type ModeSample,
   type ModeSectionProps,
+  type ModeSource,
+  type ModeSourceContext,
+  type ModeSourceOutput,
   type ModeTimeline,
   type PlanStepInput,
   type PlanStepKind,
   registerMode,
+  registerModeSource,
   type SectionStatus,
   useModes,
 } from "./modes";

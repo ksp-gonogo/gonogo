@@ -4,6 +4,7 @@ export default {
     "career.mode",
     "dv.stages",
     "dv.summary",
+    "mode.state",
     "spaceCenter.scene",
     "spaceCenter.state",
     "trackingStation.bodies",

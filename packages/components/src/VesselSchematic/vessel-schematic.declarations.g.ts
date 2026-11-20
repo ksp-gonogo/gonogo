@@ -2,6 +2,7 @@
 export default {
   optionalChannels: [
     "career.mode",
+    "mode.state",
     "spaceCenter.scene",
     "spaceCenter.state",
     "system.uplink.pending",

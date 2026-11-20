@@ -196,6 +196,21 @@ public class Meta
     [SitrepUnit(Units.Id)]
     [SitrepOmittedWhenNull]
     public long? SampleId { get; set; }
+
+    /// <summary>
+    /// The id of the mode that supplied the payload, such as
+    /// <c>replay</c>. Absent on a sample of the live game, which is every
+    /// frame the mod sends for a Topic it publishes.
+    ///
+    /// <para>A frame carrying one did not come from the game as it is now: it
+    /// was supplied by the named mode's source, and <c>system.modes</c> says
+    /// whether that mode's values for the Topic are modelled or were observed.
+    /// A client keeps such a frame apart from the live samples of the same
+    /// Topic. Omitted from the wire when absent.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    [SitrepOmittedWhenNull]
+    public string? Mode { get; set; }
 }
 
 /// <summary>

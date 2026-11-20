@@ -13,7 +13,6 @@ import {
   AutoRecordController,
   CoverageMaskCacheProvider,
   FlightsFab,
-  ReplaySessionProvider,
 } from "@ksp-gonogo/data";
 import {
   InputDispatcher,
@@ -67,7 +66,7 @@ import { HeaderBadges } from "../components/HeaderBadges";
 import { HomeFallbackNotice } from "../components/HomeFallbackNotice";
 import { InviteFab } from "../components/InviteFab";
 import { MissionBanner } from "../components/MissionBanner";
-import { ActiveModePane } from "../components/ModePane/ActiveModePane";
+import { ModeFrame } from "../components/ModePane/ModeFrame";
 import { TileRegion } from "../components/ModePane/TileRegion";
 import { ModVersionBanner } from "../components/ModVersionBanner";
 import { QuickloadBanner } from "../components/QuickloadBanner";
@@ -431,74 +430,63 @@ function MainScreenDisplay({
           {/* The setup is for a screen that reads the game itself; one that joined by code has nothing to set up. */}
           {!joined && <FirstRunSetupHost />}
           <ConsoleSettingsFromHost service={settingsService} />
-          {/*
-           * Above the replay provider, so it records the live stream. Below
-           * it, entering a replay would remount it, which saves the live
-           * recording early, and it would then record the replay itself as
-           * new missions.
-           */}
+          {/* Outside the mode's layer, so it records the live stream and never a replay of itself. */}
           <AutoRecordControllerWithMissionHistory />
-          <ReplaySessionProvider>
-            <AlarmHostProvider service={alarmHost}>
-              {/*
-               * So a deliberate press on this screen's own warp control does
-               * not trip this screen's own unscheduled-warp banner. Scoped to
-               * THIS service on purpose: a pilot and a command centre each run
-               * their own observer, and the ground is meant to see a warp it
-               * did not ask for.
-               */}
-              <WarpIntentProvider
-                announce={() => alarmHost.announceWarpIntent()}
-              >
-                <OptionalNotesHost service={notesHost}>
-                  <ScopedStationIdentity
-                    defaultName={DEFAULT_NAME_FOR[screen]}
-                    seat={screen === "pilot" ? "pilot" : "mission-control"}
-                  >
-                    {joinedVia && (
-                      <JoinedScreenInfo client={joinedVia} screen={screen} />
-                    )}
-                    <CommcastLogProviderOrPassthrough log={commcastLog}>
-                      <ManeuverTriggerProvider service={maneuverTriggerHost}>
-                        <HostUplinks
-                          loadedHere={loadsThroughHost}
-                          whileLoading={
-                            <SerialDeviceProvider service={serialService}>
-                              <LoadingMenu inviteCode={inviteCode} />
-                            </SerialDeviceProvider>
-                          }
-                        >
-                          <RootProviders screen={screen}>
-                            <MissionProfilesProvider service={missionProfiles}>
-                              <GoNoGoHostProvider service={goNoGoHost}>
-                                <StageCountdownBridge />
-                                <PushHostProvider service={pushHost}>
-                                  <CoverageMaskCacheProvider>
-                                    <SerialDeviceProvider
-                                      service={serialService}
-                                    >
-                                      <UplinkLoadGate host={peerHostService}>
-                                        <MainDashboard
-                                          screen={screen}
-                                          hosting={hostsThePeerMesh}
-                                          serialService={serialService}
-                                          inviteCode={inviteCode}
-                                        />
-                                      </UplinkLoadGate>
-                                    </SerialDeviceProvider>
-                                  </CoverageMaskCacheProvider>
-                                </PushHostProvider>
-                              </GoNoGoHostProvider>
-                            </MissionProfilesProvider>
-                          </RootProviders>
-                        </HostUplinks>
-                      </ManeuverTriggerProvider>
-                    </CommcastLogProviderOrPassthrough>
-                  </ScopedStationIdentity>
-                </OptionalNotesHost>
-              </WarpIntentProvider>
-            </AlarmHostProvider>
-          </ReplaySessionProvider>
+          <AlarmHostProvider service={alarmHost}>
+            {/*
+             * So a deliberate press on this screen's own warp control does
+             * not trip this screen's own unscheduled-warp banner. Scoped to
+             * THIS service on purpose: a pilot and a command centre each run
+             * their own observer, and the ground is meant to see a warp it
+             * did not ask for.
+             */}
+            <WarpIntentProvider announce={() => alarmHost.announceWarpIntent()}>
+              <OptionalNotesHost service={notesHost}>
+                <ScopedStationIdentity
+                  defaultName={DEFAULT_NAME_FOR[screen]}
+                  seat={screen === "pilot" ? "pilot" : "mission-control"}
+                >
+                  {joinedVia && (
+                    <JoinedScreenInfo client={joinedVia} screen={screen} />
+                  )}
+                  <CommcastLogProviderOrPassthrough log={commcastLog}>
+                    <ManeuverTriggerProvider service={maneuverTriggerHost}>
+                      <HostUplinks
+                        loadedHere={loadsThroughHost}
+                        whileLoading={
+                          <SerialDeviceProvider service={serialService}>
+                            <LoadingMenu inviteCode={inviteCode} />
+                          </SerialDeviceProvider>
+                        }
+                      >
+                        <RootProviders screen={screen}>
+                          <MissionProfilesProvider service={missionProfiles}>
+                            <GoNoGoHostProvider service={goNoGoHost}>
+                              <StageCountdownBridge />
+                              <PushHostProvider service={pushHost}>
+                                <CoverageMaskCacheProvider>
+                                  <SerialDeviceProvider service={serialService}>
+                                    <UplinkLoadGate host={peerHostService}>
+                                      <MainDashboard
+                                        screen={screen}
+                                        hosting={hostsThePeerMesh}
+                                        serialService={serialService}
+                                        inviteCode={inviteCode}
+                                      />
+                                    </UplinkLoadGate>
+                                  </SerialDeviceProvider>
+                                </CoverageMaskCacheProvider>
+                              </PushHostProvider>
+                            </GoNoGoHostProvider>
+                          </MissionProfilesProvider>
+                        </RootProviders>
+                      </HostUplinks>
+                    </ManeuverTriggerProvider>
+                  </CommcastLogProviderOrPassthrough>
+                </ScopedStationIdentity>
+              </OptionalNotesHost>
+            </WarpIntentProvider>
+          </AlarmHostProvider>
         </SettingsProvider>
       </ScreenProvider>
     </SitrepTelemetryProvider>
@@ -568,7 +556,7 @@ function MainDashboard({
     undefined,
   )?.name;
   const titleFor = (mode: ModeDefinition) =>
-    mode.id === "default" || mode.id === "replay"
+    mode.id === "live"
       ? (vesselName ?? "Vessel")
       : mode.id === "design"
         ? "Editor"
@@ -597,43 +585,43 @@ function MainDashboard({
         <Layout as="main" aria-label="Mission control">
           <UplinkIntegrityBanner />
           <UplinkHealthLogger />
-          <MissionBanner
-            centre={<PollCentre screen={screen} hosting={hosting} />}
-            centreControls={
-              screen === "main" && hosting ? <PollSettingsControl /> : undefined
-            }
-            actions={
-              <>
-                <SeatSwitch />
-                <LayoutHistoryControl dashboard={controller} />
-                <HelpButton />
-              </>
-            }
-          />
-          {screen === "pilot" && !inFlight ? (
-            <NoActiveVessel hasGameSignal={hasGameSignal} scene={scene} />
-          ) : null}
-          <ModeRow>
-            <ActiveModePane titleFor={titleFor} />
-            <ModeRow__Dashboard>
-              <ProfileDashboardProvider value={controller}>
-                <Dashboard
-                  items={dashboard.items}
-                  layout={dashboard.layout}
-                  onLayoutChange={dashboard.handleLayoutChange}
-                  updateItemConfig={dashboard.updateItemConfig}
-                  updateItemMappings={dashboard.updateItemMappings}
-                  updateItemMobileWidth={dashboard.updateItemMobileWidth}
-                  updateItemMobileHeight={dashboard.updateItemMobileHeight}
-                  removeItem={dashboard.removeItem}
-                  moveItemUp={dashboard.moveItemUp}
-                  moveItemDown={dashboard.moveItemDown}
-                  lastAddedId={dashboard.lastAddedId}
-                  clearLastAdded={dashboard.clearLastAdded}
-                />
-              </ProfileDashboardProvider>
-            </ModeRow__Dashboard>
-          </ModeRow>
+          {/* Round the header as well as the tiles, so in a replay the header names the recorded craft and its delay, as the tiles show them. */}
+          <ModeFrame titleFor={titleFor} ownPlace={!hosting}>
+            <MissionBanner
+              centre={<PollCentre screen={screen} hosting={hosting} />}
+              centreControls={
+                screen === "main" && hosting ? (
+                  <PollSettingsControl />
+                ) : undefined
+              }
+              actions={
+                <>
+                  <SeatSwitch />
+                  <LayoutHistoryControl dashboard={controller} />
+                  <HelpButton />
+                </>
+              }
+            />
+            {screen === "pilot" && !inFlight ? (
+              <NoActiveVessel hasGameSignal={hasGameSignal} scene={scene} />
+            ) : null}
+            <ProfileDashboardProvider value={controller}>
+              <Dashboard
+                items={dashboard.items}
+                layout={dashboard.layout}
+                onLayoutChange={dashboard.handleLayoutChange}
+                updateItemConfig={dashboard.updateItemConfig}
+                updateItemMappings={dashboard.updateItemMappings}
+                updateItemMobileWidth={dashboard.updateItemMobileWidth}
+                updateItemMobileHeight={dashboard.updateItemMobileHeight}
+                removeItem={dashboard.removeItem}
+                moveItemUp={dashboard.moveItemUp}
+                moveItemDown={dashboard.moveItemDown}
+                lastAddedId={dashboard.lastAddedId}
+                clearLastAdded={dashboard.clearLastAdded}
+              />
+            </ProfileDashboardProvider>
+          </ModeFrame>
           <TileRegion>
             <FabClusterProvider>
               <ComponentOverlay />
@@ -847,17 +835,6 @@ function MainAlarmsFab() {
   );
 }
 
-const ModeRow = styled.div`
-  display: flex;
-  align-items: flex-start;
-  gap: var(--gutter-screen);
-`;
-
-const ModeRow__Dashboard = styled.div`
-  flex: 1;
-  min-width: 0;
-`;
-
 const Layout = styled.div`
   padding: var(--gutter-screen);
   padding-top: calc(var(--gutter-screen) + env(safe-area-inset-top, 0px));
@@ -865,7 +842,10 @@ const Layout = styled.div`
     var(--gutter-screen) + var(--fab-size) + var(--fab-edge) +
       var(--mode-foot-height, 0px) + env(safe-area-inset-bottom, 0px)
   );
-  padding-left: calc(var(--gutter-screen) + env(safe-area-inset-left, 0px));
+  padding-left: calc(
+    var(--gutter-screen) + var(--mode-side-width, 0px) +
+      env(safe-area-inset-left, 0px)
+  );
   padding-right: calc(var(--gutter-screen) + env(safe-area-inset-right, 0px));
   background: var(--color-surface-app);
   min-height: 100vh;

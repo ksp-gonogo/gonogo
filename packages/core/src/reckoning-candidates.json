@@ -96,6 +96,41 @@
     "reason": "`scienceRate` is the rate of `storedScience`. Conditional: a non-stock provider produces no science itself, leaves `scienceRate` null and carries its own rate in `Extensions`, so a model must gate on the value model rather than assume the field is populated.",
     "verdict": "real-but-unmodelled"
   },
+  "ModeRangeArgs.endUt": {
+    "rates": ["rates"],
+    "reason": "A moment of the range a mode's source states for its timeline, sent once as a command's argument. The list beside it is the speeds the operator can pick from, and none of them is the rate of a moment.",
+    "verdict": "coincidence"
+  },
+  "ModeRangeArgs.launchUt": {
+    "rates": ["rates"],
+    "reason": "A moment of the range a mode's source states for its timeline, sent once as a command's argument. The list beside it is the speeds the operator can pick from, and none of them is the rate of a moment.",
+    "verdict": "coincidence"
+  },
+  "ModeRangeArgs.startUt": {
+    "rates": ["rates"],
+    "reason": "A moment of the range a mode's source states for its timeline, sent once as a command's argument. The list beside it is the speeds the operator can pick from, and none of them is the rate of a moment.",
+    "verdict": "coincidence"
+  },
+  "ModeTimelineState.atUt": {
+    "rates": ["rate", "rates"],
+    "reason": "The pairing is real: while `playing` is true the position moves at `rate` seconds of the timeline per real second. It is carried forward where it is read, by the hook every screen reads the timeline through, from the moment each value arrived, and only while `playing` is true and no further than `endUt`. The stream's own reckoning has no part in it, since the rate is per real second and not per second of game time.",
+    "verdict": "modelled"
+  },
+  "ModeTimelineState.endUt": {
+    "rates": ["rate", "rates"],
+    "reason": "A fixed moment of the timeline the mode holds, set when the mode states its range. The rate beside it is the speed the position plays at, and nothing moves this moment between two sendings.",
+    "verdict": "coincidence"
+  },
+  "ModeTimelineState.launchUt": {
+    "rates": ["rate", "rates"],
+    "reason": "A fixed moment of the timeline the mode holds, set when the mode states its range. The rate beside it is the speed the position plays at, and nothing moves this moment between two sendings.",
+    "verdict": "coincidence"
+  },
+  "ModeTimelineState.startUt": {
+    "rates": ["rate", "rates"],
+    "reason": "A fixed moment of the timeline the mode holds, set when the mode states its range. The rate beside it is the speed the position plays at, and nothing moves this moment between two sendings.",
+    "verdict": "coincidence"
+  },
   "OrbitEntry.epoch": {
     "rates": ["ecc"],
     "reason": "Dimensional degeneracy, not a pairing: `divide({s:1},{s:1})` is `{}` and `1`/`ratio`/`%` are all dimensionless, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. `ecc` is not the rate of an epoch. This is what the algebra says and no vocabulary work fixes it; it is the single strongest argument against deriving a class from units.",

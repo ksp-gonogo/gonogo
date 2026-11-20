@@ -6221,6 +6221,18 @@ export interface Meta
 	* Unrelated to `Meta.seq`, which numbers frames rather than samples.
 	*/
 	sampleId?: number;
+	/**
+	* The id of the mode that supplied the payload, such as `replay`. Absent on a
+	* sample of the live game, which is every frame the mod sends for a Topic it
+	* publishes.
+	*
+	* A frame carrying one did not come from the game as it is now: it was
+	* supplied by the named mode's source, and `system.modes` says whether that
+	* mode's values for the Topic are modelled or were observed. A client keeps
+	* such a frame apart from the live samples of the same Topic. Omitted from the
+	* wire when absent.
+	*/
+	mode?: string;
 }
 /**
 * The provenance stamp carried inside a payload that describes one subject,
@@ -6359,6 +6371,322 @@ export interface MissionStatus
 	* none.
 	*/
 	objectives: MissionObjectiveEntry[];
+}
+/**
+* One mode: its name, when it is on, whether it answers for the craft and the
+* kind of timeline it has. An Uplink lists its modes in UplinkManifest.Modes,
+* and a client with no mod half sends one as the arguments to `mode.declare`.
+*
+* `ModeDeclaration.activation` is one of `"always"` (on in every scene),
+* `"scene"` (on while the game is in one of `ModeDeclaration.scenes`) and
+* `"entered"` (on from `mode.enter` until `mode.exit`, and only while the game
+* is in one of `ModeDeclaration.scenes` when any are named). When several
+* modes are on, the one with the lowest `ModeDeclaration.order` is the mode
+* the dashboard is in.
+*
+* `ModeDeclaration.timeline` is one of `"none"`, `"scrub"` (moved by
+* `mode.timeline.seek` only) and `"playback"` (also played and paused).
+*
+* `ModeDeclaration.answers` is one of `"nothing"` and `"craft"`. A mode
+* answers for the whole craft or for none of it: while a mode that answers
+* `"craft"` is on and has supplied anything, a screen reads every Topic about
+* the game from the mode, and a Topic the mode has no value for is not known.
+* Only the dashboard's own Topics (`mode.`, `system.`, `host.` and
+* `settings.`) stay the live game's.
+*
+* A mode that answers nothing and has no timeline leaves the dashboard showing
+* the live game. The mode `live` is that mode, always on at order 1000.
+*
+* @category Modes
+* @categoryDescription Modes
+* What the dashboard shows other than the live game: the modes an Uplink
+* declares, the mode that is on, its timeline, and the commands that enter a
+* mode and move its timeline.
+*/
+export interface ModeDeclaration
+{
+	/**
+	* The mode's id, such as `replay`. An Uplink's own mode starts with the
+	* Uplink's id and a dot.
+	*/
+	id: string;
+	/** The mode's name as the operator reads it, such as "Replay". */
+	name: string;
+	/** Lower wins when several modes are on. Zero takes 50. */
+	order: Value<"count">;
+	/** `"always"`, `"scene"` or `"entered"`. */
+	activation: string;
+	/**
+	* KSP scene names, such as `"FLIGHT"` or `"EDITOR"`. Required for `"scene"`;
+	* for `"entered"` it limits where the mode can be entered and stays on.
+	*/
+	scenes: string[];
+	/**
+	* What the mode answers for: `"craft"` or `"nothing"`. Empty reads as
+	* `"nothing"`.
+	*/
+	answers: string;
+	/**
+	* True when the mode's values are worked out by a model, such as a predicted
+	* flight. False when they were observed in a game at some time, such as a
+	* recording.
+	*/
+	modelled: boolean;
+	/** `"none"`, `"scrub"` or `"playback"`. */
+	timeline: string;
+}
+/**
+* One declared mode as `system.modes` lists it.
+*
+* @category Modes
+*/
+export interface ModeListing
+{
+	/** The mode as it was declared. */
+	declaration: ModeDeclaration;
+	/**
+	* The id of the Uplink that declared the mode, `"gonogo"` for one of Gonogo's
+	* own, or `"client"` for one declared with `mode.declare`.
+	*/
+	owner: string;
+	/**
+	* Whether the mode's activation holds now. The mode the dashboard is in is the
+	* eligible one with the lowest order, named by `mode.state`.
+	*/
+	eligible: boolean;
+}
+/**
+* Every declared mode, lowest order first. Useful for listing the modes an
+* operator can enter. Never delayed by signal delay.
+*
+* @category Modes
+*/
+export interface ModesModel
+{
+	/** The declared modes, lowest order first. */
+	modes: ModeListing[];
+}
+/**
+* A moment on a mode's timeline the operator can jump to, such as a stage of a
+* recorded flight.
+*
+* @category Modes
+*/
+export interface ModeMark
+{
+	/** The moment. */
+	ut: Value<"ut">;
+	/** What happens at the moment, such as "Node 1". */
+	label: string;
+}
+/**
+* One value a mode's sections set for the mode's source to read, such as the
+* steps of a plan.
+*
+* @category Modes
+*/
+export interface ModeInput
+{
+	/** The input's name within its mode. */
+	key: string;
+	/** The value, as text the mode's own code reads. JSON for anything structured. */
+	value: string;
+}
+/**
+* The stretch of time a mode covers and where every synced screen is in it.
+*
+* While `ModeTimelineState.playing` is true the position moves at
+* `ModeTimelineState.rate` seconds of the timeline per real second, and
+* `ModeTimelineState.atUt` is where it was when this value was sent: a screen
+* carries it forward from the moment it received the value. The value is sent
+* again about once a second while playing and at every control, and playing
+* stops at `ModeTimelineState.endUt`.
+*
+* @category Modes
+*/
+export interface ModeTimelineState
+{
+	/** The first moment the timeline covers. */
+	startUt: Value<"ut">;
+	/** The last moment the timeline covers. */
+	endUt: Value<"ut">;
+	/** The moment every synced screen shows, as of when this value was sent. */
+	atUt: Value<"ut">;
+	/** True while the timeline plays. */
+	playing: boolean;
+	/** Seconds of the timeline played per real second. */
+	rate: Value<"ratio">;
+	/**
+	* The rates the operator can pick from. Empty for a timeline that does not
+	* play.
+	*/
+	rates: Value<"ratio">[];
+	/** Moments the operator can jump to, earliest first. */
+	marks: ModeMark[];
+	/**
+	* The moment that counts as T+0, so times read as mission time. Null reads
+	* times from `ModeTimelineState.startUt`.
+	*/
+	launchUt?: Value<"ut"> | null;
+}
+/**
+* The mode the dashboard is in, the Topics it answers, its inputs and its
+* timeline. Every screen of a game reads the same value, so they show the same
+* mode at the same moment. Never delayed by signal delay.
+*
+* The mod decides the mode: the eligible mode with the lowest order. The
+* values a mode answers with do not come from the mod. They are supplied by
+* the mode's source on the hosting screen, each frame carrying the mode's id
+* in `Meta.mode`.
+*
+* @category Modes
+*/
+export interface ModeStateModel
+{
+	/** The id of the mode the dashboard is in. `"live"` when no other mode is on. */
+	mode: string;
+	/** The mode's name as the operator reads it. */
+	name: string;
+	/** What the mode answers for: `"craft"` or `"nothing"`. `"nothing"` in `live`. */
+	answers: string;
+	/**
+	* True when the mode's values are worked out by a model. False when they were
+	* observed in a game at some time.
+	*/
+	modelled: boolean;
+	/** The mode's inputs, in the order they were first set. */
+	inputs: ModeInput[];
+	/**
+	* The mode's timeline, or null while it has none: the mode declares none, or
+	* its source has not yet said what stretch of time it covers.
+	*/
+	timeline?: ModeTimelineState | null;
+	/**
+	* Why the mode has no timeline, in the source's words, such as "No recording
+	* chosen". Empty when there is a timeline or nothing has been said.
+	*/
+	noTimeline: string;
+	/**
+	* A number that rises each time the mode that is on changes, so a source can
+	* tell a mode entered again from one that stayed on.
+	*/
+	entry: Value<"count">;
+}
+/**
+* Names a mode. Arguments to `mode.enter` and `mode.exit`.
+*
+* `mode.enter` turns on a mode whose activation is `"entered"`, replacing any
+* other entered mode, and is refused outside the mode's scenes. `mode.exit`
+* turns it off. Never delayed by signal delay.
+*
+* @category Command arguments
+*/
+export interface ModeRefArgs
+{
+	/** The mode's id. */
+	mode: string;
+}
+/**
+* Move a mode's timeline to a moment. Arguments to `mode.timeline.seek`. The
+* moment is held within the timeline's range. Refused unless the named mode is
+* the mode the dashboard is in and it has a timeline. Never delayed by signal
+* delay.
+*
+* @category Command arguments
+*/
+export interface ModeSeekArgs
+{
+	/** The mode's id. */
+	mode: string;
+	/** The moment to move to. */
+	ut: number;
+}
+/**
+* Play a mode's timeline from where it is. Arguments to `mode.timeline.play`.
+* Refused unless the named mode is the mode the dashboard is in and its
+* timeline plays back. Playing from the end starts again from the start. Never
+* delayed by signal delay.
+*
+* @category Command arguments
+*/
+export interface ModePlayArgs
+{
+	/** The mode's id. */
+	mode: string;
+	/** Seconds of the timeline to play per real second. Zero keeps the rate it has. */
+	rate: number;
+}
+/**
+* Hold a mode's timeline where it is. Arguments to `mode.timeline.pause`.
+* Refused unless the named mode is the mode the dashboard is in and it has a
+* timeline. With a rate, the timeline is also set to play at that rate when it
+* is next played, so a rate is chosen on a held timeline without moving it.
+* Never delayed by signal delay.
+*
+* @category Command arguments
+*/
+export interface ModePauseArgs
+{
+	/** The mode's id. */
+	mode: string;
+	/**
+	* Seconds of the timeline to play per real second once it is played again.
+	* Zero keeps the rate it has.
+	*/
+	rate: number;
+}
+/**
+* Set one of a mode's inputs. Arguments to `mode.setInput`. An empty value
+* removes the input. A mode keeps its inputs while it is off, so it comes back
+* on with them. Never delayed by signal delay.
+*
+* @category Command arguments
+*/
+export interface ModeInputArgs
+{
+	/** The mode's id. */
+	mode: string;
+	/** The input's name within the mode. */
+	key: string;
+	/** The value, or empty to remove the input. */
+	value: string;
+}
+/**
+* Say what stretch of time a mode covers. Arguments to
+* `mode.timeline.setRange`, sent by the mode's source once it knows. Refused
+* unless the named mode is the mode the dashboard is in and it declares a
+* timeline.
+*
+* An `ModeRangeArgs.endUt` at or before `ModeRangeArgs.startUt` says the mode
+* has no timeline for now, and `ModeRangeArgs.noTimeline` says why. A new
+* range keeps the position the timeline was at when it lies inside the range,
+* and otherwise starts at `ModeRangeArgs.startUt`. Never delayed by signal
+* delay.
+*
+* @category Command arguments
+*/
+export interface ModeRangeArgs
+{
+	/** The mode's id. */
+	mode: string;
+	/** The first moment the timeline covers. */
+	startUt: number;
+	/** The last moment the timeline covers. */
+	endUt: number;
+	/**
+	* The moment that counts as T+0, or null to read times from
+	* `ModeRangeArgs.startUt`.
+	*/
+	launchUt?: number;
+	/** Moments the operator can jump to. */
+	marks: ModeMark[];
+	/**
+	* The rates the operator can pick from. Empty takes 1, 10, 100 and 1000 for a
+	* timeline that plays back.
+	*/
+	rates: number[];
+	/** Why there is no timeline, when the range is empty. */
+	noTimeline: string;
 }
 /**
 * The `settings.<uplink>` Topic payload: one Uplink's host mod's own settings,

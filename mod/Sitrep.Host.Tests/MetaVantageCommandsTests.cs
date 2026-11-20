@@ -16,6 +16,8 @@ namespace Sitrep.Host.Tests
                 "career.strategy.activate", "career.strategy.deactivate", "career.tech.unlock",
                 "ksp.quickload", "ksp.quicksave", "ksp.recover", "ksp.recoverVessel", "ksp.revertToEditor", "ksp.revertToLaunch",
                 "ksp.switchVessel", "ksp.toSpaceCenter", "ksp.toTrackingStation",
+                "mode.declare", "mode.enter", "mode.exit", "mode.setInput",
+                "mode.timeline.pause", "mode.timeline.play", "mode.timeline.seek", "mode.timeline.setRange",
                 "settings.mod.write", "settings.save", "time.setPaused", "time.setWarpIndex",
             };
 

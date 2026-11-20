@@ -79,6 +79,13 @@ import type {
   LastKnownPathRequest,
   LaunchArgs,
   LoadScheduled,
+  ModeDeclaration,
+  ModeInputArgs,
+  ModePauseArgs,
+  ModePlayArgs,
+  ModeRangeArgs,
+  ModeRefArgs,
+  ModeSeekArgs,
   NoCommandArgs,
   PressGameWindowControlArgs,
   QuickloadArgs,
@@ -197,6 +204,22 @@ export interface GeneratedCommandArgsMap {
   "ksp.toSpaceCenter": NoCommandArgs;
   /** Leave the flight for the Tracking Station. */
   "ksp.toTrackingStation": NoCommandArgs;
+  /** Declare a mode from a client that has no mod half. */
+  "mode.declare": ModeDeclaration;
+  /** Turn on a mode the operator enters. */
+  "mode.enter": ModeRefArgs;
+  /** Turn off a mode the operator entered. */
+  "mode.exit": ModeRefArgs;
+  /** Set one of a mode's inputs. */
+  "mode.setInput": ModeInputArgs;
+  /** Hold the mode's timeline where it is. */
+  "mode.timeline.pause": ModePauseArgs;
+  /** Play the mode's timeline. */
+  "mode.timeline.play": ModePlayArgs;
+  /** Move the mode's timeline to a moment. */
+  "mode.timeline.seek": ModeSeekArgs;
+  /** Say what stretch of time the mode covers. */
+  "mode.timeline.setRange": ModeRangeArgs;
   /** Flips the rotor's spin direction. */
   "robotics.rotor.reverse": RotorReverseArgs;
   /** Set a rotor's brake strength. */
@@ -380,6 +403,22 @@ export interface GeneratedCommandReplyMap {
   "ksp.toSpaceCenter": CommandResult;
   /** Leave the flight for the Tracking Station. */
   "ksp.toTrackingStation": CommandResult;
+  /** Declare a mode from a client that has no mod half. */
+  "mode.declare": CommandResult;
+  /** Turn on a mode the operator enters. */
+  "mode.enter": CommandResult;
+  /** Turn off a mode the operator entered. */
+  "mode.exit": CommandResult;
+  /** Set one of a mode's inputs. */
+  "mode.setInput": CommandResult;
+  /** Hold the mode's timeline where it is. */
+  "mode.timeline.pause": CommandResult;
+  /** Play the mode's timeline. */
+  "mode.timeline.play": CommandResult;
+  /** Move the mode's timeline to a moment. */
+  "mode.timeline.seek": CommandResult;
+  /** Say what stretch of time the mode covers. */
+  "mode.timeline.setRange": CommandResult;
   /** Flips the rotor's spin direction. */
   "robotics.rotor.reverse": CommandResult;
   /** Set a rotor's brake strength. */
@@ -538,6 +577,14 @@ export const GENERATED_COMMAND_REPLY_TYPES = {
   "ksp.switchVessel": "CommandResult",
   "ksp.toSpaceCenter": "CommandResult",
   "ksp.toTrackingStation": "CommandResult",
+  "mode.declare": "CommandResult",
+  "mode.enter": "CommandResult",
+  "mode.exit": "CommandResult",
+  "mode.setInput": "CommandResult",
+  "mode.timeline.pause": "CommandResult",
+  "mode.timeline.play": "CommandResult",
+  "mode.timeline.seek": "CommandResult",
+  "mode.timeline.setRange": "CommandResult",
   "robotics.rotor.reverse": "CommandResult",
   "robotics.rotor.setBrake": "CommandResult",
   "robotics.rotor.setLock": "CommandResult",
@@ -676,6 +723,14 @@ export const GENERATED_COMMAND_RAIL = {
   "ksp.switchVessel": { replies: true, delayed: false, meta: true },
   "ksp.toSpaceCenter": { replies: true, delayed: false, meta: true },
   "ksp.toTrackingStation": { replies: true, delayed: false, meta: true },
+  "mode.declare": { replies: true, delayed: false, meta: true },
+  "mode.enter": { replies: true, delayed: false, meta: true },
+  "mode.exit": { replies: true, delayed: false, meta: true },
+  "mode.setInput": { replies: true, delayed: false, meta: true },
+  "mode.timeline.pause": { replies: true, delayed: false, meta: true },
+  "mode.timeline.play": { replies: true, delayed: false, meta: true },
+  "mode.timeline.seek": { replies: true, delayed: false, meta: true },
+  "mode.timeline.setRange": { replies: true, delayed: false, meta: true },
   "robotics.rotor.reverse": { replies: true, delayed: true },
   "robotics.rotor.setBrake": { replies: true, delayed: true },
   "robotics.rotor.setLock": { replies: true, delayed: true },
@@ -769,6 +824,14 @@ export const GENERATED_COMMAND_IDS = [
   "ksp.switchVessel",
   "ksp.toSpaceCenter",
   "ksp.toTrackingStation",
+  "mode.declare",
+  "mode.enter",
+  "mode.exit",
+  "mode.setInput",
+  "mode.timeline.pause",
+  "mode.timeline.play",
+  "mode.timeline.seek",
+  "mode.timeline.setRange",
   "robotics.rotor.reverse",
   "robotics.rotor.setBrake",
   "robotics.rotor.setLock",

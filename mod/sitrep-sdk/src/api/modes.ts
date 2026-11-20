@@ -1,4 +1,5 @@
 import { useMemo, useSyncExternalStore } from "react";
+import type { Quality } from "../__generated__/contract";
 import type { Tone } from "./tone";
 
 /*
@@ -10,13 +11,13 @@ import type { Tone } from "./tone";
 
 /**
  * Every mode the dashboard can be in, by id. A mode is what the dashboard
- * shows: `default` is the game as it is now, and the mode the dashboard is in
- * when no other is on; `design` is the craft in the vehicle editor and its
- * predicted flight; `replay` is a recorded flight played back. Useful for
- * naming the modes a widget shows in and a section belongs to.
+ * shows: `live` is the game as it is now, and the mode the dashboard is in
+ * when no other is on; `design` is the craft in the vehicle editor; `replay` is a recorded
+ * flight played back. Useful for naming the mode a section belongs to and the
+ * mode a source answers.
  *
- * An Uplink declares its own mode by declaration merging, then registers it
- * with {@link registerMode}:
+ * An Uplink declares its own mode by declaration merging, lists it in its
+ * mod's manifest, and answers it with {@link registerModeSource}:
  *
  * ```ts
  * declare module "@ksp-gonogo/sitrep-sdk" {
@@ -30,7 +31,7 @@ import type { Tone } from "./tone";
  */
 export interface ModeRegistry {
   /** The game as it is now. On whenever no other mode is. */
-  default: true;
+  live: true;
   /** The craft in the vehicle editor and its predicted flight. */
   design: true;
   /** A recorded flight, played back. */
@@ -38,8 +39,8 @@ export interface ModeRegistry {
 }
 
 /**
- * The id of a mode in {@link ModeRegistry}, such as `"design"`. Taken by a
- * widget's `modes` and by {@link registerMode}.
+ * The id of a mode in {@link ModeRegistry}, such as `"replay"`. Taken
+ * by {@link registerModeSource} and {@link registerMode}.
  *
  * @category Modes
  */
@@ -125,8 +126,15 @@ export interface ModeDefinition {
    * Timeline only while there is a timeline.
    */
   noTimeline?: string;
-  /** Lower wins when several modes are on. Core's design is 10, replay 20 and default 1000; an Uplink's default to 50. */
+  /** Lower wins when several modes are on. Core's design is 10, replay 20 and live 1000; an Uplink's default to 50. */
   order?: number;
+  /**
+   * The colour the app draws the mode in, as a tone the theme gives a colour
+   * to: the line round the mode's pane, the Timeline and the controls that
+   * start the mode. Absent draws the mode in `info`. Core's live and replay
+   * are `go` and its design is `info`.
+   */
+  tone?: Tone;
 }
 
 /**
@@ -204,11 +212,11 @@ export interface PlanStepKind {
 declare module "./types" {
   interface SlotRegistry {
     /**
-     * Content for the operator in the default mode, which is on in every
-     * scene. The augment's `label` names the section. Passes
+     * Content for the operator in live mode, which is on whenever no other
+     * mode is. The augment's `label` names the section. Passes
      * {@link ModeSectionProps}.
      */
-    "mode-sections.default": ModeSectionProps;
+    "mode-sections.live": ModeSectionProps;
     /**
      * Content for the operator in design mode, while a craft is in the
      * vehicle editor. The augment's `label` names the section. Passes
@@ -248,7 +256,7 @@ function state(): ModeState {
  * Declares a mode, with its name, when it is on and its timeline. Useful for
  * an Uplink whose mod shows the dashboard something other than the live game,
  * such as a simulation. Call it once, when the module loads. Registering an
- * id again replaces the earlier mode. Core registers `default`, `design` and `replay`.
+ * id again replaces the earlier mode. Core registers `live`, `design` and `replay`.
  *
  * @category Modes
  */
@@ -289,4 +297,134 @@ export function useModes(): ModeDefinition[] {
   );
   // biome-ignore lint/correctness/useExhaustiveDependencies: `version` moves when a mode registers, which is when the list must be read again
   return useMemo(() => getModes(), [version]);
+}
+
+/**
+ * One sample a mode's source supplies: a Topic's whole payload and the moment
+ * it is true at. Part of a {@link ModeSourceOutput}.
+ *
+ * @category Modes
+ */
+export interface ModeSample {
+  /** The Topic id. Any Topic about the game; never one of the dashboard's own (`mode.`, `system.`, `host.`, `settings.`). */
+  topic: string;
+  /** The moment the payload is true at, in UT seconds. */
+  validAt: number;
+  /** The Topic's payload, with every field the contract gives it. */
+  payload: unknown;
+  /**
+   * Whether the craft the payload describes is coasting on rails or under
+   * physics at that moment, as the game states it for a live sample. A
+   * reckoner carries a sample forward only when it is on rails. Leave it out
+   * for a Topic that describes no craft.
+   */
+  quality?: Quality;
+}
+
+/**
+ * Everything a mode's source supplies for the stretch of time it covers: the
+ * samples, and the timeline they lie on. Passed to
+ * {@link ModeSourceContext.publish}.
+ *
+ * @category Modes
+ */
+export interface ModeSourceOutput {
+  /** The first moment covered, in UT seconds. */
+  startUt: number;
+  /** The last moment covered. At or before `startUt` when there is nothing to show, with `noTimeline` saying why. */
+  endUt: number;
+  /** The samples, in any order. Each Topic is read as its newest sample at or before the moment on screen. */
+  samples: readonly ModeSample[];
+  /**
+   * Frames recorded off the stream, each the exact text the mod sent, in any
+   * order. Useful for a recording, which is played back as it was received,
+   * events included. They are shown beside `samples`. A frame of one of the
+   * dashboard's own Topics is left out.
+   */
+  frames?: readonly string[];
+  /** The speeds the Timeline can play at, as multiples of real time. Absent offers the mod's own. */
+  rates?: readonly number[];
+  /** Moments the operator can jump to, such as each stage of a recorded flight. */
+  marks?: readonly { ut: number; label: string }[];
+  /** The moment that counts as T+0, so times read as mission time. */
+  launchUt?: number;
+  /** Why there is nothing to show, such as "No recording chosen". */
+  noTimeline?: string;
+}
+
+/**
+ * What a mode's source is given while its mode is on. Passed to
+ * {@link ModeSource.start}.
+ *
+ * @category Modes
+ */
+export interface ModeSourceContext {
+  /** The mode's inputs when the source started, by key. The source is started again when one changes. */
+  inputs: Readonly<Record<string, string>>;
+  /**
+   * Calls `onValue` with the newest live payload of `topic` now and each time
+   * it changes, and with the moment that payload is true at, in UT seconds,
+   * where it is known. Returns its own release. The value is the live game's
+   * even while the mode answers for the craft.
+   *
+   * `current` is false when the value is not the craft's present state: the
+   * last one known from before contact with the craft was lost, or one its
+   * recorder sent later. Nothing is called at all while the Topic has never
+   * arrived. A source must not read either case as "there is nothing": it
+   * leaves what it last published standing until a current value says so.
+   */
+  watch: (
+    topic: string,
+    onValue: (
+      payload: unknown,
+      validAt: number | undefined,
+      current: boolean,
+    ) => void,
+  ) => () => void;
+  /** Replaces everything the mode shows with `output`. Refused, with the reason returned, when a sample lacks a field its Topic's contract gives it. */
+  publish: (output: ModeSourceOutput) => string | undefined;
+}
+
+/**
+ * The code that answers for the craft while its mode is on. It runs on the hosting screen only,
+ * while its mode is on, and what it publishes reaches every station from
+ * there. Passed to {@link registerModeSource}.
+ *
+ * @category Modes
+ */
+export interface ModeSource {
+  /** Starts the source. Returns its own stop, which releases everything it watched. */
+  start: (context: ModeSourceContext) => () => void;
+}
+
+const SOURCES_KEY = "__GONOGO_MODE_SOURCES__" as const;
+
+function sources(): Map<string, ModeSource> {
+  const g = globalThis as typeof globalThis & {
+    [SOURCES_KEY]?: Map<string, ModeSource>;
+  };
+  g[SOURCES_KEY] ??= new Map();
+  return g[SOURCES_KEY];
+}
+
+/**
+ * Registers the source that answers for the craft while a mode is on, such
+ * as a recorded flight. Useful for an Uplink whose mode shows the dashboard
+ * values other than the live game's. Call it once, when the module loads.
+ * Registering a mode again replaces the earlier source. Used by replay.
+ *
+ * @category Modes
+ */
+export function registerModeSource(mode: ModeId, source: ModeSource): void {
+  sources().set(mode, source);
+}
+
+/**
+ * The source registered for a mode, or `undefined` when none is. Useful for
+ * testing that an Uplink's source registered.
+ *
+ * @category Modes
+ */
+export function getModeSource(mode: string): ModeSource | undefined {
+  return sources().get(mode);
 }

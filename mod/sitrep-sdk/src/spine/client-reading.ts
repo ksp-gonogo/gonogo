@@ -1,5 +1,6 @@
 import type {
   ModelledField,
+  ReadingFrom,
   ReckonableReading,
   ReckonerFor,
   ReckoningDecline,
@@ -182,6 +183,7 @@ export function readingFrom<Payload>(
   unowned?: boolean,
   declined?: undefined,
   owner?: string,
+  from?: ReadingFrom,
 ): TopicReading<Payload>;
 export function readingFrom<Payload>(
   point: TimelinePoint<Payload> | undefined,
@@ -191,6 +193,7 @@ export function readingFrom<Payload>(
   unowned: boolean,
   declined: ReckoningDecline,
   owner?: string,
+  from?: ReadingFrom,
 ): ReckonableReading<Payload, keyof Payload>;
 export function readingFrom<Payload>(
   point: TimelinePoint<Payload> | undefined,
@@ -200,7 +203,10 @@ export function readingFrom<Payload>(
   unowned = false,
   declined?: ReckoningDecline,
   owner = "core",
+  from?: ReadingFrom,
 ): TopicReading<Payload> | ReckonableReading<Payload, keyof Payload> {
+  // Spread into each arm that carries a value, so a live reading has no `from` key at all.
+  const supplied = from ? { from } : {};
   /*
    * With no reckoner, one that declines, or one whose coverage does not reach the
    * payload root, the reading is `reckoning: { status: "none" }` whatever its `state`. That is
@@ -254,6 +260,7 @@ export function readingFrom<Payload>(
       state: "absent",
       reckoning: { status: "none" },
       atUt: value("ut", point.validAt),
+      ...supplied,
     });
   }
   const live = status === "live";
@@ -325,6 +332,7 @@ export function readingFrom<Payload>(
       reckoning,
       value: point.payload,
       atUt: value("ut", point.validAt),
+      ...supplied,
     });
   }
   return topicReading({
@@ -333,5 +341,6 @@ export function readingFrom<Payload>(
     value: point.payload,
     asOfUt: value("ut", point.validAt),
     grade: status,
+    ...supplied,
   });
 }

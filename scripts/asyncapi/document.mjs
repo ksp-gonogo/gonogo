@@ -935,6 +935,7 @@ const NAMESPACE_SUMMARIES = {
   isru: "Resource drills and converters",
   ksp: "Launching, reverting and recovering vessels",
   missions: "The active Making History mission",
+  mode: "The mode the dashboard is in, its timeline and the commands that move it",
   parts: "Rolled-up part data for the active vessel, such as power",
   recovery: "The most recent vessel recovery",
   robotics: "Robotic rotors, hinges and pistons",

@@ -49,7 +49,7 @@ describe("useGameContext characterisation: a provider is mounted but nothing has
       scene: "Unknown",
       inFlight: false,
       seat: "mission-control",
-      mode: "default",
+      mode: "live",
       // No longer `false`: nothing has reported occupancy, and that is not the affirmative "the pad is clear" a gate would read off a `false`.
       padOccupied: undefined,
       careerMode: "Unknown",

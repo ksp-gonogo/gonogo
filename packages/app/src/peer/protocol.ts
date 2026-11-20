@@ -5,6 +5,7 @@ import type {
   FlightChapterRecord,
   FlightRecord,
 } from "@ksp-gonogo/data";
+import type { ModeLayer } from "@ksp-gonogo/sitrep-client";
 import type { AlarmSnapshot } from "../alarms/types";
 import type { RunningUplink } from "../uplinks/loaderState";
 import type { HostUplinkFailure } from "../uplinks/loadFailures";
@@ -168,6 +169,12 @@ export type PeerMessage =
   // the host's frames, so this is the only way it learns which centre its
   // words are timed against. `null` until the host's session has been placed.
   | { type: "host-command-centre"; centreId: string | null }
+  // Host -> peer: everything the dashboard's mode shows, sent on connect and
+  // whenever the mode's source on the main screen supplies it again. The
+  // frames are the mod's own `stream-data` shape with the mode's id in
+  // `meta.mode`, and a station fills a store of its own from them. `null` in
+  // live mode and before a source has supplied anything.
+  | { type: "mode-layer"; layer: ModeLayer | null }
   // Host -> peer: the Uplinks the main screen runs, sent on connect and
   // whenever the set changes. A station loads exactly this set. `null` until
   // the main screen's loader has settled.

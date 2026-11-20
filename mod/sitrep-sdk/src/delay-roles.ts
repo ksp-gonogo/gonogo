@@ -182,6 +182,43 @@ export function isHeldAtHomeTopic(topic: string): topic is HeldAtHomeTopic {
   return GENERATED_ROLES.heldAtHome.has(topic);
 }
 
+/* The game's statement of which craft is active. A store takes it as the craft every craft reading is about, so a mode that answers for a craft must never be handed the live game's. */
+const NAMES_THE_ACTIVE_CRAFT = "ksp.activeVessel";
+
+/**
+ * Returns whether `topic` is about the game's world or the home command, and
+ * not about a craft: one the mod declares read with no signal delay, or held
+ * at the home command centre. The bodies, the calendar and the career are
+ * world Topics; a craft's telemetry and its link to a command centre are not.
+ * Useful for telling which Topics a mode leaves to the live game while it
+ * answers for the craft.
+ *
+ * One Topic is a craft's whatever its role: `ksp.activeVessel`, which says
+ * which craft is the active one. It is read with no signal delay, but what it
+ * names is the craft, and every reading about a craft is judged against it.
+ *
+ * Pass the mod's `roles`, from {@link readDeclaredDelayRoles}, to cover Uplink
+ * Topics. Without them only Gonogo's own Topics are known, and every Uplink
+ * Topic reads as a craft's. A field path such as `time.warp.warpRate` reads as
+ * its Topic does.
+ *
+ * @category Delay and vantage
+ */
+export function isWorldTopic(
+  topic: string,
+  roles: DeclaredDelayRoles = GENERATED_ROLES,
+): boolean {
+  const within = (declared: string) =>
+    topic === declared || topic.startsWith(`${declared}.`);
+  if (within(NAMES_THE_ACTIVE_CRAFT)) return false;
+  for (const declared of roles.trueNow) if (within(declared)) return true;
+  for (const declared of roles.heldAtHome) if (within(declared)) return true;
+  return (
+    roles.trueNowPrefixes.some((prefix) => topic.startsWith(prefix)) ||
+    (roles.heldAtHomePrefixes ?? []).some((prefix) => topic.startsWith(prefix))
+  );
+}
+
 /**
  * Returns the {@link DelayLane} `topic` is read in. Useful for deciding whether
  * the operator sees a value as of now or as of the signal delay ago. Used by

@@ -7,10 +7,13 @@ import {
   type AnyAugment,
   Badge,
   getAugmentsForSlot,
+  LiveRegion,
   onAugmentsChange,
+  TONE_MARK,
   useAugmentAvailable,
 } from "@ksp-gonogo/ui-kit";
 import {
+  type CSSProperties,
   type PointerEvent,
   type ReactNode,
   useCallback,
@@ -30,6 +33,7 @@ const SHEET_BELOW_PX = 641;
 const SHEET_QUERY = `(max-width: ${SHEET_BELOW_PX - 1}px)`;
 const DETENTS: readonly Detent[] = ["peek", "half", "full"];
 const DETENT_KEY = "gonogo.modePane.detent";
+const COLLAPSED_KEY = "gonogo.modePane.collapsed";
 
 function readStored<T extends string>(
   key: string,
@@ -99,10 +103,24 @@ function useSections(slot: string): AnyAugment[] {
 export function ModePane({
   mode,
   title,
+  subject,
+  timelineTrailing,
+  notice,
 }: {
   mode: ModeDefinition;
   title: string;
+  /** What the mode's Timeline plays, in the words its controls name it by. */
+  subject?: string;
+  /** A control at the end of the Timeline, such as a station's sync switch. */
+  timelineTrailing?: ReactNode;
+  /** A word on the mode's state that is not a section's, such as that it is waiting for the craft. Drawn under the Timeline's track, which keeps its whole width. */
+  notice?: string;
 }) {
+  // The one place the mode's colour is turned into a colour: every piece of the pane, the Timeline and the arrow read it from here.
+  const rule = useMemo(
+    () => ({ "--mode-rule": TONE_MARK[mode.tone ?? "info"] }) as CSSProperties,
+    [mode.tone],
+  );
   const sections = useSections(`mode-sections.${mode.id}`);
   // The pane is there for its sections: a mode with none contributed has no pane.
   const pane = sections.length > 0;
@@ -135,6 +153,16 @@ export function ModePane({
     setDetent(d);
     store(DETENT_KEY, d);
   };
+  const [collapsed, setCollapsed] = useState(
+    () => readStored(COLLAPSED_KEY, ["yes", "no"] as const, "no") === "yes",
+  );
+  const collapse = (yes: boolean) => {
+    setCollapsed(yes);
+    store(COLLAPSED_KEY, yes ? "yes" : "no");
+  };
+  // A docked pane slides out to its rule at the screen's left edge; a sheet minimises to its own smallest height.
+  const minimised = pane && !sheet && collapsed;
+  const showBar = showTimeline;
 
   /*
    * The region the tiles have: the screen less the docked pane on the left and
@@ -145,7 +173,7 @@ export function ModePane({
    */
   const timelinePx = timeline ? TIMELINE_COMPACT_PX : TIMELINE_HEIGHT_PX;
   const clearance = !pane
-    ? showTimeline
+    ? showBar
       ? sheet
         ? timelinePx
         : TIMELINE_HEIGHT_PX
@@ -155,7 +183,8 @@ export function ModePane({
       : showTimeline
         ? TIMELINE_HEIGHT_PX
         : 0;
-  const side = pane && !sheet ? SIDE_WIDTH : "0px";
+  const side =
+    pane && !sheet ? (minimised ? `${RULE_PX}px` : SIDE_WIDTH) : "0px";
   useEffect(() => {
     const root = globalThis.document?.documentElement;
     root?.style.setProperty("--mode-foot-height", `${clearance}px`);
@@ -166,11 +195,22 @@ export function ModePane({
     };
   }, [clearance, side]);
 
+  // Under the Timeline's track on a wide screen. On a phone the sheet's title row carries it.
+  const noticeBadge =
+    notice && !sheet ? (
+      <Badge size="sm" tone="warn" aria-hidden>
+        {notice}
+      </Badge>
+    ) : undefined;
+  // Mounted whether or not there is a notice, so the first one is announced. It is what a screen reader reads; the badge is the same words for the eye.
+  const announced = <LiveRegion visuallyHidden>{notice}</LiveRegion>;
+
   if (!pane) {
-    if (!showTimeline) return null;
+    if (!showBar) return null;
     return (
-      <ModePane__Bar data-mode={mode.id} data-compact={sheet}>
+      <ModePane__Bar data-mode={mode.id} data-compact={sheet} style={rule}>
         <ModePane__BarRule aria-hidden />
+        {announced}
         <ModePane__BarFoot
           role="region"
           aria-label="Timeline"
@@ -180,8 +220,11 @@ export function ModePane({
         >
           <Timeline
             timeline={timeline}
-            empty={mode.noTimeline}
+            empty={mode.noTimeline ?? title}
             compact={sheet}
+            subject={subject}
+            trailing={timelineTrailing}
+            notice={noticeBadge}
           />
         </ModePane__BarFoot>
       </ModePane__Bar>
@@ -200,16 +243,30 @@ export function ModePane({
           {status.label}
         </Badge>
       ) : null}
+      {notice && sheet ? (
+        <Badge size="sm" tone="warn" aria-hidden>
+          {notice}
+        </Badge>
+      ) : null}
+      {announced}
     </ModePane__Title>
   );
   const bar = showTimeline ? (
-    <Timeline timeline={timeline} empty={mode.noTimeline} compact={sheet} />
+    <Timeline
+      timeline={timeline}
+      empty={mode.noTimeline}
+      compact={sheet}
+      subject={subject}
+      trailing={timelineTrailing}
+      notice={noticeBadge}
+    />
   ) : null;
 
   if (sheet) {
     return (
       <Sheet
         mode={mode.id}
+        rule={rule}
         detent={detent}
         onDetent={choose}
         header={header}
@@ -221,15 +278,29 @@ export function ModePane({
     );
   }
   return (
-    <ModePane__Frame data-mode={mode.id}>
-      <ModePane__Spacer />
-      <ModePane__Side aria-label={`${title} pane`}>
+    <ModePane__Frame
+      data-mode={mode.id}
+      data-collapsed={minimised}
+      style={rule}
+    >
+      <ModePane__Side
+        aria-label={`${title} pane`}
+        aria-hidden={minimised || undefined}
+      >
         <ModePane__TitleRow>{header}</ModePane__TitleRow>
         <ModePane__Body>{body}</ModePane__Body>
       </ModePane__Side>
       <ModePane__RuleTop aria-hidden />
       <ModePane__RuleBend aria-hidden />
       <ModePane__RuleSide aria-hidden data-timeline={showTimeline} />
+      <ModePane__Arrow
+        type="button"
+        aria-label={minimised ? `Show ${title} pane` : `Minimise ${title} pane`}
+        aria-expanded={!minimised}
+        onClick={() => collapse(!minimised)}
+      >
+        {minimised ? "›" : "‹"}
+      </ModePane__Arrow>
       {bar ? (
         <>
           <ModePane__JoinFill aria-hidden />
@@ -296,6 +367,7 @@ const HEIGHTS: Record<"half" | "full", string> = {
 
 function Sheet({
   mode,
+  rule,
   detent,
   onDetent,
   header,
@@ -304,6 +376,8 @@ function Sheet({
   children,
 }: {
   mode: string;
+  /** The mode's colour, as the style that sets it. */
+  rule: CSSProperties;
   detent: Detent;
   onDetent: (d: Detent) => void;
   header: ReactNode;
@@ -364,6 +438,7 @@ function Sheet({
         data-mode={mode}
         data-detent={detent}
         style={{
+          ...rule,
           height:
             dragHeight !== undefined
               ? `${dragHeight}px`
@@ -403,11 +478,7 @@ function Sheet({
 const ModePane__ModeBar = styled.div`
   height: 3px;
   flex: none;
-  background: var(--color-info-mark);
-  &[data-mode="default"],
-  &[data-mode="replay"] {
-    background: var(--color-go-mark);
-  }
+  background: var(--mode-rule);
 `;
 
 const SIDE_WIDTH = "clamp(320px, 28vw, 400px)";
@@ -422,18 +493,12 @@ const BEND_PX = 10;
  */
 const ModePane__Frame = styled.div`
   display: contents;
-  --mode-rule: var(--color-info-mark);
-  --mode-pane-width: ${SIDE_WIDTH};
-  &[data-mode="default"],
-  &[data-mode="replay"] {
-    --mode-rule: var(--color-go-mark);
+  --mode-pane-open-width: ${SIDE_WIDTH};
+  --mode-pane-width: var(--mode-pane-open-width);
+  /* Slid out, the pane leaves only its rule, standing at the screen's left edge. */
+  &[data-collapsed="true"] {
+    --mode-pane-width: ${RULE_PX}px;
   }
-`;
-
-/** Holds the docked pane's width in the dashboard's row, since the pane itself is fixed to the screen's left edge. */
-const ModePane__Spacer = styled.div`
-  flex: none;
-  width: var(--mode-pane-width);
 `;
 
 const ModePane__Side = styled.aside`
@@ -445,8 +510,21 @@ const ModePane__Side = styled.aside`
   display: flex;
   flex-direction: column;
   flex: none;
-  width: var(--mode-pane-width);
+  width: var(--mode-pane-open-width);
   min-height: 0;
+  [data-collapsed="true"] > & {
+    transform: translateX(-100%);
+    visibility: hidden;
+    box-shadow: none;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    transition:
+      transform var(--duration-base) var(--ease-standard),
+      visibility 0s linear var(--duration-base);
+    [data-collapsed="false"] > & {
+      transition: transform var(--duration-base) var(--ease-standard);
+    }
+  }
   padding-top: ${RULE_PX}px;
   padding-right: ${RULE_PX}px;
   border-top-right-radius: ${BEND_PX}px;
@@ -458,12 +536,54 @@ const RulePiece = styled.div`
   position: fixed;
   z-index: calc(var(--z-sticky) + 1);
   pointer-events: none;
+  @media (prefers-reduced-motion: no-preference) {
+    transition:
+      left var(--duration-base) var(--ease-standard),
+      width var(--duration-base) var(--ease-standard);
+  }
+`;
+
+/*
+ * The one control over the pane's position: an arrow on the rule, at its top,
+ * in the margin the screen keeps between the rule and the tiles. It rides the
+ * rule as the pane slides, so it is in the same place relative to the line
+ * whether the pane is in or out.
+ */
+const ModePane__Arrow = styled.button`
+  position: fixed;
+  top: ${BEND_PX + 2}px;
+  left: var(--mode-pane-width);
+  z-index: calc(var(--z-sticky) + 2);
+  width: calc(var(--gutter-screen) - 4px);
+  min-width: 14px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 0 var(--radius-regular) var(--radius-regular) 0;
+  background: transparent;
+  color: var(--mode-rule);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-flush);
+  cursor: pointer;
+  opacity: 0.7;
+  &:hover,
+  &:focus-visible {
+    opacity: 1;
+    background: var(--color-surface-raised);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 1px;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    transition: left var(--duration-base) var(--ease-standard);
+  }
 `;
 
 const ModePane__RuleTop = styled(RulePiece)`
   top: 0;
   left: 0;
-  width: calc(var(--mode-pane-width) - ${BEND_PX}px);
+  width: max(0px, calc(var(--mode-pane-width) - ${BEND_PX}px));
   height: ${RULE_PX}px;
   background: var(--mode-rule);
 `;
@@ -519,12 +639,14 @@ const ModePane__RuleFoot = styled(RulePiece)`
 `;
 
 const ModePane__Foot = styled.div`
-  --color-accent-fg: var(--mode-rule);
   position: fixed;
   left: var(--mode-pane-width);
   right: 0;
   bottom: 0;
   z-index: var(--z-sticky);
+  @media (prefers-reduced-motion: no-preference) {
+    transition: left var(--duration-base) var(--ease-standard);
+  }
   height: ${TIMELINE_HEIGHT_PX - RULE_PX}px;
   display: flex;
   align-items: center;
@@ -537,11 +659,6 @@ const ModePane__Foot = styled.div`
 
 /** A mode with a Timeline and no pane: the Timeline across the bottom of the screen, under the mode line. */
 const ModePane__Bar = styled.div`
-  --mode-rule: var(--color-info-mark);
-  &[data-mode="default"],
-  &[data-mode="replay"] {
-    --mode-rule: var(--color-go-mark);
-  }
   position: fixed;
   left: 0;
   right: 0;
@@ -559,7 +676,6 @@ const ModePane__BarRule = styled.div`
 `;
 
 const ModePane__BarFoot = styled.div`
-  --color-accent-fg: var(--mode-rule);
   display: flex;
   align-items: center;
   & > * {
@@ -569,7 +685,6 @@ const ModePane__BarFoot = styled.div`
 `;
 
 const ModePane__SheetFoot = styled.div`
-  --color-accent-fg: var(--mode-rule);
   flex: none;
   border-top: 1px solid var(--color-border-strong);
 `;
@@ -636,11 +751,6 @@ const ModePane__Status = styled.span`
 `;
 
 const ModePane__Sheet = styled.div`
-  --mode-rule: var(--color-info-mark);
-  &[data-mode="default"],
-  &[data-mode="replay"] {
-    --mode-rule: var(--color-go-mark);
-  }
   position: fixed;
   left: 0;
   right: 0;

@@ -89,6 +89,8 @@ const OMITTED_WHEN_NULL = new Set([
   "Meta.quality",
   // And this one: an event or a command reply is not a recorded sample, so it names none.
   "Meta.sampleId",
+  // And this one, on null: a frame of the live game names no mode.
+  "Meta.mode",
   /* EnvelopeCodec's CommandAccepted writer guards both on HasValue: only a
      command held for store-and-forward carries them. */
   "CommandAccepted.predictedReplyUt",

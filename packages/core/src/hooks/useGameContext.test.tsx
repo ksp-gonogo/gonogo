@@ -240,11 +240,11 @@ describe("useGameContext: mode follows the scene and the seat", () => {
   });
 
   it("is never design at the pilot seat", async () => {
-    expect(await modeIn("Editor", "pilot")).toBe("default");
+    expect(await modeIn("Editor", "pilot")).toBe("live");
   });
 
-  it("is default in the flight scene and at the space centre", async () => {
-    expect(await modeIn("Flight", "main")).toBe("default");
-    expect(await modeIn("SpaceCenter", "main")).toBe("default");
+  it("is live in the flight scene and at the space centre", async () => {
+    expect(await modeIn("Flight", "main")).toBe("live");
+    expect(await modeIn("SpaceCenter", "main")).toBe("live");
   });
 });
