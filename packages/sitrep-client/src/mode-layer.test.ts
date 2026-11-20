@@ -1,3 +1,4 @@
+import { readingSource } from "@ksp-gonogo/sitrep-sdk";
 import { overlayCovers } from "@ksp-gonogo/sitrep-sdk/spine";
 import { describe, expect, it } from "vitest";
 import { buildModeLayer, missingTopicField, modeFrames } from "./mode-layer";
@@ -84,7 +85,7 @@ describe("a mode's store", () => {
 
   it("says which mode supplied the reading and that it is modelled", () => {
     const reading = readAt(1500);
-    expect("from" in reading ? reading.from : undefined).toEqual({
+    expect(readingSource(reading)).toEqual({
       mode: "replay",
       modelled: false,
     });

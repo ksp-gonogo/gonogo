@@ -408,9 +408,9 @@ export type TopicReading<Payload> = TopicCurrency<
 
 /**
  * The mode a reading was supplied by, and whether its value was worked out by
- * a model. Present on a reading the dashboard's mode supplied, such as a
- * recorded altitude in a replay, and absent on a reading of the live game. Useful for marking a figure the operator should not take for the
- * craft's own. Read with {@link isLive}.
+ * a model. Returned by {@link readingSource} for a reading the dashboard's
+ * mode supplied, such as a recorded altitude in a replay. Useful for marking a
+ * figure the operator should not take for the craft's own.
  *
  * @category Reading telemetry
  */
@@ -422,14 +422,33 @@ export interface ReadingFrom {
 }
 
 /**
+ * The mode that supplied a reading, or `undefined` for a reading of the live
+ * game. Useful for saying beside a figure that it is a recording's or a
+ * prediction's. Takes any reading a read hook returns.
+ *
+ * @category Reading telemetry
+ */
+export function readingSource(reading: object): ReadingFrom | undefined {
+  /*
+   * Carried on the reading and read here, and not a member of the reading's
+   * type: a member added to that type would be a change for every reader of
+   * it. Asked for by `in` first, since a Topic reading answers any other name
+   * as one of its payload's fields.
+   */
+  return "from" in reading
+    ? (reading as { from?: ReadingFrom }).from
+    : undefined;
+}
+
+/**
  * Whether a reading is of the live game: true unless the dashboard's mode
  * supplied it. Useful for holding back a control that acts on the craft while
  * the figures beside it are a prediction or a recording.
  *
  * @category Reading telemetry
  */
-export function isLive(reading: { from?: ReadingFrom }): boolean {
-  return reading.from === undefined;
+export function isLive(reading: object): boolean {
+  return readingSource(reading) === undefined;
 }
 
 /**
@@ -467,8 +486,6 @@ export type TopicCurrency<Payload, ReckoningShape = unknown> =
       reckoning: { readonly status: "none" };
       /** When the game confirmed there is no value. */
       atUt: Value<"ut">;
-      /** The mode that supplied the reading. Absent when it is of the live game. */
-      from?: ReadingFrom;
     }
   | {
       /** The newest value that could have reached the operator, however old it is under signal delay. */
@@ -479,8 +496,6 @@ export type TopicCurrency<Payload, ReckoningShape = unknown> =
       atUt: Value<"ut">;
       /** What a forward model says the value is now. */
       reckoning: ReckoningShape;
-      /** The mode that supplied the reading. Absent when it is of the live game. */
-      from?: ReadingFrom;
     }
   | {
       /** Updates stopped arriving, so `value` is the last one received and `grade` says why. */
@@ -493,8 +508,6 @@ export type TopicCurrency<Payload, ReckoningShape = unknown> =
       grade: HeldGrade;
       /** What a forward model says the value is now. */
       reckoning: ReckoningShape;
-      /** The mode that supplied the reading. Absent when it is of the live game. */
-      from?: ReadingFrom;
     };
 
 /**

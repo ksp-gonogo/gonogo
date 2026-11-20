@@ -1120,21 +1120,6 @@ export class TelemetryClient {
   }
 
   /**
-   * The newest frame held of every Topic something is subscribed to, each
-   * with the `Meta` it arrived with. Useful for starting a recording from the
-   * state the stream is in, since a Topic the mod sends only on change may
-   * not be sent again while the recording runs. Used by {@link StreamRecorder}.
-   */
-  heldFrames(): StreamData<unknown>[] {
-    return [...this.lastPoints].map(([topic, point]) => ({
-      type: "stream-data",
-      topic,
-      payload: point.payload,
-      meta: point.meta,
-    }));
-  }
-
-  /**
    * Feed this client's raw `stream-data` wire frames into `store`: from
    * this call on, every future `stream-data`
    * message is also delivered to `store.ingest(topic, point)`, in addition
@@ -2655,4 +2640,21 @@ export class TelemetryClient {
       console.error("TelemetryClient: subscriber callback threw", error);
     }
   }
+}
+
+/**
+ * The newest frame `client` holds of every Topic something is subscribed to,
+ * each with the `Meta` it arrived with. Useful for starting a recording from
+ * the state the stream is in, since a Topic the mod sends only on change may
+ * not be sent again while the recording runs. Used by {@link StreamRecorder}.
+ */
+export function heldFrames(client: TelemetryClient): StreamData<unknown>[] {
+  /* A function beside the class and not a member of it: a member added to a published class is one more thing every stand-in for it must carry. */
+  // biome-ignore lint/complexity/useLiteralKeys: reads the class's own private state from its own module
+  return [...client["lastPoints"]].map(([topic, point]) => ({
+    type: "stream-data",
+    topic,
+    payload: point.payload,
+    meta: point.meta,
+  }));
 }

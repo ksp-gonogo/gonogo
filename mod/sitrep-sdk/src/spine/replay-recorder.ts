@@ -1,6 +1,6 @@
 import { channelKindOf } from "../channel-tags";
 import { getAllKnownTopicIds } from "../topics";
-import type { TelemetryClient } from "./client";
+import { heldFrames, type TelemetryClient } from "./client";
 import type { ReplayFixture } from "./replay-transport";
 
 export interface StreamRecorderOptions {
@@ -104,7 +104,7 @@ export class StreamRecorder {
     this.observedTopics.clear();
     this.latestValidAt = 0;
 
-    for (const held of this.client.heldFrames()) {
+    for (const held of heldFrames(this.client)) {
       // A Topic of events holds something that happened, not a state the stream is in: its newest frame is an earlier flight's ending, say.
       if (channelKindOf(held.topic) === "event") continue;
       this.observedTopics.add(held.topic);

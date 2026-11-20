@@ -4,6 +4,8 @@ import {
   onModeLayerChange,
 } from "@ksp-gonogo/sitrep-client";
 import {
+  heldFrames,
+  isWorldTopicFor,
   type TelemetryOverlay,
   TelemetryOverlayProvider,
   useModeState,
@@ -61,7 +63,10 @@ export function ModeLayerProvider({ children }: { children: ReactNode }) {
         ? buildModeLayer(
             layer,
             client && store
-              ? { isWorld: store.isWorldTopic, held: client.heldFrames() }
+              ? {
+                  isWorld: (topic: string) => isWorldTopicFor(store, topic),
+                  held: heldFrames(client),
+                }
               : undefined,
           )
         : undefined,

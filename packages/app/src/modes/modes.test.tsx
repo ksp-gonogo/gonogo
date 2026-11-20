@@ -2,6 +2,7 @@ import { type ModeLayer, setModeLayer } from "@ksp-gonogo/sitrep-client";
 import {
   type ModeId,
   Quality,
+  readingSource,
   registerMode,
   registerModeSource,
   Staleness,
@@ -145,7 +146,7 @@ const identity = {
 function Tiles() {
   const reading = useTelemetry("vessel.orbit");
   const orbit = stillTrue(reading, undefined);
-  const from = "from" in reading ? reading.from : undefined;
+  const from = readingSource(reading);
   const craft = stillTrue(useTelemetry("vessel.identity"), undefined);
   return (
     <>

@@ -2897,14 +2897,6 @@ export class TimelineStore {
     };
   }
 
-  /**
-   * Whether `topic` is about the game's world or the home command and not
-   * about a craft, by the roles the mod stated when it has stated any. See
-   * {@link isWorldTopic}.
-   */
-  readonly isWorldTopic = (topic: string): boolean =>
-    isWorldTopic(topic, this.declaredRoles);
-
   /** A whole declared topic's lane, by the roles the mod stated when it has stated any. */
   private readonly declaredLane = (topic: string): DelayLane =>
     delayLaneOf(topic, this.declaredRoles);
@@ -4679,4 +4671,15 @@ export class TimelineStore {
         ?.scaleMaxPoints(this.topicRates.get(topic) ?? 1);
     }
   }
+}
+
+/**
+ * Whether `topic` is about the game's world or the home command and not about
+ * a craft, by the roles the mod has stated to `store` when it has stated any.
+ * See {@link isWorldTopic}.
+ */
+export function isWorldTopicFor(store: TimelineStore, topic: string): boolean {
+  /* A function beside the class and not a member of it: a member added to a published class is one more thing every stand-in for it must carry. */
+  // biome-ignore lint/complexity/useLiteralKeys: reads the class's own private state from its own module
+  return isWorldTopic(topic, store["declaredRoles"]);
 }

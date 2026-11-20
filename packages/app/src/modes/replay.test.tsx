@@ -14,6 +14,7 @@ import { type ModeLayer, setModeLayer } from "@ksp-gonogo/sitrep-client";
 import {
   getModes,
   Quality,
+  readingSource,
   registerMode,
   Staleness,
   stillTrue,
@@ -126,6 +127,14 @@ const replay = (flight: string, atUt: number | undefined) => ({
 });
 
 let said = orbitFrame.meta.validAt;
+function parsed<T extends object>(raw: string): T {
+  const value: unknown = JSON.parse(raw);
+  if (typeof value !== "object" || value === null) {
+    throw new Error(`not a JSON object: ${raw.slice(0, 64)}`);
+  }
+  return value as T;
+}
+
 function say(
   fixture: ReturnType<typeof setupStreamFixture>,
   state: unknown,
@@ -137,7 +146,7 @@ function say(
 function Tiles() {
   const reading = useTelemetry("vessel.orbit");
   const sma = stillTrue(reading, undefined)?.sma;
-  const from = "from" in reading ? reading.from : undefined;
+  const from = readingSource(reading);
   const name = stillTrue(useTelemetry("vessel.identity"), undefined)?.name;
   return (
     <>
@@ -264,7 +273,7 @@ describe("a recorded flight played back as a mode", () => {
     );
     act(() => say(host, replay(flight, undefined)));
     await waitFor(() => expect(sent.at(-1)?.frames.length).toBe(5));
-    const layer = JSON.parse(JSON.stringify(sent.at(-1))) as ModeLayer;
+    const layer = parsed<ModeLayer>(JSON.stringify(sent.at(-1)));
     hostView.unmount();
     clearRegistry();
 
