@@ -1,8 +1,16 @@
 import type { ModeTimeline } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { IconButton, Select, Slider, writeQuantity } from "@ksp-gonogo/ui-kit";
+import { useEvents } from "@ksp-gonogo/sitrep-sdk/spine";
+import {
+  IconButton,
+  Select,
+  Slider,
+  Tooltip,
+  writeQuantity,
+} from "@ksp-gonogo/ui-kit";
 import {
   type ReactNode,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -78,27 +86,7 @@ export function Timeline({
       ) : null}
       <Timeline__Now aria-live="off">{clock(at)}</Timeline__Now>
       <Timeline__Track data-track>
-        <Slider
-          aria-label="Timeline"
-          min={start}
-          max={end}
-          step={0.1}
-          value={at}
-          onChange={(e) => timeline.seek(Number(e.currentTarget.value))}
-        />
-        {(timeline.marks && timeline.marks.length > 0) || notice ? (
-          <Timeline__Under>
-            {timeline.marks && timeline.marks.length > 0 ? (
-              <Marks
-                marks={timeline.marks}
-                start={start}
-                span={span}
-                onSeek={timeline.seek}
-              />
-            ) : null}
-            {notice ? <Timeline__Notice>{notice}</Timeline__Notice> : null}
-          </Timeline__Under>
-        ) : null}
+        <Events timeline={timeline} span={span} notice={notice} />
       </Timeline__Track>
       <Timeline__End>{clock(end)}</Timeline__End>
       {playback ? (
@@ -114,14 +102,15 @@ export function Timeline({
               </option>
             ))}
           </Timeline__Rate>
-          <IconButton
-            type="button"
-            aria-label={`Exit ${subject} and return to live data`}
-            title={`Exit ${subject}`}
-            onClick={playback.exit}
-          >
-            ✕
-          </IconButton>
+          <Tooltip text={`Exit ${subject}`}>
+            <IconButton
+              type="button"
+              aria-label={`Exit ${subject} and return to live data`}
+              onClick={playback.exit}
+            >
+              ✕
+            </IconButton>
+          </Tooltip>
         </>
       ) : null}
       {trailing}
@@ -130,33 +119,69 @@ export function Timeline({
 }
 
 const MARK_GAP_PX = 4;
+/** How far an event may fall from a mark of the same name and still be that mark's event, in seconds. */
+const SAME_EVENT_SECONDS = 5;
 /** The height the leaders have between the track and the labels. */
 const LEADER_PX = 9;
+/** The width of the slider's thumb, whose centre is the moment the slider shows: it travels the track less half of this at each end. */
+const THUMB_PX = 16;
 
 /**
- * The Timeline's marks: a label for each, joined by a leader to its moment on
- * the track. Labels that fall close together are moved apart so each can be
- * read and pressed, and each still seeks to its own moment.
+ * The Timeline's slider with its events: the moments the mode marks and each
+ * stage the craft fired in the Timeline's stretch, the same events Ground
+ * Track ticks. Each is a short bar across the track that says what happened
+ * on hover or focus and moves the Timeline to its moment when pressed. Each
+ * is also labelled under the track while every label fits there.
  */
-function Marks({
-  marks,
-  start,
+function Events({
+  timeline,
   span,
-  onSeek,
+  notice,
 }: {
-  marks: NonNullable<ModeTimeline["marks"]>;
-  start: number;
+  timeline: ModeTimeline;
   span: number;
-  onSeek: (ut: number) => void;
+  notice?: ReactNode;
 }) {
+  const { start, end, at, marks } = timeline;
+  const id = useId();
+  const happened = useEvents(start, end);
+  /*
+   * The list is the same list for as long as it holds the same events: the
+   * marks and the events arrive as new arrays with each render, and a list
+   * that changed with them would have the labels measured again every time.
+   */
+  const seen = new Set<string>();
+  const own = new Set(marks ?? []);
+  const found = [...(marks ?? []), ...happened]
+    .filter((e) => {
+      // A mode's marks are among the events while the mod holds its timeline, so each is taken once.
+      const key = `${e.ut}:${e.label}`;
+      if (e.ut < start || e.ut > end || seen.has(key)) return false;
+      // A stage this timeline marks itself is that mark's event, though the craft's sample of it comes a moment later.
+      if (
+        !own.has(e) &&
+        [...own].some(
+          (m) =>
+            m.label === e.label && Math.abs(m.ut - e.ut) <= SAME_EVENT_SECONDS,
+        )
+      ) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => a.ut - b.ut);
+  const same = [...seen].sort().join("\n");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `same` names every event in `found`
+  const events = useMemo(() => found, [same]);
   const row = useRef<HTMLDivElement>(null);
   const [placed, setPlaced] = useState<
-    readonly { left: number; centre: number; at: number }[] | undefined
+    | {
+        fits: boolean;
+        labels: readonly { left: number; centre: number; at: number }[];
+      }
+    | undefined
   >(undefined);
-  const ordered = useMemo(
-    () => [...marks].sort((a, b) => a.ut - b.ut),
-    [marks],
-  );
   useLayoutEffect(() => {
     const el = row.current;
     if (!el) return;
@@ -165,19 +190,28 @@ function Marks({
       const widths = Array.from(
         el.querySelectorAll<HTMLElement>("[data-mark]"),
       ).map((l) => l.offsetWidth);
-      const moments = ordered.map((m) => ((m.ut - start) / span) * total);
-      const next = layoutMarks(moments, widths, total, MARK_GAP_PX).map(
+      const moments = events.map(
+        (e) => THUMB_PX / 2 + ((e.ut - start) / span) * (total - THUMB_PX),
+      );
+      const needed =
+        widths.reduce((sum, w) => sum + w, 0) +
+        MARK_GAP_PX * Math.max(widths.length - 1, 0);
+      const labels = layoutMarks(moments, widths, total, MARK_GAP_PX).map(
         (left, i) => ({
           left,
           centre: left + (widths[i] ?? 0) / 2,
           at: moments[i] ?? 0,
         }),
       );
+      const fits = needed <= total;
       setPlaced((prev) =>
-        prev?.length === next.length &&
-        prev.every((v, i) => v.left === next[i]?.left && v.at === next[i]?.at)
+        prev?.fits === fits &&
+        prev.labels.length === labels.length &&
+        prev.labels.every(
+          (v, i) => v.left === labels[i]?.left && v.at === labels[i]?.at,
+        )
           ? prev
-          : next,
+          : { fits, labels },
       );
     };
     measure();
@@ -187,42 +221,84 @@ function Marks({
         : new ResizeObserver(measure);
     observer?.observe(el);
     return () => observer?.disconnect();
-  }, [ordered, start, span]);
+  }, [events, start, span]);
+  const fits = placed?.fits ?? true;
   return (
-    <Timeline__Marks ref={row} role="group" aria-label="Marks">
-      {/* A leader from each mark's own moment on the track to its label, so a label moved aside still reads as that moment's. */}
-      {placed ? (
-        <Timeline__Leaders aria-hidden>
-          {placed.map((p, i) => (
-            <line
-              key={`${ordered[i]?.label}-${ordered[i]?.ut}`}
-              x1={p.at}
-              y1={0}
-              x2={p.centre}
-              y2={LEADER_PX}
+    <>
+      <Timeline__Slider>
+        <Slider
+          aria-label="Timeline"
+          min={start}
+          max={end}
+          step={0.1}
+          value={at}
+          onChange={(e) => timeline.seek(Number(e.currentTarget.value))}
+        />
+        {events.map((event, i) => (
+          <Tooltip
+            key={`${event.ut}:${event.label}`}
+            text={event.label}
+            announce={false}
+          >
+            <Timeline__Event
+              type="button"
+              id={`${id}-${i}`}
+              aria-label={event.label}
+              data-timeline-event={event.label}
+              style={{
+                left: `calc(${THUMB_PX / 2}px + (100% - ${THUMB_PX}px) * ${(event.ut - start) / span})`,
+              }}
+              onClick={() => timeline.seek(event.ut)}
             />
-          ))}
-        </Timeline__Leaders>
+          </Tooltip>
+        ))}
+      </Timeline__Slider>
+      {events.length > 0 || notice ? (
+        <Timeline__Under>
+          {events.length > 0 ? (
+            <Timeline__Marks
+              ref={row}
+              data-fits={fits}
+              style={fits ? undefined : { visibility: "hidden" }}
+            >
+              {/* A leader from each event's own moment on the track to its label, so a label moved aside still reads as that moment's. */}
+              {placed ? (
+                <Timeline__Leaders aria-hidden>
+                  {placed.labels.map((p, i) => (
+                    <line
+                      key={`${events[i]?.label}-${events[i]?.ut}`}
+                      x1={p.at}
+                      y1={0}
+                      x2={p.centre}
+                      y2={LEADER_PX}
+                    />
+                  ))}
+                </Timeline__Leaders>
+              ) : null}
+              {events.map((event, i) => (
+                // Pressing a label presses its event's bar on the track, which is the control.
+                <Timeline__Mark
+                  key={`${event.label}-${event.ut}`}
+                  data-mark
+                  htmlFor={`${id}-${i}`}
+                  style={
+                    placed?.labels[i] === undefined
+                      ? {
+                          left: `${((event.ut - start) / span) * 100}%`,
+                          transform: "translateX(-50%)",
+                        }
+                      : { left: placed.labels[i].left }
+                  }
+                >
+                  {event.label}
+                </Timeline__Mark>
+              ))}
+            </Timeline__Marks>
+          ) : null}
+          {notice ? <Timeline__Notice>{notice}</Timeline__Notice> : null}
+        </Timeline__Under>
       ) : null}
-      {ordered.map((m, i) => (
-        <Timeline__Mark
-          key={`${m.label}-${m.ut}`}
-          data-mark
-          type="button"
-          style={
-            placed?.[i] === undefined
-              ? {
-                  left: `${((m.ut - start) / span) * 100}%`,
-                  transform: "translateX(-50%)",
-                }
-              : { left: placed[i].left }
-          }
-          onClick={() => onSeek(m.ut)}
-        >
-          {m.label}
-        </Timeline__Mark>
-      ))}
-    </Timeline__Marks>
+    </>
   );
 }
 
@@ -275,6 +351,38 @@ const Timeline__Track = styled.div`
   gap: var(--gap-related-dense);
 `;
 
+const Timeline__Slider = styled.div`
+  position: relative;
+  display: flex;
+`;
+
+/* The bar is drawn inside a target wide enough to press, and stands across the slider's track. */
+const Timeline__Event = styled.button`
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 20px;
+  transform: translate(-50%, -50%);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-regular);
+  background: none;
+  cursor: pointer;
+  &::before {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 2px;
+    width: 2px;
+    height: 16px;
+    background: var(--color-text-primary);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+`;
+
 const Timeline__Marks = styled.div`
   position: relative;
   height: calc(${LEADER_PX}px + 1.6em);
@@ -306,7 +414,7 @@ const Timeline__Leaders = styled.svg`
   }
 `;
 
-const Timeline__Mark = styled.button`
+const Timeline__Mark = styled.label`
   position: absolute;
   top: ${LEADER_PX}px;
   white-space: nowrap;
@@ -316,10 +424,7 @@ const Timeline__Mark = styled.button`
   color: var(--color-text-muted);
   font-size: var(--font-size-2xs);
   cursor: pointer;
-  &:focus-visible {
-    outline: 2px solid var(--color-focus);
-    outline-offset: 2px;
-  }
+  padding: var(--inset-chip);
 `;
 
 const Timeline__Rate = styled(Select)`

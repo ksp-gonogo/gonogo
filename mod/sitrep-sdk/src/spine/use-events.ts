@@ -16,15 +16,12 @@ export interface StreamEvent {
 }
 
 const STRUCTURE = "vessel.structure";
+/** How far a stage change read from the craft may fall from a mark of the same stage and still be that mark's event, in seconds. */
+const MARKED_WITHIN_SECONDS = 5;
 
-/* A sample read straight off the store: a decoded field is a quantity, an undecoded one a bare number. */
+/* A stage number is a plain number on the wire and in the store alike. */
 function count(v: unknown): number | undefined {
-  if (typeof v === "number") return v;
-  const m =
-    v !== null && typeof v === "object"
-      ? (v as { magnitude?: unknown }).magnitude
-      : undefined;
-  return typeof m === "number" ? m : undefined;
+  return typeof v === "number" ? v : undefined;
 }
 
 /**
@@ -75,7 +72,14 @@ export function useEvents(
       const stage = count(point.payload?.currentStage);
       if (stage === undefined) continue;
       if (last !== undefined && stage !== last && within(point.validAt)) {
-        events.push({ ut: point.validAt, label: `Stage ${stage}` });
+        const label = `Stage ${stage}`;
+        // A mode that marks its own stages has said this one already, at the moment it worked out, which the craft's next sample follows.
+        const marked = (marks ?? []).some(
+          (mark) =>
+            mark.label === label &&
+            Math.abs(mark.ut - point.validAt) <= MARKED_WITHIN_SECONDS,
+        );
+        if (!marked) events.push({ ut: point.validAt, label });
       }
       last = stage;
     }

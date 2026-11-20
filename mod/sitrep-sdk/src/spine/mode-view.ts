@@ -305,16 +305,25 @@ export function useModeTimeline(): ModeTimeline | undefined {
           return;
         }
         // One command either way, so a rate chosen on a held timeline never sets it playing.
-        const playing = view.shared?.playing === true;
-        sendModeCommand(
-          client,
-          playing ? "mode.timeline.play" : "mode.timeline.pause",
-          { mode, rate },
-        );
+        if (view.shared?.playing === true) {
+          sendModeCommand(client, "mode.timeline.play", { mode, rate });
+          return;
+        }
+        sendModeCommand(client, "mode.timeline.pause", { mode, rate });
       },
       exit: () => sendModeCommand(client, "mode.exit", { mode }),
     };
   }, [client, mode]);
+
+  // The same array for as long as the mod states the same timeline, so a reader that keys work on the marks does it once.
+  const marks = useMemo(
+    () =>
+      (timeline?.marks ?? []).map((m) => ({
+        ut: Number(m.ut),
+        label: m.label,
+      })),
+    [timeline],
+  );
 
   if (!timeline || !anchor) return undefined;
   const at = positionOf(anchor, now());
@@ -324,7 +333,7 @@ export function useModeTimeline(): ModeTimeline | undefined {
     end,
     at,
     seek: controls.seek,
-    marks: timeline.marks.map((m) => ({ ut: Number(m.ut), label: m.label })),
+    marks,
     ...(timeline.launchUt === null || timeline.launchUt === undefined
       ? {}
       : { launchUt: Number(timeline.launchUt) }),
