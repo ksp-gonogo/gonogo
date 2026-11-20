@@ -26,7 +26,7 @@ import {
 } from "vitest";
 import { ANALYTICS_CONSENT_KEY } from "../analytics/AnalyticsConsentService";
 import { markFirstRunSetupSeen } from "../firstRun/firstRunFlag";
-import { HostRole } from "../hosting/HostRole";
+import { HostRole, setReleaseSettleForTests } from "../hosting/HostRole";
 import { peerHostService } from "../peer/PeerHostService";
 import {
   checkLatestRelease,
@@ -228,6 +228,14 @@ async function untilHostingUnder(code: string): Promise<void> {
   });
 }
 
+/** Let a joined screen's wait to claim a freed role pass, leaving act between ticks so the screen it hosts mounts. */
+async function pastReleaseSettle(): Promise<void> {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 60));
+  });
+  await settle();
+}
+
 /**
  * Wait inside act for the peer host to reach `peerId`, since the broker's
  * answer lands on a later microtask and updates the mounted screen.
@@ -263,6 +271,7 @@ function renderLocal(
 
 describe("a local screen", () => {
   beforeEach(() => {
+    setReleaseSettleForTests(20);
     clearRegistry();
     localStorage.clear();
     localStorage.setItem(ANALYTICS_CONSENT_KEY, "disabled");
@@ -277,6 +286,7 @@ describe("a local screen", () => {
   });
 
   afterEach(() => {
+    setReleaseSettleForTests();
     // The host is a shared service, and stopping it updates the screen still mounted on it.
     act(() => peerHostService.stop());
     peerRegistry.clear();
@@ -340,6 +350,7 @@ describe("a local screen", () => {
 
     other.release();
     await settle();
+    await pastReleaseSettle();
     await untilHostingUnder(mod.code);
     expect(sockets.length).toBeGreaterThan(0);
     other.dispose();
@@ -383,6 +394,7 @@ describe("a local screen", () => {
 
     other.release();
     await settle();
+    await pastReleaseSettle();
 
     await untilHostingUnder(mod.code);
     expect(

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FakeHostMod } from "../test/fakeHostMod";
-import { HostRole } from "./HostRole";
+import { HostRole, RELEASE_SETTLE_MS } from "./HostRole";
 
 async function settle(): Promise<void> {
   for (let i = 0; i < 20; i++) await Promise.resolve();
@@ -83,6 +83,7 @@ describe("a local screen's part in the host role", () => {
 
     await vi.advanceTimersByTimeAsync(16_000);
     mod.tick();
+    await vi.advanceTimersByTimeAsync(RELEASE_SETTLE_MS);
     await settle();
 
     expect(joined.role.state).toMatchObject({
@@ -101,6 +102,7 @@ describe("a local screen's part in the host role", () => {
     host.connection.close();
     await vi.advanceTimersByTimeAsync(16_000);
     mod.tick();
+    await vi.advanceTimersByTimeAsync(RELEASE_SETTLE_MS);
     await settle();
     expect(other.role.state.kind).toBe("hosting");
 
@@ -124,12 +126,15 @@ describe("a local screen's part in the host role", () => {
     expect(mod.sent.at(-1)?.command).toBe("host.claim");
   });
 
-  it("frees the role at once on release, so the next screen claims without waiting out the grace", async () => {
+  it("frees the role at once on release, and a joined screen claims it once the settle has passed", async () => {
     const mod = new FakeHostMod();
     const host = await open(mod, "tab-a");
     const joined = await open(mod, "tab-b");
 
     host.role.release();
+    await settle();
+    expect(joined.role.state.kind).toBe("joined");
+    await vi.advanceTimersByTimeAsync(RELEASE_SETTLE_MS);
     await settle();
 
     expect(joined.role.state).toMatchObject({
@@ -137,6 +142,23 @@ describe("a local screen's part in the host role", () => {
       takeover: true,
     });
     expect(mod.sent.map((s) => s.command)).toContain("host.release");
+  });
+
+  it("keeps the host with the same token when a reload the browser did not report frees the role", async () => {
+    const mod = new FakeHostMod();
+    const host = await open(mod, "tab-a");
+    const joined = await open(mod, "tab-b");
+
+    host.role.release();
+    host.connection.close();
+    host.role.dispose();
+    await vi.advanceTimersByTimeAsync(RELEASE_SETTLE_MS - 1_000);
+    const reloaded = await open(mod, "tab-a");
+    await vi.advanceTimersByTimeAsync(RELEASE_SETTLE_MS * 2);
+    await settle();
+
+    expect(reloaded.role.state.kind).toBe("hosting");
+    expect(joined.role.state.kind).toBe("joined");
   });
 
   it("claims at once when the holder's connection has closed, and says it took over from that host", async () => {

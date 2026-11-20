@@ -47,6 +47,22 @@ function tabMemory(): Storage | undefined {
   }
 }
 
+/**
+ * How long a joined screen waits before claiming a role it saw freed. A page
+ * that is going away cannot hold a timer of its own, so the wait is spent here:
+ * a reload the browser did not report as one frees the role at once, and the
+ * reloaded page, which claims with its own token as soon as it has the record,
+ * needs this long to get there first.
+ */
+export const RELEASE_SETTLE_MS = 4_000;
+
+let settleMs = RELEASE_SETTLE_MS;
+
+/** Shorten (or restore, with no argument) the wait before a joined screen claims a freed role, so a test need not spend it. */
+export function setReleaseSettleForTests(ms: number = RELEASE_SETTLE_MS): void {
+  settleMs = ms;
+}
+
 /** How often to claim again before the mod has said how often to heartbeat. */
 const DEFAULT_HEARTBEAT_MS = 5_000;
 
@@ -73,6 +89,7 @@ export class HostRole {
   private heartbeatMs = DEFAULT_HEARTBEAT_MS;
   private heartbeatTimer: ReturnType<typeof setInterval> | undefined;
   private retryTimer: ReturnType<typeof setTimeout> | undefined;
+  private settleTimer: ReturnType<typeof setTimeout> | undefined;
   private current: HostRoleState = WAITING;
   private readonly listeners = new Set<() => void>();
   private disposed = false;
@@ -165,6 +182,7 @@ export class HostRole {
     this.disposed = true;
     this.stopHeartbeat();
     if (this.retryTimer !== undefined) clearTimeout(this.retryTimer);
+    if (this.settleTimer !== undefined) clearTimeout(this.settleTimer);
     this.detachRecord?.();
     this.listeners.clear();
   }
@@ -186,14 +204,44 @@ export class HostRole {
   private onRecord(payload: unknown): void {
     const record = readHostRecord(payload);
     if (!record) return;
+    const wasHeld = this.record?.held === true;
     this.record = record;
     if (this.holds && record.held && record.holderId !== this.ownId) {
       this.loseRole();
     }
-    /* A holder that reads the role free was away past its grace and claims it
-       back, hosting on until the mod answers either way. */
-    if (!this.answered || !record.held) this.claim();
+    if (record.held) this.stopSettling();
+    this.claimFreedRole(record, wasHeld);
     this.publish();
+  }
+
+  /* A holder that reads the role free was away past its grace and claims it
+     back, hosting on until the mod answers either way. A joined screen that
+     saw the role freed waits out the settle first. */
+  private claimFreedRole(record: HostRecordView, wasHeld: boolean): void {
+    if (!this.answered || (!record.held && this.holds)) {
+      this.claim();
+      return;
+    }
+    if (record.held) return;
+    if (wasHeld) {
+      this.settleThenClaim();
+      return;
+    }
+    if (this.settleTimer === undefined) this.claim();
+  }
+
+  private settleThenClaim(): void {
+    if (this.settleTimer !== undefined || this.disposed) return;
+    this.settleTimer = setTimeout(() => {
+      this.settleTimer = undefined;
+      if (!this.record?.held) this.claim();
+    }, settleMs);
+  }
+
+  private stopSettling(): void {
+    if (this.settleTimer === undefined) return;
+    clearTimeout(this.settleTimer);
+    this.settleTimer = undefined;
   }
 
   private claim(): void {
