@@ -12,7 +12,7 @@ import {
   Staleness,
 } from "@ksp-gonogo/sitrep-sdk";
 import { sendModeCommand, useModeState } from "@ksp-gonogo/sitrep-sdk/spine";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 /** The part of the peer host the mode host sends through. */
 interface LayerRelay {
@@ -32,17 +32,30 @@ export function ModeHost({ relay }: { relay?: LayerRelay }) {
   const mode = state?.mode;
   const entry = state ? Number(state.entry) : undefined;
   const modelled = state?.modelled === true;
-  const inputsKey = JSON.stringify(state?.inputs ?? []);
+  // Read by the effect as they stand when it starts the source.
+  const inputsNow = useRef(state?.inputs ?? []);
+  inputsNow.current = state?.inputs ?? [];
+  const inputsKey = JSON.stringify(inputsNow.current);
+  /*
+   * The relay is read where it is used, and a relay that takes another's
+   * place is given the layer the mode has now. The source keeps running
+   * through the change: starting it again would have a prediction fly every
+   * run again.
+   */
+  const relayNow = useRef(relay);
+  const layerNow = useRef<ModeLayer | undefined>(undefined);
+  useEffect(() => {
+    relayNow.current = relay;
+    if (layerNow.current) relay?.setModeLayer(layerNow.current);
+  }, [relay]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `inputsKey` changes when what the inputs say changes, which is when the source must start again
   useEffect(() => {
     if (!client || !mode || entry === undefined || mode === "live") return;
     const source = getModeSource(mode);
     if (!source) return;
     const inputs = Object.fromEntries(
-      (JSON.parse(inputsKey) as { key: string; value: string }[]).map((i) => [
-        i.key,
-        i.value,
-      ]),
+      inputsNow.current.map((i) => [i.key, i.value]),
     );
 
     const publish = (output: ModeSourceOutput): string | undefined => {
@@ -61,7 +74,8 @@ export function ModeHost({ relay }: { relay?: LayerRelay }) {
         ],
       };
       setModeLayer(layer);
-      relay?.setModeLayer(layer);
+      layerNow.current = layer;
+      relayNow.current?.setModeLayer(layer);
       sendModeCommand(client, "mode.timeline.setRange", {
         mode,
         startUt: output.startUt,
@@ -89,9 +103,10 @@ export function ModeHost({ relay }: { relay?: LayerRelay }) {
     return () => {
       stop();
       setModeLayer(undefined);
-      relay?.setModeLayer(null);
+      layerNow.current = undefined;
+      relayNow.current?.setModeLayer(null);
     };
-  }, [client, relay, mode, entry, modelled, inputsKey]);
+  }, [client, mode, entry, modelled, inputsKey]);
 
   return null;
 }

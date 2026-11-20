@@ -42,16 +42,23 @@ const LATER = now + 1000;
 const END = now + 2000;
 const BIG = Math.round(Number(orbitFrame.payload.sma) * 2);
 const heard: boolean[] = [];
+let started = 0;
+
+function parsed<T extends object>(raw: string): T {
+  const value: unknown = JSON.parse(raw);
+  if (typeof value !== "object" || value === null) {
+    throw new Error(`not a JSON object: ${raw.slice(0, 64)}`);
+  }
+  return value as T;
+}
 
 registerModeSource(MODE, {
-  start: ({ watch, publish }) =>
-    watch("vessel.orbit", (payload, validAt, current) => {
+  start: ({ watch, publish }) => {
+    started += 1;
+    return watch("vessel.orbit", (payload, validAt, current) => {
       heard.push(current);
       if (!current || payload == null) return;
-      const orbit = JSON.parse(JSON.stringify(payload)) as Record<
-        string,
-        unknown
-      >;
+      const orbit = parsed<Record<string, unknown>>(JSON.stringify(payload));
       publish({
         startUt: validAt ?? now,
         endUt: END,
@@ -71,7 +78,8 @@ registerModeSource(MODE, {
           },
         ],
       });
-    }),
+    });
+  },
 });
 
 // How a screen presents a mode the mod declares: registered under the mode's id, with the colour it is drawn in.
@@ -246,6 +254,38 @@ describe("a mode that answers for the craft, from the hosting screen to a statio
     );
     expect(screen.getByLabelText("craft").textContent).toBe("Hopper");
     expect(sent.at(-1)).toBeNull();
+    await act(async () => {});
+  });
+
+  it("keeps the source running when the relay is replaced, and gives the new relay the layer", async () => {
+    const fixture = setupStreamFixture({ pinnedUt: now + 60 });
+    const first: (ModeLayer | null)[] = [];
+    const second: (ModeLayer | null)[] = [];
+    const host = (sent: (ModeLayer | null)[]) => (
+      <fixture.Provider>
+        <ModeHost
+          relay={{ setModeLayer: (l: ModeLayer | null) => sent.push(l) }}
+        />
+      </fixture.Provider>
+    );
+    const before = started;
+    const { rerender } = render(host(first));
+    act(() => say(fixture, flight(undefined)));
+    await waitFor(() => expect(started).toBeGreaterThan(before));
+    act(() =>
+      fixture.emit("vessel.orbit", orbitFrame.payload, { validAt: now }),
+    );
+    await waitFor(() => expect(first.at(-1)?.frames).toHaveLength(2));
+    const starts = started;
+
+    rerender(host(second));
+    expect(started).toBe(starts);
+    expect(second).toEqual([first.at(-1)]);
+    // The relay that was replaced is not told the mode ended.
+    expect(first.at(-1)).not.toBeNull();
+
+    act(() => say(fixture, live));
+    await waitFor(() => expect(second.at(-1)).toBeNull());
     await act(async () => {});
   });
 
@@ -464,7 +504,7 @@ describe("the events a widget may ask for", () => {
 });
 
 describe("what a mode's source is told about each value it watches", () => {
-  it("says a sample from before contact was lost is not current, and a fresh one is", async () => {
+  it("says which sample is held and which is fresh", async () => {
     const fixture = setupStreamFixture({ pinnedUt: now + 60 });
     const sent: (ModeLayer | null)[] = [];
     const relay = { setModeLayer: (l: ModeLayer | null) => sent.push(l) };
@@ -490,7 +530,11 @@ describe("what a mode's source is told about each value it watches", () => {
     // The source kept quiet, so the timeline the mod holds stands and the screen says what it is waiting on.
     expect(setRanges(fixture)).toEqual([]);
     expect(sent).toEqual([]);
-    expect(screen.getAllByText("Waiting for the craft")).toHaveLength(1);
+    expect(
+      screen.getAllByText("Waiting for the craft", {
+        ignore: "[data-live-region]",
+      }),
+    ).toHaveLength(1);
     expect(screen.getByRole("slider", { name: "Timeline" })).toBeTruthy();
 
     act(() =>
